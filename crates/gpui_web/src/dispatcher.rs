@@ -244,6 +244,7 @@ impl WebDispatcher {
                 .navigator()
                 .hardware_concurrency()
                 .max(MIN_BACKGROUND_THREADS as f64) as usize;
+            log::info!("Threaded wasm dispatcher enabled with {thread_count} background workers");
 
             // TODO-Wasm: Is it bad to have web workers blocking for a long time like this?
             (0..thread_count)

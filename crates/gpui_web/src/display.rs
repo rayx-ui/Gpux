@@ -85,14 +85,6 @@ impl PlatformDisplay for WebDisplay {
     }
 
     fn default_bounds(&self) -> Bounds<Pixels> {
-        let visible = self.visible_bounds();
-        let width = visible.size.width * 0.75;
-        let height = visible.size.height * 0.75;
-        let origin_x = (visible.size.width - width) / 2.0;
-        let origin_y = (visible.size.height - height) / 2.0;
-        Bounds {
-            origin: Point::new(origin_x, origin_y),
-            size: Size { width, height },
-        }
+        self.visible_bounds()
     }
 }

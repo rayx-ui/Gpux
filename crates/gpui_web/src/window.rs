@@ -73,7 +73,7 @@ pub struct WebWindow {
 impl WebWindow {
     pub fn new(
         handle: AnyWindowHandle,
-        _params: WindowParams,
+        params: WindowParams,
         context: &WgpuContext,
         browser_window: web_sys::Window,
     ) -> anyhow::Result<Self> {
@@ -87,11 +87,16 @@ impl WebWindow {
             .dyn_into()
             .map_err(|e| anyhow::anyhow!("Created element is not a canvas: {e:?}"))?;
 
-        let dpr = browser_window.device_pixel_ratio() as f32;
+        let dpr = device_pixel_ratio(&browser_window);
         let max_texture_dimension = context.device.limits().max_texture_dimension_2d;
         let has_device_pixel_support = check_device_pixel_support();
+        let initial_logical_size = initial_logical_size(&browser_window, params.bounds.size);
+        let (initial_physical_width, initial_physical_height) =
+            physical_canvas_size(initial_logical_size, dpr, max_texture_dimension);
 
         canvas.set_tab_index(-1);
+        canvas.set_width(initial_physical_width);
+        canvas.set_height(initial_physical_height);
 
         let style = canvas.style();
         style
@@ -133,8 +138,8 @@ impl WebWindow {
         input_element.focus().ok();
 
         let device_size = Size {
-            width: DevicePixels(0),
-            height: DevicePixels(0),
+            width: DevicePixels(initial_physical_width as i32),
+            height: DevicePixels(initial_physical_height as i32),
         };
 
         let renderer_config = WgpuSurfaceConfig {
@@ -149,7 +154,7 @@ impl WebWindow {
 
         let initial_bounds = Bounds {
             origin: Point::default(),
-            size: Size::default(),
+            size: initial_logical_size,
         };
 
         let mutable_state = WebWindowMutableState {
@@ -179,7 +184,7 @@ impl WebWindow {
             callbacks: RefCell::new(WebWindowCallbacks::default()),
             click_state: RefCell::new(ClickState::default()),
             pressed_button: Cell::new(None),
-            last_physical_size: Cell::new((0, 0)),
+            last_physical_size: Cell::new((initial_physical_width, initial_physical_height)),
             notify_scale: Cell::new(false),
             is_composing: Cell::new(false),
             mql_handle: RefCell::new(None),
@@ -220,29 +225,18 @@ impl WebWindow {
                 None => return,
             };
 
-            let dpr = inner.browser_window.device_pixel_ratio();
-            let dpr_f32 = dpr as f32;
+            let dpr_f32 = device_pixel_ratio(&inner.browser_window);
+            let dpr = dpr_f32 as f64;
 
-            let (physical_width, physical_height, logical_width, logical_height) =
-                if inner.has_device_pixel_support {
-                    let size: web_sys::ResizeObserverSize = entry
-                        .device_pixel_content_box_size()
-                        .get(0)
-                        .unchecked_into();
-                    let pw = size.inline_size() as u32;
-                    let ph = size.block_size() as u32;
-                    let lw = pw as f64 / dpr;
-                    let lh = ph as f64 / dpr;
-                    (pw, ph, lw as f32, lh as f32)
-                } else {
-                    // Safari fallback: use contentRect (always CSS px).
-                    let rect = entry.content_rect();
-                    let lw = rect.width() as f32;
-                    let lh = rect.height() as f32;
-                    let pw = (lw as f64 * dpr).round() as u32;
-                    let ph = (lh as f64 * dpr).round() as u32;
-                    (pw, ph, lw, lh)
-                };
+            // Use CSS content bounds as the logical size and scale explicitly by DPR.
+            // `devicePixelContentBoxSize` is not consistently physical in Chromium
+            // when Playwright emulates high-DPI, so deriving physical size here keeps
+            // the canvas backing store aligned with browser scale.
+            let rect = entry.content_rect();
+            let logical_width = rect.width() as f32;
+            let logical_height = rect.height() as f32;
+            let physical_width = (logical_width as f64 * dpr).round() as u32;
+            let physical_height = (logical_height as f64 * dpr).round() as u32;
 
             let scale_changed = inner.notify_scale.replace(false);
             let prev = inner.last_physical_size.get();
@@ -487,6 +481,61 @@ fn current_appearance(browser_window: &web_sys::Window) -> WindowAppearance {
     } else {
         WindowAppearance::Light
     }
+}
+
+fn device_pixel_ratio(browser_window: &web_sys::Window) -> f32 {
+    let dpr = browser_window.device_pixel_ratio() as f32;
+    if dpr.is_finite() && dpr > 0.0 {
+        dpr
+    } else {
+        1.0
+    }
+}
+
+fn initial_logical_size(
+    browser_window: &web_sys::Window,
+    fallback_size: Size<Pixels>,
+) -> Size<Pixels> {
+    viewport_size(browser_window).unwrap_or_else(|| {
+        if f32::from(fallback_size.width) > 0.0 && f32::from(fallback_size.height) > 0.0 {
+            fallback_size
+        } else {
+            Size {
+                width: px(1.0),
+                height: px(1.0),
+            }
+        }
+    })
+}
+
+fn viewport_size(browser_window: &web_sys::Window) -> Option<Size<Pixels>> {
+    let width = browser_window.inner_width().ok()?.as_f64()? as f32;
+    let height = browser_window.inner_height().ok()?.as_f64()? as f32;
+
+    if width.is_finite() && width > 0.0 && height.is_finite() && height > 0.0 {
+        Some(Size {
+            width: px(width),
+            height: px(height),
+        })
+    } else {
+        None
+    }
+}
+
+fn physical_canvas_size(
+    logical_size: Size<Pixels>,
+    scale_factor: f32,
+    max_texture_dimension: u32,
+) -> (u32, u32) {
+    let width = physical_canvas_axis(logical_size.width, scale_factor, max_texture_dimension);
+    let height = physical_canvas_axis(logical_size.height, scale_factor, max_texture_dimension);
+    (width, height)
+}
+
+fn physical_canvas_axis(size: Pixels, scale_factor: f32, max_texture_dimension: u32) -> u32 {
+    let physical_size = (f32::from(size) * scale_factor).round();
+    let clamped_size = physical_size.clamp(1.0, max_texture_dimension as f32);
+    clamped_size as u32
 }
 
 struct MqlHandle {
