@@ -1,0 +1,30 @@
+**/*.db
+**/*.proptest-regressions
+**/cargo-target
+**/target
+**/venv
+**/.direnv
+*.wasm
+*.xcodeproj
+.DS_Store
+.build
+.envrc
+.idea
+.netrc
+*.pyc
+.pytest_cache
+.venv
+.vscode
+node_modules/
+DerivedData/
+Packages/
+!crates/gpui_mobile/src/packages/
+!crates/gpui_mobile/src/packages/**
+xcuserdata/
+
+# Don't commit local secrets.
+.env
+.env.secret.toml
+
+# Nix build output.
+/result

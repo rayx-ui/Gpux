@@ -1,0 +1,42 @@
+[build]
+rustflags = ["-C", "symbol-mangling-version=v0", "--cfg", "tokio_unstable"]
+
+[alias]
+perf-test = [
+    "test",
+    "--profile",
+    "release-fast",
+    "--lib",
+    "--bins",
+    "--tests",
+    "--all-features",
+    "--config",
+    "target.'cfg(true)'.runner='cargo run -p perf --release'",
+    "--config",
+    "target.'cfg(true)'.rustflags=[\"--cfg\", \"perf_enabled\"]",
+]
+perf-compare = [
+    "run",
+    "--profile",
+    "release-fast",
+    "-p",
+    "perf",
+    "--config",
+    "target.'cfg(true)'.rustflags=[\"--cfg\", \"perf_enabled\"]",
+    "--",
+    "compare",
+]
+
+[target.'cfg(target_os = "windows")']
+rustflags = [
+    "--cfg",
+    "windows_slim_errors",
+    "-C",
+    "target-feature=+crt-static",
+]
+
+[env]
+MACOSX_DEPLOYMENT_TARGET = "10.15.7"
+# Android cross-checks and builds need fontconfig to resolve through dlopen
+# instead of pkg-config, because the NDK sysroot does not provide fontconfig.
+RUST_FONTCONFIG_DLOPEN = "on"
