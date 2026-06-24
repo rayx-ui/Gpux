@@ -8,7 +8,7 @@
 use std::cell::RefCell;
 use std::time::Duration;
 
-use gpui::{div, img, prelude::*, px, rgb, Animation, AnimationExt};
+use gpux::{div, img, prelude::*, px, rgb, Animation, AnimationExt};
 
 use super::{Router, BLUE, GREEN, LIGHT_CARD_BG, LIGHT_TEXT, RED, SURFACE0, TEXT, YELLOW};
 
@@ -56,7 +56,7 @@ pub fn reset_state() {
     SWIPER_STATE.with(|s| *s.borrow_mut() = SwiperState::default());
 }
 
-pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoElement {
+pub fn render(router: &Router, cx: &mut gpux::Context<Router>) -> impl IntoElement {
     let dark = router.dark_mode;
     let text_color = if dark { TEXT } else { LIGHT_TEXT };
     let _card_bg = if dark { SURFACE0 } else { LIGHT_CARD_BG };
@@ -102,7 +102,7 @@ pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoEleme
                             .child("Start Over"),
                     )
                     .on_mouse_down(
-                        gpui::MouseButton::Left,
+                        gpux::MouseButton::Left,
                         cx.listener(|_this, _, _, cx| {
                             SWIPER_STATE.with(|s| {
                                 let mut s = s.borrow_mut();
@@ -172,7 +172,7 @@ pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoEleme
         };
 
         // Picsum photo URL
-        let photo_url: gpui::SharedString = format!(
+        let photo_url: gpux::SharedString = format!(
             "https://picsum.photos/id/{}/640/840",
             profile.photo_id
         ).into();
@@ -198,7 +198,7 @@ pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoEleme
                     .child(
                         img(photo_url)
                             .size_full()
-                            .object_fit(gpui::ObjectFit::Cover)
+                            .object_fit(gpux::ObjectFit::Cover)
                             .id(format!("swiper-img-{}", idx + i)),
                     ),
             )
@@ -209,7 +209,7 @@ pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoEleme
                     .w_full()
                     .px_5()
                     .py_4()
-                    .bg(gpui::rgba(0x00000088))
+                    .bg(gpux::rgba(0x00000088))
                     .child(
                         div()
                             .flex()
@@ -246,7 +246,7 @@ pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoEleme
                 card.with_animation(
                     format!("swipe-fly-{anim_id}"),
                     Animation::new(Duration::from_millis(300))
-                        .with_easing(gpui::ease_in_out),
+                        .with_easing(gpux::ease_in_out),
                     move |el, delta| {
                         // Fly off screen: 0→400px in the swipe direction
                         let offset = delta * 400.0 * fly;
@@ -268,8 +268,8 @@ pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoEleme
         .child(stack)
         .when(!is_flying, |el| {
             el.on_mouse_down(
-                gpui::MouseButton::Left,
-                cx.listener(|_this, event: &gpui::MouseDownEvent, _window, cx| {
+                gpux::MouseButton::Left,
+                cx.listener(|_this, event: &gpux::MouseDownEvent, _window, cx| {
                     SWIPER_STATE.with(|s| {
                         let mut s = s.borrow_mut();
                         s.dragging = true;
@@ -279,7 +279,7 @@ pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoEleme
                     cx.notify();
                 }),
             )
-            .on_mouse_move(cx.listener(|_this, event: &gpui::MouseMoveEvent, _window, cx| {
+            .on_mouse_move(cx.listener(|_this, event: &gpux::MouseMoveEvent, _window, cx| {
                 SWIPER_STATE.with(|s| {
                     let mut s = s.borrow_mut();
                     if let Some(start_x) = s.drag_start_x {
@@ -289,8 +289,8 @@ pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoEleme
                 cx.notify();
             }))
             .on_mouse_up(
-                gpui::MouseButton::Left,
-                cx.listener(|_this, _event: &gpui::MouseUpEvent, _window, cx| {
+                gpux::MouseButton::Left,
+                cx.listener(|_this, _event: &gpux::MouseUpEvent, _window, cx| {
                     let should_fly = SWIPER_STATE.with(|s| {
                         let mut s = s.borrow_mut();
                         if s.dragging {
@@ -414,7 +414,7 @@ pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoEleme
 fn action_btn(
     icon: &str,
     color: u32,
-    handler: impl Fn(&gpui::MouseDownEvent, &mut gpui::Window, &mut gpui::App) + 'static,
+    handler: impl Fn(&gpux::MouseDownEvent, &mut gpux::Window, &mut gpux::App) + 'static,
 ) -> impl IntoElement {
     div()
         .flex()
@@ -430,5 +430,5 @@ fn action_btn(
                 .text_color(rgb(color))
                 .child(icon.to_string()),
         )
-        .on_mouse_down(gpui::MouseButton::Left, handler)
+        .on_mouse_down(gpux::MouseButton::Left, handler)
 }

@@ -6,7 +6,7 @@
 
 use std::cell::RefCell;
 
-use gpui::{div, prelude::*, px, rgb};
+use gpux::{div, prelude::*, px, rgb};
 
 use super::{Router, BLUE, GREEN, LIGHT_CARD_BG, LIGHT_TEXT, RED, SURFACE0, SURFACE1, TEXT};
 
@@ -47,7 +47,7 @@ pub fn dismiss_webview() -> bool {
     })
 }
 
-pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoElement {
+pub fn render(router: &Router, cx: &mut gpux::Context<Router>) -> impl IntoElement {
     let dark = router.dark_mode;
     let text_color = if dark { TEXT } else { LIGHT_TEXT };
     let card_bg = if dark { SURFACE0 } else { LIGHT_CARD_BG };
@@ -184,7 +184,7 @@ pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoEleme
                             .child("Load Custom HTML"),
                     )
                     .on_mouse_down(
-                        gpui::MouseButton::Left,
+                        gpux::MouseButton::Left,
                         cx.listener(|this, _, _, cx| {
                             let top_offset = this.safe_area.top + APP_BAR_HEIGHT;
                             let mut settings = gpui_mobile::packages::webview::WebViewSettings::default();
@@ -225,7 +225,7 @@ pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoEleme
 fn toolbar_btn(
     label: &str,
     color: u32,
-    handler: impl Fn(&gpui::MouseDownEvent, &mut gpui::Window, &mut gpui::App) + 'static,
+    handler: impl Fn(&gpux::MouseDownEvent, &mut gpux::Window, &mut gpux::App) + 'static,
 ) -> impl IntoElement {
     div()
         .flex()
@@ -239,7 +239,7 @@ fn toolbar_btn(
                 .text_color(rgb(color))
                 .child(label.to_string()),
         )
-        .on_mouse_down(gpui::MouseButton::Left, handler)
+        .on_mouse_down(gpux::MouseButton::Left, handler)
 }
 
 fn open_url_btn(
@@ -247,7 +247,7 @@ fn open_url_btn(
     url: &'static str,
     color: u32,
     router: &Router,
-    cx: &mut gpui::Context<Router>,
+    cx: &mut gpux::Context<Router>,
 ) -> impl IntoElement {
     let top_offset = router.safe_area.top + APP_BAR_HEIGHT;
     div()
@@ -266,7 +266,7 @@ fn open_url_btn(
                 .child(label.to_string()),
         )
         .on_mouse_down(
-            gpui::MouseButton::Left,
+            gpux::MouseButton::Left,
             cx.listener(move |_this, _, _, cx| {
                 // Dismiss existing
                 WEBVIEW_STATE.with(|s| {

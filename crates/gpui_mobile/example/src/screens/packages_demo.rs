@@ -2,7 +2,7 @@
 
 use std::cell::RefCell;
 
-use gpui::{div, prelude::*, px, rgb};
+use gpux::{div, prelude::*, px, rgb};
 
 use super::{Router, BLUE, GREEN, LIGHT_CARD_BG, LIGHT_DIVIDER, LIGHT_SUBTEXT, LIGHT_TEXT, MAUVE, PEACH, SURFACE0, SURFACE1, TEAL, TEXT, YELLOW};
 
@@ -31,7 +31,7 @@ thread_local! {
 }
 
 /// Render the Packages demo screen.
-pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoElement {
+pub fn render(router: &Router, cx: &mut gpux::Context<Router>) -> impl IntoElement {
     let dark_mode = router.dark_mode;
     let text_color = if dark_mode { TEXT } else { LIGHT_TEXT };
     let sub_text: u32 = if dark_mode { super::SUBTEXT } else { LIGHT_SUBTEXT };
@@ -251,7 +251,7 @@ pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoEleme
                                         .child("Open zed.dev"),
                                 )
                                 .on_mouse_down(
-                                    gpui::MouseButton::Left,
+                                    gpux::MouseButton::Left,
                                     cx.listener(|_this, _, _, cx| {
                                         let _ = gpui_mobile::packages::url_launcher::launch_url(
                                             "https://zed.dev",
@@ -359,7 +359,7 @@ pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoEleme
                                         .child("Share \"Hello from GPUI!\""),
                                 )
                                 .on_mouse_down(
-                                    gpui::MouseButton::Left,
+                                    gpux::MouseButton::Left,
                                     cx.listener(|_this, _, _, cx| {
                                         let _ = gpui_mobile::packages::share::share_text(
                                             "Hello from GPUI!",
@@ -395,7 +395,7 @@ pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoEleme
                                     .child("Open In-App Browser"),
                             )
                             .on_mouse_down(
-                                gpui::MouseButton::Left,
+                                gpux::MouseButton::Left,
                                 cx.listener(|this, _, _, cx| {
                                     this.navigate_to(super::Screen::WebViewBrowser);
                                     cx.notify();
@@ -1261,7 +1261,7 @@ fn section_header(title: &str, color: u32) -> impl IntoElement {
         .child(title.to_string().to_uppercase())
 }
 
-fn info_card(bg: u32) -> gpui::Div {
+fn info_card(bg: u32) -> gpux::Div {
     div()
         .flex()
         .flex_col()
@@ -1312,7 +1312,7 @@ fn kv_row(label: &str, value: &str, accent: u32, text_color: u32, sub_text: u32)
 fn action_button(
     label: &str,
     color: u32,
-    handler: impl Fn(&gpui::MouseDownEvent, &mut gpui::Window, &mut gpui::App) + 'static,
+    handler: impl Fn(&gpux::MouseDownEvent, &mut gpux::Window, &mut gpux::App) + 'static,
 ) -> impl IntoElement {
     div()
         .flex_1()
@@ -1329,13 +1329,13 @@ fn action_button(
                 .text_color(rgb(0x1e1e2e))
                 .child(label.to_string()),
         )
-        .on_mouse_down(gpui::MouseButton::Left, handler)
+        .on_mouse_down(gpux::MouseButton::Left, handler)
 }
 
 fn haptic_button(
     label: &str,
     color: u32,
-    handler: impl Fn(&gpui::MouseDownEvent, &mut gpui::Window, &mut gpui::App) + 'static,
+    handler: impl Fn(&gpux::MouseDownEvent, &mut gpux::Window, &mut gpux::App) + 'static,
 ) -> impl IntoElement {
     div()
         .flex_1()
@@ -1352,5 +1352,5 @@ fn haptic_button(
                 .text_color(rgb(0x1e1e2e))
                 .child(label.to_string()),
         )
-        .on_mouse_down(gpui::MouseButton::Left, handler)
+        .on_mouse_down(gpux::MouseButton::Left, handler)
 }

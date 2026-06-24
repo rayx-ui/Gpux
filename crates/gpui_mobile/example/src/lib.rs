@@ -63,10 +63,10 @@ pub mod demos;
 pub mod screens;
 
 #[cfg(any(target_os = "ios", target_os = "android"))]
-use gpui::{prelude::*, App, WindowOptions};
+use gpux::{prelude::*, App, WindowOptions};
 
 #[cfg(target_os = "android")]
-use gpui::Application;
+use gpux::Application;
 
 #[cfg(any(target_os = "ios", target_os = "android"))]
 use screens::Router;
@@ -213,7 +213,7 @@ pub fn ios_main() {
 /// the router starts on the corresponding screen.
 #[cfg(any(target_os = "ios", target_os = "android"))]
 fn open_main_window(cx: &mut App) {
-    // Set up HTTP client so gpui::img() can fetch remote images (e.g. picsum.photos).
+    // Set up HTTP client so gpux::img() can fetch remote images (e.g. picsum.photos).
     // We build the reqwest client ourselves so we can skip TLS cert verification.
     // On iOS, rustls-native-certs fails to load system root certs, causing all
     // HTTPS requests to fail with "UnknownIssuer". Since this is a demo app,

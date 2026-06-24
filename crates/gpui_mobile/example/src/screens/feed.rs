@@ -6,7 +6,7 @@
 use std::cell::RefCell;
 use std::time::Duration;
 
-use gpui::{div, img, prelude::*, px, rgb};
+use gpux::{div, img, prelude::*, px, rgb};
 
 use super::{Router, LIGHT_CARD_BG, LIGHT_TEXT, RED, SURFACE0, SURFACE1, TEXT, SUBTEXT, LIGHT_SUBTEXT};
 
@@ -117,7 +117,7 @@ const POSTS: &[FeedPost] = &[
     },
 ];
 
-pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoElement {
+pub fn render(router: &Router, cx: &mut gpux::Context<Router>) -> impl IntoElement {
     let dark = router.dark_mode;
     let text_color = if dark { TEXT } else { LIGHT_TEXT };
     let sub_text = if dark { SUBTEXT } else { LIGHT_SUBTEXT };
@@ -134,8 +134,8 @@ pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoEleme
         .w_full()
         // Pull-to-refresh touch handlers
         .on_mouse_down(
-            gpui::MouseButton::Left,
-            cx.listener(|_this, event: &gpui::MouseDownEvent, _window, cx| {
+            gpux::MouseButton::Left,
+            cx.listener(|_this, event: &gpux::MouseDownEvent, _window, cx| {
                 FEED_STATE.with(|s| {
                     let mut s = s.borrow_mut();
                     if !s.refreshing {
@@ -145,7 +145,7 @@ pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoEleme
                 cx.notify();
             }),
         )
-        .on_mouse_move(cx.listener(|_this, event: &gpui::MouseMoveEvent, _window, cx| {
+        .on_mouse_move(cx.listener(|_this, event: &gpux::MouseMoveEvent, _window, cx| {
             FEED_STATE.with(|s| {
                 let mut s = s.borrow_mut();
                 if let Some(start_y) = s.pull_start_y {
@@ -161,7 +161,7 @@ pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoEleme
             cx.notify();
         }))
         .on_mouse_up(
-            gpui::MouseButton::Left,
+            gpux::MouseButton::Left,
             cx.listener(|_this, _, _, cx| {
                 let should_refresh = FEED_STATE.with(|s| {
                     let mut s = s.borrow_mut();
@@ -282,7 +282,7 @@ pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoEleme
                 )
                 // Image area — picsum.photos with colored fallback
                 .child({
-                    let photo_url: gpui::SharedString = format!(
+                    let photo_url: gpux::SharedString = format!(
                         "https://picsum.photos/id/{}/800/640",
                         post.photo_id
                     ).into();
@@ -294,7 +294,7 @@ pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoEleme
                             img(photo_url)
                                 .w_full()
                                 .h(px(320.0))
-                                .object_fit(gpui::ObjectFit::Cover)
+                                .object_fit(gpux::ObjectFit::Cover)
                                 .id(format!("feed-img-{}", i)),
                         )
                 })
@@ -314,7 +314,7 @@ pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoEleme
                                 .text_color(rgb(if liked { RED } else { text_color }))
                                 .child(if liked { "♥" } else { "♡" })
                                 .on_mouse_down(
-                                    gpui::MouseButton::Left,
+                                    gpux::MouseButton::Left,
                                     cx.listener(move |_this, _, _, cx| {
                                         FEED_STATE.with(|s| {
                                             let mut s = s.borrow_mut();

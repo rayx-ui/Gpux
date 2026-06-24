@@ -138,6 +138,7 @@ impl MainThreadMailbox {
         js_sys::Int32Array::new_with_byte_offset_and_length(&memory.buffer(), byte_offset, 1)
     }
 
+    #[cfg(feature = "multithreaded")]
     fn run_waker_loop(self: &Arc<Self>, window: web_sys::Window) {
         let support = shared_memory_support();
         if !support.supports_threads() {
@@ -212,12 +213,14 @@ impl WebDispatcher {
         let supports_threads = allow_threads && shared_memory.supports_threads();
         #[cfg(not(feature = "multithreaded"))]
         let supports_threads = false;
+        #[cfg(not(feature = "multithreaded"))]
+        let _ = allow_threads;
 
-        if supports_threads {
-            main_thread_mailbox.run_waker_loop(browser_window.clone());
-        } else {
-            #[cfg(feature = "multithreaded")]
-            {
+        #[cfg(feature = "multithreaded")]
+        {
+            if supports_threads {
+                main_thread_mailbox.run_waker_loop(browser_window.clone());
+            } else {
                 if allow_threads {
                     shared_memory.log_dispatcher_fallback();
                 } else {
@@ -226,8 +229,10 @@ impl WebDispatcher {
                     );
                 }
             }
+        }
 
-            #[cfg(not(feature = "multithreaded"))]
+        #[cfg(not(feature = "multithreaded"))]
+        {
             log::info!(
                 "Threaded wasm dispatcher feature disabled; using single-threaded dispatcher"
             );

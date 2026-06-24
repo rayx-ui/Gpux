@@ -1,6 +1,6 @@
 //! Home screen — welcome message, colour swatches, and quick-nav cards.
 
-use gpui::{div, prelude::*, px, rgb};
+use gpux::{div, prelude::*, px, rgb};
 
 use super::{Router, Screen, BLUE, GREEN, LAVENDER, LIGHT_CARD_BG, LIGHT_SUBTEXT, LIGHT_TEXT, MAUVE, PEACH, RED, SKY, SURFACE0, TEAL, TEXT, YELLOW};
 
@@ -8,7 +8,7 @@ use super::{Router, Screen, BLUE, GREEN, LAVENDER, LIGHT_CARD_BG, LIGHT_SUBTEXT,
 ///
 /// Takes a reference to the `Router` for reading shared state and a mutable
 /// context for wiring up `cx.listener` navigation handlers on the nav cards.
-pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoElement {
+pub fn render(router: &Router, cx: &mut gpux::Context<Router>) -> impl IntoElement {
     let user_name = router.user_name.clone();
     let tap_count = router.tap_count;
     let text_color = if router.dark_mode { TEXT } else { LIGHT_TEXT };
@@ -333,7 +333,7 @@ fn nav_card(
     bg: u32,
     text_color: u32,
     sub_text: u32,
-    handler: impl Fn(&gpui::MouseDownEvent, &mut gpui::Window, &mut gpui::App) + 'static,
+    handler: impl Fn(&gpux::MouseDownEvent, &mut gpux::Window, &mut gpux::App) + 'static,
 ) -> impl IntoElement {
     div()
         .flex()
@@ -365,5 +365,5 @@ fn nav_card(
                 ),
         )
         .child(div().text_sm().text_color(rgb(accent)).child("→"))
-        .on_mouse_down(gpui::MouseButton::Left, handler)
+        .on_mouse_down(gpux::MouseButton::Left, handler)
 }

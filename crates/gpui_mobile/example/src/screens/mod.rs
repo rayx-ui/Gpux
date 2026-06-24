@@ -27,7 +27,7 @@ pub mod video_player;
 pub mod webview_browser;
 
 use crate::demos::{AnimationPlayground, ShaderShowcase};
-use gpui::{
+use gpux::{
     div, point, prelude::*, px, rgb, size, Bounds, Context, MouseButton, MouseDownEvent,
     MouseMoveEvent, MouseUpEvent, SharedString, Window,
 };

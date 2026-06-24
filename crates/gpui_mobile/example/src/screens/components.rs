@@ -5,7 +5,7 @@
 //! contain all the actual component implementations. This file just
 //! composes them into a single scrollable showcase layout.
 
-use gpui::{div, prelude::*, rgb};
+use gpux::{div, prelude::*, rgb};
 
 use gpui_mobile::components::{
     common::{design_language_header, section_label},

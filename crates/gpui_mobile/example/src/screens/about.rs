@@ -3,7 +3,7 @@
 //! This screen is purely informational — it reads shared state from the
 //! `Router` but does not mutate it.
 
-use gpui::{div, prelude::*, px, rgb};
+use gpux::{div, prelude::*, px, rgb};
 
 use super::{Router, BLUE, GREEN, LIGHT_CARD_BG, LIGHT_DIVIDER, LIGHT_SUBTEXT, LIGHT_TEXT, MANTLE, MAUVE, PEACH, SURFACE0, SURFACE1, TEAL, TEXT, YELLOW};
 
@@ -314,7 +314,7 @@ fn section_header(title: &str, color: u32) -> impl IntoElement {
 }
 
 /// A rounded card container.
-fn info_card(bg: u32) -> gpui::Div {
+fn info_card(bg: u32) -> gpux::Div {
     div()
         .flex()
         .flex_col()

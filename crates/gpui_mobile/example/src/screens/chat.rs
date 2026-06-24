@@ -1,7 +1,7 @@
 //! iMessage-style chat screen with bubbles, reactions, images, timestamps,
 //! and a working text input composer bar.
 
-use gpui::{div, prelude::*, px, rgb, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
+use gpux::{div, prelude::*, px, rgb, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
 use gpui_mobile::KeyboardType;
 use std::cell::RefCell;
 
@@ -269,7 +269,7 @@ fn drain_chat_pending_text() {
 
 // ── Render ──────────────────────────────────────────────────────────────────
 
-pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoElement {
+pub fn render(router: &Router, cx: &mut gpux::Context<Router>) -> impl IntoElement {
     drain_chat_pending_text();
 
     let dark = router.dark_mode;
@@ -355,7 +355,7 @@ fn render_messages(
     user_reactions: &[Vec<String>],
     swipe_msg: Option<usize>,
     swipe_offset: f32,
-    cx: &mut gpui::Context<Router>,
+    cx: &mut gpux::Context<Router>,
 ) -> impl IntoElement {
     let mut container = div().flex().flex_col().px_3().pt_2().pb_2().gap_1();
 
@@ -450,7 +450,7 @@ fn render_bubble_interactive(
     extra_reactions: &[String],
     swipe_offset: f32,
     timestamp: &str,
-    cx: &mut gpui::Context<Router>,
+    cx: &mut gpux::Context<Router>,
 ) -> impl IntoElement {
     let bubble_color = if msg.is_me {
         IMESSAGE_BLUE
@@ -691,7 +691,7 @@ fn render_sent_bubble_interactive(
     show_picker: bool,
     extra_reactions: &[String],
     swipe_offset: f32,
-    cx: &mut gpui::Context<Router>,
+    cx: &mut gpux::Context<Router>,
 ) -> impl IntoElement {
     let mut outer = div()
         .flex()
@@ -818,7 +818,7 @@ fn render_reaction_picker(
     msg_idx: usize,
     is_me: bool,
     dark: bool,
-    cx: &mut gpui::Context<Router>,
+    cx: &mut gpux::Context<Router>,
 ) -> impl IntoElement {
     let picker_bg = if dark {
         REACTION_PICKER_BG_DARK
@@ -954,7 +954,7 @@ fn reaction_pill(emoji: &str, count: u8, bg: u32) -> impl IntoElement {
 
 fn render_plus_menu(
     dark: bool,
-    cx: &mut gpui::Context<Router>,
+    cx: &mut gpux::Context<Router>,
 ) -> impl IntoElement {
     let menu_bg = if dark { COMPOSER_BG_DARK } else { COMPOSER_BG_LIGHT };
     let text_color = if dark { 0xFFFFFF } else { 0x000000 };
@@ -1022,7 +1022,7 @@ fn render_composer(
     compose_text: &str,
     focused: bool,
     recording: bool,
-    cx: &mut gpui::Context<Router>,
+    cx: &mut gpux::Context<Router>,
 ) -> impl IntoElement {
     let composer_bg = if dark { COMPOSER_BG_DARK } else { COMPOSER_BG_LIGHT };
     let field_bg = if dark { COMPOSER_FIELD_DARK } else { COMPOSER_FIELD_LIGHT };

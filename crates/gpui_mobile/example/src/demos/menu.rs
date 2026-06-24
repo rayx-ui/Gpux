@@ -5,7 +5,7 @@
 use super::{
     AnimationPlayground, ShaderShowcase, BACKGROUND, BLUE, MAUVE, OVERLAY, SUBTEXT, SURFACE, TEXT,
 };
-use gpui::{
+use gpux::{
     div, hsla, point, prelude::*, px, rgb, size, App, Bounds, Context, MouseButton, MouseDownEvent,
     MouseMoveEvent, MouseUpEvent, Render, Window,
 };
@@ -128,7 +128,7 @@ impl Render for DemoApp {
 }
 
 impl DemoApp {
-    fn render_menu(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> gpui::AnyElement {
+    fn render_menu(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> gpux::AnyElement {
         div()
             .flex()
             .flex_col()
@@ -239,7 +239,7 @@ impl DemoApp {
         &mut self,
         window: &mut Window,
         cx: &mut Context<Self>,
-    ) -> gpui::AnyElement {
+    ) -> gpux::AnyElement {
         // Request continuous animation frame
         window.request_animation_frame();
 
@@ -286,7 +286,7 @@ impl DemoApp {
         &mut self,
         window: &mut Window,
         cx: &mut Context<Self>,
-    ) -> gpui::AnyElement {
+    ) -> gpux::AnyElement {
         // Request continuous animation frame
         window.request_animation_frame();
 

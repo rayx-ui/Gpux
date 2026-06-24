@@ -1,7 +1,7 @@
 //! Form example screen — demonstrates Material Design 3 input components
 //! composed into a realistic form layout with interactive state.
 
-use gpui::{div, prelude::*, px, rgb, Context, MouseDownEvent};
+use gpux::{div, prelude::*, px, rgb, Context, MouseDownEvent};
 use gpui_mobile::components::material::{
     Card, Checkbox, CircularProgressIndicator, FilledButton, MaterialTheme, OutlinedButton, Radio,
     RadioGroup, Slider, Switch, TextButton, TextInput, TextField,
@@ -686,7 +686,7 @@ pub fn render(router: &Router, cx: &mut Context<Router>) -> impl IntoElement {
 fn section_header(label: &str, color: u32) -> impl IntoElement {
     div()
         .text_sm()
-        .font_weight(gpui::FontWeight::SEMIBOLD)
+        .font_weight(gpux::FontWeight::SEMIBOLD)
         .text_color(rgb(color))
         .child(label.to_string())
 }

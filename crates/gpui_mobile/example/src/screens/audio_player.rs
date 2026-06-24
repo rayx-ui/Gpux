@@ -3,7 +3,7 @@
 use std::cell::RefCell;
 use std::time::Duration;
 
-use gpui::{div, prelude::*, px, rgb};
+use gpux::{div, prelude::*, px, rgb};
 use gpui_mobile::packages::audio::{AudioPlayer, LoopMode, PlayerState};
 use gpui_mobile::packages::media_session;
 
@@ -89,7 +89,7 @@ fn format_time(ms: u64) -> String {
     format!("{}:{:02}", mins, secs)
 }
 
-pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoElement {
+pub fn render(router: &Router, cx: &mut gpux::Context<Router>) -> impl IntoElement {
     let dark = router.dark_mode;
     let text_color = if dark { TEXT } else { LIGHT_TEXT };
     let sub_text = if dark { SUBTEXT } else { LIGHT_SUBTEXT };
@@ -180,7 +180,7 @@ pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoEleme
                             )
                         })
                         .on_mouse_down(
-                            gpui::MouseButton::Left,
+                            gpux::MouseButton::Left,
                             cx.listener(move |_this, _, _, cx| {
                                 load_track(idx, cx);
                             }),
@@ -280,7 +280,7 @@ pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoEleme
                                 .text_color(rgb(text_color))
                                 .child("⏮")
                                 .on_mouse_down(
-                                    gpui::MouseButton::Left,
+                                    gpux::MouseButton::Left,
                                     cx.listener(|_this, _, _, cx| {
                                         let prev = AUDIO_STATE.with(|s| {
                                             let st = s.borrow();
@@ -297,7 +297,7 @@ pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoEleme
                                 .text_color(rgb(text_color))
                                 .child("-10s")
                                 .on_mouse_down(
-                                    gpui::MouseButton::Left,
+                                    gpux::MouseButton::Left,
                                     cx.listener(|_this, _, _, cx| {
                                         AUDIO_STATE.with(|s| {
                                             let st = s.borrow();
@@ -326,7 +326,7 @@ pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoEleme
                                         .child(if is_playing { "⏸" } else { "▶" }),
                                 )
                                 .on_mouse_down(
-                                    gpui::MouseButton::Left,
+                                    gpux::MouseButton::Left,
                                     cx.listener(|_this, _, _, cx| {
                                         AUDIO_STATE.with(|s| {
                                             let st = s.borrow();
@@ -349,7 +349,7 @@ pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoEleme
                                 .text_color(rgb(text_color))
                                 .child("+10s")
                                 .on_mouse_down(
-                                    gpui::MouseButton::Left,
+                                    gpux::MouseButton::Left,
                                     cx.listener(|_this, _, _, cx| {
                                         AUDIO_STATE.with(|s| {
                                             let st = s.borrow();
@@ -369,7 +369,7 @@ pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoEleme
                                 .text_color(rgb(text_color))
                                 .child("⏭")
                                 .on_mouse_down(
-                                    gpui::MouseButton::Left,
+                                    gpux::MouseButton::Left,
                                     cx.listener(|_this, _, _, cx| {
                                         let next = AUDIO_STATE.with(|s| {
                                             let st = s.borrow();
@@ -392,7 +392,7 @@ pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoEleme
                                 .text_color(rgb(RED))
                                 .child("⏹ Stop")
                                 .on_mouse_down(
-                                    gpui::MouseButton::Left,
+                                    gpux::MouseButton::Left,
                                     cx.listener(|_this, _, _, cx| {
                                         AUDIO_STATE.with(|s| {
                                             let st = s.borrow();
@@ -585,7 +585,7 @@ fn volume_bar(volume: f32, dark: bool) -> impl IntoElement {
 fn volume_btn(
     label: &str,
     vol: f32,
-    cx: &mut gpui::Context<Router>,
+    cx: &mut gpux::Context<Router>,
 ) -> impl IntoElement {
     div()
         .px_3()
@@ -599,7 +599,7 @@ fn volume_btn(
                 .child(label.to_string()),
         )
         .on_mouse_down(
-            gpui::MouseButton::Left,
+            gpux::MouseButton::Left,
             cx.listener(move |_this, _, _, cx| {
                 AUDIO_STATE.with(|s| {
                     let mut st = s.borrow_mut();
@@ -616,7 +616,7 @@ fn volume_btn(
 fn speed_btn(
     label: &str,
     spd: f32,
-    cx: &mut gpui::Context<Router>,
+    cx: &mut gpux::Context<Router>,
 ) -> impl IntoElement {
     div()
         .px_3()
@@ -630,7 +630,7 @@ fn speed_btn(
                 .child(label.to_string()),
         )
         .on_mouse_down(
-            gpui::MouseButton::Left,
+            gpux::MouseButton::Left,
             cx.listener(move |_this, _, _, cx| {
                 AUDIO_STATE.with(|s| {
                     let mut st = s.borrow_mut();
@@ -648,7 +648,7 @@ fn loop_btn(
     label: &str,
     mode: LoopMode,
     active: bool,
-    cx: &mut gpui::Context<Router>,
+    cx: &mut gpux::Context<Router>,
 ) -> impl IntoElement {
     let bg = if active { GREEN } else { 0x3A3A45 };
     div()
@@ -663,7 +663,7 @@ fn loop_btn(
                 .child(label.to_string()),
         )
         .on_mouse_down(
-            gpui::MouseButton::Left,
+            gpux::MouseButton::Left,
             cx.listener(move |_this, _, _, cx| {
                 AUDIO_STATE.with(|s| {
                     let mut st = s.borrow_mut();
@@ -677,7 +677,7 @@ fn loop_btn(
         )
 }
 
-fn load_track(index: usize, cx: &mut gpui::Context<Router>) {
+fn load_track(index: usize, cx: &mut gpux::Context<Router>) {
     let url = TRACKS[index].1;
     let title = TRACKS[index].0;
 
@@ -735,7 +735,7 @@ fn load_track(index: usize, cx: &mut gpui::Context<Router>) {
     cx.notify();
 }
 
-fn start_position_polling(cx: &mut gpui::Context<Router>) {
+fn start_position_polling(cx: &mut gpux::Context<Router>) {
     let already_polling = AUDIO_STATE.with(|s| s.borrow().polling);
     if already_polling {
         return;

@@ -3,7 +3,7 @@
 //! This screen demonstrates interactive toggles and controls that mutate shared
 //! state on the `Router` and trigger re-renders via `cx.notify()`.
 
-use gpui::{div, prelude::*, px, rgb, App, MouseDownEvent, Window};
+use gpux::{div, prelude::*, px, rgb, App, MouseDownEvent, Window};
 
 use super::{Router, BLUE, GREEN, LIGHT_CARD_BG, LIGHT_DIVIDER, LIGHT_SUBTEXT, LIGHT_TEXT, MANTLE, MAUVE, PEACH, RED, SURFACE0, SURFACE1, TEXT, YELLOW};
 
@@ -11,7 +11,7 @@ use super::{Router, BLUE, GREEN, LIGHT_CARD_BG, LIGHT_DIVIDER, LIGHT_SUBTEXT, LI
 ///
 /// Takes a mutable reference to the `Router` (for `cx.listener` closures that
 /// mutate settings) and the GPUI context.
-pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoElement {
+pub fn render(router: &Router, cx: &mut gpux::Context<Router>) -> impl IntoElement {
     let dark_mode = router.dark_mode;
     let text_color = if dark_mode { TEXT } else { LIGHT_TEXT };
     let sub_text = if dark_mode { super::SUBTEXT } else { LIGHT_SUBTEXT };
@@ -167,7 +167,7 @@ fn section_header(title: &str, color: u32) -> impl IntoElement {
 }
 
 /// A rounded card container for settings rows.
-fn settings_card(bg: u32) -> gpui::Div {
+fn settings_card(bg: u32) -> gpux::Div {
     div()
         .flex()
         .flex_col()
@@ -232,7 +232,7 @@ fn toggle_row(
                 .text_color(rgb(toggle_text))
                 .child(toggle_label),
         )
-        .on_mouse_down(gpui::MouseButton::Left, handler)
+        .on_mouse_down(gpux::MouseButton::Left, handler)
 }
 
 /// A row with a tappable action.
@@ -273,7 +273,7 @@ fn action_row(
                 ),
         )
         .child(div().text_sm().text_color(rgb(accent)).child("→"))
-        .on_mouse_down(gpui::MouseButton::Left, handler)
+        .on_mouse_down(gpux::MouseButton::Left, handler)
 }
 
 /// A small colour chip with a label underneath.

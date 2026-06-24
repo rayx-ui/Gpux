@@ -6,7 +6,7 @@
 //! - Demonstrates smooth 60fps rendering
 
 use super::{back_button, random_color, BACKGROUND, TEXT};
-use gpui::{
+use gpux::{
     canvas, div, fill, hsla, point, prelude::*, px, rgb, size, App, Bounds, Hsla, MouseButton,
     MouseDownEvent, MouseUpEvent, Pixels, Point, Window,
 };
@@ -197,14 +197,14 @@ impl AnimationPlayground {
         self.particles.retain(|p| p.is_alive());
     }
 
-    fn handle_touch_down(&mut self, event: &MouseDownEvent, cx: &mut gpui::Context<Self>) {
+    fn handle_touch_down(&mut self, event: &MouseDownEvent, cx: &mut gpux::Context<Self>) {
         let pos = point(event.position.x.as_f32(), event.position.y.as_f32());
         self.touch_start = Some((pos, Instant::now()));
         self.current_touch = Some(pos);
         cx.notify();
     }
 
-    fn handle_touch_up(&mut self, event: &MouseUpEvent, cx: &mut gpui::Context<Self>) {
+    fn handle_touch_up(&mut self, event: &MouseUpEvent, cx: &mut gpux::Context<Self>) {
         let position = point(event.position.x.as_f32(), event.position.y.as_f32());
 
         if let Some((start_pos, start_time)) = self.touch_start.take() {
@@ -383,8 +383,8 @@ impl AnimationPlayground {
     }
 }
 
-impl gpui::Render for AnimationPlayground {
-    fn render(&mut self, window: &mut Window, cx: &mut gpui::Context<Self>) -> impl IntoElement {
+impl gpux::Render for AnimationPlayground {
+    fn render(&mut self, window: &mut Window, cx: &mut gpux::Context<Self>) -> impl IntoElement {
         // Request continuous animation frame
         window.request_animation_frame();
 

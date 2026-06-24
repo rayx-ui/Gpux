@@ -3,7 +3,7 @@
 use std::cell::RefCell;
 use std::time::Duration;
 
-use gpui::{div, prelude::*, px, rgb};
+use gpux::{div, prelude::*, px, rgb};
 use gpui_mobile::packages::video_player::VideoPlayer;
 use gpui_mobile::packages::media_session;
 
@@ -96,7 +96,7 @@ fn format_time(ms: u64) -> String {
     format!("{}:{:02}", mins, secs)
 }
 
-pub fn render(router: &Router, window: &mut gpui::Window, cx: &mut gpui::Context<Router>) -> impl IntoElement {
+pub fn render(router: &Router, window: &mut gpux::Window, cx: &mut gpux::Context<Router>) -> impl IntoElement {
     let dark = router.dark_mode;
     let text_color = if dark { TEXT } else { LIGHT_TEXT };
     let sub_text = if dark { SUBTEXT } else { LIGHT_SUBTEXT };
@@ -185,7 +185,7 @@ pub fn render(router: &Router, window: &mut gpui::Window, cx: &mut gpui::Context
                     )
                 })
                 .on_mouse_down(
-                    gpui::MouseButton::Left,
+                    gpux::MouseButton::Left,
                     cx.listener(|_this, _, _, cx| {
                         VIDEO_STATE.with(|s| {
                             let mut st = s.borrow_mut();
@@ -264,7 +264,7 @@ pub fn render(router: &Router, window: &mut gpui::Window, cx: &mut gpui::Context
                             )
                         })
                         .on_mouse_down(
-                            gpui::MouseButton::Left,
+                            gpux::MouseButton::Left,
                             cx.listener(move |_this, _, _, cx| {
                                 load_video(idx, cx);
                             }),
@@ -395,7 +395,7 @@ pub fn render(router: &Router, window: &mut gpui::Window, cx: &mut gpui::Context
                                 .text_color(rgb(text_color))
                                 .child("⏮")
                                 .on_mouse_down(
-                                    gpui::MouseButton::Left,
+                                    gpux::MouseButton::Left,
                                     cx.listener(|_this, _, _, cx| {
                                         let prev = VIDEO_STATE.with(|s| {
                                             let st = s.borrow();
@@ -412,7 +412,7 @@ pub fn render(router: &Router, window: &mut gpui::Window, cx: &mut gpui::Context
                                 .text_color(rgb(text_color))
                                 .child("-10s")
                                 .on_mouse_down(
-                                    gpui::MouseButton::Left,
+                                    gpux::MouseButton::Left,
                                     cx.listener(|_this, _, _, cx| {
                                         VIDEO_STATE.with(|s| {
                                             let st = s.borrow();
@@ -441,7 +441,7 @@ pub fn render(router: &Router, window: &mut gpui::Window, cx: &mut gpui::Context
                                         .child(if is_playing { "⏸" } else { "▶" }),
                                 )
                                 .on_mouse_down(
-                                    gpui::MouseButton::Left,
+                                    gpux::MouseButton::Left,
                                     cx.listener(|_this, _, _, cx| {
                                         VIDEO_STATE.with(|s| {
                                             let st = s.borrow();
@@ -464,7 +464,7 @@ pub fn render(router: &Router, window: &mut gpui::Window, cx: &mut gpui::Context
                                 .text_color(rgb(text_color))
                                 .child("+10s")
                                 .on_mouse_down(
-                                    gpui::MouseButton::Left,
+                                    gpux::MouseButton::Left,
                                     cx.listener(|_this, _, _, cx| {
                                         VIDEO_STATE.with(|s| {
                                             let st = s.borrow();
@@ -484,7 +484,7 @@ pub fn render(router: &Router, window: &mut gpui::Window, cx: &mut gpui::Context
                                 .text_color(rgb(text_color))
                                 .child("⏭")
                                 .on_mouse_down(
-                                    gpui::MouseButton::Left,
+                                    gpux::MouseButton::Left,
                                     cx.listener(|_this, _, _, cx| {
                                         let next = VIDEO_STATE.with(|s| {
                                             let st = s.borrow();
@@ -605,7 +605,7 @@ pub fn render(router: &Router, window: &mut gpui::Window, cx: &mut gpui::Context
                                 .child(if looping { "ON" } else { "OFF" }),
                         )
                         .on_mouse_down(
-                            gpui::MouseButton::Left,
+                            gpux::MouseButton::Left,
                             cx.listener(|_this, _, _, cx| {
                                 VIDEO_STATE.with(|s| {
                                     let mut st = s.borrow_mut();
@@ -641,7 +641,7 @@ pub fn render(router: &Router, window: &mut gpui::Window, cx: &mut gpui::Context
 fn vol_btn(
     label: &str,
     vol: f32,
-    cx: &mut gpui::Context<Router>,
+    cx: &mut gpux::Context<Router>,
 ) -> impl IntoElement {
     div()
         .px_3()
@@ -655,7 +655,7 @@ fn vol_btn(
                 .child(label.to_string()),
         )
         .on_mouse_down(
-            gpui::MouseButton::Left,
+            gpux::MouseButton::Left,
             cx.listener(move |_this, _, _, cx| {
                 VIDEO_STATE.with(|s| {
                     let mut st = s.borrow_mut();
@@ -672,7 +672,7 @@ fn vol_btn(
 fn spd_btn(
     label: &str,
     spd: f32,
-    cx: &mut gpui::Context<Router>,
+    cx: &mut gpux::Context<Router>,
 ) -> impl IntoElement {
     div()
         .px_3()
@@ -686,7 +686,7 @@ fn spd_btn(
                 .child(label.to_string()),
         )
         .on_mouse_down(
-            gpui::MouseButton::Left,
+            gpux::MouseButton::Left,
             cx.listener(move |_this, _, _, cx| {
                 VIDEO_STATE.with(|s| {
                     let mut st = s.borrow_mut();
@@ -700,7 +700,7 @@ fn spd_btn(
         )
 }
 
-fn load_video(index: usize, cx: &mut gpui::Context<Router>) {
+fn load_video(index: usize, cx: &mut gpux::Context<Router>) {
     let url = VIDEOS[index].1;
     let title = VIDEOS[index].0;
 
@@ -762,7 +762,7 @@ fn load_video(index: usize, cx: &mut gpui::Context<Router>) {
     cx.notify();
 }
 
-fn start_position_polling(cx: &mut gpui::Context<Router>) {
+fn start_position_polling(cx: &mut gpux::Context<Router>) {
     let already_polling = VIDEO_STATE.with(|s| s.borrow().polling);
     if already_polling {
         return;

@@ -7,7 +7,7 @@
 //! - Color cycling animations
 
 use super::back_button;
-use gpui::{
+use gpux::{
     canvas, div, fill, hsla, linear_color_stop, linear_gradient, point, prelude::*, px, size, App,
     Bounds, ColorSpace, Hsla, Pixels, Point, Window,
 };

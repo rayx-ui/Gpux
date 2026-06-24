@@ -3,7 +3,7 @@
 //! This screen demonstrates interactive buttons that mutate shared state on the
 //! `Router` and trigger re-renders via `cx.notify()`.
 
-use gpui::{div, prelude::*, rgb, App, MouseDownEvent, Window};
+use gpux::{div, prelude::*, rgb, App, MouseDownEvent, Window};
 
 use super::{Router, BLUE, GREEN, LIGHT_CARD_BG, LIGHT_SUBTEXT, LIGHT_TEXT, MANTLE, MAUVE, PEACH, RED, SURFACE0, SURFACE1, TEXT, YELLOW};
 
@@ -11,7 +11,7 @@ use super::{Router, BLUE, GREEN, LIGHT_CARD_BG, LIGHT_SUBTEXT, LIGHT_TEXT, MANTL
 ///
 /// Takes a mutable reference to the `Router` (for `cx.listener` closures that
 /// mutate `tap_count`) and the GPUI context.
-pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoElement {
+pub fn render(router: &Router, cx: &mut gpux::Context<Router>) -> impl IntoElement {
     let tap_count = router.tap_count;
     let dark_mode = router.dark_mode;
     let text_color = if dark_mode { TEXT } else { LIGHT_TEXT };
@@ -157,7 +157,7 @@ pub fn render(router: &Router, cx: &mut gpui::Context<Router>) -> impl IntoEleme
                 .text_sm()
                 .child("Reset to zero")
                 .on_mouse_down(
-                    gpui::MouseButton::Left,
+                    gpux::MouseButton::Left,
                     cx.listener(|this, _event, _window, cx| {
                         this.tap_count = 0;
                         cx.notify();
@@ -204,7 +204,7 @@ fn counter_button(
         .text_xl()
         .text_color(rgb(color))
         .child(label.to_string())
-        .on_mouse_down(gpui::MouseButton::Left, handler)
+        .on_mouse_down(gpux::MouseButton::Left, handler)
 }
 
 /// A large primary action button.
@@ -223,7 +223,7 @@ fn primary_button(
         .text_2xl()
         .text_color(rgb(MANTLE))
         .child(label.to_string())
-        .on_mouse_down(gpui::MouseButton::Left, handler)
+        .on_mouse_down(gpux::MouseButton::Left, handler)
 }
 
 /// A small pill-shaped button for quick-add values.
@@ -245,7 +245,7 @@ fn pill_button(
         .text_sm()
         .text_color(rgb(color))
         .child(label.to_string())
-        .on_mouse_down(gpui::MouseButton::Left, handler)
+        .on_mouse_down(gpux::MouseButton::Left, handler)
 }
 
 /// A horizontal milestone progress bar.
