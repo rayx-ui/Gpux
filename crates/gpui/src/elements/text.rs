@@ -1,6 +1,6 @@
 use crate::{
     ActiveTooltip, AnyView, App, Bounds, DispatchPhase, Element, ElementId, GlobalElementId,
-    HighlightStyle, Hitbox, HitboxBehavior, InspectorElementId, IntoElement, LayoutId,
+    DevtoolsSemantics, HighlightStyle, Hitbox, HitboxBehavior, InspectorElementId, IntoElement, LayoutId,
     MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, Point, SharedString, Size, TextOverflow,
     TextRun, TextStyle, TooltipId, TruncateFrom, WhiteSpace, Window, WrappedLine,
     WrappedLineLayout, register_tooltip_mouse_handlers, set_tooltip_on_window,
@@ -64,6 +64,7 @@ impl Element for &'static str {
         window: &mut Window,
         cx: &mut App,
     ) {
+        window.set_devtools_semantics(DevtoolsSemantics::new().role("text").text(*self));
         text_layout.paint(self, window, cx)
     }
 }
@@ -138,6 +139,11 @@ impl Element for SharedString {
         window: &mut Window,
         cx: &mut App,
     ) {
+        window.set_devtools_semantics(
+            DevtoolsSemantics::new()
+                .role("text")
+                .text(self.as_ref().to_string()),
+        );
         text_layout.paint(self.as_ref(), window, cx)
     }
 }
@@ -364,6 +370,11 @@ impl Element for StyledText {
         window: &mut Window,
         cx: &mut App,
     ) {
+        window.set_devtools_semantics(
+            DevtoolsSemantics::new()
+                .role("text")
+                .text(self.text.as_ref().to_string()),
+        );
         self.layout.paint(&self.text, window, cx)
     }
 }

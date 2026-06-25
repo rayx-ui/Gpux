@@ -17,13 +17,13 @@
 
 use crate::{
     Action, AnyDrag, AnyElement, AnyTooltip, AnyView, App, Bounds, ClickEvent, DispatchPhase,
-    Display, Element, ElementId, Entity, FocusHandle, Global, GlobalElementId, Hitbox,
-    HitboxBehavior, HitboxId, InspectorElementId, IntoElement, IsZero, KeyContext, KeyDownEvent,
-    KeyUpEvent, KeyboardButton, KeyboardClickEvent, LayoutId, ModifiersChangedEvent, MouseButton,
-    MouseClickEvent, MouseDownEvent, MouseMoveEvent, MousePressureEvent, MouseUpEvent, Overflow,
-    ParentElement, Pixels, Point, Render, ScrollWheelEvent, SharedString, Size, Style,
-    StyleRefinement, Styled, Task, TooltipId, TouchEvent, Visibility, Window, WindowControlArea,
-    point, px, size,
+    DevtoolsPropertySetter, DevtoolsSemantics, DevtoolsWritableProperty, Display, Element,
+    ElementId, Entity, FocusHandle, Global, GlobalElementId, Hitbox, HitboxBehavior, HitboxId,
+    InspectorElementId, IntoElement, IsZero, KeyContext, KeyDownEvent, KeyUpEvent, KeyboardButton,
+    KeyboardClickEvent, LayoutId, ModifiersChangedEvent, MouseButton, MouseClickEvent,
+    MouseDownEvent, MouseMoveEvent, MousePressureEvent, MouseUpEvent, Overflow, ParentElement,
+    Pixels, Point, Render, ScrollWheelEvent, SharedString, Size, Style, StyleRefinement, Styled,
+    Task, TooltipId, TouchEvent, Visibility, Window, WindowControlArea, point, px, size,
 };
 use crate::{PinchEvent, RotateEvent};
 use collections::HashMap;
@@ -750,6 +750,32 @@ pub trait InteractiveElement: Sized {
         self.interactivity().element_id = Some(id.into());
 
         Stateful { element: self }
+    }
+
+    /// Attach component-authored accessibility and DevKit semantics to this element.
+    fn devtools_semantics(mut self, semantics: DevtoolsSemantics) -> Self {
+        self.interactivity().devtools_semantics = Some(semantics);
+        self
+    }
+
+    /// Register a live writable DevKit property for this element.
+    fn on_devtools_property(
+        mut self,
+        name: impl Into<String>,
+        value_type: impl Into<String>,
+        setter: impl Fn(serde_json::Value, &mut Window, &mut App) -> std::result::Result<(), String>
+        + 'static,
+    ) -> Self {
+        self.interactivity()
+            .devtools_property_setters
+            .push(DevtoolsPropertySetter {
+                property: DevtoolsWritableProperty {
+                    name: name.into(),
+                    value_type: value_type.into(),
+                },
+                callback: Rc::new(setter),
+            });
+        self
     }
 
     /// Track the focus state of the given focus handle on this element.
@@ -1833,6 +1859,8 @@ pub struct Interactivity {
     pub(crate) tab_index: Option<isize>,
     pub(crate) tab_group: bool,
     pub(crate) tab_stop: bool,
+    pub(crate) devtools_semantics: Option<DevtoolsSemantics>,
+    pub(crate) devtools_property_setters: Vec<DevtoolsPropertySetter>,
 
     #[cfg(any(feature = "inspector", debug_assertions))]
     pub(crate) source_location: Option<&'static core::panic::Location<'static>>,
@@ -2117,6 +2145,13 @@ impl Interactivity {
                     element_state.map(|element_state| element_state.unwrap_or_default());
 
                 let style = self.compute_style_internal(hitbox, element_state.as_mut(), window, cx);
+
+                if let Some(semantics) = self.devtools_semantics.take() {
+                    window.set_devtools_semantics(semantics);
+                }
+                for setter in self.devtools_property_setters.drain(..) {
+                    window.register_devtools_property_setter(setter);
+                }
 
                 #[cfg(any(feature = "test-support", test))]
                 if let Some(debug_selector) = &self.debug_selector {

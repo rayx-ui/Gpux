@@ -432,6 +432,8 @@ impl<E: Element> Drawable<E> {
 
                 let bounds = window.layout_bounds(layout_id);
                 let node_id = window.next_frame.dispatch_tree.push_node();
+                let source = self.element.source_location();
+                let hitbox_start = window.next_frame.hitboxes.len();
                 let prepaint = self.element.prepaint(
                     global_id.as_ref(),
                     inspector_id.as_ref(),
@@ -439,6 +441,15 @@ impl<E: Element> Drawable<E> {
                     &mut request_layout,
                     window,
                     cx,
+                );
+                let hitbox_end = window.next_frame.hitboxes.len();
+                window.record_devtools_element(
+                    node_id,
+                    type_name::<E>(),
+                    global_id.as_ref(),
+                    source,
+                    bounds,
+                    hitbox_start..hitbox_end,
                 );
                 window.next_frame.dispatch_tree.pop_node();
 
@@ -489,6 +500,7 @@ impl<E: Element> Drawable<E> {
                     window,
                     cx,
                 );
+                window.update_devtools_element_after_paint(node_id);
 
                 if global_id.is_some() {
                     window.element_id_stack.pop();
