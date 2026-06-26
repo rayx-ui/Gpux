@@ -804,6 +804,10 @@ pub(crate) struct Frame {
     pub(crate) cursor_styles: Vec<CursorStyleRequest>,
     #[cfg(any(test, feature = "test-support"))]
     pub(crate) debug_bounds: FxHashMap<String, Bounds<Pixels>>,
+    pub(crate) devtools_nodes: Vec<DevtoolsElementSnapshot>,
+    pub(crate) devtools_property_setters: FxHashMap<usize, Vec<DevtoolsPropertySetter>>,
+    pub(crate) devtools_node_stack: Vec<usize>,
+    pub(crate) next_devtools_node_id: usize,
     #[cfg(any(feature = "inspector", debug_assertions))]
     pub(crate) next_inspector_instance_ids: FxHashMap<Rc<crate::InspectorElementPath>, usize>,
     #[cfg(any(feature = "inspector", debug_assertions))]
@@ -852,6 +856,11 @@ impl Frame {
             #[cfg(any(test, feature = "test-support"))]
             debug_bounds: FxHashMap::default(),
 
+            devtools_nodes: Vec::new(),
+            devtools_property_setters: FxHashMap::default(),
+            devtools_node_stack: Vec::new(),
+            next_devtools_node_id: 0,
+
             #[cfg(any(feature = "inspector", debug_assertions))]
             next_inspector_instance_ids: FxHashMap::default(),
 
@@ -880,6 +889,11 @@ impl Frame {
         {
             self.debug_bounds.clear();
         }
+
+        self.devtools_nodes.clear();
+        self.devtools_property_setters.clear();
+        self.devtools_node_stack.clear();
+        self.next_devtools_node_id = 0;
 
         #[cfg(any(feature = "inspector", debug_assertions))]
         {
@@ -944,6 +958,247 @@ impl Frame {
 
         self.scene.finish();
     }
+}
+
+/// Read-only geometry of an element rendered in a GPUI frame.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct DevtoolsBounds {
+    /// The left edge in window-local pixels.
+    pub x: f32,
+    /// The top edge in window-local pixels.
+    pub y: f32,
+    /// The width in pixels.
+    pub width: f32,
+    /// The height in pixels.
+    pub height: f32,
+}
+
+impl From<Bounds<Pixels>> for DevtoolsBounds {
+    fn from(bounds: Bounds<Pixels>) -> Self {
+        Self {
+            x: bounds.origin.x.as_f32(),
+            y: bounds.origin.y.as_f32(),
+            width: bounds.size.width.as_f32(),
+            height: bounds.size.height.as_f32(),
+        }
+    }
+}
+
+/// Source location for a rendered element, when debug metadata is available.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DevtoolsElementSource {
+    /// The source file that constructed the element.
+    pub file: String,
+    /// The one-based source line that constructed the element.
+    pub line: u32,
+    /// The one-based source column that constructed the element.
+    pub column: u32,
+}
+
+impl DevtoolsElementSource {
+    fn from_location(location: &'static core::panic::Location<'static>) -> Self {
+        Self {
+            file: location.file().to_string(),
+            line: location.line(),
+            column: location.column(),
+        }
+    }
+}
+
+/// Read-only inspection data for one rendered GPUI element.
+#[derive(Clone, Debug, PartialEq)]
+pub struct DevtoolsElementSnapshot {
+    /// Per-frame rendered element occurrence id.
+    pub devtools_node_id: usize,
+    /// The parent rendered element occurrence id for this frame, if any.
+    pub parent_devtools_node_id: Option<usize>,
+    /// The GPUI dispatch-tree node id for this rendered frame.
+    pub dispatch_node_id: usize,
+    /// The parent GPUI dispatch-tree node id for this rendered frame.
+    pub parent_dispatch_node_id: Option<usize>,
+    /// The Rust type name of the rendered element.
+    pub type_name: String,
+    /// The stable element id path, when the element supplied one.
+    pub global_id: Option<String>,
+    /// Debug source information, when available.
+    pub source: Option<DevtoolsElementSource>,
+    /// The element bounds in window-local pixels.
+    pub bounds: DevtoolsBounds,
+    /// Component-authored accessibility and DevKit semantics for this element.
+    pub semantics: DevtoolsSemantics,
+    /// The number of hitboxes registered while prepainting this element subtree.
+    pub hitbox_count: usize,
+    /// The number of keyboard listeners registered on this element.
+    pub key_listener_count: usize,
+    /// The number of action listeners registered on this element.
+    pub action_listener_count: usize,
+    /// Whether this element owns the currently focused dispatch node.
+    pub focused: bool,
+}
+
+/// Component-authored accessibility and DevKit semantics for a rendered element.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct DevtoolsSemantics {
+    /// Accessibility role such as `button`, `textbox`, `checkbox`, or `text`.
+    pub role: Option<String>,
+    /// Accessible name exposed to automation agents.
+    pub name: Option<String>,
+    /// Text content rendered by this element.
+    pub text: Option<String>,
+    /// Editable value exposed by this element.
+    pub value: Option<String>,
+    /// Placeholder text for editable controls.
+    pub placeholder: Option<String>,
+    /// Whether the element is enabled.
+    pub enabled: Option<bool>,
+    /// Whether the element is selected.
+    pub selected: Option<bool>,
+    /// Whether the element is checked.
+    pub checked: Option<bool>,
+    /// Whether the element is expanded.
+    pub expanded: Option<bool>,
+    /// Component-authored writable properties for live DevKit mutation.
+    pub writable_properties: Vec<DevtoolsWritableProperty>,
+}
+
+impl DevtoolsSemantics {
+    /// Create empty semantics to populate with builder methods.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set the accessibility role.
+    pub fn role(mut self, role: impl Into<String>) -> Self {
+        self.role = Some(role.into());
+        self
+    }
+
+    /// Set the accessible name.
+    pub fn name(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+
+    /// Set text content.
+    pub fn text(mut self, text: impl Into<String>) -> Self {
+        self.text = Some(text.into());
+        self
+    }
+
+    /// Set the editable value.
+    pub fn value(mut self, value: impl Into<String>) -> Self {
+        self.value = Some(value.into());
+        self
+    }
+
+    /// Set placeholder text.
+    pub fn placeholder(mut self, placeholder: impl Into<String>) -> Self {
+        self.placeholder = Some(placeholder.into());
+        self
+    }
+
+    /// Set whether the element is enabled.
+    pub fn enabled(mut self, enabled: bool) -> Self {
+        self.enabled = Some(enabled);
+        self
+    }
+
+    /// Set whether the element is selected.
+    pub fn selected(mut self, selected: bool) -> Self {
+        self.selected = Some(selected);
+        self
+    }
+
+    /// Set whether the element is checked.
+    pub fn checked(mut self, checked: bool) -> Self {
+        self.checked = Some(checked);
+        self
+    }
+
+    /// Set whether the element is expanded.
+    pub fn expanded(mut self, expanded: bool) -> Self {
+        self.expanded = Some(expanded);
+        self
+    }
+
+    /// Add a writable property exposed by the component.
+    pub fn writable_property(
+        mut self,
+        name: impl Into<String>,
+        value_type: impl Into<String>,
+    ) -> Self {
+        self.writable_properties.push(DevtoolsWritableProperty {
+            name: name.into(),
+            value_type: value_type.into(),
+        });
+        self
+    }
+
+    fn merge(&mut self, other: Self) {
+        if other.role.is_some() {
+            self.role = other.role;
+        }
+        if other.name.is_some() {
+            self.name = other.name;
+        }
+        if other.text.is_some() {
+            self.text = other.text;
+        }
+        if other.value.is_some() {
+            self.value = other.value;
+        }
+        if other.placeholder.is_some() {
+            self.placeholder = other.placeholder;
+        }
+        if other.enabled.is_some() {
+            self.enabled = other.enabled;
+        }
+        if other.selected.is_some() {
+            self.selected = other.selected;
+        }
+        if other.checked.is_some() {
+            self.checked = other.checked;
+        }
+        if other.expanded.is_some() {
+            self.expanded = other.expanded;
+        }
+        for property in other.writable_properties {
+            if !self
+                .writable_properties
+                .iter()
+                .any(|existing| existing.name == property.name)
+            {
+                self.writable_properties.push(property);
+            }
+        }
+    }
+}
+
+/// A component-authored writable property exposed to DevKit agents.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DevtoolsWritableProperty {
+    /// Property name accepted by the component setter.
+    pub name: String,
+    /// Human-readable JSON value type, such as `string`, `bool`, or `number`.
+    pub value_type: String,
+}
+
+type DevtoolsPropertyCallback =
+    Rc<dyn Fn(serde_json::Value, &mut Window, &mut App) -> std::result::Result<(), String>>;
+
+#[derive(Clone)]
+pub(crate) struct DevtoolsPropertySetter {
+    pub(crate) property: DevtoolsWritableProperty,
+    pub(crate) callback: DevtoolsPropertyCallback,
+}
+
+/// Read-only inspection data for the last rendered GPUI frame.
+#[derive(Clone, Debug, PartialEq)]
+pub struct DevtoolsFrameSnapshot {
+    /// The window-local viewport covered by this frame.
+    pub viewport: DevtoolsBounds,
+    /// The rendered element tree flattened in prepaint order.
+    pub elements: Vec<DevtoolsElementSnapshot>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd)]
@@ -2467,6 +2722,190 @@ impl Window {
     /// The position of the mouse relative to the window.
     pub fn mouse_position(&self) -> Point<Pixels> {
         self.mouse_position
+    }
+
+    /// Returns read-only inspection data for the last rendered frame.
+    pub fn devtools_frame_snapshot(&self) -> DevtoolsFrameSnapshot {
+        DevtoolsFrameSnapshot {
+            viewport: Bounds {
+                origin: point(px(0.0), px(0.0)),
+                size: self.viewport_size,
+            }
+            .into(),
+            elements: self.rendered_frame.devtools_nodes.clone(),
+        }
+    }
+
+    pub(crate) fn record_devtools_element(
+        &mut self,
+        devtools_node_id: usize,
+        parent_devtools_node_id: Option<usize>,
+        node_id: DispatchNodeId,
+        type_name: &'static str,
+        global_id: Option<&GlobalElementId>,
+        source: Option<&'static core::panic::Location<'static>>,
+        bounds: Bounds<Pixels>,
+        hitbox_range: Range<usize>,
+    ) {
+        let parent_dispatch_node_id = self
+            .next_frame
+            .dispatch_tree
+            .parent_node_id(node_id)
+            .map(DispatchNodeId::as_usize);
+        let dispatch_node = self.next_frame.dispatch_tree.node(node_id);
+        self.next_frame
+            .devtools_nodes
+            .push(DevtoolsElementSnapshot {
+                devtools_node_id,
+                parent_devtools_node_id,
+                dispatch_node_id: node_id.as_usize(),
+                parent_dispatch_node_id,
+                type_name: type_name.to_string(),
+                global_id: global_id.map(ToString::to_string),
+                source: source.map(DevtoolsElementSource::from_location),
+                bounds: bounds.into(),
+                semantics: DevtoolsSemantics::default(),
+                hitbox_count: hitbox_range.len(),
+                key_listener_count: dispatch_node.key_listeners.len(),
+                action_listener_count: dispatch_node.action_listeners.len(),
+                focused: dispatch_node.focus_id.is_some()
+                    && dispatch_node.focus_id == self.next_frame.focus,
+            });
+    }
+
+    pub(crate) fn push_devtools_node(&mut self) -> (usize, Option<usize>) {
+        let devtools_node_id = self.next_frame.next_devtools_node_id;
+        self.next_frame.next_devtools_node_id += 1;
+        let parent_devtools_node_id = self.next_frame.devtools_node_stack.last().copied();
+        self.next_frame.devtools_node_stack.push(devtools_node_id);
+        (devtools_node_id, parent_devtools_node_id)
+    }
+
+    pub(crate) fn push_existing_devtools_node(&mut self, devtools_node_id: usize) {
+        self.next_frame.devtools_node_stack.push(devtools_node_id);
+    }
+
+    pub(crate) fn pop_devtools_node(&mut self, devtools_node_id: usize) {
+        debug_assert_eq!(
+            self.next_frame.devtools_node_stack.pop(),
+            Some(devtools_node_id)
+        );
+    }
+
+    fn active_devtools_node_id(&self) -> Option<usize> {
+        self.next_frame.devtools_node_stack.last().copied()
+    }
+
+    /// Attach component-authored DevKit semantics to the element currently being painted.
+    pub fn set_devtools_semantics(&mut self, semantics: DevtoolsSemantics) {
+        let Some(devtools_node_id) = self.active_devtools_node_id() else {
+            return;
+        };
+        let Some(element) = self
+            .next_frame
+            .devtools_nodes
+            .iter_mut()
+            .find(|element| element.devtools_node_id == devtools_node_id)
+        else {
+            return;
+        };
+        element.semantics.merge(semantics);
+    }
+
+    /// Register a live writable DevKit property on the element currently being painted.
+    pub fn on_devtools_property(
+        &mut self,
+        name: impl Into<String>,
+        value_type: impl Into<String>,
+        setter: impl Fn(serde_json::Value, &mut Window, &mut App) -> std::result::Result<(), String>
+        + 'static,
+    ) {
+        self.register_devtools_property_setter(DevtoolsPropertySetter {
+            property: DevtoolsWritableProperty {
+                name: name.into(),
+                value_type: value_type.into(),
+            },
+            callback: Rc::new(setter),
+        });
+    }
+
+    pub(crate) fn register_devtools_property_setter(&mut self, setter: DevtoolsPropertySetter) {
+        let Some(devtools_node_id) = self.active_devtools_node_id() else {
+            return;
+        };
+        let Some(element) = self
+            .next_frame
+            .devtools_nodes
+            .iter_mut()
+            .find(|element| element.devtools_node_id == devtools_node_id)
+        else {
+            return;
+        };
+        let dispatch_node_id = element.dispatch_node_id;
+        if !element
+            .semantics
+            .writable_properties
+            .iter()
+            .any(|property| property.name == setter.property.name)
+        {
+            element
+                .semantics
+                .writable_properties
+                .push(setter.property.clone());
+        }
+        self.next_frame
+            .devtools_property_setters
+            .entry(dispatch_node_id)
+            .or_default()
+            .push(setter);
+    }
+
+    /// Mutate a component-authored DevKit property on a rendered dispatch node.
+    pub fn set_devtools_property(
+        &mut self,
+        dispatch_node_id: usize,
+        property: &str,
+        value: serde_json::Value,
+        cx: &mut App,
+    ) -> std::result::Result<bool, String> {
+        let setter = self
+            .rendered_frame
+            .devtools_property_setters
+            .get(&dispatch_node_id)
+            .and_then(|setters| {
+                setters
+                    .iter()
+                    .find(|setter| setter.property.name == property)
+                    .cloned()
+            });
+        let Some(setter) = setter else {
+            return Ok(false);
+        };
+        (setter.callback)(value, self, cx)?;
+        Ok(true)
+    }
+
+    pub(crate) fn update_devtools_element_after_paint(
+        &mut self,
+        devtools_node_id: usize,
+        node_id: DispatchNodeId,
+    ) {
+        let dispatch_node = self.next_frame.dispatch_tree.node(node_id);
+        let key_listener_count = dispatch_node.key_listeners.len();
+        let action_listener_count = dispatch_node.action_listeners.len();
+        let focused =
+            dispatch_node.focus_id.is_some() && dispatch_node.focus_id == self.next_frame.focus;
+        let Some(element) = self
+            .next_frame
+            .devtools_nodes
+            .iter_mut()
+            .find(|element| element.devtools_node_id == devtools_node_id)
+        else {
+            return;
+        };
+        element.key_listener_count = key_listener_count;
+        element.action_listener_count = action_listener_count;
+        element.focused = focused;
     }
 
     /// Captures the pointer for the given hitbox. While captured, all mouse move and mouse up
@@ -4526,6 +4965,29 @@ impl Window {
         }
 
         false
+    }
+
+    /// Dispatch a text input payload through the active platform input handler.
+    pub fn dispatch_text_input(&mut self, text: &str, cx: &mut App) -> bool {
+        let Some(mut input_handler) = self.platform_window.take_input_handler() else {
+            return false;
+        };
+
+        let accepts_input = input_handler.accepts_text_input(self, cx);
+        if accepts_input {
+            input_handler.dispatch_input(text, self, cx);
+        }
+        self.platform_window.set_input_handler(input_handler);
+        accepts_input
+    }
+
+    /// Reads the full text payload from the active platform input handler.
+    pub fn text_input_value(&mut self, cx: &mut App) -> Option<String> {
+        let mut input_handler = self.platform_window.take_input_handler()?;
+        let mut adjusted_range = None;
+        let value = input_handler.read_text_for_range(0..usize::MAX, &mut adjusted_range, self, cx);
+        self.platform_window.set_input_handler(input_handler);
+        value
     }
 
     /// Return a key binding string for an action, to display in the UI. Uses the highest precedence

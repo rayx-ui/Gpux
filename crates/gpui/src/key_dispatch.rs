@@ -68,6 +68,12 @@ use std::{
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub(crate) struct DispatchNodeId(usize);
 
+impl DispatchNodeId {
+    pub(crate) fn as_usize(self) -> usize {
+        self.0
+    }
+}
+
 pub(crate) struct DispatchTree {
     node_stack: Vec<DispatchNodeId>,
     pub(crate) context_stack: Vec<KeyContext>,
@@ -597,6 +603,10 @@ impl DispatchTree {
 
     pub fn node(&self, node_id: DispatchNodeId) -> &DispatchNode {
         &self.nodes[node_id.0]
+    }
+
+    pub(crate) fn parent_node_id(&self, node_id: DispatchNodeId) -> Option<DispatchNodeId> {
+        self.nodes.get(node_id.0).and_then(|node| node.parent)
     }
 
     fn active_node(&mut self) -> &mut DispatchNode {

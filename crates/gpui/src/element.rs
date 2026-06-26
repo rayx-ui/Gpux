@@ -32,9 +32,11 @@
 //! your own custom layout algorithm or rendering a code editor.
 
 use crate::{
-    App, ArenaBox, AvailableSpace, Bounds, Context, DispatchNodeId, ElementId, FocusHandle,
-    InspectorElementId, LayoutId, Pixels, Point, SharedString, Size, Style, Window,
-    util::FluentBuilder, window::with_element_arena,
+    App, ArenaBox, AvailableSpace, Bounds, Context, DevtoolsPropertySetter, DevtoolsSemantics,
+    DevtoolsWritableProperty, DispatchNodeId, ElementId, FocusHandle, InspectorElementId,
+    InteractiveElement, Interactivity, LayoutId, Pixels, Point, SharedString, Size,
+    StatefulInteractiveElement, Style, StyleRefinement, Styled, Window, util::FluentBuilder,
+    window::with_element_arena,
 };
 use derive_more::{Deref, DerefMut};
 use std::{
@@ -125,6 +127,176 @@ pub trait IntoElement: Sized {
 }
 
 impl<T: IntoElement> FluentBuilder for T {}
+
+/// An element wrapper that attaches DevKit inspection metadata without adding
+/// hitboxes, focus state, event listeners, or other interactivity.
+pub struct InspectableElement<E: Element> {
+    element: E,
+    semantics: Option<DevtoolsSemantics>,
+    property_setters: Vec<DevtoolsPropertySetter>,
+}
+
+impl<E: Element> InspectableElement<E> {
+    fn new(element: E) -> Self {
+        Self {
+            element,
+            semantics: None,
+            property_setters: Vec::new(),
+        }
+    }
+
+    pub(crate) fn element_mut(&mut self) -> &mut E {
+        &mut self.element
+    }
+
+    /// Attach component-authored accessibility and DevKit semantics.
+    pub fn devtools_semantics(mut self, semantics: DevtoolsSemantics) -> Self {
+        self.semantics = Some(semantics);
+        self
+    }
+
+    /// Register a live writable DevKit property.
+    pub fn on_devtools_property(
+        mut self,
+        name: impl Into<String>,
+        value_type: impl Into<String>,
+        setter: impl Fn(serde_json::Value, &mut Window, &mut App) -> std::result::Result<(), String>
+        + 'static,
+    ) -> Self {
+        self.property_setters.push(DevtoolsPropertySetter {
+            property: DevtoolsWritableProperty {
+                name: name.into(),
+                value_type: value_type.into(),
+            },
+            callback: std::rc::Rc::new(setter),
+        });
+        self
+    }
+}
+
+/// Fluent helpers for adding DevKit inspection metadata to any element.
+pub trait InspectableElementExt: IntoElement + Sized {
+    /// Attach component-authored accessibility and DevKit semantics.
+    fn devtools_semantics(self, semantics: DevtoolsSemantics) -> InspectableElement<Self::Element> {
+        InspectableElement::new(self.into_element()).devtools_semantics(semantics)
+    }
+
+    /// Register a live writable DevKit property.
+    fn on_devtools_property(
+        self,
+        name: impl Into<String>,
+        value_type: impl Into<String>,
+        setter: impl Fn(serde_json::Value, &mut Window, &mut App) -> std::result::Result<(), String>
+        + 'static,
+    ) -> InspectableElement<Self::Element> {
+        InspectableElement::new(self.into_element()).on_devtools_property(name, value_type, setter)
+    }
+}
+
+impl<T: IntoElement> InspectableElementExt for T {}
+
+impl<E: Element> Element for InspectableElement<E> {
+    type RequestLayoutState = E::RequestLayoutState;
+    type PrepaintState = E::PrepaintState;
+
+    fn id(&self) -> Option<ElementId> {
+        self.element.id()
+    }
+
+    fn source_location(&self) -> Option<&'static panic::Location<'static>> {
+        self.element.source_location()
+    }
+
+    fn request_layout(
+        &mut self,
+        id: Option<&GlobalElementId>,
+        inspector_id: Option<&InspectorElementId>,
+        window: &mut Window,
+        cx: &mut App,
+    ) -> (LayoutId, Self::RequestLayoutState) {
+        self.element.request_layout(id, inspector_id, window, cx)
+    }
+
+    fn prepaint(
+        &mut self,
+        id: Option<&GlobalElementId>,
+        inspector_id: Option<&InspectorElementId>,
+        bounds: Bounds<Pixels>,
+        request_layout: &mut Self::RequestLayoutState,
+        window: &mut Window,
+        cx: &mut App,
+    ) -> Self::PrepaintState {
+        self.element
+            .prepaint(id, inspector_id, bounds, request_layout, window, cx)
+    }
+
+    fn paint(
+        &mut self,
+        id: Option<&GlobalElementId>,
+        inspector_id: Option<&InspectorElementId>,
+        bounds: Bounds<Pixels>,
+        request_layout: &mut Self::RequestLayoutState,
+        prepaint: &mut Self::PrepaintState,
+        window: &mut Window,
+        cx: &mut App,
+    ) {
+        if let Some(semantics) = self.semantics.take() {
+            window.set_devtools_semantics(semantics);
+        }
+        for setter in self.property_setters.drain(..) {
+            window.register_devtools_property_setter(setter);
+        }
+        self.element.paint(
+            id,
+            inspector_id,
+            bounds,
+            request_layout,
+            prepaint,
+            window,
+            cx,
+        );
+    }
+}
+
+impl<E: Element> IntoElement for InspectableElement<E> {
+    type Element = Self;
+
+    fn into_element(self) -> Self::Element {
+        self
+    }
+}
+
+impl<E> Styled for InspectableElement<E>
+where
+    E: Element + Styled,
+{
+    fn style(&mut self) -> &mut StyleRefinement {
+        self.element.style()
+    }
+}
+
+impl<E> ParentElement for InspectableElement<E>
+where
+    E: Element + ParentElement,
+{
+    fn extend(&mut self, elements: impl IntoIterator<Item = AnyElement>) {
+        self.element.extend(elements)
+    }
+}
+
+impl<E> InteractiveElement for InspectableElement<E>
+where
+    E: Element + InteractiveElement,
+{
+    fn interactivity(&mut self) -> &mut Interactivity {
+        self.element.interactivity()
+    }
+}
+
+impl<E> StatefulInteractiveElement for InspectableElement<E> where
+    E: Element + StatefulInteractiveElement
+{
+}
 
 /// An object that can be drawn to the screen. This is the trait that distinguishes "views" from
 /// other entities. Views are `Entity`'s which `impl Render` and drawn to the screen.
@@ -344,6 +516,7 @@ enum ElementDrawPhase<RequestLayoutState, PrepaintState> {
         request_layout: RequestLayoutState,
     },
     Prepaint {
+        devtools_node_id: usize,
         node_id: DispatchNodeId,
         global_id: Option<GlobalElementId>,
         inspector_id: Option<InspectorElementId>,
@@ -431,7 +604,10 @@ impl<E: Element> Drawable<E> {
                 }
 
                 let bounds = window.layout_bounds(layout_id);
+                let (devtools_node_id, parent_devtools_node_id) = window.push_devtools_node();
                 let node_id = window.next_frame.dispatch_tree.push_node();
+                let source = self.element.source_location();
+                let hitbox_start = window.next_frame.hitboxes.len();
                 let prepaint = self.element.prepaint(
                     global_id.as_ref(),
                     inspector_id.as_ref(),
@@ -440,13 +616,26 @@ impl<E: Element> Drawable<E> {
                     window,
                     cx,
                 );
+                let hitbox_end = window.next_frame.hitboxes.len();
+                window.record_devtools_element(
+                    devtools_node_id,
+                    parent_devtools_node_id,
+                    node_id,
+                    type_name::<E>(),
+                    global_id.as_ref(),
+                    source,
+                    bounds,
+                    hitbox_start..hitbox_end,
+                );
                 window.next_frame.dispatch_tree.pop_node();
+                window.pop_devtools_node(devtools_node_id);
 
                 if global_id.is_some() {
                     window.element_id_stack.pop();
                 }
 
                 self.phase = ElementDrawPhase::Prepaint {
+                    devtools_node_id,
                     node_id,
                     global_id,
                     inspector_id,
@@ -466,6 +655,7 @@ impl<E: Element> Drawable<E> {
     ) -> (E::RequestLayoutState, E::PrepaintState) {
         match mem::take(&mut self.phase) {
             ElementDrawPhase::Prepaint {
+                devtools_node_id,
                 node_id,
                 global_id,
                 inspector_id,
@@ -480,6 +670,7 @@ impl<E: Element> Drawable<E> {
                 }
 
                 window.next_frame.dispatch_tree.set_active_node(node_id);
+                window.push_existing_devtools_node(devtools_node_id);
                 self.element.paint(
                     global_id.as_ref(),
                     inspector_id.as_ref(),
@@ -489,6 +680,8 @@ impl<E: Element> Drawable<E> {
                     window,
                     cx,
                 );
+                window.update_devtools_element_after_paint(devtools_node_id, node_id);
+                window.pop_devtools_node(devtools_node_id);
 
                 if global_id.is_some() {
                     window.element_id_stack.pop();

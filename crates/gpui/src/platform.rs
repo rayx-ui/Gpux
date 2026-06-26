@@ -1225,6 +1225,17 @@ impl PlatformInputHandler {
         self.handler.replace_text_in_range(None, input, window, cx);
     }
 
+    pub fn read_text_for_range(
+        &mut self,
+        range_utf16: Range<usize>,
+        adjusted: &mut Option<Range<usize>>,
+        window: &mut Window,
+        cx: &mut App,
+    ) -> Option<String> {
+        self.handler
+            .text_for_range(range_utf16, adjusted, window, cx)
+    }
+
     pub fn selected_bounds(&mut self, window: &mut Window, cx: &mut App) -> Option<Bounds<Pixels>> {
         let selection = self.handler.selected_text_range(true, window, cx)?;
         self.handler.bounds_for_range(
