@@ -344,6 +344,7 @@ enum ElementDrawPhase<RequestLayoutState, PrepaintState> {
         request_layout: RequestLayoutState,
     },
     Prepaint {
+        devtools_node_id: usize,
         node_id: DispatchNodeId,
         global_id: Option<GlobalElementId>,
         inspector_id: Option<InspectorElementId>,
@@ -431,6 +432,7 @@ impl<E: Element> Drawable<E> {
                 }
 
                 let bounds = window.layout_bounds(layout_id);
+                let (devtools_node_id, parent_devtools_node_id) = window.push_devtools_node();
                 let node_id = window.next_frame.dispatch_tree.push_node();
                 let source = self.element.source_location();
                 let hitbox_start = window.next_frame.hitboxes.len();
@@ -444,6 +446,8 @@ impl<E: Element> Drawable<E> {
                 );
                 let hitbox_end = window.next_frame.hitboxes.len();
                 window.record_devtools_element(
+                    devtools_node_id,
+                    parent_devtools_node_id,
                     node_id,
                     type_name::<E>(),
                     global_id.as_ref(),
@@ -452,12 +456,14 @@ impl<E: Element> Drawable<E> {
                     hitbox_start..hitbox_end,
                 );
                 window.next_frame.dispatch_tree.pop_node();
+                window.pop_devtools_node(devtools_node_id);
 
                 if global_id.is_some() {
                     window.element_id_stack.pop();
                 }
 
                 self.phase = ElementDrawPhase::Prepaint {
+                    devtools_node_id,
                     node_id,
                     global_id,
                     inspector_id,
@@ -477,6 +483,7 @@ impl<E: Element> Drawable<E> {
     ) -> (E::RequestLayoutState, E::PrepaintState) {
         match mem::take(&mut self.phase) {
             ElementDrawPhase::Prepaint {
+                devtools_node_id,
                 node_id,
                 global_id,
                 inspector_id,
@@ -491,6 +498,7 @@ impl<E: Element> Drawable<E> {
                 }
 
                 window.next_frame.dispatch_tree.set_active_node(node_id);
+                window.push_existing_devtools_node(devtools_node_id);
                 self.element.paint(
                     global_id.as_ref(),
                     inspector_id.as_ref(),
@@ -500,7 +508,8 @@ impl<E: Element> Drawable<E> {
                     window,
                     cx,
                 );
-                window.update_devtools_element_after_paint(node_id);
+                window.update_devtools_element_after_paint(devtools_node_id, node_id);
+                window.pop_devtools_node(devtools_node_id);
 
                 if global_id.is_some() {
                     window.element_id_stack.pop();

@@ -806,6 +806,8 @@ pub(crate) struct Frame {
     pub(crate) debug_bounds: FxHashMap<String, Bounds<Pixels>>,
     pub(crate) devtools_nodes: Vec<DevtoolsElementSnapshot>,
     pub(crate) devtools_property_setters: FxHashMap<usize, Vec<DevtoolsPropertySetter>>,
+    pub(crate) devtools_node_stack: Vec<usize>,
+    pub(crate) next_devtools_node_id: usize,
     #[cfg(any(feature = "inspector", debug_assertions))]
     pub(crate) next_inspector_instance_ids: FxHashMap<Rc<crate::InspectorElementPath>, usize>,
     #[cfg(any(feature = "inspector", debug_assertions))]
@@ -856,6 +858,8 @@ impl Frame {
 
             devtools_nodes: Vec::new(),
             devtools_property_setters: FxHashMap::default(),
+            devtools_node_stack: Vec::new(),
+            next_devtools_node_id: 0,
 
             #[cfg(any(feature = "inspector", debug_assertions))]
             next_inspector_instance_ids: FxHashMap::default(),
@@ -888,6 +892,8 @@ impl Frame {
 
         self.devtools_nodes.clear();
         self.devtools_property_setters.clear();
+        self.devtools_node_stack.clear();
+        self.next_devtools_node_id = 0;
 
         #[cfg(any(feature = "inspector", debug_assertions))]
         {
@@ -1002,6 +1008,10 @@ impl DevtoolsElementSource {
 /// Read-only inspection data for one rendered GPUI element.
 #[derive(Clone, Debug, PartialEq)]
 pub struct DevtoolsElementSnapshot {
+    /// Per-frame rendered element occurrence id.
+    pub devtools_node_id: usize,
+    /// The parent rendered element occurrence id for this frame, if any.
+    pub parent_devtools_node_id: Option<usize>,
     /// The GPUI dispatch-tree node id for this rendered frame.
     pub dispatch_node_id: usize,
     /// The parent GPUI dispatch-tree node id for this rendered frame.
@@ -2728,6 +2738,8 @@ impl Window {
 
     pub(crate) fn record_devtools_element(
         &mut self,
+        devtools_node_id: usize,
+        parent_devtools_node_id: Option<usize>,
         node_id: DispatchNodeId,
         type_name: &'static str,
         global_id: Option<&GlobalElementId>,
@@ -2744,6 +2756,8 @@ impl Window {
         self.next_frame
             .devtools_nodes
             .push(DevtoolsElementSnapshot {
+                devtools_node_id,
+                parent_devtools_node_id,
                 dispatch_node_id: node_id.as_usize(),
                 parent_dispatch_node_id,
                 type_name: type_name.to_string(),
@@ -2759,40 +2773,80 @@ impl Window {
             });
     }
 
+    pub(crate) fn push_devtools_node(&mut self) -> (usize, Option<usize>) {
+        let devtools_node_id = self.next_frame.next_devtools_node_id;
+        self.next_frame.next_devtools_node_id += 1;
+        let parent_devtools_node_id = self.next_frame.devtools_node_stack.last().copied();
+        self.next_frame.devtools_node_stack.push(devtools_node_id);
+        (devtools_node_id, parent_devtools_node_id)
+    }
+
+    pub(crate) fn push_existing_devtools_node(&mut self, devtools_node_id: usize) {
+        self.next_frame.devtools_node_stack.push(devtools_node_id);
+    }
+
+    pub(crate) fn pop_devtools_node(&mut self, devtools_node_id: usize) {
+        debug_assert_eq!(
+            self.next_frame.devtools_node_stack.pop(),
+            Some(devtools_node_id)
+        );
+    }
+
+    fn active_devtools_node_id(&self) -> Option<usize> {
+        self.next_frame.devtools_node_stack.last().copied()
+    }
+
     /// Attach component-authored DevKit semantics to the element currently being painted.
     pub fn set_devtools_semantics(&mut self, semantics: DevtoolsSemantics) {
-        let Some(node_id) = self.next_frame.dispatch_tree.active_node_id() else {
+        let Some(devtools_node_id) = self.active_devtools_node_id() else {
             return;
         };
         let Some(element) = self
             .next_frame
             .devtools_nodes
             .iter_mut()
-            .find(|element| element.dispatch_node_id == node_id.as_usize())
+            .find(|element| element.devtools_node_id == devtools_node_id)
         else {
             return;
         };
         element.semantics.merge(semantics);
     }
 
-    pub(crate) fn register_devtools_property_setter(
+    /// Register a live writable DevKit property on the element currently being painted.
+    pub fn on_devtools_property(
         &mut self,
-        setter: DevtoolsPropertySetter,
+        name: impl Into<String>,
+        value_type: impl Into<String>,
+        setter: impl Fn(serde_json::Value, &mut Window, &mut App) -> std::result::Result<(), String>
+        + 'static,
     ) {
-        let Some(node_id) = self.next_frame.dispatch_tree.active_node_id() else {
+        self.register_devtools_property_setter(DevtoolsPropertySetter {
+            property: DevtoolsWritableProperty {
+                name: name.into(),
+                value_type: value_type.into(),
+            },
+            callback: Rc::new(setter),
+        });
+    }
+
+    pub(crate) fn register_devtools_property_setter(&mut self, setter: DevtoolsPropertySetter) {
+        let Some(devtools_node_id) = self.active_devtools_node_id() else {
             return;
         };
-        let dispatch_node_id = node_id.as_usize();
-        if let Some(element) = self
+        let Some(element) = self
             .next_frame
             .devtools_nodes
             .iter_mut()
-            .find(|element| element.dispatch_node_id == dispatch_node_id)
-            && !element
-                .semantics
-                .writable_properties
-                .iter()
-                .any(|property| property.name == setter.property.name)
+            .find(|element| element.devtools_node_id == devtools_node_id)
+        else {
+            return;
+        };
+        let dispatch_node_id = element.dispatch_node_id;
+        if !element
+            .semantics
+            .writable_properties
+            .iter()
+            .any(|property| property.name == setter.property.name)
         {
             element
                 .semantics
@@ -2831,7 +2885,11 @@ impl Window {
         Ok(true)
     }
 
-    pub(crate) fn update_devtools_element_after_paint(&mut self, node_id: DispatchNodeId) {
+    pub(crate) fn update_devtools_element_after_paint(
+        &mut self,
+        devtools_node_id: usize,
+        node_id: DispatchNodeId,
+    ) {
         let dispatch_node = self.next_frame.dispatch_tree.node(node_id);
         let key_listener_count = dispatch_node.key_listeners.len();
         let action_listener_count = dispatch_node.action_listeners.len();
@@ -2841,7 +2899,7 @@ impl Window {
             .next_frame
             .devtools_nodes
             .iter_mut()
-            .find(|element| element.dispatch_node_id == node_id.as_usize())
+            .find(|element| element.devtools_node_id == devtools_node_id)
         else {
             return;
         };
