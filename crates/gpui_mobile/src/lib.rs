@@ -72,6 +72,7 @@ pub use gpui;
 // ── shared modules ───────────────────────────────────────────────────────────
 
 pub mod components;
+pub mod packages;
 pub mod platform_view;
 pub mod target_platform;
 

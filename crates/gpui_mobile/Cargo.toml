@@ -18,6 +18,36 @@ workspace = true
 [features]
 default = []
 android-native-activity = ["android-activity/native-activity"]
+audio = []
+battery = []
+calendar = []
+camera = []
+clipboard = []
+connectivity = []
+contacts = []
+deeplink = []
+device_info = []
+file_selector = []
+image_picker = []
+in_app_review = []
+local_auth = []
+location = []
+maps = []
+maps_launcher = []
+media_session = []
+microphone = []
+network_info = []
+notifications = []
+package_info = []
+path_provider = []
+permission_handler = []
+sensors = []
+share = []
+shared_preferences = []
+url_launcher = []
+vibration = []
+video_player = []
+webview = []
 
 [dependencies]
 anyhow.workspace = true
@@ -44,7 +74,7 @@ wgpu.workspace = true
 [target.'cfg(target_os = "android")'.dependencies]
 android-activity = { version = "0.6", optional = true, default-features = false }
 android_logger = "0.15"
-gpui_wgpu = { workspace = true, features = ["font-kit"] }
+gpui_wgpu = { workspace = true }
 jni = "0.22"
 jni-sys-03 = { package = "jni-sys", version = "0.3" }
 libc.workspace = true
