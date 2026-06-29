@@ -43,6 +43,6 @@ fn get_system_property(name: &str) -> String {
     }
 }
 
-extern "C" {
+unsafe extern "C" {
     fn __system_property_get(name: *const i8, value: *mut i8) -> i32;
 }
