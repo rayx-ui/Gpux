@@ -21,6 +21,7 @@ pub struct Anchored {
     anchor_position: Option<Point<Pixels>>,
     position_mode: AnchoredPositionMode,
     offset: Option<Point<Pixels>>,
+    anchor_gap: Pixels,
 }
 
 /// anchored gives you an element that will avoid overflowing the window bounds.
@@ -34,6 +35,7 @@ pub fn anchored() -> Anchored {
         anchor_position: None,
         position_mode: AnchoredPositionMode::Window,
         offset: None,
+        anchor_gap: Pixels::ZERO,
     }
 }
 
@@ -64,6 +66,15 @@ impl Anchored {
         self
     }
 
+    /// Keep this much space between the anchor point and the anchored element.
+    ///
+    /// The gap is applied away from the anchor point for the active element anchor. If
+    /// [`AnchoredFitMode::SwitchAnchor`] flips the anchor, the gap flips with it.
+    pub fn anchor_gap(mut self, gap: Pixels) -> Self {
+        self.anchor_gap = gap;
+        self
+    }
+
     /// Sets the position mode for this anchored element. Local will have this
     /// interpret its [`Anchored::position`] as relative to the parent element.
     /// While Window will have it interpret the position as relative to the window.
@@ -81,6 +92,13 @@ impl Anchored {
     /// Snap to window edge and leave some margins.
     pub fn snap_to_window_with_margin(mut self, edges: impl Into<Edges<Pixels>>) -> Self {
         self.fit_mode = AnchoredFitMode::SnapToWindowWithMargin(edges.into());
+        self
+    }
+
+    /// Switch anchor corner when possible and otherwise keep the element inside
+    /// the window with the given margin.
+    pub fn switch_anchor_with_margin(mut self, edges: impl Into<Edges<Pixels>>) -> Self {
+        self.fit_mode = AnchoredFitMode::SwitchAnchorWithMargin(edges.into());
         self
     }
 }
@@ -147,12 +165,13 @@ impl Element for Anchored {
             .reduce(|acc, bounds| acc.union(&bounds))
             .unwrap();
 
-        let (origin, mut desired) = self.position_mode.get_position_and_bounds(
+        let (origin, offset, mut desired) = self.position_mode.get_position_and_bounds(
             self.anchor_position,
             self.anchor,
             children_bounds.size,
             bounds,
             self.offset,
+            self.anchor_gap,
         );
 
         let limits = Bounds {
@@ -160,39 +179,61 @@ impl Element for Anchored {
             size: window.viewport_size(),
         };
 
-        if self.fit_mode == AnchoredFitMode::SwitchAnchor {
+        let client_inset = window.client_inset.unwrap_or(px(0.));
+        let edges = match self.fit_mode {
+            AnchoredFitMode::SnapToWindowWithMargin(edges)
+            | AnchoredFitMode::SwitchAnchorWithMargin(edges) => edges,
+            _ => Edges::default(),
+        }
+        .map(|edge| *edge + client_inset);
+
+        let switch_limits = Bounds {
+            origin: point(edges.left, edges.top),
+            size: crate::size(
+                (limits.size.width - edges.left - edges.right).max(px(0.)),
+                (limits.size.height - edges.top - edges.bottom).max(px(0.)),
+            ),
+        };
+
+        if matches!(
+            self.fit_mode,
+            AnchoredFitMode::SwitchAnchor | AnchoredFitMode::SwitchAnchorWithMargin(_)
+        ) {
             let mut anchor = self.anchor;
 
-            if desired.left() < limits.left() || desired.right() > limits.right() {
-                let switched = Bounds::from_anchor_and_size(
-                    anchor.other_side_along(Axis::Horizontal),
+            if desired.left() < switch_limits.left() || desired.right() > switch_limits.right() {
+                let switched_anchor = anchor.other_side_along(Axis::Horizontal);
+                let switched = anchored_bounds(
                     origin,
+                    offset,
+                    self.anchor_gap,
+                    switched_anchor,
                     children_bounds.size,
                 );
-                if !(switched.left() < limits.left() || switched.right() > limits.right()) {
+                if !(switched.left() < switch_limits.left()
+                    || switched.right() > switch_limits.right())
+                {
                     anchor = anchor.other_side_along(Axis::Horizontal);
                     desired = switched
                 }
             }
 
-            if desired.top() < limits.top() || desired.bottom() > limits.bottom() {
-                let switched = Bounds::from_anchor_and_size(
-                    anchor.other_side_along(Axis::Vertical),
+            if desired.top() < switch_limits.top() || desired.bottom() > switch_limits.bottom() {
+                let switched_anchor = anchor.other_side_along(Axis::Vertical);
+                let switched = anchored_bounds(
                     origin,
+                    offset,
+                    self.anchor_gap,
+                    switched_anchor,
                     children_bounds.size,
                 );
-                if !(switched.top() < limits.top() || switched.bottom() > limits.bottom()) {
+                if !(switched.top() < switch_limits.top()
+                    || switched.bottom() > switch_limits.bottom())
+                {
                     desired = switched;
                 }
             }
         }
-
-        let client_inset = window.client_inset.unwrap_or(px(0.));
-        let edges = match self.fit_mode {
-            AnchoredFitMode::SnapToWindowWithMargin(edges) => edges,
-            _ => Edges::default(),
-        }
-        .map(|edge| *edge + client_inset);
 
         // Snap the horizontal edges of the anchored element to the horizontal edges of the window if
         // its horizontal bounds overflow, aligning to the left if it is wider than the limits.
@@ -246,6 +287,29 @@ impl IntoElement for Anchored {
     }
 }
 
+fn anchored_bounds(
+    origin: Point<Pixels>,
+    offset: Point<Pixels>,
+    anchor_gap: Pixels,
+    anchor: Anchor,
+    size: Size<Pixels>,
+) -> Bounds<Pixels> {
+    Bounds::from_anchor_and_size(
+        anchor,
+        origin + offset + anchor_gap_offset(anchor, anchor_gap),
+        size,
+    )
+}
+
+fn anchor_gap_offset(anchor: Anchor, gap: Pixels) -> Point<Pixels> {
+    match anchor {
+        Anchor::TopLeft | Anchor::TopCenter | Anchor::TopRight => point(px(0.), gap),
+        Anchor::BottomLeft | Anchor::BottomCenter | Anchor::BottomRight => point(px(0.), -gap),
+        Anchor::LeftCenter => point(gap, px(0.)),
+        Anchor::RightCenter => point(-gap, px(0.)),
+    }
+}
+
 /// Which algorithm to use when fitting the anchored element to be inside the window.
 #[derive(Copy, Clone, PartialEq)]
 pub enum AnchoredFitMode {
@@ -255,6 +319,8 @@ pub enum AnchoredFitMode {
     SnapToWindowWithMargin(Edges<Pixels>),
     /// Switch which corner anchor this anchored element is attached to.
     SwitchAnchor,
+    /// Switch anchor corner when possible, then snap to the window with margins.
+    SwitchAnchorWithMargin(Edges<Pixels>),
 }
 
 /// Which algorithm to use when positioning the anchored element.
@@ -274,23 +340,21 @@ impl AnchoredPositionMode {
         size: Size<Pixels>,
         bounds: Bounds<Pixels>,
         offset: Option<Point<Pixels>>,
-    ) -> (Point<Pixels>, Bounds<Pixels>) {
+        anchor_gap: Pixels,
+    ) -> (Point<Pixels>, Point<Pixels>, Bounds<Pixels>) {
         let offset = offset.unwrap_or_default();
 
         match self {
             AnchoredPositionMode::Window => {
                 let anchor_position = anchor_position.unwrap_or(bounds.origin);
-                let bounds = Bounds::from_anchor_and_size(anchor, anchor_position + offset, size);
-                (anchor_position, bounds)
+                let bounds = anchored_bounds(anchor_position, offset, anchor_gap, anchor, size);
+                (anchor_position, offset, bounds)
             }
             AnchoredPositionMode::Local => {
                 let anchor_position = anchor_position.unwrap_or_default();
-                let bounds = Bounds::from_anchor_and_size(
-                    anchor,
-                    bounds.origin + anchor_position + offset,
-                    size,
-                );
-                (anchor_position, bounds)
+                let origin = bounds.origin + anchor_position;
+                let bounds = anchored_bounds(origin, offset, anchor_gap, anchor, size);
+                (origin, offset, bounds)
             }
         }
     }
@@ -299,12 +363,17 @@ impl AnchoredPositionMode {
 #[cfg(test)]
 mod tests {
     use crate::{
-        Context, Pixels, PlatformInput, Point, TestAppContext, Window, deferred, div, point,
-        prelude::*, px, size,
+        Anchor, Context, Pixels, PlatformInput, Point, TestAppContext, Window, deferred, div,
+        point, prelude::*, px, size,
     };
 
     struct AnchoredTestView {
         position: Point<Pixels>,
+    }
+
+    struct SwitchAnchoredTestView {
+        position: Point<Pixels>,
+        anchor: Anchor,
     }
 
     impl Render for AnchoredTestView {
@@ -330,6 +399,28 @@ mod tests {
                         )
                         .with_priority(1),
                     ),
+            )
+        }
+    }
+
+    impl Render for SwitchAnchoredTestView {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            div().size_full().child(
+                deferred(
+                    super::anchored()
+                        .switch_anchor_with_margin(px(8.))
+                        .anchor(self.anchor)
+                        .anchor_gap(px(8.))
+                        .position(self.position)
+                        .child(
+                            div()
+                                .id("menu")
+                                .debug_selector(|| "MENU".into())
+                                .w(px(200.))
+                                .h(px(100.)),
+                        ),
+                )
+                .with_priority(1),
             )
         }
     }
@@ -402,5 +493,45 @@ mod tests {
 
         assert_eq!(menu_bounds.origin, point(px(100.), px(300.)));
         assert_eq!(menu_bounds.size, size(px(200.), px(300.)));
+    }
+
+    #[gpux::test]
+    fn test_anchored_gap_without_switch(cx: &mut TestAppContext) {
+        let window = cx.open_window(size(px(800.), px(600.)), |_, _| SwitchAnchoredTestView {
+            position: point(px(100.), px(100.)),
+            anchor: Anchor::TopLeft,
+        });
+
+        cx.run_until_parked();
+
+        let menu_bounds = window
+            .update(cx, |_, window, _| {
+                window.rendered_frame.debug_bounds.get("MENU").copied()
+            })
+            .unwrap()
+            .expect("MENU debug bounds not found");
+
+        assert_eq!(menu_bounds.origin, point(px(100.), px(108.)));
+        assert_eq!(menu_bounds.size, size(px(200.), px(100.)));
+    }
+
+    #[gpux::test]
+    fn test_anchored_switches_vertical_with_margin_and_gap(cx: &mut TestAppContext) {
+        let window = cx.open_window(size(px(800.), px(600.)), |_, _| SwitchAnchoredTestView {
+            position: point(px(100.), px(580.)),
+            anchor: Anchor::TopLeft,
+        });
+
+        cx.run_until_parked();
+
+        let menu_bounds = window
+            .update(cx, |_, window, _| {
+                window.rendered_frame.debug_bounds.get("MENU").copied()
+            })
+            .unwrap()
+            .expect("MENU debug bounds not found");
+
+        assert_eq!(menu_bounds.origin, point(px(100.), px(472.)));
+        assert_eq!(menu_bounds.size, size(px(200.), px(100.)));
     }
 }

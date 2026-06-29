@@ -2349,7 +2349,12 @@ impl App {
                 is_first = true;
                 let future = A::load(source.clone(), self);
 
-                self.background_executor().spawn(future).shared()
+                #[cfg(target_family = "wasm")]
+                let task = self.foreground_executor().spawn(future).shared();
+                #[cfg(not(target_family = "wasm"))]
+                let task = self.background_executor().spawn(future).shared();
+
+                task
             });
 
         self.loading_assets.insert(asset_id, Box::new(task.clone()));

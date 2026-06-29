@@ -108,7 +108,9 @@ web-time.workspace = true
 
 [target.'cfg(target_family = "wasm")'.dependencies]
 getrandom = { version = "0.3.4", features = ["wasm_js"] }
+reqwest.workspace = true
 uuid = { workspace = true, features = ["js"] }
+web-sys = { version = "0.3", features = ["Location", "Window"] }
 
 
 [target.'cfg(target_os = "macos")'.dependencies]

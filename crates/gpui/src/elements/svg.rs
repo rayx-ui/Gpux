@@ -1,4 +1,6 @@
-use std::{fs, path::Path, sync::Arc};
+use std::sync::Arc;
+#[cfg(not(target_family = "wasm"))]
+use std::{fs, path::Path};
 
 use crate::{
     App, Asset, Bounds, Element, GlobalElementId, Hitbox, InspectorElementId, InteractiveElement,
@@ -263,14 +265,77 @@ impl Asset for SvgAsset {
     type Source = SharedString;
     type Output = Result<Arc<[u8]>, Arc<std::io::Error>>;
 
+    #[cfg(not(target_family = "wasm"))]
     fn load(
         source: Self::Source,
         _cx: &mut App,
     ) -> impl Future<Output = Self::Output> + Send + 'static {
-        async move {
-            let bytes = fs::read(Path::new(source.as_ref())).map_err(|e| Arc::new(e))?;
-            let bytes = Arc::from(bytes);
-            Ok(bytes)
-        }
+        load_svg_asset(source)
     }
+
+    #[cfg(target_family = "wasm")]
+    fn load(source: Self::Source, _cx: &mut App) -> impl Future<Output = Self::Output> + 'static {
+        load_svg_asset(source)
+    }
+}
+
+#[cfg(not(target_family = "wasm"))]
+async fn load_svg_asset(source: SharedString) -> Result<Arc<[u8]>, Arc<std::io::Error>> {
+    let bytes = fs::read(Path::new(source.as_ref())).map_err(Arc::new)?;
+    Ok(Arc::from(bytes))
+}
+
+#[cfg(target_family = "wasm")]
+async fn load_svg_asset(source: SharedString) -> Result<Arc<[u8]>, Arc<std::io::Error>> {
+    let url = browser_svg_url(source.as_ref())?;
+    let response = reqwest::get(url)
+        .await
+        .map_err(|error| io_error(error.to_string()))?;
+    if !response.status().is_success() {
+        return Err(io_error(format!(
+            "SVG asset `{}` returned HTTP {}",
+            source,
+            response.status()
+        )));
+    }
+    let bytes = response
+        .bytes()
+        .await
+        .map_err(|error| io_error(error.to_string()))?;
+    Ok(Arc::from(bytes.to_vec()))
+}
+
+#[cfg(target_family = "wasm")]
+fn browser_svg_url(source: &str) -> Result<String, Arc<std::io::Error>> {
+    let source = source.trim();
+    if source.contains("://") || source.starts_with("data:") || source.starts_with("blob:") {
+        return Ok(source.to_string());
+    }
+
+    let window = web_sys::window().ok_or_else(|| io_error("browser window is unavailable"))?;
+    let location = window.location();
+    let origin = location
+        .origin()
+        .map_err(|error| io_error(format!("{error:?}")))?;
+    if source.starts_with('/') {
+        return Ok(format!("{origin}{source}"));
+    }
+
+    let pathname = location
+        .pathname()
+        .map_err(|error| io_error(format!("{error:?}")))?;
+    let base_path = if pathname.ends_with('/') {
+        pathname
+    } else {
+        pathname
+            .rsplit_once('/')
+            .map(|(base, _)| format!("{base}/"))
+            .unwrap_or_else(|| "/".to_string())
+    };
+    Ok(format!("{origin}{base_path}{source}"))
+}
+
+#[cfg(target_family = "wasm")]
+fn io_error(error: impl Into<String>) -> Arc<std::io::Error> {
+    Arc::new(std::io::Error::new(std::io::ErrorKind::Other, error.into()))
 }
