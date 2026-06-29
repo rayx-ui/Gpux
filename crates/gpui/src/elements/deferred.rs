@@ -9,6 +9,7 @@ pub fn deferred(child: impl IntoElement) -> Deferred {
         child: Some(child.into_any_element()),
         id: None,
         priority: 0,
+        content_mask_mode: DeferredContentMaskMode::Current,
     }
 }
 
@@ -18,6 +19,13 @@ pub struct Deferred {
     child: Option<AnyElement>,
     id: Option<ElementId>,
     priority: usize,
+    content_mask_mode: DeferredContentMaskMode,
+}
+
+#[derive(Clone, Copy)]
+enum DeferredContentMaskMode {
+    Current,
+    Unclipped,
 }
 
 impl Deferred {
@@ -32,6 +40,15 @@ impl Deferred {
     /// with higher values being drawn on top.
     pub fn with_priority(mut self, priority: usize) -> Self {
         self.priority = priority;
+        self
+    }
+
+    /// Paints this deferred element without inheriting the current content mask.
+    ///
+    /// This is intended for top-level overlays such as menus, popovers, tooltips,
+    /// and date-picker calendars that must escape scroll or dialog clipping.
+    pub fn unclipped(mut self) -> Self {
+        self.content_mask_mode = DeferredContentMaskMode::Unclipped;
         self
     }
 }
@@ -70,8 +87,11 @@ impl Element for Deferred {
     ) {
         let child = self.child.take().unwrap();
         let element_offset = window.element_offset();
-        let content_mask = window.content_mask();
-        window.defer_draw(child, element_offset, self.priority, Some(content_mask))
+        let content_mask = match self.content_mask_mode {
+            DeferredContentMaskMode::Current => Some(window.content_mask()),
+            DeferredContentMaskMode::Unclipped => None,
+        };
+        window.defer_draw(child, element_offset, self.priority, content_mask)
     }
 
     fn paint(
@@ -101,5 +121,98 @@ impl Deferred {
     pub fn priority(mut self, priority: usize) -> Self {
         self.priority = priority;
         self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        Context, Hsla, IntoElement, Render, ScaledPixels, TestAppContext, Window, deferred, div,
+        hsla, point, prelude::*, px, size,
+    };
+
+    struct DeferredMaskTestView {
+        unclipped: bool,
+    }
+
+    impl Render for DeferredMaskTestView {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            let overlay = div()
+                .absolute()
+                .left(px(0.))
+                .top(px(0.))
+                .w(px(120.))
+                .h(px(120.))
+                .bg(hsla(1., 0., 0.5, 1.));
+
+            let overlay = if self.unclipped {
+                deferred(overlay).unclipped()
+            } else {
+                deferred(overlay)
+            };
+
+            div().size_full().child(
+                div()
+                    .absolute()
+                    .left(px(20.))
+                    .top(px(20.))
+                    .w(px(40.))
+                    .h(px(40.))
+                    .overflow_hidden()
+                    .child(overlay),
+            )
+        }
+    }
+
+    fn sp(value: f32) -> ScaledPixels {
+        ScaledPixels::from(value)
+    }
+
+    fn red_quad_content_mask(
+        unclipped: bool,
+        cx: &mut TestAppContext,
+    ) -> crate::Bounds<crate::ScaledPixels> {
+        let window = cx.open_window(size(px(200.), px(200.)), move |_, _| DeferredMaskTestView {
+            unclipped,
+        });
+
+        cx.run_until_parked();
+
+        window
+            .update(cx, |_, window, _| {
+                window
+                    .rendered_frame
+                    .scene
+                    .quads
+                    .iter()
+                    .find(|quad| {
+                        quad.background.solid
+                            == Hsla {
+                                h: 1.,
+                                s: 0.,
+                                l: 0.5,
+                                a: 1.,
+                            }
+                    })
+                    .map(|quad| quad.content_mask.bounds)
+            })
+            .unwrap()
+            .expect("red deferred quad should be painted")
+    }
+
+    #[gpux::test]
+    fn deferred_inherits_current_content_mask_by_default(cx: &mut TestAppContext) {
+        let mask = red_quad_content_mask(false, cx);
+
+        assert_eq!(mask.origin, point(sp(40.), sp(40.)));
+        assert_eq!(mask.size, size(sp(80.), sp(80.)));
+    }
+
+    #[gpux::test]
+    fn unclipped_deferred_escapes_current_content_mask(cx: &mut TestAppContext) {
+        let mask = red_quad_content_mask(true, cx);
+
+        assert_eq!(mask.origin, point(sp(0.), sp(0.)));
+        assert_eq!(mask.size, size(sp(400.), sp(400.)));
     }
 }
