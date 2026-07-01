@@ -826,6 +826,7 @@ impl PlatformWindow for WebWindow {
                             &job.id,
                             result.path.as_str(),
                             result.texture_reallocated,
+                            result.source_sample,
                         );
                 }
                 Err(error) => {
@@ -836,6 +837,16 @@ impl PlatformWindow for WebWindow {
                 }
             }
         }
+        self.inner.renderer.borrow_mut().draw(scene);
+        let (texture_count, texture_pruned_count, texture_draw_count) = self
+            .inner
+            .renderer
+            .borrow()
+            .html_island_texture_diagnostics();
+        self.inner
+            .html_island_registry
+            .borrow_mut()
+            .record_texture_cache_state(texture_count, texture_pruned_count, texture_draw_count);
         write_html_in_canvas_diagnostics_to_global(
             &self.html_in_canvas_diagnostics,
             &self.inner.canvas,
@@ -843,7 +854,6 @@ impl PlatformWindow for WebWindow {
             &self._html_in_canvas_paint_observer.snapshot(),
             Some(&self.inner.html_island_registry.borrow().diagnostics()),
         );
-        self.inner.renderer.borrow_mut().draw(scene);
     }
 
     fn completed_frame(&self) {

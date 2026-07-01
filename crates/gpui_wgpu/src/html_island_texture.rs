@@ -16,10 +16,16 @@ pub struct HtmlIslandTextureEntry {
     texture: Option<wgpu::Texture>,
 }
 
+pub struct HtmlIslandTextureView {
+    pub view: wgpu::TextureView,
+    pub size: Size<DevicePixels>,
+}
+
 #[derive(Default)]
 pub struct HtmlIslandTextureCache {
     entries: HashMap<String, HtmlIslandTextureEntry>,
     reallocation_count: u32,
+    pruned_count: u32,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -40,6 +46,10 @@ impl HtmlIslandTextureCache {
 
     pub fn reallocation_count(&self) -> u32 {
         self.reallocation_count
+    }
+
+    pub fn pruned_count(&self) -> u32 {
+        self.pruned_count
     }
 
     pub fn get_or_create(
@@ -76,11 +86,22 @@ impl HtmlIslandTextureCache {
         )
     }
 
+    pub fn texture_view(&self, id: &str) -> Option<HtmlIslandTextureView> {
+        let entry = self.entries.get(id)?;
+        let texture = entry.texture.as_ref()?;
+        Some(HtmlIslandTextureView {
+            view: texture.create_view(&wgpu::TextureViewDescriptor::default()),
+            size: entry.descriptor.size,
+        })
+    }
+
     pub fn prune_except<'a>(&mut self, live_ids: impl IntoIterator<Item = &'a str>) -> usize {
         let live_ids = live_ids.into_iter().collect::<HashSet<_>>();
         let old_len = self.entries.len();
         self.entries.retain(|id, _| live_ids.contains(id.as_str()));
-        old_len.saturating_sub(self.entries.len())
+        let pruned = old_len.saturating_sub(self.entries.len());
+        self.pruned_count = self.pruned_count.saturating_add(pruned as u32);
+        pruned
     }
 
     #[cfg(test)]
@@ -218,6 +239,7 @@ mod tests {
         assert_eq!(cache.prune_except(["preview"].into_iter()), 1);
 
         assert_eq!(cache.len(), 1);
+        assert_eq!(cache.pruned_count(), 1);
         assert_eq!(
             cache.record_for_testing("preview", descriptor(16, 16)),
             HtmlIslandTextureCacheStatus::Hit

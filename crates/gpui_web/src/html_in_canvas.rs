@@ -267,6 +267,26 @@ pub fn write_html_in_canvas_diagnostics_to_global(
         "textureReallocationCount",
         JsValue::from_f64(island_diagnostics.texture_reallocation_count as f64),
     );
+    set_property(
+        &islands,
+        "textureCount",
+        JsValue::from_f64(island_diagnostics.texture_count as f64),
+    );
+    set_property(
+        &islands,
+        "texturePrunedCount",
+        JsValue::from_f64(island_diagnostics.texture_pruned_count as f64),
+    );
+    set_property(
+        &islands,
+        "textureDrawCount",
+        JsValue::from_f64(island_diagnostics.texture_draw_count as f64),
+    );
+    set_property(
+        &islands,
+        "uploadSourceSample",
+        js_array_from_u8(&island_diagnostics.upload_source_sample).into(),
+    );
     set_property(&object, "islands", islands.into());
 
     let renderer = js_sys::Object::new();
@@ -489,6 +509,13 @@ fn set_property(owner: &js_sys::Object, name: &str, value: JsValue) {
     js_sys::Reflect::set(owner, &JsValue::from_str(name), &value).ok();
 }
 
+fn js_array_from_u8(values: &[u8; 4]) -> js_sys::Array {
+    values
+        .iter()
+        .map(|value| JsValue::from_f64(*value as f64))
+        .collect()
+}
+
 fn child_element_count(canvas: &web_sys::HtmlCanvasElement) -> u32 {
     js_sys::Reflect::get(canvas.as_ref(), &JsValue::from_str("childElementCount"))
         .ok()
@@ -545,6 +572,10 @@ mod tests {
             dirty_mark_count: 4,
             upload_count: 0,
             texture_reallocation_count: 0,
+            texture_count: 0,
+            texture_pruned_count: 0,
+            texture_draw_count: 0,
+            upload_source_sample: [0, 0, 0, 0],
             renderer_path: "intermediate-canvas",
             renderer_last_error: None,
         };

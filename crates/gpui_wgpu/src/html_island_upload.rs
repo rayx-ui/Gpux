@@ -1,5 +1,5 @@
 use gpux::{DevicePixels, Size};
-use wasm_bindgen::{JsCast, JsValue};
+use wasm_bindgen::JsCast;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HtmlIslandUploadPath {
@@ -21,6 +21,7 @@ pub struct HtmlIslandUploadResult {
     pub path: HtmlIslandUploadPath,
     pub size: Size<DevicePixels>,
     pub texture_reallocated: bool,
+    pub source_sample: [u8; 4],
 }
 
 pub fn upload_html_island_element_to_texture(
@@ -39,20 +40,50 @@ pub fn upload_html_island_element_to_texture(
         "HTML island upload requires non-zero dimensions"
     );
 
-    let canvas = draw_element_to_intermediate_canvas(element, width, height)?;
-    queue.copy_external_image_to_texture(
-        &wgpu::CopyExternalImageSourceInfo {
-            source: wgpu::ExternalImageSource::HTMLCanvasElement(canvas.clone()),
-            origin: wgpu::Origin2d::ZERO,
-            flip_y: false,
-        },
-        wgpu::CopyExternalImageDestInfo {
+    let canvas = element
+        .parent_element()
+        .ok_or_else(|| anyhow::anyhow!("HTML island upload element has no parent canvas"))?
+        .dyn_into::<web_sys::HtmlCanvasElement>()
+        .map_err(|error| anyhow::anyhow!("HTML island upload parent is not a canvas: {error:?}"))?;
+    let context = canvas
+        .get_context("2d")
+        .map_err(|error| anyhow::anyhow!("Failed to query 2D context: {error:?}"))?
+        .ok_or_else(|| anyhow::anyhow!("2D context unavailable for HTML island upload"))?
+        .dyn_into::<web_sys::CanvasRenderingContext2d>()
+        .map_err(|error| anyhow::anyhow!("Context is not CanvasRenderingContext2D: {error:?}"))?;
+    let data = context
+        .get_image_data(0., 0., width as f64, height as f64)
+        .map_err(|error| anyhow::anyhow!("Failed to read HTML island upload canvas: {error:?}"))?
+        .data()
+        .0;
+    let source_sample = sample_center_pixel(&data, width, height);
+    let bytes_per_row = width * 4;
+    let padded_bytes_per_row = bytes_per_row.next_multiple_of(wgpu::COPY_BYTES_PER_ROW_ALIGNMENT);
+    let upload_data = if padded_bytes_per_row == bytes_per_row {
+        data
+    } else {
+        let mut padded = vec![0; padded_bytes_per_row as usize * height as usize];
+        for row in 0..height as usize {
+            let src_offset = row * bytes_per_row as usize;
+            let dst_offset = row * padded_bytes_per_row as usize;
+            padded[dst_offset..dst_offset + bytes_per_row as usize]
+                .copy_from_slice(&data[src_offset..src_offset + bytes_per_row as usize]);
+        }
+        padded
+    };
+
+    queue.write_texture(
+        wgpu::TexelCopyTextureInfo {
             texture,
             mip_level: 0,
             origin: wgpu::Origin3d::ZERO,
             aspect: wgpu::TextureAspect::All,
-            color_space: wgpu::PredefinedColorSpace::Srgb,
-            premultiplied_alpha: true,
+        },
+        &upload_data,
+        wgpu::TexelCopyBufferLayout {
+            offset: 0,
+            bytes_per_row: Some(padded_bytes_per_row),
+            rows_per_image: None,
         },
         wgpu::Extent3d {
             width,
@@ -64,43 +95,22 @@ pub fn upload_html_island_element_to_texture(
         path: HtmlIslandUploadPath::IntermediateCanvas,
         size,
         texture_reallocated: false,
+        source_sample,
     })
 }
 
-fn draw_element_to_intermediate_canvas(
-    element: &web_sys::HtmlElement,
-    width: u32,
-    height: u32,
-) -> anyhow::Result<web_sys::HtmlCanvasElement> {
-    let canvas = element
-        .parent_element()
-        .ok_or_else(|| anyhow::anyhow!("HTML island upload element has no parent canvas"))?
-        .dyn_into::<web_sys::HtmlCanvasElement>()
-        .map_err(|error| anyhow::anyhow!("HTML island upload parent is not a canvas: {error:?}"))?;
-    canvas.set_width(width);
-    canvas.set_height(height);
-
-    let context = canvas
-        .get_context("2d")
-        .map_err(|error| anyhow::anyhow!("Failed to query 2D context: {error:?}"))?
-        .ok_or_else(|| anyhow::anyhow!("2D context unavailable for HTML island upload"))?
-        .dyn_into::<web_sys::CanvasRenderingContext2d>()
-        .map_err(|error| anyhow::anyhow!("Context is not CanvasRenderingContext2D: {error:?}"))?;
-
-    context.clear_rect(0., 0., width as f64, height as f64);
-    let draw_element_image =
-        js_sys::Reflect::get(context.as_ref(), &JsValue::from_str("drawElementImage"))
-            .map_err(|error| anyhow::anyhow!("Failed to query drawElementImage: {error:?}"))?
-            .dyn_into::<js_sys::Function>()
-            .map_err(|_| anyhow::anyhow!("CanvasRenderingContext2D.drawElementImage missing"))?;
-    draw_element_image
-        .call3(
-            context.as_ref(),
-            element.as_ref(),
-            &JsValue::from_f64(0.),
-            &JsValue::from_f64(0.),
-        )
-        .map_err(|error| anyhow::anyhow!("drawElementImage failed: {error:?}"))?;
-
-    Ok(canvas)
+fn sample_center_pixel(data: &[u8], width: u32, height: u32) -> [u8; 4] {
+    let x = width.saturating_sub(1) / 2;
+    let y = height.saturating_sub(1) / 2;
+    let offset = ((y * width + x) * 4) as usize;
+    if offset + 4 <= data.len() {
+        [
+            data[offset],
+            data[offset + 1],
+            data[offset + 2],
+            data[offset + 3],
+        ]
+    } else {
+        [0, 0, 0, 0]
+    }
 }
