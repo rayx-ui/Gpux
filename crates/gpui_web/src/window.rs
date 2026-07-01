@@ -1,5 +1,9 @@
 use crate::display::WebDisplay;
 use crate::events::{ClickState, WebEventListeners, is_mac_platform};
+use crate::html_in_canvas::{
+    HtmlInCanvasPaintObserver, detect_html_in_canvas, enable_layout_subtree_if_requested,
+    write_html_in_canvas_diagnostics_to_global,
+};
 use std::sync::Arc;
 use std::{cell::Cell, cell::RefCell, rc::Rc};
 
@@ -68,6 +72,7 @@ pub struct WebWindow {
     _resize_observer: Option<web_sys::ResizeObserver>,
     _resize_observer_closure: Closure<dyn FnMut(js_sys::Array)>,
     _event_listeners: WebEventListeners,
+    _html_in_canvas_paint_observer: HtmlInCanvasPaintObserver,
 }
 
 impl WebWindow {
@@ -149,6 +154,23 @@ impl WebWindow {
         };
 
         let renderer = WgpuRenderer::new_from_canvas(context, &canvas, renderer_config)?;
+        let html_in_canvas_diagnostics = detect_html_in_canvas();
+        let layout_subtree_enabled = enable_layout_subtree_if_requested(
+            &browser_window,
+            &canvas,
+            &html_in_canvas_diagnostics,
+        );
+        let html_in_canvas_paint_observer = HtmlInCanvasPaintObserver::start(
+            &html_in_canvas_diagnostics,
+            &canvas,
+            layout_subtree_enabled,
+        );
+        write_html_in_canvas_diagnostics_to_global(
+            &html_in_canvas_diagnostics,
+            &canvas,
+            layout_subtree_enabled,
+            &html_in_canvas_paint_observer.snapshot(),
+        );
 
         let display: Rc<dyn PlatformDisplay> = Rc::new(WebDisplay::new(browser_window.clone()));
 
@@ -213,6 +235,7 @@ impl WebWindow {
             _resize_observer: resize_observer,
             _resize_observer_closure: resize_observer_closure,
             _event_listeners: event_listeners,
+            _html_in_canvas_paint_observer: html_in_canvas_paint_observer,
         })
     }
 

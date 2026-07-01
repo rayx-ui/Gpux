@@ -3,6 +3,7 @@ mod animation;
 mod canvas;
 mod deferred;
 mod div;
+mod html_island;
 mod image_cache;
 mod img;
 mod list;
@@ -16,6 +17,7 @@ pub use animation::*;
 pub use canvas::*;
 pub use deferred::*;
 pub use div::*;
+pub use html_island::*;
 pub use image_cache::*;
 pub use img::*;
 pub use list::*;
@@ -23,3 +25,20 @@ pub use surface::*;
 pub use svg::*;
 pub use text::*;
 pub use uniform_list::*;
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        HtmlIsland, HtmlIslandInputMode, IntoElement as _, ParentElement as _, div, html_island,
+    };
+
+    #[test]
+    fn html_island_public_api_accepts_trusted_html_input_mode_and_fallback() {
+        let island: HtmlIsland = html_island("settings-form")
+            .html("<button>Save</button>")
+            .input_mode(HtmlIslandInputMode::DomOwned)
+            .fallback(div().child("unsupported"));
+
+        island.into_element();
+    }
+}
