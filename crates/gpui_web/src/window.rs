@@ -1,10 +1,10 @@
 use crate::display::WebDisplay;
 use crate::events::{ClickState, WebEventListeners, is_mac_platform};
-use crate::html_island::WebHtmlIslandRegistry;
 use crate::html_in_canvas::{
-    HtmlInCanvasPaintObserver, detect_html_in_canvas, enable_layout_subtree_if_requested,
-    write_html_in_canvas_diagnostics_to_global,
+    HtmlInCanvasDiagnostics, HtmlInCanvasPaintObserver, detect_html_in_canvas,
+    enable_layout_subtree_if_requested, write_html_in_canvas_diagnostics_to_global,
 };
+use crate::html_island::WebHtmlIslandRegistry;
 use std::sync::Arc;
 use std::{cell::Cell, cell::RefCell, rc::Rc};
 
@@ -75,6 +75,8 @@ pub struct WebWindow {
     _resize_observer_closure: Closure<dyn FnMut(js_sys::Array)>,
     _event_listeners: WebEventListeners,
     _html_in_canvas_paint_observer: HtmlInCanvasPaintObserver,
+    html_in_canvas_diagnostics: HtmlInCanvasDiagnostics,
+    layout_subtree_enabled: bool,
 }
 
 impl WebWindow {
@@ -162,7 +164,8 @@ impl WebWindow {
             &canvas,
             &html_in_canvas_diagnostics,
         );
-        let html_island_registry = Rc::new(RefCell::new(WebHtmlIslandRegistry::new(canvas.clone())));
+        let html_island_registry =
+            Rc::new(RefCell::new(WebHtmlIslandRegistry::new(canvas.clone())));
         let html_in_canvas_paint_observer = HtmlInCanvasPaintObserver::start(
             &html_in_canvas_diagnostics,
             &canvas,
@@ -174,6 +177,7 @@ impl WebWindow {
             &canvas,
             layout_subtree_enabled,
             &html_in_canvas_paint_observer.snapshot(),
+            Some(&html_island_registry.borrow().diagnostics()),
         );
 
         let display: Rc<dyn PlatformDisplay> = Rc::new(WebDisplay::new(browser_window.clone()));
@@ -241,6 +245,8 @@ impl WebWindow {
             _resize_observer_closure: resize_observer_closure,
             _event_listeners: event_listeners,
             _html_in_canvas_paint_observer: html_in_canvas_paint_observer,
+            html_in_canvas_diagnostics,
+            layout_subtree_enabled,
         })
     }
 
@@ -797,6 +803,27 @@ impl PlatformWindow for WebWindow {
             self._html_in_canvas_paint_observer
                 .request_paint(&self.inner.canvas);
         }
+        for job in self.inner.html_island_registry.borrow().dirty_upload_jobs() {
+            if self
+                .inner
+                .renderer
+                .borrow_mut()
+                .upload_html_island_element_to_texture(&job.element, job.physical_size)
+                .is_ok()
+            {
+                self.inner
+                    .html_island_registry
+                    .borrow_mut()
+                    .record_upload_success(&job.id);
+            }
+        }
+        write_html_in_canvas_diagnostics_to_global(
+            &self.html_in_canvas_diagnostics,
+            &self.inner.canvas,
+            self.layout_subtree_enabled,
+            &self._html_in_canvas_paint_observer.snapshot(),
+            Some(&self.inner.html_island_registry.borrow().diagnostics()),
+        );
         self.inner.renderer.borrow_mut().draw(scene);
     }
 

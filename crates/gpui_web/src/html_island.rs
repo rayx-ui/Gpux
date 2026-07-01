@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use gpux::{ElementId, HtmlIslandInputMode, HtmlIslandPrimitive, Pixels};
+use gpux::{DevicePixels, ElementId, HtmlIslandInputMode, HtmlIslandPrimitive, Pixels, Size};
 use wasm_bindgen::{JsCast, JsValue};
 
 pub(crate) struct WebHtmlIslandRegistry {
@@ -11,6 +11,7 @@ pub(crate) struct WebHtmlIslandRegistry {
     pruned_root_count: u32,
     content_update_count: u32,
     dirty_mark_count: u32,
+    upload_count: u32,
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -34,9 +35,17 @@ pub(crate) struct WebHtmlIslandDiagnostics {
     pub(crate) texture_reallocation_count: u32,
 }
 
+pub(crate) struct WebHtmlIslandUploadJob {
+    pub(crate) id: String,
+    pub(crate) element: web_sys::HtmlElement,
+    pub(crate) physical_size: Size<DevicePixels>,
+}
+
 struct WebHtmlIslandRoot {
     element: web_sys::HtmlElement,
     content_element: web_sys::HtmlElement,
+    input_mode: HtmlIslandInputMode,
+    physical_size: Size<DevicePixels>,
     content_revision: u64,
 }
 
@@ -63,6 +72,7 @@ impl WebHtmlIslandRegistry {
             pruned_root_count: 0,
             content_update_count: 0,
             dirty_mark_count: 0,
+            upload_count: 0,
         }
     }
 
@@ -86,12 +96,44 @@ impl WebHtmlIslandRegistry {
             pruned_root_count: self.pruned_root_count,
             content_update_count: self.content_update_count,
             dirty_mark_count: self.dirty_mark_count,
-            upload_count: 0,
+            upload_count: self.upload_count,
             texture_reallocation_count: 0,
         }
     }
 
-    pub(crate) fn sync_roots(&mut self, islands: &[HtmlIslandPrimitive]) -> WebHtmlIslandSyncSummary {
+    pub(crate) fn input_mode_for_event_target(
+        &self,
+        target: Option<&web_sys::EventTarget>,
+    ) -> Option<HtmlIslandInputMode> {
+        let element = target?.dyn_ref::<web_sys::Element>()?.clone();
+        let id = find_island_root_id(element)?;
+        self.roots.get(&id).map(|root| root.input_mode)
+    }
+
+    pub(crate) fn dirty_upload_jobs(&self) -> Vec<WebHtmlIslandUploadJob> {
+        self.dirty_roots
+            .iter()
+            .filter_map(|id| {
+                let root = self.roots.get(id)?;
+                Some(WebHtmlIslandUploadJob {
+                    id: id.clone(),
+                    element: root.element.clone(),
+                    physical_size: root.physical_size,
+                })
+            })
+            .collect()
+    }
+
+    pub(crate) fn record_upload_success(&mut self, id: &str) {
+        if self.dirty_roots.remove(id) {
+            self.upload_count = self.upload_count.saturating_add(1);
+        }
+    }
+
+    pub(crate) fn sync_roots(
+        &mut self,
+        islands: &[HtmlIslandPrimitive],
+    ) -> WebHtmlIslandSyncSummary {
         let mut summary = WebHtmlIslandSyncSummary::default();
         let mut live_ids = HashSet::with_capacity(islands.len());
         for island in islands {
@@ -123,9 +165,7 @@ impl WebHtmlIslandRegistry {
         }
 
         summary.pruned_roots = self.prune_except(&live_ids);
-        self.pruned_root_count = self
-            .pruned_root_count
-            .saturating_add(summary.pruned_roots);
+        self.pruned_root_count = self.pruned_root_count.saturating_add(summary.pruned_roots);
         summary
     }
 
@@ -181,6 +221,19 @@ impl WebHtmlIslandRegistry {
     }
 
     #[cfg(test)]
+    fn input_mode_for_event_target_for_testing(
+        &self,
+        target: Option<&web_sys::EventTarget>,
+    ) -> Option<HtmlIslandInputMode> {
+        self.input_mode_for_event_target(target)
+    }
+
+    #[cfg(test)]
+    fn dirty_upload_jobs_for_testing(&self) -> Vec<WebHtmlIslandUploadJob> {
+        self.dirty_upload_jobs()
+    }
+
+    #[cfg(test)]
     fn root_snapshot_for_testing(&self, id: &ElementId) -> Option<WebHtmlIslandRootSnapshot> {
         let root = self.roots.get(&registry_key(id))?;
         let style = root.element.style();
@@ -199,7 +252,12 @@ impl WebHtmlIslandRegistry {
 }
 
 impl WebHtmlIslandRoot {
-    fn sync_layout_and_mode(&self, island: &HtmlIslandPrimitive) {
+    fn sync_layout_and_mode(&mut self, island: &HtmlIslandPrimitive) {
+        self.input_mode = island.input_mode;
+        self.physical_size = Size {
+            width: DevicePixels(island.bounds.size.width.0.round().max(0.) as i32),
+            height: DevicePixels(island.bounds.size.height.0.round().max(0.) as i32),
+        };
         let style = self.element.style();
         style
             .set_property("left", &css_px(island.logical_bounds.left()))
@@ -321,6 +379,8 @@ fn create_root(canvas: &web_sys::HtmlCanvasElement, id: &str) -> WebHtmlIslandRo
     WebHtmlIslandRoot {
         element,
         content_element,
+        input_mode: HtmlIslandInputMode::GpuiOwned,
+        physical_size: Size::default(),
         content_revision: 0,
     }
 }
@@ -350,7 +410,10 @@ mod tests {
         let canvas: web_sys::HtmlCanvasElement = wasm_bindgen::JsValue::NULL.unchecked_into();
         let mut registry = WebHtmlIslandRegistry::new(canvas);
         let mut island = test_island("settings-form");
-        island.logical_bounds = gpux::Bounds::new(gpux::point(gpux::px(8.), gpux::px(13.)), gpux::size(gpux::px(144.), gpux::px(55.)));
+        island.logical_bounds = gpux::Bounds::new(
+            gpux::point(gpux::px(8.), gpux::px(13.)),
+            gpux::size(gpux::px(144.), gpux::px(55.)),
+        );
         island.input_mode = HtmlIslandInputMode::DomOwned;
         island.trusted_html = "<input value=\"ready\">".into();
 
@@ -377,6 +440,19 @@ mod tests {
         assert_eq!(snapshot.opacity, "0");
         assert_eq!(snapshot.overflow, "hidden");
         assert_eq!(snapshot.contain, "layout style paint");
+    }
+
+    #[test]
+    fn gpui_owned_islands_do_not_capture_browser_pointer_events() {
+        let canvas: web_sys::HtmlCanvasElement = wasm_bindgen::JsValue::NULL.unchecked_into();
+        let mut registry = WebHtmlIslandRegistry::new(canvas);
+        let mut island = test_island("gpui-owned-card");
+        island.input_mode = HtmlIslandInputMode::GpuiOwned;
+
+        registry.sync_roots_for_testing(&[island.clone()]);
+
+        let snapshot = registry.root_snapshot_for_testing(&island.id).unwrap();
+        assert_eq!(snapshot.pointer_events, "none");
     }
 
     #[test]
@@ -416,6 +492,24 @@ mod tests {
         assert_eq!(diagnostics.pruned_root_count, 1);
         assert_eq!(diagnostics.content_update_count, 1);
         assert_eq!(diagnostics.dirty_mark_count, 1);
+    }
+
+    #[test]
+    fn registry_exposes_input_mode_for_event_target_lookup() {
+        let canvas: web_sys::HtmlCanvasElement = wasm_bindgen::JsValue::NULL.unchecked_into();
+        let registry = WebHtmlIslandRegistry::new(canvas);
+        let target: web_sys::EventTarget = wasm_bindgen::JsValue::NULL.unchecked_into();
+
+        let _input_mode = registry.input_mode_for_event_target_for_testing(Some(&target));
+    }
+
+    #[test]
+    fn registry_exposes_dirty_upload_jobs_for_renderer() {
+        let canvas: web_sys::HtmlCanvasElement = wasm_bindgen::JsValue::NULL.unchecked_into();
+        let mut registry = WebHtmlIslandRegistry::new(canvas);
+        registry.sync_roots_for_testing(&[test_island("upload-card")]);
+
+        let _jobs = registry.dirty_upload_jobs_for_testing();
     }
 
     fn test_island(id: &'static str) -> HtmlIslandPrimitive {

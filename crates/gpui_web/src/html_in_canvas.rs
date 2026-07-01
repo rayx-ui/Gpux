@@ -3,7 +3,7 @@ use std::{
     rc::Rc,
 };
 
-use crate::html_island::WebHtmlIslandRegistry;
+use crate::html_island::{WebHtmlIslandDiagnostics, WebHtmlIslandRegistry};
 use wasm_bindgen::{JsCast, JsValue, closure::Closure};
 
 #[derive(Clone, Debug, Default)]
@@ -110,9 +110,11 @@ impl HtmlInCanvasPaintObserver {
                 listener_counters
                     .paint_event_count
                     .set(listener_counters.paint_event_count.get().saturating_add(1));
-                if let Some(registry) = html_island_registry.as_ref() {
-                    registry.borrow_mut().mark_dirty_from_paint_event(&event);
-                }
+                let island_diagnostics = html_island_registry.as_ref().map(|registry| {
+                    let mut registry = registry.borrow_mut();
+                    registry.mark_dirty_from_paint_event(&event);
+                    registry.diagnostics()
+                });
                 listener_counters.changed_element_count.set(
                     listener_counters
                         .changed_element_count
@@ -124,6 +126,7 @@ impl HtmlInCanvasPaintObserver {
                     &diagnostics_canvas,
                     layout_subtree_enabled,
                     &listener_counters.snapshot(),
+                    island_diagnostics.as_ref(),
                 );
             });
             listener_canvas
@@ -178,6 +181,7 @@ pub fn write_html_in_canvas_diagnostics_to_global(
     canvas: &web_sys::HtmlCanvasElement,
     layout_subtree_enabled: bool,
     runtime: &HtmlInCanvasRuntimeDiagnostics,
+    island_diagnostics: Option<&WebHtmlIslandDiagnostics>,
 ) {
     let object = js_sys::Object::new();
     set_property(&object, "version", JsValue::from_f64(1.0));
@@ -221,11 +225,48 @@ pub fn write_html_in_canvas_diagnostics_to_global(
     );
     set_property(&object, "canvas", canvas_diagnostics.into());
 
+    let island_diagnostics = island_diagnostics.copied().unwrap_or_default();
     let islands = js_sys::Object::new();
-    set_property(&islands, "count", JsValue::from_f64(0.0));
-    set_property(&islands, "dirtyCount", JsValue::from_f64(0.0));
-    set_property(&islands, "uploadCount", JsValue::from_f64(0.0));
-    set_property(&islands, "textureReallocationCount", JsValue::from_f64(0.0));
+    set_property(
+        &islands,
+        "count",
+        JsValue::from_f64(island_diagnostics.count as f64),
+    );
+    set_property(
+        &islands,
+        "dirtyCount",
+        JsValue::from_f64(island_diagnostics.dirty_count as f64),
+    );
+    set_property(
+        &islands,
+        "createdRootCount",
+        JsValue::from_f64(island_diagnostics.created_root_count as f64),
+    );
+    set_property(
+        &islands,
+        "prunedRootCount",
+        JsValue::from_f64(island_diagnostics.pruned_root_count as f64),
+    );
+    set_property(
+        &islands,
+        "contentUpdateCount",
+        JsValue::from_f64(island_diagnostics.content_update_count as f64),
+    );
+    set_property(
+        &islands,
+        "dirtyMarkCount",
+        JsValue::from_f64(island_diagnostics.dirty_mark_count as f64),
+    );
+    set_property(
+        &islands,
+        "uploadCount",
+        JsValue::from_f64(island_diagnostics.upload_count as f64),
+    );
+    set_property(
+        &islands,
+        "textureReallocationCount",
+        JsValue::from_f64(island_diagnostics.texture_reallocation_count as f64),
+    );
     set_property(&object, "islands", islands.into());
 
     let renderer = js_sys::Object::new();
@@ -471,4 +512,35 @@ fn query_flag_enabled(search: &str, name: &str) -> bool {
                 .next()
                 .is_some_and(|value| value == "1" || value == "true")
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::html_island::WebHtmlIslandDiagnostics;
+    use wasm_bindgen::JsCast;
+
+    #[test]
+    fn diagnostics_writer_accepts_island_lifecycle_counters() {
+        let canvas: web_sys::HtmlCanvasElement = wasm_bindgen::JsValue::NULL.unchecked_into();
+        let runtime = HtmlInCanvasRuntimeDiagnostics::default();
+        let islands = WebHtmlIslandDiagnostics {
+            count: 2,
+            dirty_count: 1,
+            created_root_count: 2,
+            pruned_root_count: 1,
+            content_update_count: 3,
+            dirty_mark_count: 4,
+            upload_count: 0,
+            texture_reallocation_count: 0,
+        };
+
+        write_html_in_canvas_diagnostics_to_global(
+            &HtmlInCanvasDiagnostics::default(),
+            &canvas,
+            false,
+            &runtime,
+            Some(&islands),
+        );
+    }
 }

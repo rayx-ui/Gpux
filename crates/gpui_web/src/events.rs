@@ -1,10 +1,11 @@
 use std::rc::Rc;
 
 use gpux::{
-    Capslock, DispatchEventResult, ExternalPaths, FileDropEvent, KeyDownEvent, KeyUpEvent,
-    Keystroke, Modifiers, ModifiersChangedEvent, MouseButton, MouseDownEvent, MouseExitEvent,
-    MouseMoveEvent, MouseUpEvent, NavigationDirection, Pixels, PlatformInput, Point, ScrollDelta,
-    ScrollWheelEvent, ScrollWheelPhase, ScrollWheelSource, TouchEvent, TouchPhase, point, px,
+    Capslock, DispatchEventResult, ExternalPaths, FileDropEvent, HtmlIslandInputMode, KeyDownEvent,
+    KeyUpEvent, Keystroke, Modifiers, ModifiersChangedEvent, MouseButton, MouseDownEvent,
+    MouseExitEvent, MouseMoveEvent, MouseUpEvent, NavigationDirection, Pixels, PlatformInput,
+    Point, ScrollDelta, ScrollWheelEvent, ScrollWheelPhase, ScrollWheelSource, TouchEvent,
+    TouchPhase, point, px,
 };
 use smallvec::smallvec;
 use wasm_bindgen::prelude::*;
@@ -142,11 +143,19 @@ impl WebWindowInner {
         let this = Rc::clone(self);
         self.listen("pointerdown", move |event: JsValue| {
             let event: web_sys::PointerEvent = event.unchecked_into();
+            let input_mode = this
+                .html_island_registry
+                .borrow()
+                .input_mode_for_event_target(event.target().as_ref());
+            if input_mode == Some(HtmlIslandInputMode::DomOwned) {
+                return;
+            }
+
             event.prevent_default();
             this.input_element.focus().ok();
 
             let button = dom_mouse_button_to_gpui(event.button());
-            let position = pointer_position_in_element(&event);
+            let position = pointer_position_in_canvas(&event, &this.canvas);
             let modifiers = modifiers_from_mouse_event(&event, this.is_mac);
             let time = js_sys::Date::now();
 
@@ -185,7 +194,7 @@ impl WebWindowInner {
             event.prevent_default();
 
             let button = dom_mouse_button_to_gpui(event.button());
-            let position = pointer_position_in_element(&event);
+            let position = pointer_position_in_canvas(&event, &this.canvas);
             let modifiers = modifiers_from_mouse_event(&event, this.is_mac);
 
             this.pressed_button.set(None);
@@ -221,7 +230,7 @@ impl WebWindowInner {
             let event: web_sys::PointerEvent = event.unchecked_into();
             event.prevent_default();
 
-            let position = pointer_position_in_element(&event);
+            let position = pointer_position_in_canvas(&event, &this.canvas);
             let modifiers = modifiers_from_mouse_event(&event, this.is_mac);
             let current_pressed = this.pressed_button.get();
 
@@ -247,7 +256,7 @@ impl WebWindowInner {
             let event: web_sys::PointerEvent = event.unchecked_into();
             event.prevent_default();
 
-            let position = pointer_position_in_element(&event);
+            let position = pointer_position_in_canvas(&event, &this.canvas);
             let modifiers = modifiers_from_mouse_event(&event, this.is_mac);
 
             this.pressed_button.set(None);
@@ -267,7 +276,7 @@ impl WebWindowInner {
         self.listen("pointerleave", move |event: JsValue| {
             let event: web_sys::PointerEvent = event.unchecked_into();
 
-            let position = pointer_position_in_element(&event);
+            let position = pointer_position_in_canvas(&event, &this.canvas);
             let modifiers = modifiers_from_mouse_event(&event, this.is_mac);
             let current_pressed = this.pressed_button.get();
 
@@ -292,7 +301,7 @@ impl WebWindowInner {
             event.prevent_default();
 
             let mouse_event: &web_sys::MouseEvent = event.as_ref();
-            let position = mouse_position_in_element(mouse_event);
+            let position = mouse_position_in_canvas(mouse_event, &this.canvas);
             let modifiers = modifiers_from_wheel_event(mouse_event, this.is_mac);
 
             let delta_mode = event.delta_mode();
@@ -343,7 +352,7 @@ impl WebWindowInner {
             event.prevent_default();
 
             let mouse_event: &web_sys::MouseEvent = event.as_ref();
-            let position = mouse_position_in_element(mouse_event);
+            let position = mouse_position_in_canvas(mouse_event, &this.canvas);
 
             {
                 let mut current_state = this.state.borrow_mut();
@@ -361,7 +370,7 @@ impl WebWindowInner {
             event.prevent_default();
 
             let mouse_event: &web_sys::MouseEvent = event.as_ref();
-            let position = mouse_position_in_element(mouse_event);
+            let position = mouse_position_in_canvas(mouse_event, &this.canvas);
 
             {
                 let mut current_state = this.state.borrow_mut();
@@ -741,9 +750,12 @@ fn compute_key_char(
     None
 }
 
-fn pointer_position_in_element(event: &web_sys::PointerEvent) -> Point<Pixels> {
+fn pointer_position_in_canvas(
+    event: &web_sys::PointerEvent,
+    canvas: &web_sys::HtmlCanvasElement,
+) -> Point<Pixels> {
     let mouse_event: &web_sys::MouseEvent = event.as_ref();
-    mouse_position_in_element(mouse_event)
+    mouse_position_in_canvas(mouse_event, canvas)
 }
 
 fn dispatch_touch_pointer(
@@ -768,9 +780,15 @@ fn dispatch_touch_pointer(
     }));
 }
 
-fn mouse_position_in_element(event: &web_sys::MouseEvent) -> Point<Pixels> {
-    // offset_x/offset_y give position relative to the target element's padding edge
-    point(px(event.offset_x() as f32), px(event.offset_y() as f32))
+fn mouse_position_in_canvas(
+    event: &web_sys::MouseEvent,
+    canvas: &web_sys::HtmlCanvasElement,
+) -> Point<Pixels> {
+    let rect = canvas.get_bounding_client_rect();
+    point(
+        px((event.client_x() as f64 - rect.left()) as f32),
+        px((event.client_y() as f64 - rect.top()) as f32),
+    )
 }
 
 fn extract_file_paths_from_drag(
@@ -790,4 +808,18 @@ fn extract_file_paths_from_drag(
         }
     }
     paths
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use wasm_bindgen::JsCast;
+
+    #[test]
+    fn pointer_positions_are_measured_relative_to_the_canvas() {
+        let event: web_sys::MouseEvent = wasm_bindgen::JsValue::NULL.unchecked_into();
+        let canvas: web_sys::HtmlCanvasElement = wasm_bindgen::JsValue::NULL.unchecked_into();
+
+        let _position = mouse_position_in_canvas(&event, &canvas);
+    }
 }

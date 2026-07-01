@@ -1,3 +1,5 @@
+#[cfg(target_family = "wasm")]
+use crate::html_island_upload::{HtmlIslandUploadResult, upload_html_island_element_to_texture};
 use crate::{CompositorGpuHint, WgpuAtlas, WgpuContext};
 use bytemuck::{Pod, Zeroable};
 use gpux::{
@@ -1417,6 +1419,40 @@ impl WgpuRenderer {
         drop(frame);
 
         self.read_buffer_to_image(readback, width, height, padded_bytes_per_row)
+    }
+
+    #[cfg(target_family = "wasm")]
+    pub fn upload_html_island_element_to_texture(
+        &mut self,
+        element: &web_sys::HtmlElement,
+        size: Size<DevicePixels>,
+    ) -> anyhow::Result<HtmlIslandUploadResult> {
+        let width = u32::try_from(size.width.0.max(0))
+            .map_err(|_| anyhow::anyhow!("HTML island width exceeds u32"))?;
+        let height = u32::try_from(size.height.0.max(0))
+            .map_err(|_| anyhow::anyhow!("HTML island height exceeds u32"))?;
+        anyhow::ensure!(
+            width > 0 && height > 0,
+            "HTML island upload requires non-zero dimensions"
+        );
+
+        let resources = self.resources();
+        let texture = resources.device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("html_island_upload_texture"),
+            size: wgpu::Extent3d {
+                width,
+                height,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: self.surface_config.format,
+            usage: wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::TEXTURE_BINDING,
+            view_formats: &[],
+        });
+
+        upload_html_island_element_to_texture(&resources.queue, element, &texture, size)
     }
 
     fn prepare_frame(&mut self) -> bool {
