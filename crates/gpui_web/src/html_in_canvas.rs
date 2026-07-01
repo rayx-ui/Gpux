@@ -1,4 +1,9 @@
-use std::{cell::Cell, rc::Rc};
+use std::{
+    cell::{Cell, RefCell},
+    rc::Rc,
+};
+
+use crate::html_island::WebHtmlIslandRegistry;
 use wasm_bindgen::{JsCast, JsValue, closure::Closure};
 
 #[derive(Clone, Debug, Default)]
@@ -88,6 +93,7 @@ impl HtmlInCanvasPaintObserver {
         diagnostics: &HtmlInCanvasDiagnostics,
         canvas: &web_sys::HtmlCanvasElement,
         layout_subtree_enabled: bool,
+        html_island_registry: Option<Rc<RefCell<WebHtmlIslandRegistry>>>,
     ) -> Self {
         let counters = Rc::new(HtmlInCanvasRuntimeCounters::default());
         let mut observer = Self {
@@ -104,6 +110,9 @@ impl HtmlInCanvasPaintObserver {
                 listener_counters
                     .paint_event_count
                     .set(listener_counters.paint_event_count.get().saturating_add(1));
+                if let Some(registry) = html_island_registry.as_ref() {
+                    registry.borrow_mut().mark_dirty_from_paint_event(&event);
+                }
                 listener_counters.changed_element_count.set(
                     listener_counters
                         .changed_element_count
@@ -134,6 +143,17 @@ impl HtmlInCanvasPaintObserver {
 
     pub fn snapshot(&self) -> HtmlInCanvasRuntimeDiagnostics {
         self.counters.snapshot()
+    }
+
+    pub fn request_paint(&self, canvas: &web_sys::HtmlCanvasElement) -> bool {
+        if request_paint(canvas) {
+            self.counters
+                .request_paint_count
+                .set(self.counters.request_paint_count.get().saturating_add(1));
+            true
+        } else {
+            false
+        }
     }
 }
 

@@ -4,6 +4,7 @@ mod dispatcher;
 mod display;
 mod events;
 mod html_in_canvas;
+mod html_island;
 mod http_client;
 mod keyboard;
 mod logging;

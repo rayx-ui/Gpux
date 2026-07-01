@@ -6,19 +6,19 @@ use crate::{
     Context, Corners, CursorHideMode, CursorStyle, Decorations, DevicePixels,
     DispatchActionListener, DispatchNodeId, DispatchTree, DisplayId, Edges, Effect, Entity,
     EntityId, EventEmitter, FileDropEvent, FontId, Global, GlobalElementId, GlyphId, GpuSpecs,
-    Hsla, InputHandler, IsZero, KeyBinding, KeyContext, KeyDownEvent, KeyEvent, Keystroke,
-    KeystrokeEvent, LayoutId, LineLayoutIndex, Modifiers, ModifiersChangedEvent, MonochromeSprite,
-    MouseButton, MouseEvent, MouseMoveEvent, MouseUpEvent, Path, Pixels, PlatformAtlas,
-    PlatformDisplay, PlatformInput, PlatformInputHandler, PlatformWindow, Point, PolychromeSprite,
-    Priority, PromptButton, PromptLevel, Quad, Render, RenderGlyphParams, RenderImage,
-    RenderImageParams, RenderSvgParams, Replay, ResizeEdge, SMOOTH_SVG_SCALE_FACTOR,
-    SUBPIXEL_VARIANTS_X, SUBPIXEL_VARIANTS_Y, ScaledPixels, Scene, Shadow, SharedString, Size,
-    StrikethroughStyle, Style, SubpixelSprite, SubscriberSet, Subscription, SystemWindowTab,
-    SystemWindowTabController, TabStopMap, TaffyLayoutEngine, Task, TextRenderingMode, TextStyle,
-    TextStyleRefinement, ThermalState, TransformationMatrix, Underline, UnderlineStyle,
-    WindowAppearance, WindowBackgroundAppearance, WindowBounds, WindowControls, WindowDecorations,
-    WindowOptions, WindowParams, WindowTextSystem, point, prelude::*, px, rems, size,
-    transparent_black,
+    Hsla, HtmlIslandInputMode, HtmlIslandPrimitive, InputHandler, IsZero, KeyBinding, KeyContext,
+    KeyDownEvent, KeyEvent, Keystroke, KeystrokeEvent, LayoutId, LineLayoutIndex, Modifiers,
+    ModifiersChangedEvent, MonochromeSprite, MouseButton, MouseEvent, MouseMoveEvent, MouseUpEvent,
+    Path, Pixels, PlatformAtlas, PlatformDisplay, PlatformInput, PlatformInputHandler,
+    PlatformWindow, Point, PolychromeSprite, Priority, PromptButton, PromptLevel, Quad, Render,
+    RenderGlyphParams, RenderImage, RenderImageParams, RenderSvgParams, Replay, ResizeEdge,
+    SMOOTH_SVG_SCALE_FACTOR, SUBPIXEL_VARIANTS_X, SUBPIXEL_VARIANTS_Y, ScaledPixels, Scene, Shadow,
+    SharedString, Size, StrikethroughStyle, Style, SubpixelSprite, SubscriberSet, Subscription,
+    SystemWindowTab, SystemWindowTabController, TabStopMap, TaffyLayoutEngine, Task,
+    TextRenderingMode, TextStyle, TextStyleRefinement, ThermalState, TransformationMatrix,
+    Underline, UnderlineStyle, WindowAppearance, WindowBackgroundAppearance, WindowBounds,
+    WindowControls, WindowDecorations, WindowOptions, WindowParams, WindowTextSystem, point,
+    prelude::*, px, rems, size, transparent_black,
 };
 use anyhow::{Context as _, Result, anyhow};
 use collections::{FxHashMap, FxHashSet};
@@ -4098,6 +4098,50 @@ impl Window {
             border_widths: snapped_border_widths,
             border_style: quad.border_style,
             transformation,
+        });
+    }
+
+    /// Paint an experimental HTML island into the scene for the next frame.
+    ///
+    /// The HTML payload is trusted application markup and is not sanitized here.
+    /// Native renderers and web renderers without HTML-in-canvas support
+    /// currently skip this primitive; the web DOM registry and texture renderer
+    /// consume it in later slices.
+    pub fn paint_html_island(
+        &mut self,
+        id: ElementId,
+        bounds: Bounds<Pixels>,
+        input_mode: HtmlIslandInputMode,
+        content_revision: u64,
+        trusted_html: SharedString,
+    ) {
+        self.invalidator.debug_assert_paint();
+
+        let scale_factor = self.scale_factor();
+        let transformation = self.current_element_transform();
+        let scaled_bounds = bounds.scale(scale_factor);
+        let bounds = if transformation == TransformationMatrix::unit() {
+            self.snap_bounds(bounds)
+        } else {
+            self.transform_scaled_bounds(scaled_bounds)
+        };
+        let logical_bounds = bounds.map(|coordinate| px(coordinate.0 / scale_factor));
+        let content_mask = if transformation == TransformationMatrix::unit() {
+            self.snapped_content_mask()
+        } else {
+            self.paint_content_mask()
+        };
+
+        self.next_frame.scene.insert_primitive(HtmlIslandPrimitive {
+            order: 0,
+            id,
+            bounds,
+            logical_bounds,
+            content_mask,
+            input_mode,
+            opacity: self.element_opacity(),
+            content_revision,
+            trusted_html,
         });
     }
 

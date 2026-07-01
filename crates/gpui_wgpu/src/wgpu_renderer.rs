@@ -1546,6 +1546,7 @@ impl WgpuRenderer {
                             &mut instance_offset,
                             &mut pass,
                         ),
+                        PrimitiveBatch::HtmlIslands(_) => true,
                         PrimitiveBatch::Paths(range) => {
                             let paths = &scene.paths[range];
                             if paths.is_empty() {

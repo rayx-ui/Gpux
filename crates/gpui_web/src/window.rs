@@ -1,5 +1,6 @@
 use crate::display::WebDisplay;
 use crate::events::{ClickState, WebEventListeners, is_mac_platform};
+use crate::html_island::WebHtmlIslandRegistry;
 use crate::html_in_canvas::{
     HtmlInCanvasPaintObserver, detect_html_in_canvas, enable_layout_subtree_if_requested,
     write_html_in_canvas_diagnostics_to_global,
@@ -52,6 +53,7 @@ pub(crate) struct WebWindowInner {
     pub(crate) has_device_pixel_support: bool,
     pub(crate) is_mac: bool,
     pub(crate) renderer: RefCell<WgpuRenderer>,
+    pub(crate) html_island_registry: Rc<RefCell<WebHtmlIslandRegistry>>,
     pub(crate) state: RefCell<WebWindowMutableState>,
     pub(crate) callbacks: RefCell<WebWindowCallbacks>,
     pub(crate) click_state: RefCell<ClickState>,
@@ -160,10 +162,12 @@ impl WebWindow {
             &canvas,
             &html_in_canvas_diagnostics,
         );
+        let html_island_registry = Rc::new(RefCell::new(WebHtmlIslandRegistry::new(canvas.clone())));
         let html_in_canvas_paint_observer = HtmlInCanvasPaintObserver::start(
             &html_in_canvas_diagnostics,
             &canvas,
             layout_subtree_enabled,
+            Some(Rc::clone(&html_island_registry)),
         );
         write_html_in_canvas_diagnostics_to_global(
             &html_in_canvas_diagnostics,
@@ -197,6 +201,7 @@ impl WebWindow {
 
         let inner = Rc::new(WebWindowInner {
             browser_window,
+            html_island_registry,
             canvas,
             input_element,
             has_device_pixel_support,
@@ -783,6 +788,15 @@ impl PlatformWindow for WebWindow {
             });
         }
 
+        let html_island_sync = self
+            .inner
+            .html_island_registry
+            .borrow_mut()
+            .sync_roots(&scene.html_islands);
+        if html_island_sync.request_paint {
+            self._html_in_canvas_paint_observer
+                .request_paint(&self.inner.canvas);
+        }
         self.inner.renderer.borrow_mut().draw(scene);
     }
 
