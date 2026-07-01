@@ -815,14 +815,18 @@ impl PlatformWindow for WebWindow {
                 self.inner
                     .renderer
                     .borrow_mut()
-                    .upload_html_island_element_to_texture(&job.element, job.physical_size)
+                    .upload_html_island_element_to_texture(&job.id, &job.element, job.physical_size)
             };
             match upload_result {
                 Ok(result) => {
                     self.inner
                         .html_island_registry
                         .borrow_mut()
-                        .record_upload_success(&job.id, result.path.as_str());
+                        .record_upload_success(
+                            &job.id,
+                            result.path.as_str(),
+                            result.texture_reallocated,
+                        );
                 }
                 Err(error) => {
                     self.inner

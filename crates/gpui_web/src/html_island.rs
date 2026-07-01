@@ -12,6 +12,7 @@ pub(crate) struct WebHtmlIslandRegistry {
     content_update_count: u32,
     dirty_mark_count: u32,
     upload_count: u32,
+    texture_reallocation_count: u32,
     renderer_path: &'static str,
     renderer_last_error: Option<String>,
 }
@@ -97,6 +98,7 @@ impl WebHtmlIslandRegistry {
             content_update_count: 0,
             dirty_mark_count: 0,
             upload_count: 0,
+            texture_reallocation_count: 0,
             renderer_path: "unsupported",
             renderer_last_error: None,
         }
@@ -123,7 +125,7 @@ impl WebHtmlIslandRegistry {
             content_update_count: self.content_update_count,
             dirty_mark_count: self.dirty_mark_count,
             upload_count: self.upload_count,
-            texture_reallocation_count: 0,
+            texture_reallocation_count: self.texture_reallocation_count,
             renderer_path: self.renderer_path,
             renderer_last_error: self.renderer_last_error.clone(),
         }
@@ -161,7 +163,12 @@ impl WebHtmlIslandRegistry {
         jobs
     }
 
-    pub(crate) fn record_upload_success(&mut self, id: &str, renderer_path: &'static str) {
+    pub(crate) fn record_upload_success(
+        &mut self,
+        id: &str,
+        renderer_path: &'static str,
+        texture_reallocated: bool,
+    ) {
         self.renderer_path = renderer_path;
         self.renderer_last_error = None;
         if let Some(root) = self.roots.get_mut(id) {
@@ -169,6 +176,9 @@ impl WebHtmlIslandRegistry {
         }
         if self.dirty_roots.remove(id) {
             self.upload_count = self.upload_count.saturating_add(1);
+        }
+        if texture_reallocated {
+            self.texture_reallocation_count = self.texture_reallocation_count.saturating_add(1);
         }
     }
 
@@ -657,9 +667,10 @@ mod tests {
         let mut registry = WebHtmlIslandRegistry::new(canvas);
         registry.sync_roots_for_testing(&[test_island("upload-card")]);
 
-        registry.record_upload_success("upload-card", "intermediate-canvas");
+        registry.record_upload_success("upload-card", "intermediate-canvas", true);
         let diagnostics = registry.diagnostics();
         assert_eq!(diagnostics.upload_count, 1);
+        assert_eq!(diagnostics.texture_reallocation_count, 1);
         assert_eq!(diagnostics.renderer_path, "intermediate-canvas");
         assert_eq!(diagnostics.renderer_last_error, None);
 

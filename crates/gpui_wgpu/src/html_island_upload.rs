@@ -3,12 +3,14 @@ use wasm_bindgen::{JsCast, JsValue};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HtmlIslandUploadPath {
+    CopyElementImageToTexture,
     IntermediateCanvas,
 }
 
 impl HtmlIslandUploadPath {
     pub fn as_str(self) -> &'static str {
         match self {
+            Self::CopyElementImageToTexture => "copyElementImageToTexture",
             Self::IntermediateCanvas => "intermediate-canvas",
         }
     }
@@ -18,6 +20,7 @@ impl HtmlIslandUploadPath {
 pub struct HtmlIslandUploadResult {
     pub path: HtmlIslandUploadPath,
     pub size: Size<DevicePixels>,
+    pub texture_reallocated: bool,
 }
 
 pub fn upload_html_island_element_to_texture(
@@ -60,6 +63,7 @@ pub fn upload_html_island_element_to_texture(
     Ok(HtmlIslandUploadResult {
         path: HtmlIslandUploadPath::IntermediateCanvas,
         size,
+        texture_reallocated: false,
     })
 }
 

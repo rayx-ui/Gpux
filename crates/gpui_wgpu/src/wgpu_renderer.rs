@@ -1,4 +1,8 @@
 #[cfg(target_family = "wasm")]
+use crate::html_island_texture::{
+    HtmlIslandTextureCache, HtmlIslandTextureCacheStatus, HtmlIslandTextureDescriptor,
+};
+#[cfg(target_family = "wasm")]
 use crate::html_island_upload::{HtmlIslandUploadResult, upload_html_island_element_to_texture};
 use crate::{CompositorGpuHint, WgpuAtlas, WgpuContext};
 use bytemuck::{Pod, Zeroable};
@@ -330,6 +334,8 @@ pub struct WgpuRenderer {
     device_lost: std::sync::Arc<std::sync::atomic::AtomicBool>,
     surface_configured: bool,
     needs_redraw: bool,
+    #[cfg(target_family = "wasm")]
+    html_island_textures: HtmlIslandTextureCache,
 }
 
 impl WgpuRenderer {
@@ -677,6 +683,8 @@ impl WgpuRenderer {
             device_lost: context.device_lost_flag(),
             surface_configured: true,
             needs_redraw: false,
+            #[cfg(target_family = "wasm")]
+            html_island_textures: HtmlIslandTextureCache::default(),
         })
     }
 
@@ -1424,6 +1432,7 @@ impl WgpuRenderer {
     #[cfg(target_family = "wasm")]
     pub fn upload_html_island_element_to_texture(
         &mut self,
+        id: &str,
         element: &web_sys::HtmlElement,
         size: Size<DevicePixels>,
     ) -> anyhow::Result<HtmlIslandUploadResult> {
@@ -1436,23 +1445,22 @@ impl WgpuRenderer {
             "HTML island upload requires non-zero dimensions"
         );
 
-        let resources = self.resources();
-        let texture = resources.device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("html_island_upload_texture"),
-            size: wgpu::Extent3d {
-                width,
-                height,
-                depth_or_array_layers: 1,
+        let format = self.surface_config.format;
+        let queue = Arc::clone(&self.resources().queue);
+        let device = Arc::clone(&self.resources().device);
+        let (texture, cache_status) = self.html_island_textures.get_or_create(
+            id,
+            HtmlIslandTextureDescriptor {
+                size,
+                format,
+                upload_path: crate::HtmlIslandUploadPath::IntermediateCanvas,
             },
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: self.surface_config.format,
-            usage: wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::TEXTURE_BINDING,
-            view_formats: &[],
-        });
+            &device,
+        );
 
-        upload_html_island_element_to_texture(&resources.queue, element, &texture, size)
+        let mut result = upload_html_island_element_to_texture(&queue, element, texture, size)?;
+        result.texture_reallocated = cache_status != HtmlIslandTextureCacheStatus::Hit;
+        Ok(result)
     }
 
     fn prepare_frame(&mut self) -> bool {
