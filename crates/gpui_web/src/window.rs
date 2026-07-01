@@ -794,27 +794,42 @@ impl PlatformWindow for WebWindow {
             });
         }
 
-        let html_island_sync = self
-            .inner
-            .html_island_registry
-            .borrow_mut()
-            .sync_roots(&scene.html_islands);
+        let html_island_sync = {
+            self.inner
+                .html_island_registry
+                .borrow_mut()
+                .sync_roots(&scene.html_islands)
+        };
         if html_island_sync.request_paint {
             self._html_in_canvas_paint_observer
                 .request_paint(&self.inner.canvas);
         }
-        for job in self.inner.html_island_registry.borrow().dirty_upload_jobs() {
-            if self
-                .inner
-                .renderer
+        let upload_jobs = {
+            self.inner
+                .html_island_registry
                 .borrow_mut()
-                .upload_html_island_element_to_texture(&job.element, job.physical_size)
-                .is_ok()
-            {
+                .dirty_upload_jobs()
+        };
+        for job in upload_jobs {
+            let upload_result = {
                 self.inner
-                    .html_island_registry
+                    .renderer
                     .borrow_mut()
-                    .record_upload_success(&job.id);
+                    .upload_html_island_element_to_texture(&job.element, job.physical_size)
+            };
+            match upload_result {
+                Ok(result) => {
+                    self.inner
+                        .html_island_registry
+                        .borrow_mut()
+                        .record_upload_success(&job.id, result.path.as_str());
+                }
+                Err(error) => {
+                    self.inner
+                        .html_island_registry
+                        .borrow_mut()
+                        .record_upload_failure(error.to_string());
+                }
             }
         }
         write_html_in_canvas_diagnostics_to_global(

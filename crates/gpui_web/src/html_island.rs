@@ -12,6 +12,8 @@ pub(crate) struct WebHtmlIslandRegistry {
     content_update_count: u32,
     dirty_mark_count: u32,
     upload_count: u32,
+    renderer_path: &'static str,
+    renderer_last_error: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -23,7 +25,7 @@ pub(crate) struct WebHtmlIslandSyncSummary {
     pub(crate) request_paint: bool,
 }
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Debug)]
 pub(crate) struct WebHtmlIslandDiagnostics {
     pub(crate) count: u32,
     pub(crate) dirty_count: u32,
@@ -33,6 +35,25 @@ pub(crate) struct WebHtmlIslandDiagnostics {
     pub(crate) dirty_mark_count: u32,
     pub(crate) upload_count: u32,
     pub(crate) texture_reallocation_count: u32,
+    pub(crate) renderer_path: &'static str,
+    pub(crate) renderer_last_error: Option<String>,
+}
+
+impl Default for WebHtmlIslandDiagnostics {
+    fn default() -> Self {
+        Self {
+            count: 0,
+            dirty_count: 0,
+            created_root_count: 0,
+            pruned_root_count: 0,
+            content_update_count: 0,
+            dirty_mark_count: 0,
+            upload_count: 0,
+            texture_reallocation_count: 0,
+            renderer_path: "unsupported",
+            renderer_last_error: None,
+        }
+    }
 }
 
 pub(crate) struct WebHtmlIslandUploadJob {
@@ -47,6 +68,9 @@ struct WebHtmlIslandRoot {
     input_mode: HtmlIslandInputMode,
     physical_size: Size<DevicePixels>,
     content_revision: u64,
+    upload_canvas: Option<web_sys::HtmlCanvasElement>,
+    upload_element: Option<web_sys::HtmlElement>,
+    upload_delay_frames: u8,
 }
 
 #[cfg(test)]
@@ -73,6 +97,8 @@ impl WebHtmlIslandRegistry {
             content_update_count: 0,
             dirty_mark_count: 0,
             upload_count: 0,
+            renderer_path: "unsupported",
+            renderer_last_error: None,
         }
     }
 
@@ -98,6 +124,8 @@ impl WebHtmlIslandRegistry {
             dirty_mark_count: self.dirty_mark_count,
             upload_count: self.upload_count,
             texture_reallocation_count: 0,
+            renderer_path: self.renderer_path,
+            renderer_last_error: self.renderer_last_error.clone(),
         }
     }
 
@@ -110,24 +138,42 @@ impl WebHtmlIslandRegistry {
         self.roots.get(&id).map(|root| root.input_mode)
     }
 
-    pub(crate) fn dirty_upload_jobs(&self) -> Vec<WebHtmlIslandUploadJob> {
-        self.dirty_roots
-            .iter()
-            .filter_map(|id| {
-                let root = self.roots.get(id)?;
-                Some(WebHtmlIslandUploadJob {
-                    id: id.clone(),
-                    element: root.element.clone(),
-                    physical_size: root.physical_size,
-                })
-            })
-            .collect()
+    pub(crate) fn dirty_upload_jobs(&mut self) -> Vec<WebHtmlIslandUploadJob> {
+        let dirty_ids = self.dirty_roots.iter().cloned().collect::<Vec<_>>();
+        let mut jobs = Vec::new();
+        for id in dirty_ids {
+            let Some(root) = self.roots.get_mut(&id) else {
+                continue;
+            };
+            if root.upload_delay_frames > 0 {
+                root.upload_delay_frames -= 1;
+                continue;
+            }
+            let Some(element) = root.upload_element.as_ref() else {
+                continue;
+            };
+            jobs.push(WebHtmlIslandUploadJob {
+                id,
+                element: element.clone(),
+                physical_size: root.physical_size,
+            });
+        }
+        jobs
     }
 
-    pub(crate) fn record_upload_success(&mut self, id: &str) {
+    pub(crate) fn record_upload_success(&mut self, id: &str, renderer_path: &'static str) {
+        self.renderer_path = renderer_path;
+        self.renderer_last_error = None;
+        if let Some(root) = self.roots.get_mut(id) {
+            root.clear_upload_canvas();
+        }
         if self.dirty_roots.remove(id) {
             self.upload_count = self.upload_count.saturating_add(1);
         }
+    }
+
+    pub(crate) fn record_upload_failure(&mut self, error: String) {
+        self.renderer_last_error = Some(error);
     }
 
     pub(crate) fn sync_roots(
@@ -154,6 +200,7 @@ impl WebHtmlIslandRegistry {
             if is_new_root || root.content_revision != island.content_revision {
                 root.content_element.set_inner_html(&island.trusted_html);
                 root.content_revision = island.content_revision;
+                root.prepare_upload_canvas(&self.canvas);
                 summary.content_updates = summary.content_updates.saturating_add(1);
                 self.content_update_count = self.content_update_count.saturating_add(1);
                 if self.dirty_roots.insert(key) {
@@ -199,7 +246,8 @@ impl WebHtmlIslandRegistry {
             .collect::<Vec<_>>();
         let pruned_count = stale_ids.len() as u32;
         for id in stale_ids {
-            if let Some(root) = self.roots.remove(&id) {
+            if let Some(mut root) = self.roots.remove(&id) {
+                root.clear_upload_canvas();
                 root.element.remove();
             }
             self.dirty_roots.remove(&id);
@@ -229,7 +277,7 @@ impl WebHtmlIslandRegistry {
     }
 
     #[cfg(test)]
-    fn dirty_upload_jobs_for_testing(&self) -> Vec<WebHtmlIslandUploadJob> {
+    fn dirty_upload_jobs_for_testing(&mut self) -> Vec<WebHtmlIslandUploadJob> {
         self.dirty_upload_jobs()
     }
 
@@ -252,6 +300,82 @@ impl WebHtmlIslandRegistry {
 }
 
 impl WebHtmlIslandRoot {
+    fn clear_upload_canvas(&mut self) {
+        if let Some(canvas) = self.upload_canvas.take() {
+            canvas.remove();
+        }
+        self.upload_element = None;
+        self.upload_delay_frames = 0;
+    }
+
+    fn prepare_upload_canvas(&mut self, host_canvas: &web_sys::HtmlCanvasElement) {
+        self.clear_upload_canvas();
+
+        let Some(document) = host_canvas.owner_document() else {
+            return;
+        };
+        let Ok(canvas_element) = document.create_element("canvas") else {
+            return;
+        };
+        let Ok(canvas) = canvas_element.dyn_into::<web_sys::HtmlCanvasElement>() else {
+            return;
+        };
+
+        let width = self.physical_size.width.0.max(0) as u32;
+        let height = self.physical_size.height.0.max(0) as u32;
+        if width == 0 || height == 0 {
+            return;
+        }
+
+        canvas.set_width(width);
+        canvas.set_height(height);
+        canvas.set_attribute("layoutsubtree", "true").ok();
+        js_sys::Reflect::set(
+            canvas.as_ref(),
+            &JsValue::from_str("layoutSubtree"),
+            &JsValue::TRUE,
+        )
+        .ok();
+        canvas
+            .set_attribute(
+                "style",
+                &format!(
+                    "position:fixed;left:-100000px;top:-100000px;width:{width}px;height:{height}px;"
+                ),
+            )
+            .ok();
+
+        let Ok(upload_node) = self.element.clone_node_with_deep(true) else {
+            return;
+        };
+        let Ok(upload_element) = upload_node.dyn_into::<web_sys::HtmlElement>() else {
+            return;
+        };
+        upload_element
+            .set_attribute(
+                "style",
+                &format!(
+                    "position:absolute;left:0;top:0;width:{width}px;height:{height}px;opacity:1;pointer-events:none;"
+                ),
+            )
+            .ok();
+
+        if canvas.append_child(&upload_element).is_err() {
+            return;
+        }
+        let Some(body) = document.body() else {
+            return;
+        };
+        if body.append_child(&canvas).is_err() {
+            return;
+        }
+
+        request_paint(&canvas);
+        self.upload_canvas = Some(canvas);
+        self.upload_element = Some(upload_element);
+        self.upload_delay_frames = 2;
+    }
+
     fn sync_layout_and_mode(&mut self, island: &HtmlIslandPrimitive) {
         self.input_mode = island.input_mode;
         self.physical_size = Size {
@@ -382,7 +506,22 @@ fn create_root(canvas: &web_sys::HtmlCanvasElement, id: &str) -> WebHtmlIslandRo
         input_mode: HtmlIslandInputMode::GpuiOwned,
         physical_size: Size::default(),
         content_revision: 0,
+        upload_canvas: None,
+        upload_element: None,
+        upload_delay_frames: 0,
     }
+}
+
+fn request_paint(canvas: &web_sys::HtmlCanvasElement) -> bool {
+    let Ok(request_paint) =
+        js_sys::Reflect::get(canvas.as_ref(), &JsValue::from_str("requestPaint"))
+    else {
+        return false;
+    };
+    let Ok(request_paint) = request_paint.dyn_into::<js_sys::Function>() else {
+        return false;
+    };
+    request_paint.call0(canvas.as_ref()).is_ok()
 }
 
 #[cfg(test)]
@@ -510,6 +649,26 @@ mod tests {
         registry.sync_roots_for_testing(&[test_island("upload-card")]);
 
         let _jobs = registry.dirty_upload_jobs_for_testing();
+    }
+
+    #[test]
+    fn registry_records_renderer_upload_diagnostics() {
+        let canvas: web_sys::HtmlCanvasElement = wasm_bindgen::JsValue::NULL.unchecked_into();
+        let mut registry = WebHtmlIslandRegistry::new(canvas);
+        registry.sync_roots_for_testing(&[test_island("upload-card")]);
+
+        registry.record_upload_success("upload-card", "intermediate-canvas");
+        let diagnostics = registry.diagnostics();
+        assert_eq!(diagnostics.upload_count, 1);
+        assert_eq!(diagnostics.renderer_path, "intermediate-canvas");
+        assert_eq!(diagnostics.renderer_last_error, None);
+
+        registry.record_upload_failure("drawElementImage failed".to_string());
+        let diagnostics = registry.diagnostics();
+        assert_eq!(
+            diagnostics.renderer_last_error.as_deref(),
+            Some("drawElementImage failed")
+        );
     }
 
     fn test_island(id: &'static str) -> HtmlIslandPrimitive {

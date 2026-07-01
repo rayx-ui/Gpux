@@ -39,7 +39,7 @@ pub fn upload_html_island_element_to_texture(
     let canvas = draw_element_to_intermediate_canvas(element, width, height)?;
     queue.copy_external_image_to_texture(
         &wgpu::CopyExternalImageSourceInfo {
-            source: wgpu::ExternalImageSource::HTMLCanvasElement(canvas),
+            source: wgpu::ExternalImageSource::HTMLCanvasElement(canvas.clone()),
             origin: wgpu::Origin2d::ZERO,
             flip_y: false,
         },
@@ -57,7 +57,6 @@ pub fn upload_html_island_element_to_texture(
             depth_or_array_layers: 1,
         },
     );
-
     Ok(HtmlIslandUploadResult {
         path: HtmlIslandUploadPath::IntermediateCanvas,
         size,
@@ -69,14 +68,11 @@ fn draw_element_to_intermediate_canvas(
     width: u32,
     height: u32,
 ) -> anyhow::Result<web_sys::HtmlCanvasElement> {
-    let document = element
-        .owner_document()
-        .ok_or_else(|| anyhow::anyhow!("HTML island element has no owner document"))?;
-    let canvas = document
-        .create_element("canvas")
-        .map_err(|error| anyhow::anyhow!("Failed to create HTML island upload canvas: {error:?}"))?
+    let canvas = element
+        .parent_element()
+        .ok_or_else(|| anyhow::anyhow!("HTML island upload element has no parent canvas"))?
         .dyn_into::<web_sys::HtmlCanvasElement>()
-        .map_err(|error| anyhow::anyhow!("Upload element is not a canvas: {error:?}"))?;
+        .map_err(|error| anyhow::anyhow!("HTML island upload parent is not a canvas: {error:?}"))?;
     canvas.set_width(width);
     canvas.set_height(height);
 

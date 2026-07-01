@@ -110,10 +110,10 @@ impl HtmlInCanvasPaintObserver {
                 listener_counters
                     .paint_event_count
                     .set(listener_counters.paint_event_count.get().saturating_add(1));
-                let island_diagnostics = html_island_registry.as_ref().map(|registry| {
-                    let mut registry = registry.borrow_mut();
+                let island_diagnostics = html_island_registry.as_ref().and_then(|registry| {
+                    let mut registry = registry.try_borrow_mut().ok()?;
                     registry.mark_dirty_from_paint_event(&event);
-                    registry.diagnostics()
+                    Some(registry.diagnostics())
                 });
                 listener_counters.changed_element_count.set(
                     listener_counters
@@ -225,7 +225,7 @@ pub fn write_html_in_canvas_diagnostics_to_global(
     );
     set_property(&object, "canvas", canvas_diagnostics.into());
 
-    let island_diagnostics = island_diagnostics.copied().unwrap_or_default();
+    let island_diagnostics = island_diagnostics.cloned().unwrap_or_default();
     let islands = js_sys::Object::new();
     set_property(
         &islands,
@@ -270,8 +270,20 @@ pub fn write_html_in_canvas_diagnostics_to_global(
     set_property(&object, "islands", islands.into());
 
     let renderer = js_sys::Object::new();
-    set_property(&renderer, "path", JsValue::from_str("unsupported"));
-    set_property(&renderer, "lastError", JsValue::NULL);
+    set_property(
+        &renderer,
+        "path",
+        JsValue::from_str(island_diagnostics.renderer_path),
+    );
+    set_property(
+        &renderer,
+        "lastError",
+        island_diagnostics
+            .renderer_last_error
+            .as_deref()
+            .map(JsValue::from_str)
+            .unwrap_or(JsValue::NULL),
+    );
     set_property(&object, "renderer", renderer.into());
 
     set_property(
@@ -533,6 +545,8 @@ mod tests {
             dirty_mark_count: 4,
             upload_count: 0,
             texture_reallocation_count: 0,
+            renderer_path: "intermediate-canvas",
+            renderer_last_error: None,
         };
 
         write_html_in_canvas_diagnostics_to_global(
