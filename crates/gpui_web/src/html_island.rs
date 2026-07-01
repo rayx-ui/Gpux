@@ -126,14 +126,17 @@ impl WebHtmlIslandRegistry {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn root_count(&self) -> usize {
         self.roots.len()
     }
 
+    #[cfg(test)]
     pub(crate) fn contains_root_for_id(&self, id: &ElementId) -> bool {
         self.roots.contains_key(&registry_key(id))
     }
 
+    #[cfg(test)]
     pub(crate) fn dirty_count(&self) -> usize {
         self.dirty_roots.len()
     }
