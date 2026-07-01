@@ -16,6 +16,7 @@ pub(crate) struct WebHtmlIslandRegistry {
     content_update_count: u32,
     dirty_mark_count: u32,
     upload_count: u32,
+    upload_failure_count: u32,
     texture_reallocation_count: u32,
     texture_count: u32,
     texture_pruned_count: u32,
@@ -43,10 +44,13 @@ pub(crate) struct WebHtmlIslandDiagnostics {
     pub(crate) content_update_count: u32,
     pub(crate) dirty_mark_count: u32,
     pub(crate) upload_count: u32,
+    pub(crate) upload_failure_count: u32,
     pub(crate) texture_reallocation_count: u32,
     pub(crate) texture_count: u32,
     pub(crate) texture_pruned_count: u32,
     pub(crate) texture_draw_count: u32,
+    pub(crate) upload_scratch_canvas_count: u32,
+    pub(crate) upload_paint_listener_count: u32,
     pub(crate) upload_source_sample: [u8; 4],
     pub(crate) renderer_path: &'static str,
     pub(crate) renderer_last_error: Option<String>,
@@ -62,10 +66,13 @@ impl Default for WebHtmlIslandDiagnostics {
             content_update_count: 0,
             dirty_mark_count: 0,
             upload_count: 0,
+            upload_failure_count: 0,
             texture_reallocation_count: 0,
             texture_count: 0,
             texture_pruned_count: 0,
             texture_draw_count: 0,
+            upload_scratch_canvas_count: 0,
+            upload_paint_listener_count: 0,
             upload_source_sample: [0, 0, 0, 0],
             renderer_path: "unsupported",
             renderer_last_error: None,
@@ -116,6 +123,7 @@ impl WebHtmlIslandRegistry {
             content_update_count: 0,
             dirty_mark_count: 0,
             upload_count: 0,
+            upload_failure_count: 0,
             texture_reallocation_count: 0,
             texture_count: 0,
             texture_pruned_count: 0,
@@ -150,10 +158,21 @@ impl WebHtmlIslandRegistry {
             content_update_count: self.content_update_count,
             dirty_mark_count: self.dirty_mark_count,
             upload_count: self.upload_count,
+            upload_failure_count: self.upload_failure_count,
             texture_reallocation_count: self.texture_reallocation_count,
             texture_count: self.texture_count,
             texture_pruned_count: self.texture_pruned_count,
             texture_draw_count: self.texture_draw_count,
+            upload_scratch_canvas_count: self
+                .roots
+                .values()
+                .filter(|root| root.upload_canvas.is_some())
+                .count() as u32,
+            upload_paint_listener_count: self
+                .roots
+                .values()
+                .filter(|root| root.upload_paint_listener.is_some())
+                .count() as u32,
             upload_source_sample: self.upload_source_sample,
             renderer_path: self.renderer_path,
             renderer_last_error: self.renderer_last_error.clone(),
@@ -176,6 +195,14 @@ impl WebHtmlIslandRegistry {
             let Some(root) = self.roots.get_mut(&id) else {
                 continue;
             };
+            if root.upload_element.is_none() {
+                root.prepare_upload_canvas(&self.canvas);
+                if let Some(canvas) = root.upload_canvas.as_ref() {
+                    request_paint(canvas);
+                }
+                request_paint(&self.canvas);
+                continue;
+            }
             if root.upload_delay_frames > 0 {
                 root.upload_delay_frames -= 1;
                 if let Some(canvas) = root.upload_canvas.as_ref() {
@@ -211,7 +238,9 @@ impl WebHtmlIslandRegistry {
         source_sample: [u8; 4],
     ) {
         self.renderer_path = renderer_path;
-        self.renderer_last_error = None;
+        if self.upload_failure_count == 0 {
+            self.renderer_last_error = None;
+        }
         self.upload_source_sample = source_sample;
         if let Some(root) = self.roots.get_mut(id) {
             root.clear_upload_canvas();
@@ -224,8 +253,13 @@ impl WebHtmlIslandRegistry {
         }
     }
 
-    pub(crate) fn record_upload_failure(&mut self, error: String) {
+    pub(crate) fn record_upload_failure(&mut self, id: &str, error: String) {
+        self.upload_failure_count = self.upload_failure_count.saturating_add(1);
         self.renderer_last_error = Some(error);
+        if let Some(root) = self.roots.get_mut(id) {
+            root.clear_upload_canvas();
+        }
+        self.dirty_roots.remove(id);
     }
 
     pub(crate) fn record_texture_cache_state(
@@ -779,6 +813,7 @@ mod tests {
         registry.record_upload_success("upload-card", "intermediate-canvas", true, [1, 2, 3, 4]);
         let diagnostics = registry.diagnostics();
         assert_eq!(diagnostics.upload_count, 1);
+        assert_eq!(diagnostics.upload_failure_count, 0);
         assert_eq!(diagnostics.texture_reallocation_count, 1);
         assert_eq!(diagnostics.upload_source_sample, [1, 2, 3, 4]);
         assert_eq!(diagnostics.renderer_path, "intermediate-canvas");
@@ -789,9 +824,12 @@ mod tests {
         assert_eq!(diagnostics.texture_count, 1);
         assert_eq!(diagnostics.texture_pruned_count, 0);
         assert_eq!(diagnostics.texture_draw_count, 1);
+        assert_eq!(diagnostics.upload_scratch_canvas_count, 0);
+        assert_eq!(diagnostics.upload_paint_listener_count, 0);
 
-        registry.record_upload_failure("drawElementImage failed".to_string());
+        registry.record_upload_failure("upload-card", "drawElementImage failed".to_string());
         let diagnostics = registry.diagnostics();
+        assert_eq!(diagnostics.upload_failure_count, 1);
         assert_eq!(
             diagnostics.renderer_last_error.as_deref(),
             Some("drawElementImage failed")

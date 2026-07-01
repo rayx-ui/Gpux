@@ -1516,6 +1516,11 @@ impl WgpuRenderer {
     }
 
     #[cfg(target_family = "wasm")]
+    pub fn discard_html_island_texture(&mut self, id: &str) {
+        self.html_island_textures.remove(id);
+    }
+
+    #[cfg(target_family = "wasm")]
     fn prune_html_island_textures(&mut self, scene: &Scene) {
         let live_ids = scene
             .html_islands

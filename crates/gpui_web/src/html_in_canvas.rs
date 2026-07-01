@@ -264,6 +264,11 @@ pub fn write_html_in_canvas_diagnostics_to_global(
     );
     set_property(
         &islands,
+        "uploadFailureCount",
+        JsValue::from_f64(island_diagnostics.upload_failure_count as f64),
+    );
+    set_property(
+        &islands,
         "textureReallocationCount",
         JsValue::from_f64(island_diagnostics.texture_reallocation_count as f64),
     );
@@ -281,6 +286,16 @@ pub fn write_html_in_canvas_diagnostics_to_global(
         &islands,
         "textureDrawCount",
         JsValue::from_f64(island_diagnostics.texture_draw_count as f64),
+    );
+    set_property(
+        &islands,
+        "uploadScratchCanvasCount",
+        JsValue::from_f64(island_diagnostics.upload_scratch_canvas_count as f64),
+    );
+    set_property(
+        &islands,
+        "uploadPaintListenerCount",
+        JsValue::from_f64(island_diagnostics.upload_paint_listener_count as f64),
     );
     set_property(
         &islands,
@@ -571,10 +586,13 @@ mod tests {
             content_update_count: 3,
             dirty_mark_count: 4,
             upload_count: 0,
+            upload_failure_count: 0,
             texture_reallocation_count: 0,
             texture_count: 0,
             texture_pruned_count: 0,
             texture_draw_count: 0,
+            upload_scratch_canvas_count: 0,
+            upload_paint_listener_count: 0,
             upload_source_sample: [0, 0, 0, 0],
             renderer_path: "intermediate-canvas",
             renderer_last_error: None,

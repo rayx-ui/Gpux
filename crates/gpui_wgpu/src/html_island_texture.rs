@@ -104,6 +104,14 @@ impl HtmlIslandTextureCache {
         pruned
     }
 
+    pub fn remove(&mut self, id: &str) -> bool {
+        let removed = self.entries.remove(id).is_some();
+        if removed {
+            self.pruned_count = self.pruned_count.saturating_add(1);
+        }
+        removed
+    }
+
     #[cfg(test)]
     fn record_for_testing(
         &mut self,
@@ -242,6 +250,22 @@ mod tests {
         assert_eq!(cache.pruned_count(), 1);
         assert_eq!(
             cache.record_for_testing("preview", descriptor(16, 16)),
+            HtmlIslandTextureCacheStatus::Hit
+        );
+    }
+
+    #[test]
+    fn cache_removes_failed_upload_entry_by_id() {
+        let mut cache = HtmlIslandTextureCache::default();
+        cache.record_for_testing("failed", descriptor(64, 32));
+        cache.record_for_testing("healthy", descriptor(16, 16));
+
+        assert!(cache.remove("failed"));
+
+        assert_eq!(cache.len(), 1);
+        assert_eq!(cache.pruned_count(), 1);
+        assert_eq!(
+            cache.record_for_testing("healthy", descriptor(16, 16)),
             HtmlIslandTextureCacheStatus::Hit
         );
     }

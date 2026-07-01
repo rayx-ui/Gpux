@@ -30,6 +30,10 @@ pub fn upload_html_island_element_to_texture(
     texture: &wgpu::Texture,
     size: Size<DevicePixels>,
 ) -> anyhow::Result<HtmlIslandUploadResult> {
+    if consume_injected_upload_failure(element) {
+        anyhow::bail!("Injected HTML island upload readback failure");
+    }
+
     let width = u32::try_from(size.width.0.max(0))
         .map_err(|_| anyhow::anyhow!("HTML island width exceeds u32"))?;
     let height = u32::try_from(size.height.0.max(0))
@@ -97,6 +101,42 @@ pub fn upload_html_island_element_to_texture(
         texture_reallocated: false,
         source_sample,
     })
+}
+
+fn consume_injected_upload_failure(element: &web_sys::HtmlElement) -> bool {
+    let global = js_sys::global();
+    let Ok(value) = js_sys::Reflect::get(
+        &global,
+        &wasm_bindgen::JsValue::from_str("__rayxHtmlIslandInjectUploadFailureId"),
+    ) else {
+        return false;
+    };
+    let Some(requested_id) = value.as_string() else {
+        return false;
+    };
+    if requested_id.is_empty() {
+        return false;
+    }
+
+    let element_matches = element
+        .get_attribute("data-rayx-html-island-id")
+        .is_some_and(|id| id == requested_id);
+    let descendant_matches = element
+        .query_selector(&format!("[data-rayx-html-island-id=\"{requested_id}\"]"))
+        .ok()
+        .flatten()
+        .is_some();
+    if !element_matches && !descendant_matches {
+        return false;
+    }
+
+    js_sys::Reflect::set(
+        &global,
+        &wasm_bindgen::JsValue::from_str("__rayxHtmlIslandInjectUploadFailureId"),
+        &wasm_bindgen::JsValue::NULL,
+    )
+    .ok();
+    true
 }
 
 fn sample_center_pixel(data: &[u8], width: u32, height: u32) -> [u8; 4] {

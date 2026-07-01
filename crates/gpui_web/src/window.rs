@@ -831,9 +831,13 @@ impl PlatformWindow for WebWindow {
                 }
                 Err(error) => {
                     self.inner
+                        .renderer
+                        .borrow_mut()
+                        .discard_html_island_texture(&job.id);
+                    self.inner
                         .html_island_registry
                         .borrow_mut()
-                        .record_upload_failure(error.to_string());
+                        .record_upload_failure(&job.id, error.to_string());
                 }
             }
         }
