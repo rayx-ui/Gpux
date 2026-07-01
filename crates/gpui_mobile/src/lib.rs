@@ -353,3 +353,24 @@ pub fn current_platform(_headless: bool) -> ! {
          `target_os = \"ios\"` or `target_os = \"android\"`."
     );
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn ios_run_app_retains_application_after_launch_callback_source() {
+        let source = include_str!("ios/ffi.rs");
+
+        assert!(
+            source.contains("RetainedApplicationCell"),
+            "iOS FFI should have an explicit retained application cell"
+        );
+        assert!(
+            source.contains("retain_application(app.clone())"),
+            "run_app should retain the GPUI Application before Application::run returns"
+        );
+        assert!(
+            source.contains("static RETAINED_APPLICATION"),
+            "iOS FFI should store the retained application in static FFI-owned state"
+        );
+    }
+}

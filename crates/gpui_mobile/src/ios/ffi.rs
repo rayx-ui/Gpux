@@ -431,6 +431,28 @@ unsafe impl Sync for AppCallbackCell {}
 
 static APP_CALLBACK: OnceLock<AppCallbackCell> = OnceLock::new();
 
+/// Retains the GPUI application after `Application::run` returns.
+///
+/// On iOS, UIKit owns the outer application loop and GPUI startup is completed
+/// through later app-delegate callbacks. Keeping a clone here preserves GPUI
+/// application state for windows, frame callbacks, and other FFI entry points
+/// after the one-shot finish-launching callback has run.
+struct RetainedApplicationCell(std::cell::UnsafeCell<Option<Application>>);
+
+// Safety: only accessed from the iOS main thread.
+unsafe impl Send for RetainedApplicationCell {}
+unsafe impl Sync for RetainedApplicationCell {}
+
+static RETAINED_APPLICATION: OnceLock<RetainedApplicationCell> = OnceLock::new();
+
+fn retain_application(app: Application) {
+    let cell = RETAINED_APPLICATION
+        .get_or_init(|| RetainedApplicationCell(std::cell::UnsafeCell::new(None)));
+    unsafe {
+        *cell.0.get() = Some(app);
+    }
+}
+
 /// Register a callback that will be invoked inside `Application::run`.
 ///
 /// This must be called **before** [`run_app`] so that the run-loop
@@ -481,7 +503,9 @@ pub fn run_app() {
     }
 
     let platform = Rc::new(super::IosPlatform::new());
-    Application::with_platform(platform).run(|cx: &mut App| {
+    let app = Application::with_platform(platform);
+    retain_application(app.clone());
+    app.run(|cx: &mut App| {
         if let Some(cb) = take_app_callback() {
             log::info!("GPUI iOS: Invoking user-provided app callback");
             cb(cx);
