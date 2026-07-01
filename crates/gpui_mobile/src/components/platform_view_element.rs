@@ -1,6 +1,6 @@
 //! GPUI element for embedding native platform views.
 //!
-//! `PlatformViewElement` is a GPUI component that reserves layout space for
+//! `PlatformViewElement` is a GPUI element that reserves layout space for
 //! a native view (Android `View` or iOS `UIView`) and synchronizes its
 //! position and size during the paint phase.
 //!
