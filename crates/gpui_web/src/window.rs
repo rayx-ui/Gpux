@@ -61,6 +61,7 @@ pub(crate) struct WebWindowInner {
     pub(crate) last_physical_size: Cell<(u32, u32)>,
     pub(crate) notify_scale: Cell<bool>,
     pub(crate) is_composing: Cell<bool>,
+    html_island_force_frame: Cell<bool>,
     mql_handle: RefCell<Option<MqlHandle>>,
     pending_physical_size: Cell<Option<(u32, u32)>>,
 }
@@ -218,6 +219,7 @@ impl WebWindow {
             last_physical_size: Cell::new((initial_physical_width, initial_physical_height)),
             notify_scale: Cell::new(false),
             is_composing: Cell::new(false),
+            html_island_force_frame: Cell::new(false),
             mql_handle: RefCell::new(None),
             pending_physical_size: Cell::new(None),
         });
@@ -355,7 +357,7 @@ impl WebWindowInner {
             if let Some(ref mut callback) = callback {
                 callback(RequestFrameOptions {
                     require_presentation: true,
-                    force_render: false,
+                    force_render: this.html_island_force_frame.take(),
                 });
             }
             let mut callbacks = this.callbacks.borrow_mut();
@@ -810,6 +812,14 @@ impl PlatformWindow for WebWindow {
                 .borrow_mut()
                 .dirty_upload_jobs()
         };
+        if self
+            .inner
+            .html_island_registry
+            .borrow()
+            .has_pending_upload_work()
+        {
+            self.inner.html_island_force_frame.set(true);
+        }
         for job in upload_jobs {
             let upload_result = {
                 self.inner

@@ -540,9 +540,10 @@ pub enum HtmlIslandInputMode {
 
 /// Scene data for an experimental HTML island.
 ///
-/// The primitive is intentionally only a data model in this slice. Later scene
-/// integration stores it in `Scene`, batches it in order, and hands it to the
-/// web DOM registry and renderer upload path.
+/// Supported WASM renderers use this data to sync a direct canvas-child DOM
+/// root and draw its uploaded texture in scene order. Native and unsupported
+/// web renderers skip the batch, so callers should provide explicit fallback
+/// content through the public `html_island` element API.
 #[derive(Clone, Debug)]
 pub struct HtmlIslandPrimitive {
     /// Draw order assigned by the scene when the primitive is inserted.

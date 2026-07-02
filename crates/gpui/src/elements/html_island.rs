@@ -13,8 +13,11 @@ use crate::{
 /// Construct an experimental HTML island element with a stable id.
 ///
 /// The supplied id is used to correlate the Rust element with browser DOM and
-/// renderer resources on supported WASM targets. The HTML content is trusted
-/// application markup; sanitize untrusted input before passing it to this API.
+/// renderer texture resources on supported WASM targets. Do not generate a new
+/// id every frame.
+///
+/// The HTML content is trusted application markup; sanitize untrusted input
+/// before passing it to this API.
 ///
 /// This element is not a production browser-support guarantee, an HTML
 /// sanitizer, an iframe/webview host, or a cross-origin rendering workaround.
@@ -33,11 +36,41 @@ pub fn html_island(id: impl Into<ElementId>) -> HtmlIsland {
 /// Experimental GPUI element for trusted HTML content on WASM.
 ///
 /// Native and unsupported web targets paint the configured fallback element when
-/// one is present. Browser DOM hosting and scene compositing are implemented in
-/// later slices of the `html-island-wasm` epic.
+/// one is present. Supported Chromium-family WASM runs host a direct canvas
+/// child DOM subtree and composite a snapshot of that subtree into the WebGPU
+/// scene using the current `intermediate-canvas` upload path.
 ///
 /// Treat the HTML string as trusted application markup. Sanitize any user,
 /// remote, or otherwise untrusted content before calling [`HtmlIsland::html`].
+///
+/// Browser support is intentionally experimental. Development and validation
+/// should use the dedicated Chrome Canary Playwright project with the
+/// `CanvasDrawElement` and WebGPU flags from `tools-node/playwright.config.ts`.
+///
+/// Browser-only `DomOwned` example:
+///
+/// ```rust,ignore
+/// html_island("profile-form")
+///     .html(r#"<label>Name <input value="Ada" /></label>"#)
+///     .input_mode(HtmlIslandInputMode::DomOwned)
+///     .fallback(div().child("HTML form unavailable"));
+/// ```
+///
+/// Browser-only `GpuiOwned` visual example:
+///
+/// ```rust,ignore
+/// html_island("status-card")
+///     .html(r#"<section class="status">Ready</section>"#)
+///     .input_mode(HtmlIslandInputMode::GpuiOwned)
+///     .fallback(div().child("Ready"));
+/// ```
+///
+/// Fallback-only native/unsupported example:
+///
+/// ```rust,ignore
+/// html_island("native-fallback")
+///     .fallback(div().child("Rendered by GPUI when HTML islands are unsupported"));
+/// ```
 pub struct HtmlIsland {
     id: ElementId,
     trusted_html: SharedString,
@@ -56,6 +89,11 @@ impl HtmlIsland {
     }
 
     /// Set whether browser DOM or GPUI owns interaction for this island.
+    ///
+    /// [`HtmlIslandInputMode::DomOwned`] lets browser pointer, focus, keyboard,
+    /// composition, and accessibility behavior reach the hosted DOM subtree
+    /// first. [`HtmlIslandInputMode::GpuiOwned`] keeps GPUI interaction
+    /// semantics and renders the DOM subtree with `pointer-events: none`.
     pub fn input_mode(mut self, input_mode: HtmlIslandInputMode) -> Self {
         self.input_mode = input_mode;
         self

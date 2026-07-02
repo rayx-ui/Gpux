@@ -200,7 +200,6 @@ impl WebHtmlIslandRegistry {
                 if let Some(canvas) = root.upload_canvas.as_ref() {
                     request_paint(canvas);
                 }
-                request_paint(&self.canvas);
                 continue;
             }
             if root.upload_delay_frames > 0 {
@@ -208,14 +207,12 @@ impl WebHtmlIslandRegistry {
                 if let Some(canvas) = root.upload_canvas.as_ref() {
                     request_paint(canvas);
                 }
-                request_paint(&self.canvas);
                 continue;
             }
             if !root.upload_ready.get() {
                 if let Some(canvas) = root.upload_canvas.as_ref() {
                     request_paint(canvas);
                 }
-                request_paint(&self.canvas);
                 continue;
             }
             let Some(element) = root.upload_element.as_ref() else {
@@ -228,6 +225,15 @@ impl WebHtmlIslandRegistry {
             });
         }
         jobs
+    }
+
+    pub(crate) fn has_pending_upload_work(&self) -> bool {
+        !self.dirty_roots.is_empty()
+            || self.roots.values().any(|root| {
+                root.upload_canvas.is_some()
+                    || root.upload_element.is_some()
+                    || root.upload_paint_listener.is_some()
+            })
     }
 
     pub(crate) fn record_upload_success(
