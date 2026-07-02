@@ -1309,6 +1309,49 @@ fn fs_poly_sprite(input: PolySpriteVarying) -> @location(0) vec4<f32> {
     return blend_color(color, sprite.opacity * saturate(0.5 - distance));
 }
 
+// --- html islands --- //
+
+struct HtmlIsland {
+    bounds: Bounds,
+    content_mask: Bounds,
+    opacity: f32,
+    pad0: f32,
+    pad1: f32,
+    pad2: f32,
+}
+@group(1) @binding(0) var<storage, read> b_html_islands: array<HtmlIsland>;
+
+struct HtmlIslandVarying {
+    @builtin(position) position: vec4<f32>,
+    @location(0) texture_position: vec2<f32>,
+    @location(1) @interpolate(flat) island_id: u32,
+    @location(3) clip_distances: vec4<f32>,
+}
+
+@vertex
+fn vs_html_island(@builtin(vertex_index) vertex_id: u32, @builtin(instance_index) instance_id: u32) -> HtmlIslandVarying {
+    let unit_vertex = vec2<f32>(f32(vertex_id & 1u), 0.5 * f32(vertex_id & 2u));
+    let island = b_html_islands[instance_id];
+
+    var out = HtmlIslandVarying();
+    out.position = to_device_position(unit_vertex, island.bounds);
+    out.texture_position = unit_vertex;
+    out.island_id = instance_id;
+    out.clip_distances = distance_from_clip_rect(unit_vertex, island.bounds, island.content_mask);
+    return out;
+}
+
+@fragment
+fn fs_html_island(input: HtmlIslandVarying) -> @location(0) vec4<f32> {
+    let sample = textureSample(t_sprite, s_sprite, input.texture_position);
+    if (any(input.clip_distances < vec4<f32>(0.0))) {
+        return vec4<f32>(0.0);
+    }
+
+    let island = b_html_islands[input.island_id];
+    return blend_color(sample, island.opacity);
+}
+
 // --- surfaces --- //
 
 struct SurfaceParams {

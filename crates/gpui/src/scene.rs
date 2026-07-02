@@ -5,8 +5,8 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    AtlasTextureId, AtlasTile, Background, Bounds, ContentMask, Corners, Edges, Hsla, Pixels,
-    Point, Radians, ScaledPixels, Size, bounds_tree::BoundsTree, point,
+    AtlasTextureId, AtlasTile, Background, Bounds, ContentMask, Corners, Edges, ElementId, Hsla,
+    Pixels, Point, Radians, ScaledPixels, SharedString, Size, bounds_tree::BoundsTree, point,
 };
 use std::{
     fmt::Debug,
@@ -30,6 +30,7 @@ pub struct Scene {
     layer_stack: Vec<DrawOrder>,
     pub shadows: Vec<Shadow>,
     pub quads: Vec<Quad>,
+    pub html_islands: Vec<HtmlIslandPrimitive>,
     pub paths: Vec<Path<ScaledPixels>>,
     pub underlines: Vec<Underline>,
     pub monochrome_sprites: Vec<MonochromeSprite>,
@@ -47,6 +48,7 @@ impl Scene {
         self.paths.clear();
         self.shadows.clear();
         self.quads.clear();
+        self.html_islands.clear();
         self.underlines.clear();
         self.monochrome_sprites.clear();
         self.subpixel_sprites.clear();
@@ -94,6 +96,10 @@ impl Scene {
                 quad.order = order;
                 self.quads.push(quad.clone());
             }
+            Primitive::HtmlIsland(html_island) => {
+                html_island.order = order;
+                self.html_islands.push(html_island.clone());
+            }
             Primitive::Path(path) => {
                 path.order = order;
                 path.id = PathId(self.paths.len());
@@ -137,6 +143,8 @@ impl Scene {
     pub fn finish(&mut self) {
         self.shadows.sort_by_key(|shadow| shadow.order);
         self.quads.sort_by_key(|quad| quad.order);
+        self.html_islands
+            .sort_by_key(|html_island| html_island.order);
         self.paths.sort_by_key(|path| path.order);
         self.underlines.sort_by_key(|underline| underline.order);
         self.monochrome_sprites
@@ -161,6 +169,8 @@ impl Scene {
             shadows_iter: self.shadows.iter().peekable(),
             quads_start: 0,
             quads_iter: self.quads.iter().peekable(),
+            html_islands_start: 0,
+            html_islands_iter: self.html_islands.iter().peekable(),
             paths_start: 0,
             paths_iter: self.paths.iter().peekable(),
             underlines_start: 0,
@@ -189,6 +199,7 @@ pub(crate) enum PrimitiveKind {
     Shadow,
     #[default]
     Quad,
+    HtmlIsland,
     Path,
     Underline,
     MonochromeSprite,
@@ -208,6 +219,7 @@ pub(crate) enum PaintOperation {
 pub enum Primitive {
     Shadow(Shadow),
     Quad(Quad),
+    HtmlIsland(HtmlIslandPrimitive),
     Path(Path<ScaledPixels>),
     Underline(Underline),
     MonochromeSprite(MonochromeSprite),
@@ -224,6 +236,7 @@ impl Primitive {
                 shadow.transformation.apply_to_scaled_bounds(shadow.bounds)
             }
             Primitive::Quad(quad) => quad.transformation.apply_to_scaled_bounds(quad.bounds),
+            Primitive::HtmlIsland(html_island) => html_island.bounds,
             Primitive::Path(path) => path.bounds,
             Primitive::Underline(underline) => underline
                 .transformation
@@ -245,6 +258,7 @@ impl Primitive {
         match self {
             Primitive::Shadow(shadow) => &shadow.content_mask,
             Primitive::Quad(quad) => &quad.content_mask,
+            Primitive::HtmlIsland(html_island) => &html_island.content_mask,
             Primitive::Path(path) => &path.content_mask,
             Primitive::Underline(underline) => &underline.content_mask,
             Primitive::MonochromeSprite(sprite) => &sprite.content_mask,
@@ -267,6 +281,8 @@ struct BatchIterator<'a> {
     shadows_iter: Peekable<slice::Iter<'a, Shadow>>,
     quads_start: usize,
     quads_iter: Peekable<slice::Iter<'a, Quad>>,
+    html_islands_start: usize,
+    html_islands_iter: Peekable<slice::Iter<'a, HtmlIslandPrimitive>>,
     paths_start: usize,
     paths_iter: Peekable<slice::Iter<'a, Path<ScaledPixels>>>,
     underlines_start: usize,
@@ -291,6 +307,10 @@ impl<'a> Iterator for BatchIterator<'a> {
                 PrimitiveKind::Shadow,
             ),
             (self.quads_iter.peek().map(|q| q.order), PrimitiveKind::Quad),
+            (
+                self.html_islands_iter.peek().map(|q| q.order),
+                PrimitiveKind::HtmlIsland,
+            ),
             (self.paths_iter.peek().map(|q| q.order), PrimitiveKind::Path),
             (
                 self.underlines_iter.peek().map(|u| u.order),
@@ -351,6 +371,22 @@ impl<'a> Iterator for BatchIterator<'a> {
                 }
                 self.quads_start = quads_end;
                 Some(PrimitiveBatch::Quads(quads_start..quads_end))
+            }
+            PrimitiveKind::HtmlIsland => {
+                let html_islands_start = self.html_islands_start;
+                let mut html_islands_end = html_islands_start + 1;
+                self.html_islands_iter.next();
+                while self
+                    .html_islands_iter
+                    .next_if(|html_island| (html_island.order, batch_kind) < max_order_and_kind)
+                    .is_some()
+                {
+                    html_islands_end += 1;
+                }
+                self.html_islands_start = html_islands_end;
+                Some(PrimitiveBatch::HtmlIslands(
+                    html_islands_start..html_islands_end,
+                ))
             }
             PrimitiveKind::Path => {
                 let paths_start = self.paths_start;
@@ -473,6 +509,7 @@ impl<'a> Iterator for BatchIterator<'a> {
 pub enum PrimitiveBatch {
     Shadows(Range<usize>),
     Quads(Range<usize>),
+    HtmlIslands(Range<usize>),
     Paths(Range<usize>),
     Underlines(Range<usize>),
     MonochromeSprites {
@@ -489,6 +526,50 @@ pub enum PrimitiveBatch {
         range: Range<usize>,
     },
     Surfaces(Range<usize>),
+}
+
+/// Controls whether browser DOM or GPUI owns interaction for an HTML island.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum HtmlIslandInputMode {
+    /// Browser DOM receives pointer, focus, keyboard, composition, and
+    /// accessibility behavior first.
+    DomOwned,
+    /// DOM is rendered but GPUI keeps owning pointer and focus behavior.
+    GpuiOwned,
+}
+
+/// Scene data for an experimental HTML island.
+///
+/// Supported WASM renderers use this data to sync a direct canvas-child DOM
+/// root and draw its uploaded texture in scene order. Native and unsupported
+/// web renderers skip the batch, so callers should provide explicit fallback
+/// content through the public `html_island` element API.
+#[derive(Clone, Debug)]
+pub struct HtmlIslandPrimitive {
+    /// Draw order assigned by the scene when the primitive is inserted.
+    pub order: DrawOrder,
+    /// Stable application-supplied island id used for DOM registry lookup.
+    pub id: ElementId,
+    /// Physical scene bounds in scaled pixels.
+    pub bounds: Bounds<ScaledPixels>,
+    /// Logical DOM bounds in CSS pixels for browser subtree synchronization.
+    pub logical_bounds: Bounds<Pixels>,
+    /// Rectangular content mask inherited from the GPUI paint context.
+    pub content_mask: ContentMask<ScaledPixels>,
+    /// Whether the browser DOM subtree or GPUI owns input for this island.
+    pub input_mode: HtmlIslandInputMode,
+    /// Cumulative GPUI element opacity to apply when compositing the island.
+    pub opacity: f32,
+    /// Monotonic content revision used to avoid redundant DOM updates.
+    pub content_revision: u64,
+    /// Trusted application HTML payload for the web DOM registry.
+    pub trusted_html: SharedString,
+}
+
+impl From<HtmlIslandPrimitive> for Primitive {
+    fn from(html_island: HtmlIslandPrimitive) -> Self {
+        Primitive::HtmlIsland(html_island)
+    }
 }
 
 #[derive(Default, Debug, Clone)]
@@ -1039,6 +1120,88 @@ impl PathVertex<ScaledPixels> {
             xy_position: transformation.apply_to_scaled_point(self.xy_position),
             st_position: self.st_position,
             content_mask,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{point, px, size};
+
+    #[test]
+    fn html_island_primitive_carries_dom_sync_metadata() {
+        let primitive = HtmlIslandPrimitive {
+            order: 0,
+            id: ElementId::from("settings-form"),
+            bounds: Bounds::new(
+                point(ScaledPixels(10.), ScaledPixels(20.)),
+                size(ScaledPixels(300.), ScaledPixels(120.)),
+            ),
+            logical_bounds: Bounds::new(point(px(5.), px(10.)), size(px(150.), px(60.))),
+            content_mask: ContentMask {
+                bounds: Bounds::new(
+                    point(ScaledPixels(0.), ScaledPixels(0.)),
+                    size(ScaledPixels(400.), ScaledPixels(300.)),
+                ),
+            },
+            input_mode: HtmlIslandInputMode::DomOwned,
+            opacity: 0.75,
+            content_revision: 42,
+            trusted_html: SharedString::from("<button>Save</button>"),
+        };
+
+        assert_eq!(primitive.id, ElementId::from("settings-form"));
+        assert_eq!(primitive.input_mode, HtmlIslandInputMode::DomOwned);
+        assert_eq!(primitive.opacity, 0.75);
+        assert_eq!(primitive.content_revision, 42);
+        assert_eq!(primitive.trusted_html.as_ref(), "<button>Save</button>");
+        assert_eq!(primitive.bounds.size.width, ScaledPixels(300.));
+        assert_eq!(primitive.logical_bounds.size.width, px(150.));
+    }
+
+    #[test]
+    fn html_island_batches_preserve_scene_order_between_quads() {
+        let bounds = Bounds::new(
+            point(ScaledPixels(0.), ScaledPixels(0.)),
+            size(ScaledPixels(100.), ScaledPixels(100.)),
+        );
+        let mut scene = Scene::default();
+
+        scene.insert_primitive(test_quad(bounds));
+        scene.insert_primitive(test_html_island(bounds, "settings-form"));
+        scene.insert_primitive(test_quad(bounds));
+        scene.finish();
+
+        assert_eq!(scene.quads.len(), 2);
+        assert_eq!(scene.html_islands.len(), 1);
+
+        let batches = scene.batches().collect::<Vec<_>>();
+        assert!(matches!(batches[0], PrimitiveBatch::Quads(ref range) if range == &(0..1)));
+        assert!(matches!(batches[1], PrimitiveBatch::HtmlIslands(ref range) if range == &(0..1)));
+        assert!(matches!(batches[2], PrimitiveBatch::Quads(ref range) if range == &(1..2)));
+        assert_eq!(batches.len(), 3);
+    }
+
+    fn test_quad(bounds: Bounds<ScaledPixels>) -> Quad {
+        Quad {
+            bounds,
+            content_mask: ContentMask { bounds },
+            ..Default::default()
+        }
+    }
+
+    fn test_html_island(bounds: Bounds<ScaledPixels>, id: &'static str) -> HtmlIslandPrimitive {
+        HtmlIslandPrimitive {
+            order: 0,
+            id: ElementId::from(id),
+            bounds,
+            logical_bounds: Bounds::new(point(px(0.), px(0.)), size(px(50.), px(50.))),
+            content_mask: ContentMask { bounds },
+            input_mode: HtmlIslandInputMode::GpuiOwned,
+            opacity: 1.,
+            content_revision: 1,
+            trusted_html: SharedString::from("<div>Island</div>"),
         }
     }
 }

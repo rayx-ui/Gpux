@@ -1,5 +1,10 @@
 use crate::display::WebDisplay;
 use crate::events::{ClickState, WebEventListeners, is_mac_platform};
+use crate::html_in_canvas::{
+    HtmlInCanvasDiagnostics, HtmlInCanvasPaintObserver, detect_html_in_canvas,
+    enable_layout_subtree_if_requested, write_html_in_canvas_diagnostics_to_global,
+};
+use crate::html_island::WebHtmlIslandRegistry;
 use std::sync::Arc;
 use std::{cell::Cell, cell::RefCell, rc::Rc};
 
@@ -48,6 +53,7 @@ pub(crate) struct WebWindowInner {
     pub(crate) has_device_pixel_support: bool,
     pub(crate) is_mac: bool,
     pub(crate) renderer: RefCell<WgpuRenderer>,
+    pub(crate) html_island_registry: Rc<RefCell<WebHtmlIslandRegistry>>,
     pub(crate) state: RefCell<WebWindowMutableState>,
     pub(crate) callbacks: RefCell<WebWindowCallbacks>,
     pub(crate) click_state: RefCell<ClickState>,
@@ -55,6 +61,7 @@ pub(crate) struct WebWindowInner {
     pub(crate) last_physical_size: Cell<(u32, u32)>,
     pub(crate) notify_scale: Cell<bool>,
     pub(crate) is_composing: Cell<bool>,
+    html_island_force_frame: Cell<bool>,
     mql_handle: RefCell<Option<MqlHandle>>,
     pending_physical_size: Cell<Option<(u32, u32)>>,
 }
@@ -68,6 +75,9 @@ pub struct WebWindow {
     _resize_observer: Option<web_sys::ResizeObserver>,
     _resize_observer_closure: Closure<dyn FnMut(js_sys::Array)>,
     _event_listeners: WebEventListeners,
+    _html_in_canvas_paint_observer: HtmlInCanvasPaintObserver,
+    html_in_canvas_diagnostics: HtmlInCanvasDiagnostics,
+    layout_subtree_enabled: bool,
 }
 
 impl WebWindow {
@@ -149,6 +159,27 @@ impl WebWindow {
         };
 
         let renderer = WgpuRenderer::new_from_canvas(context, &canvas, renderer_config)?;
+        let html_in_canvas_diagnostics = detect_html_in_canvas();
+        let layout_subtree_enabled = enable_layout_subtree_if_requested(
+            &browser_window,
+            &canvas,
+            &html_in_canvas_diagnostics,
+        );
+        let html_island_registry =
+            Rc::new(RefCell::new(WebHtmlIslandRegistry::new(canvas.clone())));
+        let html_in_canvas_paint_observer = HtmlInCanvasPaintObserver::start(
+            &html_in_canvas_diagnostics,
+            &canvas,
+            layout_subtree_enabled,
+            Some(Rc::clone(&html_island_registry)),
+        );
+        write_html_in_canvas_diagnostics_to_global(
+            &html_in_canvas_diagnostics,
+            &canvas,
+            layout_subtree_enabled,
+            &html_in_canvas_paint_observer.snapshot(),
+            Some(&html_island_registry.borrow().diagnostics()),
+        );
 
         let display: Rc<dyn PlatformDisplay> = Rc::new(WebDisplay::new(browser_window.clone()));
 
@@ -175,6 +206,7 @@ impl WebWindow {
 
         let inner = Rc::new(WebWindowInner {
             browser_window,
+            html_island_registry,
             canvas,
             input_element,
             has_device_pixel_support,
@@ -187,6 +219,7 @@ impl WebWindow {
             last_physical_size: Cell::new((initial_physical_width, initial_physical_height)),
             notify_scale: Cell::new(false),
             is_composing: Cell::new(false),
+            html_island_force_frame: Cell::new(false),
             mql_handle: RefCell::new(None),
             pending_physical_size: Cell::new(None),
         });
@@ -213,6 +246,9 @@ impl WebWindow {
             _resize_observer: resize_observer,
             _resize_observer_closure: resize_observer_closure,
             _event_listeners: event_listeners,
+            _html_in_canvas_paint_observer: html_in_canvas_paint_observer,
+            html_in_canvas_diagnostics,
+            layout_subtree_enabled,
         })
     }
 
@@ -321,7 +357,7 @@ impl WebWindowInner {
             if let Some(ref mut callback) = callback {
                 callback(RequestFrameOptions {
                     require_presentation: true,
-                    force_render: false,
+                    force_render: this.html_island_force_frame.take(),
                 });
             }
             let mut callbacks = this.callbacks.borrow_mut();
@@ -760,7 +796,78 @@ impl PlatformWindow for WebWindow {
             });
         }
 
+        let html_island_sync = {
+            self.inner
+                .html_island_registry
+                .borrow_mut()
+                .sync_roots(&scene.html_islands)
+        };
+        if html_island_sync.request_paint {
+            self._html_in_canvas_paint_observer
+                .request_paint(&self.inner.canvas);
+        }
+        let upload_jobs = {
+            self.inner
+                .html_island_registry
+                .borrow_mut()
+                .dirty_upload_jobs()
+        };
+        if self
+            .inner
+            .html_island_registry
+            .borrow()
+            .has_pending_upload_work()
+        {
+            self.inner.html_island_force_frame.set(true);
+        }
+        for job in upload_jobs {
+            let upload_result = {
+                self.inner
+                    .renderer
+                    .borrow_mut()
+                    .upload_html_island_element_to_texture(&job.id, &job.element, job.physical_size)
+            };
+            match upload_result {
+                Ok(result) => {
+                    self.inner
+                        .html_island_registry
+                        .borrow_mut()
+                        .record_upload_success(
+                            &job.id,
+                            result.path.as_str(),
+                            result.texture_reallocated,
+                            result.source_sample,
+                        );
+                }
+                Err(error) => {
+                    self.inner
+                        .renderer
+                        .borrow_mut()
+                        .discard_html_island_texture(&job.id);
+                    self.inner
+                        .html_island_registry
+                        .borrow_mut()
+                        .record_upload_failure(&job.id, error.to_string());
+                }
+            }
+        }
         self.inner.renderer.borrow_mut().draw(scene);
+        let (texture_count, texture_pruned_count, texture_draw_count) = self
+            .inner
+            .renderer
+            .borrow()
+            .html_island_texture_diagnostics();
+        self.inner
+            .html_island_registry
+            .borrow_mut()
+            .record_texture_cache_state(texture_count, texture_pruned_count, texture_draw_count);
+        write_html_in_canvas_diagnostics_to_global(
+            &self.html_in_canvas_diagnostics,
+            &self.inner.canvas,
+            self.layout_subtree_enabled,
+            &self._html_in_canvas_paint_observer.snapshot(),
+            Some(&self.inner.html_island_registry.borrow().diagnostics()),
+        );
     }
 
     fn completed_frame(&self) {

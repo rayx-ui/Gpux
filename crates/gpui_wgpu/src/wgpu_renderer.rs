@@ -1,5 +1,13 @@
+#[cfg(target_family = "wasm")]
+use crate::html_island_texture::{
+    HtmlIslandTextureCache, HtmlIslandTextureCacheStatus, HtmlIslandTextureDescriptor,
+};
+#[cfg(target_family = "wasm")]
+use crate::html_island_upload::{HtmlIslandUploadResult, upload_html_island_element_to_texture};
 use crate::{CompositorGpuHint, WgpuAtlas, WgpuContext};
 use bytemuck::{Pod, Zeroable};
+#[cfg(target_family = "wasm")]
+use gpux::HtmlIslandPrimitive;
 use gpux::{
     AtlasTextureId, Background, BackgroundKind, Bounds, ColorSpace, Corners, DevicePixels, Edges,
     GpuSpecs, Hsla, MonochromeSprite, Path, Point, PolychromeSprite, PrimitiveBatch, Quad,
@@ -117,6 +125,15 @@ struct PackedPathRasterizationVertex {
     bounds: PodBounds,
 }
 
+#[derive(Clone, Copy, Debug, Pod, Zeroable)]
+#[repr(C)]
+struct PackedHtmlIsland {
+    bounds: PodBounds,
+    content_mask: PodBounds,
+    opacity: f32,
+    _pad: [f32; 3],
+}
+
 const _: [(); 16] = [(); size_of::<PodBounds>()];
 const _: [(); 24] = [(); size_of::<PackedTransformationMatrix>()];
 const _: [(); 48] = [(); size_of::<PackedBackground>()];
@@ -128,6 +145,17 @@ const _: [(); 168] = [(); offset_of!(PackedQuad, transformation)];
 const _: [(); 80] = [(); size_of::<PackedPathRasterizationVertex>()];
 const _: [(); 16] = [(); offset_of!(PackedPathRasterizationVertex, background)];
 const _: [(); 64] = [(); offset_of!(PackedPathRasterizationVertex, bounds)];
+const _: [(); 48] = [(); size_of::<PackedHtmlIsland>()];
+
+fn html_island_has_drawable_area(
+    bounds: Bounds<ScaledPixels>,
+    content_mask: Bounds<ScaledPixels>,
+) -> bool {
+    bounds.size.width.0 > 0.
+        && bounds.size.height.0 > 0.
+        && content_mask.size.width.0 > 0.
+        && content_mask.size.height.0 > 0.
+}
 
 fn pack_quads(quads: &[Quad]) -> (Vec<PackedQuad>, Vec<PackedGradientStop>) {
     let mut gradient_stops = Vec::new();
@@ -258,6 +286,8 @@ struct WgpuPipelines {
     mono_sprites: wgpu::RenderPipeline,
     subpixel_sprites: Option<wgpu::RenderPipeline>,
     poly_sprites: wgpu::RenderPipeline,
+    #[cfg_attr(not(target_family = "wasm"), allow(dead_code))]
+    html_islands: wgpu::RenderPipeline,
     #[allow(dead_code)]
     surfaces: wgpu::RenderPipeline,
 }
@@ -328,6 +358,10 @@ pub struct WgpuRenderer {
     device_lost: std::sync::Arc<std::sync::atomic::AtomicBool>,
     surface_configured: bool,
     needs_redraw: bool,
+    #[cfg(target_family = "wasm")]
+    html_island_textures: HtmlIslandTextureCache,
+    #[cfg(target_family = "wasm")]
+    html_island_texture_draw_count: u32,
 }
 
 impl WgpuRenderer {
@@ -675,6 +709,10 @@ impl WgpuRenderer {
             device_lost: context.device_lost_flag(),
             surface_configured: true,
             needs_redraw: false,
+            #[cfg(target_family = "wasm")]
+            html_island_textures: HtmlIslandTextureCache::default(),
+            #[cfg(target_family = "wasm")]
+            html_island_texture_draw_count: 0,
         })
     }
 
@@ -1053,6 +1091,18 @@ impl WgpuRenderer {
             &shader_module,
         );
 
+        let html_islands = create_pipeline(
+            "html_islands",
+            "vs_html_island",
+            "fs_html_island",
+            &layouts.globals,
+            &layouts.instances_with_texture,
+            wgpu::PrimitiveTopology::TriangleStrip,
+            &[Some(color_target.clone())],
+            1,
+            &shader_module,
+        );
+
         let surfaces = create_pipeline(
             "surfaces",
             "vs_surface",
@@ -1074,6 +1124,7 @@ impl WgpuRenderer {
             mono_sprites,
             subpixel_sprites,
             poly_sprites,
+            html_islands,
             surfaces,
         }
     }
@@ -1280,6 +1331,9 @@ impl WgpuRenderer {
             return false;
         }
 
+        #[cfg(target_family = "wasm")]
+        self.prune_html_island_textures(scene);
+
         self.atlas.before_frame();
 
         let frame = match self.resources().surface.get_current_texture() {
@@ -1419,6 +1473,64 @@ impl WgpuRenderer {
         self.read_buffer_to_image(readback, width, height, padded_bytes_per_row)
     }
 
+    #[cfg(target_family = "wasm")]
+    pub fn upload_html_island_element_to_texture(
+        &mut self,
+        id: &str,
+        element: &web_sys::HtmlElement,
+        size: Size<DevicePixels>,
+    ) -> anyhow::Result<HtmlIslandUploadResult> {
+        let width = u32::try_from(size.width.0.max(0))
+            .map_err(|_| anyhow::anyhow!("HTML island width exceeds u32"))?;
+        let height = u32::try_from(size.height.0.max(0))
+            .map_err(|_| anyhow::anyhow!("HTML island height exceeds u32"))?;
+        anyhow::ensure!(
+            width > 0 && height > 0,
+            "HTML island upload requires non-zero dimensions"
+        );
+
+        let queue = Arc::clone(&self.resources().queue);
+        let device = Arc::clone(&self.resources().device);
+        let (texture, cache_status) = self.html_island_textures.get_or_create(
+            id,
+            HtmlIslandTextureDescriptor {
+                size,
+                format: wgpu::TextureFormat::Rgba8Unorm,
+                upload_path: crate::HtmlIslandUploadPath::IntermediateCanvas,
+            },
+            &device,
+        );
+
+        let mut result = upload_html_island_element_to_texture(&queue, element, texture, size)?;
+        result.texture_reallocated = cache_status != HtmlIslandTextureCacheStatus::Hit;
+        Ok(result)
+    }
+
+    #[cfg(target_family = "wasm")]
+    pub fn html_island_texture_diagnostics(&self) -> (u32, u32, u32) {
+        (
+            self.html_island_textures.len() as u32,
+            self.html_island_textures.pruned_count(),
+            self.html_island_texture_draw_count,
+        )
+    }
+
+    #[cfg(target_family = "wasm")]
+    pub fn discard_html_island_texture(&mut self, id: &str) {
+        self.html_island_textures.remove(id);
+    }
+
+    #[cfg(target_family = "wasm")]
+    fn prune_html_island_textures(&mut self, scene: &Scene) {
+        let live_ids = scene
+            .html_islands
+            .iter()
+            .map(|island| island.id.to_string())
+            .collect::<Vec<_>>();
+        self.html_island_textures
+            .prune_except(live_ids.iter().map(String::as_str));
+    }
+
     fn prepare_frame(&mut self) -> bool {
         let last_error = self.last_error.lock().unwrap().take();
         if let Some(error) = last_error {
@@ -1546,6 +1658,14 @@ impl WgpuRenderer {
                             &mut instance_offset,
                             &mut pass,
                         ),
+                        #[cfg(target_family = "wasm")]
+                        PrimitiveBatch::HtmlIslands(range) => self.draw_html_islands(
+                            &scene.html_islands[range],
+                            &mut instance_offset,
+                            &mut pass,
+                        ),
+                        #[cfg(not(target_family = "wasm"))]
+                        PrimitiveBatch::HtmlIslands(_) => true,
                         PrimitiveBatch::Paths(range) => {
                             let paths = &scene.paths[range];
                             if paths.is_empty() {
@@ -1838,6 +1958,53 @@ impl WgpuRenderer {
             instance_offset,
             pass,
         )
+    }
+
+    #[cfg(target_family = "wasm")]
+    fn draw_html_islands(
+        &mut self,
+        islands: &[HtmlIslandPrimitive],
+        instance_offset: &mut u64,
+        pass: &mut wgpu::RenderPass<'_>,
+    ) -> bool {
+        let mut drawn_count = 0u32;
+        {
+            let resources = self.resources();
+            for island in islands {
+                if !html_island_has_drawable_area(island.bounds, island.content_mask.bounds) {
+                    continue;
+                }
+                let Some(texture) = self
+                    .html_island_textures
+                    .texture_view(&island.id.to_string())
+                else {
+                    continue;
+                };
+                let packed = PackedHtmlIsland {
+                    bounds: island.bounds.into(),
+                    content_mask: island.content_mask.bounds.into(),
+                    opacity: island.opacity,
+                    _pad: [0.; 3],
+                };
+                let islands = [packed];
+                let data = unsafe { Self::instance_bytes(&islands) };
+                if !self.draw_instances_with_texture(
+                    data,
+                    1,
+                    &texture.view,
+                    &resources.pipelines.html_islands,
+                    instance_offset,
+                    pass,
+                ) {
+                    return false;
+                }
+                drawn_count = drawn_count.saturating_add(1);
+            }
+        }
+        self.html_island_texture_draw_count = self
+            .html_island_texture_draw_count
+            .saturating_add(drawn_count);
+        true
     }
 
     fn draw_instances(
@@ -2426,5 +2593,42 @@ impl RenderingParameters {
             grayscale_enhanced_contrast,
             subpixel_enhanced_contrast,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use gpux::{point, size};
+
+    fn scaled_bounds(width: f32, height: f32) -> Bounds<ScaledPixels> {
+        Bounds::new(
+            point(ScaledPixels(0.), ScaledPixels(0.)),
+            size(ScaledPixels(width), ScaledPixels(height)),
+        )
+    }
+
+    #[test]
+    fn html_island_drawable_area_requires_non_zero_bounds_and_mask() {
+        assert!(html_island_has_drawable_area(
+            scaled_bounds(120., 80.),
+            scaled_bounds(120., 80.)
+        ));
+        assert!(!html_island_has_drawable_area(
+            scaled_bounds(0., 80.),
+            scaled_bounds(120., 80.)
+        ));
+        assert!(!html_island_has_drawable_area(
+            scaled_bounds(120., 0.),
+            scaled_bounds(120., 80.)
+        ));
+        assert!(!html_island_has_drawable_area(
+            scaled_bounds(120., 80.),
+            scaled_bounds(0., 80.)
+        ));
+        assert!(!html_island_has_drawable_area(
+            scaled_bounds(120., 80.),
+            scaled_bounds(120., 0.)
+        ));
     }
 }
