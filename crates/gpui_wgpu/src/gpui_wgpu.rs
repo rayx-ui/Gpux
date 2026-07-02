@@ -22,10 +22,10 @@ mod tests {
     use super::{HtmlIslandUploadPath, WgpuRenderer};
 
     #[test]
-    fn html_island_upload_uses_intermediate_canvas_fallback_path() {
+    fn html_island_upload_uses_copy_element_image_to_texture_path() {
         assert_eq!(
-            HtmlIslandUploadPath::IntermediateCanvas.as_str(),
-            "intermediate-canvas"
+            HtmlIslandUploadPath::CopyElementImageToTexture.as_str(),
+            "copyElementImageToTexture"
         );
     }
 

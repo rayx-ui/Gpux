@@ -2,7 +2,8 @@ use crate::display::WebDisplay;
 use crate::events::{ClickState, WebEventListeners, is_mac_platform};
 use crate::html_in_canvas::{
     HtmlInCanvasDiagnostics, HtmlInCanvasPaintObserver, detect_html_in_canvas,
-    enable_layout_subtree_if_requested, write_html_in_canvas_diagnostics_to_global,
+    enable_layout_subtree, enable_layout_subtree_if_requested,
+    write_html_in_canvas_diagnostics_to_global,
 };
 use crate::html_island::WebHtmlIslandRegistry;
 use std::sync::Arc;
@@ -77,7 +78,7 @@ pub struct WebWindow {
     _event_listeners: WebEventListeners,
     _html_in_canvas_paint_observer: HtmlInCanvasPaintObserver,
     html_in_canvas_diagnostics: HtmlInCanvasDiagnostics,
-    layout_subtree_enabled: bool,
+    layout_subtree_enabled: Cell<bool>,
 }
 
 impl WebWindow {
@@ -248,7 +249,7 @@ impl WebWindow {
             _event_listeners: event_listeners,
             _html_in_canvas_paint_observer: html_in_canvas_paint_observer,
             html_in_canvas_diagnostics,
-            layout_subtree_enabled,
+            layout_subtree_enabled: Cell::new(layout_subtree_enabled),
         })
     }
 
@@ -350,6 +351,11 @@ impl WebWindowInner {
 
         let this = Rc::clone(self);
         let closure = Closure::new(move || {
+            let force_html_island_frame = this
+                .html_island_registry
+                .try_borrow_mut()
+                .map(|mut registry| registry.mark_dirty_from_dom_state())
+                .unwrap_or(false);
             let mut callback = {
                 let mut callbacks = this.callbacks.borrow_mut();
                 callbacks.request_frame.take()
@@ -357,7 +363,7 @@ impl WebWindowInner {
             if let Some(ref mut callback) = callback {
                 callback(RequestFrameOptions {
                     require_presentation: true,
-                    force_render: this.html_island_force_frame.take(),
+                    force_render: this.html_island_force_frame.take() || force_html_island_frame,
                 });
             }
             let mut callbacks = this.callbacks.borrow_mut();
@@ -796,21 +802,35 @@ impl PlatformWindow for WebWindow {
             });
         }
 
-        let html_island_sync = {
+        if !scene.html_islands.is_empty()
+            && !self.layout_subtree_enabled.get()
+            && enable_layout_subtree(&self.inner.canvas, &self.html_in_canvas_diagnostics)
+        {
+            self.layout_subtree_enabled.set(true);
+            self._html_in_canvas_paint_observer
+                .request_paint(&self.inner.canvas);
+        }
+
+        let layout_subtree_enabled = self.layout_subtree_enabled.get();
+        let html_island_sync = if layout_subtree_enabled {
             self.inner
                 .html_island_registry
                 .borrow_mut()
                 .sync_roots(&scene.html_islands)
+        } else {
+            self.inner.html_island_registry.borrow_mut().sync_roots(&[])
         };
         if html_island_sync.request_paint {
             self._html_in_canvas_paint_observer
                 .request_paint(&self.inner.canvas);
         }
-        let upload_jobs = {
+        let upload_jobs = if layout_subtree_enabled {
             self.inner
                 .html_island_registry
                 .borrow_mut()
                 .dirty_upload_jobs()
+        } else {
+            Vec::new()
         };
         if self
             .inner
@@ -840,14 +860,22 @@ impl PlatformWindow for WebWindow {
                         );
                 }
                 Err(error) => {
-                    self.inner
-                        .renderer
-                        .borrow_mut()
-                        .discard_html_island_texture(&job.id);
-                    self.inner
-                        .html_island_registry
-                        .borrow_mut()
-                        .record_upload_failure(&job.id, error.to_string());
+                    let error = error.to_string();
+                    if error.contains("No cached paint record for element") {
+                        self.inner
+                            .html_island_registry
+                            .borrow_mut()
+                            .defer_upload_until_next_paint(&job.id);
+                    } else {
+                        self.inner
+                            .renderer
+                            .borrow_mut()
+                            .discard_html_island_texture(&job.id);
+                        self.inner
+                            .html_island_registry
+                            .borrow_mut()
+                            .record_upload_failure(&job.id, error);
+                    }
                 }
             }
         }
@@ -864,7 +892,7 @@ impl PlatformWindow for WebWindow {
         write_html_in_canvas_diagnostics_to_global(
             &self.html_in_canvas_diagnostics,
             &self.inner.canvas,
-            self.layout_subtree_enabled,
+            layout_subtree_enabled,
             &self._html_in_canvas_paint_observer.snapshot(),
             Some(&self.inner.html_island_registry.borrow().diagnostics()),
         );

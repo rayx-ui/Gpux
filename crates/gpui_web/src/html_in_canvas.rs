@@ -28,7 +28,7 @@ impl HtmlInCanvasProbes {
                 || self.element_capture_element_image.is_some(),
             draw_element_image: self.canvas_draw_element_image.is_some(),
             copy_element_image_to_texture: self.gpu_queue_copy_element_image_to_texture.is_some(),
-            fallback_external_image_copy: self.gpu_queue_copy_external_image_to_texture.is_some(),
+            copy_external_image_to_texture: self.gpu_queue_copy_external_image_to_texture.is_some(),
         }
     }
 }
@@ -41,24 +41,15 @@ pub struct HtmlInCanvasSupport {
     pub capture_element_image: bool,
     pub draw_element_image: bool,
     pub copy_element_image_to_texture: bool,
-    pub fallback_external_image_copy: bool,
+    pub copy_external_image_to_texture: bool,
 }
 
 impl HtmlInCanvasSupport {
-    pub fn preferred_direct_path_available(&self) -> bool {
+    pub fn direct_child_path_available(&self) -> bool {
         self.layout_subtree
             && self.paint_event
             && self.request_paint
-            && self.capture_element_image
             && self.copy_element_image_to_texture
-    }
-
-    pub fn measured_fallback_path_available(&self) -> bool {
-        self.layout_subtree
-            && self.paint_event
-            && self.request_paint
-            && self.draw_element_image
-            && self.fallback_external_image_copy
     }
 }
 
@@ -101,7 +92,7 @@ impl HtmlInCanvasPaintObserver {
             _paint_listener: None,
         };
 
-        if layout_subtree_enabled && diagnostics.support.paint_event {
+        if diagnostics.support.paint_event {
             let diagnostics = diagnostics.clone();
             let listener_canvas = canvas.clone();
             let diagnostics_canvas = canvas.clone();
@@ -121,6 +112,8 @@ impl HtmlInCanvasPaintObserver {
                         .get()
                         .saturating_add(changed_elements_count(&event)),
                 );
+                let layout_subtree_enabled =
+                    layout_subtree_is_enabled(&diagnostics_canvas, &diagnostics);
                 write_html_in_canvas_diagnostics_to_global(
                     &diagnostics,
                     &diagnostics_canvas,
@@ -189,10 +182,7 @@ pub fn write_html_in_canvas_diagnostics_to_global(
     set_property(
         &object,
         "available",
-        JsValue::from_bool(
-            diagnostics.support.preferred_direct_path_available()
-                || diagnostics.support.measured_fallback_path_available(),
-        ),
+        JsValue::from_bool(diagnostics.support.direct_child_path_available()),
     );
     set_property(&object, "probes", diagnostics.probes.to_js_object());
     set_property(&object, "support", diagnostics.support.to_js_object());
@@ -333,8 +323,18 @@ pub fn enable_layout_subtree_if_requested(
     canvas: &web_sys::HtmlCanvasElement,
     diagnostics: &HtmlInCanvasDiagnostics,
 ) -> bool {
-    if !experiment_enabled(browser_window)
-        || !diagnostics.support.layout_subtree
+    if !experiment_enabled(browser_window) {
+        return false;
+    }
+
+    enable_layout_subtree(canvas, diagnostics)
+}
+
+pub fn enable_layout_subtree(
+    canvas: &web_sys::HtmlCanvasElement,
+    diagnostics: &HtmlInCanvasDiagnostics,
+) -> bool {
+    if !diagnostics.support.layout_subtree
         || !diagnostics.support.paint_event
         || !diagnostics.support.request_paint
     {
@@ -352,11 +352,23 @@ pub fn enable_layout_subtree_if_requested(
     let property = JsValue::from_str(property_name);
     js_sys::Reflect::set(canvas.as_ref(), &property, &JsValue::TRUE).ok();
 
+    layout_subtree_is_enabled(canvas, diagnostics)
+}
+
+fn layout_subtree_is_enabled(
+    canvas: &web_sys::HtmlCanvasElement,
+    diagnostics: &HtmlInCanvasDiagnostics,
+) -> bool {
     canvas.has_attribute("layoutsubtree")
-        || js_sys::Reflect::get(canvas.as_ref(), &property)
-            .ok()
-            .and_then(|value| value.as_bool())
-            .unwrap_or(false)
+        || diagnostics
+            .probes
+            .canvas_layout_subtree
+            .is_some_and(|property_name| {
+                js_sys::Reflect::get(canvas.as_ref(), &JsValue::from_str(property_name))
+                    .ok()
+                    .and_then(|value| value.as_bool())
+                    .unwrap_or(false)
+            })
 }
 
 impl HtmlInCanvasProbes {
@@ -425,8 +437,8 @@ impl HtmlInCanvasSupport {
         );
         set_property(
             &object,
-            "fallbackExternalImageCopy",
-            JsValue::from_bool(self.fallback_external_image_copy),
+            "copyExternalImageToTexture",
+            JsValue::from_bool(self.copy_external_image_to_texture),
         );
         object.into()
     }
@@ -594,7 +606,7 @@ mod tests {
             upload_scratch_canvas_count: 0,
             upload_paint_listener_count: 0,
             upload_source_sample: [0, 0, 0, 0],
-            renderer_path: "intermediate-canvas",
+            renderer_path: "copyElementImageToTexture",
             renderer_last_error: None,
         };
 

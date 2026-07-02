@@ -143,11 +143,7 @@ impl WebWindowInner {
         let this = Rc::clone(self);
         self.listen("pointerdown", move |event: JsValue| {
             let event: web_sys::PointerEvent = event.unchecked_into();
-            let input_mode = this
-                .html_island_registry
-                .borrow()
-                .input_mode_for_event_target(event.target().as_ref());
-            if input_mode == Some(HtmlIslandInputMode::DomOwned) {
+            if is_dom_owned_html_island_event_target(&this, event.target().as_ref()) {
                 return;
             }
 
@@ -191,6 +187,10 @@ impl WebWindowInner {
         let this = Rc::clone(self);
         self.listen("pointerup", move |event: JsValue| {
             let event: web_sys::PointerEvent = event.unchecked_into();
+            if is_dom_owned_html_island_event_target(&this, event.target().as_ref()) {
+                return;
+            }
+
             event.prevent_default();
 
             let button = dom_mouse_button_to_gpui(event.button());
@@ -228,6 +228,10 @@ impl WebWindowInner {
         let this = Rc::clone(self);
         self.listen("pointermove", move |event: JsValue| {
             let event: web_sys::PointerEvent = event.unchecked_into();
+            if is_dom_owned_html_island_event_target(&this, event.target().as_ref()) {
+                return;
+            }
+
             event.prevent_default();
 
             let position = pointer_position_in_canvas(&event, &this.canvas);
@@ -254,6 +258,10 @@ impl WebWindowInner {
         let this = Rc::clone(self);
         self.listen("pointercancel", move |event: JsValue| {
             let event: web_sys::PointerEvent = event.unchecked_into();
+            if is_dom_owned_html_island_event_target(&this, event.target().as_ref()) {
+                return;
+            }
+
             event.prevent_default();
 
             let position = pointer_position_in_canvas(&event, &this.canvas);
@@ -298,6 +306,10 @@ impl WebWindowInner {
         let this = Rc::clone(self);
         self.listen_non_passive("wheel", move |event: JsValue| {
             let event: web_sys::WheelEvent = event.unchecked_into();
+            if is_dom_owned_html_island_event_target(&this, event.target().as_ref()) {
+                return;
+            }
+
             event.prevent_default();
 
             let mouse_event: &web_sys::MouseEvent = event.as_ref();
@@ -339,8 +351,13 @@ impl WebWindowInner {
     }
 
     fn register_context_menu(self: &Rc<Self>) -> Closure<dyn FnMut(JsValue)> {
+        let this = Rc::clone(self);
         self.listen("contextmenu", move |event: JsValue| {
             let event: web_sys::Event = event.unchecked_into();
+            if is_dom_owned_html_island_event_target(&this, event.target().as_ref()) {
+                return;
+            }
+
             event.prevent_default();
         })
     }
@@ -349,6 +366,10 @@ impl WebWindowInner {
         let this = Rc::clone(self);
         self.listen("dragover", move |event: JsValue| {
             let event: web_sys::DragEvent = event.unchecked_into();
+            if is_dom_owned_html_island_event_target(&this, event.target().as_ref()) {
+                return;
+            }
+
             event.prevent_default();
 
             let mouse_event: &web_sys::MouseEvent = event.as_ref();
@@ -367,6 +388,10 @@ impl WebWindowInner {
         let this = Rc::clone(self);
         self.listen("drop", move |event: JsValue| {
             let event: web_sys::DragEvent = event.unchecked_into();
+            if is_dom_owned_html_island_event_target(&this, event.target().as_ref()) {
+                return;
+            }
+
             event.prevent_default();
 
             let mouse_event: &web_sys::MouseEvent = event.as_ref();
@@ -612,6 +637,17 @@ impl WebWindowInner {
             }
         })
     }
+}
+
+fn is_dom_owned_html_island_event_target(
+    window: &WebWindowInner,
+    target: Option<&web_sys::EventTarget>,
+) -> bool {
+    window
+        .html_island_registry
+        .borrow()
+        .input_mode_for_event_target(target)
+        == Some(HtmlIslandInputMode::DomOwned)
 }
 
 fn dom_key_to_gpui_key(event: &web_sys::KeyboardEvent) -> String {

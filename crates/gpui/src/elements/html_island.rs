@@ -37,8 +37,9 @@ pub fn html_island(id: impl Into<ElementId>) -> HtmlIsland {
 ///
 /// Native and unsupported web targets paint the configured fallback element when
 /// one is present. Supported Chromium-family WASM runs host a direct canvas
-/// child DOM subtree and composite a snapshot of that subtree into the WebGPU
-/// scene using the current `intermediate-canvas` upload path.
+/// child DOM subtree. Compositing into the WebGPU scene requires the direct
+/// `GPUQueue.copyElementImageToTexture` browser path; this API must not stage
+/// cloned DOM through scratch canvases.
 ///
 /// Treat the HTML string as trusted application markup. Sanitize any user,
 /// remote, or otherwise untrusted content before calling [`HtmlIsland::html`].

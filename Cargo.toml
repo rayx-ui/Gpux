@@ -28,6 +28,7 @@ members = [
     "crates/ztracing_macro",
     "tooling/perf",
 ]
+exclude = ["vendor/wgpu"]
 default-members = ["crates/gpui"]
 
 [workspace.package]
@@ -156,6 +157,9 @@ windows = { version = "0.61", features = ["Foundation_Numerics", "Globalization_
 [patch.crates-io]
 async-task = { git = "https://github.com/smol-rs/async-task.git", rev = "b4486cd71e4e94fbda54ce6302444de14f4d190e" }
 calloop = { git = "https://github.com/zed-industries/calloop" }
+
+[patch."https://github.com/zed-industries/wgpu.git"]
+wgpu = { path = "vendor/wgpu/wgpu" }
 
 [profile.dev]
 split-debuginfo = "unpacked"

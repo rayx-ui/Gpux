@@ -3842,7 +3842,6 @@ dependencies = [
 [[package]]
 name = "naga"
 version = "29.0.0"
-source = "git+https://github.com/zed-industries/wgpu.git?branch=v29#a466bc382ea747f8e1ac810efdb6dcd49a514575"
 dependencies = [
  "arrayvec",
  "bit-set 0.9.1",
@@ -7181,7 +7180,6 @@ checksum = "a751b3277700db47d3e574514de2eced5e54dc8a5436a3bf7a0b248b2cee16f3"
 [[package]]
 name = "wgpu"
 version = "29.0.0"
-source = "git+https://github.com/zed-industries/wgpu.git?branch=v29#a466bc382ea747f8e1ac810efdb6dcd49a514575"
 dependencies = [
  "arrayvec",
  "bitflags 2.10.0",
@@ -7210,7 +7208,6 @@ dependencies = [
 [[package]]
 name = "wgpu-core"
 version = "29.0.0"
-source = "git+https://github.com/zed-industries/wgpu.git?branch=v29#a466bc382ea747f8e1ac810efdb6dcd49a514575"
 dependencies = [
  "arrayvec",
  "bit-set 0.9.1",
@@ -7242,7 +7239,6 @@ dependencies = [
 [[package]]
 name = "wgpu-core-deps-apple"
 version = "29.0.0"
-source = "git+https://github.com/zed-industries/wgpu.git?branch=v29#a466bc382ea747f8e1ac810efdb6dcd49a514575"
 dependencies = [
  "wgpu-hal",
 ]
@@ -7250,7 +7246,6 @@ dependencies = [
 [[package]]
 name = "wgpu-core-deps-emscripten"
 version = "29.0.0"
-source = "git+https://github.com/zed-industries/wgpu.git?branch=v29#a466bc382ea747f8e1ac810efdb6dcd49a514575"
 dependencies = [
  "wgpu-hal",
 ]
@@ -7258,7 +7253,6 @@ dependencies = [
 [[package]]
 name = "wgpu-core-deps-windows-linux-android"
 version = "29.0.0"
-source = "git+https://github.com/zed-industries/wgpu.git?branch=v29#a466bc382ea747f8e1ac810efdb6dcd49a514575"
 dependencies = [
  "wgpu-hal",
 ]
@@ -7266,7 +7260,6 @@ dependencies = [
 [[package]]
 name = "wgpu-hal"
 version = "29.0.0"
-source = "git+https://github.com/zed-industries/wgpu.git?branch=v29#a466bc382ea747f8e1ac810efdb6dcd49a514575"
 dependencies = [
  "android_system_properties",
  "arrayvec",
@@ -7318,7 +7311,6 @@ dependencies = [
 [[package]]
 name = "wgpu-naga-bridge"
 version = "29.0.0"
-source = "git+https://github.com/zed-industries/wgpu.git?branch=v29#a466bc382ea747f8e1ac810efdb6dcd49a514575"
 dependencies = [
  "naga",
  "wgpu-types",
@@ -7327,7 +7319,6 @@ dependencies = [
 [[package]]
 name = "wgpu-types"
 version = "29.0.0"
-source = "git+https://github.com/zed-industries/wgpu.git?branch=v29#a466bc382ea747f8e1ac810efdb6dcd49a514575"
 dependencies = [
  "bitflags 2.10.0",
  "bytemuck",

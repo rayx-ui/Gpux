@@ -158,7 +158,9 @@ fn create_texture(
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
         format: descriptor.format,
-        usage: wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::TEXTURE_BINDING,
+        usage: wgpu::TextureUsages::COPY_DST
+            | wgpu::TextureUsages::TEXTURE_BINDING
+            | wgpu::TextureUsages::RENDER_ATTACHMENT,
         view_formats: &[],
     })
 }
@@ -174,7 +176,7 @@ mod tests {
                 height: DevicePixels(height),
             },
             format: wgpu::TextureFormat::Rgba8Unorm,
-            upload_path: HtmlIslandUploadPath::IntermediateCanvas,
+            upload_path: HtmlIslandUploadPath::CopyElementImageToTexture,
         }
     }
 
@@ -213,21 +215,6 @@ mod tests {
         let mut cache = HtmlIslandTextureCache::default();
         let mut changed = descriptor(64, 32);
         changed.format = wgpu::TextureFormat::Bgra8Unorm;
-
-        cache.record_for_testing("settings", descriptor(64, 32));
-
-        assert_eq!(
-            cache.record_for_testing("settings", changed),
-            HtmlIslandTextureCacheStatus::Reallocated
-        );
-        assert_eq!(cache.reallocation_count(), 2);
-    }
-
-    #[test]
-    fn cache_reallocates_when_upload_path_changes() {
-        let mut cache = HtmlIslandTextureCache::default();
-        let mut changed = descriptor(64, 32);
-        changed.upload_path = HtmlIslandUploadPath::CopyElementImageToTexture;
 
         cache.record_for_testing("settings", descriptor(64, 32));
 

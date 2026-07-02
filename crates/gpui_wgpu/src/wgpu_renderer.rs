@@ -147,6 +147,7 @@ const _: [(); 16] = [(); offset_of!(PackedPathRasterizationVertex, background)];
 const _: [(); 64] = [(); offset_of!(PackedPathRasterizationVertex, bounds)];
 const _: [(); 48] = [(); size_of::<PackedHtmlIsland>()];
 
+#[cfg(any(target_family = "wasm", test))]
 fn html_island_has_drawable_area(
     bounds: Bounds<ScaledPixels>,
     content_mask: Bounds<ScaledPixels>,
@@ -1496,7 +1497,7 @@ impl WgpuRenderer {
             HtmlIslandTextureDescriptor {
                 size,
                 format: wgpu::TextureFormat::Rgba8Unorm,
-                upload_path: crate::HtmlIslandUploadPath::IntermediateCanvas,
+                upload_path: crate::HtmlIslandUploadPath::CopyElementImageToTexture,
             },
             &device,
         );
