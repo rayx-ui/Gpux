@@ -6,19 +6,20 @@ use crate::{
     Context, Corners, CursorHideMode, CursorStyle, Decorations, DevicePixels,
     DispatchActionListener, DispatchNodeId, DispatchTree, DisplayId, Edges, Effect, Entity,
     EntityId, EventEmitter, FileDropEvent, FontId, Global, GlobalElementId, GlyphId, GpuSpecs,
-    Hsla, HtmlIslandInputMode, HtmlIslandPrimitive, InputHandler, IsZero, KeyBinding, KeyContext,
-    KeyDownEvent, KeyEvent, Keystroke, KeystrokeEvent, LayoutId, LineLayoutIndex, Modifiers,
-    ModifiersChangedEvent, MonochromeSprite, MouseButton, MouseEvent, MouseMoveEvent, MouseUpEvent,
-    Path, Pixels, PlatformAtlas, PlatformDisplay, PlatformInput, PlatformInputHandler,
-    PlatformWindow, Point, PolychromeSprite, Priority, PromptButton, PromptLevel, Quad, Render,
-    RenderGlyphParams, RenderImage, RenderImageParams, RenderSvgParams, Replay, ResizeEdge,
-    SMOOTH_SVG_SCALE_FACTOR, SUBPIXEL_VARIANTS_X, SUBPIXEL_VARIANTS_Y, ScaledPixels, Scene, Shadow,
-    SharedString, Size, StrikethroughStyle, Style, SubpixelSprite, SubscriberSet, Subscription,
-    SystemWindowTab, SystemWindowTabController, TabStopMap, TaffyLayoutEngine, Task,
-    TextRenderingMode, TextStyle, TextStyleRefinement, ThermalState, TransformationMatrix,
-    Underline, UnderlineStyle, WindowAppearance, WindowBackgroundAppearance, WindowBounds,
-    WindowControls, WindowDecorations, WindowOptions, WindowParams, WindowTextSystem, point,
-    prelude::*, px, rems, size, transparent_black,
+    Hsla, HtmlElementContentFit, HtmlElementInputMode, HtmlElementLifetime, HtmlElementPrimitive,
+    HtmlElementWheelBehavior, HtmlIslandInputMode, HtmlIslandPrimitive, InputHandler, IsZero,
+    KeyBinding, KeyContext, KeyDownEvent, KeyEvent, Keystroke, KeystrokeEvent, LayoutId,
+    LineLayoutIndex, Modifiers, ModifiersChangedEvent, MonochromeSprite, MouseButton, MouseEvent,
+    MouseMoveEvent, MouseUpEvent, Path, Pixels, PlatformAtlas, PlatformDisplay, PlatformInput,
+    PlatformInputHandler, PlatformWindow, Point, PolychromeSprite, Priority, PromptButton,
+    PromptLevel, Quad, Render, RenderGlyphParams, RenderImage, RenderImageParams, RenderSvgParams,
+    Replay, ResizeEdge, SMOOTH_SVG_SCALE_FACTOR, SUBPIXEL_VARIANTS_X, SUBPIXEL_VARIANTS_Y,
+    ScaledPixels, Scene, Shadow, SharedString, Size, StrikethroughStyle, Style, SubpixelSprite,
+    SubscriberSet, Subscription, SystemWindowTab, SystemWindowTabController, TabStopMap,
+    TaffyLayoutEngine, Task, TextRenderingMode, TextStyle, TextStyleRefinement, ThermalState,
+    TransformationMatrix, Underline, UnderlineStyle, WindowAppearance, WindowBackgroundAppearance,
+    WindowBounds, WindowControls, WindowDecorations, WindowOptions, WindowParams, WindowTextSystem,
+    point, prelude::*, px, rems, size, transparent_black,
 };
 use anyhow::{Context as _, Result, anyhow};
 use collections::{FxHashMap, FxHashSet};
@@ -4143,6 +4144,65 @@ impl Window {
             content_revision,
             trusted_html,
         });
+    }
+
+    /// Paint a trusted browser DOM overlay element into the scene for the next frame.
+    ///
+    /// The HTML payload is trusted application markup and is not sanitized here.
+    /// Native renderers ignore this metadata; `gpui_web` consumes it to sync a
+    /// real DOM overlay above the canvas.
+    pub fn paint_html_element(
+        &mut self,
+        id: ElementId,
+        bounds: Bounds<Pixels>,
+        input_mode: HtmlElementInputMode,
+        lifetime: HtmlElementLifetime,
+        content_fit: HtmlElementContentFit,
+        wheel_behavior: HtmlElementWheelBehavior,
+        content_revision: u64,
+        trusted_html: SharedString,
+        extra_styles: SharedString,
+    ) {
+        self.invalidator.debug_assert_paint();
+
+        let scale_factor = self.scale_factor();
+        let transformation = self.current_element_transform();
+        let scaled_bounds = bounds.scale(scale_factor);
+        let bounds = if transformation == TransformationMatrix::unit() {
+            self.snap_bounds(bounds)
+        } else {
+            self.transform_scaled_bounds(scaled_bounds)
+        };
+        let logical_bounds = bounds.map(|coordinate| px(coordinate.0 / scale_factor));
+        let content_mask = if transformation == TransformationMatrix::unit() {
+            self.snapped_content_mask()
+        } else {
+            self.paint_content_mask()
+        };
+        let logical_content_mask = ContentMask {
+            bounds: content_mask
+                .bounds
+                .map(|coordinate| px(coordinate.0 / scale_factor)),
+        };
+
+        self.next_frame
+            .scene
+            .insert_primitive(HtmlElementPrimitive {
+                order: 0,
+                id,
+                bounds,
+                logical_bounds,
+                logical_content_mask,
+                content_mask,
+                input_mode,
+                lifetime,
+                content_fit,
+                wheel_behavior,
+                opacity: self.element_opacity(),
+                content_revision,
+                trusted_html,
+                extra_styles,
+            });
     }
 
     /// Paint the given `Path` into the scene for the next frame at the current z-index.

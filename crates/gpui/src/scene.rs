@@ -31,6 +31,7 @@ pub struct Scene {
     pub shadows: Vec<Shadow>,
     pub quads: Vec<Quad>,
     pub html_islands: Vec<HtmlIslandPrimitive>,
+    pub html_elements: Vec<HtmlElementPrimitive>,
     pub paths: Vec<Path<ScaledPixels>>,
     pub underlines: Vec<Underline>,
     pub monochrome_sprites: Vec<MonochromeSprite>,
@@ -49,6 +50,7 @@ impl Scene {
         self.shadows.clear();
         self.quads.clear();
         self.html_islands.clear();
+        self.html_elements.clear();
         self.underlines.clear();
         self.monochrome_sprites.clear();
         self.subpixel_sprites.clear();
@@ -100,6 +102,10 @@ impl Scene {
                 html_island.order = order;
                 self.html_islands.push(html_island.clone());
             }
+            Primitive::HtmlElement(html_element) => {
+                html_element.order = order;
+                self.html_elements.push(html_element.clone());
+            }
             Primitive::Path(path) => {
                 path.order = order;
                 path.id = PathId(self.paths.len());
@@ -145,6 +151,8 @@ impl Scene {
         self.quads.sort_by_key(|quad| quad.order);
         self.html_islands
             .sort_by_key(|html_island| html_island.order);
+        self.html_elements
+            .sort_by_key(|html_element| html_element.order);
         self.paths.sort_by_key(|path| path.order);
         self.underlines.sort_by_key(|underline| underline.order);
         self.monochrome_sprites
@@ -220,6 +228,7 @@ pub enum Primitive {
     Shadow(Shadow),
     Quad(Quad),
     HtmlIsland(HtmlIslandPrimitive),
+    HtmlElement(HtmlElementPrimitive),
     Path(Path<ScaledPixels>),
     Underline(Underline),
     MonochromeSprite(MonochromeSprite),
@@ -237,6 +246,7 @@ impl Primitive {
             }
             Primitive::Quad(quad) => quad.transformation.apply_to_scaled_bounds(quad.bounds),
             Primitive::HtmlIsland(html_island) => html_island.bounds,
+            Primitive::HtmlElement(html_element) => html_element.bounds,
             Primitive::Path(path) => path.bounds,
             Primitive::Underline(underline) => underline
                 .transformation
@@ -259,6 +269,7 @@ impl Primitive {
             Primitive::Shadow(shadow) => &shadow.content_mask,
             Primitive::Quad(quad) => &quad.content_mask,
             Primitive::HtmlIsland(html_island) => &html_island.content_mask,
+            Primitive::HtmlElement(html_element) => &html_element.content_mask,
             Primitive::Path(path) => &path.content_mask,
             Primitive::Underline(underline) => &underline.content_mask,
             Primitive::MonochromeSprite(sprite) => &sprite.content_mask,
@@ -569,6 +580,96 @@ pub struct HtmlIslandPrimitive {
 impl From<HtmlIslandPrimitive> for Primitive {
     fn from(html_island: HtmlIslandPrimitive) -> Self {
         Primitive::HtmlIsland(html_island)
+    }
+}
+
+/// Controls whether browser DOM or GPUI owns interaction for an HTML element overlay.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum HtmlElementInputMode {
+    /// Browser DOM receives pointer, focus, keyboard, composition, media, iframe,
+    /// and accessibility behavior first.
+    DomOwned,
+    /// DOM remains visible but GPUI keeps owning pointer and focus behavior.
+    GpuiOwned,
+}
+
+/// Controls what happens to browser DOM roots when an HTML element is absent.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum HtmlElementLifetime {
+    /// Remove the DOM root when it is absent from a rendered frame.
+    PruneWhenAbsent,
+    /// Park the DOM root hidden/offscreen when absent so iframe browsing context can survive.
+    KeepAliveHidden,
+}
+
+/// Controls how the browser DOM subtree is fit inside the GPUI layout box.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum HtmlElementContentFit {
+    /// Do not add fitting styles to authored trusted HTML.
+    Natural,
+    /// Make top-level trusted HTML children fill the GPUI layout box.
+    Fill,
+}
+
+/// Controls how wheel events over the browser DOM overlay interact with GPUI.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum HtmlElementWheelBehavior {
+    /// Browser DOM owns wheel behavior. Cross-origin iframes may consume wheel
+    /// without scrolling GPUI parents.
+    Browser,
+    /// Forward wheel events that are observable in the parent document to GPUI.
+    ///
+    /// This works for same-document DOM content, but browser security prevents
+    /// parent documents from observing wheel events that occur inside
+    /// cross-origin iframe browsing contexts.
+    ForwardIfObservable,
+    /// Add a transparent capture layer above the DOM subtree and forward wheel
+    /// events to GPUI.
+    ///
+    /// This works over iframes, including cross-origin iframes, but the capture
+    /// layer also owns pointer hit testing while active.
+    CaptureForward,
+}
+
+/// Scene data for a browser DOM overlay element.
+///
+/// Supported WASM renderers use this side metadata to sync real DOM overlay
+/// roots. Native and non-web renderers do not draw this primitive.
+#[derive(Clone, Debug)]
+pub struct HtmlElementPrimitive {
+    /// Draw order assigned by the scene when the primitive is inserted.
+    pub order: DrawOrder,
+    /// Stable application-supplied element id used for DOM registry lookup.
+    pub id: ElementId,
+    /// Physical scene bounds in scaled pixels.
+    pub bounds: Bounds<ScaledPixels>,
+    /// Logical DOM bounds in CSS pixels for browser overlay synchronization.
+    pub logical_bounds: Bounds<Pixels>,
+    /// Logical rectangular content mask in CSS pixels.
+    pub logical_content_mask: ContentMask<Pixels>,
+    /// Scaled rectangular content mask inherited from the GPUI paint context.
+    pub content_mask: ContentMask<ScaledPixels>,
+    /// Whether the browser DOM subtree or GPUI owns input for this overlay.
+    pub input_mode: HtmlElementInputMode,
+    /// Whether absent/offscreen DOM roots should be pruned or parked.
+    pub lifetime: HtmlElementLifetime,
+    /// DOM content fitting policy.
+    pub content_fit: HtmlElementContentFit,
+    /// Wheel forwarding policy.
+    pub wheel_behavior: HtmlElementWheelBehavior,
+    /// Cumulative GPUI element opacity to apply to the overlay root.
+    pub opacity: f32,
+    /// Monotonic content revision used to avoid redundant DOM updates.
+    pub content_revision: u64,
+    /// Trusted application HTML payload for the web DOM registry.
+    pub trusted_html: SharedString,
+    /// Additional trusted CSS declarations applied to the root clipping element.
+    pub extra_styles: SharedString,
+}
+
+impl From<HtmlElementPrimitive> for Primitive {
+    fn from(html_element: HtmlElementPrimitive) -> Self {
+        Primitive::HtmlElement(html_element)
     }
 }
 
@@ -1183,6 +1284,96 @@ mod tests {
         assert_eq!(batches.len(), 3);
     }
 
+    #[test]
+    fn html_element_primitive_carries_dom_overlay_metadata() {
+        let primitive = HtmlElementPrimitive {
+            order: 0,
+            id: ElementId::from("provider-frame"),
+            bounds: Bounds::new(
+                point(ScaledPixels(10.), ScaledPixels(20.)),
+                size(ScaledPixels(300.), ScaledPixels(120.)),
+            ),
+            logical_bounds: Bounds::new(point(px(5.), px(10.)), size(px(150.), px(60.))),
+            logical_content_mask: ContentMask {
+                bounds: Bounds::new(point(px(7.), px(12.)), size(px(80.), px(40.))),
+            },
+            content_mask: ContentMask {
+                bounds: Bounds::new(
+                    point(ScaledPixels(14.), ScaledPixels(24.)),
+                    size(ScaledPixels(160.), ScaledPixels(80.)),
+                ),
+            },
+            input_mode: HtmlElementInputMode::DomOwned,
+            lifetime: HtmlElementLifetime::KeepAliveHidden,
+            content_fit: HtmlElementContentFit::Fill,
+            wheel_behavior: HtmlElementWheelBehavior::CaptureForward,
+            opacity: 0.75,
+            content_revision: 42,
+            trusted_html: SharedString::from("<iframe title=\"Provider\"></iframe>"),
+            extra_styles: SharedString::from("border: 1px solid #fff; border-radius: 8px;"),
+        };
+
+        assert_eq!(primitive.id, ElementId::from("provider-frame"));
+        assert_eq!(primitive.input_mode, HtmlElementInputMode::DomOwned);
+        assert_eq!(primitive.lifetime, HtmlElementLifetime::KeepAliveHidden);
+        assert_eq!(primitive.content_fit, HtmlElementContentFit::Fill);
+        assert_eq!(
+            primitive.wheel_behavior,
+            HtmlElementWheelBehavior::CaptureForward
+        );
+        assert_eq!(primitive.opacity, 0.75);
+        assert_eq!(primitive.content_revision, 42);
+        assert_eq!(
+            primitive.trusted_html.as_ref(),
+            "<iframe title=\"Provider\"></iframe>"
+        );
+        assert_eq!(primitive.bounds.size.width, ScaledPixels(300.));
+        assert_eq!(primitive.logical_bounds.size.width, px(150.));
+        assert_eq!(primitive.logical_content_mask.bounds.size.width, px(80.));
+        assert_eq!(
+            primitive.extra_styles.as_ref(),
+            "border: 1px solid #fff; border-radius: 8px;"
+        );
+    }
+
+    #[test]
+    fn html_element_is_scene_metadata_without_renderer_batch() {
+        let bounds = Bounds::new(
+            point(ScaledPixels(0.), ScaledPixels(0.)),
+            size(ScaledPixels(100.), ScaledPixels(100.)),
+        );
+        let mut scene = Scene::default();
+
+        scene.insert_primitive(test_quad(bounds));
+        scene.insert_primitive(test_html_element(bounds, "provider-frame"));
+        scene.insert_primitive(test_quad(bounds));
+        scene.finish();
+
+        assert_eq!(scene.quads.len(), 2);
+        assert_eq!(scene.html_elements.len(), 1);
+        assert_ne!(scene.html_elements[0].order, 0);
+
+        let batches = scene.batches().collect::<Vec<_>>();
+        assert!(matches!(batches[0], PrimitiveBatch::Quads(ref range) if range == &(0..2)));
+        assert_eq!(batches.len(), 1);
+    }
+
+    #[test]
+    fn clear_removes_html_element_metadata() {
+        let bounds = Bounds::new(
+            point(ScaledPixels(0.), ScaledPixels(0.)),
+            size(ScaledPixels(100.), ScaledPixels(100.)),
+        );
+        let mut scene = Scene::default();
+
+        scene.insert_primitive(test_html_element(bounds, "provider-frame"));
+        assert_eq!(scene.html_elements.len(), 1);
+
+        scene.clear();
+
+        assert!(scene.html_elements.is_empty());
+    }
+
     fn test_quad(bounds: Bounds<ScaledPixels>) -> Quad {
         Quad {
             bounds,
@@ -1202,6 +1393,27 @@ mod tests {
             opacity: 1.,
             content_revision: 1,
             trusted_html: SharedString::from("<div>Island</div>"),
+        }
+    }
+
+    fn test_html_element(bounds: Bounds<ScaledPixels>, id: &'static str) -> HtmlElementPrimitive {
+        HtmlElementPrimitive {
+            order: 0,
+            id: ElementId::from(id),
+            bounds,
+            logical_bounds: Bounds::new(point(px(0.), px(0.)), size(px(50.), px(50.))),
+            logical_content_mask: ContentMask {
+                bounds: Bounds::new(point(px(0.), px(0.)), size(px(50.), px(50.))),
+            },
+            content_mask: ContentMask { bounds },
+            input_mode: HtmlElementInputMode::GpuiOwned,
+            lifetime: HtmlElementLifetime::PruneWhenAbsent,
+            content_fit: HtmlElementContentFit::Natural,
+            wheel_behavior: HtmlElementWheelBehavior::Browser,
+            opacity: 1.,
+            content_revision: 1,
+            trusted_html: SharedString::from("<iframe title=\"Provider\"></iframe>"),
+            extra_styles: SharedString::default(),
         }
     }
 }

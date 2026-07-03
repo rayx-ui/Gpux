@@ -1,11 +1,11 @@
 use std::rc::Rc;
 
 use gpux::{
-    Capslock, DispatchEventResult, ExternalPaths, FileDropEvent, HtmlIslandInputMode, KeyDownEvent,
-    KeyUpEvent, Keystroke, Modifiers, ModifiersChangedEvent, MouseButton, MouseDownEvent,
-    MouseExitEvent, MouseMoveEvent, MouseUpEvent, NavigationDirection, Pixels, PlatformInput,
-    Point, ScrollDelta, ScrollWheelEvent, ScrollWheelPhase, ScrollWheelSource, TouchEvent,
-    TouchPhase, point, px,
+    Capslock, DispatchEventResult, ExternalPaths, FileDropEvent, HtmlElementInputMode,
+    HtmlIslandInputMode, KeyDownEvent, KeyUpEvent, Keystroke, Modifiers, ModifiersChangedEvent,
+    MouseButton, MouseDownEvent, MouseExitEvent, MouseMoveEvent, MouseUpEvent, NavigationDirection,
+    Pixels, PlatformInput, Point, ScrollDelta, ScrollWheelEvent, ScrollWheelPhase,
+    ScrollWheelSource, TouchEvent, TouchPhase, point, px,
 };
 use smallvec::smallvec;
 use wasm_bindgen::prelude::*;
@@ -126,7 +126,7 @@ impl WebWindowInner {
         closure
     }
 
-    fn dispatch_input(&self, input: PlatformInput) -> Option<DispatchEventResult> {
+    pub(crate) fn dispatch_input(&self, input: PlatformInput) -> Option<DispatchEventResult> {
         let mut callback = {
             let mut callbacks = self.callbacks.borrow_mut();
             callbacks.input.take()
@@ -137,6 +137,44 @@ impl WebWindowInner {
             callbacks.input = callback;
         }
         result
+    }
+
+    pub(crate) fn dispatch_wheel_event_from_dom(&self, event: &web_sys::WheelEvent) {
+        let mouse_event: &web_sys::MouseEvent = event.as_ref();
+        let position = mouse_position_in_canvas(mouse_event, &self.canvas);
+        let modifiers = modifiers_from_wheel_event(mouse_event, self.is_mac);
+
+        let delta_mode = event.delta_mode();
+        let delta = if delta_mode == 1 {
+            ScrollDelta::Lines(point(-event.delta_x() as f32, -event.delta_y() as f32))
+        } else {
+            ScrollDelta::Pixels(point(
+                px(-event.delta_x() as f32),
+                px(-event.delta_y() as f32),
+            ))
+        };
+
+        {
+            let mut current_state = self.state.borrow_mut();
+            current_state.modifiers = modifiers;
+        }
+
+        self.dispatch_input(PlatformInput::ScrollWheel(ScrollWheelEvent {
+            position,
+            delta,
+            modifiers,
+            touch_phase: TouchPhase::Moved,
+            scroll_source: if delta_mode == 1 {
+                ScrollWheelSource::MouseWheel
+            } else {
+                ScrollWheelSource::PrecisionWheel
+            },
+            scroll_phase: ScrollWheelPhase::Moved,
+            precise_delta: delta_mode == 0,
+            native_momentum_phase: None,
+            release_velocity: None,
+            timestamp: Some(gpux::Instant::now()),
+        }));
     }
 
     fn register_pointer_down(self: &Rc<Self>) -> Closure<dyn FnMut(JsValue)> {
@@ -311,42 +349,7 @@ impl WebWindowInner {
             }
 
             event.prevent_default();
-
-            let mouse_event: &web_sys::MouseEvent = event.as_ref();
-            let position = mouse_position_in_canvas(mouse_event, &this.canvas);
-            let modifiers = modifiers_from_wheel_event(mouse_event, this.is_mac);
-
-            let delta_mode = event.delta_mode();
-            let delta = if delta_mode == 1 {
-                ScrollDelta::Lines(point(-event.delta_x() as f32, -event.delta_y() as f32))
-            } else {
-                ScrollDelta::Pixels(point(
-                    px(-event.delta_x() as f32),
-                    px(-event.delta_y() as f32),
-                ))
-            };
-
-            {
-                let mut current_state = this.state.borrow_mut();
-                current_state.modifiers = modifiers;
-            }
-
-            this.dispatch_input(PlatformInput::ScrollWheel(ScrollWheelEvent {
-                position,
-                delta,
-                modifiers,
-                touch_phase: TouchPhase::Moved,
-                scroll_source: if delta_mode == 1 {
-                    ScrollWheelSource::MouseWheel
-                } else {
-                    ScrollWheelSource::PrecisionWheel
-                },
-                scroll_phase: ScrollWheelPhase::Moved,
-                precise_delta: delta_mode == 0,
-                native_momentum_phase: None,
-                release_velocity: None,
-                timestamp: Some(gpux::Instant::now()),
-            }));
+            this.dispatch_wheel_event_from_dom(&event);
         })
     }
 
@@ -648,6 +651,11 @@ fn is_dom_owned_html_island_event_target(
         .borrow()
         .input_mode_for_event_target(target)
         == Some(HtmlIslandInputMode::DomOwned)
+        || window
+            .html_element_registry
+            .borrow()
+            .input_mode_for_event_target(target)
+            == Some(HtmlElementInputMode::DomOwned)
 }
 
 fn dom_key_to_gpui_key(event: &web_sys::KeyboardEvent) -> String {

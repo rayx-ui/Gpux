@@ -1,5 +1,8 @@
 use crate::display::WebDisplay;
 use crate::events::{ClickState, WebEventListeners, is_mac_platform};
+use crate::html_element::{
+    WebHtmlElementRegistry, create_overlay_root, write_html_element_diagnostics_to_global,
+};
 use crate::html_in_canvas::{
     HtmlInCanvasDiagnostics, HtmlInCanvasPaintObserver, detect_html_in_canvas,
     enable_layout_subtree, enable_layout_subtree_if_requested,
@@ -54,6 +57,7 @@ pub(crate) struct WebWindowInner {
     pub(crate) has_device_pixel_support: bool,
     pub(crate) is_mac: bool,
     pub(crate) renderer: RefCell<WgpuRenderer>,
+    pub(crate) html_element_registry: Rc<RefCell<WebHtmlElementRegistry>>,
     pub(crate) html_island_registry: Rc<RefCell<WebHtmlIslandRegistry>>,
     pub(crate) state: RefCell<WebWindowMutableState>,
     pub(crate) callbacks: RefCell<WebWindowCallbacks>,
@@ -131,6 +135,7 @@ impl WebWindow {
             .ok_or_else(|| anyhow::anyhow!("No `body` found on document"))?;
         body.append_child(&canvas)
             .map_err(|e| anyhow::anyhow!("Failed to append canvas to body: {e:?}"))?;
+        let html_element_overlay_root = create_overlay_root(&document, &body)?;
 
         let input_element: web_sys::HtmlInputElement = document
             .create_element("input")
@@ -168,6 +173,10 @@ impl WebWindow {
         );
         let html_island_registry =
             Rc::new(RefCell::new(WebHtmlIslandRegistry::new(canvas.clone())));
+        let html_element_registry = Rc::new(RefCell::new(WebHtmlElementRegistry::new(
+            html_element_overlay_root,
+        )));
+        write_html_element_diagnostics_to_global(&html_element_registry.borrow().diagnostics());
         let html_in_canvas_paint_observer = HtmlInCanvasPaintObserver::start(
             &html_in_canvas_diagnostics,
             &canvas,
@@ -207,6 +216,7 @@ impl WebWindow {
 
         let inner = Rc::new(WebWindowInner {
             browser_window,
+            html_element_registry,
             html_island_registry,
             canvas,
             input_element,
@@ -224,6 +234,10 @@ impl WebWindow {
             mql_handle: RefCell::new(None),
             pending_physical_size: Cell::new(None),
         });
+        inner
+            .html_element_registry
+            .borrow_mut()
+            .set_window(Rc::downgrade(&inner));
 
         let raf_closure = inner.create_raf_closure();
         inner.schedule_raf(&raf_closure);
@@ -801,6 +815,15 @@ impl PlatformWindow for WebWindow {
                 height: DevicePixels(height as i32),
             });
         }
+
+        let canvas_rect = self.inner.canvas.get_bounding_client_rect();
+        self.inner
+            .html_element_registry
+            .borrow_mut()
+            .sync_roots(&scene.html_elements, &canvas_rect);
+        write_html_element_diagnostics_to_global(
+            &self.inner.html_element_registry.borrow().diagnostics(),
+        );
 
         if !scene.html_islands.is_empty()
             && !self.layout_subtree_enabled.get()
