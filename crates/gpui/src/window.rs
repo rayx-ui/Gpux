@@ -578,6 +578,8 @@ pub enum WindowControlArea {
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct HitboxId(u64);
 
+const POSITIONED_HITBOX_ID_BASE: u64 = 1 << 62;
+
 #[cfg(feature = "test-support")]
 impl HitboxId {
     /// A placeholder HitboxId exclusively for integration testing API's that
@@ -639,6 +641,10 @@ impl HitboxId {
 
     fn next(mut self) -> HitboxId {
         HitboxId(self.0.wrapping_add(1))
+    }
+
+    fn positioned(self) -> HitboxId {
+        HitboxId(POSITIONED_HITBOX_ID_BASE + self.0)
     }
 }
 
@@ -922,19 +928,27 @@ impl Frame {
     pub(crate) fn hit_test(&self, position: Point<Pixels>) -> HitTest {
         let mut set_hover_hitbox_count = false;
         let mut hit_test = HitTest::default();
-        for hitbox in self.hitboxes.iter().rev() {
-            let bounds = hitbox.bounds.intersect(&hitbox.content_mask.bounds);
-            if bounds.contains(&position) {
-                hit_test.ids.push(hitbox.id);
-                if !set_hover_hitbox_count
-                    && hitbox.behavior == HitboxBehavior::BlockMouseExceptScroll
-                {
-                    hit_test.hover_hitbox_count = hit_test.ids.len();
-                    set_hover_hitbox_count = true;
-                }
-                if hitbox.behavior == HitboxBehavior::BlockMouse {
-                    break;
-                }
+        let mut hitboxes = self
+            .hitboxes
+            .iter()
+            .filter(|hitbox| {
+                hitbox
+                    .bounds
+                    .intersect(&hitbox.content_mask.bounds)
+                    .contains(&position)
+            })
+            .collect::<SmallVec<[_; 16]>>();
+        hitboxes.sort_by(|a, b| b.id.0.cmp(&a.id.0));
+
+        for hitbox in hitboxes {
+            hit_test.ids.push(hitbox.id);
+            if !set_hover_hitbox_count && hitbox.behavior == HitboxBehavior::BlockMouseExceptScroll
+            {
+                hit_test.hover_hitbox_count = hit_test.ids.len();
+                set_hover_hitbox_count = true;
+            }
+            if hitbox.behavior == HitboxBehavior::BlockMouse {
+                break;
             }
         }
         if !set_hover_hitbox_count {
@@ -4327,6 +4341,42 @@ impl Window {
         result
     }
 
+    /// Creates a positioned painting layer for the specified bounds.
+    ///
+    /// Positioned layers paint above normal-flow primitives while retaining the same content mask,
+    /// opacity, transform, and child paint behavior as the element's normal paint path. Overlapping
+    /// positioned layers are ordered by insertion, so later fixed/sticky elements paint above
+    /// earlier fixed/sticky elements at the same visual position.
+    pub(crate) fn paint_positioned_layer<R>(
+        &mut self,
+        bounds: Bounds<Pixels>,
+        f: impl FnOnce(&mut Self) -> R,
+    ) -> R {
+        self.invalidator.debug_assert_paint();
+
+        let scale_factor = self.scale_factor();
+        let transformation = self.current_element_transform();
+        let content_mask = if transformation == TransformationMatrix::unit() {
+            self.snapped_content_mask()
+        } else {
+            self.paint_content_mask()
+        };
+        let clipped_bounds = self
+            .transform_scaled_bounds(bounds.scale(scale_factor))
+            .intersect(&content_mask.bounds);
+        if !clipped_bounds.is_empty() {
+            self.next_frame.scene.push_positioned_layer(clipped_bounds);
+        }
+
+        let result = f(self);
+
+        if !clipped_bounds.is_empty() {
+            self.next_frame.scene.pop_layer();
+        }
+
+        result
+    }
+
     /// Paint one or more drop shadows into the scene for the next frame at the current z-index.
     ///
     /// This method should only be called as part of the paint phase of element drawing.
@@ -5106,9 +5156,31 @@ impl Window {
     pub fn insert_hitbox(&mut self, bounds: Bounds<Pixels>, behavior: HitboxBehavior) -> Hitbox {
         self.invalidator.debug_assert_prepaint();
 
-        let content_mask = self.content_mask();
-        let mut id = self.next_hitbox_id;
+        let id = self.next_hitbox_id;
         self.next_hitbox_id = self.next_hitbox_id.next();
+        self.insert_hitbox_with_id(id, bounds, behavior)
+    }
+
+    /// This method should only be called as part of the prepaint phase of element drawing.
+    pub(crate) fn insert_positioned_hitbox(
+        &mut self,
+        bounds: Bounds<Pixels>,
+        behavior: HitboxBehavior,
+    ) -> Hitbox {
+        self.invalidator.debug_assert_prepaint();
+
+        let id = self.next_hitbox_id.positioned();
+        self.next_hitbox_id = self.next_hitbox_id.next();
+        self.insert_hitbox_with_id(id, bounds, behavior)
+    }
+
+    fn insert_hitbox_with_id(
+        &mut self,
+        id: HitboxId,
+        bounds: Bounds<Pixels>,
+        behavior: HitboxBehavior,
+    ) -> Hitbox {
+        let content_mask = self.content_mask();
         let hitbox = Hitbox {
             id,
             bounds,

@@ -2074,7 +2074,13 @@ impl Interactivity {
                             style.overflow_mask(bounds, window.rem_size()),
                             |window| {
                                 let hitbox = if self.should_insert_hitbox(&style, window, cx) {
-                                    Some(window.insert_hitbox(bounds, self.hitbox_behavior))
+                                    Some(match style.position {
+                                        Position::Fixed | Position::Sticky => window
+                                            .insert_positioned_hitbox(bounds, self.hitbox_behavior),
+                                        Position::Relative | Position::Absolute => {
+                                            window.insert_hitbox(bounds, self.hitbox_behavior)
+                                        }
+                                    })
                                 } else {
                                     None
                                 };
@@ -2305,10 +2311,18 @@ impl Interactivity {
                     });
                 };
 
-                if style.position == Position::Fixed {
-                    window.with_viewport_content_mask(paint);
-                } else {
-                    paint(window);
+                match style.position {
+                    Position::Fixed => {
+                        window.with_viewport_content_mask(|window| {
+                            window.paint_positioned_layer(bounds, paint)
+                        });
+                    }
+                    Position::Sticky => {
+                        window.paint_positioned_layer(bounds, paint);
+                    }
+                    Position::Relative | Position::Absolute => {
+                        paint(window);
+                    }
                 }
 
                 ((), element_state)
@@ -4170,6 +4184,109 @@ mod tests {
         }
     }
 
+    struct FixedOverNormalZOrderOwner;
+
+    impl Render for FixedOverNormalZOrderOwner {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            div()
+                .id("fixed-over-normal-scroll")
+                .relative()
+                .w(px(100.))
+                .h(px(60.))
+                .overflow_y_scroll()
+                .child(
+                    div()
+                        .fixed()
+                        .top(px(0.))
+                        .left(px(0.))
+                        .w(px(100.))
+                        .h(px(20.))
+                        .bg(crate::green())
+                        .occlude(),
+                )
+                .child(
+                    div()
+                        .absolute()
+                        .top(px(0.))
+                        .left(px(0.))
+                        .w(px(100.))
+                        .h(px(20.))
+                        .bg(crate::red())
+                        .occlude(),
+                )
+                .child(div().w(px(100.)).h(px(120.)))
+        }
+    }
+
+    struct StickyOverNormalZOrderOwner;
+
+    impl Render for StickyOverNormalZOrderOwner {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            div()
+                .id("sticky-over-normal-scroll")
+                .relative()
+                .w(px(100.))
+                .h(px(60.))
+                .overflow_y_scroll()
+                .child(
+                    div()
+                        .sticky()
+                        .top(px(0.))
+                        .w(px(100.))
+                        .h(px(20.))
+                        .bg(crate::green())
+                        .occlude(),
+                )
+                .child(
+                    div()
+                        .absolute()
+                        .top(px(0.))
+                        .left(px(0.))
+                        .w(px(100.))
+                        .h(px(20.))
+                        .bg(crate::red())
+                        .occlude(),
+                )
+                .child(div().w(px(100.)).h(px(120.)))
+        }
+    }
+
+    struct LaterStickyZOrderOwner {
+        handle: ScrollHandle,
+    }
+
+    impl Render for LaterStickyZOrderOwner {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            div()
+                .id("later-sticky-scroll")
+                .relative()
+                .w(px(100.))
+                .h(px(60.))
+                .overflow_y_scroll()
+                .track_scroll(&self.handle)
+                .child(
+                    div()
+                        .sticky()
+                        .top(px(0.))
+                        .w(px(100.))
+                        .h(px(20.))
+                        .bg(crate::green())
+                        .occlude(),
+                )
+                .child(div().w(px(100.)).h(px(30.)))
+                .child(
+                    div()
+                        .sticky()
+                        .top(px(0.))
+                        .w(px(100.))
+                        .h(px(20.))
+                        .bg(crate::blue())
+                        .occlude(),
+                )
+                .child(div().w(px(100.)).h(px(120.)))
+        }
+    }
+
     struct ShiftedStickyScrollOwner {
         handle: ScrollHandle,
     }
@@ -4417,6 +4534,221 @@ mod tests {
             sticky_quad_painted,
             "sticky background quad should paint at the shifted scrollport top"
         );
+    }
+
+    fn quad_order_for_color(window: &Window, color: crate::Hsla) -> u32 {
+        window
+            .rendered_frame
+            .scene
+            .quads
+            .iter()
+            .find(|quad| quad.background.solid == color)
+            .map(|quad| quad.order)
+            .expect("expected quad with requested background color")
+    }
+
+    #[test]
+    fn fixed_div_paints_above_later_overlapping_normal_content() {
+        let mut test_app = TestAppContext::single();
+        let window = test_app.add_window(|_, _| FixedOverNormalZOrderOwner);
+        let any_window = window.into();
+
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+            })
+            .unwrap();
+
+        test_app
+            .update_window(any_window, |_, window, _| {
+                let fixed_order = quad_order_for_color(window, crate::green());
+                let normal_order = quad_order_for_color(window, crate::red());
+
+                assert!(
+                    fixed_order > normal_order,
+                    "fixed content should paint above later normal content at the same bounds"
+                );
+            })
+            .unwrap();
+    }
+
+    #[test]
+    fn fixed_div_hit_tests_above_later_overlapping_normal_content() {
+        let mut test_app = TestAppContext::single();
+        let window = test_app.add_window(|_, _| FixedOverNormalZOrderOwner);
+        let any_window = window.into();
+
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+            })
+            .unwrap();
+
+        test_app
+            .update_window(any_window, |_, window, _| {
+                let fixed_hitbox = window
+                    .rendered_frame
+                    .hitboxes
+                    .iter()
+                    .find(|hitbox| {
+                        hitbox.bounds == Bounds::new(Point::default(), size(px(100.), px(20.)))
+                    })
+                    .expect("fixed child should insert a hitbox");
+                let top_hitbox = window
+                    .rendered_frame
+                    .hit_test(point(px(10.), px(10.)))
+                    .ids
+                    .first()
+                    .copied();
+
+                assert_eq!(
+                    Some(fixed_hitbox.id),
+                    top_hitbox,
+                    "fixed hitbox should be topmost over later normal content"
+                );
+            })
+            .unwrap();
+    }
+
+    #[test]
+    fn sticky_div_paints_above_later_overlapping_normal_content() {
+        let mut test_app = TestAppContext::single();
+        let window = test_app.add_window(|_, _| StickyOverNormalZOrderOwner);
+        let any_window = window.into();
+
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+            })
+            .unwrap();
+
+        test_app
+            .update_window(any_window, |_, window, _| {
+                let sticky_order = quad_order_for_color(window, crate::green());
+                let normal_order = quad_order_for_color(window, crate::red());
+
+                assert!(
+                    sticky_order > normal_order,
+                    "sticky content should paint above later normal content at the same bounds"
+                );
+            })
+            .unwrap();
+    }
+
+    #[test]
+    fn sticky_div_hit_tests_above_later_overlapping_normal_content() {
+        let mut test_app = TestAppContext::single();
+        let window = test_app.add_window(|_, _| StickyOverNormalZOrderOwner);
+        let any_window = window.into();
+
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+            })
+            .unwrap();
+
+        test_app
+            .update_window(any_window, |_, window, _| {
+                let expected_bounds = Bounds::new(Point::default(), size(px(100.), px(20.)));
+                let sticky_hitbox = window
+                    .rendered_frame
+                    .hitboxes
+                    .iter()
+                    .find(|hitbox| hitbox.bounds == expected_bounds)
+                    .expect("sticky child should insert a hitbox");
+                let top_hitbox = window
+                    .rendered_frame
+                    .hit_test(point(px(10.), px(10.)))
+                    .ids
+                    .first()
+                    .copied();
+
+                assert_eq!(
+                    Some(sticky_hitbox.id),
+                    top_hitbox,
+                    "sticky hitbox should be topmost over later normal content"
+                );
+            })
+            .unwrap();
+    }
+
+    #[test]
+    fn later_sticky_div_paints_above_earlier_sticky_div_at_same_stuck_position() {
+        let mut test_app = TestAppContext::single();
+        let scroll_handle = ScrollHandle::new();
+        scroll_handle.set_offset(point(px(0.), px(-50.)));
+        let window = test_app.add_window({
+            let handle = scroll_handle.clone();
+            move |_, _| LaterStickyZOrderOwner { handle }
+        });
+        let any_window = window.into();
+
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+            })
+            .unwrap();
+
+        test_app
+            .update_window(any_window, |_, window, _| {
+                let earlier_sticky_order = quad_order_for_color(window, crate::green());
+                let later_sticky_order = quad_order_for_color(window, crate::blue());
+
+                assert!(
+                    later_sticky_order > earlier_sticky_order,
+                    "later sticky content should paint above earlier sticky content when both stick to the same position"
+                );
+            })
+            .unwrap();
+    }
+
+    #[test]
+    fn later_sticky_div_hit_tests_above_earlier_sticky_div_at_same_stuck_position() {
+        let mut test_app = TestAppContext::single();
+        let scroll_handle = ScrollHandle::new();
+        scroll_handle.set_offset(point(px(0.), px(-50.)));
+        let window = test_app.add_window({
+            let handle = scroll_handle.clone();
+            move |_, _| LaterStickyZOrderOwner { handle }
+        });
+        let any_window = window.into();
+
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+            })
+            .unwrap();
+
+        test_app
+            .update_window(any_window, |_, window, _| {
+                let stuck_bounds = Bounds::new(Point::default(), size(px(100.), px(20.)));
+                let stuck_hitboxes = window
+                    .rendered_frame
+                    .hitboxes
+                    .iter()
+                    .filter(|hitbox| hitbox.bounds == stuck_bounds)
+                    .collect::<Vec<_>>();
+                assert_eq!(
+                    2,
+                    stuck_hitboxes.len(),
+                    "both sticky hitboxes should be stuck at the same bounds"
+                );
+
+                let later_sticky_hitbox = stuck_hitboxes[1];
+                let top_hitbox = window
+                    .rendered_frame
+                    .hit_test(point(px(10.), px(10.)))
+                    .ids
+                    .first()
+                    .copied();
+
+                assert_eq!(
+                    Some(later_sticky_hitbox.id),
+                    top_hitbox,
+                    "later sticky hitbox should be topmost when sticky elements overlap"
+                );
+            })
+            .unwrap();
     }
 
     #[test]

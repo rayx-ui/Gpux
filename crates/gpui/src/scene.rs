@@ -22,11 +22,14 @@ pub type PathVertex_ScaledPixels = PathVertex<ScaledPixels>;
 #[expect(missing_docs)]
 pub type DrawOrder = u32;
 
+const POSITIONED_DRAW_ORDER_BASE: DrawOrder = 1 << 30;
+
 #[derive(Default)]
 #[expect(missing_docs)]
 pub struct Scene {
     pub(crate) paint_operations: Vec<PaintOperation>,
     primitive_bounds: BoundsTree<ScaledPixels>,
+    positioned_primitive_bounds: BoundsTree<ScaledPixels>,
     layer_stack: Vec<DrawOrder>,
     pub shadows: Vec<Shadow>,
     pub quads: Vec<Quad>,
@@ -45,6 +48,7 @@ impl Scene {
     pub fn clear(&mut self) {
         self.paint_operations.clear();
         self.primitive_bounds.clear();
+        self.positioned_primitive_bounds.clear();
         self.layer_stack.clear();
         self.paths.clear();
         self.shadows.clear();
@@ -67,6 +71,13 @@ impl Scene {
         self.layer_stack.push(order);
         self.paint_operations
             .push(PaintOperation::StartLayer(bounds));
+    }
+
+    pub fn push_positioned_layer(&mut self, bounds: Bounds<ScaledPixels>) {
+        let order = POSITIONED_DRAW_ORDER_BASE + self.positioned_primitive_bounds.insert(bounds);
+        self.layer_stack.push(order);
+        self.paint_operations
+            .push(PaintOperation::StartPositionedLayer(bounds));
     }
 
     pub fn pop_layer(&mut self) {
@@ -141,6 +152,7 @@ impl Scene {
             match operation {
                 PaintOperation::Primitive(primitive) => self.insert_primitive(primitive.clone()),
                 PaintOperation::StartLayer(bounds) => self.push_layer(*bounds),
+                PaintOperation::StartPositionedLayer(bounds) => self.push_positioned_layer(*bounds),
                 PaintOperation::EndLayer => self.pop_layer(),
             }
         }
@@ -219,6 +231,7 @@ pub(crate) enum PrimitiveKind {
 pub(crate) enum PaintOperation {
     Primitive(Primitive),
     StartLayer(Bounds<ScaledPixels>),
+    StartPositionedLayer(Bounds<ScaledPixels>),
     EndLayer,
 }
 
