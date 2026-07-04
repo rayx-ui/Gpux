@@ -8,18 +8,19 @@ use crate::{
     EntityId, EventEmitter, FileDropEvent, FontId, Global, GlobalElementId, GlyphId, GpuSpecs,
     Hsla, HtmlElementContentFit, HtmlElementInputMode, HtmlElementLifetime, HtmlElementPrimitive,
     HtmlElementWheelBehavior, HtmlIslandInputMode, HtmlIslandPrimitive, InputHandler, IsZero,
-    KeyBinding, KeyContext, KeyDownEvent, KeyEvent, Keystroke, KeystrokeEvent, LayoutId,
+    KeyBinding, KeyContext, KeyDownEvent, KeyEvent, Keystroke, KeystrokeEvent, LayoutId, Length,
     LineLayoutIndex, Modifiers, ModifiersChangedEvent, MonochromeSprite, MouseButton, MouseEvent,
-    MouseMoveEvent, MouseUpEvent, Path, Pixels, PlatformAtlas, PlatformDisplay, PlatformInput,
-    PlatformInputHandler, PlatformWindow, Point, PolychromeSprite, Priority, PromptButton,
-    PromptLevel, Quad, Render, RenderGlyphParams, RenderImage, RenderImageParams, RenderSvgParams,
-    Replay, ResizeEdge, SMOOTH_SVG_SCALE_FACTOR, SUBPIXEL_VARIANTS_X, SUBPIXEL_VARIANTS_Y,
-    ScaledPixels, Scene, Shadow, SharedString, Size, StrikethroughStyle, Style, SubpixelSprite,
-    SubscriberSet, Subscription, SystemWindowTab, SystemWindowTabController, TabStopMap,
-    TaffyLayoutEngine, Task, TextRenderingMode, TextStyle, TextStyleRefinement, ThermalState,
-    TransformationMatrix, Underline, UnderlineStyle, WindowAppearance, WindowBackgroundAppearance,
-    WindowBounds, WindowControls, WindowDecorations, WindowOptions, WindowParams, WindowTextSystem,
-    point, prelude::*, px, rems, size, transparent_black,
+    MouseMoveEvent, MouseUpEvent, Overflow, Path, Pixels, PlatformAtlas, PlatformDisplay,
+    PlatformInput, PlatformInputHandler, PlatformWindow, Point, PolychromeSprite, Position,
+    Priority, PromptButton, PromptLevel, Quad, Render, RenderGlyphParams, RenderImage,
+    RenderImageParams, RenderSvgParams, Replay, ResizeEdge, SMOOTH_SVG_SCALE_FACTOR,
+    SUBPIXEL_VARIANTS_X, SUBPIXEL_VARIANTS_Y, ScaledPixels, Scene, Shadow, SharedString, Size,
+    StrikethroughStyle, Style, SubpixelSprite, SubscriberSet, Subscription, SystemWindowTab,
+    SystemWindowTabController, TabStopMap, TaffyLayoutEngine, Task, TextRenderingMode, TextStyle,
+    TextStyleRefinement, ThermalState, TransformationMatrix, Underline, UnderlineStyle,
+    WindowAppearance, WindowBackgroundAppearance, WindowBounds, WindowControls, WindowDecorations,
+    WindowOptions, WindowParams, WindowTextSystem, point, prelude::*, px, rems, size,
+    transparent_black,
 };
 use anyhow::{Context as _, Result, anyhow};
 use collections::{FxHashMap, FxHashSet};
@@ -1208,6 +1209,216 @@ enum InputModality {
     Keyboard,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum ScrollAxis {
+    Horizontal,
+    Vertical,
+}
+
+/// Describes the active scroll container used to resolve sticky descendants.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ScrollContainerContext {
+    /// Bounds of the visible scrollport in window coordinates.
+    pub scrollport_bounds: Bounds<Pixels>,
+    /// Bounds of the full scrollable content in window coordinates.
+    pub content_bounds: Bounds<Pixels>,
+    /// Current scroll offset applied to the content.
+    pub scroll_offset: Point<Pixels>,
+    /// Overflow behavior by axis.
+    pub overflow: Point<Overflow>,
+}
+
+impl ScrollContainerContext {
+    fn is_active_on_axis(&self, axis: ScrollAxis) -> bool {
+        match axis {
+            ScrollAxis::Horizontal => self.overflow.x == Overflow::Scroll,
+            ScrollAxis::Vertical => self.overflow.y == Overflow::Scroll,
+        }
+    }
+}
+
+#[derive(Default)]
+struct ScrollContainerContextStack {
+    stack: Vec<ScrollContainerContext>,
+}
+
+impl ScrollContainerContextStack {
+    fn push(&mut self, context: ScrollContainerContext) {
+        self.stack.push(context);
+    }
+
+    fn pop(&mut self) -> Option<ScrollContainerContext> {
+        self.stack.pop()
+    }
+
+    fn nearest(&self, axis: ScrollAxis) -> Option<ScrollContainerContext> {
+        self.stack
+            .iter()
+            .rev()
+            .find(|context| context.is_active_on_axis(axis))
+            .copied()
+    }
+
+    fn is_empty(&self) -> bool {
+        self.stack.is_empty()
+    }
+}
+
+/// Resolved layout and visual bounds for positioned elements.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct PositionedBounds {
+    /// The element's layout bounds before visual fixed/sticky adjustment.
+    pub layout_bounds: Bounds<Pixels>,
+    /// The element's visual bounds after fixed/sticky adjustment.
+    pub visual_bounds: Bounds<Pixels>,
+    /// Difference between visual and layout origins.
+    pub delta: Point<Pixels>,
+}
+
+impl PositionedBounds {
+    fn unchanged(layout_bounds: Bounds<Pixels>) -> Self {
+        Self {
+            layout_bounds,
+            visual_bounds: layout_bounds,
+            delta: Point::default(),
+        }
+    }
+
+    fn resolve_fixed_for_viewport(
+        style: &Style,
+        layout_bounds: Bounds<Pixels>,
+        viewport_bounds: Bounds<Pixels>,
+        rem_size: Pixels,
+    ) -> Self {
+        let mut visual_origin = layout_bounds.origin;
+
+        if let Some(left) = length_to_pixels(style.inset.left, viewport_bounds.size.width, rem_size)
+        {
+            visual_origin.x = viewport_bounds.left() + left;
+        } else if let Some(right) =
+            length_to_pixels(style.inset.right, viewport_bounds.size.width, rem_size)
+        {
+            visual_origin.x = viewport_bounds.right() - right - layout_bounds.size.width;
+        }
+
+        if let Some(top) = length_to_pixels(style.inset.top, viewport_bounds.size.height, rem_size)
+        {
+            visual_origin.y = viewport_bounds.top() + top;
+        } else if let Some(bottom) =
+            length_to_pixels(style.inset.bottom, viewport_bounds.size.height, rem_size)
+        {
+            visual_origin.y = viewport_bounds.bottom() - bottom - layout_bounds.size.height;
+        }
+
+        let visual_bounds = Bounds::new(visual_origin, layout_bounds.size);
+        Self {
+            layout_bounds,
+            visual_bounds,
+            delta: visual_bounds.origin - layout_bounds.origin,
+        }
+    }
+
+    fn resolve_sticky_for_scroll_contexts(
+        style: &Style,
+        layout_bounds: Bounds<Pixels>,
+        horizontal_scroll_context: Option<ScrollContainerContext>,
+        vertical_scroll_context: Option<ScrollContainerContext>,
+        rem_size: Pixels,
+    ) -> Self {
+        let mut visual_origin = layout_bounds.origin;
+
+        if let Some(context) = horizontal_scroll_context {
+            visual_origin.x = resolve_sticky_axis(
+                layout_bounds.origin.x,
+                layout_bounds.size.width,
+                context.scrollport_bounds.left(),
+                context.scrollport_bounds.right(),
+                context.content_bounds.left(),
+                context.content_bounds.right(),
+                style.inset.left,
+                style.inset.right,
+                context.scrollport_bounds.size.width,
+                rem_size,
+            );
+        }
+
+        if let Some(context) = vertical_scroll_context {
+            visual_origin.y = resolve_sticky_axis(
+                layout_bounds.origin.y,
+                layout_bounds.size.height,
+                context.scrollport_bounds.top(),
+                context.scrollport_bounds.bottom(),
+                context.content_bounds.top(),
+                context.content_bounds.bottom(),
+                style.inset.top,
+                style.inset.bottom,
+                context.scrollport_bounds.size.height,
+                rem_size,
+            );
+        }
+
+        let visual_bounds = Bounds::new(visual_origin, layout_bounds.size);
+        Self {
+            layout_bounds,
+            visual_bounds,
+            delta: visual_bounds.origin - layout_bounds.origin,
+        }
+    }
+
+    #[cfg(test)]
+    fn resolve_noop(style: &Style, layout_bounds: Bounds<Pixels>) -> Self {
+        match style.position {
+            Position::Relative | Position::Absolute => Self::unchanged(layout_bounds),
+            Position::Fixed | Position::Sticky => {
+                panic!("resolve_noop only validates existing no-op positioning modes")
+            }
+        }
+    }
+}
+
+fn length_to_pixels(length: Length, base_size: Pixels, rem_size: Pixels) -> Option<Pixels> {
+    match length {
+        Length::Definite(length) => Some(length.to_pixels(base_size.into(), rem_size)),
+        Length::Auto => None,
+    }
+}
+
+fn resolve_sticky_axis(
+    layout_origin: Pixels,
+    layout_size: Pixels,
+    scrollport_start: Pixels,
+    scrollport_end: Pixels,
+    content_start: Pixels,
+    content_end: Pixels,
+    start_inset: Length,
+    end_inset: Length,
+    inset_base_size: Pixels,
+    rem_size: Pixels,
+) -> Pixels {
+    let start_inset = length_to_pixels(start_inset, inset_base_size, rem_size);
+    let end_inset = length_to_pixels(end_inset, inset_base_size, rem_size);
+
+    if start_inset.is_none() && end_inset.is_none() {
+        return layout_origin;
+    }
+
+    let mut visual_origin = layout_origin;
+    if let Some(start_inset) = start_inset {
+        visual_origin = visual_origin.max(scrollport_start + start_inset);
+    }
+    if let Some(end_inset) = end_inset {
+        visual_origin = visual_origin.min(scrollport_end - end_inset - layout_size);
+    }
+
+    let min_origin = content_start;
+    let max_origin = content_end - layout_size;
+    if min_origin <= max_origin {
+        visual_origin.clamp(min_origin, max_origin)
+    } else {
+        min_origin
+    }
+}
+
 /// Holds the state for a specific window.
 pub struct Window {
     pub(crate) handle: AnyWindowHandle,
@@ -1234,6 +1445,7 @@ pub struct Window {
     pub(crate) element_opacity: f32,
     element_transform_stack: Vec<TransformationMatrix>,
     pub(crate) content_mask_stack: Vec<ContentMask<Pixels>>,
+    scroll_container_context_stack: ScrollContainerContextStack,
     paint_content_mask_stack: Vec<ContentMask<ScaledPixels>>,
     pub(crate) requested_autoscroll: Option<Bounds<Pixels>>,
     pub(crate) image_cache_stack: Vec<AnyImageCache>,
@@ -1870,6 +2082,7 @@ impl Window {
             rendered_entity_stack: Vec::new(),
             element_offset_stack: Vec::new(),
             content_mask_stack: Vec::new(),
+            scroll_container_context_stack: ScrollContainerContextStack::default(),
             element_opacity: 1.0,
             element_transform_stack: Vec::new(),
             paint_content_mask_stack: Vec::new(),
@@ -3104,6 +3317,7 @@ impl Window {
         }
 
         self.invalidator.set_phase(DrawPhase::Prepaint);
+        self.debug_assert_scroll_container_context_stack_empty();
         self.tooltip_bounds.take();
 
         let _inspector_width: Pixels = rems(30.0).to_pixels(self.rem_size());
@@ -3151,10 +3365,12 @@ impl Window {
             tooltip_element = self.prepaint_tooltip(cx);
         }
 
+        self.debug_assert_scroll_container_context_stack_empty();
         self.mouse_hit_test = self.next_frame.hit_test(self.mouse_position);
 
         // Now actually paint the elements.
         self.invalidator.set_phase(DrawPhase::Paint);
+        self.debug_assert_scroll_container_context_stack_empty();
         root_element.paint(self, cx);
 
         #[cfg(any(feature = "inspector", debug_assertions))]
@@ -3172,6 +3388,7 @@ impl Window {
 
         #[cfg(any(feature = "inspector", debug_assertions))]
         self.paint_inspector_hitbox(cx);
+        self.debug_assert_scroll_container_context_stack_empty();
     }
 
     fn prepaint_tooltip(&mut self, cx: &mut App) -> Option<AnyElement> {
@@ -3550,6 +3767,75 @@ impl Window {
         }
     }
 
+    pub(crate) fn with_viewport_content_mask<R>(&mut self, f: impl FnOnce(&mut Self) -> R) -> R {
+        self.invalidator.debug_assert_paint_or_prepaint();
+        let logical_mask = ContentMask {
+            bounds: Bounds::new(Point::default(), self.viewport_size()),
+        };
+        let is_paint = self.is_paint_phase();
+        self.content_mask_stack.push(logical_mask);
+        if is_paint {
+            self.paint_content_mask_stack.push(ContentMask {
+                bounds: Bounds::new(
+                    Point::default(),
+                    self.viewport_size().scale(self.scale_factor()),
+                ),
+            });
+        }
+
+        let result = f(self);
+
+        if is_paint {
+            self.paint_content_mask_stack.pop();
+        }
+        self.content_mask_stack.pop();
+        result
+    }
+
+    /// Runs `f` with an active scroll container used by sticky descendants.
+    pub fn with_scroll_container_context<R>(
+        &mut self,
+        context: ScrollContainerContext,
+        f: impl FnOnce(&mut Self) -> R,
+    ) -> R {
+        self.invalidator.debug_assert_paint_or_prepaint();
+        self.scroll_container_context_stack.push(context);
+        let result = f(self);
+        self.scroll_container_context_stack.pop();
+        result
+    }
+
+    pub(crate) fn nearest_scroll_container_context(
+        &self,
+        axis: ScrollAxis,
+    ) -> Option<ScrollContainerContext> {
+        self.invalidator.debug_assert_paint_or_prepaint();
+        self.scroll_container_context_stack.nearest(axis)
+    }
+
+    pub(crate) fn resolve_positioned_bounds(
+        &self,
+        style: &Style,
+        layout_bounds: Bounds<Pixels>,
+    ) -> PositionedBounds {
+        match style.position {
+            Position::Relative | Position::Absolute => PositionedBounds::unchanged(layout_bounds),
+            Position::Sticky => PositionedBounds::resolve_sticky_for_scroll_contexts(
+                style,
+                layout_bounds,
+                self.nearest_scroll_container_context(ScrollAxis::Horizontal),
+                self.nearest_scroll_container_context(ScrollAxis::Vertical),
+                self.rem_size(),
+            ),
+            Position::Fixed => PositionedBounds::resolve_fixed_for_viewport(
+                style,
+                layout_bounds,
+                Bounds::new(Point::default(), self.viewport_size()),
+                self.rem_size(),
+            ),
+        }
+    }
+
     /// Updates the global element offset relative to the current offset. This is used to implement
     /// scrolling. This method should only be called during the prepaint phase of element drawing.
     pub fn with_element_offset<R>(
@@ -3740,6 +4026,13 @@ impl Window {
     #[inline]
     fn is_paint_phase(&self) -> bool {
         matches!(self.invalidator.inner.borrow().draw_phase, DrawPhase::Paint)
+    }
+
+    fn debug_assert_scroll_container_context_stack_empty(&self) {
+        debug_assert!(
+            self.scroll_container_context_stack.is_empty(),
+            "scroll container context stack should be balanced at frame phase boundaries"
+        );
     }
 
     #[inline]
@@ -6701,6 +6994,380 @@ impl From<&'static core::panic::Location<'static>> for ElementId {
 impl From<[u8; 20]> for ElementId {
     fn from(opaque_id: [u8; 20]) -> Self {
         ElementId::OpaqueId(opaque_id)
+    }
+}
+
+#[cfg(test)]
+mod positioning_tests {
+    use super::*;
+
+    fn scroll_context(
+        scrollport_bounds: Bounds<Pixels>,
+        content_bounds: Bounds<Pixels>,
+        overflow: Point<Overflow>,
+    ) -> ScrollContainerContext {
+        ScrollContainerContext {
+            scrollport_bounds,
+            content_bounds,
+            scroll_offset: Point::default(),
+            overflow,
+        }
+    }
+
+    #[test]
+    fn scroll_container_context_stack_returns_nearest_matching_axis() {
+        let mut stack = ScrollContainerContextStack::default();
+        let outer = scroll_context(
+            Bounds::new(point(px(0.), px(0.)), size(px(100.), px(100.))),
+            Bounds::new(point(px(0.), px(0.)), size(px(300.), px(100.))),
+            point(Overflow::Scroll, Overflow::Visible),
+        );
+        let inner = scroll_context(
+            Bounds::new(point(px(10.), px(10.)), size(px(80.), px(80.))),
+            Bounds::new(point(px(10.), px(10.)), size(px(80.), px(240.))),
+            point(Overflow::Visible, Overflow::Scroll),
+        );
+
+        assert_eq!(None, stack.nearest(ScrollAxis::Horizontal));
+        assert_eq!(None, stack.nearest(ScrollAxis::Vertical));
+
+        stack.push(outer);
+        assert_eq!(Some(outer), stack.nearest(ScrollAxis::Horizontal));
+        assert_eq!(None, stack.nearest(ScrollAxis::Vertical));
+
+        stack.push(inner);
+        assert_eq!(Some(outer), stack.nearest(ScrollAxis::Horizontal));
+        assert_eq!(Some(inner), stack.nearest(ScrollAxis::Vertical));
+
+        assert_eq!(Some(inner), stack.pop());
+        assert_eq!(Some(outer), stack.nearest(ScrollAxis::Horizontal));
+        assert_eq!(None, stack.nearest(ScrollAxis::Vertical));
+
+        assert_eq!(Some(outer), stack.pop());
+        assert_eq!(None, stack.nearest(ScrollAxis::Horizontal));
+    }
+
+    #[test]
+    fn scroll_container_context_records_geometry_offset_and_active_axes() {
+        let scrollport_bounds = Bounds::new(point(px(1.), px(2.)), size(px(100.), px(120.)));
+        let content_bounds = Bounds::new(point(px(1.), px(2.)), size(px(260.), px(120.)));
+        let context = ScrollContainerContext {
+            scrollport_bounds,
+            content_bounds,
+            scroll_offset: point(px(-35.), px(0.)),
+            overflow: point(Overflow::Scroll, Overflow::Hidden),
+        };
+
+        assert_eq!(scrollport_bounds, context.scrollport_bounds);
+        assert_eq!(content_bounds, context.content_bounds);
+        assert_eq!(point(px(-35.), px(0.)), context.scroll_offset);
+        assert!(context.is_active_on_axis(ScrollAxis::Horizontal));
+        assert!(!context.is_active_on_axis(ScrollAxis::Vertical));
+    }
+
+    #[test]
+    fn positioned_bounds_preserve_relative_and_absolute_layout_bounds() {
+        let layout_bounds = Bounds::new(point(px(7.), px(11.)), size(px(90.), px(30.)));
+
+        for position in [Position::Relative, Position::Absolute] {
+            let style = Style {
+                position,
+                ..Default::default()
+            };
+            let positioned = PositionedBounds::resolve_noop(&style, layout_bounds);
+
+            assert_eq!(layout_bounds, positioned.layout_bounds);
+            assert_eq!(layout_bounds, positioned.visual_bounds);
+            assert_eq!(Point::default(), positioned.delta);
+        }
+    }
+
+    #[test]
+    fn fixed_positioned_bounds_resolve_top_left_against_viewport() {
+        let viewport_bounds = Bounds::new(Point::default(), size(px(320.), px(240.)));
+        let layout_bounds = Bounds::new(point(px(70.), px(80.)), size(px(90.), px(30.)));
+        let mut style = Style {
+            position: Position::Fixed,
+            ..Default::default()
+        };
+        style.inset.top = px(12.).into();
+        style.inset.left = px(24.).into();
+
+        let positioned = PositionedBounds::resolve_fixed_for_viewport(
+            &style,
+            layout_bounds,
+            viewport_bounds,
+            px(16.),
+        );
+
+        let expected = Bounds::new(point(px(24.), px(12.)), layout_bounds.size);
+        assert_eq!(layout_bounds, positioned.layout_bounds);
+        assert_eq!(expected, positioned.visual_bounds);
+        assert_eq!(point(px(-46.), px(-68.)), positioned.delta);
+    }
+
+    #[test]
+    fn fixed_positioned_bounds_resolve_bottom_right_against_viewport() {
+        let viewport_bounds = Bounds::new(Point::default(), size(px(320.), px(240.)));
+        let layout_bounds = Bounds::new(point(px(70.), px(80.)), size(px(90.), px(30.)));
+        let mut style = Style {
+            position: Position::Fixed,
+            ..Default::default()
+        };
+        style.inset.right = px(14.).into();
+        style.inset.bottom = px(18.).into();
+
+        let positioned = PositionedBounds::resolve_fixed_for_viewport(
+            &style,
+            layout_bounds,
+            viewport_bounds,
+            px(16.),
+        );
+
+        let expected = Bounds::new(point(px(216.), px(192.)), layout_bounds.size);
+        assert_eq!(layout_bounds, positioned.layout_bounds);
+        assert_eq!(expected, positioned.visual_bounds);
+        assert_eq!(point(px(146.), px(112.)), positioned.delta);
+    }
+
+    #[test]
+    fn sticky_positioned_bounds_resolve_top_stuck_and_unstuck_against_scrollport() {
+        let scroll_context = scroll_context(
+            Bounds::new(Point::default(), size(px(100.), px(100.))),
+            Bounds::new(point(px(0.), px(-60.)), size(px(100.), px(300.))),
+            point(Overflow::Hidden, Overflow::Scroll),
+        );
+        let mut style = Style {
+            position: Position::Sticky,
+            ..Default::default()
+        };
+        style.inset.top = px(8.).into();
+
+        let unstuck_bounds = Bounds::new(point(px(12.), px(40.)), size(px(30.), px(20.)));
+        let unstuck = PositionedBounds::resolve_sticky_for_scroll_contexts(
+            &style,
+            unstuck_bounds,
+            None,
+            Some(scroll_context),
+            px(16.),
+        );
+
+        assert_eq!(unstuck_bounds, unstuck.layout_bounds);
+        assert_eq!(unstuck_bounds, unstuck.visual_bounds);
+        assert_eq!(Point::default(), unstuck.delta);
+
+        let stuck_bounds = Bounds::new(point(px(12.), px(-20.)), size(px(30.), px(20.)));
+        let stuck = PositionedBounds::resolve_sticky_for_scroll_contexts(
+            &style,
+            stuck_bounds,
+            None,
+            Some(scroll_context),
+            px(16.),
+        );
+
+        assert_eq!(stuck_bounds, stuck.layout_bounds);
+        assert_eq!(
+            Bounds::new(point(px(12.), px(8.)), stuck_bounds.size),
+            stuck.visual_bounds
+        );
+        assert_eq!(point(px(0.), px(28.)), stuck.delta);
+    }
+
+    #[test]
+    fn sticky_positioned_bounds_resolve_left_stuck_and_unstuck_against_scrollport() {
+        let scroll_context = scroll_context(
+            Bounds::new(Point::default(), size(px(100.), px(100.))),
+            Bounds::new(point(px(-50.), px(0.)), size(px(300.), px(100.))),
+            point(Overflow::Scroll, Overflow::Hidden),
+        );
+        let mut style = Style {
+            position: Position::Sticky,
+            ..Default::default()
+        };
+        style.inset.left = px(6.).into();
+
+        let unstuck_bounds = Bounds::new(point(px(30.), px(14.)), size(px(24.), px(18.)));
+        let unstuck = PositionedBounds::resolve_sticky_for_scroll_contexts(
+            &style,
+            unstuck_bounds,
+            Some(scroll_context),
+            None,
+            px(16.),
+        );
+
+        assert_eq!(unstuck_bounds, unstuck.layout_bounds);
+        assert_eq!(unstuck_bounds, unstuck.visual_bounds);
+        assert_eq!(Point::default(), unstuck.delta);
+
+        let stuck_bounds = Bounds::new(point(px(-18.), px(14.)), size(px(24.), px(18.)));
+        let stuck = PositionedBounds::resolve_sticky_for_scroll_contexts(
+            &style,
+            stuck_bounds,
+            Some(scroll_context),
+            None,
+            px(16.),
+        );
+
+        assert_eq!(stuck_bounds, stuck.layout_bounds);
+        assert_eq!(
+            Bounds::new(point(px(6.), px(14.)), stuck_bounds.size),
+            stuck.visual_bounds
+        );
+        assert_eq!(point(px(24.), px(0.)), stuck.delta);
+    }
+
+    #[test]
+    fn sticky_positioned_bounds_resolve_bottom_stuck_and_unstuck_against_scrollport() {
+        let scroll_context = scroll_context(
+            Bounds::new(Point::default(), size(px(100.), px(100.))),
+            Bounds::new(Point::default(), size(px(100.), px(300.))),
+            point(Overflow::Hidden, Overflow::Scroll),
+        );
+        let mut style = Style {
+            position: Position::Sticky,
+            ..Default::default()
+        };
+        style.inset.bottom = px(8.).into();
+
+        let unstuck_bounds = Bounds::new(point(px(12.), px(40.)), size(px(30.), px(20.)));
+        let unstuck = PositionedBounds::resolve_sticky_for_scroll_contexts(
+            &style,
+            unstuck_bounds,
+            None,
+            Some(scroll_context),
+            px(16.),
+        );
+
+        assert_eq!(unstuck_bounds, unstuck.visual_bounds);
+        assert_eq!(Point::default(), unstuck.delta);
+
+        let stuck_bounds = Bounds::new(point(px(12.), px(120.)), size(px(30.), px(20.)));
+        let stuck = PositionedBounds::resolve_sticky_for_scroll_contexts(
+            &style,
+            stuck_bounds,
+            None,
+            Some(scroll_context),
+            px(16.),
+        );
+
+        assert_eq!(
+            Bounds::new(point(px(12.), px(72.)), stuck_bounds.size),
+            stuck.visual_bounds
+        );
+        assert_eq!(point(px(0.), px(-48.)), stuck.delta);
+    }
+
+    #[test]
+    fn sticky_positioned_bounds_resolve_right_stuck_and_unstuck_against_scrollport() {
+        let scroll_context = scroll_context(
+            Bounds::new(Point::default(), size(px(100.), px(100.))),
+            Bounds::new(Point::default(), size(px(300.), px(100.))),
+            point(Overflow::Scroll, Overflow::Hidden),
+        );
+        let mut style = Style {
+            position: Position::Sticky,
+            ..Default::default()
+        };
+        style.inset.right = px(6.).into();
+
+        let unstuck_bounds = Bounds::new(point(px(30.), px(14.)), size(px(24.), px(18.)));
+        let unstuck = PositionedBounds::resolve_sticky_for_scroll_contexts(
+            &style,
+            unstuck_bounds,
+            Some(scroll_context),
+            None,
+            px(16.),
+        );
+
+        assert_eq!(unstuck_bounds, unstuck.visual_bounds);
+        assert_eq!(Point::default(), unstuck.delta);
+
+        let stuck_bounds = Bounds::new(point(px(120.), px(14.)), size(px(24.), px(18.)));
+        let stuck = PositionedBounds::resolve_sticky_for_scroll_contexts(
+            &style,
+            stuck_bounds,
+            Some(scroll_context),
+            None,
+            px(16.),
+        );
+
+        assert_eq!(
+            Bounds::new(point(px(70.), px(14.)), stuck_bounds.size),
+            stuck.visual_bounds
+        );
+        assert_eq!(point(px(-50.), px(0.)), stuck.delta);
+    }
+
+    #[test]
+    fn sticky_positioned_bounds_resolve_opposing_vertical_insets() {
+        let scroll_context = scroll_context(
+            Bounds::new(Point::default(), size(px(100.), px(100.))),
+            Bounds::new(Point::default(), size(px(100.), px(300.))),
+            point(Overflow::Hidden, Overflow::Scroll),
+        );
+        let mut style = Style {
+            position: Position::Sticky,
+            ..Default::default()
+        };
+        style.inset.top = px(10.).into();
+        style.inset.bottom = px(10.).into();
+
+        let top_stuck_bounds = Bounds::new(point(px(0.), px(-20.)), size(px(30.), px(20.)));
+        let top_stuck = PositionedBounds::resolve_sticky_for_scroll_contexts(
+            &style,
+            top_stuck_bounds,
+            None,
+            Some(scroll_context),
+            px(16.),
+        );
+
+        assert_eq!(
+            Bounds::new(point(px(0.), px(10.)), top_stuck_bounds.size),
+            top_stuck.visual_bounds
+        );
+
+        let bottom_stuck_bounds = Bounds::new(point(px(0.), px(90.)), size(px(30.), px(20.)));
+        let bottom_stuck = PositionedBounds::resolve_sticky_for_scroll_contexts(
+            &style,
+            bottom_stuck_bounds,
+            None,
+            Some(scroll_context),
+            px(16.),
+        );
+
+        assert_eq!(
+            Bounds::new(point(px(0.), px(70.)), bottom_stuck_bounds.size),
+            bottom_stuck.visual_bounds
+        );
+    }
+
+    #[test]
+    fn sticky_positioned_bounds_release_at_scroll_content_end() {
+        let scroll_context = scroll_context(
+            Bounds::new(Point::default(), size(px(100.), px(100.))),
+            Bounds::new(point(px(0.), px(-210.)), size(px(100.), px(220.))),
+            point(Overflow::Hidden, Overflow::Scroll),
+        );
+        let mut style = Style {
+            position: Position::Sticky,
+            ..Default::default()
+        };
+        style.inset.top = px(0.).into();
+
+        let layout_bounds = Bounds::new(point(px(0.), px(-210.)), size(px(30.), px(20.)));
+        let released = PositionedBounds::resolve_sticky_for_scroll_contexts(
+            &style,
+            layout_bounds,
+            None,
+            Some(scroll_context),
+            px(16.),
+        );
+
+        assert_eq!(
+            Bounds::new(point(px(0.), px(-10.)), layout_bounds.size),
+            released.visual_bounds
+        );
+        assert_eq!(point(px(0.), px(200.)), released.delta);
     }
 }
 

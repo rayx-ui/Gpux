@@ -120,6 +120,20 @@ pub fn position_style_methods(input: TokenStream) -> TokenStream {
             self
         }
 
+        /// Sets the position of the element to `fixed`.
+        /// [Docs](https://tailwindcss.com/docs/position)
+        #visibility fn fixed(mut self) -> Self {
+            self.style().position = Some(gpux::Position::Fixed);
+            self
+        }
+
+        /// Sets the position of the element to `sticky`.
+        /// [Docs](https://tailwindcss.com/docs/position)
+        #visibility fn sticky(mut self) -> Self {
+            self.style().position = Some(gpux::Position::Sticky);
+            self
+        }
+
         #(#methods)*
     };
 

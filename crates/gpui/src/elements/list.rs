@@ -10,8 +10,8 @@
 use crate::{
     AnyElement, App, AvailableSpace, Bounds, ContentMask, DispatchPhase, Edges, Element, EntityId,
     FocusHandle, GlobalElementId, Hitbox, HitboxBehavior, InspectorElementId, IntoElement,
-    Overflow, Pixels, Point, ScrollDelta, ScrollWheelEvent, Size, Style, StyleRefinement, Styled,
-    Window, point, px, size,
+    Overflow, Pixels, Point, ScrollContainerContext, ScrollDelta, ScrollWheelEvent, Size, Style,
+    StyleRefinement, Styled, Window, point, px, size,
 };
 use collections::VecDeque;
 use refineable::Refineable as _;
@@ -75,6 +75,7 @@ struct StateInner {
     item_size_hint: Option<Size<Pixels>>,
     pending_scroll: Option<PendingScroll>,
     follow_state: FollowState,
+    sticky_items: Vec<usize>,
 }
 
 /// Deferred scroll adjustment applied after the scroll-top item has been remeasured.
@@ -229,12 +230,12 @@ struct LayoutItemsResponse {
     max_item_width: Pixels,
     scroll_top: ListOffset,
     item_layouts: VecDeque<ItemLayout>,
+    scroll_context: Option<ScrollContainerContext>,
 }
 
 struct ItemLayout {
     index: usize,
     element: AnyElement,
-    size: Size<Pixels>,
 }
 
 /// Frame state used by the [List] element after layout.
@@ -329,6 +330,7 @@ impl ListState {
             item_size_hint: None,
             pending_scroll: None,
             follow_state: FollowState::default(),
+            sticky_items: Vec::new(),
         })));
         this.splice(0..0, item_count);
         this
@@ -348,6 +350,23 @@ impl ListState {
     /// items are still rendered and measured normally, replacing the hint with their actual size.
     pub fn with_item_height_hint(self, height: Pixels) -> Self {
         self.set_item_height_hint(height);
+        self
+    }
+
+    /// Set item indices that may contain sticky positioned descendants.
+    pub fn set_sticky_items(&self, indices: impl IntoIterator<Item = usize>) {
+        let mut state = self.0.borrow_mut();
+        state.sticky_items = indices
+            .into_iter()
+            .filter(|ix| *ix < state.items.summary().count)
+            .collect();
+        state.sticky_items.sort_unstable();
+        state.sticky_items.dedup();
+    }
+
+    /// Builder-style variant of [`Self::set_sticky_items`].
+    pub fn with_sticky_items(self, indices: impl IntoIterator<Item = usize>) -> Self {
+        self.set_sticky_items(indices);
         self
     }
 
@@ -1040,6 +1059,21 @@ impl StateInner {
         start.height + logical_scroll_top.offset_in_item
     }
 
+    fn item_top(&self, item_ix: usize) -> Pixels {
+        let (start, ..) = self
+            .items
+            .find::<ListItemSummary, _>((), &Count(item_ix), Bias::Right);
+        start.height
+    }
+
+    fn active_sticky_item_index(&self, scroll_top: &ListOffset) -> Option<usize> {
+        self.sticky_items
+            .iter()
+            .copied()
+            .take_while(|ix| *ix < scroll_top.item_ix)
+            .last()
+    }
+
     fn layout_all_items(
         &mut self,
         available_width: Pixels,
@@ -1164,7 +1198,6 @@ impl StateInner {
                     item_layouts.push_back(ItemLayout {
                         index: item_index,
                         element,
-                        size: element_size,
                     });
                     if item.contains_focused(window, cx) {
                         rendered_focused_item = true;
@@ -1203,7 +1236,6 @@ impl StateInner {
                     item_layouts.push_front(ItemLayout {
                         index: item_index,
                         element,
-                        size: element_size,
                     });
                     if item.contains_focused(window, cx) {
                         rendered_focused_item = true;
@@ -1287,11 +1319,10 @@ impl StateInner {
                 if item.contains_focused(window, cx) {
                     let item_index = cursor.start().0;
                     let mut element = render_item(cursor.start().0, window, cx);
-                    let size = element.layout_as_root(available_item_space, window, cx);
+                    element.layout_as_root(available_item_space, window, cx);
                     item_layouts.push_back(ItemLayout {
                         index: item_index,
                         element,
-                        size,
                     });
                     break;
                 }
@@ -1299,10 +1330,22 @@ impl StateInner {
             }
         }
 
+        if let Some(item_index) = self.active_sticky_item_index(&scroll_top)
+            && !item_layouts.iter().any(|item| item.index == item_index)
+        {
+            let mut element = render_item(item_index, window, cx);
+            element.layout_as_root(available_item_space, window, cx);
+            item_layouts.push_back(ItemLayout {
+                index: item_index,
+                element,
+            });
+        }
+
         LayoutItemsResponse {
             max_item_width,
             scroll_top,
             item_layouts,
+            scroll_context: None,
         }
     }
 
@@ -1337,56 +1380,75 @@ impl StateInner {
 
             // Only paint the visible items, if there is actually any space for them (taking padding into account)
             if bounds.size.height > padding.top + padding.bottom {
-                let mut item_origin = bounds.origin + Point::new(px(0.), padding.top);
-                item_origin.y -= layout_response.scroll_top.offset_in_item;
-                for item in &mut layout_response.item_layouts {
-                    window.with_content_mask(Some(ContentMask { bounds }), |window| {
-                        item.element.prepaint_at(item_origin, window, cx);
-                    });
+                let scroll_top = self.scroll_top(&layout_response.scroll_top);
+                let scroll_offset = point(px(0.), -scroll_top);
+                let content_size = size(
+                    bounds.size.width,
+                    self.items.summary().height + padding.top + padding.bottom,
+                );
+                let scroll_context = ScrollContainerContext {
+                    scrollport_bounds: bounds,
+                    content_bounds: Bounds::new(bounds.origin + scroll_offset, content_size),
+                    scroll_offset,
+                    overflow: point(Overflow::Hidden, Overflow::Scroll),
+                };
+                layout_response.scroll_context = Some(scroll_context);
 
-                    if let Some(autoscroll_bounds) = window.take_autoscroll()
-                        && autoscroll
-                    {
-                        if autoscroll_bounds.top() < bounds.top() {
-                            return Err(ListOffset {
-                                item_ix: item.index,
-                                offset_in_item: autoscroll_bounds.top() - item_origin.y,
-                            });
-                        } else if autoscroll_bounds.bottom() > bounds.bottom() {
-                            let mut cursor = self.items.cursor::<Count>(());
-                            cursor.seek(&Count(item.index), Bias::Right);
-                            let mut height = bounds.size.height - padding.top - padding.bottom;
+                window.with_scroll_container_context(scroll_context, |window| {
+                    for item in &mut layout_response.item_layouts {
+                        let item_origin = point(
+                            bounds.origin.x,
+                            bounds.origin.y + padding.top + self.item_top(item.index) - scroll_top,
+                        );
+                        window.with_content_mask(Some(ContentMask { bounds }), |window| {
+                            item.element.prepaint_at(item_origin, window, cx);
+                        });
 
-                            // Account for the height of the element down until the autoscroll bottom.
-                            height -= autoscroll_bounds.bottom() - item_origin.y;
-
-                            // Keep decreasing the scroll top until we fill all the available space.
-                            while height > Pixels::ZERO {
-                                cursor.prev();
-                                let Some(item) = cursor.item() else { break };
-
-                                let size = item.size().unwrap_or_else(|| {
-                                    let mut item = render_item(cursor.start().0, window, cx);
-                                    let item_available_size =
-                                        size(bounds.size.width.into(), AvailableSpace::MinContent);
-                                    item.layout_as_root(item_available_size, window, cx)
+                        if let Some(autoscroll_bounds) = window.take_autoscroll()
+                            && autoscroll
+                        {
+                            if autoscroll_bounds.top() < bounds.top() {
+                                return Err(ListOffset {
+                                    item_ix: item.index,
+                                    offset_in_item: autoscroll_bounds.top() - item_origin.y,
                                 });
-                                height -= size.height;
-                            }
+                            } else if autoscroll_bounds.bottom() > bounds.bottom() {
+                                let mut cursor = self.items.cursor::<Count>(());
+                                cursor.seek(&Count(item.index), Bias::Right);
+                                let mut height = bounds.size.height - padding.top - padding.bottom;
 
-                            return Err(ListOffset {
-                                item_ix: cursor.start().0,
-                                offset_in_item: if height < Pixels::ZERO {
-                                    -height
-                                } else {
-                                    Pixels::ZERO
-                                },
-                            });
+                                // Account for the height of the element down until the autoscroll bottom.
+                                height -= autoscroll_bounds.bottom() - item_origin.y;
+
+                                // Keep decreasing the scroll top until we fill all the available space.
+                                while height > Pixels::ZERO {
+                                    cursor.prev();
+                                    let Some(item) = cursor.item() else { break };
+
+                                    let size = item.size().unwrap_or_else(|| {
+                                        let mut item = render_item(cursor.start().0, window, cx);
+                                        let item_available_size = size(
+                                            bounds.size.width.into(),
+                                            AvailableSpace::MinContent,
+                                        );
+                                        item.layout_as_root(item_available_size, window, cx)
+                                    });
+                                    height -= size.height;
+                                }
+
+                                return Err(ListOffset {
+                                    item_ix: cursor.start().0,
+                                    offset_in_item: if height < Pixels::ZERO {
+                                        -height
+                                    } else {
+                                        Pixels::ZERO
+                                    },
+                                });
+                            }
                         }
                     }
-
-                    item_origin.y += item.size.height;
-                }
+                    Ok(())
+                })?;
             } else {
                 layout_response.item_layouts.clear();
             }
@@ -1584,6 +1646,7 @@ impl Element for List {
                     max_item_width: Pixels::ZERO,
                     scroll_top: ListOffset::default(),
                     item_layouts: VecDeque::new(),
+                    scroll_context: None,
                 },
             };
         };
@@ -1636,11 +1699,20 @@ impl Element for List {
         cx: &mut App,
     ) {
         let current_view = window.current_view();
-        window.with_content_mask(Some(ContentMask { bounds }), |window| {
-            for item in &mut prepaint.layout.item_layouts {
-                item.element.paint(window, cx);
-            }
-        });
+        let mut paint_items = |window: &mut Window, cx: &mut App| {
+            window.with_content_mask(Some(ContentMask { bounds }), |window| {
+                for item in &mut prepaint.layout.item_layouts {
+                    item.element.paint(window, cx);
+                }
+            });
+        };
+        if let Some(scroll_context) = prepaint.layout.scroll_context {
+            window.with_scroll_container_context(scroll_context, |window| {
+                paint_items(window, cx);
+            });
+        } else {
+            paint_items(window, cx);
+        }
 
         let list_state = self.state.clone();
         let height = bounds.size.height;
@@ -1762,9 +1834,129 @@ mod test {
     use std::rc::Rc;
 
     use crate::{
-        self as gpux, AppContext, Context, Element, FollowMode, IntoElement, ListState, Render,
-        Styled, TestAppContext, Window, div, list, point, px, size,
+        self as gpux, AppContext, Bounds, Context, Element, FollowMode, InteractiveElement,
+        IntoElement, ListState, Point, Render, Styled, TestAppContext, Window, div, list, point,
+        px, size,
     };
+
+    #[test]
+    fn rendered_sticky_row_uses_list_scroll_context() {
+        struct StickyListView {
+            state: ListState,
+        }
+
+        impl Render for StickyListView {
+            fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+                list(self.state.clone(), |ix, _, _| {
+                    let row = div().w(px(100.)).h(px(20.));
+                    if ix == 3 {
+                        row.sticky()
+                            .top(px(0.))
+                            .debug_selector(|| "list-sticky-row".into())
+                            .into_any()
+                    } else {
+                        row.into_any()
+                    }
+                })
+                .w(px(100.))
+                .h(px(100.))
+            }
+        }
+
+        let mut test_app = TestAppContext::single();
+        let state =
+            ListState::new(20, crate::ListAlignment::Top, px(0.)).with_item_height_hint(px(20.));
+        state.scroll_to(gpux::ListOffset {
+            item_ix: 3,
+            offset_in_item: px(10.),
+        });
+        let window = test_app.add_window({
+            let state = state.clone();
+            move |_, _| StickyListView { state }
+        });
+        let any_window = window.into();
+
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+            })
+            .unwrap();
+
+        let sticky_bounds = test_app
+            .update_window(any_window, |_, window, _| {
+                window
+                    .rendered_frame
+                    .debug_bounds
+                    .get("list-sticky-row")
+                    .copied()
+            })
+            .unwrap();
+
+        assert_eq!(
+            Some(Bounds::new(Point::default(), size(px(100.), px(20.)))),
+            sticky_bounds
+        );
+    }
+
+    #[test]
+    fn sticky_candidate_row_remains_rendered_in_list() {
+        struct StickyCandidateListView {
+            state: ListState,
+        }
+
+        impl Render for StickyCandidateListView {
+            fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+                list(self.state.clone(), |ix, _, _| {
+                    let row = div().w(px(100.)).h(px(20.));
+                    if ix == 0 {
+                        row.sticky()
+                            .top(px(0.))
+                            .debug_selector(|| "list-sticky-candidate".into())
+                            .into_any()
+                    } else {
+                        row.into_any()
+                    }
+                })
+                .w(px(100.))
+                .h(px(100.))
+            }
+        }
+
+        let mut test_app = TestAppContext::single();
+        let state =
+            ListState::new(20, crate::ListAlignment::Top, px(0.)).with_item_height_hint(px(20.));
+        state.set_sticky_items([0]);
+        state.scroll_to(gpux::ListOffset {
+            item_ix: 3,
+            offset_in_item: px(10.),
+        });
+        let window = test_app.add_window({
+            let state = state.clone();
+            move |_, _| StickyCandidateListView { state }
+        });
+        let any_window = window.into();
+
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+            })
+            .unwrap();
+
+        let sticky_bounds = test_app
+            .update_window(any_window, |_, window, _| {
+                window
+                    .rendered_frame
+                    .debug_bounds
+                    .get("list-sticky-candidate")
+                    .copied()
+            })
+            .unwrap();
+
+        assert_eq!(
+            Some(Bounds::new(Point::default(), size(px(100.), px(20.)))),
+            sticky_bounds
+        );
+    }
 
     #[gpux::test]
     fn test_reset_after_paint_before_scroll(cx: &mut TestAppContext) {

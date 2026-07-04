@@ -51,6 +51,19 @@ GPUI offers three different [registers](<https://en.wikipedia.org/wiki/Register_
 
 Each of these registers has one or more corresponding contexts that can be accessed from all GPUI services. This context is your main interface to GPUI, and is used extensively throughout the framework.
 
+## Positioned Divs
+
+`div()` supports CSS-like fixed and sticky positioning through the same style surface as relative and absolute positioning:
+
+```rust
+div().fixed().top_0().left_0();
+div().sticky().top(px(0.));
+```
+
+Fixed divs are laid out like absolute elements and resolve insets against the window viewport. They use their visual bounds for painting, hitboxes, and child layout, and they escape ancestor scroll masks while remaining clipped to the viewport.
+
+Sticky divs stay in normal flow and resolve their visual position against the nearest scroll container on each active axis. Use the existing inset APIs (`top`, `right`, `bottom`, `left`) to define when the element sticks. Scrollable `div()` containers provide the sticky scroll context automatically; virtualized collections must render explicit sticky candidates because offscreen item content does not exist until the collection instantiates it.
+
 ## Other Resources
 
 In addition to the systems above, GPUI provides a range of smaller services that are useful for building complex applications:

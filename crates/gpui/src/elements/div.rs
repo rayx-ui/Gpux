@@ -21,9 +21,9 @@ use crate::{
     HitboxBehavior, HitboxId, InspectorElementId, IntoElement, IsZero, KeyContext, KeyDownEvent,
     KeyUpEvent, KeyboardButton, KeyboardClickEvent, LayoutId, ModifiersChangedEvent, MouseButton,
     MouseClickEvent, MouseDownEvent, MouseMoveEvent, MousePressureEvent, MouseUpEvent, Overflow,
-    ParentElement, Pixels, Point, Render, ScrollWheelEvent, SharedString, Size, Style,
-    StyleRefinement, Styled, Task, TooltipId, TouchEvent, Visibility, Window, WindowControlArea,
-    point, px, size,
+    ParentElement, Pixels, Point, Position, PositionedBounds, Render, ScrollContainerContext,
+    ScrollWheelEvent, SharedString, Size, Style, StyleRefinement, Styled, Task, TooltipId,
+    TouchEvent, Visibility, Window, WindowControlArea, point, px, size,
 };
 use crate::{PinchEvent, RotateEvent};
 use collections::HashMap;
@@ -1543,6 +1543,12 @@ pub struct DivFrameState {
     child_layout_ids: SmallVec<[LayoutId; 2]>,
 }
 
+/// A frame's prepaint result for a `Div` element.
+pub struct DivPrepaintState {
+    hitbox: Option<Hitbox>,
+    positioned_bounds: PositionedBounds,
+}
+
 /// Interactivity state displayed an manipulated in the inspector.
 #[derive(Clone)]
 pub struct DivInspectorState {
@@ -1578,7 +1584,7 @@ impl ParentElement for Div {
 
 impl Element for Div {
     type RequestLayoutState = DivFrameState;
-    type PrepaintState = Option<Hitbox>;
+    type PrepaintState = DivPrepaintState;
 
     fn id(&self) -> Option<ElementId> {
         self.interactivity.element_id.clone()
@@ -1633,7 +1639,7 @@ impl Element for Div {
         request_layout: &mut Self::RequestLayoutState,
         window: &mut Window,
         cx: &mut App,
-    ) -> Option<Hitbox> {
+    ) -> DivPrepaintState {
         let image_cache = self
             .image_cache
             .as_mut()
@@ -1695,14 +1701,30 @@ impl Element for Div {
             content_size,
             window,
             cx,
-            |style, scroll_offset, hitbox, window, cx| {
+            |style, scroll_offset, hitbox, positioned_bounds, window, cx| {
                 // skip children
                 if style.display == Display::None {
-                    return hitbox;
+                    return DivPrepaintState {
+                        hitbox,
+                        positioned_bounds,
+                    };
                 }
 
                 window.with_image_cache(image_cache, |window| {
-                    window.with_element_offset(scroll_offset, |window| {
+                    let bounds = positioned_bounds.visual_bounds;
+                    let scroll_context = (style.overflow.x == Overflow::Scroll
+                        || style.overflow.y == Overflow::Scroll)
+                        .then(|| ScrollContainerContext {
+                            scrollport_bounds: bounds,
+                            content_bounds: Bounds::new(
+                                bounds.origin + scroll_offset,
+                                content_size,
+                            ),
+                            scroll_offset,
+                            overflow: style.overflow,
+                        });
+
+                    let mut prepaint_children = |window: &mut Window, cx: &mut App| {
                         if let Some(order_fn) = &self.prepaint_order_fn {
                             let order = order_fn(window, cx);
                             for idx in order {
@@ -1715,14 +1737,35 @@ impl Element for Div {
                                 child.prepaint(window, cx);
                             }
                         }
-                    });
+                    };
+
+                    if let Some(scroll_context) = scroll_context {
+                        window.with_scroll_container_context(scroll_context, |window| {
+                            window.with_element_offset(
+                                positioned_bounds.delta + scroll_offset,
+                                |window| {
+                                    prepaint_children(window, cx);
+                                },
+                            );
+                        });
+                    } else {
+                        window.with_element_offset(
+                            positioned_bounds.delta + scroll_offset,
+                            |window| {
+                                prepaint_children(window, cx);
+                            },
+                        );
+                    }
 
                     if let Some(listener) = self.prepaint_listener.as_ref() {
                         listener(children_bounds, window, cx);
                     }
                 });
 
-                hitbox
+                DivPrepaintState {
+                    hitbox,
+                    positioned_bounds,
+                }
             },
         )
     }
@@ -1732,9 +1775,9 @@ impl Element for Div {
         &mut self,
         global_id: Option<&GlobalElementId>,
         inspector_id: Option<&InspectorElementId>,
-        bounds: Bounds<Pixels>,
+        _bounds: Bounds<Pixels>,
         _request_layout: &mut Self::RequestLayoutState,
-        hitbox: &mut Option<Hitbox>,
+        prepaint: &mut DivPrepaintState,
         window: &mut Window,
         cx: &mut App,
     ) {
@@ -1742,13 +1785,21 @@ impl Element for Div {
             .image_cache
             .as_mut()
             .map(|provider| provider.provide(window, cx));
+        let content_size = self.interactivity.content_size;
+        let scroll_offset = self
+            .interactivity
+            .scroll_offset
+            .as_ref()
+            .map(|offset| *offset.borrow())
+            .unwrap_or_default();
+        let bounds = prepaint.positioned_bounds.visual_bounds;
 
         window.with_image_cache(image_cache, |window| {
             self.interactivity.paint(
                 global_id,
                 inspector_id,
                 bounds,
-                hitbox.as_ref(),
+                prepaint.hitbox.as_ref(),
                 window,
                 cx,
                 |style, window, cx| {
@@ -1757,8 +1808,30 @@ impl Element for Div {
                         return;
                     }
 
-                    for child in &mut self.children {
-                        child.paint(window, cx);
+                    let scroll_context = (style.overflow.x == Overflow::Scroll
+                        || style.overflow.y == Overflow::Scroll)
+                        .then(|| ScrollContainerContext {
+                            scrollport_bounds: bounds,
+                            content_bounds: Bounds::new(
+                                bounds.origin + scroll_offset,
+                                content_size,
+                            ),
+                            scroll_offset,
+                            overflow: style.overflow,
+                        });
+
+                    let mut paint_children = |window: &mut Window, cx: &mut App| {
+                        for child in &mut self.children {
+                            child.paint(window, cx);
+                        }
+                    };
+
+                    if let Some(scroll_context) = scroll_context {
+                        window.with_scroll_container_context(scroll_context, |window| {
+                            paint_children(window, cx);
+                        });
+                    } else {
+                        paint_children(window, cx);
                     }
                 },
             )
@@ -1940,7 +2013,14 @@ impl Interactivity {
         content_size: Size<Pixels>,
         window: &mut Window,
         cx: &mut App,
-        f: impl FnOnce(&Style, Point<Pixels>, Option<Hitbox>, &mut Window, &mut App) -> R,
+        f: impl FnOnce(
+            &Style,
+            Point<Pixels>,
+            Option<Hitbox>,
+            PositionedBounds,
+            &mut Window,
+            &mut App,
+        ) -> R,
     ) -> R {
         self.content_size = content_size;
 
@@ -1965,6 +2045,8 @@ impl Interactivity {
                 let mut element_state =
                     element_state.map(|element_state| element_state.unwrap_or_default());
                 let style = self.compute_style_internal(None, element_state.as_mut(), window, cx);
+                let positioned_bounds = window.resolve_positioned_bounds(&style, bounds);
+                let bounds = positioned_bounds.visual_bounds;
 
                 if let Some(element_state) = element_state.as_mut() {
                     if let Some(clicked_state) = element_state.clicked_state.as_ref() {
@@ -1986,23 +2068,32 @@ impl Interactivity {
                     }
                 }
 
-                window.with_text_style(style.text_style().cloned(), |window| {
-                    window.with_content_mask(
-                        style.overflow_mask(bounds, window.rem_size()),
-                        |window| {
-                            let hitbox = if self.should_insert_hitbox(&style, window, cx) {
-                                Some(window.insert_hitbox(bounds, self.hitbox_behavior))
-                            } else {
-                                None
-                            };
+                let prepaint = |window: &mut Window| {
+                    window.with_text_style(style.text_style().cloned(), |window| {
+                        window.with_content_mask(
+                            style.overflow_mask(bounds, window.rem_size()),
+                            |window| {
+                                let hitbox = if self.should_insert_hitbox(&style, window, cx) {
+                                    Some(window.insert_hitbox(bounds, self.hitbox_behavior))
+                                } else {
+                                    None
+                                };
 
-                            let scroll_offset =
-                                self.clamp_scroll_position(bounds, &style, window, cx);
-                            let result = f(&style, scroll_offset, hitbox, window, cx);
-                            (result, element_state)
-                        },
-                    )
-                })
+                                let scroll_offset =
+                                    self.clamp_scroll_position(bounds, &style, window, cx);
+                                let result =
+                                    f(&style, scroll_offset, hitbox, positioned_bounds, window, cx);
+                                (result, element_state)
+                            },
+                        )
+                    })
+                };
+
+                if style.position == Position::Fixed {
+                    window.with_viewport_content_mask(prepaint)
+                } else {
+                    prepaint(window)
+                }
             },
         )
     }
@@ -2140,70 +2231,85 @@ impl Interactivity {
                     window.next_frame.tab_stops.insert(focus_handle);
                 }
 
-                window.with_element_opacity(style.opacity, |window| {
-                    style.paint(bounds, window, cx, |window: &mut Window, cx: &mut App| {
-                        window.with_text_style(style.text_style().cloned(), |window| {
-                            window.with_content_mask(
-                                style.overflow_mask(bounds, window.rem_size()),
-                                |window| {
-                                    window.with_tab_group(tab_group, |window| {
-                                        if let Some(hitbox) = hitbox {
-                                            #[cfg(debug_assertions)]
-                                            self.paint_debug_info(
-                                                global_id, hitbox, &style, window, cx,
-                                            );
+                let paint = |window: &mut Window| {
+                    window.with_element_opacity(style.opacity, |window| {
+                        style.paint(bounds, window, cx, |window: &mut Window, cx: &mut App| {
+                            window.with_text_style(style.text_style().cloned(), |window| {
+                                window.with_content_mask(
+                                    style.overflow_mask(bounds, window.rem_size()),
+                                    |window| {
+                                        window.with_tab_group(tab_group, |window| {
+                                            if let Some(hitbox) = hitbox {
+                                                #[cfg(debug_assertions)]
+                                                self.paint_debug_info(
+                                                    global_id, hitbox, &style, window, cx,
+                                                );
 
-                                            if let Some(drag) = cx.active_drag.as_ref() {
-                                                if let Some(mouse_cursor) = drag.cursor_style {
-                                                    window.set_window_cursor_style(mouse_cursor);
+                                                if let Some(drag) = cx.active_drag.as_ref() {
+                                                    if let Some(mouse_cursor) = drag.cursor_style {
+                                                        window
+                                                            .set_window_cursor_style(mouse_cursor);
+                                                    }
+                                                } else {
+                                                    if let Some(mouse_cursor) = style.mouse_cursor {
+                                                        window
+                                                            .set_cursor_style(mouse_cursor, hitbox);
+                                                    }
                                                 }
-                                            } else {
-                                                if let Some(mouse_cursor) = style.mouse_cursor {
-                                                    window.set_cursor_style(mouse_cursor, hitbox);
+
+                                                if let Some(group) = self.group.clone() {
+                                                    GroupHitboxes::push(group, hitbox.id, cx);
                                                 }
-                                            }
 
-                                            if let Some(group) = self.group.clone() {
-                                                GroupHitboxes::push(group, hitbox.id, cx);
-                                            }
+                                                if let Some(area) = self.window_control {
+                                                    window.insert_window_control_hitbox(
+                                                        area,
+                                                        hitbox.clone(),
+                                                    );
+                                                }
 
-                                            if let Some(area) = self.window_control {
-                                                window.insert_window_control_hitbox(
-                                                    area,
-                                                    hitbox.clone(),
+                                                self.paint_mouse_listeners(
+                                                    hitbox,
+                                                    element_state.as_mut(),
+                                                    window,
+                                                    cx,
+                                                );
+                                                self.paint_scroll_listener(
+                                                    hitbox, &style, window, cx,
                                                 );
                                             }
 
-                                            self.paint_mouse_listeners(
-                                                hitbox,
-                                                element_state.as_mut(),
-                                                window,
-                                                cx,
-                                            );
-                                            self.paint_scroll_listener(hitbox, &style, window, cx);
-                                        }
+                                            self.paint_keyboard_listeners(window, cx);
+                                            f(&style, window, cx);
 
-                                        self.paint_keyboard_listeners(window, cx);
-                                        f(&style, window, cx);
+                                            if let Some(_hitbox) = hitbox {
+                                                #[cfg(any(
+                                                    feature = "inspector",
+                                                    debug_assertions
+                                                ))]
+                                                window.insert_inspector_hitbox(
+                                                    _hitbox.id,
+                                                    _inspector_id,
+                                                    cx,
+                                                );
 
-                                        if let Some(_hitbox) = hitbox {
-                                            #[cfg(any(feature = "inspector", debug_assertions))]
-                                            window.insert_inspector_hitbox(
-                                                _hitbox.id,
-                                                _inspector_id,
-                                                cx,
-                                            );
-
-                                            if let Some(group) = self.group.as_ref() {
-                                                GroupHitboxes::pop(group, cx);
+                                                if let Some(group) = self.group.as_ref() {
+                                                    GroupHitboxes::pop(group, cx);
+                                                }
                                             }
-                                        }
-                                    })
-                                },
-                            );
+                                        })
+                                    },
+                                );
+                            });
                         });
                     });
-                });
+                };
+
+                if style.position == Position::Fixed {
+                    window.with_viewport_content_mask(paint);
+                } else {
+                    paint(window);
+                }
 
                 ((), element_state)
             },
@@ -3874,6 +3980,569 @@ mod tests {
                 captured_active_tooltip: self.captured_active_tooltip.clone(),
             }
         }
+    }
+
+    struct ScrollContextCaptureElement {
+        captured_prepaint_context: Rc<RefCell<Option<ScrollContainerContext>>>,
+        captured_paint_context: Rc<RefCell<Option<ScrollContainerContext>>>,
+    }
+
+    impl IntoElement for ScrollContextCaptureElement {
+        type Element = Self;
+
+        fn into_element(self) -> Self::Element {
+            self
+        }
+    }
+
+    impl Element for ScrollContextCaptureElement {
+        type RequestLayoutState = ();
+        type PrepaintState = ();
+
+        fn id(&self) -> Option<ElementId> {
+            None
+        }
+
+        fn source_location(&self) -> Option<&'static std::panic::Location<'static>> {
+            None
+        }
+
+        fn request_layout(
+            &mut self,
+            _id: Option<&GlobalElementId>,
+            _inspector_id: Option<&InspectorElementId>,
+            window: &mut Window,
+            cx: &mut App,
+        ) -> (LayoutId, Self::RequestLayoutState) {
+            let style = Style {
+                size: size(px(100.).into(), px(200.).into()),
+                ..Default::default()
+            };
+            (window.request_layout(style, [], cx), ())
+        }
+
+        fn prepaint(
+            &mut self,
+            _id: Option<&GlobalElementId>,
+            _inspector_id: Option<&InspectorElementId>,
+            _bounds: Bounds<Pixels>,
+            _request_layout: &mut Self::RequestLayoutState,
+            window: &mut Window,
+            _cx: &mut App,
+        ) -> Self::PrepaintState {
+            *self.captured_prepaint_context.borrow_mut() =
+                window.nearest_scroll_container_context(crate::ScrollAxis::Vertical);
+        }
+
+        fn paint(
+            &mut self,
+            _id: Option<&GlobalElementId>,
+            _inspector_id: Option<&InspectorElementId>,
+            _bounds: Bounds<Pixels>,
+            _request_layout: &mut Self::RequestLayoutState,
+            _prepaint: &mut Self::PrepaintState,
+            window: &mut Window,
+            _cx: &mut App,
+        ) {
+            *self.captured_paint_context.borrow_mut() =
+                window.nearest_scroll_container_context(crate::ScrollAxis::Vertical);
+        }
+    }
+
+    struct ScrollContextOwner {
+        captured_prepaint_context: Rc<RefCell<Option<ScrollContainerContext>>>,
+        captured_paint_context: Rc<RefCell<Option<ScrollContainerContext>>>,
+    }
+
+    impl Render for ScrollContextOwner {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            div()
+                .id("scroll-context-owner")
+                .w(px(100.))
+                .h(px(100.))
+                .overflow_y_scroll()
+                .child(ScrollContextCaptureElement {
+                    captured_prepaint_context: self.captured_prepaint_context.clone(),
+                    captured_paint_context: self.captured_paint_context.clone(),
+                })
+        }
+    }
+
+    #[test]
+    fn scrollable_div_child_can_see_nearest_prepaint_scroll_context() {
+        let mut test_app = TestAppContext::single();
+        let captured_prepaint_context = Rc::new(RefCell::new(None));
+        let captured_paint_context = Rc::new(RefCell::new(None));
+        let window = test_app.add_window({
+            let captured_prepaint_context = captured_prepaint_context.clone();
+            let captured_paint_context = captured_paint_context.clone();
+            move |_, _| ScrollContextOwner {
+                captured_prepaint_context,
+                captured_paint_context,
+            }
+        });
+        let any_window = window.into();
+
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+            })
+            .unwrap();
+
+        let context = captured_prepaint_context
+            .borrow()
+            .expect("scrollable div should push a vertical scroll context during child prepaint");
+
+        assert_eq!(size(px(100.), px(100.)), context.scrollport_bounds.size);
+        assert_eq!(size(px(100.), px(200.)), context.content_bounds.size);
+        assert_eq!(Point::default(), context.scroll_offset);
+        assert_eq!(Overflow::Scroll, context.overflow.y);
+    }
+
+    #[test]
+    fn scrollable_div_child_can_see_nearest_paint_scroll_context() {
+        let mut test_app = TestAppContext::single();
+        let captured_prepaint_context = Rc::new(RefCell::new(None));
+        let captured_paint_context = Rc::new(RefCell::new(None));
+        let window = test_app.add_window({
+            let captured_prepaint_context = captured_prepaint_context.clone();
+            let captured_paint_context = captured_paint_context.clone();
+            move |_, _| ScrollContextOwner {
+                captured_prepaint_context,
+                captured_paint_context,
+            }
+        });
+        let any_window = window.into();
+
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+            })
+            .unwrap();
+
+        let context = captured_paint_context
+            .borrow()
+            .expect("scrollable div should push a vertical scroll context during child paint");
+
+        assert_eq!(size(px(100.), px(100.)), context.scrollport_bounds.size);
+        assert_eq!(size(px(100.), px(200.)), context.content_bounds.size);
+        assert_eq!(Point::default(), context.scroll_offset);
+        assert_eq!(Overflow::Scroll, context.overflow.y);
+    }
+
+    struct TrackedScrollOwner {
+        handle: ScrollHandle,
+    }
+
+    impl Render for TrackedScrollOwner {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            div()
+                .id("tracked-scroll")
+                .w(px(100.))
+                .h(px(100.))
+                .overflow_y_scroll()
+                .track_scroll(&self.handle)
+                .child(div().w(px(100.)).h(px(200.)))
+        }
+    }
+
+    struct StickyScrollOwner {
+        handle: ScrollHandle,
+    }
+
+    impl Render for StickyScrollOwner {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            div()
+                .id("sticky-scroll")
+                .w(px(100.))
+                .h(px(100.))
+                .overflow_y_scroll()
+                .track_scroll(&self.handle)
+                .child(
+                    div()
+                        .sticky()
+                        .top(px(0.))
+                        .w(px(100.))
+                        .h(px(20.))
+                        .debug_selector(|| "sticky".into()),
+                )
+                .child(div().w(px(100.)).h(px(180.)))
+        }
+    }
+
+    struct ShiftedStickyScrollOwner {
+        handle: ScrollHandle,
+    }
+
+    impl Render for ShiftedStickyScrollOwner {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            div().relative().w(px(200.)).h(px(200.)).child(
+                div()
+                    .id("shifted-scroll")
+                    .absolute()
+                    .left(px(25.))
+                    .top(px(50.))
+                    .w(px(100.))
+                    .h(px(100.))
+                    .overflow_y_scroll()
+                    .track_scroll(&self.handle)
+                    .child(
+                        div()
+                            .sticky()
+                            .top(px(0.))
+                            .w(px(100.))
+                            .h(px(20.))
+                            .bg(crate::green())
+                            .debug_selector(|| "shifted-sticky".into()),
+                    )
+                    .child(div().w(px(100.)).h(px(180.))),
+            )
+        }
+    }
+
+    struct FixedMaskEscapeOwner;
+
+    impl Render for FixedMaskEscapeOwner {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            div()
+                .relative()
+                .w(px(50.))
+                .h(px(50.))
+                .overflow_hidden()
+                .child(
+                    div()
+                        .absolute()
+                        .left(px(80.))
+                        .top(px(0.))
+                        .w(px(20.))
+                        .h(px(20.))
+                        .bg(crate::red())
+                        .occlude()
+                        .debug_selector(|| "ordinary-outside".into()),
+                )
+                .child(
+                    div()
+                        .fixed()
+                        .left(px(80.))
+                        .top(px(30.))
+                        .w(px(20.))
+                        .h(px(20.))
+                        .bg(crate::green())
+                        .occlude()
+                        .debug_selector(|| "fixed-outside".into()),
+                )
+        }
+    }
+
+    struct NestedStickyOwner {
+        outer_handle: ScrollHandle,
+        inner_handle: ScrollHandle,
+    }
+
+    impl Render for NestedStickyOwner {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            div()
+                .id("outer-scroll")
+                .w(px(100.))
+                .h(px(100.))
+                .overflow_y_scroll()
+                .track_scroll(&self.outer_handle)
+                .child(div().w(px(100.)).h(px(30.)))
+                .child(
+                    div()
+                        .id("inner-scroll")
+                        .w(px(100.))
+                        .h(px(100.))
+                        .overflow_y_scroll()
+                        .track_scroll(&self.inner_handle)
+                        .child(
+                            div()
+                                .sticky()
+                                .top(px(0.))
+                                .w(px(100.))
+                                .h(px(20.))
+                                .debug_selector(|| "nested-sticky".into()),
+                        )
+                        .child(div().w(px(100.)).h(px(180.))),
+                )
+        }
+    }
+
+    #[test]
+    fn scroll_context_does_not_change_plain_scroll_handle_state() {
+        let mut test_app = TestAppContext::single();
+        let handle = ScrollHandle::new();
+        let window = test_app.add_window({
+            let handle = handle.clone();
+            move |_, _| TrackedScrollOwner { handle }
+        });
+        let any_window = window.into();
+
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+            })
+            .unwrap();
+
+        let state = handle.0.borrow();
+        assert_eq!(
+            Bounds::new(Point::default(), size(px(100.), px(100.))),
+            state.bounds
+        );
+        assert_eq!(point(px(0.), px(100.)), state.max_offset);
+        assert_eq!(
+            vec![Bounds::new(Point::default(), size(px(100.), px(200.)))],
+            state.child_bounds
+        );
+    }
+
+    #[gpux::test]
+    fn fixed_div_prepaint_and_paint_use_visual_bounds(cx: &mut TestAppContext) {
+        let window = cx.add_empty_window();
+        let (_, prepaint) =
+            window.draw(point(px(70.), px(80.)), size(px(300.), px(200.)), |_, _| {
+                div()
+                    .fixed()
+                    .top(px(12.))
+                    .left(px(24.))
+                    .w(px(80.))
+                    .h(px(30.))
+                    .occlude()
+                    .debug_selector(|| "fixed".into())
+            });
+
+        let expected = Bounds::new(point(px(24.), px(12.)), size(px(80.), px(30.)));
+        let hitbox = prepaint.hitbox.expect("fixed div should insert a hitbox");
+
+        assert_eq!(expected, hitbox.bounds);
+        assert_eq!(Some(expected), window.debug_bounds("fixed"));
+    }
+
+    #[gpux::test]
+    fn fixed_div_child_paint_uses_parent_visual_delta(cx: &mut TestAppContext) {
+        let window = cx.add_empty_window();
+        window.draw(point(px(70.), px(80.)), size(px(300.), px(200.)), |_, _| {
+            div()
+                .fixed()
+                .top(px(12.))
+                .left(px(24.))
+                .w(px(80.))
+                .h(px(30.))
+                .child(
+                    div()
+                        .w(px(10.))
+                        .h(px(10.))
+                        .debug_selector(|| "fixed-child".into()),
+                )
+        });
+
+        assert_eq!(
+            Some(Bounds::new(point(px(24.), px(12.)), size(px(10.), px(10.)))),
+            window.debug_bounds("fixed-child")
+        );
+    }
+
+    #[test]
+    fn sticky_div_paint_uses_scrollport_visual_bounds() {
+        let mut test_app = TestAppContext::single();
+        let scroll_handle = ScrollHandle::new();
+        scroll_handle.set_offset(point(px(0.), px(-40.)));
+        let window = test_app.add_window({
+            let handle = scroll_handle.clone();
+            move |_, _| StickyScrollOwner { handle }
+        });
+        let any_window = window.into();
+
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+            })
+            .unwrap();
+
+        let sticky_bounds = test_app
+            .update_window(any_window, |_, window, _| {
+                window.rendered_frame.debug_bounds.get("sticky").copied()
+            })
+            .unwrap();
+
+        assert_eq!(
+            Some(Bounds::new(Point::default(), size(px(100.), px(20.)))),
+            sticky_bounds
+        );
+    }
+
+    #[test]
+    fn sticky_div_paints_at_shifted_scrollport_after_scroll() {
+        let mut test_app = TestAppContext::single();
+        let scroll_handle = ScrollHandle::new();
+        scroll_handle.set_offset(point(px(0.), px(-40.)));
+        let window = test_app.add_window({
+            let handle = scroll_handle.clone();
+            move |_, _| ShiftedStickyScrollOwner { handle }
+        });
+        let any_window = window.into();
+
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+            })
+            .unwrap();
+
+        let expected = Bounds::new(point(px(25.), px(50.)), size(px(100.), px(20.)));
+        let sticky_bounds = test_app
+            .update_window(any_window, |_, window, _| {
+                window
+                    .rendered_frame
+                    .debug_bounds
+                    .get("shifted-sticky")
+                    .copied()
+            })
+            .unwrap();
+
+        assert_eq!(Some(expected), sticky_bounds);
+
+        let sticky_quad_painted = test_app
+            .update_window(any_window, |_, window, _| {
+                let expected_scaled = expected.scale(window.scale_factor());
+                window
+                    .rendered_frame
+                    .scene
+                    .quads
+                    .iter()
+                    .any(|quad| quad.bounds == expected_scaled)
+            })
+            .unwrap();
+
+        assert!(
+            sticky_quad_painted,
+            "sticky background quad should paint at the shifted scrollport top"
+        );
+    }
+
+    #[test]
+    fn fixed_div_escapes_ancestor_content_mask_without_unclipping_ordinary_children() {
+        let mut test_app = TestAppContext::single();
+        let window = test_app.add_window(|_, _| FixedMaskEscapeOwner);
+        let any_window = window.into();
+
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+            })
+            .unwrap();
+
+        test_app
+            .update_window(any_window, |_, window, _| {
+                let parent_mask = Bounds::new(Point::default(), size(px(50.), px(50.)));
+                let viewport_mask = Bounds::new(Point::default(), window.viewport_size());
+                let ordinary_bounds =
+                    Bounds::new(point(px(80.), px(0.)), size(px(20.), px(20.)));
+                let fixed_bounds = Bounds::new(point(px(80.), px(30.)), size(px(20.), px(20.)));
+                let ordinary_hitbox = window
+                    .rendered_frame
+                    .hitboxes
+                    .iter()
+                    .find(|hitbox| hitbox.bounds == ordinary_bounds)
+                    .expect("ordinary out-of-mask child should still record its clipped hitbox");
+                let fixed_hitbox = window
+                    .rendered_frame
+                    .hitboxes
+                    .iter()
+                    .find(|hitbox| hitbox.bounds == fixed_bounds)
+                    .expect("fixed child should record its viewport hitbox");
+
+                assert_eq!(parent_mask, ordinary_hitbox.content_mask.bounds);
+                assert_eq!(viewport_mask, fixed_hitbox.content_mask.bounds);
+                assert!(
+                    !window
+                        .rendered_frame
+                        .hit_test(point(px(90.), px(10.)))
+                        .ids
+                        .contains(&ordinary_hitbox.id),
+                    "ordinary child should not be hit-testable outside the ancestor mask"
+                );
+                assert!(
+                    window
+                        .rendered_frame
+                        .hit_test(point(px(90.), px(40.)))
+                        .ids
+                        .contains(&fixed_hitbox.id),
+                    "fixed child should be hit-testable at its visual bounds outside the ancestor mask"
+                );
+
+                let scale = window.scale_factor();
+                let ordinary_scaled_bounds = Bounds::new(
+                    point(px(80.).scale(scale), px(0.).scale(scale)),
+                    size(px(20.).scale(scale), px(20.).scale(scale)),
+                );
+                let fixed_scaled_bounds = Bounds::new(
+                    point(px(80.).scale(scale), px(30.).scale(scale)),
+                    size(px(20.).scale(scale), px(20.).scale(scale)),
+                );
+
+                assert!(
+                    !window
+                        .rendered_frame
+                        .scene
+                        .quads
+                        .iter()
+                        .any(|quad| quad.bounds == ordinary_scaled_bounds),
+                    "ordinary out-of-mask child should not paint outside the ancestor mask"
+                );
+                let fixed_quad = window
+                    .rendered_frame
+                    .scene
+                    .quads
+                    .iter()
+                    .find(|quad| quad.bounds == fixed_scaled_bounds)
+                    .expect("fixed child should paint outside the ancestor mask");
+                assert_eq!(
+                    Bounds::new(
+                        Point::default(),
+                        window.viewport_size().scale(window.scale_factor())
+                    ),
+                    fixed_quad.content_mask.bounds
+                );
+            })
+            .unwrap();
+    }
+
+    #[test]
+    fn sticky_div_uses_nearest_nested_scroll_context() {
+        let mut test_app = TestAppContext::single();
+        let outer_handle = ScrollHandle::new();
+        let inner_handle = ScrollHandle::new();
+        inner_handle.set_offset(point(px(0.), px(-40.)));
+        let window = test_app.add_window({
+            let outer_handle = outer_handle.clone();
+            let inner_handle = inner_handle.clone();
+            move |_, _| NestedStickyOwner {
+                outer_handle,
+                inner_handle,
+            }
+        });
+        let any_window = window.into();
+
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+            })
+            .unwrap();
+
+        let sticky_bounds = test_app
+            .update_window(any_window, |_, window, _| {
+                window
+                    .rendered_frame
+                    .debug_bounds
+                    .get("nested-sticky")
+                    .copied()
+            })
+            .unwrap();
+
+        assert_eq!(
+            Some(Bounds::new(point(px(0.), px(30.)), size(px(100.), px(20.)))),
+            sticky_bounds
+        );
     }
 
     #[test]

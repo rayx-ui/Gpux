@@ -1334,6 +1334,11 @@ pub enum Position {
     ///
     /// WARNING: to opt-out of layouting entirely, you must use [`Display::None`] instead on your [`Style`] object.
     Absolute,
+    /// The offset is computed relative to the window viewport.
+    /// No space is created for the item in the page layout.
+    Fixed,
+    /// The item participates in normal layout, then is visually offset relative to the nearest scroll container.
+    Sticky,
 }
 
 impl From<AlignItems> for taffy::style::AlignItems {
@@ -1423,6 +1428,8 @@ impl From<Position> for taffy::style::Position {
         match value {
             Position::Relative => Self::Relative,
             Position::Absolute => Self::Absolute,
+            Position::Fixed => Self::Absolute,
+            Position::Sticky => Self::Relative,
         }
     }
 }
@@ -1634,5 +1641,61 @@ mod tests {
         style.refine(&StyleRefinement::default().direction(LayoutDirection::Rtl));
 
         assert_eq!(LayoutDirection::Rtl, style.direction);
+    }
+
+    #[test]
+    fn position_variants_cover_css_like_layout_modes() {
+        fn label(position: Position) -> &'static str {
+            match position {
+                Position::Relative => "relative",
+                Position::Absolute => "absolute",
+                Position::Fixed => "fixed",
+                Position::Sticky => "sticky",
+            }
+        }
+
+        assert_eq!("relative", label(Position::default()));
+        assert_eq!("absolute", label(Position::Absolute));
+        assert_eq!("fixed", label(Position::Fixed));
+        assert_eq!("sticky", label(Position::Sticky));
+    }
+
+    #[test]
+    fn fixed_and_sticky_style_methods_set_position_and_allow_insets() {
+        assert_eq!(
+            Some(Position::Fixed),
+            StyleRefinement::default().fixed().position
+        );
+        assert_eq!(
+            Some(Position::Sticky),
+            StyleRefinement::default().sticky().position
+        );
+
+        let _ = crate::div().fixed().top_0().left_0();
+        let _ = crate::div().sticky().top_0();
+    }
+
+    #[test]
+    fn fixed_and_sticky_reuse_existing_inset_methods() {
+        let fixed = StyleRefinement::default().fixed().top_0().left_0();
+        assert_eq!(Some(Position::Fixed), fixed.position);
+        assert!(fixed.inset.top.is_some());
+        assert!(fixed.inset.left.is_some());
+
+        let sticky = StyleRefinement::default().sticky().top_0();
+        assert_eq!(Some(Position::Sticky), sticky.position);
+        assert!(sticky.inset.top.is_some());
+    }
+
+    #[test]
+    fn relative_and_absolute_style_methods_preserve_existing_positions() {
+        assert_eq!(
+            Some(Position::Relative),
+            StyleRefinement::default().relative().position
+        );
+        assert_eq!(
+            Some(Position::Absolute),
+            StyleRefinement::default().absolute().position
+        );
     }
 }

@@ -768,6 +768,35 @@ mod tests {
         );
     }
 
+    #[test]
+    fn position_variants_map_to_taffy_layout_modes() {
+        fn mapped_position(position: crate::Position) -> taffy::style::Position {
+            Style {
+                position,
+                ..Default::default()
+            }
+            .to_taffy(Pixels(16.0), 1.0)
+            .position
+        }
+
+        assert_eq!(
+            taffy::style::Position::Relative,
+            mapped_position(crate::Position::Relative)
+        );
+        assert_eq!(
+            taffy::style::Position::Absolute,
+            mapped_position(crate::Position::Absolute)
+        );
+        assert_eq!(
+            taffy::style::Position::Absolute,
+            mapped_position(crate::Position::Fixed)
+        );
+        assert_eq!(
+            taffy::style::Position::Relative,
+            mapped_position(crate::Position::Sticky)
+        );
+    }
+
     fn sized_style(width: f32, height: f32) -> Style {
         Style {
             size: size(px(width).into(), px(height).into()),
@@ -800,6 +829,70 @@ mod tests {
             .into_iter()
             .map(|child| taffy.layout(child).expect(EXPECT_MESSAGE).location)
             .collect()
+    }
+
+    #[test]
+    fn fixed_position_is_out_of_flow_for_taffy_layout() {
+        let mut parent = sized_style(100.0, 20.0);
+        parent.display = crate::Display::Flex;
+
+        let mut fixed_child = sized_style(20.0, 20.0);
+        fixed_child.position = crate::Position::Fixed;
+
+        let normal_child = sized_style(30.0, 20.0);
+
+        let locations = compute_child_locations(parent, &[fixed_child, normal_child]);
+
+        assert_eq!(0.0, locations[0].x);
+        assert_eq!(0.0, locations[1].x);
+    }
+
+    #[test]
+    fn absolute_position_remains_out_of_flow_for_taffy_layout() {
+        let mut parent = sized_style(100.0, 20.0);
+        parent.display = crate::Display::Flex;
+
+        let mut absolute_child = sized_style(20.0, 20.0);
+        absolute_child.position = crate::Position::Absolute;
+
+        let normal_child = sized_style(30.0, 20.0);
+
+        let locations = compute_child_locations(parent, &[absolute_child, normal_child]);
+
+        assert_eq!(0.0, locations[0].x);
+        assert_eq!(0.0, locations[1].x);
+    }
+
+    #[test]
+    fn sticky_position_remains_in_flow_for_taffy_layout() {
+        let mut parent = sized_style(100.0, 20.0);
+        parent.display = crate::Display::Flex;
+
+        let mut sticky_child = sized_style(20.0, 20.0);
+        sticky_child.position = crate::Position::Sticky;
+
+        let normal_child = sized_style(30.0, 20.0);
+
+        let locations = compute_child_locations(parent, &[sticky_child, normal_child]);
+
+        assert_eq!(0.0, locations[0].x);
+        assert_eq!(20.0, locations[1].x);
+    }
+
+    #[test]
+    fn relative_position_remains_in_flow_for_taffy_layout() {
+        let mut parent = sized_style(100.0, 20.0);
+        parent.display = crate::Display::Flex;
+
+        let mut relative_child = sized_style(20.0, 20.0);
+        relative_child.position = crate::Position::Relative;
+
+        let normal_child = sized_style(30.0, 20.0);
+
+        let locations = compute_child_locations(parent, &[relative_child, normal_child]);
+
+        assert_eq!(0.0, locations[0].x);
+        assert_eq!(20.0, locations[1].x);
     }
 
     #[test]

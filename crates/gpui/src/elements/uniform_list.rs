@@ -7,8 +7,8 @@
 use crate::{
     AnyElement, App, AvailableSpace, Bounds, ContentMask, Element, ElementId, Entity,
     GlobalElementId, Hitbox, InspectorElementId, InteractiveElement, Interactivity, IntoElement,
-    IsZero, LayoutId, ListSizingBehavior, Overflow, Pixels, Point, ScrollHandle, Size,
-    StyleRefinement, Styled, Window, point, px, size,
+    IsZero, LayoutId, ListSizingBehavior, Overflow, Pixels, Point, ScrollContainerContext,
+    ScrollHandle, Size, StyleRefinement, Styled, Window, point, px, size,
 };
 use smallvec::SmallVec;
 use std::{cell::RefCell, cmp, ops::Range, rc::Rc, usize};
@@ -51,6 +51,7 @@ where
         scroll_handle: None,
         sizing_behavior: ListSizingBehavior::default(),
         horizontal_sizing_behavior: ListHorizontalSizingBehavior::default(),
+        sticky_items: Vec::new(),
     }
 }
 
@@ -66,12 +67,14 @@ pub struct UniformList {
     scroll_handle: Option<UniformListScrollHandle>,
     sizing_behavior: ListSizingBehavior,
     horizontal_sizing_behavior: ListHorizontalSizingBehavior,
+    sticky_items: Vec<usize>,
 }
 
 /// Frame state used by the [UniformList].
 pub struct UniformListFrameState {
     items: SmallVec<[AnyElement; 32]>,
     decorations: SmallVec<[AnyElement; 2]>,
+    scroll_context: Option<ScrollContainerContext>,
 }
 
 /// A handle for controlling the scroll position of a uniform list.
@@ -347,6 +350,7 @@ impl Element for UniformList {
             UniformListFrameState {
                 items: SmallVec::new(),
                 decorations: SmallVec::new(),
+                scroll_context: None,
             },
         )
     }
@@ -400,6 +404,7 @@ impl Element for UniformList {
                 })
                 .unwrap_or(None)
         });
+        let sticky_items = self.sticky_items.clone();
 
         self.interactivity.prepaint(
             global_id,
@@ -408,7 +413,7 @@ impl Element for UniformList {
             content_size,
             window,
             cx,
-            |_style, mut scroll_offset, hitbox, window, cx| {
+            |_style, mut scroll_offset, hitbox, _, window, cx| {
                 let y_flipped = if let Some(scroll_handle) = &self.scroll_handle {
                     scroll_handle.try_y_flipped().unwrap_or(false)
                 } else {
@@ -501,57 +506,88 @@ impl Element for UniformList {
                     let visible_range = first_visible_element_ix
                         ..cmp::min(last_visible_element_ix, self.item_count);
 
-                    let items = if y_flipped {
+                    let candidate_indices =
+                        Self::active_sticky_item_indices(&sticky_items, &visible_range);
+                    let mut candidate_items = SmallVec::<[(usize, AnyElement); 4]>::new();
+                    if !y_flipped {
+                        for ix in candidate_indices {
+                            let mut items = (self.render_items)(ix..ix + 1, window, cx);
+                            if let Some(item) = items.pop() {
+                                candidate_items.push((ix, item));
+                            }
+                        }
+                    }
+
+                    let mut rendered_items = if y_flipped {
                         let flipped_range = self.item_count.saturating_sub(visible_range.end)
                             ..self.item_count.saturating_sub(visible_range.start);
                         let mut items = (self.render_items)(flipped_range, window, cx);
                         items.reverse();
                         items
+                            .into_iter()
+                            .zip(visible_range.clone())
+                            .collect::<SmallVec<[(AnyElement, usize); 64]>>()
                     } else {
                         (self.render_items)(visible_range.clone(), window, cx)
+                            .into_iter()
+                            .zip(visible_range.clone())
+                            .collect::<SmallVec<[(AnyElement, usize); 64]>>()
                     };
+                    rendered_items.extend(candidate_items.into_iter().map(|(ix, item)| (item, ix)));
+
+                    let scroll_context = ScrollContainerContext {
+                        scrollport_bounds: bounds,
+                        content_bounds: Bounds::new(bounds.origin + scroll_offset, content_size),
+                        scroll_offset,
+                        overflow: _style.overflow,
+                    };
+                    frame_state.scroll_context = Some(scroll_context);
 
                     let content_mask = ContentMask { bounds };
-                    window.with_content_mask(Some(content_mask), |window| {
-                        for (mut item, ix) in items.into_iter().zip(visible_range.clone()) {
-                            let item_origin = padded_bounds.origin
-                                + scroll_offset
-                                + point(Pixels::ZERO, item_height * ix);
+                    window.with_scroll_container_context(scroll_context, |window| {
+                        window.with_content_mask(Some(content_mask), |window| {
+                            for (mut item, ix) in rendered_items {
+                                let item_origin = padded_bounds.origin
+                                    + scroll_offset
+                                    + point(Pixels::ZERO, item_height * ix);
 
-                            let available_width = if can_scroll_horizontally {
-                                padded_bounds.size.width + scroll_offset.x.abs()
-                            } else {
-                                padded_bounds.size.width
-                            };
-                            let available_space = size(
-                                AvailableSpace::Definite(available_width),
-                                AvailableSpace::Definite(item_height),
-                            );
-                            item.layout_as_root(available_space, window, cx);
-                            item.prepaint_at(item_origin, window, cx);
-                            frame_state.items.push(item);
-                        }
+                                let available_width = if can_scroll_horizontally {
+                                    padded_bounds.size.width + scroll_offset.x.abs()
+                                } else {
+                                    padded_bounds.size.width
+                                };
+                                let available_space = size(
+                                    AvailableSpace::Definite(available_width),
+                                    AvailableSpace::Definite(item_height),
+                                );
+                                item.layout_as_root(available_space, window, cx);
+                                item.prepaint_at(item_origin, window, cx);
+                                frame_state.items.push(item);
+                            }
 
-                        let bounds =
-                            Bounds::new(padded_bounds.origin + scroll_offset, padded_bounds.size);
-                        for decoration in &self.decorations {
-                            let mut decoration = decoration.as_ref().compute(
-                                visible_range.clone(),
-                                bounds,
-                                scroll_offset,
-                                item_height,
-                                self.item_count,
-                                window,
-                                cx,
+                            let bounds = Bounds::new(
+                                padded_bounds.origin + scroll_offset,
+                                padded_bounds.size,
                             );
-                            let available_space = size(
-                                AvailableSpace::Definite(bounds.size.width),
-                                AvailableSpace::Definite(bounds.size.height),
-                            );
-                            decoration.layout_as_root(available_space, window, cx);
-                            decoration.prepaint_at(bounds.origin, window, cx);
-                            frame_state.decorations.push(decoration);
-                        }
+                            for decoration in &self.decorations {
+                                let mut decoration = decoration.as_ref().compute(
+                                    visible_range.clone(),
+                                    bounds,
+                                    scroll_offset,
+                                    item_height,
+                                    self.item_count,
+                                    window,
+                                    cx,
+                                );
+                                let available_space = size(
+                                    AvailableSpace::Definite(bounds.size.width),
+                                    AvailableSpace::Definite(bounds.size.height),
+                                );
+                                decoration.layout_as_root(available_space, window, cx);
+                                decoration.prepaint_at(bounds.origin, window, cx);
+                                frame_state.decorations.push(decoration);
+                            }
+                        });
                     });
                 }
 
@@ -578,11 +614,21 @@ impl Element for UniformList {
             window,
             cx,
             |_, window, cx| {
-                for item in &mut request_layout.items {
-                    item.paint(window, cx);
-                }
-                for decoration in &mut request_layout.decorations {
-                    decoration.paint(window, cx);
+                let mut paint_items = |window: &mut Window, cx: &mut App| {
+                    for item in &mut request_layout.items {
+                        item.paint(window, cx);
+                    }
+                    for decoration in &mut request_layout.decorations {
+                        decoration.paint(window, cx);
+                    }
+                };
+
+                if let Some(scroll_context) = request_layout.scroll_context {
+                    window.with_scroll_container_context(scroll_context, |window| {
+                        paint_items(window, cx);
+                    });
+                } else {
+                    paint_items(window, cx);
                 }
             },
         )
@@ -677,6 +723,30 @@ impl UniformList {
         self
     }
 
+    /// Adds item indices that may contain sticky positioned descendants.
+    pub fn sticky_items(mut self, indices: impl IntoIterator<Item = usize>) -> Self {
+        self.sticky_items = indices
+            .into_iter()
+            .filter(|ix| *ix < self.item_count)
+            .collect();
+        self.sticky_items.sort_unstable();
+        self.sticky_items.dedup();
+        self
+    }
+
+    fn active_sticky_item_indices(
+        sticky_items: &[usize],
+        visible_range: &Range<usize>,
+    ) -> SmallVec<[usize; 4]> {
+        sticky_items
+            .iter()
+            .copied()
+            .take_while(|ix| *ix < visible_range.start)
+            .last()
+            .into_iter()
+            .collect()
+    }
+
     fn measure_item(
         &self,
         list_width: Option<Pixels>,
@@ -748,6 +818,172 @@ impl InteractiveElement for UniformList {
 #[cfg(test)]
 mod test {
     use crate::TestAppContext;
+
+    #[test]
+    fn rendered_sticky_row_uses_uniform_list_scroll_context() {
+        use crate::{
+            AppContext as _, Bounds, Context, IntoElement, Point, Render, UniformListScrollHandle,
+            Window, div, point, prelude::*, px, size, uniform_list,
+        };
+        use std::ops::Range;
+
+        struct StickyUniformListView {
+            scroll_handle: UniformListScrollHandle,
+        }
+
+        impl Render for StickyUniformListView {
+            fn render(
+                &mut self,
+                _window: &mut Window,
+                _cx: &mut Context<Self>,
+            ) -> impl IntoElement {
+                uniform_list(
+                    "entries",
+                    20,
+                    |range: Range<usize>, _window: &mut Window, _cx| {
+                        range
+                            .map(|ix| {
+                                let row = div().w(px(100.)).h(px(20.));
+                                if ix == 3 {
+                                    row.sticky()
+                                        .top(px(0.))
+                                        .debug_selector(|| "sticky-row".into())
+                                        .into_any_element()
+                                } else {
+                                    row.into_any_element()
+                                }
+                            })
+                            .collect::<Vec<_>>()
+                    },
+                )
+                .w(px(100.))
+                .h(px(100.))
+                .track_scroll(&self.scroll_handle)
+            }
+        }
+
+        let mut test_app = TestAppContext::single();
+        let scroll_handle = UniformListScrollHandle::new();
+        scroll_handle
+            .0
+            .borrow()
+            .base_handle
+            .set_offset(point(px(0.), px(-70.)));
+        let window = test_app.add_window({
+            let scroll_handle = scroll_handle.clone();
+            move |_, _| StickyUniformListView { scroll_handle }
+        });
+        let any_window = window.into();
+
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+            })
+            .unwrap();
+
+        let sticky_bounds = test_app
+            .update_window(any_window, |_, window, _| {
+                window
+                    .rendered_frame
+                    .debug_bounds
+                    .get("sticky-row")
+                    .copied()
+            })
+            .unwrap();
+
+        assert_eq!(
+            Some(Bounds::new(Point::default(), size(px(100.), px(20.)))),
+            sticky_bounds
+        );
+    }
+
+    #[test]
+    fn sticky_candidate_row_remains_rendered_without_changing_visible_range() {
+        use crate::{
+            AppContext as _, Bounds, Context, IntoElement, Point, Render, UniformListScrollHandle,
+            Window, div, point, prelude::*, px, size, uniform_list,
+        };
+        use std::{cell::RefCell, ops::Range, rc::Rc};
+
+        struct StickyCandidateUniformListView {
+            scroll_handle: UniformListScrollHandle,
+            visible_range: Rc<RefCell<Range<usize>>>,
+        }
+
+        impl Render for StickyCandidateUniformListView {
+            fn render(
+                &mut self,
+                _window: &mut Window,
+                _cx: &mut Context<Self>,
+            ) -> impl IntoElement {
+                let visible_range = self.visible_range.clone();
+                uniform_list(
+                    "entries",
+                    20,
+                    move |range: Range<usize>, _window: &mut Window, _cx| {
+                        *visible_range.borrow_mut() = range.clone();
+                        range
+                            .map(|ix| {
+                                let row = div().w(px(100.)).h(px(20.));
+                                if ix == 0 {
+                                    row.sticky()
+                                        .top(px(0.))
+                                        .debug_selector(|| "sticky-candidate".into())
+                                        .into_any_element()
+                                } else {
+                                    row.into_any_element()
+                                }
+                            })
+                            .collect::<Vec<_>>()
+                    },
+                )
+                .w(px(100.))
+                .h(px(100.))
+                .sticky_items([0])
+                .track_scroll(&self.scroll_handle)
+            }
+        }
+
+        let mut test_app = TestAppContext::single();
+        let scroll_handle = UniformListScrollHandle::new();
+        scroll_handle
+            .0
+            .borrow()
+            .base_handle
+            .set_offset(point(px(0.), px(-70.)));
+        let visible_range = Rc::new(RefCell::new(0..0));
+        let window = test_app.add_window({
+            let scroll_handle = scroll_handle.clone();
+            let visible_range = visible_range.clone();
+            move |_, _| StickyCandidateUniformListView {
+                scroll_handle,
+                visible_range,
+            }
+        });
+        let any_window = window.into();
+
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+            })
+            .unwrap();
+
+        let sticky_bounds = test_app
+            .update_window(any_window, |_, window, _| {
+                window
+                    .rendered_frame
+                    .debug_bounds
+                    .get("sticky-candidate")
+                    .copied()
+            })
+            .unwrap();
+
+        assert_eq!(
+            Some(Bounds::new(Point::default(), size(px(100.), px(20.)))),
+            sticky_bounds
+        );
+        assert_eq!(3..9, *visible_range.borrow());
+    }
 
     #[gpux::test]
     fn test_scroll_strategy_nearest(cx: &mut TestAppContext) {
