@@ -23,6 +23,7 @@ pub type PathVertex_ScaledPixels = PathVertex<ScaledPixels>;
 pub type DrawOrder = u32;
 
 const POSITIONED_DRAW_ORDER_BASE: DrawOrder = 1 << 30;
+const TOP_LAYER_DRAW_ORDER_BASE: DrawOrder = 1 << 31;
 
 #[derive(Default)]
 #[expect(missing_docs)]
@@ -30,6 +31,7 @@ pub struct Scene {
     pub(crate) paint_operations: Vec<PaintOperation>,
     primitive_bounds: BoundsTree<ScaledPixels>,
     positioned_primitive_bounds: BoundsTree<ScaledPixels>,
+    top_layer_primitive_bounds: BoundsTree<ScaledPixels>,
     layer_stack: Vec<LayerOrder>,
     pub shadows: Vec<Shadow>,
     pub quads: Vec<Quad>,
@@ -47,6 +49,7 @@ pub struct Scene {
 enum LayerOrder {
     Fixed(DrawOrder),
     Positioned,
+    Top,
 }
 
 #[expect(missing_docs)]
@@ -55,6 +58,7 @@ impl Scene {
         self.paint_operations.clear();
         self.primitive_bounds.clear();
         self.positioned_primitive_bounds.clear();
+        self.top_layer_primitive_bounds.clear();
         self.layer_stack.clear();
         self.paths.clear();
         self.shadows.clear();
@@ -73,10 +77,14 @@ impl Scene {
     }
 
     pub fn push_layer(&mut self, bounds: Bounds<ScaledPixels>) {
-        let order = if matches!(self.layer_stack.last(), Some(LayerOrder::Positioned)) {
-            POSITIONED_DRAW_ORDER_BASE + self.positioned_primitive_bounds.insert(bounds)
-        } else {
-            self.primitive_bounds.insert(bounds)
+        let order = match self.layer_stack.last().copied() {
+            Some(LayerOrder::Top) => {
+                TOP_LAYER_DRAW_ORDER_BASE + self.top_layer_primitive_bounds.insert(bounds)
+            }
+            Some(LayerOrder::Positioned) => {
+                POSITIONED_DRAW_ORDER_BASE + self.positioned_primitive_bounds.insert(bounds)
+            }
+            Some(LayerOrder::Fixed(_)) | None => self.primitive_bounds.insert(bounds),
         };
         self.layer_stack.push(LayerOrder::Fixed(order));
         self.paint_operations
@@ -87,6 +95,12 @@ impl Scene {
         self.layer_stack.push(LayerOrder::Positioned);
         self.paint_operations
             .push(PaintOperation::StartPositionedLayer(bounds));
+    }
+
+    pub fn push_top_layer(&mut self, bounds: Bounds<ScaledPixels>) {
+        self.layer_stack.push(LayerOrder::Top);
+        self.paint_operations
+            .push(PaintOperation::StartTopLayer(bounds));
     }
 
     pub fn pop_layer(&mut self) {
@@ -108,6 +122,9 @@ impl Scene {
             Some(LayerOrder::Fixed(order)) => order,
             Some(LayerOrder::Positioned) => {
                 POSITIONED_DRAW_ORDER_BASE + self.positioned_primitive_bounds.insert(clipped_bounds)
+            }
+            Some(LayerOrder::Top) => {
+                TOP_LAYER_DRAW_ORDER_BASE + self.top_layer_primitive_bounds.insert(clipped_bounds)
             }
             None => self.primitive_bounds.insert(clipped_bounds),
         };
@@ -164,6 +181,7 @@ impl Scene {
                 PaintOperation::Primitive(primitive) => self.insert_primitive(primitive.clone()),
                 PaintOperation::StartLayer(bounds) => self.push_layer(*bounds),
                 PaintOperation::StartPositionedLayer(bounds) => self.push_positioned_layer(*bounds),
+                PaintOperation::StartTopLayer(bounds) => self.push_top_layer(*bounds),
                 PaintOperation::EndLayer => self.pop_layer(),
             }
         }
@@ -243,6 +261,7 @@ pub(crate) enum PaintOperation {
     Primitive(Primitive),
     StartLayer(Bounds<ScaledPixels>),
     StartPositionedLayer(Bounds<ScaledPixels>),
+    StartTopLayer(Bounds<ScaledPixels>),
     EndLayer,
 }
 
@@ -1380,6 +1399,26 @@ mod tests {
         let batches = scene.batches().collect::<Vec<_>>();
         assert!(matches!(batches[0], PrimitiveBatch::Quads(ref range) if range == &(0..2)));
         assert_eq!(batches.len(), 1);
+    }
+
+    #[test]
+    fn top_layer_orders_above_positioned_primitives() {
+        let bounds = Bounds::new(
+            point(ScaledPixels(0.), ScaledPixels(0.)),
+            size(ScaledPixels(100.), ScaledPixels(100.)),
+        );
+        let mut scene = Scene::default();
+
+        scene.push_positioned_layer(bounds);
+        scene.insert_primitive(test_quad(bounds));
+        scene.pop_layer();
+        scene.push_top_layer(bounds);
+        scene.insert_primitive(test_quad(bounds));
+        scene.pop_layer();
+        scene.finish();
+
+        assert_eq!(scene.quads.len(), 2);
+        assert!(scene.quads[1].order > scene.quads[0].order);
     }
 
     #[test]

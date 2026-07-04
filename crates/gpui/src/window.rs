@@ -579,6 +579,7 @@ pub enum WindowControlArea {
 pub struct HitboxId(u64);
 
 const POSITIONED_HITBOX_ID_BASE: u64 = 1 << 62;
+const TOP_LAYER_HITBOX_ID_BASE: u64 = 1 << 63;
 
 #[cfg(feature = "test-support")]
 impl HitboxId {
@@ -645,6 +646,10 @@ impl HitboxId {
 
     fn positioned(self) -> HitboxId {
         HitboxId(POSITIONED_HITBOX_ID_BASE + self.0)
+    }
+
+    fn top_layer(self) -> HitboxId {
+        HitboxId(TOP_LAYER_HITBOX_ID_BASE + self.0)
     }
 }
 
@@ -4524,6 +4529,41 @@ impl Window {
         result
     }
 
+    /// Creates a top painting layer for chrome that must remain above positioned content.
+    ///
+    /// This is intended for scrollbars and direct-manipulation affordances whose visual target must
+    /// stay above fixed and sticky elements. Ordinary app content should use normal painting or
+    /// fixed/sticky positioning instead.
+    pub fn paint_top_layer<R>(
+        &mut self,
+        bounds: Bounds<Pixels>,
+        f: impl FnOnce(&mut Self) -> R,
+    ) -> R {
+        self.invalidator.debug_assert_paint();
+
+        let scale_factor = self.scale_factor();
+        let transformation = self.current_element_transform();
+        let content_mask = if transformation == TransformationMatrix::unit() {
+            self.snapped_content_mask()
+        } else {
+            self.paint_content_mask()
+        };
+        let clipped_bounds = self
+            .transform_scaled_bounds(bounds.scale(scale_factor))
+            .intersect(&content_mask.bounds);
+        if !clipped_bounds.is_empty() {
+            self.next_frame.scene.push_top_layer(clipped_bounds);
+        }
+
+        let result = f(self);
+
+        if !clipped_bounds.is_empty() {
+            self.next_frame.scene.pop_layer();
+        }
+
+        result
+    }
+
     /// Paint one or more drop shadows into the scene for the next frame at the current z-index.
     ///
     /// This method should only be called as part of the paint phase of element drawing.
@@ -5317,6 +5357,22 @@ impl Window {
         self.invalidator.debug_assert_prepaint();
 
         let id = self.next_hitbox_id.positioned();
+        self.next_hitbox_id = self.next_hitbox_id.next();
+        self.insert_hitbox_with_id(id, bounds, behavior)
+    }
+
+    /// Inserts a hitbox above positioned hitboxes for top-layer chrome such as scrollbars.
+    ///
+    /// Use this with [`Window::paint_top_layer`] when the interactive area must match a topmost
+    /// visual affordance.
+    pub fn insert_top_layer_hitbox(
+        &mut self,
+        bounds: Bounds<Pixels>,
+        behavior: HitboxBehavior,
+    ) -> Hitbox {
+        self.invalidator.debug_assert_prepaint();
+
+        let id = self.next_hitbox_id.top_layer();
         self.next_hitbox_id = self.next_hitbox_id.next();
         self.insert_hitbox_with_id(id, bounds, behavior)
     }
@@ -7219,6 +7275,13 @@ impl From<[u8; 20]> for ElementId {
 #[cfg(test)]
 mod positioning_tests {
     use super::*;
+
+    #[test]
+    fn top_layer_hitbox_id_sorts_above_positioned_hitbox_id() {
+        let ordinary = HitboxId(7);
+
+        assert!(ordinary.top_layer().0 > ordinary.positioned().0);
+    }
 
     fn scroll_context(
         scrollport_bounds: Bounds<Pixels>,
