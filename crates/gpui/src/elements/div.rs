@@ -22,8 +22,9 @@ use crate::{
     KeyUpEvent, KeyboardButton, KeyboardClickEvent, LayoutId, ModifiersChangedEvent, MouseButton,
     MouseClickEvent, MouseDownEvent, MouseMoveEvent, MousePressureEvent, MouseUpEvent, Overflow,
     ParentElement, Pixels, Point, Position, PositionedBounds, Render, ScrollContainerContext,
-    ScrollWheelEvent, SharedString, Size, Style, StyleRefinement, Styled, Task, TooltipId,
-    TouchEvent, Visibility, Window, WindowControlArea, point, px, size,
+    ScrollWheelEvent, SharedString, Size, StickyState, StickyStateChangedEvent, Style,
+    StyleRefinement, Styled, Task, TooltipId, TouchEvent, Visibility, Window, WindowControlArea,
+    point, px, size,
 };
 use crate::{PinchEvent, RotateEvent};
 use collections::HashMap;
@@ -667,6 +668,23 @@ impl Interactivity {
         self.hover_listener = Some(Box::new(listener));
     }
 
+    /// Bind the given callback to sticky phase changes for this element.
+    ///
+    /// This requires an element id so the previous sticky phase can be retained across frames.
+    /// Use [`InteractiveElement::when_stuck`] for visual-only styling such as a drop shadow.
+    pub fn on_sticky_state_changed(
+        &mut self,
+        listener: impl Fn(&StickyStateChangedEvent, &mut Window, &mut App) + 'static,
+    ) where
+        Self: Sized,
+    {
+        debug_assert!(
+            self.sticky_state_changed_listener.is_none(),
+            "calling on_sticky_state_changed more than once on the same element is not supported"
+        );
+        self.sticky_state_changed_listener = Some(Box::new(listener));
+    }
+
     /// Use the given callback to construct a new tooltip view when the mouse hovers over this element.
     /// The imperative API equivalent to [`StatefulInteractiveElement::tooltip`].
     pub fn tooltip(&mut self, build_tooltip: impl Fn(&mut Window, &mut App) -> AnyView + 'static)
@@ -815,6 +833,19 @@ pub trait InteractiveElement: Sized {
             "hover style already set"
         );
         self.interactivity().hover_style = Some(Box::new(f(StyleRefinement::default())));
+        self
+    }
+
+    /// Apply the given visual style when a sticky element is actively stuck.
+    ///
+    /// This style is resolved after layout, so it should be used for paint-only changes such as
+    /// shadows, colors, and opacity.
+    fn when_stuck(mut self, f: impl FnOnce(StyleRefinement) -> StyleRefinement) -> Self {
+        debug_assert!(
+            self.interactivity().stuck_style.is_none(),
+            "stuck style already set"
+        );
+        self.interactivity().stuck_style = Some(Box::new(f(StyleRefinement::default())));
         self
     }
 
@@ -1406,6 +1437,21 @@ pub trait StatefulInteractiveElement: InteractiveElement {
         self
     }
 
+    /// Bind the given callback to sticky phase changes for this element.
+    ///
+    /// The element must have an id so GPUI can compare the current sticky phase with the previous
+    /// frame. Use [`InteractiveElement::when_stuck`] for visual-only styling such as a drop shadow.
+    fn on_sticky_state_changed(
+        mut self,
+        listener: impl Fn(&StickyStateChangedEvent, &mut Window, &mut App) + 'static,
+    ) -> Self
+    where
+        Self: Sized,
+    {
+        self.interactivity().on_sticky_state_changed(listener);
+        self
+    }
+
     /// Use the given callback to construct a new tooltip view when the mouse hovers over this element.
     /// The fluent API equivalent to [`Interactivity::tooltip`].
     fn tooltip(mut self, build_tooltip: impl Fn(&mut Window, &mut App) -> AnyView + 'static) -> Self
@@ -1456,6 +1502,9 @@ pub(crate) type ClickListener = Rc<dyn Fn(&ClickEvent, &mut Window, &mut App) + 
 
 pub(crate) type DragListener =
     Box<dyn Fn(&dyn Any, Point<Pixels>, &mut Window, &mut App) -> AnyView + 'static>;
+
+pub(crate) type StickyStateChangedListener =
+    Box<dyn Fn(&StickyStateChangedEvent, &mut Window, &mut App) + 'static>;
 
 type DropListener = Box<dyn Fn(&dyn Any, &mut Window, &mut App) + 'static>;
 
@@ -1547,6 +1596,7 @@ pub struct DivFrameState {
 pub struct DivPrepaintState {
     hitbox: Option<Hitbox>,
     positioned_bounds: PositionedBounds,
+    sticky_state: Option<StickyState>,
 }
 
 /// Interactivity state displayed an manipulated in the inspector.
@@ -1701,12 +1751,13 @@ impl Element for Div {
             content_size,
             window,
             cx,
-            |style, scroll_offset, hitbox, positioned_bounds, window, cx| {
+            |style, scroll_offset, hitbox, positioned_bounds, sticky_state, window, cx| {
                 // skip children
                 if style.display == Display::None {
                     return DivPrepaintState {
                         hitbox,
                         positioned_bounds,
+                        sticky_state,
                     };
                 }
 
@@ -1765,6 +1816,7 @@ impl Element for Div {
                 DivPrepaintState {
                     hitbox,
                     positioned_bounds,
+                    sticky_state,
                 }
             },
         )
@@ -1793,6 +1845,7 @@ impl Element for Div {
             .map(|offset| *offset.borrow())
             .unwrap_or_default();
         let bounds = prepaint.positioned_bounds.visual_bounds;
+        self.interactivity.current_sticky_state = prepaint.sticky_state;
 
         window.with_image_cache(image_cache, |window| {
             self.interactivity.paint(
@@ -1875,6 +1928,7 @@ pub struct Interactivity {
     pub(crate) focus_visible_style: Option<Box<StyleRefinement>>,
     pub(crate) hover_style: Option<Box<StyleRefinement>>,
     pub(crate) group_hover_style: Option<GroupStyle>,
+    pub(crate) stuck_style: Option<Box<StyleRefinement>>,
     pub(crate) active_style: Option<Box<StyleRefinement>>,
     pub(crate) group_active_style: Option<GroupStyle>,
     pub(crate) drag_over_styles: Vec<(
@@ -1900,6 +1954,7 @@ pub struct Interactivity {
     pub(crate) aux_click_listeners: Vec<ClickListener>,
     pub(crate) drag_listener: Option<(Arc<dyn Any>, DragListener)>,
     pub(crate) hover_listener: Option<Box<dyn Fn(&bool, &mut Window, &mut App)>>,
+    pub(crate) sticky_state_changed_listener: Option<StickyStateChangedListener>,
     pub(crate) tooltip_builder: Option<TooltipBuilder>,
     pub(crate) window_control: Option<WindowControlArea>,
     pub(crate) hitbox_behavior: HitboxBehavior,
@@ -1912,6 +1967,8 @@ pub struct Interactivity {
 
     #[cfg(any(test, feature = "test-support"))]
     pub(crate) debug_selector: Option<String>,
+
+    pub(crate) current_sticky_state: Option<StickyState>,
 }
 
 impl Interactivity {
@@ -1997,7 +2054,8 @@ impl Interactivity {
                     );
                 }
 
-                let style = self.compute_style_internal(None, element_state.as_mut(), window, cx);
+                let style =
+                    self.compute_style_internal(None, element_state.as_mut(), None, window, cx);
                 let layout_id = f(style, window, cx);
                 (layout_id, element_state)
             },
@@ -2018,6 +2076,7 @@ impl Interactivity {
             Point<Pixels>,
             Option<Hitbox>,
             PositionedBounds,
+            Option<StickyState>,
             &mut Window,
             &mut App,
         ) -> R,
@@ -2044,8 +2103,19 @@ impl Interactivity {
             |element_state, window| {
                 let mut element_state =
                     element_state.map(|element_state| element_state.unwrap_or_default());
-                let style = self.compute_style_internal(None, element_state.as_mut(), window, cx);
-                let positioned_bounds = window.resolve_positioned_bounds(&style, bounds);
+                let style =
+                    self.compute_style_internal(None, element_state.as_mut(), None, window, cx);
+                let (positioned_bounds, sticky_state) =
+                    window.resolve_positioned_bounds_and_sticky_state(&style, bounds);
+                self.current_sticky_state = sticky_state;
+                self.update_sticky_state(element_state.as_mut(), sticky_state, window, cx);
+                let style = self.compute_style_internal(
+                    None,
+                    element_state.as_mut(),
+                    sticky_state.as_ref(),
+                    window,
+                    cx,
+                );
                 let bounds = positioned_bounds.visual_bounds;
 
                 if let Some(element_state) = element_state.as_mut() {
@@ -2087,8 +2157,15 @@ impl Interactivity {
 
                                 let scroll_offset =
                                     self.clamp_scroll_position(bounds, &style, window, cx);
-                                let result =
-                                    f(&style, scroll_offset, hitbox, positioned_bounds, window, cx);
+                                let result = f(
+                                    &style,
+                                    scroll_offset,
+                                    hitbox,
+                                    positioned_bounds,
+                                    sticky_state,
+                                    window,
+                                    cx,
+                                );
                                 (result, element_state)
                             },
                         )
@@ -2213,7 +2290,13 @@ impl Interactivity {
                 let mut element_state =
                     element_state.map(|element_state| element_state.unwrap_or_default());
 
-                let style = self.compute_style_internal(hitbox, element_state.as_mut(), window, cx);
+                let style = self.compute_style_internal(
+                    hitbox,
+                    element_state.as_mut(),
+                    self.current_sticky_state.as_ref(),
+                    window,
+                    cx,
+                );
 
                 #[cfg(any(feature = "test-support", test))]
                 if let Some(debug_selector) = &self.debug_selector {
@@ -2995,7 +3078,13 @@ impl Interactivity {
         window.with_optional_element_state(global_id, |element_state, window| {
             let mut element_state =
                 element_state.map(|element_state| element_state.unwrap_or_default());
-            let style = self.compute_style_internal(hitbox, element_state.as_mut(), window, cx);
+            let style = self.compute_style_internal(
+                hitbox,
+                element_state.as_mut(),
+                self.current_sticky_state.as_ref(),
+                window,
+                cx,
+            );
             (style, element_state)
         })
     }
@@ -3005,11 +3094,19 @@ impl Interactivity {
         &self,
         hitbox: Option<&Hitbox>,
         element_state: Option<&mut InteractiveElementState>,
+        sticky_state: Option<&StickyState>,
         window: &mut Window,
         cx: &mut App,
     ) -> Style {
         let mut style = Style::default();
         style.refine(&self.base_style);
+
+        if let Some(sticky_state) = sticky_state
+            && sticky_state.is_stuck()
+            && let Some(stuck_style) = self.stuck_style.as_ref()
+        {
+            style.refine(stuck_style);
+        }
 
         if let Some(focus_handle) = self.tracked_focus_handle.as_ref() {
             if let Some(in_focus_style) = self.in_focus_style.as_ref()
@@ -3122,6 +3219,43 @@ impl Interactivity {
 
         style
     }
+
+    fn update_sticky_state(
+        &self,
+        element_state: Option<&mut InteractiveElementState>,
+        sticky_state: Option<StickyState>,
+        window: &mut Window,
+        cx: &mut App,
+    ) {
+        let Some(element_state) = element_state else {
+            debug_assert!(
+                self.sticky_state_changed_listener.is_none(),
+                "on_sticky_state_changed requires an element id"
+            );
+            return;
+        };
+
+        let Some(sticky_state) = sticky_state else {
+            element_state.sticky_state = None;
+            return;
+        };
+
+        let previous = element_state.sticky_state;
+        element_state.sticky_state = Some(sticky_state);
+
+        if previous.is_none_or(|previous| !previous.same_phase_as(sticky_state))
+            && let Some(listener) = self.sticky_state_changed_listener.as_ref()
+        {
+            listener(
+                &StickyStateChangedEvent {
+                    previous,
+                    current: sticky_state,
+                },
+                window,
+                cx,
+            );
+        }
+    }
 }
 
 /// The per-frame state of an interactive element. Used for tracking stateful interactions like clicks
@@ -3135,6 +3269,7 @@ pub struct InteractiveElementState {
     pub(crate) pending_mouse_down: Option<Rc<RefCell<Option<MouseDownEvent>>>>,
     pub(crate) scroll_offset: Option<Rc<RefCell<Point<Pixels>>>>,
     pub(crate) active_tooltip: Option<Rc<RefCell<Option<ActiveTooltip>>>>,
+    pub(crate) sticky_state: Option<StickyState>,
 }
 
 /// Whether or not the element or a group that contains it is clicked by the mouse.
@@ -3889,7 +4024,9 @@ impl ScrollHandle {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{AppContext as _, Context, InputEvent, MouseMoveEvent, TestAppContext};
+    use crate::{
+        AppContext as _, Context, InputEvent, MouseMoveEvent, StickyAxisState, TestAppContext,
+    };
     use std::rc::Weak;
 
     struct TestTooltipView;
@@ -4184,6 +4321,61 @@ mod tests {
         }
     }
 
+    struct StickyStateChangedOwner {
+        handle: ScrollHandle,
+        events: Rc<RefCell<Vec<StickyStateChangedEvent>>>,
+    }
+
+    impl Render for StickyStateChangedOwner {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            let events = self.events.clone();
+
+            div()
+                .id("sticky-state-scroll")
+                .w(px(100.))
+                .h(px(60.))
+                .overflow_y_scroll()
+                .track_scroll(&self.handle)
+                .child(
+                    div()
+                        .id("sticky-state-header")
+                        .sticky()
+                        .top(px(0.))
+                        .w(px(100.))
+                        .h(px(20.))
+                        .on_sticky_state_changed(move |event, _, _| {
+                            events.borrow_mut().push(*event);
+                        }),
+                )
+                .child(div().w(px(100.)).h(px(160.)))
+        }
+    }
+
+    struct StuckStyleOwner {
+        handle: ScrollHandle,
+    }
+
+    impl Render for StuckStyleOwner {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            div()
+                .id("stuck-style-scroll")
+                .w(px(100.))
+                .h(px(60.))
+                .overflow_y_scroll()
+                .track_scroll(&self.handle)
+                .child(
+                    div()
+                        .sticky()
+                        .top(px(0.))
+                        .w(px(100.))
+                        .h(px(20.))
+                        .bg(crate::white())
+                        .when_stuck(|style| style.shadow_sm()),
+                )
+                .child(div().w(px(100.)).h(px(160.)))
+        }
+    }
+
     struct FixedOverNormalZOrderOwner;
 
     impl Render for FixedOverNormalZOrderOwner {
@@ -4385,6 +4577,58 @@ mod tests {
         }
     }
 
+    struct FixedWithChildPaintOwner;
+
+    impl Render for FixedWithChildPaintOwner {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            div()
+                .fixed()
+                .top(px(12.))
+                .left(px(24.))
+                .w(px(80.))
+                .h(px(30.))
+                .bg(crate::green())
+                .child(
+                    div()
+                        .w(px(10.))
+                        .h(px(10.))
+                        .bg(crate::blue())
+                        .debug_selector(|| "fixed-painted-child".into()),
+                )
+        }
+    }
+
+    struct StickyWithChildPaintOwner {
+        handle: ScrollHandle,
+    }
+
+    impl Render for StickyWithChildPaintOwner {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            div()
+                .id("sticky-child-paint-scroll")
+                .w(px(100.))
+                .h(px(60.))
+                .overflow_y_scroll()
+                .track_scroll(&self.handle)
+                .child(
+                    div()
+                        .sticky()
+                        .top(px(0.))
+                        .w(px(100.))
+                        .h(px(20.))
+                        .bg(crate::green())
+                        .child(
+                            div()
+                                .w(px(10.))
+                                .h(px(10.))
+                                .bg(crate::blue())
+                                .debug_selector(|| "sticky-painted-child".into()),
+                        ),
+                )
+                .child(div().w(px(100.)).h(px(120.)))
+        }
+    }
+
     #[test]
     fn scroll_context_does_not_change_plain_scroll_handle_state() {
         let mut test_app = TestAppContext::single();
@@ -4460,6 +4704,50 @@ mod tests {
     }
 
     #[test]
+    fn fixed_div_child_quad_paints_at_parent_visual_bounds() {
+        let mut test_app = TestAppContext::single();
+        let window = test_app.add_window(|_, _| FixedWithChildPaintOwner);
+        let any_window = window.into();
+
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+            })
+            .unwrap();
+
+        test_app
+            .update_window(any_window, |_, window, _| {
+                let expected = Bounds::new(point(px(24.), px(12.)), size(px(10.), px(10.)));
+                assert_eq!(
+                    Some(expected),
+                    window
+                        .rendered_frame
+                        .debug_bounds
+                        .get("fixed-painted-child")
+                        .copied()
+                );
+
+                let expected_scaled = expected.scale(window.scale_factor());
+                assert!(
+                    window
+                        .rendered_frame
+                        .scene
+                        .quads
+                        .iter()
+                        .any(|quad| quad.background.solid == crate::blue()
+                            && quad.bounds == expected_scaled),
+                    "fixed child quad should paint at the fixed parent visual bounds"
+                );
+                assert!(
+                    quad_order_for_color(window, crate::blue())
+                        > quad_order_for_color(window, crate::green()),
+                    "fixed child content should paint above the fixed parent background"
+                );
+            })
+            .unwrap();
+    }
+
+    #[test]
     fn sticky_div_paint_uses_scrollport_visual_bounds() {
         let mut test_app = TestAppContext::single();
         let scroll_handle = ScrollHandle::new();
@@ -4486,6 +4774,105 @@ mod tests {
             Some(Bounds::new(Point::default(), size(px(100.), px(20.)))),
             sticky_bounds
         );
+    }
+
+    #[test]
+    fn sticky_state_changed_callback_fires_only_when_phase_changes() {
+        let mut test_app = TestAppContext::single();
+        let scroll_handle = ScrollHandle::new();
+        let events = Rc::new(RefCell::new(Vec::new()));
+        let window = test_app.add_window({
+            let handle = scroll_handle.clone();
+            let events = events.clone();
+            move |_, _| StickyStateChangedOwner { handle, events }
+        });
+        let any_window = window.into();
+
+        let mut draw = |test_app: &mut TestAppContext| {
+            test_app
+                .update_window(any_window, |_, window, cx| {
+                    window.draw(cx).clear();
+                })
+                .unwrap();
+        };
+
+        draw(&mut test_app);
+        {
+            let events = events.borrow();
+            assert_eq!(1, events.len());
+            assert_eq!(None, events[0].previous);
+            assert_eq!(StickyAxisState::Unstuck, events[0].current.y);
+            assert!(!events[0].current.is_stuck_y());
+        }
+
+        draw(&mut test_app);
+        assert_eq!(
+            1,
+            events.borrow().len(),
+            "unchanged sticky phase should not fire again"
+        );
+
+        scroll_handle.set_offset(point(px(0.), px(-40.)));
+        draw(&mut test_app);
+        {
+            let events = events.borrow();
+            assert_eq!(2, events.len());
+            assert_eq!(
+                Some(StickyAxisState::Unstuck),
+                events[1].previous.map(|previous| previous.y)
+            );
+            assert_eq!(StickyAxisState::StuckToStart, events[1].current.y);
+            assert!(events[1].current.is_stuck_y());
+        }
+
+        scroll_handle.set_offset(point(px(0.), px(-50.)));
+        draw(&mut test_app);
+        assert_eq!(
+            2,
+            events.borrow().len(),
+            "scrolling while already stuck should not fire"
+        );
+
+        scroll_handle.set_offset(Point::default());
+        draw(&mut test_app);
+        {
+            let events = events.borrow();
+            assert_eq!(3, events.len());
+            assert_eq!(
+                Some(StickyAxisState::StuckToStart),
+                events[2].previous.map(|previous| previous.y)
+            );
+            assert_eq!(StickyAxisState::Unstuck, events[2].current.y);
+        }
+    }
+
+    #[test]
+    fn when_stuck_applies_visual_style_only_while_stuck() {
+        let mut test_app = TestAppContext::single();
+        let scroll_handle = ScrollHandle::new();
+        let window = test_app.add_window({
+            let handle = scroll_handle.clone();
+            move |_, _| StuckStyleOwner { handle }
+        });
+        let any_window = window.into();
+
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+                assert_eq!(0, window.rendered_frame.scene.shadows.len());
+            })
+            .unwrap();
+
+        scroll_handle.set_offset(point(px(0.), px(-40.)));
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+                assert!(
+                    !window.rendered_frame.scene.shadows.is_empty(),
+                    "stuck style should add a shadow when sticky header is stuck"
+                );
+            })
+            .unwrap();
     }
 
     #[test]
@@ -4534,6 +4921,55 @@ mod tests {
             sticky_quad_painted,
             "sticky background quad should paint at the shifted scrollport top"
         );
+    }
+
+    #[test]
+    fn sticky_div_child_quad_paints_at_parent_visual_bounds() {
+        let mut test_app = TestAppContext::single();
+        let scroll_handle = ScrollHandle::new();
+        scroll_handle.set_offset(point(px(0.), px(-40.)));
+        let window = test_app.add_window({
+            let handle = scroll_handle.clone();
+            move |_, _| StickyWithChildPaintOwner { handle }
+        });
+        let any_window = window.into();
+
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+            })
+            .unwrap();
+
+        test_app
+            .update_window(any_window, |_, window, _| {
+                let expected = Bounds::new(Point::default(), size(px(10.), px(10.)));
+                assert_eq!(
+                    Some(expected),
+                    window
+                        .rendered_frame
+                        .debug_bounds
+                        .get("sticky-painted-child")
+                        .copied()
+                );
+
+                let expected_scaled = expected.scale(window.scale_factor());
+                assert!(
+                    window
+                        .rendered_frame
+                        .scene
+                        .quads
+                        .iter()
+                        .any(|quad| quad.background.solid == crate::blue()
+                            && quad.bounds == expected_scaled),
+                    "sticky child quad should paint at the sticky parent visual bounds"
+                );
+                assert!(
+                    quad_order_for_color(window, crate::blue())
+                        > quad_order_for_color(window, crate::green()),
+                    "sticky child content should paint above the sticky parent background"
+                );
+            })
+            .unwrap();
     }
 
     fn quad_order_for_color(window: &Window, color: crate::Hsla) -> u32 {

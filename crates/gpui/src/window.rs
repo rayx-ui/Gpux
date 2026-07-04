@@ -1289,6 +1289,82 @@ pub struct PositionedBounds {
     pub delta: Point<Pixels>,
 }
 
+/// The resolved sticky phase for one axis.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum StickyAxisState {
+    /// The element is in its normal layout position on this axis.
+    #[default]
+    Unstuck,
+    /// The element is stuck to the axis start edge, such as left or top.
+    StuckToStart,
+    /// The element is stuck to the axis end edge, such as right or bottom.
+    StuckToEnd,
+    /// The element reached the sticky containing block's start edge.
+    ReleasedAtStart,
+    /// The element reached the sticky containing block's end edge.
+    ReleasedAtEnd,
+}
+
+impl StickyAxisState {
+    /// Returns whether this axis is actively pinned to a scrollport edge.
+    pub fn is_stuck(self) -> bool {
+        matches!(self, Self::StuckToStart | Self::StuckToEnd)
+    }
+
+    /// Returns whether this axis has reached its containing block limit.
+    pub fn is_released(self) -> bool {
+        matches!(self, Self::ReleasedAtStart | Self::ReleasedAtEnd)
+    }
+}
+
+/// The resolved sticky state for an element.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct StickyState {
+    /// The horizontal sticky phase.
+    pub x: StickyAxisState,
+    /// The vertical sticky phase.
+    pub y: StickyAxisState,
+    /// The element's layout bounds before sticky adjustment.
+    pub layout_bounds: Bounds<Pixels>,
+    /// The element's visual bounds after sticky adjustment.
+    pub visual_bounds: Bounds<Pixels>,
+}
+
+impl StickyState {
+    /// Returns whether either axis is actively pinned to a scrollport edge.
+    pub fn is_stuck(self) -> bool {
+        self.is_stuck_x() || self.is_stuck_y()
+    }
+
+    /// Returns whether the horizontal axis is actively pinned.
+    pub fn is_stuck_x(self) -> bool {
+        self.x.is_stuck()
+    }
+
+    /// Returns whether the vertical axis is actively pinned.
+    pub fn is_stuck_y(self) -> bool {
+        self.y.is_stuck()
+    }
+
+    /// Returns whether either axis has reached its containing block limit.
+    pub fn is_released(self) -> bool {
+        self.x.is_released() || self.y.is_released()
+    }
+
+    pub(crate) fn same_phase_as(self, other: Self) -> bool {
+        self.x == other.x && self.y == other.y
+    }
+}
+
+/// Event sent when a sticky element transitions between sticky phases.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct StickyStateChangedEvent {
+    /// The previous sticky state. `None` means this is the first observed state.
+    pub previous: Option<StickyState>,
+    /// The current sticky state.
+    pub current: StickyState,
+}
+
 impl PositionedBounds {
     fn unchanged(layout_bounds: Bounds<Pixels>) -> Self {
         Self {
@@ -1332,6 +1408,7 @@ impl PositionedBounds {
         }
     }
 
+    #[cfg(test)]
     fn resolve_sticky_for_scroll_contexts(
         style: &Style,
         layout_bounds: Bounds<Pixels>,
@@ -1339,10 +1416,33 @@ impl PositionedBounds {
         vertical_scroll_context: Option<ScrollContainerContext>,
         rem_size: Pixels,
     ) -> Self {
+        Self::resolve_sticky_for_scroll_contexts_with_state(
+            style,
+            layout_bounds,
+            horizontal_scroll_context,
+            vertical_scroll_context,
+            rem_size,
+        )
+        .0
+    }
+
+    fn resolve_sticky_for_scroll_contexts_with_state(
+        style: &Style,
+        layout_bounds: Bounds<Pixels>,
+        horizontal_scroll_context: Option<ScrollContainerContext>,
+        vertical_scroll_context: Option<ScrollContainerContext>,
+        rem_size: Pixels,
+    ) -> (Self, StickyState) {
         let mut visual_origin = layout_bounds.origin;
+        let mut sticky_state = StickyState {
+            x: StickyAxisState::Unstuck,
+            y: StickyAxisState::Unstuck,
+            layout_bounds,
+            visual_bounds: layout_bounds,
+        };
 
         if let Some(context) = horizontal_scroll_context {
-            visual_origin.x = resolve_sticky_axis(
+            let resolved = resolve_sticky_axis(
                 layout_bounds.origin.x,
                 layout_bounds.size.width,
                 context.scrollport_bounds.left(),
@@ -1354,10 +1454,12 @@ impl PositionedBounds {
                 context.scrollport_bounds.size.width,
                 rem_size,
             );
+            visual_origin.x = resolved.origin;
+            sticky_state.x = resolved.state;
         }
 
         if let Some(context) = vertical_scroll_context {
-            visual_origin.y = resolve_sticky_axis(
+            let resolved = resolve_sticky_axis(
                 layout_bounds.origin.y,
                 layout_bounds.size.height,
                 context.scrollport_bounds.top(),
@@ -1369,14 +1471,18 @@ impl PositionedBounds {
                 context.scrollport_bounds.size.height,
                 rem_size,
             );
+            visual_origin.y = resolved.origin;
+            sticky_state.y = resolved.state;
         }
 
         let visual_bounds = Bounds::new(visual_origin, layout_bounds.size);
-        Self {
+        let positioned_bounds = Self {
             layout_bounds,
             visual_bounds,
             delta: visual_bounds.origin - layout_bounds.origin,
-        }
+        };
+        sticky_state.visual_bounds = visual_bounds;
+        (positioned_bounds, sticky_state)
     }
 
     #[cfg(test)]
@@ -1388,6 +1494,12 @@ impl PositionedBounds {
             }
         }
     }
+}
+
+#[derive(Clone, Copy)]
+struct ResolvedStickyAxis {
+    origin: Pixels,
+    state: StickyAxisState,
 }
 
 fn length_to_pixels(length: Length, base_size: Pixels, rem_size: Pixels) -> Option<Pixels> {
@@ -1408,28 +1520,54 @@ fn resolve_sticky_axis(
     end_inset: Length,
     inset_base_size: Pixels,
     rem_size: Pixels,
-) -> Pixels {
+) -> ResolvedStickyAxis {
     let start_inset = length_to_pixels(start_inset, inset_base_size, rem_size);
     let end_inset = length_to_pixels(end_inset, inset_base_size, rem_size);
 
     if start_inset.is_none() && end_inset.is_none() {
-        return layout_origin;
+        return ResolvedStickyAxis {
+            origin: layout_origin,
+            state: StickyAxisState::Unstuck,
+        };
     }
 
     let mut visual_origin = layout_origin;
+    let mut state = StickyAxisState::Unstuck;
     if let Some(start_inset) = start_inset {
-        visual_origin = visual_origin.max(scrollport_start + start_inset);
+        let stuck_origin = scrollport_start + start_inset;
+        if visual_origin < stuck_origin {
+            visual_origin = stuck_origin;
+            state = StickyAxisState::StuckToStart;
+        }
     }
     if let Some(end_inset) = end_inset {
-        visual_origin = visual_origin.min(scrollport_end - end_inset - layout_size);
+        let stuck_origin = scrollport_end - end_inset - layout_size;
+        if visual_origin > stuck_origin {
+            visual_origin = stuck_origin;
+            state = StickyAxisState::StuckToEnd;
+        }
     }
 
+    let unclamped_origin = visual_origin;
     let min_origin = content_start;
     let max_origin = content_end - layout_size;
     if min_origin <= max_origin {
-        visual_origin.clamp(min_origin, max_origin)
+        visual_origin = visual_origin.clamp(min_origin, max_origin);
     } else {
-        min_origin
+        visual_origin = min_origin;
+    }
+
+    if state.is_stuck() && visual_origin != unclamped_origin {
+        state = if visual_origin == min_origin {
+            StickyAxisState::ReleasedAtStart
+        } else {
+            StickyAxisState::ReleasedAtEnd
+        };
+    }
+
+    ResolvedStickyAxis {
+        origin: visual_origin,
+        state,
     }
 }
 
@@ -3827,25 +3965,34 @@ impl Window {
         self.scroll_container_context_stack.nearest(axis)
     }
 
-    pub(crate) fn resolve_positioned_bounds(
+    pub(crate) fn resolve_positioned_bounds_and_sticky_state(
         &self,
         style: &Style,
         layout_bounds: Bounds<Pixels>,
-    ) -> PositionedBounds {
+    ) -> (PositionedBounds, Option<StickyState>) {
         match style.position {
-            Position::Relative | Position::Absolute => PositionedBounds::unchanged(layout_bounds),
-            Position::Sticky => PositionedBounds::resolve_sticky_for_scroll_contexts(
-                style,
-                layout_bounds,
-                self.nearest_scroll_container_context(ScrollAxis::Horizontal),
-                self.nearest_scroll_container_context(ScrollAxis::Vertical),
-                self.rem_size(),
-            ),
-            Position::Fixed => PositionedBounds::resolve_fixed_for_viewport(
-                style,
-                layout_bounds,
-                Bounds::new(Point::default(), self.viewport_size()),
-                self.rem_size(),
+            Position::Relative | Position::Absolute => {
+                (PositionedBounds::unchanged(layout_bounds), None)
+            }
+            Position::Sticky => {
+                let (positioned_bounds, sticky_state) =
+                    PositionedBounds::resolve_sticky_for_scroll_contexts_with_state(
+                        style,
+                        layout_bounds,
+                        self.nearest_scroll_container_context(ScrollAxis::Horizontal),
+                        self.nearest_scroll_container_context(ScrollAxis::Vertical),
+                        self.rem_size(),
+                    );
+                (positioned_bounds, Some(sticky_state))
+            }
+            Position::Fixed => (
+                PositionedBounds::resolve_fixed_for_viewport(
+                    style,
+                    layout_bounds,
+                    Bounds::new(Point::default(), self.viewport_size()),
+                    self.rem_size(),
+                ),
+                None,
             ),
         }
     }
@@ -7246,6 +7393,36 @@ mod positioning_tests {
     }
 
     #[test]
+    fn sticky_positioned_bounds_report_axis_state() {
+        let scroll_context = scroll_context(
+            Bounds::new(Point::default(), size(px(100.), px(100.))),
+            Bounds::new(point(px(0.), px(-60.)), size(px(100.), px(300.))),
+            point(Overflow::Hidden, Overflow::Scroll),
+        );
+        let mut style = Style {
+            position: Position::Sticky,
+            ..Default::default()
+        };
+        style.inset.top = px(8.).into();
+
+        let layout_bounds = Bounds::new(point(px(12.), px(-20.)), size(px(30.), px(20.)));
+        let (positioned, sticky_state) =
+            PositionedBounds::resolve_sticky_for_scroll_contexts_with_state(
+                &style,
+                layout_bounds,
+                None,
+                Some(scroll_context),
+                px(16.),
+            );
+
+        assert_eq!(positioned.visual_bounds, sticky_state.visual_bounds);
+        assert_eq!(StickyAxisState::Unstuck, sticky_state.x);
+        assert_eq!(StickyAxisState::StuckToStart, sticky_state.y);
+        assert!(sticky_state.is_stuck_y());
+        assert!(sticky_state.is_stuck());
+    }
+
+    #[test]
     fn sticky_positioned_bounds_resolve_left_stuck_and_unstuck_against_scrollport() {
         let scroll_context = scroll_context(
             Bounds::new(Point::default(), size(px(100.), px(100.))),
@@ -7440,6 +7617,17 @@ mod positioning_tests {
             released.visual_bounds
         );
         assert_eq!(point(px(0.), px(200.)), released.delta);
+
+        let (_, sticky_state) = PositionedBounds::resolve_sticky_for_scroll_contexts_with_state(
+            &style,
+            layout_bounds,
+            None,
+            Some(scroll_context),
+            px(16.),
+        );
+        assert_eq!(StickyAxisState::ReleasedAtEnd, sticky_state.y);
+        assert!(!sticky_state.is_stuck_y());
+        assert!(sticky_state.is_released());
     }
 }
 

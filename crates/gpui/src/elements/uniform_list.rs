@@ -413,7 +413,7 @@ impl Element for UniformList {
             content_size,
             window,
             cx,
-            |_style, mut scroll_offset, hitbox, _, window, cx| {
+            |_style, mut scroll_offset, hitbox, _, _, window, cx| {
                 let y_flipped = if let Some(scroll_handle) = &self.scroll_handle {
                     scroll_handle.try_y_flipped().unwrap_or(false)
                 } else {

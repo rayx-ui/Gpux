@@ -94,7 +94,7 @@ impl Element for Svg {
             bounds.size,
             window,
             cx,
-            |_, _, hitbox, _, _, _| hitbox,
+            |_, _, hitbox, _, _, _, _| hitbox,
         )
     }
 

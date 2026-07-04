@@ -452,7 +452,7 @@ impl Element for Img {
             bounds.size,
             window,
             cx,
-            |_, _, hitbox, _, window, cx| {
+            |_, _, hitbox, _, _, window, cx| {
                 if let Some(replacement) = &mut request_layout.replacement {
                     replacement.prepaint(window, cx);
                 }

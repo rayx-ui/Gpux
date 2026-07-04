@@ -30,7 +30,7 @@ pub struct Scene {
     pub(crate) paint_operations: Vec<PaintOperation>,
     primitive_bounds: BoundsTree<ScaledPixels>,
     positioned_primitive_bounds: BoundsTree<ScaledPixels>,
-    layer_stack: Vec<DrawOrder>,
+    layer_stack: Vec<LayerOrder>,
     pub shadows: Vec<Shadow>,
     pub quads: Vec<Quad>,
     pub html_islands: Vec<HtmlIslandPrimitive>,
@@ -41,6 +41,12 @@ pub struct Scene {
     pub subpixel_sprites: Vec<SubpixelSprite>,
     pub polychrome_sprites: Vec<PolychromeSprite>,
     pub surfaces: Vec<PaintSurface>,
+}
+
+#[derive(Clone, Copy)]
+enum LayerOrder {
+    Fixed(DrawOrder),
+    Positioned,
 }
 
 #[expect(missing_docs)]
@@ -67,15 +73,18 @@ impl Scene {
     }
 
     pub fn push_layer(&mut self, bounds: Bounds<ScaledPixels>) {
-        let order = self.primitive_bounds.insert(bounds);
-        self.layer_stack.push(order);
+        let order = if matches!(self.layer_stack.last(), Some(LayerOrder::Positioned)) {
+            POSITIONED_DRAW_ORDER_BASE + self.positioned_primitive_bounds.insert(bounds)
+        } else {
+            self.primitive_bounds.insert(bounds)
+        };
+        self.layer_stack.push(LayerOrder::Fixed(order));
         self.paint_operations
             .push(PaintOperation::StartLayer(bounds));
     }
 
     pub fn push_positioned_layer(&mut self, bounds: Bounds<ScaledPixels>) {
-        let order = POSITIONED_DRAW_ORDER_BASE + self.positioned_primitive_bounds.insert(bounds);
-        self.layer_stack.push(order);
+        self.layer_stack.push(LayerOrder::Positioned);
         self.paint_operations
             .push(PaintOperation::StartPositionedLayer(bounds));
     }
@@ -95,11 +104,13 @@ impl Scene {
             return;
         }
 
-        let order = self
-            .layer_stack
-            .last()
-            .copied()
-            .unwrap_or_else(|| self.primitive_bounds.insert(clipped_bounds));
+        let order = match self.layer_stack.last().copied() {
+            Some(LayerOrder::Fixed(order)) => order,
+            Some(LayerOrder::Positioned) => {
+                POSITIONED_DRAW_ORDER_BASE + self.positioned_primitive_bounds.insert(clipped_bounds)
+            }
+            None => self.primitive_bounds.insert(clipped_bounds),
+        };
         match &mut primitive {
             Primitive::Shadow(shadow) => {
                 shadow.order = order;
