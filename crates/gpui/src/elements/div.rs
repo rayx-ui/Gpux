@@ -2214,11 +2214,6 @@ impl Interactivity {
         window: &mut Window,
         _cx: &mut App,
     ) -> Point<Pixels> {
-        fn round_to_two_decimals(pixels: Pixels) -> Pixels {
-            const ROUNDING_FACTOR: f32 = 100.0;
-            (pixels * ROUNDING_FACTOR).round() / ROUNDING_FACTOR
-        }
-
         if let Some(scroll_offset) = self.scroll_offset.as_ref() {
             let mut scroll_to_bottom = false;
             let mut tracked_scroll_handle = self
@@ -2230,19 +2225,12 @@ impl Interactivity {
                 scroll_to_bottom = mem::take(&mut scroll_handle_state.scroll_to_bottom);
             }
 
-            let rem_size = window.rem_size();
-            let padding = style.padding.to_pixels(bounds.size.into(), rem_size);
-            let padding_size = size(padding.left + padding.right, padding.top + padding.bottom);
-            // The floating point values produced by Taffy and ours often vary
-            // slightly after ~5 decimal places. This can lead to cases where after
-            // subtracting these, the container becomes scrollable for less than
-            // 0.00000x pixels. As we generally don't benefit from a precision that
-            // high for the maximum scroll, we round the scroll max to 2 decimal
-            // places here.
-            let padded_content_size = self.content_size + padding_size;
-            let scroll_max = Point::from(padded_content_size - bounds.size)
-                .map(round_to_two_decimals)
-                .max(&Default::default());
+            let scroll_max = Self::scroll_max_for_bounds(
+                self.content_size,
+                bounds.size,
+                style,
+                window.rem_size(),
+            );
             // Clamp scroll offset in case scroll max is smaller now (e.g., if children
             // were removed or the bounds became larger).
             let mut scroll_offset = scroll_offset.borrow_mut();
@@ -2263,6 +2251,31 @@ impl Interactivity {
         } else {
             Point::default()
         }
+    }
+
+    fn scroll_max_for_bounds(
+        content_size: Size<Pixels>,
+        bounds_size: Size<Pixels>,
+        style: &Style,
+        rem_size: Pixels,
+    ) -> Point<Pixels> {
+        fn round_to_two_decimals(pixels: Pixels) -> Pixels {
+            const ROUNDING_FACTOR: f32 = 100.0;
+            (pixels * ROUNDING_FACTOR).round() / ROUNDING_FACTOR
+        }
+
+        let padding = style.padding.to_pixels(bounds_size.into(), rem_size);
+        let padding_size = size(padding.left + padding.right, padding.top + padding.bottom);
+        // The floating point values produced by Taffy and ours often vary
+        // slightly after ~5 decimal places. This can lead to cases where after
+        // subtracting these, the container becomes scrollable for less than
+        // 0.00000x pixels. As we generally don't benefit from a precision that
+        // high for the maximum scroll, we round the scroll max to 2 decimal
+        // places here.
+        let padded_content_size = content_size + padding_size;
+        Point::from(padded_content_size - bounds_size)
+            .map(round_to_two_decimals)
+            .max(&Default::default())
     }
 
     /// Paint this element according to this interactivity state's configured styles
@@ -2357,14 +2370,14 @@ impl Interactivity {
                                                     );
                                                 }
 
+                                                self.paint_scroll_listener(
+                                                    hitbox, &style, window, cx,
+                                                );
                                                 self.paint_mouse_listeners(
                                                     hitbox,
                                                     element_state.as_mut(),
                                                     window,
                                                     cx,
-                                                );
-                                                self.paint_scroll_listener(
-                                                    hitbox, &style, window, cx,
                                                 );
                                             }
 
@@ -3025,6 +3038,12 @@ impl Interactivity {
             let overflow = style.overflow;
             let allow_concurrent_scroll = style.allow_concurrent_scroll;
             let restrict_scroll_to_axis = style.restrict_scroll_to_axis;
+            let scroll_max = Self::scroll_max_for_bounds(
+                self.content_size,
+                hitbox.bounds.size,
+                style,
+                window.rem_size(),
+            );
             let line_height = window.line_height();
             let hitbox = hitbox.clone();
             let current_view = window.current_view();
@@ -3057,10 +3076,20 @@ impl Interactivity {
                             delta_x = Pixels::ZERO;
                         }
                     }
-                    scroll_offset.y += delta_y;
-                    scroll_offset.x += delta_x;
-                    if *scroll_offset != old_scroll_offset {
+                    let mut new_scroll_offset = old_scroll_offset;
+                    if overflow.x == Overflow::Scroll {
+                        new_scroll_offset.x =
+                            (new_scroll_offset.x + delta_x).clamp(-scroll_max.x, px(0.));
+                    }
+                    if overflow.y == Overflow::Scroll {
+                        new_scroll_offset.y =
+                            (new_scroll_offset.y + delta_y).clamp(-scroll_max.y, px(0.));
+                    }
+
+                    if new_scroll_offset != old_scroll_offset {
+                        *scroll_offset = new_scroll_offset;
                         cx.notify(current_view);
+                        cx.stop_propagation();
                     }
                 }
             });
@@ -5311,6 +5340,74 @@ mod tests {
             Some(Bounds::new(point(px(0.), px(30.)), size(px(100.), px(20.)))),
             sticky_bounds
         );
+    }
+
+    #[test]
+    fn nested_scroll_wheel_consumes_delta_before_parent_until_inner_edge() {
+        let mut test_app = TestAppContext::single();
+        let outer_handle = ScrollHandle::new();
+        let inner_handle = ScrollHandle::new();
+        let window = test_app.add_window({
+            let outer_handle = outer_handle.clone();
+            let inner_handle = inner_handle.clone();
+            move |_, _| NestedStickyOwner {
+                outer_handle,
+                inner_handle,
+            }
+        });
+        let any_window = window.into();
+
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+            })
+            .unwrap();
+
+        dispatch_scroll_wheel(&mut test_app, any_window, point(px(50.), px(50.)), px(-40.));
+        assert_eq!(point(px(0.), px(-40.)), inner_handle.offset());
+        assert_eq!(Point::default(), outer_handle.offset());
+
+        dispatch_scroll_wheel(
+            &mut test_app,
+            any_window,
+            point(px(50.), px(50.)),
+            px(-200.),
+        );
+        assert_eq!(point(px(0.), px(-100.)), inner_handle.offset());
+        assert_eq!(Point::default(), outer_handle.offset());
+
+        dispatch_scroll_wheel(&mut test_app, any_window, point(px(50.), px(50.)), px(-40.));
+        assert_eq!(point(px(0.), px(-100.)), inner_handle.offset());
+        assert_eq!(point(px(0.), px(-30.)), outer_handle.offset());
+    }
+
+    fn dispatch_scroll_wheel(
+        test_app: &mut TestAppContext,
+        window: crate::AnyWindowHandle,
+        position: Point<Pixels>,
+        delta_y: Pixels,
+    ) {
+        test_app
+            .update_window(window, |_, window, cx| {
+                window.dispatch_event(
+                    crate::ScrollWheelEvent {
+                        position,
+                        delta: crate::ScrollDelta::Pixels(point(px(0.), delta_y)),
+                        modifiers: Default::default(),
+                        touch_phase: crate::TouchPhase::Moved,
+                        scroll_source: crate::ScrollWheelSource::PrecisionWheel,
+                        scroll_phase: crate::ScrollWheelPhase::Moved,
+                        precise_delta: true,
+                        native_momentum_phase: None,
+                        release_velocity: None,
+                        timestamp: Some(crate::Instant::now()),
+                    }
+                    .to_platform_input(),
+                    cx,
+                );
+            })
+            .unwrap();
+        test_app.run_until_parked();
     }
 
     #[test]
