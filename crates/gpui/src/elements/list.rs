@@ -242,6 +242,7 @@ struct LayoutItemsResponse {
 struct ItemLayout {
     index: usize,
     element: AnyElement,
+    sticky_stack_offset: Option<Pixels>,
 }
 
 /// Frame state used by the [List] element after layout.
@@ -1095,11 +1096,20 @@ impl StateInner {
         start.height
     }
 
-    fn active_sticky_item_indices(&self, scroll_top: &ListOffset) -> Vec<usize> {
-        let mut active_by_level: Vec<Option<usize>> = Vec::new();
+    fn item_height(&self, item_ix: usize) -> Option<Pixels> {
+        let mut cursor = self.items.cursor::<Count>(());
+        cursor.seek(&Count(item_ix), Bias::Right);
+        cursor
+            .item()
+            .and_then(|item| item.size_hint().map(|size| size.height))
+    }
+
+    fn active_sticky_items(&self, scroll_top: &ListOffset) -> Vec<ListStickyItem> {
+        let mut active_by_level: Vec<Option<ListStickyItem>> = Vec::new();
         for item in self
             .sticky_items
             .iter()
+            .copied()
             .take_while(|item| item.index < scroll_top.item_ix)
         {
             let level = item.level as usize;
@@ -1107,17 +1117,32 @@ impl StateInner {
             while active_by_level.len() < level {
                 active_by_level.push(None);
             }
-            active_by_level.push(Some(item.index));
+            active_by_level.push(Some(item));
         }
 
         let mut stack = Vec::new();
-        for active_index in active_by_level {
-            let Some(active_index) = active_index else {
+        for active_item in active_by_level {
+            let Some(active_item) = active_item else {
                 break;
             };
-            stack.push(active_index);
+            stack.push(active_item);
         }
         stack
+    }
+
+    #[cfg(test)]
+    fn active_sticky_item_indices(&self, scroll_top: &ListOffset) -> Vec<usize> {
+        self.active_sticky_items(scroll_top)
+            .into_iter()
+            .map(|item| item.index)
+            .collect()
+    }
+
+    fn sticky_item(&self, item_ix: usize) -> Option<ListStickyItem> {
+        self.sticky_items
+            .binary_search_by_key(&item_ix, |item| item.index)
+            .ok()
+            .map(|ix| self.sticky_items[ix])
     }
 
     fn layout_all_items(
@@ -1244,6 +1269,7 @@ impl StateInner {
                     item_layouts.push_back(ItemLayout {
                         index: item_index,
                         element,
+                        sticky_stack_offset: None,
                     });
                     if item.contains_focused(window, cx) {
                         rendered_focused_item = true;
@@ -1282,6 +1308,7 @@ impl StateInner {
                     item_layouts.push_front(ItemLayout {
                         index: item_index,
                         element,
+                        sticky_stack_offset: None,
                     });
                     if item.contains_focused(window, cx) {
                         rendered_focused_item = true;
@@ -1369,6 +1396,7 @@ impl StateInner {
                     item_layouts.push_back(ItemLayout {
                         index: item_index,
                         element,
+                        sticky_stack_offset: None,
                     });
                     break;
                 }
@@ -1376,18 +1404,61 @@ impl StateInner {
             }
         }
 
-        for item_index in self.active_sticky_item_indices(&scroll_top) {
-            if item_layouts.iter().any(|item| item.index == item_index) {
-                continue;
+        let active_sticky_items = self.active_sticky_items(&scroll_top);
+        let mut active_sticky_stack_offsets = vec![Pixels::ZERO];
+        let mut active_sticky_stack_offset = Pixels::ZERO;
+        for sticky_item in active_sticky_items {
+            let item_index = sticky_item.index;
+            let stack_offset = active_sticky_stack_offset;
+            let item_height;
+            if let Some(item) = item_layouts
+                .iter_mut()
+                .find(|item| item.index == item_index)
+            {
+                item.sticky_stack_offset = Some(stack_offset);
+                item_height = self.item_height(item_index).unwrap_or(px(0.));
+            } else {
+                let mut element = render_item(item_index, window, cx);
+                let element_size = element.layout_as_root(available_item_space, window, cx);
+                item_layouts.push_back(ItemLayout {
+                    index: item_index,
+                    element,
+                    sticky_stack_offset: Some(stack_offset),
+                });
+                item_height = element_size.height;
             }
 
-            let mut element = render_item(item_index, window, cx);
-            element.layout_as_root(available_item_space, window, cx);
-            item_layouts.push_back(ItemLayout {
-                index: item_index,
-                element,
-            });
+            active_sticky_stack_offset += item_height;
+            let next_level = sticky_item.level as usize + 1;
+            if active_sticky_stack_offsets.len() <= next_level {
+                active_sticky_stack_offsets.resize(next_level + 1, active_sticky_stack_offset);
+            }
+            active_sticky_stack_offsets[next_level] = active_sticky_stack_offset;
         }
+
+        let scroll_top_pixels = self.scroll_top(&scroll_top);
+        let mut ordinary_items = VecDeque::new();
+        let mut incoming_sticky_items = VecDeque::new();
+        while let Some(mut item) = item_layouts.pop_front() {
+            let incoming_sticky_item = self
+                .sticky_item(item.index)
+                .filter(|sticky_item| sticky_item.index >= scroll_top.item_ix);
+            if let Some(sticky_item) = incoming_sticky_item {
+                let target_offset = active_sticky_stack_offsets
+                    .get(sticky_item.level as usize)
+                    .copied()
+                    .unwrap_or(Pixels::ZERO);
+                let normal_offset = self.item_top(item.index) - scroll_top_pixels;
+                if normal_offset < target_offset {
+                    item.sticky_stack_offset = Some(target_offset);
+                }
+                incoming_sticky_items.push_back(item);
+            } else {
+                ordinary_items.push_back(item);
+            }
+        }
+        ordinary_items.append(&mut incoming_sticky_items);
+        item_layouts = ordinary_items;
 
         LayoutItemsResponse {
             max_item_width,
@@ -1434,8 +1505,9 @@ impl StateInner {
                     bounds.size.width,
                     self.items.summary().height + padding.top + padding.bottom,
                 );
+                let scrollport_bounds = bounds.intersect(&window.content_mask().bounds);
                 let scroll_context = ScrollContainerContext {
-                    scrollport_bounds: bounds,
+                    scrollport_bounds,
                     content_bounds: Bounds::new(bounds.origin + scroll_offset, content_size),
                     scroll_offset,
                     overflow: point(Overflow::Hidden, Overflow::Scroll),
@@ -1446,7 +1518,11 @@ impl StateInner {
                     for item in &mut layout_response.item_layouts {
                         let item_origin = point(
                             bounds.origin.x,
-                            bounds.origin.y + padding.top + self.item_top(item.index) - scroll_top,
+                            bounds.origin.y
+                                + padding.top
+                                + item
+                                    .sticky_stack_offset
+                                    .unwrap_or_else(|| self.item_top(item.index) - scroll_top),
                         );
                         window.with_content_mask(Some(ContentMask { bounds }), |window| {
                             item.element.prepaint_at(item_origin, window, cx);
@@ -1889,14 +1965,8 @@ mod test {
 
     #[test]
     fn active_sticky_item_indices_stack_nested_levels() {
-        let state =
-            ListState::new(40, crate::ListAlignment::Top, px(0.)).with_sticky_item_levels([
-                (0, 0),
-                (8, 1),
-                (16, 1),
-                (24, 0),
-                (32, 1),
-            ]);
+        let state = ListState::new(40, crate::ListAlignment::Top, px(0.))
+            .with_sticky_item_levels([(0, 0), (8, 1), (16, 1), (24, 0), (32, 1)]);
 
         let stack = state
             .0
@@ -1919,14 +1989,8 @@ mod test {
 
     #[test]
     fn active_sticky_item_indices_replace_parent_and_drop_descendants() {
-        let state =
-            ListState::new(48, crate::ListAlignment::Top, px(0.)).with_sticky_item_levels([
-                (0, 0),
-                (8, 1),
-                (16, 2),
-                (24, 0),
-                (32, 1),
-            ]);
+        let state = ListState::new(48, crate::ListAlignment::Top, px(0.))
+            .with_sticky_item_levels([(0, 0), (8, 1), (16, 2), (24, 0), (32, 1)]);
 
         let stack = state
             .0
@@ -2063,6 +2127,82 @@ mod test {
         assert_eq!(
             Some(Bounds::new(Point::default(), size(px(100.), px(20.)))),
             sticky_bounds
+        );
+    }
+
+    #[test]
+    fn nested_sticky_candidate_rows_stack_in_list() {
+        struct NestedStickyCandidateListView {
+            state: ListState,
+        }
+
+        impl Render for NestedStickyCandidateListView {
+            fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+                list(self.state.clone(), |ix, _, _| {
+                    let row = div().w(px(100.)).h(px(20.));
+                    match ix {
+                        0 => row
+                            .sticky()
+                            .top(px(0.))
+                            .debug_selector(|| "list-sticky-parent".into())
+                            .into_any(),
+                        8 => row
+                            .sticky()
+                            .top(px(20.))
+                            .debug_selector(|| "list-sticky-child".into())
+                            .into_any(),
+                        _ => row.into_any(),
+                    }
+                })
+                .w(px(100.))
+                .h(px(100.))
+            }
+        }
+
+        let mut test_app = TestAppContext::single();
+        let state =
+            ListState::new(20, crate::ListAlignment::Top, px(0.)).with_item_height_hint(px(20.));
+        state.set_sticky_item_levels([(0, 0), (8, 1)]);
+        state.scroll_to(gpux::ListOffset {
+            item_ix: 12,
+            offset_in_item: px(0.),
+        });
+        let window = test_app.add_window({
+            let state = state.clone();
+            move |_, _| NestedStickyCandidateListView { state }
+        });
+        let any_window = window.into();
+
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+            })
+            .unwrap();
+
+        let (parent_bounds, child_bounds) = test_app
+            .update_window(any_window, |_, window, _| {
+                (
+                    window
+                        .rendered_frame
+                        .debug_bounds
+                        .get("list-sticky-parent")
+                        .copied(),
+                    window
+                        .rendered_frame
+                        .debug_bounds
+                        .get("list-sticky-child")
+                        .copied(),
+                )
+            })
+            .unwrap();
+
+        assert_eq!(
+            Some(Bounds::new(Point::default(), size(px(100.), px(20.)))),
+            parent_bounds
+        );
+        assert_eq!(
+            Some(Bounds::new(point(px(0.), px(20.)), size(px(100.), px(20.)))),
+            child_bounds
         );
     }
 
