@@ -55,6 +55,12 @@ where
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct UniformListStickyItem {
+    index: usize,
+    level: u16,
+}
+
 /// A list element for efficiently laying out and displaying a list of uniform-height elements.
 pub struct UniformList {
     item_count: usize,
@@ -67,7 +73,7 @@ pub struct UniformList {
     scroll_handle: Option<UniformListScrollHandle>,
     sizing_behavior: ListSizingBehavior,
     horizontal_sizing_behavior: ListHorizontalSizingBehavior,
-    sticky_items: Vec<usize>,
+    sticky_items: Vec<UniformListStickyItem>,
 }
 
 /// Frame state used by the [UniformList].
@@ -508,17 +514,17 @@ impl Element for UniformList {
 
                     let candidate_indices =
                         Self::active_sticky_item_indices(&sticky_items, &visible_range);
-                    let mut candidate_items = SmallVec::<[(usize, AnyElement); 4]>::new();
+                    let mut candidate_items = SmallVec::<[(AnyElement, usize); 4]>::new();
                     if !y_flipped {
                         for ix in candidate_indices {
                             let mut items = (self.render_items)(ix..ix + 1, window, cx);
                             if let Some(item) = items.pop() {
-                                candidate_items.push((ix, item));
+                                candidate_items.push((item, ix));
                             }
                         }
                     }
 
-                    let mut rendered_items = if y_flipped {
+                    let rendered_visible_items = if y_flipped {
                         let flipped_range = self.item_count.saturating_sub(visible_range.end)
                             ..self.item_count.saturating_sub(visible_range.start);
                         let mut items = (self.render_items)(flipped_range, window, cx);
@@ -533,7 +539,17 @@ impl Element for UniformList {
                             .zip(visible_range.clone())
                             .collect::<SmallVec<[(AnyElement, usize); 64]>>()
                     };
-                    rendered_items.extend(candidate_items.into_iter().map(|(ix, item)| (item, ix)));
+                    let mut rendered_items = SmallVec::<[(AnyElement, usize); 64]>::new();
+                    let mut incoming_sticky_items = SmallVec::<[(AnyElement, usize); 8]>::new();
+                    for (item, ix) in rendered_visible_items {
+                        if Self::is_sticky_item_index(&sticky_items, ix) {
+                            incoming_sticky_items.push((item, ix));
+                        } else {
+                            rendered_items.push((item, ix));
+                        }
+                    }
+                    rendered_items.extend(candidate_items);
+                    rendered_items.extend(incoming_sticky_items);
 
                     let scroll_context = ScrollContainerContext {
                         scrollport_bounds: bounds,
@@ -728,23 +744,57 @@ impl UniformList {
         self.sticky_items = indices
             .into_iter()
             .filter(|ix| *ix < self.item_count)
+            .map(|index| UniformListStickyItem { index, level: 0 })
             .collect();
-        self.sticky_items.sort_unstable();
-        self.sticky_items.dedup();
+        self.sticky_items.sort_unstable_by_key(|item| item.index);
+        self.sticky_items.dedup_by_key(|item| item.index);
+        self
+    }
+
+    /// Adds sticky item indices and their nesting levels.
+    pub fn sticky_item_levels(mut self, items: impl IntoIterator<Item = (usize, u16)>) -> Self {
+        self.sticky_items = items
+            .into_iter()
+            .filter(|(index, _)| *index < self.item_count)
+            .map(|(index, level)| UniformListStickyItem { index, level })
+            .collect();
+        self.sticky_items
+            .sort_unstable_by_key(|item| (item.index, item.level));
+        self.sticky_items.dedup_by_key(|item| item.index);
         self
     }
 
     fn active_sticky_item_indices(
-        sticky_items: &[usize],
+        sticky_items: &[UniformListStickyItem],
         visible_range: &Range<usize>,
     ) -> SmallVec<[usize; 4]> {
-        sticky_items
+        let mut active_by_level: Vec<Option<usize>> = Vec::new();
+        for item in sticky_items
             .iter()
-            .copied()
-            .take_while(|ix| *ix < visible_range.start)
-            .last()
-            .into_iter()
-            .collect()
+            .take_while(|item| item.index < visible_range.start)
+        {
+            let level = item.level as usize;
+            active_by_level.truncate(level);
+            while active_by_level.len() < level {
+                active_by_level.push(None);
+            }
+            active_by_level.push(Some(item.index));
+        }
+
+        let mut stack = SmallVec::<[usize; 4]>::new();
+        for active_index in active_by_level {
+            let Some(active_index) = active_index else {
+                break;
+            };
+            stack.push(active_index);
+        }
+        stack
+    }
+
+    fn is_sticky_item_index(sticky_items: &[UniformListStickyItem], index: usize) -> bool {
+        sticky_items
+            .binary_search_by_key(&index, |item| item.index)
+            .is_ok()
     }
 
     fn measure_item(
@@ -818,6 +868,45 @@ impl InteractiveElement for UniformList {
 #[cfg(test)]
 mod test {
     use crate::TestAppContext;
+
+    use super::{UniformList, UniformListStickyItem};
+
+    #[test]
+    fn active_sticky_item_indices_stack_nested_levels() {
+        let sticky_items = [
+            UniformListStickyItem { index: 0, level: 0 },
+            UniformListStickyItem { index: 8, level: 1 },
+            UniformListStickyItem {
+                index: 16,
+                level: 1,
+            },
+            UniformListStickyItem {
+                index: 24,
+                level: 0,
+            },
+        ];
+
+        let stack = UniformList::active_sticky_item_indices(&sticky_items, &(10..18));
+        assert_eq!(stack.as_slice(), &[0, 8]);
+
+        let stack = UniformList::active_sticky_item_indices(&sticky_items, &(20..28));
+        assert_eq!(stack.as_slice(), &[0, 16]);
+    }
+
+    #[test]
+    fn active_sticky_item_indices_replaces_parent_and_drops_old_descendants() {
+        let sticky_items = [
+            UniformListStickyItem { index: 0, level: 0 },
+            UniformListStickyItem { index: 8, level: 1 },
+            UniformListStickyItem {
+                index: 24,
+                level: 0,
+            },
+        ];
+
+        let stack = UniformList::active_sticky_item_indices(&sticky_items, &(30..34));
+        assert_eq!(stack.as_slice(), &[24]);
+    }
 
     #[test]
     fn rendered_sticky_row_uses_uniform_list_scroll_context() {
