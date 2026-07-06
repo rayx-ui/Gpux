@@ -4,11 +4,11 @@ use x11rb::connection::RequestConnection;
 use crate::linux::X11ClientStatePtr;
 use gpui_wgpu::{CompositorGpuHint, WgpuRenderer, WgpuSurfaceConfig};
 use gpux::{
-    AnyWindowHandle, Bounds, Decorations, DevicePixels, ForegroundExecutor, GpuSpecs, Modifiers,
-    Pixels, PlatformAtlas, PlatformDisplay, PlatformInput, PlatformInputHandler, PlatformWindow,
-    Point, PromptButton, PromptLevel, RequestFrameOptions, ResizeEdge, ScaledPixels, Scene, Size,
-    Tiling, WindowAppearance, WindowBackgroundAppearance, WindowBounds, WindowControlArea,
-    WindowDecorations, WindowKind, WindowParams, px,
+    AnyWindowHandle, Bounds, Decorations, DevicePixels, EffectCapabilities, ForegroundExecutor,
+    GpuSpecs, Modifiers, Pixels, PlatformAtlas, PlatformDisplay, PlatformInput,
+    PlatformInputHandler, PlatformWindow, Point, PromptButton, PromptLevel, RequestFrameOptions,
+    ResizeEdge, ScaledPixels, Scene, Size, Tiling, WindowAppearance, WindowBackgroundAppearance,
+    WindowBounds, WindowControlArea, WindowDecorations, WindowKind, WindowParams, px,
 };
 
 use collections::FxHashSet;
@@ -1703,6 +1703,10 @@ impl PlatformWindow for X11Window {
         if inner.renderer.needs_redraw() {
             inner.force_render_after_recovery = true;
         }
+    }
+
+    fn effect_capabilities(&self) -> EffectCapabilities {
+        self.0.state.borrow().renderer.effect_capabilities()
     }
 
     fn render_to_image(&self, scene: &Scene) -> anyhow::Result<image::RgbaImage> {

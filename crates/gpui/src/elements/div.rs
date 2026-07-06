@@ -3896,6 +3896,59 @@ mod tests {
     }
 
     #[test]
+    fn div_effects_write_ordered_style_refinement() {
+        let chained = div()
+            .effect(crate::backdrop_blur(px(12.0)))
+            .effect(crate::glow(crate::hsla(0.5, 0.8, 0.7, 0.4)));
+
+        let effects = chained.interactivity.base_style.effects.as_ref().unwrap();
+        assert!(matches!(effects[0], crate::ElementEffect::BackdropBlur(_)));
+        assert!(matches!(effects[1], crate::ElementEffect::Glow(_)));
+
+        let tupled = div().effects((
+            crate::backdrop_blur(px(10.0)),
+            crate::glass(),
+            crate::glow(crate::hsla(0.7, 0.8, 0.6, 0.5)),
+        ));
+        let effects = tupled.interactivity.base_style.effects.as_ref().unwrap();
+        assert!(matches!(effects[0], crate::ElementEffect::BackdropBlur(_)));
+        assert!(matches!(effects[1], crate::ElementEffect::Glass(_)));
+        assert!(matches!(effects[2], crate::ElementEffect::Glow(_)));
+
+        let cleared = div().effect(crate::backdrop_blur(px(12.0))).clear_effects();
+        assert_eq!(
+            cleared
+                .interactivity
+                .base_style
+                .effects
+                .as_ref()
+                .unwrap()
+                .len(),
+            0
+        );
+    }
+
+    #[test]
+    fn div_screen_effect_region_is_visual_only_style_metadata() {
+        let div = div().screen_effect_region("content");
+
+        assert_eq!(
+            div.interactivity
+                .base_style
+                .screen_effect_region
+                .as_ref()
+                .unwrap()
+                .as_ref(),
+            "content"
+        );
+        assert!(div.interactivity.mouse_down_listeners.is_empty());
+        assert!(div.interactivity.mouse_up_listeners.is_empty());
+        assert!(div.interactivity.mouse_move_listeners.is_empty());
+        assert!(div.interactivity.click_listeners.is_empty());
+        assert!(div.interactivity.action_listeners.is_empty());
+    }
+
+    #[test]
     fn scroll_handle_aligns_tall_children_to_top_edge() {
         let handle = ScrollHandle::new();
         {

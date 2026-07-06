@@ -31,12 +31,12 @@ use crate::linux::wayland::{display::WaylandDisplay, serial::SerialKind};
 use crate::linux::{Globals, Output, WaylandClientStatePtr, get_window};
 use gpui_wgpu::{CompositorGpuHint, WgpuRenderer, WgpuSurfaceConfig};
 use gpux::{
-    AnyWindowHandle, Bounds, Capslock, Decorations, DevicePixels, GpuSpecs, Modifiers, Pixels,
-    PlatformAtlas, PlatformDisplay, PlatformInput, PlatformInputHandler, PlatformWindow, Point,
-    PromptButton, PromptLevel, RequestFrameOptions, ResizeEdge, Scene, Size, Tiling,
-    WindowAppearance, WindowBackgroundAppearance, WindowBounds, WindowControlArea, WindowControls,
-    WindowDecorations, WindowKind, WindowParams, layer_shell::LayerShellNotSupportedError, px,
-    size,
+    AnyWindowHandle, Bounds, Capslock, Decorations, DevicePixels, EffectCapabilities, GpuSpecs,
+    Modifiers, Pixels, PlatformAtlas, PlatformDisplay, PlatformInput, PlatformInputHandler,
+    PlatformWindow, Point, PromptButton, PromptLevel, RequestFrameOptions, ResizeEdge, Scene, Size,
+    Tiling, WindowAppearance, WindowBackgroundAppearance, WindowBounds, WindowControlArea,
+    WindowControls, WindowDecorations, WindowKind, WindowParams,
+    layer_shell::LayerShellNotSupportedError, px, size,
 };
 
 #[derive(Default)]
@@ -1415,6 +1415,10 @@ impl PlatformWindow for WaylandWindow {
         if state.renderer.needs_redraw() {
             state.force_render_after_recovery = true;
         }
+    }
+
+    fn effect_capabilities(&self) -> EffectCapabilities {
+        self.borrow().renderer.effect_capabilities()
     }
 
     fn render_to_image(&self, scene: &Scene) -> anyhow::Result<image::RgbaImage> {

@@ -803,6 +803,7 @@ impl MetalRenderer {
                     viewport_size,
                     command_encoder,
                 ),
+                PrimitiveBatch::VisualEffects(_) => true,
                 PrimitiveBatch::Quads(range) => self.draw_quads(
                     &scene.quads[range],
                     instance_buffer,

@@ -1352,6 +1352,610 @@ fn fs_html_island(input: HtmlIslandVarying) -> @location(0) vec4<f32> {
     return blend_color(sample, island.opacity);
 }
 
+// --- post processing --- //
+
+const VISUAL_EFFECT_KIND_BACKDROP_BLUR: u32 = 1u;
+const VISUAL_EFFECT_KIND_GLASS: u32 = 2u;
+const VISUAL_EFFECT_KIND_GLOW: u32 = 3u;
+
+struct VisualEffectPrimitiveParams {
+    bounds: Bounds,
+    content_mask: Bounds,
+    corner_radii: Corners,
+    opacity: f32,
+    effect_offset: u32,
+    effect_count: u32,
+    pad: u32,
+    transformation: TransformationMatrix,
+}
+
+struct ElementEffectParams {
+    kind: u32,
+    pad0: u32,
+    pad1: u32,
+    pad2: u32,
+    params0: vec4<f32>,
+    params1: vec4<f32>,
+    color0: vec4<f32>,
+    color1: vec4<f32>,
+}
+
+@group(1) @binding(0) var<storage, read> b_visual_effect_primitives: array<VisualEffectPrimitiveParams>;
+@group(1) @binding(1) var<storage, read> b_element_effects: array<ElementEffectParams>;
+@group(1) @binding(2) var t_effect_source: texture_2d<f32>;
+@group(1) @binding(3) var s_effect_source: sampler;
+@group(1) @binding(4) var t_effect_blur_source: texture_2d<f32>;
+
+struct VisualEffectVarying {
+    @builtin(position) position: vec4<f32>,
+    @location(0) texture_position: vec2<f32>,
+    @location(1) local_position: vec2<f32>,
+    @location(2) transformed_position: vec2<f32>,
+    @location(3) @interpolate(flat) primitive_id: u32,
+}
+
+fn visual_effect_expanded_bounds(primitive: VisualEffectPrimitiveParams) -> Bounds {
+    var bounds = primitive.bounds;
+    var margin = 0.0;
+    for (var i = 0u; i < primitive.effect_count; i += 1u) {
+        let effect = b_element_effects[primitive.effect_offset + i];
+        if (effect.kind == VISUAL_EFFECT_KIND_GLOW) {
+            margin = max(margin, effect.params0.x * 2.5 + effect.params0.y + 2.0);
+        }
+    }
+
+    bounds.origin -= vec2<f32>(margin);
+    bounds.size += vec2<f32>(margin * 2.0);
+    return bounds;
+}
+
+@vertex
+fn vs_visual_effect(@builtin(vertex_index) vertex_id: u32, @builtin(instance_index) instance_id: u32) -> VisualEffectVarying {
+    let primitive = b_visual_effect_primitives[instance_id];
+    let bounds = visual_effect_expanded_bounds(primitive);
+    let unit_vertex = vec2<f32>(f32(vertex_id & 1u), 0.5 * f32(vertex_id & 2u));
+    let local_position = unit_vertex * bounds.size + bounds.origin;
+    let transformed_position = transpose(primitive.transformation.rotation_scale) * local_position + primitive.transformation.translation;
+
+    var out = VisualEffectVarying();
+    out.position = to_device_position_impl(transformed_position);
+    out.texture_position = transformed_position / globals.viewport_size;
+    out.local_position = local_position;
+    out.transformed_position = transformed_position;
+    out.primitive_id = instance_id;
+    return out;
+}
+
+fn sample_effect_source(texture_position: vec2<f32>) -> vec4<f32> {
+    return textureSampleLevel(t_effect_source, s_effect_source, clamp(texture_position, vec2<f32>(0.0), vec2<f32>(1.0)), 0.0);
+}
+
+fn sample_effect_blur_at(texture_position: vec2<f32>) -> vec4<f32> {
+    return textureSampleLevel(
+        t_effect_blur_source,
+        s_effect_source,
+        clamp(texture_position, vec2<f32>(0.0), vec2<f32>(1.0)),
+        0.0,
+    );
+}
+
+const POST_PROCESS_GAUSSIAN_RADIUS_PX: f32 = 24.0;
+const POST_PROCESS_GAUSSIAN_STEPS: i32 = 12;
+
+fn sample_effect_blur(texture_position: vec2<f32>, radius: f32) -> vec4<f32> {
+    let dimensions = vec2<f32>(textureDimensions(t_effect_blur_source, 0));
+    let texel = vec2<f32>(1.0) / max(dimensions, vec2<f32>(1.0));
+    let radius_px = min(max(radius, 0.0), 128.0);
+    if (radius_px <= 0.5) {
+        return sample_effect_source(texture_position);
+    }
+
+    if (radius_px <= POST_PROCESS_GAUSSIAN_RADIUS_PX) {
+        let t = smoothstep(0.0, POST_PROCESS_GAUSSIAN_RADIUS_PX, radius_px);
+        return mix(sample_effect_source(texture_position), sample_effect_blur_at(texture_position), t);
+    }
+
+    let steps: i32 = 8;
+    let residual_radius = radius_px - POST_PROCESS_GAUSSIAN_RADIUS_PX;
+    let sample_step = residual_radius / f32(steps);
+    let sigma = max(residual_radius * 0.48, 1.0);
+    let gaussian_coefficient = -0.5 / (sigma * sigma);
+
+    var color = vec4<f32>(0.0);
+    var total_weight = 0.0;
+    for (var y: i32 = -steps; y <= steps; y += 1) {
+        for (var x: i32 = -steps; x <= steps; x += 1) {
+            let offset_px = vec2<f32>(f32(x), f32(y)) * sample_step;
+            let weight = exp(dot(offset_px, offset_px) * gaussian_coefficient);
+            color += sample_effect_blur_at(texture_position + texel * offset_px) * weight;
+            total_weight += weight;
+        }
+    }
+
+    return color / max(total_weight, 0.0001);
+}
+
+fn adjust_effect_color(color: vec4<f32>, saturation: f32, brightness: f32) -> vec4<f32> {
+    let luminance = dot(color.rgb, vec3<f32>(0.2126, 0.7152, 0.0722));
+    return vec4<f32>(mix(vec3<f32>(luminance), color.rgb, saturation) * brightness, color.a);
+}
+
+fn apply_effect_tint(color: vec4<f32>, tint_hsla: vec4<f32>) -> vec4<f32> {
+    if (tint_hsla.a <= 0.0) {
+        return color;
+    }
+
+    return over(color, hsla_to_rgba(Hsla(tint_hsla.x, tint_hsla.y, tint_hsla.z, tint_hsla.w)));
+}
+
+fn visual_effect_shape_alpha(local_position: vec2<f32>, primitive: VisualEffectPrimitiveParams) -> f32 {
+    let distance = quad_sdf(local_position, primitive.bounds, primitive.corner_radii);
+    let feather = max(fwidth(distance), 0.75);
+    return 1.0 - smoothstep(0.0, feather, distance);
+}
+
+fn visual_effect_glow_alpha(local_position: vec2<f32>, primitive: VisualEffectPrimitiveParams, effect: ElementEffectParams) -> f32 {
+    let glow = hsla_to_rgba(Hsla(effect.color0.x, effect.color0.y, effect.color0.z, effect.color0.w));
+    let radius = max(effect.params0.x, 1.0);
+    let spread = effect.params0.y;
+    let intensity = effect.params0.z;
+    let distance = quad_sdf(local_position, primitive.bounds, primitive.corner_radii);
+    let outside = smoothstep(-1.0, 1.0, distance + spread);
+    let falloff_distance = max(distance - spread, 0.0);
+    let falloff = exp(-2.0 * pow(falloff_distance / radius, 2.0));
+    return saturate(outside * falloff * glow.a * intensity * primitive.opacity);
+}
+
+fn composite_backdrop_blur(color: vec4<f32>, texture_position: vec2<f32>, shape_alpha: f32, primitive: VisualEffectPrimitiveParams, effect: ElementEffectParams) -> vec4<f32> {
+    if (shape_alpha <= 0.0) {
+        return color;
+    }
+
+    let blurred = sample_effect_blur(texture_position, effect.params0.x);
+    let adjusted = adjust_effect_color(blurred, effect.params0.y, effect.params0.z);
+    let tinted = apply_effect_tint(adjusted, effect.color0);
+    return mix(color, tinted, saturate(shape_alpha * primitive.opacity));
+}
+
+fn glass_edge_normal(local_position: vec2<f32>, primitive: VisualEffectPrimitiveParams) -> vec2<f32> {
+    let epsilon = 1.0;
+    let dx = quad_sdf(local_position + vec2<f32>(epsilon, 0.0), primitive.bounds, primitive.corner_radii)
+        - quad_sdf(local_position - vec2<f32>(epsilon, 0.0), primitive.bounds, primitive.corner_radii);
+    let dy = quad_sdf(local_position + vec2<f32>(0.0, epsilon), primitive.bounds, primitive.corner_radii)
+        - quad_sdf(local_position - vec2<f32>(0.0, epsilon), primitive.bounds, primitive.corner_radii);
+    return normalize(vec2<f32>(dx, dy) + vec2<f32>(0.0001, 0.0001));
+}
+
+fn glass_surface_convex_squircle(x: f32) -> f32 {
+    return pow(1.0 - pow(1.0 - x, 4.0), 0.25);
+}
+
+fn glass_surface_lip(x: f32) -> f32 {
+    let convex = pow(max(0.0, 1.0 - pow(abs(1.0 - x * 2.0), 4.0)), 0.25);
+    let concave = 1.0 - sqrt(max(0.0, 1.0 - pow(1.0 - x, 2.0))) + 0.1;
+    let t = x * x * x * (x * (x * 6.0 - 15.0) + 10.0);
+    return mix(convex, concave, t);
+}
+
+fn glass_surface_height(x: f32) -> f32 {
+    return glass_surface_lip(clamp(x, 0.0, 1.0));
+}
+
+fn glass_surface_derivative(x: f32) -> f32 {
+    let dx = 0.001;
+    let x1 = max(x - dx, 0.0);
+    let x2 = min(x + dx, 1.0);
+    return (glass_surface_height(x2) - glass_surface_height(x1)) / max(x2 - x1, 0.000001);
+}
+
+fn glass_bevel_displacement(bezel_t: f32, bezel_width: f32, refraction: f32) -> f32 {
+    let eta = 1.0 / 1.48;
+    let x = clamp(bezel_t, 0.0, 1.0);
+    let height = glass_surface_height(x);
+    let derivative = glass_surface_derivative(x);
+    let magnitude = sqrt(derivative * derivative + 1.0);
+    let normal_x = -derivative / magnitude;
+    let normal_y = -1.0 / magnitude;
+    let dot_ni = normal_y;
+    let k = 1.0 - eta * eta * (1.0 - dot_ni * dot_ni);
+    if (k < 0.0) {
+        return 0.0;
+    }
+
+    let k_sqrt = sqrt(k);
+    let refracted_x = -(eta * dot_ni + k_sqrt) * normal_x;
+    let refracted_y = eta - (eta * dot_ni + k_sqrt) * normal_y;
+    if (abs(refracted_y) < 0.001) {
+        return 0.0;
+    }
+
+    let glass_thickness = bezel_width * 0.42;
+    let remaining_height = height * bezel_width + glass_thickness;
+    let raw_displacement = refracted_x * (remaining_height / refracted_y);
+    let refraction_strength = clamp(refraction * 10.0, 0.0, 1.0);
+    return clamp(raw_displacement * refraction_strength * 0.34, -bezel_width * 0.28, bezel_width * 0.28);
+}
+
+fn glass_grain(pixel: vec2<f32>) -> f32 {
+    let p = floor(pixel);
+    let h = dot(p, vec2<f32>(127.1, 311.7));
+    return fract(sin(h) * 43758.5453123);
+}
+
+const LIQUID_GLASS_E: f32 = 2.718281828459045;
+
+fn liquid_glass_sd_squircle(p: vec2<f32>, n: f32, r: f32) -> f32 {
+    let p_abs = abs(p);
+    let numerator = pow(p_abs.x, n) + pow(p_abs.y, n) - pow(r, n);
+    let den_x = pow(p_abs.x, 2.0 * n - 2.0);
+    let den_y = pow(p_abs.y, 2.0 * n - 2.0);
+    let denominator = n * sqrt(den_x + den_y) + 0.00001;
+    return numerator / denominator;
+}
+
+fn liquid_glass_refract(x: f32) -> f32 {
+    return 1.0 - 2.332 * pow(4.544 * LIQUID_GLASS_E, -6.923 * x - 0.992);
+}
+
+fn liquid_glass_rand(co: vec2<f32>) -> f32 {
+    return fract(sin(dot(co, vec2<f32>(12.9898, 78.233))) * 43758.5453);
+}
+
+fn glass_specular_intensity(distance_from_edge: f32, edge_normal: vec2<f32>, bezel_width: f32) -> f32 {
+    let specular_dir = normalize(vec2<f32>(cos(0.78), sin(0.78)));
+    let normal_2d = vec2<f32>(edge_normal.x, -edge_normal.y);
+    let dot_product = abs(dot(normal_2d, specular_dir));
+    let taper = mix(0.08, 1.0, dot_product * dot_product);
+    let rim_width = max(bezel_width * 0.22 * taper, 0.001);
+    let blur_width = bezel_width * 0.58 * taper;
+    let rim_extent = rim_width + blur_width;
+    if (distance_from_edge > rim_extent) {
+        return 0.0;
+    }
+
+    let t = clamp(distance_from_edge / rim_width, 0.0, 1.0);
+    let rim_coefficient = sqrt(max(0.0, 1.0 - (1.0 - t) * (1.0 - t)));
+    let blur_fade = 1.0 - smoothstep(rim_width, rim_extent, distance_from_edge);
+    let intensity = dot_product * rim_coefficient * blur_fade;
+    return intensity * intensity;
+}
+
+fn composite_glass(color: vec4<f32>, input: VisualEffectVarying, shape_alpha: f32, primitive: VisualEffectPrimitiveParams, effect: ElementEffectParams) -> vec4<f32> {
+    if (shape_alpha <= 0.0) {
+        return color;
+    }
+
+    let center = primitive.bounds.origin + primitive.bounds.size * 0.5;
+    let half_size = max(primitive.bounds.size * 0.5, vec2<f32>(1.0));
+    let p = (input.local_position - center) / half_size;
+    let d = liquid_glass_sd_squircle(p, 3.0, 1.0);
+    let dist = -d;
+    let alpha_feather = max(2.0 / max(min(half_size.x, half_size.y), 1.0), 0.004);
+    let glass_alpha = smoothstep(0.0, alpha_feather, dist) * shape_alpha * primitive.opacity;
+    if (glass_alpha <= 0.0) {
+        return color;
+    }
+
+    let base_refract_scale = pow(max(liquid_glass_refract(max(dist, 0.0)), 0.001), 1.779);
+    let refraction_strength = clamp(effect.params0.w / 0.08, 0.0, 2.0);
+    let refract_scale = mix(1.0, base_refract_scale, refraction_strength);
+    let sample_local = center + (input.local_position - center) * refract_scale;
+    let sample_position = transpose(primitive.transformation.rotation_scale) * sample_local + primitive.transformation.translation;
+    let sample_texture_position = sample_position / globals.viewport_size;
+
+    let refracted_source = sample_effect_source(sample_texture_position);
+    let blur_mix = saturate(effect.params0.x / 128.0) * 0.35;
+    let blurred_source = sample_effect_blur(sample_texture_position, min(effect.params0.x, 32.0));
+    let refracted = mix(refracted_source, blurred_source, blur_mix);
+    let adjusted = adjust_effect_color(refracted, effect.params0.y, effect.params0.z);
+    var glass_color = apply_effect_tint(adjusted, effect.color0);
+
+    let noise_amount = 0.018 + effect.params1.x * 0.42;
+    let noise = (liquid_glass_rand(p * 117.0 + input.transformed_position * 0.013) - 0.5) * noise_amount;
+    glass_color = vec4<f32>(glass_color.rgb + vec3<f32>(noise) * glass_alpha, glass_color.a);
+
+    let edge_glow = smoothstep(0.06, 0.0, max(dist, 0.0));
+    let glow_phase = sin(input.texture_position.x * input.texture_position.y);
+    glass_color = glass_color * (1.0 + edge_glow * effect.color1.w * (0.7 + glow_phase * 0.3));
+
+    return mix(color, glass_color, glass_alpha);
+}
+
+@fragment
+fn fs_visual_effect(input: VisualEffectVarying) -> @location(0) vec4<f32> {
+    let primitive = b_visual_effect_primitives[input.primitive_id];
+    let source = sample_effect_source(input.texture_position);
+    let shape_alpha = visual_effect_shape_alpha(input.local_position, primitive);
+    let content_distances = distance_from_clip_rect_impl(input.transformed_position, primitive.content_mask);
+    if (any(content_distances < vec4<f32>(0.0))) {
+        discard;
+    }
+
+    var color = source;
+    var contribution_alpha = 0.0;
+    for (var i = 0u; i < primitive.effect_count; i += 1u) {
+        let effect = b_element_effects[primitive.effect_offset + i];
+        switch (effect.kind) {
+            case VISUAL_EFFECT_KIND_BACKDROP_BLUR: {
+                contribution_alpha = max(contribution_alpha, shape_alpha * primitive.opacity);
+                color = composite_backdrop_blur(color, input.texture_position, shape_alpha, primitive, effect);
+            }
+            case VISUAL_EFFECT_KIND_GLASS: {
+                contribution_alpha = max(contribution_alpha, shape_alpha * primitive.opacity);
+                color = composite_glass(color, input, shape_alpha, primitive, effect);
+            }
+            case VISUAL_EFFECT_KIND_GLOW: {}
+            default: {}
+        }
+    }
+
+    if (contribution_alpha <= 0.0001) {
+        discard;
+    }
+
+    return color;
+}
+
+@fragment
+fn fs_visual_effect_glow_add(input: VisualEffectVarying) -> @location(0) vec4<f32> {
+    let primitive = b_visual_effect_primitives[input.primitive_id];
+    let content_distances = distance_from_clip_rect_impl(input.transformed_position, primitive.content_mask);
+    if (any(content_distances < vec4<f32>(0.0))) {
+        discard;
+    }
+
+    var glow_color = vec3<f32>(0.0);
+    var glow_alpha = 0.0;
+    for (var i = 0u; i < primitive.effect_count; i += 1u) {
+        let effect = b_element_effects[primitive.effect_offset + i];
+        if (effect.kind != VISUAL_EFFECT_KIND_GLOW) {
+            continue;
+        }
+
+        let glow = hsla_to_rgba(Hsla(effect.color0.x, effect.color0.y, effect.color0.z, effect.color0.w));
+        let alpha = visual_effect_glow_alpha(input.local_position, primitive, effect);
+        glow_color += glow.rgb * alpha;
+        glow_alpha = max(glow_alpha, alpha);
+    }
+
+    if (glow_alpha <= 0.0001) {
+        discard;
+    }
+
+    return vec4<f32>(glow_color, glow_alpha);
+}
+
+@group(0) @binding(0) var t_post_process: texture_2d<f32>;
+@group(0) @binding(1) var s_post_process: sampler;
+
+struct PostProcessVarying {
+    @builtin(position) position: vec4<f32>,
+    @location(0) texture_position: vec2<f32>,
+}
+
+@vertex
+fn vs_post_process(@builtin(vertex_index) vertex_id: u32) -> PostProcessVarying {
+    let texture_position = vec2<f32>(f32(vertex_id & 1u), 0.5 * f32(vertex_id & 2u));
+
+    var out = PostProcessVarying();
+    out.position = vec4<f32>(
+        texture_position * vec2<f32>(2.0, -2.0) + vec2<f32>(-1.0, 1.0),
+        0.0,
+        1.0,
+    );
+    out.texture_position = texture_position;
+    return out;
+}
+
+@fragment
+fn fs_post_process_pass_through(input: PostProcessVarying) -> @location(0) vec4<f32> {
+    return textureSampleLevel(t_post_process, s_post_process, input.texture_position, 0.0);
+}
+
+fn sample_post_process_gaussian_blur(texture_position: vec2<f32>, direction: vec2<f32>) -> vec4<f32> {
+    let dimensions = vec2<f32>(textureDimensions(t_post_process, 0));
+    let texel = vec2<f32>(1.0) / max(dimensions, vec2<f32>(1.0));
+    let sample_step = POST_PROCESS_GAUSSIAN_RADIUS_PX / f32(POST_PROCESS_GAUSSIAN_STEPS);
+    let sigma = POST_PROCESS_GAUSSIAN_RADIUS_PX * 0.42;
+    let gaussian_coefficient = -0.5 / (sigma * sigma);
+
+    var color = vec4<f32>(0.0);
+    var total_weight = 0.0;
+    for (var i: i32 = -POST_PROCESS_GAUSSIAN_STEPS; i <= POST_PROCESS_GAUSSIAN_STEPS; i += 1) {
+        let offset_px = direction * f32(i) * sample_step;
+        let weight = exp(dot(offset_px, offset_px) * gaussian_coefficient);
+        color += textureSampleLevel(
+            t_post_process,
+            s_post_process,
+            clamp(texture_position + texel * offset_px, vec2<f32>(0.0), vec2<f32>(1.0)),
+            0.0,
+        ) * weight;
+        total_weight += weight;
+    }
+
+    return color / max(total_weight, 0.0001);
+}
+
+@fragment
+fn fs_post_process_gaussian_blur_horizontal(input: PostProcessVarying) -> @location(0) vec4<f32> {
+    return sample_post_process_gaussian_blur(input.texture_position, vec2<f32>(1.0, 0.0));
+}
+
+@fragment
+fn fs_post_process_gaussian_blur_vertical(input: PostProcessVarying) -> @location(0) vec4<f32> {
+    return sample_post_process_gaussian_blur(input.texture_position, vec2<f32>(0.0, 1.0));
+}
+
+const SCREEN_EFFECT_KIND_RIPPLE: u32 = 1u;
+const SCREEN_EFFECT_KIND_CROSSFADE: u32 = 2u;
+const SCREEN_EFFECT_KIND_BLUR_CROSSFADE: u32 = 3u;
+const SCREEN_EFFECT_KIND_RADIAL_REVEAL: u32 = 4u;
+const SCREEN_EFFECT_KIND_RIPPLE_REVEAL: u32 = 5u;
+
+struct ScreenEffectParams {
+    kind: u32,
+    uses_snapshot: u32,
+    pad0: u32,
+    pad1: u32,
+    bounds: Bounds,
+    tint: vec4<f32>,
+    origin: vec2<f32>,
+    elapsed_ms: f32,
+    duration_ms: f32,
+    radius: f32,
+    amplitude: f32,
+    wavelength: f32,
+    damping: f32,
+    params: vec4<f32>,
+}
+
+@group(1) @binding(0) var<storage, read> b_screen_effects: array<ScreenEffectParams>;
+@group(1) @binding(1) var t_screen_effect_source: texture_2d<f32>;
+@group(1) @binding(2) var s_screen_effect_source: sampler;
+@group(1) @binding(3) var t_screen_effect_snapshot: texture_2d<f32>;
+
+@vertex
+fn vs_screen_effect(@builtin(vertex_index) vertex_id: u32) -> PostProcessVarying {
+    let texture_position = vec2<f32>(f32(vertex_id & 1u), 0.5 * f32(vertex_id & 2u));
+
+    var out = PostProcessVarying();
+    out.position = vec4<f32>(
+        texture_position * vec2<f32>(2.0, -2.0) + vec2<f32>(-1.0, 1.0),
+        0.0,
+        1.0,
+    );
+    out.texture_position = texture_position;
+    return out;
+}
+
+fn sample_screen_effect_source(texture_position: vec2<f32>) -> vec4<f32> {
+    let clamped_position = clamp(texture_position, vec2<f32>(0.0), vec2<f32>(1.0));
+    return textureSampleLevel(t_screen_effect_source, s_screen_effect_source, clamped_position, 0.0);
+}
+
+fn sample_screen_effect_snapshot(texture_position: vec2<f32>) -> vec4<f32> {
+    let clamped_position = clamp(texture_position, vec2<f32>(0.0), vec2<f32>(1.0));
+    return textureSampleLevel(t_screen_effect_snapshot, s_screen_effect_source, clamped_position, 0.0);
+}
+
+fn sample_screen_effect_snapshot_blur(texture_position: vec2<f32>, radius_px: f32) -> vec4<f32> {
+    let radius_uv = max(radius_px, 0.0) / max(globals.viewport_size, vec2<f32>(1.0));
+    var color = sample_screen_effect_snapshot(texture_position) * 0.28;
+    color += sample_screen_effect_snapshot(texture_position + vec2<f32>(radius_uv.x, 0.0)) * 0.12;
+    color += sample_screen_effect_snapshot(texture_position - vec2<f32>(radius_uv.x, 0.0)) * 0.12;
+    color += sample_screen_effect_snapshot(texture_position + vec2<f32>(0.0, radius_uv.y)) * 0.12;
+    color += sample_screen_effect_snapshot(texture_position - vec2<f32>(0.0, radius_uv.y)) * 0.12;
+    color += sample_screen_effect_snapshot(texture_position + radius_uv) * 0.06;
+    color += sample_screen_effect_snapshot(texture_position - radius_uv) * 0.06;
+    color += sample_screen_effect_snapshot(texture_position + vec2<f32>(radius_uv.x, -radius_uv.y)) * 0.06;
+    color += sample_screen_effect_snapshot(texture_position + vec2<f32>(-radius_uv.x, radius_uv.y)) * 0.06;
+    return color;
+}
+
+fn screen_effect_bounds_alpha(pixel_position: vec2<f32>, bounds: Bounds) -> f32 {
+    let lower = pixel_position - bounds.origin;
+    let upper = bounds.origin + bounds.size - pixel_position;
+    let edge_distance = min(min(lower.x, lower.y), min(upper.x, upper.y));
+    return saturate(edge_distance + 1.0);
+}
+
+@fragment
+fn fs_screen_effect(input: PostProcessVarying) -> @location(0) vec4<f32> {
+    let pixel_position = input.texture_position * globals.viewport_size;
+    var sample_position = input.texture_position;
+    var chromatic_offset = vec2<f32>(0.0);
+    var tint_accumulator = vec4<f32>(0.0);
+
+    for (var i = 0u; i < arrayLength(&b_screen_effects); i += 1u) {
+        let ripple = b_screen_effects[i];
+        if (ripple.kind != SCREEN_EFFECT_KIND_RIPPLE) {
+            continue;
+        }
+
+        let bounds_alpha = screen_effect_bounds_alpha(pixel_position, ripple.bounds);
+        if (bounds_alpha <= 0.0) {
+            continue;
+        }
+
+        let progress = saturate(ripple.elapsed_ms / max(ripple.duration_ms, 1.0));
+        let delta = pixel_position - ripple.origin;
+        let distance = max(length(delta), 0.001);
+        let direction = delta / distance;
+        let wavefront = ripple.radius * progress;
+        let wavelength = max(ripple.wavelength, 1.0);
+        let phase = (distance - wavefront) / wavelength * 6.28318530718;
+        let envelope = exp(-abs(distance - wavefront) / max(wavelength * 1.5, 1.0));
+        let decay = exp(-ripple.damping * progress) * (1.0 - progress);
+        let wave_alpha = saturate(envelope * decay * bounds_alpha);
+        let displacement = sin(phase) * wave_alpha * ripple.amplitude;
+        let displacement_uv = direction * displacement / globals.viewport_size;
+        sample_position += displacement_uv;
+        chromatic_offset += direction * abs(displacement) * ripple.params.x / globals.viewport_size;
+
+        if (ripple.tint.a > 0.0 && wave_alpha > 0.0) {
+            let tint = hsla_to_rgba(Hsla(ripple.tint.x, ripple.tint.y, ripple.tint.z, ripple.tint.w * wave_alpha));
+            tint_accumulator = over(tint_accumulator, tint);
+        }
+    }
+
+    var color = sample_screen_effect_source(sample_position);
+    if (length(chromatic_offset) > 0.000001) {
+        let red_sample = sample_screen_effect_source(sample_position + chromatic_offset);
+        let blue_sample = sample_screen_effect_source(sample_position - chromatic_offset);
+        color = vec4<f32>(red_sample.r, color.g, blue_sample.b, color.a);
+    }
+
+    for (var i = 0u; i < arrayLength(&b_screen_effects); i += 1u) {
+        let transition = b_screen_effects[i];
+        if (transition.uses_snapshot == 0u) {
+            continue;
+        }
+
+        let bounds_alpha = screen_effect_bounds_alpha(pixel_position, transition.bounds);
+        if (bounds_alpha <= 0.0) {
+            continue;
+        }
+
+        let progress = saturate(transition.elapsed_ms / max(transition.duration_ms, 1.0));
+        var snapshot_color = sample_screen_effect_snapshot(input.texture_position);
+        if (transition.kind == SCREEN_EFFECT_KIND_BLUR_CROSSFADE) {
+            snapshot_color = sample_screen_effect_snapshot_blur(input.texture_position, transition.params.y);
+        }
+
+        if (transition.tint.a > 0.0) {
+            let tint = hsla_to_rgba(Hsla(transition.tint.x, transition.tint.y, transition.tint.z, transition.tint.w * (1.0 - progress)));
+            snapshot_color = over(snapshot_color, tint);
+        }
+
+        var reveal_alpha = progress;
+        if (transition.kind == SCREEN_EFFECT_KIND_RADIAL_REVEAL || transition.kind == SCREEN_EFFECT_KIND_RIPPLE_REVEAL) {
+            let delta = pixel_position - transition.origin;
+            let distance = max(length(delta), 0.001);
+            let wavefront = transition.radius * progress;
+            var edge = wavefront;
+            if (transition.kind == SCREEN_EFFECT_KIND_RIPPLE_REVEAL) {
+                let wavelength = max(transition.wavelength, 1.0);
+                let phase = (distance - wavefront) / wavelength * 6.28318530718;
+                let envelope = exp(-abs(distance - wavefront) / max(wavelength * 1.5, 1.0));
+                let decay = exp(-transition.damping * progress) * (1.0 - progress);
+                edge += sin(phase) * envelope * decay * transition.amplitude;
+            }
+            let softness = max(transition.wavelength * 0.5, 12.0);
+            reveal_alpha = smoothstep(edge - softness, edge + softness, distance);
+            reveal_alpha = 1.0 - reveal_alpha;
+        }
+
+        let transitioned = mix(snapshot_color, color, reveal_alpha);
+        color = mix(color, transitioned, bounds_alpha);
+    }
+
+    if (tint_accumulator.a > 0.0) {
+        return over(color, tint_accumulator);
+    }
+
+    return color;
+}
+
 // --- surfaces --- //
 
 struct SurfaceParams {

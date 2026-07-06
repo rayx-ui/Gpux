@@ -26,6 +26,56 @@ cargo run -p gpux --example hello_world
 - `text_layout` demonstrates text alignment, decoration, weights, and wrapping.
 - `text_wrapper` shows wrapping text content.
 
+## Shader effects
+
+Shader-backed effects are ordinary `Styled`/`div()` styling and are reported
+through renderer capabilities. WGPU is the first backend with support; other
+backends keep the relevant capability flags false until they implement the
+shader path.
+
+```rust
+use gpux::prelude::*;
+
+div()
+    .effect(backdrop_blur(px(18.)).saturation(1.15))
+    .effects((
+        glass().blur(px(16.)).refraction(0.04),
+        glow(hsla(0.58, 0.75, 0.62, 0.45)).radius(px(24.)),
+    ))
+    .child("Effects sample")
+```
+
+Screen effects are played from a `Window` and can target the full window,
+explicit bounds, or a named region painted by a styled element.
+
+```rust
+div()
+    .id("content")
+    .screen_effect_region("content")
+    .child("Region-targeted content");
+
+window.play_screen_effect(
+    screen::ripple(click_position)
+        .target(ScreenEffectTarget::region("content"))
+        .duration_ms(700),
+);
+```
+
+Snapshot transitions retain an old renderer texture until released. Capture
+before mutating app state, play a snapshot transition, then release the snapshot
+after the transition duration.
+
+```rust
+let snapshot = window.capture_screen_effect_snapshot(ScreenEffectTarget::window());
+window.play_screen_effect(
+    screen::ripple_reveal(snapshot, click_position)
+        .target(ScreenEffectTarget::region("content"))
+        .duration_ms(520),
+);
+// After the transition duration, release the retained texture.
+window.release_screen_effect_snapshot(snapshot);
+```
+
 ## Interaction
 
 - `anchor` demonstrates anchored positioning.

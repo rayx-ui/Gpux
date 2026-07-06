@@ -5,8 +5,9 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    AtlasTextureId, AtlasTile, Background, Bounds, ContentMask, Corners, Edges, ElementId, Hsla,
-    Pixels, Point, Radians, ScaledPixels, SharedString, Size, bounds_tree::BoundsTree, point,
+    ActiveScreenEffect, ActiveScreenEffectSnapshot, AtlasTextureId, AtlasTile, Background, Bounds,
+    ContentMask, Corners, Edges, ElementEffect, ElementId, Hsla, Pixels, Point, Radians,
+    ScaledPixels, ScreenEffectRegionId, SharedString, Size, bounds_tree::BoundsTree, point,
 };
 use std::{
     fmt::Debug,
@@ -28,10 +29,15 @@ pub struct Scene {
     pub(crate) paint_operations: Vec<PaintOperation>,
     primitive_bounds: BoundsTree<ScaledPixels>,
     layer_stack: Vec<DrawOrder>,
+    pub scale_factor: f32,
+    pub active_screen_effects: Vec<ActiveScreenEffect>,
+    pub active_screen_effect_snapshots: Vec<ActiveScreenEffectSnapshot>,
     pub shadows: Vec<Shadow>,
+    pub visual_effects: Vec<VisualEffectPrimitive>,
     pub quads: Vec<Quad>,
     pub html_islands: Vec<HtmlIslandPrimitive>,
     pub html_elements: Vec<HtmlElementPrimitive>,
+    pub screen_effect_regions: Vec<ScreenEffectRegionPrimitive>,
     pub paths: Vec<Path<ScaledPixels>>,
     pub underlines: Vec<Underline>,
     pub monochrome_sprites: Vec<MonochromeSprite>,
@@ -46,11 +52,15 @@ impl Scene {
         self.paint_operations.clear();
         self.primitive_bounds.clear();
         self.layer_stack.clear();
+        self.active_screen_effects.clear();
+        self.active_screen_effect_snapshots.clear();
         self.paths.clear();
         self.shadows.clear();
+        self.visual_effects.clear();
         self.quads.clear();
         self.html_islands.clear();
         self.html_elements.clear();
+        self.screen_effect_regions.clear();
         self.underlines.clear();
         self.monochrome_sprites.clear();
         self.subpixel_sprites.clear();
@@ -60,6 +70,17 @@ impl Scene {
 
     pub fn len(&self) -> usize {
         self.paint_operations.len()
+    }
+
+    pub fn screen_effect_region(
+        &self,
+        id: impl AsRef<str>,
+    ) -> Option<&ScreenEffectRegionPrimitive> {
+        let id = id.as_ref();
+        self.screen_effect_regions
+            .iter()
+            .rev()
+            .find(|region| region.id.as_ref() == id)
     }
 
     pub fn push_layer(&mut self, bounds: Bounds<ScaledPixels>) {
@@ -94,6 +115,10 @@ impl Scene {
                 shadow.order = order;
                 self.shadows.push(*shadow);
             }
+            Primitive::VisualEffect(effect) => {
+                effect.order = order;
+                self.visual_effects.push(effect.clone());
+            }
             Primitive::Quad(quad) => {
                 quad.order = order;
                 self.quads.push(quad.clone());
@@ -105,6 +130,11 @@ impl Scene {
             Primitive::HtmlElement(html_element) => {
                 html_element.order = order;
                 self.html_elements.push(html_element.clone());
+            }
+            Primitive::ScreenEffectRegion(screen_effect_region) => {
+                screen_effect_region.order = order;
+                self.screen_effect_regions
+                    .push(screen_effect_region.clone());
             }
             Primitive::Path(path) => {
                 path.order = order;
@@ -148,11 +178,15 @@ impl Scene {
 
     pub fn finish(&mut self) {
         self.shadows.sort_by_key(|shadow| shadow.order);
+        self.visual_effects
+            .sort_by_key(|visual_effect| visual_effect.order);
         self.quads.sort_by_key(|quad| quad.order);
         self.html_islands
             .sort_by_key(|html_island| html_island.order);
         self.html_elements
             .sort_by_key(|html_element| html_element.order);
+        self.screen_effect_regions
+            .sort_by_key(|screen_effect_region| screen_effect_region.order);
         self.paths.sort_by_key(|path| path.order);
         self.underlines.sort_by_key(|underline| underline.order);
         self.monochrome_sprites
@@ -175,6 +209,8 @@ impl Scene {
         BatchIterator {
             shadows_start: 0,
             shadows_iter: self.shadows.iter().peekable(),
+            visual_effects_start: 0,
+            visual_effects_iter: self.visual_effects.iter().peekable(),
             quads_start: 0,
             quads_iter: self.quads.iter().peekable(),
             html_islands_start: 0,
@@ -205,6 +241,7 @@ impl Scene {
 )]
 pub(crate) enum PrimitiveKind {
     Shadow,
+    VisualEffect,
     #[default]
     Quad,
     HtmlIsland,
@@ -226,9 +263,11 @@ pub(crate) enum PaintOperation {
 #[expect(missing_docs)]
 pub enum Primitive {
     Shadow(Shadow),
+    VisualEffect(VisualEffectPrimitive),
     Quad(Quad),
     HtmlIsland(HtmlIslandPrimitive),
     HtmlElement(HtmlElementPrimitive),
+    ScreenEffectRegion(ScreenEffectRegionPrimitive),
     Path(Path<ScaledPixels>),
     Underline(Underline),
     MonochromeSprite(MonochromeSprite),
@@ -244,9 +283,15 @@ impl Primitive {
             Primitive::Shadow(shadow) => {
                 shadow.transformation.apply_to_scaled_bounds(shadow.bounds)
             }
+            Primitive::VisualEffect(effect) => {
+                effect.transformation.apply_to_scaled_bounds(effect.bounds)
+            }
             Primitive::Quad(quad) => quad.transformation.apply_to_scaled_bounds(quad.bounds),
             Primitive::HtmlIsland(html_island) => html_island.bounds,
             Primitive::HtmlElement(html_element) => html_element.bounds,
+            Primitive::ScreenEffectRegion(screen_effect_region) => screen_effect_region
+                .transformation
+                .apply_to_scaled_bounds(screen_effect_region.bounds),
             Primitive::Path(path) => path.bounds,
             Primitive::Underline(underline) => underline
                 .transformation
@@ -267,9 +312,13 @@ impl Primitive {
     pub fn content_mask(&self) -> &ContentMask<ScaledPixels> {
         match self {
             Primitive::Shadow(shadow) => &shadow.content_mask,
+            Primitive::VisualEffect(effect) => &effect.content_mask,
             Primitive::Quad(quad) => &quad.content_mask,
             Primitive::HtmlIsland(html_island) => &html_island.content_mask,
             Primitive::HtmlElement(html_element) => &html_element.content_mask,
+            Primitive::ScreenEffectRegion(screen_effect_region) => {
+                &screen_effect_region.content_mask
+            }
             Primitive::Path(path) => &path.content_mask,
             Primitive::Underline(underline) => &underline.content_mask,
             Primitive::MonochromeSprite(sprite) => &sprite.content_mask,
@@ -290,6 +339,8 @@ impl Primitive {
 struct BatchIterator<'a> {
     shadows_start: usize,
     shadows_iter: Peekable<slice::Iter<'a, Shadow>>,
+    visual_effects_start: usize,
+    visual_effects_iter: Peekable<slice::Iter<'a, VisualEffectPrimitive>>,
     quads_start: usize,
     quads_iter: Peekable<slice::Iter<'a, Quad>>,
     html_islands_start: usize,
@@ -316,6 +367,10 @@ impl<'a> Iterator for BatchIterator<'a> {
             (
                 self.shadows_iter.peek().map(|s| s.order),
                 PrimitiveKind::Shadow,
+            ),
+            (
+                self.visual_effects_iter.peek().map(|e| e.order),
+                PrimitiveKind::VisualEffect,
             ),
             (self.quads_iter.peek().map(|q| q.order), PrimitiveKind::Quad),
             (
@@ -368,6 +423,20 @@ impl<'a> Iterator for BatchIterator<'a> {
                 }
                 self.shadows_start = shadows_end;
                 Some(PrimitiveBatch::Shadows(shadows_start..shadows_end))
+            }
+            PrimitiveKind::VisualEffect => {
+                let effects_start = self.visual_effects_start;
+                let mut effects_end = effects_start + 1;
+                self.visual_effects_iter.next();
+                while self
+                    .visual_effects_iter
+                    .next_if(|effect| (effect.order, batch_kind) < max_order_and_kind)
+                    .is_some()
+                {
+                    effects_end += 1;
+                }
+                self.visual_effects_start = effects_end;
+                Some(PrimitiveBatch::VisualEffects(effects_start..effects_end))
             }
             PrimitiveKind::Quad => {
                 let quads_start = self.quads_start;
@@ -519,6 +588,7 @@ impl<'a> Iterator for BatchIterator<'a> {
 #[allow(missing_docs)]
 pub enum PrimitiveBatch {
     Shadows(Range<usize>),
+    VisualEffects(Range<usize>),
     Quads(Range<usize>),
     HtmlIslands(Range<usize>),
     Paths(Range<usize>),
@@ -730,6 +800,63 @@ pub struct Shadow {
 impl From<Shadow> for Primitive {
     fn from(shadow: Shadow) -> Self {
         Primitive::Shadow(shadow)
+    }
+}
+
+/// Scene data for shader-backed element effects.
+///
+/// WGPU renderers consume this batch after shadows and before quads so effects
+/// can sample or decorate already-painted content without replacing the
+/// element's normal background, children, or border primitives.
+#[derive(Clone, Debug)]
+pub struct VisualEffectPrimitive {
+    /// Draw order assigned by the scene when the primitive is inserted.
+    pub order: DrawOrder,
+    /// Physical scene bounds in scaled pixels.
+    pub bounds: Bounds<ScaledPixels>,
+    /// Rectangular content mask inherited from the GPUI paint context.
+    pub content_mask: ContentMask<ScaledPixels>,
+    /// Rounded clipping shape for effect sampling and decoration.
+    pub corner_radii: Corners<ScaledPixels>,
+    /// Cumulative GPUI element opacity to apply when compositing effects.
+    pub opacity: f32,
+    /// Ordered element effects requested by the styled element.
+    pub effects: Vec<ElementEffect>,
+    /// Element transform active when the primitive was emitted.
+    pub transformation: TransformationMatrix,
+}
+
+impl From<VisualEffectPrimitive> for Primitive {
+    fn from(effect: VisualEffectPrimitive) -> Self {
+        Primitive::VisualEffect(effect)
+    }
+}
+
+/// Scene metadata for a named region that can receive screen effects.
+///
+/// This primitive is replayable scene metadata and intentionally does not
+/// produce a renderer batch.
+#[derive(Clone, Debug)]
+pub struct ScreenEffectRegionPrimitive {
+    /// Draw order assigned by the scene when the primitive is inserted.
+    pub order: DrawOrder,
+    /// Stable application-supplied region id.
+    pub id: ScreenEffectRegionId,
+    /// Physical scene bounds in scaled pixels.
+    pub bounds: Bounds<ScaledPixels>,
+    /// Logical bounds in CSS pixels for browser diagnostics and target mapping.
+    pub logical_bounds: Bounds<Pixels>,
+    /// Rectangular content mask inherited from the GPUI paint context.
+    pub content_mask: ContentMask<ScaledPixels>,
+    /// Rounded clipping shape for region-limited screen effects.
+    pub corner_radii: Corners<ScaledPixels>,
+    /// Element transform active when the region was emitted.
+    pub transformation: TransformationMatrix,
+}
+
+impl From<ScreenEffectRegionPrimitive> for Primitive {
+    fn from(region: ScreenEffectRegionPrimitive) -> Self {
+        Primitive::ScreenEffectRegion(region)
     }
 }
 
@@ -1228,7 +1355,7 @@ impl PathVertex<ScaledPixels> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{point, px, size};
+    use crate::{backdrop_blur, glow, hsla, point, px, size};
 
     #[test]
     fn html_island_primitive_carries_dom_sync_metadata() {
@@ -1374,11 +1501,138 @@ mod tests {
         assert!(scene.html_elements.is_empty());
     }
 
+    #[test]
+    fn visual_effect_batches_preserve_scene_order_between_shadows_quads_and_paths() {
+        let bounds = Bounds::new(
+            point(ScaledPixels(0.), ScaledPixels(0.)),
+            size(ScaledPixels(100.), ScaledPixels(100.)),
+        );
+        let mut scene = Scene::default();
+
+        scene.insert_primitive(test_shadow(bounds));
+        scene.insert_primitive(test_visual_effect(bounds));
+        scene.insert_primitive(test_quad(bounds));
+        scene.insert_primitive(test_path(bounds));
+        scene.finish();
+
+        assert_eq!(scene.shadows.len(), 1);
+        assert_eq!(scene.visual_effects.len(), 1);
+        assert_eq!(scene.quads.len(), 1);
+        assert_eq!(scene.paths.len(), 1);
+
+        let batches = scene.batches().collect::<Vec<_>>();
+        assert!(matches!(batches[0], PrimitiveBatch::Shadows(ref range) if range == &(0..1)));
+        assert!(matches!(batches[1], PrimitiveBatch::VisualEffects(ref range) if range == &(0..1)));
+        assert!(matches!(batches[2], PrimitiveBatch::Quads(ref range) if range == &(0..1)));
+        assert!(matches!(batches[3], PrimitiveBatch::Paths(ref range) if range == &(0..1)));
+        assert_eq!(batches.len(), 4);
+    }
+
+    #[test]
+    fn visual_effects_and_screen_regions_replay_with_scene_metadata() {
+        let bounds = Bounds::new(
+            point(ScaledPixels(0.), ScaledPixels(0.)),
+            size(ScaledPixels(100.), ScaledPixels(100.)),
+        );
+        let mut scene = Scene::default();
+
+        scene.insert_primitive(test_visual_effect(bounds));
+        scene.insert_primitive(test_screen_effect_region(bounds, "card-region"));
+        scene.finish();
+
+        let mut replayed = Scene::default();
+        replayed.replay(0..scene.len(), &scene);
+        replayed.finish();
+
+        assert_eq!(replayed.visual_effects.len(), 1);
+        assert_eq!(replayed.screen_effect_regions.len(), 1);
+        assert_eq!(replayed.screen_effect_regions[0].id.as_ref(), "card-region");
+
+        let batches = replayed.batches().collect::<Vec<_>>();
+        assert!(
+            matches!(batches.as_slice(), [PrimitiveBatch::VisualEffects(range)] if range == &(0..1))
+        );
+    }
+
     fn test_quad(bounds: Bounds<ScaledPixels>) -> Quad {
         Quad {
             bounds,
             content_mask: ContentMask { bounds },
             ..Default::default()
+        }
+    }
+
+    fn test_shadow(bounds: Bounds<ScaledPixels>) -> Shadow {
+        Shadow {
+            order: 0,
+            blur_radius: ScaledPixels(8.),
+            bounds,
+            corner_radii: Corners::all(ScaledPixels(8.)),
+            content_mask: ContentMask { bounds },
+            color: hsla(0., 0., 0., 0.25),
+            transformation: TransformationMatrix::unit(),
+        }
+    }
+
+    fn test_visual_effect(bounds: Bounds<ScaledPixels>) -> VisualEffectPrimitive {
+        VisualEffectPrimitive {
+            order: 0,
+            bounds,
+            content_mask: ContentMask { bounds },
+            corner_radii: Corners::all(ScaledPixels(12.)),
+            opacity: 1.,
+            effects: vec![
+                backdrop_blur(px(16.)).into(),
+                glow(hsla(0.55, 0.8, 0.62, 0.5)).into(),
+            ],
+            transformation: TransformationMatrix::unit(),
+        }
+    }
+
+    fn test_screen_effect_region(
+        bounds: Bounds<ScaledPixels>,
+        id: &'static str,
+    ) -> ScreenEffectRegionPrimitive {
+        ScreenEffectRegionPrimitive {
+            order: 0,
+            id: id.into(),
+            bounds,
+            logical_bounds: Bounds::new(point(px(0.), px(0.)), size(px(50.), px(50.))),
+            content_mask: ContentMask { bounds },
+            corner_radii: Corners::all(ScaledPixels(12.)),
+            transformation: TransformationMatrix::unit(),
+        }
+    }
+
+    fn test_path(bounds: Bounds<ScaledPixels>) -> Path<ScaledPixels> {
+        let content_mask = ContentMask { bounds };
+
+        Path {
+            id: PathId(0),
+            order: 0,
+            bounds,
+            content_mask: content_mask.clone(),
+            vertices: vec![
+                PathVertex {
+                    xy_position: bounds.origin,
+                    st_position: point(0., 0.),
+                    content_mask: content_mask.clone(),
+                },
+                PathVertex {
+                    xy_position: bounds.top_right(),
+                    st_position: point(1., 0.),
+                    content_mask: content_mask.clone(),
+                },
+                PathVertex {
+                    xy_position: bounds.bottom_right(),
+                    st_position: point(1., 1.),
+                    content_mask,
+                },
+            ],
+            color: hsla(0.1, 0.8, 0.5, 1.).into(),
+            start: bounds.origin,
+            current: bounds.bottom_right(),
+            contour_count: 1,
         }
     }
 
