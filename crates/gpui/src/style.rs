@@ -6,10 +6,10 @@ use std::{
 
 use crate::{
     AbsoluteLength, App, Background, BorderStyle, Bounds, ContentMask, Corners, CornersRefinement,
-    CursorStyle, DefiniteLength, DevicePixels, Edges, EdgesRefinement, ElementEffect, Font,
-    FontFallbacks, FontFeatures, FontStyle, FontWeight, GridLocation, Hsla, Length, Pixels, Point,
-    PointRefinement, Rgba, ScreenEffectRegionId, SharedString, Size, SizeRefinement, Styled,
-    TextRun, TransformationMatrix, Window, black, phi, point, px, quad, radians, rems, size,
+    CursorStyle, DefiniteLength, DevicePixels, Edges, EdgesRefinement, Font, FontFallbacks,
+    FontFeatures, FontStyle, FontWeight, GridLocation, Hsla, Length, Pixels, Point,
+    PointRefinement, Rgba, SharedString, Size, SizeRefinement, Styled, TextRun,
+    TransformationMatrix, Window, black, phi, point, px, quad, radians, rems, size,
 };
 use collections::HashSet;
 use refineable::Refineable;
@@ -289,12 +289,6 @@ pub struct Style {
 
     /// Box shadow of the element
     pub box_shadow: Vec<BoxShadow>,
-
-    /// Shader-backed visual effects attached to this element.
-    pub effects: Vec<ElementEffect>,
-
-    /// Optional visual region id that can be targeted by screen effects.
-    pub screen_effect_region: Option<ScreenEffectRegionId>,
 
     /// The text style of this element
     #[refineable]
@@ -710,7 +704,16 @@ impl Style {
                     (false, false) => Bounds::from_corners(min, max),
                 };
 
-                Some(ContentMask { bounds })
+                let corner_radii =
+                    if self.overflow.x == Overflow::Hidden && self.overflow.y == Overflow::Hidden {
+                        self.corner_radii
+                            .to_pixels(rem_size)
+                            .clamp_radii_for_quad_size(bounds.size)
+                    } else {
+                        Corners::default()
+                    };
+
+                Some(ContentMask::rounded(bounds, corner_radii))
             }
         }
     }
@@ -743,22 +746,20 @@ impl Style {
                     .clamp_radii_for_quad_size(bounds.size);
 
                 window.paint_shadows(bounds, corner_radii, &self.box_shadow);
-                window.paint_visual_effects(bounds, corner_radii, &self.effects);
-                if let Some(region_id) = self.screen_effect_region.clone() {
-                    window.paint_screen_effect_region(region_id, bounds, corner_radii);
-                }
 
-                let background_color = self.background.as_ref().and_then(Fill::color);
-                if background_color
+                if let Some(background_color) = self
+                    .background
                     .as_ref()
-                    .is_some_and(|color| !color.is_transparent())
+                    .and_then(Fill::color)
+                    .filter(|color| !color.is_transparent())
                 {
+                    let transparent_background = background_color.opacity(0.);
                     window.paint_quad(quad(
                         bounds,
                         corner_radii,
-                        background_color.clone().unwrap_or_default(),
+                        background_color,
                         Edges::default(),
-                        background_color.clone().unwrap_or_default().opacity(0.),
+                        transparent_background,
                         self.border_style,
                     ));
                 }
@@ -807,29 +808,26 @@ impl Style {
                         self.border_style,
                     );
 
-                    window.with_content_mask(Some(ContentMask { bounds: top_bounds }), |window| {
-                        window.paint_quad(quad.clone());
-                    });
                     window.with_content_mask(
-                        Some(ContentMask {
-                            bounds: right_bounds,
-                        }),
+                        Some(ContentMask::rectangular(top_bounds)),
                         |window| {
                             window.paint_quad(quad.clone());
                         },
                     );
                     window.with_content_mask(
-                        Some(ContentMask {
-                            bounds: bottom_bounds,
-                        }),
+                        Some(ContentMask::rectangular(right_bounds)),
                         |window| {
                             window.paint_quad(quad.clone());
                         },
                     );
                     window.with_content_mask(
-                        Some(ContentMask {
-                            bounds: left_bounds,
-                        }),
+                        Some(ContentMask::rectangular(bottom_bounds)),
+                        |window| {
+                            window.paint_quad(quad.clone());
+                        },
+                    );
+                    window.with_content_mask(
+                        Some(ContentMask::rectangular(left_bounds)),
                         |window| {
                             window.paint_quad(quad);
                         },
@@ -891,8 +889,6 @@ impl Default for Style {
             border_style: BorderStyle::default(),
             corner_radii: Corners::default(),
             box_shadow: Default::default(),
-            effects: Default::default(),
-            screen_effect_region: None,
             text: TextStyleRefinement::default(),
             mouse_cursor: None,
             opacity: None,
@@ -1441,11 +1437,7 @@ impl From<Position> for taffy::style::Position {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        BoxShadow, Context, ElementEffect, IntoElement, ParentElement as _, PrimitiveBatch, Render,
-        ScaledPixels, TestAppContext, Window, backdrop_blur, blue, div, glow, green, hsla, point,
-        px, red, size, yellow,
-    };
+    use crate::{blue, green, px, red, yellow};
 
     use super::*;
 
@@ -1650,154 +1642,5 @@ mod tests {
         style.refine(&StyleRefinement::default().direction(LayoutDirection::Rtl));
 
         assert_eq!(LayoutDirection::Rtl, style.direction);
-    }
-
-    #[test]
-    fn test_element_effect_refinement_replaces_and_can_clear() {
-        let mut style = Style::default();
-        assert!(style.effects.is_empty());
-
-        let mut refinement = StyleRefinement::default();
-        refinement.effects = Some(vec![
-            ElementEffect::from(backdrop_blur(px(18.0))),
-            ElementEffect::from(glow(hsla(0.55, 0.8, 0.7, 0.45))),
-        ]);
-
-        style.refine(&refinement);
-        assert_eq!(style.effects.len(), 2);
-        assert!(matches!(style.effects[0], ElementEffect::BackdropBlur(_)));
-        assert!(matches!(style.effects[1], ElementEffect::Glow(_)));
-
-        let mut clear = StyleRefinement::default();
-        clear.effects = Some(Vec::new());
-        style.refine(&clear);
-
-        assert!(style.effects.is_empty());
-    }
-
-    struct EffectPaintOrderView;
-    struct ScreenEffectRegionPaintView;
-
-    impl Render for EffectPaintOrderView {
-        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
-            div().size_full().child(
-                div()
-                    .absolute()
-                    .left(px(20.))
-                    .top(px(20.))
-                    .w(px(100.))
-                    .h(px(80.))
-                    .rounded(px(12.))
-                    .shadow(vec![BoxShadow {
-                        color: hsla(0., 0., 0., 0.4),
-                        offset: point(px(0.), px(4.)),
-                        blur_radius: px(12.),
-                        spread_radius: px(0.),
-                    }])
-                    .effect(backdrop_blur(px(18.)))
-                    .bg(hsla(0.58, 0.25, 0.7, 0.72))
-                    .border_1()
-                    .border_color(hsla(0.58, 0.5, 0.92, 0.8)),
-            )
-        }
-    }
-
-    impl Render for ScreenEffectRegionPaintView {
-        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
-            div()
-                .size_full()
-                .child(
-                    div()
-                        .absolute()
-                        .left(px(4.))
-                        .top(px(4.))
-                        .w(px(12.))
-                        .h(px(12.))
-                        .screen_effect_region("spotlight"),
-                )
-                .child(
-                    div()
-                        .absolute()
-                        .left(px(30.))
-                        .top(px(25.))
-                        .w(px(40.))
-                        .h(px(20.))
-                        .rounded(px(6.))
-                        .translate(point(px(5.), px(0.)))
-                        .screen_effect_region("spotlight"),
-                )
-        }
-    }
-
-    #[gpux::test]
-    fn effect_style_paints_scene_primitive_after_shadows_before_quads(cx: &mut TestAppContext) {
-        let window = cx.open_window(size(px(180.), px(160.)), |_, _| EffectPaintOrderView);
-        cx.run_until_parked();
-
-        let (shadows, effects, quads, batches) = window
-            .update(cx, |_, window, _| {
-                let scene = &window.rendered_frame.scene;
-                (
-                    scene.shadows.len(),
-                    scene.visual_effects.len(),
-                    scene.quads.len(),
-                    scene.batches().collect::<Vec<_>>(),
-                )
-            })
-            .unwrap();
-
-        assert_eq!(shadows, 1);
-        assert_eq!(effects, 1);
-        assert_eq!(quads, 5);
-        assert!(matches!(
-            batches.as_slice(),
-            [
-                PrimitiveBatch::Shadows(_),
-                PrimitiveBatch::VisualEffects(_),
-                PrimitiveBatch::Quads(_)
-            ]
-        ));
-    }
-
-    #[gpux::test]
-    fn screen_effect_region_style_registers_latest_transformed_region(cx: &mut TestAppContext) {
-        let window = cx.open_window(size(px(180.), px(160.)), |_, _| ScreenEffectRegionPaintView);
-        cx.run_until_parked();
-
-        let (count, latest, missing) = window
-            .update(cx, |_, window, _| {
-                let scene = &window.rendered_frame.scene;
-                (
-                    scene.screen_effect_regions.len(),
-                    scene.screen_effect_region("spotlight").cloned(),
-                    scene.screen_effect_region("missing").cloned(),
-                )
-            })
-            .unwrap();
-
-        let latest = latest.expect("latest region should resolve");
-
-        assert_eq!(count, 2);
-        assert_eq!(latest.id.as_ref(), "spotlight");
-        assert_eq!(
-            latest.bounds,
-            Bounds::new(
-                point(ScaledPixels(70.), ScaledPixels(50.)),
-                size(ScaledPixels(80.), ScaledPixels(40.))
-            )
-        );
-        assert_eq!(
-            latest.logical_bounds,
-            Bounds::new(point(px(35.), px(25.)), size(px(40.), px(20.)))
-        );
-        assert_eq!(
-            latest.content_mask.bounds,
-            Bounds::new(
-                point(ScaledPixels(0.), ScaledPixels(0.)),
-                size(ScaledPixels(360.), ScaledPixels(320.))
-            )
-        );
-        assert_eq!(latest.corner_radii.top_left, ScaledPixels(12.));
-        assert!(missing.is_none());
     }
 }

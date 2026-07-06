@@ -18,12 +18,12 @@ mod bounds_tree;
 mod color;
 /// The default colors used by GPUI.
 pub mod colors;
-/// Shader-backed visual effect contracts for styled elements and screens.
-pub mod effects;
 mod element;
 mod elements;
 mod executor;
 mod platform_scheduler;
+/// Shader-backed visual effect contracts for elements and screens.
+pub mod shader_effects;
 pub(crate) use platform_scheduler::PlatformScheduler;
 mod geometry;
 mod global;
@@ -85,7 +85,6 @@ pub use asset_cache::*;
 pub use assets::*;
 pub use color::*;
 pub use ctor::ctor;
-pub use effects::*;
 pub use element::*;
 pub use elements::*;
 pub use executor::*;
@@ -111,6 +110,7 @@ pub use refineable::*;
 pub use scene::*;
 /// Monotonic timestamp type used by GPUI platform events.
 pub use scheduler::Instant;
+pub use shader_effects::*;
 pub use shared_uri::*;
 use std::{any::Any, future::Future};
 pub use style::*;

@@ -1,10 +1,9 @@
 use crate::{
     self as gpux, AbsoluteLength, AlignContent, AlignItems, AlignSelf, BorderStyle, CursorStyle,
-    DefiniteLength, Display, ElementEffect, Fill, FlexDirection, FlexWrap, Font, FontFeatures,
-    FontStyle, FontWeight, GridPlacement, GridTemplate, Hsla, IntoElementEffects, JustifyContent,
-    LayoutDirection, Length, Pixels, Point, ScreenEffectRegionId, SharedString, StrikethroughStyle,
-    StyleRefinement, TemplateColumnMinSize, TextAlign, TextOverflow, TextStyleRefinement,
-    UnderlineStyle, WhiteSpace, point, px, relative, rems,
+    DefiniteLength, Display, Fill, FlexDirection, FlexWrap, Font, FontFeatures, FontStyle,
+    FontWeight, GridPlacement, GridTemplate, Hsla, JustifyContent, LayoutDirection, Length, Pixels,
+    Point, SharedString, StrikethroughStyle, StyleRefinement, TemplateColumnMinSize, TextAlign,
+    TextOverflow, TextStyleRefinement, UnderlineStyle, WhiteSpace, point, px, relative, rems,
 };
 pub use gpui_macros::{
     border_style_methods, box_shadow_style_methods, cursor_style_methods, margin_style_methods,
@@ -477,36 +476,6 @@ pub trait Styled: Sized {
         Self: Sized,
     {
         self.style().background = Some(fill.into());
-        self
-    }
-
-    /// Adds a shader-backed visual effect to this element.
-    fn effect(mut self, effect: impl Into<ElementEffect>) -> Self {
-        self.style()
-            .effects
-            .get_or_insert_with(Vec::new)
-            .push(effect.into());
-        self
-    }
-
-    /// Adds multiple shader-backed visual effects to this element in order.
-    fn effects(mut self, effects: impl IntoElementEffects) -> Self {
-        self.style()
-            .effects
-            .get_or_insert_with(Vec::new)
-            .extend(effects.into_element_effects());
-        self
-    }
-
-    /// Clears shader-backed visual effects on this element.
-    fn clear_effects(mut self) -> Self {
-        self.style().effects = Some(Vec::new());
-        self
-    }
-
-    /// Registers this element's painted bounds as a visual-only screen-effect region.
-    fn screen_effect_region(mut self, id: impl Into<ScreenEffectRegionId>) -> Self {
-        self.style().screen_effect_region = Some(id.into());
         self
     }
 

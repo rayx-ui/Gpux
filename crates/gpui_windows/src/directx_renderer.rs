@@ -604,7 +604,7 @@ impl DirectXRenderer {
                 xy_position: v.xy_position,
                 st_position: v.st_position,
                 background,
-                bounds: path.clipped_bounds(),
+                content_mask: v.content_mask.clone(),
             }));
         }
 
@@ -1448,7 +1448,7 @@ struct PackedPathRasterizationSprite {
     xy_position: Point<ScaledPixels>,
     st_position: Point<f32>,
     background: PackedBackground,
-    bounds: Bounds<ScaledPixels>,
+    content_mask: ContentMask<ScaledPixels>,
 }
 
 #[derive(Clone, Copy)]

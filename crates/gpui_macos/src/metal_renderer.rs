@@ -9,8 +9,8 @@ use cocoa::{
 use gpux::{
     AtlasTextureId, Background, BackgroundKind, Bounds, ColorSpace, ContentMask, Corners,
     DevicePixels, Edges, Hsla, MonochromeSprite, PaintSurface, Path, Point, PolychromeSprite,
-    PrimitiveBatch, Quad, ScaledPixels, Scene, Shadow, Size, Surface, TransformationMatrix,
-    Underline, point, prepare_gradient_stop_color, size,
+    PrimitiveBatch, Quad, ScaledPixels, Scene, Shadow, Size, TransformationMatrix, Underline,
+    point, prepare_gradient_stop_color, size,
 };
 use image::RgbaImage;
 
@@ -175,7 +175,7 @@ pub struct PathRasterizationVertex {
     pub xy_position: Point<ScaledPixels>,
     pub st_position: Point<f32>,
     pub background: PackedBackground,
-    pub bounds: Bounds<ScaledPixels>,
+    pub content_mask: ContentMask<ScaledPixels>,
 }
 
 impl MetalRenderer {
@@ -951,7 +951,7 @@ impl MetalRenderer {
                 xy_position: v.xy_position,
                 st_position: v.st_position,
                 background,
-                bounds: path.bounds.intersect(&path.content_mask.bounds),
+                content_mask: v.content_mask.clone(),
             }));
         }
         let vertices_bytes_len = mem::size_of_val(vertices.as_slice());
@@ -1504,12 +1504,17 @@ impl MetalRenderer {
                 .unwrap();
 
             align_offset(instance_offset);
-            let next_offset = *instance_offset + mem::size_of::<Surface>();
+            let next_offset = *instance_offset + mem::size_of::<SurfaceBounds>();
             if next_offset > instance_buffer.size {
                 return false;
             }
 
             command_encoder.set_vertex_buffer(
+                SurfaceInputIndex::Surfaces as u64,
+                Some(&instance_buffer.metal_buffer),
+                *instance_offset as u64,
+            );
+            command_encoder.set_fragment_buffer(
                 SurfaceInputIndex::Surfaces as u64,
                 Some(&instance_buffer.metal_buffer),
                 *instance_offset as u64,

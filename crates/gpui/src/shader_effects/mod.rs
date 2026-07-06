@@ -1185,23 +1185,23 @@ mod public_export_tests {
 
     #[test]
     fn effect_constructors_are_available_from_crate_root_and_prelude() {
-        let _: crate::effects::ElementEffect = crate::backdrop_blur(px(12.0)).into();
-        let _: crate::effects::ElementEffect = crate::glass().into();
-        let _: crate::effects::ElementEffect = crate::glow(hsla(0.2, 0.7, 0.6, 0.4)).into();
+        let _: crate::shader_effects::ElementEffect = crate::backdrop_blur(px(12.0)).into();
+        let _: crate::shader_effects::ElementEffect = crate::glass().into();
+        let _: crate::shader_effects::ElementEffect = crate::glow(hsla(0.2, 0.7, 0.6, 0.4)).into();
 
         {
             use crate::prelude::*;
 
-            let _: crate::effects::ElementEffect = backdrop_blur(px(14.0)).into();
-            let _: crate::effects::ElementEffect = glass().into();
-            let _: crate::effects::ElementEffect = glow(hsla(0.5, 0.8, 0.7, 0.5)).into();
+            let _: crate::shader_effects::ElementEffect = backdrop_blur(px(14.0)).into();
+            let _: crate::shader_effects::ElementEffect = glass().into();
+            let _: crate::shader_effects::ElementEffect = glow(hsla(0.5, 0.8, 0.7, 0.5)).into();
             let _ = screen::ripple(point(px(4.0), px(6.0)));
-            let snapshot_id = crate::effects::ScreenEffectSnapshotId::new(8);
-            let _: crate::effects::ScreenEffect = screen::crossfade(snapshot_id).into();
-            let _: crate::effects::ScreenEffect = screen::blur_crossfade(snapshot_id).into();
-            let _: crate::effects::ScreenEffect =
+            let snapshot_id = crate::shader_effects::ScreenEffectSnapshotId::new(8);
+            let _: crate::shader_effects::ScreenEffect = screen::crossfade(snapshot_id).into();
+            let _: crate::shader_effects::ScreenEffect = screen::blur_crossfade(snapshot_id).into();
+            let _: crate::shader_effects::ScreenEffect =
                 screen::radial_reveal(snapshot_id, point(px(4.0), px(6.0))).into();
-            let _: crate::effects::ScreenEffect =
+            let _: crate::shader_effects::ScreenEffect =
                 screen::ripple_reveal(snapshot_id, point(px(4.0), px(6.0))).into();
         }
     }

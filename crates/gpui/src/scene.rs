@@ -1265,11 +1265,11 @@ impl Path<ScaledPixels> {
             id: self.id,
             order: self.order,
             bounds: self.bounds,
-            content_mask: content_mask.clone(),
+            content_mask,
             vertices: self
                 .vertices
                 .iter()
-                .map(|vertex| vertex.with_content_mask(content_mask.clone()))
+                .map(|vertex| vertex.with_content_mask(content_mask))
                 .collect(),
             color: self.color.clone(),
             start: self.start,
@@ -1288,11 +1288,11 @@ impl Path<ScaledPixels> {
             id: self.id,
             order: self.order,
             bounds: transformation.apply_to_scaled_bounds(self.bounds),
-            content_mask: content_mask.clone(),
+            content_mask,
             vertices: self
                 .vertices
                 .iter()
-                .map(|vertex| vertex.transformed(transformation, content_mask.clone()))
+                .map(|vertex| vertex.transformed(transformation, content_mask))
                 .collect(),
             color: self.color.clone(),
             start: transformation.apply_to_scaled_point(self.start),
@@ -1367,12 +1367,10 @@ mod tests {
                 size(ScaledPixels(300.), ScaledPixels(120.)),
             ),
             logical_bounds: Bounds::new(point(px(5.), px(10.)), size(px(150.), px(60.))),
-            content_mask: ContentMask {
-                bounds: Bounds::new(
-                    point(ScaledPixels(0.), ScaledPixels(0.)),
-                    size(ScaledPixels(400.), ScaledPixels(300.)),
-                ),
-            },
+            content_mask: ContentMask::rectangular(Bounds::new(
+                point(ScaledPixels(0.), ScaledPixels(0.)),
+                size(ScaledPixels(400.), ScaledPixels(300.)),
+            )),
             input_mode: HtmlIslandInputMode::DomOwned,
             opacity: 0.75,
             content_revision: 42,
@@ -1421,15 +1419,14 @@ mod tests {
                 size(ScaledPixels(300.), ScaledPixels(120.)),
             ),
             logical_bounds: Bounds::new(point(px(5.), px(10.)), size(px(150.), px(60.))),
-            logical_content_mask: ContentMask {
-                bounds: Bounds::new(point(px(7.), px(12.)), size(px(80.), px(40.))),
-            },
-            content_mask: ContentMask {
-                bounds: Bounds::new(
-                    point(ScaledPixels(14.), ScaledPixels(24.)),
-                    size(ScaledPixels(160.), ScaledPixels(80.)),
-                ),
-            },
+            logical_content_mask: ContentMask::rectangular(Bounds::new(
+                point(px(7.), px(12.)),
+                size(px(80.), px(40.)),
+            )),
+            content_mask: ContentMask::rectangular(Bounds::new(
+                point(ScaledPixels(14.), ScaledPixels(24.)),
+                size(ScaledPixels(160.), ScaledPixels(80.)),
+            )),
             input_mode: HtmlElementInputMode::DomOwned,
             lifetime: HtmlElementLifetime::KeepAliveHidden,
             content_fit: HtmlElementContentFit::Fill,
@@ -1557,7 +1554,7 @@ mod tests {
     fn test_quad(bounds: Bounds<ScaledPixels>) -> Quad {
         Quad {
             bounds,
-            content_mask: ContentMask { bounds },
+            content_mask: ContentMask::rectangular(bounds),
             ..Default::default()
         }
     }
@@ -1568,7 +1565,7 @@ mod tests {
             blur_radius: ScaledPixels(8.),
             bounds,
             corner_radii: Corners::all(ScaledPixels(8.)),
-            content_mask: ContentMask { bounds },
+            content_mask: ContentMask::rectangular(bounds),
             color: hsla(0., 0., 0., 0.25),
             transformation: TransformationMatrix::unit(),
         }
@@ -1578,7 +1575,7 @@ mod tests {
         VisualEffectPrimitive {
             order: 0,
             bounds,
-            content_mask: ContentMask { bounds },
+            content_mask: ContentMask::rectangular(bounds),
             corner_radii: Corners::all(ScaledPixels(12.)),
             opacity: 1.,
             effects: vec![
@@ -1598,14 +1595,14 @@ mod tests {
             id: id.into(),
             bounds,
             logical_bounds: Bounds::new(point(px(0.), px(0.)), size(px(50.), px(50.))),
-            content_mask: ContentMask { bounds },
+            content_mask: ContentMask::rectangular(bounds),
             corner_radii: Corners::all(ScaledPixels(12.)),
             transformation: TransformationMatrix::unit(),
         }
     }
 
     fn test_path(bounds: Bounds<ScaledPixels>) -> Path<ScaledPixels> {
-        let content_mask = ContentMask { bounds };
+        let content_mask = ContentMask::rectangular(bounds);
 
         Path {
             id: PathId(0),
@@ -1642,7 +1639,7 @@ mod tests {
             id: ElementId::from(id),
             bounds,
             logical_bounds: Bounds::new(point(px(0.), px(0.)), size(px(50.), px(50.))),
-            content_mask: ContentMask { bounds },
+            content_mask: ContentMask::rectangular(bounds),
             input_mode: HtmlIslandInputMode::GpuiOwned,
             opacity: 1.,
             content_revision: 1,
@@ -1656,10 +1653,11 @@ mod tests {
             id: ElementId::from(id),
             bounds,
             logical_bounds: Bounds::new(point(px(0.), px(0.)), size(px(50.), px(50.))),
-            logical_content_mask: ContentMask {
-                bounds: Bounds::new(point(px(0.), px(0.)), size(px(50.), px(50.))),
-            },
-            content_mask: ContentMask { bounds },
+            logical_content_mask: ContentMask::rectangular(Bounds::new(
+                point(px(0.), px(0.)),
+                size(px(50.), px(50.)),
+            )),
+            content_mask: ContentMask::rectangular(bounds),
             input_mode: HtmlElementInputMode::GpuiOwned,
             lifetime: HtmlElementLifetime::PruneWhenAbsent,
             content_fit: HtmlElementContentFit::Natural,

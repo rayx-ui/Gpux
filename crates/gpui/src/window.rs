@@ -797,7 +797,7 @@ pub(crate) struct DeferredDraw {
     paint_range: Range<PaintIndex>,
 }
 
-pub(crate) struct Frame {
+pub(crate) struct WindowFrame {
     pub(crate) focus: Option<FocusId>,
     pub(crate) window_active: bool,
     pub(crate) element_states: FxHashMap<(GlobalElementId, TypeId), ElementStateBox>,
@@ -845,9 +845,9 @@ pub(crate) struct PaintIndex {
     line_layout_index: LineLayoutIndex,
 }
 
-impl Frame {
+impl WindowFrame {
     pub(crate) fn new(dispatch_tree: DispatchTree) -> Self {
-        Frame {
+        WindowFrame {
             focus: None,
             window_active: false,
             element_states: FxHashMap::default(),
@@ -1300,8 +1300,8 @@ pub struct Window {
     paint_content_mask_stack: Vec<ContentMask<ScaledPixels>>,
     pub(crate) requested_autoscroll: Option<Bounds<Pixels>>,
     pub(crate) image_cache_stack: Vec<AnyImageCache>,
-    pub(crate) rendered_frame: Frame,
-    pub(crate) next_frame: Frame,
+    pub(crate) rendered_frame: WindowFrame,
+    pub(crate) next_frame: WindowFrame,
     active_screen_effects: VecDeque<WindowActiveScreenEffect>,
     screen_effect_snapshots: VecDeque<WindowScreenEffectSnapshot>,
     next_screen_effect_id: u64,
@@ -1941,8 +1941,11 @@ impl Window {
             element_transform_stack: Vec::new(),
             paint_content_mask_stack: Vec::new(),
             requested_autoscroll: None,
-            rendered_frame: Frame::new(DispatchTree::new(cx.keymap.clone(), cx.actions.clone())),
-            next_frame: Frame::new(DispatchTree::new(cx.keymap.clone(), cx.actions.clone())),
+            rendered_frame: WindowFrame::new(DispatchTree::new(
+                cx.keymap.clone(),
+                cx.actions.clone(),
+            )),
+            next_frame: WindowFrame::new(DispatchTree::new(cx.keymap.clone(), cx.actions.clone())),
             active_screen_effects: VecDeque::new(),
             screen_effect_snapshots: VecDeque::new(),
             next_screen_effect_id: 1,
@@ -2012,6 +2015,96 @@ pub struct DispatchEventResult {
 pub struct ContentMask<P: Clone + Debug + Default + PartialEq> {
     /// The bounds
     pub bounds: Bounds<P>,
+    /// The corner radii of the clipping shape.
+    pub corner_radii: Corners<P>,
+}
+
+impl<P> ContentMask<P>
+where
+    P: Clone + Debug + Default + PartialEq,
+{
+    /// Creates a rectangular content mask.
+    pub fn rectangular(bounds: Bounds<P>) -> Self {
+        Self {
+            bounds,
+            corner_radii: Corners::default(),
+        }
+    }
+
+    /// Creates a content mask with explicit corner radii.
+    pub fn rounded(bounds: Bounds<P>, corner_radii: Corners<P>) -> Self {
+        Self {
+            bounds,
+            corner_radii,
+        }
+    }
+}
+
+impl<P> ContentMask<P>
+where
+    P: Ord
+        + std::ops::Add<P, Output = P>
+        + std::ops::Sub<Output = P>
+        + Clone
+        + Debug
+        + Default
+        + PartialEq,
+{
+    fn intersected_corner_radius(
+        corner: Point<P>,
+        a_corner: Point<P>,
+        a_radius: P,
+        b_corner: Point<P>,
+        b_radius: P,
+    ) -> P {
+        let mut radius = P::default();
+        if corner == a_corner {
+            radius = radius.max(a_radius);
+        }
+        if corner == b_corner {
+            radius = radius.max(b_radius);
+        }
+        radius
+    }
+
+    /// Intersect the content mask with the given content mask.
+    pub fn intersect(&self, other: &Self) -> Self {
+        let bounds = self.bounds.intersect(&other.bounds);
+        let corner_radii = Corners {
+            top_left: Self::intersected_corner_radius(
+                bounds.origin.clone(),
+                self.bounds.origin.clone(),
+                self.corner_radii.top_left.clone(),
+                other.bounds.origin.clone(),
+                other.corner_radii.top_left.clone(),
+            ),
+            top_right: Self::intersected_corner_radius(
+                bounds.top_right(),
+                self.bounds.top_right(),
+                self.corner_radii.top_right.clone(),
+                other.bounds.top_right(),
+                other.corner_radii.top_right.clone(),
+            ),
+            bottom_right: Self::intersected_corner_radius(
+                bounds.bottom_right(),
+                self.bounds.bottom_right(),
+                self.corner_radii.bottom_right.clone(),
+                other.bounds.bottom_right(),
+                other.corner_radii.bottom_right.clone(),
+            ),
+            bottom_left: Self::intersected_corner_radius(
+                bounds.bottom_left(),
+                self.bounds.bottom_left(),
+                self.corner_radii.bottom_left.clone(),
+                other.bounds.bottom_left(),
+                other.corner_radii.bottom_left.clone(),
+            ),
+        };
+        ContentMask {
+            bounds,
+            corner_radii,
+        }
+    }
 }
 
 impl ContentMask<Pixels> {
@@ -2019,13 +2112,8 @@ impl ContentMask<Pixels> {
     pub fn scale(&self, factor: f32) -> ContentMask<ScaledPixels> {
         ContentMask {
             bounds: self.bounds.scale(factor),
+            corner_radii: self.corner_radii.scale(factor),
         }
-    }
-
-    /// Intersect the content mask with the given content mask.
-    pub fn intersect(&self, other: &Self) -> Self {
-        let bounds = self.bounds.intersect(&other.bounds);
-        ContentMask { bounds }
     }
 }
 
@@ -2873,8 +2961,10 @@ impl Window {
 
     #[inline]
     fn snapped_content_mask(&self) -> ContentMask<ScaledPixels> {
+        let content_mask = self.content_mask();
         ContentMask {
-            bounds: self.cover_bounds(self.content_mask().bounds),
+            bounds: self.cover_bounds(content_mask.bounds),
+            corner_radii: content_mask.corner_radii.scale(self.scale_factor()),
         }
     }
 
@@ -3770,7 +3860,7 @@ impl Window {
                 )
             });
             self.content_mask_stack.push(mask);
-            if let Some(transformed_mask) = transformed_mask.clone() {
+            if let Some(transformed_mask) = transformed_mask {
                 self.paint_content_mask_stack.push(transformed_mask);
             }
             let result = f(self);
@@ -3960,15 +4050,12 @@ impl Window {
     /// Obtain the current content mask. This method should only be called during element drawing.
     pub fn content_mask(&self) -> ContentMask<Pixels> {
         self.invalidator.debug_assert_paint_or_prepaint();
-        self.content_mask_stack
-            .last()
-            .cloned()
-            .unwrap_or_else(|| ContentMask {
-                bounds: Bounds {
-                    origin: Point::default(),
-                    size: self.viewport_size,
-                },
+        self.content_mask_stack.last().cloned().unwrap_or_else(|| {
+            ContentMask::rectangular(Bounds {
+                origin: Point::default(),
+                size: self.viewport_size,
             })
+        })
     }
 
     #[inline]
@@ -3997,6 +4084,7 @@ impl Window {
     ) -> ContentMask<ScaledPixels> {
         ContentMask {
             bounds: self.transform_scaled_bounds(content_mask.bounds),
+            corner_radii: content_mask.corner_radii,
         }
     }
 
@@ -4006,11 +4094,11 @@ impl Window {
         self.paint_content_mask_stack
             .last()
             .cloned()
-            .unwrap_or_else(|| ContentMask {
-                bounds: Bounds {
+            .unwrap_or_else(|| {
+                ContentMask::rectangular(Bounds {
                     origin: Point::default(),
                     size: self.viewport_size.scale(self.scale_factor()),
-                },
+                })
             })
     }
 
@@ -4020,9 +4108,7 @@ impl Window {
         content_mask: ContentMask<ScaledPixels>,
     ) -> ContentMask<ScaledPixels> {
         let current = self.paint_content_mask();
-        ContentMask {
-            bounds: content_mask.bounds.intersect(&current.bounds),
-        }
+        content_mask.intersect(&current)
     }
 
     /// Provide elements in the called function with a new namespace in which their identifiers must be unique.
@@ -4293,7 +4379,7 @@ impl Window {
                 order: 0,
                 blur_radius: shadow.blur_radius.scale(scale_factor),
                 bounds: shadow_bounds.scale(scale_factor),
-                content_mask: content_mask.clone(),
+                content_mask,
                 corner_radii: corner_radii.scale(scale_factor),
                 color: shadow.color.opacity(opacity),
                 transformation,
@@ -4494,6 +4580,9 @@ impl Window {
         let logical_content_mask = ContentMask {
             bounds: content_mask
                 .bounds
+                .map(|coordinate| px(coordinate.0 / scale_factor)),
+            corner_radii: content_mask
+                .corner_radii
                 .map(|coordinate| px(coordinate.0 / scale_factor)),
         };
 
@@ -6585,7 +6674,7 @@ impl Window {
     fn hovered_inspector_hitbox(
         &self,
         inspector: &Inspector,
-        frame: &Frame,
+        frame: &WindowFrame,
     ) -> Option<(HitboxId, crate::InspectorElementId)> {
         if let Some(pick_depth) = inspector.pick_depth {
             let depth = (pick_depth as i64).try_into().unwrap_or(0);
@@ -7127,6 +7216,43 @@ mod tests {
         Empty, MAX_ACTIVE_SCREEN_EFFECTS, ScreenEffectSnapshotId, ScreenEffectTarget,
         TestAppContext, point, screen, size,
     };
+
+    #[test]
+    fn content_mask_scale_preserves_corner_radii() {
+        let bounds = Bounds::new(point(px(1.), px(2.)), size(px(10.), px(20.)));
+        let mask = ContentMask {
+            bounds,
+            corner_radii: Corners::all(px(3.)),
+        };
+
+        let scaled = mask.scale(2.);
+
+        assert_eq!(scaled.bounds, bounds.scale(2.));
+        assert_eq!(scaled.corner_radii, Corners::all(ScaledPixels(6.)));
+    }
+
+    #[test]
+    fn rectangular_content_mask_is_zero_radius() {
+        let bounds = Bounds::new(point(px(1.), px(2.)), size(px(10.), px(20.)));
+
+        assert_eq!(
+            ContentMask::rectangular(bounds),
+            ContentMask::rounded(bounds, Corners::default())
+        );
+    }
+
+    #[test]
+    fn content_mask_intersection_preserves_nested_child_radii() {
+        let parent =
+            ContentMask::rectangular(Bounds::new(point(px(0.), px(0.)), size(px(100.), px(100.))));
+        let child_bounds = Bounds::new(point(px(20.), px(20.)), size(px(40.), px(40.)));
+        let child = ContentMask::rounded(child_bounds, Corners::all(px(8.)));
+
+        let intersection = child.intersect(&parent);
+
+        assert_eq!(intersection.bounds, child_bounds);
+        assert_eq!(intersection.corner_radii, Corners::all(px(8.)));
+    }
 
     #[gpux::test]
     fn play_screen_effect_enqueues_caps_and_marks_window_dirty(cx: &mut TestAppContext) {

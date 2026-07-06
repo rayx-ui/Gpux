@@ -10,9 +10,9 @@ use bytemuck::{Pod, Zeroable};
 use gpux::HtmlIslandPrimitive;
 use gpux::{
     ActiveScreenEffect, ActiveScreenEffectSnapshot, AtlasTextureId, Background, BackgroundKind,
-    Bounds, ColorSpace, Corners, DevicePixels, Edges, EffectCapabilities, EffectQuality,
-    ElementEffect, ElementEffectCapabilities, GpuSpecs, Hsla, MonochromeSprite, Path, Pixels,
-    Point, PolychromeSprite, PrimitiveBatch, Quad, ScaledPixels, Scene, ScreenEffect,
+    Bounds, ColorSpace, ContentMask, Corners, DevicePixels, Edges, EffectCapabilities,
+    EffectQuality, ElementEffect, ElementEffectCapabilities, GpuSpecs, Hsla, MonochromeSprite,
+    Path, Pixels, Point, PolychromeSprite, PrimitiveBatch, Quad, ScaledPixels, Scene, ScreenEffect,
     ScreenEffectCapabilities, ScreenEffectSnapshotId, ScreenEffectTarget, Shadow, Size,
     SnapshotTransitionKind, SubpixelSprite, TransformationMatrix, Underline, VisualEffectPrimitive,
     get_gamma_correction_ratios, prepare_gradient_stop_color,
@@ -52,10 +52,17 @@ impl From<Bounds<ScaledPixels>> for PodBounds {
 }
 
 #[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Pod, Zeroable)]
+struct PackedContentMask {
+    bounds: PodBounds,
+    corner_radii: [f32; 4],
+}
+
+#[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
 struct SurfaceParams {
     bounds: PodBounds,
-    content_mask: PodBounds,
+    content_mask: PackedContentMask,
 }
 
 #[repr(C)]
@@ -108,7 +115,7 @@ struct PackedTransformationMatrix {
 #[repr(C)]
 struct PackedVisualEffectPrimitive {
     bounds: PodBounds,
-    content_mask: PodBounds,
+    content_mask: PackedContentMask,
     corner_radii: [f32; 4],
     opacity: f32,
     effect_offset: u32,
@@ -176,7 +183,7 @@ struct PackedQuad {
     order: u32,
     border_style: u32,
     bounds: PodBounds,
-    content_mask: PodBounds,
+    content_mask: PackedContentMask,
     background: PackedBackground,
     border_color: PackedBackground,
     corner_radii: [f32; 4],
@@ -190,37 +197,38 @@ struct PackedPathRasterizationVertex {
     xy_position: [f32; 2],
     st_position: [f32; 2],
     background: PackedBackground,
-    bounds: PodBounds,
+    content_mask: PackedContentMask,
 }
 
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
 #[repr(C)]
 struct PackedHtmlIsland {
     bounds: PodBounds,
-    content_mask: PodBounds,
+    content_mask: PackedContentMask,
     opacity: f32,
     _pad: [f32; 3],
 }
 
 const _: [(); 16] = [(); size_of::<PodBounds>()];
+const _: [(); 32] = [(); size_of::<PackedContentMask>()];
 const _: [(); 24] = [(); size_of::<PackedTransformationMatrix>()];
 const _: [(); 48] = [(); size_of::<PackedBackground>()];
 const _: [(); 8] = [(); align_of::<PackedBackground>()];
-const _: [(); 192] = [(); size_of::<PackedQuad>()];
-const _: [(); 40] = [(); offset_of!(PackedQuad, background)];
-const _: [(); 88] = [(); offset_of!(PackedQuad, border_color)];
-const _: [(); 168] = [(); offset_of!(PackedQuad, transformation)];
-const _: [(); 80] = [(); size_of::<PackedPathRasterizationVertex>()];
+const _: [(); 208] = [(); size_of::<PackedQuad>()];
+const _: [(); 56] = [(); offset_of!(PackedQuad, background)];
+const _: [(); 104] = [(); offset_of!(PackedQuad, border_color)];
+const _: [(); 184] = [(); offset_of!(PackedQuad, transformation)];
+const _: [(); 96] = [(); size_of::<PackedPathRasterizationVertex>()];
 const _: [(); 16] = [(); offset_of!(PackedPathRasterizationVertex, background)];
-const _: [(); 64] = [(); offset_of!(PackedPathRasterizationVertex, bounds)];
-const _: [(); 48] = [(); size_of::<PackedHtmlIsland>()];
-const _: [(); 88] = [(); size_of::<PackedVisualEffectPrimitive>()];
+const _: [(); 64] = [(); offset_of!(PackedPathRasterizationVertex, content_mask)];
+const _: [(); 64] = [(); size_of::<PackedHtmlIsland>()];
+const _: [(); 104] = [(); size_of::<PackedVisualEffectPrimitive>()];
 const _: [(); 16] = [(); offset_of!(PackedVisualEffectPrimitive, content_mask)];
-const _: [(); 32] = [(); offset_of!(PackedVisualEffectPrimitive, corner_radii)];
-const _: [(); 48] = [(); offset_of!(PackedVisualEffectPrimitive, opacity)];
-const _: [(); 52] = [(); offset_of!(PackedVisualEffectPrimitive, effect_offset)];
-const _: [(); 56] = [(); offset_of!(PackedVisualEffectPrimitive, effect_count)];
-const _: [(); 64] = [(); offset_of!(PackedVisualEffectPrimitive, transformation)];
+const _: [(); 48] = [(); offset_of!(PackedVisualEffectPrimitive, corner_radii)];
+const _: [(); 64] = [(); offset_of!(PackedVisualEffectPrimitive, opacity)];
+const _: [(); 68] = [(); offset_of!(PackedVisualEffectPrimitive, effect_offset)];
+const _: [(); 72] = [(); offset_of!(PackedVisualEffectPrimitive, effect_count)];
+const _: [(); 80] = [(); offset_of!(PackedVisualEffectPrimitive, transformation)];
 const _: [(); 80] = [(); size_of::<PackedElementEffect>()];
 const _: [(); 16] = [(); offset_of!(PackedElementEffect, params0)];
 const _: [(); 32] = [(); offset_of!(PackedElementEffect, params1)];
@@ -257,7 +265,7 @@ fn pack_quads(quads: &[Quad]) -> (Vec<PackedQuad>, Vec<PackedGradientStop>) {
             order: quad.order,
             border_style: quad.border_style as u32,
             bounds: quad.bounds.into(),
-            content_mask: quad.content_mask.bounds.into(),
+            content_mask: pack_content_mask(quad.content_mask),
             background: pack_background(&quad.background, &mut gradient_stops),
             border_color: pack_background(&quad.border_color, &mut gradient_stops),
             corner_radii: pack_corners(quad.corner_radii),
@@ -278,7 +286,7 @@ fn pack_visual_effect_primitives(primitives: &[VisualEffectPrimitive]) -> Packed
             .extend(primitive.effects.iter().map(pack_element_effect));
         packed.primitives.push(PackedVisualEffectPrimitive {
             bounds: primitive.bounds.into(),
-            content_mask: primitive.content_mask.bounds.into(),
+            content_mask: pack_content_mask(primitive.content_mask),
             corner_radii: pack_corners(primitive.corner_radii),
             opacity: primitive.opacity,
             effect_offset,
@@ -580,6 +588,13 @@ fn pack_corners(corners: Corners<ScaledPixels>) -> [f32; 4] {
         corners.bottom_right.0,
         corners.bottom_left.0,
     ]
+}
+
+fn pack_content_mask(content_mask: ContentMask<ScaledPixels>) -> PackedContentMask {
+    PackedContentMask {
+        bounds: content_mask.bounds.into(),
+        corner_radii: pack_corners(content_mask.corner_radii),
+    }
 }
 
 fn pack_edges(edges: Edges<ScaledPixels>) -> [f32; 4] {
@@ -3049,7 +3064,7 @@ impl WgpuRenderer {
                 };
                 let packed = PackedHtmlIsland {
                     bounds: island.bounds.into(),
-                    content_mask: island.content_mask.bounds.into(),
+                    content_mask: pack_content_mask(island.content_mask),
                     opacity: island.opacity,
                     _pad: [0.; 3],
                 };
@@ -3516,13 +3531,12 @@ impl WgpuRenderer {
         let mut vertices = Vec::new();
         let mut gradient_stops = Vec::new();
         for path in paths {
-            let bounds = path.clipped_bounds();
             let background = pack_background(&path.color, &mut gradient_stops);
             vertices.extend(path.vertices.iter().map(|v| PackedPathRasterizationVertex {
                 xy_position: pack_point(v.xy_position),
                 st_position: pack_point_f32(v.st_position),
                 background,
-                bounds: bounds.into(),
+                content_mask: pack_content_mask(v.content_mask),
             }));
         }
 
@@ -4012,19 +4026,83 @@ mod tests {
 
     #[test]
     fn packed_visual_effect_layout_matches_wgsl_contract() {
-        assert_eq!(size_of::<PackedVisualEffectPrimitive>(), 88);
+        assert_eq!(size_of::<PackedContentMask>(), 32);
+        assert_eq!(offset_of!(PackedContentMask, bounds), 0);
+        assert_eq!(offset_of!(PackedContentMask, corner_radii), 16);
+
+        assert_eq!(size_of::<PackedVisualEffectPrimitive>(), 104);
         assert_eq!(offset_of!(PackedVisualEffectPrimitive, content_mask), 16);
-        assert_eq!(offset_of!(PackedVisualEffectPrimitive, corner_radii), 32);
-        assert_eq!(offset_of!(PackedVisualEffectPrimitive, opacity), 48);
-        assert_eq!(offset_of!(PackedVisualEffectPrimitive, effect_offset), 52);
-        assert_eq!(offset_of!(PackedVisualEffectPrimitive, effect_count), 56);
-        assert_eq!(offset_of!(PackedVisualEffectPrimitive, transformation), 64);
+        assert_eq!(offset_of!(PackedVisualEffectPrimitive, corner_radii), 48);
+        assert_eq!(offset_of!(PackedVisualEffectPrimitive, opacity), 64);
+        assert_eq!(offset_of!(PackedVisualEffectPrimitive, effect_offset), 68);
+        assert_eq!(offset_of!(PackedVisualEffectPrimitive, effect_count), 72);
+        assert_eq!(offset_of!(PackedVisualEffectPrimitive, transformation), 80);
 
         assert_eq!(size_of::<PackedElementEffect>(), 80);
         assert_eq!(offset_of!(PackedElementEffect, params0), 16);
         assert_eq!(offset_of!(PackedElementEffect, params1), 32);
         assert_eq!(offset_of!(PackedElementEffect, color0), 48);
         assert_eq!(offset_of!(PackedElementEffect, color1), 64);
+    }
+
+    #[test]
+    fn quad_packing_preserves_content_mask_corner_radii() {
+        let bounds = scaled_bounds(80., 40.);
+        let mask_bounds = Bounds::new(
+            point(ScaledPixels(4.), ScaledPixels(6.)),
+            size(ScaledPixels(64.), ScaledPixels(32.)),
+        );
+        let quad = Quad {
+            bounds,
+            content_mask: ContentMask::rounded(
+                mask_bounds,
+                Corners {
+                    top_left: ScaledPixels(5.),
+                    top_right: ScaledPixels(6.),
+                    bottom_right: ScaledPixels(7.),
+                    bottom_left: ScaledPixels(8.),
+                },
+            ),
+            ..Default::default()
+        };
+
+        let (packed, _) = pack_quads(&[quad]);
+
+        assert_eq!(packed[0].content_mask.bounds, PodBounds::from(mask_bounds));
+        assert_eq!(packed[0].content_mask.corner_radii, [5., 6., 7., 8.]);
+    }
+
+    #[test]
+    fn visual_effect_packing_preserves_content_mask_corner_radii() {
+        let bounds = scaled_bounds(80., 40.);
+        let primitive = VisualEffectPrimitive {
+            order: 0,
+            bounds,
+            content_mask: ContentMask::rounded(bounds, Corners::all(ScaledPixels(11.))),
+            corner_radii: Corners::all(ScaledPixels(6.)),
+            opacity: 1.0,
+            effects: vec![backdrop_blur(px(8.)).into()],
+            transformation: TransformationMatrix::unit(),
+        };
+
+        let packed = pack_visual_effect_primitives(&[primitive]);
+
+        assert_eq!(
+            packed.primitives[0].content_mask.corner_radii,
+            [11., 11., 11., 11.]
+        );
+    }
+
+    #[test]
+    fn visual_effect_shaders_check_rounded_content_mask_in_normal_and_glow_passes() {
+        let shader = include_str!("shaders.wgsl");
+
+        assert_eq!(
+            shader
+                .matches("content_mask_sdf(input.transformed_position, primitive.content_mask)")
+                .count(),
+            2
+        );
     }
 
     #[test]
@@ -4103,7 +4181,7 @@ mod tests {
                 id: ScreenEffectRegionId::new("panel"),
                 bounds,
                 logical_bounds: Bounds::new(point(px(10.), px(15.)), size(px(100.), px(50.))),
-                content_mask: ContentMask { bounds },
+                content_mask: ContentMask::rectangular(bounds),
                 corner_radii: Corners::all(ScaledPixels(8.)),
                 transformation: TransformationMatrix::unit(),
             });
@@ -4232,7 +4310,7 @@ mod tests {
         let primitive = VisualEffectPrimitive {
             order: 0,
             bounds,
-            content_mask: ContentMask { bounds },
+            content_mask: ContentMask::rectangular(bounds),
             corner_radii: Corners::all(ScaledPixels(6.)),
             opacity: 0.75,
             effects: vec![
@@ -4287,7 +4365,7 @@ mod tests {
         let primitive = VisualEffectPrimitive {
             order: 0,
             bounds,
-            content_mask: ContentMask { bounds: mask },
+            content_mask: ContentMask::rectangular(mask),
             corner_radii: Corners::all(ScaledPixels(9.)),
             opacity: 0.5,
             effects: vec![
@@ -4302,7 +4380,11 @@ mod tests {
 
         let packed = pack_visual_effect_primitives(&[primitive]);
 
-        assert_eq!(packed.primitives[0].content_mask, PodBounds::from(mask));
+        assert_eq!(
+            packed.primitives[0].content_mask.bounds,
+            PodBounds::from(mask)
+        );
+        assert_eq!(packed.primitives[0].content_mask.corner_radii, [0.; 4]);
         assert_eq!(packed.primitives[0].opacity, 0.5);
         assert_eq!(packed.effects[0].kind, VISUAL_EFFECT_KIND_GLOW);
         assert_eq!(packed.effects[0].params0, [32., 6., 1.25, 0.]);
@@ -4315,7 +4397,7 @@ mod tests {
         let primitive = VisualEffectPrimitive {
             order: 0,
             bounds,
-            content_mask: ContentMask { bounds },
+            content_mask: ContentMask::rectangular(bounds),
             corner_radii: Corners::all(ScaledPixels(8.)),
             opacity: 1.0,
             effects: vec![

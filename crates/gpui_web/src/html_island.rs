@@ -815,9 +815,7 @@ mod tests {
             id: ElementId::from(id),
             bounds: Default::default(),
             logical_bounds: Default::default(),
-            content_mask: ContentMask {
-                bounds: Default::default(),
-            },
+            content_mask: ContentMask::rectangular(Default::default()),
             input_mode: HtmlIslandInputMode::GpuiOwned,
             opacity: 1.,
             content_revision: 1,
