@@ -1379,30 +1379,40 @@ impl PositionedBounds {
         }
     }
 
-    fn resolve_fixed_for_viewport(
+    fn resolve_fixed_for_containing_block(
         style: &Style,
         layout_bounds: Bounds<Pixels>,
-        viewport_bounds: Bounds<Pixels>,
+        containing_block_bounds: Bounds<Pixels>,
         rem_size: Pixels,
     ) -> Self {
         let mut visual_origin = layout_bounds.origin;
 
-        if let Some(left) = length_to_pixels(style.inset.left, viewport_bounds.size.width, rem_size)
-        {
-            visual_origin.x = viewport_bounds.left() + left;
-        } else if let Some(right) =
-            length_to_pixels(style.inset.right, viewport_bounds.size.width, rem_size)
-        {
-            visual_origin.x = viewport_bounds.right() - right - layout_bounds.size.width;
+        if let Some(left) = length_to_pixels(
+            style.inset.left,
+            containing_block_bounds.size.width,
+            rem_size,
+        ) {
+            visual_origin.x = containing_block_bounds.left() + left;
+        } else if let Some(right) = length_to_pixels(
+            style.inset.right,
+            containing_block_bounds.size.width,
+            rem_size,
+        ) {
+            visual_origin.x = containing_block_bounds.right() - right - layout_bounds.size.width;
         }
 
-        if let Some(top) = length_to_pixels(style.inset.top, viewport_bounds.size.height, rem_size)
-        {
-            visual_origin.y = viewport_bounds.top() + top;
-        } else if let Some(bottom) =
-            length_to_pixels(style.inset.bottom, viewport_bounds.size.height, rem_size)
-        {
-            visual_origin.y = viewport_bounds.bottom() - bottom - layout_bounds.size.height;
+        if let Some(top) = length_to_pixels(
+            style.inset.top,
+            containing_block_bounds.size.height,
+            rem_size,
+        ) {
+            visual_origin.y = containing_block_bounds.top() + top;
+        } else if let Some(bottom) = length_to_pixels(
+            style.inset.bottom,
+            containing_block_bounds.size.height,
+            rem_size,
+        ) {
+            visual_origin.y = containing_block_bounds.bottom() - bottom - layout_bounds.size.height;
         }
 
         let visual_bounds = Bounds::new(visual_origin, layout_bounds.size);
@@ -3924,31 +3934,6 @@ impl Window {
         }
     }
 
-    pub(crate) fn with_viewport_content_mask<R>(&mut self, f: impl FnOnce(&mut Self) -> R) -> R {
-        self.invalidator.debug_assert_paint_or_prepaint();
-        let logical_mask = ContentMask {
-            bounds: Bounds::new(Point::default(), self.viewport_size()),
-        };
-        let is_paint = self.is_paint_phase();
-        self.content_mask_stack.push(logical_mask);
-        if is_paint {
-            self.paint_content_mask_stack.push(ContentMask {
-                bounds: Bounds::new(
-                    Point::default(),
-                    self.viewport_size().scale(self.scale_factor()),
-                ),
-            });
-        }
-
-        let result = f(self);
-
-        if is_paint {
-            self.paint_content_mask_stack.pop();
-        }
-        self.content_mask_stack.pop();
-        result
-    }
-
     /// Runs `f` with an active scroll container used by sticky descendants.
     pub fn with_scroll_container_context<R>(
         &mut self,
@@ -3990,15 +3975,18 @@ impl Window {
                     );
                 (positioned_bounds, Some(sticky_state))
             }
-            Position::Fixed => (
-                PositionedBounds::resolve_fixed_for_viewport(
-                    style,
-                    layout_bounds,
-                    Bounds::new(Point::default(), self.viewport_size()),
-                    self.rem_size(),
-                ),
-                None,
-            ),
+            Position::Fixed => {
+                let containing_block_bounds = self.content_mask().bounds;
+                (
+                    PositionedBounds::resolve_fixed_for_containing_block(
+                        style,
+                        layout_bounds,
+                        containing_block_bounds,
+                        self.rem_size(),
+                    ),
+                    None,
+                )
+            }
         }
     }
 
@@ -7365,8 +7353,9 @@ mod positioning_tests {
     }
 
     #[test]
-    fn fixed_positioned_bounds_resolve_top_left_against_viewport() {
-        let viewport_bounds = Bounds::new(Point::default(), size(px(320.), px(240.)));
+    fn fixed_positioned_bounds_resolve_top_left_against_containing_block() {
+        let containing_block_bounds =
+            Bounds::new(point(px(20.), px(30.)), size(px(320.), px(240.)));
         let layout_bounds = Bounds::new(point(px(70.), px(80.)), size(px(90.), px(30.)));
         let mut style = Style {
             position: Position::Fixed,
@@ -7375,22 +7364,23 @@ mod positioning_tests {
         style.inset.top = px(12.).into();
         style.inset.left = px(24.).into();
 
-        let positioned = PositionedBounds::resolve_fixed_for_viewport(
+        let positioned = PositionedBounds::resolve_fixed_for_containing_block(
             &style,
             layout_bounds,
-            viewport_bounds,
+            containing_block_bounds,
             px(16.),
         );
 
-        let expected = Bounds::new(point(px(24.), px(12.)), layout_bounds.size);
+        let expected = Bounds::new(point(px(44.), px(42.)), layout_bounds.size);
         assert_eq!(layout_bounds, positioned.layout_bounds);
         assert_eq!(expected, positioned.visual_bounds);
-        assert_eq!(point(px(-46.), px(-68.)), positioned.delta);
+        assert_eq!(point(px(-26.), px(-38.)), positioned.delta);
     }
 
     #[test]
-    fn fixed_positioned_bounds_resolve_bottom_right_against_viewport() {
-        let viewport_bounds = Bounds::new(Point::default(), size(px(320.), px(240.)));
+    fn fixed_positioned_bounds_resolve_bottom_right_against_containing_block() {
+        let containing_block_bounds =
+            Bounds::new(point(px(20.), px(30.)), size(px(320.), px(240.)));
         let layout_bounds = Bounds::new(point(px(70.), px(80.)), size(px(90.), px(30.)));
         let mut style = Style {
             position: Position::Fixed,
@@ -7399,17 +7389,17 @@ mod positioning_tests {
         style.inset.right = px(14.).into();
         style.inset.bottom = px(18.).into();
 
-        let positioned = PositionedBounds::resolve_fixed_for_viewport(
+        let positioned = PositionedBounds::resolve_fixed_for_containing_block(
             &style,
             layout_bounds,
-            viewport_bounds,
+            containing_block_bounds,
             px(16.),
         );
 
-        let expected = Bounds::new(point(px(216.), px(192.)), layout_bounds.size);
+        let expected = Bounds::new(point(px(236.), px(222.)), layout_bounds.size);
         assert_eq!(layout_bounds, positioned.layout_bounds);
         assert_eq!(expected, positioned.visual_bounds);
-        assert_eq!(point(px(146.), px(112.)), positioned.delta);
+        assert_eq!(point(px(166.), px(142.)), positioned.delta);
     }
 
     #[test]

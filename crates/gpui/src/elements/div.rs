@@ -2172,11 +2172,7 @@ impl Interactivity {
                     })
                 };
 
-                if style.position == Position::Fixed {
-                    window.with_viewport_content_mask(prepaint)
-                } else {
-                    prepaint(window)
-                }
+                prepaint(window)
             },
         )
     }
@@ -2409,9 +2405,7 @@ impl Interactivity {
 
                 match style.position {
                     Position::Fixed => {
-                        window.with_viewport_content_mask(|window| {
-                            window.paint_positioned_layer(bounds, paint)
-                        });
+                        window.paint_positioned_layer(bounds, paint);
                     }
                     Position::Sticky => {
                         window.paint_positioned_layer(bounds, paint);
@@ -4572,6 +4566,39 @@ mod tests {
         }
     }
 
+    struct FixedInClippedParentOwner {
+        handle: ScrollHandle,
+    }
+
+    impl Render for FixedInClippedParentOwner {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            div().relative().w(px(260.)).h(px(180.)).child(
+                div()
+                    .id("fixed-in-clipped-parent-scroll")
+                    .absolute()
+                    .left(px(25.))
+                    .top(px(30.))
+                    .w(px(200.))
+                    .h(px(120.))
+                    .overflow_y_scroll()
+                    .track_scroll(&self.handle)
+                    .border_1()
+                    .child(
+                        div()
+                            .fixed()
+                            .right(px(10.))
+                            .bottom(px(12.))
+                            .w(px(40.))
+                            .h(px(20.))
+                            .bg(crate::green())
+                            .occlude()
+                            .debug_selector(|| "fixed-in-clipped-parent".into()),
+                    )
+                    .child(div().w(px(200.)).h(px(260.))),
+            )
+        }
+    }
+
     struct NestedStickyOwner {
         outer_handle: ScrollHandle,
         inner_handle: ScrollHandle,
@@ -4771,6 +4798,81 @@ mod tests {
                     quad_order_for_color(window, crate::blue())
                         > quad_order_for_color(window, crate::green()),
                     "fixed child content should paint above the fixed parent background"
+                );
+            })
+            .unwrap();
+    }
+
+    #[test]
+    fn fixed_div_inside_clipped_scroll_parent_uses_parent_scrollport_bounds() {
+        let mut test_app = TestAppContext::single();
+        let scroll_handle = ScrollHandle::new();
+        scroll_handle.set_offset(point(px(0.), px(-80.)));
+        let window = test_app.add_window({
+            let handle = scroll_handle.clone();
+            move |_, _| FixedInClippedParentOwner { handle }
+        });
+        let any_window = window.into();
+
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+            })
+            .unwrap();
+
+        test_app
+            .update_window(any_window, |_, window, _| {
+                let parent_mask = Bounds::new(point(px(25.), px(30.)), size(px(200.), px(120.)));
+                let fixed_bounds = Bounds::new(point(px(175.), px(118.)), size(px(40.), px(20.)));
+
+                assert_eq!(
+                    Some(fixed_bounds),
+                    window
+                        .rendered_frame
+                        .debug_bounds
+                        .get("fixed-in-clipped-parent")
+                        .copied()
+                );
+
+                let fixed_hitbox = window
+                    .rendered_frame
+                    .hitboxes
+                    .iter()
+                    .find(|hitbox| hitbox.bounds == fixed_bounds)
+                    .expect("fixed child should record a hitbox inside its clipped parent");
+
+                assert_eq!(parent_mask, fixed_hitbox.content_mask.bounds);
+                assert!(
+                    window
+                        .rendered_frame
+                        .hit_test(fixed_bounds.center())
+                        .ids
+                        .contains(&fixed_hitbox.id),
+                    "fixed child should be hit-testable inside the clipped parent"
+                );
+                assert!(
+                    !window
+                        .rendered_frame
+                        .hit_test(point(px(235.), px(128.)))
+                        .ids
+                        .contains(&fixed_hitbox.id),
+                    "fixed child should not be hit-testable outside the clipped parent"
+                );
+
+                let expected_scaled = fixed_bounds.scale(window.scale_factor());
+                let fixed_quad = window
+                    .rendered_frame
+                    .scene
+                    .quads
+                    .iter()
+                    .find(|quad| {
+                        quad.background.solid == crate::green() && quad.bounds == expected_scaled
+                    })
+                    .expect("fixed child should paint inside its clipped parent");
+
+                assert_eq!(
+                    parent_mask.scale(window.scale_factor()),
+                    fixed_quad.content_mask.bounds
                 );
             })
             .unwrap();
@@ -5217,7 +5319,7 @@ mod tests {
     }
 
     #[test]
-    fn fixed_div_escapes_ancestor_content_mask_without_unclipping_ordinary_children() {
+    fn fixed_div_keeps_ancestor_content_mask_like_ordinary_children() {
         let mut test_app = TestAppContext::single();
         let window = test_app.add_window(|_, _| FixedMaskEscapeOwner);
         let any_window = window.into();
@@ -5231,9 +5333,7 @@ mod tests {
         test_app
             .update_window(any_window, |_, window, _| {
                 let parent_mask = Bounds::new(Point::default(), size(px(50.), px(50.)));
-                let viewport_mask = Bounds::new(Point::default(), window.viewport_size());
-                let ordinary_bounds =
-                    Bounds::new(point(px(80.), px(0.)), size(px(20.), px(20.)));
+                let ordinary_bounds = Bounds::new(point(px(80.), px(0.)), size(px(20.), px(20.)));
                 let fixed_bounds = Bounds::new(point(px(80.), px(30.)), size(px(20.), px(20.)));
                 let ordinary_hitbox = window
                     .rendered_frame
@@ -5246,10 +5346,10 @@ mod tests {
                     .hitboxes
                     .iter()
                     .find(|hitbox| hitbox.bounds == fixed_bounds)
-                    .expect("fixed child should record its viewport hitbox");
+                    .expect("fixed child should record its clipped hitbox");
 
                 assert_eq!(parent_mask, ordinary_hitbox.content_mask.bounds);
-                assert_eq!(viewport_mask, fixed_hitbox.content_mask.bounds);
+                assert_eq!(parent_mask, fixed_hitbox.content_mask.bounds);
                 assert!(
                     !window
                         .rendered_frame
@@ -5259,12 +5359,12 @@ mod tests {
                     "ordinary child should not be hit-testable outside the ancestor mask"
                 );
                 assert!(
-                    window
+                    !window
                         .rendered_frame
                         .hit_test(point(px(90.), px(40.)))
                         .ids
                         .contains(&fixed_hitbox.id),
-                    "fixed child should be hit-testable at its visual bounds outside the ancestor mask"
+                    "fixed child should not be hit-testable outside the ancestor mask"
                 );
 
                 let scale = window.scale_factor();
@@ -5286,19 +5386,14 @@ mod tests {
                         .any(|quad| quad.bounds == ordinary_scaled_bounds),
                     "ordinary out-of-mask child should not paint outside the ancestor mask"
                 );
-                let fixed_quad = window
-                    .rendered_frame
-                    .scene
-                    .quads
-                    .iter()
-                    .find(|quad| quad.bounds == fixed_scaled_bounds)
-                    .expect("fixed child should paint outside the ancestor mask");
-                assert_eq!(
-                    Bounds::new(
-                        Point::default(),
-                        window.viewport_size().scale(window.scale_factor())
-                    ),
-                    fixed_quad.content_mask.bounds
+                assert!(
+                    !window
+                        .rendered_frame
+                        .scene
+                        .quads
+                        .iter()
+                        .any(|quad| quad.bounds == fixed_scaled_bounds),
+                    "fixed child should not paint outside the ancestor mask"
                 );
             })
             .unwrap();
