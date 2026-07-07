@@ -1,9 +1,10 @@
 mod anchored;
+mod animated_frame;
 mod animation;
 mod canvas;
 mod deferred;
 mod div;
-mod effects;
+mod effect_frame;
 mod frame;
 mod frame_style;
 mod html_element;
@@ -14,14 +15,16 @@ mod list;
 mod surface;
 mod svg;
 mod text;
+mod transition_frame;
 mod uniform_list;
 
 pub use anchored::*;
+pub use animated_frame::*;
 pub use animation::*;
 pub use canvas::*;
 pub use deferred::*;
 pub use div::*;
-pub use effects::*;
+pub use effect_frame::*;
 pub use frame::*;
 pub use html_element::*;
 pub use html_island::*;
@@ -31,18 +34,25 @@ pub use list::*;
 pub use surface::*;
 pub use svg::*;
 pub use text::*;
+pub use transition_frame::*;
 pub use uniform_list::*;
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        Context, Corners, ElementEffect, HtmlElement, HtmlElementContentFit, HtmlElementInputMode,
-        HtmlElementWheelBehavior, HtmlIsland, HtmlIslandInputMode, IntoElement, Overflow,
-        ParentElement as _, Position, Render, Styled as _, TestAppContext, TransformationMatrix,
-        Window, backdrop_blur, div, glow, hsla, html_element, html_island, point, px, red,
-        relative, size,
+    use std::{
+        cell::{Cell, RefCell},
+        rc::Rc,
     };
 
+    use crate::{
+        Context, Corners, Element, ElementEffect, ElementId, HtmlElement, HtmlElementContentFit,
+        HtmlElementInputMode, HtmlElementWheelBehavior, HtmlIsland, HtmlIslandInputMode,
+        IntoElement, Overflow, ParentElement as _, Position, Render, Styled as _, TestAppContext,
+        TransformationMatrix, Window, backdrop_blur, div, glow, hsla, html_element, html_island,
+        point, px, red, relative, size,
+    };
+
+    use super::AnimatedFrameChild;
     use super::frame_style::FrameStyle;
 
     #[test]
@@ -161,10 +171,61 @@ mod tests {
     }
 
     #[test]
-    fn effects_constructor_returns_effects_element() {
-        let element: super::Effects = crate::effects();
+    fn effect_frame_constructor_returns_effect_frame_element() {
+        let element: super::EffectFrame = crate::effect_frame();
 
         element.into_element();
+    }
+
+    #[test]
+    fn animated_frame_constructor_returns_animated_frame_element() {
+        let element: super::AnimatedFrame = crate::animated_frame("profile-card");
+
+        assert_eq!(element.id(), Some(ElementId::from("profile-card")));
+        element.into_element();
+    }
+
+    #[test]
+    fn transition_frame_constructor_returns_transition_frame_element() {
+        let element: super::TransitionFrame = crate::transition_frame("profile-card");
+
+        assert_eq!(element.id(), Some(ElementId::from("profile-card")));
+        assert_eq!(
+            element.screen_effect_region.as_ref(),
+            "transition-frame-profile-card"
+        );
+        element.into_element();
+    }
+
+    #[test]
+    fn animated_frame_child_sets_the_single_child_slot() {
+        let frame = crate::animated_frame("profile-card").child("contents");
+
+        assert!(matches!(frame.child, AnimatedFrameChild::Static(_)));
+    }
+
+    #[test]
+    #[should_panic(expected = "AnimatedFrame accepts exactly one child")]
+    fn animated_frame_child_rejects_repeated_child_calls_in_debug_builds() {
+        let _ = crate::animated_frame("profile-card")
+            .child("first")
+            .child("second");
+    }
+
+    #[test]
+    #[should_panic(expected = "AnimatedFrame accepts exactly one child")]
+    fn animated_frame_progress_child_rejects_static_child_in_debug_builds() {
+        let _ = crate::animated_frame("profile-card")
+            .child("first")
+            .child_with_progress(|_, _, _| "second");
+    }
+
+    #[test]
+    #[should_panic(expected = "TransitionFrame accepts exactly one child")]
+    fn transition_frame_child_rejects_repeated_child_calls_in_debug_builds() {
+        let _ = crate::transition_frame("profile-card")
+            .child("first")
+            .child("second");
     }
 
     #[test]
@@ -181,8 +242,8 @@ mod tests {
     }
 
     #[test]
-    fn effects_helpers_update_effect_state() {
-        let effects = crate::effects()
+    fn effect_frame_helpers_update_effect_state() {
+        let effects = crate::effect_frame()
             .effect(backdrop_blur(px(12.0)))
             .effects([glow(hsla(0.5, 0.8, 0.7, 0.4))])
             .screen_effect_region("spotlight");
@@ -200,9 +261,9 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Effects accepts exactly one child")]
-    fn effects_child_rejects_repeated_child_calls_in_debug_builds() {
-        let _ = crate::effects().child("first").child("second");
+    #[should_panic(expected = "EffectFrame accepts exactly one child")]
+    fn effect_frame_child_rejects_repeated_child_calls_in_debug_builds() {
+        let _ = crate::effect_frame().child("first").child("second");
     }
 
     #[test]
@@ -352,11 +413,11 @@ mod tests {
         assert!((alpha - 0.5).abs() < f32::EPSILON);
     }
 
-    struct EffectsElementRoot;
+    struct EffectFrameElementRoot;
 
-    impl Render for EffectsElementRoot {
+    impl Render for EffectFrameElementRoot {
         fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
-            crate::effects()
+            crate::effect_frame()
                 .w(px(64.0))
                 .h(px(64.0))
                 .rounded(px(12.0))
@@ -369,8 +430,8 @@ mod tests {
     }
 
     #[gpux::test]
-    fn effects_element_emits_effect_region_and_clips_child(cx: &mut TestAppContext) {
-        let window = cx.open_window(size(px(120.0), px(90.0)), |_, _| EffectsElementRoot);
+    fn effect_frame_element_emits_effect_region_and_clips_child(cx: &mut TestAppContext) {
+        let window = cx.open_window(size(px(120.0), px(90.0)), |_, _| EffectFrameElementRoot);
         cx.run_until_parked();
 
         let (effect_count, effect_radii, region_id, region_radii, child_mask_radii, scale_factor) =
@@ -394,6 +455,194 @@ mod tests {
         assert_eq!(region_id, "spotlight");
         assert_eq!(region_radii, expected_radii);
         assert_eq!(child_mask_radii, expected_radii);
+    }
+
+    struct AnimatedFrameElementRoot;
+
+    impl Render for AnimatedFrameElementRoot {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            crate::animated_frame("profile-card")
+                .w(px(64.0))
+                .h(px(48.0))
+                .rounded(px(10.0))
+                .clip()
+                .child(div().w(px(80.0)).h(px(80.0)).bg(red()))
+        }
+    }
+
+    #[gpux::test]
+    fn animated_frame_element_participates_in_render_lifecycle(cx: &mut TestAppContext) {
+        let window = cx.open_window(size(px(120.0), px(90.0)), |_, _| AnimatedFrameElementRoot);
+        cx.run_until_parked();
+
+        let (child_mask_radii, scale_factor) = window
+            .update(cx, |_, window, _| {
+                (
+                    window.rendered_frame.scene.quads[0]
+                        .content_mask
+                        .corner_radii,
+                    window.scale_factor(),
+                )
+            })
+            .unwrap();
+
+        assert_eq!(child_mask_radii, Corners::all(px(10.0).scale(scale_factor)));
+    }
+
+    struct AnimatedFrameProgressChildRoot {
+        progress_values: Rc<RefCell<Vec<f32>>>,
+    }
+
+    impl Render for AnimatedFrameProgressChildRoot {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            let progress_values = self.progress_values.clone();
+            crate::animated_frame("profile-card")
+                .w(px(64.0))
+                .h(px(48.0))
+                .child_with_progress(move |progress, _, _| {
+                    progress_values.borrow_mut().push(progress);
+                    div().w(px(20.0)).h(px(20.0)).bg(red())
+                })
+        }
+    }
+
+    #[gpux::test]
+    fn animated_frame_progress_child_participates_in_render_lifecycle(cx: &mut TestAppContext) {
+        let progress_values = Rc::new(RefCell::new(Vec::new()));
+        let window = cx.open_window(size(px(120.0), px(90.0)), |_, _| {
+            AnimatedFrameProgressChildRoot {
+                progress_values: progress_values.clone(),
+            }
+        });
+        cx.run_until_parked();
+
+        let quad_count = window
+            .update(cx, |_, window, _| window.rendered_frame.scene.quads.len())
+            .unwrap();
+        assert_eq!(quad_count, 1);
+        assert_eq!(progress_values.borrow().as_slice(), &[1.0]);
+    }
+
+    struct TransitionFrameElementRoot;
+
+    impl Render for TransitionFrameElementRoot {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            crate::transition_frame("profile-card")
+                .target_key("compact")
+                .w(px(64.0))
+                .h(px(48.0))
+                .rounded(px(10.0))
+                .clip()
+                .child(div().w(px(80.0)).h(px(80.0)).bg(red()))
+        }
+    }
+
+    #[gpux::test]
+    fn transition_frame_element_registers_region_and_paints_child(cx: &mut TestAppContext) {
+        let window = cx.open_window(size(px(120.0), px(90.0)), |_, _| TransitionFrameElementRoot);
+        cx.run_until_parked();
+
+        let (region_id, child_mask_radii, snapshot_count, active_count, scale_factor) = window
+            .update(cx, |_, window, _| {
+                let scene = &window.rendered_frame.scene;
+                (
+                    scene.screen_effect_regions[0].id.as_ref().to_string(),
+                    scene.quads[0].content_mask.corner_radii,
+                    scene.active_screen_effect_snapshots.len(),
+                    scene.active_screen_effects.len(),
+                    window.scale_factor(),
+                )
+            })
+            .unwrap();
+
+        assert_eq!(region_id, "transition-frame-profile-card");
+        assert_eq!(child_mask_radii, Corners::all(px(10.0).scale(scale_factor)));
+        assert_eq!(snapshot_count, 0);
+        assert_eq!(active_count, 0);
+    }
+
+    struct TransitionFrameOverrideRegionRoot;
+
+    impl Render for TransitionFrameOverrideRegionRoot {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            crate::transition_frame("profile-card")
+                .target_key("compact")
+                .screen_effect_region("profile-card-transition")
+                .w(px(64.0))
+                .h(px(48.0))
+                .child(div().w(px(20.0)).h(px(20.0)).bg(red()))
+        }
+    }
+
+    #[gpux::test]
+    fn transition_frame_allows_explicit_region_override(cx: &mut TestAppContext) {
+        let window = cx.open_window(size(px(120.0), px(90.0)), |_, _| {
+            TransitionFrameOverrideRegionRoot
+        });
+        cx.run_until_parked();
+
+        let region_id = window
+            .update(cx, |_, window, _| {
+                window.rendered_frame.scene.screen_effect_regions[0]
+                    .id
+                    .as_ref()
+                    .to_string()
+            })
+            .unwrap();
+
+        assert_eq!(region_id, "profile-card-transition");
+    }
+
+    struct TransitionFrameTargetKeyRoot {
+        expanded: Rc<Cell<bool>>,
+    }
+
+    impl Render for TransitionFrameTargetKeyRoot {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            let expanded = self.expanded.get();
+            let key = if expanded { "expanded" } else { "compact" };
+            let size_px = if expanded { 56.0 } else { 24.0 };
+
+            crate::transition_frame("profile-card")
+                .target_key(key)
+                .transition(crate::FrameTransition::ripple_reveal())
+                .w(px(64.0))
+                .h(px(64.0))
+                .child(div().w(px(size_px)).h(px(size_px)).bg(red()))
+        }
+    }
+
+    #[gpux::test]
+    fn transition_frame_key_change_degrades_without_snapshot_capability(cx: &mut TestAppContext) {
+        let expanded = Rc::new(Cell::new(false));
+        let window = cx.open_window(size(px(120.0), px(90.0)), |_, _| {
+            TransitionFrameTargetKeyRoot {
+                expanded: expanded.clone(),
+            }
+        });
+        cx.run_until_parked();
+
+        expanded.set(true);
+        cx.refresh().unwrap();
+        cx.run_until_parked();
+
+        let (snapshot_count, active_count, quad_count) = window
+            .update(cx, |_, window, _| {
+                (
+                    window
+                        .rendered_frame
+                        .scene
+                        .active_screen_effect_snapshots
+                        .len(),
+                    window.rendered_frame.scene.active_screen_effects.len(),
+                    window.rendered_frame.scene.quads.len(),
+                )
+            })
+            .unwrap();
+
+        assert_eq!(snapshot_count, 0);
+        assert_eq!(active_count, 0);
+        assert_eq!(quad_count, 1);
     }
 
     #[test]

@@ -46,6 +46,53 @@ impl Animation {
     }
 }
 
+const MIN_FRAME_ANIMATION_DURATION: Duration = Duration::from_millis(1);
+
+#[derive(Clone)]
+pub(crate) struct FrameAnimation {
+    animation: Animation,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct FrameAnimationProgress {
+    pub raw: f32,
+    pub eased: f32,
+    pub done: bool,
+}
+
+impl FrameAnimation {
+    pub(crate) fn new(duration: Duration) -> Self {
+        Self::from_animation(Animation::new(duration))
+    }
+
+    pub(crate) fn from_animation(mut animation: Animation) -> Self {
+        animation.duration = animation.duration.max(MIN_FRAME_ANIMATION_DURATION);
+        animation.oneshot = true;
+        Self { animation }
+    }
+
+    pub(crate) fn with_easing(mut self, easing: impl Fn(f32) -> f32 + 'static) -> Self {
+        self.animation = self.animation.with_easing(easing);
+        self
+    }
+
+    pub(crate) fn progress_for_elapsed(&self, elapsed: Duration) -> FrameAnimationProgress {
+        let raw = (elapsed.as_secs_f32() / self.animation.duration.as_secs_f32()).clamp(0.0, 1.0);
+        let eased = (self.animation.easing)(raw);
+
+        debug_assert!(
+            (0.0..=1.0).contains(&eased),
+            "frame animation easing should return a value between 0 and 1"
+        );
+
+        FrameAnimationProgress {
+            raw,
+            eased,
+            done: elapsed >= self.animation.duration,
+        }
+    }
+}
+
 /// An extension trait for adding the animation wrapper to both Elements and Components
 pub trait AnimationExt {
     /// Render this component or element with an animation
@@ -257,5 +304,38 @@ mod easing {
 
             min + (normalized_alpha * range)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn frame_animation_clamps_zero_duration() {
+        let animation = FrameAnimation::new(Duration::ZERO);
+
+        assert!(!animation.progress_for_elapsed(Duration::ZERO).done);
+        assert!(
+            animation
+                .progress_for_elapsed(Duration::from_millis(1))
+                .done
+        );
+    }
+
+    #[test]
+    fn frame_animation_applies_easing_and_completes_once() {
+        let animation = FrameAnimation::new(Duration::from_millis(200))
+            .with_easing(|progress| progress * progress);
+
+        let midpoint = animation.progress_for_elapsed(Duration::from_millis(100));
+        assert_eq!(midpoint.raw, 0.5);
+        assert_eq!(midpoint.eased, 0.25);
+        assert!(!midpoint.done);
+
+        let finished = animation.progress_for_elapsed(Duration::from_millis(250));
+        assert_eq!(finished.raw, 1.0);
+        assert_eq!(finished.eased, 1.0);
+        assert!(finished.done);
     }
 }

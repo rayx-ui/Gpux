@@ -644,6 +644,197 @@ pub struct SnapshotTransitionEffect {
     tint: Option<Hsla>,
 }
 
+/// Snapshot transition variant used by [`crate::transition_frame`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub enum FrameTransitionKind {
+    /// Crossfade old snapshot content into the newly rendered frame child.
+    Crossfade,
+    /// Crossfade from a blurred snapshot into the newly rendered frame child.
+    BlurCrossfade,
+    /// Reveal the new frame child radially over the old snapshot.
+    RadialReveal,
+    /// Reveal the new frame child with a ripple-shaped leading edge.
+    RippleReveal,
+}
+
+/// Frame-scoped replacement transition configuration.
+///
+/// This is a GPUI element-level configuration that resolves to existing
+/// retained-snapshot screen effects. It is intentionally independent of RayX
+/// navigation transition types.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct FrameTransition {
+    kind: FrameTransitionKind,
+    duration_ms: u64,
+    origin: Option<Point<Pixels>>,
+    radius: Pixels,
+    amplitude: Pixels,
+    wavelength: Pixels,
+    damping: f32,
+    blur_radius: Pixels,
+    tint: Option<Hsla>,
+}
+
+impl Default for FrameTransition {
+    fn default() -> Self {
+        Self {
+            kind: FrameTransitionKind::Crossfade,
+            duration_ms: 520,
+            origin: None,
+            radius: px(520.0),
+            amplitude: px(18.0),
+            wavelength: px(48.0),
+            damping: 4.0,
+            blur_radius: px(10.0),
+            tint: None,
+        }
+    }
+}
+
+impl FrameTransition {
+    /// Creates a crossfade replacement transition.
+    pub fn crossfade() -> Self {
+        Self {
+            kind: FrameTransitionKind::Crossfade,
+            ..Self::default()
+        }
+    }
+
+    /// Creates a blurred crossfade replacement transition.
+    pub fn blur_crossfade() -> Self {
+        Self {
+            kind: FrameTransitionKind::BlurCrossfade,
+            ..Self::default()
+        }
+    }
+
+    /// Creates a radial reveal replacement transition.
+    pub fn radial_reveal() -> Self {
+        Self {
+            kind: FrameTransitionKind::RadialReveal,
+            ..Self::default()
+        }
+    }
+
+    /// Creates a ripple reveal replacement transition.
+    pub fn ripple_reveal() -> Self {
+        Self {
+            kind: FrameTransitionKind::RippleReveal,
+            ..Self::default()
+        }
+    }
+
+    /// Sets the transition kind.
+    pub fn kind(mut self, kind: FrameTransitionKind) -> Self {
+        self.kind = kind;
+        self
+    }
+
+    /// Sets the transition duration in milliseconds.
+    pub fn duration_ms(mut self, duration_ms: u64) -> Self {
+        self.duration_ms = duration_ms.max(16);
+        self
+    }
+
+    /// Sets the explicit window-relative reveal origin.
+    pub fn origin(mut self, origin: Point<Pixels>) -> Self {
+        self.origin = Some(origin);
+        self
+    }
+
+    /// Clears the explicit reveal origin so the frame center is used.
+    pub fn clear_origin(mut self) -> Self {
+        self.origin = None;
+        self
+    }
+
+    /// Sets the reveal radius.
+    pub fn radius(mut self, radius: Pixels) -> Self {
+        self.radius = clamp_pixels(radius, px(0.0), px(4096.0));
+        self
+    }
+
+    /// Sets the ripple edge amplitude.
+    pub fn amplitude(mut self, amplitude: Pixels) -> Self {
+        self.amplitude = clamp_pixels(amplitude, px(0.0), px(512.0));
+        self
+    }
+
+    /// Sets the ripple edge wavelength.
+    pub fn wavelength(mut self, wavelength: Pixels) -> Self {
+        self.wavelength = clamp_pixels(wavelength, px(1.0), px(4096.0));
+        self
+    }
+
+    /// Sets the ripple edge damping strength.
+    pub fn damping(mut self, damping: f32) -> Self {
+        self.damping = clamp_f32(damping, 0.0, 32.0);
+        self
+    }
+
+    /// Sets the blur radius used by blur crossfade.
+    pub fn blur_radius(mut self, blur_radius: Pixels) -> Self {
+        self.blur_radius = clamp_pixels(blur_radius, px(0.0), px(128.0));
+        self
+    }
+
+    /// Sets an optional tint over the retained snapshot.
+    pub fn tint(mut self, tint: impl Into<Hsla>) -> Self {
+        self.tint = Some(tint.into());
+        self
+    }
+
+    /// Clears the optional retained-snapshot tint.
+    pub fn clear_tint(mut self) -> Self {
+        self.tint = None;
+        self
+    }
+
+    /// Returns the configured transition kind.
+    pub fn kind_value(&self) -> FrameTransitionKind {
+        self.kind
+    }
+
+    /// Returns the configured transition duration in milliseconds.
+    pub fn duration_ms_value(&self) -> u64 {
+        self.duration_ms
+    }
+
+    /// Returns the optional explicit reveal origin.
+    pub fn origin_value(&self) -> Option<Point<Pixels>> {
+        self.origin
+    }
+
+    /// Resolves this frame transition to a retained-snapshot screen effect.
+    pub fn resolve_screen_effect(
+        &self,
+        snapshot_id: ScreenEffectSnapshotId,
+        target: ScreenEffectTarget,
+        default_origin: Point<Pixels>,
+    ) -> ScreenEffect {
+        let origin = self.origin.unwrap_or(default_origin);
+        let mut transition = match self.kind {
+            FrameTransitionKind::Crossfade => screen::crossfade(snapshot_id),
+            FrameTransitionKind::BlurCrossfade => screen::blur_crossfade(snapshot_id),
+            FrameTransitionKind::RadialReveal => screen::radial_reveal(snapshot_id, origin),
+            FrameTransitionKind::RippleReveal => screen::ripple_reveal(snapshot_id, origin),
+        }
+        .target(target)
+        .duration_ms(self.duration_ms)
+        .radius(self.radius)
+        .amplitude(self.amplitude)
+        .wavelength(self.wavelength)
+        .damping(self.damping)
+        .blur_radius(self.blur_radius);
+
+        if let Some(tint) = self.tint {
+            transition = transition.tint(tint);
+        }
+
+        ScreenEffect::from(transition)
+    }
+}
+
 impl SnapshotTransitionEffect {
     /// Creates a transition from a previously captured snapshot. WGPU is the
     /// first backend with shader support; unsupported renderers report
@@ -1098,6 +1289,76 @@ mod tests {
 
         let effect = ScreenEffect::from(screen::crossfade(snapshot_id));
         assert_eq!(effect.snapshot_id(), Some(snapshot_id));
+    }
+
+    #[test]
+    fn frame_transition_defaults_clamp_and_resolve_snapshot_variants() {
+        let snapshot_id = ScreenEffectSnapshotId::new(7);
+        let target = ScreenEffectTarget::region("panel");
+        let default_origin = point(px(10.0), px(12.0));
+        let explicit_origin = point(px(24.0), px(32.0));
+        let transition = FrameTransition::ripple_reveal()
+            .duration_ms(0)
+            .origin(explicit_origin)
+            .radius(px(-10.0))
+            .amplitude(px(-1.0))
+            .wavelength(px(0.0))
+            .damping(-2.0)
+            .blur_radius(px(900.0))
+            .tint(hsla(0.2, 0.8, 0.6, 0.25));
+
+        assert_eq!(transition.kind_value(), FrameTransitionKind::RippleReveal);
+        assert_eq!(transition.duration_ms_value(), 16);
+        assert_eq!(transition.origin_value(), Some(explicit_origin));
+
+        let ScreenEffect::SnapshotTransition(effect) =
+            transition.resolve_screen_effect(snapshot_id, target.clone(), default_origin)
+        else {
+            panic!("frame transitions should resolve to snapshot transitions");
+        };
+
+        assert_eq!(effect.snapshot_id(), snapshot_id);
+        assert_eq!(effect.kind(), SnapshotTransitionKind::RippleReveal);
+        assert_eq!(effect.target_ref(), &target);
+        assert_eq!(effect.origin_value(), explicit_origin);
+        assert_eq!(effect.radius_value(), px(0.0));
+        assert_eq!(effect.amplitude_value(), px(0.0));
+        assert_eq!(effect.wavelength_value(), px(1.0));
+        assert_eq!(effect.damping_value(), 0.0);
+        assert_eq!(effect.blur_radius_value(), px(128.0));
+        assert_eq!(effect.tint_color(), Some(hsla(0.2, 0.8, 0.6, 0.25)));
+
+        for (transition, expected) in [
+            (
+                FrameTransition::crossfade(),
+                SnapshotTransitionKind::Crossfade,
+            ),
+            (
+                FrameTransition::blur_crossfade(),
+                SnapshotTransitionKind::BlurCrossfade,
+            ),
+            (
+                FrameTransition::radial_reveal(),
+                SnapshotTransitionKind::RadialReveal,
+            ),
+            (
+                FrameTransition::ripple_reveal(),
+                SnapshotTransitionKind::RippleReveal,
+            ),
+        ] {
+            let ScreenEffect::SnapshotTransition(effect) =
+                transition.resolve_screen_effect(snapshot_id, target.clone(), default_origin)
+            else {
+                panic!("frame transitions should resolve to snapshot transitions");
+            };
+            assert_eq!(effect.kind(), expected);
+            if matches!(
+                expected,
+                SnapshotTransitionKind::RadialReveal | SnapshotTransitionKind::RippleReveal
+            ) {
+                assert_eq!(effect.origin_value(), default_origin);
+            }
+        }
     }
 
     #[test]

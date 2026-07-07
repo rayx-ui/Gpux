@@ -6,14 +6,14 @@ use crate::{
 
 use super::frame_style::FrameStyle;
 
-/// Creates a single-child geometry container for shader-backed effects.
+/// Creates a single-child frame for shader-backed effects.
 #[track_caller]
-pub fn effects() -> Effects {
-    Effects::default()
+pub fn effect_frame() -> EffectFrame {
+    EffectFrame::default()
 }
 
-/// A lightweight single-child element that emits shader-backed effects.
-pub struct Effects {
+/// A lightweight single-child frame that emits shader-backed effects.
+pub struct EffectFrame {
     pub(crate) style: FrameStyle,
     pub(crate) child: Option<AnyElement>,
     pub(crate) effects: Vec<ElementEffect>,
@@ -21,10 +21,13 @@ pub struct Effects {
     pub(crate) source_location: Option<&'static core::panic::Location<'static>>,
 }
 
-impl Effects {
+impl EffectFrame {
     /// Sets the element's single child.
     pub fn child(mut self, child: impl IntoElement) -> Self {
-        debug_assert!(self.child.is_none(), "Effects accepts exactly one child");
+        debug_assert!(
+            self.child.is_none(),
+            "EffectFrame accepts exactly one child"
+        );
         self.child = Some(child.into_any_element());
         self
     }
@@ -240,7 +243,7 @@ impl Effects {
     }
 }
 
-impl Default for Effects {
+impl Default for EffectFrame {
     #[track_caller]
     fn default() -> Self {
         Self {
@@ -253,7 +256,7 @@ impl Default for Effects {
     }
 }
 
-impl Element for Effects {
+impl Element for EffectFrame {
     type RequestLayoutState = Option<LayoutId>;
     type PrepaintState = ();
 
@@ -335,7 +338,7 @@ impl Element for Effects {
     }
 }
 
-impl IntoElement for Effects {
+impl IntoElement for EffectFrame {
     type Element = Self;
 
     fn into_element(self) -> Self::Element {
