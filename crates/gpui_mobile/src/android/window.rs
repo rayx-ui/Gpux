@@ -35,9 +35,9 @@
 use anyhow::{Context as _, Result};
 use futures::channel::oneshot;
 use gpui::{
-    self, AtlasKey, AtlasTile, Capslock, DispatchEventResult, GpuSpecs, Modifiers, PlatformAtlas,
-    PlatformDisplay, PlatformInputHandler, PlatformWindow, PromptButton, PromptLevel,
-    RequestFrameOptions, WindowBackgroundAppearance, WindowBounds, WindowControlArea,
+    self, AtlasKey, AtlasTile, Capslock, DispatchEventResult, EffectCapabilities, GpuSpecs,
+    Modifiers, PlatformAtlas, PlatformDisplay, PlatformInputHandler, PlatformWindow, PromptButton,
+    PromptLevel, RequestFrameOptions, WindowBackgroundAppearance, WindowBounds, WindowControlArea,
 };
 use gpui_wgpu::{GpuContext, WgpuRenderer, WgpuSurfaceConfig, wgpu};
 use parking_lot::Mutex;
@@ -953,6 +953,15 @@ impl AndroidWindow {
     pub fn gpu_specs(&self) -> Option<GpuSpecs> {
         let state = self.state.lock();
         state.renderer.as_ref().map(|r| r.gpu_specs())
+    }
+
+    pub fn effect_capabilities(&self) -> EffectCapabilities {
+        let state = self.state.lock();
+        state
+            .renderer
+            .as_ref()
+            .map(WgpuRenderer::effect_capabilities)
+            .unwrap_or_default()
     }
 
     /// Whether the window is currently active / visible.
@@ -2080,6 +2089,10 @@ impl PlatformWindow for AndroidPlatformWindow {
 
     fn gpu_specs(&self) -> Option<GpuSpecs> {
         self.window.gpu_specs()
+    }
+
+    fn effect_capabilities(&self) -> EffectCapabilities {
+        self.window.effect_capabilities()
     }
 
     fn update_ime_position(&self, bounds: gpui::Bounds<gpui::Pixels>) {

@@ -704,7 +704,16 @@ impl Style {
                     (false, false) => Bounds::from_corners(min, max),
                 };
 
-                Some(ContentMask { bounds })
+                let corner_radii =
+                    if self.overflow.x == Overflow::Hidden && self.overflow.y == Overflow::Hidden {
+                        self.corner_radii
+                            .to_pixels(rem_size)
+                            .clamp_radii_for_quad_size(bounds.size)
+                    } else {
+                        Corners::default()
+                    };
+
+                Some(ContentMask::rounded(bounds, corner_radii))
             }
         }
     }
@@ -738,17 +747,19 @@ impl Style {
 
                 window.paint_shadows(bounds, corner_radii, &self.box_shadow);
 
-                let background_color = self.background.as_ref().and_then(Fill::color);
-                if background_color
+                if let Some(background_color) = self
+                    .background
                     .as_ref()
-                    .is_some_and(|color| !color.is_transparent())
+                    .and_then(Fill::color)
+                    .filter(|color| !color.is_transparent())
                 {
+                    let transparent_background = background_color.opacity(0.);
                     window.paint_quad(quad(
                         bounds,
                         corner_radii,
-                        background_color.clone().unwrap_or_default(),
+                        background_color,
                         Edges::default(),
-                        background_color.clone().unwrap_or_default().opacity(0.),
+                        transparent_background,
                         self.border_style,
                     ));
                 }
@@ -797,29 +808,26 @@ impl Style {
                         self.border_style,
                     );
 
-                    window.with_content_mask(Some(ContentMask { bounds: top_bounds }), |window| {
-                        window.paint_quad(quad.clone());
-                    });
                     window.with_content_mask(
-                        Some(ContentMask {
-                            bounds: right_bounds,
-                        }),
+                        Some(ContentMask::rectangular(top_bounds)),
                         |window| {
                             window.paint_quad(quad.clone());
                         },
                     );
                     window.with_content_mask(
-                        Some(ContentMask {
-                            bounds: bottom_bounds,
-                        }),
+                        Some(ContentMask::rectangular(right_bounds)),
                         |window| {
                             window.paint_quad(quad.clone());
                         },
                     );
                     window.with_content_mask(
-                        Some(ContentMask {
-                            bounds: left_bounds,
-                        }),
+                        Some(ContentMask::rectangular(bottom_bounds)),
+                        |window| {
+                            window.paint_quad(quad.clone());
+                        },
+                    );
+                    window.with_content_mask(
+                        Some(ContentMask::rectangular(left_bounds)),
                         |window| {
                             window.paint_quad(quad);
                         },

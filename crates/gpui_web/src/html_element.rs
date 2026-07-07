@@ -1107,15 +1107,13 @@ mod tests {
                     height: px(50.),
                 },
             ),
-            logical_content_mask: gpux::ContentMask {
-                bounds: Bounds::new(
-                    gpux::point(px(12.), px(14.)),
-                    Size {
-                        width: px(40.),
-                        height: px(30.),
-                    },
-                ),
-            },
+            logical_content_mask: gpux::ContentMask::rectangular(Bounds::new(
+                gpux::point(px(12.), px(14.)),
+                Size {
+                    width: px(40.),
+                    height: px(30.),
+                },
+            )),
             content_mask: Default::default(),
             input_mode: HtmlElementInputMode::DomOwned,
             lifetime: HtmlElementLifetime::KeepAliveHidden,

@@ -370,6 +370,7 @@ impl DirectXRenderer {
         for batch in scene.batches() {
             match batch {
                 PrimitiveBatch::Shadows(range) => self.draw_shadows(range.start, range.len()),
+                PrimitiveBatch::VisualEffects(_) => Ok(()),
                 PrimitiveBatch::Quads(range) => self.draw_quads(range.start, range.len()),
                 PrimitiveBatch::HtmlIslands(_) => Ok(()),
                 PrimitiveBatch::Paths(range) => {
@@ -603,7 +604,7 @@ impl DirectXRenderer {
                 xy_position: v.xy_position,
                 st_position: v.st_position,
                 background,
-                bounds: path.clipped_bounds(),
+                content_mask: v.content_mask.clone(),
             }));
         }
 
@@ -1447,7 +1448,7 @@ struct PackedPathRasterizationSprite {
     xy_position: Point<ScaledPixels>,
     st_position: Point<f32>,
     background: PackedBackground,
-    bounds: Bounds<ScaledPixels>,
+    content_mask: ContentMask<ScaledPixels>,
 }
 
 #[derive(Clone, Copy)]

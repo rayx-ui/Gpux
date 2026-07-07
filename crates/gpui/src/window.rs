@@ -1,23 +1,26 @@
 #[cfg(any(feature = "inspector", debug_assertions))]
 use crate::Inspector;
 use crate::{
-    Action, AnyDrag, AnyElement, AnyImageCache, AnyTooltip, AnyView, App, AppContext, Arena, Asset,
-    AsyncWindowContext, AvailableSpace, Background, BorderStyle, Bounds, BoxShadow, Capslock,
-    Context, Corners, CursorHideMode, CursorStyle, Decorations, DevicePixels,
-    DispatchActionListener, DispatchNodeId, DispatchTree, DisplayId, Edges, Effect, Entity,
-    EntityId, EventEmitter, FileDropEvent, FontId, Global, GlobalElementId, GlyphId, GpuSpecs,
-    Hsla, HtmlElementContentFit, HtmlElementInputMode, HtmlElementLifetime, HtmlElementPrimitive,
-    HtmlElementWheelBehavior, HtmlIslandInputMode, HtmlIslandPrimitive, InputHandler, IsZero,
-    KeyBinding, KeyContext, KeyDownEvent, KeyEvent, Keystroke, KeystrokeEvent, LayoutId, Length,
-    LineLayoutIndex, Modifiers, ModifiersChangedEvent, MonochromeSprite, MouseButton, MouseEvent,
-    MouseMoveEvent, MouseUpEvent, Overflow, Path, Pixels, PlatformAtlas, PlatformDisplay,
-    PlatformInput, PlatformInputHandler, PlatformWindow, Point, PolychromeSprite, Position,
-    Priority, PromptButton, PromptLevel, Quad, Render, RenderGlyphParams, RenderImage,
-    RenderImageParams, RenderSvgParams, Replay, ResizeEdge, SMOOTH_SVG_SCALE_FACTOR,
-    SUBPIXEL_VARIANTS_X, SUBPIXEL_VARIANTS_Y, ScaledPixels, Scene, Shadow, SharedString, Size,
-    StrikethroughStyle, Style, SubpixelSprite, SubscriberSet, Subscription, SystemWindowTab,
-    SystemWindowTabController, TabStopMap, TaffyLayoutEngine, Task, TextRenderingMode, TextStyle,
-    TextStyleRefinement, ThermalState, TransformationMatrix, Underline, UnderlineStyle,
+    Action, ActiveScreenEffect, ActiveScreenEffectSnapshot, AnyDrag, AnyElement, AnyImageCache,
+    AnyTooltip, AnyView, App, AppContext, Arena, Asset, AsyncWindowContext, AvailableSpace,
+    Background, BorderStyle, Bounds, BoxShadow, Capslock, Context, Corners, CursorHideMode,
+    CursorStyle, Decorations, DevicePixels, DispatchActionListener, DispatchNodeId, DispatchTree,
+    DisplayId, Edges, Effect, EffectCapabilities, ElementEffect, Entity, EntityId, EventEmitter,
+    FileDropEvent, FontId, Global, GlobalElementId, GlyphId, GpuSpecs, Hsla, HtmlElementContentFit,
+    HtmlElementInputMode, HtmlElementLifetime, HtmlElementPrimitive, HtmlElementWheelBehavior,
+    HtmlIslandInputMode, HtmlIslandPrimitive, InputHandler, IsZero, KeyBinding, KeyContext,
+    KeyDownEvent, KeyEvent, Keystroke, KeystrokeEvent, LayoutId, Length, LineLayoutIndex,
+    MAX_ACTIVE_SCREEN_EFFECTS, MAX_SCREEN_EFFECT_SNAPSHOTS, Modifiers, ModifiersChangedEvent,
+    MonochromeSprite, MouseButton, MouseEvent, MouseMoveEvent, MouseUpEvent, Overflow, Path,
+    Pixels, PlatformAtlas, PlatformDisplay, PlatformInput, PlatformInputHandler, PlatformWindow,
+    Point, PolychromeSprite, Position, Priority, PromptButton, PromptLevel, Quad, Render,
+    RenderGlyphParams, RenderImage, RenderImageParams, RenderSvgParams, Replay, ResizeEdge,
+    SMOOTH_SVG_SCALE_FACTOR, SUBPIXEL_VARIANTS_X, SUBPIXEL_VARIANTS_Y, ScaledPixels, Scene,
+    ScreenEffect, ScreenEffectId, ScreenEffectRegionId, ScreenEffectRegionPrimitive,
+    ScreenEffectSnapshotId, ScreenEffectTarget, Shadow, SharedString, Size, StrikethroughStyle,
+    Style, SubpixelSprite, SubscriberSet, Subscription, SystemWindowTab, SystemWindowTabController,
+    TabStopMap, TaffyLayoutEngine, Task, TextRenderingMode, TextStyle, TextStyleRefinement,
+    ThermalState, TransformationMatrix, Underline, UnderlineStyle, VisualEffectPrimitive,
     WindowAppearance, WindowBackgroundAppearance, WindowBounds, WindowControls, WindowDecorations,
     WindowOptions, WindowParams, WindowTextSystem, point, prelude::*, px, rems, size,
     transparent_black,
@@ -46,6 +49,7 @@ use std::{
     borrow::Cow,
     cell::{Cell, RefCell},
     cmp,
+    collections::VecDeque,
     fmt::{Debug, Display},
     hash::{Hash, Hasher},
     marker::PhantomData,
@@ -801,7 +805,7 @@ pub(crate) struct DeferredDraw {
     paint_range: Range<PaintIndex>,
 }
 
-pub(crate) struct Frame {
+pub(crate) struct WindowFrame {
     pub(crate) focus: Option<FocusId>,
     pub(crate) window_active: bool,
     pub(crate) element_states: FxHashMap<(GlobalElementId, TypeId), ElementStateBox>,
@@ -849,9 +853,9 @@ pub(crate) struct PaintIndex {
     line_layout_index: LineLayoutIndex,
 }
 
-impl Frame {
+impl WindowFrame {
     pub(crate) fn new(dispatch_tree: DispatchTree) -> Self {
-        Frame {
+        WindowFrame {
             focus: None,
             window_active: false,
             element_states: FxHashMap::default(),
@@ -1218,8 +1222,29 @@ pub(crate) struct DevtoolsPropertySetter {
 pub struct DevtoolsFrameSnapshot {
     /// The window-local viewport covered by this frame.
     pub viewport: DevtoolsBounds,
+    /// Shader-effect diagnostics for this frame.
+    pub effects: DevtoolsEffectSnapshot,
     /// The rendered element tree flattened in prepaint order.
     pub elements: Vec<DevtoolsElementSnapshot>,
+}
+
+/// Read-only shader-effect diagnostics for the last rendered GPUI frame.
+#[derive(Clone, Debug, PartialEq)]
+pub struct DevtoolsEffectSnapshot {
+    /// Number of active screen effects in the rendered scene.
+    pub active_screen_effect_count: usize,
+    /// Number of retained screen-effect snapshots in the rendered scene.
+    pub screen_effect_snapshot_count: usize,
+    /// Number of element visual-effect primitives in the rendered scene.
+    pub visual_effect_count: usize,
+    /// Number of registered screen-effect regions in the rendered scene.
+    pub screen_effect_region_count: usize,
+    /// Number of active region-targeted screen effects whose region is absent.
+    pub missing_screen_effect_region_count: usize,
+    /// Number of active snapshot transitions whose retained snapshot is absent.
+    pub missing_screen_effect_snapshot_count: usize,
+    /// Capabilities reported by the renderer backing this window.
+    pub capabilities: EffectCapabilities,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd)]
@@ -1586,6 +1611,40 @@ fn resolve_sticky_axis(
     }
 }
 
+#[derive(Clone)]
+struct WindowActiveScreenEffect {
+    id: ScreenEffectId,
+    effect: ScreenEffect,
+    started_at: Instant,
+}
+
+impl WindowActiveScreenEffect {
+    fn elapsed(&self, now: Instant) -> Duration {
+        now.duration_since(self.started_at)
+    }
+
+    fn is_expired(&self, now: Instant) -> bool {
+        self.elapsed(now).as_millis() >= self.effect.duration_ms_value() as u128
+    }
+
+    fn snapshot(&self, now: Instant) -> ActiveScreenEffect {
+        let elapsed_ms = self.elapsed(now).as_millis().min(u64::MAX as u128) as u64;
+        ActiveScreenEffect::new(self.id, self.effect.clone(), elapsed_ms)
+    }
+}
+
+#[derive(Clone)]
+struct WindowScreenEffectSnapshot {
+    id: ScreenEffectSnapshotId,
+    target: ScreenEffectTarget,
+}
+
+impl WindowScreenEffectSnapshot {
+    fn snapshot(&self) -> ActiveScreenEffectSnapshot {
+        ActiveScreenEffectSnapshot::new(self.id, self.target.clone())
+    }
+}
+
 /// Holds the state for a specific window.
 pub struct Window {
     pub(crate) handle: AnyWindowHandle,
@@ -1616,8 +1675,12 @@ pub struct Window {
     paint_content_mask_stack: Vec<ContentMask<ScaledPixels>>,
     pub(crate) requested_autoscroll: Option<Bounds<Pixels>>,
     pub(crate) image_cache_stack: Vec<AnyImageCache>,
-    pub(crate) rendered_frame: Frame,
-    pub(crate) next_frame: Frame,
+    pub(crate) rendered_frame: WindowFrame,
+    pub(crate) next_frame: WindowFrame,
+    active_screen_effects: VecDeque<WindowActiveScreenEffect>,
+    screen_effect_snapshots: VecDeque<WindowScreenEffectSnapshot>,
+    next_screen_effect_id: u64,
+    next_screen_effect_snapshot_id: u64,
     next_hitbox_id: HitboxId,
     pub(crate) next_tooltip_id: TooltipId,
     pub(crate) tooltip_bounds: Option<TooltipBounds>,
@@ -2254,8 +2317,15 @@ impl Window {
             element_transform_stack: Vec::new(),
             paint_content_mask_stack: Vec::new(),
             requested_autoscroll: None,
-            rendered_frame: Frame::new(DispatchTree::new(cx.keymap.clone(), cx.actions.clone())),
-            next_frame: Frame::new(DispatchTree::new(cx.keymap.clone(), cx.actions.clone())),
+            rendered_frame: WindowFrame::new(DispatchTree::new(
+                cx.keymap.clone(),
+                cx.actions.clone(),
+            )),
+            next_frame: WindowFrame::new(DispatchTree::new(cx.keymap.clone(), cx.actions.clone())),
+            active_screen_effects: VecDeque::new(),
+            screen_effect_snapshots: VecDeque::new(),
+            next_screen_effect_id: 1,
+            next_screen_effect_snapshot_id: 1,
             next_frame_callbacks,
             next_hitbox_id: HitboxId(0),
             next_tooltip_id: TooltipId::default(),
@@ -2321,6 +2391,96 @@ pub struct DispatchEventResult {
 pub struct ContentMask<P: Clone + Debug + Default + PartialEq> {
     /// The bounds
     pub bounds: Bounds<P>,
+    /// The corner radii of the clipping shape.
+    pub corner_radii: Corners<P>,
+}
+
+impl<P> ContentMask<P>
+where
+    P: Clone + Debug + Default + PartialEq,
+{
+    /// Creates a rectangular content mask.
+    pub fn rectangular(bounds: Bounds<P>) -> Self {
+        Self {
+            bounds,
+            corner_radii: Corners::default(),
+        }
+    }
+
+    /// Creates a content mask with explicit corner radii.
+    pub fn rounded(bounds: Bounds<P>, corner_radii: Corners<P>) -> Self {
+        Self {
+            bounds,
+            corner_radii,
+        }
+    }
+}
+
+impl<P> ContentMask<P>
+where
+    P: Ord
+        + std::ops::Add<P, Output = P>
+        + std::ops::Sub<Output = P>
+        + Clone
+        + Debug
+        + Default
+        + PartialEq,
+{
+    fn intersected_corner_radius(
+        corner: Point<P>,
+        a_corner: Point<P>,
+        a_radius: P,
+        b_corner: Point<P>,
+        b_radius: P,
+    ) -> P {
+        let mut radius = P::default();
+        if corner == a_corner {
+            radius = radius.max(a_radius);
+        }
+        if corner == b_corner {
+            radius = radius.max(b_radius);
+        }
+        radius
+    }
+
+    /// Intersect the content mask with the given content mask.
+    pub fn intersect(&self, other: &Self) -> Self {
+        let bounds = self.bounds.intersect(&other.bounds);
+        let corner_radii = Corners {
+            top_left: Self::intersected_corner_radius(
+                bounds.origin.clone(),
+                self.bounds.origin.clone(),
+                self.corner_radii.top_left.clone(),
+                other.bounds.origin.clone(),
+                other.corner_radii.top_left.clone(),
+            ),
+            top_right: Self::intersected_corner_radius(
+                bounds.top_right(),
+                self.bounds.top_right(),
+                self.corner_radii.top_right.clone(),
+                other.bounds.top_right(),
+                other.corner_radii.top_right.clone(),
+            ),
+            bottom_right: Self::intersected_corner_radius(
+                bounds.bottom_right(),
+                self.bounds.bottom_right(),
+                self.corner_radii.bottom_right.clone(),
+                other.bounds.bottom_right(),
+                other.corner_radii.bottom_right.clone(),
+            ),
+            bottom_left: Self::intersected_corner_radius(
+                bounds.bottom_left(),
+                self.bounds.bottom_left(),
+                self.corner_radii.bottom_left.clone(),
+                other.bounds.bottom_left(),
+                other.corner_radii.bottom_left.clone(),
+            ),
+        };
+        ContentMask {
+            bounds,
+            corner_radii,
+        }
+    }
 }
 
 impl ContentMask<Pixels> {
@@ -2328,13 +2488,8 @@ impl ContentMask<Pixels> {
     pub fn scale(&self, factor: f32) -> ContentMask<ScaledPixels> {
         ContentMask {
             bounds: self.bounds.scale(factor),
+            corner_radii: self.corner_radii.scale(factor),
         }
-    }
-
-    /// Intersect the content mask with the given content mask.
-    pub fn intersect(&self, other: &Self) -> Self {
-        let bounds = self.bounds.intersect(&other.bounds);
-        ContentMask { bounds }
     }
 }
 
@@ -2721,6 +2876,121 @@ impl Window {
         self.on_next_frame(move |_, cx| cx.notify(entity));
     }
 
+    /// Start a screen-level shader effect in this window.
+    ///
+    /// The oldest effects are evicted first when the per-window cap is reached.
+    pub fn play_screen_effect(&mut self, effect: impl Into<ScreenEffect>) -> ScreenEffectId {
+        self.play_screen_effect_at(effect, Instant::now())
+    }
+
+    fn play_screen_effect_at(
+        &mut self,
+        effect: impl Into<ScreenEffect>,
+        started_at: Instant,
+    ) -> ScreenEffectId {
+        let id = ScreenEffectId::new(self.next_screen_effect_id);
+        self.next_screen_effect_id = self.next_screen_effect_id.saturating_add(1);
+
+        self.active_screen_effects
+            .push_back(WindowActiveScreenEffect {
+                id,
+                effect: effect.into(),
+                started_at,
+            });
+
+        while self.active_screen_effects.len() > MAX_ACTIVE_SCREEN_EFFECTS {
+            self.active_screen_effects.pop_front();
+        }
+
+        self.invalidator.set_dirty(true);
+        id
+    }
+
+    /// Retain a renderer-facing snapshot request for a window or region target.
+    ///
+    /// The renderer may use the most recently rendered scene color for the
+    /// requested target when a snapshot transition references this id.
+    pub fn capture_screen_effect_snapshot(
+        &mut self,
+        target: impl Into<ScreenEffectTarget>,
+    ) -> ScreenEffectSnapshotId {
+        let id = ScreenEffectSnapshotId::new(self.next_screen_effect_snapshot_id);
+        self.next_screen_effect_snapshot_id = self.next_screen_effect_snapshot_id.saturating_add(1);
+
+        self.screen_effect_snapshots
+            .push_back(WindowScreenEffectSnapshot {
+                id,
+                target: target.into(),
+            });
+
+        while self.screen_effect_snapshots.len() > MAX_SCREEN_EFFECT_SNAPSHOTS {
+            self.screen_effect_snapshots.pop_front();
+        }
+
+        self.invalidator.set_dirty(true);
+        id
+    }
+
+    /// Release a retained screen-effect snapshot request.
+    pub fn release_screen_effect_snapshot(&mut self, id: ScreenEffectSnapshotId) -> bool {
+        let previous_len = self.screen_effect_snapshots.len();
+        self.screen_effect_snapshots
+            .retain(|snapshot| snapshot.id != id);
+        let released = self.screen_effect_snapshots.len() != previous_len;
+        if released {
+            self.invalidator.set_dirty(true);
+        }
+        released
+    }
+
+    /// Returns the number of retained screen-effect snapshots.
+    pub fn screen_effect_snapshot_count(&self) -> usize {
+        self.screen_effect_snapshots.len()
+    }
+
+    /// Prune expired screen effects and return whether any active effects remain.
+    pub fn tick_screen_effects(&mut self) -> bool {
+        self.tick_screen_effects_at(Instant::now())
+    }
+
+    fn tick_screen_effects_at(&mut self, now: Instant) -> bool {
+        let previous_len = self.active_screen_effects.len();
+        self.prune_expired_screen_effects(now);
+        if self.active_screen_effects.len() != previous_len {
+            self.invalidator.set_dirty(true);
+        }
+        !self.active_screen_effects.is_empty()
+    }
+
+    /// Returns the number of currently retained active screen effects.
+    pub fn active_screen_effect_count(&self) -> usize {
+        self.active_screen_effects.len()
+    }
+
+    /// Returns active screen effects as renderer-facing snapshots.
+    pub fn active_screen_effects(&self) -> Vec<ActiveScreenEffect> {
+        self.active_screen_effect_snapshots(Instant::now())
+    }
+
+    fn prune_expired_screen_effects(&mut self, now: Instant) {
+        self.active_screen_effects
+            .retain(|effect| !effect.is_expired(now));
+    }
+
+    fn active_screen_effect_snapshots(&self, now: Instant) -> Vec<ActiveScreenEffect> {
+        self.active_screen_effects
+            .iter()
+            .map(|effect| effect.snapshot(now))
+            .collect()
+    }
+
+    fn active_screen_effect_snapshot_requests(&self) -> Vec<ActiveScreenEffectSnapshot> {
+        self.screen_effect_snapshots
+            .iter()
+            .map(WindowScreenEffectSnapshot::snapshot)
+            .collect()
+    }
+
     /// Spawn the future returned by the given closure on the application thread pool.
     /// The closure is provided a handle to the current window and an `AsyncWindowContext` for
     /// use within your future.
@@ -3067,8 +3337,10 @@ impl Window {
 
     #[inline]
     fn snapped_content_mask(&self) -> ContentMask<ScaledPixels> {
+        let content_mask = self.content_mask();
         ContentMask {
-            bounds: self.cover_bounds(self.content_mask().bounds),
+            bounds: self.cover_bounds(content_mask.bounds),
+            corner_radii: content_mask.corner_radii.scale(self.scale_factor()),
         }
     }
 
@@ -3113,7 +3385,44 @@ impl Window {
                 size: self.viewport_size,
             }
             .into(),
+            effects: self.devtools_effect_snapshot(),
             elements: self.rendered_frame.devtools_nodes.clone(),
+        }
+    }
+
+    fn devtools_effect_snapshot(&self) -> DevtoolsEffectSnapshot {
+        let scene = &self.rendered_frame.scene;
+        let missing_screen_effect_region_count = scene
+            .active_screen_effects
+            .iter()
+            .filter(|effect| match effect.effect().target() {
+                ScreenEffectTarget::Region(region_id) => {
+                    scene.screen_effect_region(region_id.as_ref()).is_none()
+                }
+                ScreenEffectTarget::Window | ScreenEffectTarget::Bounds(_) => false,
+            })
+            .count();
+        let missing_screen_effect_snapshot_count = scene
+            .active_screen_effects
+            .iter()
+            .filter(|effect| {
+                effect.effect().snapshot_id().is_some_and(|snapshot_id| {
+                    !scene
+                        .active_screen_effect_snapshots
+                        .iter()
+                        .any(|snapshot| snapshot.id() == snapshot_id)
+                })
+            })
+            .count();
+
+        DevtoolsEffectSnapshot {
+            active_screen_effect_count: scene.active_screen_effects.len(),
+            screen_effect_snapshot_count: scene.active_screen_effect_snapshots.len(),
+            visual_effect_count: scene.visual_effects.len(),
+            screen_effect_region_count: scene.screen_effect_regions.len(),
+            missing_screen_effect_region_count,
+            missing_screen_effect_snapshot_count,
+            capabilities: self.effect_capabilities(),
         }
     }
 
@@ -3389,6 +3698,14 @@ impl Window {
 
         self.layout_engine.as_mut().unwrap().clear();
         self.text_system().finish_frame();
+        let screen_effect_now = cx.background_executor().now();
+        self.prune_expired_screen_effects(screen_effect_now);
+        let has_active_screen_effects = !self.active_screen_effects.is_empty();
+        self.next_frame.scene.scale_factor = self.scale_factor();
+        self.next_frame.scene.active_screen_effects =
+            self.active_screen_effect_snapshots(screen_effect_now);
+        self.next_frame.scene.active_screen_effect_snapshots =
+            self.active_screen_effect_snapshot_requests();
         self.next_frame.finish(&mut self.rendered_frame);
 
         self.invalidator.set_phase(DrawPhase::Focus);
@@ -3396,6 +3713,9 @@ impl Window {
         let previous_window_active = self.rendered_frame.window_active;
         mem::swap(&mut self.rendered_frame, &mut self.next_frame);
         self.next_frame.clear();
+        if has_active_screen_effects {
+            self.invalidator.set_dirty(true);
+        }
         let current_focus_path = self.rendered_frame.focus_path();
         let current_window_active = self.rendered_frame.window_active;
 
@@ -3920,7 +4240,7 @@ impl Window {
                 )
             });
             self.content_mask_stack.push(mask);
-            if let Some(transformed_mask) = transformed_mask.clone() {
+            if let Some(transformed_mask) = transformed_mask {
                 self.paint_content_mask_stack.push(transformed_mask);
             }
             let result = f(self);
@@ -4166,15 +4486,12 @@ impl Window {
     /// Obtain the current content mask. This method should only be called during element drawing.
     pub fn content_mask(&self) -> ContentMask<Pixels> {
         self.invalidator.debug_assert_paint_or_prepaint();
-        self.content_mask_stack
-            .last()
-            .cloned()
-            .unwrap_or_else(|| ContentMask {
-                bounds: Bounds {
-                    origin: Point::default(),
-                    size: self.viewport_size,
-                },
+        self.content_mask_stack.last().cloned().unwrap_or_else(|| {
+            ContentMask::rectangular(Bounds {
+                origin: Point::default(),
+                size: self.viewport_size,
             })
+        })
     }
 
     #[inline]
@@ -4210,6 +4527,7 @@ impl Window {
     ) -> ContentMask<ScaledPixels> {
         ContentMask {
             bounds: self.transform_scaled_bounds(content_mask.bounds),
+            corner_radii: content_mask.corner_radii,
         }
     }
 
@@ -4219,11 +4537,11 @@ impl Window {
         self.paint_content_mask_stack
             .last()
             .cloned()
-            .unwrap_or_else(|| ContentMask {
-                bounds: Bounds {
+            .unwrap_or_else(|| {
+                ContentMask::rectangular(Bounds {
                     origin: Point::default(),
                     size: self.viewport_size.scale(self.scale_factor()),
-                },
+                })
             })
     }
 
@@ -4233,9 +4551,7 @@ impl Window {
         content_mask: ContentMask<ScaledPixels>,
     ) -> ContentMask<ScaledPixels> {
         let current = self.paint_content_mask();
-        ContentMask {
-            bounds: content_mask.bounds.intersect(&current.bounds),
-        }
+        content_mask.intersect(&current)
     }
 
     /// Provide elements in the called function with a new namespace in which their identifiers must be unique.
@@ -4577,12 +4893,90 @@ impl Window {
                 order: 0,
                 blur_radius: shadow.blur_radius.scale(scale_factor),
                 bounds: shadow_bounds.scale(scale_factor),
-                content_mask: content_mask.clone(),
+                content_mask,
                 corner_radii: corner_radii.scale(scale_factor),
                 color: shadow.color.opacity(opacity),
                 transformation,
             });
         }
+    }
+
+    /// Paint shader-backed element effects into the scene for the next frame.
+    ///
+    /// Effects are emitted between shadows and quads by `Style::paint`, allowing
+    /// renderers to sample already-painted content before the element's own
+    /// background, children, and border are drawn.
+    pub fn paint_visual_effects(
+        &mut self,
+        bounds: Bounds<Pixels>,
+        corner_radii: Corners<Pixels>,
+        effects: &[ElementEffect],
+    ) {
+        self.invalidator.debug_assert_paint();
+
+        if effects.is_empty() {
+            return;
+        }
+
+        let scale_factor = self.scale_factor();
+        let transformation = self.current_element_transform();
+        let content_mask = if transformation == TransformationMatrix::unit() {
+            self.snapped_content_mask()
+        } else {
+            self.paint_content_mask()
+        };
+
+        self.next_frame
+            .scene
+            .insert_primitive(VisualEffectPrimitive {
+                order: 0,
+                bounds: self.snap_bounds(bounds),
+                content_mask,
+                corner_radii: corner_radii.scale(scale_factor),
+                opacity: self.element_opacity(),
+                effects: effects.to_vec(),
+                transformation,
+            });
+    }
+
+    /// Register a named region that can receive screen-level shader effects.
+    ///
+    /// The scene stores transformed physical bounds so later screen-effect
+    /// target resolution does not need to replay element transforms.
+    pub fn paint_screen_effect_region(
+        &mut self,
+        id: impl Into<ScreenEffectRegionId>,
+        bounds: Bounds<Pixels>,
+        corner_radii: Corners<Pixels>,
+    ) {
+        self.invalidator.debug_assert_paint();
+
+        let scale_factor = self.scale_factor();
+        let transformation = self.current_element_transform();
+        let scaled_bounds = bounds.scale(scale_factor);
+        let bounds = if transformation == TransformationMatrix::unit() {
+            self.snap_bounds(bounds)
+        } else {
+            self.transform_scaled_bounds(scaled_bounds)
+        };
+        let logical_bounds = bounds.map(|coordinate| px(coordinate.0 / scale_factor));
+        let content_mask = if transformation == TransformationMatrix::unit() {
+            self.snapped_content_mask()
+        } else {
+            self.paint_content_mask()
+        };
+
+        self.next_frame
+            .scene
+            .insert_primitive(ScreenEffectRegionPrimitive {
+                order: 0,
+                id: id.into(),
+                bounds,
+                logical_bounds,
+                content_mask,
+                corner_radii: corner_radii.scale(scale_factor),
+                transformation: TransformationMatrix::unit(),
+            });
     }
 
     /// Paint one or more quads into the scene for the next frame at the current stacking context.
@@ -4700,6 +5094,9 @@ impl Window {
         let logical_content_mask = ContentMask {
             bounds: content_mask
                 .bounds
+                .map(|coordinate| px(coordinate.0 / scale_factor)),
+            corner_radii: content_mask
+                .corner_radii
                 .map(|coordinate| px(coordinate.0 / scale_factor)),
         };
 
@@ -6595,6 +6992,11 @@ impl Window {
         self.platform_window.gpu_specs()
     }
 
+    /// Read shader-effect capabilities for the renderer backing this window.
+    pub fn effect_capabilities(&self) -> EffectCapabilities {
+        self.platform_window.effect_capabilities()
+    }
+
     /// Perform titlebar double-click action.
     /// This is macOS specific.
     pub fn titlebar_double_click(&self) {
@@ -6824,7 +7226,7 @@ impl Window {
     fn hovered_inspector_hitbox(
         &self,
         inspector: &Inspector,
-        frame: &Frame,
+        frame: &WindowFrame,
     ) -> Option<(HitboxId, crate::InspectorElementId)> {
         if let Some(pick_depth) = inspector.pick_depth {
             let depth = (pick_depth as i64).try_into().unwrap_or(0);
@@ -7780,5 +8182,269 @@ pub fn outline(
         border_widths: (1.).into(),
         border_color: border_color.into().into(),
         border_style,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        Empty, MAX_ACTIVE_SCREEN_EFFECTS, ScreenEffectSnapshotId, ScreenEffectTarget,
+        TestAppContext, point, screen, size,
+    };
+
+    #[test]
+    fn content_mask_scale_preserves_corner_radii() {
+        let bounds = Bounds::new(point(px(1.), px(2.)), size(px(10.), px(20.)));
+        let mask = ContentMask {
+            bounds,
+            corner_radii: Corners::all(px(3.)),
+        };
+
+        let scaled = mask.scale(2.);
+
+        assert_eq!(scaled.bounds, bounds.scale(2.));
+        assert_eq!(scaled.corner_radii, Corners::all(ScaledPixels(6.)));
+    }
+
+    #[test]
+    fn rectangular_content_mask_is_zero_radius() {
+        let bounds = Bounds::new(point(px(1.), px(2.)), size(px(10.), px(20.)));
+
+        assert_eq!(
+            ContentMask::rectangular(bounds),
+            ContentMask::rounded(bounds, Corners::default())
+        );
+    }
+
+    #[test]
+    fn content_mask_intersection_preserves_nested_child_radii() {
+        let parent =
+            ContentMask::rectangular(Bounds::new(point(px(0.), px(0.)), size(px(100.), px(100.))));
+        let child_bounds = Bounds::new(point(px(20.), px(20.)), size(px(40.), px(40.)));
+        let child = ContentMask::rounded(child_bounds, Corners::all(px(8.)));
+
+        let intersection = child.intersect(&parent);
+
+        assert_eq!(intersection.bounds, child_bounds);
+        assert_eq!(intersection.corner_radii, Corners::all(px(8.)));
+    }
+
+    #[gpux::test]
+    fn play_screen_effect_enqueues_caps_and_marks_window_dirty(cx: &mut TestAppContext) {
+        let window = cx.open_window(size(px(100.), px(100.)), |_, _| Empty);
+        cx.run_until_parked();
+
+        let (before_update_count, after_update_count, ids, count) = window
+            .update(cx, |_, window, _| {
+                let before_update_count = window.invalidator.update_count();
+
+                for ix in 0..(MAX_ACTIVE_SCREEN_EFFECTS + 2) {
+                    window.play_screen_effect(
+                        screen::ripple(point(px(ix as f32), px(0.))).duration_ms(1_000),
+                    );
+                }
+
+                (
+                    before_update_count,
+                    window.invalidator.update_count(),
+                    window
+                        .active_screen_effects()
+                        .iter()
+                        .map(|effect| effect.id().as_u64())
+                        .collect::<Vec<_>>(),
+                    window.active_screen_effect_count(),
+                )
+            })
+            .unwrap();
+
+        assert!(after_update_count > before_update_count);
+        assert_eq!(count, MAX_ACTIVE_SCREEN_EFFECTS);
+        assert_eq!(ids[0], 3);
+        assert_eq!(ids[ids.len() - 1], (MAX_ACTIVE_SCREEN_EFFECTS + 2) as u64);
+    }
+
+    #[gpux::test]
+    fn capture_screen_effect_snapshot_retains_target_until_released(cx: &mut TestAppContext) {
+        let window = cx.open_window(size(px(100.), px(100.)), |_, _| Empty);
+        cx.run_until_parked();
+
+        let snapshot_id = window
+            .update(cx, |_, window, _| {
+                window.capture_screen_effect_snapshot(ScreenEffectTarget::window())
+            })
+            .unwrap();
+        cx.refresh().unwrap();
+        cx.run_until_parked();
+
+        let effects = window
+            .update(cx, |_, window, _| window.devtools_frame_snapshot().effects)
+            .unwrap();
+        assert_eq!(effects.screen_effect_snapshot_count, 1);
+
+        let released = window
+            .update(cx, |_, window, _| {
+                window.release_screen_effect_snapshot(snapshot_id)
+            })
+            .unwrap();
+        assert!(released);
+        cx.refresh().unwrap();
+        cx.run_until_parked();
+
+        let effects = window
+            .update(cx, |_, window, _| window.devtools_frame_snapshot().effects)
+            .unwrap();
+        assert_eq!(effects.screen_effect_snapshot_count, 0);
+    }
+
+    #[gpux::test]
+    fn devtools_effect_snapshot_reports_missing_snapshot_transition(cx: &mut TestAppContext) {
+        let window = cx.open_window(size(px(100.), px(100.)), |_, _| Empty);
+        cx.run_until_parked();
+
+        let start = cx.executor().now();
+        window
+            .update(cx, |_, window, _| {
+                window.play_screen_effect_at(
+                    screen::crossfade(ScreenEffectSnapshotId::new(404)).duration_ms(1_000),
+                    start,
+                );
+            })
+            .unwrap();
+        cx.refresh().unwrap();
+        cx.run_until_parked();
+
+        let effects = window
+            .update(cx, |_, window, _| window.devtools_frame_snapshot().effects)
+            .unwrap();
+
+        assert_eq!(effects.active_screen_effect_count, 1);
+        assert_eq!(effects.screen_effect_snapshot_count, 0);
+        assert_eq!(effects.missing_screen_effect_snapshot_count, 1);
+    }
+
+    #[gpux::test]
+    fn screen_effects_expire_and_rendered_scene_snapshot_clears(cx: &mut TestAppContext) {
+        let window = cx.open_window(size(px(100.), px(100.)), |_, _| Empty);
+        cx.run_until_parked();
+
+        let start = cx.executor().now();
+        window
+            .update(cx, |_, window, _| {
+                window.play_screen_effect_at(
+                    screen::ripple(point(px(0.), px(0.))).duration_ms(32),
+                    start,
+                );
+            })
+            .unwrap();
+        cx.refresh().unwrap();
+        cx.run_until_parked();
+
+        let snapshot_count = window
+            .update(cx, |_, window, _| {
+                window.rendered_frame.scene.active_screen_effects.len()
+            })
+            .unwrap();
+        assert_eq!(snapshot_count, 1);
+
+        cx.executor().advance_clock(Duration::from_millis(33));
+        let expired_at = cx.executor().now();
+
+        let has_active = window
+            .update(cx, |_, window, _| window.tick_screen_effects_at(expired_at))
+            .unwrap();
+        cx.refresh().unwrap();
+        cx.run_until_parked();
+
+        let (active_count, snapshot_count) = window
+            .update(cx, |_, window, _| {
+                (
+                    window.active_screen_effect_count(),
+                    window.rendered_frame.scene.active_screen_effects.len(),
+                )
+            })
+            .unwrap();
+
+        assert!(!has_active);
+        assert_eq!(active_count, 0);
+        assert_eq!(snapshot_count, 0);
+    }
+
+    #[gpux::test]
+    fn active_screen_effects_keep_window_dirty_only_until_expiry(cx: &mut TestAppContext) {
+        let window = cx.open_window(size(px(100.), px(100.)), |_, _| Empty);
+        cx.run_until_parked();
+
+        let start = cx.executor().now();
+        window
+            .update(cx, |_, window, _| {
+                window.play_screen_effect_at(
+                    screen::ripple(point(px(0.), px(0.))).duration_ms(64),
+                    start,
+                );
+            })
+            .unwrap();
+        cx.refresh().unwrap();
+        cx.run_until_parked();
+
+        let dirty_while_active = window.update(cx, |_, window, _| window.is_dirty()).unwrap();
+        assert!(dirty_while_active);
+
+        cx.executor().advance_clock(Duration::from_millis(65));
+        let expired_at = cx.executor().now();
+        window
+            .update(cx, |_, window, _| {
+                window.tick_screen_effects_at(expired_at);
+            })
+            .unwrap();
+        cx.refresh().unwrap();
+        cx.run_until_parked();
+
+        let dirty_after_expiry = window.update(cx, |_, window, _| window.is_dirty()).unwrap();
+        assert!(!dirty_after_expiry);
+    }
+
+    #[gpux::test]
+    fn effect_capabilities_default_to_unsupported(cx: &mut TestAppContext) {
+        let window = cx.open_window(size(px(100.), px(100.)), |_, _| Empty);
+        cx.run_until_parked();
+
+        let capabilities = window
+            .update(cx, |_, window, _| window.effect_capabilities())
+            .unwrap();
+
+        assert_eq!(capabilities, crate::EffectCapabilities::default());
+    }
+
+    #[gpux::test]
+    fn devtools_effect_snapshot_reports_active_missing_region_and_backend_support(
+        cx: &mut TestAppContext,
+    ) {
+        let window = cx.open_window(size(px(100.), px(100.)), |_, _| Empty);
+        cx.run_until_parked();
+
+        let start = cx.executor().now();
+        window
+            .update(cx, |_, window, _| {
+                window.play_screen_effect_at(
+                    screen::ripple(point(px(0.), px(0.)))
+                        .target(ScreenEffectTarget::region("missing-region"))
+                        .duration_ms(1_000),
+                    start,
+                );
+            })
+            .unwrap();
+        cx.refresh().unwrap();
+        cx.run_until_parked();
+
+        let effects = window
+            .update(cx, |_, window, _| window.devtools_frame_snapshot().effects)
+            .unwrap();
+
+        assert_eq!(effects.active_screen_effect_count, 1);
+        assert_eq!(effects.visual_effect_count, 0);
+        assert_eq!(effects.screen_effect_region_count, 0);
+        assert_eq!(effects.missing_screen_effect_region_count, 1);
+        assert_eq!(effects.capabilities, crate::EffectCapabilities::default());
     }
 }

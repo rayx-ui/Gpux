@@ -559,7 +559,7 @@ impl Element for UniformList {
                     };
                     frame_state.scroll_context = Some(scroll_context);
 
-                    let content_mask = ContentMask { bounds };
+                    let content_mask = ContentMask::rectangular(bounds);
                     window.with_scroll_container_context(scroll_context, |window| {
                         window.with_content_mask(Some(content_mask), |window| {
                             for (mut item, ix) in rendered_items {

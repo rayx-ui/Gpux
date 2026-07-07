@@ -9,9 +9,12 @@ use bytemuck::{Pod, Zeroable};
 #[cfg(target_family = "wasm")]
 use gpux::HtmlIslandPrimitive;
 use gpux::{
-    AtlasTextureId, Background, BackgroundKind, Bounds, ColorSpace, Corners, DevicePixels, Edges,
-    GpuSpecs, Hsla, MonochromeSprite, Path, Point, PolychromeSprite, PrimitiveBatch, Quad,
-    ScaledPixels, Scene, Shadow, Size, SubpixelSprite, TransformationMatrix, Underline,
+    ActiveScreenEffect, ActiveScreenEffectSnapshot, AtlasTextureId, Background, BackgroundKind,
+    Bounds, ColorSpace, ContentMask, Corners, DevicePixels, Edges, EffectCapabilities,
+    EffectQuality, ElementEffect, ElementEffectCapabilities, GpuSpecs, Hsla, MonochromeSprite,
+    Path, Pixels, Point, PolychromeSprite, PrimitiveBatch, Quad, ScaledPixels, Scene, ScreenEffect,
+    ScreenEffectCapabilities, ScreenEffectSnapshotId, ScreenEffectTarget, Shadow, Size,
+    SnapshotTransitionKind, SubpixelSprite, TransformationMatrix, Underline, VisualEffectPrimitive,
     get_gamma_correction_ratios, prepare_gradient_stop_color,
 };
 use image::RgbaImage;
@@ -33,7 +36,7 @@ struct GlobalParams {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Pod, Zeroable)]
+#[derive(Clone, Copy, Debug, PartialEq, Pod, Zeroable)]
 struct PodBounds {
     origin: [f32; 2],
     size: [f32; 2],
@@ -49,10 +52,17 @@ impl From<Bounds<ScaledPixels>> for PodBounds {
 }
 
 #[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Pod, Zeroable)]
+struct PackedContentMask {
+    bounds: PodBounds,
+    corner_radii: [f32; 4],
+}
+
+#[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
 struct SurfaceParams {
     bounds: PodBounds,
-    content_mask: PodBounds,
+    content_mask: PackedContentMask,
 }
 
 #[repr(C)]
@@ -83,11 +93,76 @@ struct PackedGradientStop {
 const MIN_GRADIENT_STOP_BINDING_SIZE: u64 = size_of::<PackedGradientStop>() as u64;
 const _: [(); 32] = [(); size_of::<PackedGradientStop>()];
 
+const VISUAL_EFFECT_KIND_BACKDROP_BLUR: u32 = 1;
+const VISUAL_EFFECT_KIND_GLASS: u32 = 2;
+const VISUAL_EFFECT_KIND_GLOW: u32 = 3;
+const SCREEN_EFFECT_KIND_RIPPLE: u32 = 1;
+const SCREEN_EFFECT_KIND_CROSSFADE: u32 = 2;
+const SCREEN_EFFECT_KIND_BLUR_CROSSFADE: u32 = 3;
+const SCREEN_EFFECT_KIND_RADIAL_REVEAL: u32 = 4;
+const SCREEN_EFFECT_KIND_RIPPLE_REVEAL: u32 = 5;
+const MAX_WGPU_FAST_BLUR_RADIUS: f32 = 64.0;
+const MAX_WGPU_HIGH_BLUR_RADIUS: f32 = 128.0;
+
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
 #[repr(C)]
 struct PackedTransformationMatrix {
     rotation_scale: [[f32; 2]; 2],
     translation: [f32; 2],
+}
+
+#[derive(Clone, Copy, Debug, Pod, Zeroable)]
+#[repr(C)]
+struct PackedVisualEffectPrimitive {
+    bounds: PodBounds,
+    content_mask: PackedContentMask,
+    corner_radii: [f32; 4],
+    opacity: f32,
+    effect_offset: u32,
+    effect_count: u32,
+    _pad: u32,
+    transformation: PackedTransformationMatrix,
+}
+
+#[derive(Clone, Copy, Debug, Pod, Zeroable)]
+#[repr(C)]
+struct PackedElementEffect {
+    kind: u32,
+    _pad: [u32; 3],
+    params0: [f32; 4],
+    params1: [f32; 4],
+    color0: [f32; 4],
+    color1: [f32; 4],
+}
+
+#[derive(Clone, Copy, Debug, Pod, Zeroable)]
+#[repr(C)]
+struct PackedScreenEffect {
+    kind: u32,
+    uses_snapshot: u32,
+    _pad0: [u32; 2],
+    bounds: PodBounds,
+    tint: [f32; 4],
+    origin: [f32; 2],
+    elapsed_ms: f32,
+    duration_ms: f32,
+    radius: f32,
+    amplitude: f32,
+    wavelength: f32,
+    damping: f32,
+    params: [f32; 4],
+}
+
+#[derive(Default)]
+struct PackedScreenEffects {
+    effects: Vec<PackedScreenEffect>,
+    snapshot_id: Option<ScreenEffectSnapshotId>,
+}
+
+#[derive(Default)]
+struct PackedVisualEffects {
+    primitives: Vec<PackedVisualEffectPrimitive>,
+    effects: Vec<PackedElementEffect>,
 }
 
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
@@ -108,7 +183,7 @@ struct PackedQuad {
     order: u32,
     border_style: u32,
     bounds: PodBounds,
-    content_mask: PodBounds,
+    content_mask: PackedContentMask,
     background: PackedBackground,
     border_color: PackedBackground,
     corner_radii: [f32; 4],
@@ -122,30 +197,54 @@ struct PackedPathRasterizationVertex {
     xy_position: [f32; 2],
     st_position: [f32; 2],
     background: PackedBackground,
-    bounds: PodBounds,
+    content_mask: PackedContentMask,
 }
 
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
 #[repr(C)]
 struct PackedHtmlIsland {
     bounds: PodBounds,
-    content_mask: PodBounds,
+    content_mask: PackedContentMask,
     opacity: f32,
     _pad: [f32; 3],
 }
 
 const _: [(); 16] = [(); size_of::<PodBounds>()];
+const _: [(); 32] = [(); size_of::<PackedContentMask>()];
 const _: [(); 24] = [(); size_of::<PackedTransformationMatrix>()];
 const _: [(); 48] = [(); size_of::<PackedBackground>()];
 const _: [(); 8] = [(); align_of::<PackedBackground>()];
-const _: [(); 192] = [(); size_of::<PackedQuad>()];
-const _: [(); 40] = [(); offset_of!(PackedQuad, background)];
-const _: [(); 88] = [(); offset_of!(PackedQuad, border_color)];
-const _: [(); 168] = [(); offset_of!(PackedQuad, transformation)];
-const _: [(); 80] = [(); size_of::<PackedPathRasterizationVertex>()];
+const _: [(); 208] = [(); size_of::<PackedQuad>()];
+const _: [(); 56] = [(); offset_of!(PackedQuad, background)];
+const _: [(); 104] = [(); offset_of!(PackedQuad, border_color)];
+const _: [(); 184] = [(); offset_of!(PackedQuad, transformation)];
+const _: [(); 96] = [(); size_of::<PackedPathRasterizationVertex>()];
 const _: [(); 16] = [(); offset_of!(PackedPathRasterizationVertex, background)];
-const _: [(); 64] = [(); offset_of!(PackedPathRasterizationVertex, bounds)];
-const _: [(); 48] = [(); size_of::<PackedHtmlIsland>()];
+const _: [(); 64] = [(); offset_of!(PackedPathRasterizationVertex, content_mask)];
+const _: [(); 64] = [(); size_of::<PackedHtmlIsland>()];
+const _: [(); 104] = [(); size_of::<PackedVisualEffectPrimitive>()];
+const _: [(); 16] = [(); offset_of!(PackedVisualEffectPrimitive, content_mask)];
+const _: [(); 48] = [(); offset_of!(PackedVisualEffectPrimitive, corner_radii)];
+const _: [(); 64] = [(); offset_of!(PackedVisualEffectPrimitive, opacity)];
+const _: [(); 68] = [(); offset_of!(PackedVisualEffectPrimitive, effect_offset)];
+const _: [(); 72] = [(); offset_of!(PackedVisualEffectPrimitive, effect_count)];
+const _: [(); 80] = [(); offset_of!(PackedVisualEffectPrimitive, transformation)];
+const _: [(); 80] = [(); size_of::<PackedElementEffect>()];
+const _: [(); 16] = [(); offset_of!(PackedElementEffect, params0)];
+const _: [(); 32] = [(); offset_of!(PackedElementEffect, params1)];
+const _: [(); 48] = [(); offset_of!(PackedElementEffect, color0)];
+const _: [(); 64] = [(); offset_of!(PackedElementEffect, color1)];
+const _: [(); 96] = [(); size_of::<PackedScreenEffect>()];
+const _: [(); 16] = [(); offset_of!(PackedScreenEffect, bounds)];
+const _: [(); 32] = [(); offset_of!(PackedScreenEffect, tint)];
+const _: [(); 48] = [(); offset_of!(PackedScreenEffect, origin)];
+const _: [(); 56] = [(); offset_of!(PackedScreenEffect, elapsed_ms)];
+const _: [(); 60] = [(); offset_of!(PackedScreenEffect, duration_ms)];
+const _: [(); 64] = [(); offset_of!(PackedScreenEffect, radius)];
+const _: [(); 68] = [(); offset_of!(PackedScreenEffect, amplitude)];
+const _: [(); 72] = [(); offset_of!(PackedScreenEffect, wavelength)];
+const _: [(); 76] = [(); offset_of!(PackedScreenEffect, damping)];
+const _: [(); 80] = [(); offset_of!(PackedScreenEffect, params)];
 
 #[cfg(any(target_family = "wasm", test))]
 fn html_island_has_drawable_area(
@@ -166,7 +265,7 @@ fn pack_quads(quads: &[Quad]) -> (Vec<PackedQuad>, Vec<PackedGradientStop>) {
             order: quad.order,
             border_style: quad.border_style as u32,
             bounds: quad.bounds.into(),
-            content_mask: quad.content_mask.bounds.into(),
+            content_mask: pack_content_mask(quad.content_mask),
             background: pack_background(&quad.background, &mut gradient_stops),
             border_color: pack_background(&quad.border_color, &mut gradient_stops),
             corner_radii: pack_corners(quad.corner_radii),
@@ -176,6 +275,258 @@ fn pack_quads(quads: &[Quad]) -> (Vec<PackedQuad>, Vec<PackedGradientStop>) {
         .collect();
 
     (packed_quads, gradient_stops)
+}
+
+fn pack_visual_effect_primitives(primitives: &[VisualEffectPrimitive]) -> PackedVisualEffects {
+    let mut packed = PackedVisualEffects::default();
+    for primitive in primitives {
+        let effect_offset = packed.effects.len() as u32;
+        packed
+            .effects
+            .extend(primitive.effects.iter().map(pack_element_effect));
+        packed.primitives.push(PackedVisualEffectPrimitive {
+            bounds: primitive.bounds.into(),
+            content_mask: pack_content_mask(primitive.content_mask),
+            corner_radii: pack_corners(primitive.corner_radii),
+            opacity: primitive.opacity,
+            effect_offset,
+            effect_count: primitive.effects.len() as u32,
+            _pad: 0,
+            transformation: pack_transformation(primitive.transformation),
+        });
+    }
+
+    packed
+}
+
+fn pack_element_effect(effect: &ElementEffect) -> PackedElementEffect {
+    match effect {
+        ElementEffect::BackdropBlur(effect) => PackedElementEffect {
+            kind: VISUAL_EFFECT_KIND_BACKDROP_BLUR,
+            _pad: [0; 3],
+            params0: [
+                pack_blur_radius(effect.radius_value(), effect.quality_value()),
+                effect.saturation_value(),
+                effect.brightness_value(),
+                0.0,
+            ],
+            params1: [0.0; 4],
+            color0: effect.tint_color().map(pack_hsla).unwrap_or([0.0; 4]),
+            color1: [0.0; 4],
+        },
+        ElementEffect::Glass(effect) => PackedElementEffect {
+            kind: VISUAL_EFFECT_KIND_GLASS,
+            _pad: [0; 3],
+            params0: [
+                pack_blur_radius(effect.blur_radius(), effect.quality_value()),
+                effect.saturation_value(),
+                effect.brightness_value(),
+                effect.refraction_value(),
+            ],
+            params1: [effect.distortion_value(), 0.0, 0.0, 0.0],
+            color0: pack_hsla(effect.tint_color()),
+            color1: pack_hsla(effect.highlight_color()),
+        },
+        ElementEffect::Glow(effect) => PackedElementEffect {
+            kind: VISUAL_EFFECT_KIND_GLOW,
+            _pad: [0; 3],
+            params0: [
+                f32::from(effect.radius_value()),
+                f32::from(effect.spread_value()),
+                effect.intensity_value(),
+                0.0,
+            ],
+            params1: [0.0; 4],
+            color0: pack_hsla(effect.color()),
+            color1: [0.0; 4],
+        },
+    }
+}
+
+fn pack_screen_effects(
+    scene: &Scene,
+    active_effects: &[ActiveScreenEffect],
+    surface_size: Size<DevicePixels>,
+    available_snapshot_id: Option<ScreenEffectSnapshotId>,
+) -> PackedScreenEffects {
+    let scale_factor = scene.scale_factor.max(1.0);
+    let mut packed = PackedScreenEffects::default();
+
+    for active in active_effects {
+        if active.is_complete() {
+            log::trace!(
+                "skipping completed screen effect id={}",
+                active.id().as_u64()
+            );
+            continue;
+        }
+
+        match active.effect() {
+            ScreenEffect::Ripple(effect) => {
+                let Some((bounds, origin)) = resolve_screen_ripple_target(
+                    scene,
+                    effect.target_ref(),
+                    effect.origin(),
+                    surface_size,
+                ) else {
+                    log::trace!(
+                        "skipping screen ripple id={} because target is unavailable",
+                        active.id().as_u64()
+                    );
+                    continue;
+                };
+
+                packed.effects.push(PackedScreenEffect {
+                    kind: SCREEN_EFFECT_KIND_RIPPLE,
+                    uses_snapshot: 0,
+                    _pad0: [0; 2],
+                    bounds,
+                    tint: effect.tint_color().map(pack_hsla).unwrap_or([0.0; 4]),
+                    origin,
+                    elapsed_ms: active.elapsed_ms() as f32,
+                    duration_ms: effect.duration_ms_value().max(1) as f32,
+                    radius: f32::from(effect.radius_value()) * scale_factor,
+                    amplitude: f32::from(effect.amplitude_value()) * scale_factor,
+                    wavelength: f32::from(effect.wavelength_value()) * scale_factor,
+                    damping: effect.damping_value(),
+                    params: [effect.chromatic_aberration_value(), 0.0, 0.0, 0.0],
+                });
+            }
+            ScreenEffect::SnapshotTransition(effect) => {
+                let Some(snapshot_id) = available_snapshot_id else {
+                    log::trace!(
+                        "skipping snapshot transition id={} snapshot={} because no captured texture is available",
+                        active.id().as_u64(),
+                        effect.snapshot_id().as_u64()
+                    );
+                    continue;
+                };
+                if snapshot_id != effect.snapshot_id() {
+                    log::trace!(
+                        "skipping snapshot transition id={} snapshot={} because renderer captured snapshot={}",
+                        active.id().as_u64(),
+                        effect.snapshot_id().as_u64(),
+                        snapshot_id.as_u64()
+                    );
+                    continue;
+                }
+
+                let Some(bounds) =
+                    resolve_screen_effect_target(scene, effect.target_ref(), surface_size)
+                else {
+                    log::trace!(
+                        "skipping snapshot transition id={} because target is unavailable",
+                        active.id().as_u64()
+                    );
+                    continue;
+                };
+
+                let kind = match effect.kind() {
+                    SnapshotTransitionKind::Crossfade => SCREEN_EFFECT_KIND_CROSSFADE,
+                    SnapshotTransitionKind::BlurCrossfade => SCREEN_EFFECT_KIND_BLUR_CROSSFADE,
+                    SnapshotTransitionKind::RadialReveal => SCREEN_EFFECT_KIND_RADIAL_REVEAL,
+                    SnapshotTransitionKind::RippleReveal => SCREEN_EFFECT_KIND_RIPPLE_REVEAL,
+                };
+
+                packed.snapshot_id = Some(snapshot_id);
+                packed.effects.push(PackedScreenEffect {
+                    kind,
+                    uses_snapshot: 1,
+                    _pad0: [0; 2],
+                    bounds,
+                    tint: effect.tint_color().map(pack_hsla).unwrap_or([0.0; 4]),
+                    origin: pack_scaled_pixel_origin(effect.origin_value(), scale_factor),
+                    elapsed_ms: active.elapsed_ms() as f32,
+                    duration_ms: effect.duration_ms_value().max(1) as f32,
+                    radius: f32::from(effect.radius_value()) * scale_factor,
+                    amplitude: f32::from(effect.amplitude_value()) * scale_factor,
+                    wavelength: f32::from(effect.wavelength_value()) * scale_factor,
+                    damping: effect.damping_value(),
+                    params: [
+                        0.0,
+                        f32::from(effect.blur_radius_value()) * scale_factor,
+                        0.0,
+                        0.0,
+                    ],
+                });
+            }
+        }
+    }
+
+    packed
+}
+
+fn first_snapshot_transition_id(
+    active_effects: &[ActiveScreenEffect],
+) -> Option<ScreenEffectSnapshotId> {
+    active_effects
+        .iter()
+        .filter(|active| !active.is_complete())
+        .find_map(|active| active.effect().snapshot_id())
+}
+
+fn resolve_screen_ripple_target(
+    scene: &Scene,
+    target: &ScreenEffectTarget,
+    origin: Point<Pixels>,
+    surface_size: Size<DevicePixels>,
+) -> Option<(PodBounds, [f32; 2])> {
+    let scale_factor = scene.scale_factor.max(1.0);
+    let bounds = resolve_screen_effect_target(scene, target, surface_size)?;
+    let origin = match target {
+        ScreenEffectTarget::Region(id) => {
+            let region = scene.screen_effect_region(id.as_ref())?;
+            pack_region_origin(origin, region.logical_bounds, region.bounds)
+        }
+        ScreenEffectTarget::Window | ScreenEffectTarget::Bounds(_) => {
+            pack_scaled_pixel_origin(origin, scale_factor)
+        }
+    };
+    Some((bounds, origin))
+}
+
+fn resolve_screen_effect_target(
+    scene: &Scene,
+    target: &ScreenEffectTarget,
+    surface_size: Size<DevicePixels>,
+) -> Option<PodBounds> {
+    let scale_factor = scene.scale_factor.max(1.0);
+    match target {
+        ScreenEffectTarget::Window => Some(PodBounds {
+            origin: [0.0, 0.0],
+            size: [
+                (surface_size.width.0.max(0)) as f32,
+                (surface_size.height.0.max(0)) as f32,
+            ],
+        }),
+        ScreenEffectTarget::Bounds(bounds) => Some(PodBounds::from(bounds.scale(scale_factor))),
+        ScreenEffectTarget::Region(id) => {
+            let region = scene.screen_effect_region(id.as_ref())?;
+            Some(PodBounds::from(region.bounds))
+        }
+    }
+}
+
+fn pack_scaled_pixel_origin(origin: Point<Pixels>, scale_factor: f32) -> [f32; 2] {
+    [
+        f32::from(origin.x) * scale_factor,
+        f32::from(origin.y) * scale_factor,
+    ]
+}
+
+fn pack_region_origin(
+    origin: Point<Pixels>,
+    logical_bounds: Bounds<Pixels>,
+    scaled_bounds: Bounds<ScaledPixels>,
+) -> [f32; 2] {
+    let scale_x = scaled_bounds.size.width.0 / f32::from(logical_bounds.size.width).max(1.0);
+    let scale_y = scaled_bounds.size.height.0 / f32::from(logical_bounds.size.height).max(1.0);
+    [
+        scaled_bounds.origin.x.0
+            + (f32::from(origin.x) - f32::from(logical_bounds.origin.x)) * scale_x,
+        scaled_bounds.origin.y.0
+            + (f32::from(origin.y) - f32::from(logical_bounds.origin.y)) * scale_y,
+    ]
 }
 
 fn pack_background(
@@ -222,6 +573,14 @@ fn pack_hsla(color: Hsla) -> [f32; 4] {
     [color.h, color.s, color.l, color.a]
 }
 
+fn pack_blur_radius(radius: gpux::Pixels, quality: EffectQuality) -> f32 {
+    let cap = match quality {
+        EffectQuality::Fast => MAX_WGPU_FAST_BLUR_RADIUS,
+        EffectQuality::High => MAX_WGPU_HIGH_BLUR_RADIUS,
+    };
+    f32::from(radius).min(cap)
+}
+
 fn pack_corners(corners: Corners<ScaledPixels>) -> [f32; 4] {
     [
         corners.top_left.0,
@@ -229,6 +588,13 @@ fn pack_corners(corners: Corners<ScaledPixels>) -> [f32; 4] {
         corners.bottom_right.0,
         corners.bottom_left.0,
     ]
+}
+
+fn pack_content_mask(content_mask: ContentMask<ScaledPixels>) -> PackedContentMask {
+    PackedContentMask {
+        bounds: content_mask.bounds.into(),
+        corner_radii: pack_corners(content_mask.corner_radii),
+    }
 }
 
 fn pack_edges(edges: Edges<ScaledPixels>) -> [f32; 4] {
@@ -247,6 +613,35 @@ fn pack_transformation(transformation: TransformationMatrix) -> PackedTransforma
     PackedTransformationMatrix {
         rotation_scale: transformation.rotation_scale,
         translation: transformation.translation,
+    }
+}
+
+fn wgpu_effect_capabilities() -> EffectCapabilities {
+    EffectCapabilities {
+        element: ElementEffectCapabilities {
+            backdrop_blur: true,
+            glass: true,
+            glow: true,
+        },
+        screen: ScreenEffectCapabilities {
+            ripple: true,
+            snapshot_transitions: true,
+        },
+    }
+}
+
+fn visual_effect_glow_blend_state() -> wgpu::BlendState {
+    wgpu::BlendState {
+        color: wgpu::BlendComponent {
+            src_factor: wgpu::BlendFactor::One,
+            dst_factor: wgpu::BlendFactor::One,
+            operation: wgpu::BlendOperation::Add,
+        },
+        alpha: wgpu::BlendComponent {
+            src_factor: wgpu::BlendFactor::Zero,
+            dst_factor: wgpu::BlendFactor::One,
+            operation: wgpu::BlendOperation::Add,
+        },
     }
 }
 
@@ -291,6 +686,12 @@ struct WgpuPipelines {
     html_islands: wgpu::RenderPipeline,
     #[allow(dead_code)]
     surfaces: wgpu::RenderPipeline,
+    post_process_pass_through: wgpu::RenderPipeline,
+    post_process_gaussian_blur_horizontal: wgpu::RenderPipeline,
+    post_process_gaussian_blur_vertical: wgpu::RenderPipeline,
+    visual_effects: wgpu::RenderPipeline,
+    visual_effect_glows: wgpu::RenderPipeline,
+    screen_effects: wgpu::RenderPipeline,
 }
 
 struct WgpuBindGroupLayouts {
@@ -298,10 +699,276 @@ struct WgpuBindGroupLayouts {
     instances: wgpu::BindGroupLayout,
     instances_with_texture: wgpu::BindGroupLayout,
     surfaces: wgpu::BindGroupLayout,
+    post_process: wgpu::BindGroupLayout,
+    visual_effects: wgpu::BindGroupLayout,
+    screen_effects: wgpu::BindGroupLayout,
 }
 
 /// Shared GPU context reference, used to coordinate device recovery across multiple windows.
 pub type GpuContext = Rc<RefCell<Option<WgpuContext>>>;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct WgpuEffectTargetKey {
+    width: u32,
+    height: u32,
+    format: wgpu::TextureFormat,
+}
+
+impl WgpuEffectTargetKey {
+    fn new(width: u32, height: u32, format: wgpu::TextureFormat) -> Self {
+        Self {
+            width: width.max(1),
+            height: height.max(1),
+            format,
+        }
+    }
+
+    fn matches(self, width: u32, height: u32, format: wgpu::TextureFormat) -> bool {
+        self == Self::new(width, height, format)
+    }
+}
+
+#[allow(dead_code)]
+struct WgpuEffectTarget {
+    texture: wgpu::Texture,
+    view: wgpu::TextureView,
+}
+
+#[allow(dead_code)]
+struct WgpuScreenEffectSnapshot {
+    id: ScreenEffectSnapshotId,
+    target: ScreenEffectTarget,
+    color: WgpuEffectTarget,
+    captured: bool,
+}
+
+#[allow(dead_code)]
+struct WgpuEffectTargets {
+    key: WgpuEffectTargetKey,
+    scene_color: WgpuEffectTarget,
+    ping_color: WgpuEffectTarget,
+    pong_color: WgpuEffectTarget,
+    blur_color: WgpuEffectTarget,
+    previous_scene_color: WgpuEffectTarget,
+    has_previous_scene_color: bool,
+    screen_effect_snapshots: Vec<WgpuScreenEffectSnapshot>,
+}
+
+impl WgpuEffectTargets {
+    #[allow(dead_code)]
+    fn new(device: &wgpu::Device, key: WgpuEffectTargetKey) -> Self {
+        Self {
+            key,
+            scene_color: Self::create_target(device, key, "effect_scene_color"),
+            ping_color: Self::create_target(device, key, "effect_ping_color"),
+            pong_color: Self::create_target(device, key, "effect_pong_color"),
+            blur_color: Self::create_target(device, key, "effect_blur_color"),
+            previous_scene_color: Self::create_target(device, key, "effect_previous_scene_color"),
+            has_previous_scene_color: false,
+            screen_effect_snapshots: Vec::new(),
+        }
+    }
+
+    fn destroy(self) {
+        self.scene_color.texture.destroy();
+        self.ping_color.texture.destroy();
+        self.pong_color.texture.destroy();
+        self.blur_color.texture.destroy();
+        self.previous_scene_color.texture.destroy();
+        for snapshot in self.screen_effect_snapshots {
+            snapshot.color.texture.destroy();
+        }
+    }
+
+    fn create_target(
+        device: &wgpu::Device,
+        key: WgpuEffectTargetKey,
+        label: &'static str,
+    ) -> WgpuEffectTarget {
+        Self::create_sized_target(device, key, label)
+    }
+
+    fn create_sized_target(
+        device: &wgpu::Device,
+        key: WgpuEffectTargetKey,
+        label: &'static str,
+    ) -> WgpuEffectTarget {
+        let texture = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some(label),
+            size: wgpu::Extent3d {
+                width: key.width,
+                height: key.height,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: key.format,
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT
+                | wgpu::TextureUsages::TEXTURE_BINDING
+                | wgpu::TextureUsages::COPY_SRC
+                | wgpu::TextureUsages::COPY_DST,
+            view_formats: &[],
+        });
+        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+        WgpuEffectTarget { texture, view }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum WgpuEffectTargetSlot {
+    SceneColor,
+    PingColor,
+    PongColor,
+}
+
+impl WgpuEffectTargetSlot {
+    fn first_ping_pong() -> Self {
+        Self::PingColor
+    }
+
+    fn next_ping_pong(self) -> Self {
+        match self {
+            Self::SceneColor | Self::PongColor => Self::PingColor,
+            Self::PingColor => Self::PongColor,
+        }
+    }
+}
+
+impl WgpuEffectTargets {
+    fn target(&self, slot: WgpuEffectTargetSlot) -> &WgpuEffectTarget {
+        match slot {
+            WgpuEffectTargetSlot::SceneColor => &self.scene_color,
+            WgpuEffectTargetSlot::PingColor => &self.ping_color,
+            WgpuEffectTargetSlot::PongColor => &self.pong_color,
+        }
+    }
+
+    fn sync_screen_effect_snapshots(
+        &mut self,
+        device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+        snapshots: &[ActiveScreenEffectSnapshot],
+    ) -> Vec<ScreenEffectSnapshotId> {
+        let mut captured_ids = Vec::new();
+        self.screen_effect_snapshots
+            .retain(|snapshot| snapshots.iter().any(|request| request.id() == snapshot.id));
+
+        for request in snapshots {
+            if let Some(snapshot) = self
+                .screen_effect_snapshots
+                .iter_mut()
+                .find(|snapshot| snapshot.id == request.id())
+            {
+                if snapshot.target != *request.target() {
+                    snapshot.target = request.target().clone();
+                    snapshot.captured = false;
+                }
+            } else {
+                log::trace!(
+                    "allocating screen effect snapshot texture id={} target={:?}",
+                    request.id().as_u64(),
+                    request.target()
+                );
+                self.screen_effect_snapshots.push(WgpuScreenEffectSnapshot {
+                    id: request.id(),
+                    target: request.target().clone(),
+                    color: Self::create_target(device, self.key, "effect_screen_snapshot_color"),
+                    captured: false,
+                });
+            }
+        }
+
+        for snapshot in &mut self.screen_effect_snapshots {
+            if snapshot.captured {
+                continue;
+            }
+
+            if self.has_previous_scene_color {
+                copy_effect_texture(
+                    encoder,
+                    &self.previous_scene_color.texture,
+                    &snapshot.color.texture,
+                    self.key,
+                );
+                snapshot.captured = true;
+                captured_ids.push(snapshot.id);
+                log::trace!(
+                    "captured screen effect snapshot id={} target={:?}",
+                    snapshot.id.as_u64(),
+                    snapshot.target
+                );
+            } else {
+                log::trace!(
+                    "screen effect snapshot id={} is waiting for a previous scene texture",
+                    snapshot.id.as_u64()
+                );
+            }
+        }
+        captured_ids
+    }
+
+    fn mark_snapshots_uncaptured(&mut self, snapshot_ids: &[ScreenEffectSnapshotId]) {
+        for snapshot_id in snapshot_ids {
+            if let Some(snapshot) = self
+                .screen_effect_snapshots
+                .iter_mut()
+                .find(|snapshot| snapshot.id == *snapshot_id)
+            {
+                snapshot.captured = false;
+            }
+        }
+    }
+
+    fn captured_snapshot_view(&self, id: ScreenEffectSnapshotId) -> Option<&wgpu::TextureView> {
+        self.screen_effect_snapshots
+            .iter()
+            .find(|snapshot| snapshot.id == id && snapshot.captured)
+            .map(|snapshot| &snapshot.color.view)
+    }
+
+    fn remember_presented_scene(
+        &mut self,
+        encoder: &mut wgpu::CommandEncoder,
+        source_slot: WgpuEffectTargetSlot,
+    ) {
+        copy_effect_texture(
+            encoder,
+            &self.target(source_slot).texture,
+            &self.previous_scene_color.texture,
+            self.key,
+        );
+        self.has_previous_scene_color = true;
+    }
+}
+
+fn copy_effect_texture(
+    encoder: &mut wgpu::CommandEncoder,
+    source: &wgpu::Texture,
+    destination: &wgpu::Texture,
+    key: WgpuEffectTargetKey,
+) {
+    encoder.copy_texture_to_texture(
+        wgpu::TexelCopyTextureInfo {
+            texture: source,
+            mip_level: 0,
+            origin: wgpu::Origin3d::ZERO,
+            aspect: wgpu::TextureAspect::All,
+        },
+        wgpu::TexelCopyTextureInfo {
+            texture: destination,
+            mip_level: 0,
+            origin: wgpu::Origin3d::ZERO,
+            aspect: wgpu::TextureAspect::All,
+        },
+        wgpu::Extent3d {
+            width: key.width,
+            height: key.height,
+            depth_or_array_layers: 1,
+        },
+    );
+}
 
 /// GPU resources that must be dropped together during device recovery.
 struct WgpuResources {
@@ -311,6 +978,8 @@ struct WgpuResources {
     pipelines: WgpuPipelines,
     bind_group_layouts: WgpuBindGroupLayouts,
     atlas_sampler: wgpu::Sampler,
+    post_process_sampler: wgpu::Sampler,
+    effect_sampler: wgpu::Sampler,
     globals_buffer: wgpu::Buffer,
     globals_bind_group: wgpu::BindGroup,
     path_globals_bind_group: wgpu::BindGroup,
@@ -320,6 +989,7 @@ struct WgpuResources {
     path_intermediate_view: Option<wgpu::TextureView>,
     path_msaa_texture: Option<wgpu::Texture>,
     path_msaa_view: Option<wgpu::TextureView>,
+    effect_targets: Option<WgpuEffectTargets>,
 }
 
 impl WgpuResources {
@@ -328,6 +998,58 @@ impl WgpuResources {
         self.path_intermediate_view = None;
         self.path_msaa_texture = None;
         self.path_msaa_view = None;
+        self.invalidate_effect_targets();
+    }
+
+    fn invalidate_effect_targets(&mut self) {
+        if let Some(targets) = self.effect_targets.take() {
+            targets.destroy();
+        }
+    }
+
+    #[allow(dead_code)]
+    fn ensure_effect_targets(
+        &mut self,
+        width: u32,
+        height: u32,
+        format: wgpu::TextureFormat,
+    ) -> &WgpuEffectTargets {
+        let key = WgpuEffectTargetKey::new(width, height, format);
+        let recreate = self
+            .effect_targets
+            .as_ref()
+            .is_none_or(|targets| !targets.key.matches(width, height, format));
+
+        if recreate {
+            self.invalidate_effect_targets();
+            self.effect_targets = Some(WgpuEffectTargets::new(&self.device, key));
+        }
+
+        self.effect_targets
+            .as_ref()
+            .expect("effect targets should be initialized")
+    }
+
+    fn take_or_create_effect_targets(
+        &mut self,
+        width: u32,
+        height: u32,
+        format: wgpu::TextureFormat,
+    ) -> WgpuEffectTargets {
+        let key = WgpuEffectTargetKey::new(width, height, format);
+        let reuse = self
+            .effect_targets
+            .as_ref()
+            .is_some_and(|targets| targets.key.matches(width, height, format));
+
+        if reuse {
+            self.effect_targets
+                .take()
+                .expect("effect targets should exist when reusable")
+        } else {
+            self.invalidate_effect_targets();
+            WgpuEffectTargets::new(&self.device, key)
+        }
     }
 }
 
@@ -535,8 +1257,9 @@ impl WgpuRenderer {
             );
         }
 
-        let preferred_surface_usage =
-            wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC;
+        let preferred_surface_usage = wgpu::TextureUsages::RENDER_ATTACHMENT
+            | wgpu::TextureUsages::COPY_SRC
+            | wgpu::TextureUsages::COPY_DST;
         let surface_usage = if surface_caps.usages.contains(preferred_surface_usage) {
             preferred_surface_usage
         } else {
@@ -578,6 +1301,26 @@ impl WgpuRenderer {
             label: Some("atlas_sampler"),
             mag_filter: wgpu::FilterMode::Linear,
             min_filter: wgpu::FilterMode::Linear,
+            ..Default::default()
+        });
+        let post_process_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            label: Some("post_process_sampler"),
+            mag_filter: wgpu::FilterMode::Nearest,
+            min_filter: wgpu::FilterMode::Nearest,
+            mipmap_filter: wgpu::MipmapFilterMode::Nearest,
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            ..Default::default()
+        });
+        let effect_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            label: Some("effect_sampler"),
+            mag_filter: wgpu::FilterMode::Linear,
+            min_filter: wgpu::FilterMode::Linear,
+            mipmap_filter: wgpu::MipmapFilterMode::Nearest,
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
             ..Default::default()
         });
 
@@ -673,6 +1416,8 @@ impl WgpuRenderer {
             pipelines,
             bind_group_layouts,
             atlas_sampler,
+            post_process_sampler,
+            effect_sampler,
             globals_buffer,
             globals_bind_group,
             path_globals_bind_group,
@@ -684,6 +1429,7 @@ impl WgpuRenderer {
             path_intermediate_view: None,
             path_msaa_texture: None,
             path_msaa_view: None,
+            effect_targets: None,
         };
 
         Ok(Self {
@@ -834,11 +1580,103 @@ impl WgpuRenderer {
             ],
         });
 
+        let post_process = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("post_process_layout"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
+        });
+
+        let visual_effects = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("visual_effects_layout"),
+            entries: &[
+                storage_buffer_entry(0),
+                storage_buffer_entry(1),
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 3,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 4,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
+            ],
+        });
+
+        let screen_effects = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("screen_effects_layout"),
+            entries: &[
+                storage_buffer_entry(0),
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 3,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
+            ],
+        });
+
         WgpuBindGroupLayouts {
             globals,
             instances,
             instances_with_texture,
             surfaces,
+            post_process,
+            visual_effects,
+            screen_effects,
         }
     }
 
@@ -1116,6 +1954,107 @@ impl WgpuRenderer {
             &shader_module,
         );
 
+        let post_process_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("post_process_pass_through_layout"),
+            bind_group_layouts: &[Some(&layouts.post_process)],
+            immediate_size: 0,
+        });
+        let create_post_process_pipeline = |label: &'static str, fragment_entry: &'static str| {
+            device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                label: Some(label),
+                layout: Some(&post_process_layout),
+                vertex: wgpu::VertexState {
+                    module: &shader_module,
+                    entry_point: Some("vs_post_process"),
+                    buffers: &[],
+                    compilation_options: wgpu::PipelineCompilationOptions::default(),
+                },
+                fragment: Some(wgpu::FragmentState {
+                    module: &shader_module,
+                    entry_point: Some(fragment_entry),
+                    targets: &[Some(wgpu::ColorTargetState {
+                        format: surface_format,
+                        blend: None,
+                        write_mask: wgpu::ColorWrites::ALL,
+                    })],
+                    compilation_options: wgpu::PipelineCompilationOptions::default(),
+                }),
+                primitive: wgpu::PrimitiveState {
+                    topology: wgpu::PrimitiveTopology::TriangleStrip,
+                    strip_index_format: None,
+                    front_face: wgpu::FrontFace::Ccw,
+                    cull_mode: None,
+                    polygon_mode: wgpu::PolygonMode::Fill,
+                    unclipped_depth: false,
+                    conservative: false,
+                },
+                depth_stencil: None,
+                multisample: wgpu::MultisampleState::default(),
+                multiview_mask: None,
+                cache: None,
+            })
+        };
+        let post_process_pass_through = create_post_process_pipeline(
+            "post_process_pass_through",
+            "fs_post_process_pass_through",
+        );
+        let post_process_gaussian_blur_horizontal = create_post_process_pipeline(
+            "post_process_gaussian_blur_horizontal",
+            "fs_post_process_gaussian_blur_horizontal",
+        );
+        let post_process_gaussian_blur_vertical = create_post_process_pipeline(
+            "post_process_gaussian_blur_vertical",
+            "fs_post_process_gaussian_blur_vertical",
+        );
+
+        let visual_effects = create_pipeline(
+            "visual_effects",
+            "vs_visual_effect",
+            "fs_visual_effect",
+            &layouts.globals,
+            &layouts.visual_effects,
+            wgpu::PrimitiveTopology::TriangleStrip,
+            &[Some(wgpu::ColorTargetState {
+                format: surface_format,
+                blend: None,
+                write_mask: wgpu::ColorWrites::ALL,
+            })],
+            1,
+            &shader_module,
+        );
+
+        let visual_effect_glows = create_pipeline(
+            "visual_effect_glows",
+            "vs_visual_effect",
+            "fs_visual_effect_glow_add",
+            &layouts.globals,
+            &layouts.visual_effects,
+            wgpu::PrimitiveTopology::TriangleStrip,
+            &[Some(wgpu::ColorTargetState {
+                format: surface_format,
+                blend: Some(visual_effect_glow_blend_state()),
+                write_mask: wgpu::ColorWrites::ALL,
+            })],
+            1,
+            &shader_module,
+        );
+
+        let screen_effects = create_pipeline(
+            "screen_effects",
+            "vs_screen_effect",
+            "fs_screen_effect",
+            &layouts.globals,
+            &layouts.screen_effects,
+            wgpu::PrimitiveTopology::TriangleStrip,
+            &[Some(wgpu::ColorTargetState {
+                format: surface_format,
+                blend: None,
+                write_mask: wgpu::ColorWrites::ALL,
+            })],
+            1,
+            &shader_module,
+        );
+
         WgpuPipelines {
             quads,
             shadows,
@@ -1127,6 +2066,12 @@ impl WgpuRenderer {
             poly_sprites,
             html_islands,
             surfaces,
+            post_process_pass_through,
+            post_process_gaussian_blur_horizontal,
+            post_process_gaussian_blur_vertical,
+            visual_effects,
+            visual_effect_glows,
+            screen_effects,
         }
     }
 
@@ -1313,6 +2258,10 @@ impl WgpuRenderer {
             driver_name: self.adapter_info.driver.clone(),
             driver_info: self.adapter_info.driver_info.clone(),
         }
+    }
+
+    pub fn effect_capabilities(&self) -> EffectCapabilities {
+        wgpu_effect_capabilities()
     }
 
     pub fn max_texture_size(&self) -> u32 {
@@ -1618,10 +2567,20 @@ impl WgpuRenderer {
         scene: &Scene,
         target_view: &wgpu::TextureView,
     ) -> anyhow::Result<wgpu::CommandEncoder> {
+        let width = self.surface_config.width;
+        let height = self.surface_config.height;
+        let format = self.surface_config.format;
+        let mut effect_targets = Some(
+            self.resources_mut()
+                .take_or_create_effect_targets(width, height, format),
+        );
+
         loop {
             let mut instance_offset: u64 = 0;
             let mut gradient_stop_offset: u64 = 0;
             let mut overflow = false;
+            let mut current_target = WgpuEffectTargetSlot::SceneColor;
+            let mut next_effect_target = WgpuEffectTargetSlot::first_ping_pong();
 
             let mut encoder =
                 self.resources()
@@ -1629,12 +2588,26 @@ impl WgpuRenderer {
                     .create_command_encoder(&wgpu::CommandEncoderDescriptor {
                         label: Some("main_encoder"),
                     });
+            let device = Arc::clone(&self.resources().device);
+            let captured_snapshot_ids = effect_targets
+                .as_mut()
+                .expect("effect targets should exist")
+                .sync_screen_effect_snapshots(
+                    &device,
+                    &mut encoder,
+                    &scene.active_screen_effect_snapshots,
+                );
 
             {
+                let render_target_view = &effect_targets
+                    .as_ref()
+                    .expect("effect targets should exist")
+                    .target(current_target)
+                    .view;
                 let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                     label: Some("main_pass"),
                     color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                        view: target_view,
+                        view: render_target_view,
                         resolve_target: None,
                         ops: wgpu::Operations {
                             load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
@@ -1659,6 +2632,51 @@ impl WgpuRenderer {
                             &mut instance_offset,
                             &mut pass,
                         ),
+                        PrimitiveBatch::VisualEffects(range) => {
+                            let effects = &scene.visual_effects[range];
+                            if effects.is_empty() {
+                                true
+                            } else {
+                                drop(pass);
+
+                                let source_target = current_target;
+                                let destination_target = next_effect_target;
+                                let targets = effect_targets
+                                    .as_ref()
+                                    .expect("effect targets should exist");
+                                let did_draw = self.draw_visual_effects(
+                                    &mut encoder,
+                                    effects,
+                                    &targets.target(source_target).view,
+                                    &targets.target(destination_target).view,
+                                    &targets.blur_color.view,
+                                    &mut instance_offset,
+                                    &mut gradient_stop_offset,
+                                );
+                                current_target = destination_target;
+                                next_effect_target = current_target.next_ping_pong();
+
+                                let targets = effect_targets
+                                    .as_ref()
+                                    .expect("effect targets should exist");
+                                pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                                    label: Some("main_pass_after_visual_effect"),
+                                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                                        view: &targets.target(current_target).view,
+                                        resolve_target: None,
+                                        ops: wgpu::Operations {
+                                            load: wgpu::LoadOp::Load,
+                                            store: wgpu::StoreOp::Store,
+                                        },
+                                        depth_slice: None,
+                                    })],
+                                    depth_stencil_attachment: None,
+                                    ..Default::default()
+                                });
+
+                                did_draw
+                            }
+                        }
                         #[cfg(target_family = "wasm")]
                         PrimitiveBatch::HtmlIslands(range) => self.draw_html_islands(
                             &scene.html_islands[range],
@@ -1685,7 +2703,11 @@ impl WgpuRenderer {
                             pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                                 label: Some("main_pass_continued"),
                                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                                    view: target_view,
+                                    view: &effect_targets
+                                        .as_ref()
+                                        .expect("effect targets should exist")
+                                        .target(current_target)
+                                        .view,
                                     resolve_target: None,
                                     ops: wgpu::Operations {
                                         load: wgpu::LoadOp::Load,
@@ -1745,7 +2767,47 @@ impl WgpuRenderer {
                 }
             }
 
+            if !overflow && !scene.active_screen_effects.is_empty() {
+                let source_target = current_target;
+                let destination_target = next_effect_target;
+                let targets = effect_targets
+                    .as_ref()
+                    .expect("effect targets should exist");
+                let requested_snapshot_id =
+                    first_snapshot_transition_id(&scene.active_screen_effects);
+                let captured_snapshot = requested_snapshot_id.and_then(|snapshot_id| {
+                    targets
+                        .captured_snapshot_view(snapshot_id)
+                        .map(|view| (snapshot_id, view))
+                });
+                let (available_snapshot_id, snapshot_view) =
+                    if let Some((snapshot_id, snapshot_view)) = captured_snapshot {
+                        (Some(snapshot_id), snapshot_view)
+                    } else {
+                        (None, &targets.target(source_target).view)
+                    };
+                let did_draw = self.draw_screen_effects(
+                    &mut encoder,
+                    scene,
+                    &scene.active_screen_effects,
+                    &targets.target(source_target).view,
+                    snapshot_view,
+                    available_snapshot_id,
+                    &targets.target(destination_target).view,
+                    &mut instance_offset,
+                );
+                if did_draw {
+                    current_target = destination_target;
+                } else {
+                    overflow = true;
+                }
+            }
+
             if overflow {
+                effect_targets
+                    .as_mut()
+                    .expect("effect targets should exist")
+                    .mark_snapshots_uncaptured(&captured_snapshot_ids);
                 drop(encoder);
                 if self.instance_buffer_capacity >= self.max_buffer_size {
                     anyhow::bail!(
@@ -1757,6 +2819,25 @@ impl WgpuRenderer {
                 self.grow_instance_buffer();
                 self.grow_gradient_stop_buffer();
                 continue;
+            }
+
+            effect_targets
+                .as_mut()
+                .expect("effect targets should exist")
+                .remember_presented_scene(&mut encoder, current_target);
+
+            self.draw_post_process_pass_through(
+                &mut encoder,
+                &effect_targets
+                    .as_ref()
+                    .expect("effect targets should exist")
+                    .target(current_target)
+                    .view,
+                target_view,
+            );
+
+            if let Some(targets) = effect_targets.take() {
+                self.resources_mut().effect_targets = Some(targets);
             }
 
             return Ok(encoder);
@@ -1983,7 +3064,7 @@ impl WgpuRenderer {
                 };
                 let packed = PackedHtmlIsland {
                     bounds: island.bounds.into(),
-                    content_mask: island.content_mask.bounds.into(),
+                    content_mask: pack_content_mask(island.content_mask),
                     opacity: island.opacity,
                     _pad: [0.; 3],
                 };
@@ -2093,6 +3174,303 @@ impl WgpuRenderer {
         true
     }
 
+    fn draw_post_process_pass_through(
+        &self,
+        encoder: &mut wgpu::CommandEncoder,
+        source_view: &wgpu::TextureView,
+        target_view: &wgpu::TextureView,
+    ) {
+        let resources = self.resources();
+        let bind_group = resources
+            .device
+            .create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("post_process_pass_through_bind_group"),
+                layout: &resources.bind_group_layouts.post_process,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: wgpu::BindingResource::TextureView(source_view),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::Sampler(&resources.post_process_sampler),
+                    },
+                ],
+            });
+
+        let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("post_process_pass_through_pass"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: target_view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
+                    store: wgpu::StoreOp::Store,
+                },
+                depth_slice: None,
+            })],
+            depth_stencil_attachment: None,
+            ..Default::default()
+        });
+        pass.set_pipeline(&resources.pipelines.post_process_pass_through);
+        pass.set_bind_group(0, &bind_group, &[]);
+        pass.draw(0..4, 0..1);
+    }
+
+    fn draw_post_process_filter(
+        &self,
+        encoder: &mut wgpu::CommandEncoder,
+        source_view: &wgpu::TextureView,
+        target_view: &wgpu::TextureView,
+        pipeline: &wgpu::RenderPipeline,
+        label: &'static str,
+    ) {
+        let resources = self.resources();
+        let bind_group = resources
+            .device
+            .create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some(label),
+                layout: &resources.bind_group_layouts.post_process,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: wgpu::BindingResource::TextureView(source_view),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::Sampler(&resources.effect_sampler),
+                    },
+                ],
+            });
+
+        let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some(label),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: target_view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
+                    store: wgpu::StoreOp::Store,
+                },
+                depth_slice: None,
+            })],
+            depth_stencil_attachment: None,
+            ..Default::default()
+        });
+        pass.set_pipeline(pipeline);
+        pass.set_bind_group(0, &bind_group, &[]);
+        pass.draw(0..4, 0..1);
+    }
+
+    fn draw_visual_effects(
+        &self,
+        encoder: &mut wgpu::CommandEncoder,
+        effects: &[VisualEffectPrimitive],
+        source_view: &wgpu::TextureView,
+        target_view: &wgpu::TextureView,
+        blur_view: &wgpu::TextureView,
+        instance_offset: &mut u64,
+        effect_offset: &mut u64,
+    ) -> bool {
+        let packed = pack_visual_effect_primitives(effects);
+        if packed.primitives.is_empty() || packed.effects.is_empty() {
+            self.draw_post_process_pass_through(encoder, source_view, target_view);
+            return true;
+        }
+        let has_glow = packed
+            .effects
+            .iter()
+            .any(|effect| effect.kind == VISUAL_EFFECT_KIND_GLOW);
+        let has_filter_effect = packed
+            .effects
+            .iter()
+            .any(|effect| effect.kind != VISUAL_EFFECT_KIND_GLOW);
+
+        let primitive_data = unsafe { Self::instance_bytes(&packed.primitives) };
+        let effect_data = unsafe { Self::instance_bytes(&packed.effects) };
+        let Some((primitive_offset, primitive_size)) =
+            self.write_to_instance_buffer(instance_offset, primitive_data)
+        else {
+            return false;
+        };
+        let Some((effects_offset, effects_size)) =
+            self.write_to_gradient_stop_buffer(effect_offset, effect_data)
+        else {
+            return false;
+        };
+
+        let resources = self.resources();
+        if has_filter_effect {
+            self.draw_post_process_filter(
+                encoder,
+                source_view,
+                target_view,
+                &resources.pipelines.post_process_gaussian_blur_horizontal,
+                "post_process_gaussian_blur_horizontal_pass",
+            );
+            self.draw_post_process_filter(
+                encoder,
+                target_view,
+                blur_view,
+                &resources.pipelines.post_process_gaussian_blur_vertical,
+                "post_process_gaussian_blur_vertical_pass",
+            );
+        }
+        self.draw_post_process_pass_through(encoder, source_view, target_view);
+
+        let resources = self.resources();
+        let bind_group = resources
+            .device
+            .create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("visual_effects_bind_group"),
+                layout: &resources.bind_group_layouts.visual_effects,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: self.instance_binding(primitive_offset, primitive_size),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: self.gradient_stop_binding(effects_offset, effects_size),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 2,
+                        resource: wgpu::BindingResource::TextureView(source_view),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 3,
+                        resource: wgpu::BindingResource::Sampler(&resources.effect_sampler),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 4,
+                        resource: wgpu::BindingResource::TextureView(blur_view),
+                    },
+                ],
+            });
+
+        if has_filter_effect {
+            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("visual_effects_pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: target_view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: wgpu::StoreOp::Store,
+                    },
+                    depth_slice: None,
+                })],
+                depth_stencil_attachment: None,
+                ..Default::default()
+            });
+            pass.set_pipeline(&resources.pipelines.visual_effects);
+            pass.set_bind_group(0, &resources.globals_bind_group, &[]);
+            pass.set_bind_group(1, &bind_group, &[]);
+            pass.draw(0..4, 0..packed.primitives.len() as u32);
+        }
+
+        if has_glow {
+            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("visual_effect_glow_add_pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: target_view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: wgpu::StoreOp::Store,
+                    },
+                    depth_slice: None,
+                })],
+                depth_stencil_attachment: None,
+                ..Default::default()
+            });
+            pass.set_pipeline(&resources.pipelines.visual_effect_glows);
+            pass.set_bind_group(0, &resources.globals_bind_group, &[]);
+            pass.set_bind_group(1, &bind_group, &[]);
+            pass.draw(0..4, 0..packed.primitives.len() as u32);
+        }
+        true
+    }
+
+    fn draw_screen_effects(
+        &self,
+        encoder: &mut wgpu::CommandEncoder,
+        scene: &Scene,
+        effects: &[ActiveScreenEffect],
+        source_view: &wgpu::TextureView,
+        snapshot_view: &wgpu::TextureView,
+        available_snapshot_id: Option<ScreenEffectSnapshotId>,
+        target_view: &wgpu::TextureView,
+        instance_offset: &mut u64,
+    ) -> bool {
+        let packed =
+            pack_screen_effects(scene, effects, self.viewport_size(), available_snapshot_id);
+        log::trace!(
+            "drawing screen effects active={} packed={} snapshot={:?}",
+            effects.len(),
+            packed.effects.len(),
+            packed.snapshot_id.map(ScreenEffectSnapshotId::as_u64)
+        );
+
+        if packed.effects.is_empty() {
+            self.draw_post_process_pass_through(encoder, source_view, target_view);
+            return true;
+        }
+
+        let effect_data = unsafe { Self::instance_bytes(&packed.effects) };
+        let Some((effect_offset, effect_size)) =
+            self.write_to_instance_buffer(instance_offset, effect_data)
+        else {
+            return false;
+        };
+
+        let resources = self.resources();
+        let bind_group = resources
+            .device
+            .create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("screen_effects_bind_group"),
+                layout: &resources.bind_group_layouts.screen_effects,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: self.instance_binding(effect_offset, effect_size),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::TextureView(source_view),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 2,
+                        resource: wgpu::BindingResource::Sampler(&resources.effect_sampler),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 3,
+                        resource: wgpu::BindingResource::TextureView(snapshot_view),
+                    },
+                ],
+            });
+
+        let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("screen_effects_pass"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: target_view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
+                    store: wgpu::StoreOp::Store,
+                },
+                depth_slice: None,
+            })],
+            depth_stencil_attachment: None,
+            ..Default::default()
+        });
+        pass.set_pipeline(&resources.pipelines.screen_effects);
+        pass.set_bind_group(0, &resources.globals_bind_group, &[]);
+        pass.set_bind_group(1, &bind_group, &[]);
+        pass.draw(0..4, 0..1);
+        true
+    }
+
     unsafe fn instance_bytes<T>(instances: &[T]) -> &[u8] {
         unsafe {
             std::slice::from_raw_parts(
@@ -2153,13 +3531,12 @@ impl WgpuRenderer {
         let mut vertices = Vec::new();
         let mut gradient_stops = Vec::new();
         for path in paths {
-            let bounds = path.clipped_bounds();
             let background = pack_background(&path.color, &mut gradient_stops);
             vertices.extend(path.vertices.iter().map(|v| PackedPathRasterizationVertex {
                 xy_position: pack_point(v.xy_position),
                 st_position: pack_point_f32(v.st_position),
                 background,
-                bounds: bounds.into(),
+                content_mask: pack_content_mask(v.content_mask),
             }));
         }
 
@@ -2416,8 +3793,9 @@ impl WgpuRenderer {
                 .ok_or_else(|| anyhow::anyhow!("Replacement surface reports no present modes"))?
         };
 
-        let preferred_surface_usage =
-            wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC;
+        let preferred_surface_usage = wgpu::TextureUsages::RENDER_ATTACHMENT
+            | wgpu::TextureUsages::COPY_SRC
+            | wgpu::TextureUsages::COPY_DST;
         self.surface_config.usage = if surface_caps.usages.contains(preferred_surface_usage) {
             preferred_surface_usage
         } else {
@@ -2600,7 +3978,11 @@ impl RenderingParameters {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use gpux::{point, size};
+    use gpux::{
+        ContentMask, ScreenEffect, ScreenEffectId, ScreenEffectRegionId,
+        ScreenEffectRegionPrimitive, ScreenEffectTarget, TransformationMatrix, backdrop_blur,
+        glass, glow, hsla, point, px, screen, size,
+    };
 
     fn scaled_bounds(width: f32, height: f32) -> Bounds<ScaledPixels> {
         Bounds::new(
@@ -2631,5 +4013,428 @@ mod tests {
             scaled_bounds(120., 80.),
             scaled_bounds(120., 0.)
         ));
+    }
+
+    #[test]
+    fn effect_target_key_tracks_resize_and_format_changes() {
+        let key = WgpuEffectTargetKey::new(128, 64, wgpu::TextureFormat::Bgra8Unorm);
+
+        assert!(key.matches(128, 64, wgpu::TextureFormat::Bgra8Unorm));
+        assert!(!key.matches(256, 64, wgpu::TextureFormat::Bgra8Unorm));
+        assert!(!key.matches(128, 64, wgpu::TextureFormat::Rgba8Unorm));
+    }
+
+    #[test]
+    fn packed_visual_effect_layout_matches_wgsl_contract() {
+        assert_eq!(size_of::<PackedContentMask>(), 32);
+        assert_eq!(offset_of!(PackedContentMask, bounds), 0);
+        assert_eq!(offset_of!(PackedContentMask, corner_radii), 16);
+
+        assert_eq!(size_of::<PackedVisualEffectPrimitive>(), 104);
+        assert_eq!(offset_of!(PackedVisualEffectPrimitive, content_mask), 16);
+        assert_eq!(offset_of!(PackedVisualEffectPrimitive, corner_radii), 48);
+        assert_eq!(offset_of!(PackedVisualEffectPrimitive, opacity), 64);
+        assert_eq!(offset_of!(PackedVisualEffectPrimitive, effect_offset), 68);
+        assert_eq!(offset_of!(PackedVisualEffectPrimitive, effect_count), 72);
+        assert_eq!(offset_of!(PackedVisualEffectPrimitive, transformation), 80);
+
+        assert_eq!(size_of::<PackedElementEffect>(), 80);
+        assert_eq!(offset_of!(PackedElementEffect, params0), 16);
+        assert_eq!(offset_of!(PackedElementEffect, params1), 32);
+        assert_eq!(offset_of!(PackedElementEffect, color0), 48);
+        assert_eq!(offset_of!(PackedElementEffect, color1), 64);
+    }
+
+    #[test]
+    fn quad_packing_preserves_content_mask_corner_radii() {
+        let bounds = scaled_bounds(80., 40.);
+        let mask_bounds = Bounds::new(
+            point(ScaledPixels(4.), ScaledPixels(6.)),
+            size(ScaledPixels(64.), ScaledPixels(32.)),
+        );
+        let quad = Quad {
+            bounds,
+            content_mask: ContentMask::rounded(
+                mask_bounds,
+                Corners {
+                    top_left: ScaledPixels(5.),
+                    top_right: ScaledPixels(6.),
+                    bottom_right: ScaledPixels(7.),
+                    bottom_left: ScaledPixels(8.),
+                },
+            ),
+            ..Default::default()
+        };
+
+        let (packed, _) = pack_quads(&[quad]);
+
+        assert_eq!(packed[0].content_mask.bounds, PodBounds::from(mask_bounds));
+        assert_eq!(packed[0].content_mask.corner_radii, [5., 6., 7., 8.]);
+    }
+
+    #[test]
+    fn visual_effect_packing_preserves_content_mask_corner_radii() {
+        let bounds = scaled_bounds(80., 40.);
+        let primitive = VisualEffectPrimitive {
+            order: 0,
+            bounds,
+            content_mask: ContentMask::rounded(bounds, Corners::all(ScaledPixels(11.))),
+            corner_radii: Corners::all(ScaledPixels(6.)),
+            opacity: 1.0,
+            effects: vec![backdrop_blur(px(8.)).into()],
+            transformation: TransformationMatrix::unit(),
+        };
+
+        let packed = pack_visual_effect_primitives(&[primitive]);
+
+        assert_eq!(
+            packed.primitives[0].content_mask.corner_radii,
+            [11., 11., 11., 11.]
+        );
+    }
+
+    #[test]
+    fn visual_effect_shaders_check_rounded_content_mask_in_normal_and_glow_passes() {
+        let shader = include_str!("shaders.wgsl");
+
+        assert_eq!(
+            shader
+                .matches("content_mask_sdf(input.transformed_position, primitive.content_mask)")
+                .count(),
+            2
+        );
+    }
+
+    #[test]
+    fn packed_screen_effect_layout_matches_wgsl_contract() {
+        assert_eq!(size_of::<PackedScreenEffect>(), 96);
+        assert_eq!(offset_of!(PackedScreenEffect, bounds), 16);
+        assert_eq!(offset_of!(PackedScreenEffect, tint), 32);
+        assert_eq!(offset_of!(PackedScreenEffect, origin), 48);
+        assert_eq!(offset_of!(PackedScreenEffect, elapsed_ms), 56);
+        assert_eq!(offset_of!(PackedScreenEffect, duration_ms), 60);
+        assert_eq!(offset_of!(PackedScreenEffect, radius), 64);
+        assert_eq!(offset_of!(PackedScreenEffect, amplitude), 68);
+        assert_eq!(offset_of!(PackedScreenEffect, wavelength), 72);
+        assert_eq!(offset_of!(PackedScreenEffect, damping), 76);
+        assert_eq!(offset_of!(PackedScreenEffect, params), 80);
+    }
+
+    #[test]
+    fn screen_ripple_packing_scales_window_target_parameters() {
+        let mut scene = Scene::default();
+        scene.scale_factor = 2.0;
+        let effect = ActiveScreenEffect::new(
+            ScreenEffectId::new(7),
+            ScreenEffect::from(
+                screen::ripple(point(px(20.), px(30.)))
+                    .duration_ms(800)
+                    .radius(px(100.))
+                    .amplitude(px(6.))
+                    .wavelength(px(32.))
+                    .damping(3.0)
+                    .chromatic_aberration(0.25)
+                    .tint(hsla(0.2, 0.4, 0.6, 0.3)),
+            ),
+            200,
+        );
+
+        let packed = pack_screen_effects(
+            &scene,
+            &[effect],
+            size(DevicePixels(400), DevicePixels(300)),
+            None,
+        );
+
+        assert_eq!(packed.effects.len(), 1);
+        assert_eq!(packed.effects[0].kind, SCREEN_EFFECT_KIND_RIPPLE);
+        assert_eq!(
+            packed.effects[0].bounds,
+            PodBounds {
+                origin: [0., 0.],
+                size: [400., 300.]
+            }
+        );
+        assert_eq!(packed.effects[0].origin, [40., 60.]);
+        assert_eq!(packed.effects[0].elapsed_ms, 200.);
+        assert_eq!(packed.effects[0].duration_ms, 800.);
+        assert_eq!(packed.effects[0].radius, 200.);
+        assert_eq!(packed.effects[0].amplitude, 12.);
+        assert_eq!(packed.effects[0].wavelength, 64.);
+        assert_eq!(packed.effects[0].damping, 3.);
+        assert_eq!(packed.effects[0].params[0], 0.25);
+        assert_eq!(packed.effects[0].tint, [0.2, 0.4, 0.6, 0.3]);
+    }
+
+    #[test]
+    fn screen_ripple_packing_resolves_region_targets_and_skips_missing_regions() {
+        let mut scene = Scene::default();
+        scene.scale_factor = 3.0;
+        let bounds = Bounds::new(
+            point(ScaledPixels(20.), ScaledPixels(30.)),
+            size(ScaledPixels(200.), ScaledPixels(100.)),
+        );
+        scene
+            .screen_effect_regions
+            .push(ScreenEffectRegionPrimitive {
+                order: 0,
+                id: ScreenEffectRegionId::new("panel"),
+                bounds,
+                logical_bounds: Bounds::new(point(px(10.), px(15.)), size(px(100.), px(50.))),
+                content_mask: ContentMask::rectangular(bounds),
+                corner_radii: Corners::all(ScaledPixels(8.)),
+                transformation: TransformationMatrix::unit(),
+            });
+        let active = ActiveScreenEffect::new(
+            ScreenEffectId::new(1),
+            ScreenEffect::from(
+                screen::ripple(point(px(35.), px(40.))).target(ScreenEffectTarget::region("panel")),
+            ),
+            120,
+        );
+        let missing = ActiveScreenEffect::new(
+            ScreenEffectId::new(2),
+            ScreenEffect::from(
+                screen::ripple(point(px(35.), px(40.)))
+                    .target(ScreenEffectTarget::region("missing")),
+            ),
+            120,
+        );
+
+        let packed = pack_screen_effects(
+            &scene,
+            &[active, missing],
+            size(DevicePixels(400), DevicePixels(300)),
+            None,
+        );
+
+        assert_eq!(packed.effects.len(), 1);
+        assert_eq!(packed.effects[0].bounds, PodBounds::from(bounds));
+        assert_eq!(packed.effects[0].origin, [70., 80.]);
+    }
+
+    #[test]
+    fn screen_ripple_packing_resolves_explicit_bounds_target() {
+        let mut scene = Scene::default();
+        scene.scale_factor = 2.0;
+        let target_bounds = Bounds::new(point(px(4.), px(5.)), size(px(20.), px(10.)));
+        let active = ActiveScreenEffect::new(
+            ScreenEffectId::new(3),
+            ScreenEffect::from(
+                screen::ripple(point(px(7.), px(8.)))
+                    .target(ScreenEffectTarget::bounds(target_bounds)),
+            ),
+            40,
+        );
+
+        let packed = pack_screen_effects(
+            &scene,
+            &[active],
+            size(DevicePixels(400), DevicePixels(300)),
+            None,
+        );
+
+        assert_eq!(
+            packed.effects[0].bounds,
+            PodBounds {
+                origin: [8., 10.],
+                size: [40., 20.]
+            }
+        );
+        assert_eq!(packed.effects[0].origin, [14., 16.]);
+    }
+
+    #[test]
+    fn snapshot_transition_packing_requires_captured_snapshot() {
+        let mut scene = Scene::default();
+        scene.scale_factor = 2.0;
+        let snapshot_id = ScreenEffectSnapshotId::new(9);
+        let active = ActiveScreenEffect::new(
+            ScreenEffectId::new(4),
+            ScreenEffect::from(
+                screen::ripple_reveal(snapshot_id, point(px(7.), px(8.)))
+                    .target(ScreenEffectTarget::bounds(Bounds::new(
+                        point(px(4.), px(5.)),
+                        size(px(20.), px(10.)),
+                    )))
+                    .duration_ms(700)
+                    .radius(px(120.))
+                    .amplitude(px(5.))
+                    .wavelength(px(24.))
+                    .damping(2.0)
+                    .blur_radius(px(12.)),
+            ),
+            140,
+        );
+
+        let missing = pack_screen_effects(
+            &scene,
+            &[active.clone()],
+            size(DevicePixels(400), DevicePixels(300)),
+            None,
+        );
+        assert!(missing.effects.is_empty());
+        assert_eq!(missing.snapshot_id, None);
+
+        let packed = pack_screen_effects(
+            &scene,
+            &[active],
+            size(DevicePixels(400), DevicePixels(300)),
+            Some(snapshot_id),
+        );
+
+        assert_eq!(packed.snapshot_id, Some(snapshot_id));
+        assert_eq!(packed.effects.len(), 1);
+        assert_eq!(packed.effects[0].kind, SCREEN_EFFECT_KIND_RIPPLE_REVEAL);
+        assert_eq!(packed.effects[0].uses_snapshot, 1);
+        assert_eq!(
+            packed.effects[0].bounds,
+            PodBounds {
+                origin: [8., 10.],
+                size: [40., 20.]
+            }
+        );
+        assert_eq!(packed.effects[0].origin, [14., 16.]);
+        assert_eq!(packed.effects[0].elapsed_ms, 140.);
+        assert_eq!(packed.effects[0].duration_ms, 700.);
+        assert_eq!(packed.effects[0].radius, 240.);
+        assert_eq!(packed.effects[0].amplitude, 10.);
+        assert_eq!(packed.effects[0].wavelength, 48.);
+        assert_eq!(packed.effects[0].damping, 2.);
+        assert_eq!(packed.effects[0].params[1], 24.);
+    }
+
+    #[test]
+    fn visual_effect_packing_preserves_effect_order_and_parameters() {
+        let bounds = scaled_bounds(80., 40.);
+        let primitive = VisualEffectPrimitive {
+            order: 0,
+            bounds,
+            content_mask: ContentMask::rectangular(bounds),
+            corner_radii: Corners::all(ScaledPixels(6.)),
+            opacity: 0.75,
+            effects: vec![
+                backdrop_blur(px(10.))
+                    .saturation(1.2)
+                    .brightness(0.8)
+                    .tint(hsla(0.2, 0.3, 0.4, 0.5))
+                    .into(),
+                glass()
+                    .blur(px(18.))
+                    .refraction(0.04)
+                    .distortion(0.03)
+                    .into(),
+                glow(hsla(0.6, 0.8, 0.7, 0.45))
+                    .radius(px(20.))
+                    .spread(px(4.))
+                    .intensity(1.5)
+                    .into(),
+            ],
+            transformation: TransformationMatrix::unit(),
+        };
+
+        let packed = pack_visual_effect_primitives(&[primitive]);
+
+        assert_eq!(packed.primitives.len(), 1);
+        assert_eq!(packed.effects.len(), 3);
+        assert_eq!(packed.primitives[0].effect_offset, 0);
+        assert_eq!(packed.primitives[0].effect_count, 3);
+        assert_eq!(packed.primitives[0].opacity, 0.75);
+        assert_eq!(packed.primitives[0].corner_radii, [6., 6., 6., 6.]);
+
+        assert_eq!(packed.effects[0].kind, VISUAL_EFFECT_KIND_BACKDROP_BLUR);
+        assert_eq!(packed.effects[0].params0, [10., 1.2, 0.8, 0.]);
+        assert_eq!(packed.effects[0].color0, [0.2, 0.3, 0.4, 0.5]);
+
+        assert_eq!(packed.effects[1].kind, VISUAL_EFFECT_KIND_GLASS);
+        assert_eq!(packed.effects[1].params0, [18., 1.18, 1.08, 0.04]);
+        assert_eq!(packed.effects[1].params1, [0.03, 0., 0., 0.]);
+
+        assert_eq!(packed.effects[2].kind, VISUAL_EFFECT_KIND_GLOW);
+        assert_eq!(packed.effects[2].params0, [20., 4., 1.5, 0.]);
+        assert_eq!(packed.effects[2].color0, [0.6, 0.8, 0.7, 0.45]);
+    }
+
+    #[test]
+    fn glow_packing_preserves_transparent_color_and_content_mask() {
+        let bounds = scaled_bounds(120., 60.);
+        let mask = Bounds::new(
+            point(ScaledPixels(10.), ScaledPixels(12.)),
+            size(ScaledPixels(80.), ScaledPixels(32.)),
+        );
+        let primitive = VisualEffectPrimitive {
+            order: 0,
+            bounds,
+            content_mask: ContentMask::rectangular(mask),
+            corner_radii: Corners::all(ScaledPixels(9.)),
+            opacity: 0.5,
+            effects: vec![
+                glow(hsla(0.1, 0.2, 0.3, 0.0))
+                    .radius(px(32.))
+                    .spread(px(6.))
+                    .intensity(1.25)
+                    .into(),
+            ],
+            transformation: TransformationMatrix::unit(),
+        };
+
+        let packed = pack_visual_effect_primitives(&[primitive]);
+
+        assert_eq!(
+            packed.primitives[0].content_mask.bounds,
+            PodBounds::from(mask)
+        );
+        assert_eq!(packed.primitives[0].content_mask.corner_radii, [0.; 4]);
+        assert_eq!(packed.primitives[0].opacity, 0.5);
+        assert_eq!(packed.effects[0].kind, VISUAL_EFFECT_KIND_GLOW);
+        assert_eq!(packed.effects[0].params0, [32., 6., 1.25, 0.]);
+        assert_eq!(packed.effects[0].color0, [0.1, 0.2, 0.3, 0.0]);
+    }
+
+    #[test]
+    fn blur_and_glass_packing_apply_wgpu_quality_radius_caps() {
+        let bounds = scaled_bounds(120., 60.);
+        let primitive = VisualEffectPrimitive {
+            order: 0,
+            bounds,
+            content_mask: ContentMask::rectangular(bounds),
+            corner_radii: Corners::all(ScaledPixels(8.)),
+            opacity: 1.0,
+            effects: vec![
+                backdrop_blur(px(200.)).into(),
+                glass().blur(px(180.)).high_quality().into(),
+            ],
+            transformation: TransformationMatrix::unit(),
+        };
+
+        let packed = pack_visual_effect_primitives(&[primitive]);
+
+        assert_eq!(packed.effects[0].kind, VISUAL_EFFECT_KIND_BACKDROP_BLUR);
+        assert_eq!(packed.effects[0].params0[0], MAX_WGPU_FAST_BLUR_RADIUS);
+        assert_eq!(packed.effects[1].kind, VISUAL_EFFECT_KIND_GLASS);
+        assert_eq!(packed.effects[1].params0[0], MAX_WGPU_HIGH_BLUR_RADIUS);
+    }
+
+    #[test]
+    fn wgpu_effect_capabilities_report_shader_support() {
+        let capabilities = wgpu_effect_capabilities();
+
+        assert!(capabilities.element.backdrop_blur);
+        assert!(capabilities.element.glass);
+        assert!(capabilities.element.glow);
+        assert!(capabilities.screen.ripple);
+        assert!(capabilities.screen.snapshot_transitions);
+    }
+
+    #[test]
+    fn glow_blend_state_adds_color_and_preserves_alpha() {
+        let blend = visual_effect_glow_blend_state();
+
+        assert_eq!(blend.color.src_factor, wgpu::BlendFactor::One);
+        assert_eq!(blend.color.dst_factor, wgpu::BlendFactor::One);
+        assert_eq!(blend.color.operation, wgpu::BlendOperation::Add);
+        assert_eq!(blend.alpha.src_factor, wgpu::BlendFactor::Zero);
+        assert_eq!(blend.alpha.dst_factor, wgpu::BlendFactor::One);
+        assert_eq!(blend.alpha.operation, wgpu::BlendOperation::Add);
     }
 }

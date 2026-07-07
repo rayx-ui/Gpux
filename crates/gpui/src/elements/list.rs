@@ -1524,9 +1524,12 @@ impl StateInner {
                                     .sticky_stack_offset
                                     .unwrap_or_else(|| self.item_top(item.index) - scroll_top),
                         );
-                        window.with_content_mask(Some(ContentMask { bounds }), |window| {
-                            item.element.prepaint_at(item_origin, window, cx);
-                        });
+                        window.with_content_mask(
+                            Some(ContentMask::rectangular(bounds)),
+                            |window| {
+                                item.element.prepaint_at(item_origin, window, cx);
+                            },
+                        );
 
                         if let Some(autoscroll_bounds) = window.take_autoscroll()
                             && autoscroll
@@ -1824,7 +1827,7 @@ impl Element for List {
     ) {
         let current_view = window.current_view();
         let mut paint_items = |window: &mut Window, cx: &mut App| {
-            window.with_content_mask(Some(ContentMask { bounds }), |window| {
+            window.with_content_mask(Some(ContentMask::rectangular(bounds)), |window| {
                 for item in &mut prepaint.layout.item_layouts {
                     item.element.paint(window, cx);
                 }

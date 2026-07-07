@@ -14,11 +14,11 @@ use std::{cell::Cell, cell::RefCell, rc::Rc};
 
 use gpui_wgpu::{WgpuContext, WgpuRenderer, WgpuSurfaceConfig};
 use gpux::{
-    AnyWindowHandle, Bounds, Capslock, Decorations, DevicePixels, DispatchEventResult, GpuSpecs,
-    Modifiers, MouseButton, Pixels, PlatformAtlas, PlatformDisplay, PlatformInput,
-    PlatformInputHandler, PlatformWindow, Point, PromptButton, PromptLevel, RequestFrameOptions,
-    ResizeEdge, Scene, Size, WindowAppearance, WindowBackgroundAppearance, WindowBounds,
-    WindowControlArea, WindowControls, WindowDecorations, WindowParams, px,
+    AnyWindowHandle, Bounds, Capslock, Decorations, DevicePixels, DispatchEventResult,
+    EffectCapabilities, GpuSpecs, Modifiers, MouseButton, Pixels, PlatformAtlas, PlatformDisplay,
+    PlatformInput, PlatformInputHandler, PlatformWindow, Point, PromptButton, PromptLevel,
+    RequestFrameOptions, ResizeEdge, Scene, Size, WindowAppearance, WindowBackgroundAppearance,
+    WindowBounds, WindowControlArea, WindowControls, WindowDecorations, WindowParams, px,
 };
 use wasm_bindgen::prelude::*;
 
@@ -919,6 +919,10 @@ impl PlatformWindow for WebWindow {
             &self._html_in_canvas_paint_observer.snapshot(),
             Some(&self.inner.html_island_registry.borrow().diagnostics()),
         );
+    }
+
+    fn effect_capabilities(&self) -> EffectCapabilities {
+        self.inner.renderer.borrow().effect_capabilities()
     }
 
     fn completed_frame(&self) {

@@ -22,6 +22,8 @@ mod element;
 mod elements;
 mod executor;
 mod platform_scheduler;
+/// Shader-backed visual effect contracts for elements and screens.
+pub mod shader_effects;
 pub(crate) use platform_scheduler::PlatformScheduler;
 mod geometry;
 mod global;
@@ -108,6 +110,7 @@ pub use refineable::*;
 pub use scene::*;
 /// Monotonic timestamp type used by GPUI platform events.
 pub use scheduler::Instant;
+pub use shader_effects::*;
 pub use shared_uri::*;
 use std::{any::Any, future::Future};
 pub use style::*;
