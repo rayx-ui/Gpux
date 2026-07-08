@@ -2,8 +2,8 @@
 
 use gpui_platform::application;
 use gpux::{
-    App, Bounds, Context, ListAlignment, ListState, Render, Window, WindowBounds, WindowOptions,
-    div, list, prelude::*, px, rgb, size,
+    Bounds, Context, ListAlignment, ListState, Render, Window, WindowBounds, WindowOptions, div,
+    list, prelude::*, px, rgb, size,
 };
 
 const ITEM_COUNT: usize = 40;
@@ -142,18 +142,20 @@ impl Render for BottomListDemo {
 }
 
 fn run_example() {
-    application().run(|cx: &mut App| {
-        let bounds = Bounds::centered(None, size(px(400.), px(500.)), cx);
-        cx.open_window(
-            WindowOptions {
-                focus: true,
-                window_bounds: Some(WindowBounds::Windowed(bounds)),
-                ..Default::default()
-            },
-            |_, cx| cx.new(|_| BottomListDemo::new()),
-        )
-        .unwrap();
-        cx.activate(true);
+    application().run(|cx| async move {
+        cx.update(|cx| {
+            let bounds = Bounds::centered(None, size(px(400.), px(500.)), cx);
+            cx.open_window(
+                WindowOptions {
+                    focus: true,
+                    window_bounds: Some(WindowBounds::Windowed(bounds)),
+                    ..Default::default()
+                },
+                |_, cx| cx.new(|_| BottomListDemo::new()),
+            )
+            .unwrap();
+            cx.activate(true);
+        });
     });
 }
 

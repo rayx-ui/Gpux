@@ -5,8 +5,8 @@ use std::{fs, path::PathBuf};
 use anyhow::Result;
 use gpui_platform::application;
 use gpux::{
-    App, AssetSource, Bounds, BoxShadow, ClickEvent, Context, SharedString, Task, Window,
-    WindowBounds, WindowOptions, div, hsla, img, point, prelude::*, px, rgb, size, svg,
+    AssetSource, Bounds, BoxShadow, ClickEvent, Context, SharedString, Task, Window, WindowBounds,
+    WindowOptions, div, hsla, img, point, prelude::*, px, rgb, size, svg,
 };
 
 struct Assets {
@@ -163,17 +163,19 @@ fn run_example() {
         .with_assets(Assets {
             base: PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples"),
         })
-        .run(|cx: &mut App| {
-            let bounds = Bounds::centered(None, size(px(500.0), px(500.0)), cx);
-            cx.open_window(
-                WindowOptions {
-                    window_bounds: Some(WindowBounds::Windowed(bounds)),
-                    ..Default::default()
-                },
-                |window, cx| cx.new(|cx| HelloWorld::new(window, cx)),
-            )
-            .unwrap();
-            cx.activate(true);
+        .run(|cx| async move {
+            cx.update(|cx| {
+                let bounds = Bounds::centered(None, size(px(500.0), px(500.0)), cx);
+                cx.open_window(
+                    WindowOptions {
+                        window_bounds: Some(WindowBounds::Windowed(bounds)),
+                        ..Default::default()
+                    },
+                    |window, cx| cx.new(|cx| HelloWorld::new(window, cx)),
+                )
+                .unwrap();
+                cx.activate(true);
+            });
         });
 }
 

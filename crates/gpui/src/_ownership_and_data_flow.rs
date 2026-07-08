@@ -1,15 +1,17 @@
 //! In GPUI, every model or view in the application is actually owned by a single top-level object called the `App`. When a new entity or view is created (referred to collectively as _entities_), the application is given ownership of their state to enable their participation in a variety of app services and interaction with other entities.
 //!
-//! To illustrate, consider the trivial app below. We start the app by calling `run` with a callback, which is passed a reference to the `App` that owns all the state for the application. This `App` is our gateway to all application-level services, such as opening windows, presenting dialogs, etc. It also has an `insert_entity` method, which is called below to create an entity and give ownership of it to the application.
+//! To illustrate, consider the trivial app below. We start the app by calling `run` with an async callback, which is passed an `AsyncApp` handle. Calling `update` on that handle yields the `App` that owns all application state. This `App` is our gateway to all application-level services, such as opening windows, presenting dialogs, etc. It also has an `insert_entity` method, which is called below to create an entity and give ownership of it to the application.
 //!
 //! ```no_run
 //! # use gpux::{App, AppContext, Application, Entity};
 //! # struct Counter {
 //! #     count: usize,
 //! # }
-//! gpui_platform::application().run(|cx: &mut App| {
-//!     let _counter: Entity<Counter> = cx.new(|_cx| Counter { count: 0 });
-//!     // ...
+//! gpui_platform::application().run(|app| async move {
+//!     app.update(|cx| {
+//!         let _counter: Entity<Counter> = cx.new(|_cx| Counter { count: 0 });
+//!         // ...
+//!     });
 //! });
 //! ```
 //!
@@ -22,11 +24,13 @@
 //! # struct Counter {
 //! #     count: usize,
 //! # }
-//! gpui_platform::application().run(|cx: &mut App| {
-//!     let counter: Entity<Counter> = cx.new(|_cx| Counter { count: 0 });
-//!     // Call `update` to access the model's state.
-//!     counter.update(cx, |counter: &mut Counter, _cx: &mut Context<Counter>| {
-//!         counter.count += 1;
+//! gpui_platform::application().run(|app| async move {
+//!     app.update(|cx| {
+//!         let counter: Entity<Counter> = cx.new(|_cx| Counter { count: 0 });
+//!         // Call `update` to access the model's state.
+//!         counter.update(cx, |counter: &mut Counter, _cx: &mut Context<Counter>| {
+//!             counter.count += 1;
+//!         });
 //!     });
 //! });
 //! ```
@@ -42,11 +46,13 @@
 //! # struct Counter {
 //! #     count: usize,
 //! # }
-//! gpui_platform::application().run(|cx: &mut App| {
-//!     let counter: Entity<Counter> = cx.new(|_cx| Counter { count: 0 });
-//!     counter.update(cx, |counter, cx| {
-//!         counter.count += 1;
-//!         cx.notify(); // Notify observers
+//! gpui_platform::application().run(|app| async move {
+//!     app.update(|cx| {
+//!         let counter: Entity<Counter> = cx.new(|_cx| Counter { count: 0 });
+//!         counter.update(cx, |counter, cx| {
+//!             counter.count += 1;
+//!             cx.notify(); // Notify observers
+//!         });
 //!     });
 //! });
 //! ```
@@ -60,28 +66,30 @@
 //!  # struct Counter {
 //!  #     count: usize,
 //!  # }
-//!  gpui_platform::application().run(|cx: &mut App| {
-//!      let first_counter: Entity<Counter> = cx.new(|_cx| Counter { count: 0 });
+//!  gpui_platform::application().run(|app| async move {
+//!      app.update(|cx| {
+//!          let first_counter: Entity<Counter> = cx.new(|_cx| Counter { count: 0 });
 //!
-//!      let second_counter = cx.new(|cx: &mut Context<Counter>| {
-//!          // Note we can set up the callback before the Counter is even created!
-//!          cx.observe(
-//!              &first_counter,
-//!              |second: &mut Counter, first: Entity<Counter>, cx| {
-//!                  second.count = first.read(cx).count * 2;
-//!              },
-//!          )
-//!          .detach();
+//!          let second_counter = cx.new(|cx: &mut Context<Counter>| {
+//!              // Note we can set up the callback before the Counter is even created!
+//!              cx.observe(
+//!                  &first_counter,
+//!                  |second: &mut Counter, first: Entity<Counter>, cx| {
+//!                      second.count = first.read(cx).count * 2;
+//!                  },
+//!              )
+//!              .detach();
 //!
-//!          Counter { count: 0 }
+//!              Counter { count: 0 }
+//!          });
+//!
+//!          first_counter.update(cx, |counter, cx| {
+//!              counter.count += 1;
+//!              cx.notify();
+//!          });
+//!
+//!          assert_eq!(second_counter.read(cx).count, 2);
 //!      });
-//!
-//!      first_counter.update(cx, |counter, cx| {
-//!          counter.count += 1;
-//!          cx.notify();
-//!      });
-//!
-//!      assert_eq!(second_counter.read(cx).count, 2);
 //!  });
 //! ```
 //!
@@ -114,27 +122,29 @@
 //! #     increment: usize,
 //! # }
 //! # impl EventEmitter<CounterChangeEvent> for Counter {}
-//! gpui_platform::application().run(|cx: &mut App| {
-//!     let first_counter: Entity<Counter> = cx.new(|_cx| Counter { count: 0 });
+//! gpui_platform::application().run(|app| async move {
+//!     app.update(|cx| {
+//!         let first_counter: Entity<Counter> = cx.new(|_cx| Counter { count: 0 });
 //!
-//!     let second_counter = cx.new(|cx: &mut Context<Counter>| {
-//!         // Note we can set up the callback before the Counter is even created!
-//!         cx.subscribe(&first_counter, |second: &mut Counter, _first: Entity<Counter>, event, _cx| {
-//!             second.count += event.increment * 2;
-//!         })
-//!         .detach();
+//!         let second_counter = cx.new(|cx: &mut Context<Counter>| {
+//!             // Note we can set up the callback before the Counter is even created!
+//!             cx.subscribe(&first_counter, |second: &mut Counter, _first: Entity<Counter>, event, _cx| {
+//!                 second.count += event.increment * 2;
+//!             })
+//!             .detach();
 //!
-//!         Counter {
-//!             count: first_counter.read(cx).count * 2,
-//!         }
+//!             Counter {
+//!                 count: first_counter.read(cx).count * 2,
+//!             }
+//!         });
+//!
+//!         first_counter.update(cx, |first, cx| {
+//!             first.count += 2;
+//!             cx.emit(CounterChangeEvent { increment: 2 });
+//!             cx.notify();
+//!         });
+//!
+//!         assert_eq!(second_counter.read(cx).count, 4);
 //!     });
-//!
-//!     first_counter.update(cx, |first, cx| {
-//!         first.count += 2;
-//!         cx.emit(CounterChangeEvent { increment: 2 });
-//!         cx.notify();
-//!     });
-//!
-//!     assert_eq!(second_counter.read(cx).count, 4);
 //! });
 //! ```

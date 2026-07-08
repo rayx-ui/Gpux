@@ -12,7 +12,8 @@
 //! gpui_ios_request_frame(ptr)  // called every CADisplayLink tick
 //! ```
 
-use gpui::{App, AppContext, Application, RequestFrameOptions, WindowOptions};
+use futures::future::LocalBoxFuture;
+use gpui::{App, AppContext, Application, AsyncApp, RequestFrameOptions, WindowOptions};
 use std::ffi::c_void;
 use std::rc::Rc;
 use std::sync::OnceLock;
@@ -416,14 +417,16 @@ pub extern "C" fn gpui_ios_handle_open_url(url_ptr: *mut c_void) {
 
 // ── App callback storage ─────────────────────────────────────────────────────
 
-/// Wrapper around an `UnsafeCell<Option<Box<dyn FnOnce(&mut App)>>>`.
+/// Wrapper around an `UnsafeCell<Option<AppCallback>>`.
 ///
 /// # Safety
 /// On iOS all UI work happens on the main thread.  The FFI entry points
 /// (`set_app_callback`, `run_app`, `gpui_ios_run_demo`) are only ever
 /// called from the main thread, so interior-mutable access is safe.
 #[allow(clippy::type_complexity)]
-struct AppCallbackCell(std::cell::UnsafeCell<Option<Box<dyn FnOnce(&mut App)>>>);
+type AppCallback = Box<dyn FnOnce(AsyncApp) -> LocalBoxFuture<'static, ()>>;
+
+struct AppCallbackCell(std::cell::UnsafeCell<Option<AppCallback>>);
 
 // Safety: only accessed from the iOS main thread.
 unsafe impl Send for AppCallbackCell {}
@@ -460,7 +463,7 @@ fn retain_application(app: Application) {
 ///
 /// # Safety
 /// Must be called from the main thread only.
-pub fn set_app_callback(cb: Box<dyn FnOnce(&mut App)>) {
+pub fn set_app_callback(cb: AppCallback) {
     let cell = APP_CALLBACK.get_or_init(|| AppCallbackCell(std::cell::UnsafeCell::new(None)));
     unsafe {
         *cell.0.get() = Some(cb);
@@ -468,7 +471,7 @@ pub fn set_app_callback(cb: Box<dyn FnOnce(&mut App)>) {
 }
 
 #[allow(clippy::type_complexity)]
-fn take_app_callback() -> Option<Box<dyn FnOnce(&mut App)>> {
+fn take_app_callback() -> Option<AppCallback> {
     APP_CALLBACK
         .get()
         .and_then(|cell| unsafe { (*cell.0.get()).take() })
@@ -505,21 +508,23 @@ pub fn run_app() {
     let platform = Rc::new(super::IosPlatform::new());
     let app = Application::with_platform(platform);
     retain_application(app.clone());
-    app.run(|cx: &mut App| {
+    app.run(|cx| async move {
         if let Some(cb) = take_app_callback() {
             log::info!("GPUI iOS: Invoking user-provided app callback");
-            cb(cx);
+            cb(cx).await;
         } else {
             log::warn!("GPUI iOS: No app callback registered — opening default empty window");
-            cx.open_window(
-                WindowOptions {
-                    window_bounds: None,
-                    ..Default::default()
-                },
-                |_, cx| cx.new(|_| gpui::Empty),
-            )
-            .expect("Failed to open default window");
-            cx.activate(true);
+            cx.update(|cx| {
+                cx.open_window(
+                    WindowOptions {
+                        window_bounds: None,
+                        ..Default::default()
+                    },
+                    |_, cx| cx.new(|_| gpui::Empty),
+                )
+                .expect("Failed to open default window");
+                cx.activate(true);
+            });
         }
     });
 

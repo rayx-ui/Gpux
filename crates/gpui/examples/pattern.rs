@@ -2,7 +2,7 @@
 
 use gpui_platform::application;
 use gpux::{
-    App, AppContext, Bounds, Context, Window, WindowBounds, WindowOptions, div, linear_color_stop,
+    AppContext, Bounds, Context, Window, WindowBounds, WindowOptions, div, linear_color_stop,
     linear_gradient, pattern_slash, prelude::*, px, rgb, size,
 };
 
@@ -104,18 +104,20 @@ impl Render for PatternExample {
 }
 
 fn run_example() {
-    application().run(|cx: &mut App| {
-        let bounds = Bounds::centered(None, size(px(600.0), px(600.0)), cx);
-        cx.open_window(
-            WindowOptions {
-                window_bounds: Some(WindowBounds::Windowed(bounds)),
-                ..Default::default()
-            },
-            |_window, cx| cx.new(|_cx| PatternExample),
-        )
-        .unwrap();
+    application().run(|cx| async move {
+        cx.update(|cx| {
+            let bounds = Bounds::centered(None, size(px(600.0), px(600.0)), cx);
+            cx.open_window(
+                WindowOptions {
+                    window_bounds: Some(WindowBounds::Windowed(bounds)),
+                    ..Default::default()
+                },
+                |_window, cx| cx.new(|_cx| PatternExample),
+            )
+            .unwrap();
 
-        cx.activate(true);
+            cx.activate(true);
+        });
     });
 }
 

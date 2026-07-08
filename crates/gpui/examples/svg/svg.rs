@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use anyhow::Result;
 use gpui_platform::application;
 use gpux::{
-    App, AssetSource, Bounds, Context, SharedString, Window, WindowBounds, WindowOptions, div,
+    AssetSource, Bounds, Context, SharedString, Window, WindowBounds, WindowOptions, div,
     prelude::*, px, rgb, size, svg,
 };
 
@@ -75,17 +75,19 @@ fn run_example() {
         .with_assets(Assets {
             base: PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples"),
         })
-        .run(|cx: &mut App| {
-            let bounds = Bounds::centered(None, size(px(300.0), px(300.0)), cx);
-            cx.open_window(
-                WindowOptions {
-                    window_bounds: Some(WindowBounds::Windowed(bounds)),
-                    ..Default::default()
-                },
-                |_, cx| cx.new(|_| SvgExample),
-            )
-            .unwrap();
-            cx.activate(true);
+        .run(|cx| async move {
+            cx.update(|cx| {
+                let bounds = Bounds::centered(None, size(px(300.0), px(300.0)), cx);
+                cx.open_window(
+                    WindowOptions {
+                        window_bounds: Some(WindowBounds::Windowed(bounds)),
+                        ..Default::default()
+                    },
+                    |_, cx| cx.new(|_| SvgExample),
+                )
+                .unwrap();
+                cx.activate(true);
+            });
         });
 }
 

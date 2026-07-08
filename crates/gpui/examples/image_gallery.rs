@@ -253,53 +253,55 @@ fn run_example() {
     #[cfg(target_family = "wasm")]
     let app = gpui_platform::single_threaded_web();
 
-    app.run(move |cx: &mut App| {
-        #[cfg(not(target_family = "wasm"))]
-        {
-            let http_client = ReqwestClient::user_agent("gpux example").unwrap();
-            cx.set_http_client(Arc::new(http_client));
-        }
-        #[cfg(target_family = "wasm")]
-        {
-            // Safety: the web examples run single-threaded; the client is
-            // created and used exclusively on the main thread.
-            let http_client = unsafe {
-                gpui_web::FetchHttpClient::with_user_agent("gpux example")
-                    .expect("failed to create FetchHttpClient")
-            };
-            cx.set_http_client(Arc::new(http_client));
-        }
+    app.run(move |cx| async move {
+        cx.update(|cx| {
+            #[cfg(not(target_family = "wasm"))]
+            {
+                let http_client = ReqwestClient::user_agent("gpux example").unwrap();
+                cx.set_http_client(Arc::new(http_client));
+            }
+            #[cfg(target_family = "wasm")]
+            {
+                // Safety: the web examples run single-threaded; the client is
+                // created and used exclusively on the main thread.
+                let http_client = unsafe {
+                    gpui_web::FetchHttpClient::with_user_agent("gpux example")
+                        .expect("failed to create FetchHttpClient")
+                };
+                cx.set_http_client(Arc::new(http_client));
+            }
 
-        cx.activate(true);
-        cx.on_action(|_: &Quit, cx| cx.quit());
-        cx.bind_keys([KeyBinding::new("cmd-q", Quit, None)]);
-        cx.set_menus([Menu::new("Image Gallery").items([MenuItem::action("Quit", Quit)])]);
+            cx.activate(true);
+            cx.on_action(|_: &Quit, cx| cx.quit());
+            cx.bind_keys([KeyBinding::new("cmd-q", Quit, None)]);
+            cx.set_menus([Menu::new("Image Gallery").items([MenuItem::action("Quit", Quit)])]);
 
-        let window_options = WindowOptions {
-            titlebar: Some(TitlebarOptions {
-                title: Some(SharedString::from("Image Gallery")),
-                appears_transparent: false,
+            let window_options = WindowOptions {
+                titlebar: Some(TitlebarOptions {
+                    title: Some(SharedString::from("Image Gallery")),
+                    appears_transparent: false,
+                    ..Default::default()
+                }),
+
+                window_bounds: Some(WindowBounds::Windowed(Bounds::centered(
+                    None,
+                    size(px(1100.), px(860.)),
+                    cx,
+                ))),
+
                 ..Default::default()
-            }),
+            };
 
-            window_bounds: Some(WindowBounds::Windowed(Bounds::centered(
-                None,
-                size(px(1100.), px(860.)),
-                cx,
-            ))),
-
-            ..Default::default()
-        };
-
-        cx.open_window(window_options, |_, cx| {
-            cx.new(|ctx| ImageGallery {
-                image_key: "".into(),
-                items_count: IMAGES_IN_GALLERY,
-                total_count: 0,
-                image_cache: RetainAllImageCache::new(ctx),
+            cx.open_window(window_options, |_, cx| {
+                cx.new(|ctx| ImageGallery {
+                    image_key: "".into(),
+                    items_count: IMAGES_IN_GALLERY,
+                    total_count: 0,
+                    image_cache: RetainAllImageCache::new(ctx),
+                })
             })
-        })
-        .unwrap();
+            .unwrap();
+        });
     });
 }
 

@@ -23,19 +23,21 @@ impl Render for SetMenus {
 }
 
 fn run_example() {
-    application().run(|cx: &mut App| {
-        cx.set_global(AppState::new());
+    application().run(|cx| async move {
+        cx.update(|cx| {
+            cx.set_global(AppState::new());
 
-        // Bring the menu bar to the foreground (so you can see the menu bar)
-        cx.activate(true);
-        // Register the `quit` function so it can be referenced
-        // by the `MenuItem::action` in the menu bar
-        cx.on_action(quit);
-        cx.on_action(toggle_check);
-        // Add menu items
-        set_app_menus(cx);
-        cx.open_window(WindowOptions::default(), |_, cx| cx.new(|_| SetMenus {}))
-            .unwrap();
+            // Bring the menu bar to the foreground (so you can see the menu bar)
+            cx.activate(true);
+            // Register the `quit` function so it can be referenced
+            // by the `MenuItem::action` in the menu bar
+            cx.on_action(quit);
+            cx.on_action(toggle_check);
+            // Add menu items
+            set_app_menus(cx);
+            cx.open_window(WindowOptions::default(), |_, cx| cx.new(|_| SetMenus {}))
+                .unwrap();
+        });
     });
 }
 

@@ -2,7 +2,7 @@
 
 use gpui_platform::application;
 use gpux::{
-    Anchor, AnchoredPositionMode, App, Axis, Bounds, Context, Half as _, InteractiveElement,
+    Anchor, AnchoredPositionMode, Axis, Bounds, Context, Half as _, InteractiveElement,
     ParentElement, Pixels, Point, Render, SharedString, Size, Window, WindowBounds, WindowOptions,
     anchored, deferred, div, point, prelude::*, px, rgb, size,
 };
@@ -167,24 +167,26 @@ impl Render for AnchorDemo {
 }
 
 fn run_example() {
-    application().run(|cx: &mut App| {
-        cx.open_window(
-            WindowOptions {
-                window_bounds: Some(WindowBounds::Windowed(Bounds::centered(
-                    None,
-                    size(px(750.), px(600.)),
-                    cx,
-                ))),
-                ..Default::default()
-            },
-            |_, cx| {
-                cx.new(|_| AnchorDemo {
-                    hovered_button: None,
-                })
-            },
-        )
-        .unwrap();
-        cx.activate(true);
+    application().run(|cx| async move {
+        cx.update(|cx| {
+            cx.open_window(
+                WindowOptions {
+                    window_bounds: Some(WindowBounds::Windowed(Bounds::centered(
+                        None,
+                        size(px(750.), px(600.)),
+                        cx,
+                    ))),
+                    ..Default::default()
+                },
+                |_, cx| {
+                    cx.new(|_| AnchorDemo {
+                        hovered_button: None,
+                    })
+                },
+            )
+            .unwrap();
+            cx.activate(true);
+        });
     });
 }
 

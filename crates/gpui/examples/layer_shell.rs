@@ -74,28 +74,30 @@ mod example {
     }
 
     pub fn main() {
-        application().run(|cx: &mut App| {
-            cx.open_window(
-                WindowOptions {
-                    titlebar: None,
-                    window_bounds: Some(WindowBounds::Windowed(Bounds {
-                        origin: point(px(0.), px(0.)),
-                        size: Size::new(px(500.), px(200.)),
-                    })),
-                    app_id: Some("gpux-layer-shell-example".to_string()),
-                    window_background: WindowBackgroundAppearance::Transparent,
-                    kind: WindowKind::LayerShell(LayerShellOptions {
-                        namespace: "gpux".to_string(),
-                        anchor: Anchor::LEFT | Anchor::RIGHT | Anchor::BOTTOM,
-                        margin: Some((px(0.), px(0.), px(40.), px(0.))),
-                        keyboard_interactivity: KeyboardInteractivity::None,
+        application().run(|cx| async move {
+            cx.update(|cx| {
+                cx.open_window(
+                    WindowOptions {
+                        titlebar: None,
+                        window_bounds: Some(WindowBounds::Windowed(Bounds {
+                            origin: point(px(0.), px(0.)),
+                            size: Size::new(px(500.), px(200.)),
+                        })),
+                        app_id: Some("gpux-layer-shell-example".to_string()),
+                        window_background: WindowBackgroundAppearance::Transparent,
+                        kind: WindowKind::LayerShell(LayerShellOptions {
+                            namespace: "gpux".to_string(),
+                            anchor: Anchor::LEFT | Anchor::RIGHT | Anchor::BOTTOM,
+                            margin: Some((px(0.), px(0.), px(40.), px(0.))),
+                            keyboard_interactivity: KeyboardInteractivity::None,
+                            ..Default::default()
+                        }),
                         ..Default::default()
-                    }),
-                    ..Default::default()
-                },
-                |_, cx| cx.new(LayerShellExample::new),
-            )
-            .unwrap();
+                    },
+                    |_, cx| cx.new(LayerShellExample::new),
+                )
+                .unwrap();
+            });
         });
     }
 }

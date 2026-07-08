@@ -2,7 +2,7 @@
 
 use gpui_platform::application;
 use gpux::{
-    Anchor, App, Context, Div, Hsla, Stateful, Window, WindowOptions, anchored, deferred, div,
+    Anchor, Context, Div, Hsla, Stateful, Window, WindowOptions, anchored, deferred, div,
     prelude::*, px,
 };
 
@@ -166,15 +166,17 @@ impl Render for HelloWorld {
 }
 
 fn run_example() {
-    application().run(|cx: &mut App| {
-        cx.open_window(WindowOptions::default(), |_, cx| {
-            cx.new(|_| HelloWorld {
-                open: false,
-                secondary_open: false,
+    application().run(|cx| async move {
+        cx.update(|cx| {
+            cx.open_window(WindowOptions::default(), |_, cx| {
+                cx.new(|_| HelloWorld {
+                    open: false,
+                    secondary_open: false,
+                })
             })
-        })
-        .unwrap();
-        cx.activate(true);
+            .unwrap();
+            cx.activate(true);
+        });
     });
 }
 

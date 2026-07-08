@@ -2,7 +2,7 @@
 
 use gpui_platform::application;
 use gpux::{
-    App, Bounds, Context, Hsla, Window, WindowBounds, WindowOptions, div, prelude::*, px, rgb, size,
+    Bounds, Context, Hsla, Window, WindowBounds, WindowOptions, div, prelude::*, px, rgb, size,
 };
 
 // https://en.wikipedia.org/wiki/Holy_grail_(web_design)
@@ -67,17 +67,19 @@ impl Render for HolyGrailExample {
 }
 
 fn run_example() {
-    application().run(|cx: &mut App| {
-        let bounds = Bounds::centered(None, size(px(500.), px(500.0)), cx);
-        cx.open_window(
-            WindowOptions {
-                window_bounds: Some(WindowBounds::Windowed(bounds)),
-                ..Default::default()
-            },
-            |_, cx| cx.new(|_| HolyGrailExample {}),
-        )
-        .unwrap();
-        cx.activate(true);
+    application().run(|cx| async move {
+        cx.update(|cx| {
+            let bounds = Bounds::centered(None, size(px(500.), px(500.0)), cx);
+            cx.open_window(
+                WindowOptions {
+                    window_bounds: Some(WindowBounds::Windowed(bounds)),
+                    ..Default::default()
+                },
+                |_, cx| cx.new(|_| HolyGrailExample {}),
+            )
+            .unwrap();
+            cx.activate(true);
+        });
     });
 }
 

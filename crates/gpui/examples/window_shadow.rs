@@ -2,8 +2,8 @@
 
 use gpui_platform::application;
 use gpux::{
-    App, Bounds, Context, CursorStyle, Decorations, HitboxBehavior, Hsla, MouseButton, Pixels,
-    Point, ResizeEdge, Size, Window, WindowBackgroundAppearance, WindowBounds, WindowDecorations,
+    Bounds, Context, CursorStyle, Decorations, HitboxBehavior, Hsla, MouseButton, Pixels, Point,
+    ResizeEdge, Size, Window, WindowBackgroundAppearance, WindowBounds, WindowDecorations,
     WindowOptions, black, canvas, div, green, point, prelude::*, px, rgb, size, transparent_black,
     white,
 };
@@ -206,26 +206,28 @@ fn resize_edge(pos: Point<Pixels>, shadow_size: Pixels, size: Size<Pixels>) -> O
 }
 
 fn run_example() {
-    application().run(|cx: &mut App| {
-        let bounds = Bounds::centered(None, size(px(600.0), px(600.0)), cx);
-        cx.open_window(
-            WindowOptions {
-                window_bounds: Some(WindowBounds::Windowed(bounds)),
-                window_background: WindowBackgroundAppearance::Opaque,
-                window_decorations: Some(WindowDecorations::Client),
-                ..Default::default()
-            },
-            |window, cx| {
-                cx.new(|cx| {
-                    cx.observe_window_appearance(window, |_, window, _| {
-                        window.refresh();
+    application().run(|cx| async move {
+        cx.update(|cx| {
+            let bounds = Bounds::centered(None, size(px(600.0), px(600.0)), cx);
+            cx.open_window(
+                WindowOptions {
+                    window_bounds: Some(WindowBounds::Windowed(bounds)),
+                    window_background: WindowBackgroundAppearance::Opaque,
+                    window_decorations: Some(WindowDecorations::Client),
+                    ..Default::default()
+                },
+                |window, cx| {
+                    cx.new(|cx| {
+                        cx.observe_window_appearance(window, |_, window, _| {
+                            window.refresh();
+                        })
+                        .detach();
+                        WindowShadow {}
                     })
-                    .detach();
-                    WindowShadow {}
-                })
-            },
-        )
-        .unwrap();
+                },
+            )
+            .unwrap();
+        });
     });
 }
 

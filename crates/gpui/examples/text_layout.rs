@@ -2,8 +2,8 @@
 
 use gpui_platform::application;
 use gpux::{
-    App, Bounds, Context, FontStyle, FontWeight, StyledText, Window, WindowBounds, WindowOptions,
-    div, prelude::*, px, size,
+    Bounds, Context, FontStyle, FontWeight, StyledText, Window, WindowBounds, WindowOptions, div,
+    prelude::*, px, size,
 };
 
 struct HelloWorld {}
@@ -84,17 +84,19 @@ impl Render for HelloWorld {
 }
 
 fn run_example() {
-    application().run(|cx: &mut App| {
-        let bounds = Bounds::centered(None, size(px(800.0), px(600.0)), cx);
-        cx.open_window(
-            WindowOptions {
-                window_bounds: Some(WindowBounds::Windowed(bounds)),
-                ..Default::default()
-            },
-            |_, cx| cx.new(|_| HelloWorld {}),
-        )
-        .unwrap();
-        cx.activate(true);
+    application().run(|cx| async move {
+        cx.update(|cx| {
+            let bounds = Bounds::centered(None, size(px(800.0), px(600.0)), cx);
+            cx.open_window(
+                WindowOptions {
+                    window_bounds: Some(WindowBounds::Windowed(bounds)),
+                    ..Default::default()
+                },
+                |_, cx| cx.new(|_| HelloWorld {}),
+            )
+            .unwrap();
+            cx.activate(true);
+        });
     });
 }
 

@@ -2,7 +2,7 @@
 
 use gpui_platform::application;
 use gpux::{
-    App, Bounds, Context, Window, WindowBounds, WindowOptions, div, prelude::*, px, rgb, size,
+    Bounds, Context, Window, WindowBounds, WindowOptions, div, prelude::*, px, rgb, size,
     uniform_list,
 };
 
@@ -39,16 +39,18 @@ impl Render for UniformListExample {
 }
 
 fn run_example() {
-    application().run(|cx: &mut App| {
-        let bounds = Bounds::centered(None, size(px(300.0), px(300.0)), cx);
-        cx.open_window(
-            WindowOptions {
-                window_bounds: Some(WindowBounds::Windowed(bounds)),
-                ..Default::default()
-            },
-            |_, cx| cx.new(|_| UniformListExample {}),
-        )
-        .unwrap();
+    application().run(|cx| async move {
+        cx.update(|cx| {
+            let bounds = Bounds::centered(None, size(px(300.0), px(300.0)), cx);
+            cx.open_window(
+                WindowOptions {
+                    window_bounds: Some(WindowBounds::Windowed(bounds)),
+                    ..Default::default()
+                },
+                |_, cx| cx.new(|_| UniformListExample {}),
+            )
+            .unwrap();
+        });
     });
 }
 

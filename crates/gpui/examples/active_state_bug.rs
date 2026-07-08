@@ -29,19 +29,21 @@ impl Render for Example {
 }
 
 fn main() {
-    application().run(|cx: &mut App| {
-        cx.open_window(
-            WindowOptions {
-                window_bounds: Some(WindowBounds::Windowed(Bounds::centered(
-                    None,
-                    size(px(200.), px(60.)),
-                    cx,
-                ))),
-                ..Default::default()
-            },
-            |_, cx| cx.new(|_| Example),
-        )
-        .unwrap();
-        cx.activate(true);
+    application().run(|cx| async move {
+        cx.update(|cx| {
+            cx.open_window(
+                WindowOptions {
+                    window_bounds: Some(WindowBounds::Windowed(Bounds::centered(
+                        None,
+                        size(px(200.), px(60.)),
+                        cx,
+                    ))),
+                    ..Default::default()
+                },
+                |_, cx| cx.new(|_| Example),
+            )
+            .unwrap();
+            cx.activate(true);
+        });
     });
 }

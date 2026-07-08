@@ -2,8 +2,8 @@
 
 use gpui_platform::application;
 use gpux::{
-    App, Bounds, Context, FocusHandle, KeyBinding, Window, WindowBounds, WindowOptions, actions,
-    div, prelude::*, px, rgb, size,
+    Bounds, Context, FocusHandle, KeyBinding, Window, WindowBounds, WindowOptions, actions, div,
+    prelude::*, px, rgb, size,
 };
 
 actions!(example, [CloseWindow]);
@@ -38,49 +38,51 @@ impl Render for ExampleWindow {
 }
 
 fn run_example() {
-    application().run(|cx: &mut App| {
-        let mut bounds = Bounds::centered(None, size(px(500.), px(500.0)), cx);
+    application().run(|cx| async move {
+        cx.update(|cx| {
+            let mut bounds = Bounds::centered(None, size(px(500.), px(500.0)), cx);
 
-        cx.bind_keys([KeyBinding::new("cmd-w", CloseWindow, None)]);
-        cx.on_window_closed(|cx, _window_id| {
-            if cx.windows().is_empty() {
-                cx.quit();
-            }
-        })
-        .detach();
+            cx.bind_keys([KeyBinding::new("cmd-w", CloseWindow, None)]);
+            cx.on_window_closed(|cx, _window_id| {
+                if cx.windows().is_empty() {
+                    cx.quit();
+                }
+            })
+            .detach();
 
-        cx.open_window(
-            WindowOptions {
-                window_bounds: Some(WindowBounds::Windowed(bounds)),
-                ..Default::default()
-            },
-            |window, cx| {
-                cx.activate(false);
-                cx.new(|cx| {
-                    let focus_handle = cx.focus_handle();
-                    focus_handle.focus(window, cx);
-                    ExampleWindow { focus_handle }
-                })
-            },
-        )
-        .unwrap();
+            cx.open_window(
+                WindowOptions {
+                    window_bounds: Some(WindowBounds::Windowed(bounds)),
+                    ..Default::default()
+                },
+                |window, cx| {
+                    cx.activate(false);
+                    cx.new(|cx| {
+                        let focus_handle = cx.focus_handle();
+                        focus_handle.focus(window, cx);
+                        ExampleWindow { focus_handle }
+                    })
+                },
+            )
+            .unwrap();
 
-        bounds.origin.x += bounds.size.width;
+            bounds.origin.x += bounds.size.width;
 
-        cx.open_window(
-            WindowOptions {
-                window_bounds: Some(WindowBounds::Windowed(bounds)),
-                ..Default::default()
-            },
-            |window, cx| {
-                cx.new(|cx| {
-                    let focus_handle = cx.focus_handle();
-                    focus_handle.focus(window, cx);
-                    ExampleWindow { focus_handle }
-                })
-            },
-        )
-        .unwrap();
+            cx.open_window(
+                WindowOptions {
+                    window_bounds: Some(WindowBounds::Windowed(bounds)),
+                    ..Default::default()
+                },
+                |window, cx| {
+                    cx.new(|cx| {
+                        let focus_handle = cx.focus_handle();
+                        focus_handle.focus(window, cx);
+                        ExampleWindow { focus_handle }
+                    })
+                },
+            )
+            .unwrap();
+        });
     });
 }
 

@@ -158,56 +158,58 @@ fn run_example() {
     app.with_assets(Assets {
         base: manifest_dir.join("examples"),
     })
-    .run(move |cx: &mut App| {
-        #[cfg(not(target_family = "wasm"))]
-        {
-            let http_client = ReqwestClient::user_agent("gpux example").unwrap();
-            cx.set_http_client(Arc::new(http_client));
-        }
-        #[cfg(target_family = "wasm")]
-        {
-            // Safety: the web examples run single-threaded; the client is
-            // created and used exclusively on the main thread.
-            let http_client = unsafe {
-                gpui_web::FetchHttpClient::with_user_agent("gpux example")
-                    .expect("failed to create FetchHttpClient")
-            };
-            cx.set_http_client(Arc::new(http_client));
-        }
+    .run(move |cx| async move {
+        cx.update(|cx| {
+            #[cfg(not(target_family = "wasm"))]
+            {
+                let http_client = ReqwestClient::user_agent("gpux example").unwrap();
+                cx.set_http_client(Arc::new(http_client));
+            }
+            #[cfg(target_family = "wasm")]
+            {
+                // Safety: the web examples run single-threaded; the client is
+                // created and used exclusively on the main thread.
+                let http_client = unsafe {
+                    gpui_web::FetchHttpClient::with_user_agent("gpux example")
+                        .expect("failed to create FetchHttpClient")
+                };
+                cx.set_http_client(Arc::new(http_client));
+            }
 
-        cx.activate(true);
-        cx.on_action(|_: &Quit, cx| cx.quit());
-        cx.bind_keys([KeyBinding::new("cmd-q", Quit, None)]);
-        cx.set_menus(vec![Menu {
-            name: "Image".into(),
-            items: vec![MenuItem::action("Quit", Quit)],
-            disabled: false,
-        }]);
+            cx.activate(true);
+            cx.on_action(|_: &Quit, cx| cx.quit());
+            cx.bind_keys([KeyBinding::new("cmd-q", Quit, None)]);
+            cx.set_menus(vec![Menu {
+                name: "Image".into(),
+                items: vec![MenuItem::action("Quit", Quit)],
+                disabled: false,
+            }]);
 
-        let window_options = WindowOptions {
-            titlebar: Some(TitlebarOptions {
-                title: Some(SharedString::from("Image Example")),
-                appears_transparent: false,
+            let window_options = WindowOptions {
+                titlebar: Some(TitlebarOptions {
+                    title: Some(SharedString::from("Image Example")),
+                    appears_transparent: false,
+                    ..Default::default()
+                }),
+
+                window_bounds: Some(WindowBounds::Windowed(Bounds {
+                    size: size(px(1100.), px(600.)),
+                    origin: Point::new(px(200.), px(200.)),
+                })),
+
                 ..Default::default()
-            }),
+            };
 
-            window_bounds: Some(WindowBounds::Windowed(Bounds {
-                size: size(px(1100.), px(600.)),
-                origin: Point::new(px(200.), px(200.)),
-            })),
-
-            ..Default::default()
-        };
-
-        cx.open_window(window_options, |_, cx| {
-            cx.new(|_| ImageShowcase {
-                // Relative path to your root project path
-                local_resource: manifest_dir.join("examples/image/app-icon.png").into(),
-                remote_resource: "https://picsum.photos/800/400".into(),
-                asset_resource: "image/color.svg".into(),
+            cx.open_window(window_options, |_, cx| {
+                cx.new(|_| ImageShowcase {
+                    // Relative path to your root project path
+                    local_resource: manifest_dir.join("examples/image/app-icon.png").into(),
+                    remote_resource: "https://picsum.photos/800/400".into(),
+                    asset_resource: "image/color.svg".into(),
+                })
             })
-        })
-        .unwrap();
+            .unwrap();
+        });
     });
 }
 

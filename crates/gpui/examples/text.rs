@@ -347,52 +347,54 @@ impl Render for TextExample {
 }
 
 fn run_example() {
-    application().run(|cx: &mut App| {
-        cx.set_menus(vec![Menu {
-            name: "GPUI Typography".into(),
-            disabled: false,
-            items: vec![],
-        }]);
+    application().run(|cx| async move {
+        cx.update(|cx| {
+            cx.set_menus(vec![Menu {
+                name: "GPUI Typography".into(),
+                disabled: false,
+                items: vec![],
+            }]);
 
-        let fonts = [include_bytes!(
-            "../../../assets/fonts/lilex/Lilex-Regular.ttf"
-        )]
-        .iter()
-        .map(|b| Cow::Borrowed(&b[..]))
-        .collect();
+            let fonts = [include_bytes!(
+                "../../../assets/fonts/lilex/Lilex-Regular.ttf"
+            )]
+            .iter()
+            .map(|b| Cow::Borrowed(&b[..]))
+            .collect();
 
-        _ = cx.text_system().add_fonts(fonts);
+            _ = cx.text_system().add_fonts(fonts);
 
-        cx.init_colors();
-        cx.set_global(GlobalTextContext(Arc::new(TextContext::default())));
+            cx.init_colors();
+            cx.set_global(GlobalTextContext(Arc::new(TextContext::default())));
 
-        let window = cx
-            .open_window(
-                WindowOptions {
-                    titlebar: Some(TitlebarOptions {
-                        title: Some("GPUI Typography".into()),
+            let window = cx
+                .open_window(
+                    WindowOptions {
+                        titlebar: Some(TitlebarOptions {
+                            title: Some("GPUI Typography".into()),
+                            ..Default::default()
+                        }),
+                        window_bounds: Some(WindowBounds::Windowed(bounds(
+                            point(px(0.0), px(0.0)),
+                            size(px(920.), px(720.)),
+                        ))),
                         ..Default::default()
-                    }),
-                    window_bounds: Some(WindowBounds::Windowed(bounds(
-                        point(px(0.0), px(0.0)),
-                        size(px(920.), px(720.)),
-                    ))),
-                    ..Default::default()
-                },
-                |_window, cx| {
-                    cx.new(|_cx| TextExample {
-                        next_id: 0,
-                        font_family: ".ZedMono".into(),
-                    })
-                },
-            )
-            .unwrap();
+                    },
+                    |_window, cx| {
+                        cx.new(|_cx| TextExample {
+                            next_id: 0,
+                            font_family: ".ZedMono".into(),
+                        })
+                    },
+                )
+                .unwrap();
 
-        window
-            .update(cx, |_view, _window, cx| {
-                cx.activate(true);
-            })
-            .unwrap();
+            window
+                .update(cx, |_view, _window, cx| {
+                    cx.activate(true);
+                })
+                .unwrap();
+        });
     });
 }
 

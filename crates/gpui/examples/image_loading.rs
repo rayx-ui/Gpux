@@ -195,20 +195,22 @@ impl Render for ImageLoadingExample {
 }
 
 fn run_example() {
-    application().with_assets(Assets {}).run(|cx: &mut App| {
-        let options = WindowOptions {
-            window_bounds: Some(WindowBounds::Windowed(Bounds::centered(
-                None,
-                size(px(300.), px(300.)),
-                cx,
-            ))),
-            ..Default::default()
-        };
-        cx.open_window(options, |_, cx| {
-            cx.activate(false);
-            cx.new(|_| ImageLoadingExample {})
-        })
-        .unwrap();
+    application().with_assets(Assets {}).run(|cx| async move {
+        cx.update(|cx| {
+            let options = WindowOptions {
+                window_bounds: Some(WindowBounds::Windowed(Bounds::centered(
+                    None,
+                    size(px(300.), px(300.)),
+                    cx,
+                ))),
+                ..Default::default()
+            };
+            cx.open_window(options, |_, cx| {
+                cx.activate(false);
+                cx.new(|_| ImageLoadingExample {})
+            })
+            .unwrap();
+        });
     });
 }
 

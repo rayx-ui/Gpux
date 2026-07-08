@@ -74,25 +74,27 @@ impl Render for PaintingViewer {
 }
 
 fn run_example() {
-    application().run(|cx| {
-        cx.open_window(
-            WindowOptions {
-                titlebar: Some(TitlebarOptions {
-                    title: Some("Vulkan".into()),
+    application().run(|cx| async move {
+        cx.update(|cx| {
+            cx.open_window(
+                WindowOptions {
+                    titlebar: Some(TitlebarOptions {
+                        title: Some("Vulkan".into()),
+                        ..Default::default()
+                    }),
+                    focus: true,
+                    window_bounds: Some(WindowBounds::Windowed(Bounds::centered(
+                        None,
+                        size(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT),
+                        cx,
+                    ))),
                     ..Default::default()
-                }),
-                focus: true,
-                window_bounds: Some(WindowBounds::Windowed(Bounds::centered(
-                    None,
-                    size(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT),
-                    cx,
-                ))),
-                ..Default::default()
-            },
-            |window, cx| cx.new(|cx| PaintingViewer::new(window, cx)),
-        )
-        .unwrap();
-        cx.activate(true);
+                },
+                |window, cx| cx.new(|cx| PaintingViewer::new(window, cx)),
+            )
+            .unwrap();
+            cx.activate(true);
+        });
     });
 }
 

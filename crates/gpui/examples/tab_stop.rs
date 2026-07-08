@@ -2,7 +2,7 @@
 
 use gpui_platform::application;
 use gpux::{
-    App, Bounds, Context, Div, ElementId, FocusHandle, KeyBinding, SharedString, Stateful, Window,
+    Bounds, Context, Div, ElementId, FocusHandle, KeyBinding, SharedString, Stateful, Window,
     WindowBounds, WindowOptions, actions, div, prelude::*, px, size,
 };
 
@@ -181,23 +181,25 @@ impl Render for Example {
 }
 
 fn run_example() {
-    application().run(|cx: &mut App| {
-        cx.bind_keys([
-            KeyBinding::new("tab", Tab, None),
-            KeyBinding::new("shift-tab", TabPrev, None),
-        ]);
+    application().run(|cx| async move {
+        cx.update(|cx| {
+            cx.bind_keys([
+                KeyBinding::new("tab", Tab, None),
+                KeyBinding::new("shift-tab", TabPrev, None),
+            ]);
 
-        let bounds = Bounds::centered(None, size(px(800.), px(600.0)), cx);
-        cx.open_window(
-            WindowOptions {
-                window_bounds: Some(WindowBounds::Windowed(bounds)),
-                ..Default::default()
-            },
-            |window, cx| cx.new(|cx| Example::new(window, cx)),
-        )
-        .unwrap();
+            let bounds = Bounds::centered(None, size(px(800.), px(600.0)), cx);
+            cx.open_window(
+                WindowOptions {
+                    window_bounds: Some(WindowBounds::Windowed(bounds)),
+                    ..Default::default()
+                },
+                |window, cx| cx.new(|cx| Example::new(window, cx)),
+            )
+            .unwrap();
 
-        cx.activate(true);
+            cx.activate(true);
+        });
     });
 }
 

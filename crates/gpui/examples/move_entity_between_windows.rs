@@ -12,7 +12,7 @@ use std::time::Duration;
 
 use gpui_platform::application;
 use gpux::{
-    App, AppContext as _, Bounds, Context, EventEmitter, MouseButton, Render, SharedString,
+    AppContext as _, Bounds, Context, EventEmitter, MouseButton, Render, SharedString,
     Subscription, Task, Window, WindowBounds, WindowOptions, div, prelude::*, px, rgb, size,
 };
 
@@ -127,17 +127,19 @@ impl Render for HelloWorld {
 }
 
 fn run_example() {
-    application().run(|cx: &mut App| {
-        let bounds = Bounds::centered(None, size(px(500.0), px(500.0)), cx);
-        cx.open_window(
-            WindowOptions {
-                window_bounds: Some(WindowBounds::Windowed(bounds)),
-                ..Default::default()
-            },
-            |window, cx| cx.new(|cx| HelloWorld::new(window, cx)),
-        )
-        .unwrap();
-        cx.activate(true);
+    application().run(|cx| async move {
+        cx.update(|cx| {
+            let bounds = Bounds::centered(None, size(px(500.0), px(500.0)), cx);
+            cx.open_window(
+                WindowOptions {
+                    window_bounds: Some(WindowBounds::Windowed(bounds)),
+                    ..Default::default()
+                },
+                |window, cx| cx.new(|cx| HelloWorld::new(window, cx)),
+            )
+            .unwrap();
+            cx.activate(true);
+        });
     });
 }
 

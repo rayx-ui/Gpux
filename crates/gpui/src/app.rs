@@ -184,15 +184,21 @@ impl Application {
 
     /// Start the application. The provided callback will be called once the
     /// app is fully launched.
-    pub fn run<F>(self, on_finish_launching: F)
+    pub fn run<F, Fut>(self, on_finish_launching: F)
     where
-        F: 'static + FnOnce(&mut App),
+        F: 'static + FnOnce(AsyncApp) -> Fut,
+        Fut: Future<Output = ()> + 'static,
     {
         let this = self.0.clone();
         let platform = self.0.borrow().platform.clone();
         platform.run(Box::new(move || {
-            let cx = &mut *this.borrow_mut();
-            on_finish_launching(cx);
+            let (cx, foreground_executor) = {
+                let cx = &mut *this.borrow_mut();
+                (cx.to_async(), cx.foreground_executor().clone())
+            };
+            foreground_executor
+                .spawn(async move { on_finish_launching(cx).await })
+                .detach();
         }));
     }
 

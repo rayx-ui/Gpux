@@ -2,7 +2,7 @@
 
 use gpui_platform::application;
 use gpux::{
-    App, Bounds, Context, Half, Hsla, Pixels, Point, Window, WindowBounds, WindowOptions, div,
+    Bounds, Context, Half, Hsla, Pixels, Point, Window, WindowBounds, WindowOptions, div,
     prelude::*, px, rgb, size,
 };
 
@@ -124,18 +124,20 @@ impl Render for DragDrop {
 }
 
 fn run_example() {
-    application().run(|cx: &mut App| {
-        let bounds = Bounds::centered(None, size(px(800.), px(600.0)), cx);
-        cx.open_window(
-            WindowOptions {
-                window_bounds: Some(WindowBounds::Windowed(bounds)),
-                ..Default::default()
-            },
-            |_, cx| cx.new(|_| DragDrop::new()),
-        )
-        .unwrap();
+    application().run(|cx| async move {
+        cx.update(|cx| {
+            let bounds = Bounds::centered(None, size(px(800.), px(600.0)), cx);
+            cx.open_window(
+                WindowOptions {
+                    window_bounds: Some(WindowBounds::Windowed(bounds)),
+                    ..Default::default()
+                },
+                |_, cx| cx.new(|_| DragDrop::new()),
+            )
+            .unwrap();
 
-        cx.activate(true);
+            cx.activate(true);
+        });
     });
 }
 

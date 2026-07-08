@@ -2,8 +2,8 @@
 
 use gpui_platform::application;
 use gpux::{
-    App, Bounds, Context, MousePressureEvent, PressureStage, Window, WindowBounds, WindowOptions,
-    div, prelude::*, px, rgb, size,
+    Bounds, Context, MousePressureEvent, PressureStage, Window, WindowBounds, WindowOptions, div,
+    prelude::*, px, rgb, size,
 };
 
 struct MousePressureExample {
@@ -47,24 +47,26 @@ impl MousePressureExample {
 }
 
 fn run_example() {
-    application().run(|cx: &mut App| {
-        let bounds = Bounds::centered(None, size(px(500.), px(500.0)), cx);
+    application().run(|cx| async move {
+        cx.update(|cx| {
+            let bounds = Bounds::centered(None, size(px(500.), px(500.0)), cx);
 
-        cx.open_window(
-            WindowOptions {
-                window_bounds: Some(WindowBounds::Windowed(bounds)),
-                ..Default::default()
-            },
-            |_, cx| {
-                cx.new(|_| MousePressureExample {
-                    pressure_stage: PressureStage::Zero,
-                    pressure_amount: 0.0,
-                })
-            },
-        )
-        .unwrap();
+            cx.open_window(
+                WindowOptions {
+                    window_bounds: Some(WindowBounds::Windowed(bounds)),
+                    ..Default::default()
+                },
+                |_, cx| {
+                    cx.new(|_| MousePressureExample {
+                        pressure_stage: PressureStage::Zero,
+                        pressure_amount: 0.0,
+                    })
+                },
+            )
+            .unwrap();
 
-        cx.activate(true);
+            cx.activate(true);
+        });
     });
 }
 

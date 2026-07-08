@@ -5,7 +5,7 @@ use std::time::Duration;
 use anyhow::Result;
 use gpui_platform::application;
 use gpux::{
-    Animation, AnimationExt as _, App, AssetSource, Bounds, Context, SharedString, Transformation,
+    Animation, AnimationExt as _, AssetSource, Bounds, Context, SharedString, Transformation,
     Window, WindowBounds, WindowOptions, bounce, div, ease_in_out, percentage, prelude::*, px,
     size, svg,
 };
@@ -104,20 +104,22 @@ impl Render for AnimationExample {
 }
 
 fn run_example() {
-    application().with_assets(Assets {}).run(|cx: &mut App| {
-        let options = WindowOptions {
-            window_bounds: Some(WindowBounds::Windowed(Bounds::centered(
-                None,
-                size(px(300.), px(300.)),
-                cx,
-            ))),
-            ..Default::default()
-        };
-        cx.open_window(options, |_, cx| {
-            cx.activate(false);
-            cx.new(|_| AnimationExample {})
-        })
-        .unwrap();
+    application().with_assets(Assets {}).run(|cx| async move {
+        cx.update(|cx| {
+            let options = WindowOptions {
+                window_bounds: Some(WindowBounds::Windowed(Bounds::centered(
+                    None,
+                    size(px(300.), px(300.)),
+                    cx,
+                ))),
+                ..Default::default()
+            };
+            cx.open_window(options, |_, cx| {
+                cx.activate(false);
+                cx.new(|_| AnimationExample {})
+            })
+            .unwrap();
+        });
     });
 }
 

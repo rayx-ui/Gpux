@@ -1,7 +1,7 @@
 #![cfg_attr(target_family = "wasm", no_main)]
 
 use gpui_platform::application;
-use gpux::{App, Context, Entity, EventEmitter, prelude::*};
+use gpux::{Context, Entity, EventEmitter, prelude::*};
 
 struct Counter {
     count: usize,
@@ -14,26 +14,28 @@ struct Change {
 impl EventEmitter<Change> for Counter {}
 
 fn run_example() {
-    application().run(|cx: &mut App| {
-        let counter: Entity<Counter> = cx.new(|_cx| Counter { count: 0 });
-        let subscriber = cx.new(|cx: &mut Context<Counter>| {
-            cx.subscribe(&counter, |subscriber, _emitter, event, _cx| {
-                subscriber.count += event.increment * 2;
-            })
-            .detach();
+    application().run(|cx| async move {
+        cx.update(|cx| {
+            let counter: Entity<Counter> = cx.new(|_cx| Counter { count: 0 });
+            let subscriber = cx.new(|cx: &mut Context<Counter>| {
+                cx.subscribe(&counter, |subscriber, _emitter, event, _cx| {
+                    subscriber.count += event.increment * 2;
+                })
+                .detach();
 
-            Counter {
-                count: counter.read(cx).count * 2,
-            }
+                Counter {
+                    count: counter.read(cx).count * 2,
+                }
+            });
+
+            counter.update(cx, |counter, cx| {
+                counter.count += 2;
+                cx.notify();
+                cx.emit(Change { increment: 2 });
+            });
+
+            assert_eq!(subscriber.read(cx).count, 4);
         });
-
-        counter.update(cx, |counter, cx| {
-            counter.count += 2;
-            cx.notify();
-            cx.emit(Change { increment: 2 });
-        });
-
-        assert_eq!(subscriber.read(cx).count, 4);
     });
 }
 

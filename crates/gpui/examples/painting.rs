@@ -452,20 +452,22 @@ impl Render for PaintingViewer {
 }
 
 fn run_example() {
-    application().run(|cx| {
-        cx.open_window(
-            WindowOptions {
-                focus: true,
-                ..Default::default()
-            },
-            |window, cx| cx.new(|cx| PaintingViewer::new(window, cx)),
-        )
-        .unwrap();
-        cx.on_window_closed(|cx, _window_id| {
-            cx.quit();
-        })
-        .detach();
-        cx.activate(true);
+    application().run(|cx| async move {
+        cx.update(|cx| {
+            cx.open_window(
+                WindowOptions {
+                    focus: true,
+                    ..Default::default()
+                },
+                |window, cx| cx.new(|cx| PaintingViewer::new(window, cx)),
+            )
+            .unwrap();
+            cx.on_window_closed(|cx, _window_id| {
+                cx.quit();
+            })
+            .detach();
+            cx.activate(true);
+        });
     });
 }
 

@@ -4,7 +4,7 @@
 use std::sync::LazyLock;
 
 use gpui_platform::application;
-use gpux::{App, Bounds, Context, Window, WindowBounds, WindowOptions, div, prelude::*, px, size};
+use gpux::{Bounds, Context, Window, WindowBounds, WindowOptions, div, prelude::*, px, size};
 
 struct Tree {}
 
@@ -31,16 +31,18 @@ impl Render for Tree {
 }
 
 fn run_example() {
-    application().run(|cx: &mut App| {
-        let bounds = Bounds::centered(None, size(px(300.0), px(300.0)), cx);
-        cx.open_window(
-            WindowOptions {
-                window_bounds: Some(WindowBounds::Windowed(bounds)),
-                ..Default::default()
-            },
-            |_, cx| cx.new(|_| Tree {}),
-        )
-        .unwrap();
+    application().run(|cx| async move {
+        cx.update(|cx| {
+            let bounds = Bounds::centered(None, size(px(300.0), px(300.0)), cx);
+            cx.open_window(
+                WindowOptions {
+                    window_bounds: Some(WindowBounds::Windowed(bounds)),
+                    ..Default::default()
+                },
+                |_, cx| cx.new(|_| Tree {}),
+            )
+            .unwrap();
+        });
     });
 }
 

@@ -178,25 +178,27 @@ impl Render for Counter {
 }
 
 fn run_example() {
-    application().run(|cx: &mut App| {
-        cx.bind_keys([
-            gpux::KeyBinding::new("up", Increment, Some("Counter")),
-            gpux::KeyBinding::new("down", Decrement, Some("Counter")),
-        ]);
+    application().run(|cx| async move {
+        cx.update(|cx| {
+            cx.bind_keys([
+                gpux::KeyBinding::new("up", Increment, Some("Counter")),
+                gpux::KeyBinding::new("down", Decrement, Some("Counter")),
+            ]);
 
-        let bounds = Bounds::centered(None, size(px(300.), px(200.)), cx);
-        cx.open_window(
-            WindowOptions {
-                window_bounds: Some(WindowBounds::Windowed(bounds)),
-                ..Default::default()
-            },
-            |window, cx| {
-                let counter = cx.new(|cx| Counter::new(cx));
-                counter.focus_handle(cx).focus(window, cx);
-                counter
-            },
-        )
-        .unwrap();
+            let bounds = Bounds::centered(None, size(px(300.), px(200.)), cx);
+            cx.open_window(
+                WindowOptions {
+                    window_bounds: Some(WindowBounds::Windowed(bounds)),
+                    ..Default::default()
+                },
+                |window, cx| {
+                    let counter = cx.new(|cx| Counter::new(cx));
+                    counter.focus_handle(cx).focus(window, cx);
+                    counter
+                },
+            )
+            .unwrap();
+        });
     });
 }
 
