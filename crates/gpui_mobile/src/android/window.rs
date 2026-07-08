@@ -56,7 +56,9 @@ use std::sync::{
 };
 use std::time::{Duration, Instant};
 
-use super::{AndroidKeyEvent, Bounds, DevicePixels, Pixels, Point, Size, TouchPoint};
+use super::{
+    AndroidBackend, AndroidKeyEvent, Bounds, DevicePixels, Pixels, Point, Size, TouchPoint,
+};
 
 /// Lightweight, owned window handle for wgpu surface creation.
 /// Stores the raw ANativeWindow pointer and implements the traits
@@ -306,6 +308,9 @@ struct WindowState {
     /// Whether the window background should be transparent.
     transparent: bool,
 
+    /// Preferred WGPU backend policy captured when this window was created.
+    backend: AndroidBackend,
+
     // ── callbacks ─────────────────────────────────────────────────────────
     request_frame_callback: Option<RequestFrameCallback>,
     touch_callback: Option<TouchCallback>,
@@ -369,6 +374,7 @@ impl AndroidWindow {
         gpu_context: GpuContext,
         scale_factor: f32,
         transparent: bool,
+        backend: AndroidBackend,
     ) -> Result<Arc<Self>> {
         request_high_frame_rate(&native_window);
 
@@ -376,10 +382,12 @@ impl AndroidWindow {
         let height = native_window.height();
 
         log::info!(
-            "AndroidWindow::new — {}×{} scale={:.1}",
+            "AndroidWindow::new — {}×{} scale={:.1} preferred_backend={} backend_policy={}",
             width,
             height,
-            scale_factor
+            scale_factor,
+            backend,
+            backend.wgpu_backend_policy_label()
         );
 
         let renderer = Self::create_renderer(
@@ -388,6 +396,7 @@ impl AndroidWindow {
             width,
             height,
             transparent,
+            backend,
         )
         .context("failed to create gpui_wgpu renderer")?;
 
@@ -404,6 +413,7 @@ impl AndroidWindow {
             appearance: WindowAppearance::Light,
             is_active: true,
             transparent,
+            backend,
             request_frame_callback: None,
             touch_callback: None,
             key_callback: None,
@@ -436,6 +446,7 @@ impl AndroidWindow {
             appearance: WindowAppearance::Light,
             is_active: false,
             transparent: false,
+            backend: AndroidBackend::Vulkan,
             request_frame_callback: None,
             touch_callback: None,
             key_callback: None,
@@ -465,17 +476,14 @@ impl AndroidWindow {
 
         let mut state = self.state.lock();
         let transparent = state.transparent;
+        let backend = state.backend;
 
         // If a renderer already exists (kept alive across term_window), just
         // replace its surface.  This preserves the atlas and all cached
         // AtlasTextureIds so GPUI's scene cache remains valid.
         if state.renderer.is_some() {
             let raw = Self::raw_window(&native_window);
-            let config = WgpuSurfaceConfig {
-                size: gpui::size(gpui::DevicePixels(width), gpui::DevicePixels(height)),
-                transparent,
-                preferred_present_mode: Some(wgpu::PresentMode::Mailbox),
-            };
+            let config = Self::surface_config(width, height, transparent);
             let instance = state
                 .gpu_context
                 .borrow()
@@ -502,12 +510,15 @@ impl AndroidWindow {
                 state.gpu_context = Rc::clone(&gpu_context);
                 gpu_context
             };
-            let renderer = Self::create_renderer(&native_window, ctx, width, height, transparent)?;
+            let renderer =
+                Self::create_renderer(&native_window, ctx, width, height, transparent, backend)?;
             state.renderer = Some(renderer);
             log::info!(
-                "AndroidWindow::init_window — created new renderer {}×{}",
+                "AndroidWindow::init_window — created new renderer {}×{} preferred_backend={} backend_policy={}",
                 width,
-                height
+                height,
+                backend,
+                backend.wgpu_backend_policy_label()
             );
         }
 
@@ -955,6 +966,10 @@ impl AndroidWindow {
         state.renderer.as_ref().map(|r| r.gpu_specs())
     }
 
+    pub fn preferred_backend(&self) -> AndroidBackend {
+        self.state.lock().backend
+    }
+
     pub fn effect_capabilities(&self) -> EffectCapabilities {
         let state = self.state.lock();
         state
@@ -1069,6 +1084,14 @@ impl AndroidWindow {
         RawAndroidWindow { nw_ptr }
     }
 
+    fn surface_config(width: i32, height: i32, transparent: bool) -> WgpuSurfaceConfig {
+        WgpuSurfaceConfig {
+            size: gpui::size(gpui::DevicePixels(width), gpui::DevicePixels(height)),
+            transparent,
+            preferred_present_mode: Some(wgpu::PresentMode::Mailbox),
+        }
+    }
+
     /// Create a `WgpuRenderer` for the given `NativeWindow`.
     fn create_renderer(
         native_window: &NativeWindow,
@@ -1076,16 +1099,25 @@ impl AndroidWindow {
         width: i32,
         height: i32,
         transparent: bool,
+        backend: AndroidBackend,
     ) -> Result<WgpuRenderer> {
         let raw = Self::raw_window(native_window);
 
-        let config = WgpuSurfaceConfig {
-            size: gpui::size(gpui::DevicePixels(width), gpui::DevicePixels(height)),
-            transparent,
-            preferred_present_mode: Some(wgpu::PresentMode::Mailbox),
-        };
+        let config = Self::surface_config(width, height, transparent);
 
-        WgpuRenderer::new(gpu_context, &raw, config, None)
+        log::info!(
+            "AndroidWindow::create_renderer — preferred_backend={} backend_policy={}",
+            backend,
+            backend.wgpu_backend_policy_label()
+        );
+
+        WgpuRenderer::new_with_backend_policy(
+            gpu_context,
+            &raw,
+            config,
+            None,
+            backend.wgpu_backends(),
+        )
     }
 }
 
@@ -2503,6 +2535,25 @@ mod tests {
         w.set_active(true);
         assert!(w.take_force_next_frame_render());
         assert!(!w.take_force_next_frame_render());
+    }
+
+    #[test]
+    fn android_surface_config_requests_mailbox_for_lifecycle_surfaces() {
+        let opaque = AndroidWindow::surface_config(1080, 1920, false);
+        assert_eq!(
+            opaque.preferred_present_mode,
+            Some(wgpu::PresentMode::Mailbox)
+        );
+        assert!(!opaque.transparent);
+        assert_eq!(opaque.size.width, gpui::DevicePixels(1080));
+        assert_eq!(opaque.size.height, gpui::DevicePixels(1920));
+
+        let transparent = AndroidWindow::surface_config(480, 720, true);
+        assert_eq!(
+            transparent.preferred_present_mode,
+            Some(wgpu::PresentMode::Mailbox)
+        );
+        assert!(transparent.transparent);
     }
 
     #[test]

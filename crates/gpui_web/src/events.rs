@@ -73,6 +73,7 @@ impl WebWindowInner {
             self.register_blur(),
             self.register_pointer_enter(),
             self.register_pointer_leave_hover(),
+            self.register_window_resize(),
         ];
         closures.extend(self.register_visibility_change());
         closures.extend(self.register_appearance_change());
@@ -99,6 +100,18 @@ impl WebWindowInner {
     ) -> Closure<dyn FnMut(JsValue)> {
         let closure = Closure::<dyn FnMut(JsValue)>::new(handler);
         self.input_element
+            .add_event_listener_with_callback(event_name, closure.as_ref().unchecked_ref())
+            .ok();
+        closure
+    }
+
+    fn listen_browser_window(
+        self: &Rc<Self>,
+        event_name: &str,
+        handler: impl FnMut(JsValue) + 'static,
+    ) -> Closure<dyn FnMut(JsValue)> {
+        let closure = Closure::<dyn FnMut(JsValue)>::new(handler);
+        self.browser_window
             .add_event_listener_with_callback(event_name, closure.as_ref().unchecked_ref())
             .ok();
         closure
@@ -175,6 +188,13 @@ impl WebWindowInner {
             release_velocity: None,
             timestamp: Some(gpux::Instant::now()),
         }));
+    }
+
+    fn register_window_resize(self: &Rc<Self>) -> Closure<dyn FnMut(JsValue)> {
+        let this = Rc::clone(self);
+        self.listen_browser_window("resize", move |_event: JsValue| {
+            this.apply_browser_viewport_size();
+        })
     }
 
     fn register_pointer_down(self: &Rc<Self>) -> Closure<dyn FnMut(JsValue)> {

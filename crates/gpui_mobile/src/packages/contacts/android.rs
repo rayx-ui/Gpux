@@ -2,7 +2,7 @@ use super::{Contact, EmailAddress, PhoneNumber};
 use crate::android::jni::{self as jni_helpers, JniExt, get_string};
 use jni::objects::JValue;
 
-const HELPER_CLASS: &str = "dev.gpui.mobile.GpuiContacts";
+const HELPER_CLASS: &str = "dev.rayx.mobile.RayXContacts";
 
 pub fn get_contacts() -> Result<Vec<Contact>, String> {
     jni_helpers::with_env(|env| {

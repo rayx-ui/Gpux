@@ -16,6 +16,26 @@ pub struct WgpuContext {
     device_lost: Arc<AtomicBool>,
 }
 
+#[cfg(all(not(target_family = "wasm"), target_os = "windows"))]
+pub fn native_backend_policy() -> wgpu::Backends {
+    wgpu::Backends::DX12
+}
+
+#[cfg(all(not(target_family = "wasm"), target_os = "windows"))]
+pub fn native_backend_policy_label() -> &'static str {
+    "DX12"
+}
+
+#[cfg(all(not(target_family = "wasm"), not(target_os = "windows")))]
+pub fn native_backend_policy() -> wgpu::Backends {
+    wgpu::Backends::VULKAN | wgpu::Backends::GL
+}
+
+#[cfg(all(not(target_family = "wasm"), not(target_os = "windows")))]
+pub fn native_backend_policy_label() -> &'static str {
+    "VULKAN|GL"
+}
+
 #[derive(Clone, Copy)]
 pub struct CompositorGpuHint {
     pub vendor_id: u32,
@@ -29,7 +49,17 @@ impl WgpuContext {
         surface: &wgpu::Surface<'_>,
         compositor_gpu: Option<CompositorGpuHint>,
     ) -> anyhow::Result<Self> {
-        Self::new_with_options(instance, surface, compositor_gpu, false)
+        Self::new_with_backend_policy(instance, surface, compositor_gpu, native_backend_policy())
+    }
+
+    #[cfg(not(target_family = "wasm"))]
+    pub fn new_with_backend_policy(
+        instance: wgpu::Instance,
+        surface: &wgpu::Surface<'_>,
+        compositor_gpu: Option<CompositorGpuHint>,
+        backend_policy: wgpu::Backends,
+    ) -> anyhow::Result<Self> {
+        Self::new_with_options(instance, surface, compositor_gpu, false, backend_policy)
     }
 
     #[cfg(not(target_family = "wasm"))]
@@ -38,7 +68,22 @@ impl WgpuContext {
         surface: &wgpu::Surface<'_>,
         compositor_gpu: Option<CompositorGpuHint>,
     ) -> anyhow::Result<Self> {
-        Self::new_with_options(instance, surface, compositor_gpu, true)
+        Self::new_rejecting_software_with_backend_policy(
+            instance,
+            surface,
+            compositor_gpu,
+            native_backend_policy(),
+        )
+    }
+
+    #[cfg(not(target_family = "wasm"))]
+    pub fn new_rejecting_software_with_backend_policy(
+        instance: wgpu::Instance,
+        surface: &wgpu::Surface<'_>,
+        compositor_gpu: Option<CompositorGpuHint>,
+        backend_policy: wgpu::Backends,
+    ) -> anyhow::Result<Self> {
+        Self::new_with_options(instance, surface, compositor_gpu, true, backend_policy)
     }
 
     #[cfg(not(target_family = "wasm"))]
@@ -47,6 +92,7 @@ impl WgpuContext {
         surface: &wgpu::Surface<'_>,
         compositor_gpu: Option<CompositorGpuHint>,
         reject_software: bool,
+        backend_policy: wgpu::Backends,
     ) -> anyhow::Result<Self> {
         let device_id_filter = match std::env::var("ZED_DEVICE_ID") {
             Ok(val) => parse_pci_id(&val)
@@ -69,6 +115,7 @@ impl WgpuContext {
                 surface,
                 compositor_gpu.as_ref(),
                 reject_software,
+                backend_policy,
             ))?;
 
         let device_lost = Arc::new(AtomicBool::new(false));
@@ -182,8 +229,16 @@ impl WgpuContext {
 
     #[cfg(not(target_family = "wasm"))]
     pub fn instance(display: Box<dyn wgpu::wgt::WgpuHasDisplayHandle>) -> wgpu::Instance {
+        Self::instance_with_backend_policy(display, native_backend_policy())
+    }
+
+    #[cfg(not(target_family = "wasm"))]
+    pub fn instance_with_backend_policy(
+        display: Box<dyn wgpu::wgt::WgpuHasDisplayHandle>,
+        backend_policy: wgpu::Backends,
+    ) -> wgpu::Instance {
         wgpu::Instance::new(wgpu::InstanceDescriptor {
-            backends: wgpu::Backends::VULKAN | wgpu::Backends::GL,
+            backends: backend_policy,
             flags: wgpu::InstanceFlags::default(),
             backend_options: wgpu::BackendOptions::default(),
             memory_budget_thresholds: wgpu::MemoryBudgetThresholds::default(),
@@ -218,6 +273,7 @@ impl WgpuContext {
         surface: &wgpu::Surface<'_>,
         compositor_gpu: Option<&CompositorGpuHint>,
         reject_software: bool,
+        backend_policy: wgpu::Backends,
     ) -> anyhow::Result<(
         wgpu::Adapter,
         wgpu::Device,
@@ -225,10 +281,10 @@ impl WgpuContext {
         bool,
         TextureFormat,
     )> {
-        let mut adapters: Vec<_> = instance.enumerate_adapters(wgpu::Backends::all()).await;
+        let mut adapters: Vec<_> = instance.enumerate_adapters(backend_policy).await;
 
         if adapters.is_empty() {
-            anyhow::bail!("No GPU adapters found");
+            anyhow::bail!("No GPU adapters found for backend policy {backend_policy:?}");
         }
 
         if let Some(device_id) = device_id_filter {
@@ -241,7 +297,7 @@ impl WgpuContext {
         // 2. Compositor GPU match — the GPU the display server is rendering on
         // 3. Device type (Discrete > Integrated > Other > Virtual > Cpu).
         //    "Other" ranks above "Virtual" because OpenGL seems to count as "Other".
-        // 4. Backend — prefer Vulkan/Metal/Dx12 over GL/etc.
+        // 4. Backend — prefer primary native backends over GL/etc. on policies that allow both.
         adapters.sort_by_key(|adapter| {
             let info = adapter.get_info();
 
@@ -291,7 +347,11 @@ impl WgpuContext {
         });
 
         // Log all available adapters (in sorted order)
-        log::info!("Found {} GPU adapter(s):", adapters.len());
+        log::info!(
+            "Found {} GPU adapter(s) for backend policy {:?}:",
+            adapters.len(),
+            backend_policy
+        );
         for adapter in &adapters {
             let info = adapter.get_info();
             log::info!(
@@ -355,7 +415,9 @@ impl WgpuContext {
             }
         }
 
-        anyhow::bail!("No GPU adapter found that can configure the display surface")
+        anyhow::bail!(
+            "No GPU adapter found that can configure the display surface for backend policy {backend_policy:?}"
+        )
     }
 
     /// Try to use an adapter with a surface by creating a device and testing configuration.

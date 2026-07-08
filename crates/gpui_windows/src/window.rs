@@ -30,9 +30,62 @@ use windows::{
 
 use crate::direct_manipulation::DirectManipulationHandler;
 use crate::*;
+use gpui_wgpu::{WgpuRenderer, WgpuSurfaceConfig, native_backend_policy_label};
 use gpux::*;
 
 pub(crate) struct WindowsWindow(pub Rc<WindowsWindowInner>);
+
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct WgpuWin32Window {
+    hwnd: NonZeroIsize,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum WindowsSurfaceResize {
+    Resize(Size<DevicePixels>),
+    Suspend,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum WindowsWgpuDeviceRecoveryAction {
+    Continue,
+    RecoverRenderer,
+}
+
+impl WgpuWin32Window {
+    pub(crate) fn new(hwnd: HWND) -> Self {
+        Self {
+            hwnd: NonZeroIsize::new(hwnd.0 as isize)
+                .expect("WGPU Win32 window handle must be non-null"),
+        }
+    }
+}
+
+impl rwh::HasWindowHandle for WgpuWin32Window {
+    fn window_handle(&self) -> std::result::Result<rwh::WindowHandle<'_>, rwh::HandleError> {
+        let raw = rwh::Win32WindowHandle::new(self.hwnd).into();
+        Ok(unsafe { rwh::WindowHandle::borrow_raw(raw) })
+    }
+}
+
+impl rwh::HasDisplayHandle for WgpuWin32Window {
+    fn display_handle(&self) -> std::result::Result<rwh::DisplayHandle<'_>, rwh::HandleError> {
+        Ok(rwh::DisplayHandle::windows())
+    }
+}
+
+#[cfg(not(target_family = "wasm"))]
+#[allow(dead_code)]
+const _: fn(HWND) -> WgpuWin32Window = WgpuWin32Window::new;
+
+#[cfg(not(target_family = "wasm"))]
+#[allow(dead_code)]
+const _: fn(
+    gpui_wgpu::GpuContext,
+    &WgpuWin32Window,
+    gpui_wgpu::WgpuSurfaceConfig,
+    Option<gpui_wgpu::CompositorGpuHint>,
+) -> anyhow::Result<gpui_wgpu::WgpuRenderer> = gpui_wgpu::WgpuRenderer::new::<WgpuWin32Window>;
 
 impl std::ops::Deref for WindowsWindow {
     type Target = WindowsWindowInner;
@@ -68,13 +121,20 @@ pub struct WindowsWindowState {
     pub hovered: Cell<bool>,
     pub direct_manipulation: DirectManipulationHandler,
 
-    pub renderer: RefCell<DirectXRenderer>,
+    pub renderer: RefCell<WgpuRenderer>,
+    /// Coalesce live-resize surface changes until the frame that draws with the
+    /// matching GPUI viewport. This avoids presenting with a surface size from
+    /// one resize message and scene geometry from another.
+    pub pending_drawable_size: Cell<Option<Size<DevicePixels>>>,
     /// Set after a GPU device-lost recovery so the next `draw_window` call is
     /// treated as a forced render. This guarantees the next frame both
-    /// re-enables drawing (via `mark_drawable`) and bypasses the GPUI view
-    /// cache, which would otherwise replay stale atlas tile references from
-    /// the previous frame and panic in `DirectXAtlasState::texture`.
+    /// bypasses the GPUI view cache and rebuilds the scene against fresh atlas
+    /// resources.
     pub force_render_after_recovery: Cell<bool>,
+    /// True while Windows is running the modal user resize/move loop.
+    pub in_size_move_loop: Cell<bool>,
+    /// Coalesces retry draws requested by WGPU surface acquire/reconfigure.
+    pub wgpu_force_update_posted: Cell<bool>,
 
     pub click_state: ClickState,
     pub current_cursor: Cell<Option<HCURSOR>>,
@@ -83,9 +143,6 @@ pub struct WindowsWindowState {
     pub nc_button_pressed: Cell<Option<u32>>,
 
     pub display: Cell<WindowsDisplay>,
-    /// Flag to instruct the `VSyncProvider` thread to invalidate the directx devices
-    /// as resizing them has failed, causing us to have lost at least the render target.
-    pub invalidate_devices: Arc<AtomicBool>,
     fullscreen: Cell<Option<StyleAndBounds>>,
     initial_placement: Cell<Option<WindowOpenStatus>>,
     hwnd: HWND,
@@ -109,15 +166,13 @@ pub(crate) struct WindowsWindowInner {
 impl WindowsWindowState {
     fn new(
         hwnd: HWND,
-        directx_devices: &DirectXDevices,
+        gpu_context: gpui_wgpu::GpuContext,
         window_params: &CREATESTRUCTW,
         current_cursor: Option<HCURSOR>,
         cursor_visible: Arc<AtomicBool>,
         display: WindowsDisplay,
         min_size: Option<Size<Pixels>>,
         appearance: WindowAppearance,
-        disable_direct_composition: bool,
-        invalidate_devices: Arc<AtomicBool>,
     ) -> Result<Self> {
         let scale_factor = {
             let monitor_dpi = unsafe { GetDpiForWindow(hwnd) } as f32;
@@ -137,8 +192,31 @@ impl WindowsWindowState {
         };
         let border_offset = WindowBorderOffset::default();
         let restore_from_minimized = None;
-        let renderer = DirectXRenderer::new(hwnd, directx_devices, disable_direct_composition)
-            .context("Creating DirectX renderer")?;
+        let device_size = size(
+            DevicePixels(window_params.cx.max(1)),
+            DevicePixels(window_params.cy.max(1)),
+        );
+        log::info!(
+            "Creating Windows WGPU renderer: backend_policy={}, size={}x{}, present_mode=Fifo, transparent=false",
+            native_backend_policy_label(),
+            device_size.width.0,
+            device_size.height.0
+        );
+        let renderer = WgpuRenderer::new(
+            gpu_context,
+            &WgpuWin32Window::new(hwnd),
+            windows_wgpu_surface_config(device_size),
+            None,
+        )
+        .context("Creating Windows WGPU renderer")?;
+        let gpu_specs = renderer.gpu_specs();
+        log::info!(
+            "Created Windows WGPU renderer: device='{}', driver='{}', driver_info='{}', software={}",
+            gpu_specs.device_name,
+            gpu_specs.driver_name,
+            gpu_specs.driver_info,
+            gpu_specs.is_software_emulated
+        );
         let callbacks = Callbacks::default();
         let input_handler = None;
         let pending_mouse_move = RefCell::new(None);
@@ -176,7 +254,10 @@ impl WindowsWindowState {
             last_reported_capslock: Cell::new(last_reported_capslock),
             hovered: Cell::new(hovered),
             renderer: RefCell::new(renderer),
+            pending_drawable_size: Cell::new(None),
             force_render_after_recovery: Cell::new(false),
+            in_size_move_loop: Cell::new(false),
+            wgpu_force_update_posted: Cell::new(false),
             click_state,
             current_cursor: Cell::new(current_cursor),
             cursor_visible,
@@ -185,7 +266,6 @@ impl WindowsWindowState {
             fullscreen: Cell::new(fullscreen),
             initial_placement: Cell::new(initial_placement),
             hwnd,
-            invalidate_devices,
             direct_manipulation,
         })
     }
@@ -249,19 +329,81 @@ impl WindowsWindowState {
     }
 }
 
+fn windows_wgpu_surface_config(device_size: Size<DevicePixels>) -> WgpuSurfaceConfig {
+    WgpuSurfaceConfig {
+        size: device_size,
+        transparent: false,
+        preferred_present_mode: None,
+    }
+}
+
+pub(crate) fn windows_surface_resize_for_client_size(
+    width: i32,
+    height: i32,
+    minimized: bool,
+) -> WindowsSurfaceResize {
+    if minimized || width <= 0 || height <= 0 {
+        WindowsSurfaceResize::Suspend
+    } else {
+        WindowsSurfaceResize::Resize(size(DevicePixels(width), DevicePixels(height)))
+    }
+}
+
+fn windows_wgpu_device_recovery_action(device_lost: bool) -> WindowsWgpuDeviceRecoveryAction {
+    if device_lost {
+        WindowsWgpuDeviceRecoveryAction::RecoverRenderer
+    } else {
+        WindowsWgpuDeviceRecoveryAction::Continue
+    }
+}
+
+pub(crate) fn windows_wgpu_frame_request_options(
+    force_render: bool,
+    require_presentation: bool,
+    resize_frame_pending: bool,
+    recovery_frame_pending: bool,
+) -> RequestFrameOptions {
+    RequestFrameOptions {
+        require_presentation: require_presentation
+            || resize_frame_pending
+            || recovery_frame_pending,
+        force_render: force_render || resize_frame_pending || recovery_frame_pending,
+    }
+}
+
+pub(crate) fn windows_wgpu_should_post_retry_frame(
+    needs_redraw: bool,
+    already_posted: bool,
+    in_size_move_loop: bool,
+) -> bool {
+    needs_redraw && !already_posted && !in_size_move_loop
+}
+
+fn windows_wgpu_transparency_for_background_appearance(
+    background_appearance: WindowBackgroundAppearance,
+) -> bool {
+    background_appearance != WindowBackgroundAppearance::Opaque
+}
+
+fn windows_effect_capabilities_from_renderer(
+    renderer: Option<&WgpuRenderer>,
+) -> EffectCapabilities {
+    renderer
+        .map(WgpuRenderer::effect_capabilities)
+        .unwrap_or_default()
+}
+
 impl WindowsWindowInner {
     fn new(context: &mut WindowCreateContext, hwnd: HWND, cs: &CREATESTRUCTW) -> Result<Rc<Self>> {
         let state = WindowsWindowState::new(
             hwnd,
-            &context.directx_devices,
+            context.gpu_context.clone(),
             cs,
             context.current_cursor,
             context.cursor_visible.clone(),
             context.display,
             context.min_size,
             context.appearance,
-            context.disable_direct_composition,
-            context.invalidate_devices.clone(),
         )?;
 
         Ok(Rc::new(Self {
@@ -403,9 +545,7 @@ struct WindowCreateContext {
     main_receiver: PriorityQueueReceiver<RunnableVariant>,
     platform_window_handle: HWND,
     appearance: WindowAppearance,
-    disable_direct_composition: bool,
-    directx_devices: DirectXDevices,
-    invalidate_devices: Arc<AtomicBool>,
+    gpu_context: gpui_wgpu::GpuContext,
     parent_hwnd: Option<HWND>,
 }
 
@@ -424,9 +564,7 @@ impl WindowsWindow {
             validation_number,
             main_receiver,
             platform_window_handle,
-            disable_direct_composition,
-            directx_devices,
-            invalidate_devices,
+            gpu_context,
         } = creation_info;
         register_window_class(icon);
         let parent_hwnd = if params.kind == WindowKind::Dialog {
@@ -457,7 +595,7 @@ impl WindowsWindow {
                 .unwrap_or(""),
         );
 
-        let (mut dwexstyle, dwstyle) = if params.kind == WindowKind::PopUp {
+        let (dwexstyle, dwstyle) = if params.kind == WindowKind::PopUp {
             (WS_EX_TOOLWINDOW, WINDOW_STYLE(0x0))
         } else {
             let mut dwstyle = WS_SYSMENU;
@@ -478,10 +616,6 @@ impl WindowsWindow {
 
             (dwexstyle, dwstyle)
         };
-        if !disable_direct_composition {
-            dwexstyle |= WS_EX_NOREDIRECTIONBITMAP;
-        }
-
         let hinstance = get_module_handle();
         let display = if let Some(display_id) = params.display_id {
             WindowsDisplay::new(display_id)
@@ -506,9 +640,7 @@ impl WindowsWindow {
             main_receiver,
             platform_window_handle,
             appearance,
-            disable_direct_composition,
-            directx_devices,
-            invalidate_devices,
+            gpu_context,
             parent_hwnd,
         };
         let creation_result = unsafe {
@@ -582,6 +714,7 @@ impl Drop for WindowsWindow {
             .executor
             .spawn(async move {
                 let handle = this.hwnd;
+                this.destroy_wgpu_surface();
                 unsafe {
                     RevokeDragDrop(handle).log_err();
                     DestroyWindow(handle).log_err();
@@ -863,6 +996,9 @@ impl PlatformWindow for WindowsWindow {
                 dwm_set_window_composition_attribute(hwnd, 4);
             }
         }
+        self.state.renderer.borrow_mut().update_transparency(
+            windows_wgpu_transparency_for_background_appearance(background_appearance),
+        );
     }
 
     fn minimize(&self) {
@@ -958,22 +1094,49 @@ impl PlatformWindow for WindowsWindow {
     }
 
     fn draw(&self, scene: &Scene) {
-        self.state
-            .renderer
-            .borrow_mut()
-            .draw(scene, self.state.background_appearance.get())
-            .log_err();
+        let mut renderer = self.state.renderer.borrow_mut();
+
+        if let Some(size) = self.state.pending_drawable_size.take() {
+            renderer.update_drawable_size(size);
+        }
+
+        if windows_wgpu_device_recovery_action(renderer.device_lost())
+            == WindowsWgpuDeviceRecoveryAction::RecoverRenderer
+        {
+            log::warn!("Windows WGPU device loss detected; attempting renderer recovery");
+
+            match renderer.recover(&WgpuWin32Window::new(self.0.hwnd)) {
+                Ok(()) => {
+                    log::info!("Windows WGPU recovery completed; forcing a fresh render");
+                }
+                Err(err) => {
+                    log::warn!(
+                        "Windows WGPU recovery failed; forcing a fresh render and retrying on the next frame: {err:#}"
+                    );
+                }
+            }
+
+            self.state.force_render_after_recovery.set(true);
+            return;
+        }
+
+        renderer.draw(scene);
+
+        if renderer.needs_redraw() {
+            self.0.post_wgpu_force_update_window();
+        }
     }
 
     fn render_to_image(&self, scene: &Scene) -> anyhow::Result<image::RgbaImage> {
-        self.state
-            .renderer
-            .borrow_mut()
-            .render_to_image(scene, self.state.background_appearance.get())
+        let mut renderer = self.state.renderer.borrow_mut();
+        if let Some(size) = self.state.pending_drawable_size.take() {
+            renderer.update_drawable_size(size);
+        }
+        renderer.render_to_image(scene)
     }
 
     fn sprite_atlas(&self) -> Arc<dyn PlatformAtlas> {
-        self.state.renderer.borrow().sprite_atlas()
+        self.state.renderer.borrow().sprite_atlas().clone()
     }
 
     fn get_raw_handle(&self) -> HWND {
@@ -981,7 +1144,12 @@ impl PlatformWindow for WindowsWindow {
     }
 
     fn gpu_specs(&self) -> Option<GpuSpecs> {
-        self.state.renderer.borrow().gpu_specs().log_err()
+        Some(self.state.renderer.borrow().gpu_specs())
+    }
+
+    fn effect_capabilities(&self) -> EffectCapabilities {
+        let renderer = self.state.renderer.borrow();
+        windows_effect_capabilities_from_renderer(Some(&renderer))
     }
 
     fn update_ime_position(&self, bounds: Bounds<Pixels>) {
@@ -998,6 +1166,43 @@ impl PlatformWindow for WindowsWindow {
     fn play_system_bell(&self) {
         // MB_OK: The sound specified as the Windows Default Beep sound.
         let _ = unsafe { MessageBeep(MB_OK) };
+    }
+}
+
+impl WindowsWindowInner {
+    fn post_wgpu_force_update_window(&self) {
+        if !windows_wgpu_should_post_retry_frame(
+            true,
+            self.state.wgpu_force_update_posted.get(),
+            self.state.in_size_move_loop.get(),
+        ) {
+            return;
+        }
+
+        self.state.wgpu_force_update_posted.set(true);
+        let post_result = unsafe {
+            PostMessageW(
+                Some(self.hwnd),
+                WM_GPUI_FORCE_UPDATE_WINDOW,
+                WPARAM::default(),
+                LPARAM::default(),
+            )
+        };
+        if let Err(err) = post_result {
+            self.state.wgpu_force_update_posted.set(false);
+            log::error!("failed to post Windows WGPU retry frame: {err}");
+        }
+    }
+
+    pub(crate) fn unconfigure_wgpu_surface(&self) {
+        self.state.pending_drawable_size.set(None);
+        self.state.renderer.borrow_mut().unconfigure_surface();
+        self.state.force_render_after_recovery.set(true);
+    }
+
+    pub(crate) fn destroy_wgpu_surface(&self) {
+        self.state.pending_drawable_size.set(None);
+        self.state.renderer.borrow_mut().destroy();
     }
 }
 
@@ -1532,9 +1737,116 @@ fn set_non_rude_hwnd(hwnd: HWND, non_rude: bool) {
 
 #[cfg(test)]
 mod tests {
-    use super::ClickState;
-    use gpux::{DevicePixels, MouseButton, point};
+    use super::{
+        ClickState, WindowsSurfaceResize, WindowsWgpuDeviceRecoveryAction,
+        windows_effect_capabilities_from_renderer, windows_surface_resize_for_client_size,
+        windows_wgpu_device_recovery_action, windows_wgpu_frame_request_options,
+        windows_wgpu_should_post_retry_frame, windows_wgpu_surface_config,
+        windows_wgpu_transparency_for_background_appearance,
+    };
+    use gpux::{
+        DevicePixels, EffectCapabilities, MouseButton, WindowBackgroundAppearance, point, size,
+    };
     use std::time::Duration;
+
+    #[test]
+    fn windows_wgpu_surface_config_uses_vsynced_present_mode() {
+        let config = windows_wgpu_surface_config(size(DevicePixels(800), DevicePixels(600)));
+
+        assert_eq!(config.size, size(DevicePixels(800), DevicePixels(600)));
+        assert!(!config.transparent);
+        assert_eq!(config.preferred_present_mode, None);
+    }
+
+    #[test]
+    fn missing_windows_renderer_reports_unsupported_effect_capabilities() {
+        assert_eq!(
+            windows_effect_capabilities_from_renderer(None),
+            EffectCapabilities::default()
+        );
+    }
+
+    #[test]
+    fn windows_surface_resize_suspends_for_minimized_or_zero_size() {
+        assert_eq!(
+            windows_surface_resize_for_client_size(800, 600, false),
+            WindowsSurfaceResize::Resize(size(DevicePixels(800), DevicePixels(600)))
+        );
+        assert_eq!(
+            windows_surface_resize_for_client_size(800, 600, true),
+            WindowsSurfaceResize::Suspend
+        );
+        assert_eq!(
+            windows_surface_resize_for_client_size(0, 600, false),
+            WindowsSurfaceResize::Suspend
+        );
+        assert_eq!(
+            windows_surface_resize_for_client_size(800, 0, false),
+            WindowsSurfaceResize::Suspend
+        );
+    }
+
+    #[test]
+    fn windows_wgpu_transparency_tracks_background_appearance() {
+        assert!(!windows_wgpu_transparency_for_background_appearance(
+            WindowBackgroundAppearance::Opaque
+        ));
+        assert!(windows_wgpu_transparency_for_background_appearance(
+            WindowBackgroundAppearance::Transparent
+        ));
+        assert!(windows_wgpu_transparency_for_background_appearance(
+            WindowBackgroundAppearance::Blurred
+        ));
+        assert!(windows_wgpu_transparency_for_background_appearance(
+            WindowBackgroundAppearance::MicaBackdrop
+        ));
+        assert!(windows_wgpu_transparency_for_background_appearance(
+            WindowBackgroundAppearance::MicaAltBackdrop
+        ));
+    }
+
+    #[test]
+    fn windows_wgpu_device_recovery_action_follows_renderer_device_loss() {
+        assert_eq!(
+            windows_wgpu_device_recovery_action(false),
+            WindowsWgpuDeviceRecoveryAction::Continue
+        );
+        assert_eq!(
+            windows_wgpu_device_recovery_action(true),
+            WindowsWgpuDeviceRecoveryAction::RecoverRenderer
+        );
+    }
+
+    #[test]
+    fn windows_wgpu_frame_request_forces_resize_and_recovery_frames() {
+        let idle = windows_wgpu_frame_request_options(false, false, false, false);
+        assert!(!idle.require_presentation);
+        assert!(!idle.force_render);
+
+        let resize = windows_wgpu_frame_request_options(false, false, true, false);
+        assert!(resize.require_presentation);
+        assert!(resize.force_render);
+
+        let recovery = windows_wgpu_frame_request_options(false, false, false, true);
+        assert!(recovery.require_presentation);
+        assert!(recovery.force_render);
+
+        let retry = windows_wgpu_frame_request_options(false, true, false, false);
+        assert!(retry.require_presentation);
+        assert!(!retry.force_render);
+
+        let explicit = windows_wgpu_frame_request_options(true, false, false, false);
+        assert!(!explicit.require_presentation);
+        assert!(explicit.force_render);
+    }
+
+    #[test]
+    fn windows_wgpu_retry_frame_posts_once_until_handled() {
+        assert!(windows_wgpu_should_post_retry_frame(true, false, false));
+        assert!(!windows_wgpu_should_post_retry_frame(false, false, false));
+        assert!(!windows_wgpu_should_post_retry_frame(true, true, false));
+        assert!(!windows_wgpu_should_post_retry_frame(true, false, true));
+    }
 
     #[test]
     fn test_double_click_interval() {

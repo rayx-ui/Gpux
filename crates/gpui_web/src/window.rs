@@ -276,9 +276,6 @@ impl WebWindow {
                 None => return,
             };
 
-            let dpr_f32 = device_pixel_ratio(&inner.browser_window);
-            let dpr = dpr_f32 as f64;
-
             // Use CSS content bounds as the logical size and scale explicitly by DPR.
             // `devicePixelContentBoxSize` is not consistently physical in Chromium
             // when Playwright emulates high-DPI, so deriving physical size here keeps
@@ -286,79 +283,100 @@ impl WebWindow {
             let rect = entry.content_rect();
             let logical_width = rect.width() as f32;
             let logical_height = rect.height() as f32;
-            let physical_width = (logical_width as f64 * dpr).round() as u32;
-            let physical_height = (logical_height as f64 * dpr).round() as u32;
-
-            let scale_changed = inner.notify_scale.replace(false);
-            let prev = inner.last_physical_size.get();
-            let size_changed = prev != (physical_width, physical_height);
-
-            if !scale_changed && !size_changed {
-                return;
-            }
-            inner
-                .last_physical_size
-                .set((physical_width, physical_height));
-
-            // Skip rendering to a zero-size canvas (e.g. display:none).
-            if physical_width == 0 || physical_height == 0 {
-                let mut s = inner.state.borrow_mut();
-                s.bounds.size = Size::default();
-                s.scale_factor = dpr_f32;
-                // Still fire the callback so GPUI knows the window is gone.
-                drop(s);
-                let mut callback = {
-                    let mut callbacks = inner.callbacks.borrow_mut();
-                    callbacks.resize.take()
-                };
-                if let Some(ref mut callback) = callback {
-                    callback(Size::default(), dpr_f32);
-                }
-                let mut callbacks = inner.callbacks.borrow_mut();
-                if callbacks.resize.is_none() {
-                    callbacks.resize = callback;
-                }
-                return;
-            }
-
-            let max_texture_dimension = inner.state.borrow().max_texture_dimension;
-            let clamped_width = physical_width.min(max_texture_dimension);
-            let clamped_height = physical_height.min(max_texture_dimension);
-
-            inner
-                .pending_physical_size
-                .set(Some((clamped_width, clamped_height)));
-
-            {
-                let mut s = inner.state.borrow_mut();
-                s.bounds.size = Size {
+            inner.apply_logical_size(
+                Size {
                     width: px(logical_width),
                     height: px(logical_height),
-                };
-                s.scale_factor = dpr_f32;
-            }
-
-            let new_size = Size {
-                width: px(logical_width),
-                height: px(logical_height),
-            };
-
-            let mut callback = {
-                let mut callbacks = inner.callbacks.borrow_mut();
-                callbacks.resize.take()
-            };
-            if let Some(ref mut callback) = callback {
-                callback(new_size, dpr_f32);
-            }
-            let mut callbacks = inner.callbacks.borrow_mut();
-            if callbacks.resize.is_none() {
-                callbacks.resize = callback;
-            }
+                },
+                device_pixel_ratio(&inner.browser_window),
+                true,
+            );
         })
     }
 }
 
 impl WebWindowInner {
+    pub(crate) fn apply_browser_viewport_size(&self) {
+        if let Some(logical_size) = viewport_size(&self.browser_window) {
+            self.apply_logical_size(
+                logical_size,
+                device_pixel_ratio(&self.browser_window),
+                false,
+            );
+        }
+    }
+
+    fn apply_logical_size(&self, new_size: Size<Pixels>, scale_factor: f32, allow_zero_size: bool) {
+        let max_texture_dimension = self.state.borrow().max_texture_dimension;
+        let physical_width = if allow_zero_size && f32::from(new_size.width) <= 0.0 {
+            0
+        } else {
+            physical_canvas_axis(new_size.width, scale_factor, max_texture_dimension)
+        };
+        let physical_height = if allow_zero_size && f32::from(new_size.height) <= 0.0 {
+            0
+        } else {
+            physical_canvas_axis(new_size.height, scale_factor, max_texture_dimension)
+        };
+
+        let scale_changed = self.notify_scale.replace(false);
+        let prev = self.last_physical_size.get();
+        let size_changed = prev != (physical_width, physical_height);
+
+        if !scale_changed && !size_changed {
+            return;
+        }
+        self.last_physical_size
+            .set((physical_width, physical_height));
+
+        if physical_width == 0 || physical_height == 0 {
+            self.pending_physical_size.set(None);
+            let mut s = self.state.borrow_mut();
+            s.bounds.size = Size::default();
+            s.scale_factor = scale_factor;
+            drop(s);
+            self.emit_resize(Size::default(), scale_factor);
+            return;
+        }
+
+        self.pending_physical_size
+            .set(Some((physical_width, physical_height)));
+
+        {
+            let mut s = self.state.borrow_mut();
+            s.bounds.size = new_size;
+            s.scale_factor = scale_factor;
+        }
+
+        self.emit_resize(new_size, scale_factor);
+    }
+
+    fn emit_resize(&self, new_size: Size<Pixels>, scale_factor: f32) {
+        let mut callback = {
+            let mut callbacks = self.callbacks.borrow_mut();
+            callbacks.resize.take()
+        };
+        if let Some(ref mut callback) = callback {
+            callback(new_size, scale_factor);
+        }
+        let mut callbacks = self.callbacks.borrow_mut();
+        if callbacks.resize.is_none() {
+            callbacks.resize = callback;
+        }
+    }
+
+    fn apply_physical_size(&self, width: u32, height: u32) {
+        if self.canvas.width() != width || self.canvas.height() != height {
+            self.canvas.set_width(width);
+            self.canvas.set_height(height);
+        }
+
+        self.renderer.borrow_mut().update_drawable_size(Size {
+            width: DevicePixels(width as i32),
+            height: DevicePixels(height as i32),
+        });
+    }
+
     fn create_raf_closure(self: &Rc<Self>) -> Closure<dyn FnMut()> {
         let raf_handle: Rc<RefCell<Option<js_sys::Function>>> = Rc::new(RefCell::new(None));
         let raf_handle_inner = Rc::clone(&raf_handle);
@@ -375,9 +393,12 @@ impl WebWindowInner {
                 callbacks.request_frame.take()
             };
             if let Some(ref mut callback) = callback {
+                let resize_frame_pending = this.pending_physical_size.get().is_some();
                 callback(RequestFrameOptions {
                     require_presentation: true,
-                    force_render: this.html_island_force_frame.take() || force_html_island_frame,
+                    force_render: resize_frame_pending
+                        || this.html_island_force_frame.take()
+                        || force_html_island_frame,
                 });
             }
             let mut callbacks = this.callbacks.borrow_mut();
@@ -804,16 +825,7 @@ impl PlatformWindow for WebWindow {
 
     fn draw(&self, scene: &Scene) {
         if let Some((width, height)) = self.inner.pending_physical_size.take() {
-            if self.inner.canvas.width() != width || self.inner.canvas.height() != height {
-                self.inner.canvas.set_width(width);
-                self.inner.canvas.set_height(height);
-            }
-
-            let mut renderer = self.inner.renderer.borrow_mut();
-            renderer.update_drawable_size(Size {
-                width: DevicePixels(width as i32),
-                height: DevicePixels(height as i32),
-            });
+            self.inner.apply_physical_size(width, height);
         }
 
         let canvas_rect = self.inner.canvas.get_bounding_client_rect();
@@ -902,7 +914,11 @@ impl PlatformWindow for WebWindow {
                 }
             }
         }
-        self.inner.renderer.borrow_mut().draw(scene);
+        let _needs_redraw = {
+            let mut renderer = self.inner.renderer.borrow_mut();
+            renderer.draw(scene);
+            renderer.needs_redraw()
+        };
         let (texture_count, texture_pruned_count, texture_draw_count) = self
             .inner
             .renderer

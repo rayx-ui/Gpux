@@ -301,10 +301,14 @@ where
 }
 
 /// Information about the GPU GPUI is running on.
-#[derive(Default, Debug, serde::Serialize, serde::Deserialize, Clone)]
+#[derive(Default, Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
 pub struct GpuSpecs {
     /// Whether the GPU is really a fake (like `llvmpipe`) running on the CPU.
     pub is_software_emulated: bool,
+    /// The selected graphics backend reported by wgpu.
+    pub backend: String,
+    /// The backend policy requested when creating the wgpu instance.
+    pub backend_policy: String,
     /// The name of the device, as reported by Vulkan.
     pub device_name: String,
     /// The name of the driver, as reported by Vulkan.

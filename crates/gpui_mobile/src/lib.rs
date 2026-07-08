@@ -71,6 +71,7 @@ pub use gpui;
 
 // ── shared modules ───────────────────────────────────────────────────────────
 
+mod android_backend;
 pub mod components;
 pub mod packages;
 pub mod platform_view;
@@ -335,6 +336,7 @@ pub use ios::{IosPlatform, current_platform};
 #[cfg(target_os = "android")]
 pub use android::{AndroidPlatform, current_platform};
 
+pub use android_backend::AndroidBackend;
 pub use target_platform::{DEFAULT_PLATFORM, TargetPlatform, target_platform};
 
 // ── fallback for non-mobile host builds (e.g. documentation / CI) ────────────
@@ -371,6 +373,74 @@ mod tests {
         assert!(
             source.contains("static RETAINED_APPLICATION"),
             "iOS FFI should store the retained application in static FFI-owned state"
+        );
+    }
+
+    #[test]
+    fn ios_window_reports_wgpu_effect_capabilities_from_renderer_source() {
+        let source = include_str!("ios/window.rs");
+
+        assert!(
+            source.contains("fn effect_capabilities(&self) -> EffectCapabilities"),
+            "iOS PlatformWindow should override the default unsupported effect capabilities"
+        );
+        assert!(
+            source.contains("r.effect_capabilities()"),
+            "iOS effect capabilities should come from the active WgpuRenderer"
+        );
+        assert!(
+            source.contains("unwrap_or_default()"),
+            "iOS should report unsupported effect capabilities only when no renderer exists"
+        );
+    }
+
+    #[test]
+    fn ios_window_preserves_explicit_metal_wgpu_instance_source() {
+        let source = include_str!("ios/window.rs");
+
+        assert!(
+            source.contains("ClassBuilder::new(c\"GPUIMetalView\""),
+            "iOS should keep using the Metal-backed GPUIMetalView host"
+        );
+        assert!(
+            source.contains("class!(CAMetalLayer)"),
+            "GPUIMetalView should expose CAMetalLayer as its backing layer"
+        );
+        assert!(
+            source.contains("backends: wgpu::Backends::METAL"),
+            "iOS WGPU initialization should construct an explicit Metal-only instance"
+        );
+        assert!(
+            source.contains("WgpuContext::new(metal_instance, &surface, None)"),
+            "iOS should pre-populate WgpuContext from the Metal instance before WgpuRenderer::new"
+        );
+    }
+
+    #[test]
+    fn ios_coretext_text_system_stays_independent_from_windows_wgpu_text_source() {
+        let ios_text = include_str!("ios/text_system.rs");
+        let ios_platform = include_str!("ios/platform.rs");
+        let windows_platform = include_str!("../../gpui_windows/src/platform.rs");
+
+        assert!(
+            ios_platform.contains("Arc::new(super::IosTextSystem::new())"),
+            "iOS platform should construct its own IosTextSystem"
+        );
+        assert!(
+            ios_text.contains("use core_text::"),
+            "iOS text system should continue to use CoreText"
+        );
+        assert!(
+            ios_text.contains("font_kit::loaders::core_text"),
+            "iOS font loading should continue through font-kit CoreText loaders"
+        );
+        assert!(
+            !ios_text.contains("CosmicTextSystem"),
+            "iOS text system should not depend on the Windows/WGPU CosmicTextSystem migration"
+        );
+        assert!(
+            windows_platform.contains("CosmicTextSystem::new(\"Segoe UI\")"),
+            "Windows text migration should remain isolated to the Windows platform"
         );
     }
 }

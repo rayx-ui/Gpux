@@ -113,7 +113,7 @@ impl WindowsWindowInner {
             WM_INPUTLANGCHANGE => self.handle_input_language_changed(),
             WM_SHOWWINDOW => self.handle_window_visibility_changed(handle, wparam),
             WM_GPUI_CURSOR_STYLE_CHANGED => self.handle_cursor_changed(lparam),
-            WM_GPUI_FORCE_UPDATE_WINDOW => self.draw_window(handle, true),
+            WM_GPUI_FORCE_UPDATE_WINDOW => self.handle_force_update_window(handle),
             WM_GPUI_INPUT_UPDATE_WINDOW => self.handle_input_update_window(handle),
             WM_GPUI_GPU_DEVICE_LOST => self.handle_device_lost(lparam),
             DM_POINTERHITTEST => self.handle_dm_pointer_hit_test(wparam),
@@ -176,33 +176,34 @@ impl WindowsWindowInner {
     }
 
     fn handle_size_msg(&self, wparam: WPARAM, lparam: LPARAM) -> Option<isize> {
-        // Don't resize the renderer when the window is minimized, but record that it was minimized so
-        // that on restore the swap chain can be recreated via `update_drawable_size_even_if_unchanged`.
-        if wparam.0 == SIZE_MINIMIZED as usize {
+        let raw_width = lparam.loword() as i32;
+        let raw_height = lparam.hiword() as i32;
+        let minimized = wparam.0 == SIZE_MINIMIZED as usize;
+
+        let WindowsSurfaceResize::Resize(new_size) =
+            windows_surface_resize_for_client_size(raw_width, raw_height, minimized)
+        else {
+            let restore_from_minimized = self.state.restore_from_minimized.take();
             self.state
                 .restore_from_minimized
-                .set(self.state.callbacks.request_frame.take());
-            self.emit_minimized_status_change(true);
+                .set(restore_from_minimized.or_else(|| self.state.callbacks.request_frame.take()));
+            self.unconfigure_wgpu_surface();
+            if minimized {
+                self.emit_minimized_status_change(true);
+            }
             return Some(0);
-        }
-
-        let width = lparam.loword().max(1) as i32;
-        let height = lparam.hiword().max(1) as i32;
-        let new_size = size(DevicePixels(width), DevicePixels(height));
+        };
 
         let scale_factor = self.state.scale_factor.get();
-        let mut should_resize_renderer = false;
         if let Some(restore_from_minimized) = self.state.restore_from_minimized.take() {
             self.state
                 .callbacks
                 .request_frame
                 .set(Some(restore_from_minimized));
             self.emit_minimized_status_change(false);
-        } else {
-            should_resize_renderer = true;
         }
 
-        self.handle_size_change(new_size, scale_factor, should_resize_renderer);
+        self.handle_size_change(new_size, scale_factor, true);
         Some(0)
     }
 
@@ -225,13 +226,8 @@ impl WindowsWindowInner {
         let new_logical_size = device_size.to_pixels(scale_factor);
 
         self.state.logical_size.set(new_logical_size);
-        if should_resize_renderer
-            && let Err(e) = self.state.renderer.borrow_mut().resize(device_size)
-        {
-            log::error!("Failed to resize renderer, invalidating devices: {}", e);
-            self.state
-                .invalidate_devices
-                .store(true, std::sync::atomic::Ordering::Release);
+        if should_resize_renderer {
+            self.state.pending_drawable_size.set(Some(device_size));
         }
         if let Some(mut callback) = self.state.callbacks.resize.take() {
             callback(new_logical_size, scale_factor);
@@ -240,6 +236,7 @@ impl WindowsWindowInner {
     }
 
     fn handle_size_move_loop(&self, handle: HWND) -> Option<isize> {
+        self.state.in_size_move_loop.set(true);
         unsafe {
             let ret = SetTimer(
                 Some(handle),
@@ -258,9 +255,11 @@ impl WindowsWindowInner {
     }
 
     fn handle_size_move_loop_exit(&self, handle: HWND) -> Option<isize> {
+        self.state.in_size_move_loop.set(false);
         unsafe {
             KillTimer(Some(handle), SIZE_MOVE_LOOP_TIMER_ID).log_err();
         }
+        let _ = self.draw_window(handle, false, false);
         None
     }
 
@@ -277,7 +276,7 @@ impl WindowsWindowInner {
     }
 
     fn handle_paint_msg(&self, handle: HWND) -> Option<isize> {
-        self.draw_window(handle, false)
+        self.draw_window(handle, false, false)
     }
 
     fn handle_close_msg(&self) -> Option<isize> {
@@ -288,6 +287,7 @@ impl WindowsWindowInner {
     }
 
     fn handle_destroy_msg(&self, handle: HWND) -> Option<isize> {
+        self.destroy_wgpu_surface();
         let callback = { self.state.callbacks.close.take() };
         // Re-enable parent window if this was a modal dialog
         if let Some(parent_hwnd) = self.parent_hwnd {
@@ -1204,26 +1204,22 @@ impl WindowsWindowInner {
 
     fn handle_window_visibility_changed(&self, handle: HWND, wparam: WPARAM) -> Option<isize> {
         if wparam.0 == 1 {
-            self.draw_window(handle, false);
+            self.draw_window(handle, false, false);
         }
         None
     }
 
-    fn handle_device_lost(&self, lparam: LPARAM) -> Option<isize> {
-        let devices = lparam.0 as *const DirectXDevices;
-        let devices = unsafe { &*devices };
-        if let Err(err) = self
-            .state
-            .renderer
-            .borrow_mut()
-            .handle_device_lost(&devices)
-        {
-            panic!("Device lost: {err}");
-        }
-        // Make sure the first `draw_window` after recovery (whether it comes
-        // from the forced WM_GPUI_FORCE_UPDATE_WINDOW or a stray WM_PAINT in
-        // between) is treated as a forced render so it both clears
-        // `skip_draws` and bypasses the view cache.
+    fn handle_force_update_window(&self, handle: HWND) -> Option<isize> {
+        self.state.wgpu_force_update_posted.set(false);
+        self.draw_window(handle, false, true)
+    }
+
+    fn handle_device_lost(&self, _lparam: LPARAM) -> Option<isize> {
+        // The active Windows renderer is WGPU and recovers from WGPU device loss
+        // in `PlatformWindow::draw`. This message can still arrive while the
+        // DirectWrite text path is recovering its own DirectX device, so force
+        // a fresh scene build on the next frame.
+        log::debug!("Windows GPU device-lost message received; forcing a fresh WGPU scene rebuild");
         self.state.force_render_after_recovery.set(true);
         Some(0)
     }
@@ -1237,11 +1233,16 @@ impl WindowsWindowInner {
         self.state.input_update_posted.set(false);
         self.state.direct_manipulation.clear_input_update_posted();
         self.dispatch_pending_mouse_move();
-        self.draw_window(handle, false)
+        self.draw_window(handle, false, false)
     }
 
     #[inline]
-    fn draw_window(&self, handle: HWND, force_render: bool) -> Option<isize> {
+    fn draw_window(
+        &self,
+        handle: HWND,
+        force_render: bool,
+        require_presentation: bool,
+    ) -> Option<isize> {
         // Flush the newest coalesced mouse move just before drawing so hover and drag visuals stay
         // synced to the cursor without replaying every intermediate WM_MOUSEMOVE.
         self.dispatch_pending_mouse_move();
@@ -1259,16 +1260,14 @@ impl WindowsWindowInner {
             }
         }
 
-        let force_render = force_render || self.state.force_render_after_recovery.take();
-        if force_render {
-            // Re-enable drawing after a device loss recovery. The forced render
-            // will rebuild the scene with fresh atlas textures.
-            self.state.renderer.borrow_mut().mark_drawable();
-        }
-        request_frame(RequestFrameOptions {
-            require_presentation: false,
+        let resize_frame_pending = self.state.pending_drawable_size.get().is_some();
+        let recovery_frame_pending = self.state.force_render_after_recovery.take();
+        request_frame(windows_wgpu_frame_request_options(
             force_render,
-        });
+            require_presentation,
+            resize_frame_pending,
+            recovery_frame_pending,
+        ));
 
         self.state.callbacks.request_frame.set(Some(request_frame));
         self.update_ime_enabled(handle);

@@ -4,6 +4,8 @@ use crate::html_island_texture::{
 };
 #[cfg(target_family = "wasm")]
 use crate::html_island_upload::{HtmlIslandUploadResult, upload_html_island_element_to_texture};
+#[cfg(not(target_family = "wasm"))]
+use crate::native_backend_policy;
 use crate::{CompositorGpuHint, WgpuAtlas, WgpuContext};
 use bytemuck::{Pod, Zeroable};
 #[cfg(target_family = "wasm")]
@@ -26,6 +28,36 @@ use std::num::NonZeroU64;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex, mpsc};
 use std::{mem::align_of, mem::offset_of, mem::size_of};
+
+const SURFACE_FRAME_LATENCY: u32 = 2;
+
+fn backend_policy_label(backends: wgpu::Backends) -> String {
+    let mut labels = Vec::new();
+    if backends.contains(wgpu::Backends::NOOP) {
+        labels.push("NOOP");
+    }
+    if backends.contains(wgpu::Backends::VULKAN) {
+        labels.push("VULKAN");
+    }
+    if backends.contains(wgpu::Backends::METAL) {
+        labels.push("METAL");
+    }
+    if backends.contains(wgpu::Backends::DX12) {
+        labels.push("DX12");
+    }
+    if backends.contains(wgpu::Backends::GL) {
+        labels.push("GL");
+    }
+    if backends.contains(wgpu::Backends::BROWSER_WEBGPU) {
+        labels.push("BROWSER_WEBGPU");
+    }
+
+    if labels.is_empty() {
+        "NONE".to_string()
+    } else {
+        labels.join("|")
+    }
+}
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
@@ -665,12 +697,60 @@ pub struct WgpuSurfaceConfig {
     pub size: Size<DevicePixels>,
     pub transparent: bool,
     /// Preferred presentation mode. When `Some`, the renderer will use this
-    /// mode if supported by the surface, falling back to `Fifo`.
+    /// mode if supported by the surface. `Auto*` modes are accepted directly
+    /// because WGPU defines their own portable fallbacks.
     /// When `None`, defaults to `Fifo` (VSync).
     ///
     /// Mobile platforms may prefer `Mailbox` (triple-buffering) to avoid
     /// blocking in `get_current_texture()` during lifecycle transitions.
     pub preferred_present_mode: Option<wgpu::PresentMode>,
+}
+
+fn choose_present_mode(
+    surface_caps: &wgpu::SurfaceCapabilities,
+    preferred: Option<wgpu::PresentMode>,
+) -> wgpu::PresentMode {
+    if let Some(preferred) = preferred {
+        if is_auto_present_mode(preferred) || surface_caps.present_modes.contains(&preferred) {
+            return preferred;
+        }
+
+        if matches!(
+            preferred,
+            wgpu::PresentMode::AutoNoVsync
+                | wgpu::PresentMode::Immediate
+                | wgpu::PresentMode::Mailbox
+        ) {
+            if surface_caps
+                .present_modes
+                .contains(&wgpu::PresentMode::Mailbox)
+            {
+                return wgpu::PresentMode::Mailbox;
+            }
+            if surface_caps
+                .present_modes
+                .contains(&wgpu::PresentMode::Immediate)
+            {
+                return wgpu::PresentMode::Immediate;
+            }
+            return wgpu::PresentMode::AutoNoVsync;
+        }
+    }
+
+    surface_caps
+        .present_modes
+        .iter()
+        .copied()
+        .find(|mode| *mode == wgpu::PresentMode::Fifo)
+        .or_else(|| surface_caps.present_modes.first().copied())
+        .unwrap_or(wgpu::PresentMode::Fifo)
+}
+
+fn is_auto_present_mode(mode: wgpu::PresentMode) -> bool {
+    matches!(
+        mode,
+        wgpu::PresentMode::AutoVsync | wgpu::PresentMode::AutoNoVsync
+    )
 }
 
 struct WgpuPipelines {
@@ -1060,6 +1140,8 @@ pub struct WgpuRenderer {
     /// Compositor GPU hint for adapter selection (unused on WASM).
     #[allow(dead_code)]
     compositor_gpu: Option<CompositorGpuHint>,
+    #[cfg(not(target_family = "wasm"))]
+    backend_policy: wgpu::Backends,
     resources: Option<WgpuResources>,
     surface_config: wgpu::SurfaceConfiguration,
     atlas: Arc<WgpuAtlas>,
@@ -1119,6 +1201,27 @@ impl WgpuRenderer {
     where
         W: HasWindowHandle + HasDisplayHandle + std::fmt::Debug + Send + Sync + Clone + 'static,
     {
+        Self::new_with_backend_policy(
+            gpu_context,
+            window,
+            config,
+            compositor_gpu,
+            native_backend_policy(),
+        )
+    }
+
+    /// Creates a new WgpuRenderer with an explicit native backend policy.
+    #[cfg(not(target_family = "wasm"))]
+    pub fn new_with_backend_policy<W>(
+        gpu_context: GpuContext,
+        window: &W,
+        config: WgpuSurfaceConfig,
+        compositor_gpu: Option<CompositorGpuHint>,
+        backend_policy: wgpu::Backends,
+    ) -> anyhow::Result<Self>
+    where
+        W: HasWindowHandle + HasDisplayHandle + std::fmt::Debug + Send + Sync + Clone + 'static,
+    {
         let window_handle = window
             .window_handle()
             .map_err(|e| anyhow::anyhow!("Failed to get window handle: {e}"))?;
@@ -1136,7 +1239,9 @@ impl WgpuRenderer {
             .borrow()
             .as_ref()
             .map(|ctx| ctx.instance.clone())
-            .unwrap_or_else(|| WgpuContext::instance(Box::new(window.clone())));
+            .unwrap_or_else(|| {
+                WgpuContext::instance_with_backend_policy(Box::new(window.clone()), backend_policy)
+            });
 
         // Safety: The caller guarantees that the window handle is valid for the
         // lifetime of this renderer. In practice, the RawWindow struct is created
@@ -1153,7 +1258,12 @@ impl WgpuRenderer {
                 context.check_compatible_with_surface(&surface)?;
                 context
             }
-            None => ctx_ref.insert(WgpuContext::new(instance, &surface, compositor_gpu)?),
+            None => ctx_ref.insert(WgpuContext::new_with_backend_policy(
+                instance,
+                &surface,
+                compositor_gpu,
+                backend_policy,
+            )?),
         };
 
         let atlas = Arc::new(WgpuAtlas::from_context(context));
@@ -1165,6 +1275,7 @@ impl WgpuRenderer {
             config,
             compositor_gpu,
             atlas,
+            backend_policy,
         )
     }
 
@@ -1181,7 +1292,15 @@ impl WgpuRenderer {
 
         let atlas = Arc::new(WgpuAtlas::from_context(context));
 
-        Self::new_internal(None, context, surface, config, None, atlas)
+        Self::new_internal(
+            None,
+            context,
+            surface,
+            config,
+            None,
+            atlas,
+            wgpu::Backends::all(),
+        )
     }
 
     fn new_internal(
@@ -1191,6 +1310,7 @@ impl WgpuRenderer {
         config: WgpuSurfaceConfig,
         compositor_gpu: Option<CompositorGpuHint>,
         atlas: Arc<WgpuAtlas>,
+        backend_policy: wgpu::Backends,
     ) -> anyhow::Result<Self> {
         let surface_caps = surface.get_capabilities(&context.adapter);
         let preferred_formats = [
@@ -1271,11 +1391,8 @@ impl WgpuRenderer {
             format: surface_format,
             width: clamped_width.max(1),
             height: clamped_height.max(1),
-            present_mode: config
-                .preferred_present_mode
-                .filter(|mode| surface_caps.present_modes.contains(mode))
-                .unwrap_or(wgpu::PresentMode::Fifo),
-            desired_maximum_frame_latency: 2,
+            present_mode: choose_present_mode(&surface_caps, config.preferred_present_mode),
+            desired_maximum_frame_latency: SURFACE_FRAME_LATENCY,
             alpha_mode,
             view_formats: vec![],
         };
@@ -1435,6 +1552,8 @@ impl WgpuRenderer {
         Ok(Self {
             context: gpu_context,
             compositor_gpu,
+            #[cfg(not(target_family = "wasm"))]
+            backend_policy,
             resources: Some(resources),
             surface_config,
             atlas,
@@ -2130,8 +2249,11 @@ impl WgpuRenderer {
     pub fn update_drawable_size(&mut self, size: Size<DevicePixels>) {
         let width = size.width.0 as u32;
         let height = size.height.0 as u32;
+        let needs_configure = !self.surface_configured
+            || width != self.surface_config.width
+            || height != self.surface_config.height;
 
-        if width != self.surface_config.width || height != self.surface_config.height {
+        if needs_configure {
             let clamped_width = width.min(self.max_texture_size);
             let clamped_height = height.min(self.max_texture_size);
 
@@ -2147,32 +2269,39 @@ impl WgpuRenderer {
             self.surface_config.height = clamped_height.max(1);
             let surface_config = self.surface_config.clone();
 
-            let resources = self.resources_mut();
+            {
+                let resources = self.resources_mut();
 
-            // Wait for any in-flight GPU work to complete before destroying textures
-            if let Err(e) = resources.device.poll(wgpu::PollType::Wait {
-                submission_index: None,
-                timeout: None,
-            }) {
-                warn!("Failed to poll device during resize: {e:?}");
+                #[cfg(target_family = "wasm")]
+                let resize_poll = wgpu::PollType::Poll;
+                #[cfg(not(target_family = "wasm"))]
+                let resize_poll = wgpu::PollType::Wait {
+                    submission_index: None,
+                    timeout: None,
+                };
+                if let Err(e) = resources.device.poll(resize_poll) {
+                    warn!("Failed to poll device during resize: {e:?}");
+                }
+
+                // Destroy old textures before allocating new ones to avoid GPU memory spikes
+                if let Some(ref texture) = resources.path_intermediate_texture {
+                    texture.destroy();
+                }
+                if let Some(ref texture) = resources.path_msaa_texture {
+                    texture.destroy();
+                }
+
+                resources
+                    .surface
+                    .configure(&resources.device, &surface_config);
+
+                // Invalidate intermediate textures - they will be lazily recreated
+                // in draw() after we confirm the surface is healthy. This avoids
+                // panics when the device/surface is in an invalid state during resize.
+                resources.invalidate_intermediate_textures();
             }
 
-            // Destroy old textures before allocating new ones to avoid GPU memory spikes
-            if let Some(ref texture) = resources.path_intermediate_texture {
-                texture.destroy();
-            }
-            if let Some(ref texture) = resources.path_msaa_texture {
-                texture.destroy();
-            }
-
-            resources
-                .surface
-                .configure(&resources.device, &surface_config);
-
-            // Invalidate intermediate textures - they will be lazily recreated
-            // in draw() after we confirm the surface is healthy. This avoids
-            // panics when the device/surface is in an invalid state during resize.
-            resources.invalidate_intermediate_textures();
+            self.surface_configured = true;
         }
     }
 
@@ -2254,10 +2383,22 @@ impl WgpuRenderer {
     pub fn gpu_specs(&self) -> GpuSpecs {
         GpuSpecs {
             is_software_emulated: self.adapter_info.device_type == wgpu::DeviceType::Cpu,
+            backend: self.adapter_info.backend.to_str().to_string(),
+            backend_policy: self.backend_policy_label(),
             device_name: self.adapter_info.name.clone(),
             driver_name: self.adapter_info.driver.clone(),
             driver_info: self.adapter_info.driver_info.clone(),
         }
+    }
+
+    #[cfg(not(target_family = "wasm"))]
+    fn backend_policy_label(&self) -> String {
+        backend_policy_label(self.backend_policy)
+    }
+
+    #[cfg(target_family = "wasm")]
+    fn backend_policy_label(&self) -> String {
+        backend_policy_label(wgpu::Backends::BROWSER_WEBGPU)
     }
 
     pub fn effect_capabilities(&self) -> EffectCapabilities {
@@ -2286,25 +2427,8 @@ impl WgpuRenderer {
 
         self.atlas.before_frame();
 
-        let frame = match self.resources().surface.get_current_texture() {
-            wgpu::CurrentSurfaceTexture::Success(frame) => frame,
-            wgpu::CurrentSurfaceTexture::Suboptimal(frame) => {
-                drop(frame);
-                self.reconfigure_surface();
-                return false;
-            }
-            wgpu::CurrentSurfaceTexture::Lost | wgpu::CurrentSurfaceTexture::Outdated => {
-                self.reconfigure_surface();
-                return false;
-            }
-            wgpu::CurrentSurfaceTexture::Timeout | wgpu::CurrentSurfaceTexture::Occluded => {
-                return false;
-            }
-            wgpu::CurrentSurfaceTexture::Validation => {
-                *self.last_error.lock().unwrap() =
-                    Some("Surface texture validation error".to_string());
-                return false;
-            }
+        let Some(frame) = self.acquire_surface_frame() else {
+            return false;
         };
 
         self.ensure_intermediate_textures();
@@ -2515,6 +2639,43 @@ impl WgpuRenderer {
         resources
             .surface
             .configure(&resources.device, &surface_config);
+    }
+
+    fn acquire_surface_frame(&mut self) -> Option<wgpu::SurfaceTexture> {
+        let mut reconfigured = false;
+        loop {
+            match self.resources().surface.get_current_texture() {
+                wgpu::CurrentSurfaceTexture::Success(frame) => return Some(frame),
+                wgpu::CurrentSurfaceTexture::Suboptimal(frame) if reconfigured => {
+                    self.needs_redraw = true;
+                    return Some(frame);
+                }
+                wgpu::CurrentSurfaceTexture::Suboptimal(frame) => {
+                    drop(frame);
+                    self.reconfigure_surface();
+                    reconfigured = true;
+                }
+                wgpu::CurrentSurfaceTexture::Lost | wgpu::CurrentSurfaceTexture::Outdated
+                    if !reconfigured =>
+                {
+                    self.reconfigure_surface();
+                    reconfigured = true;
+                }
+                wgpu::CurrentSurfaceTexture::Lost | wgpu::CurrentSurfaceTexture::Outdated => {
+                    self.needs_redraw = true;
+                    return None;
+                }
+                wgpu::CurrentSurfaceTexture::Timeout | wgpu::CurrentSurfaceTexture::Occluded => {
+                    self.needs_redraw = true;
+                    return None;
+                }
+                wgpu::CurrentSurfaceTexture::Validation => {
+                    *self.last_error.lock().unwrap() =
+                        Some("Surface texture validation error".to_string());
+                    return None;
+                }
+            }
+        }
     }
 
     fn write_globals(&self) {
@@ -3775,23 +3936,12 @@ impl WgpuRenderer {
                 .ok_or_else(|| anyhow::anyhow!("Replacement surface reports no alpha modes"))?
         };
 
-        let preferred_present_mode = config
-            .preferred_present_mode
-            .unwrap_or(self.surface_config.present_mode);
-        self.surface_config.present_mode = if surface_caps
-            .present_modes
-            .contains(&preferred_present_mode)
-        {
-            preferred_present_mode
-        } else {
-            surface_caps
-                .present_modes
-                .iter()
-                .copied()
-                .find(|mode| *mode == wgpu::PresentMode::Fifo)
-                .or_else(|| surface_caps.present_modes.first().copied())
-                .ok_or_else(|| anyhow::anyhow!("Replacement surface reports no present modes"))?
-        };
+        self.surface_config.present_mode = choose_present_mode(
+            &surface_caps,
+            config
+                .preferred_present_mode
+                .or(Some(self.surface_config.present_mode)),
+        );
 
         let preferred_surface_usage = wgpu::TextureUsages::RENDER_ATTACHMENT
             | wgpu::TextureUsages::COPY_SRC
@@ -3873,10 +4023,17 @@ impl WgpuRenderer {
             // may need more time to come back (e.g. after suspend/resume).
             std::thread::sleep(std::time::Duration::from_millis(350));
 
-            let instance = WgpuContext::instance(Box::new(window.clone()));
+            let instance = WgpuContext::instance_with_backend_policy(
+                Box::new(window.clone()),
+                self.backend_policy,
+            );
             let surface = create_surface(&instance, window_handle.as_raw())?;
-            let new_context =
-                WgpuContext::new_rejecting_software(instance, &surface, self.compositor_gpu)?;
+            let new_context = WgpuContext::new_rejecting_software_with_backend_policy(
+                instance,
+                &surface,
+                self.compositor_gpu,
+                self.backend_policy,
+            )?;
             *gpu_context.borrow_mut() = Some(new_context);
             surface
         } else {
@@ -3907,6 +4064,7 @@ impl WgpuRenderer {
             config,
             self.compositor_gpu,
             self.atlas.clone(),
+            self.backend_policy,
         )?;
 
         log::info!("GPU recovery complete");
@@ -3989,6 +4147,51 @@ mod tests {
             point(ScaledPixels(0.), ScaledPixels(0.)),
             size(ScaledPixels(width), ScaledPixels(height)),
         )
+    }
+
+    fn surface_caps_with_present_modes(
+        present_modes: Vec<wgpu::PresentMode>,
+    ) -> wgpu::SurfaceCapabilities {
+        wgpu::SurfaceCapabilities {
+            present_modes,
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn choose_present_mode_keeps_mailbox_when_supported() {
+        let caps = surface_caps_with_present_modes(vec![
+            wgpu::PresentMode::Fifo,
+            wgpu::PresentMode::Mailbox,
+        ]);
+
+        assert_eq!(
+            choose_present_mode(&caps, Some(wgpu::PresentMode::Mailbox)),
+            wgpu::PresentMode::Mailbox
+        );
+    }
+
+    #[test]
+    fn choose_present_mode_falls_back_from_mailbox_to_immediate_before_fifo() {
+        let caps = surface_caps_with_present_modes(vec![
+            wgpu::PresentMode::Fifo,
+            wgpu::PresentMode::Immediate,
+        ]);
+
+        assert_eq!(
+            choose_present_mode(&caps, Some(wgpu::PresentMode::Mailbox)),
+            wgpu::PresentMode::Immediate
+        );
+    }
+
+    #[test]
+    fn choose_present_mode_uses_fifo_without_preference() {
+        let caps = surface_caps_with_present_modes(vec![
+            wgpu::PresentMode::Immediate,
+            wgpu::PresentMode::Fifo,
+        ]);
+
+        assert_eq!(choose_present_mode(&caps, None), wgpu::PresentMode::Fifo);
     }
 
     #[test]

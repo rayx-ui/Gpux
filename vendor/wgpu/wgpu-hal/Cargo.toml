@@ -124,7 +124,9 @@ gles = [
     "dep:profiling",
     "dep:wasm-bindgen",
     "dep:web-sys",
+    "dep:windows-result",
     "wgpu-types/web",
+    "windows-result/std",
     "windows/Win32_Graphics_OpenGL",
     "windows/Win32_Graphics_Gdi",
     "windows/Win32_System_LibraryLoader",
@@ -146,6 +148,7 @@ dx12 = [
     "dep:windows-core",
     "dep:gpu-allocator",
     "gpu-allocator/d3d12",
+    "once_cell/std",
     "windows/Win32_Devices_DeviceAndDriverInstallation",
     "windows/Win32_Graphics_Direct3D_Fxc",
     "windows/Win32_Graphics_Direct3D_Dxc",
@@ -259,6 +262,7 @@ wayland-sys = { version = "0.31.3", features = [
 # Backend: Dx12 and GLES
 windows = { workspace = true, optional = true }
 windows-core = { workspace = true, optional = true }
+windows-result = { workspace = true, optional = true }
 # Backend: Dx12
 bit-set = { workspace = true, optional = true }
 range-alloc = { workspace = true, optional = true }

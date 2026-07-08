@@ -2,7 +2,7 @@ use super::{AudioFormat, Recording, RecordingConfig};
 use crate::android::jni::{self as jni_helpers, JniExt, get_string};
 use jni::objects::JValue;
 
-const HELPER_CLASS: &str = "dev.gpui.mobile.GpuiMicrophone";
+const HELPER_CLASS: &str = "dev.rayx.mobile.RayXMicrophone";
 
 pub fn is_available() -> bool {
     jni_helpers::with_env(|env| {

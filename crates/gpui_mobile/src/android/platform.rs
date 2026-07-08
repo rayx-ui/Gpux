@@ -587,17 +587,21 @@ impl AndroidPlatform {
         transparent: bool,
     ) -> Result<Arc<AndroidWindow>> {
         let mut state = self.state.lock();
+        let backend = state.preferred_backend;
         let window = AndroidWindow::new(
             native_window,
             Rc::clone(&state.gpu_context),
             scale_factor,
             transparent,
+            backend,
         )?;
         state.windows.push(Arc::clone(&window));
         log::info!(
-            "AndroidPlatform::open_window — id={:#x} scale={:.1}",
+            "AndroidPlatform::open_window — id={:#x} scale={:.1} preferred_backend={} backend_policy={}",
             window.id(),
-            scale_factor
+            scale_factor,
+            backend,
+            backend.wgpu_backend_policy_label()
         );
         Ok(window)
     }
@@ -905,9 +909,23 @@ impl AndroidPlatform {
         self.state.lock().preferred_backend
     }
 
+    /// Preferred wgpu backend policy passed to `gpui_wgpu`.
+    pub fn preferred_backend_policy(&self) -> gpui_wgpu::wgpu::Backends {
+        self.preferred_backend().wgpu_backends()
+    }
+
     /// Override the preferred wgpu backend.
     pub fn set_preferred_backend(&self, backend: AndroidBackend) {
-        self.state.lock().preferred_backend = backend;
+        let mut state = self.state.lock();
+        let context_initialized = state.gpu_context.borrow().is_some();
+        if state.preferred_backend != backend && context_initialized {
+            log::warn!(
+                "Android WGPU backend preference changed from {} to {} after GPU context creation; existing renderers keep the already-selected backend until the context is recreated.",
+                state.preferred_backend,
+                backend
+            );
+        }
+        state.preferred_backend = backend;
     }
 
     // ── callback registration ─────────────────────────────────────────────────
@@ -1630,6 +1648,19 @@ mod tests {
         let p = headless();
         p.set_preferred_backend(AndroidBackend::Gles);
         assert_eq!(p.preferred_backend(), AndroidBackend::Gles);
+        assert_eq!(p.preferred_backend_policy(), gpui_wgpu::wgpu::Backends::GL);
+    }
+
+    #[test]
+    fn android_backend_maps_to_wgpu_backend_policy() {
+        assert_eq!(
+            AndroidBackend::Vulkan.wgpu_backends(),
+            gpui_wgpu::wgpu::Backends::VULKAN | gpui_wgpu::wgpu::Backends::GL
+        );
+        assert_eq!(
+            AndroidBackend::Gles.wgpu_backends(),
+            gpui_wgpu::wgpu::Backends::GL
+        );
     }
 
     // ── text system ───────────────────────────────────────────────────────────
@@ -1651,8 +1682,8 @@ mod tests {
         p.on_open_urls(move |urls| {
             r2.lock().extend(urls);
         });
-        p.deliver_open_urls(vec!["gpui://test".to_string()]);
-        assert_eq!(received.lock().as_slice(), &["gpui://test"]);
+        p.deliver_open_urls(vec!["rayx://test".to_string()]);
+        assert_eq!(received.lock().as_slice(), &["rayx://test"]);
     }
 
     // ── reopen callback ───────────────────────────────────────────────────────

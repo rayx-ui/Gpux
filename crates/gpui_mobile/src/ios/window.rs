@@ -14,10 +14,10 @@ use super::IosDisplay;
 use super::events::*;
 use gpui::{
     AnyWindowHandle, AtlasKey, AtlasTextureId, AtlasTextureKind, AtlasTile, Bounds, Capslock,
-    DevicePixels, DispatchEventResult, GpuSpecs, Modifiers, Pixels, PlatformAtlas, PlatformDisplay,
-    PlatformInput, PlatformInputHandler, PlatformWindow, Point, PromptButton, PromptLevel,
-    RequestFrameOptions, Scene, Size, TileId, WindowAppearance, WindowBackgroundAppearance,
-    WindowBounds, WindowControlArea, WindowParams, point, px, size,
+    DevicePixels, DispatchEventResult, EffectCapabilities, GpuSpecs, Modifiers, Pixels,
+    PlatformAtlas, PlatformDisplay, PlatformInput, PlatformInputHandler, PlatformWindow, Point,
+    PromptButton, PromptLevel, RequestFrameOptions, Scene, Size, TileId, WindowAppearance,
+    WindowBackgroundAppearance, WindowBounds, WindowControlArea, WindowParams, point, px, size,
 };
 use gpui_wgpu::{GpuContext, WgpuContext, WgpuRenderer, WgpuSurfaceConfig};
 use objc2::encode::{Encode, Encoding, RefEncode};
@@ -750,10 +750,9 @@ impl IosWindow {
 
             // Create the wgpu renderer using the Metal backend.
             //
-            // `gpui_wgpu::WgpuContext::instance()` only enables Vulkan+GL,
-            // so we create our own wgpu instance with Metal enabled, build
-            // a surface from the UIView's raw window handle, construct the
-            // WgpuContext with that instance, and finally create the renderer.
+            // iOS creates its own Metal instance here rather than using the
+            // shared native helper, whose platform policy is owned by each
+            // desktop/mobile integration target.
             let config = WgpuSurfaceConfig {
                 size: size(DevicePixels(pixel_w), DevicePixels(pixel_h)),
                 transparent: false,
@@ -1937,6 +1936,14 @@ impl PlatformWindow for IosWindow {
     fn gpu_specs(&self) -> Option<GpuSpecs> {
         let guard = self.renderer.lock();
         guard.as_ref().map(|r| r.gpu_specs())
+    }
+
+    fn effect_capabilities(&self) -> EffectCapabilities {
+        let guard = self.renderer.lock();
+        guard
+            .as_ref()
+            .map(|r| r.effect_capabilities())
+            .unwrap_or_default()
     }
 
     fn update_ime_position(&self, _bounds: Bounds<Pixels>) {

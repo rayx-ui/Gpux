@@ -53,6 +53,7 @@ webview = []
 anyhow.workspace = true
 futures.workspace = true
 gpui = { package = "gpux", path = "../gpui", default-features = false }
+gpui_wgpu = { workspace = true }
 log.workspace = true
 parking_lot.workspace = true
 raw-window-handle = "0.6"
@@ -74,7 +75,6 @@ wgpu.workspace = true
 [target.'cfg(target_os = "android")'.dependencies]
 android-activity = { version = "0.6", optional = true, default-features = false }
 android_logger = "0.15"
-gpui_wgpu = { workspace = true }
 jni = "0.22"
 jni-sys-03 = { package = "jni-sys", version = "0.3" }
 libc.workspace = true

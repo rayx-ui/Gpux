@@ -184,7 +184,7 @@ impl<T> JniExt<T> for jni::errors::Result<T> {
 /// which doesn't know about application classes.  This helper uses the
 /// Activity's classloader via `activity.getClass().getClassLoader().loadClass(name)`.
 ///
-/// `class_name` uses Java dot notation (e.g. `"dev.gpui.mobile.GpuiHelper"`).
+/// `class_name` uses Java dot notation (e.g. `"dev.rayx.mobile.RayXHelper"`).
 pub fn find_app_class<'local>(
     env: &mut jni::Env<'local>,
     class_name: &str,
@@ -209,7 +209,7 @@ pub fn find_app_class<'local>(
             msg
         })?;
 
-    // classLoader.loadClass("dev.gpui.mobile.GpuiHelper")
+    // classLoader.loadClass("dev.rayx.mobile.RayXHelper")
     let jname = env.new_string(class_name).e()?;
     let loaded = env
         .call_method(
@@ -856,7 +856,7 @@ pub fn run_event_loop(app: &AndroidApp) {
 #[cfg(feature = "android-native-activity")]
 fn pause_platform_views() {
     let _ = with_env(|env| {
-        if let Ok(helper_class) = find_app_class(env, "dev.gpui.mobile.GpuiPlatformView") {
+        if let Ok(helper_class) = find_app_class(env, "dev.rayx.mobile.RayXPlatformView") {
             let _ = env.call_static_method(
                 &helper_class,
                 jni::jni_str!("pauseAll"),
@@ -873,7 +873,7 @@ fn pause_platform_views() {
 #[cfg(feature = "android-native-activity")]
 fn resume_platform_views() {
     let _ = with_env(|env| {
-        if let Ok(helper_class) = find_app_class(env, "dev.gpui.mobile.GpuiPlatformView") {
+        if let Ok(helper_class) = find_app_class(env, "dev.rayx.mobile.RayXPlatformView") {
             let _ = env.call_static_method(
                 &helper_class,
                 jni::jni_str!("resumeAll"),
@@ -890,7 +890,7 @@ fn resume_platform_views() {
 #[cfg(feature = "android-native-activity")]
 fn dispose_all_platform_views() {
     let _ = with_env(|env| {
-        if let Ok(helper_class) = find_app_class(env, "dev.gpui.mobile.GpuiPlatformView") {
+        if let Ok(helper_class) = find_app_class(env, "dev.rayx.mobile.RayXPlatformView") {
             let _ = env.call_static_method(
                 &helper_class,
                 jni::jni_str!("disposeAll"),
@@ -1285,9 +1285,9 @@ pub fn hide_keyboard_android() {
 
 // ── tests ─────────────────────────────────────────────────────────────────────
 
-// ── JNI export for GpuiActivity splash screen ────────────────────────────────
+// ── JNI export for RayXActivity splash screen ────────────────────────────────
 
-/// Called from `GpuiActivity.nativeIsInitialized()` to check whether the
+/// Called from `RayXActivity.nativeIsInitialized()` to check whether the
 /// native library has finished initializing (first frame rendered).
 ///
 /// The AndroidX SplashScreen API calls this via `setKeepOnScreenCondition`
@@ -1296,7 +1296,7 @@ pub fn hide_keyboard_android() {
 /// # Safety
 /// Must only be called from the JVM on a valid JNI thread.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_dev_gpui_mobile_GpuiActivity_nativeIsInitialized(
+pub unsafe extern "C" fn Java_dev_rayx_mobile_RayXActivity_nativeIsInitialized(
     _env: *mut std::ffi::c_void,
     _class: *mut std::ffi::c_void,
 ) -> u8 {
@@ -1307,16 +1307,16 @@ pub unsafe extern "C" fn Java_dev_gpui_mobile_GpuiActivity_nativeIsInitialized(
     }
 }
 
-/// JNI bridge: receive a deeplink URL from `GpuiActivity.onNewIntent()`.
+/// JNI bridge: receive a deeplink URL from `RayXActivity.onNewIntent()`.
 ///
 /// When the app is already running and a deeplink is opened (e.g. via
-/// `adb shell am start -d gpui://video_player`), the Java side calls
+/// `adb shell am start -d <scheme>://video_player`), the Java side calls
 /// this to notify the Rust deeplink handler.
 ///
 /// # Safety
 /// Must only be called from the JVM on a valid JNI thread with a valid `url` jobject.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_dev_gpui_mobile_GpuiActivity_nativeOnDeepLink(
+pub unsafe extern "C" fn Java_dev_rayx_mobile_RayXActivity_nativeOnDeepLink(
     _env: *mut std::ffi::c_void,
     _class: *mut std::ffi::c_void,
     url: *mut std::ffi::c_void,

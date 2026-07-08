@@ -160,6 +160,7 @@ pub mod window;
 
 // ── public re-exports ─────────────────────────────────────────────────────────
 
+pub use crate::AndroidBackend;
 pub use dispatcher::AndroidDispatcher;
 pub use display::AndroidDisplay;
 pub use keyboard::*;
@@ -187,28 +188,6 @@ pub fn current_platform(headless: bool) -> std::rc::Rc<dyn gpui::Platform> {
     }
 
     embedded::current_platform(headless)
-}
-
-// ── helper: Android-specific surface kind ─────────────────────────────────────
-
-/// Which GPU back-end to use for the wgpu surface.
-///
-/// On Android the Vulkan back-end is strongly preferred; GL-ES is the
-/// fallback for devices that don't expose Vulkan 1.1.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Default)]
-pub enum AndroidBackend {
-    #[default]
-    Vulkan,
-    Gles,
-}
-
-impl std::fmt::Display for AndroidBackend {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Vulkan => write!(f, "Vulkan"),
-            Self::Gles => write!(f, "OpenGL ES"),
-        }
-    }
 }
 
 // ── helper: key / input event types ──────────────────────────────────────────

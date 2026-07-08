@@ -1,7 +1,7 @@
 use crate::android::jni::{self as jni_helpers, JniExt, get_string};
 use jni::objects::JValue;
 
-const HELPER_CLASS: &str = "dev.gpui.mobile.GpuiClipboard";
+const HELPER_CLASS: &str = "dev.rayx.mobile.RayXClipboard";
 
 pub fn set_text(text: &str) -> Result<(), String> {
     let text = text.to_owned();

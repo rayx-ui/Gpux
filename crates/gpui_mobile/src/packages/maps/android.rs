@@ -10,7 +10,7 @@ pub fn set_center(center: LatLng) -> Result<(), String> {
         center.latitude,
         center.longitude
     );
-    // TODO: Call GpuiMaps.setCenter() when Maps SDK is integrated
+    // TODO: Call RayXMaps.setCenter() when Maps SDK is integrated
     Ok(())
 }
 

@@ -650,6 +650,75 @@ fn face_info_into_properties(
 }
 
 fn check_is_known_emoji_font(postscript_name: &str) -> bool {
-    // TODO: Include other common emoji fonts
-    postscript_name == "NotoColorEmoji"
+    let normalized = postscript_name
+        .chars()
+        .filter(|ch| !ch.is_whitespace() && *ch != '-' && *ch != '_')
+        .flat_map(char::to_lowercase)
+        .collect::<String>();
+
+    matches!(
+        normalized.as_str(),
+        "notocoloremoji" | "segoeuiemoji" | "applecoloremoji"
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use gpux::{FontRun, PlatformTextSystem, RenderGlyphParams, font, point, px};
+
+    #[test]
+    fn known_emoji_fonts_include_windows_segoe_ui_emoji() {
+        assert!(check_is_known_emoji_font("NotoColorEmoji"));
+        assert!(check_is_known_emoji_font("SegoeUIEmoji"));
+        assert!(check_is_known_emoji_font("Segoe UI Emoji"));
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn windows_cosmic_text_shapes_mixed_script_fallbacks() {
+        let text_system = CosmicTextSystem::new("Segoe UI");
+        let font_id = text_system.font_id(&font("Segoe UI")).unwrap();
+        let text = "Latin Z \u{0416} \u{754c}";
+
+        let layout = text_system.layout_line(
+            text,
+            px(18.),
+            &[FontRun {
+                len: text.len(),
+                font_id,
+            }],
+        );
+
+        assert_eq!(layout.len, text.len());
+        assert!(layout.width > px(0.));
+        assert!(!layout.runs.is_empty());
+        assert!(layout.runs.iter().any(|run| !run.glyphs.is_empty()));
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn windows_cosmic_text_raster_bounds_scale_with_dpi() {
+        let text_system = CosmicTextSystem::new("Segoe UI");
+        let font_id = text_system.font_id(&font("Segoe UI")).unwrap();
+        let glyph_id = text_system.glyph_for_char(font_id, 'R').unwrap();
+        let params = RenderGlyphParams {
+            font_id,
+            glyph_id,
+            font_size: px(20.),
+            subpixel_variant: point(0, 0),
+            scale_factor: 1.0,
+            is_emoji: false,
+            subpixel_rendering: false,
+            dilation: 0,
+        };
+        let mut scaled_params = params.clone();
+        scaled_params.scale_factor = 2.0;
+
+        let regular_bounds = text_system.glyph_raster_bounds(&params).unwrap();
+        let scaled_bounds = text_system.glyph_raster_bounds(&scaled_params).unwrap();
+
+        assert!(scaled_bounds.size.width.0 > regular_bounds.size.width.0);
+        assert!(scaled_bounds.size.height.0 > regular_bounds.size.height.0);
+    }
 }

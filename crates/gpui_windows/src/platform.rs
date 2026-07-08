@@ -19,7 +19,7 @@ use windows::{
     UI::ViewManagement::UISettings,
     Win32::{
         Foundation::*,
-        Graphics::{Direct3D11::ID3D11Device, Gdi::*},
+        Graphics::Gdi::*,
         Security::Credentials::*,
         System::{Com::*, LibraryLoader::*, Ole::*, SystemInformation::*},
         UI::{Input::KeyboardAndMouse::*, Shell::*, WindowsAndMessaging::*},
@@ -28,6 +28,7 @@ use windows::{
 };
 
 use crate::*;
+use gpui_wgpu::CosmicTextSystem;
 use gpux::*;
 
 pub struct WindowsPlatform {
@@ -39,13 +40,9 @@ pub struct WindowsPlatform {
     background_executor: BackgroundExecutor,
     foreground_executor: ForegroundExecutor,
     text_system: Arc<dyn PlatformTextSystem>,
-    direct_write_text_system: Option<Arc<DirectWriteTextSystem>>,
+    gpu_context: gpui_wgpu::GpuContext,
     drop_target_helper: Option<IDropTargetHelper>,
-    /// Flag to instruct the `VSyncProvider` thread to invalidate the directx devices
-    /// as resizing them has failed, causing us to have lost at least the render target.
-    invalidate_devices: Arc<AtomicBool>,
     handle: HWND,
-    disable_direct_composition: bool,
 }
 
 struct WindowsPlatformInner {
@@ -65,7 +62,6 @@ pub(crate) struct WindowsPlatformState {
     pub(crate) current_cursor: Cell<Option<HCURSOR>>,
     /// Shared with each window so `WM_SETCURSOR` can read it directly.
     pub(crate) cursor_visible: Arc<AtomicBool>,
-    directx_devices: RefCell<Option<DirectXDevices>>,
 }
 
 #[derive(Default)]
@@ -80,7 +76,7 @@ struct PlatformCallbacks {
 }
 
 impl WindowsPlatformState {
-    fn new(directx_devices: Option<DirectXDevices>) -> Self {
+    fn new() -> Self {
         let callbacks = PlatformCallbacks::default();
         let jump_list = JumpList::new();
         let current_cursor = load_cursor(CursorStyle::Arrow);
@@ -90,9 +86,16 @@ impl WindowsPlatformState {
             jump_list: RefCell::new(jump_list),
             current_cursor: Cell::new(current_cursor),
             cursor_visible: Arc::new(AtomicBool::new(true)),
-            directx_devices: RefCell::new(directx_devices),
             menus: RefCell::new(Vec::new()),
         }
+    }
+}
+
+fn create_platform_text_system(headless: bool) -> Arc<dyn PlatformTextSystem> {
+    if headless {
+        Arc::new(gpux::NoopTextSystem::new())
+    } else {
+        Arc::new(CosmicTextSystem::new("Segoe UI"))
     }
 }
 
@@ -101,24 +104,7 @@ impl WindowsPlatform {
         unsafe {
             OleInitialize(None).context("unable to initialize Windows OLE")?;
         }
-        let (directx_devices, text_system, direct_write_text_system) = if !headless {
-            let devices = DirectXDevices::new().context("Creating DirectX devices")?;
-            let dw_text_system = Arc::new(
-                DirectWriteTextSystem::new(&devices)
-                    .context("Error creating DirectWriteTextSystem")?,
-            );
-            (
-                Some(devices),
-                dw_text_system.clone() as Arc<dyn PlatformTextSystem>,
-                Some(dw_text_system),
-            )
-        } else {
-            (
-                None,
-                Arc::new(gpux::NoopTextSystem::new()) as Arc<dyn PlatformTextSystem>,
-                None,
-            )
-        };
+        let text_system = create_platform_text_system(headless);
 
         let (main_sender, main_receiver) = PriorityQueueReceiver::new();
         let validation_number = if usize::BITS == 64 {
@@ -127,6 +113,7 @@ impl WindowsPlatform {
             rand::random::<u32>() as usize
         };
         let raw_window_handles = Arc::new(RwLock::new(SmallVec::new()));
+        let gpu_context = Rc::new(RefCell::new(None));
 
         register_platform_window_class();
         let mut context = PlatformWindowCreateContext {
@@ -135,7 +122,6 @@ impl WindowsPlatform {
             validation_number,
             main_sender: Some(main_sender),
             main_receiver: Some(main_receiver),
-            directx_devices,
             dispatcher: None,
         };
         let result = unsafe {
@@ -164,8 +150,6 @@ impl WindowsPlatform {
             .context("CreateWindowExW did not run correctly")?;
         let handle = result?;
 
-        let disable_direct_composition = std::env::var(DISABLE_DIRECT_COMPOSITION)
-            .is_ok_and(|value| value == "true" || value == "1");
         let background_executor = BackgroundExecutor::new(dispatcher.clone());
         let foreground_executor = ForegroundExecutor::new(dispatcher);
 
@@ -192,10 +176,8 @@ impl WindowsPlatform {
             background_executor,
             foreground_executor,
             text_system,
-            direct_write_text_system,
-            disable_direct_composition,
+            gpu_context,
             drop_target_helper,
-            invalidate_devices: Arc::new(AtomicBool::new(false)),
         })
     }
 
@@ -227,9 +209,7 @@ impl WindowsPlatform {
             validation_number: self.inner.validation_number,
             main_receiver: self.inner.main_receiver.clone(),
             platform_window_handle: self.handle,
-            disable_direct_composition: self.disable_direct_composition,
-            directx_devices: self.inner.state.directx_devices.borrow().clone().unwrap(),
-            invalidate_devices: self.invalidate_devices.clone(),
+            gpu_context: self.gpu_context.clone(),
         }
     }
 
@@ -295,18 +275,7 @@ impl WindowsPlatform {
     }
 
     fn begin_vsync_thread(&self) {
-        let Some(directx_devices) = self.inner.state.directx_devices.borrow().clone() else {
-            return;
-        };
-        let Some(direct_write_text_system) = &self.direct_write_text_system else {
-            return;
-        };
-        let mut directx_device = directx_devices;
-        let platform_window: SafeHwnd = self.handle.into();
-        let validation_number = self.inner.validation_number;
         let all_windows = Arc::downgrade(&self.raw_window_handles);
-        let text_system = Arc::downgrade(direct_write_text_system);
-        let invalidate_devices = self.invalidate_devices.clone();
 
         std::thread::Builder::new()
             .name("VSyncProvider".to_owned())
@@ -314,19 +283,6 @@ impl WindowsPlatform {
                 let vsync_provider = VSyncProvider::new();
                 loop {
                     vsync_provider.wait_for_vsync();
-                    if check_device_lost(&directx_device.device)
-                        || invalidate_devices.fetch_and(false, Ordering::Acquire)
-                    {
-                        if let Err(err) = handle_gpu_device_lost(
-                            &mut directx_device,
-                            platform_window.as_raw(),
-                            validation_number,
-                            &all_windows,
-                            &text_system,
-                        ) {
-                            panic!("Device lost: {err}");
-                        }
-                    }
                     let Some(all_windows) = all_windows.upgrade() else {
                         break;
                     };
@@ -840,7 +796,7 @@ impl Platform for WindowsPlatform {
 
 impl WindowsPlatformInner {
     fn new(context: &mut PlatformWindowCreateContext) -> Result<Rc<Self>> {
-        let state = WindowsPlatformState::new(context.directx_devices.take());
+        let state = WindowsPlatformState::new();
         Ok(Rc::new(Self {
             state,
             raw_window_handles: context.raw_window_handles.clone(),
@@ -1020,11 +976,7 @@ impl WindowsPlatformInner {
     }
 
     fn handle_device_lost(&self, lparam: LPARAM) -> Option<isize> {
-        let directx_devices = lparam.0 as *const DirectXDevices;
-        let directx_devices = unsafe { &*directx_devices };
-        self.state.directx_devices.borrow_mut().take();
-        *self.state.directx_devices.borrow_mut() = Some(directx_devices.clone());
-
+        let _ = lparam;
         Some(0)
     }
 }
@@ -1049,11 +1001,7 @@ pub(crate) struct WindowCreationInfo {
     pub(crate) validation_number: usize,
     pub(crate) main_receiver: PriorityQueueReceiver<RunnableVariant>,
     pub(crate) platform_window_handle: HWND,
-    pub(crate) disable_direct_composition: bool,
-    pub(crate) directx_devices: DirectXDevices,
-    /// Flag to instruct the `VSyncProvider` thread to invalidate the directx devices
-    /// as resizing them has failed, causing us to have lost at least the render target.
-    pub(crate) invalidate_devices: Arc<AtomicBool>,
+    pub(crate) gpu_context: gpui_wgpu::GpuContext,
 }
 
 struct PlatformWindowCreateContext {
@@ -1062,7 +1010,6 @@ struct PlatformWindowCreateContext {
     validation_number: usize,
     main_sender: Option<PriorityQueueSender<RunnableVariant>>,
     main_receiver: Option<PriorityQueueReceiver<RunnableVariant>>,
-    directx_devices: Option<DirectXDevices>,
     dispatcher: Option<Arc<WindowsDispatcher>>,
 }
 
@@ -1249,72 +1196,6 @@ fn should_auto_hide_scrollbars() -> Result<bool> {
     Ok(ui_settings.AutoHideScrollBars()?)
 }
 
-fn check_device_lost(device: &ID3D11Device) -> bool {
-    let device_state = unsafe { device.GetDeviceRemovedReason() };
-    match device_state {
-        Ok(_) => false,
-        Err(err) => {
-            log::error!("DirectX device lost detected: {:?}", err);
-            true
-        }
-    }
-}
-
-fn handle_gpu_device_lost(
-    directx_devices: &mut DirectXDevices,
-    platform_window: HWND,
-    validation_number: usize,
-    all_windows: &std::sync::Weak<RwLock<SmallVec<[SafeHwnd; 4]>>>,
-    text_system: &std::sync::Weak<DirectWriteTextSystem>,
-) -> Result<()> {
-    // Here we wait a bit to ensure the system has time to recover from the device lost state.
-    // If we don't wait, the final drawing result will be blank.
-    std::thread::sleep(std::time::Duration::from_millis(350));
-
-    *directx_devices = try_to_recover_from_device_lost(|| {
-        DirectXDevices::new().context("Failed to recreate new DirectX devices after device lost")
-    })?;
-    log::info!("DirectX devices successfully recreated.");
-
-    let lparam = LPARAM(directx_devices as *const _ as _);
-    unsafe {
-        SendMessageW(
-            platform_window,
-            WM_GPUI_GPU_DEVICE_LOST,
-            Some(WPARAM(validation_number)),
-            Some(lparam),
-        );
-    }
-
-    if let Some(text_system) = text_system.upgrade() {
-        text_system.handle_gpu_lost(&directx_devices)?;
-    }
-    if let Some(all_windows) = all_windows.upgrade() {
-        for window in all_windows.read().iter() {
-            unsafe {
-                SendMessageW(
-                    window.as_raw(),
-                    WM_GPUI_GPU_DEVICE_LOST,
-                    Some(WPARAM(validation_number)),
-                    Some(lparam),
-                );
-            }
-        }
-        std::thread::sleep(std::time::Duration::from_millis(200));
-        for window in all_windows.read().iter() {
-            unsafe {
-                SendMessageW(
-                    window.as_raw(),
-                    WM_GPUI_FORCE_UPDATE_WINDOW,
-                    Some(WPARAM(validation_number)),
-                    None,
-                );
-            }
-        }
-    }
-    Ok(())
-}
-
 const PLATFORM_WINDOW_CLASS_NAME: PCWSTR = w!("Zed::PlatformWindow");
 
 fn register_platform_window_class() {
@@ -1392,6 +1273,15 @@ unsafe extern "system" fn window_procedure(
 mod tests {
     use crate::{read_from_clipboard, write_to_clipboard};
     use gpux::ClipboardItem;
+
+    #[test]
+    fn non_headless_text_system_uses_wgpu_compatible_system_fonts() {
+        let text_system = super::create_platform_text_system(false);
+
+        text_system
+            .font_id(&gpux::font("Segoe UI"))
+            .expect("Windows WGPU text system should resolve the system UI font");
+    }
 
     #[test]
     fn test_clipboard() {
