@@ -976,7 +976,8 @@ impl AndroidPlatform {
     ///
     /// Useful in headless tests where there is no real ALooper.
     pub fn flush_main_thread_tasks(&self) {
-        self.state.lock().dispatcher.flush_main_thread_tasks();
+        let dispatcher = self.state.lock().dispatcher.clone();
+        dispatcher.flush_main_thread_tasks();
     }
 }
 
@@ -1715,6 +1716,30 @@ mod tests {
     fn flush_main_thread_tasks_no_panic() {
         // There are no tasks queued, so this should be a no-op.
         headless().flush_main_thread_tasks();
+    }
+
+    #[test]
+    fn flush_main_thread_tasks_releases_platform_state_before_callbacks() {
+        let platform = Arc::new(headless());
+        let callback_platform = Arc::clone(&platform);
+        let state_was_available = Arc::new(AtomicBool::new(false));
+        let callback_state_was_available = Arc::clone(&state_was_available);
+
+        platform
+            .foreground_executor()
+            .dispatch_on_main_thread(move || {
+                callback_state_was_available.store(
+                    callback_platform.state.try_lock().is_some(),
+                    Ordering::Relaxed,
+                );
+            });
+
+        platform.flush_main_thread_tasks();
+
+        assert!(
+            state_was_available.load(Ordering::Relaxed),
+            "foreground callbacks must be able to query AndroidPlatform state"
+        );
     }
 
     // ── tick ─────────────────────────────────────────────────────────────────
