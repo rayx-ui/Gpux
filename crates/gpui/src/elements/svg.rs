@@ -118,7 +118,7 @@ impl Element for Svg {
             window,
             cx,
             |style, window, cx| {
-                if let Some((path, color)) = self.path.as_ref().zip(style.text.color) {
+                if let Some((path, color)) = self.path.as_ref().zip(style.text.color.clone()) {
                     let transformation = self
                         .transformation
                         .as_ref()
@@ -131,7 +131,7 @@ impl Element for Svg {
                         .paint_svg(bounds, path.clone(), None, transformation, color, cx)
                         .log_err();
                 } else if let Some((path, color)) =
-                    self.external_path.as_ref().zip(style.text.color)
+                    self.external_path.as_ref().zip(style.text.color.clone())
                 {
                     let Some(bytes) = window
                         .use_asset::<SvgAsset>(path, cx)

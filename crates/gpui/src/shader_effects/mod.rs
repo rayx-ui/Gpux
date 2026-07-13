@@ -1,4 +1,4 @@
-use crate::{Bounds, Hsla, Pixels, Point, SharedString, point, px};
+use crate::{Bounds, Color, Hsla, PaintColor, Pixels, Point, SharedString, point, px};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -11,6 +11,85 @@ pub enum ElementEffect {
     Glass(GlassEffect),
     /// A halo around the element bounds.
     Glow(GlowEffect),
+}
+
+/// Scene-ready element effect whose color payloads are cached linear paint values.
+#[derive(Clone, Debug, PartialEq)]
+pub enum PreparedElementEffect {
+    /// CSS-like backdrop blur sampling content already painted behind the element.
+    BackdropBlur {
+        /// Blur radius in logical pixels.
+        radius: Pixels,
+        /// Backdrop saturation multiplier.
+        saturation: f32,
+        /// Backdrop brightness multiplier.
+        brightness: f32,
+        /// Optional prepared linear tint.
+        tint: Option<PaintColor>,
+        /// Requested sampling quality.
+        quality: EffectQuality,
+    },
+    /// Liquid glass composed from backdrop blur, tint, highlight, and edge refraction.
+    Glass {
+        /// Backdrop blur radius in logical pixels.
+        blur_radius: Pixels,
+        /// Backdrop saturation multiplier.
+        saturation: f32,
+        /// Backdrop brightness multiplier.
+        brightness: f32,
+        /// Prepared linear glass tint.
+        tint: PaintColor,
+        /// Prepared linear edge highlight.
+        highlight: PaintColor,
+        /// Refraction strength.
+        refraction: f32,
+        /// Surface distortion strength.
+        distortion: f32,
+        /// Requested sampling quality.
+        quality: EffectQuality,
+    },
+    /// A halo around the element bounds.
+    Glow {
+        /// Prepared linear glow color.
+        color: PaintColor,
+        /// Glow radius in logical pixels.
+        radius: Pixels,
+        /// Glow spread in logical pixels.
+        spread: Pixels,
+        /// Glow intensity multiplier.
+        intensity: f32,
+    },
+}
+
+impl ElementEffect {
+    /// Normalizes every authored effect color exactly once when the scene is built.
+    pub fn prepare(&self) -> PreparedElementEffect {
+        match self {
+            Self::BackdropBlur(effect) => PreparedElementEffect::BackdropBlur {
+                radius: effect.radius,
+                saturation: effect.saturation,
+                brightness: effect.brightness,
+                tint: effect.tint.as_ref().map(Color::paint_color),
+                quality: effect.quality,
+            },
+            Self::Glass(effect) => PreparedElementEffect::Glass {
+                blur_radius: effect.blur_radius,
+                saturation: effect.saturation,
+                brightness: effect.brightness,
+                tint: effect.tint.paint_color(),
+                highlight: effect.highlight.paint_color(),
+                refraction: effect.refraction,
+                distortion: effect.distortion,
+                quality: effect.quality,
+            },
+            Self::Glow(effect) => PreparedElementEffect::Glow {
+                color: effect.color.paint_color(),
+                radius: effect.radius,
+                spread: effect.spread,
+                intensity: effect.intensity,
+            },
+        }
+    }
 }
 
 /// Renderer quality preference for shader-backed effects.
@@ -29,7 +108,9 @@ pub struct BackdropBlurEffect {
     radius: Pixels,
     saturation: f32,
     brightness: f32,
-    tint: Option<Hsla>,
+    #[serde(with = "crate::color::option_color_serde")]
+    #[schemars(with = "Option<Hsla>")]
+    tint: Option<Color>,
     quality: EffectQuality,
 }
 
@@ -65,7 +146,7 @@ impl BackdropBlurEffect {
     }
 
     /// Sets an optional tint composited over the sampled backdrop.
-    pub fn tint(mut self, tint: impl Into<Hsla>) -> Self {
+    pub fn tint(mut self, tint: impl Into<Color>) -> Self {
         self.tint = Some(tint.into());
         self
     }
@@ -98,8 +179,8 @@ impl BackdropBlurEffect {
     }
 
     /// Returns the optional tint.
-    pub fn tint_color(&self) -> Option<Hsla> {
-        self.tint
+    pub fn tint_color(&self) -> Option<&Color> {
+        self.tint.as_ref()
     }
 
     /// Returns the renderer quality preference.
@@ -120,8 +201,18 @@ pub struct GlassEffect {
     blur_radius: Pixels,
     saturation: f32,
     brightness: f32,
-    tint: Hsla,
-    highlight: Hsla,
+    #[serde(
+        serialize_with = "crate::color::serialize_color_as_hsla",
+        deserialize_with = "crate::color::deserialize_color_from_hsla"
+    )]
+    #[schemars(with = "Hsla")]
+    tint: Color,
+    #[serde(
+        serialize_with = "crate::color::serialize_color_as_hsla",
+        deserialize_with = "crate::color::deserialize_color_from_hsla"
+    )]
+    #[schemars(with = "Hsla")]
+    highlight: Color,
     refraction: f32,
     distortion: f32,
     quality: EffectQuality,
@@ -138,13 +229,15 @@ impl Default for GlassEffect {
                 s: 0.18,
                 l: 0.88,
                 a: 0.22,
-            },
+            }
+            .into(),
             highlight: Hsla {
                 h: 0.58,
                 s: 0.1,
                 l: 1.0,
                 a: 0.32,
-            },
+            }
+            .into(),
             refraction: 0.035,
             distortion: 0.02,
             quality: EffectQuality::Fast,
@@ -178,13 +271,13 @@ impl GlassEffect {
     }
 
     /// Sets the glass tint.
-    pub fn tint(mut self, tint: impl Into<Hsla>) -> Self {
+    pub fn tint(mut self, tint: impl Into<Color>) -> Self {
         self.tint = tint.into();
         self
     }
 
     /// Sets the edge highlight.
-    pub fn highlight(mut self, highlight: impl Into<Hsla>) -> Self {
+    pub fn highlight(mut self, highlight: impl Into<Color>) -> Self {
         self.highlight = highlight.into();
         self
     }
@@ -229,13 +322,13 @@ impl GlassEffect {
     }
 
     /// Returns the glass tint.
-    pub fn tint_color(&self) -> Hsla {
-        self.tint
+    pub fn tint_color(&self) -> &Color {
+        &self.tint
     }
 
     /// Returns the edge highlight color.
-    pub fn highlight_color(&self) -> Hsla {
-        self.highlight
+    pub fn highlight_color(&self) -> &Color {
+        &self.highlight
     }
 
     /// Returns the refraction strength.
@@ -263,7 +356,12 @@ impl From<GlassEffect> for ElementEffect {
 /// Glow parameters for a styled element.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct GlowEffect {
-    color: Hsla,
+    #[serde(
+        serialize_with = "crate::color::serialize_color_as_hsla",
+        deserialize_with = "crate::color::deserialize_color_from_hsla"
+    )]
+    #[schemars(with = "Hsla")]
+    color: Color,
     radius: Pixels,
     spread: Pixels,
     intensity: f32,
@@ -272,9 +370,9 @@ pub struct GlowEffect {
 impl GlowEffect {
     /// Creates a glow effect. WGPU is the first backend with shader support;
     /// unsupported renderers report capabilities rather than drawing fake glow.
-    pub fn new(color: Hsla) -> Self {
+    pub fn new(color: impl Into<Color>) -> Self {
         Self {
-            color,
+            color: color.into(),
             radius: px(24.0),
             spread: px(0.0),
             intensity: 1.0,
@@ -300,8 +398,8 @@ impl GlowEffect {
     }
 
     /// Returns the glow color.
-    pub fn color(&self) -> Hsla {
-        self.color
+    pub fn color(&self) -> &Color {
+        &self.color
     }
 
     /// Returns the glow blur radius.
@@ -499,7 +597,8 @@ pub struct RippleEffect {
     wavelength: Pixels,
     damping: f32,
     chromatic_aberration: f32,
-    tint: Option<Hsla>,
+    #[serde(with = "crate::color::option_color_serde")]
+    tint: Option<Color>,
 }
 
 impl RippleEffect {
@@ -563,7 +662,7 @@ impl RippleEffect {
     }
 
     /// Sets an optional tint for the ripple.
-    pub fn tint(mut self, tint: impl Into<Hsla>) -> Self {
+    pub fn tint(mut self, tint: impl Into<Color>) -> Self {
         self.tint = Some(tint.into());
         self
     }
@@ -609,8 +708,8 @@ impl RippleEffect {
     }
 
     /// Returns the optional tint.
-    pub fn tint_color(&self) -> Option<Hsla> {
-        self.tint
+    pub fn tint_color(&self) -> Option<&Color> {
+        self.tint.as_ref()
     }
 }
 
@@ -641,7 +740,8 @@ pub struct SnapshotTransitionEffect {
     wavelength: Pixels,
     damping: f32,
     blur_radius: Pixels,
-    tint: Option<Hsla>,
+    #[serde(with = "crate::color::option_color_serde")]
+    tint: Option<Color>,
 }
 
 /// Snapshot transition variant used by [`crate::transition_frame`].
@@ -672,7 +772,8 @@ pub struct FrameTransition {
     wavelength: Pixels,
     damping: f32,
     blur_radius: Pixels,
-    tint: Option<Hsla>,
+    #[serde(with = "crate::color::option_color_serde")]
+    tint: Option<Color>,
 }
 
 impl Default for FrameTransition {
@@ -779,7 +880,7 @@ impl FrameTransition {
     }
 
     /// Sets an optional tint over the retained snapshot.
-    pub fn tint(mut self, tint: impl Into<Hsla>) -> Self {
+    pub fn tint(mut self, tint: impl Into<Color>) -> Self {
         self.tint = Some(tint.into());
         self
     }
@@ -827,7 +928,7 @@ impl FrameTransition {
         .damping(self.damping)
         .blur_radius(self.blur_radius);
 
-        if let Some(tint) = self.tint {
+        if let Some(tint) = self.tint.clone() {
             transition = transition.tint(tint);
         }
 
@@ -904,7 +1005,7 @@ impl SnapshotTransitionEffect {
     }
 
     /// Sets an optional tint over the retained snapshot.
-    pub fn tint(mut self, tint: impl Into<Hsla>) -> Self {
+    pub fn tint(mut self, tint: impl Into<Color>) -> Self {
         self.tint = Some(tint.into());
         self
     }
@@ -960,8 +1061,8 @@ impl SnapshotTransitionEffect {
     }
 
     /// Returns the optional tint.
-    pub fn tint_color(&self) -> Option<Hsla> {
-        self.tint
+    pub fn tint_color(&self) -> Option<&Color> {
+        self.tint.as_ref()
     }
 }
 
@@ -985,8 +1086,8 @@ pub fn glass() -> GlassEffect {
 ///
 /// WGPU is the first backend with shader support; unsupported renderers report
 /// capabilities rather than drawing fake glow.
-pub fn glow(color: impl Into<Hsla>) -> GlowEffect {
-    GlowEffect::new(color.into())
+pub fn glow(color: impl Into<Color>) -> GlowEffect {
+    GlowEffect::new(color)
 }
 
 /// Screen effect constructors.

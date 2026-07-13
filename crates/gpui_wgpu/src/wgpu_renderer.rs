@@ -11,13 +11,13 @@ use bytemuck::{Pod, Zeroable};
 #[cfg(target_family = "wasm")]
 use gpux::HtmlIslandPrimitive;
 use gpux::{
-    ActiveScreenEffect, ActiveScreenEffectSnapshot, AtlasTextureId, Background, BackgroundKind,
-    Bounds, ColorSpace, ContentMask, Corners, DevicePixels, Edges, EffectCapabilities,
-    EffectQuality, ElementEffect, ElementEffectCapabilities, GpuSpecs, Hsla, MonochromeSprite,
-    Path, Pixels, Point, PolychromeSprite, PrimitiveBatch, Quad, ScaledPixels, Scene, ScreenEffect,
-    ScreenEffectCapabilities, ScreenEffectSnapshotId, ScreenEffectTarget, Shadow, Size,
-    SnapshotTransitionKind, SubpixelSprite, TransformationMatrix, Underline, VisualEffectPrimitive,
-    get_gamma_correction_ratios, prepare_gradient_stop_color,
+    ActiveScreenEffect, ActiveScreenEffectSnapshot, AtlasTextureId, BackgroundKind, Bounds,
+    ColorSpace, ContentMask, Corners, DevicePixels, Edges, EffectCapabilities, EffectQuality,
+    ElementEffectCapabilities, GpuSpecs, MonochromeSprite, PaintColor, Path, Pixels, Point,
+    PolychromeSprite, PreparedBackground, PreparedElementEffect, PrimitiveBatch, Quad,
+    ScaledPixels, Scene, ScreenEffect, ScreenEffectCapabilities, ScreenEffectSnapshotId,
+    ScreenEffectTarget, Shadow, Size, SnapshotTransitionKind, SubpixelSprite, TransformationMatrix,
+    Underline, VisualEffectPrimitive, get_gamma_correction_ratios,
 };
 use image::RgbaImage;
 use log::warn;
@@ -331,45 +331,60 @@ fn pack_visual_effect_primitives(primitives: &[VisualEffectPrimitive]) -> Packed
     packed
 }
 
-fn pack_element_effect(effect: &ElementEffect) -> PackedElementEffect {
+fn pack_element_effect(effect: &PreparedElementEffect) -> PackedElementEffect {
     match effect {
-        ElementEffect::BackdropBlur(effect) => PackedElementEffect {
+        PreparedElementEffect::BackdropBlur {
+            radius,
+            saturation,
+            brightness,
+            tint,
+            quality,
+        } => PackedElementEffect {
             kind: VISUAL_EFFECT_KIND_BACKDROP_BLUR,
             _pad: [0; 3],
             params0: [
-                pack_blur_radius(effect.radius_value(), effect.quality_value()),
-                effect.saturation_value(),
-                effect.brightness_value(),
+                pack_blur_radius(*radius, *quality),
+                *saturation,
+                *brightness,
                 0.0,
             ],
             params1: [0.0; 4],
-            color0: effect.tint_color().map(pack_hsla).unwrap_or([0.0; 4]),
+            color0: tint.map(pack_paint_color).unwrap_or([0.0; 4]),
             color1: [0.0; 4],
         },
-        ElementEffect::Glass(effect) => PackedElementEffect {
+        PreparedElementEffect::Glass {
+            blur_radius,
+            saturation,
+            brightness,
+            tint,
+            highlight,
+            refraction,
+            distortion,
+            quality,
+        } => PackedElementEffect {
             kind: VISUAL_EFFECT_KIND_GLASS,
             _pad: [0; 3],
             params0: [
-                pack_blur_radius(effect.blur_radius(), effect.quality_value()),
-                effect.saturation_value(),
-                effect.brightness_value(),
-                effect.refraction_value(),
+                pack_blur_radius(*blur_radius, *quality),
+                *saturation,
+                *brightness,
+                *refraction,
             ],
-            params1: [effect.distortion_value(), 0.0, 0.0, 0.0],
-            color0: pack_hsla(effect.tint_color()),
-            color1: pack_hsla(effect.highlight_color()),
+            params1: [*distortion, 0.0, 0.0, 0.0],
+            color0: pack_paint_color(*tint),
+            color1: pack_paint_color(*highlight),
         },
-        ElementEffect::Glow(effect) => PackedElementEffect {
+        PreparedElementEffect::Glow {
+            color,
+            radius,
+            spread,
+            intensity,
+        } => PackedElementEffect {
             kind: VISUAL_EFFECT_KIND_GLOW,
             _pad: [0; 3],
-            params0: [
-                f32::from(effect.radius_value()),
-                f32::from(effect.spread_value()),
-                effect.intensity_value(),
-                0.0,
-            ],
+            params0: [f32::from(*radius), f32::from(*spread), *intensity, 0.0],
             params1: [0.0; 4],
-            color0: pack_hsla(effect.color()),
+            color0: pack_paint_color(*color),
             color1: [0.0; 4],
         },
     }
@@ -413,7 +428,10 @@ fn pack_screen_effects(
                     uses_snapshot: 0,
                     _pad0: [0; 2],
                     bounds,
-                    tint: effect.tint_color().map(pack_hsla).unwrap_or([0.0; 4]),
+                    tint: effect
+                        .tint_color()
+                        .map(|color| pack_paint_color(color.paint_color()))
+                        .unwrap_or([0.0; 4]),
                     origin,
                     elapsed_ms: active.elapsed_ms() as f32,
                     duration_ms: effect.duration_ms_value().max(1) as f32,
@@ -466,7 +484,10 @@ fn pack_screen_effects(
                     uses_snapshot: 1,
                     _pad0: [0; 2],
                     bounds,
-                    tint: effect.tint_color().map(pack_hsla).unwrap_or([0.0; 4]),
+                    tint: effect
+                        .tint_color()
+                        .map(|color| pack_paint_color(color.paint_color()))
+                        .unwrap_or([0.0; 4]),
                     origin: pack_scaled_pixel_origin(effect.origin_value(), scale_factor),
                     elapsed_ms: active.elapsed_ms() as f32,
                     duration_ms: effect.duration_ms_value().max(1) as f32,
@@ -562,19 +583,19 @@ fn pack_region_origin(
 }
 
 fn pack_background(
-    background: &Background,
+    background: &PreparedBackground,
     gradient_stops: &mut Vec<PackedGradientStop>,
 ) -> PackedBackground {
     let (stop_offset, stop_count) = match background.kind() {
         BackgroundKind::LinearGradient => {
             let stop_offset = gradient_stops.len() as u32;
-            let color_space = background.interpolation_color_space();
-            gradient_stops.extend(
-                background
-                    .gradient_stops()
-                    .iter()
-                    .map(|stop| pack_gradient_stop(*stop, color_space)),
-            );
+            gradient_stops.extend(background.gradient_stops().iter().map(|stop| {
+                PackedGradientStop {
+                    prepared_color: stop.color,
+                    percentage: stop.percentage,
+                    _pad: [0.0; 3],
+                }
+            }));
             (stop_offset, background.gradient_stops().len() as u32)
         }
         BackgroundKind::Solid | BackgroundKind::PatternSlash | BackgroundKind::Checkerboard => {
@@ -585,7 +606,7 @@ fn pack_background(
     PackedBackground {
         tag: background_kind_to_u32(background.kind()),
         color_space: color_space_to_u32(background.interpolation_color_space()),
-        solid: pack_hsla(background.solid_color()),
+        solid: pack_paint_color(background.solid_color()),
         gradient_angle_or_pattern_height: background.angle_or_pattern_value(),
         stop_offset,
         stop_count,
@@ -593,16 +614,8 @@ fn pack_background(
     }
 }
 
-fn pack_gradient_stop(stop: gpux::LinearColorStop, color_space: ColorSpace) -> PackedGradientStop {
-    PackedGradientStop {
-        prepared_color: prepare_gradient_stop_color(stop.color, color_space),
-        percentage: stop.percentage,
-        _pad: [0.0; 3],
-    }
-}
-
-fn pack_hsla(color: Hsla) -> [f32; 4] {
-    [color.h, color.s, color.l, color.a]
+fn pack_paint_color(color: PaintColor) -> [f32; 4] {
+    [color.r, color.g, color.b, color.a]
 }
 
 fn pack_blur_radius(radius: gpux::Pixels, quality: EffectQuality) -> f32 {
@@ -1144,6 +1157,7 @@ pub struct WgpuRenderer {
     backend_policy: wgpu::Backends,
     resources: Option<WgpuResources>,
     surface_config: wgpu::SurfaceConfiguration,
+    render_target_format: wgpu::TextureFormat,
     atlas: Arc<WgpuAtlas>,
     path_globals_offset: u64,
     gamma_offset: u64,
@@ -1312,6 +1326,9 @@ impl WgpuRenderer {
         atlas: Arc<WgpuAtlas>,
         backend_policy: wgpu::Backends,
     ) -> anyhow::Result<Self> {
+        #[cfg(target_family = "wasm")]
+        let _ = backend_policy;
+
         let surface_caps = surface.get_capabilities(&context.adapter);
         let preferred_formats = [
             wgpu::TextureFormat::Bgra8Unorm,
@@ -1329,6 +1346,7 @@ impl WgpuRenderer {
                     context.adapter.get_info().name
                 )
             })?;
+        let render_target_format = surface_format.add_srgb_suffix();
 
         let pick_alpha_mode =
             |preferences: &[wgpu::CompositeAlphaMode]| -> anyhow::Result<wgpu::CompositeAlphaMode> {
@@ -1394,7 +1412,7 @@ impl WgpuRenderer {
             present_mode: choose_present_mode(&surface_caps, config.preferred_present_mode),
             desired_maximum_frame_latency: SURFACE_FRAME_LATENCY,
             alpha_mode,
-            view_formats: vec![],
+            view_formats: vec![render_target_format],
         };
         // Configure the surface immediately. The adapter selection process already validated
         // that this adapter can successfully configure this surface.
@@ -1408,7 +1426,7 @@ impl WgpuRenderer {
         let pipelines = Self::create_pipelines(
             &device,
             &bind_group_layouts,
-            surface_format,
+            render_target_format,
             alpha_mode,
             rendering_params.path_sample_count,
             dual_source_blending,
@@ -1556,6 +1574,7 @@ impl WgpuRenderer {
             backend_policy,
             resources: Some(resources),
             surface_config,
+            render_target_format,
             atlas,
             path_globals_offset,
             gamma_offset,
@@ -1803,7 +1822,7 @@ impl WgpuRenderer {
         device: &wgpu::Device,
         layouts: &WgpuBindGroupLayouts,
         surface_format: wgpu::TextureFormat,
-        alpha_mode: wgpu::CompositeAlphaMode,
+        _alpha_mode: wgpu::CompositeAlphaMode,
         path_sample_count: u32,
         dual_source_blending: bool,
     ) -> WgpuPipelines {
@@ -1848,16 +1867,9 @@ impl WgpuRenderer {
             None
         };
 
-        let blend_mode = match alpha_mode {
-            wgpu::CompositeAlphaMode::PreMultiplied => {
-                wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING
-            }
-            _ => wgpu::BlendState::ALPHA_BLENDING,
-        };
-
         let color_target = wgpu::ColorTargetState {
             format: surface_format,
-            blend: Some(blend_mode),
+            blend: Some(wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING),
             write_mask: wgpu::ColorWrites::ALL,
         };
 
@@ -2310,7 +2322,7 @@ impl WgpuRenderer {
             return;
         }
 
-        let format = self.surface_config.format;
+        let format = self.render_target_format;
         let width = self.surface_config.width;
         let height = self.surface_config.height;
         let path_sample_count = self.rendering_params.path_sample_count;
@@ -2349,6 +2361,7 @@ impl WgpuRenderer {
             let surface_config = self.surface_config.clone();
             let path_sample_count = self.rendering_params.path_sample_count;
             let dual_source_blending = self.dual_source_blending;
+            let render_target_format = self.render_target_format;
             let resources = self.resources_mut();
             resources
                 .surface
@@ -2356,7 +2369,7 @@ impl WgpuRenderer {
             resources.pipelines = Self::create_pipelines(
                 &resources.device,
                 &resources.bind_group_layouts,
-                surface_config.format,
+                render_target_format,
                 surface_config.alpha_mode,
                 path_sample_count,
                 dual_source_blending,
@@ -2434,9 +2447,10 @@ impl WgpuRenderer {
         self.ensure_intermediate_textures();
         self.write_globals();
 
-        let frame_view = frame
-            .texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
+        let frame_view = frame.texture.create_view(&wgpu::TextureViewDescriptor {
+            format: Some(self.render_target_format),
+            ..Default::default()
+        });
 
         let encoder = match self.encode_scene_to_view(scene, &frame_view) {
             Ok(encoder) => encoder,
@@ -2498,9 +2512,10 @@ impl WgpuRenderer {
         self.ensure_intermediate_textures();
         self.write_globals();
 
-        let frame_view = frame
-            .texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
+        let frame_view = frame.texture.create_view(&wgpu::TextureViewDescriptor {
+            format: Some(self.render_target_format),
+            ..Default::default()
+        });
         let mut encoder = self.encode_scene_to_view(scene, &frame_view)?;
 
         let width = self.surface_config.width;
@@ -2730,7 +2745,7 @@ impl WgpuRenderer {
     ) -> anyhow::Result<wgpu::CommandEncoder> {
         let width = self.surface_config.width;
         let height = self.surface_config.height;
-        let format = self.surface_config.format;
+        let format = self.render_target_format;
         let mut effect_targets = Some(
             self.resources_mut()
                 .take_or_create_effect_targets(width, height, format),

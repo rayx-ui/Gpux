@@ -1,4 +1,6 @@
 use anyhow::{Context as _, bail};
+use collections::FxHashMap;
+use gpux_color::{Color, PaintColor};
 use schemars::{JsonSchema, json_schema};
 use serde::{
     Deserialize, Deserializer, Serialize, Serializer,
@@ -6,9 +8,17 @@ use serde::{
 };
 use std::borrow::Cow;
 use std::{
+    cell::RefCell,
     fmt::{self, Display, Formatter},
     hash::{Hash, Hasher},
 };
+
+const HSLA_COLOR_CACHE_CAPACITY: usize = 1_024;
+
+thread_local! {
+    static HSLA_COLOR_CACHE: RefCell<FxHashMap<[u32; 4], Color>> =
+        RefCell::new(FxHashMap::default());
+}
 
 /// Convert an RGB hex color code number to a color type
 pub fn rgb(hex: u32) -> Rgba {
@@ -650,6 +660,71 @@ impl From<Rgba> for Hsla {
     }
 }
 
+impl From<Hsla> for Color {
+    fn from(color: Hsla) -> Self {
+        let key = [
+            color.h.to_bits(),
+            color.s.to_bits(),
+            color.l.to_bits(),
+            color.a.to_bits(),
+        ];
+        HSLA_COLOR_CACHE.with_borrow_mut(|cache| {
+            if let Some(cached) = cache.get(&key) {
+                return cached.clone();
+            }
+
+            let converted = Color::from_hsl(
+                f64::from(color.h) * 360.0,
+                f64::from(color.s),
+                f64::from(color.l),
+                f64::from(color.a),
+            )
+            .expect("GPUI Hsla inputs must contain finite components and alpha in [0, 1]");
+            if cache.len() == HSLA_COLOR_CACHE_CAPACITY {
+                cache.clear();
+            }
+            cache.insert(key, converted.clone());
+            converted
+        })
+    }
+}
+
+impl From<Rgba> for Color {
+    fn from(color: Rgba) -> Self {
+        Color::from_encoded_srgb(
+            f64::from(color.r),
+            f64::from(color.g),
+            f64::from(color.b),
+            f64::from(color.a),
+        )
+        .expect("GPUI Rgba inputs must contain finite components and alpha in [0, 1]")
+    }
+}
+
+impl From<Color> for Hsla {
+    fn from(color: Color) -> Self {
+        let hsl = color.to_hsl();
+        Self {
+            h: (hsl.hue_degrees / 360.0) as f32,
+            s: hsl.saturation as f32,
+            l: hsl.lightness as f32,
+            a: color.alpha() as f32,
+        }
+    }
+}
+
+impl From<Color> for Rgba {
+    fn from(color: Color) -> Self {
+        let srgb = color.to_srgb();
+        Self {
+            r: srgb.r as f32,
+            g: srgb.g as f32,
+            b: srgb.b as f32,
+            a: color.alpha() as f32,
+        }
+    }
+}
+
 impl JsonSchema for Hsla {
     fn schema_name() -> Cow<'static, str> {
         Rgba::schema_name()
@@ -718,7 +793,12 @@ const MAX_LINEAR_GRADIENT_STOPS: usize = 256;
 pub struct Background {
     pub(crate) tag: BackgroundTag,
     pub(crate) color_space: ColorSpace,
-    pub(crate) solid: Hsla,
+    #[serde(
+        serialize_with = "serialize_color_as_hsla",
+        deserialize_with = "deserialize_color_from_hsla"
+    )]
+    #[schemars(with = "Hsla")]
+    pub(crate) solid: Color,
     pub(crate) gradient_angle_or_pattern_height: f32,
     pub(crate) stops: Vec<LinearColorStop>,
 }
@@ -751,7 +831,7 @@ impl Default for Background {
     fn default() -> Self {
         Self {
             tag: BackgroundTag::Solid,
-            solid: Hsla::default(),
+            solid: Color::default(),
             color_space: ColorSpace::default(),
             gradient_angle_or_pattern_height: 0.0,
             stops: Vec::new(),
@@ -761,47 +841,23 @@ impl Default for Background {
 
 /// Prepares a gradient stop color for interpolation in the requested color space.
 #[doc(hidden)]
-pub fn prepare_gradient_stop_color(color: Hsla, color_space: ColorSpace) -> [f32; 4] {
-    let rgba = hsla_to_rgba(color);
+pub fn prepare_gradient_stop_color(color: &Color, color_space: ColorSpace) -> [f32; 4] {
+    let alpha = color.alpha() as f32;
     match color_space {
-        ColorSpace::Srgb => rgba,
+        ColorSpace::Srgb => {
+            let paint = color.paint_color();
+            [paint.r, paint.g, paint.b, paint.a]
+        }
         ColorSpace::Oklab => {
-            let linear = srgb_to_linear(rgba[..3].try_into().unwrap());
-            linear_srgb_to_oklab([linear[0], linear[1], linear[2], rgba[3]])
+            let oklab = color.to_oklab();
+            [
+                oklab.l as f32 * alpha,
+                oklab.a as f32 * alpha,
+                oklab.b as f32 * alpha,
+                alpha,
+            ]
         }
     }
-}
-
-fn hsla_to_rgba(color: Hsla) -> [f32; 4] {
-    let rgba = Rgba::from(color);
-    [rgba.r, rgba.g, rgba.b, rgba.a]
-}
-
-fn srgb_to_linear(color: [f32; 3]) -> [f32; 3] {
-    color.map(|channel| {
-        if channel < 0.04045 {
-            channel / 12.92
-        } else {
-            ((channel + 0.055) / 1.055).powf(2.4)
-        }
-    })
-}
-
-fn linear_srgb_to_oklab(color: [f32; 4]) -> [f32; 4] {
-    let l = 0.412_221_46 * color[0] + 0.536_332_55 * color[1] + 0.051_445_995 * color[2];
-    let m = 0.211_903_5 * color[0] + 0.680_699_5 * color[1] + 0.107_396_96 * color[2];
-    let s = 0.088_302_46 * color[0] + 0.281_718_85 * color[1] + 0.629_978_7 * color[2];
-
-    let l_root = l.powf(1.0 / 3.0);
-    let m_root = m.powf(1.0 / 3.0);
-    let s_root = s.powf(1.0 / 3.0);
-
-    [
-        0.210_454_26 * l_root + 0.793_617_8 * m_root - 0.004_072_047 * s_root,
-        1.977_998_5 * l_root - 2.428_592_2 * m_root + 0.450_593_7 * s_root,
-        0.025_904_037 * l_root + 0.782_771_77 * m_root - 0.808_675_77 * s_root,
-        color[3],
-    ]
 }
 
 /// The kind of background represented by [`Background`].
@@ -818,7 +874,7 @@ pub enum BackgroundKind {
 }
 
 /// Creates a hash pattern background
-pub fn pattern_slash(color: impl Into<Hsla>, width: f32, interval: f32) -> Background {
+pub fn pattern_slash(color: impl Into<Color>, width: f32, interval: f32) -> Background {
     let width_scaled = (width * 255.0) as u32;
     let interval_scaled = (interval * 255.0) as u32;
     let height = ((width_scaled * 0xFFFF) + interval_scaled) as f32;
@@ -832,7 +888,7 @@ pub fn pattern_slash(color: impl Into<Hsla>, width: f32, interval: f32) -> Backg
 }
 
 /// Creates a checkerboard pattern background
-pub fn checkerboard(color: impl Into<Hsla>, size: f32) -> Background {
+pub fn checkerboard(color: impl Into<Color>, size: f32) -> Background {
     Background {
         tag: BackgroundTag::Checkerboard,
         solid: color.into(),
@@ -842,7 +898,7 @@ pub fn checkerboard(color: impl Into<Hsla>, size: f32) -> Background {
 }
 
 /// Creates a solid background color.
-pub fn solid_background(color: impl Into<Hsla>) -> Background {
+pub fn solid_background(color: impl Into<Color>) -> Background {
     Background {
         solid: color.into(),
         ..Default::default()
@@ -880,11 +936,15 @@ where
 /// A color stop in a linear gradient.
 ///
 /// <https://developer.mozilla.org/en-US/docs/Web/CSS/gradient/linear-gradient#linear-color-stop>
-#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
-#[repr(C)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct LinearColorStop {
     /// The color of the color stop.
-    pub color: Hsla,
+    #[serde(
+        serialize_with = "serialize_color_as_hsla",
+        deserialize_with = "deserialize_color_from_hsla"
+    )]
+    #[schemars(with = "Hsla")]
+    pub color: Color,
     /// The percentage of the gradient, in the range 0.0 to 1.0.
     pub percentage: f32,
 }
@@ -892,7 +952,7 @@ pub struct LinearColorStop {
 /// Creates a new linear color stop.
 ///
 /// The percentage of the gradient, in the range 0.0 to 1.0.
-pub fn linear_color_stop(color: impl Into<Hsla>, percentage: f32) -> LinearColorStop {
+pub fn linear_color_stop(color: impl Into<Color>, percentage: f32) -> LinearColorStop {
     LinearColorStop {
         color: color.into(),
         percentage,
@@ -965,9 +1025,9 @@ impl Background {
     }
 
     /// Returns the solid color if this is a solid background, None otherwise.
-    pub fn as_solid(&self) -> Option<Hsla> {
+    pub fn as_solid(&self) -> Option<Color> {
         if self.tag == BackgroundTag::Solid {
-            Some(self.solid)
+            Some(self.solid.clone())
         } else {
             None
         }
@@ -979,8 +1039,8 @@ impl Background {
     }
 
     /// Returns the background's solid or pattern color payload.
-    pub fn solid_color(&self) -> Hsla {
-        self.solid
+    pub fn solid_color(&self) -> &Color {
+        &self.solid
     }
 
     /// Returns the angle or pattern-geometry payload carried by the background.
@@ -1024,7 +1084,7 @@ impl From<Hsla> for Background {
     fn from(value: Hsla) -> Self {
         Background {
             tag: BackgroundTag::Solid,
-            solid: value,
+            solid: value.into(),
             ..Default::default()
         }
     }
@@ -1033,10 +1093,133 @@ impl From<Rgba> for Background {
     fn from(value: Rgba) -> Self {
         Background {
             tag: BackgroundTag::Solid,
-            solid: Hsla::from(value),
+            solid: value.into(),
             ..Default::default()
         }
     }
+}
+
+impl From<Color> for Background {
+    fn from(value: Color) -> Self {
+        Background {
+            tag: BackgroundTag::Solid,
+            solid: value,
+            ..Default::default()
+        }
+    }
+}
+
+impl Background {
+    /// Normalizes authored colors into the compact scene representation.
+    pub fn prepare(&self) -> PreparedBackground {
+        PreparedBackground {
+            tag: self.tag,
+            color_space: self.color_space,
+            solid: self.solid.paint_color(),
+            gradient_angle_or_pattern_height: self.gradient_angle_or_pattern_height,
+            stops: self
+                .stops
+                .iter()
+                .map(|stop| PreparedLinearColorStop {
+                    color: prepare_gradient_stop_color(&stop.color, self.color_space),
+                    percentage: stop.percentage,
+                })
+                .collect(),
+        }
+    }
+}
+
+pub(crate) fn serialize_color_as_hsla<S>(color: &Color, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    Hsla::from(color.clone()).serialize(serializer)
+}
+
+pub(crate) fn deserialize_color_from_hsla<'de, D>(deserializer: D) -> Result<Color, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Hsla::deserialize(deserializer).map(Color::from)
+}
+
+pub(crate) mod option_color_serde {
+    use super::{Color, Hsla};
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+    pub fn serialize<S>(color: &Option<Color>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        color
+            .as_ref()
+            .map(|color| Hsla::from(color.clone()))
+            .serialize(serializer)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<Color>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Option::<Hsla>::deserialize(deserializer).map(|color| color.map(Color::from))
+    }
+}
+
+/// Scene-ready background with no authored color handles.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PreparedBackground {
+    pub(crate) tag: BackgroundTag,
+    pub(crate) color_space: ColorSpace,
+    pub(crate) solid: PaintColor,
+    pub(crate) gradient_angle_or_pattern_height: f32,
+    pub(crate) stops: Vec<PreparedLinearColorStop>,
+}
+
+impl Default for PreparedBackground {
+    fn default() -> Self {
+        Background::default().prepare()
+    }
+}
+
+impl PreparedBackground {
+    /// Returns the prepared background family.
+    pub fn kind(&self) -> BackgroundKind {
+        match self.tag {
+            BackgroundTag::Solid => BackgroundKind::Solid,
+            BackgroundTag::LinearGradient => BackgroundKind::LinearGradient,
+            BackgroundTag::PatternSlash => BackgroundKind::PatternSlash,
+            BackgroundTag::Checkerboard => BackgroundKind::Checkerboard,
+        }
+    }
+
+    /// Returns the interpolation space used by prepared gradient stops.
+    pub fn interpolation_color_space(&self) -> ColorSpace {
+        self.color_space
+    }
+
+    /// Returns the premultiplied linear solid paint value.
+    pub fn solid_color(&self) -> PaintColor {
+        self.solid
+    }
+
+    /// Returns the gradient angle or pattern height encoded by this background.
+    pub fn angle_or_pattern_value(&self) -> f32 {
+        self.gradient_angle_or_pattern_height
+    }
+
+    /// Returns the explicitly prepared gradient stops.
+    pub fn gradient_stops(&self) -> &[PreparedLinearColorStop] {
+        &self.stops
+    }
+}
+
+/// Premultiplied gradient coordinate prepared for the declared interpolation space.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct PreparedLinearColorStop {
+    /// Premultiplied linear sRGB for `Srgb`, or premultiplied OKLab for `Oklab`.
+    pub color: [f32; 4],
+    /// Stop position in the normalized gradient coordinate space.
+    pub percentage: f32,
 }
 
 #[cfg(test)]

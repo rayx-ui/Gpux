@@ -2740,6 +2740,7 @@ dependencies = [
  "gpui_shared_string",
  "gpui_util",
  "gpui_web",
+ "gpux_color",
  "hdrhistogram",
  "http_client",
  "image",

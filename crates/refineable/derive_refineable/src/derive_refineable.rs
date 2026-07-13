@@ -6,7 +6,10 @@ use syn::{
     WherePredicate, parse_macro_input, parse_quote,
 };
 
-#[proc_macro_derive(Refineable, attributes(refineable))]
+#[proc_macro_derive(
+    Refineable,
+    attributes(refineable, refineable_serde, refineable_schemars)
+)]
 pub fn derive_refineable(input: TokenStream) -> TokenStream {
     let DeriveInput {
         ident,
@@ -54,7 +57,7 @@ pub fn derive_refineable(input: TokenStream) -> TokenStream {
     let field_attributes: Vec<TokenStream2> = fields
         .iter()
         .map(|f| {
-            if derives_serialize {
+            let serde_default = if derives_serialize {
                 if is_refineable_field(f) {
                     quote! { #[serde(default, skip_serializing_if = "::refineable::IsEmpty::is_empty")] }
                 } else {
@@ -62,7 +65,22 @@ pub fn derive_refineable(input: TokenStream) -> TokenStream {
                 }
             } else {
                 quote! {}
-            }
+            };
+            let forwarded = f.attrs.iter().filter_map(|attribute| {
+                let output_path = if attribute.path().is_ident("refineable_serde") {
+                    quote!(serde)
+                } else if attribute.path().is_ident("refineable_schemars") {
+                    quote!(schemars)
+                } else {
+                    return None;
+                };
+                let syn::Meta::List(list) = &attribute.meta else {
+                    return None;
+                };
+                let tokens = &list.tokens;
+                Some(quote! { #[#output_path(#tokens)] })
+            });
+            quote! { #serde_default #( #forwarded )* }
         })
         .collect();
 

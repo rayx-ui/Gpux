@@ -13,8 +13,8 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    Bounds, DevicePixels, Hsla, Pixels, PlatformTextSystem, Point, Result, SharedString, Size,
-    StrikethroughStyle, TextRenderingMode, UnderlineStyle, px,
+    Bounds, Color, DevicePixels, Hsla, Pixels, PlatformTextSystem, Point, Result, SharedString,
+    Size, StrikethroughStyle, TextRenderingMode, UnderlineStyle, px,
 };
 use anyhow::{Context as _, anyhow};
 use collections::FxHashMap;
@@ -362,8 +362,9 @@ impl TextSystem {
     }
 
     /// Returns the dilation level to use for a glyph painted in the given color.
-    pub(crate) fn glyph_dilation_for_color(&self, color: Hsla) -> u8 {
-        self.platform_text_system.glyph_dilation_for_color(color)
+    pub(crate) fn glyph_dilation_for_color(&self, color: Color) -> u8 {
+        self.platform_text_system
+            .glyph_dilation_for_color(Hsla::from(color))
     }
 
     /// Returns the text rendering mode recommended by the platform for the given font and size.
@@ -438,10 +439,10 @@ impl WindowTextSystem {
             }
             decoration_runs.push(DecorationRun {
                 len: run.len as u32,
-                color: run.color,
-                background_color: run.background_color,
-                underline: run.underline,
-                strikethrough: run.strikethrough,
+                color: run.color.clone(),
+                background_color: run.background_color.clone(),
+                underline: run.underline.clone(),
+                strikethrough: run.strikethrough.clone(),
             });
         }
 
@@ -486,10 +487,10 @@ impl WindowTextSystem {
             }
             decoration_runs.push(DecorationRun {
                 len: run.len as u32,
-                color: run.color,
-                background_color: run.background_color,
-                underline: run.underline,
-                strikethrough: run.strikethrough,
+                color: run.color.clone(),
+                background_color: run.background_color.clone(),
+                underline: run.underline.clone(),
+                strikethrough: run.strikethrough.clone(),
             });
         }
 
@@ -566,10 +567,10 @@ impl WindowTextSystem {
                 } else {
                     decoration_runs.push(DecorationRun {
                         len: run_len_within_line as u32,
-                        color: run.color,
-                        background_color: run.background_color,
-                        underline: run.underline,
-                        strikethrough: run.strikethrough,
+                        color: run.color.clone(),
+                        background_color: run.background_color.clone(),
+                        underline: run.underline.clone(),
+                        strikethrough: run.strikethrough.clone(),
                     });
                     true
                 };
@@ -996,9 +997,9 @@ pub struct TextRun {
     /// The font to use for this run.
     pub font: Font,
     /// The color
-    pub color: Hsla,
+    pub color: Color,
     /// The background color (if any)
-    pub background_color: Option<Hsla>,
+    pub background_color: Option<Color>,
     /// The underline style (if any)
     pub underline: Option<UnderlineStyle>,
     /// The strikethrough style (if any)

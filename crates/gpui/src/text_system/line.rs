@@ -1,5 +1,5 @@
 use crate::{
-    App, Bounds, DevicePixels, Half, Hsla, LineLayout, Pixels, Point, RenderGlyphParams, Result,
+    App, Bounds, Color, DevicePixels, Half, LineLayout, Pixels, Point, RenderGlyphParams, Result,
     ShapedGlyph, ShapedRun, SharedString, StrikethroughStyle, TextAlign, UnderlineStyle, Window,
     WrapBoundary, WrappedLineLayout, black, fill, point, px, size,
 };
@@ -26,10 +26,10 @@ pub struct DecorationRun {
     pub len: u32,
 
     /// The color for this run
-    pub color: Hsla,
+    pub color: Color,
 
     /// The background color for this run
-    pub background_color: Option<Hsla>,
+    pub background_color: Option<Color>,
 
     /// The underline style for this run
     pub underline: Option<UnderlineStyle>,
@@ -191,17 +191,17 @@ impl ShapedLine {
                 let right_len = run_end - split_point;
                 left_decorations.push(DecorationRun {
                     len: left_len,
-                    color: decoration.color,
-                    background_color: decoration.background_color,
-                    underline: decoration.underline,
-                    strikethrough: decoration.strikethrough,
+                    color: decoration.color.clone(),
+                    background_color: decoration.background_color.clone(),
+                    underline: decoration.underline.clone(),
+                    strikethrough: decoration.strikethrough.clone(),
                 });
                 right_decorations.push(DecorationRun {
                     len: right_len,
-                    color: decoration.color,
-                    background_color: decoration.background_color,
-                    underline: decoration.underline,
-                    strikethrough: decoration.strikethrough,
+                    color: decoration.color.clone(),
+                    background_color: decoration.background_color.clone(),
+                    underline: decoration.underline.clone(),
+                    strikethrough: decoration.strikethrough.clone(),
                 });
             }
 
@@ -358,7 +358,7 @@ fn paint_line(
         let mut decoration_runs = decoration_runs.iter();
         let mut wraps = wrap_boundaries.iter().peekable();
         let mut run_end = 0;
-        let mut color = black();
+        let mut color: Color = black().into();
         let mut current_underline: Option<(Point<Pixels>, UnderlineStyle)> = None;
         let mut current_strikethrough: Option<(Point<Pixels>, StrikethroughStyle)> = None;
         let text_system = cx.text_system().clone();
@@ -461,7 +461,12 @@ fn paint_line(
                                     glyph_origin.y + baseline_offset.y + (layout.descent * 0.618),
                                 ),
                                 UnderlineStyle {
-                                    color: Some(run_underline.color.unwrap_or(style_run.color)),
+                                    color: Some(
+                                        run_underline
+                                            .color
+                                            .clone()
+                                            .unwrap_or_else(|| style_run.color.clone()),
+                                    ),
                                     thickness: run_underline.thickness,
                                     wavy: run_underline.wavy,
                                 },
@@ -480,14 +485,19 @@ fn paint_line(
                                         + (((layout.ascent * 0.5) + baseline_offset.y) * 0.5),
                                 ),
                                 StrikethroughStyle {
-                                    color: Some(run_strikethrough.color.unwrap_or(style_run.color)),
+                                    color: Some(
+                                        run_strikethrough
+                                            .color
+                                            .clone()
+                                            .unwrap_or_else(|| style_run.color.clone()),
+                                    ),
                                     thickness: run_strikethrough.thickness,
                                 },
                             ));
                         }
 
                         run_end += style_run.len as usize;
-                        color = style_run.color;
+                        color = style_run.color.clone();
                     } else {
                         run_end = layout.len;
                         finished_underline = current_underline.take();
@@ -540,7 +550,7 @@ fn paint_line(
                             run.font_id,
                             glyph.id,
                             layout.font_size,
-                            color,
+                            color.clone(),
                         )?;
                     }
                 }
@@ -602,7 +612,7 @@ fn paint_line_background(
         let mut decoration_runs = decoration_runs.iter();
         let mut wraps = wrap_boundaries.iter().peekable();
         let mut run_end = 0;
-        let mut current_background: Option<(Point<Pixels>, Hsla)> = None;
+        let mut current_background: Option<(Point<Pixels>, Color)> = None;
         let text_system = cx.text_system().clone();
         let mut glyph_origin = point(
             aligned_origin_x(
@@ -635,7 +645,7 @@ fn paint_line_background(
                                 origin: *background_origin,
                                 size: size(glyph_origin.x - background_origin.x, line_height),
                             },
-                            *background_color,
+                            background_color.clone(),
                         ));
                         if glyph.index < run_end {
                             background_origin.x = origin.x;
@@ -657,7 +667,7 @@ fn paint_line_background(
                 }
                 prev_glyph_position = glyph.position;
 
-                let mut finished_background: Option<(Point<Pixels>, Hsla)> = None;
+                let mut finished_background: Option<(Point<Pixels>, Color)> = None;
                 if glyph.index >= run_end {
                     let mut style_run = decoration_runs.next();
 
@@ -676,7 +686,7 @@ fn paint_line_background(
                         {
                             finished_background = current_background.take();
                         }
-                        if let Some(run_background) = style_run.background_color {
+                        if let Some(run_background) = style_run.background_color.clone() {
                             current_background.get_or_insert((
                                 point(glyph_origin.x, glyph_origin.y),
                                 run_background,

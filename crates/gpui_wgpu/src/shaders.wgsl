@@ -120,11 +120,18 @@ struct Edges {
     left: f32,
 }
 
-struct Hsla {
-    h: f32,
-    s: f32,
-    l: f32,
+// Keep this scalar struct layout identical to Rust's #[repr(C)] PaintColor.
+// A vec4 alias has 16-byte alignment in WGSL storage buffers, while the Rust
+// ABI is four tightly packed f32 values with 4-byte alignment.
+struct PaintColor {
+    r: f32,
+    g: f32,
+    b: f32,
     a: f32,
+}
+
+fn paint_color_value(color: PaintColor) -> vec4<f32> {
+    return vec4<f32>(color.r, color.g, color.b, color.a);
 }
 
 struct GradientStop {
@@ -141,7 +148,7 @@ struct Background {
     // 0u is sRGB linear color
     // 1u is Oklab color
     color_space: u32,
-    solid: Hsla,
+    solid: PaintColor,
     gradient_angle_or_pattern_height: f32,
     stop_offset: u32,
     stop_count: u32,
@@ -221,81 +228,16 @@ fn srgb_to_linear(srgb: vec3<f32>) -> vec3<f32> {
     return select(higher, lower, cutoff);
 }
 
-fn srgb_to_linear_component(a: f32) -> f32 {
-    let cutoff = a < 0.04045;
-    let higher = pow((a + 0.055) / 1.055, 2.4);
-    let lower = a / 12.92;
-    return select(higher, lower, cutoff);
-}
-
-fn linear_to_srgb(linear: vec3<f32>) -> vec3<f32> {
-    let clamped = max(linear, vec3<f32>(0.0));
-    let cutoff = clamped < vec3<f32>(0.0031308);
-    let higher = vec3<f32>(1.055) * pow(clamped, vec3<f32>(1.0 / 2.4)) - vec3<f32>(0.055);
-    let lower = clamped * vec3<f32>(12.92);
-    return select(higher, lower, cutoff);
-}
-
-/// Hsla to linear RGBA conversion.
-fn hsla_to_rgba(hsla: Hsla) -> vec4<f32> {
-    let h = hsla.h * 6.0; // Now, it's an angle but scaled in [0, 6) range
-    let s = hsla.s;
-    let l = hsla.l;
-    let a = hsla.a;
-
-    let c = (1.0 - abs(2.0 * l - 1.0)) * s;
-    let x = c * (1.0 - abs(h % 2.0 - 1.0));
-    let m = l - c / 2.0;
-    var color = vec3<f32>(m);
-
-    if (h >= 0.0 && h < 1.0) {
-        color.r += c;
-        color.g += x;
-    } else if (h >= 1.0 && h < 2.0) {
-        color.r += x;
-        color.g += c;
-    } else if (h >= 2.0 && h < 3.0) {
-        color.g += c;
-        color.b += x;
-    } else if (h >= 3.0 && h < 4.0) {
-        color.g += x;
-        color.b += c;
-    } else if (h >= 4.0 && h < 5.0) {
-        color.r += x;
-        color.b += c;
-    } else {
-        color.r += c;
-        color.b += x;
+/// Convert a premultiplied OKLab gradient sample to premultiplied linear sRGB.
+fn premultiplied_oklab_to_linear_srgb(color: vec4<f32>) -> vec4<f32> {
+    if (color.a <= 0.0) {
+        return vec4<f32>(0.0);
     }
 
-    return vec4<f32>(color, a);
-}
-
-/// Convert a linear sRGB to Oklab space.
-/// Reference: https://bottosson.github.io/posts/oklab/#converting-from-linear-srgb-to-oklab
-fn linear_srgb_to_oklab(color: vec4<f32>) -> vec4<f32> {
-	let l = 0.4122214708 * color.r + 0.5363325363 * color.g + 0.0514459929 * color.b;
-	let m = 0.2119034982 * color.r + 0.6806995451 * color.g + 0.1073969566 * color.b;
-	let s = 0.0883024619 * color.r + 0.2817188376 * color.g + 0.6299787005 * color.b;
-
-	let l_ = pow(l, 1.0 / 3.0);
-	let m_ = pow(m, 1.0 / 3.0);
-	let s_ = pow(s, 1.0 / 3.0);
-
-	return vec4<f32>(
-		0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
-		1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
-		0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_,
-		color.a
-	);
-}
-
-/// Convert an Oklab color to the display-space sRGB output used by the
-/// gradient renderer.
-fn oklab_to_srgb(color: vec4<f32>) -> vec4<f32> {
-	let l_ = color.r + 0.3963377774 * color.g + 0.2158037573 * color.b;
-	let m_ = color.r - 0.1055613458 * color.g - 0.0638541728 * color.b;
-	let s_ = color.r - 0.0894841775 * color.g - 1.2914855480 * color.b;
+    let oklab = color.rgb / color.a;
+    let l_ = oklab.r + 0.3963377774 * oklab.g + 0.2158037573 * oklab.b;
+    let m_ = oklab.r - 0.1055613458 * oklab.g - 0.0638541728 * oklab.b;
+    let s_ = oklab.r - 0.0894841775 * oklab.g - 1.2914855480 * oklab.b;
 
 	let l = l_ * l_ * l_;
 	let m = m_ * m_ * m_;
@@ -307,13 +249,11 @@ fn oklab_to_srgb(color: vec4<f32>) -> vec4<f32> {
 		-0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s
 	);
 
-	return vec4<f32>(linear_to_srgb(linear_rgb), color.a);
+    return vec4<f32>(clamp(linear_rgb, vec3<f32>(0.0), vec3<f32>(1.0)) * color.a, color.a);
 }
 
 fn over(below: vec4<f32>, above: vec4<f32>) -> vec4<f32> {
-    let alpha = above.a + below.a * (1.0 - above.a);
-    let color = (above.rgb * above.a + below.rgb * below.a * (1.0 - above.a)) / alpha;
-    return vec4<f32>(color, alpha);
+    return above + below * (1.0 - above.a);
 }
 
 // A standard gaussian function, used for weighting samples
@@ -388,16 +328,14 @@ fn quad_sdf_impl(corner_center_to_point: vec2<f32>, corner_radius: f32) -> f32 {
 
 // Abstract away the final color transformation based on the
 // target alpha compositing mode.
-fn blend_color(color: vec4<f32>, alpha_factor: f32) -> vec4<f32> {
-    let alpha = color.a * alpha_factor;
-    let multiplier = select(1.0, alpha, globals.premultiplied_alpha != 0u);
-    return vec4<f32>(color.rgb * multiplier, alpha);
+fn blend_color(color: vec4<f32>, coverage: f32) -> vec4<f32> {
+    return color * coverage;
 }
 
 
 fn resolve_gradient_color(background: Background, t: f32) -> vec4<f32> {
     if (background.stop_count == 0u) {
-        return hsla_to_rgba(background.solid);
+        return paint_color_value(background.solid);
     }
 
     let first_stop = b_gradient_stops[background.stop_offset];
@@ -436,7 +374,7 @@ fn resolve_gradient_color(background: Background, t: f32) -> vec4<f32> {
 
     let color = mix(current_stop.prepared_color, next_stop.prepared_color, segment_t);
     if (background.color_space == 1u) {
-        return oklab_to_srgb(color);
+        return premultiplied_oklab_to_linear_srgb(color);
     }
 
     return color;
@@ -447,7 +385,7 @@ fn gradient_color(background: Background, position: vec2<f32>, bounds: Bounds) -
 
     switch (background.tag) {
         default: {
-            return hsla_to_rgba(background.solid);
+            return paint_color_value(background.solid);
         }
         case 1u: {
             // Linear gradient background.
@@ -486,11 +424,10 @@ fn gradient_color(background: Background, position: vec2<f32>, bounds: Bounds) -
                 let r1 = fract(sin(dot(seed, vec2<f32>(12.9898, 78.233))) * 43758.5453);
                 let r2 = fract(sin(dot(seed, vec2<f32>(39.3460, 11.135))) * 24634.6345);
                 let tri = r1 + r2 - 1.0;
-                let rgb_dither = vec3<f32>(tri * 2.0 / 255.0);
-                let alpha_dither = tri * 3.0 / 255.0;
+                let rgb_dither = vec3<f32>(tri * 2.0 / 255.0) * background_color.a;
                 background_color = vec4<f32>(
                     background_color.rgb + rgb_dither,
-                    background_color.a + alpha_dither,
+                    background_color.a,
                 );
             }
         }
@@ -510,8 +447,7 @@ fn gradient_color(background: Background, position: vec2<f32>, bounds: Bounds) -
             let rotated_point = rotation * relative_position;
             let pattern = rotated_point.x % pattern_period;
             let distance = min(pattern, pattern_period - pattern) - pattern_period * (pattern_width / pattern_height) /  2.0f;
-            background_color = hsla_to_rgba(background.solid);
-            background_color.a *= saturate(0.5 - distance);
+            background_color = paint_color_value(background.solid) * saturate(0.5 - distance);
         }
         case 3u: {
             // checkerboard
@@ -522,8 +458,7 @@ fn gradient_color(background: Background, position: vec2<f32>, bounds: Bounds) -
             let y_index = floor(relative_position.y / size);
             let should_be_colored = (x_index + y_index) % 2.0;
 
-            background_color = hsla_to_rgba(background.solid);
-            background_color.a *= saturate(should_be_colored);
+            background_color = paint_color_value(background.solid) * saturate(should_be_colored);
         }
     }
 
@@ -966,7 +901,7 @@ struct Shadow {
     bounds: Bounds,
     corner_radii: Corners,
     content_mask: ContentMask,
-    color: Hsla,
+    color: PaintColor,
     transformation: TransformationMatrix,
 }
 @group(1) @binding(0) var<storage, read> b_shadows: array<Shadow>;
@@ -994,7 +929,7 @@ fn vs_shadow(@builtin(vertex_index) vertex_id: u32, @builtin(instance_index) ins
 
     var out = ShadowVarying();
     out.position = to_device_position_transformed(unit_vertex, shadow.bounds, shadow.transformation);
-    out.color = hsla_to_rgba(shadow.color);
+    out.color = paint_color_value(shadow.color);
     out.shadow_id = instance_id;
     out.clip_distances = distance_from_clip_rect_transformed(
         unit_vertex,
@@ -1101,7 +1036,7 @@ fn fs_path_rasterization(input: PathRasterizationVarying) -> @location(0) vec4<f
         alpha = saturate(0.5 - distance);
     }
     let color = gradient_color(background, input.position.xy, bounds);
-    return vec4<f32>(color.rgb * color.a * alpha, color.a * alpha);
+    return color * alpha;
 }
 
 // --- paths --- //
@@ -1146,7 +1081,7 @@ struct Underline {
     pad: u32,
     bounds: Bounds,
     content_mask: ContentMask,
-    color: Hsla,
+    color: PaintColor,
     thickness: f32,
     wavy: u32,
     transformation: TransformationMatrix,
@@ -1174,7 +1109,7 @@ fn vs_underline(@builtin(vertex_index) vertex_id: u32, @builtin(instance_index) 
         underline.bounds,
         underline.transformation,
     );
-    out.color = hsla_to_rgba(underline.color);
+    out.color = paint_color_value(underline.color);
     out.underline_id = instance_id;
     out.clip_distances = distance_from_clip_rect_transformed(
         unit_vertex,
@@ -1203,7 +1138,7 @@ fn fs_underline(input: UnderlineVarying) -> @location(0) vec4<f32> {
 
     if ((underline.wavy & 0xFFu) == 0u)
     {
-        return blend_color(input.color, input.color.a);
+        return blend_color(input.color, 1.0);
     }
 
     let half_thickness = underline.thickness * 0.5;
@@ -1220,7 +1155,7 @@ fn fs_underline(input: UnderlineVarying) -> @location(0) vec4<f32> {
     let distance_from_top_border = distance_in_pixels - half_thickness;
     let distance_from_bottom_border = distance_in_pixels + half_thickness;
     let alpha = saturate(0.5 - max(-distance_from_bottom_border, distance_from_top_border));
-    return blend_color(input.color, alpha * input.color.a);
+    return blend_color(input.color, alpha);
 }
 
 // --- monochrome sprites --- //
@@ -1230,7 +1165,7 @@ struct MonochromeSprite {
     pad: u32,
     bounds: Bounds,
     content_mask: ContentMask,
-    color: Hsla,
+    color: PaintColor,
     tile: AtlasTile,
     transformation: TransformationMatrix,
 }
@@ -1255,7 +1190,7 @@ fn vs_mono_sprite(@builtin(vertex_index) vertex_id: u32, @builtin(instance_index
     out.position = to_device_position_transformed(unit_vertex, sprite.bounds, sprite.transformation);
 
     out.tile_position = to_tile_position(unit_vertex, sprite.tile);
-    out.color = hsla_to_rgba(sprite.color);
+    out.color = paint_color_value(sprite.color);
     out.sprite_id = instance_id;
     out.clip_distances = distance_from_clip_rect_transformed(unit_vertex, sprite.bounds, sprite.content_mask.bounds, sprite.transformation);
     out.local_position = local_position;
@@ -1265,7 +1200,8 @@ fn vs_mono_sprite(@builtin(vertex_index) vertex_id: u32, @builtin(instance_index
 @fragment
 fn fs_mono_sprite(input: MonoSpriteVarying) -> @location(0) vec4<f32> {
     let sample = textureSample(t_sprite, s_sprite, input.tile_position).r;
-    let alpha_corrected = apply_contrast_and_gamma_correction(sample, input.color.rgb, gamma_params.grayscale_enhanced_contrast, gamma_params.gamma_ratios);
+    let straight_color = input.color.rgb / max(input.color.a, 0.000001);
+    let alpha_corrected = apply_contrast_and_gamma_correction(sample, straight_color, gamma_params.grayscale_enhanced_contrast, gamma_params.gamma_ratios);
 
     // Alpha clip after using the derivatives.
     if (any(input.clip_distances < vec4<f32>(0.0))) {
@@ -1336,11 +1272,12 @@ fn fs_poly_sprite(input: PolySpriteVarying) -> @location(0) vec4<f32> {
 
     let distance = quad_sdf(input.local_position, sprite.bounds, sprite.corner_radii);
 
-    var color = sample;
+    var straight_rgb = srgb_to_linear(sample.rgb);
     if ((sprite.grayscale & 0xFFu) != 0u) {
-        let grayscale = dot(color.rgb, vec3<f32>(0.2126, 0.7152, 0.0722));
-        color = vec4<f32>(vec3<f32>(grayscale), sample.a);
+        let grayscale = dot(straight_rgb, vec3<f32>(0.2126, 0.7152, 0.0722));
+        straight_rgb = vec3<f32>(grayscale);
     }
+    let color = vec4<f32>(straight_rgb * sample.a, sample.a);
     return blend_color(color, sprite.opacity * saturate(0.5 - distance));
 }
 
@@ -1390,7 +1327,8 @@ fn fs_html_island(input: HtmlIslandVarying) -> @location(0) vec4<f32> {
         return vec4<f32>(0.0);
     }
 
-    return blend_color(sample, island.opacity);
+    let linear_sample = vec4<f32>(srgb_to_linear(sample.rgb) * sample.a, sample.a);
+    return blend_color(linear_sample, island.opacity);
 }
 
 // --- post processing --- //
@@ -1525,12 +1463,12 @@ fn adjust_effect_color(color: vec4<f32>, saturation: f32, brightness: f32) -> ve
     return vec4<f32>(mix(vec3<f32>(luminance), color.rgb, saturation) * brightness, color.a);
 }
 
-fn apply_effect_tint(color: vec4<f32>, tint_hsla: vec4<f32>) -> vec4<f32> {
-    if (tint_hsla.a <= 0.0) {
+fn apply_effect_tint(color: vec4<f32>, tint: vec4<f32>) -> vec4<f32> {
+    if (tint.a <= 0.0) {
         return color;
     }
 
-    return over(color, hsla_to_rgba(Hsla(tint_hsla.x, tint_hsla.y, tint_hsla.z, tint_hsla.w)));
+    return over(color, tint);
 }
 
 fn visual_effect_shape_alpha(local_position: vec2<f32>, primitive: VisualEffectPrimitiveParams) -> f32 {
@@ -1540,7 +1478,6 @@ fn visual_effect_shape_alpha(local_position: vec2<f32>, primitive: VisualEffectP
 }
 
 fn visual_effect_glow_alpha(local_position: vec2<f32>, primitive: VisualEffectPrimitiveParams, effect: ElementEffectParams) -> f32 {
-    let glow = hsla_to_rgba(Hsla(effect.color0.x, effect.color0.y, effect.color0.z, effect.color0.w));
     let radius = max(effect.params0.x, 1.0);
     let spread = effect.params0.y;
     let intensity = effect.params0.z;
@@ -1548,7 +1485,7 @@ fn visual_effect_glow_alpha(local_position: vec2<f32>, primitive: VisualEffectPr
     let outside = smoothstep(-1.0, 1.0, distance + spread);
     let falloff_distance = max(distance - spread, 0.0);
     let falloff = exp(-2.0 * pow(falloff_distance / radius, 2.0));
-    return saturate(outside * falloff * glow.a * intensity * primitive.opacity);
+    return saturate(outside * falloff * intensity * primitive.opacity);
 }
 
 fn composite_backdrop_blur(color: vec4<f32>, texture_position: vec2<f32>, shape_alpha: f32, primitive: VisualEffectPrimitiveParams, effect: ElementEffectParams) -> vec4<f32> {
@@ -1763,10 +1700,9 @@ fn fs_visual_effect_glow_add(input: VisualEffectVarying) -> @location(0) vec4<f3
             continue;
         }
 
-        let glow = hsla_to_rgba(Hsla(effect.color0.x, effect.color0.y, effect.color0.z, effect.color0.w));
-        let alpha = visual_effect_glow_alpha(input.local_position, primitive, effect);
-        glow_color += glow.rgb * alpha;
-        glow_alpha = max(glow_alpha, alpha);
+        let coverage = visual_effect_glow_alpha(input.local_position, primitive, effect);
+        glow_color += effect.color0.rgb * coverage;
+        glow_alpha = max(glow_alpha, effect.color0.a * coverage);
     }
 
     if (glow_alpha <= 0.0001) {
@@ -1944,7 +1880,7 @@ fn fs_screen_effect(input: PostProcessVarying) -> @location(0) vec4<f32> {
         chromatic_offset += direction * abs(displacement) * ripple.params.x / globals.viewport_size;
 
         if (ripple.tint.a > 0.0 && wave_alpha > 0.0) {
-            let tint = hsla_to_rgba(Hsla(ripple.tint.x, ripple.tint.y, ripple.tint.z, ripple.tint.w * wave_alpha));
+            let tint = ripple.tint * wave_alpha;
             tint_accumulator = over(tint_accumulator, tint);
         }
     }
@@ -1974,7 +1910,7 @@ fn fs_screen_effect(input: PostProcessVarying) -> @location(0) vec4<f32> {
         }
 
         if (transition.tint.a > 0.0) {
-            let tint = hsla_to_rgba(Hsla(transition.tint.x, transition.tint.y, transition.tint.z, transition.tint.w * (1.0 - progress)));
+            let tint = transition.tint * (1.0 - progress);
             snapshot_color = over(snapshot_color, tint);
         }
 
@@ -2060,5 +1996,6 @@ fn fs_surface(input: SurfaceVarying) -> @location(0) vec4<f32> {
         textureSampleLevel(t_cb_cr, s_surface, input.texture_position, 0.0).rg,
         1.0);
 
-    return ycbcr_to_RGB * y_cb_cr;
+    let display_color = ycbcr_to_RGB * y_cb_cr;
+    return vec4<f32>(srgb_to_linear(display_color.rgb) * display_color.a, display_color.a);
 }

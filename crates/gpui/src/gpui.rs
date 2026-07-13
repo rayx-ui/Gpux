@@ -95,6 +95,7 @@ pub use gpui_macros::{
 };
 pub use gpui_shared_string::*;
 pub use gpui_util::arc_cow::ArcCow;
+pub use gpux_color::{Color, DEFAULT_PAINT_GAMUT_POLICY, PaintColor, PaintGamutPolicy};
 pub use http_client;
 pub use input::*;
 pub use inspector::*;

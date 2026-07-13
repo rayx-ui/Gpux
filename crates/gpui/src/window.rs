@@ -3,10 +3,10 @@ use crate::Inspector;
 use crate::{
     Action, ActiveScreenEffect, ActiveScreenEffectSnapshot, AnyDrag, AnyElement, AnyImageCache,
     AnyTooltip, AnyView, App, AppContext, Arena, Asset, AsyncWindowContext, AvailableSpace,
-    Background, BorderStyle, Bounds, BoxShadow, Capslock, Context, Corners, CursorHideMode,
+    Background, BorderStyle, Bounds, BoxShadow, Capslock, Color, Context, Corners, CursorHideMode,
     CursorStyle, Decorations, DevicePixels, DispatchActionListener, DispatchNodeId, DispatchTree,
     DisplayId, Edges, Effect, EffectCapabilities, ElementEffect, Entity, EntityId, EventEmitter,
-    FileDropEvent, FontId, Global, GlobalElementId, GlyphId, GpuSpecs, Hsla, HtmlElementContentFit,
+    FileDropEvent, FontId, Global, GlobalElementId, GlyphId, GpuSpecs, HtmlElementContentFit,
     HtmlElementInputMode, HtmlElementLifetime, HtmlElementPrimitive, HtmlElementWheelBehavior,
     HtmlIslandInputMode, HtmlIslandPrimitive, InputHandler, IsZero, KeyBinding, KeyContext,
     KeyDownEvent, KeyEvent, Keystroke, KeystrokeEvent, LayoutId, Length, LineLayoutIndex,
@@ -4895,7 +4895,7 @@ impl Window {
                 bounds: shadow_bounds.scale(scale_factor),
                 content_mask,
                 corner_radii: corner_radii.scale(scale_factor),
-                color: shadow.color.opacity(opacity),
+                color: shadow.color.opacity(opacity).paint_color(),
                 transformation,
             });
         }
@@ -4934,7 +4934,7 @@ impl Window {
                 content_mask,
                 corner_radii: corner_radii.scale(scale_factor),
                 opacity: self.element_opacity(),
-                effects: effects.to_vec(),
+                effects: effects.iter().map(ElementEffect::prepare).collect(),
                 transformation,
             });
     }
@@ -5005,8 +5005,8 @@ impl Window {
             order: 0,
             bounds: snapped_bounds,
             content_mask,
-            background: quad.background.opacity(opacity),
-            border_color: quad.border_color.opacity(opacity),
+            background: quad.background.opacity(opacity).prepare(),
+            border_color: quad.border_color.opacity(opacity).prepare(),
             corner_radii: quad.corner_radii.scale(scale_factor),
             border_widths: snapped_border_widths,
             border_style: quad.border_style,
@@ -5130,7 +5130,7 @@ impl Window {
         let opacity = self.element_opacity();
         let content_mask = self.paint_content_mask();
         let color: Background = color.into();
-        path.color = color.opacity(opacity);
+        path.color = color.opacity(opacity).prepare();
         let path = path.scale(scale_factor);
         let path = if self.current_element_transform() == TransformationMatrix::unit() {
             path.with_content_mask(content_mask)
@@ -5170,7 +5170,12 @@ impl Window {
             pad: 0,
             bounds,
             content_mask,
-            color: style.color.unwrap_or_default().opacity(element_opacity),
+            color: style
+                .color
+                .clone()
+                .unwrap_or_default()
+                .opacity(element_opacity)
+                .paint_color(),
             thickness,
             wavy: if style.wavy { 1 } else { 0 },
             transformation: self.current_element_transform(),
@@ -5203,7 +5208,12 @@ impl Window {
             bounds,
             content_mask,
             thickness: self.snap_stroke(style.thickness),
-            color: style.color.unwrap_or_default().opacity(opacity),
+            color: style
+                .color
+                .clone()
+                .unwrap_or_default()
+                .opacity(opacity)
+                .paint_color(),
             wavy: 0,
             transformation: self.current_element_transform(),
         });
@@ -5223,9 +5233,11 @@ impl Window {
         font_id: FontId,
         glyph_id: GlyphId,
         font_size: Pixels,
-        color: Hsla,
+        color: impl Into<Color>,
     ) -> Result<()> {
         self.invalidator.debug_assert_paint();
+
+        let color = color.into();
 
         let element_opacity = self.element_opacity();
         let scale_factor = self.scale_factor();
@@ -5245,7 +5257,7 @@ impl Window {
         let integer_origin = quantized_origin.map(|c| ScaledPixels(c.trunc()));
         let subpixel_rendering = transformation == TransformationMatrix::unit()
             && self.should_use_subpixel_rendering(font_id, font_size);
-        let dilation = self.text_system().glyph_dilation_for_color(color);
+        let dilation = self.text_system().glyph_dilation_for_color(color.clone());
         let params = RenderGlyphParams {
             font_id,
             glyph_id,
@@ -5278,7 +5290,7 @@ impl Window {
                     pad: 0,
                     bounds,
                     content_mask,
-                    color: color.opacity(element_opacity),
+                    color: color.opacity(element_opacity).paint_color(),
                     tile,
                     transformation,
                 });
@@ -5288,7 +5300,7 @@ impl Window {
                     pad: 0,
                     bounds,
                     content_mask,
-                    color: color.opacity(element_opacity),
+                    color: color.opacity(element_opacity).paint_color(),
                     tile,
                     transformation,
                 });
@@ -5307,11 +5319,13 @@ impl Window {
         _font_id: FontId,
         _glyph_id: GlyphId,
         _font_size: Pixels,
-        color: Hsla,
+        color: impl Into<Color>,
         raster_bounds: Bounds<DevicePixels>,
         params: &RenderGlyphParams,
     ) -> Result<()> {
         self.invalidator.debug_assert_paint();
+
+        let color = color.into();
 
         let element_opacity = self.element_opacity();
         let scale_factor = self.scale_factor();
@@ -5336,7 +5350,7 @@ impl Window {
                 pad: 0,
                 bounds,
                 content_mask,
-                color: color.opacity(element_opacity),
+                color: color.opacity(element_opacity).paint_color(),
                 tile,
                 transformation,
             });
@@ -5486,10 +5500,12 @@ impl Window {
         path: SharedString,
         mut data: Option<&[u8]>,
         transformation: TransformationMatrix,
-        color: Hsla,
+        color: impl Into<Color>,
         cx: &App,
     ) -> Result<()> {
         self.invalidator.debug_assert_paint();
+
+        let color = color.into();
 
         let element_opacity = self.element_opacity();
         let bounds = self.snap_bounds(bounds);
@@ -5534,7 +5550,7 @@ impl Window {
             pad: 0,
             bounds: final_bounds,
             content_mask,
-            color: color.opacity(element_opacity),
+            color: color.opacity(element_opacity).paint_color(),
             tile,
             transformation: self.current_element_transform().compose(transformation),
         });
@@ -8172,7 +8188,7 @@ pub fn fill(bounds: impl Into<Bounds<Pixels>>, background: impl Into<Background>
 /// Creates a rectangle outline with the given bounds, border color, and a 1px border width
 pub fn outline(
     bounds: impl Into<Bounds<Pixels>>,
-    border_color: impl Into<Hsla>,
+    border_color: impl Into<Color>,
     border_style: BorderStyle,
 ) -> PaintQuad {
     PaintQuad {

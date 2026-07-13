@@ -2528,9 +2528,9 @@ impl Interactivity {
 
             window.with_text_style(
                 Some(crate::TextStyleRefinement {
-                    color: Some(crate::red()),
+                    color: Some(crate::red().into()),
                     line_height: Some(FONT_SIZE.into()),
-                    background_color: Some(crate::white()),
+                    background_color: Some(crate::white().into()),
                     ..Default::default()
                 }),
                 render_debug_text,

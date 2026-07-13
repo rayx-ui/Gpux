@@ -5,9 +5,9 @@ use std::{
 };
 
 use crate::{
-    AbsoluteLength, App, Background, BorderStyle, Bounds, ContentMask, Corners, CornersRefinement,
-    CursorStyle, DefiniteLength, DevicePixels, Edges, EdgesRefinement, Font, FontFallbacks,
-    FontFeatures, FontStyle, FontWeight, GridLocation, Hsla, Length, Pixels, Point,
+    AbsoluteLength, App, Background, BorderStyle, Bounds, Color, ContentMask, Corners,
+    CornersRefinement, CursorStyle, DefiniteLength, DevicePixels, Edges, EdgesRefinement, Font,
+    FontFallbacks, FontFeatures, FontStyle, FontWeight, GridLocation, Hsla, Length, Pixels, Point,
     PointRefinement, Rgba, SharedString, Size, SizeRefinement, Styled, TextRun,
     TransformationMatrix, Window, black, phi, point, px, quad, radians, rems, size,
 };
@@ -365,7 +365,12 @@ pub enum Visibility {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct BoxShadow {
     /// What color should the shadow have?
-    pub color: Hsla,
+    #[serde(
+        serialize_with = "crate::color::serialize_color_as_hsla",
+        deserialize_with = "crate::color::deserialize_color_from_hsla"
+    )]
+    #[schemars(with = "Hsla")]
+    pub color: Color,
     /// How should it be offset from its element?
     pub offset: Point<Pixels>,
     /// How much should the shadow be blurred?
@@ -415,7 +420,9 @@ pub enum TextAlign {
 #[refineable(Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct TextStyle {
     /// The color of the text
-    pub color: Hsla,
+    #[refineable_serde(with = "crate::color::option_color_serde")]
+    #[refineable_schemars(with = "Option<Hsla>")]
+    pub color: Color,
 
     /// The font family to use
     pub font_family: SharedString,
@@ -442,7 +449,9 @@ pub struct TextStyle {
     pub font_style: FontStyle,
 
     /// The background color of the text
-    pub background_color: Option<Hsla>,
+    #[refineable_serde(with = "crate::color::option_color_serde")]
+    #[refineable_schemars(with = "Option<Hsla>")]
+    pub background_color: Option<Color>,
 
     /// The underline style of the text
     pub underline: Option<UnderlineStyle>,
@@ -466,7 +475,7 @@ pub struct TextStyle {
 impl Default for TextStyle {
     fn default() -> Self {
         TextStyle {
-            color: black(),
+            color: black().into(),
             // todo(linux) make this configurable or choose better default
             font_family: ".SystemUIFont".into(),
             font_features: FontFeatures::default(),
@@ -548,20 +557,20 @@ impl TextStyle {
                 weight: self.font_weight,
                 style: self.font_style,
             },
-            color: self.color,
-            background_color: self.background_color,
-            underline: self.underline,
-            strikethrough: self.strikethrough,
+            color: self.color.clone(),
+            background_color: self.background_color.clone(),
+            underline: self.underline.clone(),
+            strikethrough: self.strikethrough.clone(),
         }
     }
 }
 
 /// A highlight style to apply, similar to a `TextStyle` except
 /// for a single font, uniformly sized and spaced text.
-#[derive(Copy, Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct HighlightStyle {
     /// The color of the text
-    pub color: Option<Hsla>,
+    pub color: Option<Color>,
 
     /// The font weight, e.g. bold
     pub font_weight: Option<FontWeight>,
@@ -570,7 +579,7 @@ pub struct HighlightStyle {
     pub font_style: Option<FontStyle>,
 
     /// The background color of the text
-    pub background_color: Option<Hsla>,
+    pub background_color: Option<Color>,
 
     /// The underline style of the text
     pub underline: Option<UnderlineStyle>,
@@ -921,14 +930,16 @@ pub enum LayoutDirection {
 
 /// The properties that can be applied to an underline.
 #[derive(
-    Refineable, Copy, Clone, Default, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema,
+    Refineable, Clone, Default, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema,
 )]
 pub struct UnderlineStyle {
     /// The thickness of the underline.
     pub thickness: Pixels,
 
     /// The color of the underline.
-    pub color: Option<Hsla>,
+    #[serde(with = "crate::color::option_color_serde")]
+    #[schemars(with = "Option<Hsla>")]
+    pub color: Option<Color>,
 
     /// Whether the underline should be wavy, like in a spell checker.
     pub wavy: bool,
@@ -936,14 +947,16 @@ pub struct UnderlineStyle {
 
 /// The properties that can be applied to a strikethrough.
 #[derive(
-    Refineable, Copy, Clone, Default, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema,
+    Refineable, Clone, Default, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema,
 )]
 pub struct StrikethroughStyle {
     /// The thickness of the strikethrough.
     pub thickness: Pixels,
 
     /// The color of the strikethrough.
-    pub color: Option<Hsla>,
+    #[serde(with = "crate::color::option_color_serde")]
+    #[schemars(with = "Option<Hsla>")]
+    pub color: Option<Color>,
 }
 
 /// The kinds of fill that can be applied to a shape.
@@ -982,6 +995,12 @@ impl From<Rgba> for Fill {
     }
 }
 
+impl From<Color> for Fill {
+    fn from(color: Color) -> Self {
+        Self::Color(color.into())
+    }
+}
+
 impl From<Background> for Fill {
     fn from(background: Background) -> Self {
         Self::Color(background)
@@ -997,12 +1016,12 @@ impl From<TextStyle> for HighlightStyle {
 impl From<&TextStyle> for HighlightStyle {
     fn from(other: &TextStyle) -> Self {
         Self {
-            color: Some(other.color),
+            color: Some(other.color.clone()),
             font_weight: Some(other.font_weight),
             font_style: Some(other.font_style),
-            background_color: other.background_color,
-            underline: other.underline,
-            strikethrough: other.strikethrough,
+            background_color: other.background_color.clone(),
+            underline: other.underline.clone(),
+            strikethrough: other.strikethrough.clone(),
             fade_out: None,
         }
     }
@@ -1010,9 +1029,9 @@ impl From<&TextStyle> for HighlightStyle {
 
 impl HighlightStyle {
     /// Create a highlight style with just a color
-    pub fn color(color: Hsla) -> Self {
+    pub fn color(color: impl Into<Color>) -> Self {
         Self {
-            color: Some(color),
+            color: Some(color.into()),
             ..Default::default()
         }
     }
@@ -1020,17 +1039,13 @@ impl HighlightStyle {
     /// Non-continuous properties, like font_weight and font_style, are overwritten.
     #[must_use]
     pub fn highlight(self, other: HighlightStyle) -> Self {
+        let color = match (self.color, other.color) {
+            (Some(base), Some(overlay)) => Some(base.blend(overlay)),
+            (base, None) => base,
+            (None, overlay) => overlay,
+        };
         Self {
-            color: other
-                .color
-                .map(|other_color| {
-                    if let Some(color) = self.color {
-                        color.blend(other_color)
-                    } else {
-                        other_color
-                    }
-                })
-                .or(self.color),
+            color,
             font_weight: other.font_weight.or(self.font_weight),
             font_style: other.font_style.or(self.font_style),
             background_color: other.background_color.or(self.background_color),
@@ -1051,7 +1066,7 @@ impl HighlightStyle {
 impl From<Hsla> for HighlightStyle {
     fn from(color: Hsla) -> Self {
         Self {
-            color: Some(color),
+            color: Some(color.into()),
             ..Default::default()
         }
     }
@@ -1084,13 +1099,22 @@ impl From<Rgba> for HighlightStyle {
     }
 }
 
+impl From<Color> for HighlightStyle {
+    fn from(color: Color) -> Self {
+        Self {
+            color: Some(color),
+            ..Default::default()
+        }
+    }
+}
+
 /// Combine and merge the highlights and ranges in the two iterators.
 pub fn combine_highlights(
     a: impl IntoIterator<Item = (Range<usize>, HighlightStyle)>,
     b: impl IntoIterator<Item = (Range<usize>, HighlightStyle)>,
 ) -> impl Iterator<Item = (Range<usize>, HighlightStyle)> {
     let mut endpoints = Vec::new();
-    let mut highlights = Vec::new();
+    let mut highlights: Vec<HighlightStyle> = Vec::new();
     for (range, highlight) in a.into_iter().chain(b) {
         if !range.is_empty() {
             let highlight_id = highlights.len();
@@ -1102,7 +1126,7 @@ pub fn combine_highlights(
     endpoints.sort_unstable_by_key(|(position, _, _)| *position);
     let mut endpoints = endpoints.into_iter().peekable();
 
-    let mut active_styles = HashSet::default();
+    let mut active_styles: HashSet<usize> = HashSet::default();
     let mut ix = 0;
     iter::from_fn(move || {
         while let Some((endpoint_ix, highlight_id, is_start)) = endpoints.peek() {
@@ -1111,7 +1135,7 @@ pub fn combine_highlights(
                 let current_style = active_styles
                     .iter()
                     .fold(HighlightStyle::default(), |acc, highlight_id| {
-                        acc.highlight(highlights[*highlight_id])
+                        acc.highlight(highlights[*highlight_id].clone())
                     });
                 return Some((prev_index..ix, current_style));
             }

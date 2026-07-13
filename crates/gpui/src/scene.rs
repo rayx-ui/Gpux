@@ -5,9 +5,10 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    ActiveScreenEffect, ActiveScreenEffectSnapshot, AtlasTextureId, AtlasTile, Background, Bounds,
-    ContentMask, Corners, Edges, ElementEffect, ElementId, Hsla, Pixels, Point, Radians,
-    ScaledPixels, ScreenEffectRegionId, SharedString, Size, bounds_tree::BoundsTree, point,
+    ActiveScreenEffect, ActiveScreenEffectSnapshot, AtlasTextureId, AtlasTile, Bounds, ContentMask,
+    Corners, Edges, ElementId, PaintColor, Pixels, Point, PreparedBackground,
+    PreparedElementEffect, Radians, ScaledPixels, ScreenEffectRegionId, SharedString, Size,
+    bounds_tree::BoundsTree, point,
 };
 use std::{
     fmt::Debug,
@@ -794,8 +795,8 @@ pub struct Quad {
     pub border_style: BorderStyle,
     pub bounds: Bounds<ScaledPixels>,
     pub content_mask: ContentMask<ScaledPixels>,
-    pub background: Background,
-    pub border_color: Background,
+    pub background: PreparedBackground,
+    pub border_color: PreparedBackground,
     pub corner_radii: Corners<ScaledPixels>,
     pub border_widths: Edges<ScaledPixels>,
     pub transformation: TransformationMatrix,
@@ -815,7 +816,7 @@ pub struct Underline {
     pub pad: u32, // align to 8 bytes
     pub bounds: Bounds<ScaledPixels>,
     pub content_mask: ContentMask<ScaledPixels>,
-    pub color: Hsla,
+    pub color: PaintColor,
     pub thickness: ScaledPixels,
     pub wavy: u32,
     pub transformation: TransformationMatrix,
@@ -836,7 +837,7 @@ pub struct Shadow {
     pub bounds: Bounds<ScaledPixels>,
     pub corner_radii: Corners<ScaledPixels>,
     pub content_mask: ContentMask<ScaledPixels>,
-    pub color: Hsla,
+    pub color: PaintColor,
     pub transformation: TransformationMatrix,
 }
 
@@ -864,7 +865,7 @@ pub struct VisualEffectPrimitive {
     /// Cumulative GPUI element opacity to apply when compositing effects.
     pub opacity: f32,
     /// Ordered element effects requested by the styled element.
-    pub effects: Vec<ElementEffect>,
+    pub effects: Vec<PreparedElementEffect>,
     /// Element transform active when the primitive was emitted.
     pub transformation: TransformationMatrix,
 }
@@ -1091,7 +1092,7 @@ pub struct MonochromeSprite {
     pub pad: u32,
     pub bounds: Bounds<ScaledPixels>,
     pub content_mask: ContentMask<ScaledPixels>,
-    pub color: Hsla,
+    pub color: PaintColor,
     pub tile: AtlasTile,
     pub transformation: TransformationMatrix,
 }
@@ -1110,7 +1111,7 @@ pub struct SubpixelSprite {
     pub pad: u32, // align to 8 bytes
     pub bounds: Bounds<ScaledPixels>,
     pub content_mask: ContentMask<ScaledPixels>,
-    pub color: Hsla,
+    pub color: PaintColor,
     pub tile: AtlasTile,
     pub transformation: TransformationMatrix,
 }
@@ -1171,7 +1172,7 @@ pub struct Path<P: Clone + Debug + Default + PartialEq> {
     pub bounds: Bounds<P>,
     pub content_mask: ContentMask<P>,
     pub vertices: Vec<PathVertex<P>>,
-    pub color: Background,
+    pub color: PreparedBackground,
     start: Point<P>,
     current: Point<P>,
     contour_count: usize,

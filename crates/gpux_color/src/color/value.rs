@@ -14,6 +14,12 @@ use crate::color::{
 #[derive(Clone, Debug)]
 pub struct Color(Arc<ColorInner>);
 
+impl Default for Color {
+    fn default() -> Self {
+        Self::transparent_black()
+    }
+}
+
 #[derive(Debug)]
 struct ColorInner {
     xyz_d65: XyzD65,
@@ -53,6 +59,45 @@ impl Color {
             paint_color: OnceLock::new(),
             paint_normalizations: AtomicUsize::new(0),
         }))
+    }
+
+    pub fn is_transparent(&self) -> bool {
+        self.alpha() == 0.0
+    }
+
+    pub fn is_opaque(&self) -> bool {
+        self.alpha() == 1.0
+    }
+
+    pub fn opacity(&self, factor: f32) -> Self {
+        self.with_alpha(self.alpha() * f64::from(factor.clamp(0.0, 1.0)))
+            .expect("multiplying a valid alpha by a clamped finite factor stays valid")
+    }
+
+    /// Fades this handle by replacing it with an immutable value whose alpha is reduced.
+    pub fn fade_out(&mut self, factor: f32) {
+        *self = self.opacity(1.0 - factor.clamp(0.0, 1.0));
+    }
+
+    pub fn blend(&self, other: Self) -> Self {
+        let alpha = other.alpha();
+        if alpha >= 1.0 {
+            return other;
+        }
+        if alpha <= 0.0 {
+            return self.clone();
+        }
+        let below = self.to_srgb();
+        let above = other.to_srgb();
+        Self::from_srgb(
+            Srgb::new(
+                below.r * (1.0 - alpha) + above.r * alpha,
+                below.g * (1.0 - alpha) + above.g * alpha,
+                below.b * (1.0 - alpha) + above.b * alpha,
+            ),
+            self.alpha(),
+        )
+        .expect("blending finite colors produces a finite color")
     }
 
     /// Evaluates an authored encoded representation into canonical XYZ D65.
@@ -412,6 +457,36 @@ impl Color {
         self.0.paint_normalizations.load(Ordering::Relaxed)
     }
 }
+
+macro_rules! impl_color_from_typed {
+    ($type:ty) => {
+        impl From<$type> for Color {
+            fn from(value: $type) -> Self {
+                Self::from_encoded(
+                    EncodedColor::from(value, 1.0)
+                        .expect("typed color inputs must contain finite components"),
+                )
+                .expect("typed color inputs must convert to finite XYZ D65")
+            }
+        }
+    };
+}
+
+impl_color_from_typed!(Srgb);
+impl_color_from_typed!(LinearSrgb);
+impl_color_from_typed!(DisplayP3);
+impl_color_from_typed!(A98Rgb);
+impl_color_from_typed!(ProPhotoRgb);
+impl_color_from_typed!(Rec2020);
+impl_color_from_typed!(HsvColor);
+impl_color_from_typed!(HslColor);
+impl_color_from_typed!(HwbColor);
+impl_color_from_typed!(LabColor);
+impl_color_from_typed!(LchColor);
+impl_color_from_typed!(OklabColor);
+impl_color_from_typed!(OklchColor);
+impl_color_from_typed!(XyzD65);
+impl_color_from_typed!(XyzD50);
 
 impl Eq for Color {}
 
