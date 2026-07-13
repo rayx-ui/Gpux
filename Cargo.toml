@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/collections",
     "crates/gpui",
+    "crates/gpux_color",
     "crates/gpui_linux",
     "crates/gpui_macos",
     "crates/gpui_macros",
@@ -39,6 +40,7 @@ edition = "2024"
 collections = { path = "crates/collections", version = "0.1.0" }
 derive_refineable = { path = "crates/refineable/derive_refineable" }
 gpux = { path = "crates/gpui", default-features = false }
+gpux_color = { path = "crates/gpux_color" }
 gpui_shared_string = { path = "crates/gpui_shared_string" }
 gpui_linux = { path = "crates/gpui_linux", default-features = false }
 gpui_macos = { path = "crates/gpui_macos", default-features = false }

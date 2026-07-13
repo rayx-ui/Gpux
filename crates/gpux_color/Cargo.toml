@@ -1,0 +1,18 @@
+[package]
+name = "gpux_color"
+description = "UI-neutral standards color engine for gpux."
+version = "0.1.0"
+edition.workspace = true
+publish.workspace = true
+
+[dev-dependencies]
+criterion = { version = "0.5.1", default-features = false }
+dhat = "0.3.3"
+static_assertions = "1.1.0"
+
+[[bench]]
+name = "color_conversions"
+harness = false
+
+[lints]
+workspace = true
