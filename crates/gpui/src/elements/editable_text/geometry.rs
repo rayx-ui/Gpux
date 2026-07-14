@@ -1,22 +1,24 @@
 use std::ops::Range;
 
-use crate::{Bounds, Pixels, Point, ShapedLine, point};
+use crate::{Bounds, Pixels, Point, point, px, size};
 
-/// Revision-bound geometry for a shaped editable-text line.
+use super::{TextDisplayPoint, TextLayoutMap};
+
+/// Revision-bound viewport geometry for editable text.
 #[derive(Clone, Debug)]
 pub struct EditableTextGeometry {
     revision: u64,
     bounds: Bounds<Pixels>,
-    line: ShapedLine,
+    scroll_offset: Point<Pixels>,
 }
 
 #[allow(missing_docs)]
 impl EditableTextGeometry {
-    pub fn new(revision: u64, bounds: Bounds<Pixels>, line: ShapedLine) -> Self {
+    pub fn new(revision: u64, bounds: Bounds<Pixels>, scroll_offset: Point<Pixels>) -> Self {
         Self {
             revision,
             bounds,
-            line,
+            scroll_offset,
         }
     }
 
@@ -28,27 +30,65 @@ impl EditableTextGeometry {
         self.bounds
     }
 
-    pub fn index_for_point(&self, position: Point<Pixels>) -> usize {
-        if self.line.text.is_empty() || position.y < self.bounds.top() {
-            return 0;
-        }
-        if position.y > self.bounds.bottom() {
-            return self.line.len();
-        }
-        self.line
-            .closest_index_for_x(position.x - self.bounds.left())
+    pub fn scroll_offset(&self) -> Point<Pixels> {
+        self.scroll_offset
     }
 
-    pub fn bounds_for_range(&self, range: Range<usize>) -> Bounds<Pixels> {
+    pub fn index_for_point(&self, map: &TextLayoutMap, position: Point<Pixels>) -> usize {
+        if map.visual_line_count() == 0 {
+            return 0;
+        }
+        let content = position - self.bounds.origin - self.scroll_offset;
+        if content.y < px(0.) {
+            return 0;
+        }
+        if content.y >= map.size().height {
+            return map
+                .visual_row_range(map.visual_line_count() - 1)
+                .map_or(0, |range| range.end);
+        }
+        map.index_for_position(content).unwrap_or(0)
+    }
+
+    pub fn bounds_for_range(&self, map: &TextLayoutMap, range: Range<usize>) -> Bounds<Pixels> {
+        let origin = self.bounds.origin + self.scroll_offset;
+        let Some(start) = map.buffer_to_display(range.start) else {
+            return Bounds::new(origin, size(px(0.), map.line_height()));
+        };
+        let Some(end) = map.buffer_to_display(range.end) else {
+            return Bounds::new(origin, size(px(0.), map.line_height()));
+        };
+        if range.is_empty() {
+            let position = map.position_for_index(range.start).unwrap_or_default();
+            return Bounds::new(origin + position, size(px(0.), map.line_height()));
+        }
+
+        let mut left = Pixels::MAX;
+        let mut right = -Pixels::MAX;
+        for row in start.row..=end.row {
+            let Some(row_range) = map.visual_row_range(row) else {
+                continue;
+            };
+            let segment_start = range.start.max(row_range.start).min(row_range.end);
+            let segment_end = range.end.min(row_range.end).max(row_range.start);
+            let start_column = segment_start.saturating_sub(row_range.start);
+            let end_column = segment_end.saturating_sub(row_range.start);
+            let start_x = map
+                .position_for_display(TextDisplayPoint::new(row, start_column))
+                .map_or(px(0.), |position| position.x);
+            let end_x = map
+                .position_for_display(TextDisplayPoint::new(row, end_column))
+                .map_or(start_x, |position| position.x);
+            left = left.min(start_x);
+            right = right.max(end_x.max(start_x));
+        }
+        if left == Pixels::MAX {
+            left = px(0.);
+            right = px(0.);
+        }
         Bounds::from_corners(
-            point(
-                self.bounds.left() + self.line.x_for_index(range.start),
-                self.bounds.top(),
-            ),
-            point(
-                self.bounds.left() + self.line.x_for_index(range.end),
-                self.bounds.bottom(),
-            ),
+            origin + point(left, map.line_height() * start.row),
+            origin + point(right, map.line_height() * (end.row + 1)),
         )
     }
 }

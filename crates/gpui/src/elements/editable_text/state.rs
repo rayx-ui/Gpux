@@ -2,28 +2,41 @@ use std::{ops::Range, time::Duration};
 
 use crate::{
     Bounds, ClipboardItem, Context, EntityInputHandler, EventEmitter, FocusHandle, Focusable,
-    Pixels, Point, ShapedLine, Subscription, UTF16Selection, Window,
+    Pixels, Point, Subscription, UTF16Selection, Window, WindowTextSystem, point, px,
 };
 
 use super::{
-    EditableSelection, EditableTextEvent, EditableTextGeometry, EditableTextMode, TextBuffer,
-    TextBufferSnapshot, TextEdit,
+    EditableSelection, EditableTextEvent, EditableTextGeometry, EditableTextLineMode,
+    EditableTextMode, EditableTextStyleRuns, TextBuffer, TextBufferSnapshot, TextEdit,
+    TextLayoutError, TextLayoutMap, TextLayoutStyle, TextLayoutUpdate,
     history::{EditHistory, EditKind, HistoryState},
-    movement::{next_grapheme_boundary, normalize_single_line, previous_grapheme_boundary},
+    movement::{
+        next_grapheme_boundary, normalize_multiline, normalize_single_line,
+        previous_grapheme_boundary,
+    },
 };
 
 const CARET_BLINK_INTERVAL: Duration = Duration::from_millis(500);
+const DRAG_SCROLL_INTERVAL: Duration = Duration::from_millis(16);
 
-/// Entity state for neutral single-line editing mechanics.
+/// Entity state for neutral editable-text mechanics.
 pub struct EditableTextState {
     buffer: TextBuffer,
     selection: EditableSelection,
     marked_range: Option<Range<usize>>,
     mode: EditableTextMode,
+    line_mode: EditableTextLineMode,
+    soft_wrap: bool,
     placeholder: String,
     focus_handle: FocusHandle,
     history: EditHistory,
     geometry: Option<EditableTextGeometry>,
+    layout_map: TextLayoutMap,
+    scroll_offset: Point<Pixels>,
+    preferred_vertical_x: Option<Pixels>,
+    drag_position: Option<Point<Pixels>>,
+    drag_scroll_epoch: u64,
+    drag_scroll_active: bool,
     is_selecting: bool,
     is_focused: bool,
     caret_visible: bool,
@@ -38,16 +51,35 @@ impl EditableTextState {
     }
 
     pub fn with_text(text: impl AsRef<str>, cx: &mut Context<Self>) -> Self {
-        let text = normalize_single_line(text.as_ref());
+        Self::with_line_mode(text, EditableTextLineMode::SingleLine, cx)
+    }
+
+    pub fn with_line_mode(
+        text: impl AsRef<str>,
+        line_mode: EditableTextLineMode,
+        cx: &mut Context<Self>,
+    ) -> Self {
+        let text = match line_mode {
+            EditableTextLineMode::SingleLine => normalize_single_line(text.as_ref()),
+            EditableTextLineMode::MultiLine => normalize_multiline(text.as_ref()),
+        };
         Self {
             selection: EditableSelection::caret(text.len()),
             buffer: TextBuffer::new(text),
             marked_range: None,
             mode: EditableTextMode::Editable,
+            line_mode,
+            soft_wrap: true,
             placeholder: String::new(),
             focus_handle: cx.focus_handle(),
             history: EditHistory::default(),
             geometry: None,
+            layout_map: TextLayoutMap::new(),
+            scroll_offset: point(px(0.), px(0.)),
+            preferred_vertical_x: None,
+            drag_position: None,
+            drag_scroll_epoch: 0,
+            drag_scroll_active: false,
             is_selecting: false,
             is_focused: false,
             caret_visible: false,
@@ -80,6 +112,40 @@ impl EditableTextState {
         self.mode
     }
 
+    pub fn line_mode(&self) -> EditableTextLineMode {
+        self.line_mode
+    }
+
+    pub fn soft_wrap(&self) -> bool {
+        self.soft_wrap
+    }
+
+    pub fn set_soft_wrap(&mut self, soft_wrap: bool, cx: &mut Context<Self>) {
+        if self.soft_wrap == soft_wrap {
+            return;
+        }
+        self.soft_wrap = soft_wrap;
+        self.geometry = None;
+        self.scroll_offset.x = px(0.);
+        cx.notify();
+    }
+
+    pub fn layout_map(&self) -> &TextLayoutMap {
+        &self.layout_map
+    }
+
+    pub fn viewport_bounds(&self) -> Option<Bounds<Pixels>> {
+        self.geometry.as_ref().map(EditableTextGeometry::bounds)
+    }
+
+    pub fn scroll_offset(&self) -> Point<Pixels> {
+        self.scroll_offset
+    }
+
+    pub fn preferred_vertical_x(&self) -> Option<Pixels> {
+        self.preferred_vertical_x
+    }
+
     pub fn set_mode(&mut self, mode: EditableTextMode, cx: &mut Context<Self>) {
         if self.mode == mode {
             return;
@@ -87,6 +153,8 @@ impl EditableTextState {
         self.mode = mode;
         if mode == EditableTextMode::Disabled {
             self.is_selecting = false;
+            self.drag_position = None;
+            self.stop_drag_auto_scroll();
             self.marked_range = None;
             self.stop_blink();
         }
@@ -118,16 +186,64 @@ impl EditableTextState {
         self.geometry.as_ref()
     }
 
-    pub fn install_geometry(
+    pub(crate) fn update_layout(
         &mut self,
-        revision: u64,
         bounds: Bounds<Pixels>,
-        line: ShapedLine,
-    ) -> bool {
-        if revision != self.revision() {
+        mut style: TextLayoutStyle,
+        text_system: &WindowTextSystem,
+    ) -> Result<TextLayoutUpdate, TextLayoutError> {
+        style.wrap_width = match self.line_mode {
+            EditableTextLineMode::SingleLine => None,
+            EditableTextLineMode::MultiLine if self.soft_wrap && bounds.size.width > px(0.) => {
+                Some(bounds.size.width)
+            }
+            EditableTextLineMode::MultiLine if self.soft_wrap => Some(px(0.)),
+            EditableTextLineMode::MultiLine => None,
+        };
+        let snapshot = self.snapshot();
+        let runs = EditableTextStyleRuns::empty(snapshot.revision());
+        let update = match self
+            .layout_map
+            .update(&snapshot, &runs, &style, text_system)
+        {
+            Ok(update) => update,
+            Err(error) => {
+                self.geometry = None;
+                return Err(error);
+            }
+        };
+        self.ensure_caret_visible(bounds);
+        self.geometry = Some(EditableTextGeometry::new(
+            snapshot.revision(),
+            bounds,
+            self.scroll_offset,
+        ));
+        Ok(update)
+    }
+
+    pub fn scroll_by(&mut self, delta: Point<Pixels>, cx: &mut Context<Self>) -> bool {
+        let Some(bounds) = self.viewport_bounds() else {
+            return false;
+        };
+        let previous = self.scroll_offset;
+        if self.line_mode == EditableTextLineMode::MultiLine {
+            self.scroll_offset.y += delta.y;
+            if !self.soft_wrap {
+                self.scroll_offset.x += delta.x;
+            }
+        } else {
+            self.scroll_offset.x += delta.x;
+        }
+        self.clamp_scroll(bounds);
+        if self.scroll_offset == previous {
             return false;
         }
-        self.geometry = Some(EditableTextGeometry::new(revision, bounds, line));
+        self.geometry = Some(EditableTextGeometry::new(
+            self.revision(),
+            bounds,
+            self.scroll_offset,
+        ));
+        cx.notify();
         true
     }
 
@@ -194,6 +310,26 @@ impl EditableTextState {
             next_grapheme_boundary(&self.text(), self.selection.head())
         };
         self.move_to(offset, extend, cx);
+    }
+
+    pub fn move_up(&mut self, extend: bool, cx: &mut Context<Self>) {
+        self.move_vertical(-1, extend, cx);
+    }
+
+    pub fn move_down(&mut self, extend: bool, cx: &mut Context<Self>) {
+        self.move_vertical(1, extend, cx);
+    }
+
+    pub fn move_page_up(&mut self, extend: bool, cx: &mut Context<Self>) {
+        self.move_vertical(-self.page_row_count(), extend, cx);
+    }
+
+    pub fn move_page_down(&mut self, extend: bool, cx: &mut Context<Self>) {
+        self.move_vertical(self.page_row_count(), extend, cx);
+    }
+
+    pub fn insert_newline(&mut self, cx: &mut Context<Self>) -> bool {
+        self.line_mode == EditableTextLineMode::MultiLine && self.replace_selection("\n", cx)
     }
 
     pub fn delete_backward(&mut self, cx: &mut Context<Self>) -> bool {
@@ -276,7 +412,7 @@ impl EditableTextState {
                 .clone()
                 .unwrap_or_else(|| self.selection.range()),
         };
-        let replacement = normalize_single_line(text);
+        let replacement = self.normalize_input(text);
         let replacement_snapshot = TextBuffer::new(&replacement).snapshot();
         let relative_selection = match selected_range_utf16 {
             Some(relative) => {
@@ -406,19 +542,29 @@ impl EditableTextState {
             return;
         }
         self.is_selecting = true;
+        self.drag_position = Some(position);
         let offset = self.index_for_point(position);
         self.move_to(offset, extend, cx);
     }
 
     pub(crate) fn pointer_move(&mut self, position: Point<Pixels>, cx: &mut Context<Self>) {
         if self.is_selecting && self.mode != EditableTextMode::Disabled {
+            self.drag_position = Some(position);
+            self.auto_scroll_for_pointer(position);
             let offset = self.index_for_point(position);
             self.move_to(offset, true, cx);
+            if self.pointer_is_outside_viewport(position) {
+                self.start_drag_auto_scroll(cx);
+            } else {
+                self.stop_drag_auto_scroll();
+            }
         }
     }
 
     pub(crate) fn pointer_up(&mut self) {
         self.is_selecting = false;
+        self.drag_position = None;
+        self.stop_drag_auto_scroll();
     }
 
     fn move_to(&mut self, offset: usize, extend: bool, cx: &mut Context<Self>) {
@@ -428,15 +574,192 @@ impl EditableTextState {
             EditableSelection::caret(offset)
         };
         self.marked_range = None;
+        self.preferred_vertical_x = None;
         self.restart_blink(cx);
         cx.notify();
+    }
+
+    fn move_vertical(&mut self, row_delta: isize, extend: bool, cx: &mut Context<Self>) {
+        if self.mode == EditableTextMode::Disabled
+            || self.line_mode != EditableTextLineMode::MultiLine
+        {
+            return;
+        }
+        let Some(display) = self.layout_map.buffer_to_display(self.selection.head()) else {
+            return;
+        };
+        let Some(position) = self.layout_map.position_for_index(self.selection.head()) else {
+            return;
+        };
+        let preferred_x = self.preferred_vertical_x.unwrap_or(position.x);
+        let last_row = self.layout_map.visual_line_count().saturating_sub(1) as isize;
+        let target_row = (display.row as isize + row_delta).clamp(0, last_row) as usize;
+        let target_position = point(
+            preferred_x,
+            self.layout_map.line_height() * target_row + self.layout_map.line_height() / 2.0,
+        );
+        let Some(offset) = self.layout_map.index_for_position(target_position) else {
+            return;
+        };
+        self.move_to(offset.min(self.buffer.len()), extend, cx);
+        self.preferred_vertical_x = Some(preferred_x);
+    }
+
+    fn page_row_count(&self) -> isize {
+        let line_height = self.layout_map.line_height();
+        if line_height <= px(0.) {
+            return 1;
+        }
+        self.geometry
+            .as_ref()
+            .map(|geometry| {
+                (f32::from(geometry.bounds().size.height) / f32::from(line_height))
+                    .floor()
+                    .max(1.) as isize
+            })
+            .unwrap_or(1)
+    }
+
+    fn normalize_input(&self, text: &str) -> String {
+        match self.line_mode {
+            EditableTextLineMode::SingleLine => normalize_single_line(text),
+            EditableTextLineMode::MultiLine => normalize_multiline(text),
+        }
+    }
+
+    fn ensure_caret_visible(&mut self, bounds: Bounds<Pixels>) {
+        if bounds.size.width <= px(0.) || bounds.size.height <= px(0.) {
+            self.scroll_offset = point(px(0.), px(0.));
+            return;
+        }
+        let Some(caret) = self.layout_map.position_for_index(self.selection.head()) else {
+            self.scroll_offset = point(px(0.), px(0.));
+            return;
+        };
+        let horizontal_scroll = self.line_mode == EditableTextLineMode::SingleLine
+            || (self.line_mode == EditableTextLineMode::MultiLine && !self.soft_wrap);
+        if horizontal_scroll {
+            let visible_x = caret.x + self.scroll_offset.x;
+            if visible_x < px(0.) {
+                self.scroll_offset.x = -caret.x;
+            } else if visible_x + px(2.) > bounds.size.width {
+                self.scroll_offset.x = bounds.size.width - caret.x - px(2.);
+            }
+        } else {
+            self.scroll_offset.x = px(0.);
+        }
+        if self.line_mode == EditableTextLineMode::MultiLine {
+            let visible_y = caret.y + self.scroll_offset.y;
+            let line_height = self.layout_map.line_height();
+            if visible_y < px(0.) {
+                self.scroll_offset.y = -caret.y;
+            } else if visible_y + line_height > bounds.size.height {
+                self.scroll_offset.y = bounds.size.height - caret.y - line_height;
+            }
+        } else {
+            self.scroll_offset.y = px(0.);
+        }
+        self.clamp_scroll(bounds);
+    }
+
+    fn auto_scroll_for_pointer(&mut self, position: Point<Pixels>) {
+        let Some(geometry) = self.geometry.as_ref() else {
+            return;
+        };
+        let bounds = geometry.bounds();
+        let line_height = self.layout_map.line_height().max(px(1.));
+        if position.y < bounds.top() {
+            self.scroll_offset.y += line_height;
+        } else if position.y > bounds.bottom() {
+            self.scroll_offset.y -= line_height;
+        }
+        if !self.soft_wrap && position.x < bounds.left() {
+            self.scroll_offset.x += line_height;
+        } else if !self.soft_wrap && position.x > bounds.right() {
+            self.scroll_offset.x -= line_height;
+        }
+        self.clamp_scroll(bounds);
+        self.geometry = Some(EditableTextGeometry::new(
+            self.revision(),
+            bounds,
+            self.scroll_offset,
+        ));
+    }
+
+    fn pointer_is_outside_viewport(&self, position: Point<Pixels>) -> bool {
+        self.geometry.as_ref().is_some_and(|geometry| {
+            let bounds = geometry.bounds();
+            position.x < bounds.left()
+                || position.x > bounds.right()
+                || position.y < bounds.top()
+                || position.y > bounds.bottom()
+        })
+    }
+
+    fn start_drag_auto_scroll(&mut self, cx: &mut Context<Self>) {
+        if self.drag_scroll_active {
+            return;
+        }
+        self.drag_scroll_active = true;
+        self.drag_scroll_epoch = self.drag_scroll_epoch.wrapping_add(1);
+        let epoch = self.drag_scroll_epoch;
+        cx.spawn(async move |entity, cx| {
+            loop {
+                cx.background_executor().timer(DRAG_SCROLL_INTERVAL).await;
+                let keep_running = entity
+                    .update(cx, |state, cx| {
+                        if !state.is_selecting
+                            || !state.drag_scroll_active
+                            || state.drag_scroll_epoch != epoch
+                        {
+                            return false;
+                        }
+                        let Some(position) = state.drag_position else {
+                            state.drag_scroll_active = false;
+                            return false;
+                        };
+                        if !state.pointer_is_outside_viewport(position) {
+                            state.drag_scroll_active = false;
+                            return false;
+                        }
+                        state.auto_scroll_for_pointer(position);
+                        let offset = state.index_for_point(position);
+                        state.selection = state.selection.with_head(offset);
+                        state.marked_range = None;
+                        state.preferred_vertical_x = None;
+                        cx.notify();
+                        true
+                    })
+                    .unwrap_or(false);
+                if !keep_running {
+                    break;
+                }
+            }
+        })
+        .detach();
+    }
+
+    fn stop_drag_auto_scroll(&mut self) {
+        self.drag_scroll_active = false;
+        self.drag_scroll_epoch = self.drag_scroll_epoch.wrapping_add(1);
+    }
+
+    fn clamp_scroll(&mut self, bounds: Bounds<Pixels>) {
+        let min_x = (bounds.size.width - self.layout_map.size().width).min(px(0.));
+        let min_y = (bounds.size.height - self.layout_map.size().height).min(px(0.));
+        self.scroll_offset.x = self.scroll_offset.x.clamp(min_x, px(0.));
+        self.scroll_offset.y = self.scroll_offset.y.clamp(min_y, px(0.));
     }
 
     fn index_for_point(&self, position: Point<Pixels>) -> usize {
         self.geometry
             .as_ref()
             .filter(|geometry| geometry.revision() == self.revision())
-            .map(|geometry| geometry.index_for_point(position).min(self.buffer.len()))
+            .map(|geometry| {
+                geometry
+                    .index_for_point(&self.layout_map, position)
+                    .min(self.buffer.len())
+            })
             .unwrap_or(0)
     }
 
@@ -450,7 +773,7 @@ impl EditableTextState {
         if !self.mode.permits_mutation() {
             return false;
         }
-        let replacement = normalize_single_line(text);
+        let replacement = self.normalize_input(text);
         let caret = range.start + replacement.len();
         self.apply_edit(
             range,
@@ -539,6 +862,8 @@ impl EditableTextState {
     fn did_blur(&mut self, cx: &mut Context<Self>) {
         self.is_focused = false;
         self.is_selecting = false;
+        self.drag_position = None;
+        self.stop_drag_auto_scroll();
         self.stop_blink();
         cx.notify();
     }
@@ -665,7 +990,7 @@ impl EntityInputHandler for EditableTextState {
             .geometry
             .as_ref()
             .filter(|geometry| geometry.revision() == self.revision())?;
-        Some(geometry.bounds_for_range(range))
+        Some(geometry.bounds_for_range(&self.layout_map, range))
     }
 
     fn character_index_for_point(

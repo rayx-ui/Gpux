@@ -1,13 +1,17 @@
 use crate::{
-    App, Bounds, Color, CursorStyle, DispatchPhase, Element, ElementId, ElementInputHandler,
-    Entity, GlobalElementId, IntoElement, KeyDownEvent, LayoutId, MouseButton, MouseDownEvent,
-    MouseMoveEvent, MouseUpEvent, PaintQuad, Pixels, RenderOnce, ShapedLine, SharedString, Style,
-    TextRun, UnderlineStyle, Window, div, fill, point, prelude::*, px, relative, size,
+    App, Bounds, Color, CursorStyle, DecorationRun, DispatchPhase, Element, ElementId,
+    ElementInputHandler, Entity, GlobalElementId, IntoElement, KeyDownEvent, LayoutId, MouseButton,
+    MouseDownEvent, MouseMoveEvent, MouseUpEvent, PaintQuad, Pixels, RenderOnce, ScrollWheelEvent,
+    ShapedLine, SharedString, Style, TextAlign, TextRun, UnderlineStyle, Window, WrappedLine, div,
+    fill, point, prelude::*, px, relative, size,
+};
+use std::ops::Range;
+
+use super::{
+    EditableTextLineMode, EditableTextMode, EditableTextState, TextDisplayPoint, TextLayoutStyle,
 };
 
-use super::{EditableTextMode, EditableTextState};
-
-/// A reusable single-line editable-text element backed by [`EditableTextState`].
+/// A reusable editable-text element backed by [`EditableTextState`].
 #[derive(IntoElement)]
 pub struct EditableText {
     state: Entity<EditableTextState>,
@@ -47,18 +51,22 @@ impl RenderOnce for EditableText {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         self.state
             .update(cx, |state, cx| state.ensure_focus_tracking(window, cx));
-        let (focus_handle, mode) = {
+        let (focus_handle, mode, line_mode) = {
             let state = self.state.read(cx);
-            (state.focus_handle(), state.mode())
+            (state.focus_handle(), state.mode(), state.line_mode())
         };
 
         let key_state = self.state.clone();
         let down_state = self.state.clone();
         let up_state = self.state.clone();
+        let scroll_state = self.state.clone();
 
         div()
             .flex()
             .w_full()
+            .when(line_mode == EditableTextLineMode::MultiLine, |element| {
+                element.h_full().overflow_hidden()
+            })
             .key_context("EditableText")
             .cursor(CursorStyle::IBeam)
             .on_key_down(move |event, window, cx| {
@@ -76,6 +84,13 @@ impl RenderOnce for EditableText {
             )
             .on_mouse_up(MouseButton::Left, move |_: &MouseUpEvent, _window, cx| {
                 up_state.update(cx, |state, _| state.pointer_up());
+            })
+            .on_scroll_wheel(move |event: &ScrollWheelEvent, window, cx| {
+                let delta = event.delta.pixel_delta(window.line_height());
+                let changed = scroll_state.update(cx, |state, cx| state.scroll_by(delta, cx));
+                if changed {
+                    cx.stop_propagation();
+                }
             })
             .when(mode.permits_focus(), |element| {
                 element.track_focus(&focus_handle)
@@ -107,6 +122,26 @@ fn handle_key_down(
         }
         (false, shift, "right") => {
             state.move_right(shift, cx);
+            true
+        }
+        (false, shift, "up") => {
+            state.move_up(shift, cx);
+            true
+        }
+        (false, shift, "down") => {
+            state.move_down(shift, cx);
+            true
+        }
+        (false, shift, "pageup") => {
+            state.move_page_up(shift, cx);
+            true
+        }
+        (false, shift, "pagedown") => {
+            state.move_page_down(shift, cx);
+            true
+        }
+        (false, _, "enter") => {
+            state.insert_newline(cx);
             true
         }
         (false, false, "home") => {
@@ -151,10 +186,16 @@ struct EditableTextPaintElement {
 }
 
 struct EditableTextPrepaintState {
-    revision: u64,
-    line: ShapedLine,
+    lines: Vec<EditableTextPaintLine>,
+    placeholder: Option<ShapedLine>,
+    scroll_offset: crate::Point<Pixels>,
     cursor: Option<PaintQuad>,
-    selection: Option<PaintQuad>,
+    selection: Vec<PaintQuad>,
+}
+
+struct EditableTextPaintLine {
+    line: WrappedLine,
+    visual_start: usize,
 }
 
 impl IntoElement for EditableTextPaintElement {
@@ -186,7 +227,10 @@ impl Element for EditableTextPaintElement {
     ) -> (LayoutId, Self::RequestLayoutState) {
         let mut style = Style::default();
         style.size.width = relative(1.).into();
-        style.size.height = window.line_height().into();
+        style.size.height = match self.state.read(cx).line_mode() {
+            EditableTextLineMode::SingleLine => window.line_height().into(),
+            EditableTextLineMode::MultiLine => relative(1.).into(),
+        };
         (window.request_layout(style, [], cx), ())
     }
 
@@ -199,11 +243,6 @@ impl Element for EditableTextPaintElement {
         window: &mut Window,
         cx: &mut App,
     ) -> Self::PrepaintState {
-        let state = self.state.read(cx);
-        let snapshot = state.snapshot();
-        let content = snapshot.text();
-        let selection = *state.selection();
-        let marked_range = state.marked_range();
         let style = window.text_style();
         let placeholder_color = self
             .placeholder_color
@@ -217,87 +256,107 @@ impl Element for EditableTextPaintElement {
             .caret_color
             .clone()
             .unwrap_or_else(|| style.color.clone());
-        let (display_text, color): (SharedString, _) = if content.is_empty() {
-            (state.placeholder().to_owned().into(), placeholder_color)
-        } else {
-            (content.into(), style.color.clone())
-        };
-
-        let run = TextRun {
-            len: display_text.len(),
+        let font_size = style.font_size.to_pixels(window.rem_size());
+        let line_height = window.line_height();
+        let layout_style = TextLayoutStyle {
             font: style.font(),
-            color,
-            background_color: None,
-            underline: None,
-            strikethrough: None,
+            font_size,
+            line_height,
+            letter_spacing: style.letter_spacing.to_pixels(window.rem_size()),
+            wrap_width: None,
+            device_scale_factor: window.scale_factor(),
+            tab_size: 4,
         };
-        let runs = if let Some(marked) = marked_range.filter(|_| !display_text.is_empty()) {
-            [
-                TextRun {
-                    len: marked.start,
-                    ..run.clone()
-                },
-                TextRun {
-                    len: marked.end - marked.start,
-                    underline: Some(UnderlineStyle {
-                        color: Some(run.color.clone()),
-                        thickness: px(1.),
-                        wavy: false,
-                    }),
-                    ..run.clone()
-                },
-                TextRun {
-                    len: display_text.len() - marked.end,
-                    ..run
-                },
-            ]
-            .into_iter()
-            .filter(|run| run.len > 0)
-            .collect::<Vec<_>>()
-        } else {
-            vec![run]
-        };
-        let line = window.text_system().shape_line(
-            display_text,
-            style.font_size.to_pixels(window.rem_size()),
-            &runs,
-            None,
-        );
-
-        let selection_quad = (!selection.is_empty()).then(|| {
-            fill(
-                Bounds::from_corners(
-                    point(
-                        bounds.left() + line.x_for_index(selection.range().start),
-                        bounds.top(),
-                    ),
-                    point(
-                        bounds.left() + line.x_for_index(selection.range().end),
-                        bounds.bottom(),
-                    ),
-                ),
-                selection_color,
-            )
+        let layout_ready = self.state.update(cx, |state, _| {
+            state
+                .update_layout(bounds, layout_style, window.text_system())
+                .is_ok()
         });
-        let cursor =
-            (selection.is_empty() && state.is_focused() && state.caret_visible()).then(|| {
-                fill(
-                    Bounds::new(
-                        point(
-                            bounds.left() + line.x_for_index(selection.head()),
-                            bounds.top(),
-                        ),
-                        size(px(2.), bounds.size.height),
-                    ),
-                    caret_color,
-                )
+
+        let state = self.state.read(cx);
+        let snapshot = state.snapshot();
+        let content = snapshot.text();
+        let selection = *state.selection();
+        let marked_range = state.marked_range();
+        let scroll_offset = state.scroll_offset();
+        let content_origin = bounds.origin + scroll_offset;
+
+        let mut lines = Vec::new();
+        for row_index in 0..state.layout_map().logical_row_count() {
+            let Some((buffer_start, visual_start, text, layout)) =
+                state.layout_map().paint_row(row_index)
+            else {
+                continue;
+            };
+            let row_top = line_height * visual_start + scroll_offset.y;
+            let row_bottom = row_top + layout.size(line_height).height;
+            if !layout_ready || row_bottom <= px(0.) || row_top >= bounds.size.height {
+                continue;
+            }
+            let decorations = decoration_runs(
+                buffer_start,
+                text.len(),
+                marked_range.clone(),
+                style.color.clone(),
+            );
+            lines.push(EditableTextPaintLine {
+                line: WrappedLine {
+                    layout,
+                    text,
+                    decoration_runs: decorations,
+                },
+                visual_start,
             });
+        }
+
+        let placeholder = (content.is_empty() && !state.placeholder().is_empty()).then(|| {
+            let text: SharedString = state.placeholder().to_owned().into();
+            let run = TextRun {
+                len: text.len(),
+                font: style.font(),
+                color: placeholder_color,
+                background_color: None,
+                underline: None,
+                strikethrough: None,
+            };
+            window
+                .text_system()
+                .shape_line(text, font_size, &[run], None)
+        });
+
+        let selection_quads = layout_ready
+            .then(|| {
+                selection_quads(
+                    state,
+                    selection.range(),
+                    content_origin,
+                    bounds,
+                    selection_color,
+                )
+            })
+            .unwrap_or_default();
+        let cursor =
+            (layout_ready && selection.is_empty() && state.is_focused() && state.caret_visible())
+                .then(|| {
+                    let position = state
+                        .layout_map()
+                        .position_for_index(selection.head())
+                        .unwrap_or_default();
+                    fill(
+                        Bounds::new(
+                            content_origin + position,
+                            size(px(2.), state.layout_map().line_height()),
+                        ),
+                        caret_color,
+                    )
+                });
 
         EditableTextPrepaintState {
-            revision: snapshot.revision(),
-            line,
+            lines,
+            placeholder,
+            scroll_offset,
             cursor,
-            selection: selection_quad,
+            selection: selection_quads,
         }
     }
 
@@ -322,29 +381,40 @@ impl Element for EditableTextPaintElement {
                 cx,
             );
         }
-        if let Some(selection) = prepaint.selection.take() {
+        for selection in prepaint.selection.drain(..) {
             window.paint_quad(selection);
         }
-        prepaint
-            .line
-            .paint(
-                bounds.origin,
-                window.line_height(),
-                crate::TextAlign::Left,
-                None,
-                window,
-                cx,
-            )
-            .expect("editable text line should paint");
+        let line_height = window.line_height();
+        for paint_line in &prepaint.lines {
+            paint_line
+                .line
+                .paint(
+                    bounds.origin
+                        + prepaint.scroll_offset
+                        + point(px(0.), line_height * paint_line.visual_start),
+                    line_height,
+                    TextAlign::Left,
+                    Some(bounds),
+                    window,
+                    cx,
+                )
+                .expect("editable text line should paint");
+        }
+        if let Some(placeholder) = &prepaint.placeholder {
+            placeholder
+                .paint(
+                    bounds.origin,
+                    line_height,
+                    TextAlign::Left,
+                    None,
+                    window,
+                    cx,
+                )
+                .expect("editable text placeholder should paint");
+        }
         if let Some(cursor) = prepaint.cursor.take() {
             window.paint_quad(cursor);
         }
-
-        let line = prepaint.line.clone();
-        let revision = prepaint.revision;
-        self.state.update(cx, |state, _| {
-            state.install_geometry(revision, bounds, line);
-        });
 
         let drag_state = self.state.clone();
         window.on_mouse_event(move |event: &MouseMoveEvent, phase, _window, cx| {
@@ -359,4 +429,109 @@ impl Element for EditableTextPaintElement {
             }
         });
     }
+}
+
+fn decoration_runs(
+    buffer_start: usize,
+    len: usize,
+    marked_range: Option<Range<usize>>,
+    color: Color,
+) -> Vec<DecorationRun> {
+    let row_range = buffer_start..buffer_start + len;
+    let marked = marked_range.and_then(|marked| {
+        let start = marked.start.max(row_range.start);
+        let end = marked.end.min(row_range.end);
+        (start < end).then_some(start - buffer_start..end - buffer_start)
+    });
+    let Some(marked) = marked else {
+        return (!row_range.is_empty())
+            .then(|| DecorationRun {
+                len: len as u32,
+                color,
+                background_color: None,
+                underline: None,
+                strikethrough: None,
+            })
+            .into_iter()
+            .collect();
+    };
+    let mut runs = Vec::with_capacity(3);
+    if marked.start > 0 {
+        runs.push(DecorationRun {
+            len: marked.start as u32,
+            color: color.clone(),
+            background_color: None,
+            underline: None,
+            strikethrough: None,
+        });
+    }
+    runs.push(DecorationRun {
+        len: (marked.end - marked.start) as u32,
+        color: color.clone(),
+        background_color: None,
+        underline: Some(UnderlineStyle {
+            color: Some(color.clone()),
+            thickness: px(1.),
+            wavy: false,
+        }),
+        strikethrough: None,
+    });
+    if marked.end < len {
+        runs.push(DecorationRun {
+            len: (len - marked.end) as u32,
+            color,
+            background_color: None,
+            underline: None,
+            strikethrough: None,
+        });
+    }
+    runs
+}
+
+fn selection_quads(
+    state: &EditableTextState,
+    range: Range<usize>,
+    origin: crate::Point<Pixels>,
+    viewport: Bounds<Pixels>,
+    color: Color,
+) -> Vec<PaintQuad> {
+    if range.is_empty() {
+        return Vec::new();
+    }
+    let map = state.layout_map();
+    let Some(start) = map.buffer_to_display(range.start) else {
+        return Vec::new();
+    };
+    let Some(end) = map.buffer_to_display(range.end) else {
+        return Vec::new();
+    };
+    (start.row..=end.row)
+        .filter_map(|row| {
+            let top = origin.y + map.line_height() * row;
+            if top + map.line_height() <= viewport.top() || top >= viewport.bottom() {
+                return None;
+            }
+            let row_range = map.visual_row_range(row)?;
+            let start = range.start.max(row_range.start).min(row_range.end);
+            let end = range.end.min(row_range.end).max(row_range.start);
+            let start_position = map.position_for_display(TextDisplayPoint::new(
+                row,
+                start.saturating_sub(row_range.start),
+            ))?;
+            let end_position = map.position_for_display(TextDisplayPoint::new(
+                row,
+                end.saturating_sub(row_range.start),
+            ))?;
+            Some(fill(
+                Bounds::new(
+                    origin + start_position,
+                    size(
+                        (end_position.x - start_position.x).max(px(1.)),
+                        map.line_height(),
+                    ),
+                ),
+                color.clone(),
+            ))
+        })
+        .collect()
 }

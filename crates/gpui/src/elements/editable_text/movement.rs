@@ -30,3 +30,19 @@ pub(crate) fn normalize_single_line(text: &str) -> String {
     }
     normalized
 }
+
+pub(crate) fn normalize_multiline(text: &str) -> String {
+    let mut normalized = String::with_capacity(text.len());
+    let mut characters = text.chars().peekable();
+    while let Some(character) = characters.next() {
+        if character == '\r' {
+            if characters.peek() == Some(&'\n') {
+                characters.next();
+            }
+            normalized.push('\n');
+        } else {
+            normalized.push(character);
+        }
+    }
+    normalized
+}
