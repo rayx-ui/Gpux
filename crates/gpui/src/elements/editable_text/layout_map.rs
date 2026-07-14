@@ -147,6 +147,7 @@ struct LayoutRow {
 #[derive(Default)]
 pub struct TextLayoutMap {
     rows: Vec<LayoutRow>,
+    projected_style_runs: Vec<EditableTextStyleRun>,
     cache: TextLayoutCache,
     line_height: Pixels,
     visual_line_count: usize,
@@ -223,6 +224,7 @@ impl TextLayoutMap {
         shaper: &impl TextLayoutShaper,
     ) -> Result<TextLayoutUpdate, TextLayoutError> {
         let clipped_runs = style_runs.clipped_to(snapshot, 0..snapshot.len())?;
+        let projected_runs = project_style_runs(&clipped_runs, projection);
         let style_key = style.cache_key();
         let style_matches = self.cache.style_matches(&style_key);
         let reusable = self.cache.reusable_rows(&style_key);
@@ -234,6 +236,7 @@ impl TextLayoutMap {
         let mut visual_start = 0;
         let mut update = TextLayoutUpdate::default();
         let mut max_width = px(0.);
+        let mut style_run_start = 0;
 
         for (display_start, line) in logical_lines {
             let display_end = display_start + line.len();
@@ -241,10 +244,18 @@ impl TextLayoutMap {
                 projection.map_or(display_start, |map| map.display_to_buffer(display_start));
             let buffer_end =
                 projection.map_or(display_end, |map| map.display_to_buffer(display_end));
+            while style_run_start < projected_runs.len()
+                && projected_runs[style_run_start].range.end <= display_start
+            {
+                style_run_start += 1;
+            }
+            let style_run_end = style_run_start
+                + projected_runs[style_run_start..]
+                    .partition_point(|run| run.range.start < display_end);
             let (shape_runs, run_keys) = shape_runs_for_line(
                 display_start,
                 display_end,
-                &clipped_runs,
+                &projected_runs[style_run_start..style_run_end],
                 style.font.clone(),
             );
             let line_text: Arc<str> = Arc::from(line);
@@ -296,6 +307,7 @@ impl TextLayoutMap {
         }
 
         self.rows = next_rows;
+        self.projected_style_runs = projected_runs;
         self.line_height = style.line_height;
         self.visual_line_count = visual_start;
         self.size = size(max_width, style.line_height * visual_start);
@@ -385,6 +397,10 @@ impl TextLayoutMap {
         self.rows.len()
     }
 
+    pub(crate) fn projected_style_runs(&self) -> &[EditableTextStyleRun] {
+        &self.projected_style_runs
+    }
+
     pub(crate) fn paint_row(
         &self,
         row: usize,
@@ -449,6 +465,23 @@ impl TextLayoutMap {
             visual_row >= row.visual_start && visual_row < row.visual_start + row.visual_len
         })
     }
+}
+
+fn project_style_runs(
+    style_runs: &[EditableTextStyleRun],
+    projection: Option<&EditableTextProjection>,
+) -> Vec<EditableTextStyleRun> {
+    let Some(projection) = projection else {
+        return style_runs.to_vec();
+    };
+    style_runs
+        .iter()
+        .filter_map(|run| {
+            let start = projection.buffer_to_display(run.range.start);
+            let end = projection.buffer_to_display(run.range.end);
+            (start < end).then(|| EditableTextStyleRun::new(start..end, run.style.clone()))
+        })
+        .collect()
 }
 
 fn logical_lines(text: &str) -> Vec<(usize, &str)> {
@@ -540,5 +573,36 @@ fn row_boundary_end(layout: &WrappedLineLayout, visual_row: usize, line_height: 
         layout.len()
     } else {
         row_boundary_index(layout, visual_row + 1, line_height)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{EditableTextDisplayTransform, FontStyle, HighlightStyle};
+
+    #[test]
+    fn projected_style_runs_follow_visible_display_offsets() {
+        let source = "header\nhidden\nvisible";
+        let hidden_start = source.find("hidden").unwrap();
+        let visible_start = source.find("visible").unwrap();
+        let projection =
+            EditableTextDisplayTransform::omitting_ranges(source, [hidden_start..visible_start])
+                .unwrap()
+                .project(source)
+                .unwrap();
+        let runs = [EditableTextStyleRun::new(
+            visible_start..source.len(),
+            HighlightStyle {
+                font_style: Some(FontStyle::Italic),
+                ..Default::default()
+            },
+        )];
+
+        let projected = project_style_runs(&runs, Some(&projection));
+
+        assert_eq!(projected.len(), 1);
+        assert_eq!(projected[0].range, hidden_start..projection.text().len());
+        assert_eq!(projected[0].style.font_style, Some(FontStyle::Italic));
     }
 }

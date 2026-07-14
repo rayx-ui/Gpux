@@ -7,8 +7,8 @@ use crate::{
 
 use super::{
     EditableSelection, EditableTextEvent, EditableTextGeometry, EditableTextLineMode,
-    EditableTextMode, EditableTextStyleRuns, TextBuffer, TextBufferSnapshot, TextEdit,
-    TextLayoutError, TextLayoutMap, TextLayoutStyle, TextLayoutUpdate,
+    EditableTextMode, EditableTextStyleRuns, TextBuffer, TextBufferError, TextBufferSnapshot,
+    TextEdit, TextLayoutError, TextLayoutMap, TextLayoutStyle, TextLayoutUpdate,
     history::{EditHistory, EditKind, HistoryState},
     movement::{
         next_grapheme_boundary, normalize_multiline, normalize_single_line,
@@ -28,6 +28,7 @@ pub struct EditableTextState {
     line_mode: EditableTextLineMode,
     soft_wrap: bool,
     placeholder: String,
+    style_runs: EditableTextStyleRuns,
     focus_handle: FocusHandle,
     history: EditHistory,
     geometry: Option<EditableTextGeometry>,
@@ -72,6 +73,7 @@ impl EditableTextState {
             line_mode,
             soft_wrap: true,
             placeholder: String::new(),
+            style_runs: EditableTextStyleRuns::empty(0),
             focus_handle: cx.focus_handle(),
             history: EditHistory::default(),
             geometry: None,
@@ -158,6 +160,17 @@ impl EditableTextState {
         self.scroll_offset
     }
 
+    /// Returns the most-negative scroll offset allowed by the current layout and viewport.
+    pub fn max_scroll_offset(&self) -> Point<Pixels> {
+        let Some(bounds) = self.viewport_bounds() else {
+            return point(px(0.), px(0.));
+        };
+        point(
+            (bounds.size.width - self.layout_map.size().width).min(px(0.)),
+            (bounds.size.height - self.layout_map.size().height).min(px(0.)),
+        )
+    }
+
     pub fn preferred_vertical_x(&self) -> Option<Pixels> {
         self.preferred_vertical_x
     }
@@ -186,6 +199,27 @@ impl EditableTextState {
         cx.notify();
     }
 
+    /// Returns the revision-bound inline paint styles currently installed.
+    pub fn style_runs(&self) -> &EditableTextStyleRuns {
+        &self.style_runs
+    }
+
+    /// Installs inline paint styles only when they match the current buffer revision.
+    pub fn set_style_runs(
+        &mut self,
+        style_runs: EditableTextStyleRuns,
+        cx: &mut Context<Self>,
+    ) -> Result<(), TextBufferError> {
+        let snapshot = self.snapshot();
+        style_runs.clipped_to(&snapshot, 0..snapshot.len())?;
+        if self.style_runs != style_runs {
+            self.style_runs = style_runs;
+            self.geometry = None;
+            cx.notify();
+        }
+        Ok(())
+    }
+
     pub fn focus_handle(&self) -> FocusHandle {
         self.focus_handle.clone()
     }
@@ -209,6 +243,10 @@ impl EditableTextState {
         text_system: &WindowTextSystem,
         display_transform: &super::EditableTextDisplayTransform,
     ) -> Result<TextLayoutUpdate, TextLayoutError> {
+        let reveal_caret = self
+            .geometry
+            .as_ref()
+            .is_none_or(|geometry| geometry.bounds() != bounds);
         style.wrap_width = match self.line_mode {
             EditableTextLineMode::SingleLine => None,
             EditableTextLineMode::MultiLine if self.soft_wrap && bounds.size.width > px(0.) => {
@@ -218,12 +256,11 @@ impl EditableTextState {
             EditableTextLineMode::MultiLine => None,
         };
         let snapshot = self.snapshot();
-        let runs = EditableTextStyleRuns::empty(snapshot.revision());
         let projection = display_transform.project(&snapshot.text());
         let update = match self.layout_map.update_with_projection(
             &snapshot,
             projection.as_ref(),
-            &runs,
+            &self.style_runs,
             &style,
             text_system,
         ) {
@@ -233,7 +270,11 @@ impl EditableTextState {
                 return Err(error);
             }
         };
-        self.ensure_caret_visible(bounds);
+        if reveal_caret {
+            self.ensure_caret_visible(bounds);
+        } else {
+            self.clamp_scroll(bounds);
+        }
         self.geometry = Some(EditableTextGeometry::new(
             snapshot.revision(),
             bounds,
@@ -278,6 +319,7 @@ impl EditableTextState {
         }
         self.selection = EditableSelection::new(anchor, head);
         self.marked_range = None;
+        self.geometry = None;
         self.restart_blink(cx);
         cx.notify();
         true
@@ -305,6 +347,7 @@ impl EditableTextState {
         }
         self.selection = EditableSelection::new(0, self.buffer.len());
         self.marked_range = None;
+        self.geometry = None;
         self.restart_blink(cx);
         cx.notify();
     }
@@ -646,6 +689,7 @@ impl EditableTextState {
         };
         self.marked_range = None;
         self.preferred_vertical_x = None;
+        self.geometry = None;
         self.restart_blink(cx);
         cx.notify();
     }

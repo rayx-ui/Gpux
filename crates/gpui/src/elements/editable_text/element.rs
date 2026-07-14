@@ -9,7 +9,7 @@ use std::ops::Range;
 
 use super::{
     EditableTextDisplayTransform, EditableTextLineMode, EditableTextMode, EditableTextState,
-    TextDisplayPoint, TextLayoutStyle,
+    EditableTextStyleRun, TextDisplayPoint, TextLayoutStyle,
 };
 
 /// A reusable editable-text element backed by [`EditableTextState`].
@@ -313,6 +313,7 @@ impl Element for EditableTextPaintElement {
             let decorations = decoration_runs(
                 display_start,
                 text.len(),
+                state.layout_map().projected_style_runs(),
                 marked_range.clone(),
                 style.color.clone(),
             );
@@ -398,10 +399,25 @@ impl Element for EditableTextPaintElement {
                 cx,
             );
         }
+        let line_height = window.line_height();
+        for paint_line in &prepaint.lines {
+            paint_line
+                .line
+                .paint_background(
+                    bounds.origin
+                        + prepaint.scroll_offset
+                        + point(px(0.), line_height * paint_line.visual_start),
+                    line_height,
+                    TextAlign::Left,
+                    Some(bounds),
+                    window,
+                    cx,
+                )
+                .expect("editable text line background should paint");
+        }
         for selection in prepaint.selection.drain(..) {
             window.paint_quad(selection);
         }
-        let line_height = window.line_height();
         for paint_line in &prepaint.lines {
             paint_line
                 .line
@@ -449,60 +465,85 @@ impl Element for EditableTextPaintElement {
 }
 
 fn decoration_runs(
-    buffer_start: usize,
+    display_start: usize,
     len: usize,
+    style_runs: &[EditableTextStyleRun],
     marked_range: Option<Range<usize>>,
     color: Color,
 ) -> Vec<DecorationRun> {
-    let row_range = buffer_start..buffer_start + len;
-    let marked = marked_range.and_then(|marked| {
+    let row_range = display_start..display_start + len;
+    if row_range.is_empty() {
+        return Vec::new();
+    }
+
+    let mut boundaries = vec![row_range.start, row_range.end];
+    for run in style_runs {
+        let start = run.range.start.max(row_range.start);
+        let end = run.range.end.min(row_range.end);
+        if start < end {
+            boundaries.extend([start, end]);
+        }
+    }
+    if let Some(marked) = &marked_range {
         let start = marked.start.max(row_range.start);
         let end = marked.end.min(row_range.end);
-        (start < end).then_some(start - buffer_start..end - buffer_start)
-    });
-    let Some(marked) = marked else {
-        return (!row_range.is_empty())
-            .then(|| DecorationRun {
-                len: len as u32,
-                color,
-                background_color: None,
-                underline: None,
-                strikethrough: None,
+        if start < end {
+            boundaries.extend([start, end]);
+        }
+    }
+    boundaries.sort_unstable();
+    boundaries.dedup();
+
+    boundaries
+        .windows(2)
+        .filter_map(|segment| {
+            let start = segment[0];
+            let end = segment[1];
+            (start < end).then(|| {
+                let mut run_color = color.clone();
+                let mut background_color = None;
+                let mut underline = None;
+                let mut strikethrough = None;
+                for run in style_runs
+                    .iter()
+                    .filter(|run| run.range.start <= start && run.range.end >= end)
+                {
+                    if let Some(highlight) = &run.style.color {
+                        run_color = run_color.blend(highlight.clone());
+                    }
+                    if let Some(factor) = run.style.fade_out {
+                        run_color.fade_out(factor);
+                    }
+                    if run.style.background_color.is_some() {
+                        background_color = run.style.background_color.clone();
+                    }
+                    if run.style.underline.is_some() {
+                        underline = run.style.underline.clone();
+                    }
+                    if run.style.strikethrough.is_some() {
+                        strikethrough = run.style.strikethrough.clone();
+                    }
+                }
+                if marked_range
+                    .as_ref()
+                    .is_some_and(|marked| marked.start <= start && marked.end >= end)
+                {
+                    underline = Some(UnderlineStyle {
+                        color: Some(run_color.clone()),
+                        thickness: px(1.),
+                        wavy: false,
+                    });
+                }
+                DecorationRun {
+                    len: (end - start) as u32,
+                    color: run_color,
+                    background_color,
+                    underline,
+                    strikethrough,
+                }
             })
-            .into_iter()
-            .collect();
-    };
-    let mut runs = Vec::with_capacity(3);
-    if marked.start > 0 {
-        runs.push(DecorationRun {
-            len: marked.start as u32,
-            color: color.clone(),
-            background_color: None,
-            underline: None,
-            strikethrough: None,
-        });
-    }
-    runs.push(DecorationRun {
-        len: (marked.end - marked.start) as u32,
-        color: color.clone(),
-        background_color: None,
-        underline: Some(UnderlineStyle {
-            color: Some(color.clone()),
-            thickness: px(1.),
-            wavy: false,
-        }),
-        strikethrough: None,
-    });
-    if marked.end < len {
-        runs.push(DecorationRun {
-            len: (len - marked.end) as u32,
-            color,
-            background_color: None,
-            underline: None,
-            strikethrough: None,
-        });
-    }
-    runs
+        })
+        .collect()
 }
 
 fn selection_quads(
