@@ -33,6 +33,28 @@ struct EditableTextHarness {
     state: Entity<EditableTextState>,
 }
 
+#[test]
+fn editable_text_pointer_down_focuses_before_platform_input() {
+    let mut app = TestApp::new();
+    let mut window = app.open_window(|_, cx| EditableTextHarness {
+        state: cx.new(EditableTextState::new),
+    });
+    let state = window.read(|harness, _| harness.state.clone());
+
+    window.draw();
+    let bounds = app.read_entity(&state, |state, _| state.geometry().unwrap().bounds());
+    window.simulate_mouse_down(bounds.center(), MouseButton::Left);
+    window.simulate_mouse_up(bounds.center(), MouseButton::Left);
+
+    assert!(app.read_entity(&state, |state, _| state.is_focused()));
+    assert!(window.update(|_, window, cx| window.dispatch_text_input("focused", cx)));
+    assert_eq!(app.read_entity(&state, |state, _| state.text()), "focused");
+
+    window.simulate_keystroke("ctrl-a");
+    assert!(window.update(|_, window, cx| window.dispatch_text_input("replaced", cx)));
+    assert_eq!(app.read_entity(&state, |state, _| state.text()), "replaced");
+}
+
 impl Render for EditableTextHarness {
     fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
         div().p(px(20.)).child(EditableText::new(&self.state))

@@ -66,6 +66,7 @@ impl RenderOnce for EditableText {
 
         let key_state = self.state.clone();
         let down_state = self.state.clone();
+        let down_focus_handle = focus_handle.clone();
         let up_state = self.state.clone();
         let scroll_state = self.state.clone();
 
@@ -84,7 +85,10 @@ impl RenderOnce for EditableText {
             })
             .on_mouse_down(
                 MouseButton::Left,
-                move |event: &MouseDownEvent, _window, cx| {
+                move |event: &MouseDownEvent, window, cx| {
+                    if mode.permits_focus() {
+                        window.focus(&down_focus_handle, cx);
+                    }
                     down_state.update(cx, |state, cx| {
                         state.pointer_down(event.position, event.modifiers.shift, cx)
                     });
@@ -121,8 +125,8 @@ fn handle_key_down(
 ) -> bool {
     let key = event.keystroke.key.as_str();
     let modifiers = event.keystroke.modifiers;
-    let platform = modifiers.platform;
-    state.update(cx, |state, cx| match (platform, modifiers.shift, key) {
+    let secondary = modifiers.secondary();
+    state.update(cx, |state, cx| match (secondary, modifiers.shift, key) {
         (false, false, "backspace") => state.delete_backward(cx),
         (false, false, "delete") => state.delete_forward(cx),
         (false, shift, "left") => {
@@ -161,11 +165,27 @@ fn handle_key_down(
             state.move_to_start_extending(cx);
             true
         }
+        (true, false, "home") => {
+            state.move_to_start(cx);
+            true
+        }
+        (true, true, "home") => {
+            state.move_to_start_extending(cx);
+            true
+        }
         (false, false, "end") => {
             state.move_to_end(cx);
             true
         }
         (false, true, "end") => {
+            state.move_to_end_extending(cx);
+            true
+        }
+        (true, false, "end") => {
+            state.move_to_end(cx);
+            true
+        }
+        (true, true, "end") => {
             state.move_to_end_extending(cx);
             true
         }

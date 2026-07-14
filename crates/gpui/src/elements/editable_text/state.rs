@@ -457,6 +457,7 @@ impl EditableTextState {
         if self.buffer.apply(edit).is_err() {
             return false;
         }
+        self.invalidate_style_runs();
         self.selection = selection;
         self.marked_range = None;
         self.geometry = None;
@@ -464,6 +465,7 @@ impl EditableTextState {
         if !self.history.rewrite_current_after(&current, rewritten) {
             let restore = TextEdit::new(self.revision(), 0..self.buffer.len(), current.text);
             let _ = self.buffer.apply(restore);
+            self.invalidate_style_runs();
             self.selection = current.selection;
             self.marked_range = current.marked_range;
             return false;
@@ -914,6 +916,7 @@ impl EditableTextState {
         if self.buffer.apply(edit).is_err() {
             return false;
         }
+        self.invalidate_style_runs();
         self.selection = selection;
         self.marked_range = marked_range;
         self.geometry = None;
@@ -932,6 +935,7 @@ impl EditableTextState {
         if self.buffer.apply(edit).is_err() {
             return false;
         }
+        self.invalidate_style_runs();
         self.selection = state.selection;
         self.marked_range = state.marked_range;
         self.geometry = None;
@@ -941,6 +945,10 @@ impl EditableTextState {
         });
         cx.notify();
         true
+    }
+
+    fn invalidate_style_runs(&mut self) {
+        self.style_runs = EditableTextStyleRuns::empty(self.revision());
     }
 
     fn history_state(&self) -> HistoryState {
