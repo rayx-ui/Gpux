@@ -6,8 +6,9 @@ use crate::{
 };
 
 use super::{
-    EditableTextStyleRun, EditableTextStyleRuns, LayoutStyleKey, RowLayoutKey, ShapeRunKey,
-    TextBufferError, TextBufferSnapshot, TextLayoutCache, TextLayoutCacheStats, TextLayoutUpdate,
+    EditableTextProjection, EditableTextStyleRun, EditableTextStyleRuns, LayoutStyleKey,
+    RowLayoutKey, ShapeRunKey, TextBufferError, TextBufferSnapshot, TextLayoutCache,
+    TextLayoutCacheStats, TextLayoutUpdate,
 };
 
 /// A byte-based point in the visual rows produced by soft wrapping.
@@ -134,6 +135,8 @@ struct LayoutRow {
     text: SharedString,
     buffer_start: usize,
     buffer_len: usize,
+    display_start: usize,
+    display_len: usize,
     visual_start: usize,
     visual_len: usize,
     character_boundaries: Arc<[usize]>,
@@ -148,6 +151,7 @@ pub struct TextLayoutMap {
     line_height: Pixels,
     visual_line_count: usize,
     size: Size<Pixels>,
+    projection: Option<EditableTextProjection>,
 }
 
 impl TextLayoutMap {
@@ -184,7 +188,18 @@ impl TextLayoutMap {
         style: &TextLayoutStyle,
         text_system: &WindowTextSystem,
     ) -> Result<TextLayoutUpdate, TextLayoutError> {
-        self.update_with_shaper(snapshot, style_runs, style, text_system)
+        self.update_with_projection(snapshot, None, style_runs, style, text_system)
+    }
+
+    pub(crate) fn update_with_projection(
+        &mut self,
+        snapshot: &TextBufferSnapshot,
+        projection: Option<&EditableTextProjection>,
+        style_runs: &EditableTextStyleRuns,
+        style: &TextLayoutStyle,
+        text_system: &WindowTextSystem,
+    ) -> Result<TextLayoutUpdate, TextLayoutError> {
+        self.update_with_shaper_and_projection(snapshot, projection, style_runs, style, text_system)
     }
 
     /// Atomically installs wrapping geometry through an injected deterministic shaper.
@@ -196,11 +211,23 @@ impl TextLayoutMap {
         style: &TextLayoutStyle,
         shaper: &impl TextLayoutShaper,
     ) -> Result<TextLayoutUpdate, TextLayoutError> {
+        self.update_with_shaper_and_projection(snapshot, None, style_runs, style, shaper)
+    }
+
+    fn update_with_shaper_and_projection(
+        &mut self,
+        snapshot: &TextBufferSnapshot,
+        projection: Option<&EditableTextProjection>,
+        style_runs: &EditableTextStyleRuns,
+        style: &TextLayoutStyle,
+        shaper: &impl TextLayoutShaper,
+    ) -> Result<TextLayoutUpdate, TextLayoutError> {
         let clipped_runs = style_runs.clipped_to(snapshot, 0..snapshot.len())?;
         let style_key = style.cache_key();
         let style_matches = self.cache.style_matches(&style_key);
         let reusable = self.cache.reusable_rows(&style_key);
-        let text = snapshot.text();
+        let source_text = snapshot.text();
+        let text = projection.map_or(source_text.as_str(), EditableTextProjection::text);
         let logical_lines = logical_lines(&text);
         let mut next_rows = Vec::with_capacity(logical_lines.len());
         let mut next_cache = HashMap::with_capacity(logical_lines.len());
@@ -208,10 +235,18 @@ impl TextLayoutMap {
         let mut update = TextLayoutUpdate::default();
         let mut max_width = px(0.);
 
-        for (buffer_start, line) in logical_lines {
-            let line_end = buffer_start + line.len();
-            let (shape_runs, run_keys) =
-                shape_runs_for_line(buffer_start, line_end, &clipped_runs, style.font.clone());
+        for (display_start, line) in logical_lines {
+            let display_end = display_start + line.len();
+            let buffer_start =
+                projection.map_or(display_start, |map| map.display_to_buffer(display_start));
+            let buffer_end =
+                projection.map_or(display_end, |map| map.display_to_buffer(display_end));
+            let (shape_runs, run_keys) = shape_runs_for_line(
+                display_start,
+                display_end,
+                &clipped_runs,
+                style.font.clone(),
+            );
             let line_text: Arc<str> = Arc::from(line);
             let row_key = RowLayoutKey::new(line_text.clone(), run_keys);
             let layout = if let Some(layout) = reusable.get(&row_key) {
@@ -241,7 +276,9 @@ impl TextLayoutMap {
             next_rows.push(LayoutRow {
                 text: SharedString::new(line),
                 buffer_start,
-                buffer_len: line.len(),
+                buffer_len: buffer_end.saturating_sub(buffer_start),
+                display_start,
+                display_len: line.len(),
                 visual_start,
                 visual_len,
                 character_boundaries,
@@ -262,6 +299,7 @@ impl TextLayoutMap {
         self.line_height = style.line_height;
         self.visual_line_count = visual_start;
         self.size = size(max_width, style.line_height * visual_start);
+        self.projection = projection.cloned();
         self.cache
             .install(snapshot.revision(), style_key, next_cache, update);
         Ok(update)
@@ -270,7 +308,8 @@ impl TextLayoutMap {
     /// Converts a valid buffer byte offset to a visual row and byte column.
     pub fn buffer_to_display(&self, offset: usize) -> Option<TextDisplayPoint> {
         let row = self.row_for_buffer_offset(offset)?;
-        let local_offset = offset - row.buffer_start;
+        let display_offset = self.buffer_offset_to_display(offset);
+        let local_offset = display_offset.saturating_sub(row.display_start);
         let position = row
             .layout
             .position_for_index(local_offset, self.line_height)?;
@@ -293,15 +332,18 @@ impl TextLayoutMap {
             .character_boundaries
             .partition_point(|boundary| *boundary <= requested)
             .saturating_sub(1);
-        Some(row.buffer_start + row.character_boundaries[boundary])
+        let display_offset = row.display_start + row.character_boundaries[boundary];
+        Some(self.display_offset_to_buffer(display_offset))
     }
 
     /// Returns the pixel position for a valid buffer byte offset.
     pub fn position_for_index(&self, offset: usize) -> Option<Point<Pixels>> {
         let row = self.row_for_buffer_offset(offset)?;
-        let local = row
-            .layout
-            .position_for_index(offset - row.buffer_start, self.line_height)?;
+        let display_offset = self.buffer_offset_to_display(offset);
+        let local = row.layout.position_for_index(
+            display_offset.saturating_sub(row.display_start),
+            self.line_height,
+        )?;
         Some(local + point(px(0.), self.line_height * row.visual_start))
     }
 
@@ -316,7 +358,10 @@ impl TextLayoutMap {
         let local_visual_row = visual_row - row.visual_start;
         let start = row_boundary_index(&row.layout, local_visual_row, self.line_height);
         let end = row_boundary_end(&row.layout, local_visual_row, self.line_height);
-        Some(row.buffer_start + start..row.buffer_start + end)
+        Some(
+            self.display_offset_to_buffer(row.display_start + start)
+                ..self.display_offset_to_buffer(row.display_start + end),
+        )
     }
 
     /// Returns the pixel position of a visual-row byte column.
@@ -346,7 +391,7 @@ impl TextLayoutMap {
     ) -> Option<(usize, usize, SharedString, Arc<WrappedLineLayout>)> {
         let row = self.rows.get(row)?;
         Some((
-            row.buffer_start,
+            row.display_start,
             row.visual_start,
             row.text.clone(),
             row.layout.clone(),
@@ -367,7 +412,26 @@ impl TextLayoutMap {
         {
             Ok(index) | Err(index) => index,
         };
-        Some(row.buffer_start + index.min(row.buffer_len))
+        Some(self.display_offset_to_buffer(row.display_start + index.min(row.display_len)))
+    }
+
+    pub(crate) fn buffer_range_to_display(
+        &self,
+        range: std::ops::Range<usize>,
+    ) -> std::ops::Range<usize> {
+        self.buffer_offset_to_display(range.start)..self.buffer_offset_to_display(range.end)
+    }
+
+    fn buffer_offset_to_display(&self, offset: usize) -> usize {
+        self.projection
+            .as_ref()
+            .map_or(offset, |projection| projection.buffer_to_display(offset))
+    }
+
+    fn display_offset_to_buffer(&self, offset: usize) -> usize {
+        self.projection
+            .as_ref()
+            .map_or(offset, |projection| projection.display_to_buffer(offset))
     }
 
     fn row_for_buffer_offset(&self, offset: usize) -> Option<&LayoutRow> {

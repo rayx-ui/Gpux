@@ -69,4 +69,19 @@ impl EditHistory {
         self.undo.clear();
         self.redo.clear();
     }
+
+    pub fn rewrite_current_after(
+        &mut self,
+        current: &HistoryState,
+        rewritten: HistoryState,
+    ) -> bool {
+        let Some(entry) = self.undo.last_mut() else {
+            return false;
+        };
+        if &entry.after != current {
+            return false;
+        }
+        entry.after = rewritten;
+        true
+    }
 }

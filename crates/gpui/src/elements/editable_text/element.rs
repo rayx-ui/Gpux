@@ -8,7 +8,8 @@ use crate::{
 use std::ops::Range;
 
 use super::{
-    EditableTextLineMode, EditableTextMode, EditableTextState, TextDisplayPoint, TextLayoutStyle,
+    EditableTextDisplayTransform, EditableTextLineMode, EditableTextMode, EditableTextState,
+    TextDisplayPoint, TextLayoutStyle,
 };
 
 /// A reusable editable-text element backed by [`EditableTextState`].
@@ -18,6 +19,7 @@ pub struct EditableText {
     placeholder_color: Option<Color>,
     selection_color: Option<Color>,
     caret_color: Option<Color>,
+    display_transform: EditableTextDisplayTransform,
 }
 
 #[allow(missing_docs)]
@@ -28,6 +30,7 @@ impl EditableText {
             placeholder_color: None,
             selection_color: None,
             caret_color: None,
+            display_transform: EditableTextDisplayTransform::Identity,
         }
     }
 
@@ -43,6 +46,11 @@ impl EditableText {
 
     pub fn caret_color(mut self, color: Color) -> Self {
         self.caret_color = Some(color);
+        self
+    }
+
+    pub fn display_transform(mut self, transform: EditableTextDisplayTransform) -> Self {
+        self.display_transform = transform;
         self
     }
 }
@@ -100,6 +108,7 @@ impl RenderOnce for EditableText {
                 placeholder_color: self.placeholder_color,
                 selection_color: self.selection_color,
                 caret_color: self.caret_color,
+                display_transform: self.display_transform,
             })
     }
 }
@@ -183,6 +192,7 @@ struct EditableTextPaintElement {
     placeholder_color: Option<Color>,
     selection_color: Option<Color>,
     caret_color: Option<Color>,
+    display_transform: EditableTextDisplayTransform,
 }
 
 struct EditableTextPrepaintState {
@@ -269,7 +279,12 @@ impl Element for EditableTextPaintElement {
         };
         let layout_ready = self.state.update(cx, |state, _| {
             state
-                .update_layout(bounds, layout_style, window.text_system())
+                .update_layout(
+                    bounds,
+                    layout_style,
+                    window.text_system(),
+                    &self.display_transform,
+                )
                 .is_ok()
         });
 
@@ -277,13 +292,15 @@ impl Element for EditableTextPaintElement {
         let snapshot = state.snapshot();
         let content = snapshot.text();
         let selection = *state.selection();
-        let marked_range = state.marked_range();
+        let marked_range = state
+            .marked_range()
+            .map(|range| state.layout_map().buffer_range_to_display(range));
         let scroll_offset = state.scroll_offset();
         let content_origin = bounds.origin + scroll_offset;
 
         let mut lines = Vec::new();
         for row_index in 0..state.layout_map().logical_row_count() {
-            let Some((buffer_start, visual_start, text, layout)) =
+            let Some((display_start, visual_start, text, layout)) =
                 state.layout_map().paint_row(row_index)
             else {
                 continue;
@@ -294,7 +311,7 @@ impl Element for EditableTextPaintElement {
                 continue;
             }
             let decorations = decoration_runs(
-                buffer_start,
+                display_start,
                 text.len(),
                 marked_range.clone(),
                 style.color.clone(),
@@ -514,14 +531,12 @@ fn selection_quads(
             let row_range = map.visual_row_range(row)?;
             let start = range.start.max(row_range.start).min(row_range.end);
             let end = range.end.min(row_range.end).max(row_range.start);
-            let start_position = map.position_for_display(TextDisplayPoint::new(
-                row,
-                start.saturating_sub(row_range.start),
-            ))?;
-            let end_position = map.position_for_display(TextDisplayPoint::new(
-                row,
-                end.saturating_sub(row_range.start),
-            ))?;
+            let start_display = map.buffer_to_display(start)?;
+            let end_display = map.buffer_to_display(end)?;
+            let start_position =
+                map.position_for_display(TextDisplayPoint::new(row, start_display.column))?;
+            let end_position =
+                map.position_for_display(TextDisplayPoint::new(row, end_display.column))?;
             Some(fill(
                 Bounds::new(
                     origin + start_position,

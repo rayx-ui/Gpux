@@ -1082,6 +1082,22 @@ pub struct DevtoolsSemantics {
     pub checked: Option<bool>,
     /// Whether the element is expanded.
     pub expanded: Option<bool>,
+    /// Whether the element is required by its owning form.
+    pub required: Option<bool>,
+    /// Whether the element currently has an invalid value.
+    pub invalid: Option<bool>,
+    /// Whether the element is read-only.
+    pub read_only: Option<bool>,
+    /// Semantic orientation such as `horizontal` or `vertical`.
+    pub orientation: Option<String>,
+    /// Stable authored ids of elements that label this element.
+    pub labelled_by: Vec<String>,
+    /// Stable authored ids of elements that describe this element.
+    pub described_by: Vec<String>,
+    /// Stable authored id of the element that contains the validation error.
+    pub error_message: Option<String>,
+    /// Stable authored ids of controls owned by this element.
+    pub controls: Vec<String>,
     /// Component-authored writable properties for live DevKit mutation.
     pub writable_properties: Vec<DevtoolsWritableProperty>,
 }
@@ -1146,6 +1162,54 @@ impl DevtoolsSemantics {
         self
     }
 
+    /// Set whether this element is required by its owning form.
+    pub fn required(mut self, required: bool) -> Self {
+        self.required = Some(required);
+        self
+    }
+
+    /// Set whether this element currently has an invalid value.
+    pub fn invalid(mut self, invalid: bool) -> Self {
+        self.invalid = Some(invalid);
+        self
+    }
+
+    /// Set whether this element is read-only.
+    pub fn read_only(mut self, read_only: bool) -> Self {
+        self.read_only = Some(read_only);
+        self
+    }
+
+    /// Set the semantic orientation.
+    pub fn orientation(mut self, orientation: impl Into<String>) -> Self {
+        self.orientation = Some(orientation.into());
+        self
+    }
+
+    /// Add the stable authored id of an element that labels this element.
+    pub fn labelled_by(mut self, id: impl Into<String>) -> Self {
+        push_unique_string(&mut self.labelled_by, id.into());
+        self
+    }
+
+    /// Add the stable authored id of an element that describes this element.
+    pub fn described_by(mut self, id: impl Into<String>) -> Self {
+        push_unique_string(&mut self.described_by, id.into());
+        self
+    }
+
+    /// Set the stable authored id of the validation error element.
+    pub fn error_message(mut self, id: impl Into<String>) -> Self {
+        self.error_message = Some(id.into());
+        self
+    }
+
+    /// Add the stable authored id of a control owned by this element.
+    pub fn controls(mut self, id: impl Into<String>) -> Self {
+        push_unique_string(&mut self.controls, id.into());
+        self
+    }
+
     /// Add a writable property exposed by the component.
     pub fn writable_property(
         mut self,
@@ -1187,6 +1251,30 @@ impl DevtoolsSemantics {
         if other.expanded.is_some() {
             self.expanded = other.expanded;
         }
+        if other.required.is_some() {
+            self.required = other.required;
+        }
+        if other.invalid.is_some() {
+            self.invalid = other.invalid;
+        }
+        if other.read_only.is_some() {
+            self.read_only = other.read_only;
+        }
+        if other.orientation.is_some() {
+            self.orientation = other.orientation;
+        }
+        for id in other.labelled_by {
+            push_unique_string(&mut self.labelled_by, id);
+        }
+        for id in other.described_by {
+            push_unique_string(&mut self.described_by, id);
+        }
+        if other.error_message.is_some() {
+            self.error_message = other.error_message;
+        }
+        for id in other.controls {
+            push_unique_string(&mut self.controls, id);
+        }
         for property in other.writable_properties {
             if !self
                 .writable_properties
@@ -1196,6 +1284,12 @@ impl DevtoolsSemantics {
                 self.writable_properties.push(property);
             }
         }
+    }
+}
+
+fn push_unique_string(values: &mut Vec<String>, value: String) {
+    if !values.contains(&value) {
+        values.push(value);
     }
 }
 

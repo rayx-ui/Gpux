@@ -42,6 +42,7 @@ pub struct EditableTextState {
     caret_visible: bool,
     blink_epoch: u64,
     focus_subscriptions: Vec<Subscription>,
+    text_export_enabled: bool,
 }
 
 #[allow(missing_docs)]
@@ -85,6 +86,7 @@ impl EditableTextState {
             caret_visible: false,
             blink_epoch: 0,
             focus_subscriptions: Vec::new(),
+            text_export_enabled: true,
         }
     }
 
@@ -110,6 +112,20 @@ impl EditableTextState {
 
     pub fn mode(&self) -> EditableTextMode {
         self.mode
+    }
+
+    /// Whether platform selection extraction and clipboard export may expose text.
+    pub fn text_export_enabled(&self) -> bool {
+        self.text_export_enabled
+    }
+
+    /// Enables or disables platform selection extraction and clipboard export.
+    pub fn set_text_export_enabled(&mut self, enabled: bool, cx: &mut Context<Self>) {
+        if self.text_export_enabled == enabled {
+            return;
+        }
+        self.text_export_enabled = enabled;
+        cx.notify();
     }
 
     pub fn line_mode(&self) -> EditableTextLineMode {
@@ -191,6 +207,7 @@ impl EditableTextState {
         bounds: Bounds<Pixels>,
         mut style: TextLayoutStyle,
         text_system: &WindowTextSystem,
+        display_transform: &super::EditableTextDisplayTransform,
     ) -> Result<TextLayoutUpdate, TextLayoutError> {
         style.wrap_width = match self.line_mode {
             EditableTextLineMode::SingleLine => None,
@@ -202,10 +219,14 @@ impl EditableTextState {
         };
         let snapshot = self.snapshot();
         let runs = EditableTextStyleRuns::empty(snapshot.revision());
-        let update = match self
-            .layout_map
-            .update(&snapshot, &runs, &style, text_system)
-        {
+        let projection = display_transform.project(&snapshot.text());
+        let update = match self.layout_map.update_with_projection(
+            &snapshot,
+            projection.as_ref(),
+            &runs,
+            &style,
+            text_system,
+        ) {
             Ok(update) => update,
             Err(error) => {
                 self.geometry = None;
@@ -365,6 +386,53 @@ impl EditableTextState {
         self.replace_byte_range(self.selection.range(), text, kind, cx)
     }
 
+    /// Rewrite the result of the current edit without adding another undo step.
+    ///
+    /// This is intended for synchronous, deterministic normalization performed
+    /// by a subscriber to [`EditableTextEvent::Changed`]. The supplied text and
+    /// selection replace the current history entry's `after` state, so undo and
+    /// redo continue to operate on whole normalized values.
+    pub fn rewrite_current_edit(
+        &mut self,
+        text: &str,
+        selection: EditableSelection,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        if !self.mode.permits_mutation() {
+            return false;
+        }
+        let current = self.history_state();
+        let replacement = self.normalize_input(text);
+        if selection.anchor() > replacement.len()
+            || selection.head() > replacement.len()
+            || !replacement.is_char_boundary(selection.anchor())
+            || !replacement.is_char_boundary(selection.head())
+        {
+            return false;
+        }
+        let edit = TextEdit::new(self.revision(), 0..self.buffer.len(), replacement);
+        if self.buffer.apply(edit).is_err() {
+            return false;
+        }
+        self.selection = selection;
+        self.marked_range = None;
+        self.geometry = None;
+        let rewritten = self.history_state();
+        if !self.history.rewrite_current_after(&current, rewritten) {
+            let restore = TextEdit::new(self.revision(), 0..self.buffer.len(), current.text);
+            let _ = self.buffer.apply(restore);
+            self.selection = current.selection;
+            self.marked_range = current.marked_range;
+            return false;
+        }
+        self.restart_blink(cx);
+        cx.emit(EditableTextEvent::Changed {
+            revision: self.revision(),
+        });
+        cx.notify();
+        true
+    }
+
     pub fn replace_utf16_range(
         &mut self,
         range_utf16: Option<Range<usize>>,
@@ -454,7 +522,10 @@ impl EditableTextState {
     }
 
     pub fn copy(&self, cx: &mut Context<Self>) -> bool {
-        if self.mode == EditableTextMode::Disabled || self.selection.is_empty() {
+        if !self.text_export_enabled
+            || self.mode == EditableTextMode::Disabled
+            || self.selection.is_empty()
+        {
             return false;
         }
         let Ok(text) = self.snapshot().slice(self.selection.range()) else {
@@ -918,6 +989,9 @@ impl EntityInputHandler for EditableTextState {
         _window: &mut Window,
         _cx: &mut Context<Self>,
     ) -> Option<String> {
+        if !self.text_export_enabled {
+            return None;
+        }
         let snapshot = self.snapshot();
         let utf16_len = snapshot.byte_to_utf16(snapshot.len()).ok()?;
         let adjusted = range_utf16.start.min(utf16_len)..range_utf16.end.min(utf16_len);
@@ -936,6 +1010,9 @@ impl EntityInputHandler for EditableTextState {
         _window: &mut Window,
         _cx: &mut Context<Self>,
     ) -> Option<UTF16Selection> {
+        if !self.text_export_enabled {
+            return None;
+        }
         if self.mode == EditableTextMode::Disabled && !ignore_disabled_input {
             return None;
         }

@@ -1,4 +1,5 @@
 mod buffer;
+mod display_transform;
 mod edit;
 mod element;
 mod error;
@@ -16,6 +17,7 @@ mod state;
 mod style_runs;
 
 pub use buffer::*;
+pub use display_transform::*;
 pub use edit::*;
 pub use element::*;
 pub use error::*;
