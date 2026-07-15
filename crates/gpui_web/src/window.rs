@@ -919,6 +919,7 @@ impl PlatformWindow for WebWindow {
             renderer.draw(scene);
             renderer.needs_redraw()
         };
+        write_text_renderer_diagnostics_to_global(&self.inner.renderer.borrow(), scene);
         let (texture_count, texture_pruned_count, texture_draw_count) = self
             .inner
             .renderer
@@ -950,7 +951,7 @@ impl PlatformWindow for WebWindow {
     }
 
     fn is_subpixel_rendering_supported(&self) -> bool {
-        self.inner.renderer.borrow().supports_dual_source_blending()
+        false
     }
 
     fn gpu_specs(&self) -> Option<GpuSpecs> {
@@ -983,4 +984,68 @@ impl PlatformWindow for WebWindow {
     }
 
     fn set_client_inset(&self, _inset: Pixels) {}
+}
+
+fn text_rendering_diagnostics_enabled() -> bool {
+    js_sys::Reflect::get(
+        &js_sys::global(),
+        &wasm_bindgen::JsValue::from_str("__rayxTextRenderingDiagnosticsEnabled"),
+    )
+    .ok()
+    .and_then(|value| value.as_bool())
+    .unwrap_or(false)
+}
+
+fn write_text_renderer_diagnostics_to_global(renderer: &WgpuRenderer, scene: &Scene) {
+    if !text_rendering_diagnostics_enabled() {
+        return;
+    }
+
+    let diagnostics = renderer.text_renderer_diagnostics(scene);
+    let target = js_sys::Object::new();
+    let set = |key: &str, value: wasm_bindgen::JsValue| {
+        let _ = js_sys::Reflect::set(&target, &key.into(), &value);
+    };
+    set("diagnosticVersion", "text-renderer-wasm/v1".into());
+    set("antialiasingMode", diagnostics.antialiasing_mode.into());
+    set(
+        "dualSourceBlendingSupported",
+        renderer.supports_dual_source_blending().into(),
+    );
+    set("glyphSpriteKind", diagnostics.glyph_sprite_kind.into());
+    set(
+        "monochromeCoverageKind",
+        "separate-glyph-and-image-mask".into(),
+    );
+    set(
+        "glyphMaskCount",
+        (diagnostics.glyph_mask_count as f64).into(),
+    );
+    set(
+        "imageMaskCount",
+        (diagnostics.image_mask_count as f64).into(),
+    );
+    set(
+        "monochromeSpriteCount",
+        (diagnostics.monochrome_sprite_count as f64).into(),
+    );
+    set(
+        "subpixelSpriteCount",
+        (diagnostics.subpixel_sprite_count as f64).into(),
+    );
+    set(
+        "polychromeSpriteCount",
+        (diagnostics.polychrome_sprite_count as f64).into(),
+    );
+    set(
+        "devicePixelRatio",
+        (diagnostics.device_pixel_ratio as f64).into(),
+    );
+    set("surfaceFormat", diagnostics.surface_format.into());
+    set("publishedAtMs", js_sys::Date::now().into());
+    let _ = js_sys::Reflect::set(
+        &js_sys::global(),
+        &wasm_bindgen::JsValue::from_str("__rayxTextRendererDiagnostics"),
+        target.as_ref(),
+    );
 }
