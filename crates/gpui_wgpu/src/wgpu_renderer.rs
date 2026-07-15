@@ -719,6 +719,41 @@ pub struct WgpuSurfaceConfig {
     pub preferred_present_mode: Option<wgpu::PresentMode>,
 }
 
+fn choose_surface_formats(
+    formats: &[wgpu::TextureFormat],
+    supports_surface_view_formats: bool,
+) -> Option<(
+    wgpu::TextureFormat,
+    wgpu::TextureFormat,
+    Vec<wgpu::TextureFormat>,
+)> {
+    if supports_surface_view_formats {
+        let surface_format = [
+            wgpu::TextureFormat::Bgra8Unorm,
+            wgpu::TextureFormat::Rgba8Unorm,
+        ]
+        .into_iter()
+        .find(|format| formats.contains(format))
+        .or_else(|| formats.iter().find(|format| !format.is_srgb()).copied())
+        .or_else(|| formats.first().copied())?;
+        let render_target_format = surface_format.add_srgb_suffix();
+        return Some((
+            surface_format,
+            render_target_format,
+            vec![render_target_format],
+        ));
+    }
+
+    let render_target_format = [
+        wgpu::TextureFormat::Bgra8UnormSrgb,
+        wgpu::TextureFormat::Rgba8UnormSrgb,
+    ]
+    .into_iter()
+    .find(|format| formats.contains(format))
+    .or_else(|| formats.first().copied())?;
+    Some((render_target_format, render_target_format, Vec::new()))
+}
+
 fn choose_present_mode(
     surface_caps: &wgpu::SurfaceCapabilities,
     preferred: Option<wgpu::PresentMode>,
@@ -1330,23 +1365,25 @@ impl WgpuRenderer {
         let _ = backend_policy;
 
         let surface_caps = surface.get_capabilities(&context.adapter);
-        let preferred_formats = [
-            wgpu::TextureFormat::Bgra8Unorm,
-            wgpu::TextureFormat::Rgba8Unorm,
-        ];
-        let surface_format = preferred_formats
-            .iter()
-            .find(|f| surface_caps.formats.contains(f))
-            .copied()
-            .or_else(|| surface_caps.formats.iter().find(|f| !f.is_srgb()).copied())
-            .or_else(|| surface_caps.formats.first().copied())
-            .ok_or_else(|| {
-                anyhow::anyhow!(
-                    "Surface reports no supported texture formats for adapter {:?}",
-                    context.adapter.get_info().name
-                )
-            })?;
-        let render_target_format = surface_format.add_srgb_suffix();
+        let supports_surface_view_formats = context
+            .adapter
+            .get_downlevel_capabilities()
+            .flags
+            .contains(wgpu::DownlevelFlags::SURFACE_VIEW_FORMATS);
+        let (surface_format, render_target_format, view_formats) =
+            choose_surface_formats(&surface_caps.formats, supports_surface_view_formats)
+                .ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "Surface reports no supported texture formats for adapter {:?}",
+                        context.adapter.get_info().name
+                    )
+                })?;
+        if !supports_surface_view_formats {
+            warn!(
+                "Surface view formats are unavailable; rendering directly to {:?}",
+                render_target_format
+            );
+        }
 
         let pick_alpha_mode =
             |preferences: &[wgpu::CompositeAlphaMode]| -> anyhow::Result<wgpu::CompositeAlphaMode> {
@@ -1412,7 +1449,7 @@ impl WgpuRenderer {
             present_mode: choose_present_mode(&surface_caps, config.preferred_present_mode),
             desired_maximum_frame_latency: SURFACE_FRAME_LATENCY,
             alpha_mode,
-            view_formats: vec![render_target_format],
+            view_formats,
         };
         // Configure the surface immediately. The adapter selection process already validated
         // that this adapter can successfully configure this surface.
@@ -4171,6 +4208,36 @@ mod tests {
             present_modes,
             ..Default::default()
         }
+    }
+
+    #[test]
+    fn surface_formats_use_srgb_view_when_supported() {
+        let formats = [
+            wgpu::TextureFormat::Bgra8Unorm,
+            wgpu::TextureFormat::Bgra8UnormSrgb,
+        ];
+
+        let (surface, render_target, view_formats) =
+            choose_surface_formats(&formats, true).expect("surface format");
+
+        assert_eq!(surface, wgpu::TextureFormat::Bgra8Unorm);
+        assert_eq!(render_target, wgpu::TextureFormat::Bgra8UnormSrgb);
+        assert_eq!(view_formats, vec![wgpu::TextureFormat::Bgra8UnormSrgb]);
+    }
+
+    #[test]
+    fn surface_formats_render_directly_when_views_are_unsupported() {
+        let formats = [
+            wgpu::TextureFormat::Rgba8Unorm,
+            wgpu::TextureFormat::Rgba8UnormSrgb,
+        ];
+
+        let (surface, render_target, view_formats) =
+            choose_surface_formats(&formats, false).expect("surface format");
+
+        assert_eq!(surface, wgpu::TextureFormat::Rgba8UnormSrgb);
+        assert_eq!(render_target, wgpu::TextureFormat::Rgba8UnormSrgb);
+        assert!(view_formats.is_empty());
     }
 
     #[test]
