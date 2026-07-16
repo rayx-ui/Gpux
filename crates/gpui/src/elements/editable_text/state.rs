@@ -2,7 +2,7 @@ use std::{ops::Range, time::Duration};
 
 use crate::{
     Bounds, ClipboardItem, Context, EntityInputHandler, EventEmitter, FocusHandle, Focusable,
-    Pixels, Point, Subscription, UTF16Selection, Window, WindowTextSystem, point, px,
+    Pixels, Point, Size, Subscription, UTF16Selection, Window, WindowTextSystem, point, px,
 };
 
 use super::{
@@ -11,8 +11,9 @@ use super::{
     TextEdit, TextLayoutError, TextLayoutMap, TextLayoutStyle, TextLayoutUpdate,
     history::{EditHistory, EditKind, HistoryState},
     movement::{
-        next_grapheme_boundary, normalize_multiline, normalize_single_line,
-        previous_grapheme_boundary,
+        grapheme_boundary_at_or_before, next_grapheme_boundary, next_word_boundary,
+        normalize_multiline, normalize_single_line, previous_grapheme_boundary,
+        previous_word_boundary,
     },
 };
 
@@ -158,6 +159,11 @@ impl EditableTextState {
 
     pub fn scroll_offset(&self) -> Point<Pixels> {
         self.scroll_offset
+    }
+
+    /// Returns the full laid-out content size used by external scroll owners.
+    pub fn content_size(&self) -> Size<Pixels> {
+        self.layout_map.size()
     }
 
     /// Returns the most-negative scroll offset allowed by the current layout and viewport.
@@ -309,20 +315,55 @@ impl EditableTextState {
         true
     }
 
+    /// Sets the internal nonpositive scroll offset and clamps it to current geometry.
+    pub fn set_scroll_offset(&mut self, offset: Point<Pixels>, cx: &mut Context<Self>) -> bool {
+        let Some(bounds) = self.viewport_bounds() else {
+            return false;
+        };
+        let previous = self.scroll_offset;
+        self.scroll_offset = offset;
+        if self.line_mode == EditableTextLineMode::SingleLine {
+            self.scroll_offset.y = px(0.);
+        } else if self.soft_wrap {
+            self.scroll_offset.x = px(0.);
+        }
+        self.clamp_scroll(bounds);
+        if self.scroll_offset == previous {
+            return false;
+        }
+        self.geometry = Some(EditableTextGeometry::new(
+            self.revision(),
+            bounds,
+            self.scroll_offset,
+        ));
+        cx.notify();
+        true
+    }
+
     pub fn set_selection(&mut self, anchor: usize, head: usize, cx: &mut Context<Self>) -> bool {
         if self.mode == EditableTextMode::Disabled {
             return false;
         }
-        let range = anchor.min(head)..anchor.max(head);
-        if self.snapshot().slice(range).is_err() {
+        if anchor > self.buffer.len() || head > self.buffer.len() {
             return false;
         }
+        let text = self.text();
+        let anchor = grapheme_boundary_at_or_before(&text, anchor);
+        let head = grapheme_boundary_at_or_before(&text, head);
         self.selection = EditableSelection::new(anchor, head);
         self.marked_range = None;
         self.geometry = None;
         self.restart_blink(cx);
         cx.notify();
         true
+    }
+
+    pub fn move_to_document_start(&mut self, extend: bool, cx: &mut Context<Self>) {
+        self.move_to(0, extend, cx);
+    }
+
+    pub fn move_to_document_end(&mut self, extend: bool, cx: &mut Context<Self>) {
+        self.move_to(self.buffer.len(), extend, cx);
     }
 
     pub fn move_to_start(&mut self, cx: &mut Context<Self>) {
@@ -376,6 +417,66 @@ impl EditableTextState {
         self.move_to(offset, extend, cx);
     }
 
+    pub fn move_word_left(&mut self, extend: bool, cx: &mut Context<Self>) {
+        if self.mode == EditableTextMode::Disabled {
+            return;
+        }
+        let offset = if !extend && !self.selection.is_empty() {
+            self.selection.range().start
+        } else {
+            previous_word_boundary(&self.text(), self.selection.head())
+        };
+        self.move_to(offset, extend, cx);
+    }
+
+    pub fn move_word_right(&mut self, extend: bool, cx: &mut Context<Self>) {
+        if self.mode == EditableTextMode::Disabled {
+            return;
+        }
+        let offset = if !extend && !self.selection.is_empty() {
+            self.selection.range().end
+        } else {
+            next_word_boundary(&self.text(), self.selection.head())
+        };
+        self.move_to(offset, extend, cx);
+    }
+
+    pub fn move_to_line_start(&mut self, extend: bool, cx: &mut Context<Self>) {
+        let text = self.text();
+        let head = self.selection.head().min(text.len());
+        let offset = text[..head].rfind('\n').map_or(0, |index| index + 1);
+        self.move_to(offset, extend, cx);
+    }
+
+    pub fn move_to_line_end(&mut self, extend: bool, cx: &mut Context<Self>) {
+        let text = self.text();
+        let head = self.selection.head().min(text.len());
+        let offset = text[head..]
+            .find('\n')
+            .map_or(text.len(), |index| head + index);
+        self.move_to(offset, extend, cx);
+    }
+
+    pub fn move_to_visual_line_start(&mut self, extend: bool, cx: &mut Context<Self>) {
+        let Some(display) = self.layout_map.buffer_to_display(self.selection.head()) else {
+            return;
+        };
+        let Some(range) = self.layout_map.visual_row_range(display.row) else {
+            return;
+        };
+        self.move_to(range.start, extend, cx);
+    }
+
+    pub fn move_to_visual_line_end(&mut self, extend: bool, cx: &mut Context<Self>) {
+        let Some(display) = self.layout_map.buffer_to_display(self.selection.head()) else {
+            return;
+        };
+        let Some(range) = self.layout_map.visual_row_range(display.row) else {
+            return;
+        };
+        self.move_to(range.end, extend, cx);
+    }
+
     pub fn move_up(&mut self, extend: bool, cx: &mut Context<Self>) {
         self.move_vertical(-1, extend, cx);
     }
@@ -414,6 +515,30 @@ impl EditableTextState {
         }
         let range = if self.selection.is_empty() {
             self.selection.head()..next_grapheme_boundary(&self.text(), self.selection.head())
+        } else {
+            self.selection.range()
+        };
+        !range.is_empty() && self.replace_byte_range(range, "", EditKind::Other, cx)
+    }
+
+    pub fn delete_word_backward(&mut self, cx: &mut Context<Self>) -> bool {
+        if !self.mode.permits_mutation() {
+            return false;
+        }
+        let range = if self.selection.is_empty() {
+            previous_word_boundary(&self.text(), self.selection.head())..self.selection.head()
+        } else {
+            self.selection.range()
+        };
+        !range.is_empty() && self.replace_byte_range(range, "", EditKind::Other, cx)
+    }
+
+    pub fn delete_word_forward(&mut self, cx: &mut Context<Self>) -> bool {
+        if !self.mode.permits_mutation() {
+            return false;
+        }
+        let range = if self.selection.is_empty() {
+            self.selection.head()..next_word_boundary(&self.text(), self.selection.head())
         } else {
             self.selection.range()
         };
@@ -684,6 +809,7 @@ impl EditableTextState {
     }
 
     fn move_to(&mut self, offset: usize, extend: bool, cx: &mut Context<Self>) {
+        let offset = grapheme_boundary_at_or_before(&self.text(), offset);
         self.selection = if extend {
             self.selection.with_head(offset)
         } else {

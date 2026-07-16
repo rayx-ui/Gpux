@@ -1,5 +1,5 @@
 use crate::{
-    App, Bounds, Color, CursorStyle, DecorationRun, DispatchPhase, Element, ElementId,
+    App, Bounds, Color, ContentMask, CursorStyle, DecorationRun, DispatchPhase, Element, ElementId,
     ElementInputHandler, Entity, GlobalElementId, IntoElement, KeyDownEvent, LayoutId, MouseButton,
     MouseDownEvent, MouseMoveEvent, MouseUpEvent, PaintQuad, Pixels, RenderOnce, ScrollWheelEvent,
     ShapedLine, SharedString, Style, TextAlign, TextRun, UnderlineStyle, Window, WrappedLine, div,
@@ -73,8 +73,9 @@ impl RenderOnce for EditableText {
         div()
             .flex()
             .w_full()
+            .overflow_hidden()
             .when(line_mode == EditableTextLineMode::MultiLine, |element| {
-                element.h_full().overflow_hidden()
+                element.h_full()
             })
             .key_context("EditableText")
             .cursor(CursorStyle::IBeam)
@@ -129,12 +130,22 @@ fn handle_key_down(
     state.update(cx, |state, cx| match (secondary, modifiers.shift, key) {
         (false, false, "backspace") => state.delete_backward(cx),
         (false, false, "delete") => state.delete_forward(cx),
+        (true, false, "backspace") => state.delete_word_backward(cx),
+        (true, false, "delete") => state.delete_word_forward(cx),
         (false, shift, "left") => {
             state.move_left(shift, cx);
             true
         }
         (false, shift, "right") => {
             state.move_right(shift, cx);
+            true
+        }
+        (true, shift, "left") => {
+            state.move_word_left(shift, cx);
+            true
+        }
+        (true, shift, "right") => {
+            state.move_word_right(shift, cx);
             true
         }
         (false, shift, "up") => {
@@ -158,35 +169,35 @@ fn handle_key_down(
             true
         }
         (false, false, "home") => {
-            state.move_to_start(cx);
+            state.move_to_visual_line_start(false, cx);
             true
         }
         (false, true, "home") => {
-            state.move_to_start_extending(cx);
+            state.move_to_visual_line_start(true, cx);
             true
         }
         (true, false, "home") => {
-            state.move_to_start(cx);
+            state.move_to_document_start(false, cx);
             true
         }
         (true, true, "home") => {
-            state.move_to_start_extending(cx);
+            state.move_to_document_start(true, cx);
             true
         }
         (false, false, "end") => {
-            state.move_to_end(cx);
+            state.move_to_visual_line_end(false, cx);
             true
         }
         (false, true, "end") => {
-            state.move_to_end_extending(cx);
+            state.move_to_visual_line_end(true, cx);
             true
         }
         (true, false, "end") => {
-            state.move_to_end(cx);
+            state.move_to_document_end(false, cx);
             true
         }
         (true, true, "end") => {
-            state.move_to_end_extending(cx);
+            state.move_to_document_end(true, cx);
             true
         }
         (true, false, "a") => {
@@ -373,21 +384,19 @@ impl Element for EditableTextPaintElement {
                 )
             })
             .unwrap_or_default();
-        let cursor =
-            (layout_ready && selection.is_empty() && state.is_focused() && state.caret_visible())
-                .then(|| {
-                    let position = state
-                        .layout_map()
-                        .position_for_index(selection.head())
-                        .unwrap_or_default();
-                    fill(
-                        Bounds::new(
-                            content_origin + position,
-                            size(px(2.), state.layout_map().line_height()),
-                        ),
-                        caret_color,
-                    )
-                });
+        let cursor = (layout_ready && state.is_focused() && state.caret_visible()).then(|| {
+            let position = state
+                .layout_map()
+                .position_for_index(selection.head())
+                .unwrap_or_default();
+            fill(
+                Bounds::new(
+                    content_origin + position,
+                    size(px(2.), state.layout_map().line_height()),
+                ),
+                caret_color,
+            )
+        });
 
         EditableTextPrepaintState {
             lines,
@@ -412,62 +421,64 @@ impl Element for EditableTextPaintElement {
             let state = self.state.read(cx);
             (state.focus_handle(), state.mode())
         };
-        if mode != EditableTextMode::Disabled {
-            window.handle_input(
-                &focus_handle,
-                ElementInputHandler::new(bounds, self.state.clone()),
-                cx,
-            );
-        }
-        let line_height = window.line_height();
-        for paint_line in &prepaint.lines {
-            paint_line
-                .line
-                .paint_background(
-                    bounds.origin
-                        + prepaint.scroll_offset
-                        + point(px(0.), line_height * paint_line.visual_start),
-                    line_height,
-                    TextAlign::Left,
-                    Some(bounds),
-                    window,
+        window.with_content_mask(Some(ContentMask::rectangular(bounds)), |window| {
+            if mode != EditableTextMode::Disabled {
+                window.handle_input(
+                    &focus_handle,
+                    ElementInputHandler::new(bounds, self.state.clone()),
                     cx,
-                )
-                .expect("editable text line background should paint");
-        }
-        for selection in prepaint.selection.drain(..) {
-            window.paint_quad(selection);
-        }
-        for paint_line in &prepaint.lines {
-            paint_line
-                .line
-                .paint(
-                    bounds.origin
-                        + prepaint.scroll_offset
-                        + point(px(0.), line_height * paint_line.visual_start),
-                    line_height,
-                    TextAlign::Left,
-                    Some(bounds),
-                    window,
-                    cx,
-                )
-                .expect("editable text line should paint");
-        }
-        if let Some(placeholder) = &prepaint.placeholder {
-            placeholder
-                .paint(
-                    bounds.origin,
-                    line_height,
-                    TextAlign::Left,
-                    None,
-                    window,
-                    cx,
-                )
-                .expect("editable text placeholder should paint");
-        }
-        if let Some(cursor) = prepaint.cursor.take() {
-            window.paint_quad(cursor);
-        }
+                );
+            }
+            let line_height = window.line_height();
+            for paint_line in &prepaint.lines {
+                paint_line
+                    .line
+                    .paint_background(
+                        bounds.origin
+                            + prepaint.scroll_offset
+                            + point(px(0.), line_height * paint_line.visual_start),
+                        line_height,
+                        TextAlign::Left,
+                        Some(bounds),
+                        window,
+                        cx,
+                    )
+                    .expect("editable text line background should paint");
+            }
+            for selection in prepaint.selection.drain(..) {
+                window.paint_quad(selection);
+            }
+            for paint_line in &prepaint.lines {
+                paint_line
+                    .line
+                    .paint(
+                        bounds.origin
+                            + prepaint.scroll_offset
+                            + point(px(0.), line_height * paint_line.visual_start),
+                        line_height,
+                        TextAlign::Left,
+                        Some(bounds),
+                        window,
+                        cx,
+                    )
+                    .expect("editable text line should paint");
+            }
+            if let Some(placeholder) = &prepaint.placeholder {
+                placeholder
+                    .paint(
+                        bounds.origin,
+                        line_height,
+                        TextAlign::Left,
+                        None,
+                        window,
+                        cx,
+                    )
+                    .expect("editable text placeholder should paint");
+            }
+            if let Some(cursor) = prepaint.cursor.take() {
+                window.paint_quad(cursor);
+            }
+        });
 
         let drag_state = self.state.clone();
         window.on_mouse_event(move |event: &MouseMoveEvent, phase, _window, cx| {

@@ -11,10 +11,10 @@ use crate::{
     HtmlIslandInputMode, HtmlIslandPrimitive, InputHandler, IsZero, KeyBinding, KeyContext,
     KeyDownEvent, KeyEvent, Keystroke, KeystrokeEvent, LayoutId, Length, LineLayoutIndex,
     MAX_ACTIVE_SCREEN_EFFECTS, MAX_SCREEN_EFFECT_SNAPSHOTS, Modifiers, ModifiersChangedEvent,
-    MonochromeSprite, MouseButton, MouseEvent, MouseMoveEvent, MouseUpEvent, Overflow, Path,
-    Pixels, PlatformAtlas, PlatformDisplay, PlatformInput, PlatformInputHandler, PlatformWindow,
-    Point, PolychromeSprite, Position, Priority, PromptButton, PromptLevel, Quad, Render,
-    RenderGlyphParams, RenderImage, RenderImageParams, RenderSvgParams, Replay, ResizeEdge,
+    MonochromeSprite, MonochromeSpriteKind, MouseButton, MouseEvent, MouseMoveEvent, MouseUpEvent,
+    Overflow, Path, Pixels, PlatformAtlas, PlatformDisplay, PlatformInput, PlatformInputHandler,
+    PlatformWindow, Point, PolychromeSprite, Position, Priority, PromptButton, PromptLevel, Quad,
+    Render, RenderGlyphParams, RenderImage, RenderImageParams, RenderSvgParams, Replay, ResizeEdge,
     SMOOTH_SVG_SCALE_FACTOR, SUBPIXEL_VARIANTS_X, SUBPIXEL_VARIANTS_Y, ScaledPixels, Scene,
     ScreenEffect, ScreenEffectId, ScreenEffectRegionId, ScreenEffectRegionPrimitive,
     ScreenEffectSnapshotId, ScreenEffectTarget, Shadow, SharedString, Size, StrikethroughStyle,
@@ -5391,7 +5391,7 @@ impl Window {
             } else {
                 self.next_frame.scene.insert_primitive(MonochromeSprite {
                     order: 0,
-                    pad: 0,
+                    kind: MonochromeSpriteKind::Glyph,
                     bounds,
                     content_mask,
                     color: color.opacity(element_opacity).paint_color(),
@@ -5441,7 +5441,7 @@ impl Window {
             let content_mask = self.paint_content_mask();
             self.next_frame.scene.insert_primitive(MonochromeSprite {
                 order: 0,
-                pad: 0,
+                kind: MonochromeSpriteKind::Glyph,
                 bounds,
                 content_mask,
                 color: color.opacity(element_opacity).paint_color(),
@@ -5641,7 +5641,7 @@ impl Window {
 
         self.next_frame.scene.insert_primitive(MonochromeSprite {
             order: 0,
-            pad: 0,
+            kind: MonochromeSpriteKind::ImageMask,
             bounds: final_bounds,
             content_mask,
             color: color.opacity(element_opacity).paint_color(),
