@@ -1089,12 +1089,20 @@ impl Default for TransformationMatrix {
 #[expect(missing_docs)]
 pub struct MonochromeSprite {
     pub order: DrawOrder,
-    pub pad: u32,
+    pub kind: MonochromeSpriteKind,
     pub bounds: Bounds<ScaledPixels>,
     pub content_mask: ContentMask<ScaledPixels>,
     pub color: PaintColor,
     pub tile: AtlasTile,
     pub transformation: TransformationMatrix,
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[repr(u32)]
+#[expect(missing_docs)]
+pub enum MonochromeSpriteKind {
+    Glyph = 0,
+    ImageMask = 1,
 }
 
 impl From<MonochromeSprite> for Primitive {

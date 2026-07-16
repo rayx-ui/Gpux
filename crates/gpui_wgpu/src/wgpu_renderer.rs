@@ -13,9 +13,9 @@ use gpux::HtmlIslandPrimitive;
 use gpux::{
     ActiveScreenEffect, ActiveScreenEffectSnapshot, AtlasTextureId, BackgroundKind, Bounds,
     ColorSpace, ContentMask, Corners, DevicePixels, Edges, EffectCapabilities, EffectQuality,
-    ElementEffectCapabilities, GpuSpecs, MonochromeSprite, PaintColor, Path, Pixels, Point,
-    PolychromeSprite, PreparedBackground, PreparedElementEffect, PrimitiveBatch, Quad,
-    ScaledPixels, Scene, ScreenEffect, ScreenEffectCapabilities, ScreenEffectSnapshotId,
+    ElementEffectCapabilities, GpuSpecs, MonochromeSprite, MonochromeSpriteKind, PaintColor, Path,
+    Pixels, Point, PolychromeSprite, PreparedBackground, PreparedElementEffect, PrimitiveBatch,
+    Quad, ScaledPixels, Scene, ScreenEffect, ScreenEffectCapabilities, ScreenEffectSnapshotId,
     ScreenEffectTarget, Shadow, Size, SnapshotTransitionKind, SubpixelSprite, TransformationMatrix,
     Underline, VisualEffectPrimitive, get_gamma_correction_ratios,
 };
@@ -254,6 +254,15 @@ const _: [(); 96] = [(); size_of::<PackedPathRasterizationVertex>()];
 const _: [(); 16] = [(); offset_of!(PackedPathRasterizationVertex, background)];
 const _: [(); 64] = [(); offset_of!(PackedPathRasterizationVertex, content_mask)];
 const _: [(); 64] = [(); size_of::<PackedHtmlIsland>()];
+const _: [(); 128] = [(); size_of::<MonochromeSprite>()];
+const _: [(); 4] = [(); offset_of!(MonochromeSprite, kind)];
+const _: [(); 8] = [(); offset_of!(MonochromeSprite, bounds)];
+const _: [(); 24] = [(); offset_of!(MonochromeSprite, content_mask)];
+const _: [(); 56] = [(); offset_of!(MonochromeSprite, color)];
+const _: [(); 72] = [(); offset_of!(MonochromeSprite, tile)];
+const _: [(); 104] = [(); offset_of!(MonochromeSprite, transformation)];
+const _: [(); 0] = [(); MonochromeSpriteKind::Glyph as usize];
+const _: [(); 1] = [(); MonochromeSpriteKind::ImageMask as usize];
 const _: [(); 104] = [(); size_of::<PackedVisualEffectPrimitive>()];
 const _: [(); 16] = [(); offset_of!(PackedVisualEffectPrimitive, content_mask)];
 const _: [(); 48] = [(); offset_of!(PackedVisualEffectPrimitive, corner_radii)];
@@ -1181,6 +1190,29 @@ pub struct WgpuRenderer {
     html_island_textures: HtmlIslandTextureCache,
     #[cfg(target_family = "wasm")]
     html_island_texture_draw_count: u32,
+    #[cfg(target_family = "wasm")]
+    diagnostic_max_monochrome_sprite_count: usize,
+    #[cfg(target_family = "wasm")]
+    diagnostic_max_glyph_mask_count: usize,
+    #[cfg(target_family = "wasm")]
+    diagnostic_max_image_mask_count: usize,
+    #[cfg(target_family = "wasm")]
+    diagnostic_max_subpixel_sprite_count: usize,
+    #[cfg(target_family = "wasm")]
+    diagnostic_max_polychrome_sprite_count: usize,
+}
+
+#[cfg(target_family = "wasm")]
+pub struct TextRendererDiagnostics {
+    pub antialiasing_mode: &'static str,
+    pub glyph_sprite_kind: &'static str,
+    pub monochrome_sprite_count: usize,
+    pub glyph_mask_count: usize,
+    pub image_mask_count: usize,
+    pub subpixel_sprite_count: usize,
+    pub polychrome_sprite_count: usize,
+    pub device_pixel_ratio: f32,
+    pub surface_format: String,
 }
 
 impl WgpuRenderer {
@@ -1598,6 +1630,16 @@ impl WgpuRenderer {
             html_island_textures: HtmlIslandTextureCache::default(),
             #[cfg(target_family = "wasm")]
             html_island_texture_draw_count: 0,
+            #[cfg(target_family = "wasm")]
+            diagnostic_max_monochrome_sprite_count: 0,
+            #[cfg(target_family = "wasm")]
+            diagnostic_max_glyph_mask_count: 0,
+            #[cfg(target_family = "wasm")]
+            diagnostic_max_image_mask_count: 0,
+            #[cfg(target_family = "wasm")]
+            diagnostic_max_subpixel_sprite_count: 0,
+            #[cfg(target_family = "wasm")]
+            diagnostic_max_polychrome_sprite_count: 0,
         })
     }
 
@@ -2393,6 +2435,30 @@ impl WgpuRenderer {
         self.dual_source_blending
     }
 
+    #[cfg(target_family = "wasm")]
+    pub fn text_renderer_diagnostics(&self, scene: &Scene) -> TextRendererDiagnostics {
+        let uses_subpixel_glyphs = !scene.subpixel_sprites.is_empty();
+        TextRendererDiagnostics {
+            antialiasing_mode: if uses_subpixel_glyphs {
+                "subpixel"
+            } else {
+                "grayscale"
+            },
+            glyph_sprite_kind: if uses_subpixel_glyphs {
+                "subpixel"
+            } else {
+                "monochrome"
+            },
+            monochrome_sprite_count: self.diagnostic_max_monochrome_sprite_count,
+            glyph_mask_count: self.diagnostic_max_glyph_mask_count,
+            image_mask_count: self.diagnostic_max_image_mask_count,
+            subpixel_sprite_count: self.diagnostic_max_subpixel_sprite_count,
+            polychrome_sprite_count: self.diagnostic_max_polychrome_sprite_count,
+            device_pixel_ratio: scene.scale_factor,
+            surface_format: format!("{:?}", self.surface_config.format),
+        }
+    }
+
     pub fn gpu_specs(&self) -> GpuSpecs {
         GpuSpecs {
             is_software_emulated: self.adapter_info.device_type == wgpu::DeviceType::Cpu,
@@ -2423,6 +2489,32 @@ impl WgpuRenderer {
     }
 
     pub fn draw(&mut self, scene: &Scene) -> bool {
+        #[cfg(target_family = "wasm")]
+        {
+            self.diagnostic_max_monochrome_sprite_count = self
+                .diagnostic_max_monochrome_sprite_count
+                .max(scene.monochrome_sprites.len());
+            self.diagnostic_max_glyph_mask_count = self.diagnostic_max_glyph_mask_count.max(
+                scene
+                    .monochrome_sprites
+                    .iter()
+                    .filter(|sprite| sprite.kind == MonochromeSpriteKind::Glyph)
+                    .count(),
+            );
+            self.diagnostic_max_image_mask_count = self.diagnostic_max_image_mask_count.max(
+                scene
+                    .monochrome_sprites
+                    .iter()
+                    .filter(|sprite| sprite.kind == MonochromeSpriteKind::ImageMask)
+                    .count(),
+            );
+            self.diagnostic_max_subpixel_sprite_count = self
+                .diagnostic_max_subpixel_sprite_count
+                .max(scene.subpixel_sprites.len());
+            self.diagnostic_max_polychrome_sprite_count = self
+                .diagnostic_max_polychrome_sprite_count
+                .max(scene.polychrome_sprites.len());
+        }
         // Bail out early if the surface has been unconfigured (e.g. during
         // Android background/rotation transitions). Attempting to acquire
         // a texture from an unconfigured surface can block indefinitely on

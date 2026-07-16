@@ -13,6 +13,8 @@ use gpux::{
 use itertools::Itertools;
 use parking_lot::RwLock;
 use smallvec::SmallVec;
+#[cfg(target_family = "wasm")]
+use std::collections::BTreeSet;
 use std::{borrow::Cow, sync::Arc};
 use swash::{
     scale::{Render, ScaleContext, Source, StrikeWith},
@@ -43,6 +45,12 @@ struct CosmicTextSystemState {
     /// for every font face in a family.
     font_ids_by_family_cache: HashMap<FontKey, SmallVec<[FontId; 4]>>,
     system_font_fallback: String,
+    #[cfg(target_family = "wasm")]
+    diagnostic_layout_count: usize,
+    #[cfg(target_family = "wasm")]
+    diagnostic_fallback_run_count: usize,
+    #[cfg(target_family = "wasm")]
+    diagnostic_observed_face_names: BTreeSet<String>,
 }
 
 struct LoadedFont {
@@ -62,6 +70,12 @@ impl CosmicTextSystem {
             loaded_fonts: Vec::new(),
             font_ids_by_family_cache: HashMap::default(),
             system_font_fallback: system_font_fallback.to_string(),
+            #[cfg(target_family = "wasm")]
+            diagnostic_layout_count: 0,
+            #[cfg(target_family = "wasm")]
+            diagnostic_fallback_run_count: 0,
+            #[cfg(target_family = "wasm")]
+            diagnostic_observed_face_names: BTreeSet::new(),
         }))
     }
 
@@ -78,6 +92,12 @@ impl CosmicTextSystem {
             loaded_fonts: Vec::new(),
             font_ids_by_family_cache: HashMap::default(),
             system_font_fallback: system_font_fallback.to_string(),
+            #[cfg(target_family = "wasm")]
+            diagnostic_layout_count: 0,
+            #[cfg(target_family = "wasm")]
+            diagnostic_fallback_run_count: 0,
+            #[cfg(target_family = "wasm")]
+            diagnostic_observed_face_names: BTreeSet::new(),
         }))
     }
 }
@@ -465,10 +485,16 @@ impl CosmicTextSystemState {
         };
 
         let mut runs: Vec<ShapedRun> = Vec::new();
+        #[cfg(target_family = "wasm")]
+        let mut fallback_run_count = 0;
         for glyph in &layout.glyphs {
             let mut font_id = FontId(glyph.metadata);
             let mut loaded_font = self.loaded_font(font_id);
             if loaded_font.font.id() != glyph.font_id {
+                #[cfg(target_family = "wasm")]
+                {
+                    fallback_run_count += 1;
+                }
                 match self.font_id_for_cosmic_id(glyph.font_id) {
                     std::result::Result::Ok(resolved_id) => {
                         font_id = resolved_id;
@@ -510,6 +536,9 @@ impl CosmicTextSystemState {
             }
         }
 
+        #[cfg(target_family = "wasm")]
+        self.publish_font_fallback_diagnostics(&runs, fallback_run_count);
+
         LineLayout {
             font_size,
             letter_spacing: Pixels::ZERO,
@@ -519,6 +548,69 @@ impl CosmicTextSystemState {
             runs,
             len: text.len(),
         }
+    }
+
+    #[cfg(target_family = "wasm")]
+    fn publish_font_fallback_diagnostics(&mut self, runs: &[ShapedRun], fallback_run_count: usize) {
+        let enabled = js_sys::Reflect::get(
+            &js_sys::global(),
+            &wasm_bindgen::JsValue::from_str("__rayxTextRenderingDiagnosticsEnabled"),
+        )
+        .ok()
+        .and_then(|value| value.as_bool())
+        .unwrap_or(false);
+        if !enabled {
+            return;
+        }
+
+        let last_layout_face_names = runs
+            .iter()
+            .filter_map(|run| {
+                let font = &self.loaded_font(run.font_id).font;
+                self.font_system
+                    .db()
+                    .face(font.id())
+                    .and_then(|face| face.families.first())
+                    .map(|family| family.0.clone())
+            })
+            .collect::<BTreeSet<_>>();
+        self.diagnostic_layout_count += 1;
+        self.diagnostic_fallback_run_count += fallback_run_count;
+        self.diagnostic_observed_face_names
+            .extend(last_layout_face_names.iter().cloned());
+
+        let target = js_sys::Object::new();
+        let set = |key: &str, value: wasm_bindgen::JsValue| {
+            let _ = js_sys::Reflect::set(&target, &key.into(), &value);
+        };
+        let array = |names: &BTreeSet<String>| {
+            let values = js_sys::Array::new();
+            for name in names {
+                values.push(&wasm_bindgen::JsValue::from_str(name));
+            }
+            values
+        };
+        set("diagnosticVersion", "font-fallback-wasm/v1".into());
+        set("layoutCount", (self.diagnostic_layout_count as f64).into());
+        set(
+            "fallbackRunCount",
+            (self.diagnostic_fallback_run_count as f64).into(),
+        );
+        set(
+            "observedFaceNames",
+            array(&self.diagnostic_observed_face_names).into(),
+        );
+        set("lastLayoutFaceNames", array(&last_layout_face_names).into());
+        set(
+            "lastLayoutGlyphCount",
+            (runs.iter().map(|run| run.glyphs.len()).sum::<usize>() as f64).into(),
+        );
+        set("publishedAtMs", js_sys::Date::now().into());
+        let _ = js_sys::Reflect::set(
+            &js_sys::global(),
+            &wasm_bindgen::JsValue::from_str("__rayxFontFallbackDiagnostics"),
+            target.as_ref(),
+        );
     }
 }
 
