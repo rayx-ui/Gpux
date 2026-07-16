@@ -13,9 +13,9 @@ use gpux::HtmlIslandPrimitive;
 use gpux::{
     ActiveScreenEffect, ActiveScreenEffectSnapshot, AtlasTextureId, BackgroundKind, Bounds,
     ColorSpace, ContentMask, Corners, DevicePixels, Edges, EffectCapabilities, EffectQuality,
-    ElementEffectCapabilities, GpuSpecs, MonochromeSprite, PaintColor, Path, Pixels, Point,
-    PolychromeSprite, PreparedBackground, PreparedElementEffect, PrimitiveBatch, Quad,
-    ScaledPixels, Scene, ScreenEffect, ScreenEffectCapabilities, ScreenEffectSnapshotId,
+    ElementEffectCapabilities, GpuSpecs, MonochromeSprite, MonochromeSpriteKind, PaintColor, Path,
+    Pixels, Point, PolychromeSprite, PreparedBackground, PreparedElementEffect, PrimitiveBatch,
+    Quad, ScaledPixels, Scene, ScreenEffect, ScreenEffectCapabilities, ScreenEffectSnapshotId,
     ScreenEffectTarget, Shadow, Size, SnapshotTransitionKind, SubpixelSprite, TransformationMatrix,
     Underline, VisualEffectPrimitive, get_gamma_correction_ratios,
 };
@@ -254,6 +254,15 @@ const _: [(); 96] = [(); size_of::<PackedPathRasterizationVertex>()];
 const _: [(); 16] = [(); offset_of!(PackedPathRasterizationVertex, background)];
 const _: [(); 64] = [(); offset_of!(PackedPathRasterizationVertex, content_mask)];
 const _: [(); 64] = [(); size_of::<PackedHtmlIsland>()];
+const _: [(); 128] = [(); size_of::<MonochromeSprite>()];
+const _: [(); 4] = [(); offset_of!(MonochromeSprite, kind)];
+const _: [(); 8] = [(); offset_of!(MonochromeSprite, bounds)];
+const _: [(); 24] = [(); offset_of!(MonochromeSprite, content_mask)];
+const _: [(); 56] = [(); offset_of!(MonochromeSprite, color)];
+const _: [(); 72] = [(); offset_of!(MonochromeSprite, tile)];
+const _: [(); 104] = [(); offset_of!(MonochromeSprite, transformation)];
+const _: [(); 0] = [(); MonochromeSpriteKind::Glyph as usize];
+const _: [(); 1] = [(); MonochromeSpriteKind::ImageMask as usize];
 const _: [(); 104] = [(); size_of::<PackedVisualEffectPrimitive>()];
 const _: [(); 16] = [(); offset_of!(PackedVisualEffectPrimitive, content_mask)];
 const _: [(); 48] = [(); offset_of!(PackedVisualEffectPrimitive, corner_radii)];
@@ -719,6 +728,41 @@ pub struct WgpuSurfaceConfig {
     pub preferred_present_mode: Option<wgpu::PresentMode>,
 }
 
+fn choose_surface_formats(
+    formats: &[wgpu::TextureFormat],
+    supports_surface_view_formats: bool,
+) -> Option<(
+    wgpu::TextureFormat,
+    wgpu::TextureFormat,
+    Vec<wgpu::TextureFormat>,
+)> {
+    if supports_surface_view_formats {
+        let surface_format = [
+            wgpu::TextureFormat::Bgra8Unorm,
+            wgpu::TextureFormat::Rgba8Unorm,
+        ]
+        .into_iter()
+        .find(|format| formats.contains(format))
+        .or_else(|| formats.iter().find(|format| !format.is_srgb()).copied())
+        .or_else(|| formats.first().copied())?;
+        let render_target_format = surface_format.add_srgb_suffix();
+        return Some((
+            surface_format,
+            render_target_format,
+            vec![render_target_format],
+        ));
+    }
+
+    let render_target_format = [
+        wgpu::TextureFormat::Bgra8UnormSrgb,
+        wgpu::TextureFormat::Rgba8UnormSrgb,
+    ]
+    .into_iter()
+    .find(|format| formats.contains(format))
+    .or_else(|| formats.first().copied())?;
+    Some((render_target_format, render_target_format, Vec::new()))
+}
+
 fn choose_present_mode(
     surface_caps: &wgpu::SurfaceCapabilities,
     preferred: Option<wgpu::PresentMode>,
@@ -1181,6 +1225,29 @@ pub struct WgpuRenderer {
     html_island_textures: HtmlIslandTextureCache,
     #[cfg(target_family = "wasm")]
     html_island_texture_draw_count: u32,
+    #[cfg(target_family = "wasm")]
+    diagnostic_max_monochrome_sprite_count: usize,
+    #[cfg(target_family = "wasm")]
+    diagnostic_max_glyph_mask_count: usize,
+    #[cfg(target_family = "wasm")]
+    diagnostic_max_image_mask_count: usize,
+    #[cfg(target_family = "wasm")]
+    diagnostic_max_subpixel_sprite_count: usize,
+    #[cfg(target_family = "wasm")]
+    diagnostic_max_polychrome_sprite_count: usize,
+}
+
+#[cfg(target_family = "wasm")]
+pub struct TextRendererDiagnostics {
+    pub antialiasing_mode: &'static str,
+    pub glyph_sprite_kind: &'static str,
+    pub monochrome_sprite_count: usize,
+    pub glyph_mask_count: usize,
+    pub image_mask_count: usize,
+    pub subpixel_sprite_count: usize,
+    pub polychrome_sprite_count: usize,
+    pub device_pixel_ratio: f32,
+    pub surface_format: String,
 }
 
 impl WgpuRenderer {
@@ -1330,23 +1397,25 @@ impl WgpuRenderer {
         let _ = backend_policy;
 
         let surface_caps = surface.get_capabilities(&context.adapter);
-        let preferred_formats = [
-            wgpu::TextureFormat::Bgra8Unorm,
-            wgpu::TextureFormat::Rgba8Unorm,
-        ];
-        let surface_format = preferred_formats
-            .iter()
-            .find(|f| surface_caps.formats.contains(f))
-            .copied()
-            .or_else(|| surface_caps.formats.iter().find(|f| !f.is_srgb()).copied())
-            .or_else(|| surface_caps.formats.first().copied())
-            .ok_or_else(|| {
-                anyhow::anyhow!(
-                    "Surface reports no supported texture formats for adapter {:?}",
-                    context.adapter.get_info().name
-                )
-            })?;
-        let render_target_format = surface_format.add_srgb_suffix();
+        let supports_surface_view_formats = context
+            .adapter
+            .get_downlevel_capabilities()
+            .flags
+            .contains(wgpu::DownlevelFlags::SURFACE_VIEW_FORMATS);
+        let (surface_format, render_target_format, view_formats) =
+            choose_surface_formats(&surface_caps.formats, supports_surface_view_formats)
+                .ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "Surface reports no supported texture formats for adapter {:?}",
+                        context.adapter.get_info().name
+                    )
+                })?;
+        if !supports_surface_view_formats {
+            warn!(
+                "Surface view formats are unavailable; rendering directly to {:?}",
+                render_target_format
+            );
+        }
 
         let pick_alpha_mode =
             |preferences: &[wgpu::CompositeAlphaMode]| -> anyhow::Result<wgpu::CompositeAlphaMode> {
@@ -1412,7 +1481,7 @@ impl WgpuRenderer {
             present_mode: choose_present_mode(&surface_caps, config.preferred_present_mode),
             desired_maximum_frame_latency: SURFACE_FRAME_LATENCY,
             alpha_mode,
-            view_formats: vec![render_target_format],
+            view_formats,
         };
         // Configure the surface immediately. The adapter selection process already validated
         // that this adapter can successfully configure this surface.
@@ -1598,6 +1667,16 @@ impl WgpuRenderer {
             html_island_textures: HtmlIslandTextureCache::default(),
             #[cfg(target_family = "wasm")]
             html_island_texture_draw_count: 0,
+            #[cfg(target_family = "wasm")]
+            diagnostic_max_monochrome_sprite_count: 0,
+            #[cfg(target_family = "wasm")]
+            diagnostic_max_glyph_mask_count: 0,
+            #[cfg(target_family = "wasm")]
+            diagnostic_max_image_mask_count: 0,
+            #[cfg(target_family = "wasm")]
+            diagnostic_max_subpixel_sprite_count: 0,
+            #[cfg(target_family = "wasm")]
+            diagnostic_max_polychrome_sprite_count: 0,
         })
     }
 
@@ -2393,6 +2472,30 @@ impl WgpuRenderer {
         self.dual_source_blending
     }
 
+    #[cfg(target_family = "wasm")]
+    pub fn text_renderer_diagnostics(&self, scene: &Scene) -> TextRendererDiagnostics {
+        let uses_subpixel_glyphs = !scene.subpixel_sprites.is_empty();
+        TextRendererDiagnostics {
+            antialiasing_mode: if uses_subpixel_glyphs {
+                "subpixel"
+            } else {
+                "grayscale"
+            },
+            glyph_sprite_kind: if uses_subpixel_glyphs {
+                "subpixel"
+            } else {
+                "monochrome"
+            },
+            monochrome_sprite_count: self.diagnostic_max_monochrome_sprite_count,
+            glyph_mask_count: self.diagnostic_max_glyph_mask_count,
+            image_mask_count: self.diagnostic_max_image_mask_count,
+            subpixel_sprite_count: self.diagnostic_max_subpixel_sprite_count,
+            polychrome_sprite_count: self.diagnostic_max_polychrome_sprite_count,
+            device_pixel_ratio: scene.scale_factor,
+            surface_format: format!("{:?}", self.surface_config.format),
+        }
+    }
+
     pub fn gpu_specs(&self) -> GpuSpecs {
         GpuSpecs {
             is_software_emulated: self.adapter_info.device_type == wgpu::DeviceType::Cpu,
@@ -2423,6 +2526,32 @@ impl WgpuRenderer {
     }
 
     pub fn draw(&mut self, scene: &Scene) -> bool {
+        #[cfg(target_family = "wasm")]
+        {
+            self.diagnostic_max_monochrome_sprite_count = self
+                .diagnostic_max_monochrome_sprite_count
+                .max(scene.monochrome_sprites.len());
+            self.diagnostic_max_glyph_mask_count = self.diagnostic_max_glyph_mask_count.max(
+                scene
+                    .monochrome_sprites
+                    .iter()
+                    .filter(|sprite| sprite.kind == MonochromeSpriteKind::Glyph)
+                    .count(),
+            );
+            self.diagnostic_max_image_mask_count = self.diagnostic_max_image_mask_count.max(
+                scene
+                    .monochrome_sprites
+                    .iter()
+                    .filter(|sprite| sprite.kind == MonochromeSpriteKind::ImageMask)
+                    .count(),
+            );
+            self.diagnostic_max_subpixel_sprite_count = self
+                .diagnostic_max_subpixel_sprite_count
+                .max(scene.subpixel_sprites.len());
+            self.diagnostic_max_polychrome_sprite_count = self
+                .diagnostic_max_polychrome_sprite_count
+                .max(scene.polychrome_sprites.len());
+        }
         // Bail out early if the surface has been unconfigured (e.g. during
         // Android background/rotation transitions). Attempting to acquire
         // a texture from an unconfigured surface can block indefinitely on
@@ -4171,6 +4300,36 @@ mod tests {
             present_modes,
             ..Default::default()
         }
+    }
+
+    #[test]
+    fn surface_formats_use_srgb_view_when_supported() {
+        let formats = [
+            wgpu::TextureFormat::Bgra8Unorm,
+            wgpu::TextureFormat::Bgra8UnormSrgb,
+        ];
+
+        let (surface, render_target, view_formats) =
+            choose_surface_formats(&formats, true).expect("surface format");
+
+        assert_eq!(surface, wgpu::TextureFormat::Bgra8Unorm);
+        assert_eq!(render_target, wgpu::TextureFormat::Bgra8UnormSrgb);
+        assert_eq!(view_formats, vec![wgpu::TextureFormat::Bgra8UnormSrgb]);
+    }
+
+    #[test]
+    fn surface_formats_render_directly_when_views_are_unsupported() {
+        let formats = [
+            wgpu::TextureFormat::Rgba8Unorm,
+            wgpu::TextureFormat::Rgba8UnormSrgb,
+        ];
+
+        let (surface, render_target, view_formats) =
+            choose_surface_formats(&formats, false).expect("surface format");
+
+        assert_eq!(surface, wgpu::TextureFormat::Rgba8UnormSrgb);
+        assert_eq!(render_target, wgpu::TextureFormat::Rgba8UnormSrgb);
+        assert!(view_formats.is_empty());
     }
 
     #[test]

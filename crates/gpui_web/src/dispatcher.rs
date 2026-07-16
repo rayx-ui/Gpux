@@ -166,8 +166,10 @@ impl MainThreadMailbox {
                     .unwrap_or(false);
 
                 if !is_async {
-                    log::error!("Atomics.waitAsync returned synchronously; waker loop exiting");
-                    break;
+                    // The signal may change after the store and before waitAsync observes it.
+                    // In that expected "not-equal" case, drain the queued work and re-arm.
+                    mailbox.drain(&window);
+                    continue;
                 }
 
                 let promise: js_sys::Promise =

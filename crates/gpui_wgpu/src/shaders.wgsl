@@ -1162,7 +1162,7 @@ fn fs_underline(input: UnderlineVarying) -> @location(0) vec4<f32> {
 
 struct MonochromeSprite {
     order: u32,
-    pad: u32,
+    kind: u32,
     bounds: Bounds,
     content_mask: ContentMask,
     color: PaintColor,
@@ -1199,20 +1199,31 @@ fn vs_mono_sprite(@builtin(vertex_index) vertex_id: u32, @builtin(instance_index
 
 @fragment
 fn fs_mono_sprite(input: MonoSpriteVarying) -> @location(0) vec4<f32> {
+    let sprite = b_mono_sprites[input.sprite_id];
     let sample = textureSample(t_sprite, s_sprite, input.tile_position).r;
-    let straight_color = input.color.rgb / max(input.color.a, 0.000001);
-    let alpha_corrected = apply_contrast_and_gamma_correction(sample, straight_color, gamma_params.grayscale_enhanced_contrast, gamma_params.gamma_ratios);
+    var coverage = 0.0;
+    switch sprite.kind {
+        case 0u: {
+            let straight_color = input.color.rgb / max(input.color.a, 0.000001);
+            coverage = apply_contrast_and_gamma_correction(sample, straight_color, gamma_params.grayscale_enhanced_contrast, gamma_params.gamma_ratios);
+        }
+        case 1u: {
+            coverage = sample;
+        }
+        default: {
+            return vec4<f32>(0.0);
+        }
+    }
 
     // Alpha clip after using the derivatives.
     if (any(input.clip_distances < vec4<f32>(0.0))) {
         return vec4<f32>(0.0);
     }
-    let sprite = b_mono_sprites[input.sprite_id];
     if (content_mask_sdf(transform_position(input.local_position, sprite.transformation), sprite.content_mask) > 0.0) {
         return vec4<f32>(0.0);
     }
 
-    return blend_color(input.color, alpha_corrected);
+    return blend_color(input.color, coverage);
 }
 
 // --- polychrome sprites --- //
