@@ -957,7 +957,7 @@ impl WindowFrame {
                     .contains(&position)
             })
             .collect::<SmallVec<[_; 16]>>();
-        hitboxes.sort_by(|a, b| b.id.0.cmp(&a.id.0));
+        hitboxes.sort_by_key(|hitbox| std::cmp::Reverse(hitbox.id.0));
 
         for hitbox in hitboxes {
             hit_test.ids.push(hitbox.id);
