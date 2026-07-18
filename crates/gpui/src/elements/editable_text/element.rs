@@ -156,6 +156,14 @@ fn handle_key_down(
             state.move_down(shift, cx);
             true
         }
+        (true, true, "up") => {
+            state.extend_to_previous_logical_line_start(cx);
+            true
+        }
+        (true, true, "down") => {
+            state.extend_to_next_logical_line_end(cx);
+            true
+        }
         (false, shift, "pageup") => {
             state.move_page_up(shift, cx);
             true
@@ -375,7 +383,7 @@ impl Element for EditableTextPaintElement {
 
         let selection_quads = layout_ready
             .then(|| {
-                selection_quads(
+                editable_text_selection_quads(
                     state,
                     selection.range(),
                     content_origin,
@@ -577,7 +585,12 @@ fn decoration_runs(
         .collect()
 }
 
-fn selection_quads(
+/// Returns the selection quads prepared by the editable-text paint path.
+///
+/// This is publicly hidden so integration tests can inspect exact render geometry
+/// without exposing scene internals or relying on screenshots.
+#[doc(hidden)]
+pub fn editable_text_selection_quads(
     state: &EditableTextState,
     range: Range<usize>,
     origin: crate::Point<Pixels>,
@@ -594,28 +607,49 @@ fn selection_quads(
     let Some(end) = map.buffer_to_display(range.end) else {
         return Vec::new();
     };
-    (start.row..=end.row)
+    let line_height = map.line_height();
+    if line_height <= px(0.) {
+        return Vec::new();
+    }
+    let first_visible_row = (f32::from(viewport.top() - origin.y) / f32::from(line_height))
+        .floor()
+        .max(0.) as usize;
+    let visible_row_end = (f32::from(viewport.bottom() - origin.y) / f32::from(line_height))
+        .ceil()
+        .max(0.) as usize;
+    let first_row = start.row.max(first_visible_row);
+    let row_end = (end.row + 1)
+        .min(visible_row_end)
+        .min(map.visual_line_count());
+
+    (first_row..row_end)
         .filter_map(|row| {
-            let top = origin.y + map.line_height() * row;
-            if top + map.line_height() <= viewport.top() || top >= viewport.bottom() {
+            let row_range = map.visual_row_range(row)?;
+            let segment_start = range.start.max(row_range.start).min(row_range.end);
+            let segment_end = range.end.min(row_range.end).max(row_range.start);
+            let has_text = segment_start < segment_end;
+            let crosses_empty_row = row_range.is_empty()
+                && range.start <= row_range.start
+                && range.end >= row_range.end;
+            let crosses_logical_newline = row.checked_sub(1).is_some_and(|previous_row| {
+                map.visual_row_range(previous_row).is_some_and(|previous| {
+                    previous.end < row_range.start
+                        && range.start <= previous.end
+                        && range.end >= row_range.start
+                })
+            });
+            if !has_text && !crosses_empty_row && !crosses_logical_newline {
                 return None;
             }
-            let row_range = map.visual_row_range(row)?;
-            let start = range.start.max(row_range.start).min(row_range.end);
-            let end = range.end.min(row_range.end).max(row_range.start);
-            let start_display = map.buffer_to_display(start)?;
-            let end_display = map.buffer_to_display(end)?;
+            let start_column = segment_start.saturating_sub(row_range.start);
+            let end_column = segment_end.saturating_sub(row_range.start);
             let start_position =
-                map.position_for_display(TextDisplayPoint::new(row, start_display.column))?;
-            let end_position =
-                map.position_for_display(TextDisplayPoint::new(row, end_display.column))?;
+                map.position_for_display(TextDisplayPoint::new(row, start_column))?;
+            let end_position = map.position_for_display(TextDisplayPoint::new(row, end_column))?;
             Some(fill(
                 Bounds::new(
                     origin + start_position,
-                    size(
-                        (end_position.x - start_position.x).max(px(1.)),
-                        map.line_height(),
-                    ),
+                    size((end_position.x - start_position.x).max(px(1.)), line_height),
                 ),
                 color.clone(),
             ))

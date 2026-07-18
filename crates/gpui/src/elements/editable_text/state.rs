@@ -11,9 +11,9 @@ use super::{
     TextEdit, TextLayoutError, TextLayoutMap, TextLayoutStyle, TextLayoutUpdate,
     history::{EditHistory, EditKind, HistoryState},
     movement::{
-        grapheme_boundary_at_or_before, next_grapheme_boundary, next_word_boundary,
-        normalize_multiline, normalize_single_line, previous_grapheme_boundary,
-        previous_word_boundary,
+        grapheme_boundary_at_or_before, next_grapheme_boundary, next_logical_line_end,
+        next_word_boundary, normalize_multiline, normalize_single_line, previous_grapheme_boundary,
+        previous_logical_line_start, previous_word_boundary,
     },
 };
 
@@ -35,6 +35,7 @@ pub struct EditableTextState {
     geometry: Option<EditableTextGeometry>,
     layout_map: TextLayoutMap,
     scroll_offset: Point<Pixels>,
+    caret_reveal_pending: bool,
     preferred_vertical_x: Option<Pixels>,
     drag_position: Option<Point<Pixels>>,
     drag_scroll_epoch: u64,
@@ -80,6 +81,7 @@ impl EditableTextState {
             geometry: None,
             layout_map: TextLayoutMap::new(),
             scroll_offset: point(px(0.), px(0.)),
+            caret_reveal_pending: false,
             preferred_vertical_x: None,
             drag_position: None,
             drag_scroll_epoch: 0,
@@ -249,10 +251,11 @@ impl EditableTextState {
         text_system: &WindowTextSystem,
         display_transform: &super::EditableTextDisplayTransform,
     ) -> Result<TextLayoutUpdate, TextLayoutError> {
-        let reveal_caret = self
-            .geometry
-            .as_ref()
-            .is_none_or(|geometry| geometry.bounds() != bounds);
+        let reveal_caret = self.caret_reveal_pending
+            || self
+                .geometry
+                .as_ref()
+                .is_none_or(|geometry| geometry.bounds() != bounds);
         style.wrap_width = match self.line_mode {
             EditableTextLineMode::SingleLine => None,
             EditableTextLineMode::MultiLine if self.soft_wrap && bounds.size.width > px(0.) => {
@@ -278,6 +281,7 @@ impl EditableTextState {
         };
         if reveal_caret {
             self.ensure_caret_visible(bounds);
+            self.caret_reveal_pending = false;
         } else {
             self.clamp_scroll(bounds);
         }
@@ -352,7 +356,7 @@ impl EditableTextState {
         let head = grapheme_boundary_at_or_before(&text, head);
         self.selection = EditableSelection::new(anchor, head);
         self.marked_range = None;
-        self.geometry = None;
+        self.caret_reveal_pending = true;
         self.restart_blink(cx);
         cx.notify();
         true
@@ -388,7 +392,7 @@ impl EditableTextState {
         }
         self.selection = EditableSelection::new(0, self.buffer.len());
         self.marked_range = None;
-        self.geometry = None;
+        self.caret_reveal_pending = true;
         self.restart_blink(cx);
         cx.notify();
     }
@@ -483,6 +487,24 @@ impl EditableTextState {
 
     pub fn move_down(&mut self, extend: bool, cx: &mut Context<Self>) {
         self.move_vertical(1, extend, cx);
+    }
+
+    pub fn extend_to_previous_logical_line_start(&mut self, cx: &mut Context<Self>) {
+        if self.mode == EditableTextMode::Disabled {
+            return;
+        }
+        let text = self.text();
+        let offset = previous_logical_line_start(&text, self.selection.head());
+        self.move_to(offset, true, cx);
+    }
+
+    pub fn extend_to_next_logical_line_end(&mut self, cx: &mut Context<Self>) {
+        if self.mode == EditableTextMode::Disabled {
+            return;
+        }
+        let text = self.text();
+        let offset = next_logical_line_end(&text, self.selection.head());
+        self.move_to(offset, true, cx);
     }
 
     pub fn move_page_up(&mut self, extend: bool, cx: &mut Context<Self>) {
@@ -817,7 +839,7 @@ impl EditableTextState {
         };
         self.marked_range = None;
         self.preferred_vertical_x = None;
-        self.geometry = None;
+        self.caret_reveal_pending = true;
         self.restart_blink(cx);
         cx.notify();
     }
