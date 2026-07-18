@@ -9,6 +9,7 @@ mod html_island;
 mod http_client;
 mod keyboard;
 mod logging;
+mod media_query_diagnostics;
 mod platform;
 mod window;
 

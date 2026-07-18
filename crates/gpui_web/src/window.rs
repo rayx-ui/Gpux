@@ -9,6 +9,7 @@ use crate::html_in_canvas::{
     write_html_in_canvas_diagnostics_to_global,
 };
 use crate::html_island::WebHtmlIslandRegistry;
+use crate::media_query_diagnostics::MediaQueryPipelineDiagnostics;
 use std::sync::Arc;
 use std::{cell::Cell, cell::RefCell, rc::Rc};
 
@@ -69,6 +70,7 @@ pub(crate) struct WebWindowInner {
     html_island_force_frame: Cell<bool>,
     mql_handle: RefCell<Option<MqlHandle>>,
     pending_physical_size: Cell<Option<(u32, u32)>>,
+    media_query_diagnostics: MediaQueryPipelineDiagnostics,
 }
 
 pub struct WebWindow {
@@ -233,6 +235,7 @@ impl WebWindow {
             html_island_force_frame: Cell::new(false),
             mql_handle: RefCell::new(None),
             pending_physical_size: Cell::new(None),
+            media_query_diagnostics: MediaQueryPipelineDiagnostics::default(),
         });
         inner
             .html_element_registry
@@ -272,6 +275,7 @@ impl WebWindow {
         inner: Rc<WebWindowInner>,
     ) -> Closure<dyn FnMut(js_sys::Array)> {
         Closure::new(move |entries: js_sys::Array| {
+            inner.media_query_diagnostics.raw_viewport_signal();
             let entry: web_sys::ResizeObserverEntry = match entries.get(0).dyn_into().ok() {
                 Some(entry) => entry,
                 None => return,
@@ -353,6 +357,7 @@ impl WebWindowInner {
     }
 
     fn emit_resize(&self, new_size: Size<Pixels>, scale_factor: f32) {
+        self.media_query_diagnostics.gpui_resize_emission();
         let mut callback = {
             let mut callbacks = self.callbacks.borrow_mut();
             callbacks.resize.take()
@@ -395,6 +400,10 @@ impl WebWindowInner {
             };
             if let Some(ref mut callback) = callback {
                 let resize_frame_pending = this.pending_physical_size.get().is_some();
+                this.media_query_diagnostics.animation_frame_request();
+                if resize_frame_pending {
+                    this.media_query_diagnostics.coalesced_flush();
+                }
                 callback(RequestFrameOptions {
                     require_presentation: true,
                     force_render: resize_frame_pending
