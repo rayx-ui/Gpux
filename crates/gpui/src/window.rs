@@ -36,8 +36,6 @@ use gpui_util::post_inc;
 use gpui_util::{ResultExt, measure};
 #[cfg(feature = "input-latency-histogram")]
 use hdrhistogram::Histogram;
-use itertools::FoldWhile::{Continue, Done};
-use itertools::Itertools;
 use parking_lot::RwLock;
 use raw_window_handle::{HandleError, HasDisplayHandle, HasWindowHandle};
 use refineable::Refineable;
@@ -559,6 +557,37 @@ pub(crate) struct CursorStyleRequest {
     pub(crate) style: CursorStyle,
 }
 
+fn resolve_cursor_style(
+    requests: &[CursorStyleRequest],
+    hit_test: &HitTest,
+    captured_hitbox: Option<HitboxId>,
+) -> Option<CursorStyle> {
+    if let Some(style) = requests
+        .iter()
+        .rev()
+        .find_map(|request| request.hitbox_id.is_none().then_some(request.style))
+    {
+        return Some(style);
+    }
+
+    let style_for_hitbox = |hitbox_id| {
+        requests
+            .iter()
+            .rev()
+            .find_map(|request| (request.hitbox_id == Some(hitbox_id)).then_some(request.style))
+    };
+
+    if let Some(style) = captured_hitbox.and_then(style_for_hitbox) {
+        return Some(style);
+    }
+
+    hit_test
+        .ids
+        .iter()
+        .take(hit_test.hover_hitbox_count)
+        .find_map(|hitbox_id| style_for_hitbox(*hitbox_id))
+}
+
 #[derive(Default, Eq, PartialEq)]
 pub(crate) struct HitTest {
     pub(crate) ids: SmallVec<[HitboxId; 8]>,
@@ -610,18 +639,6 @@ impl HitboxId {
         }
         if window.last_input_was_keyboard() {
             return false;
-        }
-        self.hit_test(window)
-    }
-
-    /// Checks if the hitbox with this ID is currently hovered, regardless of the last
-    /// input modality used.
-    ///
-    /// See [`HitboxId::is_hovered`] for more details.
-    pub(crate) fn is_hovered_ignoring_last_input(self, window: &Window) -> bool {
-        // If this hitbox has captured the pointer, it's always considered hovered
-        if window.captured_hitbox == Some(self) {
-            return true;
         }
         self.hit_test(window)
     }
@@ -920,18 +937,11 @@ impl WindowFrame {
     }
 
     pub(crate) fn cursor_style(&self, window: &Window) -> Option<CursorStyle> {
-        self.cursor_styles
-            .iter()
-            .rev()
-            .fold_while(None, |style, request| match request.hitbox_id {
-                None => Done(Some(request.style)),
-                Some(hitbox_id) => Continue(style.or_else(|| {
-                    hitbox_id
-                        .is_hovered_ignoring_last_input(window)
-                        .then_some(request.style)
-                })),
-            })
-            .into_inner()
+        resolve_cursor_style(
+            &self.cursor_styles,
+            &window.mouse_hit_test,
+            window.captured_hitbox,
+        )
     }
 
     pub(crate) fn hit_test(&self, position: Point<Pixels>) -> HitTest {
@@ -7781,6 +7791,31 @@ mod positioning_tests {
         let ordinary = HitboxId(7);
 
         assert!(ordinary.top_layer().0 > ordinary.positioned().0);
+    }
+
+    #[test]
+    fn cursor_requests_follow_hit_test_layer_order() {
+        let ordinary = HitboxId(7);
+        let top_layer = ordinary.top_layer();
+        let requests = [
+            CursorStyleRequest {
+                hitbox_id: Some(top_layer),
+                style: CursorStyle::Arrow,
+            },
+            CursorStyleRequest {
+                hitbox_id: Some(ordinary),
+                style: CursorStyle::IBeam,
+            },
+        ];
+        let hit_test = HitTest {
+            ids: smallvec::smallvec![top_layer, ordinary],
+            hover_hitbox_count: 2,
+        };
+
+        assert_eq!(
+            resolve_cursor_style(&requests, &hit_test, None),
+            Some(CursorStyle::Arrow)
+        );
     }
 
     fn scroll_context(

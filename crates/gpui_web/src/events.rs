@@ -66,6 +66,7 @@ impl WebWindowInner {
             self.register_dragleave(),
             self.register_key_down(),
             self.register_key_up(),
+            self.register_text_input(),
             self.register_composition_start(),
             self.register_composition_update(),
             self.register_composition_end(),
@@ -541,6 +542,25 @@ impl WebWindowInner {
             };
 
             this.dispatch_input(PlatformInput::KeyUp(KeyUpEvent { keystroke }));
+        })
+    }
+
+    fn register_text_input(self: &Rc<Self>) -> Closure<dyn FnMut(JsValue)> {
+        let this = Rc::clone(self);
+        self.listen_input("input", move |event: JsValue| {
+            let event: web_sys::InputEvent = event.unchecked_into();
+            if event.is_composing() || this.is_composing.get() || event.input_type() != "insertText"
+            {
+                return;
+            }
+
+            let Some(text) = event.data().filter(|text| !text.is_empty()) else {
+                return;
+            };
+            this.with_input_handler(|handler| {
+                handler.replace_text_in_range(None, &text);
+            });
+            this.input_element.set_value("");
         })
     }
 
