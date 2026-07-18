@@ -237,6 +237,7 @@ struct EditableTextPaintElement {
 struct EditableTextPrepaintState {
     lines: Vec<EditableTextPaintLine>,
     placeholder: Option<ShapedLine>,
+    text_align: TextAlign,
     scroll_offset: crate::Point<Pixels>,
     cursor: Option<PaintQuad>,
     selection: Vec<PaintQuad>,
@@ -321,6 +322,7 @@ impl Element for EditableTextPaintElement {
                 .update_layout(
                     bounds,
                     layout_style,
+                    style.text_align,
                     window.text_system(),
                     &self.display_transform,
                 )
@@ -335,7 +337,10 @@ impl Element for EditableTextPaintElement {
             .marked_range()
             .map(|range| state.layout_map().buffer_range_to_display(range));
         let scroll_offset = state.scroll_offset();
-        let content_origin = bounds.origin + scroll_offset;
+        let alignment_offset = state
+            .geometry()
+            .map_or(px(0.), |geometry| geometry.alignment_offset());
+        let content_origin = bounds.origin + scroll_offset + point(alignment_offset, px(0.));
 
         let mut lines = Vec::new();
         for row_index in 0..state.layout_map().logical_row_count() {
@@ -409,6 +414,7 @@ impl Element for EditableTextPaintElement {
         EditableTextPrepaintState {
             lines,
             placeholder,
+            text_align: style.text_align,
             scroll_offset,
             cursor,
             selection: selection_quads,
@@ -446,7 +452,7 @@ impl Element for EditableTextPaintElement {
                             + prepaint.scroll_offset
                             + point(px(0.), line_height * paint_line.visual_start),
                         line_height,
-                        TextAlign::Left,
+                        prepaint.text_align,
                         Some(bounds),
                         window,
                         cx,
@@ -464,7 +470,7 @@ impl Element for EditableTextPaintElement {
                             + prepaint.scroll_offset
                             + point(px(0.), line_height * paint_line.visual_start),
                         line_height,
-                        TextAlign::Left,
+                        prepaint.text_align,
                         Some(bounds),
                         window,
                         cx,
@@ -476,8 +482,8 @@ impl Element for EditableTextPaintElement {
                     .paint(
                         bounds.origin,
                         line_height,
-                        TextAlign::Left,
-                        None,
+                        prepaint.text_align,
+                        Some(bounds.size.width),
                         window,
                         cx,
                     )

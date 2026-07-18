@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use crate::{Bounds, Pixels, Point, point, px, size};
+use crate::{Bounds, Pixels, Point, TextAlign, point, px, size};
 
 use super::{TextDisplayPoint, TextLayoutMap};
 
@@ -10,15 +10,37 @@ pub struct EditableTextGeometry {
     revision: u64,
     bounds: Bounds<Pixels>,
     scroll_offset: Point<Pixels>,
+    alignment_offset: Pixels,
+}
+
+/// Resolve the horizontal offset used by editable text paint and interaction
+/// geometry for a physical text alignment.
+#[doc(hidden)]
+pub fn editable_text_alignment_offset(
+    alignment: TextAlign,
+    viewport_width: Pixels,
+    content_width: Pixels,
+) -> Pixels {
+    match alignment {
+        TextAlign::Left => px(0.),
+        TextAlign::Center => (viewport_width - content_width) / 2.,
+        TextAlign::Right => viewport_width - content_width,
+    }
 }
 
 #[allow(missing_docs)]
 impl EditableTextGeometry {
-    pub fn new(revision: u64, bounds: Bounds<Pixels>, scroll_offset: Point<Pixels>) -> Self {
+    pub fn new(
+        revision: u64,
+        bounds: Bounds<Pixels>,
+        scroll_offset: Point<Pixels>,
+        alignment_offset: Pixels,
+    ) -> Self {
         Self {
             revision,
             bounds,
             scroll_offset,
+            alignment_offset,
         }
     }
 
@@ -34,11 +56,18 @@ impl EditableTextGeometry {
         self.scroll_offset
     }
 
+    pub fn alignment_offset(&self) -> Pixels {
+        self.alignment_offset
+    }
+
     pub fn index_for_point(&self, map: &TextLayoutMap, position: Point<Pixels>) -> usize {
         if map.visual_line_count() == 0 {
             return 0;
         }
-        let content = position - self.bounds.origin - self.scroll_offset;
+        let content = position
+            - self.bounds.origin
+            - self.scroll_offset
+            - point(self.alignment_offset, px(0.));
         if content.y < px(0.) {
             return 0;
         }
@@ -51,7 +80,7 @@ impl EditableTextGeometry {
     }
 
     pub fn bounds_for_range(&self, map: &TextLayoutMap, range: Range<usize>) -> Bounds<Pixels> {
-        let origin = self.bounds.origin + self.scroll_offset;
+        let origin = self.bounds.origin + self.scroll_offset + point(self.alignment_offset, px(0.));
         let Some(start) = map.buffer_to_display(range.start) else {
             return Bounds::new(origin, size(px(0.), map.line_height()));
         };

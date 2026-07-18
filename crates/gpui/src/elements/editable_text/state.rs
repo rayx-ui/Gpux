@@ -2,13 +2,15 @@ use std::{ops::Range, time::Duration};
 
 use crate::{
     Bounds, ClipboardItem, Context, EntityInputHandler, EventEmitter, FocusHandle, Focusable,
-    Pixels, Point, Size, Subscription, UTF16Selection, Window, WindowTextSystem, point, px,
+    Pixels, Point, Size, Subscription, TextAlign, UTF16Selection, Window, WindowTextSystem, point,
+    px,
 };
 
 use super::{
     EditableSelection, EditableTextEvent, EditableTextGeometry, EditableTextLineMode,
     EditableTextMode, EditableTextStyleRuns, TextBuffer, TextBufferError, TextBufferSnapshot,
     TextEdit, TextLayoutError, TextLayoutMap, TextLayoutStyle, TextLayoutUpdate,
+    editable_text_alignment_offset,
     history::{EditHistory, EditKind, HistoryState},
     movement::{
         grapheme_boundary_at_or_before, next_grapheme_boundary, next_logical_line_end,
@@ -248,6 +250,7 @@ impl EditableTextState {
         &mut self,
         bounds: Bounds<Pixels>,
         mut style: TextLayoutStyle,
+        text_align: TextAlign,
         text_system: &WindowTextSystem,
         display_transform: &super::EditableTextDisplayTransform,
     ) -> Result<TextLayoutUpdate, TextLayoutError> {
@@ -289,6 +292,11 @@ impl EditableTextState {
             snapshot.revision(),
             bounds,
             self.scroll_offset,
+            editable_text_alignment_offset(
+                text_align,
+                bounds.size.width,
+                self.layout_map.size().width,
+            ),
         ));
         Ok(update)
     }
@@ -314,6 +322,9 @@ impl EditableTextState {
             self.revision(),
             bounds,
             self.scroll_offset,
+            self.geometry
+                .as_ref()
+                .map_or(px(0.), EditableTextGeometry::alignment_offset),
         ));
         cx.notify();
         true
@@ -339,6 +350,9 @@ impl EditableTextState {
             self.revision(),
             bounds,
             self.scroll_offset,
+            self.geometry
+                .as_ref()
+                .map_or(px(0.), EditableTextGeometry::alignment_offset),
         ));
         cx.notify();
         true
@@ -948,6 +962,9 @@ impl EditableTextState {
             self.revision(),
             bounds,
             self.scroll_offset,
+            self.geometry
+                .as_ref()
+                .map_or(px(0.), EditableTextGeometry::alignment_offset),
         ));
     }
 
