@@ -336,16 +336,21 @@ impl WebWindowInner {
     }
 
     fn apply_logical_size(&self, new_size: Size<Pixels>, scale_factor: f32, allow_zero_size: bool) {
+        if allow_zero_size
+            && (f32::from(new_size.width) <= 0.0 || f32::from(new_size.height) <= 0.0)
+        {
+            // A hidden canvas does not describe a new viewport. Keep the last
+            // visible tuple so responsive consumers never observe a false
+            // zero-sized (Phone) branch while the browser is temporarily hidden.
+            return;
+        }
+
         let max_texture_dimension = self.state.borrow().max_texture_dimension;
-        let physical_width = if allow_zero_size && f32::from(new_size.width) <= 0.0 {
-            0
-        } else {
-            physical_canvas_axis(new_size.width, scale_factor, max_texture_dimension)
-        };
-        let physical_height = if allow_zero_size && f32::from(new_size.height) <= 0.0 {
-            0
-        } else {
-            physical_canvas_axis(new_size.height, scale_factor, max_texture_dimension)
+        let (physical_width, physical_height) =
+            physical_canvas_size(new_size, scale_factor, max_texture_dimension);
+        let logical_size = Size {
+            width: px(physical_width as f32 / scale_factor),
+            height: px(physical_height as f32 / scale_factor),
         };
 
         let scale_changed = self.notify_scale.replace(false);
@@ -358,26 +363,16 @@ impl WebWindowInner {
         self.last_physical_size
             .set((physical_width, physical_height));
 
-        if physical_width == 0 || physical_height == 0 {
-            self.pending_physical_size.set(None);
-            let mut s = self.state.borrow_mut();
-            s.bounds.size = Size::default();
-            s.scale_factor = scale_factor;
-            drop(s);
-            self.emit_resize(Size::default(), scale_factor);
-            return;
-        }
-
         self.pending_physical_size
             .set(Some((physical_width, physical_height)));
 
         {
             let mut s = self.state.borrow_mut();
-            s.bounds.size = new_size;
+            s.bounds.size = logical_size;
             s.scale_factor = scale_factor;
         }
 
-        self.emit_resize(new_size, scale_factor);
+        self.emit_resize(logical_size, scale_factor);
     }
 
     fn emit_resize(&self, new_size: Size<Pixels>, scale_factor: f32) {
