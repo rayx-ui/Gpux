@@ -245,13 +245,14 @@ impl WebWindow {
         let resize_observer_closure = Self::create_resize_observer_closure(Rc::clone(&inner));
         let resize_observer =
             web_sys::ResizeObserver::new(resize_observer_closure.as_ref().unchecked_ref()).ok();
+        let use_browser_resize_fallback = resize_observer.is_none();
 
         if let Some(ref observer) = resize_observer {
             inner.observe_canvas(observer);
             inner.watch_dpr_changes(observer);
         }
 
-        let event_listeners = inner.register_event_listeners();
+        let event_listeners = inner.register_event_listeners(use_browser_resize_fallback);
 
         Ok(Self {
             inner,

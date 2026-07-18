@@ -52,7 +52,10 @@ impl ClickState {
 }
 
 impl WebWindowInner {
-    pub fn register_event_listeners(self: &Rc<Self>) -> WebEventListeners {
+    pub fn register_event_listeners(
+        self: &Rc<Self>,
+        use_browser_resize_fallback: bool,
+    ) -> WebEventListeners {
         let mut closures = vec![
             self.register_pointer_down(),
             self.register_pointer_up(),
@@ -74,8 +77,14 @@ impl WebWindowInner {
             self.register_blur(),
             self.register_pointer_enter(),
             self.register_pointer_leave_hover(),
-            self.register_window_resize(),
         ];
+        // The canvas ResizeObserver is the authoritative logical viewport: it
+        // measures the actual surface GPUI renders into. A browser `resize`
+        // event can arrive before that surface has been laid out and would
+        // otherwise race it with window.innerWidth/innerHeight.
+        if use_browser_resize_fallback {
+            closures.push(self.register_window_resize());
+        }
         closures.extend(self.register_visibility_change());
         closures.extend(self.register_appearance_change());
 
