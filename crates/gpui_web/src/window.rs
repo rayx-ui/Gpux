@@ -10,6 +10,7 @@ use crate::html_in_canvas::{
 };
 use crate::html_island::WebHtmlIslandRegistry;
 use crate::media_query_diagnostics::MediaQueryPipelineDiagnostics;
+use crate::web_viewport_scheduler::{WebViewportObservation, WebViewportScheduler};
 use std::sync::Arc;
 use std::{cell::Cell, cell::RefCell, rc::Rc};
 
@@ -69,6 +70,7 @@ pub(crate) struct WebWindowInner {
     pub(crate) is_composing: Cell<bool>,
     html_island_force_frame: Cell<bool>,
     mql_handle: RefCell<Option<MqlHandle>>,
+    viewport_scheduler: WebViewportScheduler,
     pending_physical_size: Cell<Option<(u32, u32)>>,
     media_query_diagnostics: MediaQueryPipelineDiagnostics,
 }
@@ -234,6 +236,7 @@ impl WebWindow {
             is_composing: Cell::new(false),
             html_island_force_frame: Cell::new(false),
             mql_handle: RefCell::new(None),
+            viewport_scheduler: WebViewportScheduler::default(),
             pending_physical_size: Cell::new(None),
             media_query_diagnostics: MediaQueryPipelineDiagnostics::default(),
         });
@@ -288,7 +291,7 @@ impl WebWindow {
             let rect = entry.content_rect();
             let logical_width = rect.width() as f32;
             let logical_height = rect.height() as f32;
-            inner.apply_logical_size(
+            inner.enqueue_logical_size(
                 Size {
                     width: px(logical_width),
                     height: px(logical_height),
@@ -303,12 +306,33 @@ impl WebWindow {
 impl WebWindowInner {
     pub(crate) fn apply_browser_viewport_size(&self) {
         if let Some(logical_size) = viewport_size(&self.browser_window) {
-            self.apply_logical_size(
+            self.enqueue_logical_size(
                 logical_size,
                 device_pixel_ratio(&self.browser_window),
                 false,
             );
         }
+    }
+
+    fn enqueue_logical_size(
+        &self,
+        logical_size: Size<Pixels>,
+        scale_factor: f32,
+        allow_zero_size: bool,
+    ) {
+        self.viewport_scheduler.enqueue(WebViewportObservation {
+            logical_size,
+            scale_factor,
+            allow_zero_size,
+        });
+    }
+
+    fn enqueue_current_logical_size(&self) {
+        self.enqueue_logical_size(
+            self.state.borrow().bounds.size,
+            device_pixel_ratio(&self.browser_window),
+            true,
+        );
     }
 
     fn apply_logical_size(&self, new_size: Size<Pixels>, scale_factor: f32, allow_zero_size: bool) {
@@ -389,6 +413,14 @@ impl WebWindowInner {
 
         let this = Rc::clone(self);
         let closure = Closure::new(move || {
+            if let Some(observation) = this.viewport_scheduler.flush() {
+                this.media_query_diagnostics.coalesced_flush();
+                this.apply_logical_size(
+                    observation.logical_size,
+                    observation.scale_factor,
+                    observation.allow_zero_size,
+                );
+            }
             let force_html_island_frame = this
                 .html_island_registry
                 .try_borrow_mut()
@@ -401,9 +433,6 @@ impl WebWindowInner {
             if let Some(ref mut callback) = callback {
                 let resize_frame_pending = this.pending_physical_size.get().is_some();
                 this.media_query_diagnostics.animation_frame_request();
-                if resize_frame_pending {
-                    this.media_query_diagnostics.coalesced_flush();
-                }
                 callback(RequestFrameOptions {
                     require_presentation: true,
                     force_render: resize_frame_pending
@@ -459,6 +488,7 @@ impl WebWindowInner {
 
         let closure = Closure::<dyn FnMut(JsValue)>::new(move |_event: JsValue| {
             this.notify_scale.set(true);
+            this.enqueue_current_logical_size();
             this.observe_canvas(&observer);
             this.watch_dpr_changes(&observer);
         });
