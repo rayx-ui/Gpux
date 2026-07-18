@@ -8,8 +8,6 @@ mod editable_text;
 mod effect_frame;
 mod frame;
 mod frame_style;
-mod html_element;
-mod html_island;
 mod image_cache;
 mod img;
 mod list;
@@ -28,8 +26,6 @@ pub use div::*;
 pub use editable_text::*;
 pub use effect_frame::*;
 pub use frame::*;
-pub use html_element::*;
-pub use html_island::*;
 pub use image_cache::*;
 pub use img::*;
 pub use list::*;
@@ -47,11 +43,9 @@ mod tests {
     };
 
     use crate::{
-        Context, Corners, Element, ElementEffect, ElementId, HtmlElement, HtmlElementContentFit,
-        HtmlElementInputMode, HtmlElementWheelBehavior, HtmlIsland, HtmlIslandInputMode,
-        IntoElement, Overflow, ParentElement as _, Position, Render, Styled as _, TestAppContext,
-        TransformationMatrix, Window, backdrop_blur, div, glow, hsla, html_element, html_island,
-        point, px, red, relative, size,
+        Context, Corners, Element, ElementEffect, ElementId, IntoElement, Overflow,
+        ParentElement as _, Position, Render, Styled as _, TestAppContext, TransformationMatrix,
+        Window, backdrop_blur, div, glow, hsla, point, px, red, relative, size,
     };
 
     use super::AnimatedFrameChild;
@@ -645,29 +639,5 @@ mod tests {
         assert_eq!(snapshot_count, 0);
         assert_eq!(active_count, 0);
         assert_eq!(quad_count, 1);
-    }
-
-    #[test]
-    fn html_island_public_api_accepts_trusted_html_input_mode_and_fallback() {
-        let island: HtmlIsland = html_island("settings-form")
-            .html("<button>Save</button>")
-            .input_mode(HtmlIslandInputMode::DomOwned)
-            .fallback(div().child("unsupported"));
-
-        island.into_element();
-    }
-
-    #[test]
-    fn html_element_public_api_accepts_trusted_html_input_mode_keep_alive_and_fallback() {
-        let element: HtmlElement = html_element("provider-frame")
-            .trusted_html("<iframe title=\"Provider\" srcdoc=\"ready\"></iframe>")
-            .input_mode(HtmlElementInputMode::DomOwned)
-            .content_fit(HtmlElementContentFit::Fill)
-            .wheel_behavior(HtmlElementWheelBehavior::CaptureForward)
-            .extra_styles("border: 1px solid #fff; border-radius: 8px;")
-            .keep_alive(true)
-            .fallback(div().child("provider unavailable"));
-
-        element.into_element();
     }
 }
