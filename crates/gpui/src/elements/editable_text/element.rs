@@ -91,7 +91,12 @@ impl RenderOnce for EditableText {
                         window.focus(&down_focus_handle, cx);
                     }
                     down_state.update(cx, |state, cx| {
-                        state.pointer_down(event.position, event.modifiers.shift, cx)
+                        state.pointer_down(
+                            event.position,
+                            event.modifiers.shift,
+                            event.click_count,
+                            cx,
+                        )
                     });
                 },
             )
