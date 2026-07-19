@@ -4,23 +4,150 @@ mod context;
 pub use binding::*;
 pub use context::*;
 
-use crate::{Action, AsKeystroke, Keystroke, Unbind, is_no_action, is_unbind};
+use crate::{Action, AsKeystroke, Keystroke, SharedString, Unbind, is_no_action, is_unbind};
 use collections::{HashMap, HashSet};
 use smallvec::SmallVec;
-use std::any::TypeId;
+use std::{any::TypeId, fmt, sync::Arc};
 
 /// An opaque identifier of which version of the keymap is currently active.
-/// The keymap's version is changed whenever bindings are added or removed.
-#[derive(Copy, Clone, Eq, PartialEq, Default)]
+/// The keymap's version is changed whenever a layer snapshot is replaced.
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Default)]
 pub struct KeymapVersion(usize);
 
-/// A collection of key bindings for the user's application.
-#[derive(Default)]
-pub struct Keymap {
+/// A stable identity for a named input-map layer.
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct InputLayerId(SharedString);
+
+impl InputLayerId {
+    /// Creates a layer identity from a stable application-owned name.
+    pub fn new(id: impl Into<SharedString>) -> Self {
+        Self(id.into())
+    }
+}
+
+impl fmt::Display for InputLayerId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+/// An immutable, ordered set of key bindings owned by one input layer.
+#[derive(Clone)]
+pub struct KeymapLayer {
+    id: InputLayerId,
+    priority: i32,
+    bindings: Arc<[KeyBinding]>,
+}
+
+impl KeymapLayer {
+    /// Creates a layer. Higher priorities win after context specificity is resolved.
+    pub fn new(
+        id: InputLayerId,
+        priority: i32,
+        bindings: impl IntoIterator<Item = KeyBinding>,
+    ) -> Self {
+        Self {
+            id,
+            priority,
+            bindings: bindings.into_iter().collect(),
+        }
+    }
+
+    /// Returns the layer identity.
+    pub fn id(&self) -> &InputLayerId {
+        &self.id
+    }
+
+    /// Returns the precedence priority for this layer.
+    pub fn priority(&self) -> i32 {
+        self.priority
+    }
+
+    /// Returns the layer's bindings in their declared rule order.
+    pub fn bindings(&self) -> &[KeyBinding] {
+        &self.bindings
+    }
+}
+
+/// A typed error produced before an input-map snapshot is swapped.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum InputMapError {
+    /// A candidate snapshot contains the same layer identity more than once.
+    DuplicateLayerId(InputLayerId),
+}
+
+impl fmt::Display for InputMapError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::DuplicateLayerId(id) => write!(f, "duplicate input layer id: {id}"),
+        }
+    }
+}
+
+impl std::error::Error for InputMapError {}
+
+/// An immutable keymap layer snapshot retained by in-progress input sequences.
+pub struct KeymapSnapshot {
+    layers: Vec<KeymapLayer>,
     bindings: Vec<KeyBinding>,
     binding_indices_by_action_id: HashMap<TypeId, SmallVec<[usize; 3]>>,
     disabled_binding_indices: Vec<usize>,
+}
+
+impl KeymapSnapshot {
+    fn new(mut layers: Vec<KeymapLayer>) -> Result<Self, InputMapError> {
+        layers.sort_by(|left, right| {
+            left.priority
+                .cmp(&right.priority)
+                .then_with(|| left.id.cmp(&right.id))
+        });
+
+        let mut bindings = Vec::new();
+        let mut binding_indices_by_action_id: HashMap<TypeId, SmallVec<[usize; 3]>> =
+            HashMap::default();
+        let mut disabled_binding_indices = Vec::new();
+        let mut previous_id = None;
+        for layer in &layers {
+            if previous_id == Some(&layer.id) {
+                return Err(InputMapError::DuplicateLayerId(layer.id.clone()));
+            }
+            previous_id = Some(&layer.id);
+            for binding in layer.bindings() {
+                let binding_index = bindings.len();
+                if is_no_action(&*binding.action) || is_unbind(&*binding.action) {
+                    disabled_binding_indices.push(binding_index);
+                } else {
+                    binding_indices_by_action_id
+                        .entry(binding.action().as_any().type_id())
+                        .or_default()
+                        .push(binding_index);
+                }
+                bindings.push(binding.clone());
+            }
+        }
+
+        Ok(Self {
+            layers,
+            bindings,
+            binding_indices_by_action_id,
+            disabled_binding_indices,
+        })
+    }
+}
+
+/// A collection of key bindings resolved from an immutable ordered layer snapshot.
+pub struct Keymap {
+    snapshot: Arc<KeymapSnapshot>,
     version: KeymapVersion,
+}
+
+impl Default for Keymap {
+    fn default() -> Self {
+        Self {
+            snapshot: Arc::new(KeymapSnapshot::new(Vec::new()).expect("empty layers are valid")),
+            version: KeymapVersion::default(),
+        }
+    }
 }
 
 /// Index of a binding within a keymap.
@@ -48,11 +175,14 @@ fn binding_is_unbound(disabled_binding: &KeyBinding, binding: &KeyBinding) -> bo
 }
 
 impl Keymap {
-    /// Create a new keymap with the given bindings.
-    pub fn new(bindings: Vec<KeyBinding>) -> Self {
-        let mut this = Self::default();
-        this.add_bindings(bindings);
-        this
+    /// Creates a keymap from one complete, validated layer snapshot.
+    pub fn from_layers(
+        layers: impl IntoIterator<Item = KeymapLayer>,
+    ) -> Result<Self, InputMapError> {
+        Ok(Self {
+            snapshot: Arc::new(KeymapSnapshot::new(layers.into_iter().collect())?),
+            version: KeymapVersion::default(),
+        })
     }
 
     /// Get the current version of the keymap.
@@ -60,35 +190,65 @@ impl Keymap {
         self.version
     }
 
-    /// Add more bindings to the keymap.
-    pub fn add_bindings<T: IntoIterator<Item = KeyBinding>>(&mut self, bindings: T) {
-        for binding in bindings {
-            let action_id = binding.action().as_any().type_id();
-            if is_no_action(&*binding.action) || is_unbind(&*binding.action) {
-                self.disabled_binding_indices.push(self.bindings.len());
-            } else {
-                self.binding_indices_by_action_id
-                    .entry(action_id)
-                    .or_default()
-                    .push(self.bindings.len());
-            }
-            self.bindings.push(binding);
-        }
-
-        self.version.0 += 1;
+    /// Returns the immutable snapshot used by one complete input dispatch.
+    /// Captures the immutable map revision used for one complete input sequence.
+    pub fn snapshot(&self) -> Arc<KeymapSnapshot> {
+        self.snapshot.clone()
     }
 
-    /// Reset this keymap to its initial state.
-    pub fn clear(&mut self) {
-        self.bindings.clear();
-        self.binding_indices_by_action_id.clear();
-        self.disabled_binding_indices.clear();
+    /// Resolves input against a previously captured immutable snapshot.
+    pub fn bindings_for_input_at(
+        &self,
+        snapshot: &Arc<KeymapSnapshot>,
+        input: &[impl AsKeystroke],
+        context_stack: &[KeyContext],
+    ) -> (SmallVec<[KeyBinding; 1]>, bool) {
+        Self {
+            snapshot: snapshot.clone(),
+            version: self.version,
+        }
+        .bindings_for_input(input, context_stack)
+    }
+
+    /// Atomically replaces one named layer while retaining all unrelated layers.
+    pub fn set_layer(&mut self, layer: KeymapLayer) -> Result<Option<KeymapLayer>, InputMapError> {
+        let mut layers = self.snapshot.layers.clone();
+        let previous = layers
+            .iter()
+            .position(|existing| existing.id == layer.id)
+            .map(|index| std::mem::replace(&mut layers[index], layer.clone()));
+        if previous.is_none() {
+            layers.push(layer);
+        }
+        self.snapshot = Arc::new(KeymapSnapshot::new(layers)?);
         self.version.0 += 1;
+        Ok(previous)
+    }
+
+    /// Removes one named layer. Missing layers are a typed no-op.
+    pub fn remove_layer(&mut self, id: &InputLayerId) -> Option<KeymapLayer> {
+        let mut layers = self.snapshot.layers.clone();
+        let index = layers.iter().position(|layer| layer.id == *id)?;
+        let removed = layers.remove(index);
+        self.snapshot =
+            Arc::new(KeymapSnapshot::new(layers).expect("removing a layer stays valid"));
+        self.version.0 += 1;
+        Some(removed)
+    }
+
+    /// Returns the installed layer with this identity.
+    pub fn layer(&self, id: &InputLayerId) -> Option<&KeymapLayer> {
+        self.snapshot.layers.iter().find(|layer| layer.id == *id)
+    }
+
+    /// Iterates over the installed layers in resolution order.
+    pub fn layers(&self) -> impl ExactSizeIterator<Item = &KeymapLayer> {
+        self.snapshot.layers.iter()
     }
 
     /// Iterate over all bindings, in the order they were added.
     pub fn bindings(&self) -> impl DoubleEndedIterator<Item = &KeyBinding> + ExactSizeIterator {
-        self.bindings.iter()
+        self.snapshot.bindings.iter()
     }
 
     /// Iterate over all bindings for the given action, in the order they were added. For display,
@@ -99,20 +259,21 @@ impl Keymap {
     ) -> impl 'a + DoubleEndedIterator<Item = &'a KeyBinding> {
         let action_id = action.type_id();
         let binding_indices = self
+            .snapshot
             .binding_indices_by_action_id
             .get(&action_id)
             .map_or(&[] as _, SmallVec::as_slice)
             .iter();
 
         binding_indices.filter_map(|ix| {
-            let binding = &self.bindings[*ix];
+            let binding = &self.snapshot.bindings[*ix];
             if !binding.action().partial_eq(action) {
                 return None;
             }
 
-            for disabled_ix in &self.disabled_binding_indices {
+            for disabled_ix in &self.snapshot.disabled_binding_indices {
                 if disabled_ix > ix {
-                    let disabled_binding = &self.bindings[*disabled_ix];
+                    let disabled_binding = &self.snapshot.bindings[*disabled_ix];
                     if disabled_binding.keystrokes != binding.keystrokes {
                         continue;
                     }
@@ -301,6 +462,10 @@ mod tests {
         [ActionAlpha, ActionBeta, ActionGamma, ActionDelta,]
     );
 
+    fn test_keymap(bindings: impl IntoIterator<Item = KeyBinding>) -> Keymap {
+        Keymap::from_layers([KeymapLayer::new(InputLayerId::new("test"), 0, bindings)]).unwrap()
+    }
+
     #[test]
     fn test_keymap() {
         let bindings = [
@@ -309,8 +474,7 @@ mod tests {
             KeyBinding::new("ctrl-a", ActionGamma {}, Some("editor && mode==full")),
         ];
 
-        let mut keymap = Keymap::default();
-        keymap.add_bindings(bindings.clone());
+        let keymap = test_keymap(bindings.clone());
 
         // global bindings are enabled in all contexts
         assert_eq!(keymap.binding_enabled(&bindings[0], &[]), Some(0));
@@ -349,8 +513,7 @@ mod tests {
             KeyBinding::new("ctrl-a", ActionGamma {}, Some("editor")),
         ];
 
-        let mut keymap = Keymap::default();
-        keymap.add_bindings(bindings);
+        let keymap = test_keymap(bindings);
 
         let (result, pending) = keymap.bindings_for_input(
             &[Keystroke::parse("ctrl-a").unwrap()],
@@ -375,8 +538,7 @@ mod tests {
             KeyBinding::new("ctrl-b", NoAction {}, None),
         ];
 
-        let mut keymap = Keymap::default();
-        keymap.add_bindings(bindings);
+        let keymap = test_keymap(bindings);
 
         // binding is only enabled in a specific context
         assert!(
@@ -429,8 +591,7 @@ mod tests {
             KeyBinding::new("space w w", NoAction {}, Some("editor")),
         ];
 
-        let mut keymap = Keymap::default();
-        keymap.add_bindings(bindings);
+        let keymap = test_keymap(bindings);
 
         let space = || Keystroke::parse("space").unwrap();
         let w = || Keystroke::parse("w").unwrap();
@@ -481,8 +642,7 @@ mod tests {
             KeyBinding::new("space w w", NoAction {}, Some("editor")),
             KeyBinding::new("space w x", ActionAlpha {}, Some("editor")),
         ];
-        let mut keymap = Keymap::default();
-        keymap.add_bindings(bindings);
+        let keymap = test_keymap(bindings);
 
         let space_editor = keymap.bindings_for_input(&[space()], &editor_workspace_context());
         assert!(space_editor.0.is_empty());
@@ -495,8 +655,7 @@ mod tests {
             KeyBinding::new("space w x", ActionAlpha {}, Some("editor")),
             KeyBinding::new("space w w", NoAction {}, Some("editor")),
         ];
-        let mut keymap = Keymap::default();
-        keymap.add_bindings(bindings);
+        let keymap = test_keymap(bindings);
 
         let space_editor = keymap.bindings_for_input(&[space()], &editor_workspace_context());
         assert!(space_editor.0.is_empty());
@@ -509,8 +668,7 @@ mod tests {
             KeyBinding::new("space w x", ActionAlpha {}, Some("workspace")),
             KeyBinding::new("space w w", NoAction {}, Some("editor")),
         ];
-        let mut keymap = Keymap::default();
-        keymap.add_bindings(bindings);
+        let keymap = test_keymap(bindings);
 
         let space_editor = keymap.bindings_for_input(&[space()], &editor_workspace_context());
         assert!(space_editor.0.is_empty());
@@ -524,8 +682,7 @@ mod tests {
             KeyBinding::new("ctrl-w", NoAction {}, Some("editor")),
         ];
 
-        let mut keymap = Keymap::default();
-        keymap.add_bindings(bindings);
+        let keymap = test_keymap(bindings);
 
         // Ensure `space` results in pending input on the workspace, but not editor
         let (result, pending) = keymap.bindings_for_input(
@@ -540,8 +697,7 @@ mod tests {
             KeyBinding::new("ctrl-w", ActionBeta {}, Some("editor")),
         ];
 
-        let mut keymap = Keymap::default();
-        keymap.add_bindings(bindings);
+        let keymap = test_keymap(bindings);
 
         // Ensure `space` results in pending input on the workspace, but not editor
         let (result, pending) = keymap.bindings_for_input(
@@ -559,8 +715,7 @@ mod tests {
             KeyBinding::new("ctrl-x", NoAction {}, Some("editor")),
         ];
 
-        let mut keymap = Keymap::default();
-        keymap.add_bindings(bindings);
+        let keymap = test_keymap(bindings);
 
         // Ensure `space` results in pending input on the workspace, but not editor
         let (result, pending) = keymap.bindings_for_input(
@@ -579,8 +734,7 @@ mod tests {
             KeyBinding::new("ctrl-x", NoAction {}, Some("workspace")),
         ];
 
-        let mut keymap = Keymap::default();
-        keymap.add_bindings(bindings);
+        let keymap = test_keymap(bindings);
 
         // Ensure `space` results in pending input on the workspace, but not editor
         let (result, pending) = keymap.bindings_for_input(
@@ -601,8 +755,7 @@ mod tests {
             KeyBinding::new("ctrl-x", NoAction {}, Some("editor")),
         ];
 
-        let mut keymap = Keymap::default();
-        keymap.add_bindings(bindings);
+        let keymap = test_keymap(bindings);
 
         // Ensure `space` results in pending input on the workspace, but not editor
         let (result, pending) = keymap.bindings_for_input(
@@ -622,8 +775,7 @@ mod tests {
             KeyBinding::new("ctrl-x", ActionBeta, Some("vim_mode == normal")),
             KeyBinding::new("ctrl-x 0", ActionAlpha, Some("Workspace")),
         ];
-        let mut keymap = Keymap::default();
-        keymap.add_bindings(bindings);
+        let keymap = test_keymap(bindings);
 
         let matched = keymap.bindings_for_input(
             &[Keystroke::parse("ctrl-x")].map(Result::unwrap),
@@ -645,8 +797,7 @@ mod tests {
             KeyBinding::new("ctrl-x", ActionBeta, Some("vim_mode == normal")),
             KeyBinding::new("ctrl-x 0", NoAction, Some("Workspace")),
         ];
-        let mut keymap = Keymap::default();
-        keymap.add_bindings(bindings);
+        let keymap = test_keymap(bindings);
 
         let matched = keymap.bindings_for_input(
             &[Keystroke::parse("ctrl-x")].map(Result::unwrap),
@@ -664,8 +815,7 @@ mod tests {
             KeyBinding::new("ctrl-x", ActionBeta, Some("Workspace")),
             KeyBinding::new("ctrl-x 0", NoAction, Some("vim_mode == normal")),
         ];
-        let mut keymap = Keymap::default();
-        keymap.add_bindings(bindings);
+        let keymap = test_keymap(bindings);
 
         let matched = keymap.bindings_for_input(
             &[Keystroke::parse("ctrl-x")].map(Result::unwrap),
@@ -687,8 +837,7 @@ mod tests {
             KeyBinding::new("ctrl-x 0", ActionAlpha, Some("Workspace")),
             KeyBinding::new("ctrl-x", ActionBeta, Some("vim_mode == normal")),
         ];
-        let mut keymap = Keymap::default();
-        keymap.add_bindings(bindings);
+        let keymap = test_keymap(bindings);
 
         let matched = keymap.bindings_for_input(
             &[Keystroke::parse("ctrl-x")].map(Result::unwrap),
@@ -713,8 +862,7 @@ mod tests {
             KeyBinding::new("cmd-r", ActionBeta {}, Some("Editor")),
         ];
 
-        let mut keymap = Keymap::default();
-        keymap.add_bindings(bindings);
+        let keymap = test_keymap(bindings);
 
         // Test with context stack: [Workspace, Editor] (Editor is deeper)
         let (result, _) = keymap.bindings_for_input(
@@ -741,8 +889,7 @@ mod tests {
             KeyBinding::new("ctrl-b", NoAction {}, Some("editor")),
         ];
 
-        let mut keymap = Keymap::default();
-        keymap.add_bindings(bindings);
+        let keymap = test_keymap(bindings);
 
         assert_bindings(&keymap, &ActionAlpha {}, &["ctrl-a"]);
         assert_bindings(&keymap, &ActionBeta {}, &[]);
@@ -770,8 +917,7 @@ mod tests {
             ),
         ];
 
-        let mut keymap = Keymap::default();
-        keymap.add_bindings(bindings);
+        let keymap = test_keymap(bindings);
 
         let (result, pending) = keymap.bindings_for_input(
             &[Keystroke::parse("tab").unwrap()],
@@ -795,8 +941,7 @@ mod tests {
             KeyBinding::new("tab", ActionBeta {}, Some("Editor && showing_completions")),
         ];
 
-        let mut keymap = Keymap::default();
-        keymap.add_bindings(bindings);
+        let keymap = test_keymap(bindings);
 
         assert_bindings(&keymap, &ActionAlpha {}, &["tab"]);
         assert_bindings(&keymap, &ActionBeta {}, &["tab"]);
@@ -822,8 +967,7 @@ mod tests {
             ),
         ];
 
-        let mut keymap = Keymap::default();
-        keymap.add_bindings(bindings);
+        let keymap = test_keymap(bindings);
 
         assert!(keymap.bindings_for_action(&ActionAlpha {}).next().is_none());
     }
@@ -832,17 +976,15 @@ mod tests {
     fn test_source_precedence_sorting() {
         // KeybindSource precedence: User (0) > Vim (1) > Base (2) > Default (3)
         // Test that user keymaps take precedence over default keymaps at the same context depth
-        let mut keymap = Keymap::default();
-
-        // Add a default keymap binding first
         let mut default_binding = KeyBinding::new("cmd-r", ActionAlpha {}, Some("Editor"));
         default_binding.set_meta(KeyBindingMetaIndex(3)); // Default source
-        keymap.add_bindings([default_binding]);
-
-        // Add a user keymap binding
         let mut user_binding = KeyBinding::new("cmd-r", ActionBeta {}, Some("Editor"));
         user_binding.set_meta(KeyBindingMetaIndex(0)); // User source
-        keymap.add_bindings([user_binding]);
+        let keymap = Keymap::from_layers([
+            KeymapLayer::new(InputLayerId::new("default"), 0, [default_binding]),
+            KeymapLayer::new(InputLayerId::new("user"), 10, [user_binding]),
+        ])
+        .unwrap();
 
         // Test with Editor context stack
         let (result, _) = keymap.bindings_for_input(

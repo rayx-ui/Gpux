@@ -7,24 +7,25 @@ use crate::{
     AvailableSpace, Background, BorderStyle, Bounds, BoxShadow, Capslock, Color, Context, Corners,
     CursorHideMode, CursorStyle, Decorations, DevicePixels, DispatchActionListener, DispatchNodeId,
     DispatchTree, DisplayId, Edges, Effect, EffectCapabilities, ElementEffect, Entity, EntityId,
-    EventEmitter, FileDropEvent, FontId, Global, GlobalElementId, GlyphId, GpuSpecs,
-    HtmlElementContentFit, HtmlElementInputMode, HtmlElementLifetime, HtmlElementPrimitive,
-    HtmlElementWheelBehavior, HtmlIslandInputMode, HtmlIslandPrimitive, InputHandler, IsZero,
-    KeyBinding, KeyContext, KeyDownEvent, KeyEvent, Keystroke, KeystrokeEvent, LayoutId, Length,
-    LineLayoutIndex, MAX_ACTIVE_SCREEN_EFFECTS, MAX_SCREEN_EFFECT_SNAPSHOTS, Modifiers,
-    ModifiersChangedEvent, MonochromeSprite, MonochromeSpriteKind, MouseButton, MouseEvent,
+    EventEmitter, FileDropEvent, FontId, GestureMapSnapshot, GestureRecognizer, Global,
+    GlobalElementId, GlyphId, GpuSpecs, HtmlElementContentFit, HtmlElementInputMode,
+    HtmlElementLifetime, HtmlElementPrimitive, HtmlElementWheelBehavior, HtmlIslandInputMode,
+    HtmlIslandPrimitive, InputHandler, IsZero, KeyBinding, KeyContext, KeyDownEvent, KeyEvent,
+    KeymapSnapshot, Keystroke, KeystrokeEvent, LayoutId, Length, LineLayoutIndex,
+    MAX_ACTIVE_SCREEN_EFFECTS, MAX_SCREEN_EFFECT_SNAPSHOTS, Modifiers, ModifiersChangedEvent,
+    MonochromeSprite, MonochromeSpriteKind, MouseButton, MouseDownEvent, MouseEvent,
     MouseMoveEvent, MouseUpEvent, Overflow, Path, Pixels, PlatformAtlas, PlatformDisplay,
     PlatformInput, PlatformInputHandler, PlatformWindow, Point, PolychromeSprite, Position,
-    Priority, PromptButton, PromptLevel, Quad, Render, RenderGlyphParams, RenderImage,
-    RenderImageParams, RenderSvgParams, Replay, ResizeEdge, SMOOTH_SVG_SCALE_FACTOR,
+    Priority, PromptButton, PromptLevel, Quad, RecognizedGesture, Render, RenderGlyphParams,
+    RenderImage, RenderImageParams, RenderSvgParams, Replay, ResizeEdge, SMOOTH_SVG_SCALE_FACTOR,
     SUBPIXEL_VARIANTS_X, SUBPIXEL_VARIANTS_Y, ScaledPixels, Scene, ScreenEffect, ScreenEffectId,
     ScreenEffectRegionId, ScreenEffectRegionPrimitive, ScreenEffectSnapshotId, ScreenEffectTarget,
-    Shadow, SharedString, Size, StrikethroughStyle, Style, SubpixelSprite, SubscriberSet,
-    Subscription, SystemWindowTab, SystemWindowTabController, TabStopMap, TaffyLayoutEngine, Task,
-    TextRenderingMode, TextStyle, TextStyleRefinement, ThermalState, TransformationMatrix,
-    Underline, UnderlineStyle, VisualEffectPrimitive, WindowAppearance, WindowBackgroundAppearance,
-    WindowBounds, WindowControls, WindowDecorations, WindowOptions, WindowParams, WindowTextSystem,
-    point, prelude::*, px, rems, size, transparent_black,
+    ScrollWheelEvent, Shadow, SharedString, Size, StrikethroughStyle, Style, SubpixelSprite,
+    SubscriberSet, Subscription, SystemWindowTab, SystemWindowTabController, TabStopMap,
+    TaffyLayoutEngine, Task, TextRenderingMode, TextStyle, TextStyleRefinement, ThermalState,
+    TransformationMatrix, Underline, UnderlineStyle, VisualEffectPrimitive, WindowAppearance,
+    WindowBackgroundAppearance, WindowBounds, WindowControls, WindowDecorations, WindowOptions,
+    WindowParams, WindowTextSystem, point, prelude::*, px, rems, size, transparent_black,
 };
 use anyhow::{Context as _, Result, anyhow};
 use collections::{FxHashMap, FxHashSet};
@@ -1854,6 +1855,7 @@ pub struct Window {
     /// While captured, mouse events route to this hitbox regardless of hit testing.
     captured_hitbox: Option<HitboxId>,
     pending_pointer_action: Option<PendingPointerAction>,
+    gesture_recognizer: GestureRecognizer,
     #[cfg(any(feature = "inspector", debug_assertions))]
     inspector: Option<Entity<Inspector>>,
 }
@@ -1999,9 +2001,10 @@ pub(crate) enum DrawPhase {
     Focus,
 }
 
-#[derive(Default, Debug)]
+#[derive(Default)]
 struct PendingInput {
     keystrokes: SmallVec<[Keystroke; 1]>,
+    keymap_snapshot: Option<Arc<KeymapSnapshot>>,
     focus: Option<FocusId>,
     timer: Option<Task<()>>,
     needs_timeout: bool,
@@ -2500,6 +2503,7 @@ impl Window {
             image_cache_stack: Vec::new(),
             captured_hitbox: None,
             pending_pointer_action: None,
+            gesture_recognizer: GestureRecognizer::default(),
             #[cfg(any(feature = "inspector", debug_assertions))]
             inspector: None,
         })
@@ -3770,6 +3774,7 @@ impl Window {
     /// Releases any active pointer capture.
     pub fn release_pointer(&mut self) {
         self.captured_hitbox = None;
+        self.gesture_recognizer.cancel();
     }
 
     /// Starts a pointer action for the deepest hit-tested dispatch node that can handle `action`.
@@ -3829,6 +3834,78 @@ impl Window {
                 cx,
             )
         })
+    }
+
+    fn gesture_target(&self, snapshot: &GestureMapSnapshot) -> Option<(HitboxId, DispatchNodeId)> {
+        self.captured_hitbox
+            .into_iter()
+            .chain(self.mouse_hit_test.ids.iter().copied())
+            .find_map(|hitbox_id| {
+                self.rendered_frame
+                    .hitbox_dispatch_nodes
+                    .get(&hitbox_id)
+                    .copied()
+                    .filter(|target| {
+                        snapshot
+                            .layers()
+                            .flat_map(|layer| layer.rules())
+                            .any(|rule| {
+                                self.rendered_frame
+                                    .dispatch_tree
+                                    .is_action_available(rule.action(), *target)
+                            })
+                    })
+                    .map(|target| (hitbox_id, target))
+            })
+    }
+
+    fn begin_mapped_pointer_gesture(&mut self, event: &MouseDownEvent, cx: &mut App) {
+        let (snapshot, revision) = {
+            let map = cx.gesture_map.borrow();
+            (map.snapshot(), map.version())
+        };
+        let Some((hitbox_id, target)) = self.gesture_target(&snapshot) else {
+            return;
+        };
+        self.capture_pointer(hitbox_id);
+        self.gesture_recognizer
+            .mouse_down(event, snapshot, revision, target.as_usize());
+    }
+
+    fn recognize_mapped_wheel(&mut self, event: &ScrollWheelEvent, cx: &mut App) {
+        let (snapshot, revision) = {
+            let map = cx.gesture_map.borrow();
+            (map.snapshot(), map.version())
+        };
+        let Some((_, target)) = self.gesture_target(&snapshot) else {
+            return;
+        };
+        if let Some(gesture) =
+            self.gesture_recognizer
+                .scroll_wheel(event, snapshot, revision, target.as_usize())
+        {
+            self.dispatch_recognized_gesture(gesture, cx);
+        }
+    }
+
+    fn dispatch_recognized_gesture(&mut self, gesture: RecognizedGesture, cx: &mut App) {
+        let node_id = DispatchNodeId::from_usize(gesture.target());
+        if node_id.as_usize() < self.rendered_frame.dispatch_tree.len() {
+            self.dispatch_action_on_node_from(
+                node_id,
+                ActionInvocationSource::Pointer,
+                gesture.action(),
+                cx,
+            );
+        } else {
+            self.dispatch_action_outcome(
+                ActionInvocationSource::Pointer,
+                gesture.action(),
+                Some(gesture.target()),
+                ActionDispatchOutcome::Cancelled,
+                cx,
+            );
+        }
     }
 
     /// The current state of the keyboard's modifiers
@@ -6476,6 +6553,20 @@ impl Window {
 
         self.rendered_frame.mouse_listeners = mouse_listeners;
 
+        if let Some(event) = event.downcast_ref::<MouseDownEvent>() {
+            self.begin_mapped_pointer_gesture(event, cx);
+        } else if let Some(event) = event.downcast_ref::<MouseMoveEvent>() {
+            if let Some(gesture) = self.gesture_recognizer.mouse_move(event) {
+                self.dispatch_recognized_gesture(gesture, cx);
+            }
+        } else if let Some(event) = event.downcast_ref::<MouseUpEvent>() {
+            if let Some(gesture) = self.gesture_recognizer.mouse_up(event) {
+                self.dispatch_recognized_gesture(gesture, cx);
+            }
+        } else if let Some(event) = event.downcast_ref::<ScrollWheelEvent>() {
+            self.recognize_mapped_wheel(event, cx);
+        }
+
         if cx.has_active_drag() {
             if event.is::<MouseMoveEvent>() {
                 // If this was a mouse move event, redraw the window so that the
@@ -6567,7 +6658,12 @@ impl Window {
             currently_pending = PendingInput::default();
         }
 
+        let keymap_snapshot = currently_pending
+            .keymap_snapshot
+            .take()
+            .unwrap_or_else(|| cx.keymap.borrow().snapshot());
         let match_result = self.rendered_frame.dispatch_tree.dispatch_key(
+            &keymap_snapshot,
             currently_pending.keystrokes,
             keystroke,
             &dispatch_path,
@@ -6581,6 +6677,7 @@ impl Window {
         if !match_result.pending.is_empty() {
             currently_pending.timer.take();
             currently_pending.keystrokes = match_result.pending;
+            currently_pending.keymap_snapshot = Some(keymap_snapshot);
             currently_pending.focus = self.focus;
 
             let text_input_requires_timeout = event
@@ -6612,10 +6709,14 @@ impl Window {
                         let dispatch_path =
                             window.rendered_frame.dispatch_tree.dispatch_path(node_id);
 
-                        let to_replay = window
-                            .rendered_frame
-                            .dispatch_tree
-                            .flush_dispatch(currently_pending.keystrokes, &dispatch_path);
+                        let to_replay = window.rendered_frame.dispatch_tree.flush_dispatch(
+                            currently_pending
+                                .keymap_snapshot
+                                .as_ref()
+                                .expect("pending input retains its keymap snapshot"),
+                            currently_pending.keystrokes,
+                            &dispatch_path,
+                        );
 
                         window.pending_input_changed(cx);
                         window.replay_pending_input(to_replay, cx)

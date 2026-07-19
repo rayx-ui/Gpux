@@ -25,15 +25,19 @@
 //! }
 //!```
 //!
-//! The keybindings themselves are managed independently by calling cx.bind_keys().
+//! The keybindings themselves are managed independently by installing a named keymap layer.
 //! (Though mostly when developing Zed itself, you just need to add a new line to
 //!  assets/keymaps/default-{platform}.json).
 //!
 //! ```ignore
-//! cx.bind_keys([
-//!   KeyBinding::new("cmd-z", Editor::undo, Some("Editor")),
-//!   KeyBinding::new("cmd-shift-z", Editor::redo, Some("Editor")),
-//! ])
+//! cx.set_keymap_layer(KeymapLayer::new(
+//!   InputLayerId::new("editor"),
+//!   0,
+//!   [
+//!     KeyBinding::new("cmd-z", Editor::undo, Some("Editor")),
+//!     KeyBinding::new("cmd-shift-z", Editor::redo, Some("Editor")),
+//!   ],
+//! ))?;
 //! ```
 //!
 //! With all of this in place, GPUI will ensure that if you have an Editor that contains
@@ -51,7 +55,7 @@
 
 use crate::{
     Action, ActionDispatchOutcome, ActionRegistry, App, DispatchPhase, EntityId, FocusId,
-    KeyBinding, KeyContext, Keymap, Keystroke, ModifiersChangedEvent, Window,
+    KeyBinding, KeyContext, Keymap, KeymapSnapshot, Keystroke, ModifiersChangedEvent, Window,
 };
 use collections::FxHashMap;
 use smallvec::SmallVec;
@@ -69,6 +73,10 @@ use std::{
 pub(crate) struct DispatchNodeId(usize);
 
 impl DispatchNodeId {
+    pub(crate) fn from_usize(index: usize) -> Self {
+        Self(index)
+    }
+
     pub(crate) fn as_usize(self) -> usize {
         self.0
     }
@@ -470,6 +478,7 @@ impl DispatchTree {
 
     fn bindings_for_input(
         &self,
+        keymap_snapshot: &std::sync::Arc<KeymapSnapshot>,
         input: &[Keystroke],
         dispatch_path: &SmallVec<[DispatchNodeId; 32]>,
     ) -> (SmallVec<[KeyBinding; 1]>, bool, Vec<KeyContext>) {
@@ -478,10 +487,9 @@ impl DispatchTree {
             .filter_map(|node_id| self.node(*node_id).context.clone())
             .collect();
 
-        let (bindings, partial) = self
-            .keymap
-            .borrow()
-            .bindings_for_input(input, &context_stack);
+        let keymap = self.keymap.borrow();
+        let (bindings, partial) =
+            keymap.bindings_for_input_at(keymap_snapshot, input, &context_stack);
         (bindings, partial, context_stack)
     }
 
@@ -505,12 +513,14 @@ impl DispatchTree {
     ///   these should be replayed first.
     pub fn dispatch_key(
         &mut self,
+        keymap_snapshot: &std::sync::Arc<KeymapSnapshot>,
         mut input: SmallVec<[Keystroke; 1]>,
         keystroke: Keystroke,
         dispatch_path: &SmallVec<[DispatchNodeId; 32]>,
     ) -> DispatchResult {
         input.push(keystroke.clone());
-        let (bindings, pending, context_stack) = self.bindings_for_input(&input, dispatch_path);
+        let (bindings, pending, context_stack) =
+            self.bindings_for_input(keymap_snapshot, &input, dispatch_path);
 
         if pending {
             return DispatchResult {
@@ -533,9 +543,9 @@ impl DispatchTree {
         }
         input.pop();
 
-        let (suffix, mut to_replay) = self.replay_prefix(input, dispatch_path);
+        let (suffix, mut to_replay) = self.replay_prefix(keymap_snapshot, input, dispatch_path);
 
-        let mut result = self.dispatch_key(suffix, keystroke, dispatch_path);
+        let mut result = self.dispatch_key(keymap_snapshot, suffix, keystroke, dispatch_path);
         to_replay.extend(result.to_replay);
         result.to_replay = to_replay;
         result
@@ -545,13 +555,14 @@ impl DispatchTree {
     /// flush_dispatch() converts any previously pending input to replay events.
     pub fn flush_dispatch(
         &mut self,
+        keymap_snapshot: &std::sync::Arc<KeymapSnapshot>,
         input: SmallVec<[Keystroke; 1]>,
         dispatch_path: &SmallVec<[DispatchNodeId; 32]>,
     ) -> SmallVec<[Replay; 1]> {
-        let (suffix, mut to_replay) = self.replay_prefix(input, dispatch_path);
+        let (suffix, mut to_replay) = self.replay_prefix(keymap_snapshot, input, dispatch_path);
 
         if !suffix.is_empty() {
-            to_replay.extend(self.flush_dispatch(suffix, dispatch_path))
+            to_replay.extend(self.flush_dispatch(keymap_snapshot, suffix, dispatch_path))
         }
 
         to_replay
@@ -560,12 +571,14 @@ impl DispatchTree {
     /// Converts the longest prefix of input to a replay event and returns the rest.
     fn replay_prefix(
         &self,
+        keymap_snapshot: &std::sync::Arc<KeymapSnapshot>,
         mut input: SmallVec<[Keystroke; 1]>,
         dispatch_path: &SmallVec<[DispatchNodeId; 32]>,
     ) -> (SmallVec<[Keystroke; 1]>, SmallVec<[Replay; 1]>) {
         let mut to_replay: SmallVec<[Replay; 1]> = Default::default();
         for last in (0..input.len()).rev() {
-            let (bindings, _, _) = self.bindings_for_input(&input[0..=last], dispatch_path);
+            let (bindings, _, _) =
+                self.bindings_for_input(keymap_snapshot, &input[0..=last], dispatch_path);
             if !bindings.is_empty() {
                 to_replay.push(Replay {
                     keystroke: input.drain(0..=last).next_back().unwrap(),
@@ -656,9 +669,9 @@ mod tests {
     use std::{cell::RefCell, ops::Range, rc::Rc};
 
     use crate::{
-        ActionRegistry, App, Bounds, Context, DispatchTree, FocusHandle, InputHandler, IntoElement,
-        KeyBinding, KeyContext, Keymap, Pixels, Point, Render, Subscription, TestAppContext,
-        UTF16Selection, Unbind, Window,
+        ActionRegistry, App, Bounds, Context, DispatchTree, FocusHandle, InputHandler,
+        InputLayerId, IntoElement, KeyBinding, KeyContext, Keymap, KeymapLayer, Pixels, Point,
+        Render, Subscription, TestAppContext, UTF16Selection, Unbind, Window,
     };
 
     actions!(dispatch_test, [TestAction, SecondaryTestAction]);
@@ -667,7 +680,10 @@ mod tests {
         let registry = ActionRegistry::default();
 
         DispatchTree::new(
-            Rc::new(RefCell::new(Keymap::new(bindings))),
+            Rc::new(RefCell::new(
+                Keymap::from_layers([KeymapLayer::new(InputLayerId::new("test"), 0, bindings)])
+                    .unwrap(),
+            )),
             Rc::new(registry),
         )
     }
@@ -767,7 +783,13 @@ mod tests {
             key: &str,
             path: &DispatchPath,
         ) -> DispatchResult {
-            tree.dispatch_key(pending, Keystroke::parse(key).unwrap(), path)
+            let keymap_snapshot = tree.keymap.borrow().snapshot();
+            tree.dispatch_key(
+                &keymap_snapshot,
+                pending,
+                Keystroke::parse(key).unwrap(),
+                path,
+            )
         }
 
         let dispatch_path: DispatchPath = SmallVec::new();
@@ -948,8 +970,15 @@ mod tests {
         }
 
         cx.update(|cx| {
-            cx.bind_keys([KeyBinding::new("ctrl-b", TestAction, Some("Terminal"))]);
-            cx.bind_keys([KeyBinding::new("ctrl-b h", TestAction, Some("Terminal"))]);
+            cx.set_keymap_layer(KeymapLayer::new(
+                InputLayerId::new("test.pending"),
+                0,
+                [
+                    KeyBinding::new("ctrl-b", TestAction, Some("Terminal")),
+                    KeyBinding::new("ctrl-b h", TestAction, Some("Terminal")),
+                ],
+            ))
+            .unwrap();
         });
 
         let (test, cx) = cx.add_window_view(|_, cx| CustomElement::new(cx));
@@ -1147,8 +1176,15 @@ mod tests {
         }
 
         cx.update(|cx| {
-            cx.bind_keys([KeyBinding::new("ctrl-b", TestAction, Some("Terminal"))]);
-            cx.bind_keys([KeyBinding::new("ctrl-b h", TestAction, Some("Terminal"))]);
+            cx.set_keymap_layer(KeymapLayer::new(
+                InputLayerId::new("test.input-handler"),
+                0,
+                [
+                    KeyBinding::new("ctrl-b", TestAction, Some("Terminal")),
+                    KeyBinding::new("ctrl-b h", TestAction, Some("Terminal")),
+                ],
+            ))
+            .unwrap();
         });
         let (test, cx) = cx.add_window_view(|_, cx| CustomElement::new(cx));
         let focus_handle = test.update(cx, |test, _| test.focus_handle.clone());

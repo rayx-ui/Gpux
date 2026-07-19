@@ -957,7 +957,12 @@ mod test {
         });
 
         cx.update(|cx| {
-            cx.bind_keys(vec![KeyBinding::new("ctrl-g", TestAction, Some("parent"))]);
+            cx.set_keymap_layer(KeymapLayer::new(
+                InputLayerId::new("test.interactive"),
+                0,
+                [KeyBinding::new("ctrl-g", TestAction, Some("parent"))],
+            ))
+            .unwrap();
         });
 
         window

@@ -26,6 +26,7 @@ mod platform_scheduler;
 pub mod shader_effects;
 pub(crate) use platform_scheduler::PlatformScheduler;
 mod geometry;
+mod gesture_map;
 mod global;
 mod input;
 mod inspector;
@@ -89,6 +90,7 @@ pub use element::*;
 pub use elements::*;
 pub use executor::*;
 pub use geometry::*;
+pub use gesture_map::*;
 pub use global::*;
 pub use gpui_macros::{
     AppContext, IntoElement, Render, VisualContext, property_test, register_action, test,

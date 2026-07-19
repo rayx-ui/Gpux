@@ -42,7 +42,12 @@ fn run_example() {
         cx.update(|cx| {
             let mut bounds = Bounds::centered(None, size(px(500.), px(500.0)), cx);
 
-            cx.bind_keys([KeyBinding::new("cmd-w", CloseWindow, None)]);
+            cx.set_keymap_layer(gpux::KeymapLayer::new(
+                gpux::InputLayerId::new("example.close-window"),
+                0,
+                [KeyBinding::new("cmd-w", CloseWindow, None)],
+            ))
+            .unwrap();
             cx.on_window_closed(|cx, _window_id| {
                 if cx.windows().is_empty() {
                     cx.quit();
