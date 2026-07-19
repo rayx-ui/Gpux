@@ -33,7 +33,6 @@ impl MediaQueryPipelineDiagnostics {
         }
         self.raw_viewport_signals
             .set(self.raw_viewport_signals.get().saturating_add(1));
-        self.pipeline_started_at_ms.set(Some(js_sys::Date::now()));
         self.write();
     }
 
@@ -53,6 +52,10 @@ impl MediaQueryPipelineDiagnostics {
         }
         self.coalesced_flushes
             .set(self.coalesced_flushes.get().saturating_add(1));
+        // The raw observer-to-animation-frame wait is scheduler latency, not
+        // MediaQuery pipeline work. Measure the coalesced flush through the
+        // synchronous GPUI resize emission so the metric remains actionable.
+        self.pipeline_started_at_ms.set(Some(monotonic_now_ms()));
         self.write();
     }
 
@@ -77,7 +80,7 @@ impl MediaQueryPipelineDiagnostics {
     }
 
     fn record_animation_frame_interval(&self) {
-        let now = js_sys::Date::now();
+        let now = monotonic_now_ms();
         if let Some(previous) = self.last_animation_frame_at_ms.replace(Some(now)) {
             let interval = (now - previous).max(0.0);
             self.frame_intervals
@@ -100,7 +103,7 @@ impl MediaQueryPipelineDiagnostics {
         let Some(started_at) = self.pipeline_started_at_ms.take() else {
             return;
         };
-        let elapsed = (js_sys::Date::now() - started_at).max(0.0);
+        let elapsed = (monotonic_now_ms() - started_at).max(0.0);
         self.pipeline_samples
             .set(self.pipeline_samples.get().saturating_add(1));
         self.pipeline_total_ms
@@ -227,4 +230,11 @@ impl MediaQueryPipelineDiagnostics {
             &target,
         );
     }
+}
+
+fn monotonic_now_ms() -> f64 {
+    web_sys::window()
+        .and_then(|window| window.performance())
+        .map(|performance| performance.now())
+        .unwrap_or_else(js_sys::Date::now)
 }
