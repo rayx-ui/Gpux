@@ -1407,7 +1407,11 @@ impl PathVertex<ScaledPixels> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{backdrop_blur, glow, hsla, point, px, size};
+    use crate::{Color, ElementEffect, backdrop_blur, glow, hsla, point, px, size};
+
+    fn prepared_effect(effect: impl Into<ElementEffect>) -> PreparedElementEffect {
+        effect.into().prepare()
+    }
 
     #[test]
     fn html_island_primitive_carries_dom_sync_metadata() {
@@ -1638,7 +1642,7 @@ mod tests {
             bounds,
             corner_radii: Corners::all(ScaledPixels(8.)),
             content_mask: ContentMask::rectangular(bounds),
-            color: hsla(0., 0., 0., 0.25),
+            color: Color::from(hsla(0., 0., 0., 0.25)).paint_color(),
             transformation: TransformationMatrix::unit(),
         }
     }
@@ -1651,8 +1655,8 @@ mod tests {
             corner_radii: Corners::all(ScaledPixels(12.)),
             opacity: 1.,
             effects: vec![
-                backdrop_blur(px(16.)).into(),
-                glow(hsla(0.55, 0.8, 0.62, 0.5)).into(),
+                prepared_effect(backdrop_blur(px(16.))),
+                prepared_effect(glow(hsla(0.55, 0.8, 0.62, 0.5))),
             ],
             transformation: TransformationMatrix::unit(),
         }
@@ -1698,7 +1702,7 @@ mod tests {
                     content_mask,
                 },
             ],
-            color: hsla(0.1, 0.8, 0.5, 1.).into(),
+            color: crate::solid_background(hsla(0.1, 0.8, 0.5, 1.)).prepare(),
             start: bounds.origin,
             current: bounds.bottom_right(),
             contour_count: 1,

@@ -467,7 +467,7 @@ mod tests {
     }
 
     #[test]
-    fn test_keymap() {
+    fn test_keymap_context_matching() {
         let bindings = [
             KeyBinding::new("ctrl-a", ActionAlpha {}, None),
             KeyBinding::new("ctrl-a", ActionBeta {}, Some("pane")),

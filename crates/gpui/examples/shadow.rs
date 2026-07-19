@@ -2,11 +2,15 @@
 
 use gpui_platform::application;
 use gpux::{
-    Bounds, BoxShadow, Context, Div, SharedString, Window, WindowBounds, WindowOptions, div, hsla,
-    point, prelude::*, px, relative, rgb, size,
+    Bounds, BoxShadow, Color, Context, Div, SharedString, Window, WindowBounds, WindowOptions, div,
+    hsla as authored_hsla, point, prelude::*, px, relative, rgb, size,
 };
 
 struct Shadow {}
+
+fn hsla(h: f32, s: f32, l: f32, a: f32) -> Color {
+    authored_hsla(h, s, l, a).into()
+}
 
 impl Shadow {
     fn base() -> Div {

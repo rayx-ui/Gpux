@@ -5,9 +5,14 @@ use std::{fs, path::PathBuf};
 use anyhow::Result;
 use gpui_platform::application;
 use gpux::{
-    AssetSource, Bounds, BoxShadow, ClickEvent, Context, SharedString, Task, Window, WindowBounds,
-    WindowOptions, div, hsla, img, point, prelude::*, px, rgb, size, svg,
+    AssetSource, Bounds, BoxShadow, ClickEvent, Color, Context, SharedString, Task, Window,
+    WindowBounds, WindowOptions, div, hsla as authored_hsla, img, point, prelude::*, px, rgb, size,
+    svg,
 };
+
+fn hsla(h: f32, s: f32, l: f32, a: f32) -> Color {
+    authored_hsla(h, s, l, a).into()
+}
 
 struct Assets {
     base: PathBuf,

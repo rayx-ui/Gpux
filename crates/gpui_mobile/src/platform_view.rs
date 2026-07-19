@@ -27,11 +27,11 @@
 //! ```rust,no_run
 //! use gpui_mobile::platform_view::{PlatformViewRegistry, PlatformViewParams};
 //!
-//! // Register a factory (typically in package init)
-//! PlatformViewRegistry::global().register("video_player", Box::new(MyVideoFactory));
+//! // A platform-specific startup path registers the native video factory.
+//! let registry = PlatformViewRegistry::global();
 //!
 //! // Create a view
-//! let handle = PlatformViewRegistry::global()
+//! let handle = registry
 //!     .create_view("video_player", PlatformViewParams::default())
 //!     .unwrap();
 //! ```

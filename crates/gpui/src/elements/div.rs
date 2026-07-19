@@ -4821,7 +4821,8 @@ mod tests {
                         .scene
                         .quads
                         .iter()
-                        .any(|quad| quad.background.solid == crate::blue()
+                        .any(|quad| quad.background.solid
+                            == crate::Color::from(crate::blue()).paint_color()
                             && quad.bounds == expected_scaled),
                     "fixed child quad should paint at the fixed parent visual bounds"
                 );
@@ -4897,7 +4898,8 @@ mod tests {
                     .quads
                     .iter()
                     .find(|quad| {
-                        quad.background.solid == crate::green() && quad.bounds == expected_scaled
+                        quad.background.solid == crate::Color::from(crate::green()).paint_color()
+                            && quad.bounds == expected_scaled
                     })
                     .expect("fixed child should paint inside its clipped parent");
 
@@ -5121,7 +5123,8 @@ mod tests {
                         .scene
                         .quads
                         .iter()
-                        .any(|quad| quad.background.solid == crate::blue()
+                        .any(|quad| quad.background.solid
+                            == crate::Color::from(crate::blue()).paint_color()
                             && quad.bounds == expected_scaled),
                     "sticky child quad should paint at the sticky parent visual bounds"
                 );
@@ -5134,13 +5137,14 @@ mod tests {
             .unwrap();
     }
 
-    fn quad_order_for_color(window: &Window, color: crate::Hsla) -> u32 {
+    fn quad_order_for_color(window: &Window, color: impl Into<crate::Color>) -> u32 {
+        let color = color.into();
         window
             .rendered_frame
             .scene
             .quads
             .iter()
-            .find(|quad| quad.background.solid == color)
+            .find(|quad| quad.background.solid == color.paint_color())
             .map(|quad| quad.order)
             .expect("expected quad with requested background color")
     }

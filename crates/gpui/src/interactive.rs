@@ -909,8 +909,9 @@ impl PlatformInput {
 mod test {
 
     use crate::{
-        self as gpux, AppContext as _, Context, FocusHandle, InteractiveElement, IntoElement,
-        KeyBinding, Keystroke, ParentElement, Render, TestAppContext, Window, div,
+        self as gpux, AppContext as _, Context, FocusHandle, InputLayerId, InteractiveElement,
+        IntoElement, KeyBinding, KeymapLayer, Keystroke, ParentElement, Render, TestAppContext,
+        Window, div,
     };
 
     struct TestView {

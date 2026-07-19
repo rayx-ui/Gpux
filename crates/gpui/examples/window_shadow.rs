@@ -113,7 +113,8 @@ impl Render for WindowShadow {
                                         s: 0.,
                                         l: 0.,
                                         a: 0.4,
-                                    },
+                                    }
+                                    .into(),
                                     blur_radius: shadow_size / 2.,
                                     spread_radius: px(0.),
                                     offset: point(px(0.0), px(0.0)),
@@ -153,7 +154,8 @@ impl Render for WindowShadow {
                                                 s: 0.,
                                                 l: 0.,
                                                 a: 1.0,
-                                            },
+                                            }
+                                            .into(),
                                             blur_radius: px(20.0),
                                             spread_radius: px(0.0),
                                             offset: point(px(0.0), px(0.0)),

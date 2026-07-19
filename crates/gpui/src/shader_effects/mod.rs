@@ -1427,7 +1427,8 @@ mod tests {
         assert_eq!(effect.wavelength_value(), px(1.0));
         assert_eq!(effect.damping_value(), 0.0);
         assert_eq!(effect.blur_radius_value(), px(128.0));
-        assert_eq!(effect.tint_color(), Some(hsla(0.2, 0.8, 0.6, 0.25)));
+        let expected_tint: Color = hsla(0.2, 0.8, 0.6, 0.25).into();
+        assert_eq!(effect.tint_color(), Some(&expected_tint));
 
         for (transition, expected) in [
             (
