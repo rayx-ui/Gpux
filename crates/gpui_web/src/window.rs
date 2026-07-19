@@ -299,6 +299,13 @@ impl WebWindow {
                 device_pixel_ratio(&inner.browser_window),
                 true,
             );
+            // A ResizeObserver callback is the final, canvas-authoritative
+            // browser layout signal. Publish it immediately so a busy browser
+            // render cadence cannot defer the MediaQuery snapshot by an
+            // unbounded number of animation frames. Updating the backing-store
+            // size does not change the CSS content box, so this does not create
+            // a ResizeObserver feedback loop.
+            inner.flush_viewport_scheduler();
         })
     }
 }
@@ -333,6 +340,17 @@ impl WebWindowInner {
             device_pixel_ratio(&self.browser_window),
             true,
         );
+    }
+
+    fn flush_viewport_scheduler(&self) {
+        if let Some(observation) = self.viewport_scheduler.flush() {
+            self.media_query_diagnostics.coalesced_flush();
+            self.apply_logical_size(
+                observation.logical_size,
+                observation.scale_factor,
+                observation.allow_zero_size,
+            );
+        }
     }
 
     fn apply_logical_size(&self, new_size: Size<Pixels>, scale_factor: f32, allow_zero_size: bool) {
@@ -408,14 +426,7 @@ impl WebWindowInner {
 
         let this = Rc::clone(self);
         let closure = Closure::new(move || {
-            if let Some(observation) = this.viewport_scheduler.flush() {
-                this.media_query_diagnostics.coalesced_flush();
-                this.apply_logical_size(
-                    observation.logical_size,
-                    observation.scale_factor,
-                    observation.allow_zero_size,
-                );
-            }
+            this.flush_viewport_scheduler();
             let force_html_island_frame = this
                 .html_island_registry
                 .try_borrow_mut()
