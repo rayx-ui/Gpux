@@ -16,15 +16,15 @@
 //! constructed by combining these two systems into an all-in-one element.
 
 use crate::{
-    Action, AnyDrag, AnyElement, AnyTooltip, AnyView, App, Bounds, ClickEvent, DispatchPhase,
-    Display, Element, ElementId, Entity, FocusHandle, Global, GlobalElementId, Hitbox,
-    HitboxBehavior, HitboxId, InspectorElementId, IntoElement, IsZero, KeyContext, KeyDownEvent,
-    KeyUpEvent, KeyboardButton, KeyboardClickEvent, LayoutId, ModifiersChangedEvent, MouseButton,
-    MouseClickEvent, MouseDownEvent, MouseMoveEvent, MousePressureEvent, MouseUpEvent, Overflow,
-    ParentElement, Pixels, Point, Position, PositionedBounds, Render, ScrollContainerContext,
-    ScrollWheelEvent, SharedString, Size, StickyState, StickyStateChangedEvent, Style,
-    StyleRefinement, Styled, Task, TooltipId, TouchEvent, Visibility, Window, WindowControlArea,
-    point, px, size,
+    Action, ActionDispatchOutcome, AnyDrag, AnyElement, AnyTooltip, AnyView, App, Bounds,
+    ClickEvent, DispatchPhase, Display, Element, ElementId, Entity, FocusHandle, Global,
+    GlobalElementId, Hitbox, HitboxBehavior, HitboxId, InspectorElementId, IntoElement, IsZero,
+    KeyContext, KeyDownEvent, KeyUpEvent, KeyboardButton, KeyboardClickEvent, LayoutId,
+    ModifiersChangedEvent, MouseButton, MouseClickEvent, MouseDownEvent, MouseMoveEvent,
+    MousePressureEvent, MouseUpEvent, Overflow, ParentElement, Pixels, Point, Position,
+    PositionedBounds, Render, ScrollContainerContext, ScrollWheelEvent, SharedString, Size,
+    StickyState, StickyStateChangedEvent, Style, StyleRefinement, Styled, Task, TooltipId,
+    TouchEvent, Visibility, Window, WindowControlArea, point, px, size,
 };
 use crate::{PinchEvent, RotateEvent};
 use collections::HashMap;
@@ -475,6 +475,19 @@ impl Interactivity {
                 if phase == DispatchPhase::Bubble {
                     (listener)(action, window, cx)
                 }
+            }),
+        ));
+    }
+
+    /// Bind an action callback that reports an explicit dispatch outcome.
+    pub fn on_action_with_outcome<A: Action>(
+        &mut self,
+        listener: impl Fn(&A, &mut Window, &mut App) -> ActionDispatchOutcome + 'static,
+    ) {
+        self.action_outcome_listeners.push((
+            TypeId::of::<A>(),
+            Box::new(move |action, window, cx| {
+                (listener)(action.downcast_ref().unwrap(), window, cx)
             }),
         ));
     }
@@ -1122,6 +1135,15 @@ pub trait InteractiveElement: Sized {
         self
     }
 
+    /// Bind an action callback that reports an explicit dispatch outcome.
+    fn on_action_with_outcome<A: Action>(
+        mut self,
+        listener: impl Fn(&A, &mut Window, &mut App) -> ActionDispatchOutcome + 'static,
+    ) -> Self {
+        self.interactivity().on_action_with_outcome(listener);
+        self
+    }
+
     /// Bind the given callback to an action dispatch, based on a dynamic action parameter
     /// instead of a type parameter. Useful for component libraries that want to expose
     /// action bindings to their users.
@@ -1526,6 +1548,9 @@ pub(crate) type ModifiersChangedListener =
 
 pub(crate) type ActionListener =
     Box<dyn Fn(&dyn Any, DispatchPhase, &mut Window, &mut App) + 'static>;
+
+pub(crate) type ActionOutcomeListener =
+    Box<dyn Fn(&dyn Any, &mut Window, &mut App) -> ActionDispatchOutcome + 'static>;
 
 /// Construct a new [`Div`] element
 #[track_caller]
@@ -1948,6 +1973,7 @@ pub struct Interactivity {
     pub(crate) key_up_listeners: Vec<KeyUpListener>,
     pub(crate) modifiers_changed_listeners: Vec<ModifiersChangedListener>,
     pub(crate) action_listeners: Vec<(TypeId, ActionListener)>,
+    pub(crate) action_outcome_listeners: Vec<(TypeId, ActionOutcomeListener)>,
     pub(crate) drop_listeners: Vec<(TypeId, DropListener)>,
     pub(crate) can_drop_predicate: Option<CanDropPredicate>,
     pub(crate) click_listeners: Vec<ClickListener>,
@@ -2976,6 +3002,7 @@ impl Interactivity {
         let key_up_listeners = mem::take(&mut self.key_up_listeners);
         let modifiers_changed_listeners = mem::take(&mut self.modifiers_changed_listeners);
         let action_listeners = mem::take(&mut self.action_listeners);
+        let action_outcome_listeners = mem::take(&mut self.action_outcome_listeners);
         if let Some(context) = self.key_context.clone() {
             window.set_key_context(context);
         }
@@ -3000,6 +3027,10 @@ impl Interactivity {
 
         for (action_type, listener) in action_listeners {
             window.on_action(action_type, listener)
+        }
+
+        for (action_type, listener) in action_outcome_listeners {
+            window.on_action_with_outcome(action_type, listener)
         }
     }
 

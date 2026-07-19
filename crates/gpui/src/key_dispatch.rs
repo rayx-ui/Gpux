@@ -50,8 +50,8 @@
 //!  KeyBinding::new("cmd-k left", pane::SplitLeft, Some("Pane"))
 
 use crate::{
-    Action, ActionRegistry, App, DispatchPhase, EntityId, FocusId, KeyBinding, KeyContext, Keymap,
-    Keystroke, ModifiersChangedEvent, Window,
+    Action, ActionDispatchOutcome, ActionRegistry, App, DispatchPhase, EntityId, FocusId,
+    KeyBinding, KeyContext, Keymap, Keystroke, ModifiersChangedEvent, Window,
 };
 use collections::FxHashMap;
 use smallvec::SmallVec;
@@ -140,6 +140,8 @@ type ModifiersChangedListener = Rc<dyn Fn(&ModifiersChangedEvent, &mut Window, &
 pub(crate) struct DispatchActionListener {
     pub(crate) action_type: TypeId,
     pub(crate) listener: Rc<dyn Fn(&dyn Any, DispatchPhase, &mut Window, &mut App)>,
+    pub(crate) outcome_listener:
+        Option<Rc<dyn Fn(&dyn Any, &mut Window, &mut App) -> ActionDispatchOutcome>>,
 }
 
 impl DispatchTree {
@@ -346,6 +348,21 @@ impl DispatchTree {
             .push(DispatchActionListener {
                 action_type,
                 listener,
+                outcome_listener: None,
+            });
+    }
+
+    pub fn on_action_with_outcome(
+        &mut self,
+        action_type: TypeId,
+        listener: Rc<dyn Fn(&dyn Any, &mut Window, &mut App) -> ActionDispatchOutcome>,
+    ) {
+        self.active_node()
+            .action_listeners
+            .push(DispatchActionListener {
+                action_type,
+                listener: Rc::new(|_, _, _, _| {}),
+                outcome_listener: Some(listener),
             });
     }
 

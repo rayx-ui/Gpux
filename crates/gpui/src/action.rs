@@ -6,7 +6,189 @@ use serde_json::json;
 use std::{
     any::{Any, TypeId},
     fmt::Display,
+    time::{Duration, Instant},
 };
+
+/// Identifies the route that initiated an action dispatch.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum ActionInvocationSource {
+    /// The action was invoked by application code.
+    #[default]
+    Programmatic,
+    /// The action was resolved from a keyboard binding.
+    Keyboard,
+    /// The action was invoked by pointer interaction.
+    Pointer,
+    /// The action was invoked from a menu.
+    Menu,
+    /// The action was invoked from a command palette.
+    Palette,
+    /// The action was invoked through an accessibility surface.
+    Accessibility,
+}
+
+/// Immutable metadata for one action dispatch.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ActionInvocation {
+    id: u64,
+    action_name: &'static str,
+    source: ActionInvocationSource,
+    parent_id: Option<u64>,
+    window_id: Option<u64>,
+    target: Option<usize>,
+    context: Vec<String>,
+    started_at: Instant,
+}
+
+impl ActionInvocation {
+    /// Creates invocation metadata for an action dispatch.
+    pub fn new(
+        id: u64,
+        action_name: &'static str,
+        source: ActionInvocationSource,
+        parent_id: Option<u64>,
+        window_id: Option<u64>,
+        target: Option<usize>,
+        context: Vec<String>,
+    ) -> Self {
+        Self {
+            id,
+            action_name,
+            source,
+            parent_id,
+            window_id,
+            target,
+            context,
+            started_at: Instant::now(),
+        }
+    }
+
+    /// Returns the monotonic dispatch identifier.
+    pub fn id(&self) -> u64 {
+        self.id
+    }
+
+    /// Returns the stable GPUI action name without serializing action payloads.
+    pub fn action_name(&self) -> &'static str {
+        self.action_name
+    }
+
+    /// Returns the invocation route.
+    pub fn source(&self) -> ActionInvocationSource {
+        self.source
+    }
+
+    /// Returns the parent dispatch identifier for nested actions.
+    pub fn parent_id(&self) -> Option<u64> {
+        self.parent_id
+    }
+
+    /// Returns the window identifier captured at dispatch entry.
+    pub fn window_id(&self) -> Option<u64> {
+        self.window_id
+    }
+
+    /// Returns the dispatch-tree node index captured at invocation time.
+    pub fn target(&self) -> Option<usize> {
+        self.target
+    }
+
+    /// Returns the key-context names captured at invocation time.
+    pub fn context(&self) -> &[String] {
+        &self.context
+    }
+
+    /// Returns the monotonic instant at which dispatch metadata was created.
+    pub fn started_at(&self) -> Instant {
+        self.started_at
+    }
+}
+
+/// The terminal state of an action dispatch.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ActionDispatchOutcome {
+    /// An action listener handled the action.
+    Handled,
+    /// No action listener handled the action.
+    Unhandled,
+    /// An action listener reported a failure.
+    Failed,
+    /// An action listener cancelled the action.
+    Cancelled,
+}
+
+/// Converts handler return values into an action dispatch outcome.
+pub trait IntoActionDispatchOutcome {
+    /// Returns the explicit terminal outcome for the handler invocation.
+    fn into_action_dispatch_outcome(self) -> ActionDispatchOutcome;
+}
+
+impl IntoActionDispatchOutcome for () {
+    fn into_action_dispatch_outcome(self) -> ActionDispatchOutcome {
+        ActionDispatchOutcome::Handled
+    }
+}
+
+impl IntoActionDispatchOutcome for ActionDispatchOutcome {
+    fn into_action_dispatch_outcome(self) -> ActionDispatchOutcome {
+        self
+    }
+}
+
+/// The immutable terminal report for an action dispatch.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ActionDispatchReport {
+    invocation: ActionInvocation,
+    outcome: ActionDispatchOutcome,
+    handled_count: usize,
+    duration: Duration,
+}
+
+impl ActionDispatchReport {
+    /// Creates the terminal report for an action dispatch.
+    pub fn new(
+        invocation: ActionInvocation,
+        outcome: ActionDispatchOutcome,
+        handled_count: usize,
+        duration: Duration,
+    ) -> Self {
+        Self {
+            invocation,
+            outcome,
+            handled_count,
+            duration,
+        }
+    }
+
+    /// Returns immutable metadata for this dispatch.
+    pub fn invocation(&self) -> &ActionInvocation {
+        &self.invocation
+    }
+
+    /// Returns the terminal dispatch outcome.
+    pub fn outcome(&self) -> ActionDispatchOutcome {
+        self.outcome
+    }
+
+    /// Returns the number of listeners that handled the action.
+    pub fn handled_count(&self) -> usize {
+        self.handled_count
+    }
+
+    /// Returns the elapsed synchronous dispatch duration.
+    pub fn duration(&self) -> Duration {
+        self.duration
+    }
+}
+
+/// A lifecycle event emitted before and after an action dispatch.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ActionDispatchEvent {
+    /// The dispatch has started.
+    Began(ActionInvocation),
+    /// The dispatch reached one terminal outcome.
+    Ended(ActionDispatchReport),
+}
 
 /// Defines and registers unit structs that can be used as actions. For more complex data types, derive `Action`.
 ///
