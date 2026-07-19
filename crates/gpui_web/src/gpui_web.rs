@@ -9,7 +9,9 @@ mod html_island;
 mod http_client;
 mod keyboard;
 mod logging;
+mod media_query_diagnostics;
 mod platform;
+mod web_viewport_scheduler;
 mod window;
 
 pub use dispatcher::WebDispatcher;
