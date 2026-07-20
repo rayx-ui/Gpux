@@ -14,7 +14,8 @@ actions!(
         DragAction,
         WheelAction,
         ButtonAction,
-        RoutedAction
+        RoutedAction,
+        UnavailableAction
     ]
 );
 
@@ -241,14 +242,26 @@ fn mapped_click_dispatches_once_to_the_deepest_captured_target() {
         cx.set_gesture_map_layer(GestureMapLayer::new(
             InputLayerId::new("test"),
             0,
-            [GestureRule::new(
-                GesturePattern::Click {
-                    button: MouseButton::Left,
-                    count: 1,
-                    modifiers: Modifiers::none(),
-                },
-                &RoutedAction,
-            )],
+            [
+                GestureRule::new(
+                    GesturePattern::Click {
+                        button: MouseButton::Left,
+                        count: 1,
+                        modifiers: Modifiers::none(),
+                    },
+                    &RoutedAction,
+                ),
+                // This later rule wins global precedence, but has no handler on the
+                // captured target. It must not suppress the target's routed action.
+                GestureRule::new(
+                    GesturePattern::Click {
+                        button: MouseButton::Left,
+                        count: 1,
+                        modifiers: Modifiers::none(),
+                    },
+                    &UnavailableAction,
+                ),
+            ],
         ))
         .unwrap();
     });

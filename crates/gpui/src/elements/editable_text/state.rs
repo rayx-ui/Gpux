@@ -530,7 +530,8 @@ impl EditableTextState {
     }
 
     pub fn insert_newline(&mut self, cx: &mut Context<Self>) -> bool {
-        self.line_mode == EditableTextLineMode::MultiLine && self.replace_selection("\n", cx)
+        self.line_mode == EditableTextLineMode::MultiLine
+            && self.replace_byte_range(self.selection.range(), "\n", EditKind::Other, cx)
     }
 
     pub fn delete_backward(&mut self, cx: &mut Context<Self>) -> bool {

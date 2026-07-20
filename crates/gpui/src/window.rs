@@ -3867,6 +3867,11 @@ impl Window {
         let Some((hitbox_id, target)) = self.gesture_target(&snapshot) else {
             return;
         };
+        let snapshot = snapshot.filtered_for_target(|action| {
+            self.rendered_frame
+                .dispatch_tree
+                .is_action_available(action, target)
+        });
         self.capture_pointer(hitbox_id);
         self.gesture_recognizer
             .mouse_down(event, snapshot, revision, target.as_usize());
@@ -3880,6 +3885,11 @@ impl Window {
         let Some((_, target)) = self.gesture_target(&snapshot) else {
             return;
         };
+        let snapshot = snapshot.filtered_for_target(|action| {
+            self.rendered_frame
+                .dispatch_tree
+                .is_action_available(action, target)
+        });
         if let Some(gesture) =
             self.gesture_recognizer
                 .scroll_wheel(event, snapshot, revision, target.as_usize())
