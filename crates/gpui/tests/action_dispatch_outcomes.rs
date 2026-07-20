@@ -73,7 +73,7 @@ fn dispatch_report_preserves_invocation_metadata_and_terminal_outcome() {
     assert_eq!(report.handled_count(), 1);
     assert_eq!(report.duration(), Duration::from_millis(2));
     assert_eq!(invocation.window_id(), None);
-    assert!(invocation.started_at() <= std::time::Instant::now());
+    assert!(invocation.started_at() <= gpux::Instant::now());
 }
 
 #[test]

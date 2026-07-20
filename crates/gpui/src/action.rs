@@ -2,11 +2,12 @@ use anyhow::{Context as _, Result};
 use collections::HashMap;
 pub use gpui_macros::Action;
 pub use no_action::{NoAction, Unbind, is_no_action, is_unbind};
+use scheduler::Instant;
 use serde_json::json;
 use std::{
     any::{Any, TypeId},
     fmt::Display,
-    time::{Duration, Instant},
+    time::Duration,
 };
 
 /// Identifies the route that initiated an action dispatch.
