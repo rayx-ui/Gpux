@@ -1794,6 +1794,7 @@ pub struct Window {
     pub(crate) focus_lost_listeners: SubscriberSet<(), AnyObserver>,
     default_prevented: bool,
     mouse_position: Point<Pixels>,
+    pressed_mouse_button: Option<MouseButton>,
     mouse_hit_test: HitTest,
     modifiers: Modifiers,
     capslock: Capslock,
@@ -2439,6 +2440,7 @@ impl Window {
             focus_lost_listeners: SubscriberSet::new(),
             default_prevented: true,
             mouse_position,
+            pressed_mouse_button: None,
             mouse_hit_test: HitTest::default(),
             modifiers,
             capslock,
@@ -3479,6 +3481,11 @@ impl Window {
     /// The position of the mouse relative to the window.
     pub fn mouse_position(&self) -> Point<Pixels> {
         self.mouse_position
+    }
+
+    /// The mouse button currently held according to the latest platform event.
+    pub fn pressed_mouse_button(&self) -> Option<MouseButton> {
+        self.pressed_mouse_button
     }
 
     /// Returns read-only inspection data for the last rendered frame.
@@ -6214,16 +6221,21 @@ impl Window {
             PlatformInput::MouseMove(mouse_move) => {
                 self.mouse_position = mouse_move.position;
                 self.modifiers = mouse_move.modifiers;
+                self.pressed_mouse_button = mouse_move.pressed_button;
                 PlatformInput::MouseMove(mouse_move)
             }
             PlatformInput::MouseDown(mouse_down) => {
                 self.mouse_position = mouse_down.position;
                 self.modifiers = mouse_down.modifiers;
+                self.pressed_mouse_button = Some(mouse_down.button);
                 PlatformInput::MouseDown(mouse_down)
             }
             PlatformInput::MouseUp(mouse_up) => {
                 self.mouse_position = mouse_up.position;
                 self.modifiers = mouse_up.modifiers;
+                if self.pressed_mouse_button == Some(mouse_up.button) {
+                    self.pressed_mouse_button = None;
+                }
                 PlatformInput::MouseUp(mouse_up)
             }
             PlatformInput::MousePressure(mouse_pressure) => {

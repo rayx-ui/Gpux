@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use unicode_segmentation::UnicodeSegmentation as _;
 
 pub(crate) fn previous_grapheme_boundary(text: &str, offset: usize) -> usize {
@@ -42,6 +44,23 @@ pub(crate) fn next_word_boundary(text: &str, offset: usize) -> usize {
         .map(|(index, _)| index)
         .find(|index| *index > offset)
         .unwrap_or(text.len())
+}
+
+pub(crate) fn word_range_at(text: &str, offset: usize) -> Range<usize> {
+    let offset = grapheme_boundary_at_or_before(text, offset);
+    text.split_word_bound_indices()
+        .map(|(start, segment)| start..start + segment.len())
+        .find(|range| offset < range.end)
+        .unwrap_or(text.len()..text.len())
+}
+
+pub(crate) fn logical_line_range_at(text: &str, offset: usize) -> Range<usize> {
+    let offset = grapheme_boundary_at_or_before(text, offset);
+    let start = text[..offset].rfind('\n').map_or(0, |index| index + 1);
+    let end = text[offset..]
+        .find('\n')
+        .map_or(text.len(), |index| offset + index);
+    start..end
 }
 
 pub(crate) fn previous_logical_line_start(text: &str, offset: usize) -> usize {

@@ -335,7 +335,51 @@ impl Platform for WebPlatform {
         None
     }
 
-    fn write_to_clipboard(&self, _item: ClipboardItem) {}
+    fn write_to_clipboard(&self, item: ClipboardItem) {
+        let Some(text) = item.text() else {
+            log::warn!("gpui_web clipboard currently supports text entries only");
+            return;
+        };
+
+        let navigator: JsValue = self.browser_window.navigator().into();
+        let clipboard = match js_sys::Reflect::get(&navigator, &JsValue::from_str("clipboard")) {
+            Ok(value) if !value.is_null() && !value.is_undefined() => value,
+            Ok(_) => {
+                log::warn!("browser clipboard API is unavailable");
+                return;
+            }
+            Err(error) => {
+                log::error!("failed to access browser clipboard API: {error:?}");
+                return;
+            }
+        };
+        let write_text = match js_sys::Reflect::get(&clipboard, &JsValue::from_str("writeText"))
+            .and_then(|value| value.dyn_into::<js_sys::Function>())
+        {
+            Ok(function) => function,
+            Err(error) => {
+                log::error!("browser clipboard writeText is unavailable: {error:?}");
+                return;
+            }
+        };
+        // Invoke writeText while the trusted key/menu gesture is still on the
+        // stack. Only promise observation is deferred.
+        let promise = match write_text
+            .call1(&clipboard, &JsValue::from_str(&text))
+            .and_then(|value| value.dyn_into::<js_sys::Promise>())
+        {
+            Ok(promise) => promise,
+            Err(error) => {
+                log::error!("failed to start browser clipboard write: {error:?}");
+                return;
+            }
+        };
+        wasm_bindgen_futures::spawn_local(async move {
+            if let Err(error) = wasm_bindgen_futures::JsFuture::from(promise).await {
+                log::error!("failed to write browser clipboard: {error:?}");
+            }
+        });
+    }
 
     fn write_credentials(&self, _url: &str, _username: &str, _password: &[u8]) -> Task<Result<()>> {
         Task::ready(Err(anyhow::anyhow!(
