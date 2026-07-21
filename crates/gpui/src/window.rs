@@ -7233,9 +7233,14 @@ impl Window {
         );
         self.next_action_invocation_id = self.next_action_invocation_id.saturating_add(1);
         self.action_invocation_stack.push(invocation.clone());
+        cx.propagate_event = true;
         self.notify_action_dispatch(ActionDispatchEvent::Began(invocation.clone()), cx);
 
-        let (outcome, handled_count) = self.dispatch_action_on_node_inner(node_id, action, cx);
+        let (outcome, handled_count) = if cx.propagate_event {
+            self.dispatch_action_on_node_inner(node_id, action, cx)
+        } else {
+            (ActionDispatchOutcome::Cancelled, 0)
+        };
         let report =
             ActionDispatchReport::new(invocation, outcome, handled_count, started_at.elapsed());
         self.action_invocation_stack.pop();
