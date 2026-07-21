@@ -13,9 +13,10 @@ use super::{
     editable_text_alignment_offset,
     history::{EditHistory, EditKind, HistoryState},
     movement::{
-        grapheme_boundary_at_or_before, next_grapheme_boundary, next_logical_line_end,
-        next_word_boundary, normalize_multiline, normalize_single_line, previous_grapheme_boundary,
-        previous_logical_line_start, previous_word_boundary,
+        grapheme_boundary_at_or_before, logical_line_range_at, next_grapheme_boundary,
+        next_logical_line_end, next_word_boundary, normalize_multiline, normalize_single_line,
+        previous_grapheme_boundary, previous_logical_line_start, previous_word_boundary,
+        word_range_at,
     },
 };
 
@@ -814,6 +815,7 @@ impl EditableTextState {
         &mut self,
         position: Point<Pixels>,
         extend: bool,
+        click_count: usize,
         cx: &mut Context<Self>,
     ) {
         if self.mode == EditableTextMode::Disabled {
@@ -822,7 +824,17 @@ impl EditableTextState {
         self.is_selecting = true;
         self.drag_position = Some(position);
         let offset = self.index_for_point(position);
-        self.move_to(offset, extend, cx);
+        match click_count {
+            2 => {
+                let range = word_range_at(&self.text(), offset);
+                self.set_selection(range.start, range.end, cx);
+            }
+            count if count >= 3 => {
+                let range = logical_line_range_at(&self.text(), offset);
+                self.set_selection(range.start, range.end, cx);
+            }
+            _ => self.move_to(offset, extend, cx),
+        }
     }
 
     pub(crate) fn pointer_move(&mut self, position: Point<Pixels>, cx: &mut Context<Self>) {
