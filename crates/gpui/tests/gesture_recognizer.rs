@@ -4,7 +4,7 @@ use gpux::{
     MouseMoveEvent, MouseUpEvent, NavigationDirection, Render, ScrollDelta, ScrollWheelEvent,
     ScrollWheelSource, TestApp, WheelDirection, Window, actions, div, point, prelude::*, px,
 };
-use std::{cell::Cell, rc::Rc, sync::Arc};
+use std::{cell::Cell, rc::Rc};
 
 actions!(
     gesture_recognizer_test,
@@ -21,7 +21,7 @@ actions!(
 
 fn snapshot(
     rules: impl IntoIterator<Item = GestureRule>,
-) -> (Arc<gpux::GestureMapSnapshot>, gpux::GestureMapVersion) {
+) -> (Rc<gpux::GestureMapSnapshot>, gpux::GestureMapVersion) {
     let mut map = GestureMap::default();
     map.set_layer(GestureMapLayer::new(InputLayerId::new("test"), 0, rules))
         .unwrap();

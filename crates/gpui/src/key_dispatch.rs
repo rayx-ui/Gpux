@@ -478,7 +478,7 @@ impl DispatchTree {
 
     fn bindings_for_input(
         &self,
-        keymap_snapshot: &std::sync::Arc<KeymapSnapshot>,
+        keymap_snapshot: &std::rc::Rc<KeymapSnapshot>,
         input: &[Keystroke],
         dispatch_path: &SmallVec<[DispatchNodeId; 32]>,
     ) -> (SmallVec<[KeyBinding; 1]>, bool, Vec<KeyContext>) {
@@ -513,7 +513,7 @@ impl DispatchTree {
     ///   these should be replayed first.
     pub fn dispatch_key(
         &mut self,
-        keymap_snapshot: &std::sync::Arc<KeymapSnapshot>,
+        keymap_snapshot: &std::rc::Rc<KeymapSnapshot>,
         mut input: SmallVec<[Keystroke; 1]>,
         keystroke: Keystroke,
         dispatch_path: &SmallVec<[DispatchNodeId; 32]>,
@@ -555,7 +555,7 @@ impl DispatchTree {
     /// flush_dispatch() converts any previously pending input to replay events.
     pub fn flush_dispatch(
         &mut self,
-        keymap_snapshot: &std::sync::Arc<KeymapSnapshot>,
+        keymap_snapshot: &std::rc::Rc<KeymapSnapshot>,
         input: SmallVec<[Keystroke; 1]>,
         dispatch_path: &SmallVec<[DispatchNodeId; 32]>,
     ) -> SmallVec<[Replay; 1]> {
@@ -571,7 +571,7 @@ impl DispatchTree {
     /// Converts the longest prefix of input to a replay event and returns the rest.
     fn replay_prefix(
         &self,
-        keymap_snapshot: &std::sync::Arc<KeymapSnapshot>,
+        keymap_snapshot: &std::rc::Rc<KeymapSnapshot>,
         mut input: SmallVec<[Keystroke; 1]>,
         dispatch_path: &SmallVec<[DispatchNodeId; 32]>,
     ) -> (SmallVec<[Keystroke; 1]>, SmallVec<[Replay; 1]>) {

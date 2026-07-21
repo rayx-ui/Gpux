@@ -3,7 +3,7 @@ use crate::{
     MouseUpEvent, Point, ScrollDelta, ScrollWheelEvent, ScrollWheelMomentumPhase, ScrollWheelPhase,
     ScrollWheelSource,
 };
-use std::sync::Arc;
+use std::rc::Rc;
 
 /// A bindable pointer gesture. Modifier matching is always exact.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -103,7 +103,7 @@ impl GestureRule {
 pub struct GestureMapLayer {
     id: InputLayerId,
     priority: i32,
-    rules: Arc<[GestureRule]>,
+    rules: Rc<[GestureRule]>,
 }
 
 impl GestureMapLayer {
@@ -141,6 +141,7 @@ impl GestureMapLayer {
 pub struct GestureMapVersion(usize);
 
 /// An immutable gesture-map snapshot retained while a pointer sequence is active.
+#[derive(Default)]
 pub struct GestureMapSnapshot {
     layers: Vec<GestureMapLayer>,
 }
@@ -156,6 +157,32 @@ impl GestureMapSnapshot {
             .iter()
             .rev()
             .flat_map(|layer| layer.rules().iter().rev())
+    }
+
+    /// Retains only actions that can be dispatched by one already hit-tested
+    /// target. Recognition must never select a higher-precedence action that
+    /// belongs to an unrelated component.
+    pub fn filtered_for_target(
+        &self,
+        mut is_available: impl FnMut(&dyn Action) -> bool,
+    ) -> Rc<Self> {
+        Rc::new(Self {
+            layers: self
+                .layers
+                .iter()
+                .map(|layer| {
+                    GestureMapLayer::new(
+                        layer.id.clone(),
+                        layer.priority,
+                        layer
+                            .rules()
+                            .iter()
+                            .filter(|rule| is_available(rule.action()))
+                            .cloned(),
+                    )
+                })
+                .collect(),
+        })
     }
 
     fn has_click_with_higher_count(
@@ -174,14 +201,8 @@ impl GestureMapSnapshot {
 /// A generic, immutable gesture-layer map.
 #[derive(Default)]
 pub struct GestureMap {
-    snapshot: Arc<GestureMapSnapshot>,
+    snapshot: Rc<GestureMapSnapshot>,
     version: GestureMapVersion,
-}
-
-impl Default for GestureMapSnapshot {
-    fn default() -> Self {
-        Self { layers: Vec::new() }
-    }
 }
 
 impl GestureMap {
@@ -191,7 +212,7 @@ impl GestureMap {
     }
 
     /// Returns the immutable active snapshot for a recognizer to retain.
-    pub fn snapshot(&self) -> Arc<GestureMapSnapshot> {
+    pub fn snapshot(&self) -> Rc<GestureMapSnapshot> {
         self.snapshot.clone()
     }
 
@@ -213,7 +234,7 @@ impl GestureMap {
                 .cmp(&right.priority())
                 .then_with(|| left.id().cmp(right.id()))
         });
-        self.snapshot = Arc::new(GestureMapSnapshot { layers });
+        self.snapshot = Rc::new(GestureMapSnapshot { layers });
         self.version.0 += 1;
         Ok(previous)
     }
@@ -223,7 +244,7 @@ impl GestureMap {
         let mut layers = self.snapshot.layers.clone();
         let index = layers.iter().position(|layer| layer.id() == id)?;
         let removed = layers.remove(index);
-        self.snapshot = Arc::new(GestureMapSnapshot { layers });
+        self.snapshot = Rc::new(GestureMapSnapshot { layers });
         self.version.0 += 1;
         Some(removed)
     }
@@ -261,7 +282,7 @@ impl RecognizedGesture {
 struct PendingPointerGesture {
     down: MouseDownEvent,
     target: usize,
-    snapshot: Arc<GestureMapSnapshot>,
+    snapshot: Rc<GestureMapSnapshot>,
     revision: GestureMapVersion,
 }
 
@@ -279,7 +300,7 @@ struct WheelAccumulator {
     amount: f32,
     target: usize,
     revision: GestureMapVersion,
-    snapshot: Option<Arc<GestureMapSnapshot>>,
+    snapshot: Option<Rc<GestureMapSnapshot>>,
 }
 
 /// Window-local generic recognizer for click, drag, and wheel gesture rules.
@@ -295,7 +316,7 @@ impl GestureRecognizer {
     pub fn mouse_down(
         &mut self,
         event: &MouseDownEvent,
-        snapshot: Arc<GestureMapSnapshot>,
+        snapshot: Rc<GestureMapSnapshot>,
         revision: GestureMapVersion,
         target: usize,
     ) {
@@ -374,7 +395,7 @@ impl GestureRecognizer {
     pub fn scroll_wheel(
         &mut self,
         event: &ScrollWheelEvent,
-        snapshot: Arc<GestureMapSnapshot>,
+        snapshot: Rc<GestureMapSnapshot>,
         revision: GestureMapVersion,
         target: usize,
     ) -> Option<RecognizedGesture> {

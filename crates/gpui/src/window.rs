@@ -2004,7 +2004,7 @@ pub(crate) enum DrawPhase {
 #[derive(Default)]
 struct PendingInput {
     keystrokes: SmallVec<[Keystroke; 1]>,
-    keymap_snapshot: Option<Arc<KeymapSnapshot>>,
+    keymap_snapshot: Option<Rc<KeymapSnapshot>>,
     focus: Option<FocusId>,
     timer: Option<Task<()>>,
     needs_timeout: bool,

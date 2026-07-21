@@ -216,7 +216,7 @@ impl<V: 'static> TextInput<V> {
         } else {
             // No value or not focused — show placeholder or plain text
             let display_text = if has_value {
-                value.clone()
+                value
             } else {
                 placeholder.to_string()
             };

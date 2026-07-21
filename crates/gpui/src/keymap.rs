@@ -7,7 +7,7 @@ pub use context::*;
 use crate::{Action, AsKeystroke, Keystroke, SharedString, Unbind, is_no_action, is_unbind};
 use collections::{HashMap, HashSet};
 use smallvec::SmallVec;
-use std::{any::TypeId, fmt, sync::Arc};
+use std::{any::TypeId, fmt, rc::Rc};
 
 /// An opaque identifier of which version of the keymap is currently active.
 /// The keymap's version is changed whenever a layer snapshot is replaced.
@@ -36,7 +36,7 @@ impl fmt::Display for InputLayerId {
 pub struct KeymapLayer {
     id: InputLayerId,
     priority: i32,
-    bindings: Arc<[KeyBinding]>,
+    bindings: Rc<[KeyBinding]>,
 }
 
 impl KeymapLayer {
@@ -137,14 +137,14 @@ impl KeymapSnapshot {
 
 /// A collection of key bindings resolved from an immutable ordered layer snapshot.
 pub struct Keymap {
-    snapshot: Arc<KeymapSnapshot>,
+    snapshot: Rc<KeymapSnapshot>,
     version: KeymapVersion,
 }
 
 impl Default for Keymap {
     fn default() -> Self {
         Self {
-            snapshot: Arc::new(KeymapSnapshot::new(Vec::new()).expect("empty layers are valid")),
+            snapshot: Rc::new(KeymapSnapshot::new(Vec::new()).expect("empty layers are valid")),
             version: KeymapVersion::default(),
         }
     }
@@ -180,7 +180,7 @@ impl Keymap {
         layers: impl IntoIterator<Item = KeymapLayer>,
     ) -> Result<Self, InputMapError> {
         Ok(Self {
-            snapshot: Arc::new(KeymapSnapshot::new(layers.into_iter().collect())?),
+            snapshot: Rc::new(KeymapSnapshot::new(layers.into_iter().collect())?),
             version: KeymapVersion::default(),
         })
     }
@@ -192,14 +192,14 @@ impl Keymap {
 
     /// Returns the immutable snapshot used by one complete input dispatch.
     /// Captures the immutable map revision used for one complete input sequence.
-    pub fn snapshot(&self) -> Arc<KeymapSnapshot> {
+    pub fn snapshot(&self) -> Rc<KeymapSnapshot> {
         self.snapshot.clone()
     }
 
     /// Resolves input against a previously captured immutable snapshot.
     pub fn bindings_for_input_at(
         &self,
-        snapshot: &Arc<KeymapSnapshot>,
+        snapshot: &Rc<KeymapSnapshot>,
         input: &[impl AsKeystroke],
         context_stack: &[KeyContext],
     ) -> (SmallVec<[KeyBinding; 1]>, bool) {
@@ -220,7 +220,7 @@ impl Keymap {
         if previous.is_none() {
             layers.push(layer);
         }
-        self.snapshot = Arc::new(KeymapSnapshot::new(layers)?);
+        self.snapshot = Rc::new(KeymapSnapshot::new(layers)?);
         self.version.0 += 1;
         Ok(previous)
     }
@@ -230,8 +230,7 @@ impl Keymap {
         let mut layers = self.snapshot.layers.clone();
         let index = layers.iter().position(|layer| layer.id == *id)?;
         let removed = layers.remove(index);
-        self.snapshot =
-            Arc::new(KeymapSnapshot::new(layers).expect("removing a layer stays valid"));
+        self.snapshot = Rc::new(KeymapSnapshot::new(layers).expect("removing a layer stays valid"));
         self.version.0 += 1;
         Some(removed)
     }
