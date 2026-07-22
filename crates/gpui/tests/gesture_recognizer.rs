@@ -48,7 +48,7 @@ fn up(button: MouseButton, count: usize, modifiers: Modifiers) -> MouseUpEvent {
 }
 
 #[test]
-fn click_count_arbitration_defers_only_overlapping_higher_count_candidates() {
+fn click_count_arbitration_dispatches_each_exact_count_in_order() {
     let (snapshot, revision) = snapshot([
         GestureRule::new(
             GesturePattern::Click {
@@ -75,14 +75,11 @@ fn click_count_arbitration_defers_only_overlapping_higher_count_candidates() {
         revision,
         41,
     );
-    assert!(
-        recognizer
-            .mouse_up(&up(MouseButton::Left, 1, Modifiers::none()))
-            .is_none()
-    );
-    let delayed = recognizer.flush_pending_click().unwrap();
-    assert!(delayed.action().partial_eq(&SingleClick));
-    assert_eq!(delayed.target(), 41);
+    let single = recognizer
+        .mouse_up(&up(MouseButton::Left, 1, Modifiers::none()))
+        .unwrap();
+    assert!(single.action().partial_eq(&SingleClick));
+    assert_eq!(single.target(), 41);
 
     recognizer.mouse_down(
         &down(MouseButton::Left, 2, Modifiers::none()),

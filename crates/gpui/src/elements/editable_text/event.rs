@@ -2,5 +2,8 @@
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum EditableTextEvent {
-    Changed { revision: u64 },
+    Changed {
+        revision: u64,
+        composition_active: bool,
+    },
 }

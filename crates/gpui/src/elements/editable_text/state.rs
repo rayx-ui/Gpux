@@ -636,6 +636,7 @@ impl EditableTextState {
         self.restart_blink(cx);
         cx.emit(EditableTextEvent::Changed {
             revision: self.revision(),
+            composition_active: false,
         });
         cx.notify();
         true
@@ -1103,6 +1104,7 @@ impl EditableTextState {
         self.restart_blink(cx);
         cx.emit(EditableTextEvent::Changed {
             revision: self.revision(),
+            composition_active: self.marked_range.is_some(),
         });
         cx.notify();
         true
@@ -1120,6 +1122,7 @@ impl EditableTextState {
         self.restart_blink(cx);
         cx.emit(EditableTextEvent::Changed {
             revision: self.revision(),
+            composition_active: self.marked_range.is_some(),
         });
         cx.notify();
         true

@@ -184,18 +184,6 @@ impl GestureMapSnapshot {
                 .collect(),
         })
     }
-
-    fn has_click_with_higher_count(
-        &self,
-        button: MouseButton,
-        modifiers: Modifiers,
-        count: u8,
-    ) -> bool {
-        self.rules_highest_precedence().any(|rule| {
-            matches!(rule.pattern(), GesturePattern::Click { button: candidate_button, count: candidate_count, modifiers: candidate_modifiers }
-                if candidate_button == button && candidate_modifiers == modifiers && candidate_count > count)
-        })
-    }
 }
 
 /// A generic, immutable gesture-layer map.
@@ -286,12 +274,6 @@ struct PendingPointerGesture {
     revision: GestureMapVersion,
 }
 
-struct PendingClick {
-    action: Box<dyn Action>,
-    target: usize,
-    revision: GestureMapVersion,
-}
-
 #[derive(Default)]
 struct WheelAccumulator {
     direction: Option<WheelDirection>,
@@ -307,7 +289,6 @@ struct WheelAccumulator {
 #[derive(Default)]
 pub struct GestureRecognizer {
     pending_pointer: Option<PendingPointerGesture>,
-    pending_click: Option<PendingClick>,
     wheel: WheelAccumulator,
 }
 
@@ -354,7 +335,11 @@ impl GestureRecognizer {
         })
     }
 
-    /// Resolves an exact-count click, deferring only when a higher-count candidate overlaps it.
+    /// Resolves the exact click count reported by the platform.
+    ///
+    /// A multi-click sequence dispatches its single-, double-, and triple-click
+    /// actions in order as the platform increments `click_count`. This keeps the
+    /// first click responsive while later counts can replace its transient state.
     pub fn mouse_up(&mut self, event: &MouseUpEvent) -> Option<RecognizedGesture> {
         let pending = self.pending_pointer.take()?;
         if event.button != pending.down.button || event.modifiers != pending.down.modifiers {
@@ -365,30 +350,7 @@ impl GestureRecognizer {
             matches!(rule.pattern(), GesturePattern::Click { button, count: expected_count, modifiers }
                 if button == event.button && expected_count == count && modifiers == event.modifiers)
         })?;
-        if pending
-            .snapshot
-            .has_click_with_higher_count(event.button, event.modifiers, count)
-        {
-            self.pending_click = Some(PendingClick {
-                action: rule.action().boxed_clone(),
-                target: pending.target,
-                revision: pending.revision,
-            });
-            None
-        } else {
-            self.pending_click = None;
-            Some(recognized(rule, pending.target, pending.revision))
-        }
-    }
-
-    /// Dispatches a deferred single click after the double-click arbitration timeout.
-    pub fn flush_pending_click(&mut self) -> Option<RecognizedGesture> {
-        let pending = self.pending_click.take()?;
-        Some(RecognizedGesture {
-            action: pending.action,
-            target: pending.target,
-            revision: pending.revision,
-        })
+        Some(recognized(rule, pending.target, pending.revision))
     }
 
     /// Accumulates a wheel sample and emits at most one matching action when its threshold is met.
@@ -443,7 +405,6 @@ impl GestureRecognizer {
     /// Cancels pending click, drag, and wheel state without dispatching an action.
     pub fn cancel(&mut self) {
         self.pending_pointer = None;
-        self.pending_click = None;
         self.wheel = WheelAccumulator::default();
     }
 }

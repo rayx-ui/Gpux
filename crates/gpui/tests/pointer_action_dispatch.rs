@@ -59,6 +59,26 @@ fn install_pointer_click(app: &mut TestApp) {
     });
 }
 
+fn install_pointer_click_counts(app: &mut TestApp) {
+    app.update(|cx| {
+        cx.set_gesture_map_layer(GestureMapLayer::new(
+            InputLayerId::new("pointer-action-dispatch-test"),
+            0,
+            [1, 2].map(|count| {
+                GestureRule::new(
+                    GesturePattern::Click {
+                        button: MouseButton::Left,
+                        count,
+                        modifiers: Modifiers::none(),
+                    },
+                    &PointerAction,
+                )
+            }),
+        ))
+        .unwrap();
+    });
+}
+
 fn open_harness(
     app: &mut TestApp,
 ) -> (
@@ -126,4 +146,16 @@ fn handled_click_reports_pointer_source_without_claiming_continuation() {
         assert!(window.active_pointer_interaction().is_none());
         assert!(window.captured_hitbox().is_none());
     });
+}
+
+#[test]
+fn single_click_dispatches_immediately_when_multi_click_rules_overlap() {
+    let mut app = TestApp::new();
+    install_pointer_click_counts(&mut app);
+    let (mut window, outer_actions, inner_actions, _) = open_harness(&mut app);
+    window.draw();
+
+    window.simulate_click(point(px(20.), px(20.)), MouseButton::Left);
+    assert_eq!(inner_actions.get(), 1);
+    assert_eq!(outer_actions.get(), 0);
 }

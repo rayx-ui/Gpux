@@ -3976,6 +3976,44 @@ impl Window {
         {
             return Err(PointerInteractionClaimError::TargetMismatch);
         }
+        self.claim_pointer_interaction_for_target(
+            report,
+            DispatchNodeId::from_usize(target),
+            hitbox_id,
+            button,
+            start,
+            current,
+            gesture_revision,
+        )
+    }
+
+    fn claim_pointer_interaction_for_target(
+        &mut self,
+        report: &ActionDispatchReport,
+        target: DispatchNodeId,
+        hitbox_id: HitboxId,
+        button: MouseButton,
+        start: Point<Pixels>,
+        current: Point<Pixels>,
+        gesture_revision: GestureMapVersion,
+    ) -> Result<PointerInteractionId, PointerInteractionClaimError> {
+        if report.outcome() != ActionDispatchOutcome::Handled {
+            return Err(PointerInteractionClaimError::ActionNotHandled);
+        }
+        if report.invocation().source() != ActionInvocationSource::Pointer {
+            return Err(PointerInteractionClaimError::NonPointerAction);
+        }
+        let Some(hitbox_target) = self
+            .rendered_frame
+            .hitbox_dispatch_nodes
+            .get(&hitbox_id)
+            .copied()
+        else {
+            return Err(PointerInteractionClaimError::TargetMismatch);
+        };
+        if !self.dispatch_target_contains(hitbox_target, target) {
+            return Err(PointerInteractionClaimError::TargetMismatch);
+        }
         if let Some(active) = self.active_pointer_interaction() {
             let active_id = active.id;
             self.pointer_interaction_diagnostics.claim_conflict_count = self
@@ -3991,7 +4029,7 @@ impl Window {
             id,
             action_name: report.invocation().action_name(),
             action_invocation_id: report.invocation().id(),
-            target,
+            target: target.as_usize(),
             hitbox_id,
             button,
             start,
@@ -4029,6 +4067,7 @@ impl Window {
     }
 
     fn reconcile_pointer_interaction(&mut self, cx: &App) {
+        self.rebind_repainted_pointer_owner();
         let Some(owner) = self.active_pointer_interaction() else {
             return;
         };
@@ -4040,7 +4079,9 @@ impl Window {
             .rendered_frame
             .hitbox_dispatch_nodes
             .get(&owner.hitbox_id)
-            .is_none_or(|target| target.as_usize() != owner.target)
+            .is_none_or(|target| {
+                !self.dispatch_target_contains(*target, DispatchNodeId::from_usize(owner.target))
+            })
         {
             Some(PointerInteractionCancellationReason::TargetRemoved)
         } else {
@@ -4051,6 +4092,67 @@ impl Window {
             self.gesture_recognizer.cancel();
             self.pending_mapped_pointer = None;
         }
+    }
+
+    fn hitbox_for_retained_target(
+        &self,
+        position: Point<Pixels>,
+        target: DispatchNodeId,
+    ) -> Option<HitboxId> {
+        self.rendered_frame
+            .hit_test(position)
+            .ids
+            .into_iter()
+            .find(|hitbox_id| self.hitbox_descends_from(*hitbox_id, target))
+            .or_else(|| {
+                self.rendered_frame.hitbox_dispatch_nodes.iter().find_map(
+                    |(hitbox_id, hitbox_target)| {
+                        self.dispatch_target_contains(*hitbox_target, target)
+                            .then_some(*hitbox_id)
+                    },
+                )
+            })
+    }
+
+    fn hitbox_descends_from(&self, hitbox_id: HitboxId, target: DispatchNodeId) -> bool {
+        self.rendered_frame
+            .hitbox_dispatch_nodes
+            .get(&hitbox_id)
+            .is_some_and(|hitbox_target| self.dispatch_target_contains(*hitbox_target, target))
+    }
+
+    fn dispatch_target_contains(
+        &self,
+        descendant: DispatchNodeId,
+        ancestor: DispatchNodeId,
+    ) -> bool {
+        descendant.as_usize() < self.rendered_frame.dispatch_tree.len()
+            && self
+                .rendered_frame
+                .dispatch_tree
+                .dispatch_path(descendant)
+                .contains(&ancestor)
+    }
+
+    fn rebind_repainted_pointer_owner(&mut self) {
+        let Some(owner) = self.active_pointer_interaction() else {
+            return;
+        };
+        if self.captured_hitbox != Some(owner.hitbox_id)
+            || self.hitbox_descends_from(owner.hitbox_id, DispatchNodeId::from_usize(owner.target))
+        {
+            return;
+        }
+        let retained_target = DispatchNodeId::from_usize(owner.target);
+        let Some(hitbox_id) = self.hitbox_for_retained_target(owner.start, retained_target) else {
+            return;
+        };
+        self.pointer_interaction_diagnostics
+            .active
+            .as_mut()
+            .expect("pointer owner remains active")
+            .hitbox_id = hitbox_id;
+        self.captured_hitbox = Some(hitbox_id);
     }
 
     fn gesture_target(&self, snapshot: &GestureMapSnapshot) -> Option<(HitboxId, DispatchNodeId)> {
@@ -4143,19 +4245,43 @@ impl Window {
             let Some(gesture) = self.gesture_recognizer.mouse_move(event) else {
                 return;
             };
-            let candidate = self.pending_mapped_pointer.take();
-            let report = self.dispatch_recognized_gesture(gesture, cx);
+            let candidate = self
+                .pending_mapped_pointer
+                .take()
+                .and_then(|mut candidate| {
+                    if self
+                        .rendered_frame
+                        .hitbox_dispatch_nodes
+                        .get(&candidate.hitbox_id)
+                        != Some(&candidate.target)
+                    {
+                        candidate.hitbox_id =
+                            self.hitbox_for_retained_target(candidate.start, candidate.target)?;
+                    }
+                    Some(candidate)
+                });
+            let Some(candidate) = candidate else {
+                self.gesture_recognizer.cancel();
+                return;
+            };
+            let (report, handled_target) =
+                self.dispatch_recognized_gesture_with_handler(gesture, cx);
             if report.outcome() == ActionDispatchOutcome::Handled
-                && let Some(candidate) = candidate
                 && report.invocation().target() == Some(candidate.target.as_usize())
             {
-                let _ = self.claim_pointer_interaction(
-                    &report,
-                    candidate.hitbox_id,
-                    candidate.button,
-                    candidate.start,
-                    event.position,
-                    candidate.gesture_revision,
+                let _ = handled_target.map_or(
+                    Err(PointerInteractionClaimError::TargetMismatch),
+                    |handled_target| {
+                        self.claim_pointer_interaction_for_target(
+                            &report,
+                            handled_target,
+                            candidate.hitbox_id,
+                            candidate.button,
+                            candidate.start,
+                            event.position,
+                            candidate.gesture_revision,
+                        )
+                    },
                 );
             }
             return;
@@ -4183,21 +4309,32 @@ impl Window {
         gesture: RecognizedGesture,
         cx: &mut App,
     ) -> ActionDispatchReport {
+        self.dispatch_recognized_gesture_with_handler(gesture, cx).0
+    }
+
+    fn dispatch_recognized_gesture_with_handler(
+        &mut self,
+        gesture: RecognizedGesture,
+        cx: &mut App,
+    ) -> (ActionDispatchReport, Option<DispatchNodeId>) {
         let node_id = DispatchNodeId::from_usize(gesture.target());
         if node_id.as_usize() < self.rendered_frame.dispatch_tree.len() {
-            self.dispatch_action_on_node_from(
+            self.dispatch_action_on_node_from_with_handler(
                 node_id,
                 ActionInvocationSource::Pointer,
                 gesture.action(),
                 cx,
             )
         } else {
-            self.dispatch_action_outcome(
-                ActionInvocationSource::Pointer,
-                gesture.action(),
-                Some(gesture.target()),
-                ActionDispatchOutcome::Cancelled,
-                cx,
+            (
+                self.dispatch_action_outcome(
+                    ActionInvocationSource::Pointer,
+                    gesture.action(),
+                    Some(gesture.target()),
+                    ActionDispatchOutcome::Cancelled,
+                    cx,
+                ),
+                None,
             )
         }
     }
@@ -7219,6 +7356,17 @@ impl Window {
         action: &dyn Action,
         cx: &mut App,
     ) -> ActionDispatchReport {
+        self.dispatch_action_on_node_from_with_handler(node_id, source, action, cx)
+            .0
+    }
+
+    fn dispatch_action_on_node_from_with_handler(
+        &mut self,
+        node_id: DispatchNodeId,
+        source: ActionInvocationSource,
+        action: &dyn Action,
+        cx: &mut App,
+    ) -> (ActionDispatchReport, Option<DispatchNodeId>) {
         let started_at = Instant::now();
         let invocation = ActionInvocation::new(
             self.next_action_invocation_id,
@@ -7236,10 +7384,10 @@ impl Window {
         cx.propagate_event = true;
         self.notify_action_dispatch(ActionDispatchEvent::Began(invocation.clone()), cx);
 
-        let (outcome, handled_count) = if cx.propagate_event {
+        let (outcome, handled_count, handled_target) = if cx.propagate_event {
             self.dispatch_action_on_node_inner(node_id, action, cx)
         } else {
-            (ActionDispatchOutcome::Cancelled, 0)
+            (ActionDispatchOutcome::Cancelled, 0, None)
         };
         let report =
             ActionDispatchReport::new(invocation, outcome, handled_count, started_at.elapsed());
@@ -7253,7 +7401,7 @@ impl Window {
             cx.platform.hide_cursor_until_mouse_moves();
         }
 
-        report
+        (report, handled_target)
     }
 
     fn dispatch_action_on_node_inner(
@@ -7261,7 +7409,7 @@ impl Window {
         node_id: DispatchNodeId,
         action: &dyn Action,
         cx: &mut App,
-    ) -> (ActionDispatchOutcome, usize) {
+    ) -> (ActionDispatchOutcome, usize, Option<DispatchNodeId>) {
         let dispatch_path = self.rendered_frame.dispatch_tree.dispatch_path(node_id);
         let mut handled_count = 0;
 
@@ -7289,7 +7437,7 @@ impl Window {
         }
 
         if !cx.propagate_event {
-            return (ActionDispatchOutcome::Cancelled, handled_count);
+            return (ActionDispatchOutcome::Cancelled, handled_count, None);
         }
 
         // Capture phase for window actions.
@@ -7309,7 +7457,7 @@ impl Window {
                     listener(any_action, DispatchPhase::Capture, self, cx);
 
                     if !cx.propagate_event {
-                        return (ActionDispatchOutcome::Cancelled, handled_count);
+                        return (ActionDispatchOutcome::Cancelled, handled_count, None);
                     }
                 }
             }
@@ -7334,11 +7482,15 @@ impl Window {
                             }
                             ActionDispatchOutcome::Handled => {
                                 handled_count += 1;
-                                return (ActionDispatchOutcome::Handled, handled_count);
+                                return (
+                                    ActionDispatchOutcome::Handled,
+                                    handled_count,
+                                    Some(*node_id),
+                                );
                             }
                             outcome @ (ActionDispatchOutcome::Failed
                             | ActionDispatchOutcome::Cancelled) => {
-                                return (outcome, handled_count);
+                                return (outcome, handled_count, Some(*node_id));
                             }
                         }
                     }
@@ -7347,7 +7499,11 @@ impl Window {
                     handled_count += 1;
 
                     if !cx.propagate_event {
-                        return (ActionDispatchOutcome::Handled, handled_count);
+                        return (
+                            ActionDispatchOutcome::Handled,
+                            handled_count,
+                            Some(*node_id),
+                        );
                     }
                 }
             }
@@ -7379,9 +7535,9 @@ impl Window {
         }
 
         if handled_count == 0 {
-            (ActionDispatchOutcome::Unhandled, handled_count)
+            (ActionDispatchOutcome::Unhandled, handled_count, None)
         } else {
-            (ActionDispatchOutcome::Handled, handled_count)
+            (ActionDispatchOutcome::Handled, handled_count, None)
         }
     }
 

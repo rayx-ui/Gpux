@@ -27,6 +27,7 @@ struct Counters {
 struct PointerOwnerHarness {
     counters: Rc<Counters>,
     unhandled: bool,
+    inner_handles_drag: bool,
     show_inner: bool,
 }
 
@@ -40,6 +41,7 @@ impl Render for PointerOwnerHarness {
         let click = self.counters.clone();
         let unhandled_drag = self.counters.clone();
         let unhandled = self.unhandled;
+        let inner_handles_drag = self.inner_handles_drag;
 
         let inner = div()
             .w(px(120.))
@@ -58,8 +60,12 @@ impl Render for PointerOwnerHarness {
                 }
             })
             .on_action_with_outcome(move |_: &DragAction, _, _| {
-                inner_drag.inner_drag.set(inner_drag.inner_drag.get() + 1);
-                ActionDispatchOutcome::Handled
+                if inner_handles_drag {
+                    inner_drag.inner_drag.set(inner_drag.inner_drag.get() + 1);
+                    ActionDispatchOutcome::Handled
+                } else {
+                    ActionDispatchOutcome::Unhandled
+                }
             })
             .on_action(move |_: &ClickAction, _, _| {
                 click.click.set(click.click.get() + 1);
@@ -78,6 +84,7 @@ impl Render for PointerOwnerHarness {
         div()
             .w(px(120.))
             .h(px(120.))
+            .on_mouse_down(MouseButton::Left, |_, _, _| {})
             .on_action(move |_: &DragAction, _, _| {
                 outer_drag.outer_drag.set(outer_drag.outer_drag.get() + 1);
             })
@@ -134,6 +141,7 @@ fn handled_drag_claims_once_and_raw_packets_only_continue_that_owner() {
         move |_, _| PointerOwnerHarness {
             counters,
             unhandled: false,
+            inner_handles_drag: true,
             show_inner: true,
         }
     });
@@ -209,6 +217,80 @@ fn handled_drag_claims_once_and_raw_packets_only_continue_that_owner() {
 }
 
 #[test]
+fn handled_drag_recovers_repainted_start_hitbox_before_claiming_owner() {
+    let mut app = TestApp::new();
+    install_gestures(&mut app, &DragAction);
+    let counters = Rc::new(Counters::default());
+    let mut window = app.open_window({
+        let counters = counters.clone();
+        move |_, _| PointerOwnerHarness {
+            counters,
+            unhandled: false,
+            inner_handles_drag: true,
+            show_inner: true,
+        }
+    });
+    window.draw();
+    let start = point(px(20.), px(20.));
+
+    window.simulate_mouse_down(start, MouseButton::Left);
+    window.draw();
+    simulate_drag_move(&mut window, point(px(30.), px(20.)));
+
+    let owner_id = window.update(|_, window, _| {
+        let owner = window
+            .active_pointer_interaction()
+            .expect("repainted drag target must still claim the pointer sequence");
+        assert_eq!(owner.start(), start);
+        assert_eq!(window.captured_hitbox(), Some(owner.hitbox_id()));
+        owner.id()
+    });
+    assert_eq!(counters.inner_drag.get(), 1);
+    assert_eq!(counters.outer_drag.get(), 0);
+    assert_eq!(counters.owned_move.get(), 1);
+
+    window.draw();
+    simulate_drag_move(&mut window, point(px(36.), px(22.)));
+    window.update(|_, window, _| {
+        assert_eq!(window.active_pointer_interaction().unwrap().id(), owner_id);
+    });
+    assert_eq!(counters.owned_move.get(), 2);
+}
+
+#[test]
+fn ancestor_handled_drag_survives_descendant_removal() {
+    let mut app = TestApp::new();
+    install_gestures(&mut app, &DragAction);
+    let counters = Rc::new(Counters::default());
+    let mut window = app.open_window({
+        let counters = counters.clone();
+        move |_, _| PointerOwnerHarness {
+            counters,
+            unhandled: false,
+            inner_handles_drag: false,
+            show_inner: true,
+        }
+    });
+    window.draw();
+
+    window.simulate_mouse_down(point(px(20.), px(20.)), MouseButton::Left);
+    simulate_drag_move(&mut window, point(px(30.), px(20.)));
+    let owner_id = window.update(|_, window, _| window.active_pointer_interaction().unwrap().id());
+    assert_eq!(counters.inner_drag.get(), 0);
+    assert_eq!(counters.outer_drag.get(), 1);
+
+    window.update(|harness, _, cx| {
+        harness.show_inner = false;
+        cx.notify();
+    });
+    window.draw();
+    simulate_drag_move(&mut window, point(px(36.), px(22.)));
+    window.update(|_, window, _| {
+        assert_eq!(window.active_pointer_interaction().unwrap().id(), owner_id);
+    });
+}
+
+#[test]
 fn unhandled_drag_never_claims_or_captures() {
     let mut app = TestApp::new();
     install_gestures(&mut app, &UnhandledDragAction);
@@ -218,6 +300,7 @@ fn unhandled_drag_never_claims_or_captures() {
         move |_, _| PointerOwnerHarness {
             counters,
             unhandled: true,
+            inner_handles_drag: true,
             show_inner: true,
         }
     });
@@ -243,6 +326,7 @@ fn capture_loss_and_profile_replacement_cancel_once_without_completion() {
         move |_, _| PointerOwnerHarness {
             counters,
             unhandled: false,
+            inner_handles_drag: true,
             show_inner: true,
         }
     });
@@ -299,6 +383,7 @@ fn target_removal_and_window_teardown_cancel_once_without_completion() {
         move |_, _| PointerOwnerHarness {
             counters,
             unhandled: false,
+            inner_handles_drag: true,
             show_inner: true,
         }
     });
