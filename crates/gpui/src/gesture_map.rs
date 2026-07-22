@@ -1,7 +1,7 @@
 use crate::{
-    Action, InputLayerId, InputMapError, Modifiers, MouseButton, MouseDownEvent, MouseMoveEvent,
-    MouseUpEvent, Point, ScrollDelta, ScrollWheelEvent, ScrollWheelMomentumPhase, ScrollWheelPhase,
-    ScrollWheelSource,
+    Action, InputLayerId, InputMapError, KeyBindingContextPredicate, KeyContext, Modifiers,
+    MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Point, ScrollDelta,
+    ScrollWheelEvent, ScrollWheelMomentumPhase, ScrollWheelPhase, ScrollWheelSource,
 };
 use std::rc::Rc;
 
@@ -67,6 +67,7 @@ pub enum GestureWheelSource {
 pub struct GestureRule {
     pattern: GesturePattern,
     action: Box<dyn Action>,
+    context_predicate: Option<Rc<KeyBindingContextPredicate>>,
 }
 
 impl Clone for GestureRule {
@@ -74,6 +75,7 @@ impl Clone for GestureRule {
         Self {
             pattern: self.pattern,
             action: self.action.boxed_clone(),
+            context_predicate: self.context_predicate.clone(),
         }
     }
 }
@@ -81,9 +83,19 @@ impl Clone for GestureRule {
 impl GestureRule {
     /// Creates a gesture rule. Rules later in a layer take precedence.
     pub fn new(pattern: GesturePattern, action: &dyn Action) -> Self {
+        Self::load(pattern, action, None)
+    }
+
+    /// Creates a gesture rule from an already parsed context predicate.
+    pub fn load(
+        pattern: GesturePattern,
+        action: &dyn Action,
+        context_predicate: Option<Rc<KeyBindingContextPredicate>>,
+    ) -> Self {
         Self {
             pattern,
             action: action.boxed_clone(),
+            context_predicate,
         }
     }
 
@@ -95,6 +107,18 @@ impl GestureRule {
     /// Returns the bound action.
     pub fn action(&self) -> &dyn Action {
         self.action.as_ref()
+    }
+
+    /// Returns the predicate used to match this rule.
+    pub fn predicate(&self) -> Option<Rc<KeyBindingContextPredicate>> {
+        self.context_predicate.clone()
+    }
+
+    /// Returns the deepest matching context depth, or zero for an unscoped rule.
+    pub fn context_depth(&self, contexts: &[KeyContext]) -> Option<usize> {
+        self.context_predicate
+            .as_ref()
+            .map_or(Some(0), |predicate| predicate.depth_of(contexts))
     }
 }
 
@@ -164,24 +188,35 @@ impl GestureMapSnapshot {
     /// belongs to an unrelated component.
     pub fn filtered_for_target(
         &self,
+        contexts: &[KeyContext],
         mut is_available: impl FnMut(&dyn Action) -> bool,
     ) -> Rc<Self> {
+        let mut rules = Vec::new();
+        for (layer_index, layer) in self.layers.iter().enumerate() {
+            for (rule_index, rule) in layer.rules().iter().enumerate() {
+                let Some(depth) = rule.context_depth(contexts) else {
+                    continue;
+                };
+                if is_available(rule.action()) {
+                    rules.push((
+                        depth,
+                        layer.priority(),
+                        layer_index,
+                        rule_index,
+                        rule.clone(),
+                    ));
+                }
+            }
+        }
+        rules.sort_by_key(|(depth, priority, layer_index, rule_index, _)| {
+            (*depth, *priority, *layer_index, *rule_index)
+        });
         Rc::new(Self {
-            layers: self
-                .layers
-                .iter()
-                .map(|layer| {
-                    GestureMapLayer::new(
-                        layer.id.clone(),
-                        layer.priority,
-                        layer
-                            .rules()
-                            .iter()
-                            .filter(|rule| is_available(rule.action()))
-                            .cloned(),
-                    )
-                })
-                .collect(),
+            layers: vec![GestureMapLayer::new(
+                InputLayerId::new("gpui.resolved-gesture-target"),
+                0,
+                rules.into_iter().map(|(_, _, _, _, rule)| rule),
+            )],
         })
     }
 }

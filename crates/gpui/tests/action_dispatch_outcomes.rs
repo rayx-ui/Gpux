@@ -6,8 +6,8 @@ use std::{
 
 use gpux::{
     ActionDispatchEvent, ActionDispatchOutcome, ActionDispatchReport, ActionInvocation,
-    ActionInvocationSource, Context, FocusHandle, IntoElement, Render, TestApp, Window, actions,
-    div, prelude::*,
+    ActionInvocationSource, Context, FocusHandle, InputLayerId, IntoElement, KeyBinding,
+    KeymapLayer, Render, TestApp, Window, actions, div, prelude::*,
 };
 
 actions!(
@@ -126,6 +126,55 @@ fn handled_dispatch_emits_one_begin_and_one_terminal_report() {
             ActionDispatchEvent::Ended(report.clone()),
         ]
     );
+}
+
+#[test]
+fn key_binding_dispatch_reports_keyboard_source() {
+    let mut app = TestApp::new();
+    app.update(|cx| {
+        cx.set_keymap_layer(KeymapLayer::new(
+            InputLayerId::new("test.keyboard-source"),
+            0,
+            [KeyBinding::new("ctrl-d", DispatchAction, None)],
+        ))
+        .unwrap();
+    });
+    let handled = Rc::new(Cell::new(0));
+    let events = Rc::new(RefCell::new(Vec::new()));
+    let mut window = app.open_window({
+        let handled = handled.clone();
+        move |_, cx| ActionHarness {
+            focus: cx.focus_handle(),
+            handled,
+            explicit_outcome: None,
+            dispatch_nested: false,
+        }
+    });
+    window.draw();
+    window.update(|harness, window, cx| window.focus(&harness.focus, cx));
+    window.draw();
+    let _subscription = window.update({
+        let events = events.clone();
+        move |_, window, _| {
+            window
+                .observe_action_dispatch(move |event, _, _| events.borrow_mut().push(event.clone()))
+        }
+    });
+
+    window.simulate_keystroke("ctrl-d");
+
+    assert_eq!(handled.get(), 1);
+    let events = events.borrow();
+    let [
+        ActionDispatchEvent::Began(invocation),
+        ActionDispatchEvent::Ended(report),
+    ] = events.as_slice()
+    else {
+        panic!("expected one keyboard begin/end pair");
+    };
+    assert_eq!(invocation.source(), ActionInvocationSource::Keyboard);
+    assert_eq!(report.invocation(), invocation);
+    assert_eq!(report.outcome(), ActionDispatchOutcome::Handled);
 }
 
 #[test]

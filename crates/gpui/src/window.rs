@@ -4155,27 +4155,78 @@ impl Window {
         self.captured_hitbox = Some(hitbox_id);
     }
 
-    fn gesture_target(&self, snapshot: &GestureMapSnapshot) -> Option<(HitboxId, DispatchNodeId)> {
-        self.captured_hitbox
+    fn gesture_handler(
+        &self,
+        snapshot: &GestureMapSnapshot,
+        target: DispatchNodeId,
+    ) -> Option<DispatchNodeId> {
+        let contexts = self.gesture_contexts(target);
+        self.rendered_frame
+            .dispatch_tree
+            .dispatch_path(target)
             .into_iter()
-            .chain(self.mouse_hit_test.ids.iter().copied())
-            .find_map(|hitbox_id| {
-                self.rendered_frame
-                    .hitbox_dispatch_nodes
-                    .get(&hitbox_id)
-                    .copied()
-                    .filter(|target| {
-                        snapshot
-                            .layers()
-                            .flat_map(|layer| layer.rules())
-                            .any(|rule| {
-                                self.rendered_frame
-                                    .dispatch_tree
-                                    .is_action_available(rule.action(), *target)
+            .rev()
+            .find(|node_id| {
+                let node = self.rendered_frame.dispatch_tree.node(*node_id);
+                snapshot
+                    .layers()
+                    .flat_map(|layer| layer.rules())
+                    .any(|rule| {
+                        rule.context_depth(&contexts).is_some()
+                            && node.action_listeners.iter().any(|listener| {
+                                listener.action_type == rule.action().as_any().type_id()
                             })
                     })
-                    .map(|target| (hitbox_id, target))
             })
+    }
+
+    fn gesture_contexts(&self, target: DispatchNodeId) -> Vec<KeyContext> {
+        self.rendered_frame
+            .dispatch_tree
+            .dispatch_path(target)
+            .into_iter()
+            .filter_map(|node_id| {
+                self.rendered_frame
+                    .dispatch_tree
+                    .node(node_id)
+                    .context
+                    .clone()
+            })
+            .collect()
+    }
+
+    fn gesture_target(&self, snapshot: &GestureMapSnapshot) -> Option<(HitboxId, DispatchNodeId)> {
+        let mut selected = None;
+        for hitbox_id in self
+            .captured_hitbox
+            .into_iter()
+            .chain(self.mouse_hit_test.ids.iter().copied())
+        {
+            let Some((target, handler)) = self
+                .rendered_frame
+                .hitbox_dispatch_nodes
+                .get(&hitbox_id)
+                .copied()
+                .and_then(|target| {
+                    self.gesture_handler(snapshot, target)
+                        .map(|handler| (target, handler))
+                })
+            else {
+                continue;
+            };
+
+            match selected {
+                None => selected = Some((hitbox_id, target, handler)),
+                Some((_, _, selected_handler))
+                    if handler != selected_handler
+                        && self.dispatch_target_contains(handler, selected_handler) =>
+                {
+                    selected = Some((hitbox_id, target, handler));
+                }
+                Some(_) => {}
+            }
+        }
+        selected.map(|(hitbox_id, target, _)| (hitbox_id, target))
     }
 
     fn begin_mapped_pointer_gesture(&mut self, event: &MouseDownEvent, cx: &mut App) {
@@ -4191,7 +4242,8 @@ impl Window {
         let Some((hitbox_id, target)) = self.gesture_target(&snapshot) else {
             return;
         };
-        let snapshot = snapshot.filtered_for_target(|action| {
+        let contexts = self.gesture_contexts(target);
+        let snapshot = snapshot.filtered_for_target(&contexts, |action| {
             self.rendered_frame
                 .dispatch_tree
                 .is_action_available(action, target)
@@ -4215,7 +4267,8 @@ impl Window {
         let Some((_, target)) = self.gesture_target(&snapshot) else {
             return;
         };
-        let snapshot = snapshot.filtered_for_target(|action| {
+        let contexts = self.gesture_contexts(target);
+        let snapshot = snapshot.filtered_for_target(&contexts, |action| {
             self.rendered_frame
                 .dispatch_tree
                 .is_action_available(action, target)
@@ -4295,12 +4348,6 @@ impl Window {
             }
             self.pending_mapped_pointer = None;
             return;
-        }
-
-        if let Some(event) = event.downcast_ref::<ScrollWheelEvent>()
-            && self.active_pointer_interaction().is_none()
-        {
-            self.recognize_mapped_wheel(event, cx);
         }
     }
 
@@ -6994,6 +7041,16 @@ impl Window {
 
         self.rendered_frame.mouse_listeners = mouse_listeners;
 
+        // Wheel action handlers consume state published by the raw wheel listener for the same
+        // sample (for example its normalized delta and pointer location). Pointer gestures still
+        // recognize before raw delivery so they can establish one continuation owner, but a wheel
+        // has no continuation owner and must dispatch only after the current sample is available.
+        if let Some(event) = event.downcast_ref::<ScrollWheelEvent>()
+            && self.active_pointer_interaction().is_none()
+        {
+            self.recognize_mapped_wheel(event, cx);
+        }
+
         if cx.has_active_drag() {
             if event.is::<MouseMoveEvent>() {
                 // If this was a mouse move event, redraw the window so that the
@@ -7181,7 +7238,7 @@ impl Window {
 
         if !skip_bindings {
             for binding in match_result.bindings {
-                self.dispatch_action_on_node(node_id, binding.action.as_ref(), cx);
+                self.dispatch_keyboard_action_on_node(node_id, binding.action.as_ref(), cx);
                 if !cx.propagate_event {
                     self.dispatch_keystroke_observers(
                         event,
@@ -7305,7 +7362,7 @@ impl Window {
 
             cx.propagate_event = true;
             for binding in replay.bindings {
-                self.dispatch_action_on_node(node_id, binding.action.as_ref(), cx);
+                self.dispatch_keyboard_action_on_node(node_id, binding.action.as_ref(), cx);
                 if !cx.propagate_event {
                     self.dispatch_keystroke_observers(
                         &event,
@@ -7340,13 +7397,13 @@ impl Window {
             .unwrap_or_else(|| self.rendered_frame.dispatch_tree.root_node_id())
     }
 
-    fn dispatch_action_on_node(
+    fn dispatch_keyboard_action_on_node(
         &mut self,
         node_id: DispatchNodeId,
         action: &dyn Action,
         cx: &mut App,
     ) -> ActionDispatchReport {
-        self.dispatch_action_on_node_from(node_id, ActionInvocationSource::Programmatic, action, cx)
+        self.dispatch_action_on_node_from(node_id, ActionInvocationSource::Keyboard, action, cx)
     }
 
     fn dispatch_action_on_node_from(

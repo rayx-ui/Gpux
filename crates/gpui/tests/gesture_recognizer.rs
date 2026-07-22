@@ -1,8 +1,9 @@
 use gpux::{
     Context, GestureMap, GestureMapLayer, GesturePattern, GestureRecognizer, GestureRule,
-    GestureWheelSource, InputLayerId, IntoElement, Modifiers, MouseButton, MouseDownEvent,
-    MouseMoveEvent, MouseUpEvent, NavigationDirection, Render, ScrollDelta, ScrollWheelEvent,
-    ScrollWheelSource, TestApp, WheelDirection, Window, actions, div, point, prelude::*, px,
+    GestureWheelSource, InputLayerId, IntoElement, KeyBindingContextPredicate, KeyContext,
+    Modifiers, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, NavigationDirection,
+    Render, ScrollDelta, ScrollWheelEvent, ScrollWheelSource, TestApp, WheelDirection, Window,
+    actions, div, point, prelude::*, px,
 };
 use std::{cell::Cell, rc::Rc};
 
@@ -91,6 +92,48 @@ fn click_count_arbitration_dispatches_each_exact_count_in_order() {
         .mouse_up(&up(MouseButton::Left, 2, Modifiers::none()))
         .unwrap();
     assert!(double.action().partial_eq(&DoubleClick));
+}
+
+#[test]
+fn contextual_rule_wins_before_layer_priority() {
+    let pattern = GesturePattern::Click {
+        button: MouseButton::Left,
+        count: 1,
+        modifiers: Modifiers::none(),
+    };
+    let mut map = GestureMap::default();
+    map.set_layer(GestureMapLayer::new(
+        InputLayerId::new("contextual"),
+        0,
+        [GestureRule::load(
+            pattern,
+            &DoubleClick,
+            Some(Rc::new(KeyBindingContextPredicate::parse("Inner").unwrap())),
+        )],
+    ))
+    .unwrap();
+    map.set_layer(GestureMapLayer::new(
+        InputLayerId::new("generic-higher-priority"),
+        100,
+        [GestureRule::new(pattern, &SingleClick)],
+    ))
+    .unwrap();
+    let contexts = [KeyContext::parse("Inner").unwrap()];
+    let snapshot = map.snapshot().filtered_for_target(&contexts, |_| true);
+    let revision = map.version();
+    let mut recognizer = GestureRecognizer::default();
+
+    recognizer.mouse_down(
+        &down(MouseButton::Left, 1, Modifiers::none()),
+        snapshot,
+        revision,
+        41,
+    );
+    let recognized = recognizer
+        .mouse_up(&up(MouseButton::Left, 1, Modifiers::none()))
+        .unwrap();
+
+    assert!(recognized.action().partial_eq(&DoubleClick));
 }
 
 #[test]
