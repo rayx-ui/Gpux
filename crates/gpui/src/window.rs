@@ -1970,6 +1970,7 @@ pub struct Window {
     active: Rc<Cell<bool>>,
     minimized: Rc<Cell<bool>>,
     hovered: Rc<Cell<bool>>,
+    _thermal_state_subscription: Subscription,
     pub(crate) needs_present: Rc<Cell<bool>>,
     /// Tracks recent input event timestamps to determine if input is arriving at a high rate.
     /// Used to selectively enable VRR optimization only when input rate exceeds 60fps.
@@ -2291,6 +2292,11 @@ impl Window {
         let next_frame_callbacks: Rc<RefCell<Vec<FrameCallback>>> = Default::default();
         let input_rate_tracker = Rc::new(RefCell::new(InputRateTracker::default()));
         let last_frame_time = Rc::new(Cell::new(None));
+        let thermal_state = Rc::new(Cell::new(cx.thermal_state()));
+        let thermal_state_subscription = cx.on_thermal_state_change({
+            let thermal_state = Rc::clone(&thermal_state);
+            move |cx| thermal_state.set(cx.thermal_state())
+        });
 
         platform_window
             .request_decorations(window_decorations.unwrap_or(WindowDecorations::Server));
@@ -2319,11 +2325,8 @@ impl Window {
             let needs_present = needs_present.clone();
             let next_frame_callbacks = next_frame_callbacks.clone();
             let input_rate_tracker = input_rate_tracker.clone();
+            let thermal_state = thermal_state.clone();
             move |request_frame_options| {
-                let thermal_state = handle
-                    .update(&mut cx, |_, _, cx| cx.thermal_state())
-                    .log_err();
-
                 // Throttle frame rate based on conditions:
                 // - Thermal pressure (Serious/Critical): cap to ~60fps
                 // - Inactive window (not focused): cap to ~30fps to save energy
@@ -2334,7 +2337,10 @@ impl Window {
                     None
                 } else if !active.get() {
                     Some(Duration::from_micros(33333))
-                } else if let Some(ThermalState::Critical | ThermalState::Serious) = thermal_state {
+                } else if matches!(
+                    thermal_state.get(),
+                    ThermalState::Critical | ThermalState::Serious
+                ) {
                     Some(Duration::from_micros(16667))
                 } else {
                     None
@@ -2624,6 +2630,7 @@ impl Window {
             active,
             minimized,
             hovered,
+            _thermal_state_subscription: thermal_state_subscription,
             needs_present,
             input_rate_tracker,
             #[cfg(feature = "input-latency-histogram")]
