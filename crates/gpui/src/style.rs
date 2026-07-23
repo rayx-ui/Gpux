@@ -1468,11 +1468,30 @@ impl From<Position> for taffy::style::Position {
 
 #[cfg(test)]
 mod tests {
-    use crate::{blue, green, px, red, yellow};
+    use crate::{
+        Color, blue as authored_blue, green as authored_green, px, red as authored_red,
+        yellow as authored_yellow,
+    };
 
     use super::*;
 
     use util_macros::perf;
+
+    fn blue() -> Color {
+        authored_blue().into()
+    }
+
+    fn green() -> Color {
+        authored_green().into()
+    }
+
+    fn red() -> Color {
+        authored_red().into()
+    }
+
+    fn yellow() -> Color {
+        authored_yellow().into()
+    }
 
     #[perf]
     fn test_basic_highlight_style_combination() {
@@ -1501,9 +1520,9 @@ mod tests {
                 wavy: true,
             }),
         };
-        let expected_style = style_b;
+        let expected_style = style_b.clone();
 
-        let style_a = style_a.highlight(style_b);
+        let style_a = style_a.highlight(style_b.clone());
         assert_eq!(
             style_a, expected_style,
             "Blending an empty style with another style should return the other style"
@@ -1515,13 +1534,13 @@ mod tests {
             "Blending a style with an empty style should not change the style."
         );
 
-        let mut style_c = expected_style;
+        let mut style_c = expected_style.clone();
 
         let style_d = HighlightStyle {
-            color: Some(blue().alpha(0.7)),
+            color: Some(blue().with_alpha(0.7).expect("valid alpha")),
             strikethrough: Some(StrikethroughStyle {
                 thickness: px(4.),
-                color: Some(crate::red()),
+                color: Some(red()),
             }),
             fade_out: Some(0.),
             font_style: Some(FontStyle::Oblique),
@@ -1535,7 +1554,7 @@ mod tests {
         };
 
         let expected_style = HighlightStyle {
-            color: Some(red().blend(blue().alpha(0.7))),
+            color: Some(red().blend(blue().with_alpha(0.7).expect("valid alpha"))),
             strikethrough: Some(StrikethroughStyle {
                 thickness: px(4.),
                 color: Some(red()),

@@ -1,29 +1,31 @@
 #[cfg(any(feature = "inspector", debug_assertions))]
 use crate::Inspector;
 use crate::{
-    Action, ActiveScreenEffect, ActiveScreenEffectSnapshot, AnyDrag, AnyElement, AnyImageCache,
-    AnyTooltip, AnyView, App, AppContext, Arena, Asset, AsyncWindowContext, AvailableSpace,
-    Background, BorderStyle, Bounds, BoxShadow, Capslock, Color, Context, Corners, CursorHideMode,
-    CursorStyle, Decorations, DevicePixels, DispatchActionListener, DispatchNodeId, DispatchTree,
-    DisplayId, Edges, Effect, EffectCapabilities, ElementEffect, Entity, EntityId, EventEmitter,
-    FileDropEvent, FontId, Global, GlobalElementId, GlyphId, GpuSpecs, HtmlElementContentFit,
-    HtmlElementInputMode, HtmlElementLifetime, HtmlElementPrimitive, HtmlElementWheelBehavior,
-    HtmlIslandInputMode, HtmlIslandPrimitive, InputHandler, IsZero, KeyBinding, KeyContext,
-    KeyDownEvent, KeyEvent, Keystroke, KeystrokeEvent, LayoutId, Length, LineLayoutIndex,
+    Action, ActionDispatchEvent, ActionDispatchOutcome, ActionDispatchReport, ActionInvocation,
+    ActionInvocationSource, ActiveScreenEffect, ActiveScreenEffectSnapshot, AnyDrag, AnyElement,
+    AnyImageCache, AnyTooltip, AnyView, App, AppContext, Arena, Asset, AsyncWindowContext,
+    AvailableSpace, Background, BorderStyle, Bounds, BoxShadow, Capslock, Color, Context, Corners,
+    CursorHideMode, CursorStyle, Decorations, DevicePixels, DispatchActionListener, DispatchNodeId,
+    DispatchTree, DisplayId, Edges, Effect, EffectCapabilities, ElementEffect, Entity, EntityId,
+    EventEmitter, FileDropEvent, FontId, GestureMapSnapshot, GestureMapVersion, GestureRecognizer,
+    Global, GlobalElementId, GlyphId, GpuSpecs, HtmlElementContentFit, HtmlElementInputMode,
+    HtmlElementLifetime, HtmlElementPrimitive, HtmlElementWheelBehavior, HtmlIslandInputMode,
+    HtmlIslandPrimitive, InputHandler, IsZero, KeyBinding, KeyContext, KeyDownEvent, KeyEvent,
+    KeymapSnapshot, Keystroke, KeystrokeEvent, LayoutId, Length, LineLayoutIndex,
     MAX_ACTIVE_SCREEN_EFFECTS, MAX_SCREEN_EFFECT_SNAPSHOTS, Modifiers, ModifiersChangedEvent,
-    MonochromeSprite, MonochromeSpriteKind, MouseButton, MouseEvent, MouseMoveEvent, MouseUpEvent,
-    Overflow, Path, Pixels, PlatformAtlas, PlatformDisplay, PlatformInput, PlatformInputHandler,
-    PlatformWindow, Point, PolychromeSprite, Position, Priority, PromptButton, PromptLevel, Quad,
-    Render, RenderGlyphParams, RenderImage, RenderImageParams, RenderSvgParams, Replay, ResizeEdge,
-    SMOOTH_SVG_SCALE_FACTOR, SUBPIXEL_VARIANTS_X, SUBPIXEL_VARIANTS_Y, ScaledPixels, Scene,
-    ScreenEffect, ScreenEffectId, ScreenEffectRegionId, ScreenEffectRegionPrimitive,
-    ScreenEffectSnapshotId, ScreenEffectTarget, Shadow, SharedString, Size, StrikethroughStyle,
-    Style, SubpixelSprite, SubscriberSet, Subscription, SystemWindowTab, SystemWindowTabController,
-    TabStopMap, TaffyLayoutEngine, Task, TextRenderingMode, TextStyle, TextStyleRefinement,
-    ThermalState, TransformationMatrix, Underline, UnderlineStyle, VisualEffectPrimitive,
-    WindowAppearance, WindowBackgroundAppearance, WindowBounds, WindowControls, WindowDecorations,
-    WindowOptions, WindowParams, WindowTextSystem, point, prelude::*, px, rems, size,
-    transparent_black,
+    MonochromeSprite, MonochromeSpriteKind, MouseButton, MouseDownEvent, MouseEvent,
+    MouseMoveEvent, MouseUpEvent, Overflow, Path, Pixels, PlatformAtlas, PlatformDisplay,
+    PlatformInput, PlatformInputHandler, PlatformWindow, Point, PolychromeSprite, Position,
+    Priority, PromptButton, PromptLevel, Quad, RecognizedGesture, Render, RenderGlyphParams,
+    RenderImage, RenderImageParams, RenderSvgParams, Replay, ResizeEdge, SMOOTH_SVG_SCALE_FACTOR,
+    SUBPIXEL_VARIANTS_X, SUBPIXEL_VARIANTS_Y, ScaledPixels, Scene, ScreenEffect, ScreenEffectId,
+    ScreenEffectRegionId, ScreenEffectRegionPrimitive, ScreenEffectSnapshotId, ScreenEffectTarget,
+    ScrollWheelEvent, Shadow, SharedString, Size, StrikethroughStyle, Style, SubpixelSprite,
+    SubscriberSet, Subscription, SystemWindowTab, SystemWindowTabController, TabStopMap,
+    TaffyLayoutEngine, Task, TextRenderingMode, TextStyle, TextStyleRefinement, ThermalState,
+    TransformationMatrix, Underline, UnderlineStyle, VisualEffectPrimitive, WindowAppearance,
+    WindowBackgroundAppearance, WindowBounds, WindowControls, WindowDecorations, WindowOptions,
+    WindowParams, WindowTextSystem, point, prelude::*, px, rems, size, transparent_black,
 };
 use anyhow::{Context as _, Result, anyhow};
 use collections::{FxHashMap, FxHashSet};
@@ -209,6 +211,9 @@ impl WindowInvalidator {
 }
 
 type AnyObserver = Box<dyn FnMut(&mut Window, &mut App) -> bool + 'static>;
+
+type AnyActionDispatchObserver =
+    Box<dyn FnMut(&ActionDispatchEvent, &mut Window, &mut App) -> bool + 'static>;
 
 pub(crate) type AnyWindowFocusListener =
     Box<dyn FnMut(&WindowFocusEvent, &mut Window, &mut App) -> bool + 'static>;
@@ -452,14 +457,26 @@ impl FocusHandle {
         self.id.contains(other.id, window)
     }
 
-    /// Dispatch an action on the element that rendered this focus handle
-    pub fn dispatch_action(&self, action: &dyn Action, window: &mut Window, cx: &mut App) {
+    /// Dispatch an action on the element that rendered this focus handle.
+    pub fn dispatch_action(
+        &self,
+        action: &dyn Action,
+        window: &mut Window,
+        cx: &mut App,
+    ) -> ActionDispatchReport {
         if let Some(node_id) = window
             .rendered_frame
             .dispatch_tree
             .focusable_node_id(self.id)
         {
-            window.dispatch_action_on_node(node_id, action, cx)
+            window.dispatch_action_on_node_from(
+                node_id,
+                ActionInvocationSource::Programmatic,
+                action,
+                cx,
+            )
+        } else {
+            window.dispatch_unhandled_action(ActionInvocationSource::Programmatic, action, cx)
         }
     }
 }
@@ -831,6 +848,7 @@ pub(crate) struct WindowFrame {
     pub(crate) dispatch_tree: DispatchTree,
     pub(crate) scene: Scene,
     pub(crate) hitboxes: Vec<Hitbox>,
+    pub(crate) hitbox_dispatch_nodes: FxHashMap<HitboxId, DispatchNodeId>,
     pub(crate) window_control_hitboxes: Vec<(WindowControlArea, Hitbox)>,
     pub(crate) deferred_draws: Vec<DeferredDraw>,
     pub(crate) input_handlers: Vec<Option<PlatformInputHandler>>,
@@ -881,6 +899,7 @@ impl WindowFrame {
             dispatch_tree,
             scene: Scene::default(),
             hitboxes: Vec::new(),
+            hitbox_dispatch_nodes: FxHashMap::default(),
             window_control_hitboxes: Vec::new(),
             deferred_draws: Vec::new(),
             input_handlers: Vec::new(),
@@ -914,6 +933,7 @@ impl WindowFrame {
         self.tooltip_requests.clear();
         self.cursor_styles.clear();
         self.hitboxes.clear();
+        self.hitbox_dispatch_nodes.clear();
         self.window_control_hitboxes.clear();
         self.deferred_draws.clear();
         self.tab_stops.clear();
@@ -1749,6 +1769,147 @@ impl WindowScreenEffectSnapshot {
     }
 }
 
+/// Identifies one handled-action-owned pointer sequence within a window.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct PointerInteractionId(u64);
+
+/// Explains why an active pointer interaction terminated without completion.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PointerInteractionCancellationReason {
+    /// The interaction's initiating hitbox no longer owns pointer capture.
+    CaptureLost,
+    /// The initiating hitbox or dispatch target disappeared after a redraw.
+    TargetRemoved,
+    /// The containing window was removed.
+    WindowRemoved,
+    /// The active gesture-map profile changed during the pointer sequence.
+    ProfileReplaced,
+}
+
+/// Describes the lifecycle state of a pointer-interaction owner.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PointerInteractionPhase {
+    /// The handled action currently owns pointer continuation.
+    Active,
+    /// The pointer sequence completed normally.
+    Completed,
+    /// The pointer sequence was cancelled for the enclosed reason.
+    Cancelled(PointerInteractionCancellationReason),
+}
+
+/// The single handled action that owns continuation for a pointer sequence.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PointerInteractionOwner {
+    id: PointerInteractionId,
+    action_name: &'static str,
+    action_invocation_id: u64,
+    target: usize,
+    hitbox_id: HitboxId,
+    button: MouseButton,
+    start: Point<Pixels>,
+    current: Point<Pixels>,
+    gesture_revision: GestureMapVersion,
+    phase: PointerInteractionPhase,
+}
+
+impl PointerInteractionOwner {
+    /// Returns this interaction's window-local identifier.
+    pub fn id(&self) -> PointerInteractionId {
+        self.id
+    }
+
+    /// Returns the fully qualified name of the action that claimed the sequence.
+    pub fn action_name(&self) -> &'static str {
+        self.action_name
+    }
+
+    /// Returns the action invocation that produced the handled claim.
+    pub fn action_invocation_id(&self) -> u64 {
+        self.action_invocation_id
+    }
+
+    /// Returns the retained dispatch target selected at pointer-down time.
+    pub fn target(&self) -> usize {
+        self.target
+    }
+
+    /// Returns the retained hitbox selected at pointer-down time.
+    pub fn hitbox_id(&self) -> HitboxId {
+        self.hitbox_id
+    }
+
+    /// Returns the button that began this interaction.
+    pub fn button(&self) -> MouseButton {
+        self.button
+    }
+
+    /// Returns the pointer-down position.
+    pub fn start(&self) -> Point<Pixels> {
+        self.start
+    }
+
+    /// Returns the most recently observed pointer position.
+    pub fn current(&self) -> Point<Pixels> {
+        self.current
+    }
+
+    /// Returns the gesture-map revision retained for this sequence.
+    pub fn gesture_revision(&self) -> GestureMapVersion {
+        self.gesture_revision
+    }
+
+    /// Returns the current or terminal lifecycle phase.
+    pub fn phase(&self) -> PointerInteractionPhase {
+        self.phase
+    }
+}
+
+/// Bounded pointer-interaction diagnostics for a window.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PointerInteractionDiagnostics {
+    active: Option<PointerInteractionOwner>,
+    last_terminal: Option<PointerInteractionOwner>,
+    claim_conflict_count: u64,
+}
+
+impl PointerInteractionDiagnostics {
+    /// Returns the sole active owner, if a handled action claimed the sequence.
+    pub fn active(&self) -> Option<&PointerInteractionOwner> {
+        self.active.as_ref()
+    }
+
+    /// Returns the most recently completed or cancelled owner.
+    pub fn last_terminal(&self) -> Option<&PointerInteractionOwner> {
+        self.last_terminal.as_ref()
+    }
+
+    /// Returns the saturating count of rejected attempts to steal an active sequence.
+    pub fn claim_conflict_count(&self) -> u64 {
+        self.claim_conflict_count
+    }
+}
+
+/// Why a pointer-interaction claim was rejected.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PointerInteractionClaimError {
+    /// Only a handled action outcome can claim a pointer sequence.
+    ActionNotHandled,
+    /// Only actions dispatched from mapped pointer input can claim a pointer sequence.
+    NonPointerAction,
+    /// The action report target does not match the initiating hitbox target.
+    TargetMismatch,
+    /// Another handled action already owns the pointer sequence.
+    AlreadyOwned(PointerInteractionId),
+}
+
+struct PendingMappedPointer {
+    hitbox_id: HitboxId,
+    target: DispatchNodeId,
+    button: MouseButton,
+    start: Point<Pixels>,
+    gesture_revision: GestureMapVersion,
+}
+
 /// Holds the state for a specific window.
 pub struct Window {
     pub(crate) handle: AnyWindowHandle,
@@ -1790,6 +1951,9 @@ pub struct Window {
     pub(crate) tooltip_bounds: Option<TooltipBounds>,
     next_frame_callbacks: Rc<RefCell<Vec<FrameCallback>>>,
     pub(crate) dirty_views: FxHashSet<EntityId>,
+    action_dispatch_observers: SubscriberSet<(), AnyActionDispatchObserver>,
+    next_action_invocation_id: u64,
+    action_invocation_stack: Vec<ActionInvocation>,
     focus_listeners: SubscriberSet<(), AnyWindowFocusListener>,
     pub(crate) focus_lost_listeners: SubscriberSet<(), AnyObserver>,
     default_prevented: bool,
@@ -1826,6 +1990,10 @@ pub struct Window {
     /// The hitbox that has captured the pointer, if any.
     /// While captured, mouse events route to this hitbox regardless of hit testing.
     captured_hitbox: Option<HitboxId>,
+    next_pointer_interaction_id: u64,
+    pointer_interaction_diagnostics: PointerInteractionDiagnostics,
+    pending_mapped_pointer: Option<PendingMappedPointer>,
+    gesture_recognizer: GestureRecognizer,
     #[cfg(any(feature = "inspector", debug_assertions))]
     inspector: Option<Entity<Inspector>>,
 }
@@ -1971,9 +2139,10 @@ pub(crate) enum DrawPhase {
     Focus,
 }
 
-#[derive(Default, Debug)]
+#[derive(Default)]
 struct PendingInput {
     keystrokes: SmallVec<[Keystroke; 1]>,
+    keymap_snapshot: Option<Rc<KeymapSnapshot>>,
     focus: Option<FocusId>,
     timer: Option<Task<()>>,
     needs_timeout: bool,
@@ -2436,6 +2605,9 @@ impl Window {
             next_tooltip_id: TooltipId::default(),
             tooltip_bounds: None,
             dirty_views: FxHashSet::default(),
+            action_dispatch_observers: SubscriberSet::new(),
+            next_action_invocation_id: 0,
+            action_invocation_stack: Vec::new(),
             focus_listeners: SubscriberSet::new(),
             focus_lost_listeners: SubscriberSet::new(),
             default_prevented: true,
@@ -2469,6 +2641,10 @@ impl Window {
             client_inset: None,
             image_cache_stack: Vec::new(),
             captured_hitbox: None,
+            next_pointer_interaction_id: 0,
+            pointer_interaction_diagnostics: PointerInteractionDiagnostics::default(),
+            pending_mapped_pointer: None,
+            gesture_recognizer: GestureRecognizer::default(),
             #[cfg(any(feature = "inspector", debug_assertions))]
             inspector: None,
         })
@@ -2686,6 +2862,9 @@ impl Window {
 
     /// Close this window.
     pub fn remove_window(&mut self) {
+        self.cancel_pointer_interaction(PointerInteractionCancellationReason::WindowRemoved);
+        self.pending_mapped_pointer = None;
+        self.gesture_recognizer.cancel();
         self.removed = true;
     }
 
@@ -2799,18 +2978,40 @@ impl Window {
     }
 
     /// Dispatch the given action on the currently focused element.
-    pub fn dispatch_action(&mut self, action: Box<dyn Action>, cx: &mut App) {
-        let focus_id = self.focused(cx).map(|handle| handle.id);
+    pub fn dispatch_action(
+        &mut self,
+        action: Box<dyn Action>,
+        cx: &mut App,
+    ) -> ActionDispatchReport {
+        self.dispatch_action_from(ActionInvocationSource::Programmatic, action.as_ref(), cx)
+    }
 
-        let window = self.handle;
-        cx.defer(move |cx| {
-            window
-                .update(cx, |_, window, cx| {
-                    let node_id = window.focus_node_id_in_rendered_frame(focus_id);
-                    window.dispatch_action_on_node(node_id, action.as_ref(), cx);
-                })
-                .log_err();
-        })
+    /// Dispatch an action with explicit invocation metadata.
+    pub fn dispatch_action_from(
+        &mut self,
+        source: ActionInvocationSource,
+        action: &dyn Action,
+        cx: &mut App,
+    ) -> ActionDispatchReport {
+        let focus_id = self.focused(cx).map(|handle| handle.id);
+        let node_id = self.focus_node_id_in_rendered_frame(focus_id);
+        self.dispatch_action_on_node_from(node_id, source, action, cx)
+    }
+
+    /// Observe the begin and terminal event for every action dispatched in this window.
+    pub fn observe_action_dispatch(
+        &mut self,
+        mut observer: impl FnMut(&ActionDispatchEvent, &mut Window, &mut App) + 'static,
+    ) -> Subscription {
+        let (subscription, activate) = self.action_dispatch_observers.insert(
+            (),
+            Box::new(move |event, window, cx| {
+                observer(event, window, cx);
+                true
+            }),
+        );
+        activate();
+        subscription
     }
 
     pub(crate) fn dispatch_keystroke_observers(
@@ -3716,17 +3917,473 @@ impl Window {
     ///
     /// The capture is automatically released on mouse up.
     pub fn capture_pointer(&mut self, hitbox_id: HitboxId) {
+        if self
+            .active_pointer_interaction()
+            .is_some_and(|owner| owner.hitbox_id != hitbox_id)
+        {
+            self.cancel_pointer_interaction(PointerInteractionCancellationReason::CaptureLost);
+        }
         self.captured_hitbox = Some(hitbox_id);
     }
 
     /// Releases any active pointer capture.
     pub fn release_pointer(&mut self) {
+        self.cancel_pointer_interaction(PointerInteractionCancellationReason::CaptureLost);
         self.captured_hitbox = None;
+        self.pending_mapped_pointer = None;
+        self.gesture_recognizer.cancel();
+    }
+
+    /// Returns the active handled-action owner for the current pointer sequence.
+    pub fn active_pointer_interaction(&self) -> Option<&PointerInteractionOwner> {
+        self.pointer_interaction_diagnostics.active()
     }
 
     /// Returns the hitbox that has captured the pointer, if any.
     pub fn captured_hitbox(&self) -> Option<HitboxId> {
         self.captured_hitbox
+    }
+
+    /// Returns bounded pointer-owner diagnostics: at most one active and one terminal owner.
+    pub fn pointer_interaction_diagnostics(&self) -> &PointerInteractionDiagnostics {
+        &self.pointer_interaction_diagnostics
+    }
+
+    /// Claims the current pointer sequence from an explicitly handled pointer action.
+    pub fn claim_pointer_interaction(
+        &mut self,
+        report: &ActionDispatchReport,
+        hitbox_id: HitboxId,
+        button: MouseButton,
+        start: Point<Pixels>,
+        current: Point<Pixels>,
+        gesture_revision: GestureMapVersion,
+    ) -> Result<PointerInteractionId, PointerInteractionClaimError> {
+        if report.outcome() != ActionDispatchOutcome::Handled {
+            return Err(PointerInteractionClaimError::ActionNotHandled);
+        }
+        if report.invocation().source() != ActionInvocationSource::Pointer {
+            return Err(PointerInteractionClaimError::NonPointerAction);
+        }
+        let Some(target) = report.invocation().target() else {
+            return Err(PointerInteractionClaimError::TargetMismatch);
+        };
+        if self
+            .rendered_frame
+            .hitbox_dispatch_nodes
+            .get(&hitbox_id)
+            .is_none_or(|node| node.as_usize() != target)
+        {
+            return Err(PointerInteractionClaimError::TargetMismatch);
+        }
+        self.claim_pointer_interaction_for_target(
+            report,
+            DispatchNodeId::from_usize(target),
+            hitbox_id,
+            button,
+            start,
+            current,
+            gesture_revision,
+        )
+    }
+
+    fn claim_pointer_interaction_for_target(
+        &mut self,
+        report: &ActionDispatchReport,
+        target: DispatchNodeId,
+        hitbox_id: HitboxId,
+        button: MouseButton,
+        start: Point<Pixels>,
+        current: Point<Pixels>,
+        gesture_revision: GestureMapVersion,
+    ) -> Result<PointerInteractionId, PointerInteractionClaimError> {
+        if report.outcome() != ActionDispatchOutcome::Handled {
+            return Err(PointerInteractionClaimError::ActionNotHandled);
+        }
+        if report.invocation().source() != ActionInvocationSource::Pointer {
+            return Err(PointerInteractionClaimError::NonPointerAction);
+        }
+        let Some(hitbox_target) = self
+            .rendered_frame
+            .hitbox_dispatch_nodes
+            .get(&hitbox_id)
+            .copied()
+        else {
+            return Err(PointerInteractionClaimError::TargetMismatch);
+        };
+        if !self.dispatch_target_contains(hitbox_target, target) {
+            return Err(PointerInteractionClaimError::TargetMismatch);
+        }
+        if let Some(active) = self.active_pointer_interaction() {
+            let active_id = active.id;
+            self.pointer_interaction_diagnostics.claim_conflict_count = self
+                .pointer_interaction_diagnostics
+                .claim_conflict_count
+                .saturating_add(1);
+            return Err(PointerInteractionClaimError::AlreadyOwned(active_id));
+        }
+
+        let id = PointerInteractionId(self.next_pointer_interaction_id);
+        self.next_pointer_interaction_id = self.next_pointer_interaction_id.saturating_add(1);
+        self.pointer_interaction_diagnostics.active = Some(PointerInteractionOwner {
+            id,
+            action_name: report.invocation().action_name(),
+            action_invocation_id: report.invocation().id(),
+            target: target.as_usize(),
+            hitbox_id,
+            button,
+            start,
+            current,
+            gesture_revision,
+            phase: PointerInteractionPhase::Active,
+        });
+        self.capture_pointer(hitbox_id);
+        Ok(id)
+    }
+
+    /// Completes the active owner exactly once and releases its capture.
+    pub fn complete_pointer_interaction(&mut self) -> Option<PointerInteractionOwner> {
+        let mut owner = self.pointer_interaction_diagnostics.active.take()?;
+        owner.phase = PointerInteractionPhase::Completed;
+        if self.captured_hitbox == Some(owner.hitbox_id) {
+            self.captured_hitbox = None;
+        }
+        self.pointer_interaction_diagnostics.last_terminal = Some(owner.clone());
+        Some(owner)
+    }
+
+    /// Cancels the active owner exactly once and releases its capture.
+    pub fn cancel_pointer_interaction(
+        &mut self,
+        reason: PointerInteractionCancellationReason,
+    ) -> Option<PointerInteractionOwner> {
+        let mut owner = self.pointer_interaction_diagnostics.active.take()?;
+        owner.phase = PointerInteractionPhase::Cancelled(reason);
+        if self.captured_hitbox == Some(owner.hitbox_id) {
+            self.captured_hitbox = None;
+        }
+        self.pointer_interaction_diagnostics.last_terminal = Some(owner.clone());
+        Some(owner)
+    }
+
+    fn reconcile_pointer_interaction(&mut self, cx: &App) {
+        self.rebind_repainted_pointer_owner();
+        let Some(owner) = self.active_pointer_interaction() else {
+            return;
+        };
+        let reason = if owner.gesture_revision != cx.gesture_map.borrow().version() {
+            Some(PointerInteractionCancellationReason::ProfileReplaced)
+        } else if self.captured_hitbox != Some(owner.hitbox_id) {
+            Some(PointerInteractionCancellationReason::CaptureLost)
+        } else if self
+            .rendered_frame
+            .hitbox_dispatch_nodes
+            .get(&owner.hitbox_id)
+            .is_none_or(|target| {
+                !self.dispatch_target_contains(*target, DispatchNodeId::from_usize(owner.target))
+            })
+        {
+            Some(PointerInteractionCancellationReason::TargetRemoved)
+        } else {
+            None
+        };
+        if let Some(reason) = reason {
+            self.cancel_pointer_interaction(reason);
+            self.gesture_recognizer.cancel();
+            self.pending_mapped_pointer = None;
+        }
+    }
+
+    fn hitbox_for_retained_target(
+        &self,
+        position: Point<Pixels>,
+        target: DispatchNodeId,
+    ) -> Option<HitboxId> {
+        self.rendered_frame
+            .hit_test(position)
+            .ids
+            .into_iter()
+            .find(|hitbox_id| self.hitbox_descends_from(*hitbox_id, target))
+            .or_else(|| {
+                self.rendered_frame.hitbox_dispatch_nodes.iter().find_map(
+                    |(hitbox_id, hitbox_target)| {
+                        self.dispatch_target_contains(*hitbox_target, target)
+                            .then_some(*hitbox_id)
+                    },
+                )
+            })
+    }
+
+    fn hitbox_descends_from(&self, hitbox_id: HitboxId, target: DispatchNodeId) -> bool {
+        self.rendered_frame
+            .hitbox_dispatch_nodes
+            .get(&hitbox_id)
+            .is_some_and(|hitbox_target| self.dispatch_target_contains(*hitbox_target, target))
+    }
+
+    fn dispatch_target_contains(
+        &self,
+        descendant: DispatchNodeId,
+        ancestor: DispatchNodeId,
+    ) -> bool {
+        descendant.as_usize() < self.rendered_frame.dispatch_tree.len()
+            && self
+                .rendered_frame
+                .dispatch_tree
+                .dispatch_path(descendant)
+                .contains(&ancestor)
+    }
+
+    fn rebind_repainted_pointer_owner(&mut self) {
+        let Some(owner) = self.active_pointer_interaction() else {
+            return;
+        };
+        if self.captured_hitbox != Some(owner.hitbox_id)
+            || self.hitbox_descends_from(owner.hitbox_id, DispatchNodeId::from_usize(owner.target))
+        {
+            return;
+        }
+        let retained_target = DispatchNodeId::from_usize(owner.target);
+        let Some(hitbox_id) = self.hitbox_for_retained_target(owner.start, retained_target) else {
+            return;
+        };
+        self.pointer_interaction_diagnostics
+            .active
+            .as_mut()
+            .expect("pointer owner remains active")
+            .hitbox_id = hitbox_id;
+        self.captured_hitbox = Some(hitbox_id);
+    }
+
+    fn gesture_handler(
+        &self,
+        snapshot: &GestureMapSnapshot,
+        target: DispatchNodeId,
+    ) -> Option<DispatchNodeId> {
+        let contexts = self.gesture_contexts(target);
+        self.rendered_frame
+            .dispatch_tree
+            .dispatch_path(target)
+            .into_iter()
+            .rev()
+            .find(|node_id| {
+                let node = self.rendered_frame.dispatch_tree.node(*node_id);
+                snapshot
+                    .layers()
+                    .flat_map(|layer| layer.rules())
+                    .any(|rule| {
+                        rule.context_depth(&contexts).is_some()
+                            && node.action_listeners.iter().any(|listener| {
+                                listener.action_type == rule.action().as_any().type_id()
+                            })
+                    })
+            })
+    }
+
+    fn gesture_contexts(&self, target: DispatchNodeId) -> Vec<KeyContext> {
+        self.rendered_frame
+            .dispatch_tree
+            .dispatch_path(target)
+            .into_iter()
+            .filter_map(|node_id| {
+                self.rendered_frame
+                    .dispatch_tree
+                    .node(node_id)
+                    .context
+                    .clone()
+            })
+            .collect()
+    }
+
+    fn gesture_target(&self, snapshot: &GestureMapSnapshot) -> Option<(HitboxId, DispatchNodeId)> {
+        let mut selected = None;
+        for hitbox_id in self
+            .captured_hitbox
+            .into_iter()
+            .chain(self.mouse_hit_test.ids.iter().copied())
+        {
+            let Some((target, handler)) = self
+                .rendered_frame
+                .hitbox_dispatch_nodes
+                .get(&hitbox_id)
+                .copied()
+                .and_then(|target| {
+                    self.gesture_handler(snapshot, target)
+                        .map(|handler| (target, handler))
+                })
+            else {
+                continue;
+            };
+
+            match selected {
+                None => selected = Some((hitbox_id, target, handler)),
+                Some((_, _, selected_handler))
+                    if handler != selected_handler
+                        && self.dispatch_target_contains(handler, selected_handler) =>
+                {
+                    selected = Some((hitbox_id, target, handler));
+                }
+                Some(_) => {}
+            }
+        }
+        selected.map(|(hitbox_id, target, _)| (hitbox_id, target))
+    }
+
+    fn begin_mapped_pointer_gesture(&mut self, event: &MouseDownEvent, cx: &mut App) {
+        if self.active_pointer_interaction().is_some() {
+            return;
+        }
+        self.pending_mapped_pointer = None;
+        self.gesture_recognizer.cancel();
+        let (snapshot, revision) = {
+            let map = cx.gesture_map.borrow();
+            (map.snapshot(), map.version())
+        };
+        let Some((hitbox_id, target)) = self.gesture_target(&snapshot) else {
+            return;
+        };
+        let contexts = self.gesture_contexts(target);
+        let snapshot = snapshot.filtered_for_target(&contexts, |action| {
+            self.rendered_frame
+                .dispatch_tree
+                .is_action_available(action, target)
+        });
+        self.pending_mapped_pointer = Some(PendingMappedPointer {
+            hitbox_id,
+            target,
+            button: event.button,
+            start: event.position,
+            gesture_revision: revision,
+        });
+        self.gesture_recognizer
+            .mouse_down(event, snapshot, revision, target.as_usize());
+    }
+
+    fn recognize_mapped_wheel(&mut self, event: &ScrollWheelEvent, cx: &mut App) {
+        let (snapshot, revision) = {
+            let map = cx.gesture_map.borrow();
+            (map.snapshot(), map.version())
+        };
+        let Some((_, target)) = self.gesture_target(&snapshot) else {
+            return;
+        };
+        let contexts = self.gesture_contexts(target);
+        let snapshot = snapshot.filtered_for_target(&contexts, |action| {
+            self.rendered_frame
+                .dispatch_tree
+                .is_action_available(action, target)
+        });
+        if let Some(gesture) =
+            self.gesture_recognizer
+                .scroll_wheel(event, snapshot, revision, target.as_usize())
+        {
+            self.dispatch_recognized_gesture(gesture, cx);
+        }
+    }
+
+    fn recognize_mapped_pointer_before_raw(&mut self, event: &dyn Any, cx: &mut App) {
+        self.reconcile_pointer_interaction(cx);
+
+        if let Some(event) = event.downcast_ref::<MouseDownEvent>() {
+            self.begin_mapped_pointer_gesture(event, cx);
+            return;
+        }
+
+        if let Some(event) = event.downcast_ref::<MouseMoveEvent>() {
+            if let Some(owner) = self.pointer_interaction_diagnostics.active.as_mut() {
+                owner.current = event.position;
+                return;
+            }
+
+            let Some(gesture) = self.gesture_recognizer.mouse_move(event) else {
+                return;
+            };
+            let candidate = self
+                .pending_mapped_pointer
+                .take()
+                .and_then(|mut candidate| {
+                    if self
+                        .rendered_frame
+                        .hitbox_dispatch_nodes
+                        .get(&candidate.hitbox_id)
+                        != Some(&candidate.target)
+                    {
+                        candidate.hitbox_id =
+                            self.hitbox_for_retained_target(candidate.start, candidate.target)?;
+                    }
+                    Some(candidate)
+                });
+            let Some(candidate) = candidate else {
+                self.gesture_recognizer.cancel();
+                return;
+            };
+            let (report, handled_target) =
+                self.dispatch_recognized_gesture_with_handler(gesture, cx);
+            if report.outcome() == ActionDispatchOutcome::Handled
+                && report.invocation().target() == Some(candidate.target.as_usize())
+            {
+                let _ = handled_target.map_or(
+                    Err(PointerInteractionClaimError::TargetMismatch),
+                    |handled_target| {
+                        self.claim_pointer_interaction_for_target(
+                            &report,
+                            handled_target,
+                            candidate.hitbox_id,
+                            candidate.button,
+                            candidate.start,
+                            event.position,
+                            candidate.gesture_revision,
+                        )
+                    },
+                );
+            }
+            return;
+        }
+
+        if let Some(event) = event.downcast_ref::<MouseUpEvent>() {
+            if let Some(owner) = self.pointer_interaction_diagnostics.active.as_mut() {
+                owner.current = event.position;
+            } else if let Some(gesture) = self.gesture_recognizer.mouse_up(event) {
+                self.dispatch_recognized_gesture(gesture, cx);
+            }
+            self.pending_mapped_pointer = None;
+            return;
+        }
+    }
+
+    fn dispatch_recognized_gesture(
+        &mut self,
+        gesture: RecognizedGesture,
+        cx: &mut App,
+    ) -> ActionDispatchReport {
+        self.dispatch_recognized_gesture_with_handler(gesture, cx).0
+    }
+
+    fn dispatch_recognized_gesture_with_handler(
+        &mut self,
+        gesture: RecognizedGesture,
+        cx: &mut App,
+    ) -> (ActionDispatchReport, Option<DispatchNodeId>) {
+        let node_id = DispatchNodeId::from_usize(gesture.target());
+        if node_id.as_usize() < self.rendered_frame.dispatch_tree.len() {
+            self.dispatch_action_on_node_from_with_handler(
+                node_id,
+                ActionInvocationSource::Pointer,
+                gesture.action(),
+                cx,
+            )
+        } else {
+            (
+                self.dispatch_action_outcome(
+                    ActionInvocationSource::Pointer,
+                    gesture.action(),
+                    Some(gesture.target()),
+                    ActionDispatchOutcome::Cancelled,
+                    cx,
+                ),
+                None,
+            )
+        }
     }
 
     /// The current state of the keyboard's modifiers
@@ -5903,6 +6560,9 @@ impl Window {
             behavior,
         };
         self.next_frame.hitboxes.push(hitbox.clone());
+        if let Some(node_id) = self.next_frame.dispatch_tree.active_node_id() {
+            self.next_frame.hitbox_dispatch_nodes.insert(id, node_id);
+        }
         hitbox
     }
 
@@ -6351,6 +7011,11 @@ impl Window {
             return;
         }
 
+        self.recognize_mapped_pointer_before_raw(event, cx);
+        // A mapped action may stop action propagation, but raw pointer delivery is a separate
+        // transient continuation stream and must still reach the initiating hitbox listeners.
+        cx.propagate_event = true;
+
         let mut mouse_listeners = mem::take(&mut self.rendered_frame.mouse_listeners);
 
         // Capture phase, events bubble from back to front. Handlers for this phase are used for
@@ -6376,6 +7041,16 @@ impl Window {
 
         self.rendered_frame.mouse_listeners = mouse_listeners;
 
+        // Wheel action handlers consume state published by the raw wheel listener for the same
+        // sample (for example its normalized delta and pointer location). Pointer gestures still
+        // recognize before raw delivery so they can establish one continuation owner, but a wheel
+        // has no continuation owner and must dispatch only after the current sample is available.
+        if let Some(event) = event.downcast_ref::<ScrollWheelEvent>()
+            && self.active_pointer_interaction().is_none()
+        {
+            self.recognize_mapped_wheel(event, cx);
+        }
+
         if cx.has_active_drag() {
             if event.is::<MouseMoveEvent>() {
                 // If this was a mouse move event, redraw the window so that the
@@ -6389,9 +7064,17 @@ impl Window {
             }
         }
 
-        // Auto-release pointer capture on mouse up
-        if event.is::<MouseUpEvent>() && self.captured_hitbox.is_some() {
-            self.captured_hitbox = None;
+        if let Some(event) = event.downcast_ref::<MouseUpEvent>() {
+            if self
+                .active_pointer_interaction()
+                .is_some_and(|owner| owner.button == event.button)
+            {
+                self.complete_pointer_interaction();
+            } else if self.captured_hitbox.is_some() {
+                // Preserve the historical auto-release behavior for explicit captures that are
+                // not owned by the mapped pointer state machine.
+                self.captured_hitbox = None;
+            }
         }
     }
 
@@ -6463,7 +7146,12 @@ impl Window {
             currently_pending = PendingInput::default();
         }
 
+        let keymap_snapshot = currently_pending
+            .keymap_snapshot
+            .take()
+            .unwrap_or_else(|| cx.keymap.borrow().snapshot());
         let match_result = self.rendered_frame.dispatch_tree.dispatch_key(
+            &keymap_snapshot,
             currently_pending.keystrokes,
             keystroke,
             &dispatch_path,
@@ -6477,6 +7165,7 @@ impl Window {
         if !match_result.pending.is_empty() {
             currently_pending.timer.take();
             currently_pending.keystrokes = match_result.pending;
+            currently_pending.keymap_snapshot = Some(keymap_snapshot);
             currently_pending.focus = self.focus;
 
             let text_input_requires_timeout = event
@@ -6508,10 +7197,14 @@ impl Window {
                         let dispatch_path =
                             window.rendered_frame.dispatch_tree.dispatch_path(node_id);
 
-                        let to_replay = window
-                            .rendered_frame
-                            .dispatch_tree
-                            .flush_dispatch(currently_pending.keystrokes, &dispatch_path);
+                        let to_replay = window.rendered_frame.dispatch_tree.flush_dispatch(
+                            currently_pending
+                                .keymap_snapshot
+                                .as_ref()
+                                .expect("pending input retains its keymap snapshot"),
+                            currently_pending.keystrokes,
+                            &dispatch_path,
+                        );
 
                         window.pending_input_changed(cx);
                         window.replay_pending_input(to_replay, cx)
@@ -6545,7 +7238,7 @@ impl Window {
 
         if !skip_bindings {
             for binding in match_result.bindings {
-                self.dispatch_action_on_node(node_id, binding.action.as_ref(), cx);
+                self.dispatch_keyboard_action_on_node(node_id, binding.action.as_ref(), cx);
                 if !cx.propagate_event {
                     self.dispatch_keystroke_observers(
                         event,
@@ -6669,7 +7362,7 @@ impl Window {
 
             cx.propagate_event = true;
             for binding in replay.bindings {
-                self.dispatch_action_on_node(node_id, binding.action.as_ref(), cx);
+                self.dispatch_keyboard_action_on_node(node_id, binding.action.as_ref(), cx);
                 if !cx.propagate_event {
                     self.dispatch_keystroke_observers(
                         &event,
@@ -6704,20 +7397,68 @@ impl Window {
             .unwrap_or_else(|| self.rendered_frame.dispatch_tree.root_node_id())
     }
 
-    fn dispatch_action_on_node(
+    fn dispatch_keyboard_action_on_node(
         &mut self,
         node_id: DispatchNodeId,
         action: &dyn Action,
         cx: &mut App,
-    ) {
-        self.dispatch_action_on_node_inner(node_id, action, cx);
+    ) -> ActionDispatchReport {
+        self.dispatch_action_on_node_from(node_id, ActionInvocationSource::Keyboard, action, cx)
+    }
 
-        if !cx.propagate_event
+    fn dispatch_action_on_node_from(
+        &mut self,
+        node_id: DispatchNodeId,
+        source: ActionInvocationSource,
+        action: &dyn Action,
+        cx: &mut App,
+    ) -> ActionDispatchReport {
+        self.dispatch_action_on_node_from_with_handler(node_id, source, action, cx)
+            .0
+    }
+
+    fn dispatch_action_on_node_from_with_handler(
+        &mut self,
+        node_id: DispatchNodeId,
+        source: ActionInvocationSource,
+        action: &dyn Action,
+        cx: &mut App,
+    ) -> (ActionDispatchReport, Option<DispatchNodeId>) {
+        let started_at = Instant::now();
+        let invocation = ActionInvocation::new(
+            self.next_action_invocation_id,
+            action.name(),
+            source,
+            self.action_invocation_stack
+                .last()
+                .map(ActionInvocation::id),
+            Some(self.handle.window_id().as_u64()),
+            Some(node_id.as_usize()),
+            Vec::new(),
+        );
+        self.next_action_invocation_id = self.next_action_invocation_id.saturating_add(1);
+        self.action_invocation_stack.push(invocation.clone());
+        cx.propagate_event = true;
+        self.notify_action_dispatch(ActionDispatchEvent::Began(invocation.clone()), cx);
+
+        let (outcome, handled_count, handled_target) = if cx.propagate_event {
+            self.dispatch_action_on_node_inner(node_id, action, cx)
+        } else {
+            (ActionDispatchOutcome::Cancelled, 0, None)
+        };
+        let report =
+            ActionDispatchReport::new(invocation, outcome, handled_count, started_at.elapsed());
+        self.action_invocation_stack.pop();
+        self.notify_action_dispatch(ActionDispatchEvent::Ended(report.clone()), cx);
+
+        if outcome == ActionDispatchOutcome::Handled
             && cx.cursor_hide_mode == CursorHideMode::OnTypingAndAction
             && self.last_input_was_keyboard()
         {
             cx.platform.hide_cursor_until_mouse_moves();
         }
+
+        (report, handled_target)
     }
 
     fn dispatch_action_on_node_inner(
@@ -6725,8 +7466,9 @@ impl Window {
         node_id: DispatchNodeId,
         action: &dyn Action,
         cx: &mut App,
-    ) {
+    ) -> (ActionDispatchOutcome, usize, Option<DispatchNodeId>) {
         let dispatch_path = self.rendered_frame.dispatch_tree.dispatch_path(node_id);
+        let mut handled_count = 0;
 
         // Capture phase for global actions.
         cx.propagate_event = true;
@@ -6752,7 +7494,7 @@ impl Window {
         }
 
         if !cx.propagate_event {
-            return;
+            return (ActionDispatchOutcome::Cancelled, handled_count, None);
         }
 
         // Capture phase for window actions.
@@ -6761,14 +7503,18 @@ impl Window {
             for DispatchActionListener {
                 action_type,
                 listener,
+                outcome_listener,
             } in node.action_listeners.clone()
             {
+                if outcome_listener.is_some() {
+                    continue;
+                }
                 let any_action = action.as_any();
                 if action_type == any_action.type_id() {
                     listener(any_action, DispatchPhase::Capture, self, cx);
 
                     if !cx.propagate_event {
-                        return;
+                        return (ActionDispatchOutcome::Cancelled, handled_count, None);
                     }
                 }
             }
@@ -6780,15 +7526,41 @@ impl Window {
             for DispatchActionListener {
                 action_type,
                 listener,
+                outcome_listener,
             } in node.action_listeners.clone()
             {
                 let any_action = action.as_any();
                 if action_type == any_action.type_id() {
+                    if let Some(outcome_listener) = outcome_listener {
+                        match outcome_listener(any_action, self, cx) {
+                            ActionDispatchOutcome::Unhandled => {
+                                cx.propagate_event = true;
+                                continue;
+                            }
+                            ActionDispatchOutcome::Handled => {
+                                handled_count += 1;
+                                return (
+                                    ActionDispatchOutcome::Handled,
+                                    handled_count,
+                                    Some(*node_id),
+                                );
+                            }
+                            outcome @ (ActionDispatchOutcome::Failed
+                            | ActionDispatchOutcome::Cancelled) => {
+                                return (outcome, handled_count, Some(*node_id));
+                            }
+                        }
+                    }
                     cx.propagate_event = false; // Actions stop propagation by default during the bubble phase
                     listener(any_action, DispatchPhase::Bubble, self, cx);
+                    handled_count += 1;
 
                     if !cx.propagate_event {
-                        return;
+                        return (
+                            ActionDispatchOutcome::Handled,
+                            handled_count,
+                            Some(*node_id),
+                        );
                     }
                 }
             }
@@ -6803,6 +7575,7 @@ impl Window {
                 cx.propagate_event = false; // Actions stop propagation by default during the bubble phase
 
                 listener(action.as_any(), DispatchPhase::Bubble, cx);
+                handled_count += 1;
                 if !cx.propagate_event {
                     break;
                 }
@@ -6817,6 +7590,52 @@ impl Window {
             cx.global_action_listeners
                 .insert(action.as_any().type_id(), global_listeners);
         }
+
+        if handled_count == 0 {
+            (ActionDispatchOutcome::Unhandled, handled_count, None)
+        } else {
+            (ActionDispatchOutcome::Handled, handled_count, None)
+        }
+    }
+
+    fn dispatch_unhandled_action(
+        &mut self,
+        source: ActionInvocationSource,
+        action: &dyn Action,
+        cx: &mut App,
+    ) -> ActionDispatchReport {
+        self.dispatch_action_outcome(source, action, None, ActionDispatchOutcome::Unhandled, cx)
+    }
+
+    fn dispatch_action_outcome(
+        &mut self,
+        source: ActionInvocationSource,
+        action: &dyn Action,
+        target: Option<usize>,
+        outcome: ActionDispatchOutcome,
+        cx: &mut App,
+    ) -> ActionDispatchReport {
+        let invocation = ActionInvocation::new(
+            self.next_action_invocation_id,
+            action.name(),
+            source,
+            self.action_invocation_stack
+                .last()
+                .map(ActionInvocation::id),
+            Some(self.handle.window_id().as_u64()),
+            target,
+            Vec::new(),
+        );
+        self.next_action_invocation_id = self.next_action_invocation_id.saturating_add(1);
+        self.notify_action_dispatch(ActionDispatchEvent::Began(invocation.clone()), cx);
+        let report = ActionDispatchReport::new(invocation, outcome, 0, Duration::ZERO);
+        self.notify_action_dispatch(ActionDispatchEvent::Ended(report.clone()), cx);
+        report
+    }
+
+    fn notify_action_dispatch(&mut self, event: ActionDispatchEvent, cx: &mut App) {
+        let observers = self.action_dispatch_observers.clone();
+        observers.retain(&(), |observer| observer(&event, self, cx));
     }
 
     /// Register the given handler to be invoked whenever the global of the given type
@@ -7093,6 +7912,18 @@ impl Window {
         self.next_frame
             .dispatch_tree
             .on_action(action_type, Rc::new(listener));
+    }
+
+    /// Register an action listener that reports an explicit terminal outcome during the bubble phase.
+    pub fn on_action_with_outcome(
+        &mut self,
+        action_type: TypeId,
+        listener: impl Fn(&dyn Any, &mut Window, &mut App) -> ActionDispatchOutcome + 'static,
+    ) {
+        self.invalidator.debug_assert_paint();
+        self.next_frame
+            .dispatch_tree
+            .on_action_with_outcome(action_type, Rc::new(listener));
     }
 
     /// Register a capturing action listener on this node for the next frame if the condition is true.

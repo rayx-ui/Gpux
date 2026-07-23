@@ -4281,7 +4281,7 @@ impl RenderingParameters {
 mod tests {
     use super::*;
     use gpux::{
-        ContentMask, ScreenEffect, ScreenEffectId, ScreenEffectRegionId,
+        Color, ContentMask, ElementEffect, ScreenEffect, ScreenEffectId, ScreenEffectRegionId,
         ScreenEffectRegionPrimitive, ScreenEffectTarget, TransformationMatrix, backdrop_blur,
         glass, glow, hsla, point, px, screen, size,
     };
@@ -4291,6 +4291,10 @@ mod tests {
             point(ScaledPixels(0.), ScaledPixels(0.)),
             size(ScaledPixels(width), ScaledPixels(height)),
         )
+    }
+
+    fn prepared_effect(effect: impl Into<ElementEffect>) -> PreparedElementEffect {
+        effect.into().prepare()
     }
 
     fn surface_caps_with_present_modes(
@@ -4458,7 +4462,7 @@ mod tests {
             content_mask: ContentMask::rounded(bounds, Corners::all(ScaledPixels(11.))),
             corner_radii: Corners::all(ScaledPixels(6.)),
             opacity: 1.0,
-            effects: vec![backdrop_blur(px(8.)).into()],
+            effects: vec![prepared_effect(backdrop_blur(px(8.)))],
             transformation: TransformationMatrix::unit(),
         };
 
@@ -4540,7 +4544,10 @@ mod tests {
         assert_eq!(packed.effects[0].wavelength, 64.);
         assert_eq!(packed.effects[0].damping, 3.);
         assert_eq!(packed.effects[0].params[0], 0.25);
-        assert_eq!(packed.effects[0].tint, [0.2, 0.4, 0.6, 0.3]);
+        assert_eq!(
+            packed.effects[0].tint,
+            pack_paint_color(Color::from(hsla(0.2, 0.4, 0.6, 0.3)).paint_color())
+        );
     }
 
     #[test]
@@ -4691,21 +4698,19 @@ mod tests {
             corner_radii: Corners::all(ScaledPixels(6.)),
             opacity: 0.75,
             effects: vec![
-                backdrop_blur(px(10.))
-                    .saturation(1.2)
-                    .brightness(0.8)
-                    .tint(hsla(0.2, 0.3, 0.4, 0.5))
-                    .into(),
-                glass()
-                    .blur(px(18.))
-                    .refraction(0.04)
-                    .distortion(0.03)
-                    .into(),
-                glow(hsla(0.6, 0.8, 0.7, 0.45))
-                    .radius(px(20.))
-                    .spread(px(4.))
-                    .intensity(1.5)
-                    .into(),
+                prepared_effect(
+                    backdrop_blur(px(10.))
+                        .saturation(1.2)
+                        .brightness(0.8)
+                        .tint(hsla(0.2, 0.3, 0.4, 0.5)),
+                ),
+                prepared_effect(glass().blur(px(18.)).refraction(0.04).distortion(0.03)),
+                prepared_effect(
+                    glow(hsla(0.6, 0.8, 0.7, 0.45))
+                        .radius(px(20.))
+                        .spread(px(4.))
+                        .intensity(1.5),
+                ),
             ],
             transformation: TransformationMatrix::unit(),
         };
@@ -4721,7 +4726,10 @@ mod tests {
 
         assert_eq!(packed.effects[0].kind, VISUAL_EFFECT_KIND_BACKDROP_BLUR);
         assert_eq!(packed.effects[0].params0, [10., 1.2, 0.8, 0.]);
-        assert_eq!(packed.effects[0].color0, [0.2, 0.3, 0.4, 0.5]);
+        assert_eq!(
+            packed.effects[0].color0,
+            pack_paint_color(Color::from(hsla(0.2, 0.3, 0.4, 0.5)).paint_color())
+        );
 
         assert_eq!(packed.effects[1].kind, VISUAL_EFFECT_KIND_GLASS);
         assert_eq!(packed.effects[1].params0, [18., 1.18, 1.08, 0.04]);
@@ -4729,7 +4737,10 @@ mod tests {
 
         assert_eq!(packed.effects[2].kind, VISUAL_EFFECT_KIND_GLOW);
         assert_eq!(packed.effects[2].params0, [20., 4., 1.5, 0.]);
-        assert_eq!(packed.effects[2].color0, [0.6, 0.8, 0.7, 0.45]);
+        assert_eq!(
+            packed.effects[2].color0,
+            pack_paint_color(Color::from(hsla(0.6, 0.8, 0.7, 0.45)).paint_color())
+        );
     }
 
     #[test]
@@ -4745,13 +4756,12 @@ mod tests {
             content_mask: ContentMask::rectangular(mask),
             corner_radii: Corners::all(ScaledPixels(9.)),
             opacity: 0.5,
-            effects: vec![
+            effects: vec![prepared_effect(
                 glow(hsla(0.1, 0.2, 0.3, 0.0))
                     .radius(px(32.))
                     .spread(px(6.))
-                    .intensity(1.25)
-                    .into(),
-            ],
+                    .intensity(1.25),
+            )],
             transformation: TransformationMatrix::unit(),
         };
 
@@ -4765,7 +4775,10 @@ mod tests {
         assert_eq!(packed.primitives[0].opacity, 0.5);
         assert_eq!(packed.effects[0].kind, VISUAL_EFFECT_KIND_GLOW);
         assert_eq!(packed.effects[0].params0, [32., 6., 1.25, 0.]);
-        assert_eq!(packed.effects[0].color0, [0.1, 0.2, 0.3, 0.0]);
+        assert_eq!(
+            packed.effects[0].color0,
+            pack_paint_color(Color::from(hsla(0.1, 0.2, 0.3, 0.0)).paint_color())
+        );
     }
 
     #[test]
@@ -4778,8 +4791,8 @@ mod tests {
             corner_radii: Corners::all(ScaledPixels(8.)),
             opacity: 1.0,
             effects: vec![
-                backdrop_blur(px(200.)).into(),
-                glass().blur(px(180.)).high_quality().into(),
+                prepared_effect(backdrop_blur(px(200.))),
+                prepared_effect(glass().blur(px(180.)).high_quality()),
             ],
             transformation: TransformationMatrix::unit(),
         };

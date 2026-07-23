@@ -50,6 +50,21 @@ fn line_mode_preserves_multiline_input_and_keeps_single_line_normalization(
     });
 }
 
+#[gpux::test]
+fn newline_has_its_own_undo_transaction(cx: &mut TestAppContext) {
+    let state =
+        cx.new(|cx| EditableTextState::with_line_mode("", EditableTextLineMode::MultiLine, cx));
+
+    state.update(cx, |state, cx| {
+        assert!(state.replace_selection("message", cx));
+        assert!(state.insert_newline(cx));
+        assert_eq!(state.text(), "message\n");
+
+        assert!(state.undo(cx));
+        assert_eq!(state.text(), "message");
+    });
+}
+
 #[test]
 fn multiline_visual_navigation_selection_resize_and_ime_use_one_layout_map() {
     let mut app = TestApp::new();

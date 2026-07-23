@@ -178,7 +178,12 @@ fn run_example() {
 
             cx.activate(true);
             cx.on_action(|_: &Quit, cx| cx.quit());
-            cx.bind_keys([KeyBinding::new("cmd-q", Quit, None)]);
+            cx.set_keymap_layer(gpux::KeymapLayer::new(
+                gpux::InputLayerId::new("example.image"),
+                0,
+                [KeyBinding::new("cmd-q", Quit, None)],
+            ))
+            .unwrap();
             cx.set_menus(vec![Menu {
                 name: "Image".into(),
                 items: vec![MenuItem::action("Quit", Quit)],

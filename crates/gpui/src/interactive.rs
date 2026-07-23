@@ -909,8 +909,9 @@ impl PlatformInput {
 mod test {
 
     use crate::{
-        self as gpux, AppContext as _, Context, FocusHandle, InteractiveElement, IntoElement,
-        KeyBinding, Keystroke, ParentElement, Render, TestAppContext, Window, div,
+        self as gpux, AppContext as _, Context, FocusHandle, InputLayerId, InteractiveElement,
+        IntoElement, KeyBinding, KeymapLayer, Keystroke, ParentElement, Render, TestAppContext,
+        Window, div,
     };
 
     struct TestView {
@@ -957,7 +958,12 @@ mod test {
         });
 
         cx.update(|cx| {
-            cx.bind_keys(vec![KeyBinding::new("ctrl-g", TestAction, Some("parent"))]);
+            cx.set_keymap_layer(KeymapLayer::new(
+                InputLayerId::new("test.interactive"),
+                0,
+                [KeyBinding::new("ctrl-g", TestAction, Some("parent"))],
+            ))
+            .unwrap();
         });
 
         window

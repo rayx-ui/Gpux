@@ -127,8 +127,8 @@ impl Deferred {
 #[cfg(test)]
 mod tests {
     use crate::{
-        Context, Hsla, IntoElement, Render, ScaledPixels, TestAppContext, Window, deferred, div,
-        hsla, point, prelude::*, px, size,
+        Color, Context, Hsla, IntoElement, Render, ScaledPixels, TestAppContext, Window, deferred,
+        div, hsla, point, prelude::*, px, size,
     };
 
     struct DeferredMaskTestView {
@@ -187,12 +187,13 @@ mod tests {
                     .iter()
                     .find(|quad| {
                         quad.background.solid
-                            == Hsla {
+                            == Color::from(Hsla {
                                 h: 1.,
                                 s: 0.,
                                 l: 0.5,
                                 a: 1.,
-                            }
+                            })
+                            .paint_color()
                     })
                     .map(|quad| quad.content_mask.bounds)
             })

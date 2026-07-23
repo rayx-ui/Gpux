@@ -1272,14 +1272,14 @@ mod tests {
 
     #[test]
     fn test_background_solid() {
-        let color = Hsla::from(rgba(0xff0099ff));
-        let mut background = Background::from(color);
+        let color: Color = Hsla::from(rgba(0xff0099ff)).into();
+        let mut background = Background::from(color.clone());
         assert_eq!(background.tag, BackgroundTag::Solid);
         assert_eq!(background.solid, color);
 
         assert_eq!(background.opacity(0.5).solid, color.opacity(0.5));
         assert!(!background.is_transparent());
-        background.solid = hsla(0.0, 0.0, 0.0, 0.0);
+        background.solid = hsla(0.0, 0.0, 0.0, 0.0).into();
         assert!(background.is_transparent());
     }
 
@@ -1287,9 +1287,9 @@ mod tests {
     fn test_background_linear_gradient() {
         let from = linear_color_stop(rgba(0xff0099ff), 0.0);
         let to = linear_color_stop(rgba(0x00ff99ff), 1.0);
-        let background = linear_gradient(90.0, [from, to]);
+        let background = linear_gradient(90.0, [from.clone(), to.clone()]);
         assert_eq!(background.tag, BackgroundTag::LinearGradient);
-        assert_eq!(background.stops, vec![from, to]);
+        assert_eq!(background.stops, vec![from.clone(), to.clone()]);
 
         assert_eq!(background.opacity(0.5).stops[0], from.opacity(0.5));
         assert_eq!(background.opacity(0.5).stops[1], to.opacity(0.5));

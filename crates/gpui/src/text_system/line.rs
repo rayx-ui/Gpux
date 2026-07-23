@@ -765,7 +765,7 @@ fn aligned_origin_x(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{FontId, GlyphId};
+    use crate::{Color, FontId, GlyphId, Hsla};
 
     /// Helper: build a ShapedLine from glyph descriptors without the platform text system.
     /// Each glyph is described as (byte_index, x_position).
@@ -956,24 +956,27 @@ mod tests {
     fn test_split_at_decorations() {
         // Three decoration runs: red [0..2), green [2..5), blue [5..6).
         // Split at byte 3 — red goes entirely left, green straddles, blue goes entirely right.
-        let red = Hsla {
+        let red: Color = Hsla {
             h: 0.0,
             s: 1.0,
             l: 0.5,
             a: 1.0,
-        };
-        let green = Hsla {
+        }
+        .into();
+        let green: Color = Hsla {
             h: 0.3,
             s: 1.0,
             l: 0.5,
             a: 1.0,
-        };
-        let blue = Hsla {
+        }
+        .into();
+        let blue: Color = Hsla {
             h: 0.6,
             s: 1.0,
             l: 0.5,
             a: 1.0,
-        };
+        }
+        .into();
 
         let line = make_shaped_line(
             "abcdef",
@@ -989,21 +992,21 @@ mod tests {
             &[
                 DecorationRun {
                     len: 2,
-                    color: red,
+                    color: red.clone(),
                     background_color: None,
                     underline: None,
                     strikethrough: None,
                 },
                 DecorationRun {
                     len: 3,
-                    color: green,
+                    color: green.clone(),
                     background_color: None,
                     underline: None,
                     strikethrough: None,
                 },
                 DecorationRun {
                     len: 1,
-                    color: blue,
+                    color: blue.clone(),
                     background_color: None,
                     underline: None,
                     strikethrough: None,

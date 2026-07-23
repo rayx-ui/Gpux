@@ -180,10 +180,15 @@ impl Render for Counter {
 fn run_example() {
     application().run(|cx| async move {
         cx.update(|cx| {
-            cx.bind_keys([
-                gpux::KeyBinding::new("up", Increment, Some("Counter")),
-                gpux::KeyBinding::new("down", Decrement, Some("Counter")),
-            ]);
+            cx.set_keymap_layer(gpux::KeymapLayer::new(
+                gpux::InputLayerId::new("example.testing"),
+                0,
+                [
+                    gpux::KeyBinding::new("up", Increment, Some("Counter")),
+                    gpux::KeyBinding::new("down", Decrement, Some("Counter")),
+                ],
+            ))
+            .unwrap();
 
             let bounds = Bounds::centered(None, size(px(300.), px(200.)), cx);
             cx.open_window(

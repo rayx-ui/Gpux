@@ -132,7 +132,12 @@ fn run_example() {
                 })
                 .unwrap();
             cx.on_action(|_: &Quit, cx| cx.quit());
-            cx.bind_keys([KeyBinding::new("cmd-q", Quit, None)]);
+            cx.set_keymap_layer(gpux::KeymapLayer::new(
+                gpux::InputLayerId::new("example.input"),
+                0,
+                [KeyBinding::new("cmd-q", Quit, None)],
+            ))
+            .unwrap();
         });
     });
 }

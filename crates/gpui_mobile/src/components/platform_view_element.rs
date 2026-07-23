@@ -9,6 +9,8 @@
 //! ```rust,no_run
 //! use gpui_mobile::components::platform_view_element::platform_view_element;
 //! use gpui_mobile::platform_view::PlatformViewHandle;
+//! use gpui::{IntoElement, ParentElement, Styled, div};
+//! use std::sync::Arc;
 //!
 //! fn my_component(handle: Arc<PlatformViewHandle>) -> impl IntoElement {
 //!     div()

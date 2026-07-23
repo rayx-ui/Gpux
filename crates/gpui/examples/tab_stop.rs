@@ -183,10 +183,15 @@ impl Render for Example {
 fn run_example() {
     application().run(|cx| async move {
         cx.update(|cx| {
-            cx.bind_keys([
-                KeyBinding::new("tab", Tab, None),
-                KeyBinding::new("shift-tab", TabPrev, None),
-            ]);
+            cx.set_keymap_layer(gpux::KeymapLayer::new(
+                gpux::InputLayerId::new("example.tab-stop"),
+                0,
+                [
+                    KeyBinding::new("tab", Tab, None),
+                    KeyBinding::new("shift-tab", TabPrev, None),
+                ],
+            ))
+            .unwrap();
 
             let bounds = Bounds::centered(None, size(px(800.), px(600.0)), cx);
             cx.open_window(

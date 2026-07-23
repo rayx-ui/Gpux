@@ -253,3 +253,6 @@ path = "examples/list_example.rs"
 [[example]]
 name = "mouse_pressure"
 path = "examples/mouse_pressure.rs"
+[[bench]]
+name = "gesture_recognizer"
+harness = false

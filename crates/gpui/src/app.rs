@@ -43,14 +43,14 @@ use crate::InspectorElementRegistry;
 use crate::{
     Action, ActionBuildError, ActionRegistry, Any, AnyView, AnyWindowHandle, AppContext, Arena,
     ArenaBox, Asset, AssetSource, BackgroundExecutor, Bounds, ClipboardItem, CursorStyle,
-    DispatchPhase, DisplayId, EventEmitter, FocusHandle, FocusMap, ForegroundExecutor, Global,
-    KeyBinding, KeyContext, Keymap, Keystroke, LayoutId, Menu, MenuItem, OwnedMenu,
-    PathPromptOptions, Pixels, Platform, PlatformDisplay, PlatformKeyboardLayout,
-    PlatformKeyboardMapper, Point, Priority, PromptBuilder, PromptButton, PromptHandle,
-    PromptLevel, Render, RenderImage, RenderablePromptHandle, Reservation, ScreenCaptureSource,
-    SharedString, SubscriberSet, Subscription, SvgRenderer, Task, TextRenderingMode, TextSystem,
-    ThermalState, Window, WindowAppearance, WindowButtonLayout, WindowHandle, WindowId,
-    WindowInvalidator,
+    DispatchPhase, DisplayId, EventEmitter, FocusHandle, FocusMap, ForegroundExecutor, GestureMap,
+    GestureMapLayer, Global, InputLayerId, InputMapError, KeyBinding, KeyContext, Keymap,
+    KeymapLayer, Keystroke, LayoutId, Menu, MenuItem, OwnedMenu, PathPromptOptions, Pixels,
+    Platform, PlatformDisplay, PlatformKeyboardLayout, PlatformKeyboardMapper, Point, Priority,
+    PromptBuilder, PromptButton, PromptHandle, PromptLevel, Render, RenderImage,
+    RenderablePromptHandle, Reservation, ScreenCaptureSource, SharedString, SubscriberSet,
+    Subscription, SvgRenderer, Task, TextRenderingMode, TextSystem, ThermalState, Window,
+    WindowAppearance, WindowButtonLayout, WindowHandle, WindowId, WindowInvalidator,
     colors::{Colors, GlobalColors},
     hash, init_app_menus,
 };
@@ -620,6 +620,7 @@ pub struct App {
     pub(crate) window_handles: FxHashMap<WindowId, AnyWindowHandle>,
     pub(crate) focus_handles: Arc<FocusMap>,
     pub(crate) keymap: Rc<RefCell<Keymap>>,
+    pub(crate) gesture_map: Rc<RefCell<GestureMap>>,
     pub(crate) keyboard_layout: Box<dyn PlatformKeyboardLayout>,
     pub(crate) keyboard_mapper: Rc<dyn PlatformKeyboardMapper>,
     pub(crate) global_action_listeners:
@@ -736,6 +737,7 @@ impl App {
                 window_handles: FxHashMap::default(),
                 focus_handles: Arc::new(RwLock::new(SlotMap::with_key())),
                 keymap: Rc::new(RefCell::new(Keymap::default())),
+                gesture_map: Rc::new(RefCell::new(GestureMap::default())),
                 keyboard_layout,
                 keyboard_mapper,
                 global_action_listeners: FxHashMap::default(),
@@ -1990,21 +1992,52 @@ impl App {
         )
     }
 
-    /// Register key bindings.
-    pub fn bind_keys(&mut self, bindings: impl IntoIterator<Item = KeyBinding>) {
-        self.keymap.borrow_mut().add_bindings(bindings);
+    /// Atomically installs or replaces one complete named keymap layer.
+    pub fn set_keymap_layer(
+        &mut self,
+        layer: KeymapLayer,
+    ) -> Result<Option<KeymapLayer>, InputMapError> {
+        let previous = self.keymap.borrow_mut().set_layer(layer)?;
         self.pending_effects.push_back(Effect::RefreshWindows);
+        Ok(previous)
     }
 
-    /// Clear all key bindings in the app.
-    pub fn clear_key_bindings(&mut self) {
-        self.keymap.borrow_mut().clear();
+    /// Removes one named keymap layer without affecting unrelated layers.
+    pub fn remove_keymap_layer(&mut self, id: &InputLayerId) -> Option<KeymapLayer> {
+        let removed = self.keymap.borrow_mut().remove_layer(id);
+        if removed.is_some() {
+            self.pending_effects.push_back(Effect::RefreshWindows);
+        }
+        removed
+    }
+
+    /// Atomically installs or replaces one complete named gesture-map layer.
+    pub fn set_gesture_map_layer(
+        &mut self,
+        layer: GestureMapLayer,
+    ) -> Result<Option<GestureMapLayer>, InputMapError> {
+        let previous = self.gesture_map.borrow_mut().set_layer(layer)?;
         self.pending_effects.push_back(Effect::RefreshWindows);
+        Ok(previous)
+    }
+
+    /// Removes one named gesture-map layer without affecting unrelated layers.
+    pub fn remove_gesture_map_layer(&mut self, id: &InputLayerId) -> Option<GestureMapLayer> {
+        let removed = self.gesture_map.borrow_mut().remove_layer(id);
+        if removed.is_some() {
+            self.pending_effects.push_back(Effect::RefreshWindows);
+        }
+        removed
     }
 
     /// Get all key bindings in the app.
     pub fn key_bindings(&self) -> Rc<RefCell<Keymap>> {
         self.keymap.clone()
+    }
+
+    /// Gets the immutable gesture-layer map for diagnostics and activation coordination.
+    pub fn gesture_map(&self) -> Rc<RefCell<GestureMap>> {
+        self.gesture_map.clone()
     }
 
     /// Register a global handler for actions invoked via the keyboard. These handlers are run at
