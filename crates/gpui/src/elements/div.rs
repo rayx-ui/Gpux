@@ -17,7 +17,7 @@
 
 use crate::{
     Action, ActionDispatchOutcome, AnyDrag, AnyElement, AnyTooltip, AnyView, App, Bounds,
-    ClickEvent, DispatchPhase, Display, Element, ElementId, Entity, FocusHandle, Global,
+    ClickEvent, DispatchPhase, Display, Element, ElementId, Entity, EntityId, FocusHandle, Global,
     GlobalElementId, Hitbox, HitboxBehavior, HitboxId, InspectorElementId, IntoElement, IsZero,
     KeyContext, KeyDownEvent, KeyUpEvent, KeyboardButton, KeyboardClickEvent, LayoutId,
     ModifiersChangedEvent, MouseButton, MouseClickEvent, MouseDownEvent, MouseMoveEvent,
@@ -3060,6 +3060,7 @@ impl Interactivity {
         _cx: &mut App,
     ) {
         if let Some(scroll_offset) = self.scroll_offset.clone() {
+            let tracked_scroll_handle = self.tracked_scroll_handle.clone();
             let overflow = style.overflow;
             let allow_concurrent_scroll = style.allow_concurrent_scroll;
             let restrict_scroll_to_axis = style.restrict_scroll_to_axis;
@@ -3077,7 +3078,6 @@ impl Interactivity {
                     let mut scroll_offset = scroll_offset.borrow_mut();
                     let old_scroll_offset = *scroll_offset;
                     let delta = event.delta.pixel_delta(line_height);
-
                     let mut delta_x = Pixels::ZERO;
                     if overflow.x == Overflow::Scroll {
                         if !delta.x.is_zero() {
@@ -3114,6 +3114,9 @@ impl Interactivity {
                     if new_scroll_offset != old_scroll_offset {
                         *scroll_offset = new_scroll_offset;
                         cx.notify(current_view);
+                        if let Some(scroll_handle) = tracked_scroll_handle.as_ref() {
+                            scroll_handle.notify_dependent_views(cx);
+                        }
                         cx.stop_propagation();
                     }
                 }
@@ -3833,6 +3836,7 @@ struct ScrollHandleState {
     scroll_to_bottom: bool,
     overflow: Point<Overflow>,
     active_item: Option<ScrollActiveItem>,
+    dependent_views: SmallVec<[EntityId; 2]>,
 }
 
 #[derive(Default, Debug, Clone, Copy)]
@@ -3864,6 +3868,23 @@ impl ScrollHandle {
     /// Construct a new scroll handle.
     pub fn new() -> Self {
         Self(Rc::default())
+    }
+
+    /// Registers an entity whose rendered output reads this handle even though a different
+    /// entity owns the scroll container. Registered dependents are invalidated after an
+    /// interactive scroll offset mutation so their cached elements can recompute.
+    pub fn register_dependent_view(&self, entity_id: EntityId) {
+        let mut state = self.0.borrow_mut();
+        if !state.dependent_views.contains(&entity_id) {
+            state.dependent_views.push(entity_id);
+        }
+    }
+
+    fn notify_dependent_views(&self, cx: &mut App) {
+        let dependent_views = self.0.borrow().dependent_views.clone();
+        for entity_id in dependent_views {
+            cx.notify(entity_id);
+        }
     }
 
     /// Get the current scroll offset.
