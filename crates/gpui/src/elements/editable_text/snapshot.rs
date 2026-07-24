@@ -39,6 +39,25 @@ impl TextBufferSnapshot {
         self.rope.len_lines(LineType::LF)
     }
 
+    pub(crate) fn logical_line_range(&self, line: usize) -> Result<Range<usize>, TextBufferError> {
+        let line_count = self.line_count();
+        if line >= line_count {
+            return Err(TextBufferError::PointOutOfBounds {
+                point: Point::new(0, line),
+                line_count,
+                line_byte_len: None,
+            });
+        }
+
+        let start = self.rope.line_to_byte_idx(line, LineType::LF);
+        let end = if line + 1 < line_count {
+            self.rope.line_to_byte_idx(line + 1, LineType::LF) - 1
+        } else {
+            self.len()
+        };
+        Ok(start..end)
+    }
+
     /// Materializes the snapshot as UTF-8 text without exposing Rope storage.
     pub fn text(&self) -> String {
         self.rope.to_string()

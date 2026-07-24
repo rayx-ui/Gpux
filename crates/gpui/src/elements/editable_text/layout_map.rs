@@ -238,22 +238,23 @@ impl TextLayoutMap {
         let projected_runs = project_style_runs(&clipped_runs, projection);
         let style_matches = self.cache.style_matches(&style_key);
         let reusable = self.cache.reusable_rows(&style_key);
-        let source_text = snapshot.text();
-        let text = projection.map_or(source_text.as_str(), EditableTextProjection::text);
-        let logical_lines = logical_lines(&text);
-        let mut next_rows = Vec::with_capacity(logical_lines.len());
-        let mut next_cache = HashMap::with_capacity(logical_lines.len());
+        let line_count = projection.map_or_else(
+            || snapshot.line_count(),
+            |map| map.text().split('\n').count(),
+        );
+        let mut next_rows = Vec::with_capacity(line_count);
+        let mut next_cache = HashMap::with_capacity(line_count);
         let mut visual_start = 0;
         let mut update = TextLayoutUpdate::default();
         let mut max_width = px(0.);
         let mut style_run_start = 0;
 
-        for (display_start, line) in logical_lines {
+        let mut layout_line = |display_start: usize,
+                               line: &str,
+                               buffer_start: usize,
+                               buffer_end: usize|
+         -> Result<(), TextLayoutError> {
             let display_end = display_start + line.len();
-            let buffer_start =
-                projection.map_or(display_start, |map| map.display_to_buffer(display_start));
-            let buffer_end =
-                projection.map_or(display_end, |map| map.display_to_buffer(display_end));
             while style_run_start < projected_runs.len()
                 && projected_runs[style_run_start].range.end <= display_start
             {
@@ -307,6 +308,27 @@ impl TextLayoutMap {
             });
             next_cache.insert(row_key, layout);
             visual_start += visual_len;
+            Ok(())
+        };
+
+        if let Some(projection) = projection {
+            let mut display_start = 0;
+            for line in projection.text().split('\n') {
+                let display_end = display_start + line.len();
+                layout_line(
+                    display_start,
+                    line,
+                    projection.display_to_buffer(display_start),
+                    projection.display_to_buffer(display_end),
+                )?;
+                display_start = display_end + 1;
+            }
+        } else {
+            for line_index in 0..snapshot.line_count() {
+                let range = snapshot.logical_line_range(line_index)?;
+                let line = snapshot.slice(range.clone())?;
+                layout_line(range.start, &line, range.start, range.end)?;
+            }
         }
 
         if !style_matches {
@@ -499,16 +521,6 @@ fn project_style_runs(
             (start < end).then(|| EditableTextStyleRun::new(start..end, run.style.clone()))
         })
         .collect()
-}
-
-fn logical_lines(text: &str) -> Vec<(usize, &str)> {
-    let mut start = 0;
-    let mut lines = Vec::new();
-    for line in text.split('\n') {
-        lines.push((start, line));
-        start += line.len() + 1;
-    }
-    lines
 }
 
 fn shape_runs_for_line(
