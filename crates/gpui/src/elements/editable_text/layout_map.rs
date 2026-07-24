@@ -462,19 +462,25 @@ impl TextLayoutMap {
     }
 
     fn row_for_buffer_offset(&self, offset: usize) -> Option<&LayoutRow> {
-        self.rows.iter().enumerate().find_map(|(index, row)| {
-            let is_last = index + 1 == self.rows.len();
-            (offset >= row.buffer_start
-                && (offset <= row.buffer_start + row.buffer_len)
-                && (is_last || offset < row.buffer_start + row.buffer_len + 1))
-                .then_some(row)
-        })
+        let index = self
+            .rows
+            .partition_point(|row| row.buffer_start <= offset)
+            .checked_sub(1)?;
+        let row = self.rows.get(index)?;
+        let is_last = index + 1 == self.rows.len();
+        (offset >= row.buffer_start
+            && (offset <= row.buffer_start + row.buffer_len)
+            && (is_last || offset < row.buffer_start + row.buffer_len + 1))
+            .then_some(row)
     }
 
     fn row_for_visual_row(&self, visual_row: usize) -> Option<&LayoutRow> {
-        self.rows.iter().find(|row| {
-            visual_row >= row.visual_start && visual_row < row.visual_start + row.visual_len
-        })
+        let index = self
+            .rows
+            .partition_point(|row| row.visual_start <= visual_row)
+            .checked_sub(1)?;
+        let row = self.rows.get(index)?;
+        (visual_row < row.visual_start + row.visual_len).then_some(row)
     }
 }
 
