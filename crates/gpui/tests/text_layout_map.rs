@@ -331,7 +331,12 @@ fn same_length_single_line_edit_splices_layout_without_geometry_drift() {
     assert_eq!(update.shaped_rows, 1);
     assert_eq!(update.reused_rows, 1_999);
     assert_eq!(incremental.visual_line_count(), full.visual_line_count());
-    for offset in [0, start, start + 4, after.len() / 2, after.len()] {
+    for offset in after
+        .text()
+        .char_indices()
+        .map(|(offset, _)| offset)
+        .chain(std::iter::once(after.len()))
+    {
         assert_eq!(
             incremental.buffer_to_display(offset),
             full.buffer_to_display(offset)
