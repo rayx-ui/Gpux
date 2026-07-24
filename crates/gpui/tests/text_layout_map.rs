@@ -344,6 +344,56 @@ fn same_length_single_line_edit_splices_layout_without_geometry_drift() {
 }
 
 #[test]
+fn same_length_edit_splices_wrapped_row_and_shifts_following_rows() {
+    let mut buffer = TextBuffer::new("prefix\nABCDEFGHI\nsuffix");
+    let before = buffer.snapshot();
+    let before_runs = EditableTextStyleRuns::empty(before.revision());
+    let layout_style = style(Some(32.));
+    let mut incremental = TextLayoutMap::new();
+    let mut full = TextLayoutMap::new();
+    incremental
+        .update_with_shaper(&before, &before_runs, &layout_style, &DeterministicShaper)
+        .unwrap();
+    full.update_with_shaper(&before, &before_runs, &layout_style, &DeterministicShaper)
+        .unwrap();
+
+    let start = before.text().find("ABCD").unwrap();
+    let edit = TextEdit::new(before.revision(), start..start + 4, "中a");
+    let after = buffer.apply(edit.clone()).unwrap();
+    let after_runs = EditableTextStyleRuns::empty(after.revision());
+    let update = incremental
+        .update_after_edit_with_shaper(
+            &after,
+            &edit,
+            &after_runs,
+            &layout_style,
+            &DeterministicShaper,
+        )
+        .unwrap();
+    full.update_with_shaper(&after, &after_runs, &layout_style, &DeterministicShaper)
+        .unwrap();
+
+    assert_eq!(update.shaped_rows, 1);
+    assert_eq!(update.reused_rows, 2);
+    assert_eq!(incremental.visual_line_count(), full.visual_line_count());
+    for offset in after
+        .text()
+        .char_indices()
+        .map(|(offset, _)| offset)
+        .chain(std::iter::once(after.len()))
+    {
+        assert_eq!(
+            incremental.buffer_to_display(offset),
+            full.buffer_to_display(offset)
+        );
+        assert_eq!(
+            incremental.position_for_index(offset),
+            full.position_for_index(offset)
+        );
+    }
+}
+
+#[test]
 fn text_layout_map_source_stays_free_of_editor_and_form_policy() {
     let map = include_str!("../src/elements/editable_text/layout_map.rs").to_lowercase();
     let cache = include_str!("../src/elements/editable_text/layout_cache.rs").to_lowercase();
