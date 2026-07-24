@@ -270,7 +270,7 @@ impl TextLayoutMap {
             );
             let line_text: Arc<str> = Arc::from(line);
             let row_key = RowLayoutKey::new(line_text.clone(), run_keys);
-            let layout = if let Some(layout) = reusable.get(&row_key) {
+            let layout = if let Some(layout) = reusable.and_then(|rows| rows.get(&row_key)) {
                 update.reused_rows += 1;
                 layout.clone()
             } else {

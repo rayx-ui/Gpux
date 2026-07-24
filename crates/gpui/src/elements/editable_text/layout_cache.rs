@@ -87,12 +87,8 @@ impl TextLayoutCache {
     pub(super) fn reusable_rows(
         &self,
         style: &LayoutStyleKey,
-    ) -> HashMap<RowLayoutKey, Arc<WrappedLineLayout>> {
-        if self.style.as_ref() == Some(style) {
-            self.rows.clone()
-        } else {
-            HashMap::new()
-        }
+    ) -> Option<&HashMap<RowLayoutKey, Arc<WrappedLineLayout>>> {
+        (self.style.as_ref() == Some(style)).then_some(&self.rows)
     }
 
     pub(super) fn prior_row_count(&self) -> usize {
