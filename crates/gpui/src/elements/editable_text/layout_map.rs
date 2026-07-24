@@ -147,6 +147,7 @@ struct LayoutRow {
 #[derive(Default)]
 pub struct TextLayoutMap {
     rows: Vec<LayoutRow>,
+    installed_style_runs: Option<EditableTextStyleRuns>,
     projected_style_runs: Vec<EditableTextStyleRun>,
     cache: TextLayoutCache,
     line_height: Pixels,
@@ -223,9 +224,18 @@ impl TextLayoutMap {
         style: &TextLayoutStyle,
         shaper: &impl TextLayoutShaper,
     ) -> Result<TextLayoutUpdate, TextLayoutError> {
+        let style_key = style.cache_key();
+        if self
+            .cache
+            .matches_installed(snapshot.revision(), &style_key)
+            && self.installed_style_runs.as_ref() == Some(style_runs)
+            && self.projection.as_ref() == projection
+        {
+            return Ok(TextLayoutUpdate::default());
+        }
+
         let clipped_runs = style_runs.clipped_to(snapshot, 0..snapshot.len())?;
         let projected_runs = project_style_runs(&clipped_runs, projection);
-        let style_key = style.cache_key();
         let style_matches = self.cache.style_matches(&style_key);
         let reusable = self.cache.reusable_rows(&style_key);
         let source_text = snapshot.text();
@@ -307,6 +317,7 @@ impl TextLayoutMap {
         }
 
         self.rows = next_rows;
+        self.installed_style_runs = Some(style_runs.clone());
         self.projected_style_runs = projected_runs;
         self.line_height = style.line_height;
         self.visual_line_count = visual_start;

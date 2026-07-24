@@ -103,6 +103,10 @@ impl TextLayoutCache {
         self.style.as_ref() == Some(style)
     }
 
+    pub(super) fn matches_installed(&self, revision: u64, style: &LayoutStyleKey) -> bool {
+        self.revision == Some(revision) && self.style_matches(style)
+    }
+
     pub(super) fn install(
         &mut self,
         revision: u64,
