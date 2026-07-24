@@ -122,6 +122,7 @@ pub struct WindowsWindowState {
     pub direct_manipulation: DirectManipulationHandler,
 
     pub renderer: RefCell<WgpuRenderer>,
+    pub subpixel_rendering_supported: bool,
     /// Coalesce live-resize surface changes until the frame that draws with the
     /// matching GPUI viewport. This avoids presenting with a surface size from
     /// one resize message and scene geometry from another.
@@ -209,6 +210,7 @@ impl WindowsWindowState {
             None,
         )
         .context("Creating Windows WGPU renderer")?;
+        let subpixel_rendering_supported = renderer.supports_dual_source_blending();
         let gpu_specs = renderer.gpu_specs();
         log::info!(
             "Created Windows WGPU renderer: device='{}', driver='{}', driver_info='{}', software={}",
@@ -254,6 +256,7 @@ impl WindowsWindowState {
             last_reported_capslock: Cell::new(last_reported_capslock),
             hovered: Cell::new(hovered),
             renderer: RefCell::new(renderer),
+            subpixel_rendering_supported,
             pending_drawable_size: Cell::new(None),
             force_render_after_recovery: Cell::new(false),
             in_size_move_loop: Cell::new(false),
@@ -962,7 +965,7 @@ impl PlatformWindow for WindowsWindow {
     }
 
     fn is_subpixel_rendering_supported(&self) -> bool {
-        true
+        self.state.subpixel_rendering_supported
     }
 
     fn set_title(&mut self, title: &str) {
