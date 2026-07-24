@@ -9,7 +9,7 @@ use crate::{
 use super::{
     EditableSelection, EditableTextEvent, EditableTextGeometry, EditableTextLineMode,
     EditableTextMode, EditableTextStyleRuns, TextBuffer, TextBufferError, TextBufferSnapshot,
-    TextEdit, TextLayoutError, TextLayoutMap, TextLayoutStyle, TextLayoutUpdate,
+    TextEdit, TextLayoutEdit, TextLayoutError, TextLayoutMap, TextLayoutStyle, TextLayoutUpdate,
     editable_text_alignment_offset,
     history::{EditHistory, EditKind, HistoryState},
     movement::{
@@ -37,6 +37,7 @@ pub struct EditableTextState {
     history: EditHistory,
     geometry: Option<EditableTextGeometry>,
     layout_map: TextLayoutMap,
+    pending_layout_edit: Option<TextLayoutEdit>,
     scroll_offset: Point<Pixels>,
     caret_reveal_pending: bool,
     preferred_vertical_x: Option<Pixels>,
@@ -83,6 +84,7 @@ impl EditableTextState {
             history: EditHistory::default(),
             geometry: None,
             layout_map: TextLayoutMap::new(),
+            pending_layout_edit: None,
             scroll_offset: point(px(0.), px(0.)),
             caret_reveal_pending: false,
             preferred_vertical_x: None,
@@ -270,19 +272,30 @@ impl EditableTextState {
         };
         let snapshot = self.snapshot();
         let projection = display_transform.project(&snapshot.text());
-        let update = match self.layout_map.update_with_projection(
-            &snapshot,
-            projection.as_ref(),
-            &self.style_runs,
-            &style,
-            text_system,
-        ) {
+        let update_result = match (&projection, self.pending_layout_edit.as_ref()) {
+            (None, Some(edit)) => self.layout_map.update_after_layout_edit_with_shaper(
+                &snapshot,
+                edit,
+                &self.style_runs,
+                &style,
+                text_system,
+            ),
+            _ => self.layout_map.update_with_projection(
+                &snapshot,
+                projection.as_ref(),
+                &self.style_runs,
+                &style,
+                text_system,
+            ),
+        };
+        let update = match update_result {
             Ok(update) => update,
             Err(error) => {
                 self.geometry = None;
                 return Err(error);
             }
         };
+        self.pending_layout_edit = None;
         if reveal_caret {
             self.ensure_caret_visible(bounds);
             self.caret_reveal_pending = false;
@@ -617,7 +630,7 @@ impl EditableTextState {
             return false;
         }
         let edit = TextEdit::new(self.revision(), 0..self.buffer.len(), replacement);
-        if self.buffer.apply(edit).is_err() {
+        if !self.apply_buffer_edit(edit) {
             return false;
         }
         self.invalidate_style_runs();
@@ -1092,7 +1105,7 @@ impl EditableTextState {
     ) -> bool {
         let before = self.history_state();
         let edit = TextEdit::new(self.revision(), range, replacement);
-        if self.buffer.apply(edit).is_err() {
+        if !self.apply_buffer_edit(edit) {
             return false;
         }
         self.invalidate_style_runs();
@@ -1112,7 +1125,7 @@ impl EditableTextState {
 
     fn restore_history_state(&mut self, state: HistoryState, cx: &mut Context<Self>) -> bool {
         let edit = TextEdit::new(self.revision(), 0..self.buffer.len(), state.text);
-        if self.buffer.apply(edit).is_err() {
+        if !self.apply_buffer_edit(edit) {
             return false;
         }
         self.invalidate_style_runs();
@@ -1130,6 +1143,15 @@ impl EditableTextState {
 
     fn invalidate_style_runs(&mut self) {
         self.style_runs = EditableTextStyleRuns::empty(self.revision());
+    }
+
+    fn apply_buffer_edit(&mut self, edit: TextEdit) -> bool {
+        let pending = TextLayoutEdit::from(&edit);
+        if self.buffer.apply(edit).is_err() {
+            return false;
+        }
+        self.pending_layout_edit = Some(pending);
+        true
     }
 
     fn history_state(&self) -> HistoryState {

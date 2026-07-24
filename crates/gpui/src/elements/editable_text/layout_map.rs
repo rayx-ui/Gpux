@@ -7,7 +7,7 @@ use crate::{
 
 use super::{
     EditableTextProjection, EditableTextStyleRun, EditableTextStyleRuns, LayoutStyleKey,
-    RowLayoutKey, ShapeRunKey, TextBufferError, TextBufferSnapshot, TextLayoutCache,
+    RowLayoutKey, ShapeRunKey, TextBufferError, TextBufferSnapshot, TextEdit, TextLayoutCache,
     TextLayoutCacheStats, TextLayoutUpdate,
 };
 
@@ -18,6 +18,25 @@ pub struct TextDisplayPoint {
     pub row: usize,
     /// UTF-8 byte column relative to the visual row.
     pub column: usize,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct TextLayoutEdit {
+    expected_revision: u64,
+    range: std::ops::Range<usize>,
+    replacement_len: usize,
+    replacement_has_newline: bool,
+}
+
+impl From<&TextEdit> for TextLayoutEdit {
+    fn from(edit: &TextEdit) -> Self {
+        Self {
+            expected_revision: edit.expected_revision(),
+            range: edit.range().clone(),
+            replacement_len: edit.replacement().len(),
+            replacement_has_newline: edit.replacement().contains('\n'),
+        }
+    }
 }
 
 impl TextDisplayPoint {
@@ -216,6 +235,40 @@ impl TextLayoutMap {
         self.update_with_shaper_and_projection(snapshot, None, style_runs, style, shaper)
     }
 
+    #[doc(hidden)]
+    pub fn update_after_edit_with_shaper(
+        &mut self,
+        snapshot: &TextBufferSnapshot,
+        edit: &TextEdit,
+        style_runs: &EditableTextStyleRuns,
+        style: &TextLayoutStyle,
+        shaper: &impl TextLayoutShaper,
+    ) -> Result<TextLayoutUpdate, TextLayoutError> {
+        self.update_after_layout_edit_with_shaper(
+            snapshot,
+            &TextLayoutEdit::from(edit),
+            style_runs,
+            style,
+            shaper,
+        )
+    }
+
+    pub(crate) fn update_after_layout_edit_with_shaper(
+        &mut self,
+        snapshot: &TextBufferSnapshot,
+        edit: &TextLayoutEdit,
+        style_runs: &EditableTextStyleRuns,
+        style: &TextLayoutStyle,
+        shaper: &impl TextLayoutShaper,
+    ) -> Result<TextLayoutUpdate, TextLayoutError> {
+        if let Some(update) =
+            self.splice_single_line_edit(snapshot, edit, style_runs, style, shaper)?
+        {
+            return Ok(update);
+        }
+        self.update_with_shaper_and_projection(snapshot, None, style_runs, style, shaper)
+    }
+
     fn update_with_shaper_and_projection(
         &mut self,
         snapshot: &TextBufferSnapshot,
@@ -348,6 +401,105 @@ impl TextLayoutMap {
         self.cache
             .install(snapshot.revision(), style_key, next_cache, update);
         Ok(update)
+    }
+
+    fn splice_single_line_edit(
+        &mut self,
+        snapshot: &TextBufferSnapshot,
+        edit: &TextLayoutEdit,
+        style_runs: &EditableTextStyleRuns,
+        style: &TextLayoutStyle,
+        shaper: &impl TextLayoutShaper,
+    ) -> Result<Option<TextLayoutUpdate>, TextLayoutError> {
+        if edit.expected_revision.checked_add(1) != Some(snapshot.revision())
+            || edit.range.len() != edit.replacement_len
+            || edit.replacement_has_newline
+            || !style_runs.is_empty()
+            || !self
+                .installed_style_runs
+                .as_ref()
+                .is_some_and(EditableTextStyleRuns::is_empty)
+            || self.projection.is_some()
+            || !self.cache.style_matches(&style.cache_key())
+        {
+            return Ok(None);
+        }
+
+        let row_index = self
+            .rows
+            .partition_point(|row| row.buffer_start + row.buffer_len < edit.range.start)
+            .min(self.rows.len().saturating_sub(1));
+        let Some(row) = self.rows.get(row_index) else {
+            return Ok(None);
+        };
+        if edit.range.start < row.buffer_start
+            || edit.range.end > row.buffer_start + row.buffer_len
+            || self
+                .rows
+                .iter()
+                .enumerate()
+                .any(|(index, candidate)| index != row_index && candidate.text == row.text)
+        {
+            return Ok(None);
+        }
+
+        let text = snapshot.slice(row.buffer_start..row.buffer_start + row.buffer_len)?;
+        if text.contains('\n') {
+            return Ok(None);
+        }
+        let (runs, run_keys) = shape_runs_for_line(0, text.len(), &[], style.font.clone());
+        let text: Arc<str> = Arc::from(text);
+        let layout = shaper
+            .shape_layout(TextLayoutShapeRequest {
+                text: &text,
+                runs: &runs,
+                font_size: style.font_size,
+                letter_spacing: style.letter_spacing,
+                wrap_width: style.wrap_width,
+            })
+            .map_err(TextLayoutError::Shaping)?;
+        let visual_len = layout.wrap_boundaries().len() + 1;
+        if layout.width() < row.layout.width() && row.layout.width() == self.size.width {
+            return Ok(None);
+        }
+
+        let old_key = RowLayoutKey::new(Arc::from(row.text.as_ref()), Vec::new());
+        let new_key = RowLayoutKey::new(text.clone(), run_keys);
+        let visual_delta = visual_len as isize - row.visual_len as isize;
+        let replacement = LayoutRow {
+            text: SharedString::new(text.as_ref()),
+            buffer_start: row.buffer_start,
+            buffer_len: row.buffer_len,
+            display_start: row.display_start,
+            display_len: text.len(),
+            visual_start: row.visual_start,
+            visual_len,
+            character_boundaries: text
+                .char_indices()
+                .map(|(offset, _)| offset)
+                .chain(std::iter::once(text.len()))
+                .collect::<Vec<_>>()
+                .into(),
+            layout: layout.clone(),
+        };
+        self.rows[row_index] = replacement;
+        if visual_delta != 0 {
+            for row in &mut self.rows[row_index + 1..] {
+                row.visual_start = row.visual_start.saturating_add_signed(visual_delta);
+            }
+            self.visual_line_count = self.visual_line_count.saturating_add_signed(visual_delta);
+        }
+        self.size.width = self.size.width.max(layout.width());
+        self.size.height = style.line_height * self.visual_line_count;
+        self.installed_style_runs = Some(style_runs.clone());
+        let update = TextLayoutUpdate {
+            shaped_rows: 1,
+            reused_rows: self.rows.len().saturating_sub(1),
+            invalidated_rows: 1,
+        };
+        self.cache
+            .replace_row(snapshot.revision(), old_key, new_key, layout, update);
+        Ok(Some(update))
     }
 
     /// Converts a valid buffer byte offset to a visual row and byte column.

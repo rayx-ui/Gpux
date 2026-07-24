@@ -295,6 +295,55 @@ fn incremental_layout_reuses_over_ninety_nine_percent_of_unchanged_rows() {
 }
 
 #[test]
+fn same_length_single_line_edit_splices_layout_without_geometry_drift() {
+    let text = (0..2_000)
+        .map(|row| format!("row {row:04} Latin 中 emoji 👨‍👩‍👧‍👦"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let mut buffer = TextBuffer::new(text);
+    let before = buffer.snapshot();
+    let before_runs = EditableTextStyleRuns::empty(before.revision());
+    let layout_style = style(Some(280.));
+    let mut incremental = TextLayoutMap::new();
+    let mut full = TextLayoutMap::new();
+    incremental
+        .update_with_shaper(&before, &before_runs, &layout_style, &DeterministicShaper)
+        .unwrap();
+    full.update_with_shaper(&before, &before_runs, &layout_style, &DeterministicShaper)
+        .unwrap();
+
+    let start = before.text().find("row 1000").unwrap();
+    let edit = TextEdit::new(before.revision(), start..start + 8, "ROW 1000");
+    let after = buffer.apply(edit.clone()).unwrap();
+    let after_runs = EditableTextStyleRuns::empty(after.revision());
+    let update = incremental
+        .update_after_edit_with_shaper(
+            &after,
+            &edit,
+            &after_runs,
+            &layout_style,
+            &DeterministicShaper,
+        )
+        .unwrap();
+    full.update_with_shaper(&after, &after_runs, &layout_style, &DeterministicShaper)
+        .unwrap();
+
+    assert_eq!(update.shaped_rows, 1);
+    assert_eq!(update.reused_rows, 1_999);
+    assert_eq!(incremental.visual_line_count(), full.visual_line_count());
+    for offset in [0, start, start + 4, after.len() / 2, after.len()] {
+        assert_eq!(
+            incremental.buffer_to_display(offset),
+            full.buffer_to_display(offset)
+        );
+        assert_eq!(
+            incremental.position_for_index(offset),
+            full.position_for_index(offset)
+        );
+    }
+}
+
+#[test]
 fn text_layout_map_source_stays_free_of_editor_and_form_policy() {
     let map = include_str!("../src/elements/editable_text/layout_map.rs").to_lowercase();
     let cache = include_str!("../src/elements/editable_text/layout_cache.rs").to_lowercase();

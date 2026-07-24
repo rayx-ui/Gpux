@@ -117,6 +117,22 @@ impl TextLayoutCache {
         self.stats.cache_hits += update.reused_rows;
         self.stats.invalidated_rows += update.invalidated_rows;
     }
+
+    pub(super) fn replace_row(
+        &mut self,
+        revision: u64,
+        old: RowLayoutKey,
+        new: RowLayoutKey,
+        layout: Arc<WrappedLineLayout>,
+        update: TextLayoutUpdate,
+    ) {
+        self.revision = Some(revision);
+        self.rows.remove(&old);
+        self.rows.insert(new, layout);
+        self.stats.shaped_rows += update.shaped_rows;
+        self.stats.cache_hits += update.reused_rows;
+        self.stats.invalidated_rows += update.invalidated_rows;
+    }
 }
 
 /// Per-update layout-cache counters.
