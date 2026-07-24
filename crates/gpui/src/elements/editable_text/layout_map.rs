@@ -426,8 +426,17 @@ impl TextLayoutMap {
         Some(point(x, self.line_height * display.row))
     }
 
-    pub(crate) fn logical_row_count(&self) -> usize {
-        self.rows.len()
+    pub(crate) fn logical_rows_for_visual_range(
+        &self,
+        visual_rows: std::ops::Range<usize>,
+    ) -> std::ops::Range<usize> {
+        let first = self
+            .rows
+            .partition_point(|row| row.visual_start + row.visual_len <= visual_rows.start);
+        let end = self
+            .rows
+            .partition_point(|row| row.visual_start < visual_rows.end);
+        first..end
     }
 
     pub(crate) fn projected_style_runs(&self) -> &[EditableTextStyleRun] {

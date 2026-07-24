@@ -348,17 +348,28 @@ impl Element for EditableTextPaintElement {
         let content_origin = bounds.origin + scroll_offset + point(alignment_offset, px(0.));
 
         let mut lines = Vec::new();
-        for row_index in 0..state.layout_map().logical_row_count() {
+        let paint_rows = if layout_ready && line_height > px(0.) {
+            let first_visible_row =
+                ((-f32::from(scroll_offset.y) / f32::from(line_height)).max(0.)) as usize;
+            let visible_row_end = ((f32::from(bounds.size.height - scroll_offset.y)
+                / f32::from(line_height))
+            .ceil()) as usize;
+            let visible_rows = first_visible_row.saturating_sub(1)
+                ..visible_row_end
+                    .saturating_add(1)
+                    .min(state.layout_map().visual_line_count());
+            state
+                .layout_map()
+                .logical_rows_for_visual_range(visible_rows)
+        } else {
+            0..0
+        };
+        for row_index in paint_rows {
             let Some((display_start, visual_start, text, layout)) =
                 state.layout_map().paint_row(row_index)
             else {
                 continue;
             };
-            let row_top = line_height * visual_start + scroll_offset.y;
-            let row_bottom = row_top + layout.size(line_height).height;
-            if !layout_ready || row_bottom <= px(0.) || row_top >= bounds.size.height {
-                continue;
-            }
             let decorations = decoration_runs(
                 display_start,
                 text.len(),
