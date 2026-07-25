@@ -65,6 +65,7 @@ pub(crate) struct WebWindowInner {
     pub(crate) callbacks: RefCell<WebWindowCallbacks>,
     pub(crate) click_state: RefCell<ClickState>,
     pub(crate) pressed_button: Cell<Option<MouseButton>>,
+    pub(crate) closed: Cell<bool>,
     pub(crate) last_physical_size: Cell<(u32, u32)>,
     pub(crate) notify_scale: Cell<bool>,
     pub(crate) is_composing: Cell<bool>,
@@ -81,12 +82,30 @@ pub struct WebWindow {
     #[allow(dead_code)]
     handle: AnyWindowHandle,
     _raf_closure: Closure<dyn FnMut()>,
+    raf_request_id: Rc<Cell<Option<i32>>>,
     _resize_observer: Option<web_sys::ResizeObserver>,
     _resize_observer_closure: Closure<dyn FnMut(js_sys::Array)>,
     _event_listeners: WebEventListeners,
     _html_in_canvas_paint_observer: HtmlInCanvasPaintObserver,
     html_in_canvas_diagnostics: HtmlInCanvasDiagnostics,
     layout_subtree_enabled: Cell<bool>,
+}
+
+impl Drop for WebWindow {
+    fn drop(&mut self) {
+        self.inner.closed.set(true);
+        if let Some(request_id) = self.raf_request_id.take() {
+            self.inner
+                .browser_window
+                .cancel_animation_frame(request_id)
+                .ok();
+        }
+        if let Some(observer) = &self._resize_observer {
+            observer.disconnect();
+        }
+        self.inner.canvas.remove();
+        self.inner.input_element.remove();
+    }
 }
 
 impl WebWindow {
@@ -231,6 +250,7 @@ impl WebWindow {
             callbacks: RefCell::new(WebWindowCallbacks::default()),
             click_state: RefCell::new(ClickState::default()),
             pressed_button: Cell::new(None),
+            closed: Cell::new(false),
             last_physical_size: Cell::new((initial_physical_width, initial_physical_height)),
             notify_scale: Cell::new(false),
             is_composing: Cell::new(false),
@@ -245,8 +265,8 @@ impl WebWindow {
             .borrow_mut()
             .set_window(Rc::downgrade(&inner));
 
-        let raf_closure = inner.create_raf_closure();
-        inner.schedule_raf(&raf_closure);
+        let (raf_closure, raf_request_id) = inner.create_raf_closure();
+        inner.schedule_raf(&raf_closure, &raf_request_id);
 
         let resize_observer_closure = Self::create_resize_observer_closure(Rc::clone(&inner));
         let resize_observer =
@@ -265,6 +285,7 @@ impl WebWindow {
             display,
             handle,
             _raf_closure: raf_closure,
+            raf_request_id,
             _resize_observer: resize_observer,
             _resize_observer_closure: resize_observer_closure,
             _event_listeners: event_listeners,
@@ -278,6 +299,9 @@ impl WebWindow {
         inner: Rc<WebWindowInner>,
     ) -> Closure<dyn FnMut(js_sys::Array)> {
         Closure::new(move |entries: js_sys::Array| {
+            if inner.closed.get() {
+                return;
+            }
             inner.media_query_diagnostics.raw_viewport_signal();
             let entry: web_sys::ResizeObserverEntry = match entries.get(0).dyn_into().ok() {
                 Some(entry) => entry,
@@ -420,12 +444,18 @@ impl WebWindowInner {
         });
     }
 
-    fn create_raf_closure(self: &Rc<Self>) -> Closure<dyn FnMut()> {
+    fn create_raf_closure(self: &Rc<Self>) -> (Closure<dyn FnMut()>, Rc<Cell<Option<i32>>>) {
         let raf_handle: Rc<RefCell<Option<js_sys::Function>>> = Rc::new(RefCell::new(None));
         let raf_handle_inner = Rc::clone(&raf_handle);
+        let raf_request_id = Rc::new(Cell::new(None));
+        let raf_request_id_inner = Rc::clone(&raf_request_id);
 
         let this = Rc::clone(self);
         let closure = Closure::new(move || {
+            raf_request_id_inner.set(None);
+            if this.closed.get() {
+                return;
+            }
             this.flush_viewport_scheduler();
             let force_html_island_frame = this
                 .html_island_registry
@@ -453,7 +483,7 @@ impl WebWindowInner {
 
             // Re-schedule for the next frame
             if let Some(ref func) = *raf_handle_inner.borrow() {
-                this.browser_window.request_animation_frame(func).ok();
+                raf_request_id_inner.set(this.browser_window.request_animation_frame(func).ok());
             }
         });
 
@@ -461,13 +491,15 @@ impl WebWindowInner {
             closure.as_ref().unchecked_ref::<js_sys::Function>().clone();
         *raf_handle.borrow_mut() = Some(js_func);
 
-        closure
+        (closure, raf_request_id)
     }
 
-    fn schedule_raf(&self, closure: &Closure<dyn FnMut()>) {
-        self.browser_window
-            .request_animation_frame(closure.as_ref().unchecked_ref())
-            .ok();
+    fn schedule_raf(&self, closure: &Closure<dyn FnMut()>, request_id: &Cell<Option<i32>>) {
+        request_id.set(
+            self.browser_window
+                .request_animation_frame(closure.as_ref().unchecked_ref())
+                .ok(),
+        );
     }
 
     fn observe_canvas(&self, observer: &web_sys::ResizeObserver) {
