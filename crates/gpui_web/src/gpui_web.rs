@@ -9,6 +9,7 @@ mod html_island;
 mod http_client;
 mod keyboard;
 mod logging;
+#[cfg(feature = "rayx_diagnostics")]
 mod media_query_diagnostics;
 mod platform;
 mod web_viewport_scheduler;

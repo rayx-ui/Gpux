@@ -10,6 +10,7 @@ use crate::html_in_canvas::{
     enable_layout_subtree, enable_layout_subtree_if_requested,
 };
 use crate::html_island::WebHtmlIslandRegistry;
+#[cfg(feature = "rayx_diagnostics")]
 use crate::media_query_diagnostics::MediaQueryPipelineDiagnostics;
 use crate::web_viewport_scheduler::{WebViewportObservation, WebViewportScheduler};
 use std::sync::Arc;
@@ -74,6 +75,7 @@ pub(crate) struct WebWindowInner {
     mql_handle: RefCell<Option<MqlHandle>>,
     viewport_scheduler: WebViewportScheduler,
     pending_physical_size: Cell<Option<(u32, u32)>>,
+    #[cfg(feature = "rayx_diagnostics")]
     media_query_diagnostics: MediaQueryPipelineDiagnostics,
 }
 
@@ -260,6 +262,7 @@ impl WebWindow {
             mql_handle: RefCell::new(None),
             viewport_scheduler: WebViewportScheduler::default(),
             pending_physical_size: Cell::new(None),
+            #[cfg(feature = "rayx_diagnostics")]
             media_query_diagnostics: MediaQueryPipelineDiagnostics::default(),
         });
         inner
@@ -304,6 +307,7 @@ impl WebWindow {
             if inner.closed.get() {
                 return;
             }
+            #[cfg(feature = "rayx_diagnostics")]
             inner.media_query_diagnostics.raw_viewport_signal();
             let entry: web_sys::ResizeObserverEntry = match entries.get(0).dyn_into().ok() {
                 Some(entry) => entry,
@@ -370,6 +374,7 @@ impl WebWindowInner {
 
     fn flush_viewport_scheduler(&self) {
         if let Some(observation) = self.viewport_scheduler.flush() {
+            #[cfg(feature = "rayx_diagnostics")]
             self.media_query_diagnostics.coalesced_flush();
             self.apply_logical_size(
                 observation.logical_size,
@@ -420,6 +425,7 @@ impl WebWindowInner {
     }
 
     fn emit_resize(&self, new_size: Size<Pixels>, scale_factor: f32) {
+        #[cfg(feature = "rayx_diagnostics")]
         self.media_query_diagnostics.gpui_resize_emission();
         let mut callback = {
             let mut callbacks = self.callbacks.borrow_mut();
@@ -470,6 +476,7 @@ impl WebWindowInner {
             };
             if let Some(ref mut callback) = callback {
                 let resize_frame_pending = this.pending_physical_size.get().is_some();
+                #[cfg(feature = "rayx_diagnostics")]
                 this.media_query_diagnostics.animation_frame_request();
                 callback(RequestFrameOptions {
                     require_presentation: true,
