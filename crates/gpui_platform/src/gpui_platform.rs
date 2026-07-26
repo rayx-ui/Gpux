@@ -24,6 +24,14 @@ pub fn single_threaded_web() -> gpux::Application {
     gpux::Application::with_platform(Rc::new(gpui_web::WebPlatform::new(false)))
 }
 
+/// Returns a threaded web application with an optional background-worker maximum.
+#[cfg(target_family = "wasm")]
+pub fn web_application(max_background_workers: Option<usize>) -> gpux::Application {
+    gpux::Application::with_platform(Rc::new(
+        gpui_web::WebPlatform::with_background_worker_limit(true, max_background_workers),
+    ))
+}
+
 /// Initializes panic hooks and logging for the web platform.
 /// Call this before running the application in a wasm_bindgen entrypoint.
 #[cfg(target_family = "wasm")]
