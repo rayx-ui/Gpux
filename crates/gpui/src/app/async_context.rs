@@ -142,6 +142,20 @@ impl AppContext for AsyncApp {
 }
 
 impl AsyncApp {
+    /// Attempts to update an entity without panicking when another GPUI update
+    /// currently owns the application.
+    pub fn try_update_entity<T: 'static, R>(
+        &self,
+        handle: &Entity<T>,
+        update: impl FnOnce(&mut T, &mut Context<T>) -> R,
+    ) -> Result<R> {
+        let app = self.app.upgrade().context("app was released")?;
+        let mut lock = app.try_borrow_mut().with_context(|| {
+            format!("app is busy while updating {}", std::any::type_name::<T>())
+        })?;
+        Ok(lock.update_entity(handle, update))
+    }
+
     /// Schedules all windows in the application to be redrawn.
     pub fn refresh(&self) {
         let app = self.app();
