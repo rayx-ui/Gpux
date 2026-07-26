@@ -1,7 +1,7 @@
+#[cfg(feature = "rayx_diagnostics")]
+use crate::html_island_texture::HtmlIslandTextureCacheStatus;
 #[cfg(target_family = "wasm")]
-use crate::html_island_texture::{
-    HtmlIslandTextureCache, HtmlIslandTextureCacheStatus, HtmlIslandTextureDescriptor,
-};
+use crate::html_island_texture::{HtmlIslandTextureCache, HtmlIslandTextureDescriptor};
 #[cfg(target_family = "wasm")]
 use crate::html_island_upload::{HtmlIslandUploadResult, upload_html_island_element_to_texture};
 #[cfg(not(target_family = "wasm"))]
@@ -2719,12 +2719,19 @@ impl WgpuRenderer {
             &device,
         );
 
-        let mut result = upload_html_island_element_to_texture(&queue, element, texture, size)?;
-        result.texture_reallocated = cache_status != HtmlIslandTextureCacheStatus::Hit;
+        let result = upload_html_island_element_to_texture(&queue, element, texture, size)?;
+        #[cfg(feature = "rayx_diagnostics")]
+        let result = {
+            let mut result = result;
+            result.texture_reallocated = cache_status != HtmlIslandTextureCacheStatus::Hit;
+            result
+        };
+        #[cfg(not(feature = "rayx_diagnostics"))]
+        let _ = cache_status;
         Ok(result)
     }
 
-    #[cfg(target_family = "wasm")]
+    #[cfg(all(target_family = "wasm", feature = "rayx_diagnostics"))]
     pub fn html_island_texture_diagnostics(&self) -> (u32, u32, u32) {
         (
             self.html_island_textures.len() as u32,

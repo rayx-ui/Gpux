@@ -16,10 +16,21 @@ impl HtmlIslandUploadPath {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct HtmlIslandUploadResult {
+    #[cfg(feature = "rayx_diagnostics")]
     pub path: HtmlIslandUploadPath,
-    pub size: Size<DevicePixels>,
+    #[cfg(feature = "rayx_diagnostics")]
     pub texture_reallocated: bool,
-    pub source_sample: [u8; 4],
+}
+
+impl Default for HtmlIslandUploadResult {
+    fn default() -> Self {
+        Self {
+            #[cfg(feature = "rayx_diagnostics")]
+            path: HtmlIslandUploadPath::CopyElementImageToTexture,
+            #[cfg(feature = "rayx_diagnostics")]
+            texture_reallocated: false,
+        }
+    }
 }
 
 pub fn upload_html_island_element_to_texture(
@@ -28,6 +39,7 @@ pub fn upload_html_island_element_to_texture(
     texture: &wgpu::Texture,
     size: Size<DevicePixels>,
 ) -> anyhow::Result<HtmlIslandUploadResult> {
+    #[cfg(feature = "rayx_diagnostics")]
     if consume_injected_upload_failure(element) {
         anyhow::bail!("Injected HTML island direct upload failure");
     }
@@ -75,10 +87,10 @@ pub fn upload_html_island_element_to_texture(
         })?;
 
     Ok(HtmlIslandUploadResult {
+        #[cfg(feature = "rayx_diagnostics")]
         path: HtmlIslandUploadPath::CopyElementImageToTexture,
-        size,
+        #[cfg(feature = "rayx_diagnostics")]
         texture_reallocated: false,
-        source_sample: [0, 0, 0, 0],
     })
 }
 
@@ -92,6 +104,7 @@ fn js_error_message(value: &wasm_bindgen::JsValue) -> String {
     format!("{value:?}")
 }
 
+#[cfg(feature = "rayx_diagnostics")]
 fn consume_injected_upload_failure(element: &web_sys::HtmlElement) -> bool {
     let global = js_sys::global();
     let Ok(value) = js_sys::Reflect::get(

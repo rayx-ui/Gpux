@@ -3,10 +3,11 @@ use crate::events::{ClickState, WebEventListeners, is_mac_platform};
 use crate::html_element::{
     WebHtmlElementRegistry, create_overlay_root, write_html_element_diagnostics_to_global,
 };
+#[cfg(feature = "rayx_diagnostics")]
+use crate::html_in_canvas::write_html_in_canvas_diagnostics_to_global;
 use crate::html_in_canvas::{
-    HtmlInCanvasDiagnostics, HtmlInCanvasPaintObserver, detect_html_in_canvas,
+    HtmlInCanvasCapabilities, HtmlInCanvasPaintObserver, detect_html_in_canvas,
     enable_layout_subtree, enable_layout_subtree_if_requested,
-    write_html_in_canvas_diagnostics_to_global,
 };
 use crate::html_island::WebHtmlIslandRegistry;
 use crate::media_query_diagnostics::MediaQueryPipelineDiagnostics;
@@ -87,7 +88,7 @@ pub struct WebWindow {
     _resize_observer_closure: Closure<dyn FnMut(js_sys::Array)>,
     _event_listeners: WebEventListeners,
     _html_in_canvas_paint_observer: HtmlInCanvasPaintObserver,
-    html_in_canvas_diagnostics: HtmlInCanvasDiagnostics,
+    html_in_canvas_capabilities: HtmlInCanvasCapabilities,
     layout_subtree_enabled: Cell<bool>,
 }
 
@@ -206,8 +207,9 @@ impl WebWindow {
             layout_subtree_enabled,
             Some(Rc::clone(&html_island_registry)),
         );
+        #[cfg(feature = "rayx_diagnostics")]
         write_html_in_canvas_diagnostics_to_global(
-            &html_in_canvas_diagnostics,
+            &html_in_canvas_diagnostics.diagnostics(),
             &canvas,
             layout_subtree_enabled,
             &html_in_canvas_paint_observer.snapshot(),
@@ -290,7 +292,7 @@ impl WebWindow {
             _resize_observer_closure: resize_observer_closure,
             _event_listeners: event_listeners,
             _html_in_canvas_paint_observer: html_in_canvas_paint_observer,
-            html_in_canvas_diagnostics,
+            html_in_canvas_capabilities: html_in_canvas_diagnostics,
             layout_subtree_enabled: Cell::new(layout_subtree_enabled),
         })
     }
@@ -917,7 +919,7 @@ impl PlatformWindow for WebWindow {
 
         if !scene.html_islands.is_empty()
             && !self.layout_subtree_enabled.get()
-            && enable_layout_subtree(&self.inner.canvas, &self.html_in_canvas_diagnostics)
+            && enable_layout_subtree(&self.inner.canvas, &self.html_in_canvas_capabilities)
         {
             self.layout_subtree_enabled.set(true);
             self._html_in_canvas_paint_observer
@@ -961,16 +963,17 @@ impl PlatformWindow for WebWindow {
                     .upload_html_island_element_to_texture(&job.id, &job.element, job.physical_size)
             };
             match upload_result {
-                Ok(result) => {
-                    self.inner
-                        .html_island_registry
-                        .borrow_mut()
-                        .record_upload_success(
-                            &job.id,
-                            result.path.as_str(),
-                            result.texture_reallocated,
-                            result.source_sample,
-                        );
+                Ok(_result) => {
+                    let mut registry = self.inner.html_island_registry.borrow_mut();
+                    let uploaded_dirty_root = registry.record_upload_success(&job.id);
+                    #[cfg(feature = "rayx_diagnostics")]
+                    registry.record_upload_diagnostics_success(
+                        uploaded_dirty_root,
+                        _result.path.as_str(),
+                        _result.texture_reallocated,
+                    );
+                    #[cfg(not(feature = "rayx_diagnostics"))]
+                    let _ = uploaded_dirty_root;
                 }
                 Err(error) => {
                     let error = error.to_string();
@@ -984,10 +987,10 @@ impl PlatformWindow for WebWindow {
                             .renderer
                             .borrow_mut()
                             .discard_html_island_texture(&job.id);
-                        self.inner
-                            .html_island_registry
-                            .borrow_mut()
-                            .record_upload_failure(&job.id, error);
+                        let mut registry = self.inner.html_island_registry.borrow_mut();
+                        registry.record_upload_failure(&job.id);
+                        #[cfg(feature = "rayx_diagnostics")]
+                        registry.record_upload_diagnostics_failure(error);
                     }
                 }
             }
@@ -998,17 +1001,20 @@ impl PlatformWindow for WebWindow {
             renderer.needs_redraw()
         };
         write_text_renderer_diagnostics_to_global(&self.inner.renderer.borrow(), scene);
+        #[cfg(feature = "rayx_diagnostics")]
         let (texture_count, texture_pruned_count, texture_draw_count) = self
             .inner
             .renderer
             .borrow()
             .html_island_texture_diagnostics();
+        #[cfg(feature = "rayx_diagnostics")]
         self.inner
             .html_island_registry
             .borrow_mut()
             .record_texture_cache_state(texture_count, texture_pruned_count, texture_draw_count);
+        #[cfg(feature = "rayx_diagnostics")]
         write_html_in_canvas_diagnostics_to_global(
-            &self.html_in_canvas_diagnostics,
+            &self.html_in_canvas_capabilities.diagnostics(),
             &self.inner.canvas,
             layout_subtree_enabled,
             &self._html_in_canvas_paint_observer.snapshot(),

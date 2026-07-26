@@ -1,9 +1,11 @@
-use std::{
-    cell::{Cell, RefCell},
-    rc::Rc,
-};
+use std::{cell::RefCell, rc::Rc};
 
-use crate::html_island::{WebHtmlIslandDiagnostics, WebHtmlIslandRegistry};
+#[cfg(feature = "rayx_diagnostics")]
+use std::cell::Cell;
+
+#[cfg(feature = "rayx_diagnostics")]
+use crate::html_island::WebHtmlIslandDiagnostics;
+use crate::html_island::WebHtmlIslandRegistry;
 use wasm_bindgen::{JsCast, JsValue, closure::Closure};
 
 #[derive(Clone, Debug, Default)]
@@ -19,7 +21,7 @@ pub struct HtmlInCanvasProbes {
 }
 
 impl HtmlInCanvasProbes {
-    pub fn support(&self) -> HtmlInCanvasSupport {
+    fn support(&self) -> HtmlInCanvasSupport {
         HtmlInCanvasSupport {
             layout_subtree: self.canvas_layout_subtree.is_some(),
             paint_event: self.canvas_paint_event.is_some(),
@@ -30,6 +32,40 @@ impl HtmlInCanvasProbes {
             copy_element_image_to_texture: self.gpu_queue_copy_element_image_to_texture.is_some(),
             copy_external_image_to_texture: self.gpu_queue_copy_external_image_to_texture.is_some(),
         }
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    fn to_js_object(&self) -> JsValue {
+        let object = js_sys::Object::new();
+        set_optional_string(&object, "canvasLayoutSubtree", self.canvas_layout_subtree);
+        set_optional_string(&object, "canvasPaintEvent", self.canvas_paint_event);
+        set_optional_string(&object, "canvasRequestPaint", self.canvas_request_paint);
+        set_optional_string(
+            &object,
+            "globalCaptureElementImage",
+            self.global_capture_element_image,
+        );
+        set_optional_string(
+            &object,
+            "elementCaptureElementImage",
+            self.element_capture_element_image,
+        );
+        set_optional_string(
+            &object,
+            "canvasDrawElementImage",
+            self.canvas_draw_element_image,
+        );
+        set_optional_string(
+            &object,
+            "gpuQueueCopyElementImageToTexture",
+            self.gpu_queue_copy_element_image_to_texture,
+        );
+        set_optional_string(
+            &object,
+            "gpuQueueCopyExternalImageToTexture",
+            self.gpu_queue_copy_external_image_to_texture,
+        );
+        object.into()
     }
 }
 
@@ -45,20 +81,60 @@ pub struct HtmlInCanvasSupport {
 }
 
 impl HtmlInCanvasSupport {
-    pub fn direct_child_path_available(&self) -> bool {
+    #[cfg(feature = "rayx_diagnostics")]
+    fn direct_child_path_available(&self) -> bool {
         self.layout_subtree
             && self.paint_event
             && self.request_paint
             && self.copy_element_image_to_texture
     }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    fn to_js_object(self) -> JsValue {
+        let object = js_sys::Object::new();
+        set_property(
+            &object,
+            "layoutSubtree",
+            JsValue::from_bool(self.layout_subtree),
+        );
+        set_property(&object, "paintEvent", JsValue::from_bool(self.paint_event));
+        set_property(
+            &object,
+            "requestPaint",
+            JsValue::from_bool(self.request_paint),
+        );
+        set_property(
+            &object,
+            "captureElementImage",
+            JsValue::from_bool(self.capture_element_image),
+        );
+        set_property(
+            &object,
+            "drawElementImage",
+            JsValue::from_bool(self.draw_element_image),
+        );
+        set_property(
+            &object,
+            "copyElementImageToTexture",
+            JsValue::from_bool(self.copy_element_image_to_texture),
+        );
+        set_property(
+            &object,
+            "copyExternalImageToTexture",
+            JsValue::from_bool(self.copy_external_image_to_texture),
+        );
+        object.into()
+    }
 }
 
+#[cfg(feature = "rayx_diagnostics")]
 #[derive(Clone, Debug, Default)]
 pub struct HtmlInCanvasDiagnostics {
     pub probes: HtmlInCanvasProbes,
     pub support: HtmlInCanvasSupport,
 }
 
+#[cfg(feature = "rayx_diagnostics")]
 #[derive(Clone, Debug, Default)]
 pub struct HtmlInCanvasRuntimeDiagnostics {
     pub request_paint_count: u32,
@@ -66,12 +142,30 @@ pub struct HtmlInCanvasRuntimeDiagnostics {
     pub changed_element_count: u32,
 }
 
+#[derive(Clone, Debug, Default)]
+pub struct HtmlInCanvasCapabilities {
+    probes: HtmlInCanvasProbes,
+    support: HtmlInCanvasSupport,
+}
+
+#[cfg(feature = "rayx_diagnostics")]
+impl HtmlInCanvasCapabilities {
+    pub(crate) fn diagnostics(&self) -> HtmlInCanvasDiagnostics {
+        HtmlInCanvasDiagnostics {
+            probes: self.probes.clone(),
+            support: self.support,
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct HtmlInCanvasPaintObserver {
+    #[cfg(feature = "rayx_diagnostics")]
     counters: Rc<HtmlInCanvasRuntimeCounters>,
     _paint_listener: Option<Closure<dyn FnMut(JsValue)>>,
 }
 
+#[cfg(feature = "rayx_diagnostics")]
 #[derive(Debug, Default)]
 struct HtmlInCanvasRuntimeCounters {
     request_paint_count: Cell<u32>,
@@ -81,46 +175,60 @@ struct HtmlInCanvasRuntimeCounters {
 
 impl HtmlInCanvasPaintObserver {
     pub fn start(
-        diagnostics: &HtmlInCanvasDiagnostics,
+        capabilities: &HtmlInCanvasCapabilities,
         canvas: &web_sys::HtmlCanvasElement,
         layout_subtree_enabled: bool,
         html_island_registry: Option<Rc<RefCell<WebHtmlIslandRegistry>>>,
     ) -> Self {
+        #[cfg(feature = "rayx_diagnostics")]
         let counters = Rc::new(HtmlInCanvasRuntimeCounters::default());
         let mut observer = Self {
+            #[cfg(feature = "rayx_diagnostics")]
             counters: Rc::clone(&counters),
             _paint_listener: None,
         };
 
-        if diagnostics.support.paint_event {
-            let diagnostics = diagnostics.clone();
+        if capabilities.support.paint_event {
             let listener_canvas = canvas.clone();
+            #[cfg(feature = "rayx_diagnostics")]
+            let diagnostic_capabilities = capabilities.clone();
+            #[cfg(feature = "rayx_diagnostics")]
             let diagnostics_canvas = canvas.clone();
+            #[cfg(feature = "rayx_diagnostics")]
             let listener_counters = Rc::clone(&counters);
             let closure = Closure::<dyn FnMut(JsValue)>::new(move |event: JsValue| {
-                listener_counters
-                    .paint_event_count
-                    .set(listener_counters.paint_event_count.get().saturating_add(1));
-                let island_diagnostics = html_island_registry.as_ref().and_then(|registry| {
-                    let mut registry = registry.try_borrow_mut().ok()?;
-                    registry.mark_dirty_from_paint_event(&event);
-                    Some(registry.diagnostics())
-                });
-                listener_counters.changed_element_count.set(
+                #[cfg(feature = "rayx_diagnostics")]
+                {
                     listener_counters
-                        .changed_element_count
-                        .get()
-                        .saturating_add(changed_elements_count(&event)),
-                );
-                let layout_subtree_enabled =
-                    layout_subtree_is_enabled(&diagnostics_canvas, &diagnostics);
-                write_html_in_canvas_diagnostics_to_global(
-                    &diagnostics,
-                    &diagnostics_canvas,
-                    layout_subtree_enabled,
-                    &listener_counters.snapshot(),
-                    island_diagnostics.as_ref(),
-                );
+                        .paint_event_count
+                        .set(listener_counters.paint_event_count.get().saturating_add(1));
+                }
+
+                let mut registry = html_island_registry
+                    .as_ref()
+                    .and_then(|registry| registry.try_borrow_mut().ok());
+                if let Some(registry) = registry.as_mut() {
+                    registry.mark_dirty_from_paint_event(&event);
+                }
+
+                #[cfg(feature = "rayx_diagnostics")]
+                {
+                    listener_counters.changed_element_count.set(
+                        listener_counters
+                            .changed_element_count
+                            .get()
+                            .saturating_add(changed_elements_count(&event)),
+                    );
+                    let island_diagnostics =
+                        registry.as_deref().map(|registry| registry.diagnostics());
+                    write_html_in_canvas_diagnostics_to_global(
+                        &diagnostic_capabilities.diagnostics(),
+                        &diagnostics_canvas,
+                        layout_subtree_is_enabled(&diagnostics_canvas, &diagnostic_capabilities),
+                        &listener_counters.snapshot(),
+                        island_diagnostics.as_ref(),
+                    );
+                }
             });
             listener_canvas
                 .add_event_listener_with_callback("paint", closure.as_ref().unchecked_ref())
@@ -128,31 +236,39 @@ impl HtmlInCanvasPaintObserver {
             observer._paint_listener = Some(closure);
         }
 
-        if layout_subtree_enabled && diagnostics.support.request_paint && request_paint(canvas) {
-            counters
-                .request_paint_count
-                .set(counters.request_paint_count.get().saturating_add(1));
+        if layout_subtree_enabled && capabilities.support.request_paint {
+            let requested = request_paint(canvas);
+            #[cfg(feature = "rayx_diagnostics")]
+            if requested {
+                counters
+                    .request_paint_count
+                    .set(counters.request_paint_count.get().saturating_add(1));
+            }
+            #[cfg(not(feature = "rayx_diagnostics"))]
+            let _ = requested;
         }
 
         observer
     }
 
+    #[cfg(feature = "rayx_diagnostics")]
     pub fn snapshot(&self) -> HtmlInCanvasRuntimeDiagnostics {
         self.counters.snapshot()
     }
 
     pub fn request_paint(&self, canvas: &web_sys::HtmlCanvasElement) -> bool {
-        if request_paint(canvas) {
+        let requested = request_paint(canvas);
+        #[cfg(feature = "rayx_diagnostics")]
+        if requested {
             self.counters
                 .request_paint_count
                 .set(self.counters.request_paint_count.get().saturating_add(1));
-            true
-        } else {
-            false
         }
+        requested
     }
 }
 
+#[cfg(feature = "rayx_diagnostics")]
 impl HtmlInCanvasRuntimeCounters {
     fn snapshot(&self) -> HtmlInCanvasRuntimeDiagnostics {
         HtmlInCanvasRuntimeDiagnostics {
@@ -163,12 +279,13 @@ impl HtmlInCanvasRuntimeCounters {
     }
 }
 
-pub fn detect_html_in_canvas() -> HtmlInCanvasDiagnostics {
+pub fn detect_html_in_canvas() -> HtmlInCanvasCapabilities {
     let probes = detect_probes();
     let support = probes.support();
-    HtmlInCanvasDiagnostics { probes, support }
+    HtmlInCanvasCapabilities { probes, support }
 }
 
+#[cfg(feature = "rayx_diagnostics")]
 pub fn write_html_in_canvas_diagnostics_to_global(
     diagnostics: &HtmlInCanvasDiagnostics,
     canvas: &web_sys::HtmlCanvasElement,
@@ -277,21 +394,6 @@ pub fn write_html_in_canvas_diagnostics_to_global(
         "textureDrawCount",
         JsValue::from_f64(island_diagnostics.texture_draw_count as f64),
     );
-    set_property(
-        &islands,
-        "uploadScratchCanvasCount",
-        JsValue::from_f64(island_diagnostics.upload_scratch_canvas_count as f64),
-    );
-    set_property(
-        &islands,
-        "uploadPaintListenerCount",
-        JsValue::from_f64(island_diagnostics.upload_paint_listener_count as f64),
-    );
-    set_property(
-        &islands,
-        "uploadSourceSample",
-        js_array_from_u8(&island_diagnostics.upload_source_sample).into(),
-    );
     set_property(&object, "islands", islands.into());
 
     let renderer = js_sys::Object::new();
@@ -310,7 +412,6 @@ pub fn write_html_in_canvas_diagnostics_to_global(
             .unwrap_or(JsValue::NULL),
     );
     set_property(&object, "renderer", renderer.into());
-
     set_property(
         &js_sys::global().unchecked_into::<js_sys::Object>(),
         "__rayxHtmlIslandDiagnostics",
@@ -321,46 +422,48 @@ pub fn write_html_in_canvas_diagnostics_to_global(
 pub fn enable_layout_subtree_if_requested(
     browser_window: &web_sys::Window,
     canvas: &web_sys::HtmlCanvasElement,
-    diagnostics: &HtmlInCanvasDiagnostics,
+    capabilities: &HtmlInCanvasCapabilities,
 ) -> bool {
     if !experiment_enabled(browser_window) {
         return false;
     }
 
-    enable_layout_subtree(canvas, diagnostics)
+    enable_layout_subtree(canvas, capabilities)
 }
 
 pub fn enable_layout_subtree(
     canvas: &web_sys::HtmlCanvasElement,
-    diagnostics: &HtmlInCanvasDiagnostics,
+    capabilities: &HtmlInCanvasCapabilities,
 ) -> bool {
-    if !diagnostics.support.layout_subtree
-        || !diagnostics.support.paint_event
-        || !diagnostics.support.request_paint
+    if !capabilities.support.layout_subtree
+        || !capabilities.support.paint_event
+        || !capabilities.support.request_paint
     {
         return false;
     }
 
-    let Some(property_name) = diagnostics.probes.canvas_layout_subtree else {
+    let Some(property_name) = capabilities.probes.canvas_layout_subtree else {
         return false;
     };
-
     if canvas.set_attribute("layoutsubtree", "true").is_err() {
         return false;
     }
 
-    let property = JsValue::from_str(property_name);
-    js_sys::Reflect::set(canvas.as_ref(), &property, &JsValue::TRUE).ok();
-
-    layout_subtree_is_enabled(canvas, diagnostics)
+    js_sys::Reflect::set(
+        canvas.as_ref(),
+        &JsValue::from_str(property_name),
+        &JsValue::TRUE,
+    )
+    .ok();
+    layout_subtree_is_enabled(canvas, capabilities)
 }
 
 fn layout_subtree_is_enabled(
     canvas: &web_sys::HtmlCanvasElement,
-    diagnostics: &HtmlInCanvasDiagnostics,
+    capabilities: &HtmlInCanvasCapabilities,
 ) -> bool {
     canvas.has_attribute("layoutsubtree")
-        || diagnostics
+        || capabilities
             .probes
             .canvas_layout_subtree
             .is_some_and(|property_name| {
@@ -369,79 +472,6 @@ fn layout_subtree_is_enabled(
                     .and_then(|value| value.as_bool())
                     .unwrap_or(false)
             })
-}
-
-impl HtmlInCanvasProbes {
-    fn to_js_object(&self) -> JsValue {
-        let object = js_sys::Object::new();
-        set_optional_string(&object, "canvasLayoutSubtree", self.canvas_layout_subtree);
-        set_optional_string(&object, "canvasPaintEvent", self.canvas_paint_event);
-        set_optional_string(&object, "canvasRequestPaint", self.canvas_request_paint);
-        set_optional_string(
-            &object,
-            "globalCaptureElementImage",
-            self.global_capture_element_image,
-        );
-        set_optional_string(
-            &object,
-            "elementCaptureElementImage",
-            self.element_capture_element_image,
-        );
-        set_optional_string(
-            &object,
-            "canvasDrawElementImage",
-            self.canvas_draw_element_image,
-        );
-        set_optional_string(
-            &object,
-            "gpuQueueCopyElementImageToTexture",
-            self.gpu_queue_copy_element_image_to_texture,
-        );
-        set_optional_string(
-            &object,
-            "gpuQueueCopyExternalImageToTexture",
-            self.gpu_queue_copy_external_image_to_texture,
-        );
-        object.into()
-    }
-}
-
-impl HtmlInCanvasSupport {
-    fn to_js_object(self) -> JsValue {
-        let object = js_sys::Object::new();
-        set_property(
-            &object,
-            "layoutSubtree",
-            JsValue::from_bool(self.layout_subtree),
-        );
-        set_property(&object, "paintEvent", JsValue::from_bool(self.paint_event));
-        set_property(
-            &object,
-            "requestPaint",
-            JsValue::from_bool(self.request_paint),
-        );
-        set_property(
-            &object,
-            "captureElementImage",
-            JsValue::from_bool(self.capture_element_image),
-        );
-        set_property(
-            &object,
-            "drawElementImage",
-            JsValue::from_bool(self.draw_element_image),
-        );
-        set_property(
-            &object,
-            "copyElementImageToTexture",
-            JsValue::from_bool(self.copy_element_image_to_texture),
-        );
-        set_property(
-            &object,
-            "copyExternalImageToTexture",
-            JsValue::from_bool(self.copy_external_image_to_texture),
-        );
-        object.into()
-    }
 }
 
 fn detect_probes() -> HtmlInCanvasProbes {
@@ -465,7 +495,6 @@ fn detect_probes() -> HtmlInCanvasProbes {
         .and_then(|constructor| get_property(&constructor, "prototype"));
     let gpu_queue_prototype = get_property(&global, "GPUQueue")
         .and_then(|constructor| get_property(&constructor, "prototype"));
-
     let canvas_layout_subtree = if has_property(canvas_value, "layoutSubtree") {
         Some("layoutSubtree")
     } else if has_property(canvas_value, "layoutsubtree") {
@@ -520,6 +549,7 @@ fn request_paint(canvas: &web_sys::HtmlCanvasElement) -> bool {
         .is_some()
 }
 
+#[cfg(feature = "rayx_diagnostics")]
 fn changed_elements_count(event: &JsValue) -> u32 {
     get_property(event, "changedElements")
         .map(|value| js_sys::Array::from(&value))
@@ -527,22 +557,21 @@ fn changed_elements_count(event: &JsValue) -> u32 {
         .unwrap_or(0)
 }
 
+#[cfg(feature = "rayx_diagnostics")]
 fn set_optional_string(owner: &js_sys::Object, name: &str, value: Option<&str>) {
-    let value = value.map(JsValue::from_str).unwrap_or(JsValue::NULL);
-    set_property(owner, name, value);
+    set_property(
+        owner,
+        name,
+        value.map(JsValue::from_str).unwrap_or(JsValue::NULL),
+    );
 }
 
+#[cfg(feature = "rayx_diagnostics")]
 fn set_property(owner: &js_sys::Object, name: &str, value: JsValue) {
     js_sys::Reflect::set(owner, &JsValue::from_str(name), &value).ok();
 }
 
-fn js_array_from_u8(values: &[u8; 4]) -> js_sys::Array {
-    values
-        .iter()
-        .map(|value| JsValue::from_f64(*value as f64))
-        .collect()
-}
-
+#[cfg(feature = "rayx_diagnostics")]
 fn child_element_count(canvas: &web_sys::HtmlCanvasElement) -> u32 {
     js_sys::Reflect::get(canvas.as_ref(), &JsValue::from_str("childElementCount"))
         .ok()
@@ -580,7 +609,7 @@ fn query_flag_enabled(search: &str, name: &str) -> bool {
     })
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "rayx_diagnostics"))]
 mod tests {
     use super::*;
     use crate::html_island::WebHtmlIslandDiagnostics;
@@ -590,32 +619,12 @@ mod tests {
     fn diagnostics_writer_accepts_island_lifecycle_counters() {
         let canvas: web_sys::HtmlCanvasElement = wasm_bindgen::JsValue::NULL.unchecked_into();
         let runtime = HtmlInCanvasRuntimeDiagnostics::default();
-        let islands = WebHtmlIslandDiagnostics {
-            count: 2,
-            dirty_count: 1,
-            created_root_count: 2,
-            pruned_root_count: 1,
-            content_update_count: 3,
-            dirty_mark_count: 4,
-            upload_count: 0,
-            upload_failure_count: 0,
-            texture_reallocation_count: 0,
-            texture_count: 0,
-            texture_pruned_count: 0,
-            texture_draw_count: 0,
-            upload_scratch_canvas_count: 0,
-            upload_paint_listener_count: 0,
-            upload_source_sample: [0, 0, 0, 0],
-            renderer_path: "copyElementImageToTexture",
-            renderer_last_error: None,
-        };
-
         write_html_in_canvas_diagnostics_to_global(
             &HtmlInCanvasDiagnostics::default(),
             &canvas,
             false,
             &runtime,
-            Some(&islands),
+            Some(&WebHtmlIslandDiagnostics::default()),
         );
     }
 }

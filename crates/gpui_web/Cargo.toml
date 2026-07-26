@@ -12,6 +12,7 @@ workspace = true
 [features]
 default = ["multithreaded"]
 multithreaded = ["dep:wasm_thread"]
+rayx_diagnostics = ["gpui_wgpu/rayx_diagnostics"]
 
 [lib]
 path = "src/gpui_web.rs"
