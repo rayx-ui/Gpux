@@ -1,8 +1,8 @@
 use crate::display::WebDisplay;
 use crate::events::{ClickState, WebEventListeners, is_mac_platform};
-use crate::html_element::{
-    WebHtmlElementRegistry, create_overlay_root, write_html_element_diagnostics_to_global,
-};
+#[cfg(feature = "rayx_diagnostics")]
+use crate::html_element::write_html_element_diagnostics_to_global;
+use crate::html_element::{WebHtmlElementRegistry, create_overlay_root};
 #[cfg(feature = "rayx_diagnostics")]
 use crate::html_in_canvas::write_html_in_canvas_diagnostics_to_global;
 use crate::html_in_canvas::{
@@ -202,6 +202,7 @@ impl WebWindow {
         let html_element_registry = Rc::new(RefCell::new(WebHtmlElementRegistry::new(
             html_element_overlay_root,
         )));
+        #[cfg(feature = "rayx_diagnostics")]
         write_html_element_diagnostics_to_global(&html_element_registry.borrow().diagnostics());
         let html_in_canvas_paint_observer = HtmlInCanvasPaintObserver::start(
             &html_in_canvas_diagnostics,
@@ -920,6 +921,7 @@ impl PlatformWindow for WebWindow {
             .html_element_registry
             .borrow_mut()
             .sync_roots(&scene.html_elements, &canvas_rect);
+        #[cfg(feature = "rayx_diagnostics")]
         write_html_element_diagnostics_to_global(
             &self.inner.html_element_registry.borrow().diagnostics(),
         );
@@ -1007,6 +1009,7 @@ impl PlatformWindow for WebWindow {
             renderer.draw(scene);
             renderer.needs_redraw()
         };
+        #[cfg(feature = "rayx_diagnostics")]
         write_text_renderer_diagnostics_to_global(&self.inner.renderer.borrow(), scene);
         #[cfg(feature = "rayx_diagnostics")]
         let (texture_count, texture_pruned_count, texture_draw_count) = self
@@ -1077,6 +1080,7 @@ impl PlatformWindow for WebWindow {
     fn set_client_inset(&self, _inset: Pixels) {}
 }
 
+#[cfg(feature = "rayx_diagnostics")]
 fn text_rendering_diagnostics_enabled() -> bool {
     js_sys::Reflect::get(
         &js_sys::global(),
@@ -1087,6 +1091,7 @@ fn text_rendering_diagnostics_enabled() -> bool {
     .unwrap_or(false)
 }
 
+#[cfg(feature = "rayx_diagnostics")]
 fn write_text_renderer_diagnostics_to_global(renderer: &WgpuRenderer, scene: &Scene) {
     if !text_rendering_diagnostics_enabled() {
         return;

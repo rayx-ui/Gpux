@@ -13,10 +13,15 @@ pub struct HtmlInCanvasProbes {
     pub canvas_layout_subtree: Option<&'static str>,
     pub canvas_paint_event: Option<&'static str>,
     pub canvas_request_paint: Option<&'static str>,
+    #[cfg(feature = "rayx_diagnostics")]
     pub global_capture_element_image: Option<&'static str>,
+    #[cfg(feature = "rayx_diagnostics")]
     pub element_capture_element_image: Option<&'static str>,
+    #[cfg(feature = "rayx_diagnostics")]
     pub canvas_draw_element_image: Option<&'static str>,
+    #[cfg(feature = "rayx_diagnostics")]
     pub gpu_queue_copy_element_image_to_texture: Option<&'static str>,
+    #[cfg(feature = "rayx_diagnostics")]
     pub gpu_queue_copy_external_image_to_texture: Option<&'static str>,
 }
 
@@ -26,10 +31,14 @@ impl HtmlInCanvasProbes {
             layout_subtree: self.canvas_layout_subtree.is_some(),
             paint_event: self.canvas_paint_event.is_some(),
             request_paint: self.canvas_request_paint.is_some(),
+            #[cfg(feature = "rayx_diagnostics")]
             capture_element_image: self.global_capture_element_image.is_some()
                 || self.element_capture_element_image.is_some(),
+            #[cfg(feature = "rayx_diagnostics")]
             draw_element_image: self.canvas_draw_element_image.is_some(),
+            #[cfg(feature = "rayx_diagnostics")]
             copy_element_image_to_texture: self.gpu_queue_copy_element_image_to_texture.is_some(),
+            #[cfg(feature = "rayx_diagnostics")]
             copy_external_image_to_texture: self.gpu_queue_copy_external_image_to_texture.is_some(),
         }
     }
@@ -74,9 +83,13 @@ pub struct HtmlInCanvasSupport {
     pub layout_subtree: bool,
     pub paint_event: bool,
     pub request_paint: bool,
+    #[cfg(feature = "rayx_diagnostics")]
     pub capture_element_image: bool,
+    #[cfg(feature = "rayx_diagnostics")]
     pub draw_element_image: bool,
+    #[cfg(feature = "rayx_diagnostics")]
     pub copy_element_image_to_texture: bool,
+    #[cfg(feature = "rayx_diagnostics")]
     pub copy_external_image_to_texture: bool,
 }
 
@@ -489,10 +502,14 @@ fn detect_probes() -> HtmlInCanvasProbes {
     };
 
     let canvas_value = canvas.as_ref();
+    #[cfg(feature = "rayx_diagnostics")]
     let canvas_context = canvas.get_context("2d").ok().flatten().map(JsValue::from);
+    #[cfg(feature = "rayx_diagnostics")]
     let global = js_sys::global();
+    #[cfg(feature = "rayx_diagnostics")]
     let element_prototype = get_property(&global, "Element")
         .and_then(|constructor| get_property(&constructor, "prototype"));
+    #[cfg(feature = "rayx_diagnostics")]
     let gpu_queue_prototype = get_property(&global, "GPUQueue")
         .and_then(|constructor| get_property(&constructor, "prototype"));
     let canvas_layout_subtree = if has_property(canvas_value, "layoutSubtree") {
@@ -507,20 +524,25 @@ fn detect_probes() -> HtmlInCanvasProbes {
         canvas_layout_subtree,
         canvas_paint_event: has_property(canvas_value, "onpaint").then_some("paint"),
         canvas_request_paint: has_method(canvas_value, "requestPaint").then_some("requestPaint"),
+        #[cfg(feature = "rayx_diagnostics")]
         global_capture_element_image: has_method(&global, "captureElementImage")
             .then_some("captureElementImage"),
+        #[cfg(feature = "rayx_diagnostics")]
         element_capture_element_image: element_prototype
             .as_ref()
             .is_some_and(|prototype| has_method(prototype, "captureElementImage"))
             .then_some("Element.prototype.captureElementImage"),
+        #[cfg(feature = "rayx_diagnostics")]
         canvas_draw_element_image: canvas_context
             .as_ref()
             .is_some_and(|context| has_method(context, "drawElementImage"))
             .then_some("CanvasRenderingContext2D.drawElementImage"),
+        #[cfg(feature = "rayx_diagnostics")]
         gpu_queue_copy_element_image_to_texture: gpu_queue_prototype
             .as_ref()
             .is_some_and(|prototype| has_method(prototype, "copyElementImageToTexture"))
             .then_some("GPUQueue.copyElementImageToTexture"),
+        #[cfg(feature = "rayx_diagnostics")]
         gpu_queue_copy_external_image_to_texture: gpu_queue_prototype
             .as_ref()
             .is_some_and(|prototype| has_method(prototype, "copyExternalImageToTexture"))
