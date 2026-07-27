@@ -202,6 +202,14 @@ unsafe impl Sync for WebDispatcher {}
 
 impl WebDispatcher {
     pub fn new(browser_window: web_sys::Window, allow_threads: bool) -> Self {
+        Self::with_background_worker_limit(browser_window, allow_threads, None)
+    }
+
+    pub fn with_background_worker_limit(
+        browser_window: web_sys::Window,
+        allow_threads: bool,
+        max_background_workers: Option<usize>,
+    ) -> Self {
         #[cfg(feature = "multithreaded")]
         let (background_sender, background_receiver) = PriorityQueueReceiver::new();
         #[cfg(not(feature = "multithreaded"))]
@@ -217,6 +225,8 @@ impl WebDispatcher {
         let supports_threads = false;
         #[cfg(not(feature = "multithreaded"))]
         let _ = allow_threads;
+        #[cfg(not(feature = "multithreaded"))]
+        let _ = max_background_workers;
 
         #[cfg(feature = "multithreaded")]
         {
@@ -242,10 +252,7 @@ impl WebDispatcher {
 
         #[cfg(feature = "multithreaded")]
         let background_threads = if supports_threads {
-            let thread_count = browser_window
-                .navigator()
-                .hardware_concurrency()
-                .max(MIN_BACKGROUND_THREADS as f64) as usize;
+            let thread_count = background_worker_count(&browser_window, max_background_workers);
             log::info!("Threaded wasm dispatcher enabled with {thread_count} background workers");
 
             // TODO-Wasm: Is it bad to have web workers blocking for a long time like this?
@@ -290,6 +297,16 @@ impl WebDispatcher {
     fn on_main_thread(&self) -> bool {
         std::thread::current().id() == self.main_thread_id
     }
+}
+
+#[cfg(feature = "multithreaded")]
+fn background_worker_count(
+    browser_window: &web_sys::Window,
+    max_background_workers: Option<usize>,
+) -> usize {
+    let uncapped =
+        (browser_window.navigator().hardware_concurrency() as usize).max(MIN_BACKGROUND_THREADS);
+    max_background_workers.map_or(uncapped, |maximum| uncapped.min(maximum))
 }
 
 impl PlatformDispatcher for WebDispatcher {

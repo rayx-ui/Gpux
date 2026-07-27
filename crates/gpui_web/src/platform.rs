@@ -59,11 +59,19 @@ struct WebPlatformCallbacks {
 
 impl WebPlatform {
     pub fn new(allow_multi_threading: bool) -> Self {
+        Self::with_background_worker_limit(allow_multi_threading, None)
+    }
+
+    pub fn with_background_worker_limit(
+        allow_multi_threading: bool,
+        max_background_workers: Option<usize>,
+    ) -> Self {
         let browser_window =
             web_sys::window().expect("must be running in a browser window context");
-        let dispatcher = Arc::new(WebDispatcher::new(
+        let dispatcher = Arc::new(WebDispatcher::with_background_worker_limit(
             browser_window.clone(),
             allow_multi_threading,
+            max_background_workers,
         ));
         let background_executor = BackgroundExecutor::new(dispatcher.clone());
         let foreground_executor = ForegroundExecutor::new(dispatcher);
