@@ -1873,20 +1873,30 @@ impl PointerInteractionOwner {
 /// Bounded pointer-interaction diagnostics for a window.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct PointerInteractionDiagnostics {
-    active: Option<PointerInteractionOwner>,
-    last_terminal: Option<PointerInteractionOwner>,
+    active: FxHashMap<PointerId, PointerInteractionOwner>,
+    last_terminal: FxHashMap<PointerId, PointerInteractionOwner>,
     claim_conflict_count: u64,
 }
 
 impl PointerInteractionDiagnostics {
-    /// Returns the sole active owner, if a handled action claimed the sequence.
+    /// Returns the most recently created active owner, if one exists.
     pub fn active(&self) -> Option<&PointerInteractionOwner> {
-        self.active.as_ref()
+        self.active.values().max_by_key(|owner| owner.id().0)
+    }
+
+    /// Returns the active owner for one concrete pointer sequence.
+    pub fn active_for(&self, pointer_id: PointerId) -> Option<&PointerInteractionOwner> {
+        self.active.get(&pointer_id)
     }
 
     /// Returns the most recently completed or cancelled owner.
     pub fn last_terminal(&self) -> Option<&PointerInteractionOwner> {
-        self.last_terminal.as_ref()
+        self.last_terminal.values().max_by_key(|owner| owner.id().0)
+    }
+
+    /// Returns the latest terminal owner for one concrete pointer sequence.
+    pub fn last_terminal_for(&self, pointer_id: PointerId) -> Option<&PointerInteractionOwner> {
+        self.last_terminal.get(&pointer_id)
     }
 
     /// Returns the saturating count of rejected attempts to steal an active sequence.
@@ -2003,7 +2013,7 @@ pub struct Window {
     pointer_interaction_owners: FxHashMap<PointerId, PointerInteractionOwner>,
     pointer_interaction_diagnostics: PointerInteractionDiagnostics,
     pending_mapped_pointers: FxHashMap<PointerId, PendingMappedPointer>,
-    gesture_recognizers: FxHashMap<PointerId, GestureRecognizer>,
+    gesture_recognizer: GestureRecognizer,
     #[cfg(any(feature = "inspector", debug_assertions))]
     inspector: Option<Entity<Inspector>>,
 }
@@ -2334,7 +2344,6 @@ impl Window {
             let needs_present = needs_present.clone();
             let next_frame_callbacks = next_frame_callbacks.clone();
             let input_rate_tracker = input_rate_tracker.clone();
-            let thermal_state = thermal_state.clone();
             move |request_frame_options| {
                 // Throttle frame rate based on conditions:
                 // - Thermal pressure (Serious/Critical): cap to ~60fps
@@ -2662,7 +2671,7 @@ impl Window {
             pointer_interaction_owners: FxHashMap::default(),
             pointer_interaction_diagnostics: PointerInteractionDiagnostics::default(),
             pending_mapped_pointers: FxHashMap::default(),
-            gesture_recognizers: FxHashMap::default(),
+            gesture_recognizer: GestureRecognizer::default(),
             #[cfg(any(feature = "inspector", debug_assertions))]
             inspector: None,
         })
@@ -2882,7 +2891,7 @@ impl Window {
     pub fn remove_window(&mut self) {
         self.cancel_all_pointer_interactions(PointerInteractionCancellationReason::WindowRemoved);
         self.pending_mapped_pointers.clear();
-        self.gesture_recognizers.clear();
+        self.gesture_recognizer.cancel();
         self.removed = true;
     }
 
@@ -3959,7 +3968,7 @@ impl Window {
         self.captured_hitbox = None;
         self.captured_hitboxes.clear();
         self.pending_mapped_pointers.clear();
-        self.gesture_recognizers.clear();
+        self.gesture_recognizer.cancel();
     }
 
     /// Returns the active handled-action owner for the current pointer sequence.
@@ -3985,7 +3994,7 @@ impl Window {
         self.captured_hitboxes.get(&pointer_id).copied()
     }
 
-    /// Returns bounded pointer-owner diagnostics: at most one active and one terminal owner.
+    /// Returns bounded pointer-owner diagnostics keyed by `PointerId`.
     pub fn pointer_interaction_diagnostics(&self) -> &PointerInteractionDiagnostics {
         &self.pointer_interaction_diagnostics
     }
@@ -4081,7 +4090,9 @@ impl Window {
             gesture_revision,
             phase: PointerInteractionPhase::Active,
         };
-        self.pointer_interaction_diagnostics.active = Some(owner.clone());
+        self.pointer_interaction_diagnostics
+            .active
+            .insert(pointer_id, owner.clone());
         self.pointer_interaction_owners.insert(pointer_id, owner);
         self.capture_pointer_for(pointer_id, hitbox_id);
         Ok(id)
@@ -4104,12 +4115,16 @@ impl Window {
         if self
             .pointer_interaction_diagnostics
             .active
-            .as_ref()
+            .get(&pointer_id)
             .is_some_and(|active| active.id == owner.id)
         {
-            self.pointer_interaction_diagnostics.active = None;
+            self.pointer_interaction_diagnostics
+                .active
+                .remove(&pointer_id);
         }
-        self.pointer_interaction_diagnostics.last_terminal = Some(owner.clone());
+        self.pointer_interaction_diagnostics
+            .last_terminal
+            .insert(pointer_id, owner.clone());
         Some(owner)
     }
 
@@ -4134,12 +4149,16 @@ impl Window {
         if self
             .pointer_interaction_diagnostics
             .active
-            .as_ref()
+            .get(&pointer_id)
             .is_some_and(|active| active.id == owner.id)
         {
-            self.pointer_interaction_diagnostics.active = None;
+            self.pointer_interaction_diagnostics
+                .active
+                .remove(&pointer_id);
         }
-        self.pointer_interaction_diagnostics.last_terminal = Some(owner.clone());
+        self.pointer_interaction_diagnostics
+            .last_terminal
+            .insert(pointer_id, owner.clone());
         Some(owner)
     }
 
@@ -4182,7 +4201,7 @@ impl Window {
             };
             if let Some(reason) = reason {
                 self.cancel_pointer_interaction_for(pointer_id, reason);
-                self.gesture_recognizers.remove(&pointer_id);
+                self.gesture_recognizer.cancel_pointer(pointer_id);
                 self.pending_mapped_pointers.remove(&pointer_id);
             }
         }
@@ -4252,10 +4271,12 @@ impl Window {
                 if self
                     .pointer_interaction_diagnostics
                     .active
-                    .as_ref()
+                    .get(&pointer_id)
                     .is_some_and(|active| active.id == owner.id)
                 {
-                    self.pointer_interaction_diagnostics.active = Some(owner.clone());
+                    self.pointer_interaction_diagnostics
+                        .active
+                        .insert(pointer_id, owner.clone());
                 }
             }
             self.captured_hitboxes.insert(pointer_id, hitbox_id);
@@ -4347,10 +4368,7 @@ impl Window {
             return;
         }
         self.pending_mapped_pointers.remove(&event.id);
-        self.gesture_recognizers
-            .entry(event.id)
-            .or_default()
-            .cancel();
+        self.gesture_recognizer.cancel_pointer(event.id);
         let (snapshot, revision) = {
             let map = cx.gesture_map.borrow();
             (map.snapshot(), map.version())
@@ -4375,10 +4393,27 @@ impl Window {
                 gesture_revision: revision,
             },
         );
-        self.gesture_recognizers
-            .entry(event.id)
-            .or_default()
-            .mouse_down(event, snapshot, revision, target.as_usize());
+        self.gesture_recognizer
+            .pointer_down(event, snapshot, revision, target.as_usize());
+        let pointer_id = event.id;
+        let Some(delay) = self.gesture_recognizer.long_press_delay(pointer_id) else {
+            return;
+        };
+        self.spawn(cx, async move |cx| {
+            cx.background_executor().timer(delay).await;
+            cx.update(move |window, cx| {
+                let Some(gesture) = window
+                    .gesture_recognizer
+                    .advance_time_for(pointer_id, Instant::now())
+                else {
+                    return;
+                };
+                window.pending_mapped_pointers.remove(&pointer_id);
+                window.dispatch_recognized_gesture(gesture, cx);
+            })
+            .log_err();
+        })
+        .detach();
     }
 
     fn recognize_mapped_wheel(&mut self, event: &ScrollWheelEvent, cx: &mut App) {
@@ -4395,11 +4430,9 @@ impl Window {
                 .dispatch_tree
                 .is_action_available(action, target)
         });
-        if let Some(gesture) = self
-            .gesture_recognizers
-            .entry(PointerId::new(0))
-            .or_default()
-            .scroll_wheel(event, snapshot, revision, target.as_usize())
+        if let Some(gesture) =
+            self.gesture_recognizer
+                .scroll_wheel(event, snapshot, revision, target.as_usize())
         {
             self.dispatch_recognized_gesture(gesture, cx);
         }
@@ -4420,11 +4453,7 @@ impl Window {
                     return;
                 }
 
-                let Some(gesture) = self
-                    .gesture_recognizers
-                    .get_mut(&event.id)
-                    .and_then(|recognizer| recognizer.mouse_move(event))
-                else {
+                let Some(gesture) = self.gesture_recognizer.pointer_move(event) else {
                     return;
                 };
                 let candidate =
@@ -4445,7 +4474,7 @@ impl Window {
                             Some(candidate)
                         });
                 let Some(candidate) = candidate else {
-                    self.gesture_recognizers.remove(&event.id);
+                    self.gesture_recognizer.cancel_pointer(event.id);
                     return;
                 };
                 let (report, handled_target) =
@@ -4473,15 +4502,11 @@ impl Window {
             crate::PointerPhase::Up | crate::PointerPhase::Cancel => {
                 if let Some(owner) = self.pointer_interaction_owners.get_mut(&event.id) {
                     owner.current = event.position;
-                } else if let Some(gesture) = self
-                    .gesture_recognizers
-                    .get_mut(&event.id)
-                    .and_then(|recognizer| recognizer.mouse_up(event))
-                {
+                } else if let Some(gesture) = self.gesture_recognizer.pointer_up(event) {
                     self.dispatch_recognized_gesture(gesture, cx);
                 }
                 self.pending_mapped_pointers.remove(&event.id);
-                self.gesture_recognizers.remove(&event.id);
+                self.gesture_recognizer.cancel_pointer(event.id);
             }
         }
     }
