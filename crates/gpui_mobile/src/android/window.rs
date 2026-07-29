@@ -122,6 +122,40 @@ struct MomentumState {
     /// The touch phase for the pending scroll event (Started for the first
     /// coalesced batch, Moved for subsequent ones).
     pending_scroll_phase: gpui::TouchPhase,
+    /// Timestamp of the newest input included in the coalesced batch.
+    pending_scroll_timestamp: Option<gpui::Instant>,
+}
+
+#[derive(Clone, Copy)]
+struct PendingScrollBatch {
+    delta_x: f32,
+    delta_y: f32,
+    position_x: f32,
+    position_y: f32,
+    phase: gpui::TouchPhase,
+    timestamp: Option<gpui::Instant>,
+}
+
+impl MomentumState {
+    /// Transfers the batch only after its dispatch consumer is ready.
+    fn take_pending_scroll_if_ready(&mut self, dispatch_ready: bool) -> Option<PendingScrollBatch> {
+        if !dispatch_ready || !self.has_pending_scroll {
+            return None;
+        }
+
+        let batch = PendingScrollBatch {
+            delta_x: self.pending_scroll_dx,
+            delta_y: self.pending_scroll_dy,
+            position_x: self.pending_scroll_pos_x,
+            position_y: self.pending_scroll_pos_y,
+            phase: self.pending_scroll_phase,
+            timestamp: self.pending_scroll_timestamp.take(),
+        };
+        self.pending_scroll_dx = 0.0;
+        self.pending_scroll_dy = 0.0;
+        self.has_pending_scroll = false;
+        Some(batch)
+    }
 }
 
 // Re-export for use with raw-window-handle and the frame-rate helper.
@@ -1174,6 +1208,7 @@ impl AndroidPlatformWindow {
                 pending_scroll_pos_y: 0.0,
                 has_pending_scroll: false,
                 pending_scroll_phase: gpui::TouchPhase::Moved,
+                pending_scroll_timestamp: None,
             })),
             momentum_input_cb: Arc::new(Mutex::new(noop_input_cb)),
         }
@@ -1375,44 +1410,30 @@ impl PlatformWindow for AndroidPlatformWindow {
             // emitting at most ONE ScrollWheel event per frame.
             // This avoids redundant layout passes when Android
             // delivers many MOVE events between frames.
-            {
-                let mut ms = momentum.lock();
+            if let Some(mut guard) = input_cb.try_lock() {
+                let pending = {
+                    let mut ms = momentum.lock();
+                    ms.take_pending_scroll_if_ready(true)
+                };
 
-                if ms.has_pending_scroll {
+                if let Some(batch) = pending {
                     saw_scroll_input = true;
-                    let dx = ms.pending_scroll_dx;
-                    let dy = ms.pending_scroll_dy;
-                    let pos_x = ms.pending_scroll_pos_x;
-                    let pos_y = ms.pending_scroll_pos_y;
-                    let phase = ms.pending_scroll_phase;
-
-                    // Reset the accumulator.
-                    ms.pending_scroll_dx = 0.0;
-                    ms.pending_scroll_dy = 0.0;
-                    ms.has_pending_scroll = false;
-
-                    // Drop the lock before calling the input callback
-                    // to avoid holding it during GPUI dispatch.
-                    drop(ms);
-
-                    let position = gpui::point(gpui::px(pos_x), gpui::px(pos_y));
-                    if let Some(mut guard) = input_cb.try_lock() {
-                        let _ = guard(gpui::PlatformInput::ScrollWheel(gpui::ScrollWheelEvent {
-                            position,
-                            delta: gpui::ScrollDelta::Pixels(gpui::point(
-                                gpui::px(dx),
-                                gpui::px(dy),
-                            )),
-                            modifiers: gpui::Modifiers::default(),
-                            touch_phase: phase,
-                            scroll_source: gpui::ScrollWheelSource::Touch,
-                            scroll_phase: scroll_phase_from_touch_phase(phase),
-                            precise_delta: true,
-                            native_momentum_phase: None,
-                            release_velocity: None,
-                            timestamp: Some(gpui::Instant::now()),
-                        }));
-                    }
+                    let position = gpui::point(gpui::px(batch.position_x), gpui::px(batch.position_y));
+                    let _ = guard(gpui::PlatformInput::ScrollWheel(gpui::ScrollWheelEvent {
+                        position,
+                        delta: gpui::ScrollDelta::Pixels(gpui::point(
+                            gpui::px(batch.delta_x),
+                            gpui::px(batch.delta_y),
+                        )),
+                        modifiers: gpui::Modifiers::default(),
+                        touch_phase: batch.phase,
+                        scroll_source: gpui::ScrollWheelSource::Touch,
+                        scroll_phase: scroll_phase_from_touch_phase(batch.phase),
+                        precise_delta: true,
+                        native_momentum_phase: None,
+                        release_velocity: None,
+                        timestamp: batch.timestamp.or_else(|| Some(gpui::Instant::now())),
+                    }));
                 }
             }
 
@@ -1616,6 +1637,7 @@ impl PlatformWindow for AndroidPlatformWindow {
                                     ms.pending_scroll_dx = 0.0;
                                     ms.pending_scroll_dy = 0.0;
                                     ms.has_pending_scroll = false;
+                                    ms.pending_scroll_timestamp = None;
                                 }
                                 *state.lock() = TouchState::Idle;
 
@@ -1784,6 +1806,7 @@ impl PlatformWindow for AndroidPlatformWindow {
                             ms.pending_scroll_dx = 0.0;
                             ms.pending_scroll_dy = 0.0;
                             ms.has_pending_scroll = false;
+                            ms.pending_scroll_timestamp = None;
                         }
                         *ts = TouchState::Pending {
                             start_x: logical_x,
@@ -1833,6 +1856,7 @@ impl PlatformWindow for AndroidPlatformWindow {
                                     if !ms.has_pending_scroll {
                                         ms.pending_scroll_phase = gpui::TouchPhase::Started;
                                     }
+                                    ms.pending_scroll_timestamp = Some(gpui::Instant::now());
                                     ms.has_pending_scroll = true;
                                 }
                                 // else: still within slop, stay Pending
@@ -1867,6 +1891,7 @@ impl PlatformWindow for AndroidPlatformWindow {
                                 if !ms.has_pending_scroll {
                                     ms.pending_scroll_phase = gpui::TouchPhase::Moved;
                                 }
+                                ms.pending_scroll_timestamp = Some(now);
                                 ms.has_pending_scroll = true;
                             }
                             TouchState::Idle => {
@@ -1888,6 +1913,7 @@ impl PlatformWindow for AndroidPlatformWindow {
                                 {
                                     let mut ms = momentum.lock();
                                     ms.has_pending_scroll = false;
+                                    ms.pending_scroll_timestamp = None;
                                 }
                                 let tap_pos = gpui::point(gpui::px(start_x), gpui::px(start_y));
                                 let mut guard = cb.lock();
@@ -1938,6 +1964,7 @@ impl PlatformWindow for AndroidPlatformWindow {
                                 ms.pending_scroll_dx = 0.0;
                                 ms.pending_scroll_dy = 0.0;
                                 ms.has_pending_scroll = false;
+                                ms.pending_scroll_timestamp = None;
 
                                 // Drop touch-scroll lock before dispatching.
                                 drop(ms);
@@ -2526,6 +2553,28 @@ mod tests {
         w.request_frame();
 
         assert_eq!(count.load(std::sync::atomic::Ordering::Relaxed), 2);
+    }
+
+    #[test]
+    fn refresh_paced_lossless_delivery_retains_pending_input_until_dispatch_is_ready() {
+        let mut momentum = MomentumState {
+            pending_scroll_dx: 12.0,
+            pending_scroll_dy: -8.0,
+            pending_scroll_pos_x: 40.0,
+            pending_scroll_pos_y: 72.0,
+            has_pending_scroll: true,
+            pending_scroll_phase: gpui::TouchPhase::Started,
+            pending_scroll_timestamp: None,
+        };
+
+        assert!(momentum.take_pending_scroll_if_ready(false).is_none());
+        assert!(momentum.has_pending_scroll);
+        assert_eq!(momentum.pending_scroll_dx, 12.0);
+
+        let batch = momentum.take_pending_scroll_if_ready(true).unwrap();
+        assert_eq!(batch.delta_x, 12.0);
+        assert_eq!(batch.delta_y, -8.0);
+        assert!(!momentum.has_pending_scroll);
     }
 
     #[test]
