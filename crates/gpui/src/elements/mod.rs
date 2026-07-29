@@ -11,6 +11,7 @@ mod frame_style;
 mod image_cache;
 mod img;
 mod list;
+mod scroll_activity;
 mod surface;
 mod svg;
 mod text;

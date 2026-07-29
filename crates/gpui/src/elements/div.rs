@@ -15,6 +15,7 @@
 //! and Tailwind-like styling that you can use to build your own custom elements. Div is
 //! constructed by combining these two systems into an all-in-one element.
 
+use super::scroll_activity::ScrollActivity;
 use crate::{
     Action, ActionDispatchOutcome, AnyDrag, AnyElement, AnyTooltip, AnyView, App, Bounds,
     ClickEvent, DispatchPhase, Display, Element, ElementId, Entity, EntityId, FocusHandle, Global,
@@ -3059,8 +3060,12 @@ impl Interactivity {
         window: &mut Window,
         _cx: &mut App,
     ) {
-        if let Some(scroll_offset) = self.scroll_offset.clone() {
+        if let Some(scroll_offset_state) = self.scroll_offset.clone() {
             let tracked_scroll_handle = self.tracked_scroll_handle.clone();
+            let activity = tracked_scroll_handle
+                .as_ref()
+                .map(|handle| handle.0.borrow().activity.clone())
+                .unwrap_or_default();
             let overflow = style.overflow;
             let allow_concurrent_scroll = style.allow_concurrent_scroll;
             let restrict_scroll_to_axis = style.restrict_scroll_to_axis;
@@ -3075,7 +3080,20 @@ impl Interactivity {
             let current_view = window.current_view();
             window.on_mouse_event(move |event: &ScrollWheelEvent, phase, window, cx| {
                 if phase == DispatchPhase::Bubble && hitbox.should_handle_scroll(window) {
-                    let mut scroll_offset = scroll_offset.borrow_mut();
+                    match event.scroll_source {
+                        crate::ScrollWheelSource::Touch
+                            if matches!(
+                                event.scroll_phase,
+                                crate::ScrollWheelPhase::Started
+                                    | crate::ScrollWheelPhase::Cancelled
+                            ) =>
+                        {
+                            activity.borrow_mut().stop();
+                        }
+                        crate::ScrollWheelSource::Touch => {}
+                        _ => activity.borrow_mut().stop(),
+                    }
+                    let mut scroll_offset = scroll_offset_state.borrow_mut();
                     let old_scroll_offset = *scroll_offset;
                     let delta = event.delta.pixel_delta(line_height);
                     let mut delta_x = Pixels::ZERO;
@@ -3118,6 +3136,26 @@ impl Interactivity {
                             scroll_handle.notify_dependent_views(cx);
                         }
                         cx.stop_propagation();
+                    }
+
+                    let release_velocity = (event.scroll_source == crate::ScrollWheelSource::Touch
+                        && event.scroll_phase == crate::ScrollWheelPhase::Ended)
+                        .then_some(event.release_velocity)
+                        .flatten();
+                    drop(scroll_offset);
+
+                    if let Some(velocity) = release_velocity {
+                        activity.borrow_mut().start(velocity);
+                        schedule_scroll_activity(
+                            activity.clone(),
+                            scroll_offset_state.clone(),
+                            tracked_scroll_handle.clone(),
+                            overflow,
+                            scroll_max,
+                            current_view,
+                            window,
+                        );
+                        window.refresh();
                     }
                 }
             });
@@ -3837,6 +3875,7 @@ struct ScrollHandleState {
     overflow: Point<Overflow>,
     active_item: Option<ScrollActiveItem>,
     dependent_views: SmallVec<[EntityId; 2]>,
+    activity: Rc<RefCell<ScrollActivity>>,
 }
 
 #[derive(Default, Debug, Clone, Copy)]
@@ -4094,6 +4133,53 @@ impl ScrollHandle {
     pub fn children_count(&self) -> usize {
         self.0.borrow().child_bounds.len()
     }
+}
+
+fn schedule_scroll_activity(
+    activity: Rc<RefCell<ScrollActivity>>,
+    scroll_offset: Rc<RefCell<Point<Pixels>>>,
+    scroll_handle: Option<ScrollHandle>,
+    overflow: Point<Overflow>,
+    scroll_max: Point<Pixels>,
+    current_view: EntityId,
+    window: &Window,
+) {
+    window.on_next_frame(move |window, cx| {
+        let Some(delta) = activity.borrow_mut().next_delta() else {
+            return;
+        };
+
+        let mut offset = scroll_offset.borrow_mut();
+        let previous = *offset;
+        if overflow.x == Overflow::Scroll {
+            offset.x = (offset.x + delta.x).clamp(-scroll_max.x, px(0.));
+        }
+        if overflow.y == Overflow::Scroll {
+            offset.y = (offset.y + delta.y).clamp(-scroll_max.y, px(0.));
+        }
+        let advanced = *offset != previous;
+        drop(offset);
+
+        if !advanced {
+            activity.borrow_mut().stop();
+            return;
+        }
+
+        cx.notify(current_view);
+        if let Some(scroll_handle) = scroll_handle.as_ref() {
+            scroll_handle.notify_dependent_views(cx);
+        }
+        schedule_scroll_activity(
+            activity,
+            scroll_offset,
+            scroll_handle,
+            overflow,
+            scroll_max,
+            current_view,
+            window,
+        );
+        window.refresh();
+    });
 }
 
 #[cfg(test)]

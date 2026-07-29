@@ -2,10 +2,10 @@ use std::rc::Rc;
 
 use gpux::{
     Capslock, DispatchEventResult, ExternalPaths, FileDropEvent, HtmlElementInputMode,
-    HtmlIslandInputMode, KeyDownEvent, KeyUpEvent, Keystroke, Modifiers, ModifiersChangedEvent,
-    MouseButton, MouseDownEvent, MouseExitEvent, MouseMoveEvent, MouseUpEvent, NavigationDirection,
-    Pixels, PlatformInput, Point, ScrollDelta, ScrollWheelEvent, ScrollWheelPhase,
-    ScrollWheelSource, TouchEvent, TouchPhase, point, px,
+    HtmlIslandInputMode, IsZero, KeyDownEvent, KeyUpEvent, Keystroke, Modifiers,
+    ModifiersChangedEvent, MouseButton, MouseDownEvent, MouseExitEvent, MouseMoveEvent,
+    MouseUpEvent, NavigationDirection, Pixels, PlatformInput, Point, ScrollDelta, ScrollWheelEvent,
+    ScrollWheelPhase, ScrollWheelSource, TouchEvent, TouchPhase, point, px,
 };
 use smallvec::smallvec;
 use wasm_bindgen::prelude::*;
@@ -21,6 +21,13 @@ pub(crate) struct ClickState {
     last_position: Point<Pixels>,
     last_time: f64,
     current_count: usize,
+}
+
+pub(crate) struct TouchScrollState {
+    pointer_id: i32,
+    position: Point<Pixels>,
+    timestamp: gpux::Instant,
+    velocity: Point<Pixels>,
 }
 
 impl Default for ClickState {
@@ -232,6 +239,7 @@ impl WebWindowInner {
                 current_state.modifiers = modifiers;
             }
 
+            dispatch_touch_scroll(&this, &event, position, modifiers, TouchPhase::Started);
             dispatch_touch_pointer(
                 &this,
                 &event,
@@ -274,6 +282,7 @@ impl WebWindowInner {
                 current_state.modifiers = modifiers;
             }
 
+            dispatch_touch_scroll(&this, &event, position, modifiers, TouchPhase::Ended);
             dispatch_touch_pointer(
                 &this,
                 &event,
@@ -312,6 +321,7 @@ impl WebWindowInner {
                 current_state.modifiers = modifiers;
             }
 
+            dispatch_touch_scroll(&this, &event, position, modifiers, TouchPhase::Moved);
             dispatch_touch_pointer(&this, &event, position, modifiers, TouchPhase::Moved, 1);
 
             this.dispatch_input(PlatformInput::MouseMove(MouseMoveEvent {
@@ -343,6 +353,7 @@ impl WebWindowInner {
                 current_state.modifiers = modifiers;
             }
 
+            dispatch_touch_scroll(&this, &event, position, modifiers, TouchPhase::Cancelled);
             dispatch_touch_pointer(&this, &event, position, modifiers, TouchPhase::Cancelled, 1);
         })
     }
@@ -849,6 +860,107 @@ fn pointer_position_in_canvas(
 ) -> Point<Pixels> {
     let mouse_event: &web_sys::MouseEvent = event.as_ref();
     mouse_position_in_canvas(mouse_event, canvas)
+}
+
+fn dispatch_touch_scroll(
+    window: &WebWindowInner,
+    event: &web_sys::PointerEvent,
+    position: Point<Pixels>,
+    modifiers: Modifiers,
+    phase: TouchPhase,
+) {
+    if event.pointer_type() != "touch" {
+        return;
+    }
+
+    let pointer_id = event.pointer_id();
+    let now = gpux::Instant::now();
+    let (delta, release_velocity) = {
+        let mut touch_scroll = window.touch_scroll.borrow_mut();
+        match phase {
+            TouchPhase::Started => {
+                *touch_scroll = Some(TouchScrollState {
+                    pointer_id,
+                    position,
+                    timestamp: now,
+                    velocity: Point::default(),
+                });
+                (Point::default(), None)
+            }
+            TouchPhase::Moved => {
+                let Some(state) = touch_scroll.as_mut() else {
+                    return;
+                };
+                if state.pointer_id != pointer_id {
+                    return;
+                }
+
+                let delta = position - state.position;
+                let elapsed = now.duration_since(state.timestamp).as_secs_f32();
+                if elapsed > f32::EPSILON {
+                    state.velocity = point(
+                        px(f32::from(delta.x) / elapsed),
+                        px(f32::from(delta.y) / elapsed),
+                    );
+                }
+                state.position = position;
+                state.timestamp = now;
+                (delta, None)
+            }
+            TouchPhase::Ended => {
+                let Some(state) = touch_scroll.take() else {
+                    return;
+                };
+                if state.pointer_id != pointer_id {
+                    *touch_scroll = Some(state);
+                    return;
+                }
+
+                let delta = position - state.position;
+                let elapsed = now.duration_since(state.timestamp).as_secs_f32();
+                let velocity = if !delta.x.is_zero() || !delta.y.is_zero() {
+                    if elapsed > f32::EPSILON {
+                        point(
+                            px(f32::from(delta.x) / elapsed),
+                            px(f32::from(delta.y) / elapsed),
+                        )
+                    } else {
+                        state.velocity
+                    }
+                } else {
+                    state.velocity
+                };
+                (delta, Some(velocity))
+            }
+            TouchPhase::Cancelled => {
+                if touch_scroll
+                    .as_ref()
+                    .is_some_and(|state| state.pointer_id == pointer_id)
+                {
+                    *touch_scroll = None;
+                }
+                (Point::default(), None)
+            }
+        }
+    };
+
+    window.dispatch_input(PlatformInput::ScrollWheel(ScrollWheelEvent {
+        position,
+        delta: ScrollDelta::Pixels(delta),
+        modifiers,
+        touch_phase: phase,
+        scroll_source: ScrollWheelSource::Touch,
+        scroll_phase: match phase {
+            TouchPhase::Started => ScrollWheelPhase::Started,
+            TouchPhase::Moved => ScrollWheelPhase::Moved,
+            TouchPhase::Ended => ScrollWheelPhase::Ended,
+            TouchPhase::Cancelled => ScrollWheelPhase::Cancelled,
+        },
+        precise_delta: true,
+        native_momentum_phase: None,
+        release_velocity,
+        timestamp: Some(now),
+    }));
 }
 
 fn dispatch_touch_pointer(
