@@ -795,6 +795,10 @@ pub enum HitboxBehavior {
     /// inconsistent UI where clicks and moves interact with elements that are not considered to
     /// be hovered.
     BlockMouseExceptScroll,
+
+    /// The hitbox is absent from pointer hit testing while its layout, paint,
+    /// and semantics remain available.
+    Ignore,
 }
 
 /// An identifier for a tooltip.
@@ -971,10 +975,11 @@ impl WindowFrame {
             .hitboxes
             .iter()
             .filter(|hitbox| {
-                hitbox
-                    .bounds
-                    .intersect(&hitbox.content_mask.bounds)
-                    .contains(&position)
+                hitbox.behavior != HitboxBehavior::Ignore
+                    && hitbox
+                        .bounds
+                        .intersect(&hitbox.content_mask.bounds)
+                        .contains(&position)
             })
             .collect::<SmallVec<[_; 16]>>();
         hitboxes.sort_by_key(|hitbox| std::cmp::Reverse(hitbox.id.0));
@@ -1128,8 +1133,23 @@ pub struct DevtoolsSemantics {
     pub error_message: Option<String>,
     /// Stable authored ids of controls owned by this element.
     pub controls: Vec<String>,
+    /// Pointer operations exposed by this element without changing its label or value semantics.
+    pub pointer_actions: Vec<DevtoolsPointerAction>,
     /// Component-authored writable properties for live DevKit mutation.
     pub writable_properties: Vec<DevtoolsWritableProperty>,
+}
+
+/// A pointer operation exposed to accessibility and DevKit clients.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DevtoolsPointerAction {
+    /// Activates the element with a primary tap or click.
+    Activate,
+    /// Invokes the element's long-press affordance.
+    LongPress,
+    /// Starts a drag interaction.
+    Drag,
+    /// Changes an element's scale.
+    Scale,
 }
 
 impl DevtoolsSemantics {
@@ -1240,6 +1260,14 @@ impl DevtoolsSemantics {
         self
     }
 
+    /// Adds a pointer operation without changing the rest of this element's semantics.
+    pub fn pointer_action(mut self, action: DevtoolsPointerAction) -> Self {
+        if !self.pointer_actions.contains(&action) {
+            self.pointer_actions.push(action);
+        }
+        self
+    }
+
     /// Add a writable property exposed by the component.
     pub fn writable_property(
         mut self,
@@ -1304,6 +1332,11 @@ impl DevtoolsSemantics {
         }
         for id in other.controls {
             push_unique_string(&mut self.controls, id);
+        }
+        for action in other.pointer_actions {
+            if !self.pointer_actions.contains(&action) {
+                self.pointer_actions.push(action);
+            }
         }
         for property in other.writable_properties {
             if !self
@@ -1955,6 +1988,8 @@ pub struct Window {
     pub(crate) content_mask_stack: Vec<ContentMask<Pixels>>,
     scroll_container_context_stack: ScrollContainerContextStack,
     paint_content_mask_stack: Vec<ContentMask<ScaledPixels>>,
+    hitbox_behavior_overrides: Vec<HitboxBehavior>,
+    pointer_semantics_suppressed: usize,
     pub(crate) requested_autoscroll: Option<Bounds<Pixels>>,
     pub(crate) image_cache_stack: Vec<AnyImageCache>,
     pub(crate) rendered_frame: WindowFrame,
@@ -2014,6 +2049,7 @@ pub struct Window {
     pointer_interaction_diagnostics: PointerInteractionDiagnostics,
     pending_mapped_pointers: FxHashMap<PointerId, PendingMappedPointer>,
     gesture_recognizer: GestureRecognizer,
+    recognized_gesture_event: Option<PointerEvent>,
     #[cfg(any(feature = "inspector", debug_assertions))]
     inspector: Option<Entity<Inspector>>,
 }
@@ -2614,6 +2650,8 @@ impl Window {
             element_opacity: 1.0,
             element_transform_stack: Vec::new(),
             paint_content_mask_stack: Vec::new(),
+            hitbox_behavior_overrides: Vec::new(),
+            pointer_semantics_suppressed: 0,
             requested_autoscroll: None,
             rendered_frame: WindowFrame::new(DispatchTree::new(
                 cx.keymap.clone(),
@@ -2672,6 +2710,7 @@ impl Window {
             pointer_interaction_diagnostics: PointerInteractionDiagnostics::default(),
             pending_mapped_pointers: FxHashMap::default(),
             gesture_recognizer: GestureRecognizer::default(),
+            recognized_gesture_event: None,
             #[cfg(any(feature = "inspector", debug_assertions))]
             inspector: None,
         })
@@ -3838,6 +3877,10 @@ impl Window {
         else {
             return;
         };
+        let mut semantics = semantics;
+        if self.pointer_semantics_suppressed != 0 {
+            semantics.pointer_actions.clear();
+        }
         element.semantics.merge(semantics);
     }
 
@@ -3997,6 +4040,15 @@ impl Window {
     /// Returns bounded pointer-owner diagnostics keyed by `PointerId`.
     pub fn pointer_interaction_diagnostics(&self) -> &PointerInteractionDiagnostics {
         &self.pointer_interaction_diagnostics
+    }
+
+    /// Returns the direct-pointer sample currently resolving a mapped gesture.
+    ///
+    /// The value exists only while the corresponding action handler runs. It
+    /// lets component-local action handlers create typed callback details
+    /// without maintaining a second recognizer or global pointer cache.
+    pub fn recognized_gesture_event(&self) -> Option<&PointerEvent> {
+        self.recognized_gesture_event.as_ref()
     }
 
     /// Claims the current pointer sequence from an explicitly handled pointer action.
@@ -4524,8 +4576,10 @@ impl Window {
         gesture: RecognizedGesture,
         cx: &mut App,
     ) -> (ActionDispatchReport, Option<DispatchNodeId>) {
+        let previous_event =
+            std::mem::replace(&mut self.recognized_gesture_event, gesture.event().cloned());
         let node_id = DispatchNodeId::from_usize(gesture.target());
-        if node_id.as_usize() < self.rendered_frame.dispatch_tree.len() {
+        let result = if node_id.as_usize() < self.rendered_frame.dispatch_tree.len() {
             self.dispatch_action_on_node_from_with_handler(
                 node_id,
                 ActionInvocationSource::Pointer,
@@ -4543,7 +4597,9 @@ impl Window {
                 ),
                 None,
             )
-        }
+        };
+        self.recognized_gesture_event = previous_event;
+        result
     }
 
     /// The current state of the keyboard's modifiers
@@ -6664,6 +6720,27 @@ impl Window {
         bounds
     }
 
+    /// Applies a hitbox behavior to every hitbox inserted while `f` prepaints
+    /// an element subtree.
+    pub fn with_subtree_hitbox_behavior<T>(
+        &mut self,
+        behavior: HitboxBehavior,
+        f: impl FnOnce(&mut Self) -> T,
+    ) -> T {
+        self.hitbox_behavior_overrides.push(behavior);
+        let result = f(self);
+        self.hitbox_behavior_overrides.pop();
+        result
+    }
+
+    /// Removes only pointer operations from semantics authored while `f` paints.
+    pub fn with_pointer_semantics_suppressed<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> T {
+        self.pointer_semantics_suppressed += 1;
+        let result = f(self);
+        self.pointer_semantics_suppressed -= 1;
+        result
+    }
+
     /// This method should be called during `prepaint`. You can use
     /// the returned [Hitbox] during `paint` or in an event handler
     /// to determine whether the inserted hitbox was the topmost.
@@ -6712,6 +6789,11 @@ impl Window {
         bounds: Bounds<Pixels>,
         behavior: HitboxBehavior,
     ) -> Hitbox {
+        let behavior = self
+            .hitbox_behavior_overrides
+            .last()
+            .copied()
+            .unwrap_or(behavior);
         let content_mask = self.content_mask();
         let hitbox = Hitbox {
             id,

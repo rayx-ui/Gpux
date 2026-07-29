@@ -353,6 +353,7 @@ pub struct RecognizedGesture {
     action: Box<dyn Action>,
     target: usize,
     revision: GestureMapVersion,
+    event: Option<PointerEvent>,
 }
 
 impl RecognizedGesture {
@@ -369,6 +370,12 @@ impl RecognizedGesture {
     /// Returns the map revision captured for this recognition sequence.
     pub fn revision(&self) -> GestureMapVersion {
         self.revision
+    }
+
+    /// Returns the factual pointer sample that resolved this gesture, when it
+    /// originated from direct pointer input.
+    pub fn event(&self) -> Option<&PointerEvent> {
+        self.event.as_ref()
     }
 }
 
@@ -478,7 +485,12 @@ impl GestureRecognizer {
                     }
                     _ => false,
                 })?;
-        let gesture = recognized(rule, current.target, current.revision);
+        let gesture = recognized(
+            rule,
+            current.target,
+            current.revision,
+            Some(&current.current),
+        );
         self.arenas.remove(&event.id);
         Some(gesture)
     }
@@ -520,7 +532,12 @@ impl GestureRecognizer {
                     }
                     _ => false,
                 })?;
-        Some(recognized(rule, pending.target, pending.revision))
+        Some(recognized(
+            rule,
+            pending.target,
+            pending.revision,
+            Some(event),
+        ))
     }
 
     /// Returns the earliest matching long-press delay for one active pointer.
@@ -559,7 +576,7 @@ impl GestureRecognizer {
                     if modifiers == pending.down.modifiers
                         && now.saturating_duration_since(pending.started_at) >= Duration::from_millis(duration_ms)
                         && moved_squared <= (threshold as f32).powi(2))
-                .then(|| recognized(rule, pending.target, pending.revision))
+                .then(|| recognized(rule, pending.target, pending.revision, Some(&pending.current)))
             })
         }?;
         self.arenas.remove(&pointer_id);
@@ -623,7 +640,7 @@ impl GestureRecognizer {
             .flatten();
         if let Some(rule) = trackpad_scale {
             self.wheel.amount = 0.0;
-            return Some(recognized(rule, target, revision));
+            return Some(recognized(rule, target, revision, None));
         }
         let rule = snapshot.rules_highest_precedence().find(|rule| {
             matches!(rule.pattern(), GesturePattern::Wheel { direction: expected_direction, source: expected_source, modifiers, threshold }
@@ -633,7 +650,7 @@ impl GestureRecognizer {
                     && self.wheel.amount >= threshold as f32)
         })?;
         self.wheel.amount = 0.0;
-        Some(recognized(rule, target, revision))
+        Some(recognized(rule, target, revision, None))
     }
 
     /// Cancels pending click, drag, and wheel state without dispatching an action.
@@ -701,7 +718,12 @@ impl GestureRecognizer {
                     }
                     _ => false,
                 })?;
-        let gesture = recognized(rule, current.target, current.revision);
+        let gesture = recognized(
+            rule,
+            current.target,
+            current.revision,
+            Some(&current.current),
+        );
         self.arenas.remove(&pointer_id);
         self.arenas.remove(&partner_id);
         Some(gesture)
@@ -734,11 +756,17 @@ impl GestureRecognizer {
     }
 }
 
-fn recognized(rule: &GestureRule, target: usize, revision: GestureMapVersion) -> RecognizedGesture {
+fn recognized(
+    rule: &GestureRule,
+    target: usize,
+    revision: GestureMapVersion,
+    event: Option<&PointerEvent>,
+) -> RecognizedGesture {
     RecognizedGesture {
         action: rule.action().boxed_clone(),
         target,
         revision,
+        event: event.cloned(),
     }
 }
 
