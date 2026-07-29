@@ -895,7 +895,7 @@ fn dispatch_touch_scroll(
                     return;
                 }
 
-                let delta = position - state.position;
+                let delta = touch_scroll_delta(position, state.position);
                 let elapsed = now.duration_since(state.timestamp).as_secs_f32();
                 if elapsed > f32::EPSILON {
                     state.velocity = point(
@@ -916,7 +916,7 @@ fn dispatch_touch_scroll(
                     return;
                 }
 
-                let delta = position - state.position;
+                let delta = touch_scroll_delta(position, state.position);
                 let elapsed = now.duration_since(state.timestamp).as_secs_f32();
                 let velocity = if !delta.x.is_zero() || !delta.y.is_zero() {
                     if elapsed > f32::EPSILON {
@@ -961,6 +961,22 @@ fn dispatch_touch_scroll(
         release_velocity,
         timestamp: Some(now),
     }));
+}
+
+fn touch_scroll_delta(position: Point<Pixels>, previous_position: Point<Pixels>) -> Point<Pixels> {
+    let delta = position - previous_position;
+    point(
+        if delta.x.abs() < px(0.01) {
+            Pixels::ZERO
+        } else {
+            delta.x
+        },
+        if delta.y.abs() < px(0.01) {
+            Pixels::ZERO
+        } else {
+            delta.y
+        },
+    )
 }
 
 fn pointer_event_from_dom(

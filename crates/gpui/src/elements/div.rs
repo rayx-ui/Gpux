@@ -19,12 +19,13 @@ use super::scroll_activity::ScrollActivity;
 use crate::{
     Action, ActionDispatchOutcome, AnyDrag, AnyElement, AnyTooltip, AnyView, App, Bounds,
     ClickEvent, DispatchPhase, Display, Element, ElementId, Entity, EntityId, FocusHandle, Global,
-    GlobalElementId, Hitbox, HitboxBehavior, HitboxId, InspectorElementId, IntoElement, IsZero,
-    KeyContext, KeyDownEvent, KeyUpEvent, KeyboardButton, KeyboardClickEvent, LayoutId,
+    GlobalElementId, Hitbox, HitboxBehavior, HitboxId, InputEvent, InspectorElementId, IntoElement,
+    IsZero, KeyContext, KeyDownEvent, KeyUpEvent, KeyboardButton, KeyboardClickEvent, LayoutId,
     ModifiersChangedEvent, MouseButton, Overflow, ParentElement, Pixels, Point, PointerClickEvent,
-    PointerEvent, Position, PositionedBounds, Render, ScrollContainerContext, ScrollWheelEvent,
-    SharedString, Size, StickyState, StickyStateChangedEvent, Style, StyleRefinement, Styled, Task,
-    TooltipId, Visibility, Window, WindowControlArea, point, px, size,
+    PointerEvent, Position, PositionedBounds, Render, ScrollContainerContext, ScrollDelta,
+    ScrollWheelEvent, SharedString, Size, StickyState, StickyStateChangedEvent, Style,
+    StyleRefinement, Styled, Task, TooltipId, Visibility, Window, WindowControlArea, point, px,
+    size,
 };
 use crate::{PinchEvent, RotateEvent};
 use collections::HashMap;
@@ -3114,16 +3115,34 @@ impl Interactivity {
             let hitbox = hitbox.clone();
             let current_view = window.current_view();
             window.on_pointer_event(move |event: &ScrollWheelEvent, phase, window, cx| {
-                if phase == DispatchPhase::Bubble && hitbox.should_handle_scroll(window) {
+                let owns_direct_touch = event.scroll_source == crate::ScrollWheelSource::Touch
+                    && event.scroll_phase == crate::ScrollWheelPhase::Ended
+                    && activity.borrow().has_direct_touch();
+                if phase == DispatchPhase::Bubble
+                    && (hitbox.should_handle_scroll(window) || owns_direct_touch)
+                {
                     match event.scroll_source {
                         crate::ScrollWheelSource::Touch
-                            if matches!(
-                                event.scroll_phase,
-                                crate::ScrollWheelPhase::Started
-                                    | crate::ScrollWheelPhase::Cancelled
-                            ) =>
+                            if event.scroll_phase == crate::ScrollWheelPhase::Started =>
+                        {
+                            activity.borrow_mut().begin_direct_touch(
+                                event.timestamp.unwrap_or_else(crate::Instant::now),
+                            );
+                            cx.stop_propagation();
+                            return;
+                        }
+                        crate::ScrollWheelSource::Touch
+                            if event.scroll_phase == crate::ScrollWheelPhase::Cancelled =>
                         {
                             activity.borrow_mut().stop();
+                        }
+                        crate::ScrollWheelSource::Touch
+                            if event.scroll_phase == crate::ScrollWheelPhase::Moved
+                                && !activity.borrow().has_direct_touch() =>
+                        {
+                            activity.borrow_mut().begin_direct_touch(
+                                event.timestamp.unwrap_or_else(crate::Instant::now),
+                            );
                         }
                         crate::ScrollWheelSource::Touch => {}
                         _ => activity.borrow_mut().stop(),
@@ -3164,12 +3183,31 @@ impl Interactivity {
                             (new_scroll_offset.y + delta_y).clamp(-scroll_max.y, px(0.));
                     }
 
-                    if new_scroll_offset != old_scroll_offset {
+                    let advanced = new_scroll_offset != old_scroll_offset;
+                    let residual = normalize_scroll_residual(
+                        point(delta_x, delta_y) - (new_scroll_offset - old_scroll_offset),
+                    );
+                    if advanced {
                         *scroll_offset = new_scroll_offset;
                         cx.notify(current_view);
                         if let Some(scroll_handle) = tracked_scroll_handle.as_ref() {
                             scroll_handle.notify_dependent_views(cx);
                         }
+                    }
+
+                    drop(scroll_offset);
+                    if !residual.x.is_zero() || !residual.y.is_zero() {
+                        if owns_direct_touch {
+                            activity.borrow_mut().stop();
+                        }
+                        cx.stop_propagation();
+                        let mut residual_event = event.clone();
+                        residual_event.delta = ScrollDelta::Pixels(residual);
+                        window.dispatch_event(residual_event.to_platform_input(), cx);
+                        return;
+                    }
+
+                    if advanced {
                         cx.stop_propagation();
                     }
 
@@ -3177,7 +3215,6 @@ impl Interactivity {
                         && event.scroll_phase == crate::ScrollWheelPhase::Ended)
                         .then_some(event.release_velocity)
                         .flatten();
-                    drop(scroll_offset);
 
                     if let Some(velocity) = release_velocity {
                         activity.borrow_mut().start_at(
@@ -3190,10 +3227,16 @@ impl Interactivity {
                             tracked_scroll_handle.clone(),
                             overflow,
                             scroll_max,
+                            event.position,
                             current_view,
                             window,
                         );
+                        cx.notify(current_view);
                         window.refresh();
+                    }
+
+                    if owns_direct_touch {
+                        cx.stop_propagation();
                     }
                 }
             });
@@ -4179,13 +4222,33 @@ fn schedule_scroll_activity(
     scroll_handle: Option<ScrollHandle>,
     overflow: Point<Overflow>,
     scroll_max: Point<Pixels>,
+    position: Point<Pixels>,
     current_view: EntityId,
     window: &Window,
 ) {
     window.on_next_frame(move |window, cx| {
-        let Some(delta) = activity.borrow_mut().next_delta_at(crate::Instant::now()) else {
+        let mut activity_state = activity.borrow_mut();
+        let Some(delta) = activity_state.next_delta_at(crate::Instant::now()) else {
             return;
         };
+        let velocity = activity_state.velocity();
+        drop(activity_state);
+
+        if delta.x.is_zero() && delta.y.is_zero() && velocity.is_some() {
+            schedule_scroll_activity(
+                activity,
+                scroll_offset,
+                scroll_handle,
+                overflow,
+                scroll_max,
+                position,
+                current_view,
+                window,
+            );
+            cx.notify(current_view);
+            window.refresh();
+            return;
+        }
 
         let mut offset = scroll_offset.borrow_mut();
         let previous = *offset;
@@ -4195,8 +4258,30 @@ fn schedule_scroll_activity(
         if overflow.y == Overflow::Scroll {
             offset.y = (offset.y + delta.y).clamp(-scroll_max.y, px(0.));
         }
+        let residual = normalize_scroll_residual(delta - (*offset - previous));
         let advanced = *offset != previous;
         drop(offset);
+
+        if !residual.x.is_zero() || !residual.y.is_zero() {
+            activity.borrow_mut().stop();
+            window.dispatch_event(
+                ScrollWheelEvent {
+                    position,
+                    delta: ScrollDelta::Pixels(residual),
+                    modifiers: Default::default(),
+                    touch_phase: crate::TouchPhase::Ended,
+                    scroll_source: crate::ScrollWheelSource::Touch,
+                    scroll_phase: crate::ScrollWheelPhase::Ended,
+                    precise_delta: true,
+                    native_momentum_phase: None,
+                    release_velocity: velocity,
+                    timestamp: Some(crate::Instant::now()),
+                }
+                .to_platform_input(),
+                cx,
+            );
+            return;
+        }
 
         if !advanced {
             activity.borrow_mut().stop();
@@ -4213,11 +4298,27 @@ fn schedule_scroll_activity(
             scroll_handle,
             overflow,
             scroll_max,
+            position,
             current_view,
             window,
         );
         window.refresh();
     });
+}
+
+fn normalize_scroll_residual(residual: Point<Pixels>) -> Point<Pixels> {
+    point(
+        if residual.x.abs() < px(0.01) {
+            Pixels::ZERO
+        } else {
+            residual.x
+        },
+        if residual.y.abs() < px(0.01) {
+            Pixels::ZERO
+        } else {
+            residual.y
+        },
+    )
 }
 
 #[cfg(test)]
@@ -5652,6 +5753,53 @@ mod tests {
         assert_eq!(Point::default(), outer_handle.offset());
 
         dispatch_scroll_wheel(&mut test_app, any_window, point(px(50.), px(50.)), px(-40.));
+        assert_eq!(point(px(0.), px(-100.)), inner_handle.offset());
+        assert_eq!(point(px(0.), px(-30.)), outer_handle.offset());
+    }
+
+    #[test]
+    fn nested_scroll_activity_hands_a_child_fling_to_the_parent() {
+        let mut test_app = TestAppContext::single();
+        let outer_handle = ScrollHandle::new();
+        let inner_handle = ScrollHandle::new();
+        let window = test_app.add_window({
+            let outer_handle = outer_handle.clone();
+            let inner_handle = inner_handle.clone();
+            move |_, _| NestedStickyOwner {
+                outer_handle,
+                inner_handle,
+            }
+        });
+        let any_window = window.into();
+
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+                window.dispatch_event(
+                    crate::ScrollWheelEvent {
+                        position: point(px(50.), px(50.)),
+                        delta: crate::ScrollDelta::Pixels(point(px(0.), px(-200.))),
+                        modifiers: Default::default(),
+                        touch_phase: crate::TouchPhase::Ended,
+                        scroll_source: crate::ScrollWheelSource::Touch,
+                        scroll_phase: crate::ScrollWheelPhase::Ended,
+                        precise_delta: true,
+                        native_momentum_phase: None,
+                        release_velocity: Some(point(px(0.), px(-600.))),
+                        timestamp: Some(crate::Instant::now() - Duration::from_millis(20)),
+                    }
+                    .to_platform_input(),
+                    cx,
+                );
+            })
+            .unwrap();
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+            })
+            .unwrap();
+        test_app.run_until_parked();
+
         assert_eq!(point(px(0.), px(-100.)), inner_handle.offset());
         assert_eq!(point(px(0.), px(-30.)), outer_handle.offset());
     }

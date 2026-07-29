@@ -26,6 +26,19 @@ impl ScrollActivity {
         self.last_timestamp = None;
     }
 
+    pub(crate) fn begin_direct_touch(&mut self, timestamp: Instant) {
+        self.velocity = None;
+        self.last_timestamp = Some(timestamp);
+    }
+
+    pub(crate) fn has_direct_touch(&self) -> bool {
+        self.velocity.is_none() && self.last_timestamp.is_some()
+    }
+
+    pub(crate) fn velocity(&self) -> Option<Point<Pixels>> {
+        self.velocity
+    }
+
     /// Advance using the frame's authoritative timestamp instead of assuming a refresh rate.
     pub(crate) fn next_delta_at(&mut self, timestamp: Instant) -> Option<Point<Pixels>> {
         let velocity = self.velocity?;
@@ -51,7 +64,11 @@ impl ScrollActivity {
             self.velocity = Some(next_velocity);
         }
 
-        Some(delta)
+        if delta.x.abs() < px(0.01) && delta.y.abs() < px(0.01) {
+            Some(Point::default())
+        } else {
+            Some(delta)
+        }
     }
 }
 
