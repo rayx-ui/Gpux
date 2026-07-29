@@ -15,11 +15,11 @@ pub trait InputEvent: Sealed + 'static {
 /// A key event from the platform.
 pub trait KeyEvent: InputEvent {}
 
-/// A mouse event from the platform.
-pub trait MouseEvent: InputEvent {}
-
 /// A gesture event from the platform.
 pub trait GestureEvent: InputEvent {}
+
+/// A located pointer event from the platform.
+pub trait PointerEventLike: InputEvent {}
 
 /// The key down event equivalent for the platform.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -98,6 +98,226 @@ pub enum TouchPhase {
     Cancelled,
 }
 
+/// An identity that remains stable for one active pointer sequence.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Hash, Ord, PartialOrd)]
+pub struct PointerId(u64);
+
+impl PointerId {
+    /// Creates a pointer identity from the platform's active-sequence identifier.
+    pub const fn new(value: u64) -> Self {
+        Self(value)
+    }
+
+    /// Returns the platform identifier for this active sequence.
+    pub const fn as_u64(self) -> u64 {
+        self.0
+    }
+}
+
+/// The factual device family that produced a pointer event.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Hash)]
+pub enum PointerKind {
+    /// A mouse or mouse-compatible pointing device.
+    Mouse,
+    /// A direct-touch contact.
+    Touch,
+    /// A stylus or pen.
+    Pen,
+    /// The platform did not identify the device family.
+    #[default]
+    Unknown,
+}
+
+/// The lifecycle state of a pointer event.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Hash)]
+pub enum PointerPhase {
+    /// A pointer entered or moved without contact.
+    Hover,
+    /// A pointer contact began.
+    Down,
+    /// A pointer changed position or button state.
+    #[default]
+    Move,
+    /// A pointer contact ended.
+    Up,
+    /// The platform cancelled the pointer sequence.
+    Cancel,
+}
+
+/// Optional facts reported by pressure- or contact-aware platforms.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct PointerContact {
+    /// Normalized contact pressure when the platform reports it.
+    pub pressure: Option<f32>,
+    /// Contact width and height in logical pixels when reported by the platform.
+    pub size: Option<Point<Pixels>>,
+    /// Pen tilt from the horizontal axis in degrees when reported by the platform.
+    pub tilt_x: Option<f32>,
+    /// Pen tilt from the vertical axis in degrees when reported by the platform.
+    pub tilt_y: Option<f32>,
+    /// Pen barrel rotation in degrees when reported by the platform.
+    pub twist: Option<f32>,
+}
+
+/// The canonical cross-platform located pointer event.
+#[derive(Clone, Debug, Default)]
+pub struct PointerEvent {
+    /// The identity for this active pointer sequence.
+    pub id: PointerId,
+    /// The factual source device family.
+    pub kind: PointerKind,
+    /// The lifecycle phase.
+    pub phase: PointerPhase,
+    /// Whether this is the platform's primary pointer for its device family.
+    pub is_primary: bool,
+    /// The pressed buttons after this event.
+    pub buttons: SmallVec<[MouseButton; 1]>,
+    /// The button that changed for this event, or the platform default when none changed.
+    pub button: MouseButton,
+    /// The primary pressed button when the platform reports one.
+    pub pressed_button: Option<MouseButton>,
+    /// The platform click or tap count when available.
+    pub click_count: usize,
+    /// Whether this is the first mouse click that should focus its target.
+    pub first_mouse: bool,
+    /// The position in window coordinates.
+    pub position: Point<Pixels>,
+    /// A target-local position when a platform adapter can determine it.
+    pub local_position: Option<Point<Pixels>>,
+    /// The modifier state associated with this event.
+    pub modifiers: Modifiers,
+    /// Optional pressure, contact-size, tilt, and twist facts.
+    pub contact: PointerContact,
+    /// The platform timestamp when available.
+    pub timestamp: Option<Instant>,
+}
+
+impl PointerEvent {
+    /// Builds a pointer event with no button or contact facts.
+    pub fn new(
+        id: PointerId,
+        kind: PointerKind,
+        phase: PointerPhase,
+        position: Point<Pixels>,
+        modifiers: Modifiers,
+    ) -> Self {
+        Self {
+            id,
+            kind,
+            phase,
+            is_primary: true,
+            buttons: SmallVec::new(),
+            button: MouseButton::default(),
+            pressed_button: None,
+            click_count: 0,
+            first_mouse: false,
+            position,
+            local_position: None,
+            modifiers,
+            contact: PointerContact::default(),
+            timestamp: None,
+        }
+    }
+
+    /// Builds a mouse hover or drag-update event.
+    pub fn mouse_move(
+        position: Point<Pixels>,
+        pressed_button: Option<MouseButton>,
+        modifiers: Modifiers,
+    ) -> Self {
+        Self {
+            pressed_button,
+            phase: if pressed_button.is_some() {
+                PointerPhase::Move
+            } else {
+                PointerPhase::Hover
+            },
+            ..Self::new(
+                PointerId::new(0),
+                PointerKind::Mouse,
+                PointerPhase::Hover,
+                position,
+                modifiers,
+            )
+        }
+    }
+
+    /// Builds a mouse button-down event.
+    pub fn mouse_down(
+        position: Point<Pixels>,
+        button: MouseButton,
+        modifiers: Modifiers,
+        click_count: usize,
+        first_mouse: bool,
+    ) -> Self {
+        Self {
+            button,
+            pressed_button: Some(button),
+            click_count,
+            first_mouse,
+            buttons: SmallVec::from_slice(&[button]),
+            ..Self::new(
+                PointerId::new(0),
+                PointerKind::Mouse,
+                PointerPhase::Down,
+                position,
+                modifiers,
+            )
+        }
+    }
+
+    /// Builds a mouse button-up event.
+    pub fn mouse_up(
+        position: Point<Pixels>,
+        button: MouseButton,
+        modifiers: Modifiers,
+        click_count: usize,
+    ) -> Self {
+        Self {
+            button,
+            click_count,
+            ..Self::new(
+                PointerId::new(0),
+                PointerKind::Mouse,
+                PointerPhase::Up,
+                position,
+                modifiers,
+            )
+        }
+    }
+
+    /// Builds a direct-touch pointer event without fabricating mouse button facts.
+    pub fn touch(
+        id: PointerId,
+        phase: PointerPhase,
+        position: Point<Pixels>,
+        modifiers: Modifiers,
+    ) -> Self {
+        Self {
+            is_primary: id == PointerId::new(0),
+            ..Self::new(id, PointerKind::Touch, phase, position, modifiers)
+        }
+    }
+
+    /// Returns whether this event terminates its active pointer sequence.
+    pub fn is_terminal(&self) -> bool {
+        matches!(self.phase, PointerPhase::Up | PointerPhase::Cancel)
+    }
+
+    /// Returns whether the primary button is held during this pointer event.
+    pub fn dragging(&self) -> bool {
+        self.pressed_button == Some(MouseButton::Left)
+    }
+}
+
+impl Sealed for PointerEvent {}
+impl InputEvent for PointerEvent {
+    fn to_platform_input(self) -> PlatformInput {
+        PlatformInput::Pointer(self)
+    }
+}
+impl PointerEventLike for PointerEvent {}
+
 /// The platform source that produced a scroll wheel event.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Hash)]
 pub enum ScrollWheelSource {
@@ -142,121 +362,15 @@ pub enum ScrollWheelMomentumPhase {
     Cancelled,
 }
 
-/// A mouse down event from the platform
+/// A click event, generated when a pointer contact is pressed and released.
 #[derive(Clone, Debug, Default)]
-pub struct MouseDownEvent {
-    /// Which mouse button was pressed.
-    pub button: MouseButton,
+pub struct PointerClickEvent {
+    /// The pointer event when the contact was pressed.
+    pub down: PointerEvent,
 
-    /// The position of the mouse on the window.
-    pub position: Point<Pixels>,
-
-    /// The modifiers that were held down when the mouse was pressed.
-    pub modifiers: Modifiers,
-
-    /// The number of times the button has been clicked.
-    pub click_count: usize,
-
-    /// Whether this is the first, focusing click.
-    pub first_mouse: bool,
+    /// The pointer event when the contact was released.
+    pub up: PointerEvent,
 }
-
-impl Sealed for MouseDownEvent {}
-impl InputEvent for MouseDownEvent {
-    fn to_platform_input(self) -> PlatformInput {
-        PlatformInput::MouseDown(self)
-    }
-}
-impl MouseEvent for MouseDownEvent {}
-
-impl MouseDownEvent {
-    /// Returns true if this mouse up event should focus the element.
-    pub fn is_focusing(&self) -> bool {
-        match self.button {
-            MouseButton::Left => true,
-            _ => false,
-        }
-    }
-}
-
-/// A mouse up event from the platform
-#[derive(Clone, Debug, Default)]
-pub struct MouseUpEvent {
-    /// Which mouse button was released.
-    pub button: MouseButton,
-
-    /// The position of the mouse on the window.
-    pub position: Point<Pixels>,
-
-    /// The modifiers that were held down when the mouse was released.
-    pub modifiers: Modifiers,
-
-    /// The number of times the button has been clicked.
-    pub click_count: usize,
-}
-
-impl Sealed for MouseUpEvent {}
-impl InputEvent for MouseUpEvent {
-    fn to_platform_input(self) -> PlatformInput {
-        PlatformInput::MouseUp(self)
-    }
-}
-
-impl MouseEvent for MouseUpEvent {}
-
-impl MouseUpEvent {
-    /// Returns true if this mouse up event should focus the element.
-    pub fn is_focusing(&self) -> bool {
-        match self.button {
-            MouseButton::Left => true,
-            _ => false,
-        }
-    }
-}
-
-/// A click event, generated when a mouse button is pressed and released.
-#[derive(Clone, Debug, Default)]
-pub struct MouseClickEvent {
-    /// The mouse event when the button was pressed.
-    pub down: MouseDownEvent,
-
-    /// The mouse event when the button was released.
-    pub up: MouseUpEvent,
-}
-
-/// The stage of a pressure click event.
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub enum PressureStage {
-    /// No pressure.
-    #[default]
-    Zero,
-    /// Normal click pressure.
-    Normal,
-    /// High pressure, enough to trigger a force click.
-    Force,
-}
-
-/// A mouse pressure event from the platform. Generated when a force-sensitive trackpad is pressed hard.
-/// Currently only implemented for macOS trackpads.
-#[derive(Debug, Clone, Default)]
-pub struct MousePressureEvent {
-    /// Pressure of the current stage as a float between 0 and 1
-    pub pressure: f32,
-    /// The pressure stage of the event.
-    pub stage: PressureStage,
-    /// The position of the mouse on the window.
-    pub position: Point<Pixels>,
-    /// The modifiers that were held down when the mouse pressure changed.
-    pub modifiers: Modifiers,
-}
-
-impl Sealed for MousePressureEvent {}
-impl InputEvent for MousePressureEvent {
-    fn to_platform_input(self) -> PlatformInput {
-        PlatformInput::MousePressure(self)
-    }
-}
-impl MouseEvent for MousePressureEvent {}
 
 /// A click event that was generated by a keyboard button being pressed and released.
 #[derive(Clone, Debug, Default)]
@@ -268,11 +382,11 @@ pub struct KeyboardClickEvent {
     pub bounds: Bounds<Pixels>,
 }
 
-/// A click event, generated when a mouse button or keyboard button is pressed and released.
+/// A click event, generated when a pointer contact or keyboard button is pressed and released.
 #[derive(Clone, Debug)]
 pub enum ClickEvent {
-    /// A click event trigger by a mouse button being pressed and released.
-    Mouse(MouseClickEvent),
+    /// A click event triggered by a pointer contact being pressed and released.
+    Pointer(PointerClickEvent),
     /// A click event trigger by a keyboard button being pressed and released.
     Keyboard(KeyboardClickEvent),
 }
@@ -295,7 +409,7 @@ impl ClickEvent {
             // Click events on the web only reflect the modifiers for the keyup event,
             // tested via observing the behavior of the `ClickEvent.shiftKey` field in Chrome 138
             // under various combinations of modifiers and keyUp / keyDown events.
-            ClickEvent::Mouse(event) => event.up.modifiers,
+            ClickEvent::Pointer(event) => event.up.modifiers,
         }
     }
 
@@ -306,7 +420,7 @@ impl ClickEvent {
     pub fn position(&self) -> Point<Pixels> {
         match self {
             ClickEvent::Keyboard(event) => event.bounds.bottom_left(),
-            ClickEvent::Mouse(event) => event.up.position,
+            ClickEvent::Pointer(event) => event.up.position,
         }
     }
 
@@ -317,7 +431,9 @@ impl ClickEvent {
     pub fn mouse_position(&self) -> Option<Point<Pixels>> {
         match self {
             ClickEvent::Keyboard(_) => None,
-            ClickEvent::Mouse(event) => Some(event.up.position),
+            ClickEvent::Pointer(event) => {
+                (event.up.kind == PointerKind::Mouse).then_some(event.up.position)
+            }
         }
     }
 
@@ -328,7 +444,7 @@ impl ClickEvent {
     pub fn is_right_click(&self) -> bool {
         match self {
             ClickEvent::Keyboard(_) => false,
-            ClickEvent::Mouse(event) => {
+            ClickEvent::Pointer(event) => {
                 event.down.button == MouseButton::Right && event.up.button == MouseButton::Right
             }
         }
@@ -341,7 +457,7 @@ impl ClickEvent {
     pub fn is_middle_click(&self) -> bool {
         match self {
             ClickEvent::Keyboard(_) => false,
-            ClickEvent::Mouse(event) => {
+            ClickEvent::Pointer(event) => {
                 event.down.button == MouseButton::Middle && event.up.button == MouseButton::Middle
             }
         }
@@ -354,7 +470,7 @@ impl ClickEvent {
     pub fn standard_click(&self) -> bool {
         match self {
             ClickEvent::Keyboard(_) => true,
-            ClickEvent::Mouse(event) => {
+            ClickEvent::Pointer(event) => {
                 event.down.button == MouseButton::Left && event.up.button == MouseButton::Left
             }
         }
@@ -367,25 +483,25 @@ impl ClickEvent {
     pub fn first_focus(&self) -> bool {
         match self {
             ClickEvent::Keyboard(_) => false,
-            ClickEvent::Mouse(event) => event.down.first_mouse,
+            ClickEvent::Pointer(event) => event.down.first_mouse,
         }
     }
 
     /// Returns the click count of the click event
     ///
     /// `Keyboard`: Always 1
-    /// `Mouse`: Count of clicks from MouseUpEvent
+    /// `Pointer`: Count reported by the terminal pointer event.
     pub fn click_count(&self) -> usize {
         match self {
             ClickEvent::Keyboard(_) => 1,
-            ClickEvent::Mouse(event) => event.up.click_count,
+            ClickEvent::Pointer(event) => event.up.click_count,
         }
     }
 
     /// Returns whether the click event is generated by a keyboard event
     pub fn is_keyboard(&self) -> bool {
         match self {
-            ClickEvent::Mouse(_) => false,
+            ClickEvent::Pointer(_) => false,
             ClickEvent::Keyboard(_) => true,
         }
     }
@@ -445,34 +561,6 @@ pub enum NavigationDirection {
     Forward,
 }
 
-/// A mouse move event from the platform.
-#[derive(Clone, Debug, Default)]
-pub struct MouseMoveEvent {
-    /// The position of the mouse on the window.
-    pub position: Point<Pixels>,
-
-    /// The mouse button that was pressed, if any.
-    pub pressed_button: Option<MouseButton>,
-
-    /// The modifiers that were held down when the mouse was moved.
-    pub modifiers: Modifiers,
-}
-
-impl Sealed for MouseMoveEvent {}
-impl InputEvent for MouseMoveEvent {
-    fn to_platform_input(self) -> PlatformInput {
-        PlatformInput::MouseMove(self)
-    }
-}
-impl MouseEvent for MouseMoveEvent {}
-
-impl MouseMoveEvent {
-    /// Returns true if the left mouse button is currently held down.
-    pub fn dragging(&self) -> bool {
-        self.pressed_button == Some(MouseButton::Left)
-    }
-}
-
 /// A mouse wheel event from the platform.
 #[derive(Clone, Debug, Default)]
 pub struct ScrollWheelEvent {
@@ -513,7 +601,6 @@ impl InputEvent for ScrollWheelEvent {
         PlatformInput::ScrollWheel(self)
     }
 }
-impl MouseEvent for ScrollWheelEvent {}
 
 impl Deref for ScrollWheelEvent {
     type Target = Modifiers;
@@ -565,7 +652,6 @@ impl InputEvent for PinchEvent {
     }
 }
 impl GestureEvent for PinchEvent {}
-impl MouseEvent for PinchEvent {}
 
 impl Deref for PinchEvent {
     type Target = Modifiers;
@@ -599,48 +685,8 @@ impl InputEvent for RotateEvent {
     }
 }
 impl GestureEvent for RotateEvent {}
-impl MouseEvent for RotateEvent {}
 
 impl Deref for RotateEvent {
-    type Target = Modifiers;
-
-    fn deref(&self) -> &Self::Target {
-        &self.modifiers
-    }
-}
-
-/// A direct touch contact event from a touch-capable platform.
-#[derive(Clone, Debug, Default)]
-pub struct TouchEvent {
-    /// The stable platform touch identifier when one is available.
-    pub id: u64,
-
-    /// The position of the touch contact on the window.
-    pub position: Point<Pixels>,
-
-    /// The modifiers that were held down during the touch event.
-    pub modifiers: Modifiers,
-
-    /// The current phase of the touch sequence.
-    pub phase: TouchPhase,
-
-    /// The platform tap count for this contact.
-    pub tap_count: usize,
-
-    /// The platform timestamp for this event.
-    pub timestamp: Option<Instant>,
-}
-
-impl Sealed for TouchEvent {}
-impl InputEvent for TouchEvent {
-    fn to_platform_input(self) -> PlatformInput {
-        PlatformInput::Touch(self)
-    }
-}
-impl GestureEvent for TouchEvent {}
-impl MouseEvent for TouchEvent {}
-
-impl Deref for TouchEvent {
     type Target = Modifiers;
 
     fn deref(&self) -> &Self::Target {
@@ -738,52 +784,6 @@ mod tests {
         );
         assert_eq!(event.timestamp, Some(timestamp));
     }
-
-    #[test]
-    fn touch_event_exposes_platform_metadata() {
-        let timestamp = Instant::now();
-        let event = TouchEvent {
-            id: 7,
-            position: point(px(10.0), px(20.0)),
-            modifiers: Modifiers::default(),
-            phase: TouchPhase::Cancelled,
-            tap_count: 2,
-            timestamp: Some(timestamp),
-        };
-
-        assert_eq!(event.id, 7);
-        assert_eq!(event.phase, TouchPhase::Cancelled);
-        assert_eq!(event.tap_count, 2);
-        assert_eq!(event.timestamp, Some(timestamp));
-    }
-}
-
-/// A mouse exit event from the platform, generated when the mouse leaves the window.
-#[derive(Clone, Debug, Default)]
-pub struct MouseExitEvent {
-    /// The position of the mouse relative to the window.
-    pub position: Point<Pixels>,
-    /// The mouse button that was pressed, if any.
-    pub pressed_button: Option<MouseButton>,
-    /// The modifiers that were held down when the mouse was moved.
-    pub modifiers: Modifiers,
-}
-
-impl Sealed for MouseExitEvent {}
-impl InputEvent for MouseExitEvent {
-    fn to_platform_input(self) -> PlatformInput {
-        PlatformInput::MouseExited(self)
-    }
-}
-
-impl MouseEvent for MouseExitEvent {}
-
-impl Deref for MouseExitEvent {
-    type Target = Modifiers;
-
-    fn deref(&self) -> &Self::Target {
-        &self.modifiers
-    }
 }
 
 /// A collection of paths from the platform, such as from a file drop.
@@ -834,7 +834,6 @@ impl InputEvent for FileDropEvent {
         PlatformInput::FileDrop(self)
     }
 }
-impl MouseEvent for FileDropEvent {}
 
 /// An enum corresponding to all kinds of platform input events.
 #[derive(Clone, Debug)]
@@ -845,43 +844,28 @@ pub enum PlatformInput {
     KeyUp(KeyUpEvent),
     /// The keyboard modifiers were changed.
     ModifiersChanged(ModifiersChangedEvent),
-    /// The mouse was pressed.
-    MouseDown(MouseDownEvent),
-    /// The mouse was released.
-    MouseUp(MouseUpEvent),
-    /// Mouse pressure.
-    MousePressure(MousePressureEvent),
-    /// The mouse was moved.
-    MouseMove(MouseMoveEvent),
-    /// The mouse exited the window.
-    MouseExited(MouseExitEvent),
+    /// A normalized located pointer event.
+    Pointer(PointerEvent),
     /// The scroll wheel was used.
     ScrollWheel(ScrollWheelEvent),
     /// A pinch gesture was performed.
     Pinch(PinchEvent),
     /// A rotate gesture was performed.
     Rotate(RotateEvent),
-    /// A direct touch event occurred.
-    Touch(TouchEvent),
     /// Files were dragged and dropped onto the window.
     FileDrop(FileDropEvent),
 }
 
 impl PlatformInput {
-    pub(crate) fn mouse_event(&self) -> Option<&dyn Any> {
+    pub(crate) fn input_event(&self) -> Option<&dyn Any> {
         match self {
             PlatformInput::KeyDown { .. } => None,
             PlatformInput::KeyUp { .. } => None,
             PlatformInput::ModifiersChanged { .. } => None,
-            PlatformInput::MouseDown(event) => Some(event),
-            PlatformInput::MouseUp(event) => Some(event),
-            PlatformInput::MouseMove(event) => Some(event),
-            PlatformInput::MousePressure(event) => Some(event),
-            PlatformInput::MouseExited(event) => Some(event),
+            PlatformInput::Pointer(event) => Some(event),
             PlatformInput::ScrollWheel(event) => Some(event),
             PlatformInput::Pinch(event) => Some(event),
             PlatformInput::Rotate(event) => Some(event),
-            PlatformInput::Touch(event) => Some(event),
             PlatformInput::FileDrop(event) => Some(event),
         }
     }
@@ -891,15 +875,10 @@ impl PlatformInput {
             PlatformInput::KeyDown(event) => Some(event),
             PlatformInput::KeyUp(event) => Some(event),
             PlatformInput::ModifiersChanged(event) => Some(event),
-            PlatformInput::MouseDown(_) => None,
-            PlatformInput::MouseUp(_) => None,
-            PlatformInput::MouseMove(_) => None,
-            PlatformInput::MousePressure(_) => None,
-            PlatformInput::MouseExited(_) => None,
+            PlatformInput::Pointer(_) => None,
             PlatformInput::ScrollWheel(_) => None,
             PlatformInput::Pinch(_) => None,
             PlatformInput::Rotate(_) => None,
-            PlatformInput::Touch(_) => None,
             PlatformInput::FileDrop(_) => None,
         }
     }

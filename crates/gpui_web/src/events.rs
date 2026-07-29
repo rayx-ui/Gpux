@@ -3,9 +3,9 @@ use std::rc::Rc;
 use gpux::{
     Capslock, DispatchEventResult, ExternalPaths, FileDropEvent, HtmlElementInputMode,
     HtmlIslandInputMode, IsZero, KeyDownEvent, KeyUpEvent, Keystroke, Modifiers,
-    ModifiersChangedEvent, MouseButton, MouseDownEvent, MouseExitEvent, MouseMoveEvent,
-    MouseUpEvent, NavigationDirection, Pixels, PlatformInput, Point, ScrollDelta, ScrollWheelEvent,
-    ScrollWheelPhase, ScrollWheelSource, TouchEvent, TouchPhase, point, px,
+    ModifiersChangedEvent, MouseButton, NavigationDirection, Pixels, PlatformInput, Point,
+    PointerContact, PointerEvent, PointerId, PointerKind, PointerPhase, ScrollDelta,
+    ScrollWheelEvent, ScrollWheelPhase, ScrollWheelSource, TouchPhase, point, px,
 };
 use smallvec::smallvec;
 use wasm_bindgen::prelude::*;
@@ -240,22 +240,14 @@ impl WebWindowInner {
             }
 
             dispatch_touch_scroll(&this, &event, position, modifiers, TouchPhase::Started);
-            dispatch_touch_pointer(
-                &this,
+            this.dispatch_input(PlatformInput::Pointer(pointer_event_from_dom(
                 &event,
                 position,
                 modifiers,
-                TouchPhase::Started,
+                PointerPhase::Down,
                 click_count,
-            );
-
-            this.dispatch_input(PlatformInput::MouseDown(MouseDownEvent {
-                button,
-                position,
-                modifiers,
-                click_count,
-                first_mouse: false,
-            }));
+                Some(button),
+            )));
         })
     }
 
@@ -283,21 +275,14 @@ impl WebWindowInner {
             }
 
             dispatch_touch_scroll(&this, &event, position, modifiers, TouchPhase::Ended);
-            dispatch_touch_pointer(
-                &this,
+            this.dispatch_input(PlatformInput::Pointer(pointer_event_from_dom(
                 &event,
                 position,
                 modifiers,
-                TouchPhase::Ended,
+                PointerPhase::Up,
                 click_count,
-            );
-
-            this.dispatch_input(PlatformInput::MouseUp(MouseUpEvent {
-                button,
-                position,
-                modifiers,
-                click_count,
-            }));
+                Some(button),
+            )));
         })
     }
 
@@ -322,13 +307,18 @@ impl WebWindowInner {
             }
 
             dispatch_touch_scroll(&this, &event, position, modifiers, TouchPhase::Moved);
-            dispatch_touch_pointer(&this, &event, position, modifiers, TouchPhase::Moved, 1);
-
-            this.dispatch_input(PlatformInput::MouseMove(MouseMoveEvent {
+            this.dispatch_input(PlatformInput::Pointer(pointer_event_from_dom(
+                &event,
                 position,
-                pressed_button: current_pressed,
                 modifiers,
-            }));
+                if current_pressed.is_some() {
+                    PointerPhase::Move
+                } else {
+                    PointerPhase::Hover
+                },
+                0,
+                current_pressed,
+            )));
         })
     }
 
@@ -354,7 +344,14 @@ impl WebWindowInner {
             }
 
             dispatch_touch_scroll(&this, &event, position, modifiers, TouchPhase::Cancelled);
-            dispatch_touch_pointer(&this, &event, position, modifiers, TouchPhase::Cancelled, 1);
+            this.dispatch_input(PlatformInput::Pointer(pointer_event_from_dom(
+                &event,
+                position,
+                modifiers,
+                PointerPhase::Cancel,
+                0,
+                None,
+            )));
         })
     }
 
@@ -373,11 +370,14 @@ impl WebWindowInner {
                 current_state.modifiers = modifiers;
             }
 
-            this.dispatch_input(PlatformInput::MouseExited(MouseExitEvent {
+            this.dispatch_input(PlatformInput::Pointer(pointer_event_from_dom(
+                &event,
                 position,
-                pressed_button: current_pressed,
                 modifiers,
-            }));
+                PointerPhase::Hover,
+                0,
+                current_pressed,
+            )));
         })
     }
 
@@ -963,26 +963,61 @@ fn dispatch_touch_scroll(
     }));
 }
 
-fn dispatch_touch_pointer(
-    window: &WebWindowInner,
+fn pointer_event_from_dom(
     event: &web_sys::PointerEvent,
     position: Point<Pixels>,
     modifiers: Modifiers,
-    phase: TouchPhase,
-    tap_count: usize,
-) {
-    if event.pointer_type() != "touch" {
-        return;
+    phase: PointerPhase,
+    click_count: usize,
+    pressed_button: Option<MouseButton>,
+) -> PointerEvent {
+    let kind = match event.pointer_type().as_str() {
+        "mouse" => PointerKind::Mouse,
+        "touch" => PointerKind::Touch,
+        "pen" => PointerKind::Pen,
+        _ => PointerKind::Unknown,
+    };
+    let buttons = event.buttons();
+    let mut pressed_buttons = smallvec![];
+    for (mask, button) in [
+        (1, MouseButton::Left),
+        (2, MouseButton::Right),
+        (4, MouseButton::Middle),
+        (8, MouseButton::Navigate(NavigationDirection::Back)),
+        (16, MouseButton::Navigate(NavigationDirection::Forward)),
+    ] {
+        if buttons & mask != 0 {
+            pressed_buttons.push(button);
+        }
     }
 
-    window.dispatch_input(PlatformInput::Touch(TouchEvent {
-        id: event.pointer_id().max(0) as u64,
-        position,
-        modifiers,
+    PointerEvent {
+        id: PointerId::new(event.pointer_id().max(0) as u64),
+        kind,
         phase,
-        tap_count,
+        is_primary: event.is_primary(),
+        buttons: pressed_buttons,
+        button: pressed_button.unwrap_or_default(),
+        pressed_button: if matches!(phase, PointerPhase::Up | PointerPhase::Cancel) {
+            None
+        } else {
+            pressed_button
+        },
+        position,
+        local_position: None,
+        modifiers,
+        click_count,
+        first_mouse: false,
+        contact: PointerContact {
+            pressure: Some(event.pressure()),
+            size: (event.width() > 0 && event.height() > 0)
+                .then(|| point(px(event.width() as f32), px(event.height() as f32))),
+            tilt_x: (kind == PointerKind::Pen).then_some(event.tilt_x() as f32),
+            tilt_y: (kind == PointerKind::Pen).then_some(event.tilt_y() as f32),
+            twist: (kind == PointerKind::Pen).then_some(event.twist() as f32),
+        },
         timestamp: Some(web_time::Instant::now()),
-    }));
+    }
 }
 
 fn mouse_position_in_canvas(

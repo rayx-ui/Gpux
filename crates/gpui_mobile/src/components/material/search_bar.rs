@@ -12,7 +12,7 @@
 //!
 //! All components use a **builder pattern** and implement `IntoElement`,
 //! making them composable with GPUI's standard `.child(...)` API. Click
-//! handlers use GPUI's `on_mouse_down` signature, so `cx.listener(...)`
+//! handlers use GPUI's `on_pointer_down` signature, so `cx.listener(...)`
 //! works directly.
 //!
 //! Since GPUI does not yet provide a native text-input element from the
@@ -61,7 +61,7 @@
 //! - Trailing icon(s): on-surface-variant
 //! - Search view: surface-container-high, full width, with divider below input
 
-use gpui::{AnyElement, Hsla, MouseButton, MouseDownEvent, Stateful, Window, div, prelude::*, px};
+use gpui::{AnyElement, Hsla, MouseButton, PointerEvent, Stateful, Window, div, prelude::*, px};
 
 use super::theme::{MaterialTheme, color};
 
@@ -96,7 +96,7 @@ const DIVIDER_HEIGHT: f32 = 1.0;
 
 // ── Click handler alias ──────────────────────────────────────────────────────
 
-type ClickHandler = Box<dyn Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static>;
+type ClickHandler = Box<dyn Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static>;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  Search Bar
@@ -218,7 +218,7 @@ impl SearchBar {
     /// This is typically used to expand the bar into a full search view.
     pub fn on_tap(
         mut self,
-        handler: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
+        handler: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.on_tap = Some(Box::new(handler));
         self
@@ -227,7 +227,7 @@ impl SearchBar {
     /// Set a handler for tapping the leading icon.
     pub fn on_leading_tap(
         mut self,
-        handler: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
+        handler: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.on_leading_tap = Some(Box::new(handler));
         self
@@ -236,7 +236,7 @@ impl SearchBar {
     /// Set a handler for tapping the primary trailing icon.
     pub fn on_trailing_tap(
         mut self,
-        handler: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
+        handler: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.on_trailing_tap = Some(Box::new(handler));
         self
@@ -245,7 +245,7 @@ impl SearchBar {
     /// Set a handler for tapping the second trailing icon.
     pub fn on_trailing2_tap(
         mut self,
-        handler: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
+        handler: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.on_trailing2_tap = Some(Box::new(handler));
         self
@@ -314,7 +314,7 @@ impl IntoElement for SearchBar {
 
         // Tap handler for the entire bar
         if let Some(tap_handler) = self.on_tap {
-            bar = bar.on_mouse_down(MouseButton::Left, tap_handler);
+            bar = bar.on_pointer_down(MouseButton::Left, tap_handler);
         }
 
         // ── Leading icon ─────────────────────────────────────────────────
@@ -334,7 +334,7 @@ impl IntoElement for SearchBar {
                     .flex_shrink_0()
                     .cursor_pointer()
                     .child(icon)
-                    .on_mouse_down(MouseButton::Left, handler);
+                    .on_pointer_down(MouseButton::Left, handler);
                 bar = bar.child(icon_el);
             } else {
                 let icon_el = div()
@@ -392,7 +392,7 @@ impl IntoElement for SearchBar {
                     .flex_shrink_0()
                     .cursor_pointer()
                     .child(icon)
-                    .on_mouse_down(MouseButton::Left, handler);
+                    .on_pointer_down(MouseButton::Left, handler);
                 bar = bar.child(icon_el);
             } else {
                 let icon_el = div()
@@ -427,7 +427,7 @@ impl IntoElement for SearchBar {
                     .flex_shrink_0()
                     .cursor_pointer()
                     .child(icon)
-                    .on_mouse_down(MouseButton::Left, handler);
+                    .on_pointer_down(MouseButton::Left, handler);
                 bar = bar.child(icon_el);
             } else {
                 let icon_el = div()
@@ -556,7 +556,7 @@ impl SearchView {
     /// Set a handler for tapping the leading icon.
     pub fn on_leading_tap(
         mut self,
-        handler: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
+        handler: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.on_leading_tap = Some(Box::new(handler));
         self
@@ -565,7 +565,7 @@ impl SearchView {
     /// Set a handler for tapping the trailing icon.
     pub fn on_trailing_tap(
         mut self,
-        handler: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
+        handler: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.on_trailing_tap = Some(Box::new(handler));
         self
@@ -576,7 +576,7 @@ impl SearchView {
         mut self,
         icon: impl Into<String>,
         text: impl Into<String>,
-        on_click: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
+        on_click: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.suggestions.push(SearchSuggestion {
             icon: icon.into(),
@@ -650,7 +650,7 @@ impl IntoElement for SearchView {
                     .flex_shrink_0()
                     .cursor_pointer()
                     .child(icon)
-                    .on_mouse_down(MouseButton::Left, handler);
+                    .on_pointer_down(MouseButton::Left, handler);
                 input_row = input_row.child(icon_el);
             } else {
                 let icon_el = div()
@@ -706,7 +706,7 @@ impl IntoElement for SearchView {
                     .flex_shrink_0()
                     .cursor_pointer()
                     .child(icon)
-                    .on_mouse_down(MouseButton::Left, handler);
+                    .on_pointer_down(MouseButton::Left, handler);
                 input_row = input_row.child(icon_el);
             } else {
                 let icon_el = div()
@@ -760,7 +760,7 @@ impl IntoElement for SearchView {
                         .text_color(on_surface)
                         .child(suggestion.text),
                 )
-                .on_mouse_down(MouseButton::Left, suggestion.on_click);
+                .on_pointer_down(MouseButton::Left, suggestion.on_click);
 
             view = view.child(row);
         }

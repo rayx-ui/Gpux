@@ -1,7 +1,7 @@
 use crate::{
     Action, InputLayerId, InputMapError, KeyBindingContextPredicate, KeyContext, Modifiers,
-    MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Point, ScrollDelta,
-    ScrollWheelEvent, ScrollWheelMomentumPhase, ScrollWheelPhase, ScrollWheelSource,
+    MouseButton, Point, PointerEvent, ScrollDelta, ScrollWheelEvent, ScrollWheelMomentumPhase,
+    ScrollWheelPhase, ScrollWheelSource,
 };
 use std::rc::Rc;
 
@@ -303,7 +303,7 @@ impl RecognizedGesture {
 }
 
 struct PendingPointerGesture {
-    down: MouseDownEvent,
+    down: PointerEvent,
     target: usize,
     snapshot: Rc<GestureMapSnapshot>,
     revision: GestureMapVersion,
@@ -331,7 +331,7 @@ impl GestureRecognizer {
     /// Starts a pointer sequence with the exact snapshot and target selected by the window.
     pub fn mouse_down(
         &mut self,
-        event: &MouseDownEvent,
+        event: &PointerEvent,
         snapshot: Rc<GestureMapSnapshot>,
         revision: GestureMapVersion,
         target: usize,
@@ -345,9 +345,10 @@ impl GestureRecognizer {
     }
 
     /// Commits the highest-precedence drag rule once its threshold is crossed.
-    pub fn mouse_move(&mut self, event: &MouseMoveEvent) -> Option<RecognizedGesture> {
+    pub fn mouse_move(&mut self, event: &PointerEvent) -> Option<RecognizedGesture> {
         let pending = self.pending_pointer.as_ref()?;
-        if event.pressed_button != Some(pending.down.button)
+        if (event.kind != crate::PointerKind::Touch
+            && event.pressed_button != Some(pending.down.button))
             || event.modifiers != pending.down.modifiers
         {
             return None;
@@ -375,9 +376,11 @@ impl GestureRecognizer {
     /// A multi-click sequence dispatches its single-, double-, and triple-click
     /// actions in order as the platform increments `click_count`. This keeps the
     /// first click responsive while later counts can replace its transient state.
-    pub fn mouse_up(&mut self, event: &MouseUpEvent) -> Option<RecognizedGesture> {
+    pub fn mouse_up(&mut self, event: &PointerEvent) -> Option<RecognizedGesture> {
         let pending = self.pending_pointer.take()?;
-        if event.button != pending.down.button || event.modifiers != pending.down.modifiers {
+        if (event.kind != crate::PointerKind::Touch && event.button != pending.down.button)
+            || event.modifiers != pending.down.modifiers
+        {
             return None;
         }
         let count = u8::try_from(event.click_count).ok()?;

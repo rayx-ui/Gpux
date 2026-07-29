@@ -112,7 +112,7 @@ pub struct WindowsWindowState {
     // invalidate/WM_PAINT path. Mouse moves are coalesced at the source, and all input sources
     // share one high-priority update message. Do not remove these fields during upstream merges
     // unless the backend gets an equivalent replacement.
-    pub pending_mouse_move: RefCell<Option<MouseMoveEvent>>,
+    pub pending_mouse_move: RefCell<Option<PointerEvent>>,
     pub input_update_posted: Rc<Cell<bool>>,
     pub ime_enabled: Cell<bool>,
     pub pending_surrogate: Cell<Option<u16>>,

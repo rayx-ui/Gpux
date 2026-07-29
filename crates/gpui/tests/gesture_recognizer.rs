@@ -1,9 +1,9 @@
 use gpux::{
     Context, GestureMap, GestureMapLayer, GesturePattern, GestureRecognizer, GestureRule,
     GestureWheelSource, InputLayerId, IntoElement, KeyBindingContextPredicate, KeyContext,
-    Modifiers, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, NavigationDirection,
-    Render, ScrollDelta, ScrollWheelEvent, ScrollWheelSource, TestApp, WheelDirection, Window,
-    actions, div, point, prelude::*, px,
+    Modifiers, MouseButton, NavigationDirection, PointerEvent, Render, ScrollDelta,
+    ScrollWheelEvent, ScrollWheelSource, TestApp, WheelDirection, Window, actions, div, point,
+    prelude::*, px,
 };
 use std::{cell::Cell, rc::Rc};
 
@@ -29,23 +29,12 @@ fn snapshot(
     (map.snapshot(), map.version())
 }
 
-fn down(button: MouseButton, count: usize, modifiers: Modifiers) -> MouseDownEvent {
-    MouseDownEvent {
-        button,
-        position: point(px(10.0), px(10.0)),
-        modifiers,
-        click_count: count,
-        first_mouse: false,
-    }
+fn down(button: MouseButton, count: usize, modifiers: Modifiers) -> PointerEvent {
+    PointerEvent::mouse_down(point(px(10.0), px(10.0)), button, modifiers, count, false)
 }
 
-fn up(button: MouseButton, count: usize, modifiers: Modifiers) -> MouseUpEvent {
-    MouseUpEvent {
-        button,
-        position: point(px(10.0), px(10.0)),
-        modifiers,
-        click_count: count,
-    }
+fn up(button: MouseButton, count: usize, modifiers: Modifiers) -> PointerEvent {
+    PointerEvent::mouse_up(point(px(10.0), px(10.0)), button, modifiers, count)
 }
 
 #[test]
@@ -199,11 +188,11 @@ fn drag_cancels_click_and_retains_starting_target_and_revision() {
         77,
     );
     let drag = recognizer
-        .mouse_move(&MouseMoveEvent {
-            position: point(px(16.0), px(10.0)),
-            pressed_button: Some(MouseButton::Left),
-            modifiers: Modifiers::none(),
-        })
+        .mouse_move(&PointerEvent::mouse_move(
+            point(px(16.0), px(10.0)),
+            Some(MouseButton::Left),
+            Modifiers::none(),
+        ))
         .unwrap();
     assert!(drag.action().partial_eq(&DragAction));
     assert_eq!(drag.target(), 77);
@@ -263,13 +252,13 @@ impl Render for RoutedHarness {
         div()
             .w(px(100.0))
             .h(px(100.0))
-            .on_mouse_down(MouseButton::Left, |_, _, _| {})
+            .on_pointer_down(MouseButton::Left, |_, _, _| {})
             .on_action(move |_: &RoutedAction, _, _| outer.set(outer.get() + 1))
             .child(
                 div()
                     .w(px(100.0))
                     .h(px(100.0))
-                    .on_mouse_down(MouseButton::Left, |_, _, _| {})
+                    .on_pointer_down(MouseButton::Left, |_, _, _| {})
                     .on_action(move |_: &RoutedAction, _, _| inner.set(inner.get() + 1)),
             )
     }

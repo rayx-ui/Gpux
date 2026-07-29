@@ -66,7 +66,7 @@ impl HelloWorld {
                                     .child("This is second level Popover with nested deferred!")
                                     .bg(gpux::white())
                                     .border_color(gpux::blue())
-                                    .on_mouse_down_out(cx.listener(|this, _, _, cx| {
+                                    .on_pointer_down_out(cx.listener(|this, _, _, cx| {
                                         this.secondary_open = false;
                                         cx.notify();
                                     })),
@@ -133,7 +133,7 @@ impl Render for HelloWorld {
                                                    Click outside to close.",
                                                     )
                                                     .when(!self.secondary_open, |this| {
-                                                        this.on_mouse_down_out(cx.listener(
+                                                        this.on_pointer_down_out(cx.listener(
                                                             |this, _, _, cx| {
                                                                 this.open = false;
                                                                 cx.notify();

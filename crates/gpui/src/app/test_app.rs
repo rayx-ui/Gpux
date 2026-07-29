@@ -27,9 +27,9 @@
 use crate::{
     AnyWindowHandle, App, AppCell, AppContext, AsyncApp, BackgroundExecutor, BorrowAppContext,
     Bounds, ClipboardItem, Context, Entity, ForegroundExecutor, Global, InputEvent, Keystroke,
-    MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, Platform,
-    PlatformTextSystem, Point, Render, Size, Task, TestDispatcher, TestPlatform, TextSystem,
-    Window, WindowBounds, WindowHandle, WindowOptions, app::GpuiMode,
+    MouseButton, Pixels, Platform, PlatformTextSystem, Point, PointerEvent, Render, Size, Task,
+    TestDispatcher, TestPlatform, TextSystem, Window, WindowBounds, WindowHandle, WindowOptions,
+    app::GpuiMode,
 };
 use std::{future::Future, rc::Rc, sync::Arc, time::Duration};
 
@@ -410,32 +410,28 @@ impl<V: 'static + Render> TestAppWindow<V> {
 
     /// Simulate a mouse move.
     pub fn simulate_mouse_move(&mut self, position: Point<Pixels>) {
-        self.simulate_event(MouseMoveEvent {
-            position,
-            modifiers: Default::default(),
-            pressed_button: None,
-        });
+        self.simulate_event(PointerEvent::mouse_move(position, None, Default::default()));
     }
 
     /// Simulate a mouse down event.
     pub fn simulate_mouse_down(&mut self, position: Point<Pixels>, button: MouseButton) {
-        self.simulate_event(MouseDownEvent {
+        self.simulate_event(PointerEvent::mouse_down(
             position,
             button,
-            modifiers: Default::default(),
-            click_count: 1,
-            first_mouse: false,
-        });
+            Default::default(),
+            1,
+            false,
+        ));
     }
 
     /// Simulate a mouse up event.
     pub fn simulate_mouse_up(&mut self, position: Point<Pixels>, button: MouseButton) {
-        self.simulate_event(MouseUpEvent {
+        self.simulate_event(PointerEvent::mouse_up(
             position,
             button,
-            modifiers: Default::default(),
-            click_count: 1,
-        });
+            Default::default(),
+            1,
+        ));
     }
 
     /// Simulate a click at the given position.

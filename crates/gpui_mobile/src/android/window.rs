@@ -1584,14 +1584,17 @@ impl PlatformWindow for AndroidPlatformWindow {
                     _ => None,
                 } {
                     let mut guard = cb.lock();
-                    let _ = guard(gpui::PlatformInput::Touch(gpui::TouchEvent {
-                        id: touch.id.max(0) as u64,
+                    let _ = guard(gpui::PlatformInput::Pointer(gpui::PointerEvent::touch(
+                        gpui::PointerId::new(touch.id.max(0) as u64),
+                        match phase {
+                            gpui::TouchPhase::Started => gpui::PointerPhase::Down,
+                            gpui::TouchPhase::Moved => gpui::PointerPhase::Move,
+                            gpui::TouchPhase::Ended => gpui::PointerPhase::Up,
+                            gpui::TouchPhase::Cancelled => gpui::PointerPhase::Cancel,
+                        },
                         position,
                         modifiers,
-                        phase,
-                        tap_count: 1,
-                        timestamp: Some(gpui::Instant::now()),
-                    }));
+                    )));
                 }
 
                 {
@@ -1888,20 +1891,23 @@ impl PlatformWindow for AndroidPlatformWindow {
                                 }
                                 let tap_pos = gpui::point(gpui::px(start_x), gpui::px(start_y));
                                 let mut guard = cb.lock();
-                                let _ =
-                                    guard(gpui::PlatformInput::MouseDown(gpui::MouseDownEvent {
-                                        button: gpui::MouseButton::Left,
-                                        position: tap_pos,
+                                let _ = guard(gpui::PlatformInput::Pointer(
+                                    gpui::PointerEvent::mouse_down(
+                                        tap_pos,
+                                        gpui::MouseButton::Left,
                                         modifiers,
-                                        click_count: 1,
-                                        first_mouse: false,
-                                    }));
-                                let _ = guard(gpui::PlatformInput::MouseUp(gpui::MouseUpEvent {
-                                    button: gpui::MouseButton::Left,
-                                    position: tap_pos,
-                                    modifiers,
-                                    click_count: 1,
-                                }));
+                                        1,
+                                        false,
+                                    ),
+                                ));
+                                let _ = guard(gpui::PlatformInput::Pointer(
+                                    gpui::PointerEvent::mouse_up(
+                                        tap_pos,
+                                        gpui::MouseButton::Left,
+                                        modifiers,
+                                        1,
+                                    ),
+                                ));
                             }
                             TouchState::Scrolling {
                                 prev_x,

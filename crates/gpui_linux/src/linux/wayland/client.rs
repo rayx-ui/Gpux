@@ -95,10 +95,10 @@ use gpui_wgpu::{CompositorGpuHint, GpuContext};
 use gpux::{
     AnyWindowHandle, Bounds, Capslock, CursorStyle, DevicePixels, DisplayId, FileDropEvent,
     ForegroundExecutor, KeyDownEvent, KeyUpEvent, Keystroke, Modifiers, ModifiersChangedEvent,
-    MouseButton, MouseDownEvent, MouseExitEvent, MouseMoveEvent, MouseUpEvent, NavigationDirection,
-    Pixels, PlatformDisplay, PlatformInput, PlatformKeyboardLayout, PlatformWindow, Point,
-    ScrollDelta, ScrollWheelEvent, ScrollWheelPhase, ScrollWheelSource, SharedString, Size,
-    TaskTiming, TouchPhase, WindowButtonLayout, WindowParams, point, profiler, px, size,
+    MouseButton, NavigationDirection, Pixels, PlatformDisplay, PlatformInput,
+    PlatformKeyboardLayout, PlatformWindow, Point, PointerEvent, PointerPhase, ScrollDelta,
+    ScrollWheelEvent, ScrollWheelPhase, ScrollWheelSource, SharedString, Size, TaskTiming,
+    TouchPhase, WindowButtonLayout, WindowParams, point, profiler, px, size,
 };
 use wayland_protocols::wp::linux_dmabuf::zv1::client::{
     zwp_linux_dmabuf_feedback_v1, zwp_linux_dmabuf_v1,
@@ -1823,10 +1823,13 @@ impl Dispatch<wl_pointer::WlPointer, ()> for WaylandClientStatePtr {
             }
             wl_pointer::Event::Leave { .. } => {
                 if let Some(focused_window) = state.mouse_focused_window.clone() {
-                    let input = PlatformInput::MouseExited(MouseExitEvent {
-                        position: state.mouse_location.unwrap(),
-                        pressed_button: state.button_pressed,
-                        modifiers: state.modifiers,
+                    let input = PlatformInput::Pointer(PointerEvent {
+                        phase: PointerPhase::Cancel,
+                        ..PointerEvent::mouse_move(
+                            state.mouse_location.unwrap(),
+                            state.button_pressed,
+                            state.modifiers,
+                        )
                     });
                     state.mouse_focused_window = None;
                     state.mouse_location = None;
@@ -1881,11 +1884,11 @@ impl Dispatch<wl_pointer::WlPointer, ()> for WaylandClientStatePtr {
                     {
                         state.enter_token = None;
                     }
-                    let input = PlatformInput::MouseMove(MouseMoveEvent {
-                        position: state.mouse_location.unwrap(),
-                        pressed_button: state.button_pressed,
-                        modifiers: state.modifiers,
-                    });
+                    let input = PlatformInput::Pointer(PointerEvent::mouse_move(
+                        state.mouse_location.unwrap(),
+                        state.button_pressed,
+                        state.modifiers,
+                    ));
                     drop(state);
                     window.handle_input(input);
                 }
@@ -1945,13 +1948,13 @@ impl Dispatch<wl_pointer::WlPointer, ()> for WaylandClientStatePtr {
                         state.button_pressed = Some(button);
 
                         if let Some(window) = state.mouse_focused_window.clone() {
-                            let input = PlatformInput::MouseDown(MouseDownEvent {
+                            let input = PlatformInput::Pointer(PointerEvent::mouse_down(
+                                state.mouse_location.unwrap(),
                                 button,
-                                position: state.mouse_location.unwrap(),
-                                modifiers: state.modifiers,
-                                click_count: state.click.current_count,
-                                first_mouse: state.enter_token.take().is_some(),
-                            });
+                                state.modifiers,
+                                state.click.current_count,
+                                state.enter_token.take().is_some(),
+                            ));
                             drop(state);
                             window.handle_input(input);
                         }
@@ -1960,12 +1963,12 @@ impl Dispatch<wl_pointer::WlPointer, ()> for WaylandClientStatePtr {
                         state.button_pressed = None;
 
                         if let Some(window) = state.mouse_focused_window.clone() {
-                            let input = PlatformInput::MouseUp(MouseUpEvent {
+                            let input = PlatformInput::Pointer(PointerEvent::mouse_up(
+                                state.mouse_location.unwrap(),
                                 button,
-                                position: state.mouse_location.unwrap(),
-                                modifiers: state.modifiers,
-                                click_count: state.click.current_count,
-                            });
+                                state.modifiers,
+                                state.click.current_count,
+                            ));
                             drop(state);
                             window.handle_input(input);
                         }
