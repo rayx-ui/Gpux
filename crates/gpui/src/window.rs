@@ -2044,6 +2044,8 @@ pub struct Window {
     /// While captured, mouse events route to this hitbox regardless of hit testing.
     captured_hitbox: Option<HitboxId>,
     captured_hitboxes: FxHashMap<PointerId, HitboxId>,
+    active_drags: FxHashMap<PointerId, AnyDrag>,
+    drag_feedback_composed_by_root: bool,
     next_pointer_interaction_id: u64,
     pointer_interaction_owners: FxHashMap<PointerId, PointerInteractionOwner>,
     pointer_interaction_diagnostics: PointerInteractionDiagnostics,
@@ -2705,6 +2707,8 @@ impl Window {
             image_cache_stack: Vec::new(),
             captured_hitbox: None,
             captured_hitboxes: FxHashMap::default(),
+            active_drags: FxHashMap::default(),
+            drag_feedback_composed_by_root: false,
             next_pointer_interaction_id: 0,
             pointer_interaction_owners: FxHashMap::default(),
             pointer_interaction_diagnostics: PointerInteractionDiagnostics::default(),
@@ -4027,6 +4031,74 @@ impl Window {
         self.pointer_interaction_owners.get(&pointer_id)
     }
 
+    /// Starts an independent drag operation for one pointer sequence.
+    pub fn start_drag(&mut self, pointer_id: PointerId, drag: AnyDrag) {
+        self.active_drags.insert(pointer_id, drag);
+        self.refresh();
+    }
+
+    /// Delegates drag feedback composition to the application's root view.
+    ///
+    /// GPUI continues to provide its built-in feedback rendering until this is enabled so
+    /// standalone GPUI applications retain their existing behavior.
+    pub fn compose_drag_feedback_in_root(&mut self) {
+        self.drag_feedback_composed_by_root = true;
+    }
+
+    /// Returns the feedback views and window-relative origins for active pointer drags.
+    pub fn drag_feedbacks(&self) -> Vec<(AnyView, Point<Pixels>)> {
+        self.active_drags
+            .values()
+            .map(|drag| (drag.view.clone(), drag.position - drag.cursor_offset))
+            .collect()
+    }
+
+    /// Returns the active drag for one pointer sequence.
+    pub(crate) fn active_drag_for(&self, pointer_id: PointerId) -> Option<&AnyDrag> {
+        self.active_drags.get(&pointer_id)
+    }
+
+    /// Returns whether this window owns at least one active drag operation.
+    pub(crate) fn has_active_drags(&self) -> bool {
+        !self.active_drags.is_empty()
+    }
+
+    /// Updates an active drag's pointer position.
+    pub(crate) fn update_drag_position(&mut self, pointer_id: PointerId, position: Point<Pixels>) {
+        if let Some(drag) = self.active_drags.get_mut(&pointer_id) {
+            drag.position = match drag.axis {
+                Some(crate::DragAxis::Horizontal) => point(position.x, drag.position.y),
+                Some(crate::DragAxis::Vertical) => point(drag.position.x, position.y),
+                None => position,
+            };
+            self.refresh();
+        }
+    }
+
+    /// Removes and returns the active drag for one pointer sequence.
+    pub(crate) fn take_active_drag(&mut self, pointer_id: PointerId) -> Option<AnyDrag> {
+        let drag = self.active_drags.remove(&pointer_id);
+        if drag.is_some() {
+            self.refresh();
+        }
+        drag
+    }
+
+    /// Completes one pointer drag and notifies its source after removing feedback.
+    pub(crate) fn finish_drag(
+        &mut self,
+        pointer_id: PointerId,
+        was_accepted: bool,
+        position: Point<Pixels>,
+        cx: &mut App,
+    ) {
+        if let Some(drag) = self.take_active_drag(pointer_id)
+            && let Some(callback) = drag.on_end
+        {
+            callback(pointer_id, was_accepted, position, self, cx);
+        }
+    }
+
     /// Returns the hitbox that has captured the pointer, if any.
     pub fn captured_hitbox(&self) -> Option<HitboxId> {
         self.captured_hitbox
@@ -4781,7 +4853,7 @@ impl Window {
         // redraw delivery. Refreshing from the live platform cursor here keeps hover visuals,
         // overlay scrollbars, and drag affordances anchored to the latest pointer position even
         // when intermediate move messages are dropped.
-        if self.is_window_hovered() || cx.active_drag.is_some() || self.captured_hitbox.is_some() {
+        if self.is_window_hovered() || self.has_active_drags() || self.captured_hitbox.is_some() {
             self.mouse_position = self.platform_window.mouse_position();
             self.modifiers = self.platform_window.modifiers();
             self.capslock = self.platform_window.capslock();
@@ -4819,19 +4891,24 @@ impl Window {
         self.prepaint_deferred_draws(cx);
 
         let mut prompt_element = None;
-        let mut active_drag_element = None;
+        let mut active_drag_elements = Vec::new();
         let mut tooltip_element = None;
         if let Some(prompt) = self.prompt.take() {
             let mut element = prompt.view.any_view().into_any();
             element.prepaint_as_root(Point::default(), root_size.into(), self, cx);
             prompt_element = Some(element);
             self.prompt = Some(prompt);
-        } else if let Some(active_drag) = cx.active_drag.take() {
-            let mut element = active_drag.view.clone().into_any();
-            let offset = self.mouse_position() - active_drag.cursor_offset;
-            element.prepaint_as_root(offset, AvailableSpace::min_size(), self, cx);
-            active_drag_element = Some(element);
-            cx.active_drag = Some(active_drag);
+        } else if !self.active_drags.is_empty() && !self.drag_feedback_composed_by_root {
+            let drags = self
+                .active_drags
+                .values()
+                .map(|drag| (drag.view.clone(), drag.position - drag.cursor_offset))
+                .collect::<Vec<_>>();
+            for (view, offset) in drags {
+                let mut element = view.into_any();
+                element.prepaint_as_root(offset, AvailableSpace::min_size(), self, cx);
+                active_drag_elements.push(element);
+            }
         } else {
             tooltip_element = self.prepaint_tooltip(cx);
         }
@@ -4851,8 +4928,10 @@ impl Window {
 
         if let Some(mut prompt_element) = prompt_element {
             prompt_element.paint(self, cx);
-        } else if let Some(mut drag_element) = active_drag_element {
-            drag_element.paint(self, cx);
+        } else if !active_drag_elements.is_empty() {
+            for mut drag_element in active_drag_elements {
+                drag_element.paint(self, cx);
+            }
         } else if let Some(mut tooltip_element) = tooltip_element {
             tooltip_element.paint(self, cx);
         }
@@ -7156,13 +7235,19 @@ impl Window {
             PlatformInput::FileDrop(file_drop) => match file_drop {
                 FileDropEvent::Entered { position, paths } => {
                     self.mouse_position = position;
-                    if cx.active_drag.is_none() {
-                        cx.active_drag = Some(AnyDrag {
-                            value: Arc::new(paths.clone()),
-                            view: cx.new(|_| paths).into(),
-                            cursor_offset: position,
-                            cursor_style: None,
-                        });
+                    if !self.has_active_drags() {
+                        self.start_drag(
+                            crate::PointerId::new(0),
+                            AnyDrag {
+                                value: Arc::new(paths.clone()),
+                                view: cx.new(|_| paths).into(),
+                                cursor_offset: position,
+                                position,
+                                axis: None,
+                                on_end: None,
+                                cursor_style: None,
+                            },
+                        );
                     }
                     PlatformInput::Pointer(PointerEvent {
                         pressed_button: Some(MouseButton::Left),
@@ -7204,7 +7289,7 @@ impl Window {
                     })
                 }
                 FileDropEvent::Exited => {
-                    cx.active_drag.take();
+                    self.take_active_drag(crate::PointerId::new(0));
                     PlatformInput::FileDrop(FileDropEvent::Exited)
                 }
             },
@@ -7287,24 +7372,17 @@ impl Window {
             self.recognize_mapped_wheel(event, cx);
         }
 
-        if cx.has_active_drag()
-            && let Some(event) = event.downcast_ref::<PointerEvent>()
-        {
+        if let Some(event) = event.downcast_ref::<PointerEvent>() {
             if matches!(
                 event.phase,
                 crate::PointerPhase::Move | crate::PointerPhase::Hover
             ) {
-                // If this was a mouse move event, redraw the window so that the
-                // active drag can follow the mouse cursor.
-                self.refresh();
+                self.update_drag_position(event.id, event.position);
             } else if matches!(
                 event.phase,
                 crate::PointerPhase::Up | crate::PointerPhase::Cancel
             ) {
-                // If this was a mouse up event, cancel the active drag and redraw
-                // the window.
-                cx.active_drag = None;
-                self.refresh();
+                self.finish_drag(event.id, false, event.position, cx);
             }
         }
 

@@ -18,14 +18,14 @@
 use super::scroll_activity::ScrollActivity;
 use crate::{
     Action, ActionDispatchOutcome, AnyDrag, AnyElement, AnyTooltip, AnyView, App, Bounds,
-    ClickEvent, DispatchPhase, Display, Element, ElementId, Entity, EntityId, FocusHandle, Global,
-    GlobalElementId, Hitbox, HitboxBehavior, HitboxId, InputEvent, InspectorElementId, IntoElement,
-    IsZero, KeyContext, KeyDownEvent, KeyUpEvent, KeyboardButton, KeyboardClickEvent, LayoutId,
-    ModifiersChangedEvent, MouseButton, Overflow, ParentElement, Pixels, Point, PointerClickEvent,
-    PointerEvent, Position, PositionedBounds, Render, ScrollContainerContext, ScrollDelta,
-    ScrollWheelEvent, SharedString, Size, StickyState, StickyStateChangedEvent, Style,
-    StyleRefinement, Styled, Task, TooltipId, Visibility, Window, WindowControlArea, point, px,
-    size,
+    ClickEvent, DispatchPhase, Display, DragAxis, Element, ElementId, Entity, EntityId,
+    FocusHandle, Global, GlobalElementId, Hitbox, HitboxBehavior, HitboxId, InputEvent,
+    InspectorElementId, IntoElement, IsZero, KeyContext, KeyDownEvent, KeyUpEvent, KeyboardButton,
+    KeyboardClickEvent, LayoutId, ModifiersChangedEvent, MouseButton, Overflow, ParentElement,
+    Pixels, Point, PointerClickEvent, PointerEvent, Position, PositionedBounds, Render,
+    ScrollContainerContext, ScrollDelta, ScrollWheelEvent, SharedString, Size, StickyState,
+    StickyStateChangedEvent, Style, StyleRefinement, Styled, Task, TooltipId, Visibility, Window,
+    WindowControlArea, point, px, size,
 };
 use crate::{PinchEvent, RotateEvent};
 use collections::HashMap;
@@ -72,12 +72,28 @@ pub struct DragMoveEvent<T> {
     dragged_item: Arc<dyn Any>,
 }
 
+/// An event for when a compatible drag is released over this element.
+pub struct DropEvent<T> {
+    /// The pointer event that completed the drag.
+    pub event: PointerEvent,
+    dragged_item: Arc<dyn Any>,
+    drag: PhantomData<T>,
+}
+
+impl<T: 'static> DropEvent<T> {
+    /// Returns the typed value carried by the drag.
+    pub fn drag(&self) -> &T {
+        self.dragged_item
+            .downcast_ref::<T>()
+            .expect("DropEvent is only valid when the stored active drag is of the same type.")
+    }
+}
+
 impl<T: 'static> DragMoveEvent<T> {
     /// Returns the drag state for this event.
-    pub fn drag<'b>(&self, cx: &'b App) -> &'b T {
-        cx.active_drag
-            .as_ref()
-            .and_then(|drag| drag.value.downcast_ref::<T>())
+    pub fn drag(&self, _: &App) -> &T {
+        self.dragged_item
+            .downcast_ref::<T>()
             .expect("DragMoveEvent is only valid when the stored active drag is of the same type.")
     }
 
@@ -349,16 +365,18 @@ impl Interactivity {
     {
         self.pointer_move_listeners
             .push(Box::new(move |event, phase, hitbox, window, cx| {
-                if phase == DispatchPhase::Capture
-                    && let Some(drag) = &cx.active_drag
-                    && drag.value.as_ref().type_id() == TypeId::of::<T>()
-                {
+                let dragged_item = (phase == DispatchPhase::Capture)
+                    .then(|| window.active_drag_for(event.id))
+                    .flatten()
+                    .filter(|drag| drag.value.as_ref().type_id() == TypeId::of::<T>())
+                    .map(|drag| Arc::clone(&drag.value));
+                if let Some(dragged_item) = dragged_item {
                     (listener)(
                         &DragMoveEvent {
                             event: event.clone(),
                             bounds: hitbox.bounds,
                             drag: PhantomData,
-                            dragged_item: Arc::clone(&drag.value),
+                            dragged_item,
                         },
                         window,
                         cx,
@@ -627,8 +645,32 @@ impl Interactivity {
     pub fn on_drop<T: 'static>(&mut self, listener: impl Fn(&T, &mut Window, &mut App) + 'static) {
         self.drop_listeners.push((
             TypeId::of::<T>(),
-            Box::new(move |dragged_value, window, cx| {
+            Box::new(move |_, dragged_value, window, cx| {
                 listener(dragged_value.downcast_ref().unwrap(), window, cx);
+                true
+            }),
+        ));
+    }
+
+    /// Bind a typed drop callback that may reject a compatible drag without consuming it.
+    ///
+    /// Returning `false` allows an ancestor drop target to evaluate the same pointer sequence.
+    pub fn on_drop_with_event<T: 'static>(
+        &mut self,
+        listener: impl Fn(&DropEvent<T>, &mut Window, &mut App) -> bool + 'static,
+    ) {
+        self.drop_listeners.push((
+            TypeId::of::<T>(),
+            Box::new(move |event, dragged_value, window, cx| {
+                listener(
+                    &DropEvent {
+                        event: event.clone(),
+                        dragged_item: Arc::clone(dragged_value),
+                        drag: PhantomData,
+                    },
+                    window,
+                    cx,
+                )
             }),
         ));
     }
@@ -690,10 +732,45 @@ impl Interactivity {
         );
         self.drag_listener = Some((
             Arc::new(value),
-            Box::new(move |value, offset, window, cx| {
-                constructor(value.downcast_ref().unwrap(), offset, window, cx).into()
+            Box::new(move |value, offset, window, cx| DragVisual {
+                view: constructor(value.downcast_ref().unwrap(), offset, window, cx).into(),
+                on_end: None,
             }),
         ));
+    }
+
+    /// Starts a drag with a source-owned terminal callback.
+    pub fn on_drag_with_end<T, W>(
+        &mut self,
+        value: T,
+        constructor: impl Fn(&T, Point<Pixels>, &mut Window, &mut App) -> Entity<W> + 'static,
+        on_end: crate::DragEndCallback,
+    ) where
+        Self: Sized,
+        T: 'static,
+        W: 'static + Render,
+    {
+        debug_assert!(
+            self.drag_listener.is_none(),
+            "calling on_drag more than once on the same element is not supported"
+        );
+        self.drag_listener = Some((
+            Arc::new(value),
+            Box::new(move |value, offset, window, cx| DragVisual {
+                view: constructor(value.downcast_ref().unwrap(), offset, window, cx).into(),
+                on_end: Some(on_end.clone()),
+            }),
+        ));
+    }
+
+    /// Restricts feedback movement for a drag started by this element.
+    pub fn drag_axis(&mut self, axis: Option<DragAxis>) {
+        self.drag_axis = axis;
+    }
+
+    /// Places drag feedback directly under the pointer instead of preserving child offset.
+    pub fn drag_anchor_at_pointer(&mut self, enabled: bool) {
+        self.drag_anchor_at_pointer = enabled;
     }
 
     /// Bind the given callback on the hover start and end events of this element. Note that the boolean
@@ -1296,6 +1373,16 @@ pub trait InteractiveElement: Sized {
         self
     }
 
+    /// Bind a typed drop callback that may reject a compatible drag without consuming it.
+    /// The fluent API equivalent to [`Interactivity::on_drop_with_event`].
+    fn on_drop_with_event<T: 'static>(
+        mut self,
+        listener: impl Fn(&DropEvent<T>, &mut Window, &mut App) -> bool + 'static,
+    ) -> Self {
+        self.interactivity().on_drop_with_event(listener);
+        self
+    }
+
     /// Use the given predicate to determine whether or not a drop event should be dispatched to this element.
     /// The fluent API equivalent to [`Interactivity::can_drop`].
     fn can_drop(
@@ -1476,6 +1563,35 @@ pub trait StatefulInteractiveElement: InteractiveElement {
         self
     }
 
+    /// Starts a drag with a source-owned terminal callback.
+    fn on_drag_with_end<T, W>(
+        mut self,
+        value: T,
+        constructor: impl Fn(&T, Point<Pixels>, &mut Window, &mut App) -> Entity<W> + 'static,
+        on_end: crate::DragEndCallback,
+    ) -> Self
+    where
+        Self: Sized,
+        T: 'static,
+        W: 'static + Render,
+    {
+        self.interactivity()
+            .on_drag_with_end(value, constructor, on_end);
+        self
+    }
+
+    /// Restricts feedback movement for a drag started by this element.
+    fn drag_axis(mut self, axis: Option<DragAxis>) -> Self {
+        self.interactivity().drag_axis(axis);
+        self
+    }
+
+    /// Places drag feedback directly under the pointer.
+    fn drag_anchor_at_pointer(mut self, enabled: bool) -> Self {
+        self.interactivity().drag_anchor_at_pointer(enabled);
+        self
+    }
+
     /// Bind the given callback on the hover start and end events of this element. Note that the boolean
     /// passed to the callback is true when the hover starts and false when it ends.
     /// The fluent API equivalent to [`Interactivity::on_hover`].
@@ -1552,13 +1668,19 @@ pub(crate) type PointerListener =
 
 pub(crate) type ClickListener = Rc<dyn Fn(&ClickEvent, &mut Window, &mut App) + 'static>;
 
+pub(crate) struct DragVisual {
+    pub view: AnyView,
+    pub on_end: Option<crate::DragEndCallback>,
+}
+
 pub(crate) type DragListener =
-    Box<dyn Fn(&dyn Any, Point<Pixels>, &mut Window, &mut App) -> AnyView + 'static>;
+    Box<dyn Fn(&dyn Any, Point<Pixels>, &mut Window, &mut App) -> DragVisual + 'static>;
 
 pub(crate) type StickyStateChangedListener =
     Box<dyn Fn(&StickyStateChangedEvent, &mut Window, &mut App) + 'static>;
 
-type DropListener = Box<dyn Fn(&dyn Any, &mut Window, &mut App) + 'static>;
+type DropListener =
+    Box<dyn Fn(&PointerEvent, &Arc<dyn Any>, &mut Window, &mut App) -> bool + 'static>;
 
 type CanDropPredicate = Box<dyn Fn(&dyn Any, &mut Window, &mut App) -> bool + 'static>;
 
@@ -2009,6 +2131,8 @@ pub struct Interactivity {
     pub(crate) click_listeners: Vec<ClickListener>,
     pub(crate) aux_click_listeners: Vec<ClickListener>,
     pub(crate) drag_listener: Option<(Arc<dyn Any>, DragListener)>,
+    pub(crate) drag_axis: Option<DragAxis>,
+    pub(crate) drag_anchor_at_pointer: bool,
     pub(crate) hover_listener: Option<Box<dyn Fn(&bool, &mut Window, &mut App)>>,
     pub(crate) sticky_state_changed_listener: Option<StickyStateChangedListener>,
     pub(crate) tooltip_builder: Option<TooltipBuilder>,
@@ -2061,7 +2185,7 @@ impl Interactivity {
                     element_state.map(|element_state| element_state.unwrap_or_default());
 
                 if let Some(element_state) = element_state.as_ref()
-                    && cx.has_active_drag()
+                    && window.has_active_drags()
                 {
                     if let Some(pending_mouse_down) = element_state.pending_mouse_down.as_ref() {
                         *pending_mouse_down.borrow_mut() = None;
@@ -2399,7 +2523,9 @@ impl Interactivity {
                                                     global_id, hitbox, &style, window, cx,
                                                 );
 
-                                                if let Some(drag) = cx.active_drag.as_ref() {
+                                                if let Some(drag) =
+                                                    window.active_drag_for(crate::PointerId::new(0))
+                                                {
                                                     if let Some(mouse_cursor) = drag.cursor_style {
                                                         window
                                                             .set_window_cursor_style(mouse_cursor);
@@ -2684,7 +2810,7 @@ impl Interactivity {
 
         if self.hover_style.is_some()
             || self.base_style.mouse_cursor.is_some()
-            || cx.active_drag.is_some() && !self.drag_over_styles.is_empty()
+            || window.has_active_drags() && !self.drag_over_styles.is_empty()
         {
             let hitbox = hitbox.clone();
             let hover_state = self.hover_style.as_ref().and_then(|_| {
@@ -2734,7 +2860,9 @@ impl Interactivity {
 
         let drag_cursor_style = self.base_style.as_ref().mouse_cursor;
 
-        let mut drag_listener = mem::take(&mut self.drag_listener);
+        let drag_listener = mem::take(&mut self.drag_listener);
+        let drag_axis = self.drag_axis;
+        let drag_anchor_at_pointer = self.drag_anchor_at_pointer;
         let drop_listeners = mem::take(&mut self.drop_listeners);
         let click_listeners = mem::take(&mut self.click_listeners);
         let aux_click_listeners = mem::take(&mut self.aux_click_listeners);
@@ -2743,28 +2871,36 @@ impl Interactivity {
         if !drop_listeners.is_empty() {
             let hitbox = hitbox.clone();
             window.on_pointer_event({
-                move |_: &PointerEvent, phase, window, cx| {
-                    if let Some(drag) = &cx.active_drag
+                move |event: &PointerEvent, phase, window, cx| {
+                    if event.phase == crate::PointerPhase::Up
                         && phase == DispatchPhase::Bubble
-                        && hitbox.is_hovered(window)
+                        && hitbox.bounds.contains(&event.position)
                     {
-                        let drag_state_type = drag.value.as_ref().type_id();
-                        for (drop_state_type, listener) in &drop_listeners {
-                            if *drop_state_type == drag_state_type {
-                                let drag = cx
-                                    .active_drag
-                                    .take()
-                                    .expect("checked for type drag state type above");
-
-                                let mut can_drop = true;
-                                if let Some(predicate) = &can_drop_predicate {
-                                    can_drop = predicate(drag.value.as_ref(), window, cx);
+                        let drag_state_type = window
+                            .active_drag_for(event.id)
+                            .map(|drag| drag.value.as_ref().type_id());
+                        if let Some(drag_state_type) = drag_state_type {
+                            for (drop_state_type, listener) in &drop_listeners {
+                                if *drop_state_type != drag_state_type {
+                                    continue;
                                 }
 
-                                if can_drop {
-                                    listener(drag.value.as_ref(), window, cx);
+                                let dragged_value = window
+                                    .active_drag_for(event.id)
+                                    .map(|drag| Arc::clone(&drag.value))
+                                    .expect("checked for active drag state above");
+                                let can_drop =
+                                    can_drop_predicate.as_ref().is_none_or(|predicate| {
+                                        predicate(dragged_value.as_ref(), window, cx)
+                                    });
+                                let accepted =
+                                    can_drop && listener(event, &dragged_value, window, cx);
+
+                                if accepted {
+                                    window.finish_drag(event.id, true, event.position, cx);
                                     window.refresh();
                                     cx.stop_propagation();
+                                    break;
                                 }
                             }
                         }
@@ -2818,21 +2954,30 @@ impl Interactivity {
 
                         let mut pending_mouse_down = pending_mouse_down.borrow_mut();
                         if let Some(mouse_down) = pending_mouse_down.clone()
-                            && !cx.has_active_drag()
                             && (event.position - mouse_down.position).magnitude() > DRAG_THRESHOLD
-                            && let Some((drag_value, drag_listener)) = drag_listener.take()
+                            && let Some((drag_value, drag_listener)) = drag_listener.as_ref()
                             && mouse_down.button == MouseButton::Left
                         {
                             *clicked_state.borrow_mut() = ElementClickedState::default();
-                            let cursor_offset = event.position - hitbox.origin;
+                            let cursor_offset = if drag_anchor_at_pointer {
+                                point(px(0.), px(0.))
+                            } else {
+                                event.position - hitbox.origin
+                            };
                             let drag =
                                 (drag_listener)(drag_value.as_ref(), cursor_offset, window, cx);
-                            cx.active_drag = Some(AnyDrag {
-                                view: drag,
-                                value: drag_value,
-                                cursor_offset,
-                                cursor_style: drag_cursor_style,
-                            });
+                            window.start_drag(
+                                event.id,
+                                AnyDrag {
+                                    view: drag.view,
+                                    value: Arc::clone(drag_value),
+                                    cursor_offset,
+                                    position: event.position,
+                                    axis: drag_axis,
+                                    on_end: drag.on_end,
+                                    cursor_style: drag_cursor_style,
+                                },
+                            );
                             pending_mouse_down.take();
                             window.refresh();
                             cx.stop_propagation();
@@ -2940,7 +3085,7 @@ impl Interactivity {
                         return;
                     }
                     let is_hovered = has_mouse_down.borrow().is_none()
-                        && !cx.has_active_drag()
+                        && !window.has_active_drags()
                         && hitbox.is_hovered(window);
                     let mut was_hovered = was_hovered.borrow_mut();
 
@@ -3305,7 +3450,7 @@ impl Interactivity {
             }
         }
 
-        if !cx.has_active_drag() {
+        if !window.has_active_drags() {
             if let Some(group_hover) = self.group_hover_style.as_ref() {
                 let is_group_hovered =
                     if let Some(group_hitbox_id) = GroupHitboxes::get(&group_hover.group, cx) {
@@ -3345,7 +3490,7 @@ impl Interactivity {
         }
 
         if let Some(hitbox) = hitbox {
-            if let Some(drag) = cx.active_drag.take() {
+            if let Some(drag) = window.take_active_drag(crate::PointerId::new(0)) {
                 let mut can_drop = true;
                 if let Some(can_drop_predicate) = &self.can_drop_predicate {
                     can_drop = can_drop_predicate(drag.value.as_ref(), window, cx);
@@ -3371,7 +3516,7 @@ impl Interactivity {
                 }
 
                 style.mouse_cursor = drag.cursor_style;
-                cx.active_drag = Some(drag);
+                window.start_drag(crate::PointerId::new(0), drag);
             }
         }
 
