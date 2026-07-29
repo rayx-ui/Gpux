@@ -7,6 +7,7 @@
 //!
 //! If all of your elements are the same height, see [`crate::UniformList`] for a simpler API
 
+use super::scroll_activity::ScrollActivity;
 use crate::{
     AnyElement, App, AvailableSpace, Bounds, ContentMask, DispatchPhase, Edges, Element, EntityId,
     FocusHandle, GlobalElementId, Hitbox, HitboxBehavior, InspectorElementId, IntoElement,
@@ -76,6 +77,7 @@ struct StateInner {
     pending_scroll: Option<PendingScroll>,
     follow_state: FollowState,
     sticky_items: Vec<ListStickyItem>,
+    activity: ScrollActivity,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -338,6 +340,7 @@ impl ListState {
             pending_scroll: None,
             follow_state: FollowState::default(),
             sticky_items: Vec::new(),
+            activity: ScrollActivity::default(),
         })));
         this.splice(0..0, item_count);
         this
@@ -1008,13 +1011,14 @@ impl StateInner {
         current_view: EntityId,
         window: &mut Window,
         cx: &mut App,
-    ) {
+    ) -> bool {
         // Drop scroll events after a reset, since we can't calculate
         // the new logical scroll top without the item heights
         if self.reset {
-            return;
+            return false;
         }
 
+        let previous_scroll_top = self.scroll_top(scroll_top);
         let padding = self.last_padding.unwrap_or_default();
         let scroll_max =
             (self.items.summary().height + padding.top + padding.bottom - height).max(px(0.));
@@ -1046,8 +1050,10 @@ impl StateInner {
             self.follow_state.stop_following();
         }
 
+        let current_scroll_top = self.logical_scroll_top();
+        let advanced = self.scroll_top(&current_scroll_top) != previous_scroll_top;
         if let Some(handler) = self.scroll_handler.as_mut() {
-            let visible_range = Self::visible_range(&self.items, height, scroll_top);
+            let visible_range = Self::visible_range(&self.items, height, &current_scroll_top);
             handler(
                 &ListScrollEvent {
                     visible_range,
@@ -1064,6 +1070,7 @@ impl StateInner {
         }
 
         cx.notify(current_view);
+        advanced
     }
 
     fn logical_scroll_top(&self) -> ListOffset {
@@ -1850,12 +1857,86 @@ impl Element for List {
             if phase == DispatchPhase::Bubble && hitbox_id.should_handle_scroll(window) {
                 accumulated_scroll_delta = accumulated_scroll_delta.coalesce(event.delta);
                 let pixel_delta = accumulated_scroll_delta.pixel_delta(px(20.));
+                let release_velocity = (event.scroll_source == crate::ScrollWheelSource::Touch
+                    && event.scroll_phase == crate::ScrollWheelPhase::Ended
+                    && event.native_momentum_phase.is_none())
+                .then_some((event.release_velocity, event.timestamp));
+                let mut start_activity = false;
+                let mut advanced = false;
                 if let Ok(mut state) = list_state.0.try_borrow_mut() {
-                    state.scroll(&scroll_top, height, pixel_delta, current_view, window, cx)
+                    match event.scroll_source {
+                        crate::ScrollWheelSource::Touch
+                            if matches!(
+                                event.scroll_phase,
+                                crate::ScrollWheelPhase::Started
+                                    | crate::ScrollWheelPhase::Cancelled
+                            ) =>
+                        {
+                            state.activity.stop();
+                        }
+                        crate::ScrollWheelSource::Touch => {}
+                        _ => state.activity.stop(),
+                    }
+                    advanced =
+                        state.scroll(&scroll_top, height, pixel_delta, current_view, window, cx);
+                    if advanced && let Some((Some(velocity), timestamp)) = release_velocity {
+                        state
+                            .activity
+                            .start_at(velocity, timestamp.unwrap_or_else(crate::Instant::now));
+                        start_activity = true;
+                    }
+                }
+                if advanced {
+                    cx.stop_propagation();
+                }
+                if start_activity {
+                    schedule_list_scroll_activity(list_state.clone(), current_view, window);
+                    window.refresh();
                 }
             }
         });
     }
+}
+
+fn schedule_list_scroll_activity(list_state: ListState, current_view: EntityId, window: &Window) {
+    window.on_next_frame(move |window, cx| {
+        let delta = list_state
+            .0
+            .try_borrow_mut()
+            .ok()
+            .and_then(|mut state| state.activity.next_delta_at(crate::Instant::now()));
+        let Some(delta) = delta else {
+            return;
+        };
+
+        let advanced = if let Ok(mut state) = list_state.0.try_borrow_mut() {
+            let Some(bounds) = state.last_layout_bounds else {
+                state.activity.stop();
+                return;
+            };
+            let scroll_top = state.logical_scroll_top();
+            state.scroll(
+                &scroll_top,
+                bounds.size.height,
+                delta,
+                current_view,
+                window,
+                cx,
+            )
+        } else {
+            false
+        };
+
+        if !advanced {
+            if let Ok(mut state) = list_state.0.try_borrow_mut() {
+                state.activity.stop();
+            }
+            return;
+        }
+
+        schedule_list_scroll_activity(list_state, current_view, window);
+        window.refresh();
+    });
 }
 
 impl IntoElement for List {

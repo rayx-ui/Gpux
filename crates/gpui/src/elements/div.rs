@@ -3180,7 +3180,10 @@ impl Interactivity {
                     drop(scroll_offset);
 
                     if let Some(velocity) = release_velocity {
-                        activity.borrow_mut().start(velocity);
+                        activity.borrow_mut().start_at(
+                            velocity,
+                            event.timestamp.unwrap_or_else(crate::Instant::now),
+                        );
                         schedule_scroll_activity(
                             activity.clone(),
                             scroll_offset_state.clone(),
@@ -4180,7 +4183,7 @@ fn schedule_scroll_activity(
     window: &Window,
 ) {
     window.on_next_frame(move |window, cx| {
-        let Some(delta) = activity.borrow_mut().next_delta() else {
+        let Some(delta) = activity.borrow_mut().next_delta_at(crate::Instant::now()) else {
             return;
         };
 
