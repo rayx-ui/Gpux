@@ -32,14 +32,14 @@
 //! For showcase / demo purposes, [`navigation_bar_demo`] renders a
 //! static (non-interactive) bar with four hardcoded items.
 
-use gpui::{AnyElement, MouseButton, MouseDownEvent, Window, div, prelude::*, px, rgb};
+use gpui::{AnyElement, MouseButton, PointerEvent, Window, div, prelude::*, px, rgb};
 
 // ── Navigation item descriptor ───────────────────────────────────────────────
 
 /// Describes a single destination in a material navigation bar.
 ///
 /// Each item has an icon, a label, an active flag, and an on-click handler.
-/// The handler signature matches what GPUI's `on_mouse_down` expects, so
+/// The handler signature matches what GPUI's `on_pointer_down` expects, so
 /// you can use `cx.listener(...)` directly.
 #[allow(clippy::type_complexity)]
 struct NavigationItemEntry {
@@ -50,7 +50,7 @@ struct NavigationItemEntry {
     /// Whether this item is the currently active destination.
     active: bool,
     /// Click handler invoked when the item is tapped.
-    on_click: Box<dyn Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static>,
+    on_click: Box<dyn Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static>,
 }
 
 // ── Public NavigationItem for non-interactive use ────────────────────────────
@@ -121,7 +121,7 @@ impl NavigationBarBuilder {
     /// click handler.
     ///
     /// The `on_click` parameter accepts anything that satisfies
-    /// `Fn(&MouseDownEvent, &mut Window, &mut App) + 'static`, which
+    /// `Fn(&PointerEvent, &mut Window, &mut App) + 'static`, which
     /// is exactly what `cx.listener(...)` returns. You can also pass
     /// a plain closure.
     ///
@@ -136,7 +136,7 @@ impl NavigationBarBuilder {
         icon: impl Into<String>,
         label: impl Into<String>,
         active: bool,
-        on_click: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
+        on_click: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.items.push(NavigationItemEntry {
             icon: icon.into(),
@@ -189,7 +189,7 @@ impl NavigationBarBuilder {
                         .child(entry.icon),
                 )
                 .child(div().text_xs().text_color(rgb(fg)).child(entry.label))
-                .on_mouse_down(MouseButton::Left, entry.on_click);
+                .on_pointer_down(MouseButton::Left, entry.on_click);
 
             children.push(el.into_any_element());
         }

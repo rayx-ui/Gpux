@@ -15,14 +15,14 @@
 //! All components follow a builder pattern and implement `IntoElement`.
 
 use gpui::{
-    AnyElement, Hsla, MouseButton, MouseDownEvent, Stateful, Window, div, prelude::*, px, rgb,
+    AnyElement, Hsla, MouseButton, PointerEvent, Stateful, Window, div, prelude::*, px, rgb,
 };
 
 use super::theme::{MaterialTheme, ShapeScale, TRANSPARENT, color};
 
 // ── Click handler alias ──────────────────────────────────────────────────────
 
-type ClickHandler = Box<dyn Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static>;
+type ClickHandler = Box<dyn Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static>;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  ListTile
@@ -251,7 +251,7 @@ impl ListTile {
     /// Set the click handler.
     pub fn on_click(
         mut self,
-        handler: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
+        handler: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.on_click = Some(Box::new(handler));
         self
@@ -388,7 +388,7 @@ impl IntoElement for ListTile {
         // Click handler
         if let Some(handler) = self.on_click {
             if !self.disabled {
-                row = row.on_mouse_down(MouseButton::Left, handler);
+                row = row.on_pointer_down(MouseButton::Left, handler);
             }
         }
 
@@ -759,7 +759,7 @@ impl Tooltip {
     pub fn action(
         mut self,
         label: impl Into<String>,
-        handler: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
+        handler: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.action_label = Some(label.into());
         self.action_handler = Some(Box::new(handler));
@@ -845,7 +845,7 @@ impl IntoElement for Tooltip {
                         .child(label);
 
                     if let Some(handler) = self.action_handler {
-                        btn = btn.on_mouse_down(MouseButton::Left, handler);
+                        btn = btn.on_pointer_down(MouseButton::Left, handler);
                     }
 
                     action_row = action_row.child(btn);
@@ -963,7 +963,7 @@ impl SegmentedButton {
         icon: impl Into<String>,
         label: impl Into<String>,
         selected: bool,
-        on_click: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
+        on_click: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.segments.push(SegmentEntry {
             icon: icon.into(),
@@ -1070,7 +1070,7 @@ impl IntoElement for SegmentedButton {
 
             // Click handler
             if !entry.disabled {
-                seg = seg.on_mouse_down(MouseButton::Left, entry.on_click);
+                seg = seg.on_pointer_down(MouseButton::Left, entry.on_click);
             }
 
             row = row.child(seg);
@@ -1209,7 +1209,7 @@ impl Chip {
     /// Set the main click handler (tap on the chip body).
     pub fn on_click(
         mut self,
-        handler: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
+        handler: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.on_click = Some(Box::new(handler));
         self
@@ -1218,7 +1218,7 @@ impl Chip {
     /// Set the remove handler (only visible on Input chips).
     pub fn on_remove(
         mut self,
-        handler: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
+        handler: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.on_remove = Some(Box::new(handler));
         self
@@ -1362,7 +1362,7 @@ impl IntoElement for Chip {
                 .child("✕");
 
             if let Some(handler) = self.on_remove {
-                remove_btn = remove_btn.on_mouse_down(MouseButton::Left, handler);
+                remove_btn = remove_btn.on_pointer_down(MouseButton::Left, handler);
             }
 
             chip = chip.child(remove_btn);
@@ -1371,7 +1371,7 @@ impl IntoElement for Chip {
         // Main click handler
         if let Some(handler) = self.on_click {
             if !self.disabled {
-                chip = chip.on_mouse_down(MouseButton::Left, handler);
+                chip = chip.on_pointer_down(MouseButton::Left, handler);
             }
         }
 
@@ -1451,7 +1451,7 @@ impl BottomAppBar {
         mut self,
         icon: impl Into<String>,
         selected: bool,
-        on_click: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
+        on_click: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.icons.push(BottomAppBarIcon {
             icon: icon.into(),
@@ -1468,7 +1468,7 @@ impl BottomAppBar {
     pub fn fab(
         mut self,
         icon: impl Into<String>,
-        on_click: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
+        on_click: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.fab_icon = Some(icon.into());
         self.fab_on_click = Some(Box::new(on_click));
@@ -1515,7 +1515,7 @@ impl IntoElement for BottomAppBar {
                 .text_xl()
                 .text_color(rgb(fg))
                 .child(entry.icon)
-                .on_mouse_down(MouseButton::Left, entry.on_click);
+                .on_pointer_down(MouseButton::Left, entry.on_click);
 
             icons_row = icons_row.child(icon_btn);
         }
@@ -1538,7 +1538,7 @@ impl IntoElement for BottomAppBar {
                 .child(fab_icon);
 
             if let Some(handler) = self.fab_on_click {
-                fab = fab.on_mouse_down(MouseButton::Left, handler);
+                fab = fab.on_pointer_down(MouseButton::Left, handler);
             }
 
             bar = bar.child(div().pr(px(12.0)).child(fab));
@@ -1662,7 +1662,7 @@ impl ExpansionTile {
     /// Set the toggle handler, invoked when the header tile is tapped.
     pub fn on_toggle(
         mut self,
-        handler: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
+        handler: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.on_toggle = Some(Box::new(handler));
         self
@@ -1760,7 +1760,7 @@ impl IntoElement for ExpansionTile {
 
         // Toggle handler on header
         if let Some(handler) = self.on_toggle {
-            header_row = header_row.on_mouse_down(MouseButton::Left, handler);
+            header_row = header_row.on_pointer_down(MouseButton::Left, handler);
         }
 
         container = container.child(header_row);

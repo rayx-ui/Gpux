@@ -2,16 +2,15 @@
 
 use gpui_platform::application;
 use gpux::{
-    Bounds, Context, MousePressureEvent, PressureStage, Window, WindowBounds, WindowOptions, div,
-    prelude::*, px, rgb, size,
+    Bounds, Context, PointerEvent, Window, WindowBounds, WindowOptions, div, prelude::*, px, rgb,
+    size,
 };
 
-struct MousePressureExample {
-    pressure_stage: PressureStage,
+struct PointerContactExample {
     pressure_amount: f32,
 }
 
-impl Render for MousePressureExample {
+impl Render for PointerContactExample {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         div()
             .flex()
@@ -26,21 +25,19 @@ impl Render for MousePressureExample {
             .border_color(rgb(0x0000ff))
             .text_xl()
             .text_color(rgb(0xffffff))
-            .child(format!("Pressure stage: {:?}", &self.pressure_stage))
             .child(format!("Pressure amount: {:.2}", &self.pressure_amount))
-            .on_mouse_pressure(cx.listener(Self::on_mouse_pressure))
+            .on_pointer_contact(cx.listener(Self::on_pointer_contact))
     }
 }
 
-impl MousePressureExample {
-    fn on_mouse_pressure(
+impl PointerContactExample {
+    fn on_pointer_contact(
         &mut self,
-        pressure_event: &MousePressureEvent,
+        event: &PointerEvent,
         _window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        self.pressure_amount = pressure_event.pressure;
-        self.pressure_stage = pressure_event.stage;
+        self.pressure_amount = event.contact.pressure.unwrap_or_default();
 
         cx.notify();
     }
@@ -57,8 +54,7 @@ fn run_example() {
                     ..Default::default()
                 },
                 |_, cx| {
-                    cx.new(|_| MousePressureExample {
-                        pressure_stage: PressureStage::Zero,
+                    cx.new(|_| PointerContactExample {
                         pressure_amount: 0.0,
                     })
                 },

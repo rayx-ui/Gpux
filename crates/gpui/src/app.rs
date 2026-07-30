@@ -46,8 +46,8 @@ use crate::{
     DispatchPhase, DisplayId, EventEmitter, FocusHandle, FocusMap, ForegroundExecutor, GestureMap,
     GestureMapLayer, Global, InputLayerId, InputMapError, KeyBinding, KeyContext, Keymap,
     KeymapLayer, Keystroke, LayoutId, Menu, MenuItem, OwnedMenu, PathPromptOptions, Pixels,
-    Platform, PlatformDisplay, PlatformKeyboardLayout, PlatformKeyboardMapper, Point, Priority,
-    PromptBuilder, PromptButton, PromptHandle, PromptLevel, Render, RenderImage,
+    Platform, PlatformDisplay, PlatformKeyboardLayout, PlatformKeyboardMapper, Point, PointerId,
+    Priority, PromptBuilder, PromptButton, PromptHandle, PromptLevel, Render, RenderImage,
     RenderablePromptHandle, Reservation, ScreenCaptureSource, SharedString, SubscriberSet,
     Subscription, SvgRenderer, Task, TextRenderingMode, TextSystem, ThermalState, Window,
     WindowAppearance, WindowButtonLayout, WindowHandle, WindowId, WindowInvalidator,
@@ -611,7 +611,6 @@ pub struct App {
     text_system: Arc<TextSystem>,
 
     pub(crate) actions: Rc<ActionRegistry>,
-    pub(crate) active_drag: Option<AnyDrag>,
     pub(crate) background_executor: BackgroundExecutor,
     pub(crate) foreground_executor: ForegroundExecutor,
     pub(crate) entities: EntityMap,
@@ -722,7 +721,6 @@ impl App {
                 actions: Rc::new(ActionRegistry::default()),
                 flushing_effects: false,
                 pending_updates: 0,
-                active_drag: None,
                 background_executor,
                 foreground_executor,
                 svg_renderer: SvgRenderer::new(asset_source.clone()),
@@ -2308,42 +2306,6 @@ impl App {
         }
     }
 
-    /// Is there currently something being dragged?
-    pub fn has_active_drag(&self) -> bool {
-        self.active_drag.is_some()
-    }
-
-    /// Gets the cursor style of the currently active drag operation.
-    pub fn active_drag_cursor_style(&self) -> Option<CursorStyle> {
-        self.active_drag.as_ref().and_then(|drag| drag.cursor_style)
-    }
-
-    /// Stops active drag and clears any related effects.
-    pub fn stop_active_drag(&mut self, window: &mut Window) -> bool {
-        if self.active_drag.is_some() {
-            self.active_drag = None;
-            window.refresh();
-            true
-        } else {
-            false
-        }
-    }
-
-    /// Sets the cursor style for the currently active drag operation.
-    pub fn set_active_drag_cursor_style(
-        &mut self,
-        cursor_style: CursorStyle,
-        window: &mut Window,
-    ) -> bool {
-        if let Some(ref mut drag) = self.active_drag {
-            drag.cursor_style = Some(cursor_style);
-            window.refresh();
-            true
-        } else {
-            false
-        }
-    }
-
     /// Set the prompt renderer for GPUI. This will replace the default or platform specific
     /// prompts with this custom implementation.
     pub fn set_prompt_builder(
@@ -2687,6 +2649,21 @@ impl<G: Global> DerefMut for GlobalLease<G> {
     }
 }
 
+/// Restricts the feedback movement after a drag has started.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DragAxis {
+    /// Keep feedback on its starting vertical coordinate.
+    Horizontal,
+    /// Keep feedback on its starting horizontal coordinate.
+    Vertical,
+}
+
+/// Called exactly once for each active pointer drag when it completes or is cancelled.
+///
+/// The callback itself is reusable because one source can own simultaneous drags. A
+/// concrete drag session still invokes it only once, when that session is removed.
+pub type DragEndCallback = Rc<dyn Fn(PointerId, bool, Point<Pixels>, &mut Window, &mut App)>;
+
 /// Contains state associated with an active drag operation, started by dragging an element
 /// within the window or by dragging into the app from the underlying platform.
 pub struct AnyDrag {
@@ -2699,6 +2676,15 @@ pub struct AnyDrag {
     /// This is used to render the dragged item in the same place
     /// on the original element that the drag was initiated
     pub cursor_offset: Point<Pixels>,
+
+    /// The latest pointer position for this drag sequence.
+    pub position: Point<Pixels>,
+
+    /// Optional movement restriction for the feedback on this pointer sequence.
+    pub axis: Option<DragAxis>,
+
+    /// Optional terminal notification owned by the drag source.
+    pub on_end: Option<DragEndCallback>,
 
     /// The cursor style to use while dragging
     pub cursor_style: Option<CursorStyle>,

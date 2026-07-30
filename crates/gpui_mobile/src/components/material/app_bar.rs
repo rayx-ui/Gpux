@@ -30,7 +30,7 @@
 //!     .build();
 //! ```
 
-use gpui::{AnyElement, MouseButton, MouseDownEvent, Window, div, prelude::*, px, rgb};
+use gpui::{AnyElement, MouseButton, PointerEvent, Window, div, prelude::*, px, rgb};
 
 use super::theme::{MaterialTheme, ShapeScale};
 
@@ -57,7 +57,7 @@ struct AppBarIconEntry {
     /// Icon text — an emoji or short string.
     icon: String,
     /// Click handler invoked when the icon is tapped.
-    on_click: Box<dyn Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static>,
+    on_click: Box<dyn Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static>,
 }
 
 // ── TopAppBar builder ────────────────────────────────────────────────────────
@@ -135,12 +135,12 @@ impl TopAppBar {
     /// Typically a back arrow or hamburger menu icon. Only one leading
     /// icon is supported per the MD3 spec.
     ///
-    /// The `on_click` handler matches GPUI's `on_mouse_down` signature,
+    /// The `on_click` handler matches GPUI's `on_pointer_down` signature,
     /// so `cx.listener(...)` can be used directly.
     pub fn leading_icon(
         mut self,
         icon: impl Into<String>,
-        on_click: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
+        on_click: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.leading = Some(AppBarIconEntry {
             icon: icon.into(),
@@ -156,7 +156,7 @@ impl TopAppBar {
     pub fn trailing_icon(
         mut self,
         icon: impl Into<String>,
-        on_click: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
+        on_click: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.trailing.push(AppBarIconEntry {
             icon: icon.into(),
@@ -452,7 +452,7 @@ impl IntoElement for TopAppBar {
                             .text_xl()
                             .text_color(rgb(t.on_surface))
                             .child(entry.icon)
-                            .on_mouse_down(MouseButton::Left, entry.on_click),
+                            .on_pointer_down(MouseButton::Left, entry.on_click),
                     );
                 } else {
                     row = row.child(div().w(px(48.0)).h(px(48.0)));
@@ -499,7 +499,7 @@ impl IntoElement for TopAppBar {
                                 .text_xl()
                                 .text_color(rgb(t.on_surface_variant))
                                 .child(entry.icon)
-                                .on_mouse_down(MouseButton::Left, entry.on_click),
+                                .on_pointer_down(MouseButton::Left, entry.on_click),
                         );
                     }
                     row = row.child(trailing_row);
@@ -535,7 +535,7 @@ impl IntoElement for TopAppBar {
                             .text_xl()
                             .text_color(rgb(t.on_surface))
                             .child(entry.icon)
-                            .on_mouse_down(MouseButton::Left, entry.on_click),
+                            .on_pointer_down(MouseButton::Left, entry.on_click),
                     );
                 } else {
                     top_row = top_row.child(div().w(px(48.0)).h(px(48.0)));
@@ -562,7 +562,7 @@ impl IntoElement for TopAppBar {
                                 .text_xl()
                                 .text_color(rgb(t.on_surface_variant))
                                 .child(entry.icon)
-                                .on_mouse_down(MouseButton::Left, entry.on_click),
+                                .on_pointer_down(MouseButton::Left, entry.on_click),
                         );
                     }
                     top_row = top_row.child(trailing_row);

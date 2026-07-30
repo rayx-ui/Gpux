@@ -1,5 +1,5 @@
 use crate::display::WebDisplay;
-use crate::events::{ClickState, WebEventListeners, is_mac_platform};
+use crate::events::{ClickState, TouchScrollState, WebEventListeners, is_mac_platform};
 #[cfg(feature = "rayx_diagnostics")]
 use crate::html_element::write_html_element_diagnostics_to_global;
 use crate::html_element::{WebHtmlElementRegistry, create_overlay_root};
@@ -66,6 +66,7 @@ pub(crate) struct WebWindowInner {
     pub(crate) state: RefCell<WebWindowMutableState>,
     pub(crate) callbacks: RefCell<WebWindowCallbacks>,
     pub(crate) click_state: RefCell<ClickState>,
+    pub(crate) touch_scroll: RefCell<Option<TouchScrollState>>,
     pub(crate) pressed_button: Cell<Option<MouseButton>>,
     pub(crate) closed: Cell<bool>,
     pub(crate) last_physical_size: Cell<(u32, u32)>,
@@ -254,6 +255,7 @@ impl WebWindow {
             state: RefCell::new(mutable_state),
             callbacks: RefCell::new(WebWindowCallbacks::default()),
             click_state: RefCell::new(ClickState::default()),
+            touch_scroll: RefCell::default(),
             pressed_button: Cell::new(None),
             closed: Cell::new(false),
             last_physical_size: Cell::new((initial_physical_width, initial_physical_height)),

@@ -116,7 +116,7 @@ impl Render for HelloWorld {
                     .bg(rgb(0x4040ff))
                     .rounded_md()
                     .child("Move me to a new window")
-                    .on_mouse_down(
+                    .on_pointer_down(
                         MouseButton::Left,
                         cx.listener(|_this, _, _window, cx| {
                             cx.emit(MoveToNewWindow);

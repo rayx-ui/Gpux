@@ -46,7 +46,7 @@
 //!     }));
 //! ```
 
-use gpui::{AnyElement, MouseButton, MouseDownEvent, Stateful, Window, div, prelude::*, px, rgb};
+use gpui::{AnyElement, MouseButton, PointerEvent, Stateful, Window, div, prelude::*, px, rgb};
 
 use super::theme::{MaterialTheme, ShapeScale};
 
@@ -84,7 +84,7 @@ const SCRIM_OPACITY: f32 = 0.32;
 
 // ── Click handler alias ──────────────────────────────────────────────────────
 
-type ClickHandler = Box<dyn Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static>;
+type ClickHandler = Box<dyn Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static>;
 
 // ── Internal entry types ─────────────────────────────────────────────────────
 
@@ -195,14 +195,14 @@ impl NavigationDrawer {
 
     /// Add a destination item with an icon, label, active state, and click handler.
     ///
-    /// The `on_click` handler matches GPUI's `on_mouse_down` signature,
+    /// The `on_click` handler matches GPUI's `on_pointer_down` signature,
     /// so `cx.listener(...)` can be used directly.
     pub fn item(
         mut self,
         icon: impl Into<String>,
         label: impl Into<String>,
         active: bool,
-        on_click: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
+        on_click: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.item_count += 1;
         self.entries.push(DrawerEntry::Item(DrawerItemEntry {
@@ -226,7 +226,7 @@ impl NavigationDrawer {
         label: impl Into<String>,
         active: bool,
         badge: impl Into<String>,
-        on_click: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
+        on_click: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.item_count += 1;
         self.entries.push(DrawerEntry::Item(DrawerItemEntry {
@@ -247,7 +247,7 @@ impl NavigationDrawer {
         label: impl Into<String>,
         active: bool,
         trailing: impl Into<String>,
-        on_click: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
+        on_click: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.item_count += 1;
         self.entries.push(DrawerEntry::Item(DrawerItemEntry {
@@ -359,7 +359,7 @@ impl NavigationDrawer {
         }
 
         // Click handler
-        item_row = item_row.on_mouse_down(MouseButton::Left, entry.on_click);
+        item_row = item_row.on_pointer_down(MouseButton::Left, entry.on_click);
 
         item_row.into_any_element()
     }
@@ -528,7 +528,7 @@ impl ModalNavigationDrawer {
     /// This should close the drawer by updating the parent's state.
     pub fn on_scrim_tap(
         mut self,
-        handler: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
+        handler: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.on_scrim_tap = Some(Box::new(handler));
         self
@@ -562,7 +562,7 @@ impl IntoElement for ModalNavigationDrawer {
             .cursor_pointer();
 
         if let Some(handler) = self.on_scrim_tap {
-            scrim = scrim.on_mouse_down(MouseButton::Left, handler);
+            scrim = scrim.on_pointer_down(MouseButton::Left, handler);
         }
 
         overlay = overlay.child(scrim);

@@ -40,7 +40,7 @@
 //!     }));
 //! ```
 
-use gpui::{AnyElement, MouseButton, MouseDownEvent, Window, div, prelude::*, px, rgb};
+use gpui::{AnyElement, MouseButton, PointerEvent, Window, div, prelude::*, px, rgb};
 
 use super::theme::{MaterialTheme, ShapeScale};
 
@@ -75,7 +75,7 @@ const FAB_RADIUS: f32 = 16.0;
 
 // ── Click handler alias ──────────────────────────────────────────────────────
 
-type ClickHandler = Box<dyn Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static>;
+type ClickHandler = Box<dyn Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static>;
 
 // ── Label mode ───────────────────────────────────────────────────────────────
 
@@ -209,7 +209,7 @@ impl NavigationRail {
         icon: impl Into<String>,
         label: impl Into<String>,
         active: bool,
-        on_click: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
+        on_click: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.items.push(RailItemEntry {
             icon: icon.into(),
@@ -232,7 +232,7 @@ impl NavigationRail {
         label: impl Into<String>,
         active: bool,
         badge: impl Into<String>,
-        on_click: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
+        on_click: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.items.push(RailItemEntry {
             icon: icon.into(),
@@ -250,7 +250,7 @@ impl NavigationRail {
     pub fn fab(
         mut self,
         icon: impl Into<String>,
-        on_click: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
+        on_click: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.fab = Some(RailFabEntry {
             icon: icon.into(),
@@ -265,7 +265,7 @@ impl NavigationRail {
     pub fn menu_icon(
         mut self,
         icon: impl Into<String>,
-        on_click: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
+        on_click: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.menu_icon = Some(RailMenuEntry {
             icon: icon.into(),
@@ -417,7 +417,7 @@ impl NavigationRail {
         }
 
         // Click handler
-        item_col = item_col.on_mouse_down(MouseButton::Left, entry.on_click);
+        item_col = item_col.on_pointer_down(MouseButton::Left, entry.on_click);
 
         item_col.into_any_element()
     }
@@ -462,7 +462,7 @@ impl IntoElement for NavigationRail {
                         .text_xl()
                         .text_color(rgb(t.on_surface_variant))
                         .child(menu.icon)
-                        .on_mouse_down(MouseButton::Left, menu.on_click),
+                        .on_pointer_down(MouseButton::Left, menu.on_click),
                 );
                 rail = rail.child(div().h(px(ITEM_GAP)));
             }
@@ -482,7 +482,7 @@ impl IntoElement for NavigationRail {
                         .text_2xl()
                         .cursor_pointer()
                         .child(fab_entry.icon)
-                        .on_mouse_down(MouseButton::Left, fab_entry.on_click),
+                        .on_pointer_down(MouseButton::Left, fab_entry.on_click),
                 );
                 rail = rail.child(div().h(px(TOP_PADDING)));
             }

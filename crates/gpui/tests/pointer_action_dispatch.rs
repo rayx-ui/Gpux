@@ -24,7 +24,7 @@ impl Render for PointerHarness {
         div()
             .w(px(100.))
             .h(px(100.))
-            .on_mouse_down(MouseButton::Left, move |_, _, _| {
+            .on_pointer_down(MouseButton::Left, move |_, _, _| {
                 raw_mouse_events.set(raw_mouse_events.get() + 1)
             })
             .on_action(move |_: &PointerAction, _, _| {
@@ -35,7 +35,7 @@ impl Render for PointerHarness {
                     .w(px(50.))
                     .h(px(50.))
                     .key_context("Inner")
-                    .on_mouse_down(MouseButton::Left, |_, _, _| {})
+                    .on_pointer_down(MouseButton::Left, |_, _, _| {})
                     .on_action(move |_: &PointerAction, _, _| {
                         inner_actions.set(inner_actions.get() + 1);
                     }),
@@ -50,7 +50,7 @@ impl Render for PointerHarness {
                     .top(px(0.))
                     .w(px(100.))
                     .h(px(100.))
-                    .on_mouse_down(MouseButton::Left, |_, _, _| {}),
+                    .on_pointer_down(MouseButton::Left, |_, _, _| {}),
             )
     }
 }

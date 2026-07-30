@@ -2,8 +2,8 @@
 
 use gpui_platform::application;
 use gpux::{
-    Background, Bounds, ColorSpace, Context, MouseDownEvent, Path, PathBuilder, PathStyle, Pixels,
-    Point, Render, StrokeOptions, Window, WindowOptions, canvas, div, linear_color_stop,
+    Background, Bounds, ColorSpace, Context, Path, PathBuilder, PathStyle, Pixels, Point,
+    PointerEvent, Render, StrokeOptions, Window, WindowOptions, canvas, div, linear_color_stop,
     linear_gradient, point, prelude::*, px, quad, rgb, size,
 };
 
@@ -408,16 +408,16 @@ impl Render for PaintingViewer {
                         )
                         .size_full(),
                     )
-                    .on_mouse_down(
+                    .on_pointer_down(
                         gpux::MouseButton::Left,
-                        cx.listener(|this, ev: &MouseDownEvent, _, _| {
+                        cx.listener(|this, ev: &PointerEvent, _, _| {
                             this._painting = true;
                             this.start = ev.position;
                             let path = vec![ev.position];
                             this.lines.push(path);
                         }),
                     )
-                    .on_mouse_move(cx.listener(|this, ev: &gpux::MouseMoveEvent, _, cx| {
+                    .on_pointer_move(cx.listener(|this, ev: &PointerEvent, _, cx| {
                         if !this._painting {
                             return;
                         }
@@ -441,7 +441,7 @@ impl Render for PaintingViewer {
 
                         cx.notify();
                     }))
-                    .on_mouse_up(
+                    .on_pointer_up(
                         gpux::MouseButton::Left,
                         cx.listener(|this, _, _, _| {
                             this._painting = false;
