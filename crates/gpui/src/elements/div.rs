@@ -401,6 +401,23 @@ impl Interactivity {
             }));
     }
 
+    /// Bind the given callback to scroll wheel events during the capture phase.
+    ///
+    /// See [`Context::listener`](crate::Context::listener) to get access to a view's state from this callback.
+    pub fn capture_scroll_wheel(
+        &mut self,
+        listener: impl Fn(&ScrollWheelEvent, &mut Window, &mut App) + 'static,
+    ) {
+        self.scroll_wheel_listeners
+            .push(Box::new(move |event, phase, hitbox, window, cx| {
+                if phase == DispatchPhase::Capture && hitbox.should_handle_scroll(window) {
+                    (listener)(event, window, cx);
+                } else {
+                    cx.propagate();
+                }
+            }));
+    }
+
     /// Bind the given callback to pinch gesture events during the bubble phase.
     ///
     /// See [`Context::listener`](crate::Context::listener) to get access to a view's state from this callback.
@@ -1148,6 +1165,18 @@ pub trait InteractiveElement: Sized {
         listener: impl Fn(&ScrollWheelEvent, &mut Window, &mut App) + 'static,
     ) -> Self {
         self.interactivity().on_scroll_wheel(listener);
+        self
+    }
+
+    /// Bind the given callback to scroll wheel events during the capture phase.
+    /// The fluent API equivalent to [`Interactivity::capture_scroll_wheel`].
+    ///
+    /// See [`Context::listener`](crate::Context::listener) to get access to a view's state from this callback.
+    fn capture_scroll_wheel(
+        mut self,
+        listener: impl Fn(&ScrollWheelEvent, &mut Window, &mut App) + 'static,
+    ) -> Self {
+        self.interactivity().capture_scroll_wheel(listener);
         self
     }
 
@@ -5861,6 +5890,45 @@ mod tests {
             Some(Bounds::new(point(px(0.), px(30.)), size(px(100.), px(20.)))),
             sticky_bounds
         );
+    }
+
+    struct ScrollCaptureOwner {
+        events: Rc<RefCell<Vec<&'static str>>>,
+    }
+
+    impl Render for ScrollCaptureOwner {
+        fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+            let capture_events = self.events.clone();
+            let bubble_events = self.events.clone();
+            div()
+                .size(px(100.))
+                .capture_scroll_wheel(move |_, _, _| {
+                    capture_events.borrow_mut().push("capture");
+                })
+                .child(div().size_full().on_scroll_wheel(move |_, _, _| {
+                    bubble_events.borrow_mut().push("bubble");
+                }))
+        }
+    }
+
+    #[test]
+    fn capture_scroll_wheel_runs_before_the_nested_bubble_listener() {
+        let mut test_app = TestAppContext::single();
+        let events = Rc::new(RefCell::new(Vec::new()));
+        let window = test_app.add_window({
+            let events = events.clone();
+            move |_, _| ScrollCaptureOwner { events }
+        });
+        let any_window = window.into();
+
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+            })
+            .unwrap();
+        dispatch_scroll_wheel(&mut test_app, any_window, point(px(50.), px(50.)), px(-40.));
+
+        assert_eq!(&["capture", "bubble"], events.borrow().as_slice());
     }
 
     #[test]
