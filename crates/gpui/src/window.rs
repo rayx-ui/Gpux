@@ -4568,6 +4568,7 @@ impl Window {
         let Some(event) = event.downcast_ref::<PointerEvent>() else {
             return;
         };
+        self.captured_hitbox = self.captured_hitboxes.get(&event.id).copied();
 
         match event.phase {
             crate::PointerPhase::Down => self.begin_mapped_pointer_gesture(event, cx),
