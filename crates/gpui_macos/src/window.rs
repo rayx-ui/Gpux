@@ -26,9 +26,9 @@ use dispatch2::DispatchQueue;
 use gpux::{
     AnyWindowHandle, BackgroundExecutor, Bounds, Capslock, CursorStyle, ExternalPaths,
     FileDropEvent, ForegroundExecutor, KeyDownEvent, Keystroke, Modifiers, ModifiersChangedEvent,
-    MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, PlatformAtlas,
-    PlatformDisplay, PlatformInput, PlatformInputHandler, PlatformWindow, Point, PromptButton,
-    PromptLevel, RequestFrameOptions, SharedString, Size, SystemWindowTab, WindowAppearance,
+    MouseButton, Pixels, PlatformAtlas, PlatformDisplay, PlatformInput, PlatformInputHandler,
+    PlatformWindow, Point, PointerEvent, PointerPhase, PromptButton, PromptLevel,
+    RequestFrameOptions, SharedString, Size, SystemWindowTab, WindowAppearance,
     WindowBackgroundAppearance, WindowBounds, WindowControlArea, WindowKind, WindowParams, point,
     px, size,
 };
@@ -2100,79 +2100,57 @@ extern "C" fn handle_view_event(this: &Object, _: Sel, native_event: id) {
         // AppKit unhides the cursor on the next mouse movement; mirror that here.
         if matches!(
             event,
-            PlatformInput::MouseMove(_)
-                | PlatformInput::MouseDown(_)
-                | PlatformInput::MouseUp(_)
-                | PlatformInput::MousePressure(_)
-                | PlatformInput::MouseExited(_)
+            PlatformInput::Pointer(_)
                 | PlatformInput::ScrollWheel(_)
                 | PlatformInput::Pinch(_)
                 | PlatformInput::Rotate(_)
-                | PlatformInput::Touch(_)
         ) {
             lock.cursor_visible.store(true, Ordering::Relaxed);
         }
 
         match &mut event {
-            PlatformInput::MouseDown(
-                event @ MouseDownEvent {
-                    button: MouseButton::Left,
-                    modifiers: Modifiers { control: true, .. },
-                    ..
-                },
-            ) => {
+            PlatformInput::Pointer(event)
+                if event.phase == PointerPhase::Down
+                    && event.button == MouseButton::Left
+                    && event.modifiers.control =>
+            {
                 // On mac, a ctrl-left click should be handled as a right click.
-                *event = MouseDownEvent {
-                    button: MouseButton::Right,
-                    modifiers: Modifiers {
-                        control: false,
-                        ..event.modifiers
-                    },
-                    click_count: 1,
-                    ..*event
-                };
+                event.button = MouseButton::Right;
+                event.pressed_button = Some(MouseButton::Right);
+                event.buttons.clear();
+                event.buttons.push(MouseButton::Right);
+                event.modifiers.control = false;
+                event.click_count = 1;
             }
 
             // Handles focusing click.
-            PlatformInput::MouseDown(
-                event @ MouseDownEvent {
-                    button: MouseButton::Left,
-                    ..
-                },
-            ) if (lock.first_mouse) => {
-                *event = MouseDownEvent {
-                    first_mouse: true,
-                    ..*event
-                };
+            PlatformInput::Pointer(event)
+                if event.phase == PointerPhase::Down
+                    && event.button == MouseButton::Left
+                    && lock.first_mouse =>
+            {
+                event.first_mouse = true;
                 lock.first_mouse = false;
             }
 
             // Because we map a ctrl-left_down to a right_down -> right_up let's ignore
             // the ctrl-left_up to avoid having a mismatch in button down/up events if the
             // user is still holding ctrl when releasing the left mouse button
-            PlatformInput::MouseUp(
-                event @ MouseUpEvent {
-                    button: MouseButton::Left,
-                    modifiers: Modifiers { control: true, .. },
-                    ..
-                },
-            ) => {
-                *event = MouseUpEvent {
-                    button: MouseButton::Right,
-                    modifiers: Modifiers {
-                        control: false,
-                        ..event.modifiers
-                    },
-                    click_count: 1,
-                    ..*event
-                };
+            PlatformInput::Pointer(event)
+                if event.phase == PointerPhase::Up
+                    && event.button == MouseButton::Left
+                    && event.modifiers.control =>
+            {
+                event.button = MouseButton::Right;
+                event.modifiers.control = false;
+                event.click_count = 1;
             }
 
             _ => {}
         };
 
         match &event {
-            PlatformInput::MouseDown(_) => {
+            PlatformInput::Pointer(event) if event.phase == PointerPhase::Down => {
                 drop(lock);
                 unsafe {
                     let input_context: id = msg_send![this, inputContext];
@@ -2180,12 +2158,9 @@ extern "C" fn handle_view_event(this: &Object, _: Sel, native_event: id) {
                 }
                 lock = window_state.as_ref().lock();
             }
-            PlatformInput::MouseMove(
-                event @ MouseMoveEvent {
-                    pressed_button: Some(_),
-                    ..
-                },
-            ) => {
+            PlatformInput::Pointer(event)
+                if event.phase == PointerPhase::Move && event.pressed_button.is_some() =>
+            {
                 // Synthetic drag is used for selecting long buffer contents while buffer is being scrolled.
                 // External file drag and drop is able to emit its own synthetic mouse events which will conflict
                 // with these ones.
@@ -2203,7 +2178,7 @@ extern "C" fn handle_view_event(this: &Object, _: Sel, native_event: id) {
                 }
             }
 
-            PlatformInput::MouseUp(MouseUpEvent { .. }) => {
+            PlatformInput::Pointer(event) if event.phase == PointerPhase::Up => {
                 lock.synthetic_drag_counter += 1;
             }
 
@@ -2791,7 +2766,7 @@ extern "C" fn conclude_drag_operation(this: &Object, _: Sel, _: id) {
 async fn synthetic_drag(
     window_state: Weak<Mutex<MacWindowState>>,
     drag_id: usize,
-    event: MouseMoveEvent,
+    event: PointerEvent,
     executor: BackgroundExecutor,
 ) {
     loop {
@@ -2801,7 +2776,7 @@ async fn synthetic_drag(
             if lock.synthetic_drag_counter == drag_id {
                 if let Some(mut callback) = lock.event_callback.take() {
                     drop(lock);
-                    callback(PlatformInput::MouseMove(event.clone()));
+                    callback(PlatformInput::Pointer(event.clone()));
                     window_state.lock().event_callback = Some(callback);
                 }
             } else {

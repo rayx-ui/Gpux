@@ -95,6 +95,8 @@ use android_activity::{AndroidApp, MainEvent, PollEvent};
 
 #[cfg(feature = "android-native-activity")]
 use super::platform::{AndroidPlatform, SharedPlatform};
+#[cfg(feature = "android-native-activity")]
+use super::window::AndroidWindow;
 
 use jni::JavaVM;
 use jni::objects::{JObject, JString, JValue};
@@ -570,6 +572,38 @@ fn process_input_events(app: &AndroidApp) {
     }
 }
 
+/// Queue the next display-synchronised frame. The raw `Arc` is consumed by the
+/// callback so the choreographer never observes a borrowed window.
+#[cfg(feature = "android-native-activity")]
+fn request_choreographer_frame(window: Arc<AndroidWindow>) {
+    let data = Arc::into_raw(window).cast_mut().cast::<c_void>();
+    // SAFETY: this runs on Android's native activity thread, which owns its
+    // ALooper. The callback reconstructs and consumes exactly this Arc pointer.
+    unsafe {
+        let choreographer = ndk_sys::AChoreographer_getInstance();
+        if choreographer.is_null() {
+            drop(Arc::from_raw(data.cast::<AndroidWindow>()));
+            return;
+        }
+        ndk_sys::AChoreographer_postFrameCallback(
+            choreographer,
+            Some(on_choreographer_frame),
+            data,
+        );
+    }
+}
+
+#[cfg(feature = "android-native-activity")]
+unsafe extern "C" fn on_choreographer_frame(_frame_time_nanos: libc::c_long, data: *mut c_void) {
+    // SAFETY: `request_choreographer_frame` created this pointer with
+    // `Arc::into_raw`, and this callback is invoked once by AChoreographer.
+    let window = unsafe { Arc::from_raw(data.cast::<AndroidWindow>()) };
+    window.request_frame();
+    if window.is_active() {
+        request_choreographer_frame(window);
+    }
+}
+
 // ── main event loop ───────────────────────────────────────────────────────────
 
 /// The event loop that processes `android-activity` events and drives the
@@ -621,12 +655,9 @@ pub fn run_event_loop(app: &AndroidApp) {
             platform.tick();
         }
 
-        // ── Poll for events (non-blocking) ──
-        //
-        // Non-blocking poll: process any pending events then immediately
-        // continue to rendering. No sleep — the GPU present call
-        // (get_current_texture / Mailbox) provides natural frame pacing.
-        app.poll_events(Some(Duration::ZERO), |event| match event {
+        // Block until the Android looper has real work. Rendering is driven by
+        // AChoreographer below, not by a polling/sleep loop.
+        app.poll_events(None, |event| match event {
             PollEvent::Main(main_event) => {
                 handle_main_event(app, main_event);
             }
@@ -775,6 +806,7 @@ pub fn run_event_loop(app: &AndroidApp) {
                 platform.did_become_active();
                 if let Some(win) = platform.primary_window() {
                     win.set_active(true);
+                    request_choreographer_frame(win);
                 }
             }
             // Resume platform views
@@ -819,34 +851,14 @@ pub fn run_event_loop(app: &AndroidApp) {
                     NATIVE_INITIALIZED.store(true, Ordering::Release);
                     log::info!("NATIVE_INITIALIZED = true");
 
-                    // Render first frame immediately.
+                    // The first frame is paced by the next display callback.
                     platform.flush_main_thread_tasks();
                     if let Some(win) = platform.primary_window() {
-                        win.request_frame();
+                        request_choreographer_frame(win);
                     }
                 }
             }
         }
-
-        // ── Render ──
-        if let Some(platform) = PLATFORM.get() {
-            if INIT_WINDOW_DONE.load(Ordering::Relaxed) && app_is_active {
-                platform.flush_main_thread_tasks();
-                if let Some(win) = platform.primary_window() {
-                    win.request_frame();
-                }
-
-                // Drain lifecycle events that arrived during rendering
-                // (e.g. rotation triggers TerminateWindow while we were
-                // in get_current_texture / present).
-                drain_events(app);
-                process_input_events(app);
-            }
-        }
-
-        // Yield CPU to avoid starving system threads and causing ANR.
-        // Keep this short — at 120Hz the frame budget is only 8.3ms.
-        std::thread::sleep(Duration::from_micros(500));
     }
 
     log::info!("run_event_loop: exiting main loop");

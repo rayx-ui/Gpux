@@ -1172,13 +1172,15 @@ impl X11Client {
                         let current_count = state.current_count;
 
                         drop(state);
-                        window.handle_input(PlatformInput::MouseDown(gpux::MouseDownEvent {
-                            button,
-                            position,
-                            modifiers,
-                            click_count: current_count,
-                            first_mouse: false,
-                        }));
+                        window.handle_input(PlatformInput::Pointer(
+                            gpux::PointerEvent::mouse_down(
+                                position,
+                                button,
+                                modifiers,
+                                current_count,
+                                false,
+                            ),
+                        ));
                     }
                     Some(ButtonOrScroll::Scroll(direction)) => {
                         drop(state);
@@ -1218,12 +1220,12 @@ impl X11Client {
                     Some(ButtonOrScroll::Button(button)) => {
                         let click_count = state.current_count;
                         drop(state);
-                        window.handle_input(PlatformInput::MouseUp(gpux::MouseUpEvent {
-                            button,
+                        window.handle_input(PlatformInput::Pointer(gpux::PointerEvent::mouse_up(
                             position,
+                            button,
                             modifiers,
                             click_count,
-                        }));
+                        )));
                     }
                     Some(ButtonOrScroll::Scroll(_)) => {}
                     None => {}
@@ -1270,11 +1272,11 @@ impl X11Client {
                 drop(state);
 
                 if event.valuator_mask[0] & 3 != 0 {
-                    window.handle_input(PlatformInput::MouseMove(gpux::MouseMoveEvent {
+                    window.handle_input(PlatformInput::Pointer(gpux::PointerEvent::mouse_move(
                         position,
                         pressed_button,
                         modifiers,
-                    }));
+                    )));
                 }
 
                 state = self.0.borrow_mut();
@@ -1313,10 +1315,9 @@ impl X11Client {
                 drop(state);
 
                 let window = self.get_window(event.event)?;
-                window.handle_input(PlatformInput::MouseExited(gpux::MouseExitEvent {
-                    pressed_button,
-                    position,
-                    modifiers,
+                window.handle_input(PlatformInput::Pointer(gpux::PointerEvent {
+                    phase: gpux::PointerPhase::Cancel,
+                    ..gpux::PointerEvent::mouse_move(position, pressed_button, modifiers)
                 }));
                 window.set_hovered(false);
             }

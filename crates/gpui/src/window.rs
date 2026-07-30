@@ -10,22 +10,22 @@ use crate::{
     EventEmitter, FileDropEvent, FontId, GestureMapSnapshot, GestureMapVersion, GestureRecognizer,
     Global, GlobalElementId, GlyphId, GpuSpecs, HtmlElementContentFit, HtmlElementInputMode,
     HtmlElementLifetime, HtmlElementPrimitive, HtmlElementWheelBehavior, HtmlIslandInputMode,
-    HtmlIslandPrimitive, InputHandler, IsZero, KeyBinding, KeyContext, KeyDownEvent, KeyEvent,
-    KeymapSnapshot, Keystroke, KeystrokeEvent, LayoutId, Length, LineLayoutIndex,
+    HtmlIslandPrimitive, InputEvent, InputHandler, IsZero, KeyBinding, KeyContext, KeyDownEvent,
+    KeyEvent, KeymapSnapshot, Keystroke, KeystrokeEvent, LayoutId, Length, LineLayoutIndex,
     MAX_ACTIVE_SCREEN_EFFECTS, MAX_SCREEN_EFFECT_SNAPSHOTS, Modifiers, ModifiersChangedEvent,
-    MonochromeSprite, MonochromeSpriteKind, MouseButton, MouseDownEvent, MouseEvent,
-    MouseMoveEvent, MouseUpEvent, Overflow, Path, Pixels, PlatformAtlas, PlatformDisplay,
-    PlatformInput, PlatformInputHandler, PlatformWindow, Point, PolychromeSprite, Position,
-    Priority, PromptButton, PromptLevel, Quad, RecognizedGesture, Render, RenderGlyphParams,
-    RenderImage, RenderImageParams, RenderSvgParams, Replay, ResizeEdge, SMOOTH_SVG_SCALE_FACTOR,
-    SUBPIXEL_VARIANTS_X, SUBPIXEL_VARIANTS_Y, ScaledPixels, Scene, ScreenEffect, ScreenEffectId,
-    ScreenEffectRegionId, ScreenEffectRegionPrimitive, ScreenEffectSnapshotId, ScreenEffectTarget,
-    ScrollWheelEvent, Shadow, SharedString, Size, StrikethroughStyle, Style, SubpixelSprite,
-    SubscriberSet, Subscription, SystemWindowTab, SystemWindowTabController, TabStopMap,
-    TaffyLayoutEngine, Task, TextRenderingMode, TextStyle, TextStyleRefinement, ThermalState,
-    TransformationMatrix, Underline, UnderlineStyle, VisualEffectPrimitive, WindowAppearance,
-    WindowBackgroundAppearance, WindowBounds, WindowControls, WindowDecorations, WindowOptions,
-    WindowParams, WindowTextSystem, point, prelude::*, px, rems, size, transparent_black,
+    MonochromeSprite, MonochromeSpriteKind, MouseButton, Overflow, Path, Pixels, PlatformAtlas,
+    PlatformDisplay, PlatformInput, PlatformInputHandler, PlatformWindow, Point, PointerEvent,
+    PointerId, PolychromeSprite, Position, Priority, PromptButton, PromptLevel, Quad,
+    RecognizedGesture, Render, RenderGlyphParams, RenderImage, RenderImageParams, RenderSvgParams,
+    Replay, ResizeEdge, SMOOTH_SVG_SCALE_FACTOR, SUBPIXEL_VARIANTS_X, SUBPIXEL_VARIANTS_Y,
+    ScaledPixels, Scene, ScreenEffect, ScreenEffectId, ScreenEffectRegionId,
+    ScreenEffectRegionPrimitive, ScreenEffectSnapshotId, ScreenEffectTarget, ScrollWheelEvent,
+    Shadow, SharedString, Size, StrikethroughStyle, Style, SubpixelSprite, SubscriberSet,
+    Subscription, SystemWindowTab, SystemWindowTabController, TabStopMap, TaffyLayoutEngine, Task,
+    TextRenderingMode, TextStyle, TextStyleRefinement, ThermalState, TransformationMatrix,
+    Underline, UnderlineStyle, VisualEffectPrimitive, WindowAppearance, WindowBackgroundAppearance,
+    WindowBounds, WindowControls, WindowDecorations, WindowOptions, WindowParams, WindowTextSystem,
+    point, prelude::*, px, rems, size, transparent_black,
 };
 use anyhow::{Context as _, Result, anyhow};
 use collections::{FxHashMap, FxHashSet};
@@ -754,7 +754,7 @@ pub enum HitboxBehavior {
     /// bubble-phase handler for every mouse event type:
     ///
     /// ```ignore
-    /// window.on_mouse_event(move |_: &EveryMouseEventTypeHere, phase, window, cx| {
+    /// window.on_pointer_event(move |_: &EveryMouseEventTypeHere, phase, window, cx| {
     ///     if phase == DispatchPhase::Capture && hitbox.is_hovered(window) {
     ///         cx.stop_propagation();
     ///     }
@@ -778,7 +778,7 @@ pub enum HitboxBehavior {
     /// bubble-phase handler for every mouse event type **except** `ScrollWheelEvent`:
     ///
     /// ```ignore
-    /// window.on_mouse_event(move |_: &EveryMouseEventTypeExceptScroll, phase, window, cx| {
+    /// window.on_pointer_event(move |_: &EveryMouseEventTypeExceptScroll, phase, window, cx| {
     ///     if phase == DispatchPhase::Bubble && hitbox.should_handle_scroll(window) {
     ///         cx.stop_propagation();
     ///     }
@@ -795,6 +795,10 @@ pub enum HitboxBehavior {
     /// inconsistent UI where clicks and moves interact with elements that are not considered to
     /// be hovered.
     BlockMouseExceptScroll,
+
+    /// The hitbox is absent from pointer hit testing while its layout, paint,
+    /// and semantics remain available.
+    Ignore,
 }
 
 /// An identifier for a tooltip.
@@ -971,10 +975,11 @@ impl WindowFrame {
             .hitboxes
             .iter()
             .filter(|hitbox| {
-                hitbox
-                    .bounds
-                    .intersect(&hitbox.content_mask.bounds)
-                    .contains(&position)
+                hitbox.behavior != HitboxBehavior::Ignore
+                    && hitbox
+                        .bounds
+                        .intersect(&hitbox.content_mask.bounds)
+                        .contains(&position)
             })
             .collect::<SmallVec<[_; 16]>>();
         hitboxes.sort_by_key(|hitbox| std::cmp::Reverse(hitbox.id.0));
@@ -1128,8 +1133,23 @@ pub struct DevtoolsSemantics {
     pub error_message: Option<String>,
     /// Stable authored ids of controls owned by this element.
     pub controls: Vec<String>,
+    /// Pointer operations exposed by this element without changing its label or value semantics.
+    pub pointer_actions: Vec<DevtoolsPointerAction>,
     /// Component-authored writable properties for live DevKit mutation.
     pub writable_properties: Vec<DevtoolsWritableProperty>,
+}
+
+/// A pointer operation exposed to accessibility and DevKit clients.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DevtoolsPointerAction {
+    /// Activates the element with a primary tap or click.
+    Activate,
+    /// Invokes the element's long-press affordance.
+    LongPress,
+    /// Starts a drag interaction.
+    Drag,
+    /// Changes an element's scale.
+    Scale,
 }
 
 impl DevtoolsSemantics {
@@ -1240,6 +1260,14 @@ impl DevtoolsSemantics {
         self
     }
 
+    /// Adds a pointer operation without changing the rest of this element's semantics.
+    pub fn pointer_action(mut self, action: DevtoolsPointerAction) -> Self {
+        if !self.pointer_actions.contains(&action) {
+            self.pointer_actions.push(action);
+        }
+        self
+    }
+
     /// Add a writable property exposed by the component.
     pub fn writable_property(
         mut self,
@@ -1304,6 +1332,11 @@ impl DevtoolsSemantics {
         }
         for id in other.controls {
             push_unique_string(&mut self.controls, id);
+        }
+        for action in other.pointer_actions {
+            if !self.pointer_actions.contains(&action) {
+                self.pointer_actions.push(action);
+            }
         }
         for property in other.writable_properties {
             if !self
@@ -1801,6 +1834,7 @@ pub enum PointerInteractionPhase {
 #[derive(Clone, Debug, PartialEq)]
 pub struct PointerInteractionOwner {
     id: PointerInteractionId,
+    pointer_id: PointerId,
     action_name: &'static str,
     action_invocation_id: u64,
     target: usize,
@@ -1816,6 +1850,11 @@ impl PointerInteractionOwner {
     /// Returns this interaction's window-local identifier.
     pub fn id(&self) -> PointerInteractionId {
         self.id
+    }
+
+    /// Returns the pointer sequence that owns this interaction.
+    pub fn pointer_id(&self) -> PointerId {
+        self.pointer_id
     }
 
     /// Returns the fully qualified name of the action that claimed the sequence.
@@ -1867,20 +1906,30 @@ impl PointerInteractionOwner {
 /// Bounded pointer-interaction diagnostics for a window.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct PointerInteractionDiagnostics {
-    active: Option<PointerInteractionOwner>,
-    last_terminal: Option<PointerInteractionOwner>,
+    active: FxHashMap<PointerId, PointerInteractionOwner>,
+    last_terminal: FxHashMap<PointerId, PointerInteractionOwner>,
     claim_conflict_count: u64,
 }
 
 impl PointerInteractionDiagnostics {
-    /// Returns the sole active owner, if a handled action claimed the sequence.
+    /// Returns the most recently created active owner, if one exists.
     pub fn active(&self) -> Option<&PointerInteractionOwner> {
-        self.active.as_ref()
+        self.active.values().max_by_key(|owner| owner.id().0)
+    }
+
+    /// Returns the active owner for one concrete pointer sequence.
+    pub fn active_for(&self, pointer_id: PointerId) -> Option<&PointerInteractionOwner> {
+        self.active.get(&pointer_id)
     }
 
     /// Returns the most recently completed or cancelled owner.
     pub fn last_terminal(&self) -> Option<&PointerInteractionOwner> {
-        self.last_terminal.as_ref()
+        self.last_terminal.values().max_by_key(|owner| owner.id().0)
+    }
+
+    /// Returns the latest terminal owner for one concrete pointer sequence.
+    pub fn last_terminal_for(&self, pointer_id: PointerId) -> Option<&PointerInteractionOwner> {
+        self.last_terminal.get(&pointer_id)
     }
 
     /// Returns the saturating count of rejected attempts to steal an active sequence.
@@ -1903,6 +1952,7 @@ pub enum PointerInteractionClaimError {
 }
 
 struct PendingMappedPointer {
+    pointer_id: PointerId,
     hitbox_id: HitboxId,
     target: DispatchNodeId,
     button: MouseButton,
@@ -1938,6 +1988,8 @@ pub struct Window {
     pub(crate) content_mask_stack: Vec<ContentMask<Pixels>>,
     scroll_container_context_stack: ScrollContainerContextStack,
     paint_content_mask_stack: Vec<ContentMask<ScaledPixels>>,
+    hitbox_behavior_overrides: Vec<HitboxBehavior>,
+    pointer_semantics_suppressed: usize,
     pub(crate) requested_autoscroll: Option<Bounds<Pixels>>,
     pub(crate) image_cache_stack: Vec<AnyImageCache>,
     pub(crate) rendered_frame: WindowFrame,
@@ -1991,10 +2043,15 @@ pub struct Window {
     /// The hitbox that has captured the pointer, if any.
     /// While captured, mouse events route to this hitbox regardless of hit testing.
     captured_hitbox: Option<HitboxId>,
+    captured_hitboxes: FxHashMap<PointerId, HitboxId>,
+    active_drags: FxHashMap<PointerId, AnyDrag>,
+    drag_feedback_composed_by_root: bool,
     next_pointer_interaction_id: u64,
+    pointer_interaction_owners: FxHashMap<PointerId, PointerInteractionOwner>,
     pointer_interaction_diagnostics: PointerInteractionDiagnostics,
-    pending_mapped_pointer: Option<PendingMappedPointer>,
+    pending_mapped_pointers: FxHashMap<PointerId, PendingMappedPointer>,
     gesture_recognizer: GestureRecognizer,
+    recognized_gesture_event: Option<PointerEvent>,
     #[cfg(any(feature = "inspector", debug_assertions))]
     inspector: Option<Entity<Inspector>>,
 }
@@ -2325,7 +2382,6 @@ impl Window {
             let needs_present = needs_present.clone();
             let next_frame_callbacks = next_frame_callbacks.clone();
             let input_rate_tracker = input_rate_tracker.clone();
-            let thermal_state = thermal_state.clone();
             move |request_frame_options| {
                 // Throttle frame rate based on conditions:
                 // - Thermal pressure (Serious/Critical): cap to ~60fps
@@ -2596,6 +2652,8 @@ impl Window {
             element_opacity: 1.0,
             element_transform_stack: Vec::new(),
             paint_content_mask_stack: Vec::new(),
+            hitbox_behavior_overrides: Vec::new(),
+            pointer_semantics_suppressed: 0,
             requested_autoscroll: None,
             rendered_frame: WindowFrame::new(DispatchTree::new(
                 cx.keymap.clone(),
@@ -2648,10 +2706,15 @@ impl Window {
             client_inset: None,
             image_cache_stack: Vec::new(),
             captured_hitbox: None,
+            captured_hitboxes: FxHashMap::default(),
+            active_drags: FxHashMap::default(),
+            drag_feedback_composed_by_root: false,
             next_pointer_interaction_id: 0,
+            pointer_interaction_owners: FxHashMap::default(),
             pointer_interaction_diagnostics: PointerInteractionDiagnostics::default(),
-            pending_mapped_pointer: None,
+            pending_mapped_pointers: FxHashMap::default(),
             gesture_recognizer: GestureRecognizer::default(),
+            recognized_gesture_event: None,
             #[cfg(any(feature = "inspector", debug_assertions))]
             inspector: None,
         })
@@ -2869,8 +2932,8 @@ impl Window {
 
     /// Close this window.
     pub fn remove_window(&mut self) {
-        self.cancel_pointer_interaction(PointerInteractionCancellationReason::WindowRemoved);
-        self.pending_mapped_pointer = None;
+        self.cancel_all_pointer_interactions(PointerInteractionCancellationReason::WindowRemoved);
+        self.pending_mapped_pointers.clear();
         self.gesture_recognizer.cancel();
         self.removed = true;
     }
@@ -3818,6 +3881,10 @@ impl Window {
         else {
             return;
         };
+        let mut semantics = semantics;
+        if self.pointer_semantics_suppressed != 0 {
+            semantics.pointer_actions.clear();
+        }
         element.semantics.merge(semantics);
     }
 
@@ -3924,20 +3991,30 @@ impl Window {
     ///
     /// The capture is automatically released on mouse up.
     pub fn capture_pointer(&mut self, hitbox_id: HitboxId) {
+        self.capture_pointer_for(PointerId::new(0), hitbox_id);
+    }
+
+    fn capture_pointer_for(&mut self, pointer_id: PointerId, hitbox_id: HitboxId) {
         if self
-            .active_pointer_interaction()
+            .pointer_interaction_owners
+            .get(&pointer_id)
             .is_some_and(|owner| owner.hitbox_id != hitbox_id)
         {
-            self.cancel_pointer_interaction(PointerInteractionCancellationReason::CaptureLost);
+            self.cancel_pointer_interaction_for(
+                pointer_id,
+                PointerInteractionCancellationReason::CaptureLost,
+            );
         }
+        self.captured_hitboxes.insert(pointer_id, hitbox_id);
         self.captured_hitbox = Some(hitbox_id);
     }
 
     /// Releases any active pointer capture.
     pub fn release_pointer(&mut self) {
-        self.cancel_pointer_interaction(PointerInteractionCancellationReason::CaptureLost);
+        self.cancel_all_pointer_interactions(PointerInteractionCancellationReason::CaptureLost);
         self.captured_hitbox = None;
-        self.pending_mapped_pointer = None;
+        self.captured_hitboxes.clear();
+        self.pending_mapped_pointers.clear();
         self.gesture_recognizer.cancel();
     }
 
@@ -3946,14 +4023,104 @@ impl Window {
         self.pointer_interaction_diagnostics.active()
     }
 
+    /// Returns the active owner for one concrete pointer sequence.
+    pub fn active_pointer_interaction_for(
+        &self,
+        pointer_id: PointerId,
+    ) -> Option<&PointerInteractionOwner> {
+        self.pointer_interaction_owners.get(&pointer_id)
+    }
+
+    /// Starts an independent drag operation for one pointer sequence.
+    pub fn start_drag(&mut self, pointer_id: PointerId, drag: AnyDrag) {
+        self.active_drags.insert(pointer_id, drag);
+        self.refresh();
+    }
+
+    /// Delegates drag feedback composition to the application's root view.
+    ///
+    /// GPUI continues to provide its built-in feedback rendering until this is enabled so
+    /// standalone GPUI applications retain their existing behavior.
+    pub fn compose_drag_feedback_in_root(&mut self) {
+        self.drag_feedback_composed_by_root = true;
+    }
+
+    /// Returns the feedback views and window-relative origins for active pointer drags.
+    pub fn drag_feedbacks(&self) -> Vec<(AnyView, Point<Pixels>)> {
+        self.active_drags
+            .values()
+            .map(|drag| (drag.view.clone(), drag.position - drag.cursor_offset))
+            .collect()
+    }
+
+    /// Returns the active drag for one pointer sequence.
+    pub(crate) fn active_drag_for(&self, pointer_id: PointerId) -> Option<&AnyDrag> {
+        self.active_drags.get(&pointer_id)
+    }
+
+    /// Returns whether this window owns at least one active drag operation.
+    pub(crate) fn has_active_drags(&self) -> bool {
+        !self.active_drags.is_empty()
+    }
+
+    /// Updates an active drag's pointer position.
+    pub(crate) fn update_drag_position(&mut self, pointer_id: PointerId, position: Point<Pixels>) {
+        if let Some(drag) = self.active_drags.get_mut(&pointer_id) {
+            drag.position = match drag.axis {
+                Some(crate::DragAxis::Horizontal) => point(position.x, drag.position.y),
+                Some(crate::DragAxis::Vertical) => point(drag.position.x, position.y),
+                None => position,
+            };
+            self.refresh();
+        }
+    }
+
+    /// Removes and returns the active drag for one pointer sequence.
+    pub(crate) fn take_active_drag(&mut self, pointer_id: PointerId) -> Option<AnyDrag> {
+        let drag = self.active_drags.remove(&pointer_id);
+        if drag.is_some() {
+            self.refresh();
+        }
+        drag
+    }
+
+    /// Completes one pointer drag and notifies its source after removing feedback.
+    pub(crate) fn finish_drag(
+        &mut self,
+        pointer_id: PointerId,
+        was_accepted: bool,
+        position: Point<Pixels>,
+        cx: &mut App,
+    ) {
+        if let Some(drag) = self.take_active_drag(pointer_id)
+            && let Some(callback) = drag.on_end
+        {
+            callback(pointer_id, was_accepted, position, self, cx);
+        }
+    }
+
     /// Returns the hitbox that has captured the pointer, if any.
     pub fn captured_hitbox(&self) -> Option<HitboxId> {
         self.captured_hitbox
     }
 
-    /// Returns bounded pointer-owner diagnostics: at most one active and one terminal owner.
+    /// Returns the capture retained by one concrete pointer sequence.
+    pub fn captured_hitbox_for(&self, pointer_id: PointerId) -> Option<HitboxId> {
+        self.captured_hitboxes.get(&pointer_id).copied()
+    }
+
+    /// Returns bounded pointer-owner diagnostics keyed by `PointerId`.
     pub fn pointer_interaction_diagnostics(&self) -> &PointerInteractionDiagnostics {
         &self.pointer_interaction_diagnostics
+    }
+
+    /// Returns the direct-pointer sample currently resolving a mapped gesture.
+    ///
+    /// The value exists only while the corresponding action handler runs. It
+    /// lets component-local action handlers create typed callback details
+    /// without maintaining a second recognizer or global pointer cache.
+    pub fn recognized_gesture_event(&self) -> Option<&PointerEvent> {
+        self.recognized_gesture_event.as_ref()
     }
 
     /// Claims the current pointer sequence from an explicitly handled pointer action.
@@ -3984,6 +4151,7 @@ impl Window {
             return Err(PointerInteractionClaimError::TargetMismatch);
         }
         self.claim_pointer_interaction_for_target(
+            PointerId::new(0),
             report,
             DispatchNodeId::from_usize(target),
             hitbox_id,
@@ -3996,6 +4164,7 @@ impl Window {
 
     fn claim_pointer_interaction_for_target(
         &mut self,
+        pointer_id: PointerId,
         report: &ActionDispatchReport,
         target: DispatchNodeId,
         hitbox_id: HitboxId,
@@ -4021,7 +4190,7 @@ impl Window {
         if !self.dispatch_target_contains(hitbox_target, target) {
             return Err(PointerInteractionClaimError::TargetMismatch);
         }
-        if let Some(active) = self.active_pointer_interaction() {
+        if let Some(active) = self.pointer_interaction_owners.get(&pointer_id) {
             let active_id = active.id;
             self.pointer_interaction_diagnostics.claim_conflict_count = self
                 .pointer_interaction_diagnostics
@@ -4032,8 +4201,9 @@ impl Window {
 
         let id = PointerInteractionId(self.next_pointer_interaction_id);
         self.next_pointer_interaction_id = self.next_pointer_interaction_id.saturating_add(1);
-        self.pointer_interaction_diagnostics.active = Some(PointerInteractionOwner {
+        let owner = PointerInteractionOwner {
             id,
+            pointer_id,
             action_name: report.invocation().action_name(),
             action_invocation_id: report.invocation().id(),
             target: target.as_usize(),
@@ -4043,19 +4213,42 @@ impl Window {
             current,
             gesture_revision,
             phase: PointerInteractionPhase::Active,
-        });
-        self.capture_pointer(hitbox_id);
+        };
+        self.pointer_interaction_diagnostics
+            .active
+            .insert(pointer_id, owner.clone());
+        self.pointer_interaction_owners.insert(pointer_id, owner);
+        self.capture_pointer_for(pointer_id, hitbox_id);
         Ok(id)
     }
 
     /// Completes the active owner exactly once and releases its capture.
     pub fn complete_pointer_interaction(&mut self) -> Option<PointerInteractionOwner> {
-        let mut owner = self.pointer_interaction_diagnostics.active.take()?;
+        self.complete_pointer_interaction_for(PointerId::new(0))
+    }
+
+    fn complete_pointer_interaction_for(
+        &mut self,
+        pointer_id: PointerId,
+    ) -> Option<PointerInteractionOwner> {
+        let mut owner = self.pointer_interaction_owners.remove(&pointer_id)?;
         owner.phase = PointerInteractionPhase::Completed;
-        if self.captured_hitbox == Some(owner.hitbox_id) {
+        if self.captured_hitboxes.remove(&pointer_id) == Some(owner.hitbox_id) {
             self.captured_hitbox = None;
         }
-        self.pointer_interaction_diagnostics.last_terminal = Some(owner.clone());
+        if self
+            .pointer_interaction_diagnostics
+            .active
+            .get(&pointer_id)
+            .is_some_and(|active| active.id == owner.id)
+        {
+            self.pointer_interaction_diagnostics
+                .active
+                .remove(&pointer_id);
+        }
+        self.pointer_interaction_diagnostics
+            .last_terminal
+            .insert(pointer_id, owner.clone());
         Some(owner)
     }
 
@@ -4064,40 +4257,77 @@ impl Window {
         &mut self,
         reason: PointerInteractionCancellationReason,
     ) -> Option<PointerInteractionOwner> {
-        let mut owner = self.pointer_interaction_diagnostics.active.take()?;
+        self.cancel_pointer_interaction_for(PointerId::new(0), reason)
+    }
+
+    fn cancel_pointer_interaction_for(
+        &mut self,
+        pointer_id: PointerId,
+        reason: PointerInteractionCancellationReason,
+    ) -> Option<PointerInteractionOwner> {
+        let mut owner = self.pointer_interaction_owners.remove(&pointer_id)?;
         owner.phase = PointerInteractionPhase::Cancelled(reason);
-        if self.captured_hitbox == Some(owner.hitbox_id) {
+        if self.captured_hitboxes.remove(&pointer_id) == Some(owner.hitbox_id) {
             self.captured_hitbox = None;
         }
-        self.pointer_interaction_diagnostics.last_terminal = Some(owner.clone());
+        if self
+            .pointer_interaction_diagnostics
+            .active
+            .get(&pointer_id)
+            .is_some_and(|active| active.id == owner.id)
+        {
+            self.pointer_interaction_diagnostics
+                .active
+                .remove(&pointer_id);
+        }
+        self.pointer_interaction_diagnostics
+            .last_terminal
+            .insert(pointer_id, owner.clone());
         Some(owner)
+    }
+
+    fn cancel_all_pointer_interactions(&mut self, reason: PointerInteractionCancellationReason) {
+        let pointer_ids = self
+            .pointer_interaction_owners
+            .keys()
+            .copied()
+            .collect::<Vec<_>>();
+        for pointer_id in pointer_ids {
+            self.cancel_pointer_interaction_for(pointer_id, reason);
+        }
     }
 
     fn reconcile_pointer_interaction(&mut self, cx: &App) {
         self.rebind_repainted_pointer_owner();
-        let Some(owner) = self.active_pointer_interaction() else {
-            return;
-        };
-        let reason = if owner.gesture_revision != cx.gesture_map.borrow().version() {
-            Some(PointerInteractionCancellationReason::ProfileReplaced)
-        } else if self.captured_hitbox != Some(owner.hitbox_id) {
-            Some(PointerInteractionCancellationReason::CaptureLost)
-        } else if self
-            .rendered_frame
-            .hitbox_dispatch_nodes
-            .get(&owner.hitbox_id)
-            .is_none_or(|target| {
-                !self.dispatch_target_contains(*target, DispatchNodeId::from_usize(owner.target))
-            })
-        {
-            Some(PointerInteractionCancellationReason::TargetRemoved)
-        } else {
-            None
-        };
-        if let Some(reason) = reason {
-            self.cancel_pointer_interaction(reason);
-            self.gesture_recognizer.cancel();
-            self.pending_mapped_pointer = None;
+        let pointer_ids = self
+            .pointer_interaction_owners
+            .keys()
+            .copied()
+            .collect::<Vec<_>>();
+        for pointer_id in pointer_ids {
+            let owner = &self.pointer_interaction_owners[&pointer_id];
+            let reason = if owner.gesture_revision != cx.gesture_map.borrow().version() {
+                Some(PointerInteractionCancellationReason::ProfileReplaced)
+            } else if self.captured_hitboxes.get(&pointer_id) != Some(&owner.hitbox_id) {
+                Some(PointerInteractionCancellationReason::CaptureLost)
+            } else if self
+                .rendered_frame
+                .hitbox_dispatch_nodes
+                .get(&owner.hitbox_id)
+                .is_none_or(|target| {
+                    !self
+                        .dispatch_target_contains(*target, DispatchNodeId::from_usize(owner.target))
+                })
+            {
+                Some(PointerInteractionCancellationReason::TargetRemoved)
+            } else {
+                None
+            };
+            if let Some(reason) = reason {
+                self.cancel_pointer_interaction_for(pointer_id, reason);
+                self.gesture_recognizer.cancel_pointer(pointer_id);
+                self.pending_mapped_pointers.remove(&pointer_id);
+            }
         }
     }
 
@@ -4142,24 +4372,39 @@ impl Window {
     }
 
     fn rebind_repainted_pointer_owner(&mut self) {
-        let Some(owner) = self.active_pointer_interaction() else {
-            return;
-        };
-        if self.captured_hitbox != Some(owner.hitbox_id)
-            || self.hitbox_descends_from(owner.hitbox_id, DispatchNodeId::from_usize(owner.target))
-        {
-            return;
+        let pointer_ids = self
+            .pointer_interaction_owners
+            .keys()
+            .copied()
+            .collect::<Vec<_>>();
+        for pointer_id in pointer_ids {
+            let owner = &self.pointer_interaction_owners[&pointer_id];
+            if self.captured_hitboxes.get(&pointer_id) != Some(&owner.hitbox_id)
+                || self
+                    .hitbox_descends_from(owner.hitbox_id, DispatchNodeId::from_usize(owner.target))
+            {
+                continue;
+            }
+            let retained_target = DispatchNodeId::from_usize(owner.target);
+            let Some(hitbox_id) = self.hitbox_for_retained_target(owner.start, retained_target)
+            else {
+                continue;
+            };
+            if let Some(owner) = self.pointer_interaction_owners.get_mut(&pointer_id) {
+                owner.hitbox_id = hitbox_id;
+                if self
+                    .pointer_interaction_diagnostics
+                    .active
+                    .get(&pointer_id)
+                    .is_some_and(|active| active.id == owner.id)
+                {
+                    self.pointer_interaction_diagnostics
+                        .active
+                        .insert(pointer_id, owner.clone());
+                }
+            }
+            self.captured_hitboxes.insert(pointer_id, hitbox_id);
         }
-        let retained_target = DispatchNodeId::from_usize(owner.target);
-        let Some(hitbox_id) = self.hitbox_for_retained_target(owner.start, retained_target) else {
-            return;
-        };
-        self.pointer_interaction_diagnostics
-            .active
-            .as_mut()
-            .expect("pointer owner remains active")
-            .hitbox_id = hitbox_id;
-        self.captured_hitbox = Some(hitbox_id);
     }
 
     fn gesture_handler(
@@ -4202,10 +4447,16 @@ impl Window {
             .collect()
     }
 
-    fn gesture_target(&self, snapshot: &GestureMapSnapshot) -> Option<(HitboxId, DispatchNodeId)> {
+    fn gesture_target(
+        &self,
+        pointer_id: PointerId,
+        snapshot: &GestureMapSnapshot,
+    ) -> Option<(HitboxId, DispatchNodeId)> {
         let mut selected = None;
         for hitbox_id in self
-            .captured_hitbox
+            .captured_hitboxes
+            .get(&pointer_id)
+            .copied()
             .into_iter()
             .chain(self.mouse_hit_test.ids.iter().copied())
         {
@@ -4236,17 +4487,17 @@ impl Window {
         selected.map(|(hitbox_id, target, _)| (hitbox_id, target))
     }
 
-    fn begin_mapped_pointer_gesture(&mut self, event: &MouseDownEvent, cx: &mut App) {
-        if self.active_pointer_interaction().is_some() {
+    fn begin_mapped_pointer_gesture(&mut self, event: &PointerEvent, cx: &mut App) {
+        if self.pointer_interaction_owners.contains_key(&event.id) {
             return;
         }
-        self.pending_mapped_pointer = None;
-        self.gesture_recognizer.cancel();
+        self.pending_mapped_pointers.remove(&event.id);
+        self.gesture_recognizer.cancel_pointer(event.id);
         let (snapshot, revision) = {
             let map = cx.gesture_map.borrow();
             (map.snapshot(), map.version())
         };
-        let Some((hitbox_id, target)) = self.gesture_target(&snapshot) else {
+        let Some((hitbox_id, target)) = self.gesture_target(event.id, &snapshot) else {
             return;
         };
         let contexts = self.gesture_contexts(target);
@@ -4255,15 +4506,38 @@ impl Window {
                 .dispatch_tree
                 .is_action_available(action, target)
         });
-        self.pending_mapped_pointer = Some(PendingMappedPointer {
-            hitbox_id,
-            target,
-            button: event.button,
-            start: event.position,
-            gesture_revision: revision,
-        });
+        self.pending_mapped_pointers.insert(
+            event.id,
+            PendingMappedPointer {
+                pointer_id: event.id,
+                hitbox_id,
+                target,
+                button: event.button,
+                start: event.position,
+                gesture_revision: revision,
+            },
+        );
         self.gesture_recognizer
-            .mouse_down(event, snapshot, revision, target.as_usize());
+            .pointer_down(event, snapshot, revision, target.as_usize());
+        let pointer_id = event.id;
+        let Some(delay) = self.gesture_recognizer.long_press_delay(pointer_id) else {
+            return;
+        };
+        self.spawn(cx, async move |cx| {
+            cx.background_executor().timer(delay).await;
+            cx.update(move |window, cx| {
+                let Some(gesture) = window
+                    .gesture_recognizer
+                    .advance_time_for(pointer_id, Instant::now())
+                else {
+                    return;
+                };
+                window.pending_mapped_pointers.remove(&pointer_id);
+                window.dispatch_recognized_gesture(gesture, cx);
+            })
+            .log_err();
+        })
+        .detach();
     }
 
     fn recognize_mapped_wheel(&mut self, event: &ScrollWheelEvent, cx: &mut App) {
@@ -4271,7 +4545,7 @@ impl Window {
             let map = cx.gesture_map.borrow();
             (map.snapshot(), map.version())
         };
-        let Some((_, target)) = self.gesture_target(&snapshot) else {
+        let Some((_, target)) = self.gesture_target(PointerId::new(0), &snapshot) else {
             return;
         };
         let contexts = self.gesture_contexts(target);
@@ -4291,70 +4565,74 @@ impl Window {
     fn recognize_mapped_pointer_before_raw(&mut self, event: &dyn Any, cx: &mut App) {
         self.reconcile_pointer_interaction(cx);
 
-        if let Some(event) = event.downcast_ref::<MouseDownEvent>() {
-            self.begin_mapped_pointer_gesture(event, cx);
+        let Some(event) = event.downcast_ref::<PointerEvent>() else {
             return;
-        }
+        };
+        self.captured_hitbox = self.captured_hitboxes.get(&event.id).copied();
 
-        if let Some(event) = event.downcast_ref::<MouseMoveEvent>() {
-            if let Some(owner) = self.pointer_interaction_diagnostics.active.as_mut() {
-                owner.current = event.position;
-                return;
-            }
+        match event.phase {
+            crate::PointerPhase::Down => self.begin_mapped_pointer_gesture(event, cx),
+            crate::PointerPhase::Move | crate::PointerPhase::Hover => {
+                if let Some(owner) = self.pointer_interaction_owners.get_mut(&event.id) {
+                    owner.current = event.position;
+                    return;
+                }
 
-            let Some(gesture) = self.gesture_recognizer.mouse_move(event) else {
-                return;
-            };
-            let candidate = self
-                .pending_mapped_pointer
-                .take()
-                .and_then(|mut candidate| {
-                    if self
-                        .rendered_frame
-                        .hitbox_dispatch_nodes
-                        .get(&candidate.hitbox_id)
-                        != Some(&candidate.target)
-                    {
-                        candidate.hitbox_id =
-                            self.hitbox_for_retained_target(candidate.start, candidate.target)?;
-                    }
-                    Some(candidate)
-                });
-            let Some(candidate) = candidate else {
-                self.gesture_recognizer.cancel();
-                return;
-            };
-            let (report, handled_target) =
-                self.dispatch_recognized_gesture_with_handler(gesture, cx);
-            if report.outcome() == ActionDispatchOutcome::Handled
-                && report.invocation().target() == Some(candidate.target.as_usize())
-            {
-                let _ = handled_target.map_or(
-                    Err(PointerInteractionClaimError::TargetMismatch),
-                    |handled_target| {
-                        self.claim_pointer_interaction_for_target(
-                            &report,
-                            handled_target,
-                            candidate.hitbox_id,
-                            candidate.button,
-                            candidate.start,
-                            event.position,
-                            candidate.gesture_revision,
-                        )
-                    },
-                );
+                let Some(gesture) = self.gesture_recognizer.pointer_move(event) else {
+                    return;
+                };
+                let candidate =
+                    self.pending_mapped_pointers
+                        .remove(&event.id)
+                        .and_then(|mut candidate| {
+                            if self
+                                .rendered_frame
+                                .hitbox_dispatch_nodes
+                                .get(&candidate.hitbox_id)
+                                != Some(&candidate.target)
+                            {
+                                candidate.hitbox_id = self.hitbox_for_retained_target(
+                                    candidate.start,
+                                    candidate.target,
+                                )?;
+                            }
+                            Some(candidate)
+                        });
+                let Some(candidate) = candidate else {
+                    self.gesture_recognizer.cancel_pointer(event.id);
+                    return;
+                };
+                let (report, handled_target) =
+                    self.dispatch_recognized_gesture_with_handler(gesture, cx);
+                if report.outcome() == ActionDispatchOutcome::Handled
+                    && report.invocation().target() == Some(candidate.target.as_usize())
+                {
+                    let _ = handled_target.map_or(
+                        Err(PointerInteractionClaimError::TargetMismatch),
+                        |handled_target| {
+                            self.claim_pointer_interaction_for_target(
+                                candidate.pointer_id,
+                                &report,
+                                handled_target,
+                                candidate.hitbox_id,
+                                candidate.button,
+                                candidate.start,
+                                event.position,
+                                candidate.gesture_revision,
+                            )
+                        },
+                    );
+                }
             }
-            return;
-        }
-
-        if let Some(event) = event.downcast_ref::<MouseUpEvent>() {
-            if let Some(owner) = self.pointer_interaction_diagnostics.active.as_mut() {
-                owner.current = event.position;
-            } else if let Some(gesture) = self.gesture_recognizer.mouse_up(event) {
-                self.dispatch_recognized_gesture(gesture, cx);
+            crate::PointerPhase::Up | crate::PointerPhase::Cancel => {
+                if let Some(owner) = self.pointer_interaction_owners.get_mut(&event.id) {
+                    owner.current = event.position;
+                } else if let Some(gesture) = self.gesture_recognizer.pointer_up(event) {
+                    self.dispatch_recognized_gesture(gesture, cx);
+                }
+                self.pending_mapped_pointers.remove(&event.id);
+                self.gesture_recognizer.cancel_pointer(event.id);
             }
-            self.pending_mapped_pointer = None;
-            return;
         }
     }
 
@@ -4371,8 +4649,10 @@ impl Window {
         gesture: RecognizedGesture,
         cx: &mut App,
     ) -> (ActionDispatchReport, Option<DispatchNodeId>) {
+        let previous_event =
+            std::mem::replace(&mut self.recognized_gesture_event, gesture.event().cloned());
         let node_id = DispatchNodeId::from_usize(gesture.target());
-        if node_id.as_usize() < self.rendered_frame.dispatch_tree.len() {
+        let result = if node_id.as_usize() < self.rendered_frame.dispatch_tree.len() {
             self.dispatch_action_on_node_from_with_handler(
                 node_id,
                 ActionInvocationSource::Pointer,
@@ -4390,7 +4670,9 @@ impl Window {
                 ),
                 None,
             )
-        }
+        };
+        self.recognized_gesture_event = previous_event;
+        result
     }
 
     /// The current state of the keyboard's modifiers
@@ -4572,7 +4854,7 @@ impl Window {
         // redraw delivery. Refreshing from the live platform cursor here keeps hover visuals,
         // overlay scrollbars, and drag affordances anchored to the latest pointer position even
         // when intermediate move messages are dropped.
-        if self.is_window_hovered() || cx.active_drag.is_some() || self.captured_hitbox.is_some() {
+        if self.is_window_hovered() || self.has_active_drags() || self.captured_hitbox.is_some() {
             self.mouse_position = self.platform_window.mouse_position();
             self.modifiers = self.platform_window.modifiers();
             self.capslock = self.platform_window.capslock();
@@ -4610,19 +4892,24 @@ impl Window {
         self.prepaint_deferred_draws(cx);
 
         let mut prompt_element = None;
-        let mut active_drag_element = None;
+        let mut active_drag_elements = Vec::new();
         let mut tooltip_element = None;
         if let Some(prompt) = self.prompt.take() {
             let mut element = prompt.view.any_view().into_any();
             element.prepaint_as_root(Point::default(), root_size.into(), self, cx);
             prompt_element = Some(element);
             self.prompt = Some(prompt);
-        } else if let Some(active_drag) = cx.active_drag.take() {
-            let mut element = active_drag.view.clone().into_any();
-            let offset = self.mouse_position() - active_drag.cursor_offset;
-            element.prepaint_as_root(offset, AvailableSpace::min_size(), self, cx);
-            active_drag_element = Some(element);
-            cx.active_drag = Some(active_drag);
+        } else if !self.active_drags.is_empty() && !self.drag_feedback_composed_by_root {
+            let drags = self
+                .active_drags
+                .values()
+                .map(|drag| (drag.view.clone(), drag.position - drag.cursor_offset))
+                .collect::<Vec<_>>();
+            for (view, offset) in drags {
+                let mut element = view.into_any();
+                element.prepaint_as_root(offset, AvailableSpace::min_size(), self, cx);
+                active_drag_elements.push(element);
+            }
         } else {
             tooltip_element = self.prepaint_tooltip(cx);
         }
@@ -4642,8 +4929,10 @@ impl Window {
 
         if let Some(mut prompt_element) = prompt_element {
             prompt_element.paint(self, cx);
-        } else if let Some(mut drag_element) = active_drag_element {
-            drag_element.paint(self, cx);
+        } else if !active_drag_elements.is_empty() {
+            for mut drag_element in active_drag_elements {
+                drag_element.paint(self, cx);
+            }
         } else if let Some(mut tooltip_element) = tooltip_element {
             tooltip_element.paint(self, cx);
         }
@@ -6511,6 +6800,27 @@ impl Window {
         bounds
     }
 
+    /// Applies a hitbox behavior to every hitbox inserted while `f` prepaints
+    /// an element subtree.
+    pub fn with_subtree_hitbox_behavior<T>(
+        &mut self,
+        behavior: HitboxBehavior,
+        f: impl FnOnce(&mut Self) -> T,
+    ) -> T {
+        self.hitbox_behavior_overrides.push(behavior);
+        let result = f(self);
+        self.hitbox_behavior_overrides.pop();
+        result
+    }
+
+    /// Removes only pointer operations from semantics authored while `f` paints.
+    pub fn with_pointer_semantics_suppressed<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> T {
+        self.pointer_semantics_suppressed += 1;
+        let result = f(self);
+        self.pointer_semantics_suppressed -= 1;
+        result
+    }
+
     /// This method should be called during `prepaint`. You can use
     /// the returned [Hitbox] during `paint` or in an event handler
     /// to determine whether the inserted hitbox was the topmost.
@@ -6559,6 +6869,11 @@ impl Window {
         bounds: Bounds<Pixels>,
         behavior: HitboxBehavior,
     ) -> Hitbox {
+        let behavior = self
+            .hitbox_behavior_overrides
+            .last()
+            .copied()
+            .unwrap_or(behavior);
         let content_mask = self.content_mask();
         let hitbox = Hitbox {
             id,
@@ -6674,7 +6989,7 @@ impl Window {
     /// the listener will be cleared.
     ///
     /// This method should only be called as part of the paint phase of element drawing.
-    pub fn on_mouse_event<Event: MouseEvent>(
+    pub fn on_pointer_event<Event: InputEvent>(
         &mut self,
         mut listener: impl FnMut(&Event, DispatchPhase, &mut Window, &mut App) + 'static,
     ) {
@@ -6856,7 +7171,7 @@ impl Window {
             .unwrap_or_else(|| action.name().to_string())
     }
 
-    /// Dispatch a mouse or keyboard event on the window.
+    /// Dispatch a platform input event on the window.
     #[profiling::function]
     pub fn dispatch_event(&mut self, event: PlatformInput, cx: &mut App) -> DispatchEventResult {
         #[cfg(feature = "input-latency-histogram")]
@@ -6868,9 +7183,7 @@ impl Window {
         let old_modality = self.last_input_modality;
         self.last_input_modality = match &event {
             PlatformInput::KeyDown(_) => InputModality::Keyboard,
-            PlatformInput::MouseMove(_) | PlatformInput::MouseDown(_) | PlatformInput::Touch(_) => {
-                InputModality::Mouse
-            }
+            PlatformInput::Pointer(_) => InputModality::Mouse,
             _ => self.last_input_modality,
         };
         if self.last_input_modality != old_modality {
@@ -6883,34 +7196,20 @@ impl Window {
         self.default_prevented = false;
 
         let event = match event {
-            // Track the mouse position with our own state, since accessing the platform
-            // API for the mouse position can only occur on the main thread.
-            PlatformInput::MouseMove(mouse_move) => {
-                self.mouse_position = mouse_move.position;
-                self.modifiers = mouse_move.modifiers;
-                self.pressed_mouse_button = mouse_move.pressed_button;
-                PlatformInput::MouseMove(mouse_move)
-            }
-            PlatformInput::MouseDown(mouse_down) => {
-                self.mouse_position = mouse_down.position;
-                self.modifiers = mouse_down.modifiers;
-                self.pressed_mouse_button = Some(mouse_down.button);
-                PlatformInput::MouseDown(mouse_down)
-            }
-            PlatformInput::MouseUp(mouse_up) => {
-                self.mouse_position = mouse_up.position;
-                self.modifiers = mouse_up.modifiers;
-                if self.pressed_mouse_button == Some(mouse_up.button) {
-                    self.pressed_mouse_button = None;
+            PlatformInput::Pointer(pointer) => {
+                self.mouse_position = pointer.position;
+                self.modifiers = pointer.modifiers;
+                self.captured_hitbox = self.captured_hitboxes.get(&pointer.id).copied();
+                match pointer.phase {
+                    crate::PointerPhase::Down => self.pressed_mouse_button = Some(pointer.button),
+                    crate::PointerPhase::Up | crate::PointerPhase::Cancel
+                        if self.pressed_mouse_button == Some(pointer.button) =>
+                    {
+                        self.pressed_mouse_button = None;
+                    }
+                    _ => {}
                 }
-                PlatformInput::MouseUp(mouse_up)
-            }
-            PlatformInput::MousePressure(mouse_pressure) => {
-                PlatformInput::MousePressure(mouse_pressure)
-            }
-            PlatformInput::MouseExited(mouse_exited) => {
-                self.modifiers = mouse_exited.modifiers;
-                PlatformInput::MouseExited(mouse_exited)
+                PlatformInput::Pointer(pointer)
             }
             PlatformInput::ModifiersChanged(modifiers_changed) => {
                 self.modifiers = modifiers_changed.modifiers;
@@ -6932,58 +7231,74 @@ impl Window {
                 self.modifiers = rotate.modifiers;
                 PlatformInput::Rotate(rotate)
             }
-            PlatformInput::Touch(touch) => {
-                self.mouse_position = touch.position;
-                self.modifiers = touch.modifiers;
-                PlatformInput::Touch(touch)
-            }
             // Translate dragging and dropping of external files from the operating system
             // to internal drag and drop events.
             PlatformInput::FileDrop(file_drop) => match file_drop {
                 FileDropEvent::Entered { position, paths } => {
                     self.mouse_position = position;
-                    if cx.active_drag.is_none() {
-                        cx.active_drag = Some(AnyDrag {
-                            value: Arc::new(paths.clone()),
-                            view: cx.new(|_| paths).into(),
-                            cursor_offset: position,
-                            cursor_style: None,
-                        });
+                    if !self.has_active_drags() {
+                        self.start_drag(
+                            crate::PointerId::new(0),
+                            AnyDrag {
+                                value: Arc::new(paths.clone()),
+                                view: cx.new(|_| paths).into(),
+                                cursor_offset: position,
+                                position,
+                                axis: None,
+                                on_end: None,
+                                cursor_style: None,
+                            },
+                        );
                     }
-                    PlatformInput::MouseMove(MouseMoveEvent {
-                        position,
+                    PlatformInput::Pointer(PointerEvent {
                         pressed_button: Some(MouseButton::Left),
-                        modifiers: Modifiers::default(),
+                        ..PointerEvent::new(
+                            crate::PointerId::new(0),
+                            crate::PointerKind::Mouse,
+                            crate::PointerPhase::Move,
+                            position,
+                            Modifiers::default(),
+                        )
                     })
                 }
                 FileDropEvent::Pending { position } => {
                     self.mouse_position = position;
-                    PlatformInput::MouseMove(MouseMoveEvent {
-                        position,
+                    PlatformInput::Pointer(PointerEvent {
                         pressed_button: Some(MouseButton::Left),
-                        modifiers: Modifiers::default(),
+                        ..PointerEvent::new(
+                            crate::PointerId::new(0),
+                            crate::PointerKind::Mouse,
+                            crate::PointerPhase::Move,
+                            position,
+                            Modifiers::default(),
+                        )
                     })
                 }
                 FileDropEvent::Submit { position } => {
                     cx.activate(true);
                     self.mouse_position = position;
-                    PlatformInput::MouseUp(MouseUpEvent {
+                    PlatformInput::Pointer(PointerEvent {
                         button: MouseButton::Left,
-                        position,
-                        modifiers: Modifiers::default(),
                         click_count: 1,
+                        ..PointerEvent::new(
+                            crate::PointerId::new(0),
+                            crate::PointerKind::Mouse,
+                            crate::PointerPhase::Up,
+                            position,
+                            Modifiers::default(),
+                        )
                     })
                 }
                 FileDropEvent::Exited => {
-                    cx.active_drag.take();
+                    self.take_active_drag(crate::PointerId::new(0));
                     PlatformInput::FileDrop(FileDropEvent::Exited)
                 }
             },
             PlatformInput::KeyDown(_) | PlatformInput::KeyUp(_) => event,
         };
 
-        if let Some(any_mouse_event) = event.mouse_event() {
-            self.dispatch_mouse_event(any_mouse_event, cx);
+        if let Some(any_input_event) = event.input_event() {
+            self.dispatch_input_event(any_input_event, cx);
         } else if let Some(any_key_event) = event.keyboard_event() {
             self.dispatch_key_event(any_key_event, cx);
         }
@@ -7004,7 +7319,7 @@ impl Window {
         }
     }
 
-    fn dispatch_mouse_event(&mut self, event: &dyn Any, cx: &mut App) {
+    fn dispatch_input_event(&mut self, event: &dyn Any, cx: &mut App) {
         let hit_test = self.rendered_frame.hit_test(self.mouse_position());
         if hit_test != self.mouse_hit_test {
             self.mouse_hit_test = hit_test;
@@ -7058,26 +7373,33 @@ impl Window {
             self.recognize_mapped_wheel(event, cx);
         }
 
-        if cx.has_active_drag() {
-            if event.is::<MouseMoveEvent>() {
-                // If this was a mouse move event, redraw the window so that the
-                // active drag can follow the mouse cursor.
-                self.refresh();
-            } else if event.is::<MouseUpEvent>() {
-                // If this was a mouse up event, cancel the active drag and redraw
-                // the window.
-                cx.active_drag = None;
-                self.refresh();
+        if let Some(event) = event.downcast_ref::<PointerEvent>() {
+            if matches!(
+                event.phase,
+                crate::PointerPhase::Move | crate::PointerPhase::Hover
+            ) {
+                self.update_drag_position(event.id, event.position);
+            } else if matches!(
+                event.phase,
+                crate::PointerPhase::Up | crate::PointerPhase::Cancel
+            ) {
+                self.finish_drag(event.id, false, event.position, cx);
             }
         }
 
-        if let Some(event) = event.downcast_ref::<MouseUpEvent>() {
+        if let Some(event) = event.downcast_ref::<PointerEvent>()
+            && matches!(
+                event.phase,
+                crate::PointerPhase::Up | crate::PointerPhase::Cancel
+            )
+        {
             if self
-                .active_pointer_interaction()
+                .pointer_interaction_owners
+                .get(&event.id)
                 .is_some_and(|owner| owner.button == event.button)
             {
-                self.complete_pointer_interaction();
-            } else if self.captured_hitbox.is_some() {
+                self.complete_pointer_interaction_for(event.id);
+            } else if self.captured_hitboxes.remove(&event.id).is_some() {
                 // Preserve the historical auto-release behavior for explicit captures that are
                 // not owned by the mapped pointer state machine.
                 self.captured_hitbox = None;
@@ -8147,7 +8469,7 @@ impl Window {
         let Some(inspector) = self.inspector.clone() else {
             return;
         };
-        if event.downcast_ref::<MouseMoveEvent>().is_some() {
+        if event.downcast_ref::<PointerEvent>().is_some() {
             inspector.update(cx, |inspector, _cx| {
                 if let Some((_, inspector_id)) =
                     self.hovered_inspector_hitbox(inspector, &self.rendered_frame)
@@ -8155,7 +8477,7 @@ impl Window {
                     inspector.hover(inspector_id, self);
                 }
             });
-        } else if event.downcast_ref::<crate::MouseDownEvent>().is_some() {
+        } else if event.downcast_ref::<crate::PointerEvent>().is_some() {
             inspector.update(cx, |inspector, _cx| {
                 if let Some((_, inspector_id)) =
                     self.hovered_inspector_hitbox(inspector, &self.rendered_frame)
@@ -8223,11 +8545,8 @@ impl Window {
     /// which will trigger hover states and tooltips.
     #[cfg(any(test, feature = "test-support"))]
     pub fn simulate_mouse_move(&mut self, position: Point<Pixels>, cx: &mut App) {
-        let event = PlatformInput::MouseMove(MouseMoveEvent {
-            position,
-            modifiers: self.modifiers,
-            pressed_button: None,
-        });
+        let event =
+            PlatformInput::Pointer(PointerEvent::mouse_move(position, None, self.modifiers));
         let _ = self.dispatch_event(event, cx);
     }
 }

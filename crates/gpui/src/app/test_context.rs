@@ -2,10 +2,10 @@ use crate::{
     Action, AnyView, AnyWindowHandle, App, AppCell, AppContext, AsyncApp, AvailableSpace,
     BackgroundExecutor, BorrowAppContext, Bounds, Capslock, ClipboardItem, DrawPhase, Drawable,
     Element, Empty, EntityId, EventEmitter, ForegroundExecutor, Global, InputEvent, Keystroke,
-    Modifiers, ModifiersChangedEvent, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent,
-    Pixels, Platform, Point, Render, Result, Size, Task, TestDispatcher, TestPlatform,
-    TestScreenCaptureSource, TestWindow, TextSystem, VisualContext, Window, WindowBounds,
-    WindowHandle, WindowOptions, app::GpuiMode, window::ElementArenaScope,
+    Modifiers, ModifiersChangedEvent, MouseButton, Pixels, Platform, Point, PointerEvent, Render,
+    Result, Size, Task, TestDispatcher, TestPlatform, TestScreenCaptureSource, TestWindow,
+    TextSystem, VisualContext, Window, WindowBounds, WindowHandle, WindowOptions, app::GpuiMode,
+    window::ElementArenaScope,
 };
 use anyhow::{anyhow, bail};
 use futures::{Stream, StreamExt, channel::oneshot};
@@ -767,11 +767,7 @@ impl VisualTestContext {
         button: impl Into<Option<MouseButton>>,
         modifiers: Modifiers,
     ) {
-        self.simulate_event(MouseMoveEvent {
-            position,
-            modifiers,
-            pressed_button: button.into(),
-        })
+        self.simulate_event(PointerEvent::mouse_move(position, button.into(), modifiers))
     }
 
     /// Simulate a mouse down event to the given point
@@ -781,13 +777,9 @@ impl VisualTestContext {
         button: MouseButton,
         modifiers: Modifiers,
     ) {
-        self.simulate_event(MouseDownEvent {
-            position,
-            modifiers,
-            button,
-            click_count: 1,
-            first_mouse: false,
-        })
+        self.simulate_event(PointerEvent::mouse_down(
+            position, button, modifiers, 1, false,
+        ))
     }
 
     /// Simulate a mouse up event to the given point
@@ -797,29 +789,24 @@ impl VisualTestContext {
         button: MouseButton,
         modifiers: Modifiers,
     ) {
-        self.simulate_event(MouseUpEvent {
-            position,
-            modifiers,
-            button,
-            click_count: 1,
-        })
+        self.simulate_event(PointerEvent::mouse_up(position, button, modifiers, 1))
     }
 
     /// Simulate a primary mouse click at the given point
     pub fn simulate_click(&mut self, position: Point<Pixels>, modifiers: Modifiers) {
-        self.simulate_event(MouseDownEvent {
+        self.simulate_event(PointerEvent::mouse_down(
             position,
+            MouseButton::Left,
             modifiers,
-            button: MouseButton::Left,
-            click_count: 1,
-            first_mouse: false,
-        });
-        self.simulate_event(MouseUpEvent {
+            1,
+            false,
+        ));
+        self.simulate_event(PointerEvent::mouse_up(
             position,
+            MouseButton::Left,
             modifiers,
-            button: MouseButton::Left,
-            click_count: 1,
-        });
+            1,
+        ));
     }
 
     /// Simulate a modifiers changed event

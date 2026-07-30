@@ -331,11 +331,11 @@ impl WindowsWindowInner {
         };
         let x = lparam.signed_loword() as f32;
         let y = lparam.signed_hiword() as f32;
-        let event = MouseMoveEvent {
-            position: logical_point(x, y, scale_factor),
+        let event = PointerEvent::mouse_move(
+            logical_point(x, y, scale_factor),
             pressed_button,
-            modifiers: current_modifiers(),
-        };
+            current_modifiers(),
+        );
 
         // This coalescing is intentional and should survive upstream merges. Dispatching every
         // raw WM_MOUSEMOVE on Windows can starve redraw delivery, which breaks hover visuals,
@@ -452,13 +452,13 @@ impl WindowsWindowInner {
         let click_count = self.state.click_state.update(button, physical_point);
         let scale_factor = self.state.scale_factor.get();
 
-        let input = PlatformInput::MouseDown(MouseDownEvent {
+        let input = PlatformInput::Pointer(PointerEvent::mouse_down(
+            logical_point(x as f32, y as f32, scale_factor),
             button,
-            position: logical_point(x as f32, y as f32, scale_factor),
-            modifiers: current_modifiers(),
+            current_modifiers(),
             click_count,
-            first_mouse: false,
-        });
+            false,
+        ));
         let handled = !func(input).propagate;
         self.state.callbacks.input.set(Some(func));
         self.post_input_update_window(handle);
@@ -483,12 +483,12 @@ impl WindowsWindowInner {
         let click_count = self.state.click_state.current_count.get();
         let scale_factor = self.state.scale_factor.get();
 
-        let input = PlatformInput::MouseUp(MouseUpEvent {
+        let input = PlatformInput::Pointer(PointerEvent::mouse_up(
+            logical_point(x, y, scale_factor),
             button,
-            position: logical_point(x, y, scale_factor),
-            modifiers: current_modifiers(),
+            current_modifiers(),
             click_count,
-        });
+        ));
         let handled = !func(input).propagate;
         self.state.callbacks.input.set(Some(func));
         self.post_input_update_window(handle);
@@ -976,11 +976,11 @@ impl WindowsWindowInner {
             y: lparam.signed_hiword().into(),
         };
         unsafe { ScreenToClient(handle, &mut cursor_point).ok().log_err() };
-        let input = PlatformInput::MouseMove(MouseMoveEvent {
-            position: logical_point(cursor_point.x as f32, cursor_point.y as f32, scale_factor),
-            pressed_button: None,
-            modifiers: current_modifiers(),
-        });
+        let input = PlatformInput::Pointer(PointerEvent::mouse_move(
+            logical_point(cursor_point.x as f32, cursor_point.y as f32, scale_factor),
+            None,
+            current_modifiers(),
+        ));
         let handled = !func(input).propagate;
         self.state.callbacks.input.set(Some(func));
         self.post_input_update_window(handle);
@@ -1005,13 +1005,13 @@ impl WindowsWindowInner {
             let physical_point = point(DevicePixels(cursor_point.x), DevicePixels(cursor_point.y));
             let click_count = self.state.click_state.update(button, physical_point);
 
-            let input = PlatformInput::MouseDown(MouseDownEvent {
+            let input = PlatformInput::Pointer(PointerEvent::mouse_down(
+                logical_point(cursor_point.x as f32, cursor_point.y as f32, scale_factor),
                 button,
-                position: logical_point(cursor_point.x as f32, cursor_point.y as f32, scale_factor),
-                modifiers: current_modifiers(),
+                current_modifiers(),
                 click_count,
-                first_mouse: false,
-            });
+                false,
+            ));
             let handled = !func(input).propagate;
             self.state.callbacks.input.set(Some(func));
             self.post_input_update_window(handle);
@@ -1051,12 +1051,12 @@ impl WindowsWindowInner {
                 y: lparam.signed_hiword().into(),
             };
             unsafe { ScreenToClient(handle, &mut cursor_point).ok().log_err() };
-            let input = PlatformInput::MouseUp(MouseUpEvent {
+            let input = PlatformInput::Pointer(PointerEvent::mouse_up(
+                logical_point(cursor_point.x as f32, cursor_point.y as f32, scale_factor),
                 button,
-                position: logical_point(cursor_point.x as f32, cursor_point.y as f32, scale_factor),
-                modifiers: current_modifiers(),
-                click_count: 1,
-            });
+                current_modifiers(),
+                1,
+            ));
             let handled = !func(input).propagate;
             self.state.callbacks.input.set(Some(func));
             self.post_input_update_window(handle);
@@ -1303,7 +1303,7 @@ impl WindowsWindowInner {
             return false;
         };
 
-        let _ = func(PlatformInput::MouseMove(event));
+        let _ = func(PlatformInput::Pointer(event));
         self.state.callbacks.input.set(Some(func));
         true
     }

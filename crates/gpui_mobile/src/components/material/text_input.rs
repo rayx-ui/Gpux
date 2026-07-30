@@ -4,7 +4,7 @@
 //! receives text input, and displays the current value with a cursor that
 //! can be positioned within the text.
 
-use gpui::{ElementId, MouseButton, MouseDownEvent, div, prelude::*, px, rgb};
+use gpui::{ElementId, MouseButton, PointerEvent, div, prelude::*, px, rgb};
 
 use super::theme::MaterialTheme;
 
@@ -52,9 +52,9 @@ pub struct TextInput<V: 'static> {
     keyboard_type: crate::KeyboardType,
     cursor_position: usize,
     selection: Option<(usize, usize)>,
-    on_tap: Option<Box<dyn Fn(&mut V, &MouseDownEvent, &mut gpui::Window, &mut gpui::Context<V>)>>,
-    /// Simple tap callback that receives the MouseDownEvent for tap position.
-    on_tap_simple: Option<std::rc::Rc<dyn Fn(&MouseDownEvent)>>,
+    on_tap: Option<Box<dyn Fn(&mut V, &PointerEvent, &mut gpui::Window, &mut gpui::Context<V>)>>,
+    /// Simple tap callback that receives the PointerEvent for tap position.
+    on_tap_simple: Option<std::rc::Rc<dyn Fn(&PointerEvent)>>,
 }
 
 impl<V: 'static> TextInput<V> {
@@ -137,16 +137,16 @@ impl<V: 'static> TextInput<V> {
     /// the focused field state.
     pub fn on_tap(
         mut self,
-        handler: impl Fn(&mut V, &MouseDownEvent, &mut gpui::Window, &mut gpui::Context<V>) + 'static,
+        handler: impl Fn(&mut V, &PointerEvent, &mut gpui::Window, &mut gpui::Context<V>) + 'static,
     ) -> Self {
         self.on_tap = Some(Box::new(handler));
         self
     }
 
-    /// Set a simple tap callback that receives the `MouseDownEvent` for tap
+    /// Set a simple tap callback that receives the `PointerEvent` for tap
     /// position. Does NOT lease the parent entity — use this instead of
     /// `on_tap` to avoid entity lease conflicts.
-    pub fn on_tap_notify(mut self, handler: impl Fn(&MouseDownEvent) + 'static) -> Self {
+    pub fn on_tap_notify(mut self, handler: impl Fn(&PointerEvent) + 'static) -> Self {
         self.on_tap_simple = Some(std::rc::Rc::new(handler));
         self
     }
@@ -240,9 +240,9 @@ impl<V: 'static> TextInput<V> {
         // Wire up tap handler — prefer on_tap_simple (no entity lease) over on_tap
         if let Some(handler) = self.on_tap_simple {
             let handler_clone = handler.clone();
-            input_box = input_box.on_mouse_down(
+            input_box = input_box.on_pointer_down(
                 MouseButton::Left,
-                move |event: &MouseDownEvent, _window: &mut gpui::Window, _cx: &mut gpui::App| {
+                move |event: &PointerEvent, _window: &mut gpui::Window, _cx: &mut gpui::App| {
                     log::info!("TextInput: on_tap_simple handler firing");
                     (handler_clone)(event);
                 },
@@ -250,9 +250,9 @@ impl<V: 'static> TextInput<V> {
         } else if let Some(on_tap) = self.on_tap {
             let on_tap = std::rc::Rc::new(on_tap);
             let on_tap_clone = on_tap.clone();
-            input_box = input_box.on_mouse_down(
+            input_box = input_box.on_pointer_down(
                 MouseButton::Left,
-                cx.listener(move |this, event: &MouseDownEvent, window, cx| {
+                cx.listener(move |this, event: &PointerEvent, window, cx| {
                     (on_tap_clone)(this, event, window, cx);
                 }),
             );

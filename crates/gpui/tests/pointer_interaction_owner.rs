@@ -3,7 +3,7 @@ use std::{cell::Cell, rc::Rc, time::Duration};
 use gpux::{
     ActionDispatchOutcome, ActionDispatchReport, ActionInvocation, ActionInvocationSource, Context,
     GestureMapLayer, GesturePattern, GestureRule, InputLayerId, IntoElement, Modifiers,
-    MouseButton, MouseMoveEvent, PointerInteractionCancellationReason,
+    MouseButton, PointerEvent, PointerId, PointerInteractionCancellationReason,
     PointerInteractionClaimError, PointerInteractionPhase, Render, TestApp, Window, actions, div,
     point, prelude::*, px,
 };
@@ -46,15 +46,15 @@ impl Render for PointerOwnerHarness {
         let inner = div()
             .w(px(120.))
             .h(px(120.))
-            .on_mouse_down(MouseButton::Left, move |_, _, _| {
+            .on_pointer_down(MouseButton::Left, move |_, _, _| {
                 raw_down.raw_down.set(raw_down.raw_down.get() + 1);
             })
-            .on_mouse_move(move |_, window, _| {
+            .on_pointer_move(move |_, window, _| {
                 if window.active_pointer_interaction().is_some() {
                     owned_move.owned_move.set(owned_move.owned_move.get() + 1);
                 }
             })
-            .on_mouse_up(MouseButton::Left, move |_, window, _| {
+            .on_pointer_up(MouseButton::Left, move |_, window, _| {
                 if window.active_pointer_interaction().is_some() {
                     owned_up.owned_up.set(owned_up.owned_up.get() + 1);
                 }
@@ -84,7 +84,7 @@ impl Render for PointerOwnerHarness {
         div()
             .w(px(120.))
             .h(px(120.))
-            .on_mouse_down(MouseButton::Left, |_, _, _| {})
+            .on_pointer_down(MouseButton::Left, |_, _, _| {})
             .on_action(move |_: &DragAction, _, _| {
                 outer_drag.outer_drag.set(outer_drag.outer_drag.get() + 1);
             })
@@ -124,10 +124,119 @@ fn simulate_drag_move(
     window: &mut gpux::TestAppWindow<PointerOwnerHarness>,
     position: gpux::Point<gpux::Pixels>,
 ) {
-    window.simulate_event(MouseMoveEvent {
+    window.simulate_event(PointerEvent::mouse_move(
         position,
-        modifiers: Modifiers::none(),
-        pressed_button: Some(MouseButton::Left),
+        Some(MouseButton::Left),
+        Modifiers::none(),
+    ));
+}
+
+fn simulate_touch(
+    window: &mut gpux::TestAppWindow<PointerOwnerHarness>,
+    pointer_id: u64,
+    phase: gpux::PointerPhase,
+    position: gpux::Point<gpux::Pixels>,
+) {
+    window.simulate_event(PointerEvent::touch(
+        PointerId::new(pointer_id),
+        phase,
+        position,
+        Modifiers::none(),
+    ));
+}
+
+#[test]
+fn simultaneous_touches_retain_independent_action_owners_and_captures() {
+    let mut app = TestApp::new();
+    install_gestures(&mut app, &DragAction);
+    let counters = Rc::new(Counters::default());
+    let mut window = app.open_window({
+        let counters = counters.clone();
+        move |_, _| PointerOwnerHarness {
+            counters,
+            unhandled: false,
+            inner_handles_drag: true,
+            show_inner: true,
+        }
+    });
+    window.draw();
+
+    simulate_touch(
+        &mut window,
+        1,
+        gpux::PointerPhase::Down,
+        point(px(20.), px(20.)),
+    );
+    simulate_touch(
+        &mut window,
+        2,
+        gpux::PointerPhase::Down,
+        point(px(24.), px(24.)),
+    );
+    simulate_touch(
+        &mut window,
+        1,
+        gpux::PointerPhase::Move,
+        point(px(32.), px(20.)),
+    );
+    simulate_touch(
+        &mut window,
+        2,
+        gpux::PointerPhase::Move,
+        point(px(36.), px(24.)),
+    );
+
+    window.update(|_, window, _| {
+        let first = window
+            .active_pointer_interaction_for(PointerId::new(1))
+            .expect("first touch must retain its owner");
+        let second = window
+            .active_pointer_interaction_for(PointerId::new(2))
+            .expect("second touch must retain its owner");
+        assert_ne!(first.id(), second.id());
+        assert_eq!(first.pointer_id(), PointerId::new(1));
+        assert_eq!(second.pointer_id(), PointerId::new(2));
+        assert_eq!(
+            window.captured_hitbox_for(PointerId::new(1)),
+            Some(first.hitbox_id())
+        );
+        assert_eq!(
+            window.captured_hitbox_for(PointerId::new(2)),
+            Some(second.hitbox_id())
+        );
+    });
+
+    simulate_touch(
+        &mut window,
+        1,
+        gpux::PointerPhase::Up,
+        point(px(32.), px(20.)),
+    );
+    window.update(|_, window, _| {
+        assert!(
+            window
+                .active_pointer_interaction_for(PointerId::new(1))
+                .is_none()
+        );
+        assert!(
+            window
+                .active_pointer_interaction_for(PointerId::new(2))
+                .is_some()
+        );
+    });
+    simulate_touch(
+        &mut window,
+        2,
+        gpux::PointerPhase::Cancel,
+        point(px(36.), px(24.)),
+    );
+    window.update(|_, window, _| {
+        assert!(
+            window
+                .active_pointer_interaction_for(PointerId::new(2))
+                .is_none()
+        );
+        assert!(window.captured_hitbox_for(PointerId::new(2)).is_none());
     });
 }
 

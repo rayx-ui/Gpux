@@ -48,7 +48,7 @@
 //!     .tab("", "Tab 5", false, |_, _, _| {});
 //! ```
 
-use gpui::{AnyElement, MouseButton, MouseDownEvent, Stateful, Window, div, prelude::*, px, rgb};
+use gpui::{AnyElement, MouseButton, PointerEvent, Stateful, Window, div, prelude::*, px, rgb};
 
 use super::theme::MaterialTheme;
 
@@ -87,7 +87,7 @@ const BADGE_PILL_MIN_WIDTH: f32 = 16.0;
 
 // ── Click handler alias ──────────────────────────────────────────────────────
 
-type ClickHandler = Box<dyn Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static>;
+type ClickHandler = Box<dyn Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static>;
 
 // ── Tab variant ──────────────────────────────────────────────────────────────
 
@@ -209,7 +209,7 @@ impl TabBar {
         icon: impl Into<String>,
         label: impl Into<String>,
         active: bool,
-        on_click: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
+        on_click: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.tabs.push(TabEntry {
             icon: icon.into(),
@@ -229,7 +229,7 @@ impl TabBar {
         mut self,
         label: impl Into<String>,
         active: bool,
-        on_click: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
+        on_click: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.tabs.push(TabEntry {
             icon: String::new(),
@@ -252,7 +252,7 @@ impl TabBar {
         label: impl Into<String>,
         active: bool,
         badge: impl Into<String>,
-        on_click: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
+        on_click: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.tabs.push(TabEntry {
             icon: icon.into(),
@@ -417,7 +417,7 @@ impl TabBar {
 
         // Click handler
         if !entry.disabled {
-            tab = tab.on_mouse_down(MouseButton::Left, entry.on_click);
+            tab = tab.on_pointer_down(MouseButton::Left, entry.on_click);
         }
 
         tab.into_any_element()
@@ -488,7 +488,7 @@ impl TabBar {
         }
 
         if !entry.disabled {
-            tab = tab.on_mouse_down(MouseButton::Left, entry.on_click);
+            tab = tab.on_pointer_down(MouseButton::Left, entry.on_click);
         }
 
         tab.into_any_element()

@@ -3,7 +3,7 @@
 use gpui_platform::application;
 use gpux::{
     App, Bounds, Context, EditableText, EditableTextState, Entity, FocusHandle, Focusable,
-    KeyBinding, Keystroke, MouseButton, MouseUpEvent, Render, Window, WindowBounds, WindowOptions,
+    KeyBinding, Keystroke, MouseButton, PointerEvent, Render, Window, WindowBounds, WindowOptions,
     actions, black, div, opaque_grey, prelude::*, px, rgb, size, white, yellow,
 };
 actions!(input_example, [Quit]);
@@ -21,7 +21,7 @@ impl Focusable for InputExample {
 }
 
 impl InputExample {
-    fn on_reset_click(&mut self, _: &MouseUpEvent, _window: &mut Window, cx: &mut Context<Self>) {
+    fn on_reset_click(&mut self, _: &PointerEvent, _window: &mut Window, cx: &mut Context<Self>) {
         self.recent_keystrokes.clear();
         self.text_input
             .update(cx, |text_input, cx| text_input.reset(cx));
@@ -58,7 +58,7 @@ impl Render for InputExample {
                                     .bg(yellow().blend(opaque_grey(0.5, 0.5)))
                                     .cursor_pointer()
                             })
-                            .on_mouse_up(MouseButton::Left, cx.listener(Self::on_reset_click)),
+                            .on_pointer_up(MouseButton::Left, cx.listener(Self::on_reset_click)),
                     ),
             )
             .child(

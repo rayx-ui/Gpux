@@ -630,6 +630,8 @@ pub(crate) struct IosWindow {
     touch_state: Cell<TouchState>,
     /// Active raw touches keyed by the stable UITouch object pointer.
     active_touches: RefCell<HashMap<usize, Point<Pixels>>>,
+    /// The UIKit touch that began the current contact sequence.
+    primary_touch: Cell<Option<usize>>,
     /// Two-touch pinch/rotate gesture state.
     multi_touch_state: Cell<MultiTouchState>,
     /// Set when iOS lifecycle or layout events require the next GPUI
@@ -743,6 +745,7 @@ impl IosWindow {
                 touch_pressed: Cell::new(false),
                 touch_state: Cell::new(TouchState::Idle),
                 active_touches: RefCell::new(HashMap::new()),
+                primary_touch: Cell::new(None),
                 multi_touch_state: Cell::new(MultiTouchState::Idle),
                 force_next_frame_render: AtomicBool::new(true),
                 renderer: Mutex::new(None),
@@ -972,7 +975,6 @@ impl IosWindow {
     pub fn handle_touch(&self, touch: *mut AnyObject, _event: *mut AnyObject) {
         let position = touch_location_in_view(touch, self.view);
         let phase = touch_phase(touch);
-        let tap_count = touch_tap_count(touch);
         let modifiers = self.modifiers.get();
 
         let logical_x: f32 = position.x.into();
@@ -988,17 +990,27 @@ impl IosWindow {
             }
         };
 
-        emit(PlatformInput::Touch(gpui::TouchEvent {
-            id: touch as usize as u64,
+        let pointer_phase = match phase {
+            UITouchPhase::Began => gpui::PointerPhase::Down,
+            UITouchPhase::Moved | UITouchPhase::Stationary => gpui::PointerPhase::Move,
+            UITouchPhase::Ended => gpui::PointerPhase::Up,
+            UITouchPhase::Cancelled => gpui::PointerPhase::Cancel,
+        };
+        let touch_id = touch as usize;
+        if matches!(phase, UITouchPhase::Began) && self.active_touches.borrow().is_empty() {
+            self.primary_touch.set(Some(touch_id));
+        }
+        let mut pointer = gpui::PointerEvent::touch(
+            gpui::PointerId::new(touch_id as u64),
+            pointer_phase,
             position,
             modifiers,
-            phase: gpui::TouchPhase::from(phase),
-            tap_count: tap_count as usize,
-            timestamp: Some(gpui::Instant::now()),
-        }));
+        );
+        pointer.is_primary = self.primary_touch.get() == Some(touch_id);
+        pointer.click_count = touch_tap_count(touch) as usize;
+        emit(PlatformInput::Pointer(pointer));
 
         {
-            let touch_id = touch as usize;
             let mut active = self.active_touches.borrow_mut();
 
             match phase {
@@ -1126,11 +1138,17 @@ impl IosWindow {
                         }
                         self.multi_touch_state.set(MultiTouchState::Idle);
                         active.remove(&touch_id);
+                        if self.primary_touch.get() == Some(touch_id) {
+                            self.primary_touch.set(None);
+                        }
                         self.touch_state.set(TouchState::Idle);
                         return;
                     }
 
                     active.remove(&touch_id);
+                    if self.primary_touch.get() == Some(touch_id) {
+                        self.primary_touch.set(None);
+                    }
                 }
                 UITouchPhase::Stationary => {}
             }
@@ -1187,14 +1205,6 @@ impl IosWindow {
                                 timestamp: Some(gpui::Instant::now()),
                             }));
                         }
-                        // Always emit MouseMove so interactive screens can
-                        // track finger position (e.g. drag line in Animations,
-                        // gradient control in Shaders).
-                        emit(PlatformInput::MouseMove(gpui::MouseMoveEvent {
-                            position,
-                            modifiers,
-                            pressed_button: Some(gpui::MouseButton::Left),
-                        }));
                     }
                     TouchState::Scrolling {
                         prev_x,
@@ -1235,12 +1245,6 @@ impl IosWindow {
                             release_velocity: None,
                             timestamp: Some(gpui::Instant::now()),
                         }));
-                        // MouseMove for interactive screens.
-                        emit(PlatformInput::MouseMove(gpui::MouseMoveEvent {
-                            position,
-                            modifiers,
-                            pressed_button: Some(gpui::MouseButton::Left),
-                        }));
                     }
                     TouchState::Idle => {
                         // Spurious move without a preceding down — ignore.
@@ -1251,26 +1255,7 @@ impl IosWindow {
             UITouchPhase::Ended | UITouchPhase::Cancelled => {
                 self.touch_pressed.set(false);
                 match ts {
-                    TouchState::Pending { start_x, start_y } => {
-                        // Finger lifted without exceeding slop → tap.
-                        // Emit MouseDown + MouseUp together at the original
-                        // down position so hit-testing matches the initial
-                        // touch point.
-                        let tap_pos = gpui::point(gpui::px(start_x), gpui::px(start_y));
-                        emit(PlatformInput::MouseDown(gpui::MouseDownEvent {
-                            button: gpui::MouseButton::Left,
-                            position: tap_pos,
-                            modifiers,
-                            click_count: tap_count as usize,
-                            first_mouse: false,
-                        }));
-                        emit(PlatformInput::MouseUp(gpui::MouseUpEvent {
-                            button: gpui::MouseButton::Left,
-                            position: tap_pos,
-                            modifiers,
-                            click_count: tap_count as usize,
-                        }));
-                    }
+                    TouchState::Pending { .. } => {}
                     TouchState::Scrolling {
                         prev_x,
                         prev_y,
@@ -1302,14 +1287,6 @@ impl IosWindow {
                             native_momentum_phase: None,
                             release_velocity: Some(release_velocity),
                             timestamp: Some(now),
-                        }));
-                        // Also emit MouseUp so interactive screens can
-                        // detect the end of a drag (e.g. fling a ball).
-                        emit(PlatformInput::MouseUp(gpui::MouseUpEvent {
-                            button: gpui::MouseButton::Left,
-                            position,
-                            modifiers,
-                            click_count: 1,
                         }));
                     }
                     TouchState::Idle => {}
