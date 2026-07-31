@@ -1424,15 +1424,16 @@ pub(crate) struct StickyRelationRecord {
 }
 
 #[derive(Clone, Debug, Default)]
-pub(crate) struct StickyRelationIndex {
+#[doc(hidden)]
+pub struct StickyRelationIndex {
     candidate_indices: Vec<usize>,
     records: Vec<StickyRelationRecord>,
 }
 
 impl StickyRelationIndex {
-    pub(crate) fn from_candidates(
-        candidates: impl IntoIterator<Item = (usize, StickyStacking)>,
-    ) -> Self {
+    /// Builds the canonical relation index for an ordered sticky-candidate sequence.
+    #[doc(hidden)]
+    pub fn from_candidates(candidates: impl IntoIterator<Item = (usize, StickyStacking)>) -> Self {
         let candidates = candidates.into_iter().collect::<Vec<_>>();
         let mut records: Vec<StickyRelationRecord> = Vec::with_capacity(candidates.len());
         let mut active_levels = Vec::<Option<usize>>::new();
@@ -1499,13 +1500,17 @@ impl StickyRelationIndex {
         self.records.get(index).copied()
     }
 
-    pub(crate) fn source_at_or_before(&self, candidate_index: usize) -> Option<usize> {
+    /// Returns the relation-record position at or before the supplied candidate index.
+    #[doc(hidden)]
+    pub fn source_at_or_before(&self, candidate_index: usize) -> Option<usize> {
         self.candidate_indices
             .partition_point(|candidate| *candidate <= candidate_index)
             .checked_sub(1)
     }
 
-    pub(crate) fn active_chain(&self, source: usize) -> Vec<usize> {
+    /// Returns the active relation-record positions for the supplied source.
+    #[doc(hidden)]
+    pub fn active_chain(&self, source: usize) -> Vec<usize> {
         let mut chain = Vec::with_capacity(
             self.records
                 .get(source)
@@ -1520,7 +1525,9 @@ impl StickyRelationIndex {
         chain
     }
 
-    pub(crate) fn active_offsets(
+    /// Computes active offsets from candidate insets and extents.
+    #[doc(hidden)]
+    pub fn active_offsets(
         &self,
         source: usize,
         insets: &[Pixels],
