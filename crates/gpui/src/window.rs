@@ -9653,6 +9653,30 @@ mod positioning_tests {
     }
 
     #[test]
+    fn keyed_sticky_finds_the_next_contiguous_run_root() {
+        let relation = StickyRelationIndex::from_candidates([
+            (0, StickyStacking::StackId("a".into())),
+            (8, StickyStacking::StackId("a".into())),
+            (16, StickyStacking::StackId("b".into())),
+            (24, StickyStacking::StackId("b".into())),
+            (32, StickyStacking::StackId("a".into())),
+        ]);
+
+        assert_eq!(relation.next_run_root(0), Some(2));
+        assert_eq!(relation.next_run_root(1), Some(2));
+        assert_eq!(relation.next_run_root(2), Some(4));
+        assert_eq!(relation.next_run_root(4), None);
+    }
+
+    #[test]
+    fn keyed_sticky_push_offset_moves_the_outgoing_run_with_the_incoming_root() {
+        assert_eq!(keyed_sticky_push_offset(px(40.), px(52.)), px(0.));
+        assert_eq!(keyed_sticky_push_offset(px(40.), px(30.)), px(-10.));
+        assert_eq!(keyed_sticky_push_offset(px(40.), px(12.)), px(-28.));
+        assert_eq!(keyed_sticky_push_offset(px(40.), px(0.)), px(-40.));
+    }
+
+    #[test]
     fn keyed_sticky_a_b_a_runs_do_not_resurrect_prior_members() {
         let relation = StickyRelationIndex::from_candidates([
             (0, StickyStacking::StackId("a".into())),
