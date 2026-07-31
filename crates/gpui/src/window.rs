@@ -1605,6 +1605,40 @@ struct StickyCandidate {
 struct StickyCandidatePlan {
     x: Option<ResolvedStickyAxis>,
     y: Option<ResolvedStickyAxis>,
+    layer_order: Option<StickyLayerOrder>,
+}
+
+#[derive(Clone, Copy)]
+struct StickyLayerOrder {
+    group: usize,
+    rank: u32,
+}
+
+fn reorder_sticky_layer_groups(order: &mut [usize], layer_orders: &[Option<StickyLayerOrder>]) {
+    let mut groups: FxHashMap<usize, SmallVec<[(usize, usize, u32); 4]>> = FxHashMap::default();
+    for (slot, child_index) in order.iter().copied().enumerate() {
+        let Some(layer_order) = layer_orders.get(child_index).copied().flatten() else {
+            continue;
+        };
+        groups
+            .entry(layer_order.group)
+            .or_default()
+            .push((slot, child_index, layer_order.rank));
+    }
+
+    for mut members in groups.into_values() {
+        if members.len() < 2 {
+            continue;
+        }
+        let slots = members
+            .iter()
+            .map(|(slot, _, _)| *slot)
+            .collect::<SmallVec<[_; 4]>>();
+        members.sort_by_key(|(_, _, rank)| *rank);
+        for (slot, (_, child_index, _)) in slots.into_iter().zip(members) {
+            order[slot] = child_index;
+        }
+    }
 }
 
 /// Describes the active scroll container used to resolve sticky descendants.
@@ -5619,6 +5653,27 @@ impl Window {
         self.prepare_sticky_axis(context_id, ScrollAxis::Vertical, context);
     }
 
+    pub(crate) fn reorder_sticky_children(
+        &self,
+        child_layout_ids: &[LayoutId],
+        order: &mut [usize],
+    ) {
+        let layer_orders = child_layout_ids
+            .iter()
+            .map(|layout_id| {
+                self.sticky_candidates
+                    .iter()
+                    .enumerate()
+                    .find_map(|(occurrence, candidate)| {
+                        (candidate.layout_id == Some(*layout_id))
+                            .then(|| self.sticky_plans[occurrence].layer_order)
+                            .flatten()
+                    })
+            })
+            .collect::<SmallVec<[_; 8]>>();
+        reorder_sticky_layer_groups(order, &layer_orders);
+    }
+
     fn prepare_sticky_axis(
         &mut self,
         context_id: StickyLayoutContextId,
@@ -5807,7 +5862,11 @@ impl Window {
             })
             .unwrap_or(px(0.));
         let retained_depth = replacement.map_or(0, |(_, retained_depth)| retained_depth);
-        for (depth, (index, offset)) in active_offsets.into_iter().enumerate() {
+        let layer_count = active_offsets.len() as u32;
+        let layer_group = active_offsets
+            .first()
+            .map(|(index, _)| candidates[*index].0);
+        for (depth, (index, offset)) in active_offsets.iter().copied().enumerate() {
             let (occurrence, bounds, _, _) = candidates[index];
             let offset = offset
                 + (depth >= retained_depth)
@@ -5842,6 +5901,12 @@ impl Window {
             match axis {
                 ScrollAxis::Horizontal => self.sticky_plans[occurrence].x = Some(resolved),
                 ScrollAxis::Vertical => self.sticky_plans[occurrence].y = Some(resolved),
+            }
+            if let Some(group) = layer_group {
+                self.sticky_plans[occurrence].layer_order = Some(StickyLayerOrder {
+                    group,
+                    rank: layer_count - depth as u32 - 1,
+                });
             }
         }
     }
@@ -10131,6 +10196,22 @@ mod tests {
         Empty, MAX_ACTIVE_SCREEN_EFFECTS, ScreenEffectSnapshotId, ScreenEffectTarget,
         TestAppContext, point, screen, size,
     };
+
+    #[test]
+    fn sticky_layer_groups_put_shallower_parents_after_deeper_children() {
+        let mut order = [0, 1, 2, 3, 4];
+        let layers = [
+            Some(StickyLayerOrder { group: 7, rank: 2 }),
+            Some(StickyLayerOrder { group: 7, rank: 1 }),
+            None,
+            Some(StickyLayerOrder { group: 7, rank: 0 }),
+            None,
+        ];
+
+        reorder_sticky_layer_groups(&mut order, &layers);
+
+        assert_eq!(order, [3, 1, 2, 0, 4]);
+    }
 
     #[test]
     fn content_mask_scale_preserves_corner_radii() {

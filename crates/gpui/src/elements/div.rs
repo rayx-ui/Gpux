@@ -1806,6 +1806,7 @@ impl Div {
 pub struct DivFrameState {
     child_layout_ids: SmallVec<[LayoutId; 2]>,
     sticky_layout_context_id: Option<usize>,
+    paint_order: SmallVec<[usize; 8]>,
 }
 
 /// A frame's prepaint result for a `Div` element.
@@ -1914,6 +1915,7 @@ impl Element for Div {
         (
             layout_id,
             DivFrameState {
+                paint_order: (0..child_layout_ids.len()).collect(),
                 child_layout_ids,
                 sticky_layout_context_id,
             },
@@ -2016,15 +2018,25 @@ impl Element for Div {
                         });
 
                     let mut prepaint_children = |window: &mut Window, cx: &mut App| {
-                        if let Some(order_fn) = &self.prepaint_order_fn {
-                            let order = order_fn(window, cx);
-                            for idx in order {
-                                if let Some(child) = self.children.get_mut(idx) {
-                                    child.prepaint(window, cx);
-                                }
-                            }
+                        request_layout.paint_order.clear();
+                        request_layout.paint_order.extend(0..self.children.len());
+                        window.reorder_sticky_children(
+                            &request_layout.child_layout_ids,
+                            &mut request_layout.paint_order,
+                        );
+
+                        let prepaint_order = if let Some(order_fn) = &self.prepaint_order_fn {
+                            let mut order = order_fn(window, cx);
+                            window.reorder_sticky_children(
+                                &request_layout.child_layout_ids,
+                                &mut order,
+                            );
+                            order
                         } else {
-                            for child in &mut self.children {
+                            request_layout.paint_order.clone()
+                        };
+                        for idx in prepaint_order {
+                            if let Some(child) = self.children.get_mut(idx) {
                                 child.prepaint(window, cx);
                             }
                         }
@@ -2119,8 +2131,10 @@ impl Element for Div {
                         });
 
                     let mut paint_children = |window: &mut Window, cx: &mut App| {
-                        for child in &mut self.children {
-                            child.paint(window, cx);
+                        for idx in _request_layout.paint_order.iter().copied() {
+                            if let Some(child) = self.children.get_mut(idx) {
+                                child.paint(window, cx);
+                            }
                         }
                     };
 
@@ -4974,6 +4988,38 @@ mod tests {
         }
     }
 
+    struct StickyHierarchyZOrderOwner {
+        handle: ScrollHandle,
+    }
+
+    impl Render for StickyHierarchyZOrderOwner {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            let sticky = |inset: Pixels, color: crate::Hsla| {
+                div()
+                    .sticky()
+                    .top(inset)
+                    .w(px(100.))
+                    .h(px(20.))
+                    .bg(color)
+                    .occlude()
+            };
+
+            div()
+                .id("sticky-hierarchy-z-order-scroll")
+                .w(px(100.))
+                .h(px(60.))
+                .overflow_y_scroll()
+                .track_scroll(&self.handle)
+                .child(sticky(px(0.), crate::green()))
+                .child(sticky(px(20.), crate::blue()))
+                .child(div().w(px(100.)).h(px(20.)))
+                .child(sticky(px(20.), crate::red()))
+                .child(div().w(px(100.)).h(px(20.)))
+                .child(sticky(px(0.), crate::yellow()))
+                .child(div().w(px(100.)).h(px(120.)))
+        }
+    }
+
     struct StickyStateChangedOwner {
         handle: ScrollHandle,
         events: Rc<RefCell<Vec<StickyStateChangedEvent>>>,
@@ -5675,6 +5721,55 @@ mod tests {
         assert_eq!(bounds(&mut test_app, "nested-parent-a").origin.y, px(-10.));
         assert_eq!(bounds(&mut test_app, "nested-child-b").origin.y, px(10.));
         assert_eq!(bounds(&mut test_app, "nested-parent-b").origin.y, px(30.));
+    }
+
+    #[test]
+    fn pushed_sticky_child_paints_and_hit_tests_below_its_retained_parent() {
+        let mut test_app = TestAppContext::single();
+        let scroll_handle = ScrollHandle::new();
+        scroll_handle.set_offset(point(px(0.), px(-50.)));
+        let window = test_app.add_window({
+            move |_, _| StickyHierarchyZOrderOwner {
+                handle: scroll_handle,
+            }
+        });
+        let any_window = window.into();
+
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+            })
+            .unwrap();
+
+        test_app
+            .update_window(any_window, |_, window, _| {
+                let parent_order = quad_order_for_color(window, crate::green());
+                let child_order = quad_order_for_color(window, crate::blue());
+                assert!(
+                    parent_order > child_order,
+                    "the retained parent should paint above its pushed child"
+                );
+
+                let parent_bounds = Bounds::new(point(px(0.), px(0.)), size(px(100.), px(20.)));
+                let parent_hitbox = window
+                    .rendered_frame
+                    .hitboxes
+                    .iter()
+                    .find(|hitbox| hitbox.bounds == parent_bounds)
+                    .expect("retained parent should insert a hitbox");
+                let top_hitbox = window
+                    .rendered_frame
+                    .hit_test(point(px(10.), px(15.)))
+                    .ids
+                    .first()
+                    .copied();
+                assert_eq!(
+                    Some(parent_hitbox.id),
+                    top_hitbox,
+                    "the retained parent should hit-test above its pushed child"
+                );
+            })
+            .unwrap();
     }
 
     #[test]

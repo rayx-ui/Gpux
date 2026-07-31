@@ -1515,6 +1515,7 @@ impl StateInner {
         }
 
         let mut ordinary_items = VecDeque::new();
+        let mut active_sticky_layouts = VecDeque::new();
         let mut incoming_sticky_items = VecDeque::new();
         while let Some(mut item) = item_layouts.pop_front() {
             let incoming_sticky_item =
@@ -1526,10 +1527,13 @@ impl StateInner {
                     item.sticky_stack_offset = Some(target_offset);
                 }
                 incoming_sticky_items.push_back(item);
+            } else if item.sticky_stack_offset.is_some() {
+                active_sticky_layouts.push_front(item);
             } else {
                 ordinary_items.push_back(item);
             }
         }
+        ordinary_items.append(&mut active_sticky_layouts);
         ordinary_items.append(&mut incoming_sticky_items);
         item_layouts = ordinary_items;
 
@@ -2243,16 +2247,81 @@ mod test {
             offset_in_item: px(0.),
         });
         let clicks = Rc::new(RefCell::new(Vec::new()));
+        let view_clicks = clicks.clone();
         let mut app = TestApp::new();
-        let mut window = app.open_window({
-            let clicks = clicks.clone();
-            move |_, _| StickyListView { state, clicks }
+        let mut window = app.open_window(move |_, _| StickyListView {
+            state,
+            clicks: view_clicks,
         });
 
         window.draw();
         window.simulate_click(point(px(50.), px(30.)), MouseButton::Left);
 
         assert_eq!(&*clicks.borrow(), &[1]);
+    }
+
+    #[test]
+    fn pushed_sticky_list_child_hit_tests_below_its_retained_parent() {
+        struct StickyListView {
+            state: ListState,
+            clicks: Rc<RefCell<Vec<usize>>>,
+        }
+
+        impl Render for StickyListView {
+            fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+                let clicks = self.clicks.clone();
+                list(self.state.clone(), move |ix, _, _| {
+                    let clicks = clicks.clone();
+                    let row = div()
+                        .id(("hierarchy-row", ix))
+                        .w(px(100.))
+                        .h(px(20.))
+                        .on_click(move |_, _, _| clicks.borrow_mut().push(ix));
+                    match ix {
+                        0 | 24 => row.sticky().top(px(0.)).into_any(),
+                        8 | 16 => row.sticky().top(px(20.)).into_any(),
+                        _ => row.into_any(),
+                    }
+                })
+                .w(px(100.))
+                .h(px(100.))
+            }
+        }
+
+        let state = ListState::new(40, crate::ListAlignment::Top, px(0.))
+            .with_item_height_hint(px(20.))
+            .with_sticky_items([
+                StickyItem::new(0, StickyStacking::Level(0)),
+                StickyItem::new(8, StickyStacking::Level(1)),
+                StickyItem::new(16, StickyStacking::Level(1)),
+                StickyItem::new(24, StickyStacking::Level(0)),
+            ]);
+        state.scroll_to(gpux::ListOffset {
+            item_ix: 15,
+            offset_in_item: px(10.),
+        });
+        let clicks = Rc::new(RefCell::new(Vec::new()));
+        let mut app = TestApp::new();
+        let mut window = app.open_window(move |_, _| StickyListView { state, clicks });
+
+        window.draw();
+        window.update(|_, window, _| {
+            let parent_bounds = Bounds::new(point(px(0.), px(0.)), size(px(100.), px(20.)));
+            let top_hitbox_id = window
+                .rendered_frame
+                .hit_test(point(px(50.), px(5.)))
+                .ids
+                .first()
+                .copied()
+                .expect("overlapping list stickies should insert hitboxes");
+            let top_hitbox = window
+                .rendered_frame
+                .hitboxes
+                .iter()
+                .find(|hitbox| hitbox.id == top_hitbox_id)
+                .expect("top list hitbox should be retained");
+            assert_eq!(parent_bounds, top_hitbox.bounds);
+        });
     }
 
     #[test]

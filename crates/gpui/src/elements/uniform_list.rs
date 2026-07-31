@@ -572,6 +572,7 @@ impl Element for UniformList {
                             rendered_items.push((item, ix, None, px(0.)));
                         }
                     }
+                    candidate_items.reverse();
                     rendered_items.extend(candidate_items);
                     rendered_items.extend(incoming_sticky_items);
 
@@ -956,19 +957,96 @@ mod test {
             .base_handle
             .set_offset(point(px(0.), px(-80.)));
         let clicks = Rc::new(RefCell::new(Vec::new()));
+        let view_clicks = clicks.clone();
         let mut app = TestApp::new();
-        let mut window = app.open_window({
-            let clicks = clicks.clone();
-            move |_, _| StickyUniformListView {
-                scroll_handle,
-                clicks,
-            }
+        let mut window = app.open_window(move |_, _| StickyUniformListView {
+            scroll_handle,
+            clicks: view_clicks,
         });
 
         window.draw();
         window.simulate_click(point(px(50.), px(30.)), MouseButton::Left);
 
         assert_eq!(&*clicks.borrow(), &[1]);
+    }
+
+    #[test]
+    fn pushed_sticky_uniform_list_child_hit_tests_below_its_retained_parent() {
+        use crate::{
+            Context, IntoElement, Render, UniformListScrollHandle, Window, div, point, prelude::*,
+            px, uniform_list,
+        };
+        use std::{cell::RefCell, ops::Range, rc::Rc};
+
+        struct StickyUniformListView {
+            scroll_handle: UniformListScrollHandle,
+            clicks: Rc<RefCell<Vec<usize>>>,
+        }
+
+        impl Render for StickyUniformListView {
+            fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+                let clicks = self.clicks.clone();
+                uniform_list("hierarchy-entries", 40, move |range: Range<usize>, _, _| {
+                    range
+                        .map(|ix| {
+                            let clicks = clicks.clone();
+                            let row = div()
+                                .id(("hierarchy-row", ix))
+                                .w(px(100.))
+                                .h(px(20.))
+                                .on_click(move |_, _, _| clicks.borrow_mut().push(ix));
+                            match ix {
+                                0 | 24 => row.sticky().top(px(0.)).into_any_element(),
+                                8 | 16 => row.sticky().top(px(20.)).into_any_element(),
+                                _ => row.into_any_element(),
+                            }
+                        })
+                        .collect()
+                })
+                .w(px(100.))
+                .h(px(100.))
+                .sticky_items([
+                    StickyItem::new(0, StickyStacking::Level(0)),
+                    StickyItem::new(8, StickyStacking::Level(1)),
+                    StickyItem::new(16, StickyStacking::Level(1)),
+                    StickyItem::new(24, StickyStacking::Level(0)),
+                ])
+                .track_scroll(&self.scroll_handle)
+            }
+        }
+
+        let scroll_handle = UniformListScrollHandle::new();
+        scroll_handle
+            .0
+            .borrow()
+            .base_handle
+            .set_offset(point(px(0.), px(-310.)));
+        let clicks = Rc::new(RefCell::new(Vec::new()));
+        let mut app = TestApp::new();
+        let mut window = app.open_window(move |_, _| StickyUniformListView {
+            scroll_handle,
+            clicks,
+        });
+
+        window.draw();
+        window.update(|_, window, _| {
+            let parent_bounds =
+                crate::Bounds::new(point(px(0.), px(0.)), crate::size(px(100.), px(20.)));
+            let top_hitbox_id = window
+                .rendered_frame
+                .hit_test(point(px(50.), px(5.)))
+                .ids
+                .first()
+                .copied()
+                .expect("overlapping uniform-list stickies should insert hitboxes");
+            let top_hitbox = window
+                .rendered_frame
+                .hitboxes
+                .iter()
+                .find(|hitbox| hitbox.id == top_hitbox_id)
+                .expect("top uniform-list hitbox should be retained");
+            assert_eq!(parent_bounds, top_hitbox.bounds);
+        });
     }
 
     #[test]
