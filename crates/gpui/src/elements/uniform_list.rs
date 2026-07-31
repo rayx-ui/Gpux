@@ -9,7 +9,7 @@ use crate::{
     GlobalElementId, Hitbox, HitboxBehavior, InspectorElementId, InteractiveElement, Interactivity,
     IntoElement, IsZero, LayoutId, ListSizingBehavior, Overflow, Pixels, Point,
     ScrollContainerContext, ScrollHandle, Size, StickyItem, StyleRefinement, Styled, Window, point,
-    px, size,
+    px, size, sticky_push_offset,
 };
 use smallvec::SmallVec;
 use std::{cell::RefCell, cmp, ops::Range, rc::Rc, usize};
@@ -510,12 +510,26 @@ impl Element for UniformList {
                     let candidate_indices =
                         Self::active_sticky_item_indices(&sticky_items, &visible_range);
                     let mut candidate_items =
-                        SmallVec::<[(AnyElement, usize, Option<Pixels>); 4]>::new();
+                        SmallVec::<[(AnyElement, usize, Option<Pixels>, Pixels); 4]>::new();
                     if !y_flipped {
-                        for (depth, ix) in candidate_indices.into_iter().enumerate() {
+                        for (depth, ix) in candidate_indices.iter().copied().enumerate() {
                             let mut items = (self.render_items)(ix..ix + 1, window, cx);
                             if let Some(item) = items.pop() {
-                                candidate_items.push((item, ix, Some(item_height * depth)));
+                                candidate_items.push((item, ix, Some(item_height * depth), px(0.)));
+                            }
+                        }
+                        if let Some((next_candidate, retained_depth)) = candidate_indices
+                            .last()
+                            .and_then(|ix| sticky_items.next_replacement_after(*ix))
+                        {
+                            let active_stack_end = item_height * candidate_indices.len();
+                            let incoming_start = scroll_offset.y + item_height * next_candidate;
+                            let push_offset = sticky_push_offset(active_stack_end, incoming_start);
+                            for (_, _, offset, sticky_push_offset) in
+                                candidate_items.iter_mut().skip(retained_depth)
+                            {
+                                *offset = offset.map(|offset| offset + push_offset);
+                                *sticky_push_offset = push_offset;
                             }
                         }
                     }
@@ -528,20 +542,22 @@ impl Element for UniformList {
                         items
                             .into_iter()
                             .zip(visible_range.clone())
-                            .map(|(item, ix)| (item, ix, None))
-                            .collect::<SmallVec<[(AnyElement, usize, Option<Pixels>); 64]>>()
+                            .map(|(item, ix)| (item, ix, None, px(0.)))
+                            .collect::<SmallVec<[(AnyElement, usize, Option<Pixels>, Pixels); 64]>>(
+                            )
                     } else {
                         (self.render_items)(visible_range.clone(), window, cx)
                             .into_iter()
                             .zip(visible_range.clone())
-                            .map(|(item, ix)| (item, ix, None))
-                            .collect::<SmallVec<[(AnyElement, usize, Option<Pixels>); 64]>>()
+                            .map(|(item, ix)| (item, ix, None, px(0.)))
+                            .collect::<SmallVec<[(AnyElement, usize, Option<Pixels>, Pixels); 64]>>(
+                            )
                     };
                     let mut rendered_items =
-                        SmallVec::<[(AnyElement, usize, Option<Pixels>); 64]>::new();
+                        SmallVec::<[(AnyElement, usize, Option<Pixels>, Pixels); 64]>::new();
                     let mut incoming_sticky_items =
-                        SmallVec::<[(AnyElement, usize, Option<Pixels>); 8]>::new();
-                    for (item, ix, _) in rendered_visible_items {
+                        SmallVec::<[(AnyElement, usize, Option<Pixels>, Pixels); 8]>::new();
+                    for (item, ix, _, _) in rendered_visible_items {
                         if Self::is_sticky_item_index(&sticky_items, ix) {
                             let target_offset =
                                 item_height * sticky_items.predecessor_item_indices(ix).len();
@@ -550,9 +566,10 @@ impl Element for UniformList {
                                 item,
                                 ix,
                                 (normal_offset < target_offset).then_some(target_offset),
+                                px(0.),
                             ));
                         } else {
-                            rendered_items.push((item, ix, None));
+                            rendered_items.push((item, ix, None, px(0.)));
                         }
                     }
                     rendered_items.extend(candidate_items);
@@ -569,7 +586,9 @@ impl Element for UniformList {
                     let content_mask = ContentMask::rectangular(bounds);
                     window.with_scroll_container_context(scroll_context, |window| {
                         window.with_content_mask(Some(content_mask), |window| {
-                            for (mut item, ix, sticky_stack_offset) in rendered_items {
+                            for (mut item, ix, sticky_stack_offset, sticky_push_offset) in
+                                rendered_items
+                            {
                                 let item_origin = padded_bounds.origin
                                     + point(
                                         scroll_offset.x,
@@ -593,7 +612,17 @@ impl Element for UniformList {
                                         HitboxBehavior::BlockMouseExceptScroll,
                                     );
                                 }
-                                item.prepaint_at(item_origin, window, cx);
+                                if sticky_push_offset < px(0.) {
+                                    let mut item_scroll_context = scroll_context;
+                                    item_scroll_context.scrollport_bounds.origin.y +=
+                                        sticky_push_offset;
+                                    window.with_scroll_container_context(
+                                        item_scroll_context,
+                                        |window| item.prepaint_at(item_origin, window, cx),
+                                    );
+                                } else {
+                                    item.prepaint_at(item_origin, window, cx);
+                                }
                                 frame_state.items.push(item);
                             }
 
@@ -974,6 +1003,23 @@ mod test {
 
         let stack = UniformList::active_sticky_item_indices(&sticky_items, &(30..34));
         assert_eq!(stack.as_slice(), &[24]);
+    }
+
+    #[test]
+    fn sticky_replacement_retains_only_unchanged_uniform_list_ancestors() {
+        let sticky_items = StickyItems::new(
+            [
+                StickyItem::new(0, StickyStacking::Level(0)),
+                StickyItem::new(8, StickyStacking::Level(1)),
+                StickyItem::new(16, StickyStacking::Level(2)),
+                StickyItem::new(24, StickyStacking::Level(1)),
+                StickyItem::new(32, StickyStacking::Level(0)),
+            ],
+            40,
+        );
+
+        assert_eq!(sticky_items.next_replacement_after(16), Some((24, 1)));
+        assert_eq!(sticky_items.next_replacement_after(24), Some((32, 0)));
     }
 
     #[test]

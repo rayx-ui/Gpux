@@ -13,6 +13,7 @@ use crate::{
     FocusHandle, GlobalElementId, Hitbox, HitboxBehavior, InspectorElementId, IntoElement,
     Overflow, Pixels, Point, ScrollContainerContext, ScrollDelta, ScrollWheelEvent, Size,
     StickyRelationIndex, StickyStacking, Style, StyleRefinement, Styled, Window, point, px, size,
+    sticky_push_offset,
 };
 use collections::VecDeque;
 use refineable::Refineable as _;
@@ -166,6 +167,15 @@ impl StickyItems {
         self.candidates
             .binary_search_by_key(&item_index, |item| item.index)
             .is_ok()
+    }
+
+    pub(crate) fn next_replacement_after(&self, item_index: usize) -> Option<(usize, usize)> {
+        let position = self
+            .candidates
+            .binary_search_by_key(&item_index, |item| item.index)
+            .ok()?;
+        let (next, retained_depth) = self.relation.next_replacement(position)?;
+        Some((self.candidates[next].index, retained_depth))
     }
 }
 
@@ -329,6 +339,7 @@ struct ItemLayout {
     element: AnyElement,
     size: Size<Pixels>,
     sticky_stack_offset: Option<Pixels>,
+    sticky_push_offset: Pixels,
 }
 
 /// Frame state used by the [List] element after layout.
@@ -1318,6 +1329,7 @@ impl StateInner {
                         element,
                         size: element_size,
                         sticky_stack_offset: None,
+                        sticky_push_offset: px(0.),
                     });
                     if item.contains_focused(window, cx) {
                         rendered_focused_item = true;
@@ -1358,6 +1370,7 @@ impl StateInner {
                         element,
                         size: element_size,
                         sticky_stack_offset: None,
+                        sticky_push_offset: px(0.),
                     });
                     if item.contains_focused(window, cx) {
                         rendered_focused_item = true;
@@ -1447,6 +1460,7 @@ impl StateInner {
                         element,
                         size: element_size,
                         sticky_stack_offset: None,
+                        sticky_push_offset: px(0.),
                     });
                     break;
                 }
@@ -1456,7 +1470,7 @@ impl StateInner {
 
         let active_sticky_items = self.active_sticky_item_indices(&scroll_top);
         let mut active_sticky_stack_offset = Pixels::ZERO;
-        for item_index in active_sticky_items {
+        for &item_index in &active_sticky_items {
             let stack_offset = active_sticky_stack_offset;
             let item_height;
             if let Some(item) = item_layouts
@@ -1464,7 +1478,7 @@ impl StateInner {
                 .find(|item| item.index == item_index)
             {
                 item.sticky_stack_offset = Some(stack_offset);
-                item_height = self.item_height(item_index).unwrap_or(px(0.));
+                item_height = item.size.height;
             } else {
                 let mut element = render_item(item_index, window, cx);
                 let element_size = element.layout_as_root(available_item_space, window, cx);
@@ -1473,6 +1487,7 @@ impl StateInner {
                     element,
                     size: element_size,
                     sticky_stack_offset: Some(stack_offset),
+                    sticky_push_offset: px(0.),
                 });
                 item_height = element_size.height;
             }
@@ -1481,6 +1496,24 @@ impl StateInner {
         }
 
         let scroll_top_pixels = self.scroll_top(&scroll_top);
+        if let Some((next_candidate, retained_depth)) = active_sticky_items
+            .last()
+            .and_then(|item_index| self.sticky_items.next_replacement_after(*item_index))
+        {
+            let incoming_start = self.item_top(next_candidate) - scroll_top_pixels;
+            let push_offset = sticky_push_offset(active_sticky_stack_offset, incoming_start);
+            for item_index in active_sticky_items.iter().skip(retained_depth) {
+                if let Some(item) = item_layouts
+                    .iter_mut()
+                    .find(|item| item.index == *item_index)
+                {
+                    item.sticky_stack_offset =
+                        item.sticky_stack_offset.map(|offset| offset + push_offset);
+                    item.sticky_push_offset = push_offset;
+                }
+            }
+        }
+
         let mut ordinary_items = VecDeque::new();
         let mut incoming_sticky_items = VecDeque::new();
         while let Some(mut item) = item_layouts.pop_front() {
@@ -1573,7 +1606,19 @@ impl StateInner {
                                         HitboxBehavior::BlockMouseExceptScroll,
                                     );
                                 }
-                                item.element.prepaint_at(item_origin, window, cx);
+                                if item.sticky_push_offset < px(0.) {
+                                    let mut item_scroll_context = scroll_context;
+                                    item_scroll_context.scrollport_bounds.origin.y +=
+                                        item.sticky_push_offset;
+                                    window.with_scroll_container_context(
+                                        item_scroll_context,
+                                        |window| {
+                                            item.element.prepaint_at(item_origin, window, cx);
+                                        },
+                                    );
+                                } else {
+                                    item.element.prepaint_at(item_origin, window, cx);
+                                }
                             },
                         );
 
@@ -2266,6 +2311,23 @@ mod test {
                 offset_in_item: px(0.),
             });
         assert_eq!(stack, vec![24, 32]);
+    }
+
+    #[test]
+    fn sticky_replacement_retains_only_unchanged_list_ancestors() {
+        let sticky_items = StickyItems::new(
+            [
+                StickyItem::new(0, StickyStacking::Level(0)),
+                StickyItem::new(8, StickyStacking::Level(1)),
+                StickyItem::new(16, StickyStacking::Level(2)),
+                StickyItem::new(24, StickyStacking::Level(1)),
+                StickyItem::new(32, StickyStacking::Level(0)),
+            ],
+            40,
+        );
+
+        assert_eq!(sticky_items.next_replacement_after(16), Some((24, 1)));
+        assert_eq!(sticky_items.next_replacement_after(24), Some((32, 0)));
     }
 
     #[test]

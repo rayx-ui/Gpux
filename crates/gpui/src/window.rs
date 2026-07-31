@@ -1525,6 +1525,21 @@ impl StickyRelationIndex {
         chain
     }
 
+    /// Returns the next candidate that replaces part of the active chain.
+    ///
+    /// The second tuple field is the number of active ancestors retained by that replacement.
+    #[doc(hidden)]
+    pub fn next_replacement(&self, source: usize) -> Option<(usize, usize)> {
+        let current = self.records.get(source)?;
+        let next_index = source + 1;
+        let next = self.records.get(next_index)?;
+        if next.run_root != current.run_root {
+            Some((next_index, 0))
+        } else {
+            (next.depth <= current.depth).then_some((next_index, next.depth))
+        }
+    }
+
     /// Computes active offsets from candidate insets and extents.
     #[doc(hidden)]
     pub fn active_offsets(
@@ -1557,6 +1572,17 @@ impl StickyRelationIndex {
     }
 }
 
+/// Returns the common displacement that lets an incoming sticky replacement push outgoing
+/// candidates away.
+///
+/// Both inputs are relative to the scrollport's start edge. The result is zero until the
+/// incoming run reaches the active run's trailing edge, then follows the incoming run toward
+/// the start edge.
+#[doc(hidden)]
+pub fn sticky_push_offset(active_stack_end: Pixels, incoming_start: Pixels) -> Pixels {
+    (incoming_start - active_stack_end).min(px(0.))
+}
+
 type StickyLayoutContextId = usize;
 type StickyOccurrenceId = usize;
 
@@ -1567,16 +1593,16 @@ struct StickyLayoutContext {
 }
 
 #[derive(Clone)]
-struct KeyedStickyCandidate {
+struct StickyCandidate {
     layout_id: Option<LayoutId>,
-    stack_id: ElementId,
+    stack_id: Option<ElementId>,
     inset: Edges<Length>,
     horizontal_context: Option<StickyLayoutContextId>,
     vertical_context: Option<StickyLayoutContextId>,
 }
 
 #[derive(Clone, Copy, Default)]
-struct KeyedStickyCandidatePlan {
+struct StickyCandidatePlan {
     x: Option<ResolvedStickyAxis>,
     y: Option<ResolvedStickyAxis>,
 }
@@ -2153,8 +2179,8 @@ pub struct Window {
     pub(crate) content_mask_stack: Vec<ContentMask<Pixels>>,
     scroll_container_context_stack: ScrollContainerContextStack,
     sticky_layout_context_stack: Vec<StickyLayoutContext>,
-    keyed_sticky_candidates: Vec<KeyedStickyCandidate>,
-    keyed_sticky_plans: Vec<KeyedStickyCandidatePlan>,
+    sticky_candidates: Vec<StickyCandidate>,
+    sticky_plans: Vec<StickyCandidatePlan>,
     next_sticky_layout_context_id: StickyLayoutContextId,
     paint_content_mask_stack: Vec<ContentMask<ScaledPixels>>,
     hitbox_behavior_overrides: Vec<HitboxBehavior>,
@@ -2819,8 +2845,8 @@ impl Window {
             content_mask_stack: Vec::new(),
             scroll_container_context_stack: ScrollContainerContextStack::default(),
             sticky_layout_context_stack: Vec::new(),
-            keyed_sticky_candidates: Vec::new(),
-            keyed_sticky_plans: Vec::new(),
+            sticky_candidates: Vec::new(),
+            sticky_plans: Vec::new(),
             next_sticky_layout_context_id: 0,
             element_opacity: 1.0,
             element_transform_stack: Vec::new(),
@@ -5036,8 +5062,8 @@ impl Window {
         self.invalidator.set_phase(DrawPhase::Prepaint);
         self.debug_assert_scroll_container_context_stack_empty();
         self.sticky_layout_context_stack.clear();
-        self.keyed_sticky_candidates.clear();
-        self.keyed_sticky_plans.clear();
+        self.sticky_candidates.clear();
+        self.sticky_plans.clear();
         self.next_sticky_layout_context_id = 0;
         self.tooltip_bounds.take();
 
@@ -5540,14 +5566,10 @@ impl Window {
         result
     }
 
-    pub(crate) fn reserve_keyed_sticky_candidate(
-        &mut self,
-        style: &Style,
-    ) -> Option<StickyOccurrenceId> {
+    pub(crate) fn reserve_sticky_candidate(&mut self, style: &Style) -> Option<StickyOccurrenceId> {
         if style.position != Position::Sticky {
             return None;
         }
-        let stack_id = style.sticky_stack_id.clone()?;
         let nearest_context = |axis| {
             self.sticky_layout_context_stack
                 .iter()
@@ -5564,41 +5586,40 @@ impl Window {
             return None;
         }
 
-        let occurrence = self.keyed_sticky_candidates.len();
-        self.keyed_sticky_candidates.push(KeyedStickyCandidate {
+        let occurrence = self.sticky_candidates.len();
+        self.sticky_candidates.push(StickyCandidate {
             layout_id: None,
-            stack_id,
+            stack_id: style.sticky_stack_id.clone(),
             inset: style.inset,
             horizontal_context,
             vertical_context,
         });
-        self.keyed_sticky_plans
-            .push(KeyedStickyCandidatePlan::default());
+        self.sticky_plans.push(StickyCandidatePlan::default());
         Some(occurrence)
     }
 
-    pub(crate) fn complete_keyed_sticky_candidate(
+    pub(crate) fn complete_sticky_candidate(
         &mut self,
         occurrence: Option<StickyOccurrenceId>,
         layout_id: LayoutId,
     ) {
         if let Some(candidate) =
-            occurrence.and_then(|occurrence| self.keyed_sticky_candidates.get_mut(occurrence))
+            occurrence.and_then(|occurrence| self.sticky_candidates.get_mut(occurrence))
         {
             candidate.layout_id = Some(layout_id);
         }
     }
 
-    pub(crate) fn prepare_keyed_sticky_context(
+    pub(crate) fn prepare_sticky_context(
         &mut self,
         context_id: StickyLayoutContextId,
         context: ScrollContainerContext,
     ) {
-        self.prepare_keyed_sticky_axis(context_id, ScrollAxis::Horizontal, context);
-        self.prepare_keyed_sticky_axis(context_id, ScrollAxis::Vertical, context);
+        self.prepare_sticky_axis(context_id, ScrollAxis::Horizontal, context);
+        self.prepare_sticky_axis(context_id, ScrollAxis::Vertical, context);
     }
 
-    fn prepare_keyed_sticky_axis(
+    fn prepare_sticky_axis(
         &mut self,
         context_id: StickyLayoutContextId,
         axis: ScrollAxis,
@@ -5610,7 +5631,7 @@ impl Window {
 
         let rem_size = self.rem_size();
         let configured = self
-            .keyed_sticky_candidates
+            .sticky_candidates
             .iter()
             .enumerate()
             .filter_map(|(occurrence, candidate)| {
@@ -5651,8 +5672,47 @@ impl Window {
             candidates.push((occurrence, bounds, stack_id, start_inset));
         }
 
+        let mut unkeyed_insets = candidates
+            .iter()
+            .filter_map(|(_, _, stack_id, start_inset)| {
+                stack_id.is_none().then(|| {
+                    length_to_pixels(
+                        *start_inset,
+                        match axis {
+                            ScrollAxis::Horizontal => context.scrollport_bounds.size.width,
+                            ScrollAxis::Vertical => context.scrollport_bounds.size.height,
+                        },
+                        rem_size,
+                    )
+                    .expect("configured sticky candidates have a start inset")
+                })
+            })
+            .collect::<Vec<_>>();
+        unkeyed_insets.sort_unstable();
+        unkeyed_insets.dedup();
         let relation = StickyRelationIndex::from_candidates(candidates.iter().enumerate().map(
-            |(index, (_, _, stack_id, _))| (index, StickyStacking::StackId(stack_id.clone())),
+            |(index, (_, _, stack_id, start_inset))| {
+                let stacking = stack_id.clone().map_or_else(
+                    || {
+                        let inset = length_to_pixels(
+                            *start_inset,
+                            match axis {
+                                ScrollAxis::Horizontal => context.scrollport_bounds.size.width,
+                                ScrollAxis::Vertical => context.scrollport_bounds.size.height,
+                            },
+                            rem_size,
+                        )
+                        .expect("configured sticky candidates have a start inset");
+                        let level = unkeyed_insets
+                            .binary_search(&inset)
+                            .expect("unkeyed sticky inset was collected")
+                            .min(u16::MAX as usize) as u16;
+                        StickyStacking::Level(level)
+                    },
+                    StickyStacking::StackId,
+                );
+                (index, stacking)
+            },
         ));
         let mut offsets = Vec::with_capacity(candidates.len());
         let mut active_source = None;
@@ -5676,8 +5736,12 @@ impl Window {
                 },
                 rem_size,
             )
-            .expect("configured keyed sticky candidates have a start inset");
-            let offset = parent_extent + inset;
+            .expect("configured sticky candidates have a start inset");
+            let offset = if candidates[index].2.is_some() {
+                parent_extent + inset
+            } else {
+                inset
+            };
             offsets.push(offset);
 
             let layout_origin = match axis {
@@ -5702,8 +5766,8 @@ impl Window {
                 state: StickyAxisState::Unstuck,
             };
             match axis {
-                ScrollAxis::Horizontal => self.keyed_sticky_plans[*occurrence].x = Some(unchanged),
-                ScrollAxis::Vertical => self.keyed_sticky_plans[*occurrence].y = Some(unchanged),
+                ScrollAxis::Horizontal => self.sticky_plans[*occurrence].x = Some(unchanged),
+                ScrollAxis::Vertical => self.sticky_plans[*occurrence].y = Some(unchanged),
             }
         }
 
@@ -5713,20 +5777,6 @@ impl Window {
         let active_source = relation
             .source_at_or_before(active_source)
             .expect("active source is present in the sticky relation");
-        let candidate_insets = candidates
-            .iter()
-            .map(|(_, _, _, inset)| {
-                length_to_pixels(
-                    *inset,
-                    match axis {
-                        ScrollAxis::Horizontal => context.scrollport_bounds.size.width,
-                        ScrollAxis::Vertical => context.scrollport_bounds.size.height,
-                    },
-                    rem_size,
-                )
-                .expect("configured keyed sticky candidates have a start inset")
-            })
-            .collect::<Vec<_>>();
         let candidate_extents = candidates
             .iter()
             .map(|(_, bounds, _, _)| match axis {
@@ -5734,10 +5784,35 @@ impl Window {
                 ScrollAxis::Vertical => bounds.size.height,
             })
             .collect::<Vec<_>>();
-        for (index, offset) in
-            relation.active_offsets(active_source, &candidate_insets, &candidate_extents)
-        {
+        let active_offsets = relation
+            .active_chain(active_source)
+            .into_iter()
+            .map(|index| (index, offsets[index]))
+            .collect::<Vec<_>>();
+        let active_stack_end = active_offsets
+            .last()
+            .map(|(index, offset)| *offset + candidate_extents[*index])
+            .unwrap_or(px(0.));
+        let replacement = relation.next_replacement(active_source);
+        let push_offset = replacement
+            .map(|(next_candidate, _)| {
+                let next_bounds = candidates[next_candidate].1;
+                let incoming_start = match axis {
+                    ScrollAxis::Horizontal => {
+                        next_bounds.origin.x - context.scrollport_bounds.left()
+                    }
+                    ScrollAxis::Vertical => next_bounds.origin.y - context.scrollport_bounds.top(),
+                };
+                sticky_push_offset(active_stack_end, incoming_start)
+            })
+            .unwrap_or(px(0.));
+        let retained_depth = replacement.map_or(0, |(_, retained_depth)| retained_depth);
+        for (depth, (index, offset)) in active_offsets.into_iter().enumerate() {
             let (occurrence, bounds, _, _) = candidates[index];
+            let offset = offset
+                + (depth >= retained_depth)
+                    .then_some(push_offset)
+                    .unwrap_or(px(0.));
             let resolved = match axis {
                 ScrollAxis::Horizontal => resolve_sticky_axis(
                     bounds.origin.x,
@@ -5765,8 +5840,8 @@ impl Window {
                 ),
             };
             match axis {
-                ScrollAxis::Horizontal => self.keyed_sticky_plans[occurrence].x = Some(resolved),
-                ScrollAxis::Vertical => self.keyed_sticky_plans[occurrence].y = Some(resolved),
+                ScrollAxis::Horizontal => self.sticky_plans[occurrence].x = Some(resolved),
+                ScrollAxis::Vertical => self.sticky_plans[occurrence].y = Some(resolved),
             }
         }
     }
@@ -5775,7 +5850,7 @@ impl Window {
         &self,
         style: &Style,
         layout_bounds: Bounds<Pixels>,
-        keyed_sticky_occurrence: Option<StickyOccurrenceId>,
+        sticky_occurrence: Option<StickyOccurrenceId>,
     ) -> (PositionedBounds, Option<StickyState>) {
         match style.position {
             Position::Relative | Position::Absolute => {
@@ -5790,8 +5865,8 @@ impl Window {
                         self.nearest_scroll_container_context(ScrollAxis::Vertical),
                         self.rem_size(),
                     );
-                if let Some(plan) = keyed_sticky_occurrence
-                    .and_then(|occurrence| self.keyed_sticky_plans.get(occurrence))
+                if let Some(plan) =
+                    sticky_occurrence.and_then(|occurrence| self.sticky_plans.get(occurrence))
                 {
                     if let Some(resolved) = plan.x {
                         positioned_bounds.visual_bounds.origin.x = resolved.origin;
@@ -9653,7 +9728,7 @@ mod positioning_tests {
     }
 
     #[test]
-    fn keyed_sticky_finds_the_next_contiguous_run_root() {
+    fn sticky_relation_finds_the_next_replacement_and_retained_depth() {
         let relation = StickyRelationIndex::from_candidates([
             (0, StickyStacking::StackId("a".into())),
             (8, StickyStacking::StackId("a".into())),
@@ -9662,18 +9737,31 @@ mod positioning_tests {
             (32, StickyStacking::StackId("a".into())),
         ]);
 
-        assert_eq!(relation.next_run_root(0), Some(2));
-        assert_eq!(relation.next_run_root(1), Some(2));
-        assert_eq!(relation.next_run_root(2), Some(4));
-        assert_eq!(relation.next_run_root(4), None);
+        assert_eq!(relation.next_replacement(0), None);
+        assert_eq!(relation.next_replacement(1), Some((2, 0)));
+        assert_eq!(relation.next_replacement(2), None);
+        assert_eq!(relation.next_replacement(3), Some((4, 0)));
+        assert_eq!(relation.next_replacement(4), None);
+
+        let levels = StickyRelationIndex::from_candidates([
+            (0, StickyStacking::Level(0)),
+            (8, StickyStacking::Level(1)),
+            (16, StickyStacking::Level(2)),
+            (24, StickyStacking::Level(1)),
+            (32, StickyStacking::Level(0)),
+        ]);
+        assert_eq!(levels.next_replacement(0), None);
+        assert_eq!(levels.next_replacement(1), None);
+        assert_eq!(levels.next_replacement(2), Some((3, 1)));
+        assert_eq!(levels.next_replacement(3), Some((4, 0)));
     }
 
     #[test]
-    fn keyed_sticky_push_offset_moves_the_outgoing_run_with_the_incoming_root() {
-        assert_eq!(keyed_sticky_push_offset(px(40.), px(52.)), px(0.));
-        assert_eq!(keyed_sticky_push_offset(px(40.), px(30.)), px(-10.));
-        assert_eq!(keyed_sticky_push_offset(px(40.), px(12.)), px(-28.));
-        assert_eq!(keyed_sticky_push_offset(px(40.), px(0.)), px(-40.));
+    fn sticky_push_offset_moves_outgoing_candidates_with_the_incoming_replacement() {
+        assert_eq!(sticky_push_offset(px(40.), px(52.)), px(0.));
+        assert_eq!(sticky_push_offset(px(40.), px(30.)), px(-10.));
+        assert_eq!(sticky_push_offset(px(40.), px(12.)), px(-28.));
+        assert_eq!(sticky_push_offset(px(40.), px(0.)), px(-40.));
     }
 
     #[test]
