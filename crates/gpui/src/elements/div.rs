@@ -1755,6 +1755,15 @@ pub struct Div {
 }
 
 impl Div {
+    /// Assigns this sticky div to a contiguous stacking run.
+    ///
+    /// Equal adjacent identifiers stack on the configured `top` or `left` edge. A different
+    /// identifier replaces the prior active run when its root reaches the sticky origin.
+    pub fn sticky_stack_id(mut self, id: impl Into<ElementId>) -> Self {
+        self.interactivity.base_style.sticky_stack_id = Some(id.into());
+        self
+    }
+
     /// Add a listener to be called when the children of this `Div` are prepainted.
     /// This allows you to store the [`Bounds`] of the children for later use.
     pub fn on_children_prepainted(
@@ -1796,6 +1805,7 @@ impl Div {
 /// bounds of the children after the layout phase is complete.
 pub struct DivFrameState {
     child_layout_ids: SmallVec<[LayoutId; 2]>,
+    sticky_layout_context_id: Option<usize>,
 }
 
 /// A frame's prepaint result for a `Div` element.
@@ -1859,6 +1869,8 @@ impl Element for Div {
         cx: &mut App,
     ) -> (LayoutId, Self::RequestLayoutState) {
         let mut child_layout_ids = SmallVec::new();
+        let mut sticky_layout_context_id = None;
+        let mut keyed_sticky_occurrence = None;
         let image_cache = self
             .image_cache
             .as_mut()
@@ -1871,19 +1883,41 @@ impl Element for Div {
                 window,
                 cx,
                 |style, window, cx| {
-                    window.with_text_style(style.text_style().cloned(), |window| {
-                        child_layout_ids = self
-                            .children
-                            .iter_mut()
-                            .map(|child| child.request_layout(window, cx))
-                            .collect::<SmallVec<_>>();
+                    keyed_sticky_occurrence = window.reserve_keyed_sticky_candidate(&style);
+                    sticky_layout_context_id = window.reserve_sticky_layout_context(style.overflow);
+                    let layout_id = window.with_text_style(style.text_style().cloned(), |window| {
+                        let mut request_children = |window: &mut Window| {
+                            child_layout_ids = self
+                                .children
+                                .iter_mut()
+                                .map(|child| child.request_layout(window, cx))
+                                .collect::<SmallVec<_>>();
+                        };
+                        if let Some(context_id) = sticky_layout_context_id {
+                            window.with_sticky_layout_context(
+                                context_id,
+                                style.overflow,
+                                |window| request_children(window),
+                            );
+                        } else {
+                            request_children(window);
+                        }
                         window.request_layout(style, child_layout_ids.iter().copied(), cx)
-                    })
+                    });
+                    window.complete_keyed_sticky_candidate(keyed_sticky_occurrence, layout_id);
+                    layout_id
                 },
             )
         });
+        self.interactivity.keyed_sticky_occurrence = keyed_sticky_occurrence;
 
-        (layout_id, DivFrameState { child_layout_ids })
+        (
+            layout_id,
+            DivFrameState {
+                child_layout_ids,
+                sticky_layout_context_id,
+            },
+        )
     }
 
     #[stacksafe]
@@ -2001,6 +2035,14 @@ impl Element for Div {
                             window.with_element_offset(
                                 positioned_bounds.delta + scroll_offset,
                                 |window| {
+                                    if let Some(context_id) =
+                                        request_layout.sticky_layout_context_id
+                                    {
+                                        window.prepare_keyed_sticky_context(
+                                            context_id,
+                                            scroll_context,
+                                        );
+                                    }
                                     prepaint_children(window, cx);
                                 },
                             );
@@ -2178,6 +2220,7 @@ pub struct Interactivity {
     pub(crate) debug_selector: Option<String>,
 
     pub(crate) current_sticky_state: Option<StickyState>,
+    pub(crate) keyed_sticky_occurrence: Option<usize>,
 }
 
 impl Interactivity {
@@ -2314,8 +2357,12 @@ impl Interactivity {
                     element_state.map(|element_state| element_state.unwrap_or_default());
                 let style =
                     self.compute_style_internal(None, element_state.as_mut(), None, window, cx);
-                let (positioned_bounds, sticky_state) =
-                    window.resolve_positioned_bounds_and_sticky_state(&style, bounds);
+                let (positioned_bounds, sticky_state) = window
+                    .resolve_positioned_bounds_and_sticky_state(
+                        &style,
+                        bounds,
+                        self.keyed_sticky_occurrence,
+                    );
                 self.current_sticky_state = sticky_state;
                 self.update_sticky_state(element_state.as_mut(), sticky_state, window, cx);
                 let style = self.compute_style_internal(
@@ -4795,6 +4842,40 @@ mod tests {
         }
     }
 
+    struct KeyedStickyScrollOwner {
+        handle: ScrollHandle,
+    }
+
+    impl Render for KeyedStickyScrollOwner {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            let sticky = |stack_id: &'static str, selector: &'static str| {
+                div()
+                    .sticky()
+                    .sticky_stack_id(stack_id)
+                    .top(px(0.))
+                    .w(px(100.))
+                    .h(px(20.))
+                    .occlude()
+                    .debug_selector(move || selector.into())
+            };
+
+            div()
+                .id("keyed-sticky-scroll")
+                .w(px(100.))
+                .h(px(60.))
+                .overflow_y_scroll()
+                .track_scroll(&self.handle)
+                .child(sticky("a", "keyed-a-1"))
+                .child(sticky("a", "keyed-a-2"))
+                .child(div().w(px(100.)).h(px(20.)))
+                .child(sticky("b", "keyed-b-1"))
+                .child(sticky("b", "keyed-b-2"))
+                .child(div().w(px(100.)).h(px(20.)))
+                .child(sticky("a", "keyed-a-3"))
+                .child(div().w(px(100.)).h(px(120.)))
+        }
+    }
+
     struct StickyStateChangedOwner {
         handle: ScrollHandle,
         events: Rc<RefCell<Vec<StickyStateChangedEvent>>>,
@@ -5357,6 +5438,55 @@ mod tests {
         assert_eq!(
             Some(Bounds::new(Point::default(), size(px(100.), px(20.)))),
             sticky_bounds
+        );
+    }
+
+    #[test]
+    fn keyed_sticky_divs_stack_and_replace_contiguous_runs() {
+        let mut test_app = TestAppContext::single();
+        let scroll_handle = ScrollHandle::new();
+        let window = test_app.add_window({
+            let handle = scroll_handle.clone();
+            move |_, _| KeyedStickyScrollOwner { handle }
+        });
+        let any_window = window.into();
+
+        let draw = |test_app: &mut TestAppContext| {
+            test_app
+                .update_window(any_window, |_, window, cx| {
+                    window.draw(cx).clear();
+                })
+                .unwrap();
+        };
+        let bounds = |test_app: &mut TestAppContext, selector: &str| {
+            test_app
+                .update_window(any_window, |_, window, _| {
+                    window.rendered_frame.debug_bounds.get(selector).copied()
+                })
+                .unwrap()
+                .expect("keyed sticky selector is rendered")
+        };
+
+        scroll_handle.set_offset(point(px(0.), px(-30.)));
+        draw(&mut test_app);
+        assert_eq!(bounds(&mut test_app, "keyed-a-1").origin.y, px(0.));
+        assert_eq!(bounds(&mut test_app, "keyed-a-2").origin.y, px(20.));
+
+        scroll_handle.set_offset(point(px(0.), px(-70.)));
+        draw(&mut test_app);
+        assert_eq!(bounds(&mut test_app, "keyed-b-1").origin.y, px(0.));
+        assert_eq!(bounds(&mut test_app, "keyed-b-2").origin.y, px(20.));
+        assert!(
+            bounds(&mut test_app, "keyed-a-1").bottom() <= px(0.),
+            "the replaced A run returns to its normal offscreen bounds"
+        );
+
+        scroll_handle.set_offset(point(px(0.), px(-130.)));
+        draw(&mut test_app);
+        assert_eq!(bounds(&mut test_app, "keyed-a-3").origin.y, px(0.));
+        assert!(
+            bounds(&mut test_app, "keyed-b-2").bottom() <= px(0.),
+            "the final A run does not retain members of the intervening B run"
         );
     }
 

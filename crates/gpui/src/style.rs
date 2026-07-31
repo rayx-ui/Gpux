@@ -6,10 +6,10 @@ use std::{
 
 use crate::{
     AbsoluteLength, App, Background, BorderStyle, Bounds, Color, ContentMask, Corners,
-    CornersRefinement, CursorStyle, DefiniteLength, DevicePixels, Edges, EdgesRefinement, Font,
-    FontFallbacks, FontFeatures, FontStyle, FontWeight, GridLocation, Hsla, Length, Pixels, Point,
-    PointRefinement, Rgba, SharedString, Size, SizeRefinement, Styled, TextRun,
-    TransformationMatrix, Window, black, phi, point, px, quad, radians, rems, size,
+    CornersRefinement, CursorStyle, DefiniteLength, DevicePixels, Edges, EdgesRefinement,
+    ElementId, Font, FontFallbacks, FontFeatures, FontStyle, FontWeight, GridLocation, Hsla,
+    Length, Pixels, Point, PointRefinement, Rgba, SharedString, Size, SizeRefinement, Styled,
+    TextRun, TransformationMatrix, Window, black, phi, point, px, quad, radians, rems, size,
 };
 use collections::HashSet;
 use refineable::Refineable;
@@ -224,6 +224,13 @@ pub struct Style {
     /// How should the position of this element be tweaked relative to the layout defined?
     #[refineable]
     pub inset: Edges<Length>,
+    /// Identifies the contiguous sticky run this element participates in.
+    ///
+    /// This only affects sticky start edges (`top` and `left`). It is ignored for non-sticky
+    /// elements and unsupported end-edge-only sticky positioning.
+    #[refineable_serde(skip)]
+    #[refineable_schemars(skip)]
+    pub sticky_stack_id: Option<ElementId>,
 
     // Size properties
     /// Sets the initial size of the item
@@ -874,6 +881,7 @@ impl Default for Style {
             scrollbar_width: AbsoluteLength::default(),
             position: Position::Relative,
             inset: Edges::auto(),
+            sticky_stack_id: None,
             margin: Edges::<Length>::zero(),
             padding: Edges::<DefiniteLength>::zero(),
             border_widths: Edges::<AbsoluteLength>::zero(),
@@ -1371,6 +1379,15 @@ pub enum Position {
     Fixed,
     /// The item participates in normal layout, then is visually offset relative to the nearest scroll container.
     Sticky,
+}
+
+/// Defines how ordered sticky candidates relate to one another.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum StickyStacking {
+    /// An explicit hierarchy level.
+    Level(u16),
+    /// An opaque identifier shared by one contiguous run.
+    StackId(ElementId),
 }
 
 impl From<AlignItems> for taffy::style::AlignItems {
