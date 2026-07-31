@@ -3934,7 +3934,15 @@ impl Window {
     /// Floors the near edge and ceils the far edge, producing a strict superset of the raw region.
     #[inline]
     fn cover_bounds(&self, bounds: Bounds<Pixels>) -> Bounds<ScaledPixels> {
-        let scale_factor = self.scale_factor();
+        Self::cover_bounds_at_scale(bounds, self.scale_factor())
+    }
+
+    #[inline]
+    fn cover_bounds_at_scale(bounds: Bounds<Pixels>, scale_factor: f32) -> Bounds<ScaledPixels> {
+        if bounds.is_empty() {
+            return bounds.scale(scale_factor);
+        }
+
         let left = floor_to_device_pixel(bounds.left().0, scale_factor);
         let top = floor_to_device_pixel(bounds.top().0, scale_factor);
         let right = ceil_to_device_pixel(bounds.right().0, scale_factor).max(left);
@@ -10235,6 +10243,15 @@ mod tests {
             ContentMask::rectangular(bounds),
             ContentMask::rounded(bounds, Corners::default())
         );
+    }
+
+    #[test]
+    fn covering_empty_bounds_at_fractional_scale_does_not_create_pixel_area() {
+        let bounds = Bounds::new(point(px(0.), px(69.)), size(px(100.), px(0.)));
+
+        let covered = Window::cover_bounds_at_scale(bounds, 1.75);
+
+        assert!(covered.is_empty());
     }
 
     #[test]

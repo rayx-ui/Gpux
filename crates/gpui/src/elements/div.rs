@@ -4851,6 +4851,33 @@ mod tests {
         }
     }
 
+    struct StickyBorderClipOwner;
+
+    impl Render for StickyBorderClipOwner {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            div().w(px(100.)).h(px(60.)).overflow_hidden().child(
+                div()
+                    .id("sticky-border-clip-scroll")
+                    .w_full()
+                    .h_full()
+                    .overflow_y_scroll()
+                    .child(div().w(px(100.)).h(px(20.)))
+                    .child(div().w(px(100.)).h(px(30.)))
+                    .child(
+                        div()
+                            .sticky()
+                            .top_0()
+                            .w(px(100.))
+                            .h(px(20.))
+                            .bg(crate::blue())
+                            .border_b_1()
+                            .border_color(crate::red()),
+                    )
+                    .child(div().w(px(100.)).h(px(100.))),
+            )
+        }
+    }
+
     struct KeyedStickyScrollOwner {
         handle: ScrollHandle,
     }
@@ -5585,6 +5612,36 @@ mod tests {
             Some(Bounds::new(Point::default(), size(px(100.), px(20.)))),
             sticky_bounds
         );
+    }
+
+    #[test]
+    fn sticky_border_is_clipped_with_its_element_at_the_scrollport_edge() {
+        let mut test_app = TestAppContext::single();
+        let window = test_app.add_window(|_, _| StickyBorderClipOwner);
+        let any_window = window.into();
+
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+            })
+            .unwrap();
+
+        test_app
+            .update_window(any_window, |_, window, _| {
+                let red = crate::Color::from(crate::red()).paint_color();
+                let scrollport_bottom = crate::ScaledPixels(60. * window.scale_factor());
+                assert!(
+                    window
+                        .rendered_frame
+                        .scene
+                        .quads
+                        .iter()
+                        .filter(|quad| quad.border_color.solid == red)
+                        .all(|quad| quad.content_mask.bounds.bottom() <= scrollport_bottom),
+                    "the offscreen bottom border of a partially visible sticky element must be clipped"
+                );
+            })
+            .unwrap();
     }
 
     #[test]
