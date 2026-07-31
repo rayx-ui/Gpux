@@ -11,8 +11,8 @@ use super::scroll_activity::ScrollActivity;
 use crate::{
     AnyElement, App, AvailableSpace, Bounds, ContentMask, DispatchPhase, Edges, Element, EntityId,
     FocusHandle, GlobalElementId, Hitbox, HitboxBehavior, InspectorElementId, IntoElement,
-    Overflow, Pixels, Point, ScrollContainerContext, ScrollDelta, ScrollWheelEvent, Size, Style,
-    StyleRefinement, Styled, Window, point, px, size,
+    Overflow, Pixels, Point, ScrollContainerContext, ScrollDelta, ScrollWheelEvent, Size,
+    StickyRelationIndex, StickyStacking, Style, StyleRefinement, Styled, Window, point, px, size,
 };
 use collections::VecDeque;
 use refineable::Refineable as _;
@@ -76,14 +76,97 @@ struct StateInner {
     item_size_hint: Option<Size<Pixels>>,
     pending_scroll: Option<PendingScroll>,
     follow_state: FollowState,
-    sticky_items: Vec<ListStickyItem>,
+    sticky_items: StickyItems,
     activity: ScrollActivity,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct ListStickyItem {
-    index: usize,
-    level: u16,
+/// A sticky candidate in a low-level list.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StickyItem {
+    /// The candidate's item index.
+    pub index: usize,
+    /// The candidate's canonical stacking relation.
+    pub stacking: StickyStacking,
+}
+
+impl StickyItem {
+    /// Creates a sticky candidate with its canonical stacking relation.
+    pub fn new(index: usize, stacking: StickyStacking) -> Self {
+        Self { index, stacking }
+    }
+}
+
+impl From<usize> for StickyItem {
+    fn from(index: usize) -> Self {
+        Self::new(index, StickyStacking::Level(0))
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub(crate) struct StickyItems {
+    candidates: Vec<StickyItem>,
+    relation: StickyRelationIndex,
+}
+
+impl StickyItems {
+    pub(crate) fn new<I>(items: I, item_count: usize) -> Self
+    where
+        I: IntoIterator,
+        I::Item: Into<StickyItem>,
+    {
+        let mut candidates = items
+            .into_iter()
+            .map(Into::into)
+            .filter(|item: &StickyItem| item.index < item_count)
+            .collect::<Vec<_>>();
+        // Stable sorting makes the first declaration win for duplicate indices.
+        candidates.sort_by_key(|item| item.index);
+        candidates.dedup_by_key(|item| item.index);
+        let relation = StickyRelationIndex::from_candidates(
+            candidates
+                .iter()
+                .map(|item| (item.index, item.stacking.clone())),
+        );
+        Self {
+            candidates,
+            relation,
+        }
+    }
+
+    pub(crate) fn active_item_indices_before(&self, item_index: usize) -> Vec<usize> {
+        item_index
+            .checked_sub(1)
+            .and_then(|previous| self.relation.source_at_or_before(previous))
+            .map(|source| {
+                self.relation
+                    .active_chain(source)
+                    .into_iter()
+                    .map(|position| self.candidates[position].index)
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
+    pub(crate) fn predecessor_item_indices(&self, item_index: usize) -> Vec<usize> {
+        let Ok(position) = self
+            .candidates
+            .binary_search_by_key(&item_index, |item| item.index)
+        else {
+            return Vec::new();
+        };
+        let mut chain = self.relation.active_chain(position);
+        chain.pop();
+        chain
+            .into_iter()
+            .map(|position| self.candidates[position].index)
+            .collect()
+    }
+
+    pub(crate) fn contains(&self, item_index: usize) -> bool {
+        self.candidates
+            .binary_search_by_key(&item_index, |item| item.index)
+            .is_ok()
+    }
 }
 
 /// Deferred scroll adjustment applied after the scroll-top item has been remeasured.
@@ -244,6 +327,7 @@ struct LayoutItemsResponse {
 struct ItemLayout {
     index: usize,
     element: AnyElement,
+    size: Size<Pixels>,
     sticky_stack_offset: Option<Pixels>,
 }
 
@@ -339,7 +423,7 @@ impl ListState {
             item_size_hint: None,
             pending_scroll: None,
             follow_state: FollowState::default(),
-            sticky_items: Vec::new(),
+            sticky_items: StickyItems::default(),
             activity: ScrollActivity::default(),
         })));
         this.splice(0..0, item_count);
@@ -363,43 +447,26 @@ impl ListState {
         self
     }
 
-    /// Set item indices that may contain sticky positioned descendants.
-    pub fn set_sticky_items(&self, indices: impl IntoIterator<Item = usize>) {
+    /// Sets the items that may contain sticky positioned descendants.
+    ///
+    /// Plain indices map to [`StickyStacking::Level(0)`].
+    pub fn set_sticky_items<I>(&self, items: I)
+    where
+        I: IntoIterator,
+        I::Item: Into<StickyItem>,
+    {
         let mut state = self.0.borrow_mut();
         let item_count = state.items.summary().count;
-        state.sticky_items = indices
-            .into_iter()
-            .filter(|ix| *ix < item_count)
-            .map(|index| ListStickyItem { index, level: 0 })
-            .collect();
-        state.sticky_items.sort_unstable_by_key(|item| item.index);
-        state.sticky_items.dedup_by_key(|item| item.index);
+        state.sticky_items = StickyItems::new(items, item_count);
     }
 
     /// Builder-style variant of [`Self::set_sticky_items`].
-    pub fn with_sticky_items(self, indices: impl IntoIterator<Item = usize>) -> Self {
-        self.set_sticky_items(indices);
-        self
-    }
-
-    /// Set sticky item indices and their nesting levels.
-    pub fn set_sticky_item_levels(&self, items: impl IntoIterator<Item = (usize, u16)>) {
-        let mut state = self.0.borrow_mut();
-        let item_count = state.items.summary().count;
-        state.sticky_items = items
-            .into_iter()
-            .filter(|(index, _)| *index < item_count)
-            .map(|(index, level)| ListStickyItem { index, level })
-            .collect();
-        state
-            .sticky_items
-            .sort_unstable_by_key(|item| (item.index, item.level));
-        state.sticky_items.dedup_by_key(|item| item.index);
-    }
-
-    /// Builder-style variant of [`Self::set_sticky_item_levels`].
-    pub fn with_sticky_item_levels(self, items: impl IntoIterator<Item = (usize, u16)>) -> Self {
-        self.set_sticky_item_levels(items);
+    pub fn with_sticky_items<I>(self, items: I) -> Self
+    where
+        I: IntoIterator,
+        I::Item: Into<StickyItem>,
+    {
+        self.set_sticky_items(items);
         self
     }
 
@@ -1111,45 +1178,18 @@ impl StateInner {
             .and_then(|item| item.size_hint().map(|size| size.height))
     }
 
-    fn active_sticky_items(&self, scroll_top: &ListOffset) -> Vec<ListStickyItem> {
-        let mut active_by_level: Vec<Option<ListStickyItem>> = Vec::new();
-        for item in self
-            .sticky_items
-            .iter()
-            .copied()
-            .take_while(|item| item.index < scroll_top.item_ix)
-        {
-            let level = item.level as usize;
-            active_by_level.truncate(level);
-            while active_by_level.len() < level {
-                active_by_level.push(None);
-            }
-            active_by_level.push(Some(item));
-        }
-
-        let mut stack = Vec::new();
-        for active_item in active_by_level {
-            let Some(active_item) = active_item else {
-                break;
-            };
-            stack.push(active_item);
-        }
-        stack
-    }
-
-    #[cfg(test)]
     fn active_sticky_item_indices(&self, scroll_top: &ListOffset) -> Vec<usize> {
-        self.active_sticky_items(scroll_top)
-            .into_iter()
-            .map(|item| item.index)
-            .collect()
+        self.sticky_items
+            .active_item_indices_before(scroll_top.item_ix)
     }
 
-    fn sticky_item(&self, item_ix: usize) -> Option<ListStickyItem> {
+    fn sticky_target_offset(&self, item_ix: usize) -> Pixels {
         self.sticky_items
-            .binary_search_by_key(&item_ix, |item| item.index)
-            .ok()
-            .map(|ix| self.sticky_items[ix])
+            .predecessor_item_indices(item_ix)
+            .into_iter()
+            .fold(Pixels::ZERO, |offset, predecessor| {
+                offset + self.item_height(predecessor).unwrap_or(Pixels::ZERO)
+            })
     }
 
     fn layout_all_items(
@@ -1276,6 +1316,7 @@ impl StateInner {
                     item_layouts.push_back(ItemLayout {
                         index: item_index,
                         element,
+                        size: element_size,
                         sticky_stack_offset: None,
                     });
                     if item.contains_focused(window, cx) {
@@ -1315,6 +1356,7 @@ impl StateInner {
                     item_layouts.push_front(ItemLayout {
                         index: item_index,
                         element,
+                        size: element_size,
                         sticky_stack_offset: None,
                     });
                     if item.contains_focused(window, cx) {
@@ -1399,10 +1441,11 @@ impl StateInner {
                 if item.contains_focused(window, cx) {
                     let item_index = cursor.start().0;
                     let mut element = render_item(cursor.start().0, window, cx);
-                    element.layout_as_root(available_item_space, window, cx);
+                    let element_size = element.layout_as_root(available_item_space, window, cx);
                     item_layouts.push_back(ItemLayout {
                         index: item_index,
                         element,
+                        size: element_size,
                         sticky_stack_offset: None,
                     });
                     break;
@@ -1411,11 +1454,9 @@ impl StateInner {
             }
         }
 
-        let active_sticky_items = self.active_sticky_items(&scroll_top);
-        let mut active_sticky_stack_offsets = vec![Pixels::ZERO];
+        let active_sticky_items = self.active_sticky_item_indices(&scroll_top);
         let mut active_sticky_stack_offset = Pixels::ZERO;
-        for sticky_item in active_sticky_items {
-            let item_index = sticky_item.index;
+        for item_index in active_sticky_items {
             let stack_offset = active_sticky_stack_offset;
             let item_height;
             if let Some(item) = item_layouts
@@ -1430,31 +1471,23 @@ impl StateInner {
                 item_layouts.push_back(ItemLayout {
                     index: item_index,
                     element,
+                    size: element_size,
                     sticky_stack_offset: Some(stack_offset),
                 });
                 item_height = element_size.height;
             }
 
             active_sticky_stack_offset += item_height;
-            let next_level = sticky_item.level as usize + 1;
-            if active_sticky_stack_offsets.len() <= next_level {
-                active_sticky_stack_offsets.resize(next_level + 1, active_sticky_stack_offset);
-            }
-            active_sticky_stack_offsets[next_level] = active_sticky_stack_offset;
         }
 
         let scroll_top_pixels = self.scroll_top(&scroll_top);
         let mut ordinary_items = VecDeque::new();
         let mut incoming_sticky_items = VecDeque::new();
         while let Some(mut item) = item_layouts.pop_front() {
-            let incoming_sticky_item = self
-                .sticky_item(item.index)
-                .filter(|sticky_item| sticky_item.index >= scroll_top.item_ix);
-            if let Some(sticky_item) = incoming_sticky_item {
-                let target_offset = active_sticky_stack_offsets
-                    .get(sticky_item.level as usize)
-                    .copied()
-                    .unwrap_or(Pixels::ZERO);
+            let incoming_sticky_item =
+                item.index >= scroll_top.item_ix && self.sticky_items.contains(item.index);
+            if incoming_sticky_item {
+                let target_offset = self.sticky_target_offset(item.index);
                 let normal_offset = self.item_top(item.index) - scroll_top_pixels;
                 if normal_offset < target_offset {
                     item.sticky_stack_offset = Some(target_offset);
@@ -1534,6 +1567,12 @@ impl StateInner {
                         window.with_content_mask(
                             Some(ContentMask::rectangular(bounds)),
                             |window| {
+                                if item.sticky_stack_offset.is_some() {
+                                    window.insert_hitbox(
+                                        Bounds::new(item_origin, item.size),
+                                        HitboxBehavior::BlockMouseExceptScroll,
+                                    );
+                                }
                                 item.element.prepaint_at(item_origin, window, cx);
                             },
                         );
@@ -2037,20 +2076,150 @@ impl sum_tree::SeekTarget<'_, ListItemSummary, ListItemSummary> for Height {
 #[cfg(test)]
 mod test {
 
-    use gpux::{ScrollDelta, ScrollWheelEvent};
-    use std::cell::Cell;
+    use super::StickyItems;
+    use gpux::{MouseButton, ScrollDelta, ScrollWheelEvent};
+    use std::cell::{Cell, RefCell};
     use std::rc::Rc;
 
     use crate::{
         self as gpux, AppContext, Bounds, Context, Element, FollowMode, InteractiveElement,
-        IntoElement, ListState, Point, Render, Styled, TestAppContext, Window, div, list, point,
-        px, size,
+        IntoElement, ListState, Point, Render, StatefulInteractiveElement, StickyItem,
+        StickyStacking, Styled, TestApp, TestAppContext, Window, div, list, point, px, size,
     };
 
     #[test]
+    fn keyed_sticky_item_uses_contiguous_stack_runs() {
+        let state = ListState::new(40, crate::ListAlignment::Top, px(0.)).with_sticky_items([
+            StickyItem::new(0, StickyStacking::StackId("a".into())),
+            StickyItem::new(8, StickyStacking::StackId("a".into())),
+            StickyItem::new(16, StickyStacking::StackId("b".into())),
+            StickyItem::new(24, StickyStacking::StackId("a".into())),
+        ]);
+
+        let stack = state
+            .0
+            .borrow()
+            .active_sticky_item_indices(&gpux::ListOffset {
+                item_ix: 10,
+                offset_in_item: px(0.),
+            });
+        assert_eq!(stack, vec![0, 8]);
+
+        let stack = state
+            .0
+            .borrow()
+            .active_sticky_item_indices(&gpux::ListOffset {
+                item_ix: 20,
+                offset_in_item: px(0.),
+            });
+        assert_eq!(stack, vec![16]);
+
+        let stack = state
+            .0
+            .borrow()
+            .active_sticky_item_indices(&gpux::ListOffset {
+                item_ix: 30,
+                offset_in_item: px(0.),
+            });
+        assert_eq!(stack, vec![24]);
+    }
+
+    #[test]
+    fn keyed_sticky_item_filters_invalid_indices_and_keeps_first_duplicate() {
+        let sticky_items = StickyItems::new(
+            [
+                StickyItem::new(2, StickyStacking::StackId("first".into())),
+                StickyItem::new(2, StickyStacking::StackId("duplicate".into())),
+                StickyItem::new(8, StickyStacking::StackId("out-of-range".into())),
+                StickyItem::new(0, StickyStacking::Level(0)),
+            ],
+            4,
+        );
+
+        assert_eq!(sticky_items.candidates.len(), 2);
+        assert_eq!(sticky_items.candidates[0].index, 0);
+        assert_eq!(sticky_items.candidates[1].index, 2);
+        assert_eq!(
+            sticky_items.candidates[1].stacking,
+            StickyStacking::StackId("first".into())
+        );
+    }
+
+    #[test]
+    fn keyed_sticky_item_target_uses_variable_predecessor_extents() {
+        let state = ListState::new(12, crate::ListAlignment::Top, px(0.))
+            .with_item_height_hint(px(34.))
+            .with_sticky_items([
+                StickyItem::new(0, StickyStacking::StackId("a".into())),
+                StickyItem::new(1, StickyStacking::StackId("a".into())),
+                StickyItem::new(8, StickyStacking::StackId("b".into())),
+            ]);
+
+        assert_eq!(state.0.borrow().sticky_target_offset(1), px(34.));
+        assert_eq!(state.0.borrow().sticky_target_offset(8), px(0.));
+    }
+
+    #[test]
+    fn keyed_sticky_item_blocks_clicks_to_overlapped_list_rows() {
+        struct StickyListView {
+            state: ListState,
+            clicks: Rc<RefCell<Vec<usize>>>,
+        }
+
+        impl Render for StickyListView {
+            fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+                let clicks = self.clicks.clone();
+                list(self.state.clone(), move |ix, _, _| {
+                    let clicks = clicks.clone();
+                    let row = div()
+                        .id(("row", ix))
+                        .w(px(100.))
+                        .h(px(20.))
+                        .on_click(move |_, _, _| clicks.borrow_mut().push(ix));
+                    if ix < 2 {
+                        row.sticky().top(px(0.)).into_any()
+                    } else {
+                        row.into_any()
+                    }
+                })
+                .w(px(100.))
+                .h(px(100.))
+            }
+        }
+
+        let state = ListState::new(20, crate::ListAlignment::Top, px(0.))
+            .with_item_height_hint(px(20.))
+            .with_sticky_items([
+                StickyItem::new(0, StickyStacking::StackId("a".into())),
+                StickyItem::new(1, StickyStacking::StackId("a".into())),
+            ]);
+        state.scroll_to(gpux::ListOffset {
+            item_ix: 4,
+            offset_in_item: px(0.),
+        });
+        let clicks = Rc::new(RefCell::new(Vec::new()));
+        let mut app = TestApp::new();
+        let mut window = app.open_window({
+            let state = state.clone();
+            let clicks = clicks.clone();
+            move |_, _| StickyListView { state, clicks }
+        });
+
+        window.draw();
+        window.simulate_click(point(px(50.), px(30.)), MouseButton::Left);
+
+        assert_eq!(&*clicks.borrow(), &[1]);
+    }
+
+    #[test]
     fn active_sticky_item_indices_stack_nested_levels() {
-        let state = ListState::new(40, crate::ListAlignment::Top, px(0.))
-            .with_sticky_item_levels([(0, 0), (8, 1), (16, 1), (24, 0), (32, 1)]);
+        let state = ListState::new(40, crate::ListAlignment::Top, px(0.)).with_sticky_items([
+            StickyItem::new(0, StickyStacking::Level(0)),
+            StickyItem::new(8, StickyStacking::Level(1)),
+            StickyItem::new(16, StickyStacking::Level(1)),
+            StickyItem::new(24, StickyStacking::Level(0)),
+            StickyItem::new(32, StickyStacking::Level(1)),
+        ]);
 
         let stack = state
             .0
@@ -2073,8 +2242,13 @@ mod test {
 
     #[test]
     fn active_sticky_item_indices_replace_parent_and_drop_descendants() {
-        let state = ListState::new(48, crate::ListAlignment::Top, px(0.))
-            .with_sticky_item_levels([(0, 0), (8, 1), (16, 2), (24, 0), (32, 1)]);
+        let state = ListState::new(48, crate::ListAlignment::Top, px(0.)).with_sticky_items([
+            StickyItem::new(0, StickyStacking::Level(0)),
+            StickyItem::new(8, StickyStacking::Level(1)),
+            StickyItem::new(16, StickyStacking::Level(2)),
+            StickyItem::new(24, StickyStacking::Level(0)),
+            StickyItem::new(32, StickyStacking::Level(1)),
+        ]);
 
         let stack = state
             .0
@@ -2246,7 +2420,10 @@ mod test {
         let mut test_app = TestAppContext::single();
         let state =
             ListState::new(20, crate::ListAlignment::Top, px(0.)).with_item_height_hint(px(20.));
-        state.set_sticky_item_levels([(0, 0), (8, 1)]);
+        state.set_sticky_items([
+            StickyItem::new(0, StickyStacking::Level(0)),
+            StickyItem::new(8, StickyStacking::Level(1)),
+        ]);
         state.scroll_to(gpux::ListOffset {
             item_ix: 12,
             offset_in_item: px(0.),
