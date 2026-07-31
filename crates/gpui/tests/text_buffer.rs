@@ -71,6 +71,7 @@ fn text_buffer_converts_bytes_points_and_utf16_without_clipping_invalid_input() 
 }
 
 #[test]
+#[allow(clippy::reversed_empty_ranges)]
 fn text_buffer_validates_ranges_and_preserves_crlf_and_trailing_newline() {
     let snapshot = TextBuffer::new("one\r\ntwo\n").snapshot();
 

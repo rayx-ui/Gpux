@@ -151,7 +151,6 @@ fn simultaneous_touches_retain_independent_action_owners_and_captures() {
     install_gestures(&mut app, &DragAction);
     let counters = Rc::new(Counters::default());
     let mut window = app.open_window({
-        let counters = counters.clone();
         move |_, _| PointerOwnerHarness {
             counters,
             unhandled: false,
@@ -488,7 +487,6 @@ fn target_removal_and_window_teardown_cancel_once_without_completion() {
     install_gestures(&mut app, &DragAction);
     let counters = Rc::new(Counters::default());
     let mut window = app.open_window({
-        let counters = counters.clone();
         move |_, _| PointerOwnerHarness {
             counters,
             unhandled: false,

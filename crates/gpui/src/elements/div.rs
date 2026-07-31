@@ -1755,6 +1755,15 @@ pub struct Div {
 }
 
 impl Div {
+    /// Assigns this sticky div to a contiguous stacking run.
+    ///
+    /// Equal adjacent identifiers stack on the configured `top` or `left` edge. A different
+    /// identifier replaces the prior active run when its root reaches the sticky origin.
+    pub fn sticky_stack_id(mut self, id: impl Into<ElementId>) -> Self {
+        self.interactivity.base_style.sticky_stack_id = Some(id.into());
+        self
+    }
+
     /// Add a listener to be called when the children of this `Div` are prepainted.
     /// This allows you to store the [`Bounds`] of the children for later use.
     pub fn on_children_prepainted(
@@ -1796,6 +1805,8 @@ impl Div {
 /// bounds of the children after the layout phase is complete.
 pub struct DivFrameState {
     child_layout_ids: SmallVec<[LayoutId; 2]>,
+    sticky_layout_context_id: Option<usize>,
+    paint_order: SmallVec<[usize; 8]>,
 }
 
 /// A frame's prepaint result for a `Div` element.
@@ -1859,6 +1870,8 @@ impl Element for Div {
         cx: &mut App,
     ) -> (LayoutId, Self::RequestLayoutState) {
         let mut child_layout_ids = SmallVec::new();
+        let mut sticky_layout_context_id = None;
+        let mut sticky_occurrence = None;
         let image_cache = self
             .image_cache
             .as_mut()
@@ -1871,19 +1884,42 @@ impl Element for Div {
                 window,
                 cx,
                 |style, window, cx| {
-                    window.with_text_style(style.text_style().cloned(), |window| {
-                        child_layout_ids = self
-                            .children
-                            .iter_mut()
-                            .map(|child| child.request_layout(window, cx))
-                            .collect::<SmallVec<_>>();
+                    sticky_occurrence = window.reserve_sticky_candidate(&style);
+                    sticky_layout_context_id = window.reserve_sticky_layout_context(style.overflow);
+                    let layout_id = window.with_text_style(style.text_style().cloned(), |window| {
+                        let mut request_children = |window: &mut Window| {
+                            child_layout_ids = self
+                                .children
+                                .iter_mut()
+                                .map(|child| child.request_layout(window, cx))
+                                .collect::<SmallVec<_>>();
+                        };
+                        if let Some(context_id) = sticky_layout_context_id {
+                            window.with_sticky_layout_context(
+                                context_id,
+                                style.overflow,
+                                |window| request_children(window),
+                            );
+                        } else {
+                            request_children(window);
+                        }
                         window.request_layout(style, child_layout_ids.iter().copied(), cx)
-                    })
+                    });
+                    window.complete_sticky_candidate(sticky_occurrence, layout_id);
+                    layout_id
                 },
             )
         });
+        self.interactivity.sticky_occurrence = sticky_occurrence;
 
-        (layout_id, DivFrameState { child_layout_ids })
+        (
+            layout_id,
+            DivFrameState {
+                paint_order: (0..child_layout_ids.len()).collect(),
+                child_layout_ids,
+                sticky_layout_context_id,
+            },
+        )
     }
 
     #[stacksafe]
@@ -1982,15 +2018,25 @@ impl Element for Div {
                         });
 
                     let mut prepaint_children = |window: &mut Window, cx: &mut App| {
-                        if let Some(order_fn) = &self.prepaint_order_fn {
-                            let order = order_fn(window, cx);
-                            for idx in order {
-                                if let Some(child) = self.children.get_mut(idx) {
-                                    child.prepaint(window, cx);
-                                }
-                            }
+                        request_layout.paint_order.clear();
+                        request_layout.paint_order.extend(0..self.children.len());
+                        window.reorder_sticky_children(
+                            &request_layout.child_layout_ids,
+                            &mut request_layout.paint_order,
+                        );
+
+                        let prepaint_order = if let Some(order_fn) = &self.prepaint_order_fn {
+                            let mut order = order_fn(window, cx);
+                            window.reorder_sticky_children(
+                                &request_layout.child_layout_ids,
+                                &mut order,
+                            );
+                            order
                         } else {
-                            for child in &mut self.children {
+                            request_layout.paint_order.clone()
+                        };
+                        for idx in prepaint_order {
+                            if let Some(child) = self.children.get_mut(idx) {
                                 child.prepaint(window, cx);
                             }
                         }
@@ -2001,6 +2047,11 @@ impl Element for Div {
                             window.with_element_offset(
                                 positioned_bounds.delta + scroll_offset,
                                 |window| {
+                                    if let Some(context_id) =
+                                        request_layout.sticky_layout_context_id
+                                    {
+                                        window.prepare_sticky_context(context_id, scroll_context);
+                                    }
                                     prepaint_children(window, cx);
                                 },
                             );
@@ -2080,8 +2131,10 @@ impl Element for Div {
                         });
 
                     let mut paint_children = |window: &mut Window, cx: &mut App| {
-                        for child in &mut self.children {
-                            child.paint(window, cx);
+                        for idx in _request_layout.paint_order.iter().copied() {
+                            if let Some(child) = self.children.get_mut(idx) {
+                                child.paint(window, cx);
+                            }
                         }
                     };
 
@@ -2178,6 +2231,7 @@ pub struct Interactivity {
     pub(crate) debug_selector: Option<String>,
 
     pub(crate) current_sticky_state: Option<StickyState>,
+    pub(crate) sticky_occurrence: Option<usize>,
 }
 
 impl Interactivity {
@@ -2314,8 +2368,12 @@ impl Interactivity {
                     element_state.map(|element_state| element_state.unwrap_or_default());
                 let style =
                     self.compute_style_internal(None, element_state.as_mut(), None, window, cx);
-                let (positioned_bounds, sticky_state) =
-                    window.resolve_positioned_bounds_and_sticky_state(&style, bounds);
+                let (positioned_bounds, sticky_state) = window
+                    .resolve_positioned_bounds_and_sticky_state(
+                        &style,
+                        bounds,
+                        self.sticky_occurrence,
+                    );
                 self.current_sticky_state = sticky_state;
                 self.update_sticky_state(element_state.as_mut(), sticky_state, window, cx);
                 let style = self.compute_style_internal(
@@ -4700,7 +4758,6 @@ mod tests {
         let captured_paint_context = Rc::new(RefCell::new(None));
         let window = test_app.add_window({
             let captured_prepaint_context = captured_prepaint_context.clone();
-            let captured_paint_context = captured_paint_context.clone();
             move |_, _| ScrollContextOwner {
                 captured_prepaint_context,
                 captured_paint_context,
@@ -4730,7 +4787,6 @@ mod tests {
         let captured_prepaint_context = Rc::new(RefCell::new(None));
         let captured_paint_context = Rc::new(RefCell::new(None));
         let window = test_app.add_window({
-            let captured_prepaint_context = captured_prepaint_context.clone();
             let captured_paint_context = captured_paint_context.clone();
             move |_, _| ScrollContextOwner {
                 captured_prepaint_context,
@@ -4792,6 +4848,202 @@ mod tests {
                         .debug_selector(|| "sticky".into()),
                 )
                 .child(div().w(px(100.)).h(px(180.)))
+        }
+    }
+
+    struct StickyBorderClipOwner;
+
+    impl Render for StickyBorderClipOwner {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            div().w(px(100.)).h(px(60.)).overflow_hidden().child(
+                div()
+                    .id("sticky-border-clip-scroll")
+                    .w_full()
+                    .h_full()
+                    .overflow_y_scroll()
+                    .child(div().w(px(100.)).h(px(20.)))
+                    .child(div().w(px(100.)).h(px(30.)))
+                    .child(
+                        div()
+                            .sticky()
+                            .top_0()
+                            .w(px(100.))
+                            .h(px(20.))
+                            .bg(crate::blue())
+                            .border_b_1()
+                            .border_color(crate::red()),
+                    )
+                    .child(div().w(px(100.)).h(px(100.))),
+            )
+        }
+    }
+
+    struct KeyedStickyScrollOwner {
+        handle: ScrollHandle,
+    }
+
+    impl Render for KeyedStickyScrollOwner {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            let sticky = |stack_id: &'static str, selector: &'static str| {
+                div()
+                    .sticky()
+                    .sticky_stack_id(stack_id)
+                    .top(px(0.))
+                    .w(px(100.))
+                    .h(px(20.))
+                    .occlude()
+                    .debug_selector(move || selector.into())
+            };
+
+            div()
+                .id("keyed-sticky-scroll")
+                .w(px(100.))
+                .h(px(60.))
+                .overflow_y_scroll()
+                .track_scroll(&self.handle)
+                .child(sticky("a", "keyed-a-1"))
+                .child(sticky("a", "keyed-a-2"))
+                .child(div().w(px(100.)).h(px(20.)))
+                .child(sticky("b", "keyed-b-1"))
+                .child(sticky("b", "keyed-b-2"))
+                .child(div().w(px(100.)).h(px(20.)))
+                .child(sticky("a", "keyed-a-3"))
+                .child(div().w(px(100.)).h(px(120.)))
+        }
+    }
+
+    struct HorizontalKeyedStickyScrollOwner {
+        handle: ScrollHandle,
+    }
+
+    impl Render for HorizontalKeyedStickyScrollOwner {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            let sticky = |stack_id: &'static str, selector: &'static str| {
+                div()
+                    .sticky()
+                    .sticky_stack_id(stack_id)
+                    .left(px(0.))
+                    .w(px(20.))
+                    .h(px(100.))
+                    .flex_none()
+                    .occlude()
+                    .debug_selector(move || selector.into())
+            };
+
+            div()
+                .id("horizontal-keyed-sticky-scroll")
+                .w(px(60.))
+                .h(px(100.))
+                .flex()
+                .overflow_x_scroll()
+                .track_scroll(&self.handle)
+                .child(sticky("a", "horizontal-keyed-a-1"))
+                .child(sticky("a", "horizontal-keyed-a-2"))
+                .child(div().w(px(20.)).h(px(100.)).flex_none())
+                .child(sticky("b", "horizontal-keyed-b-1"))
+                .child(div().w(px(120.)).h(px(100.)).flex_none())
+        }
+    }
+
+    struct StickyReplacementScrollOwner {
+        handle: ScrollHandle,
+        nested: bool,
+        horizontal: bool,
+    }
+
+    impl Render for StickyReplacementScrollOwner {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            if self.horizontal {
+                return div()
+                    .id("horizontal-sticky-replacement-scroll")
+                    .w(px(60.))
+                    .h(px(100.))
+                    .flex()
+                    .overflow_x_scroll()
+                    .track_scroll(&self.handle)
+                    .child(
+                        div()
+                            .sticky()
+                            .left_0()
+                            .w(px(20.))
+                            .h(px(100.))
+                            .flex_none()
+                            .debug_selector(|| "horizontal-flat-a".into()),
+                    )
+                    .child(div().w(px(20.)).h(px(100.)).flex_none())
+                    .child(
+                        div()
+                            .sticky()
+                            .left_0()
+                            .w(px(20.))
+                            .h(px(100.))
+                            .flex_none()
+                            .debug_selector(|| "horizontal-flat-b".into()),
+                    )
+                    .child(div().w(px(120.)).h(px(100.)).flex_none());
+            }
+
+            let sticky = |inset: Pixels, selector: &'static str| {
+                div()
+                    .sticky()
+                    .top(inset)
+                    .w(px(100.))
+                    .h(px(20.))
+                    .debug_selector(move || selector.into())
+            };
+            let mut scroll = div()
+                .id("sticky-replacement-scroll")
+                .w(px(100.))
+                .h(px(60.))
+                .overflow_y_scroll()
+                .track_scroll(&self.handle);
+            if self.nested {
+                scroll = scroll
+                    .child(sticky(px(0.), "nested-parent-a"))
+                    .child(sticky(px(20.), "nested-child-a"))
+                    .child(div().w(px(100.)).h(px(20.)))
+                    .child(sticky(px(20.), "nested-child-b"))
+                    .child(div().w(px(100.)).h(px(20.)))
+                    .child(sticky(px(0.), "nested-parent-b"));
+            } else {
+                scroll = scroll
+                    .child(sticky(px(0.), "flat-a"))
+                    .child(div().w(px(100.)).h(px(20.)))
+                    .child(sticky(px(0.), "flat-b"));
+            }
+            scroll.child(div().w(px(100.)).h(px(120.)))
+        }
+    }
+
+    struct StickyHierarchyZOrderOwner {
+        handle: ScrollHandle,
+    }
+
+    impl Render for StickyHierarchyZOrderOwner {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            let sticky = |inset: Pixels, color: crate::Hsla| {
+                div()
+                    .sticky()
+                    .top(inset)
+                    .w(px(100.))
+                    .h(px(20.))
+                    .bg(color)
+                    .occlude()
+            };
+
+            div()
+                .id("sticky-hierarchy-z-order-scroll")
+                .w(px(100.))
+                .h(px(60.))
+                .overflow_y_scroll()
+                .track_scroll(&self.handle)
+                .child(sticky(px(0.), crate::green()))
+                .child(sticky(px(20.), crate::blue()))
+                .child(div().w(px(100.)).h(px(20.)))
+                .child(sticky(px(20.), crate::red()))
+                .child(div().w(px(100.)).h(px(20.)))
+                .child(sticky(px(0.), crate::yellow()))
+                .child(div().w(px(100.)).h(px(120.)))
         }
     }
 
@@ -5261,8 +5513,9 @@ mod tests {
         let scroll_handle = ScrollHandle::new();
         scroll_handle.set_offset(point(px(0.), px(-80.)));
         let window = test_app.add_window({
-            let handle = scroll_handle.clone();
-            move |_, _| FixedInClippedParentOwner { handle }
+            move |_, _| FixedInClippedParentOwner {
+                handle: scroll_handle,
+            }
         });
         let any_window = window.into();
 
@@ -5337,8 +5590,9 @@ mod tests {
         let scroll_handle = ScrollHandle::new();
         scroll_handle.set_offset(point(px(0.), px(-40.)));
         let window = test_app.add_window({
-            let handle = scroll_handle.clone();
-            move |_, _| StickyScrollOwner { handle }
+            move |_, _| StickyScrollOwner {
+                handle: scroll_handle,
+            }
         });
         let any_window = window.into();
 
@@ -5358,6 +5612,284 @@ mod tests {
             Some(Bounds::new(Point::default(), size(px(100.), px(20.)))),
             sticky_bounds
         );
+    }
+
+    #[test]
+    fn sticky_border_is_clipped_with_its_element_at_the_scrollport_edge() {
+        let mut test_app = TestAppContext::single();
+        let window = test_app.add_window(|_, _| StickyBorderClipOwner);
+        let any_window = window.into();
+
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+            })
+            .unwrap();
+
+        test_app
+            .update_window(any_window, |_, window, _| {
+                let red = crate::Color::from(crate::red()).paint_color();
+                let scrollport_bottom = crate::ScaledPixels(60. * window.scale_factor());
+                assert!(
+                    window
+                        .rendered_frame
+                        .scene
+                        .quads
+                        .iter()
+                        .filter(|quad| quad.border_color.solid == red)
+                        .all(|quad| quad.content_mask.bounds.bottom() <= scrollport_bottom),
+                    "the offscreen bottom border of a partially visible sticky element must be clipped"
+                );
+            })
+            .unwrap();
+    }
+
+    #[test]
+    fn keyed_sticky_divs_stack_and_replace_contiguous_runs() {
+        let mut test_app = TestAppContext::single();
+        let scroll_handle = ScrollHandle::new();
+        let window = test_app.add_window({
+            let handle = scroll_handle.clone();
+            move |_, _| KeyedStickyScrollOwner { handle }
+        });
+        let any_window = window.into();
+
+        let draw = |test_app: &mut TestAppContext| {
+            test_app
+                .update_window(any_window, |_, window, cx| {
+                    window.draw(cx).clear();
+                })
+                .unwrap();
+        };
+        let bounds = |test_app: &mut TestAppContext, selector: &str| {
+            test_app
+                .update_window(any_window, |_, window, _| {
+                    window.rendered_frame.debug_bounds.get(selector).copied()
+                })
+                .unwrap()
+                .expect("keyed sticky selector is rendered")
+        };
+
+        scroll_handle.set_offset(point(px(0.), px(-20.)));
+        draw(&mut test_app);
+        assert_eq!(bounds(&mut test_app, "keyed-a-1").origin.y, px(0.));
+        assert_eq!(bounds(&mut test_app, "keyed-a-2").origin.y, px(20.));
+
+        scroll_handle.set_offset(point(px(0.), px(-30.)));
+        draw(&mut test_app);
+        assert_eq!(bounds(&mut test_app, "keyed-a-1").origin.y, px(-10.));
+        assert_eq!(bounds(&mut test_app, "keyed-a-2").origin.y, px(10.));
+        assert_eq!(bounds(&mut test_app, "keyed-b-1").origin.y, px(30.));
+
+        scroll_handle.set_offset(point(px(0.), px(-50.)));
+        draw(&mut test_app);
+        assert_eq!(bounds(&mut test_app, "keyed-a-1").origin.y, px(-30.));
+        assert_eq!(bounds(&mut test_app, "keyed-a-2").origin.y, px(-10.));
+        assert_eq!(bounds(&mut test_app, "keyed-b-1").origin.y, px(10.));
+
+        scroll_handle.set_offset(point(px(0.), px(-70.)));
+        draw(&mut test_app);
+        assert_eq!(bounds(&mut test_app, "keyed-b-1").origin.y, px(0.));
+        assert_eq!(bounds(&mut test_app, "keyed-b-2").origin.y, px(20.));
+        assert!(
+            bounds(&mut test_app, "keyed-a-1").bottom() <= px(0.),
+            "the replaced A run returns to its normal offscreen bounds"
+        );
+
+        scroll_handle.set_offset(point(px(0.), px(-130.)));
+        draw(&mut test_app);
+        assert_eq!(bounds(&mut test_app, "keyed-a-3").origin.y, px(0.));
+        assert!(
+            bounds(&mut test_app, "keyed-b-2").bottom() <= px(0.),
+            "the final A run does not retain members of the intervening B run"
+        );
+    }
+
+    #[test]
+    fn flat_sticky_div_scrolls_out_as_the_next_header_pushes_it() {
+        let mut test_app = TestAppContext::single();
+        let scroll_handle = ScrollHandle::new();
+        let window = test_app.add_window({
+            let handle = scroll_handle.clone();
+            move |_, _| StickyReplacementScrollOwner {
+                handle,
+                nested: false,
+                horizontal: false,
+            }
+        });
+        let any_window = window.into();
+
+        scroll_handle.set_offset(point(px(0.), px(-30.)));
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+            })
+            .unwrap();
+        let mut bounds = |selector: &str| {
+            test_app
+                .update_window(any_window, |_, window, _| {
+                    window.rendered_frame.debug_bounds.get(selector).copied()
+                })
+                .unwrap()
+                .expect("flat sticky selector is rendered")
+        };
+
+        assert_eq!(bounds("flat-a").origin.y, px(-10.));
+        assert_eq!(bounds("flat-b").origin.y, px(10.));
+    }
+
+    #[test]
+    fn nested_sticky_div_replacements_push_only_the_replaced_suffix() {
+        let mut test_app = TestAppContext::single();
+        let scroll_handle = ScrollHandle::new();
+        let window = test_app.add_window({
+            let handle = scroll_handle.clone();
+            move |_, _| StickyReplacementScrollOwner {
+                handle,
+                nested: true,
+                horizontal: false,
+            }
+        });
+        let any_window = window.into();
+        let draw = |test_app: &mut TestAppContext| {
+            test_app
+                .update_window(any_window, |_, window, cx| {
+                    window.draw(cx).clear();
+                })
+                .unwrap();
+        };
+        let bounds = |test_app: &mut TestAppContext, selector: &str| {
+            test_app
+                .update_window(any_window, |_, window, _| {
+                    window.rendered_frame.debug_bounds.get(selector).copied()
+                })
+                .unwrap()
+                .expect("nested sticky selector is rendered")
+        };
+
+        scroll_handle.set_offset(point(px(0.), px(-50.)));
+        draw(&mut test_app);
+        assert_eq!(bounds(&mut test_app, "nested-parent-a").origin.y, px(0.));
+        assert_eq!(bounds(&mut test_app, "nested-child-a").origin.y, px(10.));
+        assert_eq!(bounds(&mut test_app, "nested-child-b").origin.y, px(30.));
+
+        scroll_handle.set_offset(point(px(0.), px(-70.)));
+        draw(&mut test_app);
+        assert_eq!(bounds(&mut test_app, "nested-parent-a").origin.y, px(-10.));
+        assert_eq!(bounds(&mut test_app, "nested-child-b").origin.y, px(10.));
+        assert_eq!(bounds(&mut test_app, "nested-parent-b").origin.y, px(30.));
+    }
+
+    #[test]
+    fn pushed_sticky_child_paints_and_hit_tests_below_its_retained_parent() {
+        let mut test_app = TestAppContext::single();
+        let scroll_handle = ScrollHandle::new();
+        scroll_handle.set_offset(point(px(0.), px(-50.)));
+        let window = test_app.add_window({
+            move |_, _| StickyHierarchyZOrderOwner {
+                handle: scroll_handle,
+            }
+        });
+        let any_window = window.into();
+
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+            })
+            .unwrap();
+
+        test_app
+            .update_window(any_window, |_, window, _| {
+                let parent_order = quad_order_for_color(window, crate::green());
+                let child_order = quad_order_for_color(window, crate::blue());
+                assert!(
+                    parent_order > child_order,
+                    "the retained parent should paint above its pushed child"
+                );
+
+                let parent_bounds = Bounds::new(point(px(0.), px(0.)), size(px(100.), px(20.)));
+                let parent_hitbox = window
+                    .rendered_frame
+                    .hitboxes
+                    .iter()
+                    .find(|hitbox| hitbox.bounds == parent_bounds)
+                    .expect("retained parent should insert a hitbox");
+                let top_hitbox = window
+                    .rendered_frame
+                    .hit_test(point(px(10.), px(15.)))
+                    .ids
+                    .first()
+                    .copied();
+                assert_eq!(
+                    Some(parent_hitbox.id),
+                    top_hitbox,
+                    "the retained parent should hit-test above its pushed child"
+                );
+            })
+            .unwrap();
+    }
+
+    #[test]
+    fn horizontal_flat_sticky_div_scrolls_out_as_the_next_header_pushes_it() {
+        let mut test_app = TestAppContext::single();
+        let scroll_handle = ScrollHandle::new();
+        let window = test_app.add_window({
+            let handle = scroll_handle.clone();
+            move |_, _| StickyReplacementScrollOwner {
+                handle,
+                nested: false,
+                horizontal: true,
+            }
+        });
+        let any_window = window.into();
+
+        scroll_handle.set_offset(point(px(-30.), px(0.)));
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+            })
+            .unwrap();
+        let mut bounds = |selector: &str| {
+            test_app
+                .update_window(any_window, |_, window, _| {
+                    window.rendered_frame.debug_bounds.get(selector).copied()
+                })
+                .unwrap()
+                .expect("horizontal sticky selector is rendered")
+        };
+
+        assert_eq!(bounds("horizontal-flat-a").origin.x, px(-10.));
+        assert_eq!(bounds("horizontal-flat-b").origin.x, px(10.));
+    }
+
+    #[test]
+    fn horizontal_keyed_sticky_run_scrolls_out_as_the_next_run_pushes_it() {
+        let mut test_app = TestAppContext::single();
+        let scroll_handle = ScrollHandle::new();
+        let window = test_app.add_window({
+            let handle = scroll_handle.clone();
+            move |_, _| HorizontalKeyedStickyScrollOwner { handle }
+        });
+        let any_window = window.into();
+
+        scroll_handle.set_offset(point(px(-30.), px(0.)));
+        test_app
+            .update_window(any_window, |_, window, cx| {
+                window.draw(cx).clear();
+            })
+            .unwrap();
+        let mut bounds = |selector: &str| {
+            test_app
+                .update_window(any_window, |_, window, _| {
+                    window.rendered_frame.debug_bounds.get(selector).copied()
+                })
+                .unwrap()
+                .expect("horizontal keyed sticky selector is rendered")
+        };
+
+        assert_eq!(bounds("horizontal-keyed-a-1").origin.x, px(-10.));
+        assert_eq!(bounds("horizontal-keyed-a-2").origin.x, px(10.));
+        assert_eq!(bounds("horizontal-keyed-b-1").origin.x, px(30.));
     }
 
     #[test]
@@ -5465,8 +5997,9 @@ mod tests {
         let scroll_handle = ScrollHandle::new();
         scroll_handle.set_offset(point(px(0.), px(-40.)));
         let window = test_app.add_window({
-            let handle = scroll_handle.clone();
-            move |_, _| ShiftedStickyScrollOwner { handle }
+            move |_, _| ShiftedStickyScrollOwner {
+                handle: scroll_handle,
+            }
         });
         let any_window = window.into();
 
@@ -5513,8 +6046,9 @@ mod tests {
         let scroll_handle = ScrollHandle::new();
         scroll_handle.set_offset(point(px(0.), px(-40.)));
         let window = test_app.add_window({
-            let handle = scroll_handle.clone();
-            move |_, _| StickyWithChildPaintOwner { handle }
+            move |_, _| StickyWithChildPaintOwner {
+                handle: scroll_handle,
+            }
         });
         let any_window = window.into();
 
@@ -5695,13 +6229,14 @@ mod tests {
     }
 
     #[test]
-    fn later_sticky_div_paints_above_earlier_sticky_div_at_same_stuck_position() {
+    fn later_sticky_div_replaces_the_earlier_sticky_div_without_overlap() {
         let mut test_app = TestAppContext::single();
         let scroll_handle = ScrollHandle::new();
         scroll_handle.set_offset(point(px(0.), px(-50.)));
         let window = test_app.add_window({
-            let handle = scroll_handle.clone();
-            move |_, _| LaterStickyZOrderOwner { handle }
+            move |_, _| LaterStickyZOrderOwner {
+                handle: scroll_handle,
+            }
         });
         let any_window = window.into();
 
@@ -5713,25 +6248,26 @@ mod tests {
 
         test_app
             .update_window(any_window, |_, window, _| {
-                let earlier_sticky_order = quad_order_for_color(window, crate::green());
-                let later_sticky_order = quad_order_for_color(window, crate::blue());
-
                 assert!(
-                    later_sticky_order > earlier_sticky_order,
-                    "later sticky content should paint above earlier sticky content when both stick to the same position"
+                    window.rendered_frame.scene.quads.iter().all(|quad| {
+                        quad.background.solid != crate::Color::from(crate::green()).paint_color()
+                    }),
+                    "the outgoing sticky header should be fully clipped once replacement completes"
                 );
+                let _later_sticky_order = quad_order_for_color(window, crate::blue());
             })
             .unwrap();
     }
 
     #[test]
-    fn later_sticky_div_hit_tests_above_earlier_sticky_div_at_same_stuck_position() {
+    fn later_sticky_div_replacement_removes_the_outgoing_hitbox_from_the_viewport() {
         let mut test_app = TestAppContext::single();
         let scroll_handle = ScrollHandle::new();
         scroll_handle.set_offset(point(px(0.), px(-50.)));
         let window = test_app.add_window({
-            let handle = scroll_handle.clone();
-            move |_, _| LaterStickyZOrderOwner { handle }
+            move |_, _| LaterStickyZOrderOwner {
+                handle: scroll_handle,
+            }
         });
         let any_window = window.into();
 
@@ -5751,12 +6287,12 @@ mod tests {
                     .filter(|hitbox| hitbox.bounds == stuck_bounds)
                     .collect::<Vec<_>>();
                 assert_eq!(
-                    2,
+                    1,
                     stuck_hitboxes.len(),
-                    "both sticky hitboxes should be stuck at the same bounds"
+                    "only the incoming sticky hitbox remains"
                 );
 
-                let later_sticky_hitbox = stuck_hitboxes[1];
+                let later_sticky_hitbox = stuck_hitboxes[0];
                 let top_hitbox = window
                     .rendered_frame
                     .hit_test(point(px(10.), px(10.)))
@@ -5767,7 +6303,7 @@ mod tests {
                 assert_eq!(
                     Some(later_sticky_hitbox.id),
                     top_hitbox,
-                    "later sticky hitbox should be topmost when sticky elements overlap"
+                    "the incoming sticky hitbox should own the replaced position"
                 );
             })
             .unwrap();
@@ -5861,8 +6397,6 @@ mod tests {
         let inner_handle = ScrollHandle::new();
         inner_handle.set_offset(point(px(0.), px(-40.)));
         let window = test_app.add_window({
-            let outer_handle = outer_handle.clone();
-            let inner_handle = inner_handle.clone();
             move |_, _| NestedStickyOwner {
                 outer_handle,
                 inner_handle,
