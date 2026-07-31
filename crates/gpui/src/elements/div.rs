@@ -4747,7 +4747,6 @@ mod tests {
         let captured_paint_context = Rc::new(RefCell::new(None));
         let window = test_app.add_window({
             let captured_prepaint_context = captured_prepaint_context.clone();
-            let captured_paint_context = captured_paint_context.clone();
             move |_, _| ScrollContextOwner {
                 captured_prepaint_context,
                 captured_paint_context,
@@ -4777,7 +4776,6 @@ mod tests {
         let captured_prepaint_context = Rc::new(RefCell::new(None));
         let captured_paint_context = Rc::new(RefCell::new(None));
         let window = test_app.add_window({
-            let captured_prepaint_context = captured_prepaint_context.clone();
             let captured_paint_context = captured_paint_context.clone();
             move |_, _| ScrollContextOwner {
                 captured_prepaint_context,
@@ -5342,8 +5340,9 @@ mod tests {
         let scroll_handle = ScrollHandle::new();
         scroll_handle.set_offset(point(px(0.), px(-80.)));
         let window = test_app.add_window({
-            let handle = scroll_handle.clone();
-            move |_, _| FixedInClippedParentOwner { handle }
+            move |_, _| FixedInClippedParentOwner {
+                handle: scroll_handle,
+            }
         });
         let any_window = window.into();
 
@@ -5418,8 +5417,9 @@ mod tests {
         let scroll_handle = ScrollHandle::new();
         scroll_handle.set_offset(point(px(0.), px(-40.)));
         let window = test_app.add_window({
-            let handle = scroll_handle.clone();
-            move |_, _| StickyScrollOwner { handle }
+            move |_, _| StickyScrollOwner {
+                handle: scroll_handle,
+            }
         });
         let any_window = window.into();
 
@@ -5595,8 +5595,9 @@ mod tests {
         let scroll_handle = ScrollHandle::new();
         scroll_handle.set_offset(point(px(0.), px(-40.)));
         let window = test_app.add_window({
-            let handle = scroll_handle.clone();
-            move |_, _| ShiftedStickyScrollOwner { handle }
+            move |_, _| ShiftedStickyScrollOwner {
+                handle: scroll_handle,
+            }
         });
         let any_window = window.into();
 
@@ -5643,8 +5644,9 @@ mod tests {
         let scroll_handle = ScrollHandle::new();
         scroll_handle.set_offset(point(px(0.), px(-40.)));
         let window = test_app.add_window({
-            let handle = scroll_handle.clone();
-            move |_, _| StickyWithChildPaintOwner { handle }
+            move |_, _| StickyWithChildPaintOwner {
+                handle: scroll_handle,
+            }
         });
         let any_window = window.into();
 
@@ -5830,8 +5832,9 @@ mod tests {
         let scroll_handle = ScrollHandle::new();
         scroll_handle.set_offset(point(px(0.), px(-50.)));
         let window = test_app.add_window({
-            let handle = scroll_handle.clone();
-            move |_, _| LaterStickyZOrderOwner { handle }
+            move |_, _| LaterStickyZOrderOwner {
+                handle: scroll_handle,
+            }
         });
         let any_window = window.into();
 
@@ -5860,8 +5863,9 @@ mod tests {
         let scroll_handle = ScrollHandle::new();
         scroll_handle.set_offset(point(px(0.), px(-50.)));
         let window = test_app.add_window({
-            let handle = scroll_handle.clone();
-            move |_, _| LaterStickyZOrderOwner { handle }
+            move |_, _| LaterStickyZOrderOwner {
+                handle: scroll_handle,
+            }
         });
         let any_window = window.into();
 
@@ -5991,8 +5995,6 @@ mod tests {
         let inner_handle = ScrollHandle::new();
         inner_handle.set_offset(point(px(0.), px(-40.)));
         let window = test_app.add_window({
-            let outer_handle = outer_handle.clone();
-            let inner_handle = inner_handle.clone();
             move |_, _| NestedStickyOwner {
                 outer_handle,
                 inner_handle,

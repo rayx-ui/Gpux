@@ -44,9 +44,9 @@ mod tests {
     };
 
     use crate::{
-        Context, Corners, Element, ElementEffect, ElementId, IntoElement, Overflow,
-        ParentElement as _, Position, Render, Styled as _, TestAppContext, TransformationMatrix,
-        Window, backdrop_blur, div, glow, hsla, point, px, red, relative, size,
+        Context, Corners, Element, ElementEffect, ElementId, IntoElement, Overflow, Position,
+        Render, Styled as _, TestAppContext, TransformationMatrix, Window, backdrop_blur, div,
+        glow, hsla, point, px, red, relative, size,
     };
 
     use super::AnimatedFrameChild;
@@ -382,7 +382,7 @@ mod tests {
             .update(cx, |_, window, _| {
                 let quad = &window.rendered_frame.scene.quads[0];
                 (
-                    quad.content_mask.clone(),
+                    quad.content_mask,
                     quad.transformation,
                     quad.background.solid_color().a,
                     window.scale_factor(),

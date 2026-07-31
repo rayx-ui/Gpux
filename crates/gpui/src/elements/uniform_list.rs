@@ -929,7 +929,6 @@ mod test {
         let clicks = Rc::new(RefCell::new(Vec::new()));
         let mut app = TestApp::new();
         let mut window = app.open_window({
-            let scroll_handle = scroll_handle.clone();
             let clicks = clicks.clone();
             move |_, _| StickyUniformListView {
                 scroll_handle,
@@ -1027,10 +1026,7 @@ mod test {
             .borrow()
             .base_handle
             .set_offset(point(px(0.), px(-70.)));
-        let window = test_app.add_window({
-            let scroll_handle = scroll_handle.clone();
-            move |_, _| StickyUniformListView { scroll_handle }
-        });
+        let window = test_app.add_window(move |_, _| StickyUniformListView { scroll_handle });
         let any_window = window.into();
 
         test_app
@@ -1111,7 +1107,6 @@ mod test {
             .set_offset(point(px(0.), px(-70.)));
         let visible_range = Rc::new(RefCell::new(0..0));
         let window = test_app.add_window({
-            let scroll_handle = scroll_handle.clone();
             let visible_range = visible_range.clone();
             move |_, _| StickyCandidateUniformListView {
                 scroll_handle,

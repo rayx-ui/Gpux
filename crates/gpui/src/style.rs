@@ -1551,7 +1551,7 @@ mod tests {
             "Blending a style with an empty style should not change the style."
         );
 
-        let mut style_c = expected_style.clone();
+        let mut style_c = expected_style;
 
         let style_d = HighlightStyle {
             color: Some(blue().with_alpha(0.7).expect("valid alpha")),

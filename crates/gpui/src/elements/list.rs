@@ -2200,7 +2200,6 @@ mod test {
         let clicks = Rc::new(RefCell::new(Vec::new()));
         let mut app = TestApp::new();
         let mut window = app.open_window({
-            let state = state.clone();
             let clicks = clicks.clone();
             move |_, _| StickyListView { state, clicks }
         });
@@ -2300,10 +2299,7 @@ mod test {
             item_ix: 3,
             offset_in_item: px(10.),
         });
-        let window = test_app.add_window({
-            let state = state.clone();
-            move |_, _| StickyListView { state }
-        });
+        let window = test_app.add_window(move |_, _| StickyListView { state });
         let any_window = window.into();
 
         test_app
@@ -2360,10 +2356,7 @@ mod test {
             item_ix: 3,
             offset_in_item: px(10.),
         });
-        let window = test_app.add_window({
-            let state = state.clone();
-            move |_, _| StickyCandidateListView { state }
-        });
+        let window = test_app.add_window(move |_, _| StickyCandidateListView { state });
         let any_window = window.into();
 
         test_app
@@ -2428,10 +2421,7 @@ mod test {
             item_ix: 12,
             offset_in_item: px(0.),
         });
-        let window = test_app.add_window({
-            let state = state.clone();
-            move |_, _| NestedStickyCandidateListView { state }
-        });
+        let window = test_app.add_window(move |_, _| NestedStickyCandidateListView { state });
         let any_window = window.into();
 
         test_app

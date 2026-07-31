@@ -1684,17 +1684,17 @@ mod tests {
             id: PathId(0),
             order: 0,
             bounds,
-            content_mask: content_mask.clone(),
+            content_mask,
             vertices: vec![
                 PathVertex {
                     xy_position: bounds.origin,
                     st_position: point(0., 0.),
-                    content_mask: content_mask.clone(),
+                    content_mask,
                 },
                 PathVertex {
                     xy_position: bounds.top_right(),
                     st_position: point(1., 0.),
-                    content_mask: content_mask.clone(),
+                    content_mask,
                 },
                 PathVertex {
                     xy_position: bounds.bottom_right(),
