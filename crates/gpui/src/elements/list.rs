@@ -961,16 +961,16 @@ impl ListState {
     }
 
     /// Set the offset from the scrollbar
-    pub fn set_offset_from_scrollbar(&self, point: Point<Pixels>) {
-        self.0.borrow_mut().set_offset_from_scrollbar(point);
+    pub fn request_offset_from_scrollbar(&self, point: Point<Pixels>) {
+        self.0.borrow_mut().request_offset_from_scrollbar(point);
     }
 
     /// Try to set the scrollbar-derived offset without panicking if the state is already borrowed.
-    pub fn try_set_offset_from_scrollbar(&self, point: Point<Pixels>) -> bool {
+    pub fn try_request_offset_from_scrollbar(&self, point: Point<Pixels>) -> bool {
         let Ok(mut state) = self.0.try_borrow_mut() else {
             return false;
         };
-        state.set_offset_from_scrollbar(point);
+        state.request_offset_from_scrollbar(point);
         true
     }
 
@@ -1681,7 +1681,7 @@ impl StateInner {
 
     // Scrollbar support
 
-    fn set_offset_from_scrollbar(&mut self, point: Point<Pixels>) {
+    fn request_offset_from_scrollbar(&mut self, point: Point<Pixels>) {
         let Some(bounds) = self.last_layout_bounds else {
             return;
         };
@@ -2969,7 +2969,7 @@ mod test {
         assert!(state.is_following_tail());
 
         // Simulate the scrollbar moving the viewport to the middle.
-        state.set_offset_from_scrollbar(point(px(0.), px(-150.)));
+        state.request_offset_from_scrollbar(point(px(0.), px(-150.)));
 
         let offset = state.logical_scroll_top();
         assert_eq!(offset.item_ix, 3);
@@ -3030,7 +3030,7 @@ mod test {
 
         state.scrollbar_drag_started();
 
-        state.set_offset_from_scrollbar(point(px(0.), px(-150.)));
+        state.request_offset_from_scrollbar(point(px(0.), px(-150.)));
         let scrollbar_offset_before_growth = state.scroll_px_offset_for_scrollbar();
 
         let offset = state.logical_scroll_top();
@@ -3049,7 +3049,7 @@ mod test {
             scrollbar_offset_before_growth
         );
 
-        state.set_offset_from_scrollbar(point(px(0.), px(-150.)));
+        state.request_offset_from_scrollbar(point(px(0.), px(-150.)));
         let offset = state.logical_scroll_top();
         assert_eq!(offset.item_ix, 3);
         assert_eq!(offset.offset_in_item, px(0.));
@@ -3084,7 +3084,7 @@ mod test {
         });
 
         state.scrollbar_drag_started();
-        state.set_offset_from_scrollbar(point(px(0.), px(-1200.)));
+        state.request_offset_from_scrollbar(point(px(0.), px(-1200.)));
         let offset_before_measurement = state.logical_scroll_top();
         assert_eq!(offset_before_measurement.item_ix, 15);
         assert_eq!(offset_before_measurement.offset_in_item, px(0.));
@@ -3099,7 +3099,7 @@ mod test {
             point(px(0.), px(-1200.))
         );
 
-        state.set_offset_from_scrollbar(point(px(0.), px(-1200.)));
+        state.request_offset_from_scrollbar(point(px(0.), px(-1200.)));
         let offset_after_measurement = state.logical_scroll_top();
         assert_eq!(offset_after_measurement.item_ix, 15);
         assert_eq!(offset_after_measurement.offset_in_item, px(0.));
@@ -3136,7 +3136,7 @@ mod test {
         });
 
         state.scrollbar_drag_started();
-        state.set_offset_from_scrollbar(point(px(0.), -state.max_offset_for_scrollbar().y));
+        state.request_offset_from_scrollbar(point(px(0.), -state.max_offset_for_scrollbar().y));
 
         let offset = state.logical_scroll_top();
         assert_eq!(offset.item_ix, state.item_count());
@@ -3382,12 +3382,12 @@ mod test {
         assert!(state.is_following_tail());
 
         // Drag the scrollbar up to the middle — follow_tail should suspend.
-        state.set_offset_from_scrollbar(point(px(0.), px(-150.)));
+        state.request_offset_from_scrollbar(point(px(0.), px(-150.)));
         assert!(!state.is_following_tail());
 
         // Drag the scrollbar back to the bottom — follow_tail should re-engage
         // on the next paint.
-        state.set_offset_from_scrollbar(point(px(0.), px(-300.)));
+        state.request_offset_from_scrollbar(point(px(0.), px(-300.)));
         cx.draw(point(px(0.), px(0.)), size(px(100.), px(200.)), |_, _| {
             view.into_any_element()
         });
@@ -3431,7 +3431,7 @@ mod test {
             view.clone().into_any_element()
         });
 
-        state.set_offset_from_scrollbar(point(px(0.), px(-300.)));
+        state.request_offset_from_scrollbar(point(px(0.), px(-300.)));
         state.scrollbar_drag_ended();
 
         cx.draw(point(px(0.), px(0.)), size(px(100.), px(200.)), |_, _| {

@@ -8,8 +8,8 @@ use crate::{
     AnyElement, App, AvailableSpace, Bounds, ContentMask, Element, ElementId, Entity,
     GlobalElementId, Hitbox, HitboxBehavior, InspectorElementId, InteractiveElement, Interactivity,
     IntoElement, IsZero, LayoutId, ListSizingBehavior, Overflow, Pixels, Point,
-    ScrollContainerContext, ScrollHandle, Size, StickyItem, StyleRefinement, Styled, Window, point,
-    px, size, sticky_push_offset,
+    ScrollContainerContext, ScrollHandle, ScrollMutationSource, Size, StickyItem, StyleRefinement,
+    Styled, Window, point, px, size, sticky_push_offset,
 };
 use smallvec::SmallVec;
 use std::{cell::RefCell, cmp, ops::Range, rc::Rc, usize};
@@ -854,13 +854,19 @@ impl UniformList {
                         Some(last_size) if scroll_state.y_flipped != y_flipped => {
                             let new_y_offset =
                                 -(offset.y + last_size.contents.height - last_size.item.height);
-                            if base_handle.try_set_offset(point(offset.x, new_y_offset)) {
+                            if base_handle.request_offset(
+                                point(offset.x, new_y_offset),
+                                ScrollMutationSource::Deferred,
+                            ) {
                                 scroll_state.y_flipped = y_flipped;
                             }
                         }
                         // Handle case where list is initially flipped.
                         None if y_flipped => {
-                            if base_handle.try_set_offset(point(offset.x, Pixels::MIN)) {
+                            if base_handle.request_offset(
+                                point(offset.x, Pixels::MIN),
+                                ScrollMutationSource::Deferred,
+                            ) {
                                 scroll_state.y_flipped = y_flipped;
                             }
                         }
@@ -881,7 +887,7 @@ impl InteractiveElement for UniformList {
 
 #[cfg(test)]
 mod test {
-    use crate::{StickyItem, StickyStacking, TestApp, TestAppContext};
+    use crate::{ScrollMutationSource, StickyItem, StickyStacking, TestApp, TestAppContext};
 
     use super::{StickyItems, UniformList};
 
@@ -955,7 +961,7 @@ mod test {
             .0
             .borrow()
             .base_handle
-            .set_offset(point(px(0.), px(-80.)));
+            .request_offset(point(px(0.), px(-80.)), ScrollMutationSource::Programmatic);
         let clicks = Rc::new(RefCell::new(Vec::new()));
         let view_clicks = clicks.clone();
         let mut app = TestApp::new();
@@ -1020,7 +1026,7 @@ mod test {
             .0
             .borrow()
             .base_handle
-            .set_offset(point(px(0.), px(-310.)));
+            .request_offset(point(px(0.), px(-310.)), ScrollMutationSource::Programmatic);
         let clicks = Rc::new(RefCell::new(Vec::new()));
         let mut app = TestApp::new();
         let mut window = app.open_window(move |_, _| StickyUniformListView {
@@ -1149,7 +1155,7 @@ mod test {
             .0
             .borrow()
             .base_handle
-            .set_offset(point(px(0.), px(-70.)));
+            .request_offset(point(px(0.), px(-70.)), ScrollMutationSource::Programmatic);
         let window = test_app.add_window(move |_, _| StickyUniformListView { scroll_handle });
         let any_window = window.into();
 
@@ -1228,7 +1234,7 @@ mod test {
             .0
             .borrow()
             .base_handle
-            .set_offset(point(px(0.), px(-70.)));
+            .request_offset(point(px(0.), px(-70.)), ScrollMutationSource::Programmatic);
         let visible_range = Rc::new(RefCell::new(0..0));
         let window = test_app.add_window({
             let visible_range = visible_range.clone();

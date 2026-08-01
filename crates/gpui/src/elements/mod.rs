@@ -12,6 +12,9 @@ mod image_cache;
 mod img;
 mod list;
 mod scroll_activity;
+pub use scroll_activity::{
+    ScrollActivityKind, ScrollDirection, ScrollMetrics, ScrollMutationSource,
+};
 mod surface;
 mod svg;
 mod text;

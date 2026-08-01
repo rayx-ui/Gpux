@@ -4,7 +4,7 @@ use std::{ops::Range, rc::Rc, time::Duration};
 
 use gpui_platform::application;
 use gpux::{
-    App, Bounds, Context, Pixels, Point, PointerEvent, Render, SharedString,
+    App, Bounds, Context, Pixels, Point, PointerEvent, Render, ScrollMutationSource, SharedString,
     UniformListScrollHandle, Window, WindowBounds, WindowOptions, canvas, div, point, prelude::*,
     px, rgb, size, uniform_list,
 };
@@ -372,7 +372,10 @@ impl DataTable {
                             let offset_y = ((scroll_height - table_bounds.size.height)
                                 * percentage)
                                 .clamp(px(0.), scroll_height - SCROLLBAR_THUMB_HEIGHT);
-                            scroll_handle.set_offset(point(px(0.), -offset_y));
+                            scroll_handle.request_offset(
+                                point(px(0.), -offset_y),
+                                ScrollMutationSource::Programmatic,
+                            );
                             cx.notify(entity.entity_id());
                         })
                     },
