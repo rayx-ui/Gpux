@@ -866,6 +866,11 @@ impl EditableTextState {
     }
 
     pub(crate) fn pointer_up(&mut self) {
+        self.cancel_pointer_selection();
+    }
+
+    /// Cancels the transient pointer drag without changing the current selection.
+    pub fn cancel_pointer_selection(&mut self) {
         self.is_selecting = false;
         self.drag_position = None;
         self.stop_drag_auto_scroll();
