@@ -308,3 +308,57 @@ fn programmatic_scroll_owners_list_state_uses_shared_driver_and_preserves_instan
     });
     assert_eq!(state.scroll_px_offset_for_scrollbar().y, px(-20.));
 }
+
+#[test]
+fn list_state_scrollbar_offsets_use_shared_driver_with_estimated_items() {
+    let mut app = TestApp::new();
+    let state = ListState::new(20, ListAlignment::Top, px(0.)).with_item_height_hint(px(20.));
+    let mut window = app.open_window({
+        let state = state.clone();
+        move |_, _| VariableListOwner { state }
+    });
+    window.draw();
+
+    state.request_offset_from_scrollbar_with_behavior(
+        point(px(0.), px(-180.)),
+        ScrollBehavior::Instant,
+    );
+    window.draw();
+    window.draw();
+    assert_eq!(state.scroll_px_offset_for_scrollbar().y, px(-180.));
+
+    state.request_offset_from_scrollbar_with_behavior(
+        point(px(0.), px(-300.)),
+        ScrollBehavior::Smooth(Duration::from_secs(1)),
+    );
+    window.draw();
+    window.update(|_, window, cx| {
+        let current_view = cx.entity_id();
+        assert!(state.advance_programmatic_scroll_for_test(
+            2,
+            Instant::now() + Duration::from_secs(2),
+            current_view,
+            window,
+            cx,
+        ));
+    });
+    assert_eq!(state.scroll_px_offset_for_scrollbar().y, px(-300.));
+
+    state.request_offset_from_scrollbar_with_behavior(
+        point(px(0.), px(-100.)),
+        ScrollBehavior::Smooth(Duration::from_secs(1)),
+    );
+    window.draw();
+    state.request_offset_from_scrollbar(point(px(0.), px(-40.)));
+    window.update(|_, window, cx| {
+        let current_view = cx.entity_id();
+        assert!(!state.advance_programmatic_scroll_for_test(
+            3,
+            Instant::now() + Duration::from_secs(2),
+            current_view,
+            window,
+            cx,
+        ));
+    });
+    assert_eq!(state.scroll_px_offset_for_scrollbar().y, px(-40.));
+}

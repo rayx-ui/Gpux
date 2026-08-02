@@ -2,8 +2,8 @@ use crate::{
     App, Bounds, Color, ContentMask, CursorStyle, DecorationRun, DispatchPhase, Element, ElementId,
     ElementInputHandler, Entity, GlobalElementId, IntoElement, KeyDownEvent, LayoutId, MouseButton,
     PaintQuad, Pixels, PointerEvent, RenderOnce, ScrollWheelEvent, ShapedLine, SharedString, Style,
-    TextAlign, TextRun, UnderlineStyle, Window, WrappedLine, div, fill, point, prelude::*, px,
-    relative, size,
+    TextAlign, TextRun, UnderlineStyle, WeakEntity, Window, WrappedLine, div, fill, point,
+    prelude::*, px, relative, size,
 };
 use std::ops::Range;
 
@@ -333,6 +333,13 @@ impl Element for EditableTextPaintElement {
                 )
                 .is_ok()
         });
+        if let Some(generation) = self
+            .state
+            .update(cx, |state, _| state.take_pending_programmatic_generation())
+        {
+            schedule_editable_programmatic_scroll(self.state.downgrade(), generation, window);
+            window.refresh();
+        }
 
         let state = self.state.read(cx);
         let snapshot = state.snapshot();
@@ -533,6 +540,28 @@ impl Element for EditableTextPaintElement {
             }
         });
     }
+}
+
+fn schedule_editable_programmatic_scroll(
+    state: WeakEntity<EditableTextState>,
+    generation: u64,
+    window: &Window,
+) {
+    window.on_next_frame(move |window, cx| {
+        let Some(request_next_frame) = state
+            .update(cx, |state, cx| {
+                state.advance_programmatic_scroll_at(generation, crate::Instant::now(), cx)
+            })
+            .ok()
+            .flatten()
+        else {
+            return;
+        };
+        if request_next_frame {
+            schedule_editable_programmatic_scroll(state, generation, window);
+        }
+        window.refresh();
+    });
 }
 
 fn decoration_runs(
