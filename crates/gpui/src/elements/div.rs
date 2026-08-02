@@ -16,18 +16,19 @@
 //! constructed by combining these two systems into an all-in-one element.
 
 use super::scroll_activity::{
-    ScrollActivity, ScrollMetrics, ScrollMutationSource, direction_for_delta,
+    ProgrammaticScrollFrame, ScrollActivity, ScrollActivityKind, ScrollMetrics,
+    ScrollMutationSource, direction_for_delta,
 };
 use crate::{
     Action, ActionDispatchOutcome, AnyDrag, AnyElement, AnyTooltip, AnyView, App, Bounds,
     ClickEvent, DispatchPhase, Display, DragAxis, Element, ElementId, Entity, EntityId,
     FocusHandle, Global, GlobalElementId, Hitbox, HitboxBehavior, HitboxId, InputEvent,
-    InspectorElementId, IntoElement, IsZero, KeyContext, KeyDownEvent, KeyUpEvent, KeyboardButton,
-    KeyboardClickEvent, LayoutId, ModifiersChangedEvent, MouseButton, Overflow, ParentElement,
-    Pixels, Point, PointerClickEvent, PointerEvent, Position, PositionedBounds, Render,
-    ScrollContainerContext, ScrollDelta, ScrollWheelEvent, SharedString, Size, StickyState,
-    StickyStateChangedEvent, Style, StyleRefinement, Styled, Task, TooltipId, Visibility, Window,
-    WindowControlArea, point, px, size,
+    InspectorElementId, Instant, IntoElement, IsZero, KeyContext, KeyDownEvent, KeyUpEvent,
+    KeyboardButton, KeyboardClickEvent, LayoutId, ModifiersChangedEvent, MouseButton, Overflow,
+    ParentElement, Pixels, Point, PointerClickEvent, PointerEvent, Position, PositionedBounds,
+    Render, ScrollBehavior, ScrollContainerContext, ScrollDelta, ScrollWheelEvent, SharedString,
+    Size, StickyState, StickyStateChangedEvent, Style, StyleRefinement, Styled, Task, TooltipId,
+    Visibility, Window, WindowControlArea, point, px, size,
 };
 use crate::{PinchEvent, RotateEvent};
 use collections::HashMap;
@@ -2482,12 +2483,14 @@ impl Interactivity {
         if let Some(scroll_offset) = self.scroll_offset.as_ref() {
             let mut scroll_to_bottom = false;
             let mut pending_offset = None;
+            let mut pending_programmatic_offset = None;
             if let Some(scroll_handle) = self.tracked_scroll_handle.as_ref()
                 && let Ok(mut state) = scroll_handle.0.try_borrow_mut()
             {
                 state.overflow = style.overflow;
                 scroll_to_bottom = mem::take(&mut state.scroll_to_bottom);
                 pending_offset = state.pending_offset.take();
+                pending_programmatic_offset = state.pending_programmatic_offset.take();
             }
 
             let scroll_max = Self::scroll_max_for_bounds(
@@ -2503,6 +2506,39 @@ impl Interactivity {
                 candidate.y = -scroll_max.y;
             }
             if let Some(scroll_handle) = self.tracked_scroll_handle.as_ref() {
+                if let Some((target, behavior)) = pending_programmatic_offset {
+                    let current = *scroll_offset.borrow();
+                    let logical = |offset: Point<Pixels>| point(-offset.x, -offset.y);
+                    let frame = {
+                        let state = scroll_handle.0.borrow();
+                        state.activity.borrow_mut().start_programmatic_at(
+                            logical(current),
+                            logical(target),
+                            scroll_max,
+                            behavior,
+                            crate::Instant::now(),
+                        )
+                    };
+                    if let Some(frame) = frame {
+                        scroll_handle.publish_programmatic_offset(
+                            point(-frame.offset.x, -frame.offset.y),
+                            scroll_max,
+                            bounds,
+                            window.current_view(),
+                            cx,
+                        );
+                        if frame.request_next_frame {
+                            schedule_programmatic_scroll(
+                                scroll_handle.clone(),
+                                frame.generation,
+                                window.current_view(),
+                                window,
+                            );
+                            window.refresh();
+                        }
+                    }
+                    return scroll_handle.offset();
+                }
                 let source = pending_offset
                     .map(|(_, source)| source)
                     .unwrap_or(ScrollMutationSource::LayoutClamp);
@@ -4220,6 +4256,7 @@ struct ScrollHandleState {
     activity: Rc<RefCell<ScrollActivity>>,
     metrics: ScrollMetrics,
     pending_offset: Option<(Point<Pixels>, ScrollMutationSource)>,
+    pending_programmatic_offset: Option<(Point<Pixels>, ScrollBehavior)>,
 }
 
 #[derive(Default, Debug, Clone, Copy)]
@@ -4443,8 +4480,58 @@ impl ScrollHandle {
         let Ok(mut state) = self.0.try_borrow_mut() else {
             return false;
         };
+        if matches!(
+            source,
+            ScrollMutationSource::Wheel
+                | ScrollMutationSource::Scrollbar
+                | ScrollMutationSource::Deferred
+        ) && state.activity.borrow().kind() == ScrollActivityKind::Programmatic
+        {
+            state.activity.borrow_mut().stop();
+        }
+        state.pending_programmatic_offset = None;
         state.pending_offset = Some((position, source));
         true
+    }
+
+    /// Queue an explicit programmatic offset using the shared scroll activity driver.
+    ///
+    /// Positions use the same physical, non-positive convention as [`Self::offset`]. The owning
+    /// element resolves current geometry during prepaint, so requests made before layout remain
+    /// deterministic and are clamped against the first available viewport.
+    pub fn scroll_to(&self, position: Point<Pixels>, behavior: ScrollBehavior) -> bool {
+        if !position.x.as_f32().is_finite() || !position.y.as_f32().is_finite() {
+            return false;
+        }
+        let Ok(mut state) = self.0.try_borrow_mut() else {
+            return false;
+        };
+        state.activity.borrow_mut().stop();
+        state.pending_offset = None;
+        state.pending_programmatic_offset = Some((position, behavior));
+        true
+    }
+
+    pub(crate) fn cancel_programmatic_scroll(&self) {
+        if let Ok(mut state) = self.0.try_borrow_mut() {
+            if state.activity.borrow().kind() == ScrollActivityKind::Programmatic {
+                state.activity.borrow_mut().stop();
+            }
+            state.pending_programmatic_offset = None;
+        }
+    }
+
+    /// Advance this owner's active programmatic driver without relying on a platform frame pump.
+    /// Generation `1` is the first request on a fresh owner.
+    #[cfg(any(test, feature = "test-support"))]
+    pub fn advance_programmatic_scroll_for_test(
+        &self,
+        generation: u64,
+        timestamp: Instant,
+        current_view: EntityId,
+        cx: &mut App,
+    ) -> bool {
+        apply_programmatic_scroll_frame(self, generation, timestamp, current_view, cx).is_some()
     }
 
     fn publish_offset(
@@ -4454,6 +4541,39 @@ impl ScrollHandle {
         bounds: Bounds<Pixels>,
         source: ScrollMutationSource,
         owner: EntityId,
+        cx: &mut App,
+    ) -> bool {
+        self.publish_offset_inner(candidate, max_offset, bounds, source, owner, false, cx)
+    }
+
+    fn publish_programmatic_offset(
+        &self,
+        candidate: Point<Pixels>,
+        max_offset: Point<Pixels>,
+        bounds: Bounds<Pixels>,
+        owner: EntityId,
+        cx: &mut App,
+    ) -> bool {
+        self.publish_offset_inner(
+            candidate,
+            max_offset,
+            bounds,
+            ScrollMutationSource::Programmatic,
+            owner,
+            true,
+            cx,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn publish_offset_inner(
+        &self,
+        candidate: Point<Pixels>,
+        max_offset: Point<Pixels>,
+        bounds: Bounds<Pixels>,
+        source: ScrollMutationSource,
+        owner: EntityId,
+        preserve_programmatic_activity: bool,
         cx: &mut App,
     ) -> bool {
         if !candidate.x.as_f32().is_finite()
@@ -4496,9 +4616,10 @@ impl ScrollHandle {
                 ScrollMutationSource::Wheel
                 | ScrollMutationSource::Scrollbar
                 | ScrollMutationSource::Deferred => state.activity.borrow_mut().stop(),
-                ScrollMutationSource::Programmatic => {
+                ScrollMutationSource::Programmatic if !preserve_programmatic_activity => {
                     state.activity.borrow_mut().begin_programmatic()
                 }
+                ScrollMutationSource::Programmatic => {}
                 ScrollMutationSource::Touch
                 | ScrollMutationSource::Momentum
                 | ScrollMutationSource::LayoutClamp => {}
@@ -4581,6 +4702,53 @@ impl ScrollHandle {
     pub fn children_count(&self) -> usize {
         self.0.borrow().child_bounds.len()
     }
+}
+
+fn schedule_programmatic_scroll(
+    scroll_handle: ScrollHandle,
+    generation: u64,
+    current_view: EntityId,
+    window: &Window,
+) {
+    window.on_next_frame(move |window, cx| {
+        let Some(frame) = apply_programmatic_scroll_frame(
+            &scroll_handle,
+            generation,
+            crate::Instant::now(),
+            current_view,
+            cx,
+        ) else {
+            return;
+        };
+        if frame.request_next_frame {
+            schedule_programmatic_scroll(scroll_handle, generation, current_view, window);
+            window.refresh();
+        }
+    });
+}
+
+fn apply_programmatic_scroll_frame(
+    scroll_handle: &ScrollHandle,
+    generation: u64,
+    timestamp: Instant,
+    current_view: EntityId,
+    cx: &mut App,
+) -> Option<ProgrammaticScrollFrame> {
+    let (activity, max_offset, bounds) = {
+        let state = scroll_handle.0.try_borrow().ok()?;
+        (state.activity.clone(), state.max_offset, state.bounds)
+    };
+    let frame = activity
+        .borrow_mut()
+        .next_programmatic_at(generation, timestamp, max_offset)?;
+    scroll_handle.publish_programmatic_offset(
+        point(-frame.offset.x, -frame.offset.y),
+        max_offset,
+        bounds,
+        current_view,
+        cx,
+    );
+    Some(frame)
 }
 
 fn schedule_scroll_activity(

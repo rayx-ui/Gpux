@@ -15,6 +15,8 @@ mod scroll_activity;
 pub use scroll_activity::{
     ScrollActivityKind, ScrollDirection, ScrollMetrics, ScrollMutationSource,
 };
+mod scroll_behavior;
+pub use scroll_behavior::ScrollBehavior;
 mod surface;
 mod svg;
 mod text;
@@ -309,11 +311,7 @@ mod tests {
 
     impl Render for EmptyFrameRoot {
         fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
-            super::Frame {
-                style: FrameStyle::default().w(px(48.0)).h(px(32.0)),
-                child: None,
-                source_location: None,
-            }
+            crate::frame().w(px(48.0)).h(px(32.0))
         }
     }
 

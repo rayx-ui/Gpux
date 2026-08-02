@@ -7,7 +7,7 @@
 use crate::{
     AnyElement, App, AvailableSpace, Bounds, ContentMask, Element, ElementId, Entity,
     GlobalElementId, Hitbox, HitboxBehavior, InspectorElementId, InteractiveElement, Interactivity,
-    IntoElement, IsZero, LayoutId, ListSizingBehavior, Overflow, Pixels, Point,
+    IntoElement, IsZero, LayoutId, ListSizingBehavior, Overflow, Pixels, Point, ScrollBehavior,
     ScrollContainerContext, ScrollHandle, ScrollMutationSource, Size, StickyItem, StyleRefinement,
     Styled, Window, point, px, size, sticky_push_offset,
 };
@@ -119,6 +119,7 @@ pub struct DeferredScrollToItem {
 pub struct UniformListScrollState {
     pub base_handle: ScrollHandle,
     pub deferred_scroll_to_item: Option<DeferredScrollToItem>,
+    deferred_scroll_behavior: Option<ScrollBehavior>,
     /// Size of the item, captured during last layout.
     pub last_item_size: Option<ItemSize>,
     /// Whether the list was vertically flipped during last layout.
@@ -141,6 +142,7 @@ impl UniformListScrollHandle {
         Self(Rc::new(RefCell::new(UniformListScrollState {
             base_handle: ScrollHandle::new(),
             deferred_scroll_to_item: None,
+            deferred_scroll_behavior: None,
             last_item_size: None,
             y_flipped: false,
         })))
@@ -152,12 +154,15 @@ impl UniformListScrollHandle {
     /// If the item is out of view, it scrolls the minimum amount to bring it into view according
     /// to the strategy.
     pub fn scroll_to_item(&self, ix: usize, strategy: ScrollStrategy) {
-        self.0.borrow_mut().deferred_scroll_to_item = Some(DeferredScrollToItem {
-            item_index: ix,
-            strategy,
-            offset: 0,
-            scroll_strict: false,
-        });
+        self.queue_scroll_to_item(
+            DeferredScrollToItem {
+                item_index: ix,
+                strategy,
+                offset: 0,
+                scroll_strict: false,
+            },
+            None,
+        );
     }
 
     /// Scroll the list so that the given item index is at scroll strategy position.
@@ -165,12 +170,15 @@ impl UniformListScrollHandle {
     /// This uses strict scrolling: the item will always be scrolled to match the strategy position,
     /// even if it's already visible. Use this when you need precise positioning.
     pub fn scroll_to_item_strict(&self, ix: usize, strategy: ScrollStrategy) {
-        self.0.borrow_mut().deferred_scroll_to_item = Some(DeferredScrollToItem {
-            item_index: ix,
-            strategy,
-            offset: 0,
-            scroll_strict: true,
-        });
+        self.queue_scroll_to_item(
+            DeferredScrollToItem {
+                item_index: ix,
+                strategy,
+                offset: 0,
+                scroll_strict: true,
+            },
+            None,
+        );
     }
 
     /// Scroll the list to the given item index with an offset in number of items.
@@ -184,12 +192,15 @@ impl UniformListScrollHandle {
     /// - `ScrollStrategy::Center`: Shrinks from top, centers item in the reduced viewport
     /// - `ScrollStrategy::Bottom`: Shrinks from bottom, positions item at the new bottom
     pub fn scroll_to_item_with_offset(&self, ix: usize, strategy: ScrollStrategy, offset: usize) {
-        self.0.borrow_mut().deferred_scroll_to_item = Some(DeferredScrollToItem {
-            item_index: ix,
-            strategy,
-            offset,
-            scroll_strict: false,
-        });
+        self.queue_scroll_to_item(
+            DeferredScrollToItem {
+                item_index: ix,
+                strategy,
+                offset,
+                scroll_strict: false,
+            },
+            None,
+        );
     }
 
     /// Scroll the list so that the given item index is at the exact scroll strategy position with an offset.
@@ -208,23 +219,54 @@ impl UniformListScrollHandle {
         strategy: ScrollStrategy,
         offset: usize,
     ) {
-        self.0.borrow_mut().deferred_scroll_to_item = Some(DeferredScrollToItem {
-            item_index: ix,
-            strategy,
-            offset,
-            scroll_strict: true,
-        });
+        self.queue_scroll_to_item(
+            DeferredScrollToItem {
+                item_index: ix,
+                strategy,
+                offset,
+                scroll_strict: true,
+            },
+            None,
+        );
+    }
+
+    /// Queue one explicit programmatic item request with its final behavior.
+    ///
+    /// The logical request is retained until uniform item geometry is available, then resolved
+    /// through the base [`ScrollHandle`] and shared programmatic driver.
+    pub fn scroll_to_item_with_behavior(
+        &self,
+        request: DeferredScrollToItem,
+        behavior: ScrollBehavior,
+    ) {
+        self.queue_scroll_to_item(request, Some(behavior));
+    }
+
+    fn queue_scroll_to_item(
+        &self,
+        request: DeferredScrollToItem,
+        behavior: Option<ScrollBehavior>,
+    ) {
+        let mut state = self.0.borrow_mut();
+        state.base_handle.cancel_programmatic_scroll();
+        state.deferred_scroll_to_item = Some(request);
+        state.deferred_scroll_behavior = behavior;
     }
 
     fn try_take_deferred_scroll_to_item(
         &self,
         item_size: ItemSize,
-    ) -> Option<Option<DeferredScrollToItem>> {
+    ) -> Option<Option<(DeferredScrollToItem, Option<ScrollBehavior>)>> {
         let Ok(mut state) = self.0.try_borrow_mut() else {
             return None;
         };
         state.last_item_size = Some(item_size);
-        Some(state.deferred_scroll_to_item.take())
+        let request = state
+            .deferred_scroll_to_item
+            .take()
+            .map(|request| (request, state.deferred_scroll_behavior));
+        state.deferred_scroll_behavior = None;
+        Some(request)
     }
 
     fn try_base_handle(&self) -> Option<ScrollHandle> {
@@ -440,18 +482,21 @@ impl Element for UniformList {
                         scroll_offset.x = Pixels::ZERO;
                     }
 
-                    if let Some(DeferredScrollToItem {
-                        mut item_index,
-                        mut strategy,
-                        offset,
-                        scroll_strict,
-                    }) = shared_scroll_to_item
+                    if let Some((
+                        DeferredScrollToItem {
+                            mut item_index,
+                            mut strategy,
+                            offset,
+                            scroll_strict,
+                        },
+                        behavior,
+                    )) = shared_scroll_to_item
                     {
                         if y_flipped {
                             item_index = self.item_count.saturating_sub(item_index + 1);
                         }
                         let list_height = padded_bounds.size.height;
-                        let mut updated_scroll_offset = shared_scroll_offset.borrow_mut();
+                        let mut updated_scroll_offset = *shared_scroll_offset.borrow();
                         let item_top = item_height * item_index;
                         let item_bottom = item_top + item_height;
                         let scroll_top = -updated_scroll_offset.y;
@@ -495,7 +540,18 @@ impl Element for UniformList {
                                 }
                             }
                         }
-                        scroll_offset = *updated_scroll_offset
+                        if behavior.is_none() {
+                            *shared_scroll_offset.borrow_mut() = updated_scroll_offset;
+                            scroll_offset = updated_scroll_offset;
+                        } else if let (Some(behavior), Some(handle)) = (
+                            behavior,
+                            self.scroll_handle
+                                .as_ref()
+                                .and_then(UniformListScrollHandle::try_base_handle),
+                        ) {
+                            handle.scroll_to(updated_scroll_offset, behavior);
+                            window.refresh();
+                        }
                     }
 
                     let first_visible_element_ix =
