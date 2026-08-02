@@ -3493,6 +3493,21 @@ impl Window {
         self.play_screen_effect_at(effect, Instant::now())
     }
 
+    /// Cancel one active screen effect by id.
+    ///
+    /// Returns whether the effect was still active and removed. The caller
+    /// remains responsible for releasing any snapshot referenced by the
+    /// canceled effect.
+    pub fn cancel_screen_effect(&mut self, id: ScreenEffectId) -> bool {
+        let previous_len = self.active_screen_effects.len();
+        self.active_screen_effects.retain(|effect| effect.id != id);
+        let canceled = self.active_screen_effects.len() != previous_len;
+        if canceled {
+            self.invalidator.set_dirty(true);
+        }
+        canceled
+    }
+
     fn play_screen_effect_at(
         &mut self,
         effect: impl Into<ScreenEffect>,
@@ -10299,6 +10314,42 @@ mod tests {
         assert_eq!(count, MAX_ACTIVE_SCREEN_EFFECTS);
         assert_eq!(ids[0], 3);
         assert_eq!(ids[ids.len() - 1], (MAX_ACTIVE_SCREEN_EFFECTS + 2) as u64);
+    }
+
+    #[gpux::test]
+    fn cancel_screen_effect_removes_only_the_requested_active_effect(cx: &mut TestAppContext) {
+        let window = cx.open_window(size(px(100.), px(100.)), |_, _| Empty);
+        cx.run_until_parked();
+
+        let (first, second) = window
+            .update(cx, |_, window, _| {
+                (
+                    window.play_screen_effect(
+                        screen::ripple(point(px(0.), px(0.))).duration_ms(1_000),
+                    ),
+                    window.play_screen_effect(
+                        screen::ripple(point(px(10.), px(0.))).duration_ms(1_000),
+                    ),
+                )
+            })
+            .unwrap();
+
+        let (canceled, duplicate, remaining) = window
+            .update(cx, |_, window, _| {
+                let canceled = window.cancel_screen_effect(first);
+                let duplicate = window.cancel_screen_effect(first);
+                let remaining = window
+                    .active_screen_effects()
+                    .into_iter()
+                    .map(|effect| effect.id())
+                    .collect::<Vec<_>>();
+                (canceled, duplicate, remaining)
+            })
+            .unwrap();
+
+        assert!(canceled);
+        assert!(!duplicate);
+        assert_eq!(remaining, vec![second]);
     }
 
     #[gpux::test]
