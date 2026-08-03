@@ -4254,6 +4254,7 @@ struct ScrollHandleState {
     active_item: Option<ScrollActiveItem>,
     dependent_views: SmallVec<[EntityId; 2]>,
     activity: Rc<RefCell<ScrollActivity>>,
+    scrollbar_drag_active: bool,
     metrics: ScrollMetrics,
     pending_offset: Option<(Point<Pixels>, ScrollMutationSource)>,
     pending_programmatic_offset: Option<(Point<Pixels>, ScrollBehavior)>,
@@ -4499,6 +4500,35 @@ impl ScrollHandle {
         true
     }
 
+    /// Marks the beginning of a direct scrollbar-thumb drag.
+    ///
+    /// Keeping the shared activity in the direct state prevents semantic scroll
+    /// consumers from treating intermediate thumb positions as settled input.
+    pub fn begin_scrollbar_drag(&self) -> bool {
+        let Ok(mut state) = self.0.try_borrow_mut() else {
+            return false;
+        };
+        state.scrollbar_drag_active = true;
+        state
+            .activity
+            .borrow_mut()
+            .begin_direct_touch(Instant::now());
+        true
+    }
+
+    /// Marks the end of a direct scrollbar-thumb drag.
+    pub fn end_scrollbar_drag(&self) -> bool {
+        let Ok(mut state) = self.0.try_borrow_mut() else {
+            return false;
+        };
+        state.scrollbar_drag_active = false;
+        let was_direct = state.activity.borrow().has_direct_touch();
+        if was_direct {
+            state.activity.borrow_mut().stop();
+        }
+        true
+    }
+
     /// Queue an explicit programmatic offset using the shared scroll activity driver.
     ///
     /// Positions use the same physical, non-positive convention as [`Self::offset`]. The owning
@@ -4618,6 +4648,7 @@ impl ScrollHandle {
             let content_size: Size<Pixels> = (max_offset + viewport_size.into()).into();
 
             match source {
+                ScrollMutationSource::Scrollbar if state.scrollbar_drag_active => {}
                 ScrollMutationSource::Wheel
                 | ScrollMutationSource::Scrollbar
                 | ScrollMutationSource::Deferred => state.activity.borrow_mut().stop(),
@@ -5168,6 +5199,32 @@ mod tests {
                 "no-op {source:?} activity"
             );
         }
+    }
+
+    #[test]
+    fn scrollbar_thumb_drag_remains_direct_until_release() {
+        let mut app = TestAppContext::single();
+        let handle = ScrollHandle::new();
+        let window = app.add_window({
+            let handle = handle.clone();
+            move |_, _| ScrollMetricsOwner { handle }
+        });
+        let window = window.into();
+        let draw = |app: &mut TestAppContext| {
+            app.update_window(window, |_, window, cx| window.draw(cx).clear())
+                .unwrap();
+        };
+
+        draw(&mut app);
+        assert!(handle.begin_scrollbar_drag());
+        assert!(handle.request_offset(point(px(0.0), px(-80.0)), ScrollMutationSource::Scrollbar,));
+        draw(&mut app);
+        assert_eq!(handle.metrics().activity, ScrollActivityKind::Direct);
+        assert_eq!(handle.metrics().source, ScrollMutationSource::Scrollbar);
+
+        assert!(handle.end_scrollbar_drag());
+        draw(&mut app);
+        assert_eq!(handle.metrics().activity, ScrollActivityKind::Idle);
     }
 
     #[test]
