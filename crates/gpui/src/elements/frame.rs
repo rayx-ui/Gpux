@@ -15,6 +15,7 @@ pub fn frame() -> Frame {
 pub struct Frame {
     pub(crate) style: FrameStyle,
     pub(crate) child: Option<AnyElement>,
+    child_offset: Point<Pixels>,
     pub(crate) source_location: Option<&'static core::panic::Location<'static>>,
 }
 
@@ -23,6 +24,16 @@ impl Frame {
     pub fn child(mut self, child: impl IntoElement) -> Self {
         debug_assert!(self.child.is_none(), "Frame accepts exactly one child");
         self.child = Some(child.into_any_element());
+        self
+    }
+
+    /// Offsets the child visually without contributing to this frame's layout.
+    ///
+    /// Unlike a paint-only transform, this offset is established during
+    /// prepaint so descendant hitboxes and authored semantics use the same
+    /// visual position as descendant painting.
+    pub fn child_offset(mut self, offset: Point<Pixels>) -> Self {
+        self.child_offset = offset;
         self
     }
 
@@ -219,6 +230,7 @@ impl Default for Frame {
         Self {
             style: FrameStyle::default(),
             child: None,
+            child_offset: Point::default(),
             source_location: Some(core::panic::Location::caller()),
         }
     }
@@ -264,7 +276,9 @@ impl Element for Frame {
         let style = self.style.layout_style();
         window.with_content_mask(style.overflow_mask(bounds, window.rem_size()), |window| {
             if let Some(child) = self.child.as_mut() {
-                child.prepaint(window, cx);
+                window.with_element_offset(self.child_offset, |window| {
+                    child.prepaint(window, cx);
+                });
             }
         });
     }

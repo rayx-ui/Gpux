@@ -7,13 +7,13 @@
 //!
 //! If all of your elements are the same height, see [`crate::UniformList`] for a simpler API
 
-use super::scroll_activity::ScrollActivity;
+use super::scroll_activity::{ProgrammaticScrollFrame, ScrollActivity};
 use crate::{
     AnyElement, App, AvailableSpace, Bounds, ContentMask, DispatchPhase, Edges, Element, EntityId,
-    FocusHandle, GlobalElementId, Hitbox, HitboxBehavior, InspectorElementId, IntoElement,
-    Overflow, Pixels, Point, ScrollContainerContext, ScrollDelta, ScrollWheelEvent, Size,
-    StickyRelationIndex, StickyStacking, Style, StyleRefinement, Styled, Window, point, px, size,
-    sticky_push_offset,
+    FocusHandle, GlobalElementId, Hitbox, HitboxBehavior, InspectorElementId, Instant, IntoElement,
+    Overflow, Pixels, Point, ScrollBehavior, ScrollContainerContext, ScrollDelta, ScrollWheelEvent,
+    Size, StickyRelationIndex, StickyStacking, Style, StyleRefinement, Styled, Window, point, px,
+    size, sticky_push_offset,
 };
 use collections::VecDeque;
 use refineable::Refineable as _;
@@ -76,9 +76,16 @@ struct StateInner {
     measuring_behavior: ListMeasuringBehavior,
     item_size_hint: Option<Size<Pixels>>,
     pending_scroll: Option<PendingScroll>,
+    pending_programmatic_scroll: Option<PendingProgrammaticScroll>,
     follow_state: FollowState,
     sticky_items: StickyItems,
     activity: ScrollActivity,
+}
+
+#[derive(Clone, Copy, Debug)]
+enum PendingProgrammaticScroll {
+    Logical(ListOffset, ScrollBehavior),
+    Scrollbar(Point<Pixels>, ScrollBehavior),
 }
 
 /// A sticky candidate in a low-level list.
@@ -433,6 +440,7 @@ impl ListState {
             measuring_behavior: ListMeasuringBehavior::default(),
             item_size_hint: None,
             pending_scroll: None,
+            pending_programmatic_scroll: None,
             follow_state: FollowState::default(),
             sticky_items: StickyItems::default(),
             activity: ScrollActivity::default(),
@@ -511,6 +519,8 @@ impl ListState {
             let state = &mut *self.0.borrow_mut();
             state.reset = true;
             state.measuring_behavior.reset();
+            state.activity.stop();
+            state.pending_programmatic_scroll = None;
             state.logical_scroll_top = None;
             state.scrollbar_drag_start_height = None;
             state.scrollbar_drag_start_items = None;
@@ -724,6 +734,8 @@ impl ListState {
 
         let current_offset = self.logical_scroll_top();
         let state = &mut *self.0.borrow_mut();
+        state.activity.stop();
+        state.pending_programmatic_scroll = None;
 
         if distance < px(0.) {
             state.follow_state.stop_following();
@@ -754,6 +766,8 @@ impl ListState {
     /// growing (e.g. during streaming).
     pub fn scroll_to_end(&self) {
         let state = &mut *self.0.borrow_mut();
+        state.activity.stop();
+        state.pending_programmatic_scroll = None;
         let item_count = state.items.summary().count;
         state.logical_scroll_top = Some(ListOffset {
             item_ix: item_count,
@@ -766,6 +780,8 @@ impl ListState {
         let Ok(mut state) = self.0.try_borrow_mut() else {
             return false;
         };
+        state.activity.stop();
+        state.pending_programmatic_scroll = None;
         let item_count = state.items.summary().count;
         state.logical_scroll_top = Some(ListOffset {
             item_ix: item_count,
@@ -780,6 +796,8 @@ impl ListState {
     /// following occurs.
     pub fn set_follow_mode(&self, mode: FollowMode) {
         let state = &mut *self.0.borrow_mut();
+        state.activity.stop();
+        state.pending_programmatic_scroll = None;
 
         match mode {
             FollowMode::Normal => {
@@ -810,6 +828,8 @@ impl ListState {
     /// Scroll the list to the given offset
     pub fn scroll_to(&self, mut scroll_top: ListOffset) {
         let state = &mut *self.0.borrow_mut();
+        state.activity.stop();
+        state.pending_programmatic_scroll = None;
         let item_count = state.items.summary().count;
         if scroll_top.item_ix >= item_count {
             scroll_top.item_ix = item_count;
@@ -828,6 +848,8 @@ impl ListState {
         let Ok(mut state) = self.0.try_borrow_mut() else {
             return false;
         };
+        state.activity.stop();
+        state.pending_programmatic_scroll = None;
         let item_count = state.items.summary().count;
         if scroll_top.item_ix >= item_count {
             scroll_top.item_ix = item_count;
@@ -838,9 +860,107 @@ impl ListState {
         true
     }
 
+    /// Queue an explicit programmatic logical offset with its final behavior.
+    ///
+    /// Smooth requests retain the logical target until its prefix geometry is known, then reuse
+    /// the shared [`ScrollActivity`] driver. Instant and zero-duration requests preserve the
+    /// existing exact logical-offset behavior.
+    pub fn scroll_to_with_behavior(&self, mut scroll_top: ListOffset, behavior: ScrollBehavior) {
+        let state = &mut *self.0.borrow_mut();
+        state.activity.stop();
+        let item_count = state.items.summary().count;
+        if scroll_top.item_ix >= item_count {
+            scroll_top.item_ix = item_count;
+            scroll_top.offset_in_item = px(0.);
+        }
+
+        if scroll_top.item_ix < item_count {
+            state.follow_state.stop_following();
+        }
+
+        if matches!(behavior, ScrollBehavior::Instant)
+            || matches!(behavior, ScrollBehavior::Smooth(duration) if duration.is_zero())
+        {
+            if let Some((target, maximum)) = state.resolve_programmatic_offset(scroll_top) {
+                let current = state.scroll_top(&state.logical_scroll_top());
+                state.activity.start_programmatic_at(
+                    Point::new(px(0.), current),
+                    Point::new(px(0.), target),
+                    Point::new(px(0.), maximum),
+                    behavior,
+                    crate::Instant::now(),
+                );
+                state.pending_programmatic_scroll = None;
+                state.logical_scroll_top = Some(scroll_top);
+                return;
+            }
+        }
+        state.pending_programmatic_scroll =
+            Some(PendingProgrammaticScroll::Logical(scroll_top, behavior));
+    }
+
+    /// Try to queue an explicit programmatic logical offset without panicking on re-entrancy.
+    pub fn try_scroll_to_with_behavior(
+        &self,
+        mut scroll_top: ListOffset,
+        behavior: ScrollBehavior,
+    ) -> bool {
+        let Ok(mut state) = self.0.try_borrow_mut() else {
+            return false;
+        };
+        state.activity.stop();
+        let item_count = state.items.summary().count;
+        if scroll_top.item_ix >= item_count {
+            scroll_top.item_ix = item_count;
+            scroll_top.offset_in_item = px(0.);
+        }
+
+        if scroll_top.item_ix < item_count {
+            state.follow_state.stop_following();
+        }
+
+        if matches!(behavior, ScrollBehavior::Instant)
+            || matches!(behavior, ScrollBehavior::Smooth(duration) if duration.is_zero())
+        {
+            if let Some((target, maximum)) = state.resolve_programmatic_offset(scroll_top) {
+                let current = state.scroll_top(&state.logical_scroll_top());
+                state.activity.start_programmatic_at(
+                    Point::new(px(0.), current),
+                    Point::new(px(0.), target),
+                    Point::new(px(0.), maximum),
+                    behavior,
+                    crate::Instant::now(),
+                );
+                state.pending_programmatic_scroll = None;
+                state.logical_scroll_top = Some(scroll_top);
+                return true;
+            }
+        }
+        state.pending_programmatic_scroll =
+            Some(PendingProgrammaticScroll::Logical(scroll_top, behavior));
+        true
+    }
+
+    /// Advance this owner's active programmatic driver without relying on a platform frame pump.
+    /// Generation `1` is the first request on a fresh owner.
+    #[cfg(any(test, feature = "test-support"))]
+    pub fn advance_programmatic_scroll_for_test(
+        &self,
+        generation: u64,
+        timestamp: Instant,
+        current_view: EntityId,
+        window: &mut Window,
+        cx: &mut App,
+    ) -> bool {
+        apply_list_programmatic_frame(self, generation, timestamp, current_view, window, cx)
+            .is_some()
+    }
+
     /// Scroll the list to the given item, such that the item is fully visible.
     pub fn scroll_to_reveal_item(&self, ix: usize) {
         let state = &mut *self.0.borrow_mut();
+        state.activity.stop();
+        state.pending_programmatic_scroll = None;
 
         let mut scroll_top = state.logical_scroll_top();
         let height = state
@@ -961,16 +1081,82 @@ impl ListState {
     }
 
     /// Set the offset from the scrollbar
-    pub fn set_offset_from_scrollbar(&self, point: Point<Pixels>) {
-        self.0.borrow_mut().set_offset_from_scrollbar(point);
+    pub fn request_offset_from_scrollbar(&self, point: Point<Pixels>) {
+        let mut state = self.0.borrow_mut();
+        state.activity.stop();
+        state.pending_programmatic_scroll = None;
+        state.request_offset_from_scrollbar(point);
     }
 
-    /// Try to set the scrollbar-derived offset without panicking if the state is already borrowed.
-    pub fn try_set_offset_from_scrollbar(&self, point: Point<Pixels>) -> bool {
+    /// Queue a scrollbar-derived physical offset through this list's shared programmatic driver.
+    pub fn request_offset_from_scrollbar_with_behavior(
+        &self,
+        point: Point<Pixels>,
+        behavior: ScrollBehavior,
+    ) {
+        let mut state = self.0.borrow_mut();
+        state.activity.stop();
+        if matches!(behavior, ScrollBehavior::Instant)
+            || matches!(behavior, ScrollBehavior::Smooth(duration) if duration.is_zero())
+        {
+            if let Some((target, maximum)) = state.resolve_scrollbar_programmatic_offset(point) {
+                let current = state.scroll_top(&state.logical_scroll_top());
+                state.activity.start_programmatic_at(
+                    Point::new(px(0.), current),
+                    Point::new(px(0.), target),
+                    Point::new(px(0.), maximum),
+                    behavior,
+                    crate::Instant::now(),
+                );
+                state.pending_programmatic_scroll = None;
+                state.request_offset_from_scrollbar(Point::new(px(0.), -target));
+                return;
+            }
+        }
+        state.pending_programmatic_scroll =
+            Some(PendingProgrammaticScroll::Scrollbar(point, behavior));
+    }
+
+    /// Try to queue a scrollbar-derived physical offset without panicking on re-entrancy.
+    pub fn try_request_offset_from_scrollbar_with_behavior(
+        &self,
+        point: Point<Pixels>,
+        behavior: ScrollBehavior,
+    ) -> bool {
         let Ok(mut state) = self.0.try_borrow_mut() else {
             return false;
         };
-        state.set_offset_from_scrollbar(point);
+        state.activity.stop();
+        if matches!(behavior, ScrollBehavior::Instant)
+            || matches!(behavior, ScrollBehavior::Smooth(duration) if duration.is_zero())
+        {
+            if let Some((target, maximum)) = state.resolve_scrollbar_programmatic_offset(point) {
+                let current = state.scroll_top(&state.logical_scroll_top());
+                state.activity.start_programmatic_at(
+                    Point::new(px(0.), current),
+                    Point::new(px(0.), target),
+                    Point::new(px(0.), maximum),
+                    behavior,
+                    crate::Instant::now(),
+                );
+                state.pending_programmatic_scroll = None;
+                state.request_offset_from_scrollbar(Point::new(px(0.), -target));
+                return true;
+            }
+        }
+        state.pending_programmatic_scroll =
+            Some(PendingProgrammaticScroll::Scrollbar(point, behavior));
+        true
+    }
+
+    /// Try to set the scrollbar-derived offset without panicking if the state is already borrowed.
+    pub fn try_request_offset_from_scrollbar(&self, point: Point<Pixels>) -> bool {
+        let Ok(mut state) = self.0.try_borrow_mut() else {
+            return false;
+        };
+        state.activity.stop();
+        state.pending_programmatic_scroll = None;
+        state.request_offset_from_scrollbar(point);
         true
     }
 
@@ -1067,6 +1253,33 @@ impl StateInner {
             .scrollbar_drag_start_height
             .unwrap_or_else(|| self.items.summary().height);
         (height - bounds.size.height).max(px(0.))
+    }
+
+    fn resolve_programmatic_offset(&self, target: ListOffset) -> Option<(Pixels, Pixels)> {
+        let bounds = self.last_layout_bounds?;
+        let padding = self.last_padding.unwrap_or_default();
+        let total = self.items.summary();
+        if total.has_unknown_height {
+            return None;
+        }
+
+        let mut cursor = self.items.cursor::<ListItemSummary>(());
+        let prefix: ListItemSummary = cursor.summary(&Count(target.item_ix), Bias::Right);
+        if prefix.has_unknown_height {
+            return None;
+        }
+        let offset_in_item = self
+            .items
+            .iter()
+            .nth(target.item_ix)
+            .and_then(ListItem::size)
+            .map_or(Pixels::ZERO, |size| {
+                target.offset_in_item.clamp(px(0.), size.height)
+            });
+        let target = prefix.height + offset_in_item;
+        let maximum =
+            (total.height + padding.top + padding.bottom - bounds.size.height).max(px(0.));
+        Some((target.clamp(px(0.), maximum), maximum))
     }
 
     fn visible_range(
@@ -1681,7 +1894,7 @@ impl StateInner {
 
     // Scrollbar support
 
-    fn set_offset_from_scrollbar(&mut self, point: Point<Pixels>) {
+    fn request_offset_from_scrollbar(&mut self, point: Point<Pixels>) {
         let Some(bounds) = self.last_layout_bounds else {
             return;
         };
@@ -1736,6 +1949,24 @@ impl StateInner {
                 offset_in_item,
             });
         }
+    }
+
+    fn resolve_scrollbar_programmatic_offset(
+        &mut self,
+        point: Point<Pixels>,
+    ) -> Option<(Pixels, Pixels)> {
+        let bounds = self.last_layout_bounds?;
+        let padding = self.last_padding.unwrap_or_default();
+        let maximum = (self.items.summary().height + padding.top + padding.bottom
+            - bounds.size.height)
+            .max(px(0.));
+        let target = (-point.y).clamp(px(0.), maximum);
+
+        if maximum == px(0.) || target < (maximum - px(1.)).max(px(0.)) {
+            self.follow_state.stop_following();
+        }
+
+        Some((target, maximum))
     }
 }
 
@@ -1907,6 +2138,38 @@ impl Element for List {
 
         state.last_layout_bounds = Some(bounds);
         state.last_padding = Some(padding);
+        let programmatic_frame = state.pending_programmatic_scroll.and_then(|request| {
+            let (target, maximum, behavior) = match request {
+                PendingProgrammaticScroll::Logical(target, behavior) => {
+                    let (target, maximum) = state.resolve_programmatic_offset(target)?;
+                    (target, maximum, behavior)
+                }
+                PendingProgrammaticScroll::Scrollbar(target, behavior) => {
+                    let (target, maximum) = state.resolve_scrollbar_programmatic_offset(target)?;
+                    (target, maximum, behavior)
+                }
+            };
+            state.pending_programmatic_scroll = None;
+            let current = state.scroll_top(&state.logical_scroll_top());
+            state.activity.start_programmatic_at(
+                point(px(0.), current),
+                point(px(0.), target),
+                point(px(0.), maximum),
+                behavior,
+                crate::Instant::now(),
+            )
+        });
+        drop(state);
+        if let Some(frame) = programmatic_frame {
+            schedule_list_programmatic_scroll(
+                self.state.clone(),
+                frame.generation,
+                (!frame.request_next_frame).then_some(frame),
+                window.current_view(),
+                window,
+            );
+            window.refresh();
+        }
         ListPrepaintState { hitbox, layout }
     }
 
@@ -1952,6 +2215,7 @@ impl Element for List {
                 let mut start_activity = false;
                 let mut advanced = false;
                 if let Ok(mut state) = list_state.0.try_borrow_mut() {
+                    state.pending_programmatic_scroll = None;
                     match event.scroll_source {
                         crate::ScrollWheelSource::Touch
                             if matches!(
@@ -1984,6 +2248,94 @@ impl Element for List {
             }
         });
     }
+}
+
+fn schedule_list_programmatic_scroll(
+    list_state: ListState,
+    generation: u64,
+    first_frame: Option<ProgrammaticScrollFrame>,
+    current_view: EntityId,
+    window: &Window,
+) {
+    window.on_next_frame(move |window, cx| {
+        let frame = if let Some(frame) = first_frame {
+            Some(frame)
+        } else {
+            apply_list_programmatic_frame(
+                &list_state,
+                generation,
+                crate::Instant::now(),
+                current_view,
+                window,
+                cx,
+            )
+        };
+        let Some(frame) = frame else {
+            return;
+        };
+
+        let advanced = if first_frame.is_some()
+            && let Ok(mut state) = list_state.0.try_borrow_mut()
+        {
+            let Some(bounds) = state.last_layout_bounds else {
+                state.activity.stop();
+                return;
+            };
+            let scroll_top = state.logical_scroll_top();
+            let current = state.scroll_top(&scroll_top);
+            state.scroll(
+                &scroll_top,
+                bounds.size.height,
+                point(px(0.), current - frame.offset.y),
+                current_view,
+                window,
+                cx,
+            )
+        } else {
+            false
+        };
+
+        if frame.request_next_frame {
+            schedule_list_programmatic_scroll(list_state, generation, None, current_view, window);
+        }
+        if advanced || frame.request_next_frame {
+            window.refresh();
+        }
+    });
+}
+
+fn apply_list_programmatic_frame(
+    list_state: &ListState,
+    generation: u64,
+    timestamp: Instant,
+    current_view: EntityId,
+    window: &mut Window,
+    cx: &mut App,
+) -> Option<ProgrammaticScrollFrame> {
+    let mut state = list_state.0.try_borrow_mut().ok()?;
+    let Some(bounds) = state.last_layout_bounds else {
+        state.activity.stop();
+        return None;
+    };
+    let padding = state.last_padding.unwrap_or_default();
+    let maximum = (state.items.summary().height + padding.top + padding.bottom
+        - bounds.size.height)
+        .max(px(0.));
+    let frame =
+        state
+            .activity
+            .next_programmatic_at(generation, timestamp, point(px(0.), maximum))?;
+    let scroll_top = state.logical_scroll_top();
+    let current = state.scroll_top(&scroll_top);
+    state.scroll(
+        &scroll_top,
+        bounds.size.height,
+        point(px(0.), current - frame.offset.y),
+        current_view,
+        window,
+        cx,
+    );
+    Some(frame)
 }
 
 fn schedule_list_scroll_activity(list_state: ListState, current_view: EntityId, window: &Window) {
@@ -2969,7 +3321,7 @@ mod test {
         assert!(state.is_following_tail());
 
         // Simulate the scrollbar moving the viewport to the middle.
-        state.set_offset_from_scrollbar(point(px(0.), px(-150.)));
+        state.request_offset_from_scrollbar(point(px(0.), px(-150.)));
 
         let offset = state.logical_scroll_top();
         assert_eq!(offset.item_ix, 3);
@@ -3030,7 +3382,7 @@ mod test {
 
         state.scrollbar_drag_started();
 
-        state.set_offset_from_scrollbar(point(px(0.), px(-150.)));
+        state.request_offset_from_scrollbar(point(px(0.), px(-150.)));
         let scrollbar_offset_before_growth = state.scroll_px_offset_for_scrollbar();
 
         let offset = state.logical_scroll_top();
@@ -3049,7 +3401,7 @@ mod test {
             scrollbar_offset_before_growth
         );
 
-        state.set_offset_from_scrollbar(point(px(0.), px(-150.)));
+        state.request_offset_from_scrollbar(point(px(0.), px(-150.)));
         let offset = state.logical_scroll_top();
         assert_eq!(offset.item_ix, 3);
         assert_eq!(offset.offset_in_item, px(0.));
@@ -3084,7 +3436,7 @@ mod test {
         });
 
         state.scrollbar_drag_started();
-        state.set_offset_from_scrollbar(point(px(0.), px(-1200.)));
+        state.request_offset_from_scrollbar(point(px(0.), px(-1200.)));
         let offset_before_measurement = state.logical_scroll_top();
         assert_eq!(offset_before_measurement.item_ix, 15);
         assert_eq!(offset_before_measurement.offset_in_item, px(0.));
@@ -3099,7 +3451,7 @@ mod test {
             point(px(0.), px(-1200.))
         );
 
-        state.set_offset_from_scrollbar(point(px(0.), px(-1200.)));
+        state.request_offset_from_scrollbar(point(px(0.), px(-1200.)));
         let offset_after_measurement = state.logical_scroll_top();
         assert_eq!(offset_after_measurement.item_ix, 15);
         assert_eq!(offset_after_measurement.offset_in_item, px(0.));
@@ -3136,7 +3488,7 @@ mod test {
         });
 
         state.scrollbar_drag_started();
-        state.set_offset_from_scrollbar(point(px(0.), -state.max_offset_for_scrollbar().y));
+        state.request_offset_from_scrollbar(point(px(0.), -state.max_offset_for_scrollbar().y));
 
         let offset = state.logical_scroll_top();
         assert_eq!(offset.item_ix, state.item_count());
@@ -3382,12 +3734,12 @@ mod test {
         assert!(state.is_following_tail());
 
         // Drag the scrollbar up to the middle — follow_tail should suspend.
-        state.set_offset_from_scrollbar(point(px(0.), px(-150.)));
+        state.request_offset_from_scrollbar(point(px(0.), px(-150.)));
         assert!(!state.is_following_tail());
 
         // Drag the scrollbar back to the bottom — follow_tail should re-engage
         // on the next paint.
-        state.set_offset_from_scrollbar(point(px(0.), px(-300.)));
+        state.request_offset_from_scrollbar(point(px(0.), px(-300.)));
         cx.draw(point(px(0.), px(0.)), size(px(100.), px(200.)), |_, _| {
             view.into_any_element()
         });
@@ -3431,7 +3783,7 @@ mod test {
             view.clone().into_any_element()
         });
 
-        state.set_offset_from_scrollbar(point(px(0.), px(-300.)));
+        state.request_offset_from_scrollbar(point(px(0.), px(-300.)));
         state.scrollbar_drag_ended();
 
         cx.draw(point(px(0.), px(0.)), size(px(100.), px(200.)), |_, _| {

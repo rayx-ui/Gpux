@@ -1,4 +1,4 @@
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(all(target_family = "wasm", feature = "rayx_diagnostics"))]
 use crate::html_island_texture::HtmlIslandTextureCacheStatus;
 #[cfg(target_family = "wasm")]
 use crate::html_island_texture::{HtmlIslandTextureCache, HtmlIslandTextureDescriptor};

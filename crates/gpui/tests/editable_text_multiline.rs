@@ -1,7 +1,7 @@
 use gpux::{
     AppContext as _, Bounds, Context, EditableText, EditableTextLineMode, EditableTextState,
-    Entity, IntoElement, MouseButton, Render, TestApp, TestAppContext, TextDisplayPoint, Window,
-    div, editable_text_selection_quads, point, prelude::*, px, size,
+    Entity, Instant, IntoElement, MouseButton, Render, ScrollBehavior, TestApp, TestAppContext,
+    TextDisplayPoint, Window, div, editable_text_selection_quads, point, prelude::*, px, size,
 };
 use std::{ops::Range, time::Duration};
 
@@ -553,5 +553,124 @@ fn zero_sized_multiline_viewport_is_deterministic() {
     assert!(
         app.read_entity(&state, |state, _| state.layout_map().visual_line_count()
             >= 2)
+    );
+}
+
+#[test]
+fn editable_text_programmatic_scroll_uses_shared_driver_and_direct_paths_cancel_without_late_frames()
+ {
+    let mut app = TestApp::new();
+    let text = (0..40)
+        .map(|line| format!("line {line:02}"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let mut window = app.open_window(|_, cx| MultilineHarness {
+        state: cx.new(|cx| {
+            EditableTextState::with_line_mode(&text, EditableTextLineMode::MultiLine, cx)
+        }),
+        width: px(160.),
+        height: px(66.),
+    });
+    let state = window.read(|harness, _| harness.state.clone());
+    window.draw();
+    app.update_entity(&state, |state, cx| {
+        state.set_scroll_offset(point(px(0.), px(0.)), cx);
+    });
+
+    let generation = app.update_entity(&state, |state, cx| {
+        assert!(state.request_scroll_offset_with_behavior(
+            point(px(0.), px(-300.)),
+            ScrollBehavior::Smooth(Duration::from_secs(1)),
+            cx,
+        ));
+        state
+            .pending_programmatic_generation_for_test()
+            .expect("smooth request queues its driver generation")
+    });
+    window.draw();
+    app.update_entity(&state, |state, cx| {
+        assert!(state.advance_programmatic_scroll_for_test(
+            generation,
+            Instant::now() + Duration::from_millis(500),
+            cx,
+        ));
+    });
+    let midpoint = app.read_entity(&state, |state, _| state.scroll_offset().y);
+    let maximum = app.read_entity(&state, |state, _| state.max_scroll_offset().y);
+    assert!(
+        midpoint < px(0.) && midpoint > px(-300.),
+        "midpoint={midpoint:?} maximum={maximum:?}"
+    );
+
+    app.update_entity(&state, |state, cx| {
+        state.set_scroll_offset(point(px(0.), px(-40.)), cx);
+        assert!(!state.advance_programmatic_scroll_for_test(
+            generation,
+            Instant::now() + Duration::from_secs(2),
+            cx,
+        ));
+    });
+    let direct = app.read_entity(&state, |state, _| state.scroll_offset());
+    app.advance_clock(Duration::from_secs(2));
+    app.run_until_parked();
+    window.draw();
+    assert_eq!(
+        app.read_entity(&state, |state, _| state.scroll_offset()),
+        direct
+    );
+
+    app.update_entity(&state, |state, cx| {
+        assert!(state.request_scroll_offset_with_behavior(
+            point(px(0.), px(-280.)),
+            ScrollBehavior::Smooth(Duration::from_secs(1)),
+            cx,
+        ));
+        let generation = state
+            .pending_programmatic_generation_for_test()
+            .expect("smooth request queues its driver generation");
+        state.set_soft_wrap(false, cx);
+        assert!(!state.advance_programmatic_scroll_for_test(
+            generation,
+            Instant::now() + Duration::from_secs(2),
+            cx,
+        ));
+    });
+    window.draw();
+    let after_soft_wrap = app.read_entity(&state, |state, _| state.scroll_offset());
+    app.advance_clock(Duration::from_secs(2));
+    app.run_until_parked();
+    window.draw();
+    assert_eq!(
+        app.read_entity(&state, |state, _| state.scroll_offset()),
+        after_soft_wrap
+    );
+
+    let caret_generation = app.update_entity(&state, |state, cx| {
+        assert!(state.request_scroll_offset_with_behavior(
+            point(px(0.), px(-260.)),
+            ScrollBehavior::Smooth(Duration::from_secs(1)),
+            cx,
+        ));
+        let generation = state
+            .pending_programmatic_generation_for_test()
+            .expect("smooth request queues its driver generation");
+        state.move_to_end(cx);
+        generation
+    });
+    window.draw();
+    app.update_entity(&state, |state, cx| {
+        assert!(!state.advance_programmatic_scroll_for_test(
+            caret_generation,
+            Instant::now() + Duration::from_secs(2),
+            cx,
+        ));
+    });
+    let after_caret = app.read_entity(&state, |state, _| state.scroll_offset());
+    app.advance_clock(Duration::from_secs(2));
+    app.run_until_parked();
+    window.draw();
+    assert_eq!(
+        app.read_entity(&state, |state, _| state.scroll_offset()),
+        after_caret
     );
 }

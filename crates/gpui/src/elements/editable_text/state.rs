@@ -2,9 +2,11 @@ use std::{ops::Range, time::Duration};
 
 use crate::{
     Bounds, ClipboardItem, Context, EntityInputHandler, EventEmitter, FocusHandle, Focusable,
-    Pixels, Point, Size, Subscription, TextAlign, UTF16Selection, Window, WindowTextSystem, point,
-    px,
+    Instant, Pixels, Point, ScrollBehavior, Size, Subscription, TextAlign, UTF16Selection, Window,
+    WindowTextSystem, point, px,
 };
+
+use super::super::scroll_activity::ScrollActivity;
 
 use super::{
     EditableSelection, EditableTextEvent, EditableTextGeometry, EditableTextLineMode,
@@ -39,6 +41,8 @@ pub struct EditableTextState {
     layout_map: TextLayoutMap,
     pending_layout_edit: Option<TextLayoutEdit>,
     scroll_offset: Point<Pixels>,
+    scroll_activity: ScrollActivity,
+    pending_programmatic_generation: Option<u64>,
     caret_reveal_pending: bool,
     preferred_vertical_x: Option<Pixels>,
     drag_position: Option<Point<Pixels>>,
@@ -86,6 +90,8 @@ impl EditableTextState {
             layout_map: TextLayoutMap::new(),
             pending_layout_edit: None,
             scroll_offset: point(px(0.), px(0.)),
+            scroll_activity: ScrollActivity::default(),
+            pending_programmatic_generation: None,
             caret_reveal_pending: false,
             preferred_vertical_x: None,
             drag_position: None,
@@ -150,6 +156,7 @@ impl EditableTextState {
         if self.soft_wrap == soft_wrap {
             return;
         }
+        self.cancel_programmatic_scroll();
         self.soft_wrap = soft_wrap;
         self.geometry = None;
         self.scroll_offset.x = px(0.);
@@ -316,6 +323,7 @@ impl EditableTextState {
     }
 
     pub fn scroll_by(&mut self, delta: Point<Pixels>, cx: &mut Context<Self>) -> bool {
+        self.cancel_programmatic_scroll();
         let Some(bounds) = self.viewport_bounds() else {
             return false;
         };
@@ -346,6 +354,95 @@ impl EditableTextState {
 
     /// Sets the internal nonpositive scroll offset and clamps it to current geometry.
     pub fn set_scroll_offset(&mut self, offset: Point<Pixels>, cx: &mut Context<Self>) -> bool {
+        self.cancel_programmatic_scroll();
+        self.set_scroll_offset_from_owner(offset, cx)
+    }
+
+    /// Requests a physical nonpositive offset through this editable owner's shared scroll driver.
+    pub fn request_scroll_offset_with_behavior(
+        &mut self,
+        offset: Point<Pixels>,
+        behavior: ScrollBehavior,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        if self.viewport_bounds().is_none() {
+            return false;
+        }
+        self.scroll_activity.stop();
+        self.pending_programmatic_generation = None;
+        let minimum = self.max_scroll_offset();
+        let mut target = point(
+            offset.x.clamp(minimum.x, px(0.)),
+            offset.y.clamp(minimum.y, px(0.)),
+        );
+        if self.line_mode == EditableTextLineMode::SingleLine {
+            target.y = px(0.);
+        } else if self.soft_wrap {
+            target.x = px(0.);
+        }
+        let maximum = point(-minimum.x, -minimum.y);
+        let current = point(-self.scroll_offset.x, -self.scroll_offset.y);
+        let target_logical = point(-target.x, -target.y);
+        let Some(frame) = self.scroll_activity.start_programmatic_at(
+            current,
+            target_logical,
+            maximum,
+            behavior,
+            Instant::now(),
+        ) else {
+            return false;
+        };
+        if frame.request_next_frame {
+            self.pending_programmatic_generation = Some(frame.generation);
+            cx.notify();
+            true
+        } else {
+            self.set_scroll_offset_from_owner(point(-frame.offset.x, -frame.offset.y), cx)
+        }
+    }
+
+    pub(crate) fn take_pending_programmatic_generation(&mut self) -> Option<u64> {
+        self.pending_programmatic_generation.take()
+    }
+
+    /// Returns the queued driver generation for deterministic owner tests.
+    #[cfg(any(test, feature = "test-support"))]
+    pub fn pending_programmatic_generation_for_test(&self) -> Option<u64> {
+        self.pending_programmatic_generation
+    }
+
+    /// Advances the shared driver at an explicit timestamp for deterministic owner tests.
+    #[cfg(any(test, feature = "test-support"))]
+    pub fn advance_programmatic_scroll_for_test(
+        &mut self,
+        generation: u64,
+        timestamp: Instant,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        self.advance_programmatic_scroll_at(generation, timestamp, cx)
+            .is_some()
+    }
+
+    pub(crate) fn advance_programmatic_scroll_at(
+        &mut self,
+        generation: u64,
+        timestamp: Instant,
+        cx: &mut Context<Self>,
+    ) -> Option<bool> {
+        let minimum = self.max_scroll_offset();
+        let maximum = point(-minimum.x, -minimum.y);
+        let frame = self
+            .scroll_activity
+            .next_programmatic_at(generation, timestamp, maximum)?;
+        self.set_scroll_offset_from_owner(point(-frame.offset.x, -frame.offset.y), cx);
+        Some(frame.request_next_frame)
+    }
+
+    fn set_scroll_offset_from_owner(
+        &mut self,
+        offset: Point<Pixels>,
+        cx: &mut Context<Self>,
+    ) -> bool {
         let Some(bounds) = self.viewport_bounds() else {
             return false;
         };
@@ -370,6 +467,11 @@ impl EditableTextState {
         ));
         cx.notify();
         true
+    }
+
+    fn cancel_programmatic_scroll(&mut self) {
+        self.scroll_activity.stop();
+        self.pending_programmatic_generation = None;
     }
 
     pub fn set_selection(&mut self, anchor: usize, head: usize, cx: &mut Context<Self>) -> bool {
@@ -939,6 +1041,7 @@ impl EditableTextState {
     }
 
     fn ensure_caret_visible(&mut self, bounds: Bounds<Pixels>) {
+        self.cancel_programmatic_scroll();
         if bounds.size.width <= px(0.) || bounds.size.height <= px(0.) {
             self.scroll_offset = point(px(0.), px(0.));
             return;
@@ -974,6 +1077,7 @@ impl EditableTextState {
     }
 
     fn auto_scroll_for_pointer(&mut self, position: Point<Pixels>) {
+        self.cancel_programmatic_scroll();
         let Some(geometry) = self.geometry.as_ref() else {
             return;
         };

@@ -15,17 +15,20 @@
 //! and Tailwind-like styling that you can use to build your own custom elements. Div is
 //! constructed by combining these two systems into an all-in-one element.
 
-use super::scroll_activity::ScrollActivity;
+use super::scroll_activity::{
+    ProgrammaticScrollFrame, ScrollActivity, ScrollActivityKind, ScrollMetrics,
+    ScrollMutationSource, direction_for_delta,
+};
 use crate::{
     Action, ActionDispatchOutcome, AnyDrag, AnyElement, AnyTooltip, AnyView, App, Bounds,
     ClickEvent, DispatchPhase, Display, DragAxis, Element, ElementId, Entity, EntityId,
     FocusHandle, Global, GlobalElementId, Hitbox, HitboxBehavior, HitboxId, InputEvent,
-    InspectorElementId, IntoElement, IsZero, KeyContext, KeyDownEvent, KeyUpEvent, KeyboardButton,
-    KeyboardClickEvent, LayoutId, ModifiersChangedEvent, MouseButton, Overflow, ParentElement,
-    Pixels, Point, PointerClickEvent, PointerEvent, Position, PositionedBounds, Render,
-    ScrollContainerContext, ScrollDelta, ScrollWheelEvent, SharedString, Size, StickyState,
-    StickyStateChangedEvent, Style, StyleRefinement, Styled, Task, TooltipId, Visibility, Window,
-    WindowControlArea, point, px, size,
+    InspectorElementId, Instant, IntoElement, IsZero, KeyContext, KeyDownEvent, KeyUpEvent,
+    KeyboardButton, KeyboardClickEvent, LayoutId, ModifiersChangedEvent, MouseButton, Overflow,
+    ParentElement, Pixels, Point, PointerClickEvent, PointerEvent, Position, PositionedBounds,
+    Render, ScrollBehavior, ScrollContainerContext, ScrollDelta, ScrollWheelEvent, SharedString,
+    Size, StickyState, StickyStateChangedEvent, Style, StyleRefinement, Styled, Task, TooltipId,
+    Visibility, Window, WindowControlArea, point, px, size,
 };
 use crate::{PinchEvent, RotateEvent};
 use collections::HashMap;
@@ -1983,7 +1986,7 @@ impl Element for Div {
         };
 
         if let Some(scroll_handle) = self.interactivity.tracked_scroll_handle.as_ref() {
-            let _ = scroll_handle.try_scroll_to_active_item();
+            let _ = scroll_handle.try_request_active_item();
         }
 
         self.interactivity.prepaint(
@@ -2475,17 +2478,19 @@ impl Interactivity {
         bounds: Bounds<Pixels>,
         style: &Style,
         window: &mut Window,
-        _cx: &mut App,
+        cx: &mut App,
     ) -> Point<Pixels> {
         if let Some(scroll_offset) = self.scroll_offset.as_ref() {
             let mut scroll_to_bottom = false;
-            let mut tracked_scroll_handle = self
-                .tracked_scroll_handle
-                .as_ref()
-                .and_then(|handle| handle.0.try_borrow_mut().ok());
-            if let Some(mut scroll_handle_state) = tracked_scroll_handle.as_deref_mut() {
-                scroll_handle_state.overflow = style.overflow;
-                scroll_to_bottom = mem::take(&mut scroll_handle_state.scroll_to_bottom);
+            let mut pending_offset = None;
+            let mut pending_programmatic_offset = None;
+            if let Some(scroll_handle) = self.tracked_scroll_handle.as_ref()
+                && let Ok(mut state) = scroll_handle.0.try_borrow_mut()
+            {
+                state.overflow = style.overflow;
+                scroll_to_bottom = mem::take(&mut state.scroll_to_bottom);
+                pending_offset = state.pending_offset.take();
+                pending_programmatic_offset = state.pending_programmatic_offset.take();
             }
 
             let scroll_max = Self::scroll_max_for_bounds(
@@ -2494,23 +2499,64 @@ impl Interactivity {
                 style,
                 window.rem_size(),
             );
-            // Clamp scroll offset in case scroll max is smaller now (e.g., if children
-            // were removed or the bounds became larger).
-            let mut scroll_offset = scroll_offset.borrow_mut();
-
-            scroll_offset.x = scroll_offset.x.clamp(-scroll_max.x, px(0.));
+            let mut candidate = pending_offset
+                .map(|(offset, _)| offset)
+                .unwrap_or_else(|| *scroll_offset.borrow());
             if scroll_to_bottom {
-                scroll_offset.y = -scroll_max.y;
+                candidate.y = -scroll_max.y;
+            }
+            if let Some(scroll_handle) = self.tracked_scroll_handle.as_ref() {
+                if let Some((target, behavior)) = pending_programmatic_offset {
+                    let current = *scroll_offset.borrow();
+                    let logical = |offset: Point<Pixels>| point(-offset.x, -offset.y);
+                    let frame = {
+                        let state = scroll_handle.0.borrow();
+                        state.activity.borrow_mut().start_programmatic_at(
+                            logical(current),
+                            logical(target),
+                            scroll_max,
+                            behavior,
+                            crate::Instant::now(),
+                        )
+                    };
+                    if let Some(frame) = frame {
+                        scroll_handle.publish_programmatic_offset(
+                            point(-frame.offset.x, -frame.offset.y),
+                            scroll_max,
+                            bounds,
+                            window.current_view(),
+                            cx,
+                        );
+                        if frame.request_next_frame {
+                            schedule_programmatic_scroll(
+                                scroll_handle.clone(),
+                                frame.generation,
+                                window.current_view(),
+                                window,
+                            );
+                            window.refresh();
+                        }
+                    }
+                    return scroll_handle.offset();
+                }
+                let source = pending_offset
+                    .map(|(_, source)| source)
+                    .unwrap_or(ScrollMutationSource::LayoutClamp);
+                scroll_handle.publish_offset(
+                    candidate,
+                    scroll_max,
+                    bounds,
+                    source,
+                    window.current_view(),
+                    cx,
+                );
+                scroll_handle.offset()
             } else {
-                scroll_offset.y = scroll_offset.y.clamp(-scroll_max.y, px(0.));
+                let mut scroll_offset = scroll_offset.borrow_mut();
+                scroll_offset.x = candidate.x.clamp(-scroll_max.x, Pixels::ZERO);
+                scroll_offset.y = candidate.y.clamp(-scroll_max.y, Pixels::ZERO);
+                *scroll_offset
             }
-
-            if let Some(mut scroll_handle_state) = tracked_scroll_handle {
-                scroll_handle_state.max_offset = scroll_max;
-                scroll_handle_state.bounds = bounds;
-            }
-
-            *scroll_offset
         } else {
             Point::default()
         }
@@ -3379,8 +3425,10 @@ impl Interactivity {
                         crate::ScrollWheelSource::Touch => {}
                         _ => activity.borrow_mut().stop(),
                     }
-                    let mut scroll_offset = scroll_offset_state.borrow_mut();
-                    let old_scroll_offset = *scroll_offset;
+                    let old_scroll_offset = tracked_scroll_handle
+                        .as_ref()
+                        .map(ScrollHandle::offset)
+                        .unwrap_or_else(|| *scroll_offset_state.borrow());
                     let delta = event.delta.pixel_delta(line_height);
                     let mut delta_x = Pixels::ZERO;
                     if overflow.x == Overflow::Scroll {
@@ -3420,19 +3468,33 @@ impl Interactivity {
                         point(delta_x, delta_y) - (new_scroll_offset - old_scroll_offset),
                     );
                     if advanced {
-                        *scroll_offset = new_scroll_offset;
-                        cx.notify(current_view);
                         if let Some(scroll_handle) = tracked_scroll_handle.as_ref() {
-                            scroll_handle.notify_dependent_views(cx);
+                            let source = if event.scroll_source == crate::ScrollWheelSource::Touch {
+                                ScrollMutationSource::Touch
+                            } else {
+                                ScrollMutationSource::Wheel
+                            };
+                            scroll_handle.publish_offset(
+                                new_scroll_offset,
+                                scroll_max,
+                                hitbox.bounds,
+                                source,
+                                current_view,
+                                cx,
+                            );
+                        } else {
+                            *scroll_offset_state.borrow_mut() = new_scroll_offset;
+                            cx.notify(current_view);
                         }
                     }
-
-                    drop(scroll_offset);
                     if !residual.x.is_zero() || !residual.y.is_zero() {
                         if owns_direct_touch {
                             activity.borrow_mut().stop();
                         }
                         cx.stop_propagation();
+                        if advanced && event.scroll_source != crate::ScrollWheelSource::Touch {
+                            return;
+                        }
                         let mut residual_event = event.clone();
                         residual_event.delta = ScrollDelta::Pixels(residual);
                         window.dispatch_event(residual_event.to_platform_input(), cx);
@@ -3459,11 +3521,11 @@ impl Interactivity {
                             tracked_scroll_handle.clone(),
                             overflow,
                             scroll_max,
+                            hitbox.bounds,
                             event.position,
                             current_view,
                             window,
                         );
-                        cx.notify(current_view);
                         window.refresh();
                     }
 
@@ -4168,12 +4230,15 @@ impl ScrollAnchor {
     pub fn scroll_to(&self, window: &mut Window, _cx: &mut App) {
         let this = self.clone();
 
-        window.on_next_frame(move |_, _| {
+        window.on_next_frame(move |window, cx| {
             let viewport_bounds = this.handle.bounds();
             let self_bounds = *this.last_origin.borrow();
-            let _ = this
-                .handle
-                .try_set_offset(viewport_bounds.origin - self_bounds);
+            if this.handle.request_offset(
+                viewport_bounds.origin - self_bounds,
+                ScrollMutationSource::Deferred,
+            ) {
+                cx.notify(window.current_view());
+            }
         });
     }
 }
@@ -4189,6 +4254,10 @@ struct ScrollHandleState {
     active_item: Option<ScrollActiveItem>,
     dependent_views: SmallVec<[EntityId; 2]>,
     activity: Rc<RefCell<ScrollActivity>>,
+    scrollbar_drag_active: bool,
+    metrics: ScrollMetrics,
+    pending_offset: Option<(Point<Pixels>, ScrollMutationSource)>,
+    pending_programmatic_offset: Option<(Point<Pixels>, ScrollBehavior)>,
 }
 
 #[derive(Default, Debug, Clone, Copy)]
@@ -4217,6 +4286,11 @@ impl Default for ScrollHandle {
 }
 
 impl ScrollHandle {
+    /// Returns whether both handles refer to the same scroll owner.
+    pub fn ptr_eq(&self, other: &Self) -> bool {
+        Rc::ptr_eq(&self.0, &other.0)
+    }
+
     /// Construct a new scroll handle.
     pub fn new() -> Self {
         Self(Rc::default())
@@ -4232,11 +4306,14 @@ impl ScrollHandle {
         }
     }
 
-    fn notify_dependent_views(&self, cx: &mut App) {
-        let dependent_views = self.0.borrow().dependent_views.clone();
-        for entity_id in dependent_views {
-            cx.notify(entity_id);
-        }
+    /// Return the latest immutable positive-logical metrics snapshot.
+    pub fn metrics(&self) -> ScrollMetrics {
+        self.0.borrow().metrics
+    }
+
+    /// Try to return the latest metrics snapshot without panicking on a re-entrant borrow.
+    pub fn try_metrics(&self) -> Option<ScrollMetrics> {
+        self.0.try_borrow().ok().map(|state| state.metrics)
     }
 
     /// Get the current scroll offset.
@@ -4331,8 +4408,8 @@ impl ScrollHandle {
         });
     }
 
-    /// Try to scroll to the active item without panicking if the handle is already borrowed.
-    pub fn try_scroll_to_active_item(&self) -> bool {
+    /// Try to queue the active item request without panicking if the handle is already borrowed.
+    fn try_request_active_item(&self) -> bool {
         let Ok(mut state) = self.0.try_borrow_mut() else {
             return false;
         };
@@ -4341,28 +4418,28 @@ impl ScrollHandle {
             return true;
         };
 
-        let active_item = match state.child_bounds.get(active_item.index) {
+        let active_item = match state.child_bounds.get(active_item.index).copied() {
             Some(bounds) => {
-                let Ok(mut scroll_offset) = state.offset.try_borrow_mut() else {
+                let Ok(scroll_offset) = state.offset.try_borrow() else {
                     return false;
                 };
-
+                let mut requested = *scroll_offset;
                 match active_item.strategy {
                     ScrollStrategy::FirstVisible => {
                         if state.overflow.y == Overflow::Scroll {
                             let child_height = bounds.size.height;
                             let viewport_height = state.bounds.size.height;
                             if child_height > viewport_height {
-                                scroll_offset.y = state.bounds.top() - bounds.top();
-                            } else if bounds.top() + scroll_offset.y < state.bounds.top() {
-                                scroll_offset.y = state.bounds.top() - bounds.top();
-                            } else if bounds.bottom() + scroll_offset.y > state.bounds.bottom() {
-                                scroll_offset.y = state.bounds.bottom() - bounds.bottom();
+                                requested.y = state.bounds.top() - bounds.top();
+                            } else if bounds.top() + requested.y < state.bounds.top() {
+                                requested.y = state.bounds.top() - bounds.top();
+                            } else if bounds.bottom() + requested.y > state.bounds.bottom() {
+                                requested.y = state.bounds.bottom() - bounds.bottom();
                             }
                         }
                     }
                     ScrollStrategy::Top => {
-                        scroll_offset.y = state.bounds.top() - bounds.top();
+                        requested.y = state.bounds.top() - bounds.top();
                     }
                 }
 
@@ -4370,12 +4447,17 @@ impl ScrollHandle {
                     let child_width = bounds.size.width;
                     let viewport_width = state.bounds.size.width;
                     if child_width > viewport_width {
-                        scroll_offset.x = state.bounds.left() - bounds.left();
-                    } else if bounds.left() + scroll_offset.x < state.bounds.left() {
-                        scroll_offset.x = state.bounds.left() - bounds.left();
-                    } else if bounds.right() + scroll_offset.x > state.bounds.right() {
-                        scroll_offset.x = state.bounds.right() - bounds.right();
+                        requested.x = state.bounds.left() - bounds.left();
+                    } else if bounds.left() + requested.x < state.bounds.left() {
+                        requested.x = state.bounds.left() - bounds.left();
+                    } else if bounds.right() + requested.x > state.bounds.right() {
+                        requested.x = state.bounds.right() - bounds.right();
                     }
+                }
+                let changed = requested != *scroll_offset;
+                drop(scroll_offset);
+                if changed {
+                    state.pending_offset = Some((requested, ScrollMutationSource::Deferred));
                 }
                 None
             }
@@ -4392,24 +4474,235 @@ impl ScrollHandle {
         state.scroll_to_bottom = true;
     }
 
-    /// Set the offset explicitly. The offset is the distance from the top left of the
-    /// parent container to the top left of the first child.
-    /// As you scroll further down the offset becomes more negative.
-    pub fn set_offset(&self, mut position: Point<Pixels>) {
-        let state = self.0.borrow();
-        *state.offset.borrow_mut() = position;
+    /// Queue a physical offset request for the owning scroll element to clamp and publish.
+    ///
+    /// Requests are deliberately App-free so state owners can issue them outside render.
+    /// The offset does not become observable until the owner accepts it through the single
+    /// App-aware publication path during prepaint.
+    pub fn request_offset(&self, position: Point<Pixels>, source: ScrollMutationSource) -> bool {
+        if !position.x.as_f32().is_finite() || !position.y.as_f32().is_finite() {
+            return false;
+        }
+        let Ok(mut state) = self.0.try_borrow_mut() else {
+            return false;
+        };
+        if matches!(
+            source,
+            ScrollMutationSource::Wheel
+                | ScrollMutationSource::Scrollbar
+                | ScrollMutationSource::Deferred
+        ) && state.activity.borrow().kind() == ScrollActivityKind::Programmatic
+        {
+            state.activity.borrow_mut().stop();
+        }
+        state.pending_programmatic_offset = None;
+        state.pending_offset = Some((position, source));
+        true
     }
 
-    /// Try to set the offset without panicking if the handle is already borrowed.
-    pub fn try_set_offset(&self, position: Point<Pixels>) -> bool {
-        let Ok(state) = self.0.try_borrow() else {
+    /// Marks the beginning of a direct scrollbar-thumb drag.
+    ///
+    /// Keeping the shared activity in the direct state prevents semantic scroll
+    /// consumers from treating intermediate thumb positions as settled input.
+    pub fn begin_scrollbar_drag(&self) -> bool {
+        let Ok(mut state) = self.0.try_borrow_mut() else {
             return false;
         };
-        let Ok(mut offset) = state.offset.try_borrow_mut() else {
-            return false;
-        };
-        *offset = position;
+        state.scrollbar_drag_active = true;
+        state
+            .activity
+            .borrow_mut()
+            .begin_direct_touch(Instant::now());
         true
+    }
+
+    /// Marks the end of a direct scrollbar-thumb drag.
+    pub fn end_scrollbar_drag(&self) -> bool {
+        let Ok(mut state) = self.0.try_borrow_mut() else {
+            return false;
+        };
+        state.scrollbar_drag_active = false;
+        let was_direct = state.activity.borrow().has_direct_touch();
+        if was_direct {
+            state.activity.borrow_mut().stop();
+        }
+        true
+    }
+
+    /// Queue an explicit programmatic offset using the shared scroll activity driver.
+    ///
+    /// Positions use the same physical, non-positive convention as [`Self::offset`]. The owning
+    /// element resolves current geometry during prepaint, so requests made before layout remain
+    /// deterministic and are clamped against the first available viewport.
+    pub fn scroll_to(&self, position: Point<Pixels>, behavior: ScrollBehavior) -> bool {
+        if !position.x.as_f32().is_finite() || !position.y.as_f32().is_finite() {
+            return false;
+        }
+        let Ok(mut state) = self.0.try_borrow_mut() else {
+            return false;
+        };
+        state.activity.borrow_mut().stop();
+        state.pending_offset = None;
+        state.pending_programmatic_offset = Some((position, behavior));
+        true
+    }
+
+    pub(crate) fn cancel_programmatic_scroll(&self) {
+        if let Ok(mut state) = self.0.try_borrow_mut() {
+            if state.activity.borrow().kind() == ScrollActivityKind::Programmatic {
+                state.activity.borrow_mut().stop();
+            }
+            state.pending_programmatic_offset = None;
+        }
+    }
+
+    /// Advance this owner's active programmatic driver without relying on a platform frame pump.
+    /// Generation `1` is the first request on a fresh owner.
+    #[cfg(any(test, feature = "test-support"))]
+    pub fn advance_programmatic_scroll_for_test(
+        &self,
+        generation: u64,
+        timestamp: Instant,
+        current_view: EntityId,
+        cx: &mut App,
+    ) -> bool {
+        apply_programmatic_scroll_frame(self, generation, timestamp, current_view, cx).is_some()
+    }
+
+    fn publish_offset(
+        &self,
+        candidate: Point<Pixels>,
+        max_offset: Point<Pixels>,
+        bounds: Bounds<Pixels>,
+        source: ScrollMutationSource,
+        owner: EntityId,
+        cx: &mut App,
+    ) -> bool {
+        self.publish_offset_inner(candidate, max_offset, bounds, source, owner, false, cx)
+    }
+
+    fn publish_programmatic_offset(
+        &self,
+        candidate: Point<Pixels>,
+        max_offset: Point<Pixels>,
+        bounds: Bounds<Pixels>,
+        owner: EntityId,
+        cx: &mut App,
+    ) -> bool {
+        self.publish_offset_inner(
+            candidate,
+            max_offset,
+            bounds,
+            ScrollMutationSource::Programmatic,
+            owner,
+            true,
+            cx,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn publish_offset_inner(
+        &self,
+        candidate: Point<Pixels>,
+        max_offset: Point<Pixels>,
+        bounds: Bounds<Pixels>,
+        source: ScrollMutationSource,
+        owner: EntityId,
+        preserve_programmatic_activity: bool,
+        cx: &mut App,
+    ) -> bool {
+        if !candidate.x.as_f32().is_finite()
+            || !candidate.y.as_f32().is_finite()
+            || !max_offset.x.as_f32().is_finite()
+            || !max_offset.y.as_f32().is_finite()
+        {
+            return false;
+        }
+
+        let (changed, dependent_views) = {
+            let Ok(mut state) = self.0.try_borrow_mut() else {
+                return false;
+            };
+            let offset_cell = state.offset.clone();
+            let Ok(mut offset) = offset_cell.try_borrow_mut() else {
+                return false;
+            };
+            let next = point(
+                candidate.x.clamp(-max_offset.x, Pixels::ZERO),
+                candidate.y.clamp(-max_offset.y, Pixels::ZERO),
+            );
+            let previous = *offset;
+            let positive_logical = |value: Pixels| {
+                if value.is_zero() {
+                    Pixels::ZERO
+                } else {
+                    -value
+                }
+            };
+            let logical_offset = point(positive_logical(next.x), positive_logical(next.y));
+            let logical_delta = point(
+                positive_logical(next.x - previous.x),
+                positive_logical(next.y - previous.y),
+            );
+            let viewport_size = bounds.size;
+            let content_size: Size<Pixels> = (max_offset + viewport_size.into()).into();
+
+            match source {
+                ScrollMutationSource::Scrollbar if state.scrollbar_drag_active => {}
+                ScrollMutationSource::Wheel
+                | ScrollMutationSource::Scrollbar
+                | ScrollMutationSource::Deferred => state.activity.borrow_mut().stop(),
+                ScrollMutationSource::Programmatic if !preserve_programmatic_activity => {
+                    state.activity.borrow_mut().begin_programmatic()
+                }
+                ScrollMutationSource::Programmatic => {}
+                ScrollMutationSource::Touch
+                | ScrollMutationSource::Momentum
+                | ScrollMutationSource::LayoutClamp => {}
+            }
+            let activity = state.activity.borrow().kind();
+            let metrics_changed = state.metrics.offset != logical_offset
+                || state.metrics.max_offset != max_offset
+                || state.metrics.viewport_size != viewport_size
+                || state.metrics.content_size != content_size
+                || state.metrics.activity != activity;
+            if !metrics_changed {
+                return false;
+            }
+
+            *offset = next;
+            let primary_delta = if logical_delta.y.abs() >= logical_delta.x.abs() {
+                logical_delta.y
+            } else {
+                logical_delta.x
+            };
+            state.max_offset = max_offset;
+            state.bounds = bounds;
+            state.metrics = ScrollMetrics {
+                offset: logical_offset,
+                max_offset,
+                viewport_size,
+                content_size,
+                delta: logical_delta,
+                direction: direction_for_delta(primary_delta),
+                source,
+                activity,
+                revision: state.metrics.revision.wrapping_add(1),
+            };
+            (true, state.dependent_views.clone())
+        };
+
+        if changed {
+            cx.defer(move |cx| {
+                cx.notify(owner);
+                for entity_id in dependent_views {
+                    if entity_id != owner {
+                        cx.notify(entity_id);
+                    }
+                }
+            });
+        }
+        changed
     }
 
     /// Get the logical scroll top, based on a child index and a pixel offset.
@@ -4448,12 +4741,60 @@ impl ScrollHandle {
     }
 }
 
+fn schedule_programmatic_scroll(
+    scroll_handle: ScrollHandle,
+    generation: u64,
+    current_view: EntityId,
+    window: &Window,
+) {
+    window.on_next_frame(move |window, cx| {
+        let Some(frame) = apply_programmatic_scroll_frame(
+            &scroll_handle,
+            generation,
+            crate::Instant::now(),
+            current_view,
+            cx,
+        ) else {
+            return;
+        };
+        if frame.request_next_frame {
+            schedule_programmatic_scroll(scroll_handle, generation, current_view, window);
+            window.refresh();
+        }
+    });
+}
+
+fn apply_programmatic_scroll_frame(
+    scroll_handle: &ScrollHandle,
+    generation: u64,
+    timestamp: Instant,
+    current_view: EntityId,
+    cx: &mut App,
+) -> Option<ProgrammaticScrollFrame> {
+    let (activity, max_offset, bounds) = {
+        let state = scroll_handle.0.try_borrow().ok()?;
+        (state.activity.clone(), state.max_offset, state.bounds)
+    };
+    let frame = activity
+        .borrow_mut()
+        .next_programmatic_at(generation, timestamp, max_offset)?;
+    scroll_handle.publish_programmatic_offset(
+        point(-frame.offset.x, -frame.offset.y),
+        max_offset,
+        bounds,
+        current_view,
+        cx,
+    );
+    Some(frame)
+}
+
 fn schedule_scroll_activity(
     activity: Rc<RefCell<ScrollActivity>>,
     scroll_offset: Rc<RefCell<Point<Pixels>>>,
     scroll_handle: Option<ScrollHandle>,
     overflow: Point<Overflow>,
     scroll_max: Point<Pixels>,
+    bounds: Bounds<Pixels>,
     position: Point<Pixels>,
     current_view: EntityId,
     window: &Window,
@@ -4473,26 +4814,28 @@ fn schedule_scroll_activity(
                 scroll_handle,
                 overflow,
                 scroll_max,
+                bounds,
                 position,
                 current_view,
                 window,
             );
-            cx.notify(current_view);
             window.refresh();
             return;
         }
 
-        let mut offset = scroll_offset.borrow_mut();
-        let previous = *offset;
+        let previous = scroll_handle
+            .as_ref()
+            .map(ScrollHandle::offset)
+            .unwrap_or_else(|| *scroll_offset.borrow());
+        let mut next = previous;
         if overflow.x == Overflow::Scroll {
-            offset.x = (offset.x + delta.x).clamp(-scroll_max.x, px(0.));
+            next.x = (next.x + delta.x).clamp(-scroll_max.x, px(0.));
         }
         if overflow.y == Overflow::Scroll {
-            offset.y = (offset.y + delta.y).clamp(-scroll_max.y, px(0.));
+            next.y = (next.y + delta.y).clamp(-scroll_max.y, px(0.));
         }
-        let residual = normalize_scroll_residual(delta - (*offset - previous));
-        let advanced = *offset != previous;
-        drop(offset);
+        let residual = normalize_scroll_residual(delta - (next - previous));
+        let advanced = next != previous;
 
         if !residual.x.is_zero() || !residual.y.is_zero() {
             activity.borrow_mut().stop();
@@ -4520,9 +4863,18 @@ fn schedule_scroll_activity(
             return;
         }
 
-        cx.notify(current_view);
         if let Some(scroll_handle) = scroll_handle.as_ref() {
-            scroll_handle.notify_dependent_views(cx);
+            scroll_handle.publish_offset(
+                next,
+                scroll_max,
+                bounds,
+                ScrollMutationSource::Momentum,
+                current_view,
+                cx,
+            );
+        } else {
+            *scroll_offset.borrow_mut() = next;
+            cx.notify(current_view);
         }
         schedule_scroll_activity(
             activity,
@@ -4530,6 +4882,7 @@ fn schedule_scroll_activity(
             scroll_handle,
             overflow,
             scroll_max,
+            bounds,
             position,
             current_view,
             window,
@@ -4557,9 +4910,424 @@ fn normalize_scroll_residual(residual: Point<Pixels>) -> Point<Pixels> {
 mod tests {
     use super::*;
     use crate::{
-        AppContext as _, Context, InputEvent, PointerEvent, StickyAxisState, TestAppContext,
+        AppContext as _, Context, InputEvent, PointerEvent, ScrollActivityKind, ScrollDirection,
+        StickyAxisState, TestAppContext,
     };
-    use std::rc::Weak;
+    use std::{cell::Cell, rc::Weak};
+
+    struct ScrollMetricsOwner {
+        handle: ScrollHandle,
+    }
+
+    impl Render for ScrollMetricsOwner {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            div()
+                .id("scroll-metrics-owner")
+                .w(px(100.0))
+                .h(px(100.0))
+                .overflow_scroll()
+                .track_scroll(&self.handle)
+                .child(div().w(px(400.0)).h(px(500.0)))
+        }
+    }
+
+    struct ResizableScrollMetricsOwner {
+        handle: ScrollHandle,
+        viewport_size: Rc<Cell<Size<Pixels>>>,
+        content_size: Rc<Cell<Size<Pixels>>>,
+    }
+
+    impl Render for ResizableScrollMetricsOwner {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            let viewport_size = self.viewport_size.get();
+            let content_size = self.content_size.get();
+            div()
+                .id("resizable-scroll-metrics-owner")
+                .w(viewport_size.width)
+                .h(viewport_size.height)
+                .overflow_scroll()
+                .track_scroll(&self.handle)
+                .child(div().w(content_size.width).h(content_size.height))
+        }
+    }
+
+    #[test]
+    fn scroll_metrics_publish_positive_logical_geometry_and_idempotent_requests() {
+        let mut app = TestAppContext::single();
+        let handle = ScrollHandle::new();
+        let window = app.add_window({
+            let handle = handle.clone();
+            move |_, _| ScrollMetricsOwner { handle }
+        });
+        let window = window.into();
+        let draw = |app: &mut TestAppContext| {
+            app.update_window(window, |_, window, cx| window.draw(cx).clear())
+                .unwrap();
+        };
+
+        draw(&mut app);
+        let initial = handle.metrics();
+        assert_eq!(initial.offset, Point::default());
+        assert_eq!(initial.max_offset, point(px(300.0), px(400.0)));
+        assert_eq!(initial.viewport_size, size(px(100.0), px(100.0)));
+        assert_eq!(initial.content_size, size(px(400.0), px(500.0)));
+
+        assert!(handle.request_offset(
+            point(px(-40.0), px(-120.0)),
+            ScrollMutationSource::Programmatic,
+        ));
+        draw(&mut app);
+        let moved = handle.metrics();
+        assert_eq!(moved.offset, point(px(40.0), px(120.0)));
+        assert_eq!(moved.delta, point(px(40.0), px(120.0)));
+        assert_eq!(moved.direction, ScrollDirection::Forward);
+        assert_eq!(moved.source, ScrollMutationSource::Programmatic);
+        assert_eq!(moved.activity, ScrollActivityKind::Programmatic);
+        assert_eq!(moved.revision, initial.revision + 1);
+
+        assert!(handle.request_offset(
+            point(px(-40.0), px(-120.0)),
+            ScrollMutationSource::Programmatic,
+        ));
+        draw(&mut app);
+        assert_eq!(handle.metrics().revision, moved.revision);
+        assert!(!handle.request_offset(
+            point(px(f32::NAN), px(-120.0)),
+            ScrollMutationSource::Programmatic,
+        ));
+        assert_eq!(handle.metrics(), moved);
+
+        assert!(handle.request_offset(
+            point(px(-10_000.0), px(-10_000.0)),
+            ScrollMutationSource::Programmatic,
+        ));
+        draw(&mut app);
+        let clamped = handle.metrics();
+        assert_eq!(clamped.offset, clamped.max_offset);
+    }
+
+    #[test]
+    fn scroll_metrics_axis_mapping_preserves_positive_coordinates_when_reversed() {
+        let metrics = ScrollMetrics {
+            offset: point(px(30.0), px(70.0)),
+            max_offset: point(px(100.0), px(200.0)),
+            delta: point(px(10.0), px(-20.0)),
+            ..ScrollMetrics::default()
+        };
+
+        let horizontal = metrics.for_axis(crate::Axis::Horizontal, false);
+        assert_eq!(horizontal.offset, point(px(30.0), Pixels::ZERO));
+        assert_eq!(horizontal.delta, point(px(10.0), Pixels::ZERO));
+        assert_eq!(horizontal.direction, ScrollDirection::Forward);
+
+        let reversed_horizontal = metrics.for_axis(crate::Axis::Horizontal, true);
+        assert_eq!(reversed_horizontal.offset, point(px(70.0), Pixels::ZERO));
+        assert_eq!(reversed_horizontal.delta, point(px(-10.0), Pixels::ZERO));
+        assert_eq!(reversed_horizontal.direction, ScrollDirection::Reverse);
+
+        let reversed_vertical = metrics.for_axis(crate::Axis::Vertical, true);
+        assert_eq!(reversed_vertical.offset, point(Pixels::ZERO, px(130.0)));
+        assert_eq!(reversed_vertical.delta, point(Pixels::ZERO, px(20.0)));
+        assert_eq!(reversed_vertical.direction, ScrollDirection::Forward);
+    }
+
+    #[test]
+    fn scroll_metrics_correct_empty_extents_and_content_viewport_resizes() {
+        let mut app = TestAppContext::single();
+        let handle = ScrollHandle::new();
+        let viewport_size = Rc::new(Cell::new(Size::default()));
+        let content_size = Rc::new(Cell::new(Size::default()));
+        let window = app.add_window({
+            let handle = handle.clone();
+            let viewport_size = viewport_size.clone();
+            let content_size = content_size.clone();
+            move |_, _| ResizableScrollMetricsOwner {
+                handle,
+                viewport_size,
+                content_size,
+            }
+        });
+        let any_window = window.into();
+        let draw = |app: &mut TestAppContext| {
+            app.update_window(any_window, |_, window, cx| window.draw(cx).clear())
+                .unwrap();
+        };
+
+        draw(&mut app);
+        assert_eq!(handle.metrics(), ScrollMetrics::default());
+
+        viewport_size.set(size(px(100.0), px(100.0)));
+        content_size.set(size(px(400.0), px(500.0)));
+        window.update(&mut app, |_, _, cx| cx.notify()).unwrap();
+        draw(&mut app);
+        let expanded = handle.metrics();
+        assert_eq!(expanded.viewport_size, size(px(100.0), px(100.0)));
+        assert_eq!(expanded.content_size, size(px(400.0), px(500.0)));
+        assert_eq!(expanded.max_offset, point(px(300.0), px(400.0)));
+        assert_eq!(expanded.revision, 1);
+
+        assert!(handle.request_offset(
+            point(px(-300.0), px(-400.0)),
+            ScrollMutationSource::Programmatic,
+        ));
+        window.update(&mut app, |_, _, cx| cx.notify()).unwrap();
+        draw(&mut app);
+        assert_eq!(handle.metrics().offset, point(px(300.0), px(400.0)));
+
+        content_size.set(size(px(120.0), px(130.0)));
+        window.update(&mut app, |_, _, cx| cx.notify()).unwrap();
+        draw(&mut app);
+        let content_shrunk = handle.metrics();
+        assert_eq!(content_shrunk.offset, point(px(20.0), px(30.0)));
+        assert_eq!(content_shrunk.max_offset, point(px(20.0), px(30.0)));
+        assert_eq!(content_shrunk.content_size, size(px(120.0), px(130.0)));
+        assert_eq!(content_shrunk.delta, point(px(-280.0), px(-370.0)));
+        assert_eq!(content_shrunk.source, ScrollMutationSource::LayoutClamp);
+        assert_eq!(content_shrunk.revision, 3);
+
+        viewport_size.set(size(px(200.0), px(200.0)));
+        window.update(&mut app, |_, _, cx| cx.notify()).unwrap();
+        draw(&mut app);
+        let viewport_expanded = handle.metrics();
+        assert_eq!(viewport_expanded.offset, Point::default());
+        assert_eq!(viewport_expanded.max_offset, Point::default());
+        assert_eq!(viewport_expanded.viewport_size, size(px(200.0), px(200.0)));
+        assert_eq!(viewport_expanded.content_size, size(px(200.0), px(200.0)));
+        assert_eq!(viewport_expanded.delta, point(px(-20.0), px(-30.0)));
+        assert_eq!(viewport_expanded.revision, 4);
+
+        viewport_size.set(Size::default());
+        content_size.set(Size::default());
+        window.update(&mut app, |_, _, cx| cx.notify()).unwrap();
+        draw(&mut app);
+        let emptied = handle.metrics();
+        assert_eq!(emptied.offset, Point::default());
+        assert_eq!(emptied.max_offset, Point::default());
+        assert_eq!(emptied.viewport_size, Size::default());
+        assert_eq!(emptied.content_size, Size::default());
+        assert_eq!(emptied.revision, 5);
+    }
+
+    #[test]
+    fn scroll_metrics_source_matrix_publishes_once_and_preserves_activity_contracts() {
+        let cases = [
+            (
+                ScrollMutationSource::Wheel,
+                ScrollActivityKind::Idle,
+                ScrollActivityKind::Programmatic,
+            ),
+            (
+                ScrollMutationSource::Touch,
+                ScrollActivityKind::Direct,
+                ScrollActivityKind::Direct,
+            ),
+            (
+                ScrollMutationSource::Momentum,
+                ScrollActivityKind::Ballistic,
+                ScrollActivityKind::Ballistic,
+            ),
+            (
+                ScrollMutationSource::Scrollbar,
+                ScrollActivityKind::Idle,
+                ScrollActivityKind::Ballistic,
+            ),
+            (
+                ScrollMutationSource::Programmatic,
+                ScrollActivityKind::Programmatic,
+                ScrollActivityKind::Ballistic,
+            ),
+            (
+                ScrollMutationSource::Deferred,
+                ScrollActivityKind::Idle,
+                ScrollActivityKind::Programmatic,
+            ),
+            (
+                ScrollMutationSource::LayoutClamp,
+                ScrollActivityKind::Programmatic,
+                ScrollActivityKind::Programmatic,
+            ),
+        ];
+
+        for (source, expected_activity, prior_activity) in cases {
+            let mut app = TestAppContext::single();
+            let handle = ScrollHandle::new();
+            let window = app.add_window({
+                let handle = handle.clone();
+                move |_, _| ScrollMetricsOwner { handle }
+            });
+            let any_window = window.into();
+            app.update_window(any_window, |_, window, cx| window.draw(cx).clear())
+                .unwrap();
+            let baseline_revision = handle.metrics().revision;
+
+            let activity = handle.0.borrow().activity.clone();
+            match prior_activity {
+                ScrollActivityKind::Idle => activity.borrow_mut().stop(),
+                ScrollActivityKind::Direct => activity
+                    .borrow_mut()
+                    .begin_direct_touch(crate::Instant::now()),
+                ScrollActivityKind::Ballistic => activity
+                    .borrow_mut()
+                    .start_at(point(px(0.0), px(-600.0)), crate::Instant::now()),
+                ScrollActivityKind::Programmatic => activity.borrow_mut().begin_programmatic(),
+            }
+
+            assert!(handle.request_offset(point(px(-10.0), px(-20.0)), source));
+            app.update_window(any_window, |_, window, cx| window.draw(cx).clear())
+                .unwrap();
+            let published = handle.metrics();
+            assert_eq!(
+                published.revision,
+                baseline_revision + 1,
+                "real {source:?} mutation"
+            );
+            assert_eq!(published.source, source);
+            assert_eq!(published.activity, expected_activity, "{source:?} activity");
+            assert_eq!(published.offset, point(px(10.0), px(20.0)));
+
+            assert!(handle.request_offset(point(px(-10.0), px(-20.0)), source));
+            app.update_window(any_window, |_, window, cx| window.draw(cx).clear())
+                .unwrap();
+            assert_eq!(
+                handle.metrics().revision,
+                baseline_revision + 1,
+                "no-op {source:?} mutation"
+            );
+            assert_eq!(
+                activity.borrow().kind(),
+                expected_activity,
+                "no-op {source:?} activity"
+            );
+        }
+    }
+
+    #[test]
+    fn scrollbar_thumb_drag_remains_direct_until_release() {
+        let mut app = TestAppContext::single();
+        let handle = ScrollHandle::new();
+        let window = app.add_window({
+            let handle = handle.clone();
+            move |_, _| ScrollMetricsOwner { handle }
+        });
+        let window = window.into();
+        let draw = |app: &mut TestAppContext| {
+            app.update_window(window, |_, window, cx| window.draw(cx).clear())
+                .unwrap();
+        };
+
+        draw(&mut app);
+        assert!(handle.begin_scrollbar_drag());
+        assert!(handle.request_offset(point(px(0.0), px(-80.0)), ScrollMutationSource::Scrollbar,));
+        draw(&mut app);
+        assert_eq!(handle.metrics().activity, ScrollActivityKind::Direct);
+        assert_eq!(handle.metrics().source, ScrollMutationSource::Scrollbar);
+
+        assert!(handle.end_scrollbar_drag());
+        draw(&mut app);
+        assert_eq!(handle.metrics().activity, ScrollActivityKind::Idle);
+    }
+
+    #[test]
+    fn programmatic_settlement_publishes_idle_when_the_final_offset_is_unchanged() {
+        let mut app = TestAppContext::single();
+        let handle = ScrollHandle::new();
+        let window = app.add_window({
+            let handle = handle.clone();
+            move |_, _| ScrollMetricsOwner { handle }
+        });
+        let owner = window.entity(&app).unwrap().entity_id();
+        let any_window = window.into();
+        app.update_window(any_window, |_, window, cx| window.draw(cx).clear())
+            .unwrap();
+
+        assert!(handle.request_offset(
+            point(px(0.0), px(-72.0)),
+            ScrollMutationSource::Programmatic,
+        ));
+        app.update_window(any_window, |_, window, cx| window.draw(cx).clear())
+            .unwrap();
+        let moving = handle.metrics();
+        assert_eq!(moving.activity, ScrollActivityKind::Programmatic);
+
+        let (activity, max_offset, bounds) = {
+            let state = handle.0.borrow();
+            (state.activity.clone(), state.max_offset, state.bounds)
+        };
+        activity.borrow_mut().stop();
+        let published = app.update(|cx| {
+            handle.publish_programmatic_offset(
+                point(px(0.0), px(-72.0)),
+                max_offset,
+                bounds,
+                owner,
+                cx,
+            )
+        });
+
+        assert!(published);
+        let settled = handle.metrics();
+        assert_eq!(settled.offset, moving.offset);
+        assert_eq!(settled.delta, Point::default());
+        assert_eq!(settled.direction, ScrollDirection::Idle);
+        assert_eq!(settled.source, ScrollMutationSource::Programmatic);
+        assert_eq!(settled.activity, ScrollActivityKind::Idle);
+        assert_eq!(settled.revision, moving.revision + 1);
+    }
+
+    #[test]
+    fn scroll_metrics_notifies_owner_and_unique_dependents_once_per_publication() {
+        let mut app = TestAppContext::single();
+        let handle = ScrollHandle::new();
+        let dependent = app.update(|cx| cx.new(|_| ()));
+        let window = app.add_window({
+            let handle = handle.clone();
+            move |_, _| ScrollMetricsOwner { handle }
+        });
+        let owner = window.entity(&app).unwrap();
+        handle.register_dependent_view(owner.entity_id());
+        handle.register_dependent_view(owner.entity_id());
+        handle.register_dependent_view(dependent.entity_id());
+        handle.register_dependent_view(dependent.entity_id());
+
+        let owner_notifications = Rc::new(Cell::new(0));
+        let dependent_notifications = Rc::new(Cell::new(0));
+        app.update(|cx| {
+            cx.observe(&owner, {
+                let notifications = owner_notifications.clone();
+                move |_, _| notifications.set(notifications.get() + 1)
+            })
+            .detach();
+            cx.observe(&dependent, {
+                let notifications = dependent_notifications.clone();
+                move |_, _| notifications.set(notifications.get() + 1)
+            })
+            .detach();
+        });
+
+        let any_window = window.into();
+        app.update_window(any_window, |_, window, cx| window.draw(cx).clear())
+            .unwrap();
+        owner_notifications.set(0);
+        dependent_notifications.set(0);
+
+        assert!(handle.request_offset(
+            point(px(-40.0), px(-80.0)),
+            ScrollMutationSource::Programmatic,
+        ));
+        app.update_window(any_window, |_, window, cx| window.draw(cx).clear())
+            .unwrap();
+        assert_eq!(owner_notifications.get(), 1);
+        assert_eq!(dependent_notifications.get(), 1);
+
+        assert!(handle.request_offset(
+            point(px(-40.0), px(-80.0)),
+            ScrollMutationSource::Programmatic,
+        ));
+        app.update_window(any_window, |_, window, cx| window.draw(cx).clear())
+            .unwrap();
+        assert_eq!(owner_notifications.get(), 1);
+        assert_eq!(dependent_notifications.get(), 1);
+    }
 
     struct TestTooltipView;
 
@@ -5511,7 +6279,7 @@ mod tests {
     fn fixed_div_inside_clipped_scroll_parent_uses_parent_scrollport_bounds() {
         let mut test_app = TestAppContext::single();
         let scroll_handle = ScrollHandle::new();
-        scroll_handle.set_offset(point(px(0.), px(-80.)));
+        scroll_handle.request_offset(point(px(0.), px(-80.)), ScrollMutationSource::Programmatic);
         let window = test_app.add_window({
             move |_, _| FixedInClippedParentOwner {
                 handle: scroll_handle,
@@ -5588,7 +6356,7 @@ mod tests {
     fn sticky_div_paint_uses_scrollport_visual_bounds() {
         let mut test_app = TestAppContext::single();
         let scroll_handle = ScrollHandle::new();
-        scroll_handle.set_offset(point(px(0.), px(-40.)));
+        scroll_handle.request_offset(point(px(0.), px(-40.)), ScrollMutationSource::Programmatic);
         let window = test_app.add_window({
             move |_, _| StickyScrollOwner {
                 handle: scroll_handle,
@@ -5670,24 +6438,24 @@ mod tests {
                 .expect("keyed sticky selector is rendered")
         };
 
-        scroll_handle.set_offset(point(px(0.), px(-20.)));
+        scroll_handle.request_offset(point(px(0.), px(-20.)), ScrollMutationSource::Programmatic);
         draw(&mut test_app);
         assert_eq!(bounds(&mut test_app, "keyed-a-1").origin.y, px(0.));
         assert_eq!(bounds(&mut test_app, "keyed-a-2").origin.y, px(20.));
 
-        scroll_handle.set_offset(point(px(0.), px(-30.)));
+        scroll_handle.request_offset(point(px(0.), px(-30.)), ScrollMutationSource::Programmatic);
         draw(&mut test_app);
         assert_eq!(bounds(&mut test_app, "keyed-a-1").origin.y, px(-10.));
         assert_eq!(bounds(&mut test_app, "keyed-a-2").origin.y, px(10.));
         assert_eq!(bounds(&mut test_app, "keyed-b-1").origin.y, px(30.));
 
-        scroll_handle.set_offset(point(px(0.), px(-50.)));
+        scroll_handle.request_offset(point(px(0.), px(-50.)), ScrollMutationSource::Programmatic);
         draw(&mut test_app);
         assert_eq!(bounds(&mut test_app, "keyed-a-1").origin.y, px(-30.));
         assert_eq!(bounds(&mut test_app, "keyed-a-2").origin.y, px(-10.));
         assert_eq!(bounds(&mut test_app, "keyed-b-1").origin.y, px(10.));
 
-        scroll_handle.set_offset(point(px(0.), px(-70.)));
+        scroll_handle.request_offset(point(px(0.), px(-70.)), ScrollMutationSource::Programmatic);
         draw(&mut test_app);
         assert_eq!(bounds(&mut test_app, "keyed-b-1").origin.y, px(0.));
         assert_eq!(bounds(&mut test_app, "keyed-b-2").origin.y, px(20.));
@@ -5696,7 +6464,7 @@ mod tests {
             "the replaced A run returns to its normal offscreen bounds"
         );
 
-        scroll_handle.set_offset(point(px(0.), px(-130.)));
+        scroll_handle.request_offset(point(px(0.), px(-130.)), ScrollMutationSource::Programmatic);
         draw(&mut test_app);
         assert_eq!(bounds(&mut test_app, "keyed-a-3").origin.y, px(0.));
         assert!(
@@ -5719,7 +6487,7 @@ mod tests {
         });
         let any_window = window.into();
 
-        scroll_handle.set_offset(point(px(0.), px(-30.)));
+        scroll_handle.request_offset(point(px(0.), px(-30.)), ScrollMutationSource::Programmatic);
         test_app
             .update_window(any_window, |_, window, cx| {
                 window.draw(cx).clear();
@@ -5767,13 +6535,13 @@ mod tests {
                 .expect("nested sticky selector is rendered")
         };
 
-        scroll_handle.set_offset(point(px(0.), px(-50.)));
+        scroll_handle.request_offset(point(px(0.), px(-50.)), ScrollMutationSource::Programmatic);
         draw(&mut test_app);
         assert_eq!(bounds(&mut test_app, "nested-parent-a").origin.y, px(0.));
         assert_eq!(bounds(&mut test_app, "nested-child-a").origin.y, px(10.));
         assert_eq!(bounds(&mut test_app, "nested-child-b").origin.y, px(30.));
 
-        scroll_handle.set_offset(point(px(0.), px(-70.)));
+        scroll_handle.request_offset(point(px(0.), px(-70.)), ScrollMutationSource::Programmatic);
         draw(&mut test_app);
         assert_eq!(bounds(&mut test_app, "nested-parent-a").origin.y, px(-10.));
         assert_eq!(bounds(&mut test_app, "nested-child-b").origin.y, px(10.));
@@ -5784,7 +6552,7 @@ mod tests {
     fn pushed_sticky_child_paints_and_hit_tests_below_its_retained_parent() {
         let mut test_app = TestAppContext::single();
         let scroll_handle = ScrollHandle::new();
-        scroll_handle.set_offset(point(px(0.), px(-50.)));
+        scroll_handle.request_offset(point(px(0.), px(-50.)), ScrollMutationSource::Programmatic);
         let window = test_app.add_window({
             move |_, _| StickyHierarchyZOrderOwner {
                 handle: scroll_handle,
@@ -5843,7 +6611,7 @@ mod tests {
         });
         let any_window = window.into();
 
-        scroll_handle.set_offset(point(px(-30.), px(0.)));
+        scroll_handle.request_offset(point(px(-30.), px(0.)), ScrollMutationSource::Programmatic);
         test_app
             .update_window(any_window, |_, window, cx| {
                 window.draw(cx).clear();
@@ -5872,7 +6640,7 @@ mod tests {
         });
         let any_window = window.into();
 
-        scroll_handle.set_offset(point(px(-30.), px(0.)));
+        scroll_handle.request_offset(point(px(-30.), px(0.)), ScrollMutationSource::Programmatic);
         test_app
             .update_window(any_window, |_, window, cx| {
                 window.draw(cx).clear();
@@ -5928,7 +6696,7 @@ mod tests {
             "unchanged sticky phase should not fire again"
         );
 
-        scroll_handle.set_offset(point(px(0.), px(-40.)));
+        scroll_handle.request_offset(point(px(0.), px(-40.)), ScrollMutationSource::Programmatic);
         draw(&mut test_app);
         {
             let events = events.borrow();
@@ -5941,7 +6709,7 @@ mod tests {
             assert!(events[1].current.is_stuck_y());
         }
 
-        scroll_handle.set_offset(point(px(0.), px(-50.)));
+        scroll_handle.request_offset(point(px(0.), px(-50.)), ScrollMutationSource::Programmatic);
         draw(&mut test_app);
         assert_eq!(
             2,
@@ -5949,7 +6717,7 @@ mod tests {
             "scrolling while already stuck should not fire"
         );
 
-        scroll_handle.set_offset(Point::default());
+        scroll_handle.request_offset(Point::default(), ScrollMutationSource::Programmatic);
         draw(&mut test_app);
         {
             let events = events.borrow();
@@ -5979,7 +6747,7 @@ mod tests {
             })
             .unwrap();
 
-        scroll_handle.set_offset(point(px(0.), px(-40.)));
+        scroll_handle.request_offset(point(px(0.), px(-40.)), ScrollMutationSource::Programmatic);
         test_app
             .update_window(any_window, |_, window, cx| {
                 window.draw(cx).clear();
@@ -5995,7 +6763,7 @@ mod tests {
     fn sticky_div_paints_at_shifted_scrollport_after_scroll() {
         let mut test_app = TestAppContext::single();
         let scroll_handle = ScrollHandle::new();
-        scroll_handle.set_offset(point(px(0.), px(-40.)));
+        scroll_handle.request_offset(point(px(0.), px(-40.)), ScrollMutationSource::Programmatic);
         let window = test_app.add_window({
             move |_, _| ShiftedStickyScrollOwner {
                 handle: scroll_handle,
@@ -6044,7 +6812,7 @@ mod tests {
     fn sticky_div_child_quad_paints_at_parent_visual_bounds() {
         let mut test_app = TestAppContext::single();
         let scroll_handle = ScrollHandle::new();
-        scroll_handle.set_offset(point(px(0.), px(-40.)));
+        scroll_handle.request_offset(point(px(0.), px(-40.)), ScrollMutationSource::Programmatic);
         let window = test_app.add_window({
             move |_, _| StickyWithChildPaintOwner {
                 handle: scroll_handle,
@@ -6232,7 +7000,7 @@ mod tests {
     fn later_sticky_div_replaces_the_earlier_sticky_div_without_overlap() {
         let mut test_app = TestAppContext::single();
         let scroll_handle = ScrollHandle::new();
-        scroll_handle.set_offset(point(px(0.), px(-50.)));
+        scroll_handle.request_offset(point(px(0.), px(-50.)), ScrollMutationSource::Programmatic);
         let window = test_app.add_window({
             move |_, _| LaterStickyZOrderOwner {
                 handle: scroll_handle,
@@ -6263,7 +7031,7 @@ mod tests {
     fn later_sticky_div_replacement_removes_the_outgoing_hitbox_from_the_viewport() {
         let mut test_app = TestAppContext::single();
         let scroll_handle = ScrollHandle::new();
-        scroll_handle.set_offset(point(px(0.), px(-50.)));
+        scroll_handle.request_offset(point(px(0.), px(-50.)), ScrollMutationSource::Programmatic);
         let window = test_app.add_window({
             move |_, _| LaterStickyZOrderOwner {
                 handle: scroll_handle,
@@ -6395,7 +7163,7 @@ mod tests {
         let mut test_app = TestAppContext::single();
         let outer_handle = ScrollHandle::new();
         let inner_handle = ScrollHandle::new();
-        inner_handle.set_offset(point(px(0.), px(-40.)));
+        inner_handle.request_offset(point(px(0.), px(-40.)), ScrollMutationSource::Programmatic);
         let window = test_app.add_window({
             move |_, _| NestedStickyOwner {
                 outer_handle,
@@ -6594,9 +7362,11 @@ mod tests {
             });
         }
 
-        assert!(handle.try_scroll_to_active_item());
-
-        assert_eq!(handle.offset().x, px(-25.));
+        assert!(handle.try_request_active_item());
+        assert_eq!(
+            handle.0.borrow().pending_offset,
+            Some((point(px(-25.), px(0.)), ScrollMutationSource::Deferred))
+        );
     }
 
     #[test]
@@ -6613,9 +7383,11 @@ mod tests {
             });
         }
 
-        assert!(handle.try_scroll_to_active_item());
-
-        assert_eq!(handle.offset().y, px(-25.));
+        assert!(handle.try_request_active_item());
+        assert_eq!(
+            handle.0.borrow().pending_offset,
+            Some((point(px(0.), px(-25.)), ScrollMutationSource::Deferred))
+        );
     }
 
     fn setup_tooltip_owner_test() -> (
