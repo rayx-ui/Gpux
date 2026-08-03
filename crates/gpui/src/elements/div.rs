@@ -4625,11 +4625,12 @@ impl ScrollHandle {
                 | ScrollMutationSource::LayoutClamp => {}
             }
             let activity = state.activity.borrow().kind();
-            let geometry_changed = state.metrics.offset != logical_offset
+            let metrics_changed = state.metrics.offset != logical_offset
                 || state.metrics.max_offset != max_offset
                 || state.metrics.viewport_size != viewport_size
-                || state.metrics.content_size != content_size;
-            if !geometry_changed {
+                || state.metrics.content_size != content_size
+                || state.metrics.activity != activity;
+            if !metrics_changed {
                 return false;
             }
 
@@ -5162,6 +5163,53 @@ mod tests {
                 "no-op {source:?} activity"
             );
         }
+    }
+
+    #[test]
+    fn programmatic_settlement_publishes_idle_when_the_final_offset_is_unchanged() {
+        let mut app = TestAppContext::single();
+        let handle = ScrollHandle::new();
+        let window = app.add_window({
+            let handle = handle.clone();
+            move |_, _| ScrollMetricsOwner { handle }
+        });
+        let owner = window.entity(&app).unwrap().entity_id();
+        let any_window = window.into();
+        app.update_window(any_window, |_, window, cx| window.draw(cx).clear())
+            .unwrap();
+
+        assert!(handle.request_offset(
+            point(px(0.0), px(-72.0)),
+            ScrollMutationSource::Programmatic,
+        ));
+        app.update_window(any_window, |_, window, cx| window.draw(cx).clear())
+            .unwrap();
+        let moving = handle.metrics();
+        assert_eq!(moving.activity, ScrollActivityKind::Programmatic);
+
+        let (activity, max_offset, bounds) = {
+            let state = handle.0.borrow();
+            (state.activity.clone(), state.max_offset, state.bounds)
+        };
+        activity.borrow_mut().stop();
+        let published = app.update(|cx| {
+            handle.publish_programmatic_offset(
+                point(px(0.0), px(-72.0)),
+                max_offset,
+                bounds,
+                owner,
+                cx,
+            )
+        });
+
+        assert!(published);
+        let settled = handle.metrics();
+        assert_eq!(settled.offset, moving.offset);
+        assert_eq!(settled.delta, Point::default());
+        assert_eq!(settled.direction, ScrollDirection::Idle);
+        assert_eq!(settled.source, ScrollMutationSource::Programmatic);
+        assert_eq!(settled.activity, ScrollActivityKind::Idle);
+        assert_eq!(settled.revision, moving.revision + 1);
     }
 
     #[test]
