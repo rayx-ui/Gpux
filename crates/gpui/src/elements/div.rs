@@ -4285,6 +4285,11 @@ impl Default for ScrollHandle {
 }
 
 impl ScrollHandle {
+    /// Returns whether both handles refer to the same scroll owner.
+    pub fn ptr_eq(&self, other: &Self) -> bool {
+        Rc::ptr_eq(&self.0, &other.0)
+    }
+
     /// Construct a new scroll handle.
     pub fn new() -> Self {
         Self(Rc::default())
