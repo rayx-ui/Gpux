@@ -36,6 +36,7 @@ raw-window-handle = "0.6"
 wasm_thread = { version = "0.3", features = ["es_modules"], optional = true }
 web-sys = { version = "0.3", features = [
     "console",
+    "ClipboardEvent",
     "CompositionEvent",
     "CssStyleDeclaration",
     "DataTransfer",
@@ -56,6 +57,7 @@ web-sys = { version = "0.3", features = [
     "MouseEvent",
     "Navigator",
     "PointerEvent",
+    "Range",
     "Performance",
     "ResizeObserver",
     "ResizeObserverBoxOptions",
@@ -63,6 +65,7 @@ web-sys = { version = "0.3", features = [
     "ResizeObserverSize",
     "ResizeObserverOptions",
     "Screen",
+    "Selection",
     "Storage",
     "VisualViewport",
     "Headers",

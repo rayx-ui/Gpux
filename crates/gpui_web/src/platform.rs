@@ -348,16 +348,21 @@ impl Platform for WebPlatform {
             log::warn!("gpui_web clipboard currently supports text entries only");
             return;
         };
+        let fallback_succeeded = write_text_with_exec_command(&self.browser_window, &text);
 
         let navigator: JsValue = self.browser_window.navigator().into();
         let clipboard = match js_sys::Reflect::get(&navigator, &JsValue::from_str("clipboard")) {
             Ok(value) if !value.is_null() && !value.is_undefined() => value,
             Ok(_) => {
-                log::warn!("browser clipboard API is unavailable");
+                if !fallback_succeeded {
+                    log::warn!("browser clipboard API is unavailable");
+                }
                 return;
             }
             Err(error) => {
-                log::error!("failed to access browser clipboard API: {error:?}");
+                if !fallback_succeeded {
+                    log::error!("failed to access browser clipboard API: {error:?}");
+                }
                 return;
             }
         };
@@ -366,7 +371,9 @@ impl Platform for WebPlatform {
         {
             Ok(function) => function,
             Err(error) => {
-                log::error!("browser clipboard writeText is unavailable: {error:?}");
+                if !fallback_succeeded {
+                    log::error!("browser clipboard writeText is unavailable: {error:?}");
+                }
                 return;
             }
         };
@@ -378,12 +385,16 @@ impl Platform for WebPlatform {
         {
             Ok(promise) => promise,
             Err(error) => {
-                log::error!("failed to start browser clipboard write: {error:?}");
+                if !fallback_succeeded {
+                    log::error!("failed to start browser clipboard write: {error:?}");
+                }
                 return;
             }
         };
         wasm_bindgen_futures::spawn_local(async move {
-            if let Err(error) = wasm_bindgen_futures::JsFuture::from(promise).await {
+            if let Err(error) = wasm_bindgen_futures::JsFuture::from(promise).await
+                && !fallback_succeeded
+            {
                 log::error!("failed to write browser clipboard: {error:?}");
             }
         });
@@ -416,6 +427,98 @@ impl Platform for WebPlatform {
     fn on_keyboard_layout_change(&self, callback: Box<dyn FnMut()>) {
         self.callbacks.borrow_mut().keyboard_layout_change = Some(callback);
     }
+}
+
+fn write_text_with_exec_command(browser_window: &web_sys::Window, text: &str) -> bool {
+    let Some(document) = browser_window.document() else {
+        return false;
+    };
+    let Some(body) = document.body() else {
+        return false;
+    };
+    let Ok(Some(selection)) = browser_window.get_selection() else {
+        return false;
+    };
+    let Ok(copy_target) = document.create_element("pre") else {
+        return false;
+    };
+    let Ok(copy_target) = copy_target.dyn_into::<web_sys::HtmlElement>() else {
+        return false;
+    };
+    let style = copy_target.style();
+    let _ = style.set_property("position", "fixed");
+    let _ = style.set_property("left", "-10000px");
+    let _ = style.set_property("top", "0");
+    let _ = style.set_property("opacity", "0");
+    let _ = style.set_property("pointer-events", "none");
+    copy_target.set_text_content(Some(text));
+    if body.append_child(&copy_target).is_err() {
+        return false;
+    }
+
+    let saved_ranges = (0..selection.range_count())
+        .filter_map(|index| selection.get_range_at(index).ok())
+        .collect::<Vec<_>>();
+    let Ok(copy_range) = document.create_range() else {
+        let _ = body.remove_child(&copy_target);
+        return false;
+    };
+    if copy_range.select_node_contents(&copy_target).is_err() {
+        let _ = body.remove_child(&copy_target);
+        return false;
+    }
+    selection.remove_all_ranges();
+    if selection.add_range(&copy_range).is_err() {
+        let _ = body.remove_child(&copy_target);
+        return false;
+    }
+
+    let override_succeeded = Rc::new(Cell::new(false));
+    let override_succeeded_for_event = override_succeeded.clone();
+    let copy_text = text.to_owned();
+    let copy_listener = Closure::<dyn FnMut(web_sys::ClipboardEvent)>::new(
+        move |event: web_sys::ClipboardEvent| {
+            let Some(clipboard_data) = event.clipboard_data() else {
+                return;
+            };
+            if clipboard_data.set_data("text/plain", &copy_text).is_ok() {
+                event.prevent_default();
+                override_succeeded_for_event.set(true);
+            }
+        },
+    );
+    if document
+        .add_event_listener_with_callback("copy", copy_listener.as_ref().unchecked_ref())
+        .is_err()
+    {
+        selection.remove_all_ranges();
+        for range in saved_ranges {
+            let _ = selection.add_range(&range);
+        }
+        let _ = body.remove_child(&copy_target);
+        return false;
+    }
+
+    let copied = js_sys::Reflect::get(document.as_ref(), &JsValue::from_str("execCommand"))
+        .ok()
+        .and_then(|value| value.dyn_into::<js_sys::Function>().ok())
+        .and_then(|exec_command| {
+            exec_command
+                .call1(document.as_ref(), &JsValue::from_str("copy"))
+                .ok()
+        })
+        .and_then(|value| value.as_bool())
+        .unwrap_or(false);
+
+    let _ = document
+        .remove_event_listener_with_callback("copy", copy_listener.as_ref().unchecked_ref());
+
+    selection.remove_all_ranges();
+    for range in saved_ranges {
+        let _ = selection.add_range(&range);
+    }
+    let _ = body.remove_child(&copy_target);
+    copied && override_succeeded.get()
 }
 
 struct EventListenerHandle {
