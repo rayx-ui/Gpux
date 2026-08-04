@@ -54,6 +54,102 @@ pub(crate) struct WebWindowMutableState {
     pub(crate) capslock: Capslock,
 }
 
+#[cfg(feature = "rayx_diagnostics")]
+struct WasmTextScaleDiagnostics {
+    generation: Cell<u64>,
+    published_generation: Cell<Option<u64>>,
+    logical_width: Cell<f32>,
+    logical_height: Cell<f32>,
+    scale_factor: Cell<f32>,
+    physical_width: Cell<u32>,
+    physical_height: Cell<u32>,
+}
+
+#[cfg(feature = "rayx_diagnostics")]
+impl WasmTextScaleDiagnostics {
+    fn new(
+        logical_size: Size<Pixels>,
+        scale_factor: f32,
+        physical_width: u32,
+        physical_height: u32,
+    ) -> Self {
+        Self {
+            generation: Cell::new(0),
+            published_generation: Cell::new(None),
+            logical_width: Cell::new(f32::from(logical_size.width)),
+            logical_height: Cell::new(f32::from(logical_size.height)),
+            scale_factor: Cell::new(scale_factor),
+            physical_width: Cell::new(physical_width),
+            physical_height: Cell::new(physical_height),
+        }
+    }
+
+    fn record_generation(
+        &self,
+        logical_size: Size<Pixels>,
+        scale_factor: f32,
+        physical_width: u32,
+        physical_height: u32,
+    ) {
+        self.generation.set(self.generation.get().saturating_add(1));
+        self.logical_width.set(f32::from(logical_size.width));
+        self.logical_height.set(f32::from(logical_size.height));
+        self.scale_factor.set(scale_factor);
+        self.physical_width.set(physical_width);
+        self.physical_height.set(physical_height);
+    }
+
+    fn publish(&self, canvas: &web_sys::HtmlCanvasElement, closed: bool) {
+        let generation = self.generation.get();
+        if !closed && self.published_generation.get() == Some(generation) {
+            return;
+        }
+        let target = js_sys::Object::new();
+        let set = |key: &str, value: JsValue| {
+            let _ = js_sys::Reflect::set(&target, &JsValue::from_str(key), &value);
+        };
+        set("version", JsValue::from_f64(1.0));
+        set("generation", JsValue::from_f64(generation as f64));
+        set(
+            "logicalWidth",
+            JsValue::from_f64(self.logical_width.get() as f64),
+        );
+        set(
+            "logicalHeight",
+            JsValue::from_f64(self.logical_height.get() as f64),
+        );
+        set(
+            "scaleFactor",
+            JsValue::from_f64(self.scale_factor.get() as f64),
+        );
+        set(
+            "physicalWidth",
+            JsValue::from_f64(self.physical_width.get() as f64),
+        );
+        set(
+            "physicalHeight",
+            JsValue::from_f64(self.physical_height.get() as f64),
+        );
+        set("canvasWidth", JsValue::from_f64(canvas.width() as f64));
+        set("canvasHeight", JsValue::from_f64(canvas.height() as f64));
+        set(
+            "surfaceWidth",
+            JsValue::from_f64(self.physical_width.get() as f64),
+        );
+        set(
+            "surfaceHeight",
+            JsValue::from_f64(self.physical_height.get() as f64),
+        );
+        set("closed", JsValue::from_bool(closed));
+        let _ = js_sys::Reflect::set(
+            &js_sys::global(),
+            &JsValue::from_str("__rayxWasmTextScaleDiagnostics"),
+            &target,
+        );
+        self.published_generation.set(Some(generation));
+    }
+}
+
 pub(crate) struct WebWindowInner {
     pub(crate) browser_window: web_sys::Window,
     pub(crate) canvas: web_sys::HtmlCanvasElement,
@@ -70,7 +166,6 @@ pub(crate) struct WebWindowInner {
     pub(crate) pressed_button: Cell<Option<MouseButton>>,
     pub(crate) closed: Cell<bool>,
     pub(crate) last_physical_size: Cell<(u32, u32)>,
-    pub(crate) notify_scale: Cell<bool>,
     pub(crate) is_composing: Cell<bool>,
     html_island_force_frame: Cell<bool>,
     mql_handle: RefCell<Option<MqlHandle>>,
@@ -78,6 +173,8 @@ pub(crate) struct WebWindowInner {
     pending_physical_size: Cell<Option<(u32, u32)>>,
     #[cfg(feature = "rayx_diagnostics")]
     media_query_diagnostics: MediaQueryPipelineDiagnostics,
+    #[cfg(feature = "rayx_diagnostics")]
+    wasm_text_scale_diagnostics: WasmTextScaleDiagnostics,
 }
 
 pub struct WebWindow {
@@ -98,6 +195,10 @@ pub struct WebWindow {
 impl Drop for WebWindow {
     fn drop(&mut self) {
         self.inner.closed.set(true);
+        #[cfg(feature = "rayx_diagnostics")]
+        self.inner
+            .wasm_text_scale_diagnostics
+            .publish(&self.inner.canvas, true);
         if let Some(request_id) = self.raf_request_id.take() {
             self.inner
                 .browser_window
@@ -259,7 +360,6 @@ impl WebWindow {
             pressed_button: Cell::new(None),
             closed: Cell::new(false),
             last_physical_size: Cell::new((initial_physical_width, initial_physical_height)),
-            notify_scale: Cell::new(false),
             is_composing: Cell::new(false),
             html_island_force_frame: Cell::new(false),
             mql_handle: RefCell::new(None),
@@ -267,6 +367,13 @@ impl WebWindow {
             pending_physical_size: Cell::new(None),
             #[cfg(feature = "rayx_diagnostics")]
             media_query_diagnostics: MediaQueryPipelineDiagnostics::default(),
+            #[cfg(feature = "rayx_diagnostics")]
+            wasm_text_scale_diagnostics: WasmTextScaleDiagnostics::new(
+                initial_logical_size,
+                dpr,
+                initial_physical_width,
+                initial_physical_height,
+            ),
         });
         inner
             .html_element_registry
@@ -405,7 +512,8 @@ impl WebWindowInner {
             height: px(physical_height as f32 / scale_factor),
         };
 
-        let scale_changed = self.notify_scale.replace(false);
+        let previous_scale_factor = self.state.borrow().scale_factor;
+        let scale_changed = previous_scale_factor.to_bits() != scale_factor.to_bits();
         let prev = self.last_physical_size.get();
         let size_changed = prev != (physical_width, physical_height);
 
@@ -417,6 +525,14 @@ impl WebWindowInner {
 
         self.pending_physical_size
             .set(Some((physical_width, physical_height)));
+
+        #[cfg(feature = "rayx_diagnostics")]
+        self.wasm_text_scale_diagnostics.record_generation(
+            logical_size,
+            scale_factor,
+            physical_width,
+            physical_height,
+        );
 
         {
             let mut s = self.state.borrow_mut();
@@ -537,7 +653,6 @@ impl WebWindowInner {
         let observer = observer.clone();
 
         let closure = Closure::<dyn FnMut(JsValue)>::new(move |_event: JsValue| {
-            this.notify_scale.set(true);
             this.enqueue_current_logical_size();
             this.observe_canvas(&observer);
             this.watch_dpr_changes(&observer);
@@ -917,6 +1032,10 @@ impl PlatformWindow for WebWindow {
         if let Some((width, height)) = self.inner.pending_physical_size.take() {
             self.inner.apply_physical_size(width, height);
         }
+        #[cfg(feature = "rayx_diagnostics")]
+        self.inner
+            .wasm_text_scale_diagnostics
+            .publish(&self.inner.canvas, false);
 
         let canvas_rect = self.inner.canvas.get_bounding_client_rect();
         self.inner
