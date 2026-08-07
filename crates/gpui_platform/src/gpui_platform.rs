@@ -13,9 +13,7 @@ pub fn background_executor() -> gpux::BackgroundExecutor {
 pub fn application() -> gpux::Application {
     #[cfg(target_family = "wasm")]
     {
-        let platform = Rc::new(gpui_web::WebPlatform::new(true));
-        let http_client = std::sync::Arc::new(platform.fetch_http_client());
-        gpux::Application::with_platform(platform).with_http_client(http_client)
+        application_with_web_backend(gpui_web::WebBackendPreference::Auto)
     }
 
     #[cfg(not(target_family = "wasm"))]
@@ -37,9 +35,31 @@ pub fn single_threaded_web() -> gpux::Application {
 /// Returns a threaded web application with an optional background-worker maximum.
 #[cfg(target_family = "wasm")]
 pub fn web_application(max_background_workers: Option<usize>) -> gpux::Application {
-    let platform = Rc::new(gpui_web::WebPlatform::with_background_worker_limit(
+    web_application_with_backend(max_background_workers, WebBackendPreference::Auto)
+}
+
+#[cfg(target_family = "wasm")]
+pub fn web_application_with_backend(
+    max_background_workers: Option<usize>,
+    backend_preference: WebBackendPreference,
+) -> gpux::Application {
+    let platform = Rc::new(gpui_web::WebPlatform::new_with_backend_and_worker_limit(
         true,
         max_background_workers,
+        backend_preference,
+    ));
+    let http_client = std::sync::Arc::new(platform.fetch_http_client());
+    gpux::Application::with_platform(platform).with_http_client(http_client)
+}
+
+#[cfg(target_family = "wasm")]
+pub use gpui_web::WebBackendPreference;
+
+#[cfg(target_family = "wasm")]
+pub fn application_with_web_backend(backend_preference: WebBackendPreference) -> gpux::Application {
+    let platform = Rc::new(gpui_web::WebPlatform::new_with_backend(
+        true,
+        backend_preference,
     ));
     let http_client = std::sync::Arc::new(platform.fetch_http_client());
     gpux::Application::with_platform(platform).with_http_client(http_client)

@@ -29,9 +29,12 @@ The current repository history from `9aff311fa2692fd4d390839c8feb5b5ccebc7b20` o
 The 2026-08-07 import preserved RayX's `gpux` crate identity, vendored WGPU 29
 patches, Windows DX12 backend, mobile runtime, DevKit and diagnostics surfaces,
 DOM/HTML islands, effects, gestures, layered keymaps, async startup, and
-multi-pointer drag model. Browser rendering remains WebGPU-only: Zed's newer
-WebGL instance transport is not compatible with RayX's extended renderer ABI
-and is intentionally not advertised as a fallback.
+multi-pointer drag model. Follow-up reconciliation completed the imported native
+AccessKit adapters and Wayland `xdg_popup` lifecycle, restored platform emoji
+font recognition, and adapted Zed's WebGL transport to RayX's complete extended
+renderer ABI. Browser startup now prefers WebGPU and falls back to WebGL2; the
+WebGL path transports every packed scene record through exact `Rgba32Uint`
+textures rather than silently omitting RayX effects or HTML-island data.
 
 History mapping files:
 

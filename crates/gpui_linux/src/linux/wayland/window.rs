@@ -1,12 +1,12 @@
 use std::{
-    cell::{Ref, RefCell, RefMut},
+    cell::{Cell, Ref, RefCell, RefMut},
     ffi::c_void,
     ptr::NonNull,
     rc::Rc,
     sync::Arc,
 };
 
-use collections::{FxHashSet, HashMap};
+use collections::{FxHashMap, HashMap};
 use futures::channel::oneshot::Receiver;
 
 use raw_window_handle as rwh;
@@ -14,12 +14,13 @@ use wayland_backend::client::ObjectId;
 use wayland_client::WEnum;
 use wayland_client::{
     Proxy,
-    protocol::{wl_output, wl_surface},
+    protocol::{wl_output, wl_seat, wl_surface},
 };
 use wayland_protocols::wp::viewporter::client::wp_viewport;
 use wayland_protocols::xdg::decoration::zv1::client::zxdg_toplevel_decoration_v1;
 use wayland_protocols::xdg::shell::client::xdg_surface;
 use wayland_protocols::xdg::shell::client::xdg_toplevel::{self};
+use wayland_protocols::xdg::shell::client::{xdg_popup, xdg_positioner};
 use wayland_protocols::{
     wp::fractional_scale::v1::client::wp_fractional_scale_v1,
     xdg::dialog::v1::client::xdg_dialog_v1::XdgDialogV1,
@@ -36,7 +37,7 @@ use gpux::{
     PlatformWindow, Point, PromptButton, PromptLevel, RequestFrameOptions, ResizeEdge, Scene, Size,
     Tiling, WindowAppearance, WindowBackgroundAppearance, WindowBounds, WindowControlArea,
     WindowControls, WindowDecorations, WindowKind, WindowParams,
-    layer_shell::LayerShellNotSupportedError, px, size,
+    layer_shell::LayerShellNotSupportedError, popup::PopupOptions, px, size,
 };
 
 #[derive(Default)]
@@ -94,7 +95,7 @@ pub struct WaylandWindowState {
     surface_state: WaylandSurfaceState,
     acknowledged_first_configure: bool,
     parent: Option<WaylandWindowStatePtr>,
-    children: FxHashSet<ObjectId>,
+    children: FxHashMap<ObjectId, bool>,
     pub surface: wl_surface::WlSurface,
     app_id: Option<String>,
     appearance: WindowAppearance,
@@ -124,11 +125,13 @@ pub struct WaylandWindowState {
     in_progress_window_controls: Option<WindowControls>,
     window_controls: WindowControls,
     client_inset: Option<Pixels>,
+    accesskit_adapter: Option<accesskit_unix::Adapter>,
 }
 
 pub enum WaylandSurfaceState {
     Xdg(WaylandXdgSurfaceState),
     LayerShell(WaylandLayerSurfaceState),
+    Popup(WaylandPopupSurfaceState),
 }
 
 impl WaylandSurfaceState {
@@ -137,6 +140,7 @@ impl WaylandSurfaceState {
         globals: &Globals,
         params: &WindowParams,
         parent: Option<WaylandWindowStatePtr>,
+        popup_grab: Option<(u32, wl_seat::WlSeat)>,
         target_output: Option<wl_output::WlOutput>,
     ) -> anyhow::Result<Self> {
         // For layer_shell windows, create a layer surface instead of an xdg surface
@@ -186,6 +190,44 @@ impl WaylandSurfaceState {
             }));
         }
 
+        if let WindowKind::AnchoredPopup(options) = &params.kind {
+            let Some(parent) = parent.as_ref() else {
+                return Err(anyhow::anyhow!("popup parent window not found"));
+            };
+            let positioner = build_popup_positioner(
+                globals,
+                options,
+                params.bounds.size,
+                parent.window_geometry(),
+            );
+            let xdg_surface = globals
+                .wm_base
+                .get_xdg_surface(surface, &globals.qh, surface.id());
+            let xdg_popup = if let Some(parent_layer_surface) = parent.layer_surface() {
+                let popup = xdg_surface.get_popup(None, &positioner, &globals.qh, surface.id());
+                parent_layer_surface.get_popup(&popup);
+                popup
+            } else {
+                xdg_surface.get_popup(
+                    parent.xdg_surface().as_ref(),
+                    &positioner,
+                    &globals.qh,
+                    surface.id(),
+                )
+            };
+            positioner.destroy();
+            if let Some((serial, seat)) = popup_grab {
+                xdg_popup.grab(&seat, serial);
+            }
+            parent.add_child(surface.id(), false);
+            return Ok(WaylandSurfaceState::Popup(WaylandPopupSurfaceState {
+                xdg_surface,
+                xdg_popup,
+                options: options.clone(),
+                next_reposition_token: Cell::new(0),
+            }));
+        }
+
         // All other WindowKinds result in a regular xdg surface
         let xdg_surface = globals
             .wm_base
@@ -206,7 +248,7 @@ impl WaylandSurfaceState {
             });
 
             if let Some(parent) = parent.as_ref() {
-                parent.add_child(surface.id());
+                parent.add_child(surface.id(), true);
             }
 
             dialog
@@ -246,6 +288,58 @@ pub struct WaylandLayerSurfaceState {
     layer_surface: zwlr_layer_surface_v1::ZwlrLayerSurfaceV1,
 }
 
+pub struct WaylandPopupSurfaceState {
+    xdg_surface: xdg_surface::XdgSurface,
+    xdg_popup: xdg_popup::XdgPopup,
+    options: PopupOptions,
+    next_reposition_token: Cell<u32>,
+}
+
+fn build_popup_positioner(
+    globals: &Globals,
+    options: &PopupOptions,
+    size: Size<Pixels>,
+    parent_geometry: Bounds<Pixels>,
+) -> xdg_positioner::XdgPositioner {
+    let positioner = globals.wm_base.create_positioner(&globals.qh, ());
+    positioner.set_size(
+        f32::from(size.width).max(1.0) as i32,
+        f32::from(size.height).max(1.0) as i32,
+    );
+
+    let anchor_rect = Bounds {
+        origin: options.anchor_rect.origin - parent_geometry.origin,
+        size: options.anchor_rect.size,
+    };
+    let one = Point::new(px(1.0), px(1.0));
+    let geometry_bottom_right: Point<Pixels> = parent_geometry.size.into();
+    let top_left = anchor_rect
+        .origin
+        .min(&(geometry_bottom_right - one))
+        .max(&Point::default());
+    let bottom_right = anchor_rect
+        .bottom_right()
+        .min(&geometry_bottom_right)
+        .max(&(top_left + one));
+    let anchor_rect = Bounds::from_corners(top_left, bottom_right);
+    positioner.set_anchor_rect(
+        f32::from(anchor_rect.origin.x) as i32,
+        f32::from(anchor_rect.origin.y) as i32,
+        f32::from(anchor_rect.size.width) as i32,
+        f32::from(anchor_rect.size.height) as i32,
+    );
+    positioner.set_anchor(super::popup::wayland_anchor(options.anchor));
+    positioner.set_gravity(super::popup::wayland_gravity(options.gravity));
+    positioner.set_constraint_adjustment(super::popup::wayland_constraint_adjustment(
+        options.constraint_adjustment,
+    ));
+    positioner.set_offset(
+        f32::from(options.offset.x) as i32,
+        f32::from(options.offset.y) as i32,
+    );
+    positioner
+}
+
 impl WaylandSurfaceState {
     fn ack_configure(&self, serial: u32) {
         match self {
@@ -254,6 +348,9 @@ impl WaylandSurfaceState {
             }
             WaylandSurfaceState::LayerShell(WaylandLayerSurfaceState { layer_surface, .. }) => {
                 layer_surface.ack_configure(serial);
+            }
+            WaylandSurfaceState::Popup(WaylandPopupSurfaceState { xdg_surface, .. }) => {
+                xdg_surface.ack_configure(serial);
             }
         }
     }
@@ -283,6 +380,31 @@ impl WaylandSurfaceState {
                 // cannot set window position of a layer surface
                 layer_surface.set_size(width as u32, height as u32);
             }
+            WaylandSurfaceState::Popup(WaylandPopupSurfaceState { xdg_surface, .. }) => {
+                xdg_surface.set_window_geometry(x, y, width, height);
+            }
+        }
+    }
+
+    fn reposition_popup(
+        &self,
+        globals: &Globals,
+        size: Size<Pixels>,
+        parent_geometry: Bounds<Pixels>,
+    ) {
+        if let WaylandSurfaceState::Popup(WaylandPopupSurfaceState {
+            xdg_popup,
+            options,
+            next_reposition_token,
+            ..
+        }) = self
+            && xdg_popup.version() >= xdg_popup::REQ_REPOSITION_SINCE
+        {
+            let token = next_reposition_token.get();
+            next_reposition_token.set(token.wrapping_add(1));
+            let positioner = build_popup_positioner(globals, options, size, parent_geometry);
+            xdg_popup.reposition(&positioner, token);
+            positioner.destroy();
         }
     }
 
@@ -306,6 +428,14 @@ impl WaylandSurfaceState {
             }
             WaylandSurfaceState::LayerShell(WaylandLayerSurfaceState { layer_surface }) => {
                 layer_surface.destroy();
+            }
+            WaylandSurfaceState::Popup(WaylandPopupSurfaceState {
+                xdg_surface,
+                xdg_popup,
+                ..
+            }) => {
+                xdg_popup.destroy();
+                xdg_surface.destroy();
             }
         }
     }
@@ -368,7 +498,7 @@ impl WaylandWindowState {
             surface_state,
             acknowledged_first_configure: false,
             parent,
-            children: FxHashSet::default(),
+            children: FxHashMap::default(),
             surface,
             app_id: None,
             blur: None,
@@ -398,6 +528,7 @@ impl WaylandWindowState {
             in_progress_window_controls: None,
             window_controls: WindowControls::default(),
             client_inset: None,
+            accesskit_adapter: None,
         })
     }
 
@@ -516,11 +647,18 @@ impl WaylandWindow {
         params: WindowParams,
         appearance: WindowAppearance,
         parent: Option<WaylandWindowStatePtr>,
+        popup_grab: Option<(u32, wl_seat::WlSeat)>,
         target_output: Option<wl_output::WlOutput>,
     ) -> anyhow::Result<(Self, ObjectId)> {
         let surface = globals.compositor.create_surface(&globals.qh, ());
-        let surface_state =
-            WaylandSurfaceState::new(&surface, &globals, &params, parent.clone(), target_output)?;
+        let surface_state = WaylandSurfaceState::new(
+            &surface,
+            &globals,
+            &params,
+            parent.clone(),
+            popup_grab,
+            target_output,
+        )?;
 
         if let Some(fractional_scale_manager) = globals.fractional_scale_manager.as_ref() {
             fractional_scale_manager.get_fractional_scale(&surface, &globals.qh, surface.id());
@@ -568,18 +706,35 @@ impl WaylandWindowStatePtr {
         self.state.borrow().surface_state.toplevel().cloned()
     }
 
+    pub fn xdg_surface(&self) -> Option<xdg_surface::XdgSurface> {
+        self.state.borrow().surface_state.xdg_surface().cloned()
+    }
+
+    pub fn layer_surface(&self) -> Option<zwlr_layer_surface_v1::ZwlrLayerSurfaceV1> {
+        self.state.borrow().surface_state.layer_surface().cloned()
+    }
+
+    pub fn window_geometry(&self) -> Bounds<Pixels> {
+        let state = self.state.borrow();
+        inset_by_tiling(
+            state.bounds.map_origin(|_| px(0.0)),
+            state.inset(),
+            state.tiling,
+        )
+    }
+
     pub fn ptr_eq(&self, other: &Self) -> bool {
         Rc::ptr_eq(&self.state, &other.state)
     }
 
-    pub fn add_child(&self, child: ObjectId) {
+    pub fn add_child(&self, child: ObjectId, blocking: bool) {
         let mut state = self.state.borrow_mut();
-        state.children.insert(child);
+        state.children.insert(child, blocking);
     }
 
     pub fn is_blocked(&self) -> bool {
         let state = self.state.borrow();
-        !state.children.is_empty()
+        state.children.values().any(|&blocking| blocking)
     }
 
     pub fn frame(&self) {
@@ -858,6 +1013,29 @@ impl WaylandWindowStatePtr {
         }
     }
 
+    pub fn handle_popup_event(&self, event: xdg_popup::Event) -> bool {
+        match event {
+            xdg_popup::Event::Configure { width, height, .. } => {
+                let size = if width <= 0 || height <= 0 {
+                    None
+                } else {
+                    Some(size(px(width as f32), px(height as f32)))
+                };
+                self.state.borrow_mut().in_progress_configure = Some(InProgressConfigure {
+                    size,
+                    fullscreen: false,
+                    maximized: false,
+                    resizing: false,
+                    tiling: Tiling::default(),
+                });
+                false
+            }
+            xdg_popup::Event::PopupDone => true,
+            xdg_popup::Event::Repositioned { .. } => false,
+            _ => false,
+        }
+    }
+
     #[allow(clippy::mutable_key_type)]
     pub fn handle_surface_event(
         &self,
@@ -1000,9 +1178,9 @@ impl WaylandWindowStatePtr {
         let children = state.children.clone();
         drop(state);
 
-        for child in children {
+        for child in children.keys() {
             let mut client_state = client.borrow_mut();
-            let window = get_window(&mut client_state, &child);
+            let window = get_window(&mut client_state, child);
             drop(client_state);
 
             if let Some(child) = window {
@@ -1159,6 +1337,20 @@ impl PlatformWindow for WaylandWindow {
     fn resize(&mut self, size: Size<Pixels>) {
         let state = self.borrow();
         let state_ptr = self.0.clone();
+
+        if matches!(state.surface_state, WaylandSurfaceState::Popup(_)) {
+            if state.acknowledged_first_configure {
+                let parent_geometry = state
+                    .parent
+                    .as_ref()
+                    .map(WaylandWindowStatePtr::window_geometry)
+                    .unwrap_or_default();
+                state
+                    .surface_state
+                    .reposition_popup(&state.globals, size, parent_geometry);
+            }
+            return;
+        }
 
         // Keep window geometry consistent with configure handling. On Wayland, window geometry is
         // surface-local: resizing should not attempt to translate the window; the compositor
@@ -1536,6 +1728,75 @@ impl PlatformWindow for WaylandWindow {
         if let Some(bell) = state.globals.system_bell.as_ref() {
             bell.ring(surface);
         }
+    }
+
+    fn xdg_surface(&self) -> Option<&xdg_surface::XdgSurface> {
+        match self {
+            WaylandSurfaceState::Xdg(WaylandXdgSurfaceState { xdg_surface, .. })
+            | WaylandSurfaceState::Popup(WaylandPopupSurfaceState { xdg_surface, .. }) => {
+                Some(xdg_surface)
+            }
+            WaylandSurfaceState::LayerShell(_) => None,
+        }
+    }
+
+    fn layer_surface(&self) -> Option<&zwlr_layer_surface_v1::ZwlrLayerSurfaceV1> {
+        if let WaylandSurfaceState::LayerShell(WaylandLayerSurfaceState { layer_surface }) = self {
+            Some(layer_surface)
+        } else {
+            None
+        }
+    }
+
+    fn a11y_init(&self, callbacks: gpux::A11yCallbacks) {
+        let adapter = accesskit_unix::Adapter::new(
+            TrivialActivationHandler {
+                callback: callbacks.activation,
+            },
+            TrivialActionHandler(callbacks.action),
+            TrivialDeactivationHandler {
+                callback: callbacks.deactivation,
+            },
+        );
+        self.borrow_mut().accesskit_adapter = Some(adapter);
+    }
+
+    fn a11y_tree_update(&self, tree_update: accesskit::TreeUpdate) {
+        if let Some(adapter) = self.borrow_mut().accesskit_adapter.as_mut() {
+            adapter.update_if_active(|| tree_update);
+        }
+    }
+
+    fn a11y_update_window_bounds(&self) {
+        // Wayland intentionally does not expose absolute window positions.
+    }
+}
+
+struct TrivialActivationHandler {
+    callback: Box<dyn Fn() -> Option<accesskit::TreeUpdate> + Send + 'static>,
+}
+
+impl accesskit::ActivationHandler for TrivialActivationHandler {
+    fn request_initial_tree(&mut self) -> Option<accesskit::TreeUpdate> {
+        (self.callback)()
+    }
+}
+
+struct TrivialActionHandler(Box<dyn Fn(accesskit::ActionRequest) + Send + 'static>);
+
+impl accesskit::ActionHandler for TrivialActionHandler {
+    fn do_action(&mut self, request: accesskit::ActionRequest) {
+        (self.0)(request);
+    }
+}
+
+struct TrivialDeactivationHandler {
+    callback: Box<dyn Fn() + Send + 'static>,
+}
+
+impl accesskit::DeactivationHandler for TrivialDeactivationHandler {
+    fn deactivate_accessibility(&mut self) {
+        (self.callback)();
     }
 }
 

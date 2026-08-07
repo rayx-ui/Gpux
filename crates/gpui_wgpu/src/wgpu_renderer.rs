@@ -30,6 +30,22 @@ use std::sync::{Arc, Mutex, mpsc};
 use std::{mem::align_of, mem::offset_of, mem::size_of};
 
 const SURFACE_FRAME_LATENCY: u32 = 2;
+const INSTANCE_TEXTURE_TEXEL_SIZE: u64 = 16;
+
+const STORAGE_BUFFER_SHADERS: &str = concat!(
+    include_str!("shaders.wgsl"),
+    include_str!("shaders_storage.wgsl"),
+);
+const WEBGL_SHADERS: &str = concat!(
+    include_str!("shaders.wgsl"),
+    include_str!("shaders_webgl.wgsl"),
+);
+const SUBPIXEL_SHADERS: &str = concat!(
+    "enable dual_source_blending;\n",
+    include_str!("shaders.wgsl"),
+    include_str!("shaders_storage.wgsl"),
+    include_str!("shaders_subpixel.wgsl"),
+);
 
 fn backend_policy_label(backends: wgpu::Backends) -> String {
     let mut labels = Vec::new();
@@ -255,6 +271,9 @@ const _: [(); 16] = [(); offset_of!(PackedPathRasterizationVertex, background)];
 const _: [(); 64] = [(); offset_of!(PackedPathRasterizationVertex, content_mask)];
 const _: [(); 64] = [(); size_of::<PackedHtmlIsland>()];
 const _: [(); 128] = [(); size_of::<MonochromeSprite>()];
+const _: [(); 104] = [(); size_of::<Underline>()];
+const _: [(); 136] = [(); size_of::<PolychromeSprite>()];
+const _: [(); 128] = [(); size_of::<SubpixelSprite>()];
 const _: [(); 4] = [(); offset_of!(MonochromeSprite, kind)];
 const _: [(); 8] = [(); offset_of!(MonochromeSprite, bounds)];
 const _: [(); 24] = [(); offset_of!(MonochromeSprite, content_mask)];
@@ -847,6 +866,35 @@ struct WgpuBindGroupLayouts {
     screen_effects: wgpu::BindGroupLayout,
 }
 
+enum WgpuDataBinding<'a> {
+    Buffer {
+        buffer: &'a wgpu::Buffer,
+        offset: u64,
+        size: NonZeroU64,
+    },
+    Texture {
+        _texture: wgpu::Texture,
+        view: wgpu::TextureView,
+    },
+}
+
+impl WgpuDataBinding<'_> {
+    fn resource(&self) -> wgpu::BindingResource<'_> {
+        match self {
+            Self::Buffer {
+                buffer,
+                offset,
+                size,
+            } => wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                buffer,
+                offset: *offset,
+                size: Some(*size),
+            }),
+            Self::Texture { view, .. } => wgpu::BindingResource::TextureView(view),
+        }
+    }
+}
+
 /// Shared GPU context reference, used to coordinate device recovery across multiple windows.
 pub type GpuContext = Rc<RefCell<Option<WgpuContext>>>;
 
@@ -1126,8 +1174,8 @@ struct WgpuResources {
     globals_buffer: wgpu::Buffer,
     globals_bind_group: wgpu::BindGroup,
     path_globals_bind_group: wgpu::BindGroup,
-    instance_buffer: wgpu::Buffer,
-    gradient_stop_buffer: wgpu::Buffer,
+    instance_buffer: Option<wgpu::Buffer>,
+    gradient_stop_buffer: Option<wgpu::Buffer>,
     path_intermediate_texture: Option<wgpu::Texture>,
     path_intermediate_view: Option<wgpu::TextureView>,
     path_msaa_texture: Option<wgpu::Texture>,
@@ -1215,6 +1263,7 @@ pub struct WgpuRenderer {
     gradient_stop_buffer_capacity: u64,
     max_buffer_size: u64,
     storage_buffer_alignment: u64,
+    uses_webgl_instance_data: bool,
     rendering_params: RenderingParameters,
     is_bgr: bool,
     dual_source_blending: bool,
@@ -1367,16 +1416,12 @@ impl WgpuRenderer {
     }
 
     #[cfg(target_family = "wasm")]
-    pub fn new_from_canvas(
+    #[allow(clippy::arc_with_non_send_sync)]
+    pub fn new_from_surface(
         context: &WgpuContext,
-        canvas: &web_sys::HtmlCanvasElement,
+        surface: wgpu::Surface<'static>,
         config: WgpuSurfaceConfig,
     ) -> anyhow::Result<Self> {
-        let surface = context
-            .instance
-            .create_surface(wgpu::SurfaceTarget::Canvas(canvas.clone()))
-            .map_err(|e| anyhow::anyhow!("Failed to create surface: {e}"))?;
-
         let atlas = Arc::new(WgpuAtlas::from_context(context));
 
         Self::new_internal(
@@ -1494,10 +1539,12 @@ impl WgpuRenderer {
         surface.configure(&context.device, &surface_config);
 
         let queue = Arc::clone(&context.queue);
-        let dual_source_blending = context.supports_dual_source_blending();
+        let uses_webgl_instance_data = context.uses_webgl_instance_data();
+        let dual_source_blending =
+            context.supports_dual_source_blending() && !uses_webgl_instance_data;
 
         let rendering_params = RenderingParameters::new(&context.adapter, surface_format);
-        let bind_group_layouts = Self::create_bind_group_layouts(&device);
+        let bind_group_layouts = Self::create_bind_group_layouts(&device, uses_webgl_instance_data);
         let pipelines = Self::create_pipelines(
             &device,
             &bind_group_layouts,
@@ -1505,6 +1552,7 @@ impl WgpuRenderer {
             alpha_mode,
             rendering_params.path_sample_count,
             dual_source_blending,
+            uses_webgl_instance_data,
         );
 
         let atlas_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
@@ -1551,17 +1599,21 @@ impl WgpuRenderer {
         let storage_buffer_alignment = device.limits().min_storage_buffer_offset_alignment as u64;
         let initial_instance_buffer_capacity = 2 * 1024 * 1024;
         let initial_gradient_stop_buffer_capacity = 256 * 1024;
-        let instance_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("instance_buffer"),
-            size: initial_instance_buffer_capacity,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
+        let instance_buffer = (!uses_webgl_instance_data).then(|| {
+            device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("instance_buffer"),
+                size: initial_instance_buffer_capacity,
+                usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            })
         });
-        let gradient_stop_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("gradient_stop_buffer"),
-            size: initial_gradient_stop_buffer_capacity,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
+        let gradient_stop_buffer = (!uses_webgl_instance_data).then(|| {
+            device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("gradient_stop_buffer"),
+                size: initial_gradient_stop_buffer_capacity,
+                usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            })
         });
 
         let globals_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -1657,6 +1709,7 @@ impl WgpuRenderer {
             gradient_stop_buffer_capacity: initial_gradient_stop_buffer_capacity,
             max_buffer_size,
             storage_buffer_alignment,
+            uses_webgl_instance_data,
             rendering_params,
             is_bgr: false,
             dual_source_blending,
@@ -1686,7 +1739,10 @@ impl WgpuRenderer {
         })
     }
 
-    fn create_bind_group_layouts(device: &wgpu::Device) -> WgpuBindGroupLayouts {
+    fn create_bind_group_layouts(
+        device: &wgpu::Device,
+        uses_webgl_instance_data: bool,
+    ) -> WgpuBindGroupLayouts {
         let globals =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
                 label: Some("globals_layout"),
@@ -1721,17 +1777,25 @@ impl WgpuRenderer {
         let storage_buffer_entry = |binding: u32| wgpu::BindGroupLayoutEntry {
             binding,
             visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
-            ty: wgpu::BindingType::Buffer {
-                ty: wgpu::BufferBindingType::Storage { read_only: true },
-                has_dynamic_offset: false,
-                min_binding_size: None,
+            ty: if uses_webgl_instance_data {
+                wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Uint,
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    multisampled: false,
+                }
+            } else {
+                wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Storage { read_only: true },
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                }
             },
             count: None,
         };
 
         let instances = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("instances_layout"),
-            entries: &[storage_buffer_entry(0), storage_buffer_entry(1)],
+            entries: &[storage_buffer_entry(0), storage_buffer_entry(5)],
         });
 
         let instances_with_texture =
@@ -1755,7 +1819,7 @@ impl WgpuRenderer {
                         ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                         count: None,
                     },
-                    storage_buffer_entry(3),
+                    storage_buffer_entry(5),
                 ],
             });
 
@@ -1829,7 +1893,7 @@ impl WgpuRenderer {
             label: Some("visual_effects_layout"),
             entries: &[
                 storage_buffer_entry(0),
-                storage_buffer_entry(1),
+                storage_buffer_entry(5),
                 wgpu::BindGroupLayoutEntry {
                     binding: 2,
                     visibility: wgpu::ShaderStages::FRAGMENT,
@@ -1859,37 +1923,44 @@ impl WgpuRenderer {
             ],
         });
 
+        let mut screen_effect_entries = vec![
+            storage_buffer_entry(0),
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    multisampled: false,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 2,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 3,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    multisampled: false,
+                },
+                count: None,
+            },
+        ];
+        if uses_webgl_instance_data {
+            // `instance_cursor` can select either uint texture at runtime, so
+            // WebGL pipeline validation requires both even though screen effects
+            // only read primary records.
+            screen_effect_entries.push(storage_buffer_entry(5));
+        }
         let screen_effects = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("screen_effects_layout"),
-            entries: &[
-                storage_buffer_entry(0),
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        multisampled: false,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 2,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 3,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        multisampled: false,
-                    },
-                    count: None,
-                },
-            ],
+            entries: &screen_effect_entries,
         });
 
         WgpuBindGroupLayouts {
@@ -1910,6 +1981,7 @@ impl WgpuRenderer {
         _alpha_mode: wgpu::CompositeAlphaMode,
         path_sample_count: u32,
         dual_source_blending: bool,
+        uses_webgl_instance_data: bool,
     ) -> WgpuPipelines {
         // Diagnostic guard: verify the device actually has
         // DUAL_SOURCE_BLENDING. We have a crash report (ZED-5G1) where a
@@ -1931,22 +2003,23 @@ impl WgpuRenderer {
                 device.features(),
             );
         }
-        let dual_source_blending = dual_source_blending && device_has_feature;
+        let dual_source_blending =
+            dual_source_blending && device_has_feature && !uses_webgl_instance_data;
 
-        let base_shader_source = include_str!("shaders.wgsl");
+        let base_shader_source = if uses_webgl_instance_data {
+            WEBGL_SHADERS
+        } else {
+            STORAGE_BUFFER_SHADERS
+        };
         let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("gpui_shaders"),
             source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(base_shader_source)),
         });
 
-        let subpixel_shader_source = include_str!("shaders_subpixel.wgsl");
         let subpixel_shader_module = if dual_source_blending {
-            let combined = format!(
-                "enable dual_source_blending;\n{base_shader_source}\n{subpixel_shader_source}"
-            );
             Some(device.create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: Some("gpui_subpixel_shaders"),
-                source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Owned(combined)),
+                source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(SUBPIXEL_SHADERS)),
             }))
         } else {
             None
@@ -2446,6 +2519,7 @@ impl WgpuRenderer {
             let surface_config = self.surface_config.clone();
             let path_sample_count = self.rendering_params.path_sample_count;
             let dual_source_blending = self.dual_source_blending;
+            let uses_webgl_instance_data = self.uses_webgl_instance_data;
             let render_target_format = self.render_target_format;
             let resources = self.resources_mut();
             resources
@@ -2458,6 +2532,7 @@ impl WgpuRenderer {
                 surface_config.alpha_mode,
                 path_sample_count,
                 dual_source_blending,
+                uses_webgl_instance_data,
             );
         }
     }
@@ -3241,6 +3316,8 @@ impl WgpuRenderer {
             return false;
         };
 
+        let quad_binding = self.instance_binding(quad_offset, quad_size, quad_data);
+        let stop_binding = self.gradient_stop_binding(stop_offset, stop_size, stop_data);
         let resources = self.resources();
         let bind_group = resources
             .device
@@ -3250,11 +3327,11 @@ impl WgpuRenderer {
                 entries: &[
                     wgpu::BindGroupEntry {
                         binding: 0,
-                        resource: self.instance_binding(quad_offset, quad_size),
+                        resource: quad_binding.resource(),
                     },
                     wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: self.gradient_stop_binding(stop_offset, stop_size),
+                        binding: 5,
+                        resource: stop_binding.resource(),
                     },
                 ],
             });
@@ -3421,6 +3498,8 @@ impl WgpuRenderer {
         let Some((offset, size)) = self.write_to_instance_buffer(instance_offset, data) else {
             return false;
         };
+        let instance_binding = self.instance_binding(offset, size, data);
+        let empty_binding = self.empty_gradient_stop_binding();
         let resources = self.resources();
         let bind_group = resources
             .device
@@ -3430,11 +3509,11 @@ impl WgpuRenderer {
                 entries: &[
                     wgpu::BindGroupEntry {
                         binding: 0,
-                        resource: self.instance_binding(offset, size),
+                        resource: instance_binding.resource(),
                     },
                     wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: self.empty_gradient_stop_binding(),
+                        binding: 5,
+                        resource: empty_binding.resource(),
                     },
                 ],
             });
@@ -3460,6 +3539,8 @@ impl WgpuRenderer {
         let Some((offset, size)) = self.write_to_instance_buffer(instance_offset, data) else {
             return false;
         };
+        let instance_binding = self.instance_binding(offset, size, data);
+        let empty_binding = self.empty_gradient_stop_binding();
         let resources = self.resources();
         let bind_group = resources
             .device
@@ -3469,7 +3550,7 @@ impl WgpuRenderer {
                 entries: &[
                     wgpu::BindGroupEntry {
                         binding: 0,
-                        resource: self.instance_binding(offset, size),
+                        resource: instance_binding.resource(),
                     },
                     wgpu::BindGroupEntry {
                         binding: 1,
@@ -3480,8 +3561,8 @@ impl WgpuRenderer {
                         resource: wgpu::BindingResource::Sampler(&resources.atlas_sampler),
                     },
                     wgpu::BindGroupEntry {
-                        binding: 3,
-                        resource: self.empty_gradient_stop_binding(),
+                        binding: 5,
+                        resource: empty_binding.resource(),
                     },
                 ],
             });
@@ -3617,6 +3698,9 @@ impl WgpuRenderer {
             return false;
         };
 
+        let primitive_binding =
+            self.instance_binding(primitive_offset, primitive_size, primitive_data);
+        let effects_binding = self.gradient_stop_binding(effects_offset, effects_size, effect_data);
         let resources = self.resources();
         if has_filter_effect {
             self.draw_post_process_filter(
@@ -3645,11 +3729,11 @@ impl WgpuRenderer {
                 entries: &[
                     wgpu::BindGroupEntry {
                         binding: 0,
-                        resource: self.instance_binding(primitive_offset, primitive_size),
+                        resource: primitive_binding.resource(),
                     },
                     wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: self.gradient_stop_binding(effects_offset, effects_size),
+                        binding: 5,
+                        resource: effects_binding.resource(),
                     },
                     wgpu::BindGroupEntry {
                         binding: 2,
@@ -3742,30 +3826,38 @@ impl WgpuRenderer {
             return false;
         };
 
+        let effect_binding = self.instance_binding(effect_offset, effect_size, effect_data);
         let resources = self.resources();
+        let mut bind_group_entries = vec![
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: effect_binding.resource(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 1,
+                resource: wgpu::BindingResource::TextureView(source_view),
+            },
+            wgpu::BindGroupEntry {
+                binding: 2,
+                resource: wgpu::BindingResource::Sampler(&resources.effect_sampler),
+            },
+            wgpu::BindGroupEntry {
+                binding: 3,
+                resource: wgpu::BindingResource::TextureView(snapshot_view),
+            },
+        ];
+        if self.uses_webgl_instance_data {
+            bind_group_entries.push(wgpu::BindGroupEntry {
+                binding: 5,
+                resource: effect_binding.resource(),
+            });
+        }
         let bind_group = resources
             .device
             .create_bind_group(&wgpu::BindGroupDescriptor {
                 label: Some("screen_effects_bind_group"),
                 layout: &resources.bind_group_layouts.screen_effects,
-                entries: &[
-                    wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: self.instance_binding(effect_offset, effect_size),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: wgpu::BindingResource::TextureView(source_view),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 2,
-                        resource: wgpu::BindingResource::Sampler(&resources.effect_sampler),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 3,
-                        resource: wgpu::BindingResource::TextureView(snapshot_view),
-                    },
-                ],
+                entries: &bind_group_entries,
             });
 
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -3875,6 +3967,8 @@ impl WgpuRenderer {
             return false;
         };
 
+        let vertex_binding = self.instance_binding(vertex_offset, vertex_size, vertex_data);
+        let stop_binding = self.gradient_stop_binding(stop_offset, stop_size, stop_data);
         let resources = self.resources();
         let data_bind_group = resources
             .device
@@ -3884,11 +3978,11 @@ impl WgpuRenderer {
                 entries: &[
                     wgpu::BindGroupEntry {
                         binding: 0,
-                        resource: self.instance_binding(vertex_offset, vertex_size),
+                        resource: vertex_binding.resource(),
                     },
                     wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: self.gradient_stop_binding(stop_offset, stop_size),
+                        binding: 5,
+                        resource: stop_binding.resource(),
                     },
                 ],
             });
@@ -3932,12 +4026,12 @@ impl WgpuRenderer {
         let new_capacity = (self.instance_buffer_capacity * 2).min(self.max_buffer_size);
         log::info!("increased instance buffer size to {}", new_capacity);
         let resources = self.resources_mut();
-        resources.instance_buffer = resources.device.create_buffer(&wgpu::BufferDescriptor {
+        resources.instance_buffer = Some(resources.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("instance_buffer"),
             size: new_capacity,
             usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
-        });
+        }));
         self.instance_buffer_capacity = new_capacity;
     }
 
@@ -3945,12 +4039,13 @@ impl WgpuRenderer {
         let new_capacity = (self.gradient_stop_buffer_capacity * 2).min(self.max_buffer_size);
         log::info!("increased gradient stop buffer size to {}", new_capacity);
         let resources = self.resources_mut();
-        resources.gradient_stop_buffer = resources.device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("gradient_stop_buffer"),
-            size: new_capacity,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
+        resources.gradient_stop_buffer =
+            Some(resources.device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("gradient_stop_buffer"),
+                size: new_capacity,
+                usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            }));
         self.gradient_stop_buffer_capacity = new_capacity;
     }
 
@@ -3959,15 +4054,24 @@ impl WgpuRenderer {
         instance_offset: &mut u64,
         data: &[u8],
     ) -> Option<(u64, NonZeroU64)> {
+        if self.uses_webgl_instance_data {
+            let size = (data.len() as u64).max(INSTANCE_TEXTURE_TEXEL_SIZE);
+            return Some((0, NonZeroU64::new(size).unwrap()));
+        }
         let offset = (*instance_offset).next_multiple_of(self.storage_buffer_alignment);
         let size = (data.len() as u64).max(16);
         if offset + size > self.instance_buffer_capacity {
             return None;
         }
         let resources = self.resources();
-        resources
-            .queue
-            .write_buffer(&resources.instance_buffer, offset, data);
+        resources.queue.write_buffer(
+            resources
+                .instance_buffer
+                .as_ref()
+                .expect("storage instance buffer is available"),
+            offset,
+            data,
+        );
         *instance_offset = offset + size;
         Some((offset, NonZeroU64::new(size).expect("size is at least 16")))
     }
@@ -3977,6 +4081,10 @@ impl WgpuRenderer {
         gradient_stop_offset: &mut u64,
         data: &[u8],
     ) -> Option<(u64, NonZeroU64)> {
+        if self.uses_webgl_instance_data {
+            let size = (data.len() as u64).max(INSTANCE_TEXTURE_TEXEL_SIZE);
+            return Some((0, NonZeroU64::new(size).unwrap()));
+        }
         if data.is_empty() {
             return Some((0, NonZeroU64::new(MIN_GRADIENT_STOP_BINDING_SIZE).unwrap()));
         }
@@ -3988,9 +4096,14 @@ impl WgpuRenderer {
         }
 
         let resources = self.resources();
-        resources
-            .queue
-            .write_buffer(&resources.gradient_stop_buffer, offset, data);
+        resources.queue.write_buffer(
+            resources
+                .gradient_stop_buffer
+                .as_ref()
+                .expect("storage auxiliary buffer is available"),
+            offset,
+            data,
+        );
         *gradient_stop_offset = offset + size;
         Some((
             offset,
@@ -3998,24 +4111,161 @@ impl WgpuRenderer {
         ))
     }
 
-    fn instance_binding(&self, offset: u64, size: NonZeroU64) -> wgpu::BindingResource<'_> {
-        wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-            buffer: &self.resources().instance_buffer,
+    fn instance_binding<'a>(
+        &'a self,
+        offset: u64,
+        size: NonZeroU64,
+        data: &[u8],
+    ) -> WgpuDataBinding<'a> {
+        self.data_binding(
+            self.resources().instance_buffer.as_ref(),
             offset,
-            size: Some(size),
-        })
+            size,
+            data,
+            "instance_texture",
+        )
     }
 
-    fn gradient_stop_binding(&self, offset: u64, size: NonZeroU64) -> wgpu::BindingResource<'_> {
-        wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-            buffer: &self.resources().gradient_stop_buffer,
+    fn gradient_stop_binding<'a>(
+        &'a self,
+        offset: u64,
+        size: NonZeroU64,
+        data: &[u8],
+    ) -> WgpuDataBinding<'a> {
+        self.data_binding(
+            self.resources().gradient_stop_buffer.as_ref(),
             offset,
-            size: Some(size),
-        })
+            size,
+            data,
+            "aux_instance_texture",
+        )
     }
 
-    fn empty_gradient_stop_binding(&self) -> wgpu::BindingResource<'_> {
-        self.gradient_stop_binding(0, NonZeroU64::new(MIN_GRADIENT_STOP_BINDING_SIZE).unwrap())
+    fn empty_gradient_stop_binding(&self) -> WgpuDataBinding<'_> {
+        self.gradient_stop_binding(
+            0,
+            NonZeroU64::new(MIN_GRADIENT_STOP_BINDING_SIZE).unwrap(),
+            &[],
+        )
+    }
+
+    fn data_binding<'a>(
+        &'a self,
+        buffer: Option<&'a wgpu::Buffer>,
+        offset: u64,
+        size: NonZeroU64,
+        data: &[u8],
+        label: &str,
+    ) -> WgpuDataBinding<'a> {
+        if !self.uses_webgl_instance_data {
+            return WgpuDataBinding::Buffer {
+                buffer: buffer.expect("storage data buffer is available"),
+                offset,
+                size,
+            };
+        }
+
+        let resources = self.resources();
+        let texel_count = size.get().div_ceil(INSTANCE_TEXTURE_TEXEL_SIZE);
+        let max_dimension = u64::from(resources.device.limits().max_texture_dimension_2d);
+        let width = texel_count.min(max_dimension).max(1) as u32;
+        let height = texel_count.div_ceil(u64::from(width)).max(1) as u32;
+        let texture = resources.device.create_texture(&wgpu::TextureDescriptor {
+            label: Some(label),
+            size: wgpu::Extent3d {
+                width,
+                height,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba32Uint,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            view_formats: &[],
+        });
+        Self::write_instance_texture(&resources.queue, &texture, width, height, data);
+        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        WgpuDataBinding::Texture {
+            _texture: texture,
+            view,
+        }
+    }
+
+    fn write_instance_texture(
+        queue: &wgpu::Queue,
+        texture: &wgpu::Texture,
+        width: u32,
+        height: u32,
+        data: &[u8],
+    ) {
+        let mut byte_offset = 0usize;
+        let mut texel_offset = 0u64;
+        let zero_texel = [0u8; INSTANCE_TEXTURE_TEXEL_SIZE as usize];
+        let bytes = if data.is_empty() {
+            &zero_texel[..]
+        } else {
+            data
+        };
+        while byte_offset < bytes.len() {
+            let x = (texel_offset % u64::from(width)) as u32;
+            let y = (texel_offset / u64::from(width)) as u32;
+            if y >= height {
+                log::error!("instance texture write exceeded its allocation");
+                return;
+            }
+            let available_texels = u64::from(width - x);
+            let remaining_bytes = bytes.len() - byte_offset;
+            let complete_texels = remaining_bytes as u64 / INSTANCE_TEXTURE_TEXEL_SIZE;
+            let texels = complete_texels.min(available_texels);
+            if texels > 0 {
+                let byte_count = (texels * INSTANCE_TEXTURE_TEXEL_SIZE) as usize;
+                queue.write_texture(
+                    wgpu::TexelCopyTextureInfo {
+                        texture,
+                        mip_level: 0,
+                        origin: wgpu::Origin3d { x, y, z: 0 },
+                        aspect: wgpu::TextureAspect::All,
+                    },
+                    &bytes[byte_offset..byte_offset + byte_count],
+                    wgpu::TexelCopyBufferLayout {
+                        offset: 0,
+                        bytes_per_row: Some(byte_count as u32),
+                        rows_per_image: None,
+                    },
+                    wgpu::Extent3d {
+                        width: texels as u32,
+                        height: 1,
+                        depth_or_array_layers: 1,
+                    },
+                );
+                byte_offset += byte_count;
+                texel_offset += texels;
+            } else {
+                let mut final_texel = [0u8; INSTANCE_TEXTURE_TEXEL_SIZE as usize];
+                final_texel[..remaining_bytes].copy_from_slice(&bytes[byte_offset..]);
+                queue.write_texture(
+                    wgpu::TexelCopyTextureInfo {
+                        texture,
+                        mip_level: 0,
+                        origin: wgpu::Origin3d { x, y, z: 0 },
+                        aspect: wgpu::TextureAspect::All,
+                    },
+                    &final_texel,
+                    wgpu::TexelCopyBufferLayout {
+                        offset: 0,
+                        bytes_per_row: Some(INSTANCE_TEXTURE_TEXEL_SIZE as u32),
+                        rows_per_image: None,
+                    },
+                    wgpu::Extent3d {
+                        width: 1,
+                        height: 1,
+                        depth_or_array_layers: 1,
+                    },
+                );
+                break;
+            }
+        }
     }
 
     /// Mark the surface as unconfigured so rendering is skipped until a new
@@ -4301,20 +4551,21 @@ mod tests {
 
     #[test]
     fn storage_buffer_shader_is_valid_wgsl() {
-        validate_wgsl(
-            include_str!("shaders.wgsl"),
-            naga::valid::Capabilities::empty(),
-        );
+        validate_wgsl(STORAGE_BUFFER_SHADERS, naga::valid::Capabilities::empty());
+    }
+
+    #[test]
+    fn webgl_shader_is_valid_without_storage_buffers() {
+        validate_wgsl(WEBGL_SHADERS, naga::valid::Capabilities::empty());
+        assert!(!WEBGL_SHADERS.contains("var<storage"));
     }
 
     #[test]
     fn subpixel_shader_is_valid_wgsl() {
-        let source = format!(
-            "enable dual_source_blending;\n{}\n{}",
-            include_str!("shaders.wgsl"),
-            include_str!("shaders_subpixel.wgsl"),
+        validate_wgsl(
+            SUBPIXEL_SHADERS,
+            naga::valid::Capabilities::DUAL_SOURCE_BLENDING,
         );
-        validate_wgsl(&source, naga::valid::Capabilities::DUAL_SOURCE_BLENDING);
     }
 
     fn validate_wgsl(source: &str, capabilities: naga::valid::Capabilities) {

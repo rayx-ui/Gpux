@@ -338,12 +338,12 @@ fn resolve_gradient_color(background: Background, t: f32) -> vec4<f32> {
         return paint_color_value(background.solid);
     }
 
-    let first_stop = b_gradient_stops[background.stop_offset];
+    let first_stop = load_gradient_stop(background.stop_offset);
     if (t <= first_stop.percentage) {
         return first_stop.prepared_color;
     }
 
-    let last_stop = b_gradient_stops[background.stop_offset + background.stop_count - 1u];
+    let last_stop = load_gradient_stop(background.stop_offset + background.stop_count - 1u);
     if (t >= last_stop.percentage) {
         return last_stop.prepared_color;
     }
@@ -352,7 +352,7 @@ fn resolve_gradient_color(background: Background, t: f32) -> vec4<f32> {
     var upper = background.stop_count - 1u;
     for (var step = 0u; step < 8u && lower + 1u < upper; step += 1u) {
         let mid = lower + (upper - lower) / 2u;
-        let mid_stop = b_gradient_stops[background.stop_offset + mid];
+        let mid_stop = load_gradient_stop(background.stop_offset + mid);
         if (t <= mid_stop.percentage) {
             upper = mid;
         } else {
@@ -360,8 +360,8 @@ fn resolve_gradient_color(background: Background, t: f32) -> vec4<f32> {
         }
     }
 
-    let current_stop = b_gradient_stops[background.stop_offset + lower];
-    let next_stop = b_gradient_stops[background.stop_offset + upper];
+    let current_stop = load_gradient_stop(background.stop_offset + lower);
+    let next_stop = load_gradient_stop(background.stop_offset + upper);
     if (next_stop.percentage == current_stop.percentage) {
         return next_stop.prepared_color;
     }
@@ -478,8 +478,6 @@ struct Quad {
     border_widths: Edges,
     transformation: TransformationMatrix,
 }
-@group(1) @binding(0) var<storage, read> b_quads: array<Quad>;
-@group(1) @binding(1) var<storage, read> b_gradient_stops: array<GradientStop>;
 
 struct QuadVarying {
     @builtin(position) position: vec4<f32>,
@@ -492,7 +490,7 @@ struct QuadVarying {
 @vertex
 fn vs_quad(@builtin(vertex_index) vertex_id: u32, @builtin(instance_index) instance_id: u32) -> QuadVarying {
     let unit_vertex = vec2<f32>(f32(vertex_id & 1u), 0.5 * f32(vertex_id & 2u));
-    let quad = b_quads[instance_id];
+    let quad = load_quad(instance_id);
     let local_position = unit_vertex * vec2<f32>(quad.bounds.size) + quad.bounds.origin;
 
     var out = QuadVarying();
@@ -510,7 +508,7 @@ fn vs_quad(@builtin(vertex_index) vertex_id: u32, @builtin(instance_index) insta
 
 @fragment
 fn fs_quad(input: QuadVarying) -> @location(0) vec4<f32> {
-    let quad = b_quads[input.quad_id];
+    let quad = load_quad(input.quad_id);
 
     // Derivatives must be computed in uniform control flow on WebGPU.
     let antialias_threshold = 0.5 * max(
@@ -912,7 +910,6 @@ struct Shadow {
     pad: u32,
     transformation: TransformationMatrix,
 }
-@group(1) @binding(0) var<storage, read> b_shadows: array<Shadow>;
 
 struct ShadowVarying {
     @builtin(position) position: vec4<f32>,
@@ -926,7 +923,7 @@ struct ShadowVarying {
 @vertex
 fn vs_shadow(@builtin(vertex_index) vertex_id: u32, @builtin(instance_index) instance_id: u32) -> ShadowVarying {
     let unit_vertex = vec2<f32>(f32(vertex_id & 1u), 0.5 * f32(vertex_id & 2u));
-    var shadow = b_shadows[instance_id];
+    var shadow = load_shadow(instance_id);
 
     var geometry: Bounds;
     if (shadow.inset != 0u) {
@@ -956,7 +953,7 @@ fn vs_shadow(@builtin(vertex_index) vertex_id: u32, @builtin(instance_index) ins
 
 @fragment
 fn fs_shadow(input: ShadowVarying) -> @location(0) vec4<f32> {
-    let shadow = b_shadows[input.shadow_id];
+    let shadow = load_shadow(input.shadow_id);
 
     // Alpha clip first, since we don't have `clip_distance`.
     if (any(input.clip_distances < vec4<f32>(0.0))) {
@@ -1019,7 +1016,6 @@ struct PathRasterizationVertex {
     content_mask: ContentMask,
 }
 
-@group(1) @binding(0) var<storage, read> b_path_vertices: array<PathRasterizationVertex>;
 
 struct PathRasterizationVarying {
     @builtin(position) position: vec4<f32>,
@@ -1031,7 +1027,7 @@ struct PathRasterizationVarying {
 
 @vertex
 fn vs_path_rasterization(@builtin(vertex_index) vertex_id: u32) -> PathRasterizationVarying {
-    let v = b_path_vertices[vertex_id];
+    let v = load_path_vertex(vertex_id);
 
     var out = PathRasterizationVarying();
     out.position = to_device_position_impl(v.xy_position);
@@ -1049,7 +1045,7 @@ fn fs_path_rasterization(input: PathRasterizationVarying) -> @location(0) vec4<f
         return vec4<f32>(0.0);
     }
 
-    let v = b_path_vertices[input.vertex_id];
+    let v = load_path_vertex(input.vertex_id);
     if (content_mask_sdf(input.position.xy, v.content_mask) > 0.0) {
         return vec4<f32>(0.0);
     }
@@ -1075,7 +1071,6 @@ fn fs_path_rasterization(input: PathRasterizationVarying) -> @location(0) vec4<f
 struct PathSprite {
     bounds: Bounds,
 }
-@group(1) @binding(0) var<storage, read> b_path_sprites: array<PathSprite>;
 
 struct PathVarying {
     @builtin(position) position: vec4<f32>,
@@ -1085,7 +1080,7 @@ struct PathVarying {
 @vertex
 fn vs_path(@builtin(vertex_index) vertex_id: u32, @builtin(instance_index) instance_id: u32) -> PathVarying {
     let unit_vertex = vec2<f32>(f32(vertex_id & 1u), 0.5 * f32(vertex_id & 2u));
-    let sprite = b_path_sprites[instance_id];
+    let sprite = load_path_sprite(instance_id);
     // Don't apply content mask because it was already accounted for when rasterizing the path.
     let device_position = to_device_position(unit_vertex, sprite.bounds);
     // For screen-space intermediate texture, convert screen position to texture coordinates
@@ -1117,7 +1112,6 @@ struct Underline {
     wavy: u32,
     transformation: TransformationMatrix,
 }
-@group(1) @binding(0) var<storage, read> b_underlines: array<Underline>;
 
 struct UnderlineVarying {
     @builtin(position) position: vec4<f32>,
@@ -1131,7 +1125,7 @@ struct UnderlineVarying {
 @vertex
 fn vs_underline(@builtin(vertex_index) vertex_id: u32, @builtin(instance_index) instance_id: u32) -> UnderlineVarying {
     let unit_vertex = vec2<f32>(f32(vertex_id & 1u), 0.5 * f32(vertex_id & 2u));
-    let underline = b_underlines[instance_id];
+    let underline = load_underline(instance_id);
     let local_position = unit_vertex * vec2<f32>(underline.bounds.size) + underline.bounds.origin;
 
     var out = UnderlineVarying();
@@ -1154,7 +1148,7 @@ fn vs_underline(@builtin(vertex_index) vertex_id: u32, @builtin(instance_index) 
 
 @fragment
 fn fs_underline(input: UnderlineVarying) -> @location(0) vec4<f32> {
-    let underline = b_underlines[input.underline_id];
+    let underline = load_underline(input.underline_id);
 
     const WAVE_FREQUENCY: f32 = 2.0;
     const WAVE_HEIGHT_RATIO: f32 = 0.8;
@@ -1200,7 +1194,6 @@ struct MonochromeSprite {
     tile: AtlasTile,
     transformation: TransformationMatrix,
 }
-@group(1) @binding(0) var<storage, read> b_mono_sprites: array<MonochromeSprite>;
 
 struct MonoSpriteVarying {
     @builtin(position) position: vec4<f32>,
@@ -1214,7 +1207,7 @@ struct MonoSpriteVarying {
 @vertex
 fn vs_mono_sprite(@builtin(vertex_index) vertex_id: u32, @builtin(instance_index) instance_id: u32) -> MonoSpriteVarying {
     let unit_vertex = vec2<f32>(f32(vertex_id & 1u), 0.5 * f32(vertex_id & 2u));
-    let sprite = b_mono_sprites[instance_id];
+    let sprite = load_mono_sprite(instance_id);
     let local_position = unit_vertex * vec2<f32>(sprite.bounds.size) + sprite.bounds.origin;
 
     var out = MonoSpriteVarying();
@@ -1230,7 +1223,7 @@ fn vs_mono_sprite(@builtin(vertex_index) vertex_id: u32, @builtin(instance_index
 
 @fragment
 fn fs_mono_sprite(input: MonoSpriteVarying) -> @location(0) vec4<f32> {
-    let sprite = b_mono_sprites[input.sprite_id];
+    let sprite = load_mono_sprite(input.sprite_id);
     let sample = textureSample(t_sprite, s_sprite, input.tile_position).r;
     var coverage = 0.0;
     switch sprite.kind {
@@ -1270,7 +1263,6 @@ struct PolychromeSprite {
     tile: AtlasTile,
     transformation: TransformationMatrix,
 }
-@group(1) @binding(0) var<storage, read> b_poly_sprites: array<PolychromeSprite>;
 
 struct PolySpriteVarying {
     @builtin(position) position: vec4<f32>,
@@ -1283,7 +1275,7 @@ struct PolySpriteVarying {
 @vertex
 fn vs_poly_sprite(@builtin(vertex_index) vertex_id: u32, @builtin(instance_index) instance_id: u32) -> PolySpriteVarying {
     let unit_vertex = vec2<f32>(f32(vertex_id & 1u), 0.5 * f32(vertex_id & 2u));
-    let sprite = b_poly_sprites[instance_id];
+    let sprite = load_poly_sprite(instance_id);
     let local_position = unit_vertex * vec2<f32>(sprite.bounds.size) + sprite.bounds.origin;
 
     var out = PolySpriteVarying();
@@ -1302,7 +1294,7 @@ fn vs_poly_sprite(@builtin(vertex_index) vertex_id: u32, @builtin(instance_index
 
 @fragment
 fn fs_poly_sprite(input: PolySpriteVarying) -> @location(0) vec4<f32> {
-    let sprite = b_poly_sprites[input.sprite_id];
+    let sprite = load_poly_sprite(input.sprite_id);
     let sample = textureSample(t_sprite, s_sprite, input.tile_position);
     // Alpha clip after using the derivatives.
     if (any(input.clip_distances < vec4<f32>(0.0))) {
@@ -1333,7 +1325,6 @@ struct HtmlIsland {
     pad1: f32,
     pad2: f32,
 }
-@group(1) @binding(0) var<storage, read> b_html_islands: array<HtmlIsland>;
 
 struct HtmlIslandVarying {
     @builtin(position) position: vec4<f32>,
@@ -1346,7 +1337,7 @@ struct HtmlIslandVarying {
 @vertex
 fn vs_html_island(@builtin(vertex_index) vertex_id: u32, @builtin(instance_index) instance_id: u32) -> HtmlIslandVarying {
     let unit_vertex = vec2<f32>(f32(vertex_id & 1u), 0.5 * f32(vertex_id & 2u));
-    let island = b_html_islands[instance_id];
+    let island = load_html_island(instance_id);
     let local_position = unit_vertex * vec2<f32>(island.bounds.size) + island.bounds.origin;
 
     var out = HtmlIslandVarying();
@@ -1361,7 +1352,7 @@ fn vs_html_island(@builtin(vertex_index) vertex_id: u32, @builtin(instance_index
 @fragment
 fn fs_html_island(input: HtmlIslandVarying) -> @location(0) vec4<f32> {
     let sample = textureSample(t_sprite, s_sprite, input.texture_position);
-    let island = b_html_islands[input.island_id];
+    let island = load_html_island(input.island_id);
     if (any(input.clip_distances < vec4<f32>(0.0))) {
         return vec4<f32>(0.0);
     }
@@ -1401,8 +1392,6 @@ struct ElementEffectParams {
     color1: vec4<f32>,
 }
 
-@group(1) @binding(0) var<storage, read> b_visual_effect_primitives: array<VisualEffectPrimitiveParams>;
-@group(1) @binding(1) var<storage, read> b_element_effects: array<ElementEffectParams>;
 @group(1) @binding(2) var t_effect_source: texture_2d<f32>;
 @group(1) @binding(3) var s_effect_source: sampler;
 @group(1) @binding(4) var t_effect_blur_source: texture_2d<f32>;
@@ -1419,7 +1408,7 @@ fn visual_effect_expanded_bounds(primitive: VisualEffectPrimitiveParams) -> Boun
     var bounds = primitive.bounds;
     var margin = 0.0;
     for (var i = 0u; i < primitive.effect_count; i += 1u) {
-        let effect = b_element_effects[primitive.effect_offset + i];
+        let effect = load_element_effect(primitive.effect_offset + i);
         if (effect.kind == VISUAL_EFFECT_KIND_GLOW) {
             margin = max(margin, effect.params0.x * 2.5 + effect.params0.y + 2.0);
         }
@@ -1432,7 +1421,7 @@ fn visual_effect_expanded_bounds(primitive: VisualEffectPrimitiveParams) -> Boun
 
 @vertex
 fn vs_visual_effect(@builtin(vertex_index) vertex_id: u32, @builtin(instance_index) instance_id: u32) -> VisualEffectVarying {
-    let primitive = b_visual_effect_primitives[instance_id];
+    let primitive = load_visual_effect_primitive(instance_id);
     let bounds = visual_effect_expanded_bounds(primitive);
     let unit_vertex = vec2<f32>(f32(vertex_id & 1u), 0.5 * f32(vertex_id & 2u));
     let local_position = unit_vertex * bounds.size + bounds.origin;
@@ -1687,7 +1676,7 @@ fn composite_glass(color: vec4<f32>, input: VisualEffectVarying, shape_alpha: f3
 
 @fragment
 fn fs_visual_effect(input: VisualEffectVarying) -> @location(0) vec4<f32> {
-    let primitive = b_visual_effect_primitives[input.primitive_id];
+    let primitive = load_visual_effect_primitive(input.primitive_id);
     let source = sample_effect_source(input.texture_position);
     let shape_alpha = visual_effect_shape_alpha(input.local_position, primitive);
     let content_distances = distance_from_clip_rect_impl(input.transformed_position, primitive.content_mask.bounds);
@@ -1701,7 +1690,7 @@ fn fs_visual_effect(input: VisualEffectVarying) -> @location(0) vec4<f32> {
     var color = source;
     var contribution_alpha = 0.0;
     for (var i = 0u; i < primitive.effect_count; i += 1u) {
-        let effect = b_element_effects[primitive.effect_offset + i];
+        let effect = load_element_effect(primitive.effect_offset + i);
         switch (effect.kind) {
             case VISUAL_EFFECT_KIND_BACKDROP_BLUR: {
                 contribution_alpha = max(contribution_alpha, shape_alpha * primitive.opacity);
@@ -1725,7 +1714,7 @@ fn fs_visual_effect(input: VisualEffectVarying) -> @location(0) vec4<f32> {
 
 @fragment
 fn fs_visual_effect_glow_add(input: VisualEffectVarying) -> @location(0) vec4<f32> {
-    let primitive = b_visual_effect_primitives[input.primitive_id];
+    let primitive = load_visual_effect_primitive(input.primitive_id);
     let content_distances = distance_from_clip_rect_impl(input.transformed_position, primitive.content_mask.bounds);
     if (any(content_distances < vec4<f32>(0.0))) {
         discard;
@@ -1737,7 +1726,7 @@ fn fs_visual_effect_glow_add(input: VisualEffectVarying) -> @location(0) vec4<f3
     var glow_color = vec3<f32>(0.0);
     var glow_alpha = 0.0;
     for (var i = 0u; i < primitive.effect_count; i += 1u) {
-        let effect = b_element_effects[primitive.effect_offset + i];
+        let effect = load_element_effect(primitive.effect_offset + i);
         if (effect.kind != VISUAL_EFFECT_KIND_GLOW) {
             continue;
         }
@@ -1838,7 +1827,6 @@ struct ScreenEffectParams {
     params: vec4<f32>,
 }
 
-@group(1) @binding(0) var<storage, read> b_screen_effects: array<ScreenEffectParams>;
 @group(1) @binding(1) var t_screen_effect_source: texture_2d<f32>;
 @group(1) @binding(2) var s_screen_effect_source: sampler;
 @group(1) @binding(3) var t_screen_effect_snapshot: texture_2d<f32>;
@@ -1895,8 +1883,8 @@ fn fs_screen_effect(input: PostProcessVarying) -> @location(0) vec4<f32> {
     var chromatic_offset = vec2<f32>(0.0);
     var tint_accumulator = vec4<f32>(0.0);
 
-    for (var i = 0u; i < arrayLength(&b_screen_effects); i += 1u) {
-        let ripple = b_screen_effects[i];
+    for (var i = 0u; i < screen_effect_count(); i += 1u) {
+        let ripple = load_screen_effect(i);
         if (ripple.kind != SCREEN_EFFECT_KIND_RIPPLE) {
             continue;
         }
@@ -1934,8 +1922,8 @@ fn fs_screen_effect(input: PostProcessVarying) -> @location(0) vec4<f32> {
         color = vec4<f32>(red_sample.r, color.g, blue_sample.b, color.a);
     }
 
-    for (var i = 0u; i < arrayLength(&b_screen_effects); i += 1u) {
-        let transition = b_screen_effects[i];
+    for (var i = 0u; i < screen_effect_count(); i += 1u) {
+        let transition = load_screen_effect(i);
         if (transition.uses_snapshot == 0u) {
             continue;
         }

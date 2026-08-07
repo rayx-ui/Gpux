@@ -491,6 +491,9 @@ impl Platform for WindowsPlatform {
         handle: AnyWindowHandle,
         options: WindowParams,
     ) -> Result<Box<dyn PlatformWindow>> {
+        if matches!(options.kind, WindowKind::AnchoredPopup(_)) {
+            return Err(popup::PopupNotSupportedError.into());
+        }
         let window = WindowsWindow::new(handle, options, self.generate_creation_info())?;
         let handle = window.get_raw_handle();
         self.raw_window_handles.write().push(handle.into());

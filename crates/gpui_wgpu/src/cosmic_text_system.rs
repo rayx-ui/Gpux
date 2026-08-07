@@ -1083,13 +1083,38 @@ fn face_info_into_properties(
 }
 
 fn check_is_known_emoji_font(postscript_name: &str) -> bool {
-    // TODO: Include other common emoji fonts
-    postscript_name == "NotoColorEmoji"
+    let normalized = postscript_name
+        .chars()
+        .filter(|ch| !ch.is_whitespace() && *ch != '-' && *ch != '_')
+        .flat_map(char::to_lowercase)
+        .collect::<String>();
+
+    matches!(
+        normalized.as_str(),
+        "notocoloremoji" | "segoeuiemoji" | "applecoloremoji"
+    )
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn known_emoji_fonts_include_platform_families_and_name_variants() {
+        for name in [
+            "NotoColorEmoji",
+            "Noto Color Emoji",
+            "SegoeUIEmoji",
+            "Segoe UI Emoji",
+            "Segoe-UI_Emoji",
+            "AppleColorEmoji",
+            "Apple Color Emoji",
+        ] {
+            assert!(check_is_known_emoji_font(name), "{name}");
+        }
+
+        assert!(!check_is_known_emoji_font("Segoe UI Symbol"));
+    }
 
     fn fid(i: usize) -> FontId {
         FontId(i)
