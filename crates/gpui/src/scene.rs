@@ -653,6 +653,30 @@ pub enum PrimitiveBatch {
     Surfaces(Range<usize>),
 }
 
+impl PrimitiveBatch {
+    /// Returns a concise label for renderer diagnostics.
+    pub fn label(&self) -> String {
+        match self {
+            Self::Shadows(range) => format!("shadows ({})", range.len()),
+            Self::VisualEffects(range) => format!("visual effects ({})", range.len()),
+            Self::Quads(range) => format!("quads ({})", range.len()),
+            Self::HtmlIslands(range) => format!("html islands ({})", range.len()),
+            Self::Paths(range) => format!("paths ({})", range.len()),
+            Self::Underlines(range) => format!("underlines ({})", range.len()),
+            Self::MonochromeSprites { range, .. } => {
+                format!("monochrome sprites ({})", range.len())
+            }
+            Self::SubpixelSprites { range, .. } => {
+                format!("subpixel sprites ({})", range.len())
+            }
+            Self::PolychromeSprites { range, .. } => {
+                format!("polychrome sprites ({})", range.len())
+            }
+            Self::Surfaces(range) => format!("surfaces ({})", range.len()),
+        }
+    }
+}
+
 /// Controls whether browser DOM or GPUI owns interaction for an HTML island.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HtmlIslandInputMode {
@@ -838,6 +862,12 @@ pub struct Shadow {
     pub corner_radii: Corners<ScaledPixels>,
     pub content_mask: ContentMask<ScaledPixels>,
     pub color: PaintColor,
+    pub element_bounds: Bounds<ScaledPixels>,
+    pub element_corner_radii: Corners<ScaledPixels>,
+    /// Zero for a drop shadow and one for an inset shadow.
+    pub inset: u32,
+    /// Explicit padding keeps the GPU-facing layout stable.
+    pub pad: u32,
     pub transformation: TransformationMatrix,
 }
 
@@ -1643,6 +1673,10 @@ mod tests {
             corner_radii: Corners::all(ScaledPixels(8.)),
             content_mask: ContentMask::rectangular(bounds),
             color: Color::from(hsla(0., 0., 0., 0.25)).paint_color(),
+            element_bounds: bounds,
+            element_corner_radii: Corners::all(ScaledPixels(8.)),
+            inset: 0,
+            pad: 0,
             transformation: TransformationMatrix::unit(),
         }
     }

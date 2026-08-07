@@ -27,6 +27,7 @@ pub mod shader_effects;
 pub(crate) use platform_scheduler::PlatformScheduler;
 mod geometry;
 mod gesture_map;
+mod gestures;
 mod global;
 mod input;
 mod inspector;
@@ -36,9 +37,15 @@ mod keymap;
 mod path_builder;
 mod platform;
 pub mod prelude;
-/// Profiling utilities for task timing and thread performance tracking.
+/// Profiling utilities for task, frame, and thread performance tracking.
 pub mod profiler;
-#[cfg(any(target_os = "windows", target_os = "linux", target_family = "wasm"))]
+#[cfg(any(
+    test,
+    target_os = "windows",
+    target_os = "linux",
+    target_family = "wasm",
+    feature = "test-support"
+))]
 #[expect(missing_docs)]
 pub mod queue;
 mod scene;
@@ -60,6 +67,8 @@ mod window;
 pub use proptest;
 
 #[cfg(doc)]
+pub mod _accessibility;
+#[cfg(doc)]
 pub mod _ownership_and_data_flow;
 
 /// Do not touch, here be dragons for use by gpui_macros and such.
@@ -78,6 +87,9 @@ mod seal {
     pub trait Sealed {}
 }
 
+pub use accesskit;
+pub use accesskit::Action as AccessibleAction;
+pub use accesskit::{Orientation, Role, Toggled};
 pub use action::*;
 pub use anyhow::Result;
 pub use app::*;
@@ -91,10 +103,27 @@ pub use elements::*;
 pub use executor::*;
 pub use geometry::*;
 pub use gesture_map::*;
+pub use gestures::*;
 pub use global::*;
 pub use gpui_macros::{
-    AppContext, IntoElement, Render, VisualContext, property_test, register_action, test,
+    AppContext, IntoElement, Render, VisualContext, bench, property_test, register_action, test,
 };
+
+/// Defines a Criterion benchmark group for benchmarks annotated with [`gpux::bench`].
+#[macro_export]
+macro_rules! bench_group {
+    ($($tokens:tt)*) => {
+        criterion::criterion_group!($($tokens)*);
+    };
+}
+
+/// Defines the entry point for GPUI Criterion benchmark groups.
+#[macro_export]
+macro_rules! bench_main {
+    ($($tokens:tt)*) => {
+        criterion::criterion_main!($($tokens)*);
+    };
+}
 pub use gpui_shared_string::*;
 pub use gpui_util::arc_cow::ArcCow;
 pub use gpux_color::{Color, DEFAULT_PAINT_GAMUT_POLICY, PaintColor, PaintGamutPolicy};
@@ -107,7 +136,13 @@ pub use keymap::*;
 pub use path_builder::*;
 pub use platform::*;
 pub use profiler::*;
-#[cfg(any(target_os = "windows", target_os = "linux", target_family = "wasm"))]
+#[cfg(any(
+    test,
+    target_os = "windows",
+    target_os = "linux",
+    target_family = "wasm",
+    feature = "test-support"
+))]
 pub use queue::{PriorityQueueReceiver, PriorityQueueSender};
 pub use refineable::*;
 pub use scene::*;

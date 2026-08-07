@@ -123,6 +123,7 @@ impl Render for HelloWorld {
                                 color: hsla(0.0, 0.0, 0.0, 0.5),
                                 blur_radius: px(1.0),
                                 spread_radius: px(5.0),
+                                inset: false,
                                 offset: point(px(10.0), px(10.0)),
                             }])
                             .child(img("image/app-icon.png").size_8())

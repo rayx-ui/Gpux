@@ -1,6 +1,5 @@
 use gpux::{
     PlatformDispatcher, Priority, PriorityQueueReceiver, PriorityQueueSender, RunnableVariant,
-    ThreadTaskTimings,
 };
 use std::sync::Arc;
 use std::sync::atomic::AtomicI32;
@@ -88,6 +87,7 @@ enum MainThreadItem {
         runnable: RunnableVariant,
         millis: i32,
     },
+    Function(Box<dyn FnOnce() + Send>),
     // TODO-Wasm: Shouldn't these run on their own dedicated thread?
     RealtimeFunction(Box<dyn FnOnce() + Send>),
 }
@@ -297,6 +297,20 @@ impl WebDispatcher {
     fn on_main_thread(&self) -> bool {
         std::thread::current().id() == self.main_thread_id
     }
+
+    pub(crate) fn dispatch_function_on_main_thread(
+        &self,
+        function: impl FnOnce() + Send + 'static,
+    ) {
+        if self.on_main_thread() {
+            let callback = Closure::once_into_js(function);
+            self.browser_window
+                .queue_microtask(callback.unchecked_ref());
+        } else {
+            self.main_thread_mailbox
+                .post(Priority::High, MainThreadItem::Function(Box::new(function)));
+        }
+    }
 }
 
 #[cfg(feature = "multithreaded")]
@@ -310,20 +324,6 @@ fn background_worker_count(
 }
 
 impl PlatformDispatcher for WebDispatcher {
-    fn get_all_timings(&self) -> Vec<ThreadTaskTimings> {
-        // TODO-Wasm: should we panic here?
-        Vec::new()
-    }
-
-    fn get_current_thread_timings(&self) -> ThreadTaskTimings {
-        ThreadTaskTimings {
-            thread_name: None,
-            thread_id: std::thread::current().id(),
-            timings: Vec::new(),
-            total_pushed: 0,
-        }
-    }
-
     fn is_main_thread(&self) -> bool {
         self.on_main_thread()
     }
@@ -405,6 +405,9 @@ fn execute_on_main_thread(window: &web_sys::Window, item: MainThreadItem) {
                     millis,
                 )
                 .ok();
+        }
+        MainThreadItem::Function(function) => {
+            function();
         }
         MainThreadItem::RealtimeFunction(function) => {
             function();

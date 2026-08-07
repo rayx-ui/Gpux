@@ -149,7 +149,7 @@ impl WgpuContext {
     #[cfg(target_family = "wasm")]
     pub async fn new_web() -> anyhow::Result<Self> {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-            backends: wgpu::Backends::BROWSER_WEBGPU | wgpu::Backends::GL,
+            backends: wgpu::Backends::BROWSER_WEBGPU,
             flags: wgpu::InstanceFlags::default(),
             backend_options: wgpu::BackendOptions::default(),
             memory_budget_thresholds: wgpu::MemoryBudgetThresholds::default(),

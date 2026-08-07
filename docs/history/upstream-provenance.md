@@ -4,10 +4,10 @@ This directory and the repository's archived Git refs are the complete local sou
 
 ## Current represented upstream
 
-The latest Zed GPUI closure represented before the next update is:
+The latest Zed GPUI closure represented is:
 
 ```text
-481854f7541636c63f79abec9785697ed74f4005
+c24358d96cdb4ce14ecbc088462295353b0103f0
 ```
 
 Use `https://github.com/zed-industries/zed` as the authoritative upstream. [zed-imports.tsv](zed-imports.tsv) records every recovered closure import point and its original fork-merge provenance.
@@ -25,6 +25,13 @@ git show archive/gpux-pre-migration:crates/gpui/src/window.rs
 ```
 
 The current repository history from `9aff311fa2692fd4d390839c8feb5b5ccebc7b20` onward preserves every later gpux/RayX change under `crates/gpux`.
+
+The 2026-08-07 import preserved RayX's `gpux` crate identity, vendored WGPU 29
+patches, Windows DX12 backend, mobile runtime, DevKit and diagnostics surfaces,
+DOM/HTML islands, effects, gestures, layered keymaps, async startup, and
+multi-pointer drag model. Browser rendering remains WebGPU-only: Zed's newer
+WebGL instance transport is not compatible with RayX's extended renderer ABI
+and is intentionally not advertised as a fallback.
 
 History mapping files:
 

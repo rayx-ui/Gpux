@@ -79,6 +79,68 @@ impl Rgba {
             }
         }
     }
+
+    /// Returns a new RGBA color with the same red, green and blue channels, but
+    /// with a new alpha value.
+    ///
+    /// Example:
+    /// ```
+    /// use gpux::rgba;
+    /// let color = rgba(0xFF0000FF);
+    /// let faded = color.alpha(0.25);
+    /// assert_eq!(faded.a, 0.25);
+    /// ```
+    ///
+    /// This will return a red color with 25% opacity.
+    ///
+    /// Example:
+    /// ```
+    /// use gpux::rgba;
+    /// let color = rgba(0x3399FFCC);
+    /// let transparent = color.alpha(0.0);
+    /// assert_eq!(transparent.a, 0.0);
+    /// ```
+    ///
+    /// This will return the same blue color, fully transparent.
+    pub fn alpha(&self, a: f32) -> Self {
+        Rgba {
+            r: self.r,
+            g: self.g,
+            b: self.b,
+            a: a.clamp(0., 1.),
+        }
+    }
+
+    /// Returns a new RGBA color with the same red, green, and blue channels,
+    /// but with the alpha channel multiplied by the given factor.
+    ///
+    /// Example:
+    /// ```
+    /// use gpux::rgba;
+    /// let color = rgba(0xFF0000FF); // Fully opaque red
+    /// let faded = color.opacity(0.5);
+    /// assert_eq!(faded.a, 0.5);
+    /// ```
+    ///
+    /// This will return a red color with 50% opacity.
+    ///
+    /// Example:
+    /// ```
+    /// use gpux::rgba;
+    /// let color = rgba(0x3399FFCC); // A light blue with 80% opacity
+    /// let faded = color.opacity(0.5);
+    /// assert!((faded.a - 0.4).abs() < 1e-6);
+    /// ```
+    ///
+    /// This will return the same blue color scaled down to 40% opacity.
+    pub fn opacity(&self, factor: f32) -> Self {
+        Rgba {
+            r: self.r,
+            g: self.g,
+            b: self.b,
+            a: self.a * factor.clamp(0., 1.),
+        }
+    }
 }
 
 impl From<Rgba> for u32 {
@@ -369,7 +431,7 @@ impl Display for Hsla {
 }
 
 /// Construct an [`Hsla`] object from plain values
-pub fn hsla(h: f32, s: f32, l: f32, a: f32) -> Hsla {
+pub const fn hsla(h: f32, s: f32, l: f32, a: f32) -> Hsla {
     Hsla {
         h: h.clamp(0., 1.),
         s: s.clamp(0., 1.),
@@ -409,7 +471,7 @@ pub const fn transparent_white() -> Hsla {
 }
 
 /// Opaque grey in [`Hsla`], values will be clamped to the range [0, 1]
-pub fn opaque_grey(lightness: f32, opacity: f32) -> Hsla {
+pub const fn opaque_grey(lightness: f32, opacity: f32) -> Hsla {
     Hsla {
         h: 0.,
         s: 0.,
@@ -601,7 +663,7 @@ impl Hsla {
     /// assert_eq!(red_color.a, 0.25);
     /// ```
     ///
-    /// This will return a red color with half the opacity.
+    /// This will return a red color with 25% opacity.
     ///
     /// Example:
     /// ```
@@ -1089,6 +1151,7 @@ impl From<Hsla> for Background {
         }
     }
 }
+
 impl From<Rgba> for Background {
     fn from(value: Rgba) -> Self {
         Background {
@@ -1313,5 +1376,30 @@ mod tests {
                 linear_color_stop(rgba(0x00ff99ff), 0.4),
             ],
         );
+    }
+
+    #[test]
+    fn test_rgba_alpha() {
+        let color = Rgba {
+            r: 0.2,
+            g: 0.6,
+            b: 1.0,
+            a: 0.8,
+        };
+
+        assert_eq!(color.alpha(0.25).a, 0.25);
+        assert_eq!(color.alpha(1.5).a, 1.0);
+    }
+
+    #[test]
+    fn test_rgba_opacity() {
+        let color = Rgba {
+            r: 0.2,
+            g: 0.6,
+            b: 1.0,
+            a: 0.8,
+        };
+        assert!((color.opacity(0.5).a - 0.4).abs() < 1e-6);
+        assert_eq!(color.opacity(2.0).a, 0.8);
     }
 }

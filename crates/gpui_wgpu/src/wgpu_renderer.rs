@@ -258,6 +258,12 @@ const _: [(); 128] = [(); size_of::<MonochromeSprite>()];
 const _: [(); 4] = [(); offset_of!(MonochromeSprite, kind)];
 const _: [(); 8] = [(); offset_of!(MonochromeSprite, bounds)];
 const _: [(); 24] = [(); offset_of!(MonochromeSprite, content_mask)];
+// Keep the directly uploaded shadow record synchronized with `shaders.wgsl`.
+const _: [(); 152] = [(); size_of::<Shadow>()];
+const _: [(); 72] = [(); offset_of!(Shadow, color)];
+const _: [(); 88] = [(); offset_of!(Shadow, element_bounds)];
+const _: [(); 120] = [(); offset_of!(Shadow, inset)];
+const _: [(); 128] = [(); offset_of!(Shadow, transformation)];
 const _: [(); 56] = [(); offset_of!(MonochromeSprite, color)];
 const _: [(); 72] = [(); offset_of!(MonochromeSprite, tile)];
 const _: [(); 104] = [(); offset_of!(MonochromeSprite, transformation)];
@@ -4293,6 +4299,31 @@ mod tests {
         glass, glow, hsla, point, px, screen, size,
     };
 
+    #[test]
+    fn storage_buffer_shader_is_valid_wgsl() {
+        validate_wgsl(
+            include_str!("shaders.wgsl"),
+            naga::valid::Capabilities::empty(),
+        );
+    }
+
+    #[test]
+    fn subpixel_shader_is_valid_wgsl() {
+        let source = format!(
+            "enable dual_source_blending;\n{}\n{}",
+            include_str!("shaders.wgsl"),
+            include_str!("shaders_subpixel.wgsl"),
+        );
+        validate_wgsl(&source, naga::valid::Capabilities::DUAL_SOURCE_BLENDING);
+    }
+
+    fn validate_wgsl(source: &str, capabilities: naga::valid::Capabilities) {
+        let module = naga::front::wgsl::parse_str(source).expect("shader should parse");
+        naga::valid::Validator::new(naga::valid::ValidationFlags::all(), capabilities)
+            .validate(&module)
+            .expect("shader should validate");
+    }
+
     fn scaled_bounds(width: f32, height: f32) -> Bounds<ScaledPixels> {
         Bounds::new(
             point(ScaledPixels(0.), ScaledPixels(0.)),
@@ -4660,7 +4691,7 @@ mod tests {
 
         let missing = pack_screen_effects(
             &scene,
-            &[active.clone()],
+            std::slice::from_ref(&active),
             size(DevicePixels(400), DevicePixels(300)),
             None,
         );

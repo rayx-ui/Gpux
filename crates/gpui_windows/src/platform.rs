@@ -21,7 +21,7 @@ use windows::{
         Foundation::*,
         Graphics::Gdi::*,
         Security::Credentials::*,
-        System::{Com::*, LibraryLoader::*, Ole::*, SystemInformation::*},
+        System::{Com::*, LibraryLoader::*, Ole::*, Power::*, SystemInformation::*},
         UI::{Input::KeyboardAndMouse::*, Shell::*, WindowsAndMessaging::*},
     },
     core::*,
@@ -43,6 +43,10 @@ pub struct WindowsPlatform {
     gpu_context: gpui_wgpu::GpuContext,
     drop_target_helper: Option<IDropTargetHelper>,
     handle: HWND,
+    suspend_resume_notification: RefCell<Option<HPOWERNOTIFY>>,
+    has_package_identity: bool,
+    app_identity: RefCell<Option<(String, String)>>,
+    system_notifications: RefCell<SystemNotificationState>,
 }
 
 struct WindowsPlatformInner {
@@ -69,6 +73,7 @@ struct PlatformCallbacks {
     open_urls: Cell<Option<Box<dyn FnMut(Vec<String>)>>>,
     quit: Cell<Option<Box<dyn FnMut()>>>,
     reopen: Cell<Option<Box<dyn FnMut()>>>,
+    system_wake: Cell<Option<Box<dyn FnMut()>>>,
     app_menu_action: Cell<Option<Box<dyn FnMut(&dyn Action)>>>,
     will_open_app_menu: Cell<Option<Box<dyn FnMut()>>>,
     validate_app_menu_command: Cell<Option<Box<dyn FnMut(&dyn Action) -> bool>>>,
@@ -178,6 +183,10 @@ impl WindowsPlatform {
             text_system,
             gpu_context,
             drop_target_helper,
+            suspend_resume_notification: RefCell::new(None),
+            has_package_identity: has_package_identity(),
+            app_identity: RefCell::new(None),
+            system_notifications: RefCell::new(SystemNotificationState::new()),
         })
     }
 
@@ -585,6 +594,62 @@ impl Platform for WindowsPlatform {
         self.inner.state.callbacks.reopen.set(Some(callback));
     }
 
+    fn on_system_wake(&self, callback: Box<dyn FnMut()>) {
+        self.inner.state.callbacks.system_wake.set(Some(callback));
+        let mut notification = self.suspend_resume_notification.borrow_mut();
+        if notification.is_none() {
+            *notification = unsafe {
+                RegisterSuspendResumeNotification(
+                    HANDLE(self.handle.0),
+                    DEVICE_NOTIFY_WINDOW_HANDLE,
+                )
+                .log_err()
+            };
+        }
+    }
+
+    fn set_app_identity(&self, identifier: &str, name: &str) {
+        if self.has_package_identity {
+            return;
+        }
+        let identifier_utf16 = windows::core::HSTRING::from(identifier);
+        if let Err(error) = unsafe {
+            windows::Win32::UI::Shell::SetCurrentProcessExplicitAppUserModelID(
+                windows::core::PCWSTR(identifier_utf16.as_ptr()),
+            )
+        } {
+            log::warn!("failed to set the process AppUserModelID: {error}");
+        }
+        *self.app_identity.borrow_mut() = Some((identifier.to_string(), name.to_string()));
+    }
+
+    fn show_system_notification(&self, notification: gpux::SystemNotification) {
+        let app_identity = self.app_identity.borrow().clone();
+        self.system_notifications
+            .borrow_mut()
+            .show(
+                self.has_package_identity,
+                app_identity
+                    .as_ref()
+                    .map(|(identifier, name)| (identifier.as_str(), name.as_str())),
+                notification,
+            )
+            .log_err();
+    }
+
+    fn dismiss_system_notification(&self, tag: &str) {
+        self.system_notifications.borrow_mut().dismiss(tag);
+    }
+
+    fn on_system_notification_response(
+        &self,
+        callback: Box<dyn FnMut(gpux::SystemNotificationResponse)>,
+    ) {
+        self.system_notifications
+            .borrow_mut()
+            .on_response(&self.foreground_executor, callback);
+    }
+
     fn set_menus(&self, menus: Vec<Menu>, _keymap: &Keymap) {
         *self.inner.state.menus.borrow_mut() = menus.into_iter().map(|menu| menu.owned()).collect();
     }
@@ -839,6 +904,7 @@ impl WindowsPlatformInner {
             | WM_GPUI_DOCK_MENU_ACTION
             | WM_GPUI_KEYBOARD_LAYOUT_CHANGED
             | WM_GPUI_GPU_DEVICE_LOST => self.handle_gpui_events(msg, wparam, lparam),
+            WM_POWERBROADCAST => self.handle_power_broadcast(wparam),
             _ => None,
         };
         if let Some(result) = handled {
@@ -975,6 +1041,13 @@ impl WindowsPlatformInner {
         Some(0)
     }
 
+    fn handle_power_broadcast(&self, wparam: WPARAM) -> Option<isize> {
+        if wparam.0 as u32 == PBT_APMRESUMEAUTOMATIC {
+            self.with_callback(|callbacks| &callbacks.system_wake, |callback| callback());
+        }
+        Some(1)
+    }
+
     fn handle_device_lost(&self, lparam: LPARAM) -> Option<isize> {
         let _ = lparam;
         Some(0)
@@ -1011,6 +1084,24 @@ struct PlatformWindowCreateContext {
     main_sender: Option<PriorityQueueSender<RunnableVariant>>,
     main_receiver: Option<PriorityQueueReceiver<RunnableVariant>>,
     dispatcher: Option<Arc<WindowsDispatcher>>,
+}
+
+fn has_package_identity() -> bool {
+    let mut package_full_name_length = 0;
+    let result = unsafe {
+        windows::Win32::Storage::Packaging::Appx::GetCurrentPackageFullName(
+            &mut package_full_name_length,
+            None,
+        )
+    };
+    if result == ERROR_INSUFFICIENT_BUFFER {
+        true
+    } else if result == APPMODEL_ERROR_NO_PACKAGE {
+        false
+    } else {
+        log::warn!("failed to determine whether the process has package identity: {result:?}");
+        false
+    }
 }
 
 fn open_target(target: impl AsRef<OsStr>) -> Result<()> {
