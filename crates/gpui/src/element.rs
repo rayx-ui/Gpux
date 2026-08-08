@@ -272,6 +272,22 @@ impl<E: Element> Element for InspectableElement<E> {
             cx,
         );
     }
+
+    fn a11y_role(&self) -> Option<accesskit::Role> {
+        self.element.a11y_role()
+    }
+
+    fn write_a11y_info(&self, node: &mut accesskit::Node) {
+        self.element.write_a11y_info(node);
+    }
+
+    fn a11y_synthetic_children(
+        &mut self,
+        prepaint: &mut Self::PrepaintState,
+        builder: &mut A11ySubtreeBuilder,
+    ) {
+        self.element.a11y_synthetic_children(prepaint, builder);
+    }
 }
 
 impl<E: Element> IntoElement for InspectableElement<E> {
@@ -381,7 +397,11 @@ impl Display for GlobalElementId {
 }
 
 impl GlobalElementId {
-    pub(crate) fn accesskit_node_id(&self) -> accesskit::NodeId {
+    /// Return the stable AccessKit node identifier derived from this element path.
+    ///
+    /// Custom [`Element`] implementations can use this during prepaint to register
+    /// action listeners with [`Window::on_a11y_action`].
+    pub fn accesskit_node_id(&self) -> accesskit::NodeId {
         use std::hash::{Hash, Hasher};
         let mut hasher = std::hash::DefaultHasher::default();
         self.hash(&mut hasher);

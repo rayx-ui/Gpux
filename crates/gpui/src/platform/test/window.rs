@@ -1,5 +1,5 @@
 use crate::{
-    AnyWindowHandle, AtlasKey, AtlasTextureId, AtlasTile, Bounds, DevicePixels,
+    A11yCallbacks, AnyWindowHandle, AtlasKey, AtlasTextureId, AtlasTile, Bounds, DevicePixels,
     DispatchEventResult, GpuSpecs, Pixels, PlatformAtlas, PlatformDisplay,
     PlatformHeadlessRenderer, PlatformInput, PlatformInputHandler, PlatformWindow, Point,
     PromptButton, RequestFrameOptions, Scene, Size, TestPlatform, TileId, WindowAppearance,
@@ -40,6 +40,7 @@ pub(crate) struct TestWindowState {
     appearance: WindowAppearance,
     external_drag_files: Vec<(PathBuf, bool)>,
     start_external_drag_result: bool,
+    a11y_callbacks: Option<A11yCallbacks>,
 }
 
 #[derive(Clone)]
@@ -96,7 +97,28 @@ impl TestWindow {
             appearance: WindowAppearance::Light,
             external_drag_files: Vec::new(),
             start_external_drag_result: false,
+            a11y_callbacks: None,
         })))
+    }
+
+    pub(crate) fn simulate_a11y_activation(&self) -> Option<accesskit::TreeUpdate> {
+        self.0
+            .lock()
+            .a11y_callbacks
+            .as_ref()
+            .and_then(|callbacks| (callbacks.activation)())
+    }
+
+    pub(crate) fn simulate_a11y_action(&self, request: accesskit::ActionRequest) {
+        if let Some(callbacks) = self.0.lock().a11y_callbacks.as_ref() {
+            (callbacks.action)(request);
+        }
+    }
+
+    pub(crate) fn simulate_a11y_deactivation(&self) {
+        if let Some(callbacks) = self.0.lock().a11y_callbacks.as_ref() {
+            (callbacks.deactivation)();
+        }
     }
 
     pub fn simulate_resize(&mut self, size: Size<Pixels>) {
@@ -201,6 +223,10 @@ impl PlatformWindow for TestWindow {
 
     fn set_input_handler(&mut self, input_handler: PlatformInputHandler) {
         self.0.lock().input_handler = Some(input_handler);
+    }
+
+    fn a11y_init(&self, callbacks: A11yCallbacks) {
+        self.0.lock().a11y_callbacks = Some(callbacks);
     }
 
     fn take_input_handler(&mut self) -> Option<PlatformInputHandler> {

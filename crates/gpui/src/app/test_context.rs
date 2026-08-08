@@ -476,6 +476,30 @@ impl TestAppContext {
         self.dispatcher.run_until_parked();
     }
 
+    /// Simulate a platform accessibility client connecting to a window.
+    ///
+    /// The activation callback updates the frame flag synchronously. Notify and redraw the root
+    /// before inspecting the resulting accessibility tree.
+    pub fn activate_accessibility(&self, window: AnyWindowHandle) -> Option<accesskit::TreeUpdate> {
+        self.test_window(window).simulate_a11y_activation()
+    }
+
+    /// Dispatch an AccessKit action through the platform adapter used by a test window.
+    pub fn dispatch_accessibility_action(
+        &self,
+        window: AnyWindowHandle,
+        request: accesskit::ActionRequest,
+    ) {
+        self.test_window(window).simulate_a11y_action(request);
+        self.run_until_parked();
+    }
+
+    /// Simulate a platform accessibility client disconnecting from a window.
+    pub fn deactivate_accessibility(&self, window: AnyWindowHandle) {
+        self.test_window(window).simulate_a11y_deactivation();
+        self.run_until_parked();
+    }
+
     /// Simulate dispatching an action to the currently focused node in the window.
     pub fn dispatch_action<A>(&mut self, window: AnyWindowHandle, action: A)
     where
