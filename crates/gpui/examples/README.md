@@ -166,6 +166,7 @@ effect declarations.
 - `move_entity_between_windows` shows moving an entity between windows.
 - `on_window_close_quit` demonstrates quitting when a window closes.
 - `set_menus` shows application menu setup.
+- `system_notifications` demonstrates posting, replacing, dismissing, and responding to operating-system notifications.
 - `window` demonstrates creating normal, dialog, popup, and floating windows.
 - `window_positioning` demonstrates window bounds and placement.
 - `window_shadow` demonstrates window shadow styling.

@@ -17,6 +17,7 @@ mod window;
 
 pub use dispatcher::WebDispatcher;
 pub use display::WebDisplay;
+pub use gpui_wgpu::WebBackendPreference;
 #[cfg(feature = "rayx_diagnostics")]
 pub use html_in_canvas::{HtmlInCanvasDiagnostics, HtmlInCanvasProbes, HtmlInCanvasSupport};
 pub use http_client::FetchHttpClient;

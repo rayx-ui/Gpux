@@ -1,15 +1,16 @@
 use crate::dispatcher::WebDispatcher;
 use crate::display::WebDisplay;
+use crate::http_client::FetchHttpClient;
 use crate::keyboard::WebKeyboardLayout;
 use crate::window::WebWindow;
 use anyhow::Result;
 use futures::channel::oneshot;
-use gpui_wgpu::WgpuContext;
+use gpui_wgpu::{PreparedWebGraphics, WebBackendPreference, WgpuContext, wgpu};
 use gpux::{
     Action, AnyWindowHandle, BackgroundExecutor, ClipboardItem, CursorStyle, DummyKeyboardMapper,
     ForegroundExecutor, Keymap, Menu, MenuItem, PathPromptOptions, Platform, PlatformDisplay,
     PlatformKeyboardLayout, PlatformKeyboardMapper, PlatformTextSystem, PlatformWindow, Task,
-    ThermalState, WindowAppearance, WindowParams,
+    ThermalState, WindowAppearance, WindowKind, WindowParams, popup::PopupNotSupportedError,
 };
 use std::{
     borrow::Cow,
@@ -33,16 +34,24 @@ static BUNDLED_FONTS: &[&[u8]] = &[
 
 pub struct WebPlatform {
     browser_window: web_sys::Window,
+    dispatcher: Arc<WebDispatcher>,
     background_executor: BackgroundExecutor,
     foreground_executor: ForegroundExecutor,
     text_system: Arc<dyn PlatformTextSystem>,
     active_window: RefCell<Option<AnyWindowHandle>>,
     active_display: Rc<dyn PlatformDisplay>,
     callbacks: RefCell<WebPlatformCallbacks>,
+    backend_preference: WebBackendPreference,
     wgpu_context: Rc<RefCell<Option<WgpuContext>>>,
+    prepared_window: Rc<RefCell<Option<PreparedWebWindow>>>,
     cursor_visible: Rc<Cell<bool>>,
     last_cursor_css: Rc<Cell<&'static str>>,
     _cursor_restore_listeners: Vec<EventListenerHandle>,
+}
+
+struct PreparedWebWindow {
+    canvas: web_sys::HtmlCanvasElement,
+    surface: wgpu::Surface<'static>,
 }
 
 #[derive(Default)]
@@ -59,12 +68,35 @@ struct WebPlatformCallbacks {
 
 impl WebPlatform {
     pub fn new(allow_multi_threading: bool) -> Self {
-        Self::with_background_worker_limit(allow_multi_threading, None)
+        Self::new_with_backend_and_worker_limit(
+            allow_multi_threading,
+            None,
+            WebBackendPreference::Auto,
+        )
+    }
+
+    pub fn new_with_backend(
+        allow_multi_threading: bool,
+        backend_preference: WebBackendPreference,
+    ) -> Self {
+        Self::new_with_backend_and_worker_limit(allow_multi_threading, None, backend_preference)
     }
 
     pub fn with_background_worker_limit(
         allow_multi_threading: bool,
         max_background_workers: Option<usize>,
+    ) -> Self {
+        Self::new_with_backend_and_worker_limit(
+            allow_multi_threading,
+            max_background_workers,
+            WebBackendPreference::Auto,
+        )
+    }
+
+    pub fn new_with_backend_and_worker_limit(
+        allow_multi_threading: bool,
+        max_background_workers: Option<usize>,
+        backend_preference: WebBackendPreference,
     ) -> Self {
         let browser_window =
             web_sys::window().expect("must be running in a browser window context");
@@ -74,7 +106,7 @@ impl WebPlatform {
             max_background_workers,
         ));
         let background_executor = BackgroundExecutor::new(dispatcher.clone());
-        let foreground_executor = ForegroundExecutor::new(dispatcher);
+        let foreground_executor = ForegroundExecutor::new(dispatcher.clone());
         let text_system = Arc::new(gpui_wgpu::CosmicTextSystem::new_without_system_fonts(
             "IBM Plex Sans",
         ));
@@ -99,16 +131,109 @@ impl WebPlatform {
 
         Self {
             browser_window,
+            dispatcher,
             background_executor,
             foreground_executor,
             text_system,
             active_window: RefCell::new(None),
             active_display,
             callbacks: RefCell::new(WebPlatformCallbacks::default()),
+            backend_preference,
             wgpu_context: Rc::new(RefCell::new(None)),
+            prepared_window: Rc::new(RefCell::new(None)),
             cursor_visible,
             last_cursor_css,
             _cursor_restore_listeners: cursor_restore_listeners,
+        }
+    }
+
+    /// Returns an HTTP client that runs browser Fetch operations on the main thread.
+    pub fn fetch_http_client(&self) -> FetchHttpClient {
+        FetchHttpClient::new(self.dispatcher.clone())
+    }
+
+    /// Returns a browser Fetch HTTP client with a custom reported user agent.
+    pub fn fetch_http_client_with_user_agent(
+        &self,
+        user_agent: &str,
+    ) -> anyhow::Result<FetchHttpClient> {
+        FetchHttpClient::with_user_agent(self.dispatcher.clone(), user_agent)
+    }
+}
+
+async fn initialize_graphics(
+    browser_window: &web_sys::Window,
+    preference: WebBackendPreference,
+) -> anyhow::Result<(
+    web_sys::HtmlCanvasElement,
+    WgpuContext,
+    wgpu::Surface<'static>,
+)> {
+    match preference {
+        WebBackendPreference::Auto => {
+            let webgpu_canvas = WebWindow::prepare_canvas(browser_window)?;
+            let webgpu_result = if wgpu::util::is_browser_webgpu_supported().await {
+                WgpuContext::new_web(&webgpu_canvas, WebBackendPreference::WebGpu).await
+            } else {
+                Err(anyhow::anyhow!(
+                    "browser WebGPU probe did not return a usable adapter"
+                ))
+            };
+            match webgpu_result {
+                Ok(PreparedWebGraphics { context, surface }) => {
+                    Ok((webgpu_canvas, context, surface))
+                }
+                Err(webgpu_error) => {
+                    let canvas: &web_sys::Element = webgpu_canvas.as_ref();
+                    canvas.remove();
+                    log::warn!(
+                        "WebGPU initialization failed; falling back to WebGL2: {webgpu_error:#}"
+                    );
+
+                    let webgl_canvas =
+                        WebWindow::prepare_canvas(browser_window).map_err(|error| {
+                            anyhow::anyhow!(
+                                "WebGPU initialization failed: {webgpu_error:#}. \
+                             Failed to prepare a replacement canvas for WebGL2: {error:#}"
+                            )
+                        })?;
+                    match WgpuContext::new_web(&webgl_canvas, WebBackendPreference::WebGl).await {
+                        Ok(PreparedWebGraphics { context, surface }) => {
+                            Ok((webgl_canvas, context, surface))
+                        }
+                        Err(webgl_error) => {
+                            let canvas: &web_sys::Element = webgl_canvas.as_ref();
+                            canvas.remove();
+                            Err(anyhow::anyhow!(
+                                "No browser graphics backend could be initialized. \
+                                 Tried WebGPU, then WebGL2. \
+                                 WebGPU failure: {webgpu_error:#}. \
+                                 WebGL2 failure: {webgl_error:#}"
+                            ))
+                        }
+                    }
+                }
+            }
+        }
+        WebBackendPreference::WebGpu | WebBackendPreference::WebGl => {
+            let backend_name = if preference == WebBackendPreference::WebGpu {
+                "WebGPU"
+            } else {
+                "WebGL2"
+            };
+            let canvas = WebWindow::prepare_canvas(browser_window)?;
+            match WgpuContext::new_web(&canvas, preference).await {
+                Ok(PreparedWebGraphics { context, surface }) => Ok((canvas, context, surface)),
+                Err(error) => {
+                    let canvas: &web_sys::Element = canvas.as_ref();
+                    canvas.remove();
+                    Err(anyhow::anyhow!(
+                        "No browser graphics backend could be initialized. \
+                         Only {backend_name} was tried because the application requested it \
+                         explicitly. {backend_name} failure: {error:#}"
+                    ))
+                }
+            }
         }
     }
 }
@@ -128,15 +253,22 @@ impl Platform for WebPlatform {
 
     fn run(&self, on_finish_launching: Box<dyn 'static + FnOnce()>) {
         let wgpu_context = self.wgpu_context.clone();
+        let prepared_window = self.prepared_window.clone();
+        let browser_window = self.browser_window.clone();
+        let backend_preference = self.backend_preference;
         wasm_bindgen_futures::spawn_local(async move {
-            match WgpuContext::new_web().await {
-                Ok(context) => {
-                    log::info!("WebGPU context initialized successfully");
+            match initialize_graphics(&browser_window, backend_preference).await {
+                Ok((canvas, context, surface)) => {
+                    log::info!(
+                        "Browser graphics initialized successfully with {:?}",
+                        context.backend()
+                    );
                     *wgpu_context.borrow_mut() = Some(context);
+                    *prepared_window.borrow_mut() = Some(PreparedWebWindow { canvas, surface });
                     on_finish_launching();
                 }
-                Err(err) => {
-                    log::error!("Failed to initialize WebGPU context: {err:#}");
+                Err(error) => {
+                    log::error!("Failed to initialize browser graphics: {error:#}");
                     on_finish_launching();
                 }
             }
@@ -174,12 +306,37 @@ impl Platform for WebPlatform {
         handle: AnyWindowHandle,
         params: WindowParams,
     ) -> anyhow::Result<Box<dyn PlatformWindow>> {
+        if matches!(params.kind, WindowKind::AnchoredPopup(_)) {
+            return Err(PopupNotSupportedError.into());
+        }
         let context_ref = self.wgpu_context.borrow();
         let context = context_ref.as_ref().ok_or_else(|| {
             anyhow::anyhow!("WebGPU context not initialized. Was Platform::run() called?")
         })?;
 
-        let window = WebWindow::new(handle, params, context, self.browser_window.clone())?;
+        let prepared_window = self.prepared_window.borrow_mut().take().ok_or_else(|| {
+            anyhow::anyhow!(
+                "browser graphics surface is unavailable; only one top-level web window is supported"
+            )
+        })?;
+        let canvas = prepared_window.canvas;
+        let canvas_for_cleanup = canvas.clone();
+        let window = WebWindow::new(
+            handle,
+            params,
+            context,
+            canvas,
+            prepared_window.surface,
+            self.browser_window.clone(),
+        );
+        let window = match window {
+            Ok(window) => window,
+            Err(error) => {
+                let canvas: &web_sys::Element = canvas_for_cleanup.as_ref();
+                canvas.remove();
+                return Err(error);
+            }
+        };
         *self.active_window.borrow_mut() = Some(handle);
         Ok(Box::new(window))
     }
@@ -467,7 +624,7 @@ fn write_text_with_exec_command(browser_window: &web_sys::Window, text: &str) ->
         let _ = body.remove_child(&copy_target);
         return false;
     }
-    selection.remove_all_ranges();
+    let _ = selection.remove_all_ranges();
     if selection.add_range(&copy_range).is_err() {
         let _ = body.remove_child(&copy_target);
         return false;
@@ -491,7 +648,7 @@ fn write_text_with_exec_command(browser_window: &web_sys::Window, text: &str) ->
         .add_event_listener_with_callback("copy", copy_listener.as_ref().unchecked_ref())
         .is_err()
     {
-        selection.remove_all_ranges();
+        let _ = selection.remove_all_ranges();
         for range in saved_ranges {
             let _ = selection.add_range(&range);
         }
@@ -513,7 +670,7 @@ fn write_text_with_exec_command(browser_window: &web_sys::Window, text: &str) ->
     let _ = document
         .remove_event_listener_with_callback("copy", copy_listener.as_ref().unchecked_ref());
 
-    selection.remove_all_ranges();
+    let _ = selection.remove_all_ranges();
     for range in saved_ranges {
         let _ = selection.add_range(&range);
     }

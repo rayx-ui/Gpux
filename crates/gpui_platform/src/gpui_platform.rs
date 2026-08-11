@@ -11,6 +11,12 @@ pub fn background_executor() -> gpux::BackgroundExecutor {
 }
 
 pub fn application() -> gpux::Application {
+    #[cfg(target_family = "wasm")]
+    {
+        application_with_web_backend(gpui_web::WebBackendPreference::Auto)
+    }
+
+    #[cfg(not(target_family = "wasm"))]
     gpux::Application::with_platform(current_platform(false))
 }
 
@@ -21,15 +27,42 @@ pub fn headless() -> gpux::Application {
 /// Unlike `application`, this function returns a single-threaded web application.
 #[cfg(target_family = "wasm")]
 pub fn single_threaded_web() -> gpux::Application {
-    gpux::Application::with_platform(Rc::new(gpui_web::WebPlatform::new(false)))
+    let platform = Rc::new(gpui_web::WebPlatform::new(false));
+    let http_client = std::sync::Arc::new(platform.fetch_http_client());
+    gpux::Application::with_platform(platform).with_http_client(http_client)
 }
 
 /// Returns a threaded web application with an optional background-worker maximum.
 #[cfg(target_family = "wasm")]
 pub fn web_application(max_background_workers: Option<usize>) -> gpux::Application {
-    gpux::Application::with_platform(Rc::new(
-        gpui_web::WebPlatform::with_background_worker_limit(true, max_background_workers),
-    ))
+    web_application_with_backend(max_background_workers, WebBackendPreference::Auto)
+}
+
+#[cfg(target_family = "wasm")]
+pub fn web_application_with_backend(
+    max_background_workers: Option<usize>,
+    backend_preference: WebBackendPreference,
+) -> gpux::Application {
+    let platform = Rc::new(gpui_web::WebPlatform::new_with_backend_and_worker_limit(
+        true,
+        max_background_workers,
+        backend_preference,
+    ));
+    let http_client = std::sync::Arc::new(platform.fetch_http_client());
+    gpux::Application::with_platform(platform).with_http_client(http_client)
+}
+
+#[cfg(target_family = "wasm")]
+pub use gpui_web::WebBackendPreference;
+
+#[cfg(target_family = "wasm")]
+pub fn application_with_web_backend(backend_preference: WebBackendPreference) -> gpux::Application {
+    let platform = Rc::new(gpui_web::WebPlatform::new_with_backend(
+        true,
+        backend_preference,
+    ));
+    let http_client = std::sync::Arc::new(platform.fetch_http_client());
+    gpux::Application::with_platform(platform).with_http_client(http_client)
 }
 
 /// Initializes panic hooks and logging for the web platform.

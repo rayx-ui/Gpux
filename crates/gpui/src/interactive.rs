@@ -797,6 +797,29 @@ impl ExternalPaths {
     }
 }
 
+/// Data offered to the platform when an internal drag leaves the window.
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum ExternalDragPayload {
+    /// Real on-disk paths promoted to a native file drag.
+    Files(FileDragPaths),
+}
+
+/// Paths supplied to a native file drag with precomputed directory metadata.
+#[derive(Debug, Clone, Default, Eq, PartialEq)]
+pub struct FileDragPaths(SmallVec<[(PathBuf, bool); 2]>);
+
+impl FileDragPaths {
+    /// Creates a native file-drag payload.
+    pub fn new(entries: impl IntoIterator<Item = (PathBuf, bool)>) -> Self {
+        Self(entries.into_iter().collect())
+    }
+
+    /// Returns each path paired with whether it is a directory.
+    pub fn entries(&self) -> &[(PathBuf, bool)] {
+        &self.0
+    }
+}
+
 impl Render for ExternalPaths {
     fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
         // the platform will render icons for the dragged files

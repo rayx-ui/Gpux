@@ -57,7 +57,7 @@ use wayland_protocols::xdg::activation::v1::client::{xdg_activation_token_v1, xd
 use wayland_protocols::xdg::decoration::zv1::client::{
     zxdg_decoration_manager_v1, zxdg_toplevel_decoration_v1,
 };
-use wayland_protocols::xdg::shell::client::{xdg_surface, xdg_toplevel, xdg_wm_base};
+use wayland_protocols::xdg::shell::client::{xdg_popup, xdg_surface, xdg_toplevel, xdg_wm_base};
 use wayland_protocols::xdg::system_bell::v1::client::xdg_system_bell_v1;
 use wayland_protocols::{
     wp::cursor_shape::v1::client::{wp_cursor_shape_device_v1, wp_cursor_shape_manager_v1},
@@ -98,7 +98,7 @@ use gpux::{
     MouseButton, NavigationDirection, Pixels, PlatformDisplay, PlatformInput,
     PlatformKeyboardLayout, PlatformWindow, Point, PointerEvent, PointerPhase, ScrollDelta,
     ScrollWheelEvent, ScrollWheelPhase, ScrollWheelSource, SharedString, Size, TaskTiming,
-    TouchPhase, WindowButtonLayout, WindowParams, point, profiler, px, size,
+    TouchPhase, WindowButtonLayout, WindowKind, WindowParams, point, profiler, px, size,
 };
 use wayland_protocols::wp::linux_dmabuf::zv1::client::{
     zwp_linux_dmabuf_feedback_v1, zwp_linux_dmabuf_v1,
@@ -807,7 +807,26 @@ impl LinuxClient for WaylandClient {
     ) -> anyhow::Result<Box<dyn PlatformWindow>> {
         let mut state = self.0.borrow_mut();
 
-        let parent = state.keyboard_focused_window.clone();
+        let (parent, popup_grab) = match &params.kind {
+            WindowKind::AnchoredPopup(options) => {
+                let parent = state
+                    .windows
+                    .values()
+                    .find(|window| window.handle() == options.parent)
+                    .cloned()
+                    .ok_or_else(|| anyhow::anyhow!("popup parent window not found"))?;
+                let popup_grab = options.grab.then(|| {
+                    let serial = state
+                        .serial_tracker
+                        .get(SerialKind::MousePress)
+                        .as_raw()
+                        .max(state.serial_tracker.get(SerialKind::KeyPress).as_raw());
+                    (serial != 0).then(|| (serial, state.wl_seat.clone()))
+                });
+                (Some(parent), popup_grab.flatten())
+            }
+            _ => (state.keyboard_focused_window.clone(), None),
+        };
 
         let target_output = params.display_id.and_then(|display_id| {
             let target_protocol_id: u64 = display_id.into();
@@ -829,6 +848,7 @@ impl LinuxClient for WaylandClient {
             params,
             appearance,
             parent,
+            popup_grab,
             target_output,
         )?;
         state.windows.insert(surface_id, window.0.clone());
@@ -1323,6 +1343,27 @@ impl Dispatch<zwlr_layer_surface_v1::ZwlrLayerSurfaceV1, ObjectId> for WaylandCl
 
         if should_close {
             // The close logic will be handled in drop_window()
+            window.close();
+        }
+    }
+}
+
+impl Dispatch<xdg_popup::XdgPopup, ObjectId> for WaylandClientStatePtr {
+    fn event(
+        this: &mut Self,
+        _: &xdg_popup::XdgPopup,
+        event: <xdg_popup::XdgPopup as Proxy>::Event,
+        surface_id: &ObjectId,
+        _: &Connection,
+        _: &QueueHandle<Self>,
+    ) {
+        let client = this.get_client();
+        let mut state = client.borrow_mut();
+        let Some(window) = get_window(&mut state, surface_id) else {
+            return;
+        };
+        drop(state);
+        if window.handle_popup_event(event) {
             window.close();
         }
     }

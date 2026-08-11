@@ -1485,6 +1485,160 @@ pub trait InteractiveElement: Sized {
 /// A trait for elements that want to use the standard GPUI interactivity features
 /// that require state.
 pub trait StatefulInteractiveElement: InteractiveElement {
+    /// Set the accessible role for this element.
+    fn role(mut self, role: accesskit::Role) -> Self {
+        debug_assert!(role != accesskit::Role::GenericContainer);
+        self.interactivity().override_role = Some(role);
+        self
+    }
+
+    /// Set the accessible label for this element.
+    fn aria_label(mut self, label: impl Into<SharedString>) -> Self {
+        self.interactivity().aria.label = Some(label.into());
+        self
+    }
+
+    /// Set the accessible description for this element.
+    fn aria_description(mut self, description: impl Into<SharedString>) -> Self {
+        self.interactivity().aria.description = Some(description.into());
+        self
+    }
+
+    /// Set the keyboard shortcut announced by assistive technology.
+    fn aria_keyshortcuts(mut self, keyshortcuts: impl Into<SharedString>) -> Self {
+        self.interactivity().aria.keyshortcuts = Some(keyshortcuts.into());
+        self
+    }
+
+    /// Report this element as the active descendant of its focused ancestor.
+    fn aria_active_descendant(mut self) -> Self {
+        self.interactivity().report_active_descendant_focus = true;
+        self
+    }
+
+    /// Contribute synthetic accessibility children after prepaint.
+    fn a11y_synthetic_children(
+        mut self,
+        f: impl FnOnce(&mut crate::A11ySubtreeBuilder) + 'static,
+    ) -> Self {
+        self.interactivity().a11y_synthetic_children = Some(Box::new(f));
+        self
+    }
+
+    /// Set the selected state.
+    fn aria_selected(mut self, selected: bool) -> Self {
+        self.interactivity().aria.selected = Some(selected);
+        self
+    }
+
+    /// Set the expanded state.
+    fn aria_expanded(mut self, expanded: bool) -> Self {
+        self.interactivity().aria.expanded = Some(expanded);
+        self
+    }
+
+    /// Set the toggled state.
+    fn aria_toggled(mut self, toggled: accesskit::Toggled) -> Self {
+        self.interactivity().aria.toggled = Some(toggled);
+        self
+    }
+
+    /// Set the numeric value.
+    fn aria_numeric_value(mut self, value: f64) -> Self {
+        self.interactivity().aria.numeric_value = Some(value);
+        self
+    }
+
+    /// Set the numeric value step.
+    fn aria_numeric_value_step(mut self, step: f64) -> Self {
+        self.interactivity().aria.numeric_value_step = Some(step);
+        self
+    }
+
+    /// Set the string value.
+    fn aria_value(mut self, value: impl Into<SharedString>) -> Self {
+        self.interactivity().aria.value = Some(value.into());
+        self
+    }
+
+    /// Set placeholder text.
+    fn aria_placeholder(mut self, placeholder: impl Into<SharedString>) -> Self {
+        self.interactivity().aria.placeholder = Some(placeholder.into());
+        self
+    }
+
+    /// Set the minimum numeric value.
+    fn aria_min_numeric_value(mut self, value: f64) -> Self {
+        self.interactivity().aria.min_numeric_value = Some(value);
+        self
+    }
+
+    /// Set the maximum numeric value.
+    fn aria_max_numeric_value(mut self, value: f64) -> Self {
+        self.interactivity().aria.max_numeric_value = Some(value);
+        self
+    }
+
+    /// Set the accessible orientation.
+    fn aria_orientation(mut self, orientation: accesskit::Orientation) -> Self {
+        self.interactivity().aria.orientation = Some(orientation);
+        self
+    }
+
+    /// Set the heading or hierarchy level.
+    fn aria_level(mut self, level: usize) -> Self {
+        self.interactivity().aria.level = Some(level);
+        self
+    }
+
+    /// Set the position within a set.
+    fn aria_position_in_set(mut self, position: usize) -> Self {
+        self.interactivity().aria.position_in_set = Some(position);
+        self
+    }
+
+    /// Set the total size of a set.
+    fn aria_size_of_set(mut self, size: usize) -> Self {
+        self.interactivity().aria.size_of_set = Some(size);
+        self
+    }
+
+    /// Set the row index.
+    fn aria_row_index(mut self, index: usize) -> Self {
+        self.interactivity().aria.row_index = Some(index);
+        self
+    }
+
+    /// Set the column index.
+    fn aria_column_index(mut self, index: usize) -> Self {
+        self.interactivity().aria.column_index = Some(index);
+        self
+    }
+
+    /// Set the row count.
+    fn aria_row_count(mut self, count: usize) -> Self {
+        self.interactivity().aria.row_count = Some(count);
+        self
+    }
+
+    /// Set the column count.
+    fn aria_column_count(mut self, count: usize) -> Self {
+        self.interactivity().aria.column_count = Some(count);
+        self
+    }
+
+    /// Register an accessibility action handler.
+    fn on_a11y_action(
+        mut self,
+        action: accesskit::Action,
+        listener: impl FnMut(Option<&accesskit::ActionData>, &mut Window, &mut App) + 'static,
+    ) -> Self {
+        self.interactivity()
+            .a11y_action_listeners
+            .push((action, Box::new(listener)));
+        self
+    }
+
     /// Set this element to focusable.
     fn focusable(mut self) -> Self {
         self.interactivity().focusable = true;
@@ -1864,6 +2018,26 @@ impl Element for Div {
         self.interactivity.source_location()
     }
 
+    fn a11y_role(&self) -> Option<accesskit::Role> {
+        self.interactivity
+            .override_role
+            .filter(|role| *role != accesskit::Role::GenericContainer)
+    }
+
+    fn write_a11y_info(&self, node: &mut accesskit::Node) {
+        self.interactivity.write_a11y_info(node);
+    }
+
+    fn a11y_synthetic_children(
+        &mut self,
+        _prepaint: &mut Self::PrepaintState,
+        builder: &mut crate::A11ySubtreeBuilder,
+    ) {
+        if let Some(f) = self.interactivity.a11y_synthetic_children.take() {
+            f(builder);
+        }
+    }
+
     #[stacksafe]
     fn request_layout(
         &mut self,
@@ -2162,6 +2336,30 @@ impl IntoElement for Div {
     }
 }
 
+#[derive(Default)]
+pub(crate) struct AriaProperties {
+    pub(crate) label: Option<SharedString>,
+    pub(crate) description: Option<SharedString>,
+    pub(crate) keyshortcuts: Option<SharedString>,
+    pub(crate) selected: Option<bool>,
+    pub(crate) expanded: Option<bool>,
+    pub(crate) toggled: Option<accesskit::Toggled>,
+    pub(crate) numeric_value: Option<f64>,
+    pub(crate) min_numeric_value: Option<f64>,
+    pub(crate) max_numeric_value: Option<f64>,
+    pub(crate) numeric_value_step: Option<f64>,
+    pub(crate) value: Option<SharedString>,
+    pub(crate) placeholder: Option<SharedString>,
+    pub(crate) orientation: Option<accesskit::Orientation>,
+    pub(crate) level: Option<usize>,
+    pub(crate) position_in_set: Option<usize>,
+    pub(crate) size_of_set: Option<usize>,
+    pub(crate) row_index: Option<usize>,
+    pub(crate) column_index: Option<usize>,
+    pub(crate) row_count: Option<usize>,
+    pub(crate) column_count: Option<usize>,
+}
+
 /// The interactivity struct. Powers all of the general-purpose
 /// interactivity in the `Div` element.
 #[derive(Default)]
@@ -2226,6 +2424,13 @@ pub struct Interactivity {
     pub(crate) tab_index: Option<isize>,
     pub(crate) tab_group: bool,
     pub(crate) tab_stop: bool,
+
+    pub(crate) a11y_action_listeners:
+        Vec<(accesskit::Action, crate::window::a11y::A11yActionListener)>,
+    pub(crate) a11y_synthetic_children: Option<Box<dyn FnOnce(&mut crate::A11ySubtreeBuilder)>>,
+    pub(crate) report_active_descendant_focus: bool,
+    pub(crate) override_role: Option<accesskit::Role>,
+    pub(crate) aria: AriaProperties,
 
     #[cfg(any(feature = "inspector", debug_assertions))]
     pub(crate) source_location: Option<&'static core::panic::Location<'static>>,
@@ -2363,6 +2568,27 @@ impl Interactivity {
 
         if let Some(focus_handle) = self.tracked_focus_handle.as_ref() {
             window.set_focus_handle(focus_handle, cx);
+
+            if window.a11y.is_active() {
+                if let Some(global_id) = global_id {
+                    let node_id = global_id.accesskit_node_id();
+                    window.a11y.set_focusable(node_id, focus_handle.id);
+                    if focus_handle.is_focused(window) {
+                        window.a11y.set_focus(node_id);
+                    }
+                } else if focus_handle.is_focused(window) {
+                    window
+                        .a11y
+                        .note_focus_without_node(focus_handle.id, "it has no element id");
+                }
+            }
+        }
+        if self.report_active_descendant_focus && window.a11y.is_active() {
+            if let Some(global_id) = global_id {
+                window
+                    .a11y
+                    .set_active_descendant(global_id.accesskit_node_id());
+            }
         }
         window.with_optional_element_state::<InteractiveElementState, _>(
             global_id,
@@ -2693,6 +2919,18 @@ impl Interactivity {
                                             }
 
                                             self.paint_keyboard_listeners(window, cx);
+
+                                            if window.a11y.is_active()
+                                                && let Some(global_id) = global_id
+                                            {
+                                                let node_id = global_id.accesskit_node_id();
+                                                for (action, listener) in
+                                                    self.a11y_action_listeners.drain(..)
+                                                {
+                                                    window
+                                                        .on_a11y_action(node_id, action, listener);
+                                                }
+                                            }
                                             f(&style, window, cx);
 
                                             if let Some(_hitbox) = hitbox {
@@ -3726,6 +3964,78 @@ impl Interactivity {
             );
         }
     }
+
+    pub(crate) fn write_a11y_info(&self, node: &mut accesskit::Node) {
+        if let Some(label) = &self.aria.label {
+            node.set_label(label.to_string());
+        }
+        if let Some(description) = &self.aria.description {
+            node.set_description(description.to_string());
+        }
+        if let Some(keyshortcuts) = &self.aria.keyshortcuts {
+            node.set_keyboard_shortcut(keyshortcuts.to_string());
+        }
+        if let Some(selected) = self.aria.selected {
+            node.set_selected(selected);
+        }
+        if let Some(expanded) = self.aria.expanded {
+            node.set_expanded(expanded);
+        }
+        if let Some(toggled) = self.aria.toggled {
+            node.set_toggled(toggled);
+        }
+        if let Some(value) = self.aria.numeric_value {
+            node.set_numeric_value(value);
+        }
+        if let Some(value) = self.aria.min_numeric_value {
+            node.set_min_numeric_value(value);
+        }
+        if let Some(value) = self.aria.max_numeric_value {
+            node.set_max_numeric_value(value);
+        }
+        if let Some(step) = self.aria.numeric_value_step {
+            node.set_numeric_value_step(step);
+        }
+        if let Some(value) = &self.aria.value {
+            node.set_value(value.to_string());
+        }
+        if let Some(placeholder) = &self.aria.placeholder {
+            node.set_placeholder(placeholder.to_string());
+        }
+        if let Some(orientation) = self.aria.orientation {
+            node.set_orientation(orientation);
+        }
+        if let Some(level) = self.aria.level {
+            node.set_level(level);
+        }
+        if let Some(position) = self.aria.position_in_set {
+            node.set_position_in_set(position);
+        }
+        if let Some(size) = self.aria.size_of_set {
+            node.set_size_of_set(size);
+        }
+        if let Some(index) = self.aria.row_index {
+            node.set_row_index(index);
+        }
+        if let Some(index) = self.aria.column_index {
+            node.set_column_index(index);
+        }
+        if let Some(count) = self.aria.row_count {
+            node.set_row_count(count);
+        }
+        if let Some(count) = self.aria.column_count {
+            node.set_column_count(count);
+        }
+        if !self.click_listeners.is_empty() {
+            node.add_action(accesskit::Action::Click);
+        }
+        if self.tracked_focus_handle.is_some() || self.focusable {
+            node.add_action(accesskit::Action::Focus);
+        }
+        for (action, _) in &self.a11y_action_listeners {
+            node.add_action(*action);
+        }
+    }
 }
 
 /// The per-frame state of an interactive element. Used for tracking stateful interactions like clicks
@@ -4143,6 +4453,22 @@ where
 
     fn source_location(&self) -> Option<&'static core::panic::Location<'static>> {
         self.element.source_location()
+    }
+
+    fn a11y_role(&self) -> Option<accesskit::Role> {
+        self.element.a11y_role()
+    }
+
+    fn write_a11y_info(&self, node: &mut accesskit::Node) {
+        self.element.write_a11y_info(node);
+    }
+
+    fn a11y_synthetic_children(
+        &mut self,
+        prepaint: &mut Self::PrepaintState,
+        builder: &mut crate::A11ySubtreeBuilder,
+    ) {
+        self.element.a11y_synthetic_children(prepaint, builder);
     }
 
     fn request_layout(
@@ -4692,7 +5018,16 @@ impl ScrollHandle {
             (true, state.dependent_views.clone())
         };
 
-        if changed {
+        if changed && source == ScrollMutationSource::Wheel {
+            // Wheel input publishes outside prepaint. Invalidate its complete tracked view set
+            // in the input turn so a concurrent content update cannot overtake the scroll render.
+            cx.notify(owner);
+            for entity_id in dependent_views {
+                if entity_id != owner {
+                    cx.notify(entity_id);
+                }
+            }
+        } else if changed {
             cx.defer(move |cx| {
                 cx.notify(owner);
                 for entity_id in dependent_views {
@@ -5327,6 +5662,58 @@ mod tests {
             .unwrap();
         assert_eq!(owner_notifications.get(), 1);
         assert_eq!(dependent_notifications.get(), 1);
+    }
+
+    #[test]
+    fn wheel_publication_invalidates_the_owner_before_the_effect_cycle_ends() {
+        let mut app = TestAppContext::single();
+        let handle = ScrollHandle::new();
+        let window = app.add_window({
+            let handle = handle.clone();
+            move |_, _| ScrollMetricsOwner { handle }
+        });
+        let owner = window.entity(&app).unwrap().entity_id();
+        let any_window = window.into();
+        app.update_window(any_window, |_, window, cx| window.draw(cx).clear())
+            .unwrap();
+        let (max_offset, bounds) = {
+            let state = handle.0.borrow();
+            (state.max_offset, state.bounds)
+        };
+
+        let wheel_invalidated_in_turn = app
+            .update_window(any_window, |_, window, cx| {
+                assert!(!window.is_dirty());
+                assert!(handle.publish_offset(
+                    point(px(-10.0), px(-20.0)),
+                    max_offset,
+                    bounds,
+                    ScrollMutationSource::Wheel,
+                    owner,
+                    cx,
+                ));
+                window.is_dirty()
+            })
+            .unwrap();
+        assert!(wheel_invalidated_in_turn);
+
+        app.update_window(any_window, |_, window, cx| window.draw(cx).clear())
+            .unwrap();
+        let deferred_invalidated_in_turn = app
+            .update_window(any_window, |_, window, cx| {
+                assert!(!window.is_dirty());
+                assert!(handle.publish_offset(
+                    point(px(-20.0), px(-40.0)),
+                    max_offset,
+                    bounds,
+                    ScrollMutationSource::Deferred,
+                    owner,
+                    cx,
+                ));
+                window.is_dirty()
+            })
+            .unwrap();
+        assert!(!deferred_invalidated_in_turn);
     }
 
     struct TestTooltipView;

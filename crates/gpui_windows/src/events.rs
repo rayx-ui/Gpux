@@ -50,6 +50,7 @@ impl WindowsWindowInner {
                 None
             }
             WM_ACTIVATE => self.handle_activate_msg(wparam),
+            WM_GETOBJECT => self.handle_wm_getobject(wparam, lparam),
             WM_CREATE => self.handle_create_msg(handle),
             WM_MOVE => self.handle_move_msg(handle, lparam),
             WM_SIZE => self.handle_size_msg(wparam, lparam),
@@ -805,6 +806,22 @@ impl WindowsWindowInner {
             .detach();
 
         None
+    }
+
+    fn handle_wm_getobject(&self, wparam: WPARAM, lparam: LPARAM) -> Option<isize> {
+        let result = {
+            let mut a11y = self.state.a11y.borrow_mut();
+            let a11y = a11y.as_mut()?;
+            a11y.adapter.handle_wm_getobject(
+                accesskit_windows::WPARAM(wparam.0),
+                accesskit_windows::LPARAM(lparam.0),
+                &mut a11y.activation_handler,
+            )?
+        };
+        // Conversion can re-enter this window procedure with another WM_GETOBJECT,
+        // so the adapter borrow must be released first.
+        let lresult: accesskit_windows::LRESULT = result.into();
+        Some(lresult.0)
     }
 
     fn handle_create_msg(&self, handle: HWND) -> Option<isize> {

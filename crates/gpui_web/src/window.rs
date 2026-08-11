@@ -16,7 +16,7 @@ use crate::web_viewport_scheduler::{WebViewportObservation, WebViewportScheduler
 use std::sync::Arc;
 use std::{cell::Cell, cell::RefCell, rc::Rc};
 
-use gpui_wgpu::{WgpuContext, WgpuRenderer, WgpuSurfaceConfig};
+use gpui_wgpu::{WgpuContext, WgpuRenderer, WgpuSurfaceConfig, wgpu};
 use gpux::{
     AnyWindowHandle, Bounds, Capslock, Decorations, DevicePixels, DispatchEventResult,
     EffectCapabilities, GpuSpecs, Modifiers, MouseButton, Pixels, PlatformAtlas, PlatformDisplay,
@@ -214,21 +214,52 @@ impl Drop for WebWindow {
 }
 
 impl WebWindow {
+    pub(crate) fn prepare_canvas(
+        browser_window: &web_sys::Window,
+    ) -> anyhow::Result<web_sys::HtmlCanvasElement> {
+        let document = browser_window
+            .document()
+            .ok_or_else(|| anyhow::anyhow!("No `document` found on window"))?;
+        let canvas: web_sys::HtmlCanvasElement = document
+            .create_element("canvas")
+            .map_err(|error| anyhow::anyhow!("Failed to create canvas element: {error:?}"))?
+            .dyn_into()
+            .map_err(|error| anyhow::anyhow!("Created element is not a canvas: {error:?}"))?;
+        canvas.set_tab_index(-1);
+
+        let style = canvas.style();
+        for (property, value) in [
+            ("width", "100%"),
+            ("height", "100%"),
+            ("display", "block"),
+            ("outline", "none"),
+            ("touch-action", "none"),
+        ] {
+            style.set_property(property, value).map_err(|error| {
+                anyhow::anyhow!("Failed to set canvas {property} style: {error:?}")
+            })?;
+        }
+
+        let body = document
+            .body()
+            .ok_or_else(|| anyhow::anyhow!("No `body` found on document"))?;
+        body.append_child(&canvas)
+            .map_err(|error| anyhow::anyhow!("Failed to append canvas to body: {error:?}"))?;
+        Ok(canvas)
+    }
+
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         handle: AnyWindowHandle,
         params: WindowParams,
         context: &WgpuContext,
+        canvas: web_sys::HtmlCanvasElement,
+        surface: wgpu::Surface<'static>,
         browser_window: web_sys::Window,
     ) -> anyhow::Result<Self> {
         let document = browser_window
             .document()
             .ok_or_else(|| anyhow::anyhow!("No `document` found on window"))?;
-
-        let canvas: web_sys::HtmlCanvasElement = document
-            .create_element("canvas")
-            .map_err(|e| anyhow::anyhow!("Failed to create canvas element: {e:?}"))?
-            .dyn_into()
-            .map_err(|e| anyhow::anyhow!("Created element is not a canvas: {e:?}"))?;
 
         let dpr = device_pixel_ratio(&browser_window);
         let max_texture_dimension = context.device.limits().max_texture_dimension_2d;
@@ -237,32 +268,12 @@ impl WebWindow {
         let (initial_physical_width, initial_physical_height) =
             physical_canvas_size(initial_logical_size, dpr, max_texture_dimension);
 
-        canvas.set_tab_index(-1);
         canvas.set_width(initial_physical_width);
         canvas.set_height(initial_physical_height);
-
-        let style = canvas.style();
-        style
-            .set_property("width", "100%")
-            .map_err(|e| anyhow::anyhow!("Failed to set canvas width style: {e:?}"))?;
-        style
-            .set_property("height", "100%")
-            .map_err(|e| anyhow::anyhow!("Failed to set canvas height style: {e:?}"))?;
-        style
-            .set_property("display", "block")
-            .map_err(|e| anyhow::anyhow!("Failed to set canvas display style: {e:?}"))?;
-        style
-            .set_property("outline", "none")
-            .map_err(|e| anyhow::anyhow!("Failed to set canvas outline style: {e:?}"))?;
-        style
-            .set_property("touch-action", "none")
-            .map_err(|e| anyhow::anyhow!("Failed to set touch-action style: {e:?}"))?;
 
         let body = document
             .body()
             .ok_or_else(|| anyhow::anyhow!("No `body` found on document"))?;
-        body.append_child(&canvas)
-            .map_err(|e| anyhow::anyhow!("Failed to append canvas to body: {e:?}"))?;
         let html_element_overlay_root = create_overlay_root(&document, &body)?;
 
         let input_element: web_sys::HtmlInputElement = document
@@ -292,7 +303,7 @@ impl WebWindow {
             preferred_present_mode: None,
         };
 
-        let renderer = WgpuRenderer::new_from_canvas(context, &canvas, renderer_config)?;
+        let renderer = WgpuRenderer::new_from_surface(context, surface, renderer_config)?;
         let html_in_canvas_diagnostics = detect_html_in_canvas();
         let layout_subtree_enabled = enable_layout_subtree_if_requested(
             &browser_window,
