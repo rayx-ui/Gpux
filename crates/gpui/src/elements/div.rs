@@ -5018,7 +5018,16 @@ impl ScrollHandle {
             (true, state.dependent_views.clone())
         };
 
-        if changed {
+        if changed && source == ScrollMutationSource::Wheel {
+            // Wheel input publishes outside prepaint. Invalidate its complete tracked view set
+            // in the input turn so a concurrent content update cannot overtake the scroll render.
+            cx.notify(owner);
+            for entity_id in dependent_views {
+                if entity_id != owner {
+                    cx.notify(entity_id);
+                }
+            }
+        } else if changed {
             cx.defer(move |cx| {
                 cx.notify(owner);
                 for entity_id in dependent_views {
@@ -5653,6 +5662,58 @@ mod tests {
             .unwrap();
         assert_eq!(owner_notifications.get(), 1);
         assert_eq!(dependent_notifications.get(), 1);
+    }
+
+    #[test]
+    fn wheel_publication_invalidates_the_owner_before_the_effect_cycle_ends() {
+        let mut app = TestAppContext::single();
+        let handle = ScrollHandle::new();
+        let window = app.add_window({
+            let handle = handle.clone();
+            move |_, _| ScrollMetricsOwner { handle }
+        });
+        let owner = window.entity(&app).unwrap().entity_id();
+        let any_window = window.into();
+        app.update_window(any_window, |_, window, cx| window.draw(cx).clear())
+            .unwrap();
+        let (max_offset, bounds) = {
+            let state = handle.0.borrow();
+            (state.max_offset, state.bounds)
+        };
+
+        let wheel_invalidated_in_turn = app
+            .update_window(any_window, |_, window, cx| {
+                assert!(!window.is_dirty());
+                assert!(handle.publish_offset(
+                    point(px(-10.0), px(-20.0)),
+                    max_offset,
+                    bounds,
+                    ScrollMutationSource::Wheel,
+                    owner,
+                    cx,
+                ));
+                window.is_dirty()
+            })
+            .unwrap();
+        assert!(wheel_invalidated_in_turn);
+
+        app.update_window(any_window, |_, window, cx| window.draw(cx).clear())
+            .unwrap();
+        let deferred_invalidated_in_turn = app
+            .update_window(any_window, |_, window, cx| {
+                assert!(!window.is_dirty());
+                assert!(handle.publish_offset(
+                    point(px(-20.0), px(-40.0)),
+                    max_offset,
+                    bounds,
+                    ScrollMutationSource::Deferred,
+                    owner,
+                    cx,
+                ));
+                window.is_dirty()
+            })
+            .unwrap();
+        assert!(!deferred_invalidated_in_turn);
     }
 
     struct TestTooltipView;
