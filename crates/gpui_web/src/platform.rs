@@ -46,6 +46,7 @@ pub struct WebPlatform {
     prepared_window: Rc<RefCell<Option<PreparedWebWindow>>>,
     cursor_visible: Rc<Cell<bool>>,
     last_cursor_css: Rc<Cell<&'static str>>,
+    clipboard: Rc<RefCell<Option<ClipboardItem>>>,
     _cursor_restore_listeners: Vec<EventListenerHandle>,
 }
 
@@ -143,6 +144,7 @@ impl WebPlatform {
             prepared_window: Rc::new(RefCell::new(None)),
             cursor_visible,
             last_cursor_css,
+            clipboard: Rc::new(RefCell::new(None)),
             _cursor_restore_listeners: cursor_restore_listeners,
         }
     }
@@ -328,6 +330,7 @@ impl Platform for WebPlatform {
             canvas,
             prepared_window.surface,
             self.browser_window.clone(),
+            self.clipboard.clone(),
         );
         let window = match window {
             Ok(window) => window,
@@ -497,10 +500,11 @@ impl Platform for WebPlatform {
     }
 
     fn read_from_clipboard(&self) -> Option<ClipboardItem> {
-        None
+        self.clipboard.borrow().clone()
     }
 
     fn write_to_clipboard(&self, item: ClipboardItem) {
+        *self.clipboard.borrow_mut() = Some(item.clone());
         let Some(text) = item.text() else {
             log::warn!("gpui_web clipboard currently supports text entries only");
             return;

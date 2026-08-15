@@ -1,10 +1,10 @@
 use std::rc::Rc;
 
 use gpux::{
-    Capslock, DispatchEventResult, ExternalPaths, FileDropEvent, HtmlElementInputMode,
-    HtmlIslandInputMode, IsZero, KeyDownEvent, KeyUpEvent, Keystroke, Modifiers,
-    ModifiersChangedEvent, MouseButton, NavigationDirection, Pixels, PlatformInput, Point,
-    PointerContact, PointerEvent, PointerId, PointerKind, PointerPhase, ScrollDelta,
+    Capslock, ClipboardItem, DispatchEventResult, ExternalPaths, FileDropEvent,
+    HtmlElementInputMode, HtmlIslandInputMode, IsZero, KeyDownEvent, KeyUpEvent, Keystroke,
+    Modifiers, ModifiersChangedEvent, MouseButton, NavigationDirection, Pixels, PlatformInput,
+    Point, PointerContact, PointerEvent, PointerId, PointerKind, PointerPhase, ScrollDelta,
     ScrollWheelEvent, ScrollWheelPhase, ScrollWheelSource, TouchPhase, point, px,
 };
 use smallvec::smallvec;
@@ -76,6 +76,7 @@ impl WebWindowInner {
             self.register_dragleave(),
             self.register_key_down(),
             self.register_key_up(),
+            self.register_paste(),
             self.register_text_input(),
             self.register_composition_start(),
             self.register_composition_update(),
@@ -489,6 +490,13 @@ impl WebWindowInner {
                 return;
             }
 
+            if is_paste_shortcut(&key, modifiers, this.is_mac) {
+                // Browser clipboard reads are event-based. Let the trusted
+                // `paste` event cache its payload and update the active input
+                // handler directly.
+                return;
+            }
+
             event.prevent_default();
 
             let is_held = event.repeat();
@@ -577,6 +585,26 @@ impl WebWindowInner {
             let Some(text) = event.data().filter(|text| !text.is_empty()) else {
                 return;
             };
+            this.with_input_handler(|handler| {
+                handler.replace_text_in_range(None, &text);
+            });
+            this.input_element.set_value("");
+        })
+    }
+
+    fn register_paste(self: &Rc<Self>) -> Closure<dyn FnMut(JsValue)> {
+        let this = Rc::clone(self);
+        self.listen_input("paste", move |event: JsValue| {
+            let event: web_sys::ClipboardEvent = event.unchecked_into();
+            let Some(data) = event.clipboard_data() else {
+                return;
+            };
+            let Ok(text) = data.get_data("text/plain") else {
+                return;
+            };
+
+            event.prevent_default();
+            *this.clipboard.borrow_mut() = Some(ClipboardItem::new_string(text.clone()));
             this.with_input_handler(|handler| {
                 handler.replace_text_in_range(None, &text);
             });
@@ -752,6 +780,18 @@ fn dom_key_to_gpui_key(event: &web_sys::KeyboardEvent) -> String {
             other.to_lowercase()
         }
     }
+}
+
+fn is_paste_shortcut(key: &str, modifiers: Modifiers, is_mac: bool) -> bool {
+    key == "v"
+        && !modifiers.alt
+        && !modifiers.shift
+        && !modifiers.function
+        && if is_mac {
+            modifiers.platform && !modifiers.control
+        } else {
+            modifiers.control && !modifiers.platform
+        }
 }
 
 fn dom_mouse_button_to_gpui(button: i16) -> MouseButton {
