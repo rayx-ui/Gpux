@@ -18,11 +18,12 @@ use std::{cell::Cell, cell::RefCell, rc::Rc};
 
 use gpui_wgpu::{WgpuContext, WgpuRenderer, WgpuSurfaceConfig, wgpu};
 use gpux::{
-    AnyWindowHandle, Bounds, Capslock, Decorations, DevicePixels, DispatchEventResult,
-    EffectCapabilities, GpuSpecs, Modifiers, MouseButton, Pixels, PlatformAtlas, PlatformDisplay,
-    PlatformInput, PlatformInputHandler, PlatformWindow, Point, PromptButton, PromptLevel,
-    RequestFrameOptions, ResizeEdge, Scene, Size, WindowAppearance, WindowBackgroundAppearance,
-    WindowBounds, WindowControlArea, WindowControls, WindowDecorations, WindowParams, px,
+    AnyWindowHandle, Bounds, Capslock, ClipboardItem, Decorations, DevicePixels,
+    DispatchEventResult, EffectCapabilities, GpuSpecs, Modifiers, MouseButton, Pixels,
+    PlatformAtlas, PlatformDisplay, PlatformInput, PlatformInputHandler, PlatformWindow, Point,
+    PromptButton, PromptLevel, RequestFrameOptions, ResizeEdge, Scene, Size, WindowAppearance,
+    WindowBackgroundAppearance, WindowBounds, WindowControlArea, WindowControls, WindowDecorations,
+    WindowParams, px,
 };
 use wasm_bindgen::prelude::*;
 
@@ -167,6 +168,7 @@ pub(crate) struct WebWindowInner {
     pub(crate) closed: Cell<bool>,
     pub(crate) last_physical_size: Cell<(u32, u32)>,
     pub(crate) is_composing: Cell<bool>,
+    pub(crate) clipboard: Rc<RefCell<Option<ClipboardItem>>>,
     html_island_force_frame: Cell<bool>,
     mql_handle: RefCell<Option<MqlHandle>>,
     viewport_scheduler: WebViewportScheduler,
@@ -256,6 +258,7 @@ impl WebWindow {
         canvas: web_sys::HtmlCanvasElement,
         surface: wgpu::Surface<'static>,
         browser_window: web_sys::Window,
+        clipboard: Rc<RefCell<Option<ClipboardItem>>>,
     ) -> anyhow::Result<Self> {
         let document = browser_window
             .document()
@@ -372,6 +375,7 @@ impl WebWindow {
             closed: Cell::new(false),
             last_physical_size: Cell::new((initial_physical_width, initial_physical_height)),
             is_composing: Cell::new(false),
+            clipboard,
             html_island_force_frame: Cell::new(false),
             mql_handle: RefCell::new(None),
             viewport_scheduler: WebViewportScheduler::default(),
