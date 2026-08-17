@@ -10,9 +10,9 @@
 //! [`PinchEvent`](crate::PinchEvent)s — so components written against
 //! `on_click` and scroll containers work untouched on mobile.
 
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
-use crate::{Axis, IsZero, Pixels, Point, TouchPhase, px};
+use crate::{Axis, Instant, IsZero, Pixels, Point, TouchPhase, px};
 
 const SCROLL_EVENT_SEPARATION: Duration = Duration::from_millis(28);
 
@@ -199,7 +199,7 @@ mod tests {
     use crate::point;
 
     #[test]
-    fn ongoing_scroll_locks_to_dominant_axis() {
+    fn base_completion_gesture_timing_locks_to_dominant_axis() {
         let now = Instant::now();
         let mut ongoing_scroll = OngoingScroll::default();
         let mut horizontal_delta = point(px(10.), px(2.));
@@ -218,7 +218,7 @@ mod tests {
     }
 
     #[test]
-    fn ongoing_scroll_unlocks_when_direction_changes() {
+    fn base_completion_gesture_timing_unlocks_when_direction_changes() {
         let now = Instant::now();
         let mut ongoing_scroll = OngoingScroll::default();
         let mut horizontal_delta = point(px(10.), px(2.));
@@ -235,7 +235,7 @@ mod tests {
     }
 
     #[test]
-    fn ongoing_scroll_starts_new_gesture_at_timeout_boundary() {
+    fn base_completion_gesture_timing_starts_new_gesture_at_timeout_boundary() {
         let now = Instant::now();
         let mut ongoing_scroll = OngoingScroll::default();
         let mut horizontal_delta = point(px(10.), px(2.));
@@ -252,7 +252,7 @@ mod tests {
     }
 
     #[test]
-    fn ongoing_scroll_ignores_zero_delta_and_resets_when_ended() {
+    fn base_completion_gesture_timing_ignores_zero_delta_and_resets_when_ended() {
         let now = Instant::now();
         let mut ongoing_scroll = OngoingScroll::default();
         let mut horizontal_delta = point(px(10.), px(2.));
@@ -277,7 +277,7 @@ mod tests {
     }
 
     #[test]
-    fn ongoing_scroll_ignores_zero_delta_movement() {
+    fn base_completion_gesture_timing_ignores_zero_delta_movement() {
         let now = Instant::now();
         let mut ongoing_scroll = OngoingScroll::default();
         let mut horizontal_delta = point(px(10.), px(2.));
@@ -301,7 +301,7 @@ mod tests {
     }
 
     #[test]
-    fn ongoing_scroll_supports_moved_only_platforms() {
+    fn base_completion_gesture_timing_supports_moved_only_platforms() {
         let now = Instant::now();
         let mut ongoing_scroll = OngoingScroll::default();
         let mut horizontal_delta = point(px(10.), px(2.));
