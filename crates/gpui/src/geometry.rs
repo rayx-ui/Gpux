@@ -39,6 +39,25 @@ impl Axis {
     }
 }
 
+/// Convenience queries for an [`Axis`].
+pub trait AxisExt {
+    /// Returns whether this is the horizontal axis.
+    fn is_horizontal(self) -> bool;
+
+    /// Returns whether this is the vertical axis.
+    fn is_vertical(self) -> bool;
+}
+
+impl AxisExt for Axis {
+    fn is_horizontal(self) -> bool {
+        self == Self::Horizontal
+    }
+
+    fn is_vertical(self) -> bool {
+        self == Self::Vertical
+    }
+}
+
 /// A trait for accessing the given unit along a certain axis.
 pub trait Along {
     /// The unit associated with this type
@@ -3613,6 +3632,23 @@ pub enum Length {
     Definite(DefiniteLength),
     /// An automatic length that is determined by the context in which it is used.
     Auto,
+}
+
+/// Converts optional layout lengths to pixels.
+pub trait LengthExt {
+    /// Converts a definite length using `base_size` and `rem_size`.
+    ///
+    /// Returns `None` for [`Length::Auto`].
+    fn to_pixels(&self, base_size: AbsoluteLength, rem_size: Pixels) -> Option<Pixels>;
+}
+
+impl LengthExt for Length {
+    fn to_pixels(&self, base_size: AbsoluteLength, rem_size: Pixels) -> Option<Pixels> {
+        match self {
+            Self::Auto => None,
+            Self::Definite(length) => Some(length.to_pixels(base_size, rem_size)),
+        }
+    }
 }
 
 impl Debug for Length {
