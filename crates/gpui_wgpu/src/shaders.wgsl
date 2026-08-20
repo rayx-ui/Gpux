@@ -192,6 +192,11 @@ fn transform_position(position: vec2<f32>, transform: TransformationMatrix) -> v
     return transpose(transform.rotation_scale) * position + transform.translation;
 }
 
+fn transformation_is_axis_aligned(transform: TransformationMatrix) -> bool {
+    return transform.rotation_scale[0][1] == 0.0 &&
+        transform.rotation_scale[1][0] == 0.0;
+}
+
 fn to_device_position_transformed(unit_vertex: vec2<f32>, bounds: Bounds, transform: TransformationMatrix) -> vec4<f32> {
     let position = unit_vertex * vec2<f32>(bounds.size) + bounds.origin;
     let transformed = transform_position(position, transform);
@@ -491,14 +496,19 @@ struct QuadVarying {
 fn vs_quad(@builtin(vertex_index) vertex_id: u32, @builtin(instance_index) instance_id: u32) -> QuadVarying {
     let unit_vertex = vec2<f32>(f32(vertex_id & 1u), 0.5 * f32(vertex_id & 2u));
     let quad = load_quad(instance_id);
-    let local_position = unit_vertex * vec2<f32>(quad.bounds.size) + quad.bounds.origin;
+    let antialias_margin = select(1.0, 0.0, transformation_is_axis_aligned(quad.transformation));
+    let expanded_bounds = Bounds(
+        quad.bounds.origin - vec2<f32>(antialias_margin),
+        quad.bounds.size + vec2<f32>(2.0 * antialias_margin),
+    );
+    let local_position = unit_vertex * expanded_bounds.size + expanded_bounds.origin;
 
     var out = QuadVarying();
-    out.position = to_device_position_transformed(unit_vertex, quad.bounds, quad.transformation);
+    out.position = to_device_position_transformed(unit_vertex, expanded_bounds, quad.transformation);
     out.quad_id = instance_id;
     out.clip_distances = distance_from_clip_rect_transformed(
         unit_vertex,
-        quad.bounds,
+        expanded_bounds,
         quad.content_mask.bounds,
         quad.transformation,
     );
@@ -529,13 +539,15 @@ fn fs_quad(input: QuadVarying) -> @location(0) vec4<f32> {
         quad.corner_radii.bottom_left == 0.0 &&
         quad.corner_radii.top_right == 0.0 &&
         quad.corner_radii.bottom_right == 0.0;
+    let axis_aligned = transformation_is_axis_aligned(quad.transformation);
 
-    // Fast path when the quad is not rounded and doesn't have any border
+    // Rotated and skewed outer edges need the analytic coverage path below.
     if (quad.border_widths.top == 0.0 &&
             quad.border_widths.left == 0.0 &&
             quad.border_widths.right == 0.0 &&
             quad.border_widths.bottom == 0.0 &&
-            unrounded) {
+            unrounded &&
+            axis_aligned) {
         return blend_color(background_color, 1.0);
     }
 

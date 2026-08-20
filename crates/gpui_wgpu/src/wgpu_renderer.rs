@@ -4776,6 +4776,15 @@ mod tests {
     }
 
     #[test]
+    fn transformed_quad_uses_analytic_coverage() {
+        let shader = include_str!("shaders.wgsl");
+
+        assert!(shader.contains("fn transformation_is_axis_aligned"));
+        assert!(shader.contains("let antialias_margin = select(1.0, 0.0"));
+        assert!(shader.contains("unrounded &&\n            axis_aligned"));
+    }
+
+    #[test]
     fn packed_screen_effect_layout_matches_wgsl_contract() {
         assert_eq!(size_of::<PackedScreenEffect>(), 96);
         assert_eq!(offset_of!(PackedScreenEffect, bounds), 16);
