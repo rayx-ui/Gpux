@@ -897,7 +897,8 @@ pub(crate) struct WindowFrame {
     pub(crate) cursor_styles: Vec<CursorStyleRequest>,
     #[cfg(any(test, feature = "test-support"))]
     pub(crate) debug_bounds: FxHashMap<String, Bounds<Pixels>>,
-    pub(crate) devtools_nodes: Vec<DevtoolsElementSnapshot>,
+    devtools_nodes: Vec<DevtoolsFrameNode>,
+    devtools_node_indices: Vec<usize>,
     pub(crate) devtools_property_setters: FxHashMap<usize, Vec<DevtoolsPropertySetter>>,
     pub(crate) devtools_node_stack: Vec<usize>,
     pub(crate) next_devtools_node_id: usize,
@@ -951,6 +952,7 @@ impl WindowFrame {
             debug_bounds: FxHashMap::default(),
 
             devtools_nodes: Vec::new(),
+            devtools_node_indices: Vec::new(),
             devtools_property_setters: FxHashMap::default(),
             devtools_node_stack: Vec::new(),
             next_devtools_node_id: 0,
@@ -986,6 +988,7 @@ impl WindowFrame {
         }
 
         self.devtools_nodes.clear();
+        self.devtools_node_indices.clear();
         self.devtools_property_setters.clear();
         self.devtools_node_stack.clear();
         self.next_devtools_node_id = 0;
@@ -1131,6 +1134,42 @@ pub struct DevtoolsElementSnapshot {
     pub action_listener_count: usize,
     /// Whether this element owns the currently focused dispatch node.
     pub focused: bool,
+}
+
+struct DevtoolsFrameNode {
+    devtools_node_id: usize,
+    parent_devtools_node_id: Option<usize>,
+    dispatch_node_id: usize,
+    parent_dispatch_node_id: Option<usize>,
+    type_name: &'static str,
+    global_id: Option<GlobalElementId>,
+    source: Option<&'static core::panic::Location<'static>>,
+    bounds: DevtoolsBounds,
+    semantics: DevtoolsSemantics,
+    hitbox_count: usize,
+    key_listener_count: usize,
+    action_listener_count: usize,
+    focused: bool,
+}
+
+impl DevtoolsFrameNode {
+    fn snapshot(&self) -> DevtoolsElementSnapshot {
+        DevtoolsElementSnapshot {
+            devtools_node_id: self.devtools_node_id,
+            parent_devtools_node_id: self.parent_devtools_node_id,
+            dispatch_node_id: self.dispatch_node_id,
+            parent_dispatch_node_id: self.parent_dispatch_node_id,
+            type_name: self.type_name.to_string(),
+            global_id: self.global_id.as_ref().map(ToString::to_string),
+            source: self.source.map(DevtoolsElementSource::from_location),
+            bounds: self.bounds,
+            semantics: self.semantics.clone(),
+            hitbox_count: self.hitbox_count,
+            key_listener_count: self.key_listener_count,
+            action_listener_count: self.action_listener_count,
+            focused: self.focused,
+        }
+    }
 }
 
 /// Component-authored accessibility and DevKit semantics for a rendered element.
@@ -4045,7 +4084,7 @@ impl Window {
         f: impl FnOnce(&GlobalElementId, &mut Self) -> R,
     ) -> R {
         self.with_id(element_id, |this| {
-            let global_id = GlobalElementId(Arc::from(&*this.element_id_stack));
+            let global_id = GlobalElementId::new(&this.element_id_stack);
 
             f(&global_id, this)
         })
@@ -4218,7 +4257,12 @@ impl Window {
             }
             .into(),
             effects: self.devtools_effect_snapshot(),
-            elements: self.rendered_frame.devtools_nodes.clone(),
+            elements: self
+                .rendered_frame
+                .devtools_nodes
+                .iter()
+                .map(DevtoolsFrameNode::snapshot)
+                .collect(),
         }
     }
 
@@ -4275,29 +4319,34 @@ impl Window {
             .parent_node_id(node_id)
             .map(DispatchNodeId::as_usize);
         let dispatch_node = self.next_frame.dispatch_tree.node(node_id);
-        self.next_frame
-            .devtools_nodes
-            .push(DevtoolsElementSnapshot {
-                devtools_node_id,
-                parent_devtools_node_id,
-                dispatch_node_id: node_id.as_usize(),
-                parent_dispatch_node_id,
-                type_name: type_name.to_string(),
-                global_id: global_id.map(ToString::to_string),
-                source: source.map(DevtoolsElementSource::from_location),
-                bounds: bounds.into(),
-                semantics: DevtoolsSemantics::default(),
-                hitbox_count: hitbox_range.len(),
-                key_listener_count: dispatch_node.key_listeners.len(),
-                action_listener_count: dispatch_node.action_listeners.len(),
-                focused: dispatch_node.focus_id.is_some()
-                    && dispatch_node.focus_id == self.next_frame.focus,
-            });
+        self.next_frame.devtools_node_indices[devtools_node_id] =
+            self.next_frame.devtools_nodes.len();
+        self.next_frame.devtools_nodes.push(DevtoolsFrameNode {
+            devtools_node_id,
+            parent_devtools_node_id,
+            dispatch_node_id: node_id.as_usize(),
+            parent_dispatch_node_id,
+            type_name,
+            global_id: global_id.cloned(),
+            source,
+            bounds: bounds.into(),
+            semantics: DevtoolsSemantics::default(),
+            hitbox_count: hitbox_range.len(),
+            key_listener_count: dispatch_node.key_listeners.len(),
+            action_listener_count: dispatch_node.action_listeners.len(),
+            focused: dispatch_node.focus_id.is_some()
+                && dispatch_node.focus_id == self.next_frame.focus,
+        });
     }
 
     pub(crate) fn push_devtools_node(&mut self) -> (usize, Option<usize>) {
         let devtools_node_id = self.next_frame.next_devtools_node_id;
         self.next_frame.next_devtools_node_id += 1;
+        debug_assert_eq!(
+            self.next_frame.devtools_node_indices.len(),
+            devtools_node_id
+        );
+        self.next_frame.devtools_node_indices.push(usize::MAX);
         let parent_devtools_node_id = self.next_frame.devtools_node_stack.last().copied();
         self.next_frame.devtools_node_stack.push(devtools_node_id);
         (devtools_node_id, parent_devtools_node_id)
@@ -4318,21 +4367,25 @@ impl Window {
         self.next_frame.devtools_node_stack.last().copied()
     }
 
+    fn devtools_element_mut(&mut self, devtools_node_id: usize) -> Option<&mut DevtoolsFrameNode> {
+        let node_index = *self
+            .next_frame
+            .devtools_node_indices
+            .get(devtools_node_id)?;
+        self.next_frame.devtools_nodes.get_mut(node_index)
+    }
+
     /// Attach component-authored DevKit semantics to the element currently being painted.
     pub fn set_devtools_semantics(&mut self, semantics: DevtoolsSemantics) {
         let Some(devtools_node_id) = self.active_devtools_node_id() else {
             return;
         };
-        let Some(element) = self
-            .next_frame
-            .devtools_nodes
-            .iter_mut()
-            .find(|element| element.devtools_node_id == devtools_node_id)
-        else {
+        let pointer_semantics_suppressed = self.pointer_semantics_suppressed != 0;
+        let Some(element) = self.devtools_element_mut(devtools_node_id) else {
             return;
         };
         let mut semantics = semantics;
-        if self.pointer_semantics_suppressed != 0 {
+        if pointer_semantics_suppressed {
             semantics.pointer_actions.clear();
         }
         element.semantics.merge(semantics);
@@ -4359,12 +4412,7 @@ impl Window {
         let Some(devtools_node_id) = self.active_devtools_node_id() else {
             return;
         };
-        let Some(element) = self
-            .next_frame
-            .devtools_nodes
-            .iter_mut()
-            .find(|element| element.devtools_node_id == devtools_node_id)
-        else {
+        let Some(element) = self.devtools_element_mut(devtools_node_id) else {
             return;
         };
         let dispatch_node_id = element.dispatch_node_id;
@@ -4421,12 +4469,7 @@ impl Window {
         let action_listener_count = dispatch_node.action_listeners.len();
         let focused =
             dispatch_node.focus_id.is_some() && dispatch_node.focus_id == self.next_frame.focus;
-        let Some(element) = self
-            .next_frame
-            .devtools_nodes
-            .iter_mut()
-            .find(|element| element.devtools_node_id == devtools_node_id)
-        else {
+        let Some(element) = self.devtools_element_mut(devtools_node_id) else {
             return;
         };
         element.key_listener_count = key_listener_count;
@@ -9872,6 +9915,8 @@ pub enum ElementId {
     View(EntityId),
     /// An integer ID.
     Integer(u64),
+    /// A pair of integer IDs.
+    IntegerPair(u64, u64),
     /// A string based ID.
     Name(SharedString),
     /// A UUID.
@@ -9902,6 +9947,7 @@ impl Display for ElementId {
         match self {
             ElementId::View(entity_id) => write!(f, "view-{}", entity_id)?,
             ElementId::Integer(ix) => write!(f, "{}", ix)?,
+            ElementId::IntegerPair(left, right) => write!(f, "{}-{}", left, right)?,
             ElementId::Name(name) => write!(f, "{}", name)?,
             ElementId::FocusHandle(_) => write!(f, "FocusHandle")?,
             ElementId::NamedInteger(s, i) => write!(f, "{}-{}", s, i)?,
@@ -9931,6 +9977,12 @@ impl TryInto<SharedString> for ElementId {
 impl From<usize> for ElementId {
     fn from(id: usize) -> Self {
         ElementId::Integer(id as u64)
+    }
+}
+
+impl From<(usize, usize)> for ElementId {
+    fn from((left, right): (usize, usize)) -> Self {
+        ElementId::IntegerPair(left as u64, right as u64)
     }
 }
 

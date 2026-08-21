@@ -4652,6 +4652,17 @@ impl ScrollHandle {
         self.0.try_borrow().ok().map(|state| *state.offset.borrow())
     }
 
+    /// Return the latest queued direct-scrollbar offset without publishing it.
+    pub fn pending_scrollbar_offset(&self) -> Option<Point<Pixels>> {
+        self.0
+            .try_borrow()
+            .ok()?
+            .pending_offset
+            .and_then(|(offset, source)| {
+                matches!(source, ScrollMutationSource::Scrollbar).then_some(offset)
+            })
+    }
+
     /// Get the maximum scroll offset.
     pub fn max_offset(&self) -> Point<Pixels> {
         self.0.borrow().max_offset
@@ -4904,7 +4915,38 @@ impl ScrollHandle {
         owner: EntityId,
         cx: &mut App,
     ) -> bool {
-        self.publish_offset_inner(candidate, max_offset, bounds, source, owner, false, cx)
+        self.publish_offset_inner(
+            candidate, max_offset, bounds, source, owner, false, false, cx,
+        )
+    }
+
+    /// Clamp and publish a direct scrollbar request in its pointer-input turn.
+    ///
+    /// The scrollbar already has the last accepted viewport geometry, so publishing here lets
+    /// the invalidated owner render the accepted metrics once instead of previewing a queued
+    /// offset and scheduling a second post-prepaint owner frame.
+    pub fn publish_scrollbar_offset(
+        &self,
+        candidate: Point<Pixels>,
+        owner: EntityId,
+        cx: &mut App,
+    ) -> bool {
+        let Ok(state) = self.0.try_borrow() else {
+            return false;
+        };
+        let max_offset = state.max_offset;
+        let bounds = state.bounds;
+        drop(state);
+        self.publish_offset_inner(
+            candidate,
+            max_offset,
+            bounds,
+            ScrollMutationSource::Scrollbar,
+            owner,
+            false,
+            true,
+            cx,
+        )
     }
 
     fn publish_programmatic_offset(
@@ -4922,6 +4964,7 @@ impl ScrollHandle {
             ScrollMutationSource::Programmatic,
             owner,
             true,
+            false,
             cx,
         )
     }
@@ -4935,6 +4978,7 @@ impl ScrollHandle {
         source: ScrollMutationSource,
         owner: EntityId,
         preserve_programmatic_activity: bool,
+        notify_immediately: bool,
         cx: &mut App,
     ) -> bool {
         if !candidate.x.as_f32().is_finite()
@@ -5018,9 +5062,10 @@ impl ScrollHandle {
             (true, state.dependent_views.clone())
         };
 
-        if changed && source == ScrollMutationSource::Wheel {
-            // Wheel input publishes outside prepaint. Invalidate its complete tracked view set
-            // in the input turn so a concurrent content update cannot overtake the scroll render.
+        if changed && (source == ScrollMutationSource::Wheel || notify_immediately) {
+            // Immediate input publishes outside prepaint. Invalidate its complete tracked view
+            // set in the input turn so a concurrent content update cannot overtake the scroll
+            // render and no redundant post-prepaint owner frame is needed.
             cx.notify(owner);
             for entity_id in dependent_views {
                 if entity_id != owner {
@@ -5243,13 +5288,29 @@ fn normalize_scroll_residual(residual: Point<Pixels>) -> Point<Pixels> {
 
 #[cfg(test)]
 mod tests {
+    use std::{cell::Cell, rc::Weak};
+
     use super::*;
     use crate::{
         AppContext as _, Context, InputEvent, PointerEvent, ScrollActivityKind, ScrollDirection,
         StickyAxisState, TestAppContext,
     };
-    use std::{cell::Cell, rc::Weak};
 
+    #[test]
+    fn pending_scrollbar_offset_is_read_only_and_source_filtered() {
+        let handle = ScrollHandle::new();
+        let scrollbar_offset = point(px(-40.0), px(-120.0));
+
+        assert!(handle.request_offset(
+            point(px(-10.0), px(-20.0)),
+            ScrollMutationSource::Programmatic,
+        ));
+        assert_eq!(handle.pending_scrollbar_offset(), None);
+        assert!(handle.request_offset(scrollbar_offset, ScrollMutationSource::Scrollbar,));
+
+        assert_eq!(handle.pending_scrollbar_offset(), Some(scrollbar_offset));
+        assert_eq!(handle.offset(), Point::default());
+    }
     struct ScrollMetricsOwner {
         handle: ScrollHandle,
     }
@@ -5665,7 +5726,7 @@ mod tests {
     }
 
     #[test]
-    fn wheel_publication_invalidates_the_owner_before_the_effect_cycle_ends() {
+    fn immediate_input_publication_invalidates_the_owner_before_the_effect_cycle_ends() {
         let mut app = TestAppContext::single();
         let handle = ScrollHandle::new();
         let window = app.add_window({
@@ -5714,6 +5775,18 @@ mod tests {
             })
             .unwrap();
         assert!(!deferred_invalidated_in_turn);
+
+        app.update_window(any_window, |_, window, cx| window.draw(cx).clear())
+            .unwrap();
+        let scrollbar_invalidated_in_turn = app
+            .update_window(any_window, |_, window, cx| {
+                assert!(!window.is_dirty());
+                assert!(handle.publish_scrollbar_offset(point(px(-30.0), px(-60.0)), owner, cx,));
+                assert_eq!(handle.metrics().source, ScrollMutationSource::Scrollbar);
+                window.is_dirty()
+            })
+            .unwrap();
+        assert!(scrollbar_invalidated_in_turn);
     }
 
     struct TestTooltipView;
