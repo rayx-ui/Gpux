@@ -9879,6 +9879,8 @@ pub enum ElementId {
     View(EntityId),
     /// An integer ID.
     Integer(u64),
+    /// A pair of integer IDs.
+    IntegerPair(u64, u64),
     /// A string based ID.
     Name(SharedString),
     /// A UUID.
@@ -9909,6 +9911,7 @@ impl Display for ElementId {
         match self {
             ElementId::View(entity_id) => write!(f, "view-{}", entity_id)?,
             ElementId::Integer(ix) => write!(f, "{}", ix)?,
+            ElementId::IntegerPair(left, right) => write!(f, "{}-{}", left, right)?,
             ElementId::Name(name) => write!(f, "{}", name)?,
             ElementId::FocusHandle(_) => write!(f, "FocusHandle")?,
             ElementId::NamedInteger(s, i) => write!(f, "{}-{}", s, i)?,
@@ -9938,6 +9941,12 @@ impl TryInto<SharedString> for ElementId {
 impl From<usize> for ElementId {
     fn from(id: usize) -> Self {
         ElementId::Integer(id as u64)
+    }
+}
+
+impl From<(usize, usize)> for ElementId {
+    fn from((left, right): (usize, usize)) -> Self {
+        ElementId::IntegerPair(left as u64, right as u64)
     }
 }
 
