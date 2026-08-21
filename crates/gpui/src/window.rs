@@ -898,6 +898,7 @@ pub(crate) struct WindowFrame {
     #[cfg(any(test, feature = "test-support"))]
     pub(crate) debug_bounds: FxHashMap<String, Bounds<Pixels>>,
     pub(crate) devtools_nodes: Vec<DevtoolsElementSnapshot>,
+    devtools_node_indices: Vec<usize>,
     pub(crate) devtools_property_setters: FxHashMap<usize, Vec<DevtoolsPropertySetter>>,
     pub(crate) devtools_node_stack: Vec<usize>,
     pub(crate) next_devtools_node_id: usize,
@@ -951,6 +952,7 @@ impl WindowFrame {
             debug_bounds: FxHashMap::default(),
 
             devtools_nodes: Vec::new(),
+            devtools_node_indices: Vec::new(),
             devtools_property_setters: FxHashMap::default(),
             devtools_node_stack: Vec::new(),
             next_devtools_node_id: 0,
@@ -986,6 +988,7 @@ impl WindowFrame {
         }
 
         self.devtools_nodes.clear();
+        self.devtools_node_indices.clear();
         self.devtools_property_setters.clear();
         self.devtools_node_stack.clear();
         self.next_devtools_node_id = 0;
@@ -4275,6 +4278,8 @@ impl Window {
             .parent_node_id(node_id)
             .map(DispatchNodeId::as_usize);
         let dispatch_node = self.next_frame.dispatch_tree.node(node_id);
+        self.next_frame.devtools_node_indices[devtools_node_id] =
+            self.next_frame.devtools_nodes.len();
         self.next_frame
             .devtools_nodes
             .push(DevtoolsElementSnapshot {
@@ -4298,6 +4303,11 @@ impl Window {
     pub(crate) fn push_devtools_node(&mut self) -> (usize, Option<usize>) {
         let devtools_node_id = self.next_frame.next_devtools_node_id;
         self.next_frame.next_devtools_node_id += 1;
+        debug_assert_eq!(
+            self.next_frame.devtools_node_indices.len(),
+            devtools_node_id
+        );
+        self.next_frame.devtools_node_indices.push(usize::MAX);
         let parent_devtools_node_id = self.next_frame.devtools_node_stack.last().copied();
         self.next_frame.devtools_node_stack.push(devtools_node_id);
         (devtools_node_id, parent_devtools_node_id)
@@ -4318,21 +4328,28 @@ impl Window {
         self.next_frame.devtools_node_stack.last().copied()
     }
 
+    fn devtools_element_mut(
+        &mut self,
+        devtools_node_id: usize,
+    ) -> Option<&mut DevtoolsElementSnapshot> {
+        let node_index = *self
+            .next_frame
+            .devtools_node_indices
+            .get(devtools_node_id)?;
+        self.next_frame.devtools_nodes.get_mut(node_index)
+    }
+
     /// Attach component-authored DevKit semantics to the element currently being painted.
     pub fn set_devtools_semantics(&mut self, semantics: DevtoolsSemantics) {
         let Some(devtools_node_id) = self.active_devtools_node_id() else {
             return;
         };
-        let Some(element) = self
-            .next_frame
-            .devtools_nodes
-            .iter_mut()
-            .find(|element| element.devtools_node_id == devtools_node_id)
-        else {
+        let pointer_semantics_suppressed = self.pointer_semantics_suppressed != 0;
+        let Some(element) = self.devtools_element_mut(devtools_node_id) else {
             return;
         };
         let mut semantics = semantics;
-        if self.pointer_semantics_suppressed != 0 {
+        if pointer_semantics_suppressed {
             semantics.pointer_actions.clear();
         }
         element.semantics.merge(semantics);
@@ -4359,12 +4376,7 @@ impl Window {
         let Some(devtools_node_id) = self.active_devtools_node_id() else {
             return;
         };
-        let Some(element) = self
-            .next_frame
-            .devtools_nodes
-            .iter_mut()
-            .find(|element| element.devtools_node_id == devtools_node_id)
-        else {
+        let Some(element) = self.devtools_element_mut(devtools_node_id) else {
             return;
         };
         let dispatch_node_id = element.dispatch_node_id;
@@ -4421,12 +4433,7 @@ impl Window {
         let action_listener_count = dispatch_node.action_listeners.len();
         let focused =
             dispatch_node.focus_id.is_some() && dispatch_node.focus_id == self.next_frame.focus;
-        let Some(element) = self
-            .next_frame
-            .devtools_nodes
-            .iter_mut()
-            .find(|element| element.devtools_node_id == devtools_node_id)
-        else {
+        let Some(element) = self.devtools_element_mut(devtools_node_id) else {
             return;
         };
         element.key_listener_count = key_listener_count;
