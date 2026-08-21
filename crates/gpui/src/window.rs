@@ -897,7 +897,7 @@ pub(crate) struct WindowFrame {
     pub(crate) cursor_styles: Vec<CursorStyleRequest>,
     #[cfg(any(test, feature = "test-support"))]
     pub(crate) debug_bounds: FxHashMap<String, Bounds<Pixels>>,
-    pub(crate) devtools_nodes: Vec<DevtoolsElementSnapshot>,
+    devtools_nodes: Vec<DevtoolsFrameNode>,
     devtools_node_indices: Vec<usize>,
     pub(crate) devtools_property_setters: FxHashMap<usize, Vec<DevtoolsPropertySetter>>,
     pub(crate) devtools_node_stack: Vec<usize>,
@@ -1134,6 +1134,42 @@ pub struct DevtoolsElementSnapshot {
     pub action_listener_count: usize,
     /// Whether this element owns the currently focused dispatch node.
     pub focused: bool,
+}
+
+struct DevtoolsFrameNode {
+    devtools_node_id: usize,
+    parent_devtools_node_id: Option<usize>,
+    dispatch_node_id: usize,
+    parent_dispatch_node_id: Option<usize>,
+    type_name: &'static str,
+    global_id: Option<GlobalElementId>,
+    source: Option<&'static core::panic::Location<'static>>,
+    bounds: DevtoolsBounds,
+    semantics: DevtoolsSemantics,
+    hitbox_count: usize,
+    key_listener_count: usize,
+    action_listener_count: usize,
+    focused: bool,
+}
+
+impl DevtoolsFrameNode {
+    fn snapshot(&self) -> DevtoolsElementSnapshot {
+        DevtoolsElementSnapshot {
+            devtools_node_id: self.devtools_node_id,
+            parent_devtools_node_id: self.parent_devtools_node_id,
+            dispatch_node_id: self.dispatch_node_id,
+            parent_dispatch_node_id: self.parent_dispatch_node_id,
+            type_name: self.type_name.to_string(),
+            global_id: self.global_id.as_ref().map(ToString::to_string),
+            source: self.source.map(DevtoolsElementSource::from_location),
+            bounds: self.bounds,
+            semantics: self.semantics.clone(),
+            hitbox_count: self.hitbox_count,
+            key_listener_count: self.key_listener_count,
+            action_listener_count: self.action_listener_count,
+            focused: self.focused,
+        }
+    }
 }
 
 /// Component-authored accessibility and DevKit semantics for a rendered element.
@@ -4221,7 +4257,12 @@ impl Window {
             }
             .into(),
             effects: self.devtools_effect_snapshot(),
-            elements: self.rendered_frame.devtools_nodes.clone(),
+            elements: self
+                .rendered_frame
+                .devtools_nodes
+                .iter()
+                .map(DevtoolsFrameNode::snapshot)
+                .collect(),
         }
     }
 
@@ -4280,24 +4321,22 @@ impl Window {
         let dispatch_node = self.next_frame.dispatch_tree.node(node_id);
         self.next_frame.devtools_node_indices[devtools_node_id] =
             self.next_frame.devtools_nodes.len();
-        self.next_frame
-            .devtools_nodes
-            .push(DevtoolsElementSnapshot {
-                devtools_node_id,
-                parent_devtools_node_id,
-                dispatch_node_id: node_id.as_usize(),
-                parent_dispatch_node_id,
-                type_name: type_name.to_string(),
-                global_id: global_id.map(ToString::to_string),
-                source: source.map(DevtoolsElementSource::from_location),
-                bounds: bounds.into(),
-                semantics: DevtoolsSemantics::default(),
-                hitbox_count: hitbox_range.len(),
-                key_listener_count: dispatch_node.key_listeners.len(),
-                action_listener_count: dispatch_node.action_listeners.len(),
-                focused: dispatch_node.focus_id.is_some()
-                    && dispatch_node.focus_id == self.next_frame.focus,
-            });
+        self.next_frame.devtools_nodes.push(DevtoolsFrameNode {
+            devtools_node_id,
+            parent_devtools_node_id,
+            dispatch_node_id: node_id.as_usize(),
+            parent_dispatch_node_id,
+            type_name,
+            global_id: global_id.cloned(),
+            source,
+            bounds: bounds.into(),
+            semantics: DevtoolsSemantics::default(),
+            hitbox_count: hitbox_range.len(),
+            key_listener_count: dispatch_node.key_listeners.len(),
+            action_listener_count: dispatch_node.action_listeners.len(),
+            focused: dispatch_node.focus_id.is_some()
+                && dispatch_node.focus_id == self.next_frame.focus,
+        });
     }
 
     pub(crate) fn push_devtools_node(&mut self) -> (usize, Option<usize>) {
@@ -4328,10 +4367,7 @@ impl Window {
         self.next_frame.devtools_node_stack.last().copied()
     }
 
-    fn devtools_element_mut(
-        &mut self,
-        devtools_node_id: usize,
-    ) -> Option<&mut DevtoolsElementSnapshot> {
+    fn devtools_element_mut(&mut self, devtools_node_id: usize) -> Option<&mut DevtoolsFrameNode> {
         let node_index = *self
             .next_frame
             .devtools_node_indices
