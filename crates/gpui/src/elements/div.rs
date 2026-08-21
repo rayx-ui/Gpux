@@ -4652,6 +4652,17 @@ impl ScrollHandle {
         self.0.try_borrow().ok().map(|state| *state.offset.borrow())
     }
 
+    /// Return the latest queued direct-scrollbar offset without publishing it.
+    pub fn pending_scrollbar_offset(&self) -> Option<Point<Pixels>> {
+        self.0
+            .try_borrow()
+            .ok()?
+            .pending_offset
+            .and_then(|(offset, source)| {
+                matches!(source, ScrollMutationSource::Scrollbar).then_some(offset)
+            })
+    }
+
     /// Get the maximum scroll offset.
     pub fn max_offset(&self) -> Point<Pixels> {
         self.0.borrow().max_offset
@@ -5243,13 +5254,29 @@ fn normalize_scroll_residual(residual: Point<Pixels>) -> Point<Pixels> {
 
 #[cfg(test)]
 mod tests {
+    use std::{cell::Cell, rc::Weak};
+
     use super::*;
     use crate::{
         AppContext as _, Context, InputEvent, PointerEvent, ScrollActivityKind, ScrollDirection,
         StickyAxisState, TestAppContext,
     };
-    use std::{cell::Cell, rc::Weak};
 
+    #[test]
+    fn pending_scrollbar_offset_is_read_only_and_source_filtered() {
+        let handle = ScrollHandle::new();
+        let scrollbar_offset = point(px(-40.0), px(-120.0));
+
+        assert!(handle.request_offset(
+            point(px(-10.0), px(-20.0)),
+            ScrollMutationSource::Programmatic,
+        ));
+        assert_eq!(handle.pending_scrollbar_offset(), None);
+        assert!(handle.request_offset(scrollbar_offset, ScrollMutationSource::Scrollbar,));
+
+        assert_eq!(handle.pending_scrollbar_offset(), Some(scrollbar_offset));
+        assert_eq!(handle.offset(), Point::default());
+    }
     struct ScrollMetricsOwner {
         handle: ScrollHandle,
     }
