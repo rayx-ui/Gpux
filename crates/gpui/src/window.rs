@@ -25,7 +25,8 @@ use crate::{
     TaffyLayoutEngine, Task, TextRenderingMode, TextStyle, TextStyleRefinement, ThermalState,
     TransformationMatrix, Underline, UnderlineStyle, VisualEffectPrimitive, WindowAppearance,
     WindowBackgroundAppearance, WindowBounds, WindowControls, WindowDecorations, WindowOptions,
-    WindowParams, WindowTextSystem, point, prelude::*, profiler, px, rems, size, transparent_black,
+    WindowParams, WindowTextSystem, point, prelude::*, prepare_color_with_opacity, profiler, px,
+    rems, size, transparent_black,
 };
 use anyhow::{Context as _, Result, anyhow};
 use collections::{FxHashMap, FxHashSet};
@@ -885,6 +886,7 @@ pub(crate) struct WindowFrame {
     pub(crate) window_active: bool,
     pub(crate) element_states: FxHashMap<(GlobalElementId, TypeId), ElementStateBox>,
     accessed_element_states: Vec<(GlobalElementId, TypeId)>,
+    pending_element_state_transfers: Vec<(GlobalElementId, TypeId)>,
     pub(crate) mouse_listeners: Vec<Option<AnyMouseListener>>,
     pub(crate) dispatch_tree: DispatchTree,
     pub(crate) scene: Scene,
@@ -916,6 +918,7 @@ pub(crate) struct PrepaintStateIndex {
     deferred_draws_index: usize,
     dispatch_tree_index: usize,
     accessed_element_states_index: usize,
+    pending_element_state_transfers_index: usize,
     line_layout_index: LineLayoutIndex,
 }
 
@@ -937,6 +940,7 @@ impl WindowFrame {
             window_active: false,
             element_states: FxHashMap::default(),
             accessed_element_states: Vec::new(),
+            pending_element_state_transfers: Vec::new(),
             mouse_listeners: Vec::new(),
             dispatch_tree,
             scene: Scene::default(),
@@ -969,6 +973,7 @@ impl WindowFrame {
     pub(crate) fn clear(&mut self) {
         self.element_states.clear();
         self.accessed_element_states.clear();
+        self.pending_element_state_transfers.clear();
         self.mouse_listeners.clear();
         self.dispatch_tree.clear();
         self.scene.clear();
@@ -1048,7 +1053,7 @@ impl WindowFrame {
     }
 
     pub(crate) fn finish(&mut self, prev_frame: &mut Self) {
-        for element_state_key in &self.accessed_element_states {
+        for element_state_key in &self.pending_element_state_transfers {
             if let Some((element_state_key, element_state)) =
                 prev_frame.element_states.remove_entry(element_state_key)
             {
@@ -1145,7 +1150,7 @@ struct DevtoolsFrameNode {
     global_id: Option<GlobalElementId>,
     source: Option<&'static core::panic::Location<'static>>,
     bounds: DevtoolsBounds,
-    semantics: DevtoolsSemantics,
+    semantics: Option<DevtoolsSemantics>,
     hitbox_count: usize,
     key_listener_count: usize,
     action_listener_count: usize,
@@ -1163,7 +1168,7 @@ impl DevtoolsFrameNode {
             global_id: self.global_id.as_ref().map(ToString::to_string),
             source: self.source.map(DevtoolsElementSource::from_location),
             bounds: self.bounds,
-            semantics: self.semantics.clone(),
+            semantics: self.semantics.clone().unwrap_or_default(),
             hitbox_count: self.hitbox_count,
             key_listener_count: self.key_listener_count,
             action_listener_count: self.action_listener_count,
@@ -2284,6 +2289,7 @@ pub struct Window {
     pub(crate) root: Option<AnyView>,
     pub(crate) element_id_stack: SmallVec<[ElementId; 32]>,
     pub(crate) text_style_stack: Vec<TextStyleRefinement>,
+    retained_styles: Vec<Option<Style>>,
     pub(crate) rendered_entity_stack: Vec<EntityId>,
     pub(crate) element_offset_stack: Vec<Point<Pixels>>,
     pub(crate) element_opacity: f32,
@@ -3051,6 +3057,7 @@ impl Window {
             root: None,
             element_id_stack: SmallVec::default(),
             text_style_stack: Vec::new(),
+            retained_styles: Vec::new(),
             rendered_entity_stack: Vec::new(),
             element_offset_stack: Vec::new(),
             content_mask_stack: Vec::new(),
@@ -4330,7 +4337,7 @@ impl Window {
             global_id: global_id.cloned(),
             source,
             bounds: bounds.into(),
-            semantics: DevtoolsSemantics::default(),
+            semantics: None,
             hitbox_count: hitbox_range.len(),
             key_listener_count: dispatch_node.key_listeners.len(),
             action_listener_count: dispatch_node.action_listeners.len(),
@@ -4388,7 +4395,11 @@ impl Window {
         if pointer_semantics_suppressed {
             semantics.pointer_actions.clear();
         }
-        element.semantics.merge(semantics);
+        if let Some(existing) = &mut element.semantics {
+            existing.merge(semantics);
+        } else {
+            element.semantics = Some(semantics);
+        }
     }
 
     /// Register a live writable DevKit property on the element currently being painted.
@@ -4416,16 +4427,13 @@ impl Window {
             return;
         };
         let dispatch_node_id = element.dispatch_node_id;
-        if !element
-            .semantics
+        let semantics = element.semantics.get_or_insert_default();
+        if !semantics
             .writable_properties
             .iter()
             .any(|property| property.name == setter.property.name)
         {
-            element
-                .semantics
-                .writable_properties
-                .push(setter.property.clone());
+            semantics.writable_properties.push(setter.property.clone());
         }
         self.next_frame
             .devtools_property_setters
@@ -5201,6 +5209,11 @@ impl Window {
         // Set up the per-App arena for element allocation during this draw.
         // This ensures that multiple test Apps have isolated arenas.
         let arena_scope = ElementArenaScope::enter(&cx.element_arena);
+        #[cfg(feature = "rayx_diagnostics")]
+        crate::reset_global_element_id_path_diagnostics();
+        #[cfg(feature = "rayx_diagnostics")]
+        crate::reset_style_phase_diagnostics();
+        self.retained_styles.clear();
 
         self.invalidate_entities();
         cx.entities.clear_accessed();
@@ -5227,6 +5240,44 @@ impl Window {
         }
         if !cx.mode.skip_drawing() {
             self.draw_roots(cx);
+        }
+        #[cfg(feature = "rayx_diagnostics")]
+        self.next_frame
+            .scene
+            .set_global_element_id_path_diagnostics(crate::global_element_id_path_diagnostics());
+        #[cfg(feature = "rayx_diagnostics")]
+        {
+            let text_measurement_diagnostics = crate::take_text_measurement_path_diagnostics();
+            self.layout_engine
+                .as_mut()
+                .unwrap()
+                .set_text_measurement_path_diagnostics([
+                    text_measurement_diagnostics[0],
+                    text_measurement_diagnostics[1],
+                ]);
+            self.next_frame
+                .scene
+                .set_text_measurement_miss_diagnostics([
+                    text_measurement_diagnostics[2],
+                    text_measurement_diagnostics[3],
+                    text_measurement_diagnostics[4],
+                    text_measurement_diagnostics[5],
+                ]);
+            self.next_frame
+                .scene
+                .set_line_layout_cache_diagnostics(crate::take_line_layout_cache_diagnostics());
+            self.next_frame
+                .scene
+                .set_text_shape_diagnostics(crate::take_text_shape_diagnostics());
+            self.next_frame
+                .scene
+                .set_style_phase_diagnostics(crate::style_phase_diagnostics());
+            self.next_frame
+                .scene
+                .set_taffy_layout_diagnostics(self.layout_engine.as_ref().unwrap().diagnostics());
+            self.next_frame.scene.set_taffy_node_request_diagnostics(
+                self.layout_engine.as_ref().unwrap().request_diagnostics(),
+            );
         }
         self.dirty_views.clear();
         self.next_frame.window_active = self.active.get();
@@ -5665,6 +5716,10 @@ impl Window {
             deferred_draws_index: self.next_frame.deferred_draws.len(),
             dispatch_tree_index: self.next_frame.dispatch_tree.len(),
             accessed_element_states_index: self.next_frame.accessed_element_states.len(),
+            pending_element_state_transfers_index: self
+                .next_frame
+                .pending_element_state_transfers
+                .len(),
             line_layout_index: self.text_system.layout_index(),
         }
     }
@@ -5682,6 +5737,12 @@ impl Window {
                 .map(|request| request.take()),
         );
         self.next_frame.accessed_element_states.extend(
+            self.rendered_frame.accessed_element_states[range.start.accessed_element_states_index
+                ..range.end.accessed_element_states_index]
+                .iter()
+                .map(|(id, type_id)| (id.clone(), *type_id)),
+        );
+        self.next_frame.pending_element_state_transfers.extend(
             self.rendered_frame.accessed_element_states[range.start.accessed_element_states_index
                 ..range.end.accessed_element_states_index]
                 .iter()
@@ -5757,6 +5818,12 @@ impl Window {
                 .iter()
                 .map(|(id, type_id)| (id.clone(), *type_id)),
         );
+        self.next_frame.pending_element_state_transfers.extend(
+            self.rendered_frame.accessed_element_states[range.start.accessed_element_states_index
+                ..range.end.accessed_element_states_index]
+                .iter()
+                .map(|(id, type_id)| (id.clone(), *type_id)),
+        );
         self.next_frame.tab_stops.replay(
             &self.rendered_frame.tab_stops.insertion_history
                 [range.start.tab_handle_index..range.end.tab_handle_index],
@@ -5786,6 +5853,28 @@ impl Window {
         } else {
             f(self)
         }
+    }
+
+    pub(crate) fn retain_draw_style(&mut self, style: Style) -> usize {
+        self.invalidator.debug_assert_prepaint();
+        let index = self.retained_styles.len();
+        self.retained_styles.push(Some(style));
+        index
+    }
+
+    pub(crate) fn take_draw_style(&mut self, index: usize) -> Option<Style> {
+        self.invalidator.debug_assert_paint_or_prepaint();
+        self.retained_styles.get_mut(index)?.take()
+    }
+
+    pub(crate) fn replace_draw_style(&mut self, index: usize, style: Style) {
+        self.invalidator.debug_assert_prepaint();
+        let slot = self
+            .retained_styles
+            .get_mut(index)
+            .expect("retained style index must remain valid for the current draw");
+        debug_assert!(slot.is_none());
+        *slot = Some(style);
     }
 
     /// Updates the cursor style at the platform level. This method should only be called
@@ -6359,6 +6448,9 @@ impl Window {
             self.next_frame
                 .accessed_element_states
                 .truncate(index.accessed_element_states_index);
+            self.next_frame
+                .pending_element_state_transfers
+                .truncate(index.pending_element_state_transfers_index);
             self.text_system.truncate_layouts(index.line_layout_index);
         }
         result
@@ -6852,7 +6944,7 @@ impl Window {
                 bounds: shadow_bounds.scale(scale_factor),
                 content_mask,
                 corner_radii: corner_radii.scale(scale_factor),
-                color: shadow.color.opacity(opacity).paint_color(),
+                color: prepare_color_with_opacity(&shadow.color, opacity),
                 element_bounds,
                 element_corner_radii,
                 inset: 0,
@@ -6899,7 +6991,7 @@ impl Window {
                 bounds: self.cover_bounds(hole),
                 content_mask,
                 corner_radii: hole_corner_radii.scale(scale_factor),
-                color: shadow.color.opacity(opacity).paint_color(),
+                color: prepare_color_with_opacity(&shadow.color, opacity),
                 element_bounds,
                 element_corner_radii,
                 inset: 1,
@@ -7013,8 +7105,8 @@ impl Window {
             order: 0,
             bounds: snapped_bounds,
             content_mask,
-            background: quad.background.opacity(opacity).prepare(),
-            border_color: quad.border_color.opacity(opacity).prepare(),
+            background: quad.background.prepare_with_opacity(opacity),
+            border_color: quad.border_color.prepare_with_opacity(opacity),
             corner_radii: quad.corner_radii.scale(scale_factor),
             border_widths: snapped_border_widths,
             border_style: quad.border_style,
@@ -7138,7 +7230,7 @@ impl Window {
         let opacity = self.element_opacity();
         let content_mask = self.paint_content_mask();
         let color: Background = color.into();
-        path.color = color.opacity(opacity).prepare();
+        path.color = color.prepare_with_opacity(opacity);
         let path = path.scale(scale_factor);
         let path = if self.current_element_transform() == TransformationMatrix::unit() {
             path.with_content_mask(content_mask)
@@ -7180,10 +7272,9 @@ impl Window {
             content_mask,
             color: style
                 .color
-                .clone()
-                .unwrap_or_default()
-                .opacity(element_opacity)
-                .paint_color(),
+                .as_ref()
+                .map(|color| prepare_color_with_opacity(color, element_opacity))
+                .unwrap_or_default(),
             thickness,
             wavy: if style.wavy { 1 } else { 0 },
             transformation: self.current_element_transform(),
@@ -7218,10 +7309,9 @@ impl Window {
             thickness: self.snap_stroke(style.thickness),
             color: style
                 .color
-                .clone()
-                .unwrap_or_default()
-                .opacity(opacity)
-                .paint_color(),
+                .as_ref()
+                .map(|color| prepare_color_with_opacity(color, opacity))
+                .unwrap_or_default(),
             wavy: 0,
             transformation: self.current_element_transform(),
         });
@@ -7298,7 +7388,7 @@ impl Window {
                     pad: 0,
                     bounds,
                     content_mask,
-                    color: color.opacity(element_opacity).paint_color(),
+                    color: prepare_color_with_opacity(&color, element_opacity),
                     tile,
                     transformation,
                 });
@@ -7308,7 +7398,7 @@ impl Window {
                     kind: MonochromeSpriteKind::Glyph,
                     bounds,
                     content_mask,
-                    color: color.opacity(element_opacity).paint_color(),
+                    color: prepare_color_with_opacity(&color, element_opacity),
                     tile,
                     transformation,
                 });
@@ -7358,7 +7448,7 @@ impl Window {
                 kind: MonochromeSpriteKind::Glyph,
                 bounds,
                 content_mask,
-                color: color.opacity(element_opacity).paint_color(),
+                color: prepare_color_with_opacity(&color, element_opacity),
                 tile,
                 transformation,
             });
@@ -7558,7 +7648,7 @@ impl Window {
             kind: MonochromeSpriteKind::ImageMask,
             bounds: final_bounds,
             content_mask,
-            color: color.opacity(element_opacity).paint_color(),
+            color: prepare_color_with_opacity(&color, element_opacity),
             tile,
             transformation: self.current_element_transform().compose(transformation),
         });
@@ -7750,6 +7840,27 @@ impl Window {
         )
     }
 
+    pub(crate) fn request_layout_ref(
+        &mut self,
+        style: &Style,
+        children: impl IntoIterator<Item = LayoutId>,
+        cx: &mut App,
+    ) -> LayoutId {
+        self.invalidator.debug_assert_prepaint();
+
+        cx.layout_id_buffer.clear();
+        cx.layout_id_buffer.extend(children);
+        let rem_size = self.rem_size();
+        let scale_factor = self.scale_factor();
+
+        self.layout_engine.as_mut().unwrap().request_layout_ref(
+            style,
+            rem_size,
+            scale_factor,
+            &cx.layout_id_buffer,
+        )
+    }
+
     /// Add a node to the layout tree for the current frame. Instead of taking a `Style` and children,
     /// this variant takes a function that is invoked during layout so you can use arbitrary logic to
     /// determine the element's size. One place this is used internally is when measuring text.
@@ -7758,11 +7869,18 @@ impl Window {
     /// returns a `Size`.
     ///
     /// This method should only be called as part of the request_layout or prepaint phase of element drawing.
+    #[cfg_attr(feature = "rayx_diagnostics", track_caller)]
     pub fn request_measured_layout<F>(&mut self, style: Style, measure: F) -> LayoutId
     where
         F: Fn(Size<Option<Pixels>>, Size<AvailableSpace>, &mut Window, &mut App) -> Size<Pixels>
             + 'static,
     {
+        #[cfg(feature = "rayx_diagnostics")]
+        let kind = crate::taffy::MeasuredLayoutKind::from_source_file(
+            std::panic::Location::caller().file(),
+        );
+        #[cfg(not(feature = "rayx_diagnostics"))]
+        let kind = crate::taffy::MeasuredLayoutKind::Custom;
         self.invalidator.debug_assert_prepaint();
 
         let rem_size = self.rem_size();
@@ -7770,7 +7888,29 @@ impl Window {
         self.layout_engine
             .as_mut()
             .unwrap()
-            .request_measured_layout(style, rem_size, scale_factor, measure)
+            .request_measured_layout(style, rem_size, scale_factor, kind, measure)
+    }
+
+    #[cfg_attr(feature = "rayx_diagnostics", track_caller)]
+    pub(crate) fn request_measured_layout_ref<F>(&mut self, style: &Style, measure: F) -> LayoutId
+    where
+        F: Fn(Size<Option<Pixels>>, Size<AvailableSpace>, &mut Window, &mut App) -> Size<Pixels>
+            + 'static,
+    {
+        #[cfg(feature = "rayx_diagnostics")]
+        let kind = crate::taffy::MeasuredLayoutKind::from_source_file(
+            std::panic::Location::caller().file(),
+        );
+        #[cfg(not(feature = "rayx_diagnostics"))]
+        let kind = crate::taffy::MeasuredLayoutKind::Custom;
+        self.invalidator.debug_assert_prepaint();
+
+        let rem_size = self.rem_size();
+        let scale_factor = self.scale_factor();
+        self.layout_engine
+            .as_mut()
+            .unwrap()
+            .request_measured_layout_ref(style, rem_size, scale_factor, kind, measure)
     }
 
     /// Compute the layout for the given id within the given available space.

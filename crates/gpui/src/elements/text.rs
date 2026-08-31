@@ -18,6 +18,25 @@ use std::{
     sync::Arc,
 };
 
+#[cfg(feature = "rayx_diagnostics")]
+thread_local! {
+    static TEXT_MEASUREMENT_PATH_DIAGNOSTICS: Cell<[u64; 6]> = const { Cell::new([0; 6]) };
+}
+
+#[cfg(feature = "rayx_diagnostics")]
+fn record_text_measurement_path(index: usize) {
+    TEXT_MEASUREMENT_PATH_DIAGNOSTICS.with(|diagnostics| {
+        let mut values = diagnostics.get();
+        values[index] += 1;
+        diagnostics.set(values);
+    });
+}
+
+#[cfg(feature = "rayx_diagnostics")]
+pub(crate) fn take_text_measurement_path_diagnostics() -> [u64; 6] {
+    TEXT_MEASUREMENT_PATH_DIAGNOSTICS.with(|diagnostics| diagnostics.replace([0; 6]))
+}
+
 /// An [`Element`] that renders text.
 ///
 /// In general, [`Text`] objects should be created via the [`text`] macro:
@@ -696,19 +715,51 @@ impl TextLayout {
                 // 4. the cached layout was not truncated (a truncated layout answers an
                 //    unconstrained probe with the truncated size, which poisons intrinsic
                 //    sizing with whatever width some earlier measure pass happened to use)
-                if let Some(text_layout) = element_state.0.borrow().as_ref()
-                    && let Some(size) = text_layout.size
-                    && (wrap_width.is_none() || wrap_width == text_layout.wrap_width)
-                    && truncate_width.is_none()
-                    && text_layout.truncate_width.is_none()
+                #[cfg(feature = "rayx_diagnostics")]
+                let full_layout_reason;
                 {
-                    return size;
+                    let cached_layout = element_state.0.borrow();
+                    if let Some(text_layout) = cached_layout.as_ref()
+                        && let Some(size) = text_layout.size
+                    {
+                        if wrap_width.is_some() && wrap_width != text_layout.wrap_width {
+                            #[cfg(feature = "rayx_diagnostics")]
+                            {
+                                full_layout_reason = 3;
+                            }
+                        } else if truncate_width.is_some() {
+                            #[cfg(feature = "rayx_diagnostics")]
+                            {
+                                full_layout_reason = 4;
+                            }
+                        } else if text_layout.truncate_width.is_some() {
+                            #[cfg(feature = "rayx_diagnostics")]
+                            {
+                                full_layout_reason = 5;
+                            }
+                        } else {
+                            #[cfg(feature = "rayx_diagnostics")]
+                            record_text_measurement_path(0);
+                            return size;
+                        }
+                    } else {
+                        #[cfg(feature = "rayx_diagnostics")]
+                        {
+                            full_layout_reason = 2;
+                        }
+                    }
                 }
 
-                let mut line_wrapper =
-                    cx.text_system()
-                        .line_wrapper(text_style.font(), font_size, letter_spacing);
+                #[cfg(feature = "rayx_diagnostics")]
+                {
+                    record_text_measurement_path(1);
+                    record_text_measurement_path(full_layout_reason);
+                }
+
                 let (text, runs) = if let Some(truncate_width) = truncate_width {
+                    let mut line_wrapper =
+                        cx.text_system()
+                            .line_wrapper(text_style.font(), font_size, letter_spacing);
                     if let Some(max_lines) = text_style.line_clamp
                         && let Some(wrap_width) = wrap_width
                     {
@@ -1323,5 +1374,19 @@ mod tests {
             make_text_unstable_id(false).id,
             make_text_unstable_id(true).id
         );
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    #[test]
+    fn text_measurement_path_diagnostics_are_drained() {
+        take_text_measurement_path_diagnostics();
+        record_text_measurement_path(0);
+        record_text_measurement_path(1);
+        record_text_measurement_path(1);
+        record_text_measurement_path(2);
+        record_text_measurement_path(5);
+
+        assert_eq!(take_text_measurement_path_diagnostics(), [1, 2, 1, 0, 0, 1]);
+        assert_eq!(take_text_measurement_path_diagnostics(), [0; 6]);
     }
 }

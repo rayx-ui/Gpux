@@ -54,6 +54,31 @@ const DRAG_THRESHOLD: f64 = 2.;
 const TOOLTIP_SHOW_DELAY: Duration = Duration::from_millis(500);
 const HOVERABLE_TOOLTIP_HIDE_DELAY: Duration = Duration::from_millis(500);
 
+#[cfg(feature = "rayx_diagnostics")]
+thread_local! {
+    static STYLE_PHASE_DIAGNOSTICS: RefCell<[u64; 14]> = const { RefCell::new([0; 14]) };
+}
+
+#[cfg(feature = "rayx_diagnostics")]
+pub(crate) fn reset_style_phase_diagnostics() {
+    STYLE_PHASE_DIAGNOSTICS.with_borrow_mut(|diagnostics| *diagnostics = [0; 14]);
+}
+
+#[cfg(feature = "rayx_diagnostics")]
+pub(crate) fn style_phase_diagnostics() -> [u64; 14] {
+    STYLE_PHASE_DIAGNOSTICS.with_borrow(|diagnostics| *diagnostics)
+}
+
+#[cfg(feature = "rayx_diagnostics")]
+fn record_style_phase(index: usize) {
+    STYLE_PHASE_DIAGNOSTICS.with_borrow_mut(|diagnostics| diagnostics[index] += 1);
+}
+
+#[cfg(feature = "rayx_diagnostics")]
+fn gpux_owns_request_style(file: &str) -> bool {
+    file.contains("crates/gpui/src/elements/") || file.contains("crates\\gpui\\src\\elements\\")
+}
+
 /// The styling information for a given group.
 pub struct GroupStyle {
     /// The identifier for this group.
@@ -2055,13 +2080,13 @@ impl Element for Div {
             .map(|provider| provider.provide(window, cx));
 
         let layout_id = window.with_image_cache(image_cache, |window| {
-            self.interactivity.request_layout(
+            self.interactivity.request_layout_with_style_handoff(
                 global_id,
                 inspector_id,
                 window,
                 cx,
                 |style, window, cx| {
-                    sticky_occurrence = window.reserve_sticky_candidate(&style);
+                    sticky_occurrence = window.reserve_sticky_candidate(style);
                     sticky_layout_context_id = window.reserve_sticky_layout_context(style.overflow);
                     let layout_id = window.with_text_style(style.text_style().cloned(), |window| {
                         let mut request_children = |window: &mut Window| {
@@ -2080,7 +2105,7 @@ impl Element for Div {
                         } else {
                             request_children(window);
                         }
-                        window.request_layout(style, child_layout_ids.iter().copied(), cx)
+                        window.request_layout_ref(style, child_layout_ids.iter().copied(), cx)
                     });
                     window.complete_sticky_candidate(sticky_occurrence, layout_id);
                     layout_id
@@ -2440,10 +2465,16 @@ pub struct Interactivity {
 
     pub(crate) current_sticky_state: Option<StickyState>,
     pub(crate) sticky_occurrence: Option<usize>,
+    pub(crate) style_handoff_index: Option<usize>,
+    #[cfg(feature = "rayx_diagnostics")]
+    pub(crate) request_prepaint_style_candidate: bool,
+    #[cfg(feature = "rayx_diagnostics")]
+    pub(crate) request_style_is_gpux_owned: bool,
 }
 
 impl Interactivity {
     /// Layout this element according to this interactivity state's configured styles
+    #[cfg_attr(feature = "rayx_diagnostics", track_caller)]
     pub fn request_layout(
         &mut self,
         global_id: Option<&GlobalElementId>,
@@ -2452,6 +2483,49 @@ impl Interactivity {
         cx: &mut App,
         f: impl FnOnce(Style, &mut Window, &mut App) -> LayoutId,
     ) -> LayoutId {
+        #[cfg(feature = "rayx_diagnostics")]
+        let request_style_is_gpux_owned =
+            gpux_owns_request_style(std::panic::Location::caller().file());
+        #[cfg(not(feature = "rayx_diagnostics"))]
+        let request_style_is_gpux_owned = false;
+
+        self.request_layout_inner(
+            global_id,
+            _inspector_id,
+            window,
+            cx,
+            request_style_is_gpux_owned,
+            false,
+            |style, window, cx| f(mem::take(style), window, cx),
+        )
+    }
+
+    pub(crate) fn request_layout_with_style_handoff(
+        &mut self,
+        global_id: Option<&GlobalElementId>,
+        inspector_id: Option<&InspectorElementId>,
+        window: &mut Window,
+        cx: &mut App,
+        f: impl FnOnce(&mut Style, &mut Window, &mut App) -> LayoutId,
+    ) -> LayoutId {
+        self.request_layout_inner(global_id, inspector_id, window, cx, true, true, f)
+    }
+
+    fn request_layout_inner(
+        &mut self,
+        global_id: Option<&GlobalElementId>,
+        _inspector_id: Option<&InspectorElementId>,
+        window: &mut Window,
+        cx: &mut App,
+        request_style_is_gpux_owned: bool,
+        retain_request_style: bool,
+        f: impl FnOnce(&mut Style, &mut Window, &mut App) -> LayoutId,
+    ) -> LayoutId {
+        debug_assert!(!retain_request_style || request_style_is_gpux_owned);
+        self.style_handoff_index = None;
+        #[cfg(feature = "rayx_diagnostics")]
+        record_style_phase(0);
+
         #[cfg(any(feature = "inspector", debug_assertions))]
         window.with_inspector_state(
             _inspector_id,
@@ -2525,9 +2599,27 @@ impl Interactivity {
                     );
                 }
 
-                let style =
+                #[cfg(feature = "rayx_diagnostics")]
+                if self.base_style.as_ref() == &StyleRefinement::default() {
+                    record_style_phase(13);
+                }
+
+                let mut style =
                     self.compute_style_internal(None, element_state.as_mut(), None, window, cx);
-                let layout_id = f(style, window, cx);
+                let request_prepaint_style_candidate = !self.has_dynamic_paint_refinement();
+                #[cfg(feature = "rayx_diagnostics")]
+                {
+                    self.request_prepaint_style_candidate = request_prepaint_style_candidate;
+                    self.request_style_is_gpux_owned = request_style_is_gpux_owned;
+                    if self.request_prepaint_style_candidate {
+                        record_style_phase(6);
+                        record_style_phase(if request_style_is_gpux_owned { 8 } else { 9 });
+                    }
+                }
+                let layout_id = f(&mut style, window, cx);
+                if retain_request_style && request_prepaint_style_candidate {
+                    self.style_handoff_index = Some(window.retain_draw_style(style));
+                }
                 (layout_id, element_state)
             },
         )
@@ -2552,7 +2644,22 @@ impl Interactivity {
             &mut App,
         ) -> R,
     ) -> R {
+        #[cfg(feature = "rayx_diagnostics")]
+        {
+            record_style_phase(1);
+            let request_style_is_gpux_owned = self.request_style_is_gpux_owned;
+            self.request_style_is_gpux_owned = false;
+            if std::mem::take(&mut self.request_prepaint_style_candidate)
+                && !self.has_dynamic_paint_refinement()
+            {
+                record_style_phase(7);
+                record_style_phase(if request_style_is_gpux_owned { 10 } else { 11 });
+            }
+        }
+
         self.content_size = content_size;
+        let style_handoff_index = self.style_handoff_index.take();
+        let mut request_style = style_handoff_index.and_then(|index| window.take_draw_style(index));
 
         #[cfg(any(feature = "inspector", debug_assertions))]
         window.with_inspector_state(
@@ -2595,8 +2702,17 @@ impl Interactivity {
             |element_state, window| {
                 let mut element_state =
                     element_state.map(|element_state| element_state.unwrap_or_default());
-                let style =
-                    self.compute_style_internal(None, element_state.as_mut(), None, window, cx);
+                let can_reuse_request_style =
+                    request_style.is_some() && !self.has_dynamic_paint_refinement();
+                #[cfg(feature = "rayx_diagnostics")]
+                if can_reuse_request_style {
+                    record_style_phase(12);
+                }
+                let mut style = if can_reuse_request_style {
+                    request_style.take().unwrap()
+                } else {
+                    self.compute_style_internal(None, element_state.as_mut(), None, window, cx)
+                };
                 let (positioned_bounds, sticky_state) = window
                     .resolve_positioned_bounds_and_sticky_state(
                         &style,
@@ -2605,14 +2721,22 @@ impl Interactivity {
                     );
                 self.current_sticky_state = sticky_state;
                 self.update_sticky_state(element_state.as_mut(), sticky_state, window, cx);
-                let style = self.compute_style_internal(
-                    None,
-                    element_state.as_mut(),
-                    sticky_state.as_ref(),
-                    window,
-                    cx,
-                );
+                let should_recompute_style = self.sticky_state_changed_listener.is_some()
+                    || sticky_state
+                        .is_some_and(|state| state.is_stuck() && self.stuck_style.is_some());
+                if should_recompute_style {
+                    #[cfg(feature = "rayx_diagnostics")]
+                    record_style_phase(2);
+                    style = self.compute_style_internal(
+                        None,
+                        element_state.as_mut(),
+                        sticky_state.as_ref(),
+                        window,
+                        cx,
+                    );
+                }
                 let bounds = positioned_bounds.visual_bounds;
+                let retain_style = !self.has_dynamic_paint_refinement();
 
                 if let Some(element_state) = element_state.as_mut() {
                     if let Some(clicked_state) = element_state.clicked_state.as_ref() {
@@ -2662,6 +2786,15 @@ impl Interactivity {
                                     window,
                                     cx,
                                 );
+                                if retain_style {
+                                    let index = if let Some(index) = style_handoff_index {
+                                        window.replace_draw_style(index, style);
+                                        index
+                                    } else {
+                                        window.retain_draw_style(style)
+                                    };
+                                    self.style_handoff_index = Some(index);
+                                }
                                 (result, element_state)
                             },
                         )
@@ -2671,6 +2804,16 @@ impl Interactivity {
                 prepaint(window)
             },
         )
+    }
+
+    fn has_dynamic_paint_refinement(&self) -> bool {
+        self.focus_style.is_some()
+            || self.in_focus_style.is_some()
+            || self.focus_visible_style.is_some()
+            || self.hover_style.is_some()
+            || self.group_hover_style.is_some()
+            || self.active_style.is_some()
+            || self.group_active_style.is_some()
     }
 
     fn should_insert_hitbox(&self, style: &Style, window: &Window, cx: &App) -> bool {
@@ -2831,6 +2974,24 @@ impl Interactivity {
         cx: &mut App,
         f: impl FnOnce(&Style, &mut Window, &mut App),
     ) {
+        let mut prepaint_style = self
+            .style_handoff_index
+            .take()
+            .and_then(|index| window.take_draw_style(index));
+        let can_reuse_prepaint_style = prepaint_style.is_some()
+            && !self.has_dynamic_paint_refinement()
+            && (hitbox.is_none() || !window.has_active_drags());
+        #[cfg(feature = "rayx_diagnostics")]
+        {
+            record_style_phase(3);
+            if !self.has_dynamic_paint_refinement() {
+                record_style_phase(4);
+                if can_reuse_prepaint_style {
+                    record_style_phase(5);
+                }
+            }
+        }
+
         self.hovered = hitbox.map(|hitbox| hitbox.is_hovered(window));
         window.with_optional_element_state::<InteractiveElementState, _>(
             global_id,
@@ -2838,13 +2999,17 @@ impl Interactivity {
                 let mut element_state =
                     element_state.map(|element_state| element_state.unwrap_or_default());
 
-                let style = self.compute_style_internal(
-                    hitbox,
-                    element_state.as_mut(),
-                    self.current_sticky_state.as_ref(),
-                    window,
-                    cx,
-                );
+                let style = if can_reuse_prepaint_style {
+                    prepaint_style.take().unwrap()
+                } else {
+                    self.compute_style_internal(
+                        hitbox,
+                        element_state.as_mut(),
+                        self.current_sticky_state.as_ref(),
+                        window,
+                        cx,
+                    )
+                };
 
                 #[cfg(any(feature = "test-support", test))]
                 if let Some(debug_selector) = &self.debug_selector {

@@ -5,6 +5,11 @@ pub use gpux::Platform;
 
 use std::rc::Rc;
 
+#[cfg(target_family = "wasm")]
+unsafe extern "C" {
+    fn __wasm_call_ctors();
+}
+
 /// Returns a background executor for the current platform.
 pub fn background_executor() -> gpux::BackgroundExecutor {
     current_platform(true).background_executor()
@@ -69,6 +74,9 @@ pub fn application_with_web_backend(backend_preference: WebBackendPreference) ->
 /// Call this before running the application in a wasm_bindgen entrypoint.
 #[cfg(target_family = "wasm")]
 pub fn web_init() {
+    // SAFETY: wasm-ld synthesizes this function from the module's constructor
+    // list. Browser applications call web_init once before using GPUI.
+    unsafe { __wasm_call_ctors() };
     console_error_panic_hook::set_once();
     gpui_web::init_logging();
 }

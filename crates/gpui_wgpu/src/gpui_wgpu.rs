@@ -1,4 +1,6 @@
 mod cosmic_text_system;
+#[cfg(feature = "rayx_diagnostics")]
+mod frame_telemetry;
 #[cfg(target_family = "wasm")]
 mod html_island_texture;
 #[cfg(target_family = "wasm")]
@@ -8,6 +10,8 @@ mod wgpu_context;
 mod wgpu_renderer;
 
 pub use cosmic_text_system::*;
+#[cfg(feature = "rayx_diagnostics")]
+pub use frame_telemetry::*;
 #[cfg(target_family = "wasm")]
 pub use html_island_texture::*;
 #[cfg(target_family = "wasm")]

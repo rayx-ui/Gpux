@@ -1190,6 +1190,22 @@ impl Background {
                 .collect(),
         }
     }
+
+    pub(crate) fn prepare_with_opacity(&self, opacity: f32) -> PreparedBackground {
+        if opacity == 1.0 {
+            self.prepare()
+        } else {
+            self.opacity(opacity).prepare()
+        }
+    }
+}
+
+pub(crate) fn prepare_color_with_opacity(color: &Color, opacity: f32) -> PaintColor {
+    if opacity == 1.0 {
+        color.paint_color()
+    } else {
+        color.opacity(opacity).paint_color()
+    }
 }
 
 pub(crate) fn serialize_color_as_hsla<S>(color: &Color, serializer: S) -> Result<S::Ok, S::Error>
@@ -1358,6 +1374,50 @@ mod tests {
         assert_eq!(background.opacity(0.5).stops[1], to.opacity(0.5));
         assert!(!background.is_transparent());
         assert!(background.opacity(0.0).is_transparent());
+    }
+
+    #[test]
+    fn identity_opacity_prepares_original_color_cache() {
+        let color: Color = Hsla::from(rgba(0x3366_99cc)).into();
+        let expected = color.opacity(1.0).paint_color();
+
+        assert_eq!(color.paint_color_initialization_count(), 0);
+        assert_eq!(prepare_color_with_opacity(&color, 1.0), expected);
+        assert_eq!(prepare_color_with_opacity(&color, 1.0), expected);
+        assert_eq!(color.paint_color_initialization_count(), 1);
+    }
+
+    #[test]
+    fn non_identity_opacity_preserves_existing_preparation() {
+        let color: Color = Hsla::from(rgba(0x3366_99cc)).into();
+
+        assert_eq!(
+            prepare_color_with_opacity(&color, 0.42),
+            color.opacity(0.42).paint_color()
+        );
+    }
+
+    #[test]
+    fn identity_opacity_prepares_background_without_rebuilding_colors() {
+        let background = linear_gradient(
+            90.0,
+            [
+                linear_color_stop(rgba(0x3366_99cc), 0.0),
+                linear_color_stop(rgba(0x99cc_33aa), 1.0),
+            ],
+        );
+        let expected = background.opacity(1.0).prepare();
+
+        assert_eq!(background.solid.paint_color_initialization_count(), 0);
+        for stop in &background.stops {
+            assert_eq!(stop.color.paint_color_initialization_count(), 0);
+        }
+
+        assert_eq!(background.prepare_with_opacity(1.0), expected);
+        assert_eq!(background.solid.paint_color_initialization_count(), 1);
+        for stop in &background.stops {
+            assert_eq!(stop.color.paint_color_initialization_count(), 1);
+        }
     }
 
     #[test]

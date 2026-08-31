@@ -350,7 +350,7 @@ impl Element for UniformList {
     ) -> (LayoutId, Self::RequestLayoutState) {
         let max_items = self.item_count;
         let item_size = self.measure_item(None, window, cx);
-        let layout_id = self.interactivity.request_layout(
+        let layout_id = self.interactivity.request_layout_with_style_handoff(
             global_id,
             inspector_id,
             window,
@@ -358,7 +358,7 @@ impl Element for UniformList {
             |style, window, cx| match self.sizing_behavior {
                 ListSizingBehavior::Infer => {
                     window.with_text_style(style.text_style().cloned(), |window| {
-                        window.request_measured_layout(
+                        window.request_measured_layout_ref(
                             style,
                             move |known_dimensions, available_space, _window, _cx| {
                                 let desired_height = item_size.height * max_items;
@@ -383,7 +383,7 @@ impl Element for UniformList {
                 }
                 ListSizingBehavior::Auto => window
                     .with_text_style(style.text_style().cloned(), |window| {
-                        window.request_layout(style, None, cx)
+                        window.request_layout_ref(style, None, cx)
                     }),
             },
         );

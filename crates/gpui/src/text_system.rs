@@ -23,6 +23,9 @@ use derive_more::{Add, Deref, FromStr, Sub};
 use itertools::Itertools;
 use parking_lot::{Mutex, RwLock, RwLockUpgradableReadGuard};
 use smallvec::{SmallVec, smallvec};
+#[cfg(feature = "rayx_diagnostics")]
+use std::cell::Cell;
+use std::cell::RefCell;
 use std::{
     borrow::Cow,
     cmp,
@@ -31,6 +34,112 @@ use std::{
     ops::{Deref, DerefMut, Range},
     sync::Arc,
 };
+
+#[cfg(feature = "rayx_diagnostics")]
+thread_local! {
+    static TEXT_SHAPE_DIAGNOSTICS: Cell<[u64; 10]> = const { Cell::new([0; 10]) };
+}
+
+thread_local! {
+    static FONT_RUNS_POOL: RefCell<Vec<Vec<FontRun>>> = const { RefCell::new(Vec::new()) };
+}
+
+#[cfg(feature = "rayx_diagnostics")]
+fn record_text_shape_call() {
+    TEXT_SHAPE_DIAGNOSTICS.with(|diagnostics| {
+        let mut values = diagnostics.get();
+        values[0] += 1;
+        diagnostics.set(values);
+    });
+}
+
+#[cfg(feature = "rayx_diagnostics")]
+fn record_text_shape_line(decoration_run_count: usize, decoration_run_capacity: usize) {
+    TEXT_SHAPE_DIAGNOSTICS.with(|diagnostics| {
+        let mut values = diagnostics.get();
+        let decoration_run_count = decoration_run_count as u64;
+        values[1] += 1;
+        values[2] += decoration_run_count;
+        values[3] = values[3].max(decoration_run_count);
+        values[4] += u64::from(decoration_run_count <= 1);
+        values[5] += decoration_run_capacity as u64;
+        diagnostics.set(values);
+    });
+}
+
+#[cfg(feature = "rayx_diagnostics")]
+fn record_text_shape_font_run_pool_take(hit: bool) {
+    TEXT_SHAPE_DIAGNOSTICS.with(|diagnostics| {
+        let mut values = diagnostics.get();
+        values[6] += 1;
+        values[if hit { 7 } else { 8 }] += 1;
+        diagnostics.set(values);
+    });
+}
+
+#[cfg(feature = "rayx_diagnostics")]
+fn record_text_shape_font_run_pool_return() {
+    TEXT_SHAPE_DIAGNOSTICS.with(|diagnostics| {
+        let mut values = diagnostics.get();
+        values[9] += 1;
+        diagnostics.set(values);
+    });
+}
+
+#[cfg(feature = "rayx_diagnostics")]
+pub(crate) fn take_text_shape_diagnostics() -> [u64; 10] {
+    TEXT_SHAPE_DIAGNOSTICS.with(|diagnostics| diagnostics.replace([0; 10]))
+}
+
+fn take_font_runs() -> Vec<FontRun> {
+    let pooled = FONT_RUNS_POOL.with(|pool| pool.borrow_mut().pop());
+    #[cfg(feature = "rayx_diagnostics")]
+    record_text_shape_font_run_pool_take(pooled.is_some());
+    let mut font_runs = pooled.unwrap_or_default();
+    font_runs.clear();
+    font_runs
+}
+
+fn return_font_runs(font_runs: Vec<FontRun>) {
+    FONT_RUNS_POOL.with(|pool| pool.borrow_mut().push(font_runs));
+    #[cfg(feature = "rayx_diagnostics")]
+    record_text_shape_font_run_pool_return();
+}
+
+#[cfg(all(test, feature = "rayx_diagnostics"))]
+mod text_shape_diagnostics_tests {
+    use super::*;
+
+    #[test]
+    fn text_shape_diagnostics_are_bounded_and_drained() {
+        take_text_shape_diagnostics();
+        record_text_shape_call();
+        record_text_shape_line(1, 1);
+        record_text_shape_line(3, 4);
+        record_text_shape_font_run_pool_take(true);
+        record_text_shape_font_run_pool_take(false);
+        record_text_shape_font_run_pool_return();
+
+        assert_eq!(
+            take_text_shape_diagnostics(),
+            [1, 2, 4, 3, 1, 5, 2, 1, 1, 1]
+        );
+        assert_eq!(take_text_shape_diagnostics(), [0; 10]);
+    }
+
+    #[test]
+    fn font_run_scratch_is_reused_on_the_current_thread() {
+        FONT_RUNS_POOL.with(|pool| pool.borrow_mut().clear());
+        let mut font_runs = take_font_runs();
+        font_runs.reserve(4);
+        let retained_capacity = font_runs.capacity();
+        return_font_runs(font_runs);
+
+        let font_runs = take_font_runs();
+        assert_eq!(font_runs.capacity(), retained_capacity);
+        return_font_runs(font_runs);
+    }
+}
 
 /// An opaque identifier for a specific font.
 #[derive(Hash, PartialEq, Eq, Clone, Copy, Debug)]
@@ -54,7 +163,6 @@ pub struct TextSystem {
     font_metrics: RwLock<FxHashMap<FontId, FontMetrics>>,
     raster_bounds: RwLock<FxHashMap<RenderGlyphParams, Bounds<DevicePixels>>>,
     wrapper_pool: Mutex<FxHashMap<FontIdWithSize, Vec<LineWrapper>>>,
-    font_runs_pool: Mutex<Vec<Vec<FontRun>>>,
     fallback_font_stack: SmallVec<[Font; 2]>,
 }
 
@@ -67,7 +175,6 @@ impl TextSystem {
             raster_bounds: RwLock::default(),
             font_ids_by_font: RwLock::default(),
             wrapper_pool: Mutex::default(),
-            font_runs_pool: Mutex::default(),
             fallback_font_stack: smallvec![
                 // TODO: Remove this when Linux have implemented setting fallbacks.
                 font(".ZedMono"),
@@ -530,8 +637,11 @@ impl WindowTextSystem {
         wrap_width: Option<Pixels>,
         line_clamp: Option<usize>,
     ) -> Result<SmallVec<[WrappedLine; 1]>> {
+        #[cfg(feature = "rayx_diagnostics")]
+        record_text_shape_call();
+        let decoration_run_capacity = runs.len().min(32);
         let mut runs = runs.iter().filter(|run| run.len > 0).cloned().peekable();
-        let mut font_runs = self.font_runs_pool.lock().pop().unwrap_or_default();
+        let mut font_runs = take_font_runs();
 
         let mut lines = SmallVec::new();
         let mut max_wrap_lines = line_clamp;
@@ -540,7 +650,7 @@ impl WindowTextSystem {
         let mut process_line = |line_text: SharedString, line_start, line_end| {
             font_runs.clear();
 
-            let mut decoration_runs = <Vec<DecorationRun>>::with_capacity(32);
+            let mut decoration_runs = <Vec<DecorationRun>>::with_capacity(decoration_run_capacity);
             let mut run_start = line_start;
             while run_start < line_end {
                 let Some(run) = runs.peek_mut() else {
@@ -600,6 +710,9 @@ impl WindowTextSystem {
             );
             wrapped_lines += layout.wrap_boundaries.len();
 
+            #[cfg(feature = "rayx_diagnostics")]
+            record_text_shape_line(decoration_runs.len(), decoration_runs.capacity());
+
             lines.push(WrappedLine {
                 layout,
                 decoration_runs,
@@ -646,7 +759,7 @@ impl WindowTextSystem {
             process_line(text, 0, end);
         }
 
-        self.font_runs_pool.lock().push(font_runs);
+        return_font_runs(font_runs);
 
         Ok(lines)
     }
@@ -668,8 +781,7 @@ impl WindowTextSystem {
         force_width: Option<Pixels>,
     ) -> Arc<LineLayout> {
         let mut last_run = None::<&TextRun>;
-        let mut font_runs = self.font_runs_pool.lock().pop().unwrap_or_default();
-        font_runs.clear();
+        let mut font_runs = take_font_runs();
 
         for run in runs.iter() {
             let decoration_changed = if let Some(last_run) = last_run
@@ -707,7 +819,7 @@ impl WindowTextSystem {
             force_width,
         );
 
-        self.font_runs_pool.lock().push(font_runs);
+        return_font_runs(font_runs);
 
         layout
     }
@@ -753,8 +865,7 @@ impl WindowTextSystem {
         force_width: Option<Pixels>,
     ) -> Option<Arc<LineLayout>> {
         let mut last_run = None::<&TextRun>;
-        let mut font_runs = self.font_runs_pool.lock().pop().unwrap_or_default();
-        font_runs.clear();
+        let mut font_runs = take_font_runs();
 
         for run in runs.iter() {
             let decoration_changed = if let Some(last_run) = last_run
@@ -793,7 +904,7 @@ impl WindowTextSystem {
             force_width,
         );
 
-        self.font_runs_pool.lock().push(font_runs);
+        return_font_runs(font_runs);
 
         layout
     }
@@ -817,8 +928,7 @@ impl WindowTextSystem {
         materialize_text: impl FnOnce() -> SharedString,
     ) -> Arc<LineLayout> {
         let mut last_run = None::<&TextRun>;
-        let mut font_runs = self.font_runs_pool.lock().pop().unwrap_or_default();
-        font_runs.clear();
+        let mut font_runs = take_font_runs();
 
         for run in runs.iter() {
             let decoration_changed = if let Some(last_run) = last_run
@@ -858,7 +968,7 @@ impl WindowTextSystem {
             materialize_text,
         );
 
-        self.font_runs_pool.lock().push(font_runs);
+        return_font_runs(font_runs);
 
         layout
     }

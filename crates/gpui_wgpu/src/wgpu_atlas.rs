@@ -69,9 +69,23 @@ impl WgpuAtlas {
         )
     }
 
+    #[cfg(not(feature = "rayx_diagnostics"))]
     pub fn before_frame(&self) {
         let mut lock = self.0.lock();
         lock.flush_uploads();
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    pub fn before_frame(&self) -> (usize, usize) {
+        let mut lock = self.0.lock();
+        let upload_count = lock.pending_uploads.len();
+        let upload_bytes = lock
+            .pending_uploads
+            .iter()
+            .map(|upload| upload.data.len())
+            .sum();
+        lock.flush_uploads();
+        (upload_count, upload_bytes)
     }
 
     pub fn get_texture_info(&self, id: AtlasTextureId) -> WgpuTextureInfo {

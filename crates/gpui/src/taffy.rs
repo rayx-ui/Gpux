@@ -29,15 +29,114 @@ type NodeMeasureFn = StackSafe<
 >;
 
 struct NodeContext {
-    measure: NodeMeasureFn,
+    measure: Option<NodeMeasureFn>,
+    #[cfg(feature = "rayx_diagnostics")]
+    kind: MeasuredLayoutKind,
+    #[cfg(feature = "rayx_diagnostics")]
+    previous_measurements: Vec<MeasuredLayoutSample>,
+    #[cfg(feature = "rayx_diagnostics")]
+    current_measurements: Vec<MeasuredLayoutSample>,
 }
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum MeasuredLayoutKind {
+    Custom,
+    #[cfg(feature = "rayx_diagnostics")]
+    Text,
+    #[cfg(feature = "rayx_diagnostics")]
+    List,
+    #[cfg(feature = "rayx_diagnostics")]
+    UniformList,
+}
+
+impl MeasuredLayoutKind {
+    #[cfg(feature = "rayx_diagnostics")]
+    pub(crate) fn from_source_file(file: &str) -> Self {
+        if file.ends_with("elements/text.rs") || file.ends_with("elements\\text.rs") {
+            Self::Text
+        } else if file.ends_with("elements/list.rs") || file.ends_with("elements\\list.rs") {
+            Self::List
+        } else if file.ends_with("elements/uniform_list.rs")
+            || file.ends_with("elements\\uniform_list.rs")
+        {
+            Self::UniformList
+        } else {
+            Self::Custom
+        }
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    const fn diagnostic_index(self) -> usize {
+        match self {
+            Self::Custom => 25,
+            Self::Text => 26,
+            Self::List => 27,
+            Self::UniformList => 28,
+        }
+    }
+}
+
+#[cfg(feature = "rayx_diagnostics")]
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct MeasuredLayoutSample {
+    known_dimensions: TaffySize<Option<f32>>,
+    available_space: TaffySize<TaffyAvailableSpace>,
+    output: TaffySize<f32>,
+}
+
+#[cfg(feature = "rayx_diagnostics")]
+impl NodeContext {
+    fn begin_measurement_frame(&mut self) {
+        std::mem::swap(
+            &mut self.previous_measurements,
+            &mut self.current_measurements,
+        );
+        self.current_measurements.clear();
+    }
+
+    fn clear_measurement_history(&mut self) {
+        self.previous_measurements.clear();
+        self.current_measurements.clear();
+    }
+
+    fn record_measurement(&mut self, diagnostics: &mut [u64; 31], sample: MeasuredLayoutSample) {
+        diagnostics[20] += 1;
+        diagnostics[self.kind.diagnostic_index()] += 1;
+        if let Some(previous) = self
+            .previous_measurements
+            .get(self.current_measurements.len())
+        {
+            diagnostics[21] += 1;
+            if previous.known_dimensions == sample.known_dimensions
+                && previous.available_space == sample.available_space
+            {
+                diagnostics[22] += 1;
+                if previous.output == sample.output {
+                    diagnostics[23] += 1;
+                } else {
+                    diagnostics[24] += 1;
+                }
+            }
+        }
+        self.current_measurements.push(sample);
+    }
+}
+
 pub struct TaffyLayoutEngine {
     taffy: TaffyTree<NodeContext>,
+    layout_pool: Vec<LayoutId>,
+    active_layout_count: usize,
+    active_child_layouts: FxHashSet<LayoutId>,
+    measured_layouts: Vec<LayoutId>,
     absolute_layout_bounds: FxHashMap<LayoutId, Bounds<Pixels>>,
     /// Unrounded absolute border-box top-left per-node coordinate in device pixels.
     absolute_outer_origins: FxHashMap<LayoutId, Point<f32>>,
     computed_layouts: FxHashSet<LayoutId>,
     layout_bounds_scratch_space: Vec<LayoutId>,
+    #[cfg(feature = "rayx_diagnostics")]
+    diagnostics: [u64; 31],
+    #[cfg(feature = "rayx_diagnostics")]
+    request_diagnostics: [u64; 11],
 }
 
 const EXPECT_MESSAGE: &str = "we should avoid taffy layout errors by construction if possible";
@@ -48,18 +147,192 @@ impl TaffyLayoutEngine {
         taffy.disable_rounding();
         TaffyLayoutEngine {
             taffy,
+            layout_pool: Vec::new(),
+            active_layout_count: 0,
+            active_child_layouts: FxHashSet::default(),
+            measured_layouts: Vec::new(),
             absolute_layout_bounds: FxHashMap::default(),
             absolute_outer_origins: FxHashMap::default(),
             computed_layouts: FxHashSet::default(),
             layout_bounds_scratch_space: Vec::new(),
+            #[cfg(feature = "rayx_diagnostics")]
+            diagnostics: [0; 31],
+            #[cfg(feature = "rayx_diagnostics")]
+            request_diagnostics: [0; 11],
         }
     }
 
     pub fn clear(&mut self) {
-        self.taffy.clear();
+        for id in self.measured_layouts.drain(..) {
+            let context = self.taffy.get_node_context_mut(id.0).expect(EXPECT_MESSAGE);
+            context.measure = None;
+            #[cfg(feature = "rayx_diagnostics")]
+            context.begin_measurement_frame();
+            self.taffy.mark_dirty(id.0).expect(EXPECT_MESSAGE);
+        }
+        self.active_layout_count = 0;
+        self.active_child_layouts.clear();
         self.absolute_layout_bounds.clear();
         self.absolute_outer_origins.clear();
         self.computed_layouts.clear();
+        #[cfg(feature = "rayx_diagnostics")]
+        {
+            self.diagnostics = [0; 31];
+            self.request_diagnostics = [0; 11];
+        }
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    pub(crate) fn diagnostics(&self) -> [u64; 31] {
+        self.diagnostics
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    pub(crate) fn request_diagnostics(&self) -> [u64; 11] {
+        self.request_diagnostics
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    fn record_node(&mut self, display: taffy::style::Display, child_count: usize, measured: bool) {
+        let child_count = child_count as u64;
+        self.diagnostics[0] += 1;
+        self.diagnostics[1] += u64::from(measured);
+        if child_count == 0 {
+            self.diagnostics[2] += 1;
+            return;
+        }
+
+        self.diagnostics[3] += 1;
+        self.diagnostics[4] += child_count;
+        self.diagnostics[5] = self.diagnostics[5].max(child_count);
+        self.diagnostics[6] += u64::from(child_count <= 1);
+        self.diagnostics[7] += u64::from(child_count <= 2);
+        self.diagnostics[8] += u64::from(child_count <= 4);
+        self.diagnostics[9] += u64::from(child_count <= 8);
+        match display {
+            taffy::style::Display::Flex => self.diagnostics[10] += 1,
+            taffy::style::Display::Block | taffy::style::Display::FlowRoot => {
+                self.diagnostics[11] += 1
+            }
+            taffy::style::Display::Grid => self.diagnostics[12] += 1,
+            taffy::style::Display::None => {}
+        }
+    }
+
+    fn request_taffy_node(
+        &mut self,
+        style: taffy::style::Style,
+        children: &[LayoutId],
+        context: Option<NodeContext>,
+    ) -> LayoutId {
+        let is_measured = context.is_some();
+        let pool_index = self.active_layout_count;
+        self.active_layout_count += 1;
+        #[cfg(feature = "rayx_diagnostics")]
+        {
+            self.request_diagnostics[0] += 1;
+        }
+
+        let id = if let Some(id) = self.layout_pool.get(pool_index).copied() {
+            #[cfg(feature = "rayx_diagnostics")]
+            {
+                self.request_diagnostics[1] += 1;
+            }
+            let style_matches = self.taffy.style(id.0).expect(EXPECT_MESSAGE) == &style;
+            #[cfg(feature = "rayx_diagnostics")]
+            {
+                self.request_diagnostics[if style_matches { 3 } else { 4 }] += 1;
+            }
+            if !style_matches {
+                self.taffy.set_style(id.0, style).expect(EXPECT_MESSAGE);
+            }
+            let taffy_children = LayoutId::to_taffy_slice(children);
+            let topology_matches = self.taffy.child_count(id.0) == children.len()
+                && taffy_children.iter().enumerate().all(|(index, child)| {
+                    self.taffy
+                        .child_at_index(id.0, index)
+                        .is_ok_and(|retained_child| retained_child == *child)
+                });
+            #[cfg(feature = "rayx_diagnostics")]
+            {
+                self.request_diagnostics[if topology_matches { 5 } else { 6 }] += 1;
+            }
+            if !topology_matches {
+                self.taffy
+                    .set_children(id.0, taffy_children)
+                    .expect(EXPECT_MESSAGE);
+            }
+            if let Some(context) = context {
+                if let Some(retained_context) = self.taffy.get_node_context_mut(id.0) {
+                    #[cfg(feature = "rayx_diagnostics")]
+                    {
+                        self.request_diagnostics[7] += 1;
+                    }
+                    retained_context.measure = context.measure;
+                    #[cfg(feature = "rayx_diagnostics")]
+                    {
+                        retained_context.kind = context.kind;
+                    }
+                    if !self.taffy.dirty(id.0).expect(EXPECT_MESSAGE) {
+                        #[cfg(feature = "rayx_diagnostics")]
+                        {
+                            self.request_diagnostics[9] += 1;
+                        }
+                        self.taffy.mark_dirty(id.0).expect(EXPECT_MESSAGE);
+                    }
+                } else {
+                    #[cfg(feature = "rayx_diagnostics")]
+                    {
+                        self.request_diagnostics[8] += 1;
+                    }
+                    self.taffy
+                        .set_node_context(id.0, Some(context))
+                        .expect(EXPECT_MESSAGE);
+                }
+            } else {
+                #[cfg(feature = "rayx_diagnostics")]
+                if let Some(retained_context) = self.taffy.get_node_context_mut(id.0) {
+                    retained_context.clear_measurement_history();
+                }
+            }
+            id
+        } else {
+            #[cfg(feature = "rayx_diagnostics")]
+            {
+                self.request_diagnostics[2] += 1;
+            }
+            debug_assert_eq!(pool_index, self.layout_pool.len());
+            let id = match context {
+                Some(context) => {
+                    debug_assert!(children.is_empty());
+                    self.taffy
+                        .new_leaf_with_context(style, context)
+                        .expect(EXPECT_MESSAGE)
+                }
+                None if children.is_empty() => self.taffy.new_leaf(style).expect(EXPECT_MESSAGE),
+                None => self
+                    .taffy
+                    .new_with_children(style, LayoutId::to_taffy_slice(children))
+                    .expect(EXPECT_MESSAGE),
+            }
+            .into();
+            self.layout_pool.push(id);
+            id
+        };
+
+        if is_measured {
+            self.measured_layouts.push(id);
+        }
+        for child in children {
+            #[cfg(feature = "rayx_diagnostics")]
+            {
+                let inserted = self.active_child_layouts.insert(*child);
+                self.request_diagnostics[10] += u64::from(inserted);
+            }
+            #[cfg(not(feature = "rayx_diagnostics"))]
+            self.active_child_layouts.insert(*child);
+        }
+        id
     }
 
     pub fn request_layout(
@@ -69,20 +342,21 @@ impl TaffyLayoutEngine {
         scale_factor: f32,
         children: &[LayoutId],
     ) -> LayoutId {
-        let taffy_style = style.to_taffy(rem_size, scale_factor);
+        self.request_layout_ref(&style, rem_size, scale_factor, children)
+    }
 
-        if children.is_empty() {
-            self.taffy
-                .new_leaf(taffy_style)
-                .expect(EXPECT_MESSAGE)
-                .into()
-        } else {
-            self.taffy
-                // This is safe because LayoutId is repr(transparent) to taffy::tree::NodeId.
-                .new_with_children(taffy_style, LayoutId::to_taffy_slice(children))
-                .expect(EXPECT_MESSAGE)
-                .into()
-        }
+    pub(crate) fn request_layout_ref(
+        &mut self,
+        style: &Style,
+        rem_size: Pixels,
+        scale_factor: f32,
+        children: &[LayoutId],
+    ) -> LayoutId {
+        let taffy_style = style.to_taffy(rem_size, scale_factor);
+        #[cfg(feature = "rayx_diagnostics")]
+        self.record_node(taffy_style.display, children.len(), false);
+
+        self.request_taffy_node(taffy_style, children, None)
     }
 
     pub fn request_measured_layout(
@@ -90,6 +364,24 @@ impl TaffyLayoutEngine {
         style: Style,
         rem_size: Pixels,
         scale_factor: f32,
+        _kind: MeasuredLayoutKind,
+        measure: impl FnMut(
+            Size<Option<Pixels>>,
+            Size<AvailableSpace>,
+            &mut Window,
+            &mut App,
+        ) -> Size<Pixels>
+        + 'static,
+    ) -> LayoutId {
+        self.request_measured_layout_ref(&style, rem_size, scale_factor, _kind, measure)
+    }
+
+    pub(crate) fn request_measured_layout_ref(
+        &mut self,
+        style: &Style,
+        rem_size: Pixels,
+        scale_factor: f32,
+        _kind: MeasuredLayoutKind,
         measure: impl FnMut(
             Size<Option<Pixels>>,
             Size<AvailableSpace>,
@@ -99,16 +391,35 @@ impl TaffyLayoutEngine {
         + 'static,
     ) -> LayoutId {
         let taffy_style = style.to_taffy(rem_size, scale_factor);
+        #[cfg(feature = "rayx_diagnostics")]
+        self.record_node(taffy_style.display, 0, true);
 
-        self.taffy
-            .new_leaf_with_context(
-                taffy_style,
-                NodeContext {
-                    measure: StackSafe::new(Box::new(measure)),
-                },
-            )
-            .expect(EXPECT_MESSAGE)
-            .into()
+        self.request_taffy_node(
+            taffy_style,
+            &[],
+            Some(NodeContext {
+                measure: Some(StackSafe::new(Box::new(measure))),
+                #[cfg(feature = "rayx_diagnostics")]
+                kind: _kind,
+                #[cfg(feature = "rayx_diagnostics")]
+                previous_measurements: Vec::new(),
+                #[cfg(feature = "rayx_diagnostics")]
+                current_measurements: Vec::new(),
+            }),
+        )
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    pub(crate) fn set_text_measurement_path_diagnostics(&mut self, diagnostics: [u64; 2]) {
+        self.diagnostics[29..].copy_from_slice(&diagnostics);
+    }
+
+    fn detach_stale_root(&mut self, id: LayoutId) {
+        if !self.active_child_layouts.contains(&id)
+            && let Some(parent) = self.taffy.parent(id.0)
+        {
+            self.taffy.remove_child(parent, id.0).expect(EXPECT_MESSAGE);
+        }
     }
 
     /// Treats any `auto` dimension of the given node's style as filling `size`.
@@ -196,6 +507,8 @@ impl TaffyLayoutEngine {
         window: &mut Window,
         cx: &mut App,
     ) {
+        self.detach_stale_root(id);
+
         // Leaving this here until we have a better instrumentation approach.
         // println!("Laying out {} children", self.count_all_children(id)?);
         // println!("Max layout depth: {}", self.max_depth(0, id)?);
@@ -207,10 +520,23 @@ impl TaffyLayoutEngine {
         // }
         //
 
-        if !self.computed_layouts.insert(id) {
+        #[cfg(feature = "rayx_diagnostics")]
+        {
+            self.diagnostics[13] += 1;
+        }
+        let already_computed = !self.computed_layouts.insert(id);
+        if already_computed {
+            #[cfg(feature = "rayx_diagnostics")]
+            {
+                self.diagnostics[14] += 1;
+            }
             let stack = &mut self.layout_bounds_scratch_space;
             stack.push(id);
             while let Some(id) = stack.pop() {
+                #[cfg(feature = "rayx_diagnostics")]
+                {
+                    self.diagnostics[15] += 1;
+                }
                 self.absolute_layout_bounds.remove(&id);
                 self.absolute_outer_origins.remove(&id);
                 stack.extend(
@@ -237,36 +563,64 @@ impl TaffyLayoutEngine {
             transform(available_space.height),
         );
 
-        self.taffy
+        let taffy = &mut self.taffy;
+        #[cfg(feature = "rayx_diagnostics")]
+        let diagnostics = &mut self.diagnostics;
+        taffy
             .compute_layout_with_measure(
                 id.into(),
                 available_space.into(),
-                |known_dimensions, available_space, _id, node_context, _style| {
-                    let Some(node_context) = node_context else {
-                        return taffy::geometry::Size::default();
-                    };
+                |inputs, _id, node_context, style| {
+                    taffy::compute::compute_leaf_layout(
+                        inputs,
+                        style,
+                        |_, _| 0.0,
+                        |known_dimensions, available_space| {
+                            let Some(node_context) = node_context else {
+                                return taffy::geometry::Size::default();
+                            };
+                            let Some(measure) = node_context.measure.as_mut() else {
+                                return taffy::geometry::Size::default();
+                            };
 
-                    let known_dimensions = Size {
-                        width: known_dimensions.width.map(|e| Pixels(e / scale_factor)),
-                        height: known_dimensions.height.map(|e| Pixels(e / scale_factor)),
-                    };
+                            #[cfg(feature = "rayx_diagnostics")]
+                            let measurement_inputs = (known_dimensions, available_space);
 
-                    let available_space: Size<AvailableSpace> = available_space.into();
-                    let untransform = |ev: AvailableSpace| match ev {
-                        AvailableSpace::Definite(pixels) => {
-                            AvailableSpace::Definite(Pixels(pixels.0 / scale_factor))
-                        }
-                        AvailableSpace::MinContent => AvailableSpace::MinContent,
-                        AvailableSpace::MaxContent => AvailableSpace::MaxContent,
-                    };
-                    let available_space = size(
-                        untransform(available_space.width),
-                        untransform(available_space.height),
-                    );
+                            let known_dimensions = Size {
+                                width: known_dimensions.width.map(|e| Pixels(e / scale_factor)),
+                                height: known_dimensions.height.map(|e| Pixels(e / scale_factor)),
+                            };
 
-                    let measured_size: Size<Pixels> =
-                        (node_context.measure)(known_dimensions, available_space, window, cx);
-                    snap_measured_size_to_device_pixels(measured_size, scale_factor).into()
+                            let available_space: Size<AvailableSpace> = available_space.into();
+                            let untransform = |ev: AvailableSpace| match ev {
+                                AvailableSpace::Definite(pixels) => {
+                                    AvailableSpace::Definite(Pixels(pixels.0 / scale_factor))
+                                }
+                                AvailableSpace::MinContent => AvailableSpace::MinContent,
+                                AvailableSpace::MaxContent => AvailableSpace::MaxContent,
+                            };
+                            let available_space = size(
+                                untransform(available_space.width),
+                                untransform(available_space.height),
+                            );
+
+                            let measured_size: Size<Pixels> =
+                                (measure)(known_dimensions, available_space, window, cx);
+                            let measured_size: TaffySize<f32> =
+                                snap_measured_size_to_device_pixels(measured_size, scale_factor)
+                                    .into();
+                            #[cfg(feature = "rayx_diagnostics")]
+                            node_context.record_measurement(
+                                diagnostics,
+                                MeasuredLayoutSample {
+                                    known_dimensions: measurement_inputs.0,
+                                    available_space: measurement_inputs.1,
+                                    output: measured_size,
+                                },
+                            );
+                            measured_size
+                        },
+                    )
                 },
             )
             .expect(EXPECT_MESSAGE);
@@ -348,8 +702,33 @@ impl TaffyLayoutEngine {
     // 1dp residual into descendants.
 
     pub fn layout_bounds(&mut self, id: LayoutId, scale_factor: f32) -> Bounds<Pixels> {
+        self.layout_bounds_for(id, scale_factor, false)
+    }
+
+    fn layout_bounds_for(
+        &mut self,
+        id: LayoutId,
+        scale_factor: f32,
+        _parent_lookup: bool,
+    ) -> Bounds<Pixels> {
+        #[cfg(feature = "rayx_diagnostics")]
+        {
+            self.diagnostics[16] += 1;
+        }
         if let Some(layout) = self.absolute_layout_bounds.get(&id).cloned() {
+            #[cfg(feature = "rayx_diagnostics")]
+            {
+                self.diagnostics[17] += 1;
+                if _parent_lookup {
+                    self.diagnostics[18] += 1;
+                }
+            }
             return layout;
+        }
+
+        #[cfg(feature = "rayx_diagnostics")]
+        if _parent_lookup {
+            self.diagnostics[19] += 1;
         }
 
         let layout = self.taffy.layout(id.into()).expect(EXPECT_MESSAGE);
@@ -360,7 +739,7 @@ impl TaffyLayoutEngine {
         let absolute_outer_origin = match parent {
             Some(parent_id) => {
                 let parent_id = LayoutId::from(parent_id);
-                self.layout_bounds(parent_id, scale_factor);
+                self.layout_bounds_for(parent_id, scale_factor, true);
                 let parent_origin = *self
                     .absolute_outer_origins
                     .get(&parent_id)
@@ -752,7 +1131,242 @@ impl From<Size<Pixels>> for Size<AvailableSpace> {
 mod tests {
     use super::*;
     use crate::px;
+    use std::sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    };
     use taffy::prelude::TaffyMaxContent;
+
+    struct DropCounter(Arc<AtomicUsize>);
+
+    impl Drop for DropCounter {
+        fn drop(&mut self) {
+            self.0.fetch_add(1, Ordering::Relaxed);
+        }
+    }
+
+    #[test]
+    fn clear_drops_measured_node_contexts() {
+        let dropped = Arc::new(AtomicUsize::new(0));
+        let mut engine = TaffyLayoutEngine::new();
+
+        for _ in 0..3 {
+            let counter = DropCounter(dropped.clone());
+            engine.request_measured_layout(
+                Style::default(),
+                Pixels(16.0),
+                1.0,
+                MeasuredLayoutKind::Custom,
+                move |_, _, _, _| {
+                    let _counter = &counter;
+                    Size::default()
+                },
+            );
+        }
+
+        assert_eq!(dropped.load(Ordering::Relaxed), 0);
+        engine.clear();
+        assert_eq!(dropped.load(Ordering::Relaxed), 3);
+        assert!(engine.layout_pool[..3].iter().all(|id| {
+            engine
+                .taffy
+                .get_node_context(id.0)
+                .is_some_and(|context| context.measure.is_none())
+        }));
+
+        for _ in 0..2 {
+            let counter = DropCounter(dropped.clone());
+            engine.request_measured_layout(
+                Style::default(),
+                Pixels(16.0),
+                1.0,
+                MeasuredLayoutKind::Custom,
+                move |_, _, _, _| {
+                    let _counter = &counter;
+                    Size::default()
+                },
+            );
+        }
+        engine.clear();
+        assert_eq!(dropped.load(Ordering::Relaxed), 5);
+    }
+
+    #[test]
+    fn measured_context_slot_handles_unmeasured_and_measured_reuse() {
+        fn compute(engine: &mut TaffyLayoutEngine, id: LayoutId) {
+            engine
+                .taffy
+                .compute_layout_with_measure(
+                    id.0,
+                    taffy::geometry::Size::MAX_CONTENT,
+                    |inputs, _, context, style| {
+                        taffy::compute::compute_leaf_layout(
+                            inputs,
+                            style,
+                            |_, _| 0.0,
+                            |_, _| match context {
+                                Some(context) if context.measure.is_some() => {
+                                    taffy::geometry::Size {
+                                        width: 20.0,
+                                        height: 10.0,
+                                    }
+                                }
+                                _ => taffy::geometry::Size::default(),
+                            },
+                        )
+                    },
+                )
+                .expect(EXPECT_MESSAGE);
+        }
+
+        let mut engine = TaffyLayoutEngine::new();
+        let measured = engine.request_measured_layout(
+            Style::default(),
+            px(16.0),
+            1.0,
+            MeasuredLayoutKind::Custom,
+            |_, _, _, _| Size::default(),
+        );
+        compute(&mut engine, measured);
+        assert_eq!(
+            engine
+                .taffy
+                .layout(measured.0)
+                .expect(EXPECT_MESSAGE)
+                .size
+                .width,
+            20.0
+        );
+
+        engine.clear();
+        let unmeasured = engine.request_layout(Style::default(), px(16.0), 1.0, &[]);
+        assert_eq!(unmeasured, measured);
+        compute(&mut engine, unmeasured);
+        assert_eq!(
+            engine
+                .taffy
+                .layout(unmeasured.0)
+                .expect(EXPECT_MESSAGE)
+                .size
+                .width,
+            0.0
+        );
+
+        engine.clear();
+        assert!(!engine.taffy.dirty(unmeasured.0).expect(EXPECT_MESSAGE));
+        let measured_again = engine.request_measured_layout(
+            Style::default(),
+            px(16.0),
+            1.0,
+            MeasuredLayoutKind::Custom,
+            |_, _, _, _| Size::default(),
+        );
+        assert_eq!(measured_again, measured);
+        assert!(engine.taffy.dirty(measured_again.0).expect(EXPECT_MESSAGE));
+        compute(&mut engine, measured_again);
+        assert_eq!(
+            engine
+                .taffy
+                .layout(measured_again.0)
+                .expect(EXPECT_MESSAGE)
+                .size
+                .width,
+            20.0
+        );
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    #[test]
+    fn records_taffy_tree_shape() {
+        let mut engine = TaffyLayoutEngine::new();
+        let leaf = engine.request_layout(Style::default(), Pixels(16.0), 1.0, &[]);
+        let measured = engine.request_measured_layout(
+            Style::default(),
+            Pixels(16.0),
+            1.0,
+            MeasuredLayoutKind::Custom,
+            |_, _, _, _| Size::default(),
+        );
+
+        let mut flex_style = Style::default();
+        flex_style.display = crate::Display::Flex;
+        let flex = engine.request_layout(flex_style, Pixels(16.0), 1.0, &[leaf, measured]);
+
+        let block = engine.request_layout(Style::default(), Pixels(16.0), 1.0, &[flex]);
+
+        let mut grid_style = Style::default();
+        grid_style.display = crate::Display::Grid;
+        engine.request_layout(grid_style, Pixels(16.0), 1.0, &[leaf, measured, block]);
+
+        assert_eq!(
+            engine.diagnostics(),
+            [
+                5, 1, 2, 3, 6, 3, 1, 2, 3, 3, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0,
+            ]
+        );
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    #[test]
+    fn measured_layout_samples_compare_matching_call_ordinals() {
+        let input = MeasuredLayoutSample {
+            known_dimensions: TaffySize {
+                width: Some(10.0),
+                height: None,
+            },
+            available_space: TaffySize::MAX_CONTENT,
+            output: TaffySize {
+                width: 10.0,
+                height: 20.0,
+            },
+        };
+        let mut context = NodeContext {
+            measure: None,
+            kind: MeasuredLayoutKind::Text,
+            previous_measurements: Vec::new(),
+            current_measurements: Vec::new(),
+        };
+        let mut diagnostics = [0; 31];
+
+        context.record_measurement(&mut diagnostics, input);
+        context.begin_measurement_frame();
+        context.record_measurement(&mut diagnostics, input);
+        let changed_output = MeasuredLayoutSample {
+            output: TaffySize {
+                width: 11.0,
+                height: 20.0,
+            },
+            ..input
+        };
+        context.record_measurement(&mut diagnostics, changed_output);
+        context.begin_measurement_frame();
+        context.record_measurement(&mut diagnostics, input);
+        context.record_measurement(&mut diagnostics, input);
+
+        assert_eq!(&diagnostics[20..], &[5, 3, 3, 2, 1, 0, 5, 0, 0, 0, 0]);
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    #[test]
+    fn measured_layout_kind_recognizes_internal_owners() {
+        assert_eq!(
+            MeasuredLayoutKind::from_source_file("src/elements/text.rs"),
+            MeasuredLayoutKind::Text
+        );
+        assert_eq!(
+            MeasuredLayoutKind::from_source_file("src\\elements\\list.rs"),
+            MeasuredLayoutKind::List
+        );
+        assert_eq!(
+            MeasuredLayoutKind::from_source_file("src/elements/uniform_list.rs"),
+            MeasuredLayoutKind::UniformList
+        );
+        assert_eq!(
+            MeasuredLayoutKind::from_source_file("external/custom.rs"),
+            MeasuredLayoutKind::Custom
+        );
+    }
 
     #[test]
     fn border_widths_to_taffy_use_stroke_snapping() {
@@ -832,6 +1446,129 @@ mod tests {
             size: size(px(width).into(), px(height).into()),
             ..Default::default()
         }
+    }
+
+    #[test]
+    fn clear_reuses_nodes_and_replaces_topology() {
+        let mut engine = TaffyLayoutEngine::new();
+        let first_leaf = engine.request_layout(sized_style(10.0, 10.0), px(16.0), 1.0, &[]);
+        let second_leaf = engine.request_layout(sized_style(20.0, 10.0), px(16.0), 1.0, &[]);
+        let first_root = engine.request_layout(
+            sized_style(100.0, 20.0),
+            px(16.0),
+            1.0,
+            &[first_leaf, second_leaf],
+        );
+
+        engine.clear();
+
+        let reused_leaf = engine.request_layout(sized_style(40.0, 10.0), px(16.0), 1.0, &[]);
+        let mut root_style = sized_style(100.0, 20.0);
+        root_style.display = crate::Display::Flex;
+        let reused_root = engine.request_layout(root_style, px(16.0), 1.0, &[reused_leaf]);
+
+        assert_eq!(reused_leaf, first_leaf);
+        assert_eq!(reused_root, second_leaf);
+        assert_eq!(engine.layout_pool.len(), 3);
+        assert_eq!(engine.taffy.child_count(reused_root.0), 1);
+        assert_eq!(engine.taffy.parent(reused_leaf.0), Some(reused_root.0));
+
+        engine.detach_stale_root(reused_root);
+        engine
+            .taffy
+            .compute_layout(reused_root.0, taffy::geometry::Size::MAX_CONTENT)
+            .expect(EXPECT_MESSAGE);
+        assert_eq!(
+            engine
+                .taffy
+                .layout(reused_leaf.0)
+                .expect(EXPECT_MESSAGE)
+                .size,
+            taffy::geometry::Size {
+                width: 40.0,
+                height: 10.0,
+            }
+        );
+        assert_eq!(engine.taffy.parent(reused_root.0), None);
+        assert_eq!(engine.taffy.child_count(first_root.0), 0);
+    }
+
+    #[test]
+    fn reused_node_preserves_cache_until_its_topology_changes() {
+        let mut engine = TaffyLayoutEngine::new();
+        let first_leaf = engine.request_layout(sized_style(10.0, 10.0), px(16.0), 1.0, &[]);
+        let second_leaf = engine.request_layout(sized_style(20.0, 10.0), px(16.0), 1.0, &[]);
+        let root_style = sized_style(100.0, 20.0);
+        let root = engine.request_layout(
+            root_style.clone(),
+            px(16.0),
+            1.0,
+            &[first_leaf, second_leaf],
+        );
+        engine
+            .taffy
+            .compute_layout(root.0, taffy::geometry::Size::MAX_CONTENT)
+            .expect(EXPECT_MESSAGE);
+        assert!(!engine.taffy.dirty(root.0).expect(EXPECT_MESSAGE));
+
+        engine.clear();
+        let reused_first = engine.request_layout(sized_style(10.0, 10.0), px(16.0), 1.0, &[]);
+        let reused_second = engine.request_layout(sized_style(20.0, 10.0), px(16.0), 1.0, &[]);
+        let unchanged_root = engine.request_layout(
+            root_style.clone(),
+            px(16.0),
+            1.0,
+            &[reused_first, reused_second],
+        );
+        assert_eq!(unchanged_root, root);
+        assert!(!engine.taffy.dirty(unchanged_root.0).expect(EXPECT_MESSAGE));
+
+        engine.clear();
+        let reused_first = engine.request_layout(sized_style(10.0, 10.0), px(16.0), 1.0, &[]);
+        let reused_second = engine.request_layout(sized_style(20.0, 10.0), px(16.0), 1.0, &[]);
+        let changed_root =
+            engine.request_layout(root_style, px(16.0), 1.0, &[reused_second, reused_first]);
+        assert_eq!(changed_root, root);
+        assert!(engine.taffy.dirty(changed_root.0).expect(EXPECT_MESSAGE));
+        assert_eq!(
+            engine.taffy.children(changed_root.0).expect(EXPECT_MESSAGE),
+            [reused_second.0, reused_first.0]
+        );
+    }
+
+    #[test]
+    fn reused_node_preserves_cache_until_its_style_changes() {
+        let mut engine = TaffyLayoutEngine::new();
+        let style = sized_style(10.0, 10.0);
+        let first_leaf = engine.request_layout(style.clone(), px(16.0), 1.0, &[]);
+        engine
+            .taffy
+            .compute_layout(first_leaf.0, taffy::geometry::Size::MAX_CONTENT)
+            .expect(EXPECT_MESSAGE);
+        assert!(!engine.taffy.dirty(first_leaf.0).expect(EXPECT_MESSAGE));
+
+        engine.clear();
+        let unchanged_leaf = engine.request_layout(style, px(16.0), 1.0, &[]);
+        assert_eq!(unchanged_leaf, first_leaf);
+        assert!(!engine.taffy.dirty(unchanged_leaf.0).expect(EXPECT_MESSAGE));
+
+        engine.clear();
+        let changed_leaf = engine.request_layout(sized_style(20.0, 10.0), px(16.0), 1.0, &[]);
+        assert_eq!(changed_leaf, first_leaf);
+        assert!(engine.taffy.dirty(changed_leaf.0).expect(EXPECT_MESSAGE));
+        engine
+            .taffy
+            .compute_layout(changed_leaf.0, taffy::geometry::Size::MAX_CONTENT)
+            .expect(EXPECT_MESSAGE);
+        assert_eq!(
+            engine
+                .taffy
+                .layout(changed_leaf.0)
+                .expect(EXPECT_MESSAGE)
+                .size
+                .width,
+            20.0
+        );
     }
 
     fn compute_child_locations(

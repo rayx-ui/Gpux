@@ -68,12 +68,12 @@ impl Element for Svg {
         window: &mut Window,
         cx: &mut App,
     ) -> (LayoutId, Self::RequestLayoutState) {
-        let layout_id = self.interactivity.request_layout(
+        let layout_id = self.interactivity.request_layout_with_style_handoff(
             global_id,
             inspector_id,
             window,
             cx,
-            |style, window, cx| window.request_layout(style, None, cx),
+            |style, window, cx| window.request_layout_ref(style, None, cx),
         );
         (layout_id, ())
     }

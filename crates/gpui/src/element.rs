@@ -38,9 +38,9 @@ use crate::{
     StatefulInteractiveElement, Style, StyleRefinement, Styled, Window, util::FluentBuilder,
     window::with_element_arena,
 };
+use collections::FxHasher;
 use std::{
     any::{Any, type_name},
-    collections::hash_map::DefaultHasher,
     fmt::{self, Debug, Display},
     hash::{Hash, Hasher},
     mem,
@@ -48,6 +48,39 @@ use std::{
     panic,
     sync::Arc,
 };
+
+#[cfg(feature = "rayx_diagnostics")]
+#[derive(Default)]
+struct GlobalElementIdPathDiagnostics {
+    values: [u64; 8],
+    current_hashes: std::collections::HashSet<u64>,
+    previous_hashes: std::collections::HashSet<u64>,
+}
+
+#[cfg(feature = "rayx_diagnostics")]
+thread_local! {
+    static GLOBAL_ELEMENT_ID_PATH_DIAGNOSTICS: std::cell::RefCell<GlobalElementIdPathDiagnostics> =
+        std::cell::RefCell::default();
+}
+
+#[cfg(feature = "rayx_diagnostics")]
+pub(crate) fn reset_global_element_id_path_diagnostics() {
+    GLOBAL_ELEMENT_ID_PATH_DIAGNOSTICS.with_borrow_mut(|diagnostics| {
+        let GlobalElementIdPathDiagnostics {
+            values,
+            current_hashes,
+            previous_hashes,
+        } = diagnostics;
+        *values = [0; 8];
+        std::mem::swap(current_hashes, previous_hashes);
+        current_hashes.clear();
+    });
+}
+
+#[cfg(feature = "rayx_diagnostics")]
+pub(crate) fn global_element_id_path_diagnostics() -> [u64; 8] {
+    GLOBAL_ELEMENT_ID_PATH_DIAGNOSTICS.with_borrow(|diagnostics| diagnostics.values)
+}
 
 /// Implemented by types that participate in laying out and painting the contents of a window.
 /// Elements form a tree and are laid out according to web-based layout rules, as implemented by Taffy.
@@ -392,11 +425,27 @@ pub struct GlobalElementId {
 
 impl GlobalElementId {
     pub(crate) fn new(path: &[ElementId]) -> Self {
-        let mut hasher = DefaultHasher::new();
+        let mut hasher = FxHasher::default();
         path.hash(&mut hasher);
+        let cached_hash = hasher.finish();
+
+        #[cfg(feature = "rayx_diagnostics")]
+        GLOBAL_ELEMENT_ID_PATH_DIAGNOSTICS.with_borrow_mut(|diagnostics| {
+            let values = &mut diagnostics.values;
+            let path_len = path.len() as u64;
+            values[0] += 1;
+            values[1] += path_len;
+            values[2] = values[2].max(path_len);
+            values[3] += u64::from(path_len <= 4);
+            values[4] += u64::from(path_len <= 8);
+            values[5] += u64::from(path_len <= 16);
+            values[6] += u64::from(!diagnostics.current_hashes.insert(cached_hash));
+            values[7] += u64::from(diagnostics.previous_hashes.contains(&cached_hash));
+        });
+
         Self {
             path: Arc::from(path),
-            cached_hash: hasher.finish(),
+            cached_hash,
         }
     }
 
@@ -406,6 +455,49 @@ impl GlobalElementId {
     /// action listeners with [`Window::on_a11y_action`].
     pub fn accesskit_node_id(&self) -> accesskit::NodeId {
         accesskit::NodeId(self.cached_hash)
+    }
+}
+
+#[cfg(test)]
+mod global_element_id_tests {
+    use super::*;
+
+    #[test]
+    fn caches_a_stable_hash_for_the_full_path() {
+        let path = [ElementId::from("parent"), ElementId::from("child")];
+        let same = GlobalElementId::new(&path);
+        let equal = GlobalElementId::new(&path);
+        let neighbor =
+            GlobalElementId::new(&[ElementId::from("parent"), ElementId::from("neighbor")]);
+
+        assert_eq!(same.cached_hash, equal.cached_hash);
+        assert_ne!(same.cached_hash, neighbor.cached_hash);
+        assert_eq!(same, equal);
+        assert_ne!(same, neighbor);
+    }
+}
+
+#[cfg(all(test, feature = "rayx_diagnostics"))]
+mod global_element_id_diagnostics_tests {
+    use super::*;
+
+    #[test]
+    fn records_global_element_id_path_distribution() {
+        reset_global_element_id_path_diagnostics();
+        GlobalElementId::new(&[]);
+        GlobalElementId::new(&(0..5).map(ElementId::from).collect::<Vec<_>>());
+        GlobalElementId::new(&(0..17).map(ElementId::from).collect::<Vec<_>>());
+
+        assert_eq!(
+            &global_element_id_path_diagnostics()[..6],
+            &[3, 22, 17, 1, 2, 2]
+        );
+
+        reset_global_element_id_path_diagnostics();
+        GlobalElementId::new(&[]);
+        GlobalElementId::new(&(0..5).map(ElementId::from).collect::<Vec<_>>());
+        GlobalElementId::new(&(0..17).map(ElementId::from).collect::<Vec<_>>());
+        assert_eq!(global_element_id_path_diagnostics()[7], 3);
     }
 }
 

@@ -50,6 +50,22 @@ pub struct Scene {
     pub subpixel_sprites: Vec<SubpixelSprite>,
     pub polychrome_sprites: Vec<PolychromeSprite>,
     pub surfaces: Vec<PaintSurface>,
+    #[cfg(feature = "rayx_diagnostics")]
+    sprite_sort_disorder_counts: [u64; 3],
+    #[cfg(feature = "rayx_diagnostics")]
+    global_element_id_path_diagnostics: [u64; 8],
+    #[cfg(feature = "rayx_diagnostics")]
+    taffy_layout_diagnostics: [u64; 31],
+    #[cfg(feature = "rayx_diagnostics")]
+    taffy_node_request_diagnostics: [u64; 11],
+    #[cfg(feature = "rayx_diagnostics")]
+    line_layout_cache_diagnostics: [u64; 12],
+    #[cfg(feature = "rayx_diagnostics")]
+    text_measurement_miss_diagnostics: [u64; 4],
+    #[cfg(feature = "rayx_diagnostics")]
+    text_shape_diagnostics: [u64; 10],
+    #[cfg(feature = "rayx_diagnostics")]
+    style_phase_diagnostics: [u64; 14],
 }
 
 #[derive(Clone, Copy)]
@@ -81,6 +97,17 @@ impl Scene {
         self.subpixel_sprites.clear();
         self.polychrome_sprites.clear();
         self.surfaces.clear();
+        #[cfg(feature = "rayx_diagnostics")]
+        {
+            self.sprite_sort_disorder_counts = [0; 3];
+            self.global_element_id_path_diagnostics = [0; 8];
+            self.taffy_layout_diagnostics = [0; 31];
+            self.taffy_node_request_diagnostics = [0; 11];
+            self.line_layout_cache_diagnostics = [0; 12];
+            self.text_measurement_miss_diagnostics = [0; 4];
+            self.text_shape_diagnostics = [0; 10];
+            self.style_phase_diagnostics = [0; 14];
+        }
     }
 
     pub fn len(&self) -> usize {
@@ -231,13 +258,132 @@ impl Scene {
             .sort_by_key(|screen_effect_region| screen_effect_region.order);
         self.paths.sort_by_key(|path| path.order);
         self.underlines.sort_by_key(|underline| underline.order);
+        #[cfg(feature = "rayx_diagnostics")]
+        {
+            self.sprite_sort_disorder_counts = [
+                self.monochrome_sprites
+                    .windows(2)
+                    .filter(|pair| {
+                        (pair[0].order, pair[0].tile.tile_id)
+                            > (pair[1].order, pair[1].tile.tile_id)
+                    })
+                    .count() as u64,
+                self.subpixel_sprites
+                    .windows(2)
+                    .filter(|pair| {
+                        (pair[0].order, pair[0].tile.tile_id)
+                            > (pair[1].order, pair[1].tile.tile_id)
+                    })
+                    .count() as u64,
+                self.polychrome_sprites
+                    .windows(2)
+                    .filter(|pair| {
+                        (pair[0].order, pair[0].tile.tile_id)
+                            > (pair[1].order, pair[1].tile.tile_id)
+                    })
+                    .count() as u64,
+            ];
+        }
         self.monochrome_sprites
-            .sort_by_key(|sprite| (sprite.order, sprite.tile.tile_id));
+            .sort_by_cached_key(|sprite| (sprite.order, sprite.tile.tile_id));
         self.subpixel_sprites
             .sort_by_key(|sprite| (sprite.order, sprite.tile.tile_id));
         self.polychrome_sprites
             .sort_by_key(|sprite| (sprite.order, sprite.tile.tile_id));
         self.surfaces.sort_by_key(|surface| surface.order);
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    pub fn sprite_sort_disorder_counts(&self) -> [u64; 3] {
+        self.sprite_sort_disorder_counts
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    pub(crate) fn set_global_element_id_path_diagnostics(&mut self, diagnostics: [u64; 8]) {
+        self.global_element_id_path_diagnostics = diagnostics;
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    pub fn global_element_id_path_diagnostics(&self) -> [u64; 8] {
+        self.global_element_id_path_diagnostics
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    pub(crate) fn set_taffy_layout_diagnostics(&mut self, diagnostics: [u64; 31]) {
+        self.taffy_layout_diagnostics = diagnostics;
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    pub fn taffy_layout_diagnostics(&self) -> [u64; 31] {
+        self.taffy_layout_diagnostics
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    pub(crate) fn set_taffy_node_request_diagnostics(&mut self, diagnostics: [u64; 11]) {
+        self.taffy_node_request_diagnostics = diagnostics;
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    pub fn taffy_node_request_diagnostics(&self) -> [u64; 11] {
+        self.taffy_node_request_diagnostics
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    pub(crate) fn set_line_layout_cache_diagnostics(&mut self, diagnostics: [u64; 12]) {
+        self.line_layout_cache_diagnostics = diagnostics;
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    pub fn line_layout_cache_diagnostics(&self) -> [u64; 12] {
+        self.line_layout_cache_diagnostics
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    pub(crate) fn set_text_measurement_miss_diagnostics(&mut self, diagnostics: [u64; 4]) {
+        self.text_measurement_miss_diagnostics = diagnostics;
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    pub fn text_measurement_miss_diagnostics(&self) -> [u64; 4] {
+        self.text_measurement_miss_diagnostics
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    pub(crate) fn set_text_shape_diagnostics(&mut self, diagnostics: [u64; 10]) {
+        self.text_shape_diagnostics = diagnostics;
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    pub fn text_shape_diagnostics(&self) -> [u64; 10] {
+        self.text_shape_diagnostics
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    pub(crate) fn set_style_phase_diagnostics(&mut self, diagnostics: [u64; 14]) {
+        self.style_phase_diagnostics = diagnostics;
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    pub fn style_phase_diagnostics(&self) -> [u64; 14] {
+        self.style_phase_diagnostics
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    pub fn bounds_tree_diagnostics(&self) -> [u64; 6] {
+        let mut total = [0; 6];
+        for diagnostics in [
+            self.primitive_bounds.diagnostics(),
+            self.positioned_primitive_bounds.diagnostics(),
+            self.top_layer_primitive_bounds.diagnostics(),
+        ] {
+            total[0] += diagnostics.insertions;
+            total[1] += diagnostics.max_leaf_hits;
+            total[2] += diagnostics.slow_searches;
+            total[3] += diagnostics.search_node_visits;
+            total[4] += diagnostics.insertion_child_evaluations;
+            total[5] += diagnostics.retained_nodes;
+        }
+        total
     }
 
     #[cfg_attr(
@@ -407,7 +553,7 @@ impl<'a> Iterator for BatchIterator<'a> {
     type Item = PrimitiveBatch;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let mut orders_and_kinds = [
+        let orders_and_kinds = [
             (
                 self.shadows_iter.peek().map(|s| s.order),
                 PrimitiveKind::Shadow,
@@ -443,10 +589,21 @@ impl<'a> Iterator for BatchIterator<'a> {
                 PrimitiveKind::Surface,
             ),
         ];
-        orders_and_kinds.sort_by_key(|(order, kind)| (order.unwrap_or(u32::MAX), *kind));
-
-        let first = orders_and_kinds[0];
-        let second = orders_and_kinds[1];
+        let key =
+            |(order, kind): (Option<DrawOrder>, PrimitiveKind)| (order.unwrap_or(u32::MAX), kind);
+        let mut first = orders_and_kinds[0];
+        let mut second = orders_and_kinds[1];
+        if key(second) < key(first) {
+            std::mem::swap(&mut first, &mut second);
+        }
+        for candidate in orders_and_kinds.into_iter().skip(2) {
+            if key(candidate) < key(first) {
+                second = first;
+                first = candidate;
+            } else if key(candidate) < key(second) {
+                second = candidate;
+            }
+        }
         let (batch_kind, max_order_and_kind) = if first.0.is_some() {
             (first.1, (second.0.unwrap_or(u32::MAX), second.1))
         } else {
@@ -1437,10 +1594,72 @@ impl PathVertex<ScaledPixels> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(feature = "rayx_diagnostics")]
+    use crate::{AtlasTextureKind, TileId};
     use crate::{Color, ElementEffect, backdrop_blur, glow, hsla, point, px, size};
 
     fn prepared_effect(effect: impl Into<ElementEffect>) -> PreparedElementEffect {
         effect.into().prepare()
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    #[test]
+    fn sprite_sort_diagnostics_count_pre_sort_disorder() {
+        let mut scene = Scene::default();
+        scene.monochrome_sprites = vec![
+            test_monochrome_sprite(1, 3),
+            test_monochrome_sprite(1, 2),
+            test_monochrome_sprite(2, 1),
+        ];
+
+        scene.finish();
+
+        assert_eq!(scene.sprite_sort_disorder_counts(), [1, 0, 0]);
+        assert_eq!(scene.monochrome_sprites[0].tile.tile_id, TileId(2));
+        assert_eq!(scene.monochrome_sprites[1].tile.tile_id, TileId(3));
+    }
+
+    #[test]
+    fn monochrome_sprite_sort_preserves_equal_key_order() {
+        let mut first = test_monochrome_sprite(1, 2);
+        first.bounds.origin.x = ScaledPixels(10.);
+        let mut second = test_monochrome_sprite(1, 2);
+        second.bounds.origin.x = ScaledPixels(20.);
+        let mut scene = Scene::default();
+        scene.monochrome_sprites = vec![first, second];
+
+        scene.finish();
+
+        assert_eq!(
+            scene.monochrome_sprites[0].bounds.origin.x,
+            ScaledPixels(10.)
+        );
+        assert_eq!(
+            scene.monochrome_sprites[1].bounds.origin.x,
+            ScaledPixels(20.)
+        );
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    fn test_monochrome_sprite(order: DrawOrder, tile_id: u32) -> MonochromeSprite {
+        let bounds = Bounds::default();
+        MonochromeSprite {
+            order,
+            kind: MonochromeSpriteKind::Glyph,
+            bounds,
+            content_mask: ContentMask::rectangular(bounds),
+            color: Color::from(hsla(0., 0., 1., 1.)).paint_color(),
+            tile: AtlasTile {
+                texture_id: AtlasTextureId {
+                    index: 0,
+                    kind: AtlasTextureKind::Monochrome,
+                },
+                tile_id: TileId(tile_id),
+                padding: 0,
+                bounds: Bounds::default(),
+            },
+            transformation: TransformationMatrix::unit(),
+        }
     }
 
     #[test]

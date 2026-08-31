@@ -198,10 +198,12 @@ impl Arena {
         };
 
         unsafe { inner_writer(ptr.cast(), f) };
-        self.elements.push(ArenaElement {
-            value: ptr,
-            drop: drop::<T>,
-        });
+        if std::mem::needs_drop::<T>() {
+            self.elements.push(ArenaElement {
+                value: ptr,
+                drop: drop::<T>,
+            });
+        }
 
         ArenaBox {
             ptr: ptr.cast(),
@@ -290,6 +292,16 @@ mod tests {
         arena.alloc(|| DropGuard(dropped.clone()));
         arena.clear();
         assert!(dropped.get());
+    }
+
+    #[test]
+    fn trivial_allocations_do_not_register_drop_records() {
+        let mut arena = Arena::new(1024);
+
+        arena.alloc(|| 1u64);
+        arena.alloc(|| [2u8; 16]);
+
+        assert!(arena.elements.is_empty());
     }
 
     #[test]

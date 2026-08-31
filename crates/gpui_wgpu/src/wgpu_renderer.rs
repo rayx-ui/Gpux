@@ -1,3 +1,5 @@
+#[cfg(feature = "rayx_diagnostics")]
+use crate::WgpuFrameTelemetry;
 #[cfg(all(target_family = "wasm", feature = "rayx_diagnostics"))]
 use crate::html_island_texture::HtmlIslandTextureCacheStatus;
 #[cfg(target_family = "wasm")]
@@ -1276,6 +1278,8 @@ pub struct WgpuRenderer {
     device_lost: std::sync::Arc<std::sync::atomic::AtomicBool>,
     surface_configured: bool,
     needs_redraw: bool,
+    #[cfg(feature = "rayx_diagnostics")]
+    frame_telemetry: RefCell<WgpuFrameTelemetry>,
     #[cfg(target_family = "wasm")]
     html_island_textures: HtmlIslandTextureCache,
     #[cfg(target_family = "wasm")]
@@ -1316,6 +1320,146 @@ impl WgpuRenderer {
         self.resources
             .as_mut()
             .expect("GPU resources not available")
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    fn begin_frame_telemetry(&self, scene: &Scene, atlas_uploads: (usize, usize)) {
+        let sprite_sort_disorder_counts = scene.sprite_sort_disorder_counts();
+        let bounds_tree_diagnostics = scene.bounds_tree_diagnostics();
+        let global_element_id_path_diagnostics = scene.global_element_id_path_diagnostics();
+        let taffy_layout_diagnostics = scene.taffy_layout_diagnostics();
+        let taffy_node_request_diagnostics = scene.taffy_node_request_diagnostics();
+        let line_layout_cache_diagnostics = scene.line_layout_cache_diagnostics();
+        let text_measurement_miss_diagnostics = scene.text_measurement_miss_diagnostics();
+        let text_shape_diagnostics = scene.text_shape_diagnostics();
+        let style_phase_diagnostics = scene.style_phase_diagnostics();
+        let frame_index = self.frame_telemetry.borrow().frame_index.saturating_add(1);
+        *self.frame_telemetry.borrow_mut() = WgpuFrameTelemetry {
+            schema_version: 1,
+            frame_index,
+            quad_count: scene.quads.len() as u64,
+            shadow_count: scene.shadows.len() as u64,
+            visual_effect_count: scene.visual_effects.len() as u64,
+            html_island_count: scene.html_islands.len() as u64,
+            path_count: scene.paths.len() as u64,
+            underline_count: scene.underlines.len() as u64,
+            monochrome_sprite_count: scene.monochrome_sprites.len() as u64,
+            subpixel_sprite_count: scene.subpixel_sprites.len() as u64,
+            polychrome_sprite_count: scene.polychrome_sprites.len() as u64,
+            monochrome_sprite_sort_disorder_count: sprite_sort_disorder_counts[0],
+            subpixel_sprite_sort_disorder_count: sprite_sort_disorder_counts[1],
+            polychrome_sprite_sort_disorder_count: sprite_sort_disorder_counts[2],
+            bounds_tree_insertion_count: bounds_tree_diagnostics[0],
+            bounds_tree_max_leaf_hit_count: bounds_tree_diagnostics[1],
+            bounds_tree_slow_search_count: bounds_tree_diagnostics[2],
+            bounds_tree_search_node_visit_count: bounds_tree_diagnostics[3],
+            bounds_tree_insertion_child_evaluation_count: bounds_tree_diagnostics[4],
+            bounds_tree_retained_node_count: bounds_tree_diagnostics[5],
+            global_element_id_creation_count: global_element_id_path_diagnostics[0],
+            global_element_id_path_element_count: global_element_id_path_diagnostics[1],
+            global_element_id_max_path_length: global_element_id_path_diagnostics[2],
+            global_element_id_path_at_most_4_count: global_element_id_path_diagnostics[3],
+            global_element_id_path_at_most_8_count: global_element_id_path_diagnostics[4],
+            global_element_id_path_at_most_16_count: global_element_id_path_diagnostics[5],
+            global_element_id_same_frame_duplicate_count: global_element_id_path_diagnostics[6],
+            global_element_id_previous_frame_hit_count: global_element_id_path_diagnostics[7],
+            taffy_node_count: taffy_layout_diagnostics[0],
+            taffy_measured_leaf_count: taffy_layout_diagnostics[1],
+            taffy_leaf_count: taffy_layout_diagnostics[2],
+            taffy_container_count: taffy_layout_diagnostics[3],
+            taffy_child_edge_count: taffy_layout_diagnostics[4],
+            taffy_max_child_count: taffy_layout_diagnostics[5],
+            taffy_container_at_most_1_count: taffy_layout_diagnostics[6],
+            taffy_container_at_most_2_count: taffy_layout_diagnostics[7],
+            taffy_container_at_most_4_count: taffy_layout_diagnostics[8],
+            taffy_container_at_most_8_count: taffy_layout_diagnostics[9],
+            taffy_flex_container_count: taffy_layout_diagnostics[10],
+            taffy_block_container_count: taffy_layout_diagnostics[11],
+            taffy_grid_container_count: taffy_layout_diagnostics[12],
+            taffy_compute_layout_count: taffy_layout_diagnostics[13],
+            taffy_repeated_compute_layout_count: taffy_layout_diagnostics[14],
+            taffy_invalidated_descendant_count: taffy_layout_diagnostics[15],
+            taffy_layout_bounds_call_count: taffy_layout_diagnostics[16],
+            taffy_layout_bounds_cache_hit_count: taffy_layout_diagnostics[17],
+            taffy_parent_origin_cache_hit_count: taffy_layout_diagnostics[18],
+            taffy_parent_origin_cache_miss_count: taffy_layout_diagnostics[19],
+            taffy_measurement_call_count: taffy_layout_diagnostics[20],
+            taffy_previous_measurement_call_count: taffy_layout_diagnostics[21],
+            taffy_same_input_measurement_count: taffy_layout_diagnostics[22],
+            taffy_same_input_same_output_measurement_count: taffy_layout_diagnostics[23],
+            taffy_same_input_changed_output_measurement_count: taffy_layout_diagnostics[24],
+            taffy_custom_measurement_call_count: taffy_layout_diagnostics[25],
+            taffy_text_measurement_call_count: taffy_layout_diagnostics[26],
+            taffy_list_measurement_call_count: taffy_layout_diagnostics[27],
+            taffy_uniform_list_measurement_call_count: taffy_layout_diagnostics[28],
+            taffy_text_local_measurement_reuse_count: taffy_layout_diagnostics[29],
+            taffy_text_full_measurement_layout_count: taffy_layout_diagnostics[30],
+            taffy_node_request_count: taffy_node_request_diagnostics[0],
+            taffy_pooled_node_reuse_count: taffy_node_request_diagnostics[1],
+            taffy_new_node_count: taffy_node_request_diagnostics[2],
+            taffy_unchanged_style_count: taffy_node_request_diagnostics[3],
+            taffy_style_write_count: taffy_node_request_diagnostics[4],
+            taffy_unchanged_topology_count: taffy_node_request_diagnostics[5],
+            taffy_topology_write_count: taffy_node_request_diagnostics[6],
+            taffy_measured_context_refill_count: taffy_node_request_diagnostics[7],
+            taffy_measured_context_install_count: taffy_node_request_diagnostics[8],
+            taffy_measured_context_dirty_count: taffy_node_request_diagnostics[9],
+            taffy_unique_child_insertion_count: taffy_node_request_diagnostics[10],
+            text_measurement_missing_cache_count: text_measurement_miss_diagnostics[0],
+            text_measurement_wrap_mismatch_count: text_measurement_miss_diagnostics[1],
+            text_measurement_truncation_request_count: text_measurement_miss_diagnostics[2],
+            text_measurement_previous_truncation_count: text_measurement_miss_diagnostics[3],
+            text_shape_call_count: text_shape_diagnostics[0],
+            text_shape_line_count: text_shape_diagnostics[1],
+            text_shape_decoration_run_count: text_shape_diagnostics[2],
+            text_shape_max_decoration_run_count: text_shape_diagnostics[3],
+            text_shape_at_most_one_decoration_run_line_count: text_shape_diagnostics[4],
+            text_shape_decoration_run_capacity: text_shape_diagnostics[5],
+            text_shape_font_run_pool_take_count: text_shape_diagnostics[6],
+            text_shape_font_run_pool_hit_count: text_shape_diagnostics[7],
+            text_shape_font_run_pool_miss_count: text_shape_diagnostics[8],
+            text_shape_font_run_pool_return_count: text_shape_diagnostics[9],
+            text_wrapped_layout_request_count: line_layout_cache_diagnostics[0],
+            text_wrapped_layout_current_frame_hit_count: line_layout_cache_diagnostics[1],
+            text_wrapped_layout_previous_frame_hit_count: line_layout_cache_diagnostics[2],
+            text_wrapped_layout_miss_count: line_layout_cache_diagnostics[3],
+            text_line_layout_request_count: line_layout_cache_diagnostics[4],
+            text_line_layout_current_frame_hit_count: line_layout_cache_diagnostics[5],
+            text_line_layout_previous_frame_hit_count: line_layout_cache_diagnostics[6],
+            text_line_layout_miss_count: line_layout_cache_diagnostics[7],
+            text_layout_cache_key_hash_count: line_layout_cache_diagnostics[8],
+            text_layout_cache_key_text_bytes_hashed: line_layout_cache_diagnostics[9],
+            text_layout_cache_key_run_items_hashed: line_layout_cache_diagnostics[10],
+            text_layout_cache_key_equality_count: line_layout_cache_diagnostics[11],
+            style_request_layout_count: style_phase_diagnostics[0],
+            style_prepaint_initial_count: style_phase_diagnostics[1],
+            style_prepaint_recompute_count: style_phase_diagnostics[2],
+            style_paint_count: style_phase_diagnostics[3],
+            style_paint_static_eligible_count: style_phase_diagnostics[4],
+            style_paint_reuse_eligible_count: style_phase_diagnostics[5],
+            style_request_static_eligible_count: style_phase_diagnostics[6],
+            style_prepaint_request_candidate_count: style_phase_diagnostics[7],
+            style_request_gpux_owned_static_eligible_count: style_phase_diagnostics[8],
+            style_request_external_static_eligible_count: style_phase_diagnostics[9],
+            style_prepaint_gpux_owned_request_candidate_count: style_phase_diagnostics[10],
+            style_prepaint_external_request_candidate_count: style_phase_diagnostics[11],
+            style_prepaint_request_reuse_count: style_phase_diagnostics[12],
+            style_request_default_base_count: style_phase_diagnostics[13],
+            active_screen_effect_count: scene.active_screen_effects.len() as u64,
+            atlas_texture_write_count: atlas_uploads.0 as u64,
+            atlas_texture_write_bytes: atlas_uploads.1 as u64,
+            ..WgpuFrameTelemetry::default()
+        };
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    fn update_frame_telemetry(&self, update: impl FnOnce(&mut WgpuFrameTelemetry)) {
+        update(&mut self.frame_telemetry.borrow_mut());
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    pub fn frame_telemetry(&self) -> WgpuFrameTelemetry {
+        *self.frame_telemetry.borrow()
     }
 
     /// Creates a new WgpuRenderer from raw window handles.
@@ -1722,6 +1866,8 @@ impl WgpuRenderer {
             device_lost: context.device_lost_flag(),
             surface_configured: true,
             needs_redraw: false,
+            #[cfg(feature = "rayx_diagnostics")]
+            frame_telemetry: RefCell::new(WgpuFrameTelemetry::default()),
             #[cfg(target_family = "wasm")]
             html_island_textures: HtmlIslandTextureCache::default(),
             #[cfg(target_family = "wasm")]
@@ -2648,6 +2794,18 @@ impl WgpuRenderer {
         #[cfg(target_family = "wasm")]
         self.prune_html_island_textures(scene);
 
+        #[cfg(feature = "rayx_diagnostics")]
+        {
+            let atlas_uploads = self.atlas.before_frame();
+            self.begin_frame_telemetry(scene, atlas_uploads);
+        }
+        #[cfg(not(feature = "rayx_diagnostics"))]
+        #[cfg(feature = "rayx_diagnostics")]
+        {
+            let atlas_uploads = self.atlas.before_frame();
+            self.begin_frame_telemetry(scene, atlas_uploads);
+        }
+        #[cfg(not(feature = "rayx_diagnostics"))]
         self.atlas.before_frame();
 
         let Some(frame) = self.acquire_surface_frame() else {
@@ -2674,6 +2832,10 @@ impl WgpuRenderer {
         self.resources()
             .queue
             .submit(std::iter::once(encoder.finish()));
+        #[cfg(feature = "rayx_diagnostics")]
+        self.update_frame_telemetry(|telemetry| {
+            telemetry.submission_count = telemetry.submission_count.saturating_add(1);
+        });
         frame.present();
         true
     }
@@ -2767,6 +2929,10 @@ impl WgpuRenderer {
         self.resources()
             .queue
             .submit(std::iter::once(encoder.finish()));
+        #[cfg(feature = "rayx_diagnostics")]
+        self.update_frame_telemetry(|telemetry| {
+            telemetry.submission_count = telemetry.submission_count.saturating_add(1);
+        });
         drop(frame);
 
         self.read_buffer_to_image(readback, width, height, padded_bytes_per_row)
@@ -2953,6 +3119,14 @@ impl WgpuRenderer {
             self.gamma_offset,
             bytemuck::bytes_of(&gamma_params),
         );
+        #[cfg(feature = "rayx_diagnostics")]
+        self.update_frame_telemetry(|telemetry| {
+            telemetry.queue_buffer_write_count =
+                telemetry.queue_buffer_write_count.saturating_add(3);
+            telemetry.queue_buffer_write_bytes = telemetry
+                .queue_buffer_write_bytes
+                .saturating_add((size_of::<GlobalParams>() * 2 + size_of::<GammaParams>()) as u64);
+        });
     }
 
     fn encode_scene_to_view(
@@ -3011,8 +3185,16 @@ impl WgpuRenderer {
                     depth_stencil_attachment: None,
                     ..Default::default()
                 });
+                #[cfg(feature = "rayx_diagnostics")]
+                self.update_frame_telemetry(|telemetry| {
+                    telemetry.render_pass_count = telemetry.render_pass_count.saturating_add(1);
+                });
 
                 for batch in scene.batches() {
+                    #[cfg(feature = "rayx_diagnostics")]
+                    self.update_frame_telemetry(|telemetry| {
+                        telemetry.batch_count = telemetry.batch_count.saturating_add(1);
+                    });
                     let ok = match batch {
                         PrimitiveBatch::Quads(range) => self.draw_quads(
                             &scene.quads[range],
@@ -3066,6 +3248,11 @@ impl WgpuRenderer {
                                     depth_stencil_attachment: None,
                                     ..Default::default()
                                 });
+                                #[cfg(feature = "rayx_diagnostics")]
+                                self.update_frame_telemetry(|telemetry| {
+                                    telemetry.render_pass_count =
+                                        telemetry.render_pass_count.saturating_add(1);
+                                });
 
                                 did_draw
                             }
@@ -3110,6 +3297,11 @@ impl WgpuRenderer {
                                 })],
                                 depth_stencil_attachment: None,
                                 ..Default::default()
+                            });
+                            #[cfg(feature = "rayx_diagnostics")]
+                            self.update_frame_telemetry(|telemetry| {
+                                telemetry.render_pass_count =
+                                    telemetry.render_pass_count.saturating_add(1);
                             });
 
                             if did_draw {
@@ -3197,6 +3389,11 @@ impl WgpuRenderer {
             }
 
             if overflow {
+                #[cfg(feature = "rayx_diagnostics")]
+                self.update_frame_telemetry(|telemetry| {
+                    telemetry.buffer_restart_count =
+                        telemetry.buffer_restart_count.saturating_add(1);
+                });
                 effect_targets
                     .as_mut()
                     .expect("effect targets should exist")
@@ -3335,6 +3532,10 @@ impl WgpuRenderer {
                     },
                 ],
             });
+        #[cfg(feature = "rayx_diagnostics")]
+        self.update_frame_telemetry(|telemetry| {
+            telemetry.bind_group_count = telemetry.bind_group_count.saturating_add(1);
+        });
         pass.set_pipeline(&resources.pipelines.quads);
         pass.set_bind_group(0, &resources.globals_bind_group, &[]);
         pass.set_bind_group(1, &bind_group, &[]);
@@ -3517,6 +3718,10 @@ impl WgpuRenderer {
                     },
                 ],
             });
+        #[cfg(feature = "rayx_diagnostics")]
+        self.update_frame_telemetry(|telemetry| {
+            telemetry.bind_group_count = telemetry.bind_group_count.saturating_add(1);
+        });
         pass.set_pipeline(pipeline);
         pass.set_bind_group(0, &resources.globals_bind_group, &[]);
         pass.set_bind_group(1, &bind_group, &[]);
@@ -3566,6 +3771,10 @@ impl WgpuRenderer {
                     },
                 ],
             });
+        #[cfg(feature = "rayx_diagnostics")]
+        self.update_frame_telemetry(|telemetry| {
+            telemetry.bind_group_count = telemetry.bind_group_count.saturating_add(1);
+        });
         pass.set_pipeline(pipeline);
         pass.set_bind_group(0, &resources.globals_bind_group, &[]);
         pass.set_bind_group(1, &bind_group, &[]);
@@ -3596,6 +3805,10 @@ impl WgpuRenderer {
                     },
                 ],
             });
+        #[cfg(feature = "rayx_diagnostics")]
+        self.update_frame_telemetry(|telemetry| {
+            telemetry.bind_group_count = telemetry.bind_group_count.saturating_add(1);
+        });
 
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("post_process_pass_through_pass"),
@@ -3610,6 +3823,10 @@ impl WgpuRenderer {
             })],
             depth_stencil_attachment: None,
             ..Default::default()
+        });
+        #[cfg(feature = "rayx_diagnostics")]
+        self.update_frame_telemetry(|telemetry| {
+            telemetry.render_pass_count = telemetry.render_pass_count.saturating_add(1);
         });
         pass.set_pipeline(&resources.pipelines.post_process_pass_through);
         pass.set_bind_group(0, &bind_group, &[]);
@@ -3641,6 +3858,10 @@ impl WgpuRenderer {
                     },
                 ],
             });
+        #[cfg(feature = "rayx_diagnostics")]
+        self.update_frame_telemetry(|telemetry| {
+            telemetry.bind_group_count = telemetry.bind_group_count.saturating_add(1);
+        });
 
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some(label),
@@ -3655,6 +3876,10 @@ impl WgpuRenderer {
             })],
             depth_stencil_attachment: None,
             ..Default::default()
+        });
+        #[cfg(feature = "rayx_diagnostics")]
+        self.update_frame_telemetry(|telemetry| {
+            telemetry.render_pass_count = telemetry.render_pass_count.saturating_add(1);
         });
         pass.set_pipeline(pipeline);
         pass.set_bind_group(0, &bind_group, &[]);
@@ -3749,6 +3974,10 @@ impl WgpuRenderer {
                     },
                 ],
             });
+        #[cfg(feature = "rayx_diagnostics")]
+        self.update_frame_telemetry(|telemetry| {
+            telemetry.bind_group_count = telemetry.bind_group_count.saturating_add(1);
+        });
 
         if has_filter_effect {
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -3764,6 +3993,10 @@ impl WgpuRenderer {
                 })],
                 depth_stencil_attachment: None,
                 ..Default::default()
+            });
+            #[cfg(feature = "rayx_diagnostics")]
+            self.update_frame_telemetry(|telemetry| {
+                telemetry.render_pass_count = telemetry.render_pass_count.saturating_add(1);
             });
             pass.set_pipeline(&resources.pipelines.visual_effects);
             pass.set_bind_group(0, &resources.globals_bind_group, &[]);
@@ -3785,6 +4018,10 @@ impl WgpuRenderer {
                 })],
                 depth_stencil_attachment: None,
                 ..Default::default()
+            });
+            #[cfg(feature = "rayx_diagnostics")]
+            self.update_frame_telemetry(|telemetry| {
+                telemetry.render_pass_count = telemetry.render_pass_count.saturating_add(1);
             });
             pass.set_pipeline(&resources.pipelines.visual_effect_glows);
             pass.set_bind_group(0, &resources.globals_bind_group, &[]);
@@ -3859,6 +4096,10 @@ impl WgpuRenderer {
                 layout: &resources.bind_group_layouts.screen_effects,
                 entries: &bind_group_entries,
             });
+        #[cfg(feature = "rayx_diagnostics")]
+        self.update_frame_telemetry(|telemetry| {
+            telemetry.bind_group_count = telemetry.bind_group_count.saturating_add(1);
+        });
 
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("screen_effects_pass"),
@@ -3873,6 +4114,10 @@ impl WgpuRenderer {
             })],
             depth_stencil_attachment: None,
             ..Default::default()
+        });
+        #[cfg(feature = "rayx_diagnostics")]
+        self.update_frame_telemetry(|telemetry| {
+            telemetry.render_pass_count = telemetry.render_pass_count.saturating_add(1);
         });
         pass.set_pipeline(&resources.pipelines.screen_effects);
         pass.set_bind_group(0, &resources.globals_bind_group, &[]);
@@ -3986,6 +4231,10 @@ impl WgpuRenderer {
                     },
                 ],
             });
+        #[cfg(feature = "rayx_diagnostics")]
+        self.update_frame_telemetry(|telemetry| {
+            telemetry.bind_group_count = telemetry.bind_group_count.saturating_add(1);
+        });
 
         let Some(path_intermediate_view) = resources.path_intermediate_view.as_ref() else {
             return true;
@@ -4011,6 +4260,10 @@ impl WgpuRenderer {
                 })],
                 depth_stencil_attachment: None,
                 ..Default::default()
+            });
+            #[cfg(feature = "rayx_diagnostics")]
+            self.update_frame_telemetry(|telemetry| {
+                telemetry.render_pass_count = telemetry.render_pass_count.saturating_add(1);
             });
 
             pass.set_pipeline(&resources.pipelines.path_rasterization);
@@ -4072,6 +4325,17 @@ impl WgpuRenderer {
             offset,
             data,
         );
+        #[cfg(feature = "rayx_diagnostics")]
+        self.update_frame_telemetry(|telemetry| {
+            telemetry.instance_bytes_written = telemetry
+                .instance_bytes_written
+                .saturating_add(data.len() as u64);
+            telemetry.queue_buffer_write_count =
+                telemetry.queue_buffer_write_count.saturating_add(1);
+            telemetry.queue_buffer_write_bytes = telemetry
+                .queue_buffer_write_bytes
+                .saturating_add(data.len() as u64);
+        });
         *instance_offset = offset + size;
         Some((offset, NonZeroU64::new(size).expect("size is at least 16")))
     }
@@ -4104,6 +4368,17 @@ impl WgpuRenderer {
             offset,
             data,
         );
+        #[cfg(feature = "rayx_diagnostics")]
+        self.update_frame_telemetry(|telemetry| {
+            telemetry.auxiliary_bytes_written = telemetry
+                .auxiliary_bytes_written
+                .saturating_add(data.len() as u64);
+            telemetry.queue_buffer_write_count =
+                telemetry.queue_buffer_write_count.saturating_add(1);
+            telemetry.queue_buffer_write_bytes = telemetry
+                .queue_buffer_write_bytes
+                .saturating_add(data.len() as u64);
+        });
         *gradient_stop_offset = offset + size;
         Some((
             offset,
@@ -4778,10 +5053,11 @@ mod tests {
     #[test]
     fn transformed_quad_uses_analytic_coverage() {
         let shader = include_str!("shaders.wgsl");
+        let compact_shader = shader.split_whitespace().collect::<String>();
 
         assert!(shader.contains("fn transformation_is_axis_aligned"));
         assert!(shader.contains("let antialias_margin = select(1.0, 0.0"));
-        assert!(shader.contains("unrounded &&\n            axis_aligned"));
+        assert!(compact_shader.contains("unrounded&&axis_aligned){"));
     }
 
     #[test]

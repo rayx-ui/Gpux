@@ -1,13 +1,50 @@
 use crate::{FontId, GlyphId, Pixels, PlatformTextSystem, Point, SharedString, Size, point, px};
-use collections::FxHashMap;
+use collections::{FxHashMap, FxHasher};
 use parking_lot::{Mutex, RwLock, RwLockUpgradableReadGuard};
 use smallvec::SmallVec;
+#[cfg(feature = "rayx_diagnostics")]
+use std::cell::Cell;
 use std::{
     borrow::Borrow,
     hash::{Hash, Hasher},
     ops::Range,
     sync::Arc,
 };
+
+#[cfg(feature = "rayx_diagnostics")]
+thread_local! {
+    static LINE_LAYOUT_CACHE_DIAGNOSTICS: Cell<[u64; 12]> = const { Cell::new([0; 12]) };
+}
+
+#[cfg(feature = "rayx_diagnostics")]
+fn record_line_layout_cache_path(index: usize) {
+    LINE_LAYOUT_CACHE_DIAGNOSTICS.with(|diagnostics| {
+        let mut values = diagnostics.get();
+        values[index] += 1;
+        diagnostics.set(values);
+    });
+}
+
+#[cfg(feature = "rayx_diagnostics")]
+pub(crate) fn take_line_layout_cache_diagnostics() -> [u64; 12] {
+    LINE_LAYOUT_CACHE_DIAGNOSTICS.with(|diagnostics| diagnostics.replace([0; 12]))
+}
+
+#[cfg(feature = "rayx_diagnostics")]
+fn record_line_layout_cache_key_hash(text_len: usize, run_count: usize) {
+    LINE_LAYOUT_CACHE_DIAGNOSTICS.with(|diagnostics| {
+        let mut values = diagnostics.get();
+        values[8] += 1;
+        values[9] += text_len as u64;
+        values[10] += run_count as u64;
+        diagnostics.set(values);
+    });
+}
+
+#[cfg(feature = "rayx_diagnostics")]
+fn record_line_layout_cache_key_equality() {
+    record_line_layout_cache_path(11);
+}
 
 use super::LineWrapper;
 
@@ -524,22 +561,30 @@ impl LineLayoutCache {
         Text: AsRef<str>,
         SharedString: From<Text>,
     {
-        let key = &CacheKeyRef {
-            text: text.as_ref(),
+        #[cfg(feature = "rayx_diagnostics")]
+        record_line_layout_cache_path(0);
+        let key_ref = CacheKeyRef::new(
+            text.as_ref(),
             font_size,
             letter_spacing,
             runs,
             wrap_width,
-            force_width: None,
-        } as &dyn AsCacheKeyRef;
+            None,
+        );
+        let cached_hash = key_ref.cached_hash;
+        let key = &key_ref as &dyn AsCacheKeyRef;
 
         let current_frame = self.current_frame.upgradable_read();
         if let Some(layout) = current_frame.wrapped_lines.get(key) {
+            #[cfg(feature = "rayx_diagnostics")]
+            record_line_layout_cache_path(1);
             return layout.clone();
         }
 
         let previous_frame_entry = self.previous_frame.lock().wrapped_lines.remove_entry(key);
         if let Some((key, layout)) = previous_frame_entry {
+            #[cfg(feature = "rayx_diagnostics")]
+            record_line_layout_cache_path(2);
             let mut current_frame = RwLockUpgradableReadGuard::upgrade(current_frame);
             current_frame
                 .wrapped_lines
@@ -547,6 +592,8 @@ impl LineLayoutCache {
             current_frame.used_wrapped_lines.push(key);
             layout
         } else {
+            #[cfg(feature = "rayx_diagnostics")]
+            record_line_layout_cache_path(3);
             drop(current_frame);
             let text = SharedString::from(text);
             let unwrapped_layout =
@@ -562,6 +609,7 @@ impl LineLayoutCache {
                 wrap_width,
             });
             let key = Arc::new(CacheKey {
+                cached_hash,
                 text,
                 font_size,
                 letter_spacing,
@@ -592,26 +640,36 @@ impl LineLayoutCache {
         Text: AsRef<str>,
         SharedString: From<Text>,
     {
-        let key = &CacheKeyRef {
-            text: text.as_ref(),
+        #[cfg(feature = "rayx_diagnostics")]
+        record_line_layout_cache_path(4);
+        let key_ref = CacheKeyRef::new(
+            text.as_ref(),
             font_size,
             letter_spacing,
             runs,
-            wrap_width: None,
+            None,
             force_width,
-        } as &dyn AsCacheKeyRef;
+        );
+        let cached_hash = key_ref.cached_hash;
+        let key = &key_ref as &dyn AsCacheKeyRef;
 
         let current_frame = self.current_frame.upgradable_read();
         if let Some(layout) = current_frame.lines.get(key) {
+            #[cfg(feature = "rayx_diagnostics")]
+            record_line_layout_cache_path(5);
             return layout.clone();
         }
 
         let mut current_frame = RwLockUpgradableReadGuard::upgrade(current_frame);
         if let Some((key, layout)) = self.previous_frame.lock().lines.remove_entry(key) {
+            #[cfg(feature = "rayx_diagnostics")]
+            record_line_layout_cache_path(6);
             current_frame.lines.insert(key.clone(), layout.clone());
             current_frame.used_lines.push(key);
             layout
         } else {
+            #[cfg(feature = "rayx_diagnostics")]
+            record_line_layout_cache_path(7);
             let text = SharedString::from(text);
             let mut layout = self
                 .platform_text_system
@@ -624,6 +682,7 @@ impl LineLayoutCache {
             }
 
             let key = Arc::new(CacheKey {
+                cached_hash,
                 text,
                 font_size,
                 letter_spacing,
@@ -877,6 +936,7 @@ trait AsCacheKeyRef {
 
 #[derive(Clone, Debug, Eq)]
 struct CacheKey {
+    cached_hash: u64,
     text: SharedString,
     font_size: Pixels,
     letter_spacing: Pixels,
@@ -885,14 +945,67 @@ struct CacheKey {
     force_width: Option<Pixels>,
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug)]
 struct CacheKeyRef<'a> {
+    cached_hash: u64,
     text: &'a str,
     font_size: Pixels,
     letter_spacing: Pixels,
     runs: &'a [FontRun],
     wrap_width: Option<Pixels>,
     force_width: Option<Pixels>,
+}
+
+impl<'a> CacheKeyRef<'a> {
+    fn new(
+        text: &'a str,
+        font_size: Pixels,
+        letter_spacing: Pixels,
+        runs: &'a [FontRun],
+        wrap_width: Option<Pixels>,
+        force_width: Option<Pixels>,
+    ) -> Self {
+        let mut hasher = FxHasher::default();
+        text.hash(&mut hasher);
+        font_size.hash(&mut hasher);
+        letter_spacing.hash(&mut hasher);
+        runs.hash(&mut hasher);
+        wrap_width.hash(&mut hasher);
+        force_width.hash(&mut hasher);
+
+        #[cfg(feature = "rayx_diagnostics")]
+        record_line_layout_cache_key_hash(text.len(), runs.len());
+
+        Self {
+            cached_hash: hasher.finish(),
+            text,
+            font_size,
+            letter_spacing,
+            runs,
+            wrap_width,
+            force_width,
+        }
+    }
+}
+
+impl PartialEq for CacheKeyRef<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        self.cached_hash == other.cached_hash
+            && self.text == other.text
+            && self.font_size == other.font_size
+            && self.letter_spacing == other.letter_spacing
+            && self.runs == other.runs
+            && self.wrap_width == other.wrap_width
+            && self.force_width == other.force_width
+    }
+}
+
+impl Eq for CacheKeyRef<'_> {}
+
+impl Hash for CacheKeyRef<'_> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.cached_hash.hash(state);
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -919,6 +1032,8 @@ struct HashedCacheKeyRef<'a> {
 
 impl PartialEq for dyn AsCacheKeyRef + '_ {
     fn eq(&self, other: &dyn AsCacheKeyRef) -> bool {
+        #[cfg(feature = "rayx_diagnostics")]
+        record_line_layout_cache_key_equality();
         self.as_cache_key_ref() == other.as_cache_key_ref()
     }
 }
@@ -986,6 +1101,7 @@ impl Hash for dyn AsCacheKeyRef + '_ {
 impl AsCacheKeyRef for CacheKey {
     fn as_cache_key_ref(&self) -> CacheKeyRef<'_> {
         CacheKeyRef {
+            cached_hash: self.cached_hash,
             text: &self.text,
             font_size: self.font_size,
             letter_spacing: self.letter_spacing,
@@ -998,13 +1114,15 @@ impl AsCacheKeyRef for CacheKey {
 
 impl PartialEq for CacheKey {
     fn eq(&self, other: &Self) -> bool {
+        #[cfg(feature = "rayx_diagnostics")]
+        record_line_layout_cache_key_equality();
         self.as_cache_key_ref().eq(&other.as_cache_key_ref())
     }
 }
 
 impl Hash for CacheKey {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.as_cache_key_ref().hash(state);
+        self.cached_hash.hash(state);
     }
 }
 
@@ -1023,6 +1141,83 @@ impl AsCacheKeyRef for CacheKeyRef<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(feature = "rayx_diagnostics")]
+    #[test]
+    fn line_layout_cache_diagnostics_are_drained() {
+        take_line_layout_cache_diagnostics();
+        record_line_layout_cache_path(0);
+        record_line_layout_cache_path(1);
+        record_line_layout_cache_path(4);
+        record_line_layout_cache_path(7);
+
+        assert_eq!(
+            take_line_layout_cache_diagnostics(),
+            [1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0]
+        );
+        assert_eq!(take_line_layout_cache_diagnostics(), [0; 12]);
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    #[test]
+    fn line_layout_cache_key_diagnostics_count_key_volume() {
+        take_line_layout_cache_diagnostics();
+        let _ = CacheKeyRef::new(
+            "hello",
+            px(14.),
+            px(0.),
+            &[FontRun {
+                len: 5,
+                font_id: FontId(1),
+            }],
+            None,
+            None,
+        );
+        record_line_layout_cache_key_equality();
+
+        assert_eq!(
+            take_line_layout_cache_diagnostics(),
+            [0, 0, 0, 0, 0, 0, 0, 0, 1, 5, 1, 1]
+        );
+    }
+
+    #[test]
+    fn cached_hash_collisions_still_compare_full_keys() {
+        let runs = [FontRun {
+            len: 5,
+            font_id: FontId(1),
+        }];
+        let first = CacheKeyRef::new("first", px(14.), px(0.), &runs, None, None);
+        let second = CacheKeyRef {
+            cached_hash: first.cached_hash,
+            text: "other",
+            ..first
+        };
+
+        assert_ne!(first, second);
+        let mut first_hasher = FxHasher::default();
+        let mut second_hasher = FxHasher::default();
+        first.hash(&mut first_hasher);
+        second.hash(&mut second_hasher);
+        assert_eq!(first_hasher.finish(), second_hasher.finish());
+
+        let mut layouts = FxHashMap::default();
+        layouts.insert(
+            Arc::new(CacheKey {
+                cached_hash: first.cached_hash,
+                text: SharedString::from("first"),
+                font_size: first.font_size,
+                letter_spacing: first.letter_spacing,
+                runs: SmallVec::from(first.runs),
+                wrap_width: first.wrap_width,
+                force_width: first.force_width,
+            }),
+            1,
+        );
+        assert_eq!(layouts.get(&first as &dyn AsCacheKeyRef), Some(&1));
+        assert_eq!(layouts.get(&second as &dyn AsCacheKeyRef), None);
+    }
+
     use crate::GlyphId;
 
     fn glyph_at(x: f32, index: usize) -> ShapedGlyph {

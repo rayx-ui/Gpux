@@ -1146,6 +1146,8 @@ impl PlatformWindow for WebWindow {
             renderer.needs_redraw()
         };
         #[cfg(feature = "rayx_diagnostics")]
+        write_wgpu_frame_telemetry_to_global(&self.inner.renderer.borrow());
+        #[cfg(feature = "rayx_diagnostics")]
         write_text_renderer_diagnostics_to_global(&self.inner.renderer.borrow(), scene);
         #[cfg(feature = "rayx_diagnostics")]
         let (texture_count, texture_pruned_count, texture_draw_count) = self
@@ -1214,6 +1216,422 @@ impl PlatformWindow for WebWindow {
     }
 
     fn set_client_inset(&self, _inset: Pixels) {}
+}
+
+#[cfg(feature = "rayx_diagnostics")]
+fn write_wgpu_frame_telemetry_to_global(renderer: &WgpuRenderer) {
+    let telemetry = renderer.frame_telemetry();
+    let target = js_sys::Object::new();
+    let set_number = |key: &str, value: u64| {
+        let _ = js_sys::Reflect::set(&target, &key.into(), &(value as f64).into());
+    };
+
+    let _ = js_sys::Reflect::set(
+        &target,
+        &"diagnosticVersion".into(),
+        &"wgpu-frame/v1".into(),
+    );
+    set_number("schemaVersion", telemetry.schema_version as u64);
+    set_number("frameIndex", telemetry.frame_index);
+    set_number("quadCount", telemetry.quad_count);
+    set_number("shadowCount", telemetry.shadow_count);
+    set_number("visualEffectCount", telemetry.visual_effect_count);
+    set_number("htmlIslandCount", telemetry.html_island_count);
+    set_number("pathCount", telemetry.path_count);
+    set_number("underlineCount", telemetry.underline_count);
+    set_number("monochromeSpriteCount", telemetry.monochrome_sprite_count);
+    set_number("subpixelSpriteCount", telemetry.subpixel_sprite_count);
+    set_number("polychromeSpriteCount", telemetry.polychrome_sprite_count);
+    set_number(
+        "monochromeSpriteSortDisorderCount",
+        telemetry.monochrome_sprite_sort_disorder_count,
+    );
+    set_number(
+        "subpixelSpriteSortDisorderCount",
+        telemetry.subpixel_sprite_sort_disorder_count,
+    );
+    set_number(
+        "polychromeSpriteSortDisorderCount",
+        telemetry.polychrome_sprite_sort_disorder_count,
+    );
+    set_number(
+        "boundsTreeInsertionCount",
+        telemetry.bounds_tree_insertion_count,
+    );
+    set_number(
+        "boundsTreeMaxLeafHitCount",
+        telemetry.bounds_tree_max_leaf_hit_count,
+    );
+    set_number(
+        "boundsTreeSlowSearchCount",
+        telemetry.bounds_tree_slow_search_count,
+    );
+    set_number(
+        "boundsTreeSearchNodeVisitCount",
+        telemetry.bounds_tree_search_node_visit_count,
+    );
+    set_number(
+        "boundsTreeInsertionChildEvaluationCount",
+        telemetry.bounds_tree_insertion_child_evaluation_count,
+    );
+    set_number(
+        "boundsTreeRetainedNodeCount",
+        telemetry.bounds_tree_retained_node_count,
+    );
+    set_number(
+        "globalElementIdCreationCount",
+        telemetry.global_element_id_creation_count,
+    );
+    set_number(
+        "globalElementIdPathElementCount",
+        telemetry.global_element_id_path_element_count,
+    );
+    set_number(
+        "globalElementIdMaxPathLength",
+        telemetry.global_element_id_max_path_length,
+    );
+    set_number(
+        "globalElementIdPathAtMost4Count",
+        telemetry.global_element_id_path_at_most_4_count,
+    );
+    set_number(
+        "globalElementIdPathAtMost8Count",
+        telemetry.global_element_id_path_at_most_8_count,
+    );
+    set_number(
+        "globalElementIdPathAtMost16Count",
+        telemetry.global_element_id_path_at_most_16_count,
+    );
+    set_number(
+        "globalElementIdSameFrameDuplicateCount",
+        telemetry.global_element_id_same_frame_duplicate_count,
+    );
+    set_number(
+        "globalElementIdPreviousFrameHitCount",
+        telemetry.global_element_id_previous_frame_hit_count,
+    );
+    set_number("taffyNodeCount", telemetry.taffy_node_count);
+    set_number(
+        "taffyMeasuredLeafCount",
+        telemetry.taffy_measured_leaf_count,
+    );
+    set_number("taffyLeafCount", telemetry.taffy_leaf_count);
+    set_number("taffyContainerCount", telemetry.taffy_container_count);
+    set_number("taffyChildEdgeCount", telemetry.taffy_child_edge_count);
+    set_number("taffyMaxChildCount", telemetry.taffy_max_child_count);
+    set_number(
+        "taffyContainerAtMost1Count",
+        telemetry.taffy_container_at_most_1_count,
+    );
+    set_number(
+        "taffyContainerAtMost2Count",
+        telemetry.taffy_container_at_most_2_count,
+    );
+    set_number(
+        "taffyContainerAtMost4Count",
+        telemetry.taffy_container_at_most_4_count,
+    );
+    set_number(
+        "taffyContainerAtMost8Count",
+        telemetry.taffy_container_at_most_8_count,
+    );
+    set_number(
+        "taffyFlexContainerCount",
+        telemetry.taffy_flex_container_count,
+    );
+    set_number(
+        "taffyBlockContainerCount",
+        telemetry.taffy_block_container_count,
+    );
+    set_number(
+        "taffyGridContainerCount",
+        telemetry.taffy_grid_container_count,
+    );
+    set_number(
+        "taffyComputeLayoutCount",
+        telemetry.taffy_compute_layout_count,
+    );
+    set_number(
+        "taffyRepeatedComputeLayoutCount",
+        telemetry.taffy_repeated_compute_layout_count,
+    );
+    set_number(
+        "taffyInvalidatedDescendantCount",
+        telemetry.taffy_invalidated_descendant_count,
+    );
+    set_number(
+        "taffyLayoutBoundsCallCount",
+        telemetry.taffy_layout_bounds_call_count,
+    );
+    set_number(
+        "taffyLayoutBoundsCacheHitCount",
+        telemetry.taffy_layout_bounds_cache_hit_count,
+    );
+    set_number(
+        "taffyParentOriginCacheHitCount",
+        telemetry.taffy_parent_origin_cache_hit_count,
+    );
+    set_number(
+        "taffyParentOriginCacheMissCount",
+        telemetry.taffy_parent_origin_cache_miss_count,
+    );
+    set_number(
+        "taffyMeasurementCallCount",
+        telemetry.taffy_measurement_call_count,
+    );
+    set_number(
+        "taffyPreviousMeasurementCallCount",
+        telemetry.taffy_previous_measurement_call_count,
+    );
+    set_number(
+        "taffySameInputMeasurementCount",
+        telemetry.taffy_same_input_measurement_count,
+    );
+    set_number(
+        "taffySameInputSameOutputMeasurementCount",
+        telemetry.taffy_same_input_same_output_measurement_count,
+    );
+    set_number(
+        "taffySameInputChangedOutputMeasurementCount",
+        telemetry.taffy_same_input_changed_output_measurement_count,
+    );
+    set_number(
+        "taffyCustomMeasurementCallCount",
+        telemetry.taffy_custom_measurement_call_count,
+    );
+    set_number(
+        "taffyTextMeasurementCallCount",
+        telemetry.taffy_text_measurement_call_count,
+    );
+    set_number(
+        "taffyListMeasurementCallCount",
+        telemetry.taffy_list_measurement_call_count,
+    );
+    set_number(
+        "taffyUniformListMeasurementCallCount",
+        telemetry.taffy_uniform_list_measurement_call_count,
+    );
+    set_number(
+        "taffyTextLocalMeasurementReuseCount",
+        telemetry.taffy_text_local_measurement_reuse_count,
+    );
+    set_number(
+        "taffyTextFullMeasurementLayoutCount",
+        telemetry.taffy_text_full_measurement_layout_count,
+    );
+    set_number("taffyNodeRequestCount", telemetry.taffy_node_request_count);
+    set_number(
+        "taffyPooledNodeReuseCount",
+        telemetry.taffy_pooled_node_reuse_count,
+    );
+    set_number("taffyNewNodeCount", telemetry.taffy_new_node_count);
+    set_number(
+        "taffyUnchangedStyleCount",
+        telemetry.taffy_unchanged_style_count,
+    );
+    set_number("taffyStyleWriteCount", telemetry.taffy_style_write_count);
+    set_number(
+        "taffyUnchangedTopologyCount",
+        telemetry.taffy_unchanged_topology_count,
+    );
+    set_number(
+        "taffyTopologyWriteCount",
+        telemetry.taffy_topology_write_count,
+    );
+    set_number(
+        "taffyMeasuredContextRefillCount",
+        telemetry.taffy_measured_context_refill_count,
+    );
+    set_number(
+        "taffyMeasuredContextInstallCount",
+        telemetry.taffy_measured_context_install_count,
+    );
+    set_number(
+        "taffyMeasuredContextDirtyCount",
+        telemetry.taffy_measured_context_dirty_count,
+    );
+    set_number(
+        "taffyUniqueChildInsertionCount",
+        telemetry.taffy_unique_child_insertion_count,
+    );
+    set_number(
+        "textMeasurementMissingCacheCount",
+        telemetry.text_measurement_missing_cache_count,
+    );
+    set_number(
+        "textMeasurementWrapMismatchCount",
+        telemetry.text_measurement_wrap_mismatch_count,
+    );
+    set_number(
+        "textMeasurementTruncationRequestCount",
+        telemetry.text_measurement_truncation_request_count,
+    );
+    set_number(
+        "textMeasurementPreviousTruncationCount",
+        telemetry.text_measurement_previous_truncation_count,
+    );
+    set_number("textShapeCallCount", telemetry.text_shape_call_count);
+    set_number("textShapeLineCount", telemetry.text_shape_line_count);
+    set_number(
+        "textShapeDecorationRunCount",
+        telemetry.text_shape_decoration_run_count,
+    );
+    set_number(
+        "textShapeMaxDecorationRunCount",
+        telemetry.text_shape_max_decoration_run_count,
+    );
+    set_number(
+        "textShapeAtMostOneDecorationRunLineCount",
+        telemetry.text_shape_at_most_one_decoration_run_line_count,
+    );
+    set_number(
+        "textShapeDecorationRunCapacity",
+        telemetry.text_shape_decoration_run_capacity,
+    );
+    set_number(
+        "textShapeFontRunPoolTakeCount",
+        telemetry.text_shape_font_run_pool_take_count,
+    );
+    set_number(
+        "textShapeFontRunPoolHitCount",
+        telemetry.text_shape_font_run_pool_hit_count,
+    );
+    set_number(
+        "textShapeFontRunPoolMissCount",
+        telemetry.text_shape_font_run_pool_miss_count,
+    );
+    set_number(
+        "textShapeFontRunPoolReturnCount",
+        telemetry.text_shape_font_run_pool_return_count,
+    );
+    set_number(
+        "textWrappedLayoutRequestCount",
+        telemetry.text_wrapped_layout_request_count,
+    );
+    set_number(
+        "textWrappedLayoutCurrentFrameHitCount",
+        telemetry.text_wrapped_layout_current_frame_hit_count,
+    );
+    set_number(
+        "textWrappedLayoutPreviousFrameHitCount",
+        telemetry.text_wrapped_layout_previous_frame_hit_count,
+    );
+    set_number(
+        "textWrappedLayoutMissCount",
+        telemetry.text_wrapped_layout_miss_count,
+    );
+    set_number(
+        "textLineLayoutRequestCount",
+        telemetry.text_line_layout_request_count,
+    );
+    set_number(
+        "textLineLayoutCurrentFrameHitCount",
+        telemetry.text_line_layout_current_frame_hit_count,
+    );
+    set_number(
+        "textLineLayoutPreviousFrameHitCount",
+        telemetry.text_line_layout_previous_frame_hit_count,
+    );
+    set_number(
+        "textLineLayoutMissCount",
+        telemetry.text_line_layout_miss_count,
+    );
+    set_number(
+        "textLayoutCacheKeyHashCount",
+        telemetry.text_layout_cache_key_hash_count,
+    );
+    set_number(
+        "textLayoutCacheKeyTextBytesHashed",
+        telemetry.text_layout_cache_key_text_bytes_hashed,
+    );
+    set_number(
+        "textLayoutCacheKeyRunItemsHashed",
+        telemetry.text_layout_cache_key_run_items_hashed,
+    );
+    set_number(
+        "textLayoutCacheKeyEqualityCount",
+        telemetry.text_layout_cache_key_equality_count,
+    );
+    set_number(
+        "styleRequestLayoutCount",
+        telemetry.style_request_layout_count,
+    );
+    set_number(
+        "stylePrepaintInitialCount",
+        telemetry.style_prepaint_initial_count,
+    );
+    set_number(
+        "stylePrepaintRecomputeCount",
+        telemetry.style_prepaint_recompute_count,
+    );
+    set_number("stylePaintCount", telemetry.style_paint_count);
+    set_number(
+        "stylePaintStaticEligibleCount",
+        telemetry.style_paint_static_eligible_count,
+    );
+    set_number(
+        "stylePaintReuseEligibleCount",
+        telemetry.style_paint_reuse_eligible_count,
+    );
+    set_number(
+        "styleRequestStaticEligibleCount",
+        telemetry.style_request_static_eligible_count,
+    );
+    set_number(
+        "stylePrepaintRequestCandidateCount",
+        telemetry.style_prepaint_request_candidate_count,
+    );
+    set_number(
+        "styleRequestGpuxOwnedStaticEligibleCount",
+        telemetry.style_request_gpux_owned_static_eligible_count,
+    );
+    set_number(
+        "styleRequestExternalStaticEligibleCount",
+        telemetry.style_request_external_static_eligible_count,
+    );
+    set_number(
+        "stylePrepaintGpuxOwnedRequestCandidateCount",
+        telemetry.style_prepaint_gpux_owned_request_candidate_count,
+    );
+    set_number(
+        "stylePrepaintExternalRequestCandidateCount",
+        telemetry.style_prepaint_external_request_candidate_count,
+    );
+    set_number(
+        "stylePrepaintRequestReuseCount",
+        telemetry.style_prepaint_request_reuse_count,
+    );
+    set_number(
+        "styleRequestDefaultBaseCount",
+        telemetry.style_request_default_base_count,
+    );
+    set_number(
+        "activeScreenEffectCount",
+        telemetry.active_screen_effect_count,
+    );
+    set_number("batchCount", telemetry.batch_count);
+    set_number("instanceBytesWritten", telemetry.instance_bytes_written);
+    set_number("auxiliaryBytesWritten", telemetry.auxiliary_bytes_written);
+    set_number("queueBufferWriteCount", telemetry.queue_buffer_write_count);
+    set_number("queueBufferWriteBytes", telemetry.queue_buffer_write_bytes);
+    set_number(
+        "atlasTextureWriteCount",
+        telemetry.atlas_texture_write_count,
+    );
+    set_number(
+        "atlasTextureWriteBytes",
+        telemetry.atlas_texture_write_bytes,
+    );
+    set_number("bindGroupCount", telemetry.bind_group_count);
+    set_number("renderPassCount", telemetry.render_pass_count);
+    set_number("bufferRestartCount", telemetry.buffer_restart_count);
+    set_number("submissionCount", telemetry.submission_count);
+    set_number("publishedAtMs", js_sys::Date::now() as u64);
+    let _ = js_sys::Reflect::set(
+        &js_sys::global(),
+        &"__rayxWgpuFrameDiagnostics".into(),
+        &target,
+    );
 }
 
 #[cfg(feature = "rayx_diagnostics")]

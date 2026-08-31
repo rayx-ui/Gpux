@@ -306,12 +306,12 @@ impl Element for Img {
 
             let mut frame_index = state.as_ref().map(|state| state.frame_index).unwrap_or(0);
 
-            let layout_id = self.interactivity.request_layout(
+            let layout_id = self.interactivity.request_layout_with_style_handoff(
                 global_id,
                 inspector_id,
                 window,
                 cx,
-                |mut style, window, cx| {
+                |style, window, cx| {
                     let mut replacement_id = None;
 
                     match self.source.use_data(
@@ -428,7 +428,7 @@ impl Element for Img {
                         }
                     }
 
-                    window.request_layout(style, replacement_id, cx)
+                    window.request_layout_ref(style, replacement_id, cx)
                 },
             );
 

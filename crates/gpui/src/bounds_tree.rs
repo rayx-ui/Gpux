@@ -10,6 +10,17 @@ use std::{
 /// Higher values = shorter tree = fewer cache misses, but more work per node.
 const MAX_CHILDREN: usize = 12;
 
+#[cfg(feature = "rayx_diagnostics")]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub(crate) struct BoundsTreeDiagnostics {
+    pub insertions: u64,
+    pub max_leaf_hits: u64,
+    pub slow_searches: u64,
+    pub search_node_visits: u64,
+    pub insertion_child_evaluations: u64,
+    pub retained_nodes: u64,
+}
+
 /// A spatial tree optimized for finding maximum ordering among intersecting bounds.
 ///
 /// This is an R-tree variant specifically designed for the use case of assigning
@@ -32,6 +43,8 @@ where
     insert_path: Vec<usize>,
     /// Reusable stack for search operations.
     search_stack: Vec<NonNull<Node<U>>>,
+    #[cfg(feature = "rayx_diagnostics")]
+    diagnostics: BoundsTreeDiagnostics,
 }
 
 /// A node in the bounds tree.
@@ -111,6 +124,10 @@ where
         self.max_leaf = None;
         self.insert_path.clear();
         self.search_stack.clear();
+        #[cfg(feature = "rayx_diagnostics")]
+        {
+            self.diagnostics = BoundsTreeDiagnostics::default();
+        }
     }
 
     /// Inserts bounds into the tree and returns its assigned ordering.
@@ -118,6 +135,10 @@ where
     /// The ordering is one greater than the maximum ordering of any
     /// existing bounds that intersect with the new bounds.
     pub fn insert(&mut self, new_bounds: Bounds<U>) -> u32 {
+        #[cfg(feature = "rayx_diagnostics")]
+        {
+            self.diagnostics.insertions += 1;
+        }
         // Find maximum ordering among intersecting bounds
         let max_intersecting = self.find_max_ordering(&new_bounds);
         let ordering = max_intersecting + 1;
@@ -145,28 +166,39 @@ where
         if let Some(max_idx) = self.max_leaf {
             let max_node = &self.nodes[max_idx];
             if query.intersects(&max_node.bounds) {
+                #[cfg(feature = "rayx_diagnostics")]
+                {
+                    self.diagnostics.max_leaf_hits += 1;
+                }
                 return max_node.max_order;
             }
         }
 
         // Slow path: search the tree
+        #[cfg(feature = "rayx_diagnostics")]
+        {
+            self.diagnostics.slow_searches += 1;
+        }
         self.search_stack.clear();
-        self.search_stack.push(NonNull::from(&self.nodes[root_idx]));
+        let root = &self.nodes[root_idx];
+        if !query.intersects(&root.bounds) {
+            return 0;
+        }
+        self.search_stack.push(NonNull::from(root));
 
         let mut max_found = 0u32;
 
         while let Some(node) = self.search_stack.pop() {
+            #[cfg(feature = "rayx_diagnostics")]
+            {
+                self.diagnostics.search_node_visits += 1;
+            }
             // SAFETY: `node` is guaranteed to be valid as the `nodes` stack is unmodified in this function
             // and the `search_stack` only contains pointers from this function call.
             let node = unsafe { node.as_ref() };
 
             // Pruning: skip if this subtree can't improve our result
             if node.max_order <= max_found {
-                continue;
-            }
-
-            // Spatial pruning: skip if bounds don't intersect
-            if !query.intersects(&node.bounds) {
                 continue;
             }
 
@@ -182,7 +214,9 @@ where
                             .as_slice()
                             .iter()
                             .map(|&child_idx| &self.nodes[child_idx])
-                            .filter(|node| node.max_order > max_found)
+                            .filter(|node| {
+                                node.max_order > max_found && query.intersects(&node.bounds)
+                            })
                             .map(NonNull::from),
                     );
                 }
@@ -243,6 +277,11 @@ where
                 unreachable!("Should only traverse internal nodes");
             };
 
+            #[cfg(feature = "rayx_diagnostics")]
+            {
+                self.diagnostics.insertion_child_evaluations += children.len() as u64;
+            }
+
             self.insert_path.push(current_idx);
 
             // Find the best child to descend into
@@ -277,8 +316,6 @@ where
                         }
                     }
 
-                    node.bounds = node.bounds.union(&bounds);
-                    node.max_order = cmp::max(node.max_order, order);
                     break;
                 } else {
                     // Node is full, create new internal with [best_leaf, new_leaf]
@@ -354,6 +391,14 @@ where
 
         new_leaf_idx
     }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    pub(crate) fn diagnostics(&self) -> BoundsTreeDiagnostics {
+        BoundsTreeDiagnostics {
+            retained_nodes: self.nodes.len() as u64,
+            ..self.diagnostics
+        }
+    }
 }
 
 impl<U> Default for BoundsTree<U>
@@ -367,6 +412,8 @@ where
             max_leaf: None,
             insert_path: Vec::new(),
             search_stack: Vec::new(),
+            #[cfg(feature = "rayx_diagnostics")]
+            diagnostics: BoundsTreeDiagnostics::default(),
         }
     }
 }
@@ -432,6 +479,27 @@ mod tests {
         assert_eq!(tree.insert(bounds4), 1); // bounds4 does not overlap with bounds1, bounds2, or bounds3
         assert_eq!(tree.insert(bounds5), 1); // bounds5 does not overlap with any other bounds
         assert_eq!(tree.insert(bounds6), 2); // bounds6 overlaps with bounds4, so it should have a different order
+    }
+
+    #[cfg(feature = "rayx_diagnostics")]
+    #[test]
+    fn diagnostics_track_fast_and_slow_insert_paths() {
+        let mut tree = BoundsTree::<f32>::default();
+        tree.insert(Bounds::new(Point::new(0.0, 0.0), Size::new(10.0, 10.0)));
+        tree.insert(Bounds::new(Point::new(5.0, 5.0), Size::new(10.0, 10.0)));
+        tree.insert(Bounds::new(Point::new(30.0, 30.0), Size::new(10.0, 10.0)));
+
+        assert_eq!(
+            tree.diagnostics(),
+            BoundsTreeDiagnostics {
+                insertions: 3,
+                max_leaf_hits: 1,
+                slow_searches: 1,
+                search_node_visits: 0,
+                insertion_child_evaluations: 2,
+                retained_nodes: 4,
+            }
+        );
     }
 
     #[test]
