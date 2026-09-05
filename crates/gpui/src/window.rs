@@ -4559,6 +4559,20 @@ impl Window {
         self.active_drags.get(&pointer_id)
     }
 
+    /// Reads active drags without transferring ownership out of their pointer sequences.
+    pub(crate) fn active_drags(&self) -> impl Iterator<Item = &AnyDrag> {
+        self.active_drags.values()
+    }
+
+    /// Tests drag feedback against the same frame used by paint-time hover styles.
+    pub(crate) fn drag_hit_test(&self, position: Point<Pixels>) -> HitTest {
+        if self.is_paint_phase() {
+            self.next_frame.hit_test(position)
+        } else {
+            self.rendered_frame.hit_test(position)
+        }
+    }
+
     /// Returns whether this window owns at least one active drag operation.
     pub(crate) fn has_active_drags(&self) -> bool {
         !self.active_drags.is_empty()

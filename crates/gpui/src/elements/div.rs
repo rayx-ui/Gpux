@@ -4042,33 +4042,43 @@ impl Interactivity {
         }
 
         if let Some(hitbox) = hitbox {
-            if let Some(drag) = window.take_active_drag(crate::PointerId::new(0)) {
+            // Styling callbacks can mutate the window. Snapshot only their inputs;
+            // taking/reinserting drags here loses nonzero pointer identities and
+            // can overwrite callback changes to an active sequence.
+            let drags = window
+                .active_drags()
+                .map(|drag| (Arc::clone(&drag.value), drag.position, drag.cursor_style))
+                .collect::<SmallVec<[_; 1]>>();
+            for (value, position, cursor_style) in drags {
                 let mut can_drop = true;
                 if let Some(can_drop_predicate) = &self.can_drop_predicate {
-                    can_drop = can_drop_predicate(drag.value.as_ref(), window, cx);
+                    can_drop = can_drop_predicate(value.as_ref(), window, cx);
                 }
 
-                if can_drop {
+                if can_drop
+                    && (!self.group_drag_over_styles.is_empty()
+                        || !self.drag_over_styles.is_empty())
+                {
+                    let hit_test = window.drag_hit_test(position);
+                    let hovered = &hit_test.ids[..hit_test.hover_hitbox_count];
                     for (state_type, group_drag_style) in &self.group_drag_over_styles {
                         if let Some(group_hitbox_id) =
                             GroupHitboxes::get(&group_drag_style.group, cx)
-                            && *state_type == drag.value.as_ref().type_id()
-                            && group_hitbox_id.is_hovered(window)
+                            && *state_type == value.as_ref().type_id()
+                            && hovered.contains(&group_hitbox_id)
                         {
                             style.refine(&group_drag_style.style);
                         }
                     }
 
                     for (state_type, build_drag_over_style) in &self.drag_over_styles {
-                        if *state_type == drag.value.as_ref().type_id() && hitbox.is_hovered(window)
-                        {
-                            style.refine(&build_drag_over_style(drag.value.as_ref(), window, cx));
+                        if *state_type == value.as_ref().type_id() && hovered.contains(&hitbox.id) {
+                            style.refine(&build_drag_over_style(value.as_ref(), window, cx));
                         }
                     }
                 }
 
-                style.mouse_cursor = drag.cursor_style;
-                window.start_drag(crate::PointerId::new(0), drag);
+                style.mouse_cursor = cursor_style;
             }
         }
 
@@ -5460,6 +5470,132 @@ mod tests {
         AppContext as _, Context, InputEvent, PointerEvent, ScrollActivityKind, ScrollDirection,
         StickyAxisState, TestAppContext,
     };
+
+    #[test]
+    fn drag_over_styles_preserve_pointer_identity_position_and_callback_changes() {
+        let mut app = TestAppContext::single();
+        let window = app.add_window(|_, _| crate::Empty);
+        app.update_window(window.into(), |_, window, cx| {
+            let hitbox = Hitbox {
+                id: HitboxId::placeholder(),
+                bounds: Bounds::new(Point::default(), size(px(100.), px(100.))),
+                content_mask: crate::ContentMask::rectangular(Bounds::new(
+                    Point::default(),
+                    size(px(100.), px(100.)),
+                )),
+                behavior: HitboxBehavior::Normal,
+            };
+            window.rendered_frame.hitboxes.push(hitbox.clone());
+            GroupHitboxes::push("drag-target".into(), hitbox.id, cx);
+            let mut direct = div()
+                .invisible()
+                .drag_over::<usize>(|style, _, _, _| style.visible());
+            let mut grouped = div()
+                .invisible()
+                .group_drag_over::<usize>("drag-target", |style| style.visible());
+            let mut wrong_type = div()
+                .invisible()
+                .drag_over::<String>(|style, _, _, _| style.visible());
+            let mut rejected = div()
+                .invisible()
+                .drag_over::<usize>(|style, _, _, _| style.visible());
+            rejected.interactivity().can_drop_predicate = Some(Box::new(|_, _, _| false));
+
+            for id in [0, 1, 9].map(crate::PointerId::new) {
+                window.start_drag(
+                    id,
+                    AnyDrag {
+                        view: cx.new(|_| crate::Empty).into(),
+                        value: Arc::new(42usize),
+                        position: point(px(20.), px(20.)),
+                        cursor_offset: Point::default(),
+                        axis: None,
+                        on_end: None,
+                        cursor_style: None,
+                    },
+                );
+                for target in [&mut direct, &mut grouped] {
+                    assert_eq!(
+                        target
+                            .interactivity()
+                            .compute_style_internal(Some(&hitbox), None, None, window, cx)
+                            .visibility,
+                        Visibility::Visible
+                    );
+                }
+                for target in [&mut wrong_type, &mut rejected] {
+                    assert_eq!(
+                        target
+                            .interactivity()
+                            .compute_style_internal(Some(&hitbox), None, None, window, cx)
+                            .visibility,
+                        Visibility::Hidden
+                    );
+                }
+                assert_eq!(window.active_drags().count(), 1);
+                assert!(window.active_drag_for(id).is_some());
+                window.update_drag_position(id, point(px(150.), px(20.)));
+                assert_eq!(
+                    direct
+                        .interactivity()
+                        .compute_style_internal(Some(&hitbox), None, None, window, cx)
+                        .visibility,
+                    Visibility::Hidden
+                );
+                window.update_drag_position(id, point(px(20.), px(20.)));
+                let mut cancelling = div().drag_over::<usize>(move |style, _, window, _| {
+                    window.take_active_drag(id);
+                    style
+                });
+                cancelling.interactivity().compute_style_internal(
+                    Some(&hitbox),
+                    None,
+                    None,
+                    window,
+                    cx,
+                );
+                assert!(
+                    !window.has_active_drags(),
+                    "styling must not resurrect a removed drag"
+                );
+            }
+            GroupHitboxes::pop(&"drag-target".into(), cx);
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn drag_hit_test_uses_the_current_paint_frame_and_occlusion() {
+        let mut app = TestAppContext::single();
+        let window = app.add_window(|_, _| crate::Empty);
+        app.update_window(window.into(), |_, window, _| {
+            let hitbox = Hitbox {
+                id: HitboxId::placeholder(),
+                bounds: Bounds::new(Point::default(), size(px(100.), px(100.))),
+                content_mask: crate::ContentMask::rectangular(Bounds::new(
+                    Point::default(),
+                    size(px(100.), px(100.)),
+                )),
+                behavior: HitboxBehavior::BlockMouseExceptScroll,
+            };
+            window.next_frame.hitboxes.push(hitbox.clone());
+            assert!(window.drag_hit_test(point(px(20.), px(20.))).ids.is_empty());
+            window
+                .invalidator
+                .set_phase(crate::window::DrawPhase::Paint);
+            let hit_test = window.drag_hit_test(point(px(20.), px(20.)));
+            assert_eq!(hit_test.ids.as_slice(), &[hitbox.id]);
+            assert_eq!(hit_test.hover_hitbox_count, 1);
+            assert!(
+                window
+                    .drag_hit_test(point(px(150.), px(20.)))
+                    .ids
+                    .is_empty()
+            );
+            window.invalidator.set_phase(crate::window::DrawPhase::None);
+        })
+        .unwrap();
+    }
 
     #[test]
     fn pending_scrollbar_offset_is_read_only_and_source_filtered() {
