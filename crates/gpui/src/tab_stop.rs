@@ -85,7 +85,11 @@ impl TabStopMap {
             tab_stop: focus_handle.tab_stop,
             path,
         };
-        self.by_id.insert(focus_handle.id, order.clone());
+        // Nested focus trackers share an identity. Keep its latest position in
+        // the order without discarding paint operations needed by cached replay.
+        if let Some(previous) = self.by_id.insert(focus_handle.id, order.clone()) {
+            self.order.remove(&previous, ());
+        }
         self.order.insert_or_replace(order, ());
     }
 
@@ -318,6 +322,69 @@ mod tests {
 
     use crate::{FocusHandle, FocusId, FocusMap, TabStopMap};
     use std::sync::Arc;
+
+    #[test]
+    fn repeated_focus_registration_preserves_bidirectional_traversal_and_replay() {
+        let focus_map = Arc::new(FocusMap::default());
+        let before = FocusHandle::new(&focus_map).tab_stop(true);
+        let field = FocusHandle::new(&focus_map).tab_stop(true);
+        let after = FocusHandle::new(&focus_map).tab_stop(true);
+        let mut map = TabStopMap::default();
+        map.insert(&before);
+        map.begin_group(0);
+        map.insert(&field);
+        map.insert(&field);
+        map.end_group();
+        map.insert(&after);
+
+        for replay in [false, true] {
+            if replay {
+                let history = map.insertion_history.clone();
+                map.clear();
+                map.replay(&history);
+                assert_eq!(map.paint_index(), history.len());
+            }
+            assert_eq!(map.tab_stop_count(), 3);
+            // Group paths sort after ungrouped stops of the same index.
+            assert_eq!(map.next(Some(&before.id)), Some(after.clone()));
+            assert_eq!(map.next(Some(&after.id)), Some(field.clone()));
+            assert_eq!(map.next(Some(&field.id)), Some(before.clone()));
+            assert_eq!(map.prev(Some(&field.id)), Some(after.clone()));
+            assert_eq!(map.prev(Some(&after.id)), Some(before.clone()));
+            assert_eq!(map.prev(Some(&before.id)), Some(field.clone()));
+        }
+    }
+
+    #[test]
+    fn repeated_focus_registration_replaces_group_and_tab_stop_state() {
+        let focus_map = Arc::new(FocusMap::default());
+        let before = FocusHandle::new(&focus_map).tab_stop(true).tab_index(0);
+        let field = FocusHandle::new(&focus_map).tab_stop(true).tab_index(0);
+        let after = FocusHandle::new(&focus_map).tab_stop(true).tab_index(2);
+        let mut map = TabStopMap::default();
+        map.insert(&before);
+        map.begin_group(3);
+        map.insert(&field);
+        map.end_group();
+        map.insert(&after);
+        map.begin_group(1);
+        map.insert(&field.clone().tab_stop(false));
+        map.end_group();
+
+        for replay in [false, true] {
+            if replay {
+                let history = map.insertion_history.clone();
+                map.clear();
+                map.replay(&history);
+                assert_eq!(map.paint_index(), history.len());
+            }
+            assert_eq!(map.tab_stop_count(), 2);
+            assert_eq!(map.next(Some(&before.id)), Some(after.clone()));
+            assert_eq!(map.prev(Some(&before.id)), Some(after.clone()));
+            assert_eq!(map.next(Some(&field.id)), Some(after.clone()));
+            assert_eq!(map.prev(Some(&field.id)), Some(before.clone()));
+        }
+    }
 
     #[test]
     fn test_tab_handles() {

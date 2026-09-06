@@ -148,6 +148,9 @@ pub struct WindowsWindowState {
     initial_placement: Cell<Option<WindowOpenStatus>>,
     hwnd: HWND,
     pub(crate) a11y: RefCell<Option<A11yState>>,
+    pub(crate) destroyed: Cell<bool>,
+    pub(crate) evaluating_close: Cell<bool>,
+    pub(crate) drag_drop_registered: Cell<bool>,
 }
 
 pub(crate) struct WindowsWindowInner {
@@ -272,6 +275,9 @@ impl WindowsWindowState {
             hwnd,
             direct_manipulation,
             a11y: RefCell::new(None),
+            destroyed: Cell::new(false),
+            evaluating_close: Cell::new(false),
+            drag_drop_registered: Cell::new(false),
         })
     }
 
@@ -713,16 +719,19 @@ impl rwh::HasDisplayHandle for WindowsWindow {
 
 impl Drop for WindowsWindow {
     fn drop(&mut self) {
+        if self.state.destroyed.get() {
+            return;
+        }
         // clone this `Rc` to prevent early release of the pointer
         let this = self.0.clone();
         self.0
             .executor
             .spawn(async move {
-                let handle = this.hwnd;
-                this.destroy_wgpu_surface();
-                unsafe {
-                    RevokeDragDrop(handle).log_err();
-                    DestroyWindow(handle).log_err();
+                if !this.state.destroyed.get() {
+                    // SAFETY: the retained window is owned by this foreground
+                    // thread and has not entered WM_DESTROY. That message owns
+                    // resource cleanup, including the drag-drop registration.
+                    unsafe { DestroyWindow(this.hwnd).log_err() };
                 }
             })
             .detach();
@@ -1174,6 +1183,9 @@ impl PlatformWindow for WindowsWindow {
     }
 
     fn a11y_init(&self, callbacks: gpux::A11yCallbacks) {
+        if self.state.destroyed.get() {
+            return;
+        }
         let action_handler = A11yActionHandler(callbacks.action);
         let is_focused = unsafe { GetForegroundWindow() } == self.0.hwnd;
         let adapter = accesskit_windows::Adapter::new(
@@ -1647,6 +1659,7 @@ fn register_drag_drop(window: &Rc<WindowsWindowInner>) -> Result<()> {
         RegisterDragDrop(window_handle, &drag_drop_handler)
             .context("unable to register drag-drop event")?;
     }
+    window.state.drag_drop_registered.set(true);
     Ok(())
 }
 
