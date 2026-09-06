@@ -6,8 +6,9 @@ use windows::{
     Win32::{
         Foundation::*,
         Graphics::Gdi::*,
-        System::SystemServices::*,
+        System::{Ole::RevokeDragDrop, SystemServices::*},
         UI::{
+            Accessibility::{IRawElementProviderSimple, UiaReturnRawElementProvider},
             Controls::*,
             HiDpi::*,
             Input::{Ime::*, KeyboardAndMouse::*},
@@ -281,13 +282,43 @@ impl WindowsWindowInner {
     }
 
     fn handle_close_msg(&self) -> Option<isize> {
+        if self.state.destroyed.get() || self.state.evaluating_close.get() {
+            return Some(0);
+        }
         let mut callback = self.state.callbacks.should_close.take()?;
+        // A native dialog can pump WM_CLOSE while the callback is taken.
+        // The outer request remains responsible for deciding whether to close.
+        self.state.evaluating_close.set(true);
         let should_close = callback();
+        self.state.evaluating_close.set(false);
         self.state.callbacks.should_close.set(Some(callback));
-        if should_close { None } else { Some(0) }
+        (!should_close || self.state.destroyed.get()).then_some(0)
     }
 
     fn handle_destroy_msg(&self, handle: HWND) -> Option<isize> {
+        if self.state.destroyed.replace(true) {
+            return Some(0);
+        }
+        // Invalidate retained AccessKit providers before the HWND becomes
+        // invalid. Dropping the adapter and notifying UIA may re-enter this
+        // window procedure, so neither operation may hold the adapter borrow.
+        let a11y = self.state.a11y.borrow_mut().take();
+        drop(a11y);
+        // SAFETY: WM_DESTROY runs on the owning thread while its HWND is still
+        // valid. A null provider removes UIA's event registration for this HWND.
+        unsafe {
+            UiaReturnRawElementProvider(
+                handle,
+                WPARAM(0),
+                LPARAM(0),
+                None::<&IRawElementProviderSimple>,
+            );
+        }
+        if self.state.drag_drop_registered.replace(false) {
+            // SAFETY: this window owns the successful OLE registration; revoke
+            // it exactly once while its HWND is valid, releasing the target Rc.
+            unsafe { RevokeDragDrop(handle).log_err() };
+        }
         self.destroy_wgpu_surface();
         let callback = { self.state.callbacks.close.take() };
         // Re-enable parent window if this was a modal dialog

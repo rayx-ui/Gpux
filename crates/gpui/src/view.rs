@@ -389,6 +389,9 @@ impl<V: View> Element for ViewElement<V> {
                             && element_state.cache_key.text_style == text_style
                             && !window.dirty_views.contains(&entity_id)
                             && !window.refreshing
+                            // Accessibility nodes and action listeners are rebuilt
+                            // each frame; cached visual replay does not retain them.
+                            && !window.is_a11y_active()
                         {
                             let prepaint_start = window.prepaint_index();
                             window.reuse_prepaint(element_state.prepaint_range.clone());

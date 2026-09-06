@@ -917,6 +917,8 @@ pub(crate) struct PrepaintStateIndex {
     tooltips_index: usize,
     deferred_draws_index: usize,
     dispatch_tree_index: usize,
+    devtools_nodes_index: usize,
+    devtools_node_id: usize,
     accessed_element_states_index: usize,
     pending_element_state_transfers_index: usize,
     line_layout_index: LineLayoutIndex,
@@ -4559,6 +4561,20 @@ impl Window {
         self.active_drags.get(&pointer_id)
     }
 
+    /// Reads active drags without transferring ownership out of their pointer sequences.
+    pub(crate) fn active_drags(&self) -> impl Iterator<Item = &AnyDrag> {
+        self.active_drags.values()
+    }
+
+    /// Tests drag feedback against the same frame used by paint-time hover styles.
+    pub(crate) fn drag_hit_test(&self, position: Point<Pixels>) -> HitTest {
+        if self.is_paint_phase() {
+            self.next_frame.hit_test(position)
+        } else {
+            self.rendered_frame.hit_test(position)
+        }
+    }
+
     /// Returns whether this window owns at least one active drag operation.
     pub(crate) fn has_active_drags(&self) -> bool {
         !self.active_drags.is_empty()
@@ -5715,6 +5731,8 @@ impl Window {
             tooltips_index: self.next_frame.tooltip_requests.len(),
             deferred_draws_index: self.next_frame.deferred_draws.len(),
             dispatch_tree_index: self.next_frame.dispatch_tree.len(),
+            devtools_nodes_index: self.next_frame.devtools_nodes.len(),
+            devtools_node_id: self.next_frame.next_devtools_node_id,
             accessed_element_states_index: self.next_frame.accessed_element_states.len(),
             pending_element_state_transfers_index: self
                 .next_frame
@@ -5759,6 +5777,60 @@ impl Window {
 
         if reused_subtree.contains_focus() {
             self.next_frame.focus = self.focus;
+        }
+
+        // Cached views skip the element lifecycle that normally records these
+        // occurrences. Their allocation order is preorder, while completed
+        // records are postorder, so retain both ranges and remap independently.
+        let old_ids = range.start.devtools_node_id..range.end.devtools_node_id;
+        let new_id_start = self.next_frame.next_devtools_node_id;
+        let parent_devtools_node_id = self.next_frame.devtools_node_stack.last().copied();
+        self.next_frame.next_devtools_node_id += old_ids.len();
+        self.next_frame
+            .devtools_node_indices
+            .resize(self.next_frame.next_devtools_node_id, usize::MAX);
+        for source in &self.rendered_frame.devtools_nodes
+            [range.start.devtools_nodes_index..range.end.devtools_nodes_index]
+        {
+            debug_assert!(old_ids.contains(&source.devtools_node_id));
+            let devtools_node_id = new_id_start + source.devtools_node_id - old_ids.start;
+            let dispatch_node_id =
+                reused_subtree.refresh_node_id(DispatchNodeId::from_usize(source.dispatch_node_id));
+            let dispatch_node = self.next_frame.dispatch_tree.node(dispatch_node_id);
+            self.next_frame.devtools_node_indices[devtools_node_id] =
+                self.next_frame.devtools_nodes.len();
+            self.next_frame.devtools_nodes.push(DevtoolsFrameNode {
+                devtools_node_id,
+                parent_devtools_node_id: source
+                    .parent_devtools_node_id
+                    .filter(|parent| old_ids.contains(parent))
+                    .map(|parent| new_id_start + parent - old_ids.start)
+                    .or(parent_devtools_node_id),
+                dispatch_node_id: dispatch_node_id.as_usize(),
+                parent_dispatch_node_id: self
+                    .next_frame
+                    .dispatch_tree
+                    .parent_node_id(dispatch_node_id)
+                    .map(DispatchNodeId::as_usize),
+                type_name: source.type_name,
+                global_id: source.global_id.clone(),
+                source: source.source,
+                bounds: source.bounds,
+                semantics: source.semantics.clone(),
+                hitbox_count: source.hitbox_count,
+                key_listener_count: dispatch_node.key_listeners.len(),
+                action_listener_count: dispatch_node.action_listeners.len(),
+                focused: dispatch_node.focus_id.is_some() && dispatch_node.focus_id == self.focus,
+            });
+            if let Some(setters) = self
+                .rendered_frame
+                .devtools_property_setters
+                .get(&source.dispatch_node_id)
+            {
+                self.next_frame
+                    .devtools_property_setters
+                    .insert(dispatch_node_id.as_usize(), setters.clone());
+            }
         }
 
         self.next_frame.deferred_draws.extend(
@@ -6445,6 +6517,16 @@ impl Window {
             self.next_frame
                 .dispatch_tree
                 .truncate(index.dispatch_tree_index);
+            self.next_frame
+                .devtools_nodes
+                .truncate(index.devtools_nodes_index);
+            self.next_frame
+                .devtools_node_indices
+                .truncate(index.devtools_node_id);
+            self.next_frame.next_devtools_node_id = index.devtools_node_id;
+            self.next_frame
+                .devtools_property_setters
+                .retain(|node_id, _| *node_id < index.dispatch_tree_index);
             self.next_frame
                 .accessed_element_states
                 .truncate(index.accessed_element_states_index);
@@ -10879,6 +10961,353 @@ mod tests {
         Empty, MAX_ACTIVE_SCREEN_EFFECTS, ScreenEffectSnapshotId, ScreenEffectTarget,
         TestAppContext, point, screen, size,
     };
+
+    struct CachedInspectionPanel {
+        name: &'static str,
+        focus: FocusHandle,
+        renders: Rc<Cell<usize>>,
+        written: Rc<Cell<u64>>,
+    }
+
+    impl Render for CachedInspectionPanel {
+        fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+            use crate::InspectableElementExt as _;
+            self.renders.set(self.renders.get() + 1);
+            let written = self.written.clone();
+            let clicked = self.written.clone();
+            crate::div()
+                .id(self.name)
+                .size_full()
+                .child(
+                    crate::div()
+                        .id("control")
+                        .role(accesskit::Role::Button)
+                        .aria_label(self.name)
+                        .track_focus(&self.focus)
+                        .size_full()
+                        .on_key_down(|_, _, _| {})
+                        .on_a11y_action(accesskit::Action::Click, move |_, _, _| {
+                            clicked.set(clicked.get() + 1);
+                        })
+                        .devtools_semantics(DevtoolsSemantics::new().role("button").name(self.name))
+                        .on_devtools_property("value", "number", move |value, _, _| {
+                            written.set(value.as_u64().ok_or("expected integer")?);
+                            Ok(())
+                        }),
+                )
+                .devtools_semantics(
+                    DevtoolsSemantics::new()
+                        .role("group")
+                        .name(format!("{} group", self.name)),
+                )
+        }
+    }
+
+    struct CachedInspectionRoot {
+        panels: [Entity<CachedInspectionPanel>; 2],
+        reverse: bool,
+        prefix: usize,
+    }
+
+    impl Render for CachedInspectionRoot {
+        fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+            let order = if self.reverse { [1, 0] } else { [0, 1] };
+            crate::div()
+                .id("inspection-root")
+                .relative()
+                .size_full()
+                .children((0..self.prefix).map(|_| crate::div().absolute()))
+                .children(order.into_iter().map(|index| {
+                    self.panels[index]
+                        .clone()
+                        .cached(crate::StyleRefinement::default().absolute().size_full())
+                }))
+        }
+    }
+
+    #[gpux::test]
+    fn sprint_8_task_1_cached_inspection_replays_hierarchy_focus_and_properties(
+        cx: &mut TestAppContext,
+    ) {
+        let window = cx.open_window(size(px(100.), px(100.)), |_, cx| {
+            let panels = ["first", "second"].map(|name| {
+                cx.new(|cx| CachedInspectionPanel {
+                    name,
+                    focus: cx.focus_handle().tab_stop(true),
+                    renders: Rc::new(Cell::new(0)),
+                    written: Rc::new(Cell::new(0)),
+                })
+            });
+            CachedInspectionRoot {
+                panels,
+                reverse: false,
+                prefix: 0,
+            }
+        });
+        cx.run_until_parked();
+
+        // Reorder cached sibling occurrences without moving their bounds. Only
+        // the root is dirty; render counters prove the children really replay.
+        for iteration in 0..5 {
+            window
+                .update(cx, |root, window, cx| {
+                    root.reverse = iteration % 2 == 0;
+                    root.prefix = iteration + 1;
+                    // Exercise replay's focus update independently of focus()'s
+                    // full-window refresh, which would rebuild these cached views.
+                    window.focus = Some(root.panels[iteration % 2].read(cx).focus.id);
+                    cx.notify();
+                })
+                .unwrap();
+            cx.run_until_parked();
+            window
+                .update(cx, |root, window, cx| {
+                    let snapshot = window.devtools_frame_snapshot();
+                    let ids = snapshot
+                        .elements
+                        .iter()
+                        .map(|node| node.devtools_node_id)
+                        .collect::<FxHashSet<_>>();
+                    assert_eq!(
+                        ids.len(),
+                        snapshot.elements.len(),
+                        "duplicate occurrence ids"
+                    );
+                    for node in &snapshot.elements {
+                        assert!(
+                            node.parent_devtools_node_id
+                                .is_none_or(|parent| ids.contains(&parent))
+                        );
+                        assert_eq!(
+                            node.parent_dispatch_node_id,
+                            window
+                                .rendered_frame
+                                .dispatch_tree
+                                .parent_node_id(DispatchNodeId::from_usize(node.dispatch_node_id))
+                                .map(DispatchNodeId::as_usize),
+                        );
+                    }
+                    for (index, name) in ["first", "second"].into_iter().enumerate() {
+                        assert_eq!(
+                            root.panels[index].read(cx).renders.get(),
+                            1,
+                            "panel was not cached"
+                        );
+                        let matching = snapshot
+                            .elements
+                            .iter()
+                            .filter(|node| node.semantics.name.as_deref() == Some(name))
+                            .collect::<Vec<_>>();
+                        assert_eq!(matching.len(), 1, "missing or duplicate cached semantics");
+                        let node = matching[0];
+                        assert_eq!(node.focused, index == iteration % 2);
+                        assert_eq!(node.key_listener_count, 1);
+                        assert_eq!(node.semantics.writable_properties.len(), 1);
+                        let mut parent = node.parent_devtools_node_id;
+                        let group_name = format!("{name} group");
+                        loop {
+                            let ancestor = snapshot
+                                .elements
+                                .iter()
+                                .find(|node| Some(node.devtools_node_id) == parent)
+                                .expect("cached control stays under its own group");
+                            if ancestor.semantics.name.as_deref() == Some(group_name.as_str()) {
+                                break;
+                            }
+                            parent = ancestor.parent_devtools_node_id;
+                        }
+                        let value = (iteration * 10 + index + 1) as u64;
+                        assert!(
+                            window
+                                .set_devtools_property(
+                                    node.dispatch_node_id,
+                                    "value",
+                                    value.into(),
+                                    cx
+                                )
+                                .unwrap()
+                        );
+                        assert_eq!(root.panels[index].read(cx).written.get(), value);
+                    }
+                    assert_eq!(window.rendered_frame.devtools_property_setters.len(), 2);
+                })
+                .unwrap();
+        }
+    }
+
+    #[gpux::test]
+    fn sprint_8_task_1_cached_accessibility_survives_clean_frames_and_late_activation(
+        cx: &mut TestAppContext,
+    ) {
+        let window = cx.open_window(size(px(100.), px(100.)), |_, cx| CachedInspectionRoot {
+            panels: ["first", "second"].map(|name| {
+                cx.new(|cx| CachedInspectionPanel {
+                    name,
+                    focus: cx.focus_handle().tab_stop(true),
+                    renders: Rc::new(Cell::new(0)),
+                    written: Rc::new(Cell::new(0)),
+                })
+            }),
+            reverse: false,
+            prefix: 0,
+        });
+        cx.run_until_parked();
+        window.update(cx, |_, _, cx| cx.notify()).unwrap();
+        cx.run_until_parked();
+        window
+            .update(cx, |root, _, cx| {
+                assert_eq!(root.panels[0].read(cx).renders.get(), 1);
+            })
+            .unwrap();
+
+        assert!(cx.activate_accessibility(window.into()).is_some());
+        cx.run_until_parked();
+        for iteration in 0..3 {
+            let previous_renders = window
+                .update(cx, |root, _, cx| {
+                    let renders = root.panels[0].read(cx).renders.get();
+                    // Do not refresh the window or notify the cached child:
+                    // only the parent changes, leaving a genuine cache hit.
+                    root.prefix += 1;
+                    cx.notify();
+                    renders
+                })
+                .unwrap();
+            cx.run_until_parked();
+            let target_node = window
+                .update(cx, |root, window, cx| {
+                    assert!(root.panels[0].read(cx).renders.get() > previous_renders);
+                    let tree: serde_json::Value =
+                        serde_json::from_str(&window.debug_a11y_tree_json().unwrap()).unwrap();
+                    let node = tree["nodes"]
+                        .as_object()
+                        .unwrap()
+                        .values()
+                        .find(|node| {
+                            node["aria"]["role"] == "Button" && node["aria"]["label"] == "first"
+                        })
+                        .expect("cached control remains in the native accessibility tree");
+                    let id =
+                        accesskit::NodeId(node["accesskit_id"].as_str().unwrap().parse().unwrap());
+                    assert_eq!(window.a11y.focus_ids[&id], root.panels[0].read(cx).focus.id);
+                    assert_eq!(window.a11y.node_bounds[&id].size, size(px(100.), px(100.)));
+                    id
+                })
+                .unwrap();
+            cx.dispatch_accessibility_action(
+                window.into(),
+                accesskit::ActionRequest {
+                    action: accesskit::Action::Click,
+                    target_tree: accesskit::TreeId::ROOT,
+                    target_node,
+                    data: None,
+                },
+            );
+            window
+                .update(cx, |root, _, cx| {
+                    assert_eq!(root.panels[0].read(cx).written.get(), iteration + 1);
+                })
+                .unwrap();
+        }
+        cx.deactivate_accessibility(window.into());
+    }
+
+    #[gpux::test]
+    fn sprint_8_task_1_prepaint_retry_discards_inspection_occurrences(cx: &mut TestAppContext) {
+        let window = cx.open_window(size(px(100.), px(100.)), |_, _| Empty);
+        cx.run_until_parked();
+        window
+            .update(cx, |_, window, _| {
+                window.next_frame.clear();
+                window.invalidator.set_phase(DrawPhase::Prepaint);
+                let result: Result<(), ()> = window.transact(|window| {
+                    let (id, parent) = window.push_devtools_node();
+                    let dispatch = window.next_frame.dispatch_tree.push_node();
+                    window.record_devtools_element(
+                        id,
+                        parent,
+                        dispatch,
+                        "retry",
+                        None,
+                        None,
+                        Bounds::default(),
+                        0..0,
+                    );
+                    window.set_devtools_semantics(DevtoolsSemantics::new().name("discarded"));
+                    window.on_devtools_property("value", "number", |_, _, _| Ok(()));
+                    window.next_frame.dispatch_tree.pop_node();
+                    window.pop_devtools_node(id);
+                    Err(())
+                });
+                assert!(result.is_err());
+                assert!(window.next_frame.devtools_nodes.is_empty());
+                assert!(window.next_frame.devtools_node_indices.is_empty());
+                assert!(window.next_frame.devtools_property_setters.is_empty());
+                assert_eq!(window.next_frame.next_devtools_node_id, 0);
+                assert_eq!(window.next_frame.dispatch_tree.len(), 0);
+                window.invalidator.set_phase(DrawPhase::None);
+            })
+            .unwrap();
+    }
+
+    #[gpux::test]
+    fn sprint_8_task_1_native_invalid_and_disabled_states_follow_changes(cx: &mut TestAppContext) {
+        struct StateProbe(bool);
+        impl Render for StateProbe {
+            fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+                crate::div()
+                    .id("state-probe")
+                    .role(accesskit::Role::TextInput)
+                    .aria_label("State probe")
+                    .aria_invalid(self.0)
+                    .aria_disabled(self.0)
+                    .size_full()
+            }
+        }
+        // Explicit false must also clear previously authored AccessKit values.
+        let mut node = accesskit::Node::new(accesskit::Role::TextInput);
+        for value in [true, false] {
+            crate::div()
+                .id("state-probe")
+                .aria_invalid(value)
+                .aria_disabled(value)
+                .write_a11y_info(&mut node);
+            assert_eq!(node.invalid(), value.then_some(accesskit::Invalid::True));
+            assert_eq!(node.is_disabled(), value);
+        }
+        let window = cx.open_window(size(px(100.), px(100.)), |_, _| StateProbe(false));
+        assert!(cx.activate_accessibility(window.into()).is_some());
+        cx.run_until_parked();
+        for value in [false, true, false] {
+            window
+                .update(cx, |root, _, cx| {
+                    root.0 = value;
+                    cx.notify();
+                })
+                .unwrap();
+            cx.run_until_parked();
+            window
+                .update(cx, |_, window, _| {
+                    let tree: serde_json::Value =
+                        serde_json::from_str(&window.debug_a11y_tree_json().unwrap()).unwrap();
+                    let node = tree["nodes"]
+                        .as_object()
+                        .unwrap()
+                        .values()
+                        .find(|node| node["aria"]["label"] == "State probe")
+                        .unwrap();
+                    assert_eq!(node["aria"]["disabled"], value);
+                    assert_eq!(
+                        node["aria"]["invalid"],
+                        value
+                            .then_some("True")
+                            .map_or(serde_json::Value::Null, Into::into)
+                    );
+                })
+                .unwrap();
+        }
+        cx.deactivate_accessibility(window.into());
+    }
 
     #[test]
     fn sticky_layer_groups_put_shallower_parents_after_deeper_children() {

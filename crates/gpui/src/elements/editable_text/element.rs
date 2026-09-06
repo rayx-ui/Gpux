@@ -298,6 +298,9 @@ impl Element for EditableTextPaintElement {
         window: &mut Window,
         cx: &mut App,
     ) -> Self::PrepaintState {
+        // RenderOnce text still needs view ownership so state notifications
+        // invalidate the cached ancestors that rendered it.
+        window.set_view_id(self.state.entity_id());
         let style = window.text_style();
         let placeholder_color = self
             .placeholder_color
@@ -716,4 +719,82 @@ pub fn editable_text_selection_quads(
             ))
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{AppContext as _, Context, Render, StyleRefinement, TestApp};
+    use std::{cell::Cell, rc::Rc};
+
+    struct CachedEditor {
+        state: Entity<EditableTextState>,
+        renders: Rc<Cell<usize>>,
+    }
+
+    impl Render for CachedEditor {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            self.renders.set(self.renders.get() + 1);
+            div().size_full().child(EditableText::new(&self.state))
+        }
+    }
+
+    struct CachedEditorRoot(Entity<CachedEditor>);
+
+    impl Render for CachedEditorRoot {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            div().child(
+                self.0
+                    .clone()
+                    .cached(StyleRefinement::default().w(px(320.)).h(px(48.))),
+            )
+        }
+    }
+
+    #[test]
+    fn editable_text_invalidates_cached_ancestor_after_platform_input() {
+        let mut app = TestApp::new();
+        let renders = Rc::new(Cell::new(0));
+        let mut window = app.open_window(|_, cx| {
+            CachedEditorRoot(cx.new(|cx| CachedEditor {
+                state: cx.new(|cx| EditableTextState::with_text("1", cx)),
+                renders: renders.clone(),
+            }))
+        });
+        let state = window.read(|root, cx| root.0.read(cx).state.clone());
+        window.draw();
+        window.update(|_, window, cx| state.read(cx).focus_handle().focus(window, cx));
+        window.draw();
+
+        let settled_renders = renders.get();
+        window.draw();
+        assert_eq!(
+            renders.get(),
+            settled_renders,
+            "idle draw must reuse the cached editor"
+        );
+
+        for text in ["86420", "72"] {
+            window.simulate_keystroke("ctrl-a");
+            let previous_renders = renders.get();
+            assert!(window.update(|_, window, cx| window.dispatch_text_input(text, cx)));
+            assert_eq!(app.read_entity(&state, |state, _| state.text()), text);
+            window.draw();
+            assert!(
+                renders.get() > previous_renders,
+                "an editable state notification must invalidate its cached ancestor"
+            );
+            app.read_entity(&state, |state, _| {
+                assert_eq!(state.layout_map().revision(), Some(state.revision()));
+                assert_eq!(state.layout_map().visual_row_range(0), Some(0..text.len()));
+            });
+            let settled_renders = renders.get();
+            window.draw();
+            assert_eq!(
+                renders.get(),
+                settled_renders,
+                "idle draw must remain cached after editing"
+            );
+        }
+    }
 }
