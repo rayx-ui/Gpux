@@ -324,6 +324,22 @@ mod tests {
     use std::sync::Arc;
 
     #[test]
+    fn traversal_from_non_stop_wraps_to_the_only_stop() {
+        let focus_map = Arc::new(FocusMap::default());
+        let root = FocusHandle::new(&focus_map);
+        let child = FocusHandle::new(&focus_map).tab_stop(true);
+        let overlay = FocusHandle::new(&focus_map);
+        let mut map = TabStopMap::default();
+        map.insert(&root);
+        map.insert(&child);
+        map.insert(&overlay);
+        assert_eq!(map.next(Some(&root.id)), Some(child.clone()));
+        assert_eq!(map.prev(Some(&root.id)), Some(child.clone()));
+        assert_eq!(map.prev(None), Some(child.clone()));
+        assert_eq!(map.prev(Some(&overlay.id)), Some(child));
+    }
+
+    #[test]
     fn repeated_focus_registration_preserves_bidirectional_traversal_and_replay() {
         let focus_map = Arc::new(FocusMap::default());
         let before = FocusHandle::new(&focus_map).tab_stop(true);
