@@ -110,6 +110,8 @@ heapless.workspace = true
 ztracing.workspace = true
 
 [target.'cfg(target_family = "wasm")'.dependencies]
+js-sys.workspace = true
+wasm-bindgen.workspace = true
 getrandom = { version = "0.3.4", features = ["wasm_js"] }
 proptest = { git = "https://github.com/proptest-rs/proptest", rev = "3dca198a8fef1b32e3a66f1e1897c955b4dc5b5b", optional = true, default-features = false, features = ["std", "bit-set"] }
 reqwest.workspace = true

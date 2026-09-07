@@ -1594,7 +1594,6 @@ impl PathVertex<ScaledPixels> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[cfg(feature = "rayx_diagnostics")]
     use crate::{AtlasTextureKind, TileId};
     use crate::{Color, ElementEffect, backdrop_blur, glow, hsla, point, px, size};
 
@@ -1640,7 +1639,6 @@ mod tests {
         );
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
     fn test_monochrome_sprite(order: DrawOrder, tile_id: u32) -> MonochromeSprite {
         let bounds = Bounds::default();
         MonochromeSprite {

@@ -25,12 +25,59 @@ impl<T> PriorityQueues<T> {
 
 struct PriorityQueueState<T> {
     queues: parking_lot::Mutex<PriorityQueues<T>>,
+    #[cfg(not(target_family = "wasm"))]
     condvar: parking_lot::Condvar,
+    #[cfg(target_family = "wasm")]
+    sequence: std::sync::atomic::AtomicI32,
     receiver_count: AtomicUsize,
     sender_count: AtomicUsize,
 }
 
 impl<T> PriorityQueueState<T> {
+    fn spin_lock(&self) -> parking_lot::MutexGuard<'_, PriorityQueues<T>> {
+        loop {
+            if let Some(guard) = self.queues.try_lock() {
+                return guard;
+            }
+            std::hint::spin_loop();
+        }
+    }
+
+    fn lock(&self) -> parking_lot::MutexGuard<'_, PriorityQueues<T>> {
+        // No WASM caller may park, including diagnostics on the browser main thread.
+        #[cfg(target_family = "wasm")]
+        {
+            self.spin_lock()
+        }
+        #[cfg(not(target_family = "wasm"))]
+        {
+            self.queues.lock()
+        }
+    }
+
+    #[cfg(target_family = "wasm")]
+    fn sequence_view(&self) -> js_sys::Int32Array {
+        let memory = js_sys::WebAssembly::Memory::from(wasm_bindgen::memory());
+        js_sys::Int32Array::new_with_byte_offset_and_length(
+            &memory.buffer(),
+            self.sequence.as_ptr() as u32,
+            1,
+        )
+    }
+
+    fn notify_one(&self) {
+        #[cfg(not(target_family = "wasm"))]
+        self.condvar.notify_one();
+        #[cfg(target_family = "wasm")]
+        {
+            self.sequence
+                .fetch_add(1, std::sync::atomic::Ordering::Release);
+            // Unlike Condvar notification, Atomics.notify never parks the sender.
+            js_sys::Atomics::notify_with_count(&self.sequence_view(), 0, 1)
+                .expect("queue sequence is an aligned live Int32Array");
+        }
+    }
+
     fn send(&self, priority: Priority, item: T) -> Result<(), SendError<T>> {
         if self
             .receiver_count
@@ -40,9 +87,9 @@ impl<T> PriorityQueueState<T> {
             return Err(SendError(item));
         }
 
-        let mut queues = self.queues.lock();
+        let mut queues = self.lock();
         Self::push(&mut queues, priority, item);
-        self.condvar.notify_one();
+        self.notify_one();
         Ok(())
     }
 
@@ -55,14 +102,9 @@ impl<T> PriorityQueueState<T> {
             return Err(SendError(item));
         }
 
-        let mut queues = loop {
-            if let Some(guard) = self.queues.try_lock() {
-                break guard;
-            }
-            std::hint::spin_loop();
-        };
+        let mut queues = self.spin_lock();
         Self::push(&mut queues, priority, item);
-        self.condvar.notify_one();
+        self.notify_one();
         Ok(())
     }
 
@@ -78,7 +120,7 @@ impl<T> PriorityQueueState<T> {
     }
 
     fn recv<'a>(&'a self) -> Result<parking_lot::MutexGuard<'a, PriorityQueues<T>>, RecvError> {
-        let mut queues = self.queues.lock();
+        let mut queues = self.lock();
 
         let sender_count = self.sender_count.load(std::sync::atomic::Ordering::Relaxed);
         if queues.is_empty() && sender_count == 0 {
@@ -86,7 +128,22 @@ impl<T> PriorityQueueState<T> {
         }
 
         while queues.is_empty() {
+            #[cfg(not(target_family = "wasm"))]
             self.condvar.wait(&mut queues);
+            #[cfg(target_family = "wasm")]
+            {
+                if self.sender_count.load(std::sync::atomic::Ordering::Acquire) == 0 {
+                    return Err(RecvError);
+                }
+                // Capture under the queue lock. A send between unlocking and waiting
+                // changes this value, so Atomics.wait returns without losing the wake.
+                let observed = self.sequence.load(std::sync::atomic::Ordering::Acquire);
+                drop(queues);
+                // Blocking pop is worker-only; main-thread callers use try_pop.
+                js_sys::Atomics::wait(&self.sequence_view(), 0, observed)
+                    .expect("blocking queue receive requires a worker and shared memory");
+                queues = self.lock();
+            }
         }
 
         Ok(queues)
@@ -95,7 +152,7 @@ impl<T> PriorityQueueState<T> {
     fn try_recv<'a>(
         &'a self,
     ) -> Result<Option<parking_lot::MutexGuard<'a, PriorityQueues<T>>>, RecvError> {
-        let mut queues = self.queues.lock();
+        let mut queues = self.lock();
 
         let sender_count = self.sender_count.load(std::sync::atomic::Ordering::Relaxed);
         if queues.is_empty() && sender_count == 0 {
@@ -112,12 +169,7 @@ impl<T> PriorityQueueState<T> {
     fn spin_try_recv<'a>(
         &'a self,
     ) -> Result<Option<parking_lot::MutexGuard<'a, PriorityQueues<T>>>, RecvError> {
-        let queues = loop {
-            if let Some(guard) = self.queues.try_lock() {
-                break guard;
-            }
-            std::hint::spin_loop();
-        };
+        let queues = self.spin_lock();
 
         let sender_count = self.sender_count.load(std::sync::atomic::Ordering::Relaxed);
         if queues.is_empty() && sender_count == 0 {
@@ -155,9 +207,22 @@ impl<T> PriorityQueueSender<T> {
 
 impl<T> Drop for PriorityQueueSender<T> {
     fn drop(&mut self) {
-        self.state
+        let previous = self
+            .state
             .sender_count
             .fetch_sub(1, std::sync::atomic::Ordering::AcqRel);
+        #[cfg(target_family = "wasm")]
+        if previous == 1 {
+            // Synchronize with the empty check and sequence snapshot in recv.
+            let _queues = self.state.lock();
+            self.state
+                .sequence
+                .fetch_add(1, std::sync::atomic::Ordering::Release);
+            js_sys::Atomics::notify(&self.state.sequence_view(), 0)
+                .expect("queue sequence is an aligned live Int32Array");
+        }
+        #[cfg(not(target_family = "wasm"))]
+        let _ = previous;
     }
 }
 
@@ -203,7 +268,10 @@ impl<T> PriorityQueueReceiver<T> {
                 medium_priority: VecDeque::new(),
                 low_priority: VecDeque::new(),
             }),
+            #[cfg(not(target_family = "wasm"))]
             condvar: parking_lot::Condvar::new(),
+            #[cfg(target_family = "wasm")]
+            sequence: std::sync::atomic::AtomicI32::new(0),
             receiver_count: AtomicUsize::new(1),
             sender_count: AtomicUsize::new(1),
         };
@@ -222,12 +290,12 @@ impl<T> PriorityQueueReceiver<T> {
 
     /// Returns whether the queue currently contains no elements.
     pub fn is_empty(&self) -> bool {
-        self.state.queues.lock().is_empty()
+        self.state.lock().is_empty()
     }
 
     /// Returns the number of queued elements across all priorities.
     pub(crate) fn len(&self) -> usize {
-        let queues = self.state.queues.lock();
+        let queues = self.state.lock();
         queues.high_priority.len() + queues.medium_priority.len() + queues.low_priority.len()
     }
 
@@ -431,5 +499,34 @@ mod tests {
         tx.send(Priority::High, 3).unwrap();
         assert_eq!(rx.pop().unwrap(), 3);
         assert_eq!(rx.pop().unwrap(), 1);
+    }
+    #[cfg(not(target_family = "wasm"))]
+    #[test]
+    fn concurrent_sends_preserve_each_producers_fifo_and_all_items() {
+        let (tx, mut rx) = PriorityQueueReceiver::new();
+        let tx = Arc::new(tx);
+        std::thread::scope(|scope| {
+            for producer in 0..4 {
+                let tx = tx.clone();
+                scope.spawn(move || {
+                    for value in 0..1000 {
+                        if value % 2 == 0 {
+                            tx.send(Priority::High, (producer, value)).unwrap();
+                        } else {
+                            tx.spin_send(Priority::High, (producer, value)).unwrap();
+                        }
+                    }
+                });
+            }
+            let mut expected = [0; 4];
+            for _ in 0..4000 {
+                let (producer, value) = rx.pop().unwrap();
+                assert_eq!(value, expected[producer]);
+                expected[producer] += 1;
+            }
+            assert_eq!(expected, [1000; 4]);
+        });
+        drop(tx);
+        assert!(rx.try_pop().is_err());
     }
 }

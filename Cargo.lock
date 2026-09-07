@@ -2940,6 +2940,7 @@ dependencies = [
  "image",
  "inventory",
  "itertools 0.14.0",
+ "js-sys",
  "log",
  "lyon",
  "mach2",
