@@ -829,6 +829,12 @@ impl WindowsWindowInner {
 
         self.executor
             .spawn(async move {
+                // WM_ACTIVATE can queue deactivation immediately before
+                // WM_DESTROY removes the GPUI window. Do not notify its
+                // observers after that native lifetime has ended.
+                if this.state.destroyed.get() {
+                    return;
+                }
                 if let Some(mut func) = this.state.callbacks.active_status_change.take() {
                     func(activated);
                     this.state.callbacks.active_status_change.set(Some(func));
