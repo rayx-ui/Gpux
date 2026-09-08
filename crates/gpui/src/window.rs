@@ -66,6 +66,7 @@ use std::{
 use uuid::Uuid;
 
 pub(crate) mod a11y;
+mod action_target;
 mod prompts;
 
 pub use a11y::A11ySubtreeBuilder;
@@ -5774,6 +5775,18 @@ impl Window {
             &mut self.rendered_frame.dispatch_tree,
             self.focus,
         );
+
+        // Hitboxes retain their identities across cached prepaint, but their
+        // dispatch nodes move with the reused subtree in the new frame.
+        for hitbox in
+            &self.rendered_frame.hitboxes[range.start.hitboxes_index..range.end.hitboxes_index]
+        {
+            if let Some(node_id) = self.rendered_frame.hitbox_dispatch_nodes.get(&hitbox.id) {
+                self.next_frame
+                    .hitbox_dispatch_nodes
+                    .insert(hitbox.id, reused_subtree.refresh_node_id(*node_id));
+            }
+        }
 
         if reused_subtree.contains_focus() {
             self.next_frame.focus = self.focus;
