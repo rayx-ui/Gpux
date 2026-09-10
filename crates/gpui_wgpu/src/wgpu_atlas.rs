@@ -278,6 +278,21 @@ impl WgpuAtlasState {
                 continue;
             };
             let bytes_per_pixel = texture.bytes_per_pixel();
+            let expected = upload.bounds.size.width.0 as usize
+                * upload.bounds.size.height.0 as usize
+                * bytes_per_pixel as usize;
+            if upload.data.len() < expected {
+                // A short upload is a rasterizer defect. Dropping the tile
+                // loses one glyph; passing it on fails the whole frame.
+                log::warn!(
+                    "atlas upload of {} bytes is short of the {expected} its {}x{} {:?} tile needs",
+                    upload.data.len(),
+                    upload.bounds.size.width.0,
+                    upload.bounds.size.height.0,
+                    upload.id.kind,
+                );
+                continue;
+            }
 
             self.queue.write_texture(
                 wgpu::TexelCopyTextureInfo {
