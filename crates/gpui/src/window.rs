@@ -4577,7 +4577,7 @@ impl Window {
     }
 
     /// Returns whether this window owns at least one active drag operation.
-    pub(crate) fn has_active_drags(&self) -> bool {
+    pub fn has_active_drags(&self) -> bool {
         !self.active_drags.is_empty()
     }
 
