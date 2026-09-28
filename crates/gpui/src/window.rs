@@ -7129,7 +7129,10 @@ impl Window {
                 content_mask,
                 corner_radii: corner_radii.scale(scale_factor),
                 opacity: self.element_opacity(),
-                effects: effects.iter().map(ElementEffect::prepare).collect(),
+                effects: effects
+                    .iter()
+                    .map(|effect| effect.prepare().scale(scale_factor))
+                    .collect(),
                 transformation,
             });
     }

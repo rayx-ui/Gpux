@@ -320,7 +320,18 @@ impl Element for EffectFrame {
                     .to_pixels(rem_size)
                     .clamp_radii_for_quad_size(bounds.size);
 
-                window.paint_visual_effects(bounds, corner_radii, &self.effects);
+                let layer_effects = self.effects.iter().any(ElementEffect::paints_after_content);
+                if layer_effects {
+                    let backdrop = self
+                        .effects
+                        .iter()
+                        .filter(|effect| !effect.paints_after_content())
+                        .cloned()
+                        .collect::<Vec<_>>();
+                    window.paint_visual_effects(bounds, corner_radii, &backdrop);
+                } else {
+                    window.paint_visual_effects(bounds, corner_radii, &self.effects);
+                }
                 if let Some(region_id) = self.screen_effect_region.clone() {
                     window.paint_screen_effect_region(region_id, bounds, corner_radii);
                 }
@@ -333,6 +344,28 @@ impl Element for EffectFrame {
                         }
                     },
                 );
+
+                // Layer effects blur what the child painted, reaching past the bounds.
+                if layer_effects {
+                    for effect in self
+                        .effects
+                        .iter()
+                        .filter(|effect| effect.paints_after_content())
+                    {
+                        let outset = effect.outset();
+                        let radii = Corners {
+                            top_left: corner_radii.top_left + outset,
+                            top_right: corner_radii.top_right + outset,
+                            bottom_right: corner_radii.bottom_right + outset,
+                            bottom_left: corner_radii.bottom_left + outset,
+                        };
+                        window.paint_visual_effects(
+                            bounds.dilate(outset),
+                            radii,
+                            std::slice::from_ref(effect),
+                        );
+                    }
+                }
             });
         });
     }

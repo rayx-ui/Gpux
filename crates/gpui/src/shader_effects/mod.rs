@@ -11,6 +11,9 @@ pub enum ElementEffect {
     Glass(GlassEffect),
     /// A halo around the element bounds.
     Glow(GlowEffect),
+    /// Blurs the element's own content: painted after the content over its
+    /// bounds widened by the blur's reach, so the content bleeds past its edges.
+    LayerBlur(LayerBlurEffect),
 }
 
 /// Scene-ready element effect whose color payloads are cached linear paint values.
@@ -18,7 +21,8 @@ pub enum ElementEffect {
 pub enum PreparedElementEffect {
     /// CSS-like backdrop blur sampling content already painted behind the element.
     BackdropBlur {
-        /// Blur radius in logical pixels.
+        /// Blur radius (logical pixels until `scale` converts the scene effect to
+        /// device pixels).
         radius: Pixels,
         /// Backdrop saturation multiplier.
         saturation: f32,
@@ -31,7 +35,7 @@ pub enum PreparedElementEffect {
     },
     /// Liquid glass composed from backdrop blur, tint, highlight, and edge refraction.
     Glass {
-        /// Backdrop blur radius in logical pixels.
+        /// Backdrop blur radius (logical pixels until `scale`).
         blur_radius: Pixels,
         /// Backdrop saturation multiplier.
         saturation: f32,
@@ -52,9 +56,9 @@ pub enum PreparedElementEffect {
     Glow {
         /// Prepared linear glow color.
         color: PaintColor,
-        /// Glow radius in logical pixels.
+        /// Glow radius (logical pixels until `scale`).
         radius: Pixels,
-        /// Glow spread in logical pixels.
+        /// Glow spread (logical pixels until `scale`).
         spread: Pixels,
         /// Glow intensity multiplier.
         intensity: f32,
@@ -87,6 +91,81 @@ impl ElementEffect {
                 radius: effect.radius,
                 spread: effect.spread,
                 intensity: effect.intensity,
+            },
+            // The content is already painted when a layer blur runs, so the
+            // backdrop blur pass blurs it.
+            Self::LayerBlur(effect) => PreparedElementEffect::BackdropBlur {
+                radius: effect.radius,
+                saturation: 1.0,
+                brightness: 1.0,
+                tint: None,
+                quality: effect.quality,
+            },
+        }
+    }
+
+    /// Whether the effect runs after the element's content instead of before it.
+    pub fn paints_after_content(&self) -> bool {
+        matches!(self, Self::LayerBlur(_))
+    }
+
+    /// How far the effect reaches past the element bounds.
+    pub fn outset(&self) -> Pixels {
+        match self {
+            // The Gaussian tail of a blur radius `r` (twice the sigma) ends near 1.5 `r`.
+            Self::LayerBlur(effect) => effect.radius * 1.5,
+            Self::BackdropBlur(_) | Self::Glass(_) | Self::Glow(_) => Pixels::ZERO,
+        }
+    }
+}
+
+impl PreparedElementEffect {
+    /// The effect with its lengths multiplied by `factor`: the window scale factor
+    /// turns logical pixels into the device pixels renderers draw in.
+    pub fn scale(self, factor: f32) -> Self {
+        match self {
+            Self::BackdropBlur {
+                radius,
+                saturation,
+                brightness,
+                tint,
+                quality,
+            } => Self::BackdropBlur {
+                radius: radius * factor,
+                saturation,
+                brightness,
+                tint,
+                quality,
+            },
+            Self::Glass {
+                blur_radius,
+                saturation,
+                brightness,
+                tint,
+                highlight,
+                refraction,
+                distortion,
+                quality,
+            } => Self::Glass {
+                blur_radius: blur_radius * factor,
+                saturation,
+                brightness,
+                tint,
+                highlight,
+                refraction,
+                distortion,
+                quality,
+            },
+            Self::Glow {
+                color,
+                radius,
+                spread,
+                intensity,
+            } => Self::Glow {
+                color,
+                radius: radius * factor,
+                spread: spread * factor,
+                intensity,
             },
         }
     }
@@ -192,6 +271,52 @@ impl BackdropBlurEffect {
 impl From<BackdropBlurEffect> for ElementEffect {
     fn from(effect: BackdropBlurEffect) -> Self {
         Self::BackdropBlur(effect)
+    }
+}
+
+/// Layer blur parameters: the element's own content blurred, like a design
+/// tool's layer blur. Content behind a translucent element is blurred with it.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct LayerBlurEffect {
+    radius: Pixels,
+    quality: EffectQuality,
+}
+
+impl LayerBlurEffect {
+    /// Creates a layer blur with a radius of twice the Gaussian sigma.
+    pub fn new(radius: Pixels) -> Self {
+        Self {
+            radius: clamp_pixels(radius, px(0.0), px(256.0)),
+            quality: EffectQuality::Fast,
+        }
+    }
+
+    /// Sets the blur radius.
+    pub fn radius(mut self, radius: Pixels) -> Self {
+        self.radius = clamp_pixels(radius, px(0.0), px(256.0));
+        self
+    }
+
+    /// Selects the higher-radius quality tier.
+    pub fn high_quality(mut self) -> Self {
+        self.quality = EffectQuality::High;
+        self
+    }
+
+    /// Returns the blur radius.
+    pub fn radius_value(&self) -> Pixels {
+        self.radius
+    }
+
+    /// Returns the renderer quality preference.
+    pub fn quality_value(&self) -> EffectQuality {
+        self.quality
+    }
+}
+
+impl From<LayerBlurEffect> for ElementEffect {
+    fn from(effect: LayerBlurEffect) -> Self {
+        Self::LayerBlur(effect)
     }
 }
 
@@ -1074,6 +1199,13 @@ pub fn backdrop_blur(radius: Pixels) -> BackdropBlurEffect {
     BackdropBlurEffect::new(radius)
 }
 
+/// Creates a layer blur element effect: the element's own content, blurred.
+///
+/// It shares the backdrop blur pass, so it is supported wherever backdrop blur is.
+pub fn layer_blur(radius: Pixels) -> LayerBlurEffect {
+    LayerBlurEffect::new(radius)
+}
+
 /// Creates a liquid glass element effect.
 ///
 /// WGPU is the first backend with shader support; unsupported renderers report
@@ -1255,7 +1387,9 @@ impl EffectCapabilities {
     /// Returns whether this renderer supports the supplied element effect.
     pub fn supports_element_effect(&self, effect: &ElementEffect) -> bool {
         match effect {
-            ElementEffect::BackdropBlur(_) => self.element.backdrop_blur,
+            ElementEffect::BackdropBlur(_) | ElementEffect::LayerBlur(_) => {
+                self.element.backdrop_blur
+            }
             ElementEffect::Glass(_) => self.element.glass,
             ElementEffect::Glow(_) => self.element.glow,
         }
@@ -1512,6 +1646,42 @@ mod tests {
             array.as_slice(),
             [ElementEffect::BackdropBlur(_), ElementEffect::Glow(_)]
         ));
+    }
+
+    #[test]
+    fn prepared_effects_scale_their_lengths_to_device_pixels() {
+        let blur = ElementEffect::from(backdrop_blur(px(8.0)))
+            .prepare()
+            .scale(2.0);
+        assert!(
+            matches!(blur, PreparedElementEffect::BackdropBlur { radius, .. } if radius == px(16.0))
+        );
+        let glow = ElementEffect::from(glow(hsla(0.1, 0.7, 0.5, 0.5)).radius(px(10.0)))
+            .prepare()
+            .scale(2.0);
+        assert!(matches!(glow, PreparedElementEffect::Glow { radius, .. } if radius == px(20.0)));
+    }
+
+    #[test]
+    fn layer_blur_runs_after_content_through_the_backdrop_blur_pass() {
+        let effect = ElementEffect::from(layer_blur(px(8.0)));
+        assert!(effect.paints_after_content());
+        assert_eq!(effect.outset(), px(12.0));
+        assert!(matches!(
+            effect.prepare(),
+            PreparedElementEffect::BackdropBlur { radius, tint: None, .. } if radius == px(8.0)
+        ));
+        let backdrop = ElementEffect::from(backdrop_blur(px(8.0)));
+        assert!(!backdrop.paints_after_content());
+        assert_eq!(backdrop.outset(), px(0.0));
+        let capabilities = EffectCapabilities {
+            element: ElementEffectCapabilities {
+                backdrop_blur: true,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        assert!(capabilities.supports_element_effect(&effect));
     }
 
     #[test]
