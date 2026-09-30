@@ -233,8 +233,31 @@ fn srgb_to_linear(srgb: vec3<f32>) -> vec3<f32> {
     return select(higher, lower, cutoff);
 }
 
-/// Convert a premultiplied OKLab gradient sample to premultiplied linear sRGB.
-fn premultiplied_oklab_to_linear_srgb(color: vec4<f32>) -> vec4<f32> {
+fn linear_to_srgb(linear: vec3<f32>) -> vec3<f32> {
+    let cutoff = linear < vec3<f32>(0.0031308);
+    let higher = vec3<f32>(1.055) * pow(linear, vec3<f32>(1.0 / 2.4)) - vec3<f32>(0.055);
+    let lower = linear * vec3<f32>(12.92);
+    return select(higher, lower, cutoff);
+}
+
+/// Premultiplied encoded sRGB (what the renderer composites) to premultiplied linear light.
+fn premultiplied_srgb_to_linear(color: vec4<f32>) -> vec4<f32> {
+    if (color.a <= 0.0) {
+        return vec4<f32>(0.0);
+    }
+    return vec4<f32>(srgb_to_linear(saturate(color.rgb / color.a)) * color.a, color.a);
+}
+
+/// Premultiplied linear light back to premultiplied encoded sRGB.
+fn premultiplied_linear_to_srgb(color: vec4<f32>) -> vec4<f32> {
+    if (color.a <= 0.0) {
+        return vec4<f32>(0.0);
+    }
+    return vec4<f32>(linear_to_srgb(saturate(color.rgb / color.a)) * color.a, color.a);
+}
+
+/// Convert a premultiplied OKLab gradient sample to premultiplied encoded sRGB.
+fn premultiplied_oklab_to_srgb(color: vec4<f32>) -> vec4<f32> {
     if (color.a <= 0.0) {
         return vec4<f32>(0.0);
     }
@@ -254,7 +277,7 @@ fn premultiplied_oklab_to_linear_srgb(color: vec4<f32>) -> vec4<f32> {
 		-0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s
 	);
 
-    return vec4<f32>(clamp(linear_rgb, vec3<f32>(0.0), vec3<f32>(1.0)) * color.a, color.a);
+    return vec4<f32>(linear_to_srgb(clamp(linear_rgb, vec3<f32>(0.0), vec3<f32>(1.0))) * color.a, color.a);
 }
 
 fn over(below: vec4<f32>, above: vec4<f32>) -> vec4<f32> {
@@ -379,7 +402,7 @@ fn resolve_gradient_color(background: Background, t: f32) -> vec4<f32> {
 
     let color = mix(current_stop.prepared_color, next_stop.prepared_color, segment_t);
     if (background.color_space == 1u) {
-        return premultiplied_oklab_to_linear_srgb(color);
+        return premultiplied_oklab_to_srgb(color);
     }
 
     return color;
@@ -1318,7 +1341,7 @@ fn fs_poly_sprite(input: PolySpriteVarying) -> @location(0) vec4<f32> {
 
     let distance = quad_sdf(input.local_position, sprite.bounds, sprite.corner_radii);
 
-    var straight_rgb = srgb_to_linear(sample.rgb);
+    var straight_rgb = sample.rgb;
     if ((sprite.grayscale & 0xFFu) != 0u) {
         let grayscale = dot(straight_rgb, vec3<f32>(0.2126, 0.7152, 0.0722));
         straight_rgb = vec3<f32>(grayscale);
@@ -1372,8 +1395,8 @@ fn fs_html_island(input: HtmlIslandVarying) -> @location(0) vec4<f32> {
         return vec4<f32>(0.0);
     }
 
-    let linear_sample = vec4<f32>(srgb_to_linear(sample.rgb) * sample.a, sample.a);
-    return blend_color(linear_sample, island.opacity);
+    let premultiplied = vec4<f32>(sample.rgb * sample.a, sample.a);
+    return blend_color(premultiplied, island.opacity);
 }
 
 // --- post processing --- //
@@ -1493,12 +1516,12 @@ fn sample_effect_blur(texture_position: vec2<f32>, radius: f32) -> vec4<f32> {
         for (var x: i32 = -steps; x <= steps; x += 1) {
             let offset_px = vec2<f32>(f32(x), f32(y)) * sample_step;
             let weight = exp(dot(offset_px, offset_px) * gaussian_coefficient);
-            color += sample_effect_blur_at(texture_position + texel * offset_px) * weight;
+            color += premultiplied_srgb_to_linear(sample_effect_blur_at(texture_position + texel * offset_px)) * weight;
             total_weight += weight;
         }
     }
 
-    return color / max(total_weight, 0.0001);
+    return premultiplied_linear_to_srgb(color / max(total_weight, 0.0001));
 }
 
 fn adjust_effect_color(color: vec4<f32>, saturation: f32, brightness: f32) -> vec4<f32> {
@@ -1794,16 +1817,16 @@ fn sample_post_process_gaussian_blur(texture_position: vec2<f32>, direction: vec
     for (var i: i32 = -POST_PROCESS_GAUSSIAN_STEPS; i <= POST_PROCESS_GAUSSIAN_STEPS; i += 1) {
         let offset_px = direction * f32(i) * sample_step;
         let weight = exp(dot(offset_px, offset_px) * gaussian_coefficient);
-        color += textureSampleLevel(
+        color += premultiplied_srgb_to_linear(textureSampleLevel(
             t_post_process,
             s_post_process,
             clamp(texture_position + texel * offset_px, vec2<f32>(0.0), vec2<f32>(1.0)),
             0.0,
-        ) * weight;
+        )) * weight;
         total_weight += weight;
     }
 
-    return color / max(total_weight, 0.0001);
+    return premultiplied_linear_to_srgb(color / max(total_weight, 0.0001));
 }
 
 @fragment
@@ -1867,18 +1890,22 @@ fn sample_screen_effect_snapshot(texture_position: vec2<f32>) -> vec4<f32> {
     return textureSampleLevel(t_screen_effect_snapshot, s_screen_effect_source, clamped_position, 0.0);
 }
 
+fn sample_screen_effect_snapshot_linear(texture_position: vec2<f32>) -> vec4<f32> {
+    return premultiplied_srgb_to_linear(sample_screen_effect_snapshot(texture_position));
+}
+
 fn sample_screen_effect_snapshot_blur(texture_position: vec2<f32>, radius_px: f32) -> vec4<f32> {
     let radius_uv = max(radius_px, 0.0) / max(globals.viewport_size, vec2<f32>(1.0));
-    var color = sample_screen_effect_snapshot(texture_position) * 0.28;
-    color += sample_screen_effect_snapshot(texture_position + vec2<f32>(radius_uv.x, 0.0)) * 0.12;
-    color += sample_screen_effect_snapshot(texture_position - vec2<f32>(radius_uv.x, 0.0)) * 0.12;
-    color += sample_screen_effect_snapshot(texture_position + vec2<f32>(0.0, radius_uv.y)) * 0.12;
-    color += sample_screen_effect_snapshot(texture_position - vec2<f32>(0.0, radius_uv.y)) * 0.12;
-    color += sample_screen_effect_snapshot(texture_position + radius_uv) * 0.06;
-    color += sample_screen_effect_snapshot(texture_position - radius_uv) * 0.06;
-    color += sample_screen_effect_snapshot(texture_position + vec2<f32>(radius_uv.x, -radius_uv.y)) * 0.06;
-    color += sample_screen_effect_snapshot(texture_position + vec2<f32>(-radius_uv.x, radius_uv.y)) * 0.06;
-    return color;
+    var color = sample_screen_effect_snapshot_linear(texture_position) * 0.28;
+    color += sample_screen_effect_snapshot_linear(texture_position + vec2<f32>(radius_uv.x, 0.0)) * 0.12;
+    color += sample_screen_effect_snapshot_linear(texture_position - vec2<f32>(radius_uv.x, 0.0)) * 0.12;
+    color += sample_screen_effect_snapshot_linear(texture_position + vec2<f32>(0.0, radius_uv.y)) * 0.12;
+    color += sample_screen_effect_snapshot_linear(texture_position - vec2<f32>(0.0, radius_uv.y)) * 0.12;
+    color += sample_screen_effect_snapshot_linear(texture_position + radius_uv) * 0.06;
+    color += sample_screen_effect_snapshot_linear(texture_position - radius_uv) * 0.06;
+    color += sample_screen_effect_snapshot_linear(texture_position + vec2<f32>(radius_uv.x, -radius_uv.y)) * 0.06;
+    color += sample_screen_effect_snapshot_linear(texture_position + vec2<f32>(-radius_uv.x, radius_uv.y)) * 0.06;
+    return premultiplied_linear_to_srgb(color);
 }
 
 fn screen_effect_bounds_alpha(pixel_position: vec2<f32>, bounds: Bounds) -> f32 {
@@ -2039,5 +2066,5 @@ fn fs_surface(input: SurfaceVarying) -> @location(0) vec4<f32> {
         1.0);
 
     let display_color = ycbcr_to_RGB * y_cb_cr;
-    return vec4<f32>(srgb_to_linear(display_color.rgb) * display_color.a, display_color.a);
+    return vec4<f32>(display_color.rgb * display_color.a, display_color.a);
 }

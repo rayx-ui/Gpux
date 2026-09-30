@@ -1276,7 +1276,7 @@ impl PreparedBackground {
         self.color_space
     }
 
-    /// Returns the premultiplied linear solid paint value.
+    /// Returns the premultiplied sRGB solid paint value.
     pub fn solid_color(&self) -> PaintColor {
         self.solid
     }
@@ -1295,7 +1295,7 @@ impl PreparedBackground {
 /// Premultiplied gradient coordinate prepared for the declared interpolation space.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct PreparedLinearColorStop {
-    /// Premultiplied linear sRGB for `Srgb`, or premultiplied OKLab for `Oklab`.
+    /// Premultiplied encoded sRGB for `Srgb`, or premultiplied OKLab for `Oklab`.
     pub color: [f32; 4],
     /// Stop position in the normalized gradient coordinate space.
     pub percentage: f32,

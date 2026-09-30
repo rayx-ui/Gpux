@@ -1,16 +1,19 @@
-use crate::{Color, LinearSrgb};
+use crate::{Color, Srgb};
 
 /// Fixed renderer gamut policy used by [`Color::paint_color`].
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PaintGamutPolicy {
-    /// Clamp unbounded linear-light sRGB channels before premultiplication.
-    ClipLinearSrgb,
+    /// Clamp unbounded encoded sRGB channels before premultiplication.
+    ClipSrgb,
 }
 
 /// The sole renderer normalization policy.
-pub const DEFAULT_PAINT_GAMUT_POLICY: PaintGamutPolicy = PaintGamutPolicy::ClipLinearSrgb;
+pub const DEFAULT_PAINT_GAMUT_POLICY: PaintGamutPolicy = PaintGamutPolicy::ClipSrgb;
 
-/// Compact renderer paint: premultiplied linear-light sRGB.
+/// Compact renderer paint: premultiplied, gamma-encoded sRGB.
+///
+/// The renderer composites in encoded sRGB, as design tools and browsers do, so a translucent
+/// color over any backdrop matches Figma and CSS.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 #[repr(C)]
 pub struct PaintColor {
@@ -25,7 +28,7 @@ impl PaintColor {
     pub const GAMUT_POLICY: PaintGamutPolicy = DEFAULT_PAINT_GAMUT_POLICY;
 
     pub(crate) fn from_color(color: &Color) -> Self {
-        let LinearSrgb { r, g, b } = color.to_linear_srgb();
+        let Srgb { r, g, b } = color.to_srgb();
         let alpha = unit(color.alpha());
         Self {
             r: (unit(r) * alpha) as f32,

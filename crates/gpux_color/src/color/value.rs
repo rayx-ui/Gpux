@@ -264,7 +264,7 @@ impl Color {
         })
     }
 
-    /// Returns the fixed premultiplied linear-light renderer representation.
+    /// Returns the fixed premultiplied encoded-sRGB renderer representation.
     pub fn paint_color(&self) -> crate::PaintColor {
         *self.0.paint_color.get_or_init(|| {
             self.0.paint_normalizations.fetch_add(1, Ordering::Relaxed);

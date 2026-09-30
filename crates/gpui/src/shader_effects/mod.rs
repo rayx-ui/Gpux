@@ -16,7 +16,7 @@ pub enum ElementEffect {
     LayerBlur(LayerBlurEffect),
 }
 
-/// Scene-ready element effect whose color payloads are cached linear paint values.
+/// Scene-ready element effect whose color payloads are cached premultiplied sRGB paint values.
 #[derive(Clone, Debug, PartialEq)]
 pub enum PreparedElementEffect {
     /// CSS-like backdrop blur sampling content already painted behind the element.
@@ -28,7 +28,7 @@ pub enum PreparedElementEffect {
         saturation: f32,
         /// Backdrop brightness multiplier.
         brightness: f32,
-        /// Optional prepared linear tint.
+        /// Optional prepared tint paint.
         tint: Option<PaintColor>,
         /// Requested sampling quality.
         quality: EffectQuality,
@@ -41,9 +41,9 @@ pub enum PreparedElementEffect {
         saturation: f32,
         /// Backdrop brightness multiplier.
         brightness: f32,
-        /// Prepared linear glass tint.
+        /// Prepared glass tint paint.
         tint: PaintColor,
-        /// Prepared linear edge highlight.
+        /// Prepared edge highlight paint.
         highlight: PaintColor,
         /// Refraction strength.
         refraction: f32,
@@ -54,7 +54,7 @@ pub enum PreparedElementEffect {
     },
     /// A halo around the element bounds.
     Glow {
-        /// Prepared linear glow color.
+        /// Prepared glow paint.
         color: PaintColor,
         /// Glow radius (logical pixels until `scale`).
         radius: Pixels,
