@@ -668,8 +668,10 @@ fn fs_quad(input: QuadVarying) -> @location(0) vec4<f32> {
     let border_sdf = max(inner_sdf, outer_sdf);
 
     var color = background_color;
+    var outer_coverage = saturate(antialias_threshold - outer_sdf);
     if (border_sdf < antialias_threshold) {
         var border_color = gradient_color(quad.border_color, input.local_position, quad.bounds);
+        let border_straight_color = border_color.rgb / max(border_color.a, 0.000001);
 
         // Dashed border logic when border_style == 1
         if (quad.border_style == 1) {
@@ -866,11 +868,27 @@ fn fs_quad(input: QuadVarying) -> @location(0) vec4<f32> {
         // Blend the border on top of the background and then linearly interpolate
         // between the two as we slide inside the background.
         let blended_border = over(background_color, border_color);
+        let border_coverage = saturate(antialias_threshold - inner_sdf);
         color = mix(background_color, blended_border,
-                    saturate(antialias_threshold - inner_sdf));
+                    border_edge_coverage(border_coverage, border_straight_color));
+        // Where the border covers the pixel, the outer edge is the border's edge.
+        outer_coverage = mix(outer_coverage,
+                             border_edge_coverage(outer_coverage, border_straight_color),
+                             border_coverage);
     }
 
-    return blend_color(color, saturate(antialias_threshold - outer_sdf));
+    return blend_color(color, outer_coverage);
+}
+
+// Edge coverage composited in encoded sRGB dims partially covered pixels, so a
+// thin border beads along curves as its sub-pixel phase changes. Border edges get
+// the same gamma and contrast correction as grayscale text coverage.
+fn border_edge_coverage(coverage: f32, straight_color: vec3<f32>) -> f32 {
+    return apply_contrast_and_gamma_correction(
+        coverage,
+        straight_color,
+        gamma_params.grayscale_enhanced_contrast,
+        gamma_params.gamma_ratios);
 }
 
 // Returns the dash velocity of a corner given the dash velocity of the two

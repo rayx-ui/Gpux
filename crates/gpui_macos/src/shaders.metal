@@ -41,6 +41,7 @@ float2 erf(float2 x);
 float blur_along_x(float x, float y, float sigma, float corner,
                    float2 half_size);
 float4 over(float4 below, float4 above);
+float border_edge_coverage(float coverage, float3 color);
 float radians(float degrees);
 float4 resolve_gradient_color(
   Background background,
@@ -212,6 +213,7 @@ fragment float4 quad_fragment(QuadFragmentInput input [[stage_in]],
   float border_sdf = max(inner_sdf, outer_sdf);
 
   float4 color = background_color;
+  float outer_coverage = saturate(antialias_threshold - outer_sdf);
   if (border_sdf < antialias_threshold) {
     float4 border_color =
       fill_color(quad.border_color, input.local_position, quad.bounds, gradient_stops);
@@ -392,11 +394,38 @@ fragment float4 quad_fragment(QuadFragmentInput input [[stage_in]],
     // Blend the border on top of the background and then linearly interpolate
     // between the two as we slide inside the background.
     float4 blended_border = over(background_color, border_color);
+    float border_coverage = saturate(antialias_threshold - inner_sdf);
     color = mix(background_color, blended_border,
-                saturate(antialias_threshold - inner_sdf));
+                border_edge_coverage(border_coverage, border_color.rgb));
+    // Where the border covers the pixel, the outer edge is the border's edge.
+    outer_coverage = mix(outer_coverage,
+                         border_edge_coverage(outer_coverage, border_color.rgb),
+                         border_coverage);
   }
 
-  return color * float4(1.0, 1.0, 1.0, saturate(antialias_threshold - outer_sdf));
+  return color * float4(1.0, 1.0, 1.0, outer_coverage);
+}
+
+// Edge coverage composited in encoded sRGB dims partially covered pixels, so a
+// thin border beads along curves as its sub-pixel phase changes. Border edges get
+// the grayscale text gamma and contrast correction of the WGPU renderer
+// (`border_edge_coverage` in gpui_wgpu's shaders.wgsl, adapted from
+// https://github.com/microsoft/terminal/blob/1283c0f5b99a2961673249fa77c6b986efb5086c/src/renderer/atlas/dwrite.hlsl).
+// The constants are its defaults: `get_gamma_correction_ratios(1.8)` and a
+// grayscale enhanced contrast of 1.0.
+constant float4 BORDER_GAMMA_RATIOS =
+    float4(0.14805442, -0.89459451, 1.47590801, -0.32466824);
+constant float BORDER_ENHANCED_CONTRAST = 1.0;
+
+float border_edge_coverage(float coverage, float3 color) {
+  // REC. 601 luminance coefficients for perceived brightness
+  float brightness = dot(color, float3(0.30, 0.59, 0.11));
+  float k = BORDER_ENHANCED_CONTRAST * saturate(4.0 * (0.75 - brightness));
+  float contrasted = coverage * (k + 1.0) / (coverage * k + 1.0);
+  float correction =
+      (BORDER_GAMMA_RATIOS.x * brightness + BORDER_GAMMA_RATIOS.y) * contrasted +
+      (BORDER_GAMMA_RATIOS.z * brightness + BORDER_GAMMA_RATIOS.w);
+  return contrasted + contrasted * (1.0 - contrasted) * correction;
 }
 
 // Returns the dash velocity of a corner given the dash velocity of the two
