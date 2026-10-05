@@ -14,17 +14,17 @@ Use `https://github.com/zed-industries/zed` as the authoritative upstream. [zed-
 
 ## Preserved local patch history
 
-The filtered branch `archive/gpux-pre-migration` and annotated tag `gpux-pre-migration-2026-06-17` preserve 72 gpux-only commits through `acdeadd279bc67334cb625e233b85c264391d8bc`. The archived tree is rooted directly at the gpux workspace and contains no managed RayX source or unrelated predecessor history.
+The annotated tag `gpux-pre-migration-2026-06-17` (also present in RayX, where the filtered branch `archive/gpux-pre-migration` carried the same history) preserves 72 gpux-only commits through `acdeadd279bc67334cb625e233b85c264391d8bc`. The archived tree is rooted directly at the gpux workspace and contains no managed RayX source or unrelated predecessor history.
 
 Inspect it with:
 
 ```text
-git log --reverse --format="%H %s%n%b" archive/gpux-pre-migration
+git log --reverse --format="%H %s%n%b" gpux-pre-migration-2026-06-17
 git -C <zed-cache> diff 481854f7541636c63f79abec9785697ed74f4005..<target-zed-commit> -- <closure-paths>
-git show archive/gpux-pre-migration:crates/gpui/src/window.rs
+git show gpux-pre-migration-2026-06-17:crates/gpui/src/window.rs
 ```
 
-The current repository history from `9aff311fa2692fd4d390839c8feb5b5ccebc7b20` onward preserves every later gpux/RayX change under `crates/gpux`.
+RayX history from `9aff311fa2692fd4d390839c8feb5b5ccebc7b20` onward carried every later gpux change under `crates/gpux`. On 2026-10-05 that history was extracted into this repository with `git filter-repo --subdirectory-filter crates/gpux`; its root commit `e2f8568cf7b1bae4a09dbd3d8035d9d515493c20` corresponds to RayX `9aff311f`, and commit hashes recorded elsewhere in this folder refer to RayX history.
 
 The 2026-08-07 import preserved RayX's `gpux` crate identity, vendored WGPU 29
 patches, Windows DX12 backend, mobile runtime, DevKit and diagnostics surfaces,
@@ -43,7 +43,7 @@ History mapping files:
 
 ## Update contract
 
-1. Read this file, `zed-imports.tsv`, the archived gpux history, current `crates/gpux` history, and the AgentX `runtime/gpux-foundation` patch-surface guidance.
+1. Read this file, `zed-imports.tsv`, the archived gpux history, this repository's history, and RayX's AgentX `runtime/gpux-foundation` patch-surface guidance (`../RayX/.agentx/memory/knowledge/runtime/gpux-foundation/`).
 2. Treat the latest `zed_commit` in `zed-imports.tsv` as the three-way merge base.
 3. Fetch the chosen target from `zed-industries/zed` and import only the mapped GPUI closure.
 4. Preserve or replay archived and current-repository gpux patches, including the reduced workspace and `gpux` crate rename.
