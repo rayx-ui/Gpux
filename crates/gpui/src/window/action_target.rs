@@ -1,4 +1,36 @@
-use crate::{Action, ActionDispatchReport, ActionInvocationSource, App, Pixels, Point, Window};
+use crate::{
+    Action, ActionDispatchReport, ActionInvocationSource, App, FocusHandle, Pixels, Point, Window,
+};
+
+impl FocusHandle {
+    /// Dispatch an action on the element that rendered this focus handle,
+    /// attributed to `source`.
+    ///
+    /// A component that recognized an input binding for its own key context
+    /// dispatches it here, so nested components never route it to an
+    /// ancestor. Dispatching from a mouse or key listener leaves that event's
+    /// propagation as it was.
+    pub fn dispatch_action_with_source(
+        &self,
+        source: ActionInvocationSource,
+        action: &dyn Action,
+        window: &mut Window,
+        cx: &mut App,
+    ) -> ActionDispatchReport {
+        // Action dispatch reuses the event propagation flag.
+        let propagate_event = cx.propagate_event;
+        let report = match window
+            .rendered_frame
+            .dispatch_tree
+            .focusable_node_id(self.id)
+        {
+            Some(node_id) => window.dispatch_action_on_node_from(node_id, source, action, cx),
+            None => window.dispatch_unhandled_action(source, action, cx),
+        };
+        cx.propagate_event = propagate_event;
+        report
+    }
+}
 
 impl Window {
     /// Dispatch through the frontmost action-capable scope at a window-relative position.
@@ -212,6 +244,36 @@ mod tests {
         cx.simulate_mouse_up(position, MouseButton::Left, crate::Modifiers::none());
         assert_eq!(actions.get(), 1, "the nested dispatch handles the action");
         assert_eq!(releases.get(), 1, "the release still reaches the target");
+    }
+
+    #[gpux::test]
+    fn focus_handle_dispatch_reports_its_source_and_keeps_propagation(cx: &mut TestAppContext) {
+        let window = cx.open_window(size(px(200.), px(100.)), |_, cx| Fixture {
+            focus: cx.focus_handle(),
+            left: Rc::new(Cell::new(0)),
+            right: Rc::new(Cell::new(0)),
+            overlay: None,
+            nonblocking_hitbox: false,
+        });
+        cx.run_until_parked();
+        window
+            .update(cx, |root, window, cx| {
+                cx.propagate();
+                let report = root.focus.dispatch_action_with_source(
+                    ActionInvocationSource::Pointer,
+                    &Activate,
+                    window,
+                    cx,
+                );
+                assert_eq!(report.outcome(), ActionDispatchOutcome::Handled);
+                assert_eq!(
+                    report.invocation().source(),
+                    ActionInvocationSource::Pointer
+                );
+                assert_eq!((root.left.get(), root.right.get()), (0, 1));
+                assert!(cx.propagate_event, "the caller's event keeps propagating");
+            })
+            .unwrap();
     }
 
     #[gpux::test]

@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/gpui/input
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-06T01:00:00+02:00
+  updated: 2026-10-06T02:00:00+02:00
   topics:
     - actions
     - touch-gestures
@@ -24,7 +24,7 @@ Read before changing action dispatch, touch gestures, pointer capture, drag and 
 
 ## Current Technical Shape
 
-`Window::dispatch_action_at` routes an explicit action from a window-local position through the frontmost hit-tested branch with a local action handler, preserving keyboard focus and the caller's invocation source. Nonblocking hitboxes without a local action path are skipped, a hit-tested node remains the fallback for global handlers, occluding overlays stop targets beneath them, and missing targets are unhandled. `dispatch_action_from` is the focused path for keyboard activation. Cached prepaint keeps hitbox identities and remaps their dispatch-node associations into the reused subtree. A stopped-propagation request from an `ActionDispatchEvent::Began` observer is honored before global or window handlers run. Called from a mouse or key listener, `dispatch_action_at` restores that event's propagation afterward, because action dispatch reuses the event propagation flag; otherwise a pointer binding recognized during a release would stop the release before the clicked control's own listeners.
+`Window::dispatch_action_at` routes an explicit action from a window-local position through the frontmost hit-tested branch with a local action handler, preserving keyboard focus and the caller's invocation source. Nonblocking hitboxes without a local action path are skipped, a hit-tested node remains the fallback for global handlers, occluding overlays stop targets beneath them, and missing targets are unhandled. `dispatch_action_from` is the focused path for keyboard activation. Cached prepaint keeps hitbox identities and remaps their dispatch-node associations into the reused subtree. A stopped-propagation request from an `ActionDispatchEvent::Began` observer is honored before global or window handlers run. Called from a mouse or key listener, `dispatch_action_at` restores that event's propagation afterward, because action dispatch reuses the event propagation flag; otherwise a pointer binding recognized during a release would stop the release before the clicked control's own listeners. `FocusHandle::dispatch_action_with_source` dispatches from the node that rendered a focus handle with an explicit invocation source and the same propagation guarantee; a component that recognized a binding for its own key context, such as a nested selection area, uses it so position-based routing cannot reach an ancestor.
 
 gpux uses Zed GPUI's input model unchanged. Platforms emit `MouseDown`/`MouseUp`/`MouseMove`, `ScrollWheel`, raw `Touch`, and `Pinch` input. The window's `TouchGestureRecognizer`, tuned by `Platform::gestures`, turns touches into synthesized mouse press/release taps (`ClickEvent::Touch` for click listeners), pan and fling steps delivered as `ScrollWheelEvent`s at the pan's start position, phased `LongPressEvent`s, and `TouchDragEvent`s. A touch that starts while no other touch is recognized offers a `TouchDragEvent` `Started`; an element that claims it with `prevent_default` turns the whole touch into a drag. `Window::capture_pointer` routes moves and the release to one hitbox until mouse up.
 
