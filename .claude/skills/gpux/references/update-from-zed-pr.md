@@ -52,7 +52,7 @@ Always check whether the PR touches or overwrites these RayX-owned gpux patch su
 - Record the PR URL or number, resolved upstream commit SHA, and original subject in the import commit body.
 - When importing from an unmerged PR head, include a note that the source was a PR head rather than upstream `main`.
 - Keep replayed or preserved RayX/gpux patches as separate commits when practical, with `Preserved gpux patch commit:` trailers as described in the closure update reference.
-- Update RayX AgentX `runtime/gpux-foundation` memory (`../RayX/.agentx/memory/`) if the latest imported upstream source, patch replay rule, or closure boundary changes.
+- Update gpux upstream-sync memory (`.agentx/memory/knowledge/repository/upstream-sync/`) if the latest imported upstream source, patch replay rule, or closure boundary changes.
 
 ## Validation
 

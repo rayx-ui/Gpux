@@ -13,15 +13,11 @@ Run from the Gpux repository root; Cargo commands use the root workspace `Cargo.
 
 Packages publish to crates.io under `gpux-*` names but keep their GPUI Rust names through `[lib] name`, so source code still writes `gpui_platform::`, `collections::`, and so on. `cargo -p` selectors take package names (`-p gpux-platform`, `-p gpux-wgpu-renderer`, `-p gpux-collections`); the [README crate table](../../../README.md#crates) is the authoritative directory/package/Rust-name mapping.
 
-gpux has no AgentX memory of its own; RayX's memory still records gpux decisions and state. For repository maintenance tasks, read the RayX AgentX memory entrypoints before acting:
+gpux memory lives in this repository's `.agentx/memory/` (moved from RayX on 2026-10-05). For repository maintenance tasks, start at `.agentx/memory/knowledge/INDEX.md` and `.agentx/memory/decisions/INDEX.md`, then read only the matching domain (`gpui`, `renderer`, `platform`, `repository`); `repository/upstream-sync` records the represented upstream commits.
 
-- `../RayX/.agentx/memory/knowledge/INDEX.md`
-- `../RayX/.agentx/memory/knowledge/runtime/state.md`
-- `../RayX/.agentx/memory/knowledge/runtime/gpux-foundation/state.md`
-- `../RayX/.agentx/memory/knowledge/runtime/gpux-foundation/rules.md`
+RayX memory records only RayX's consumer view. For RayX-side work, read the narrowest matching RayX memory:
 
-For GPUI patch-surface work, also read the narrowest matching RayX memory:
-
+- `../RayX/.agentx/memory/knowledge/runtime/gpux-foundation/state.md` for how RayX consumes gpux.
 - `../RayX/.agentx/memory/knowledge/tooling/validation/state.md` for build/test orchestration.
 - `../RayX/.agentx/memory/knowledge/ui/theming-components/state.md` for RayX component source copied from RayX.
 - `../RayX/.agentx/memory/knowledge/ui/virtualization/state.md` for RayX virtualization integration.
@@ -39,7 +35,7 @@ For GPUI patch-surface work, also read the narrowest matching RayX memory:
 - For upstream `gpui_mobile` updates from `itsbalamurali/gpui-mobile`, read [references/update-from-gpui-mobile.md](references/update-from-gpui-mobile.md).
 - For moving to a new wgpu release, maintaining the temporary `gpux-wgpu` fork in `vendor/wgpu/`, or retiring that fork, read [references/update-from-wgpu.md](references/update-from-wgpu.md).
 - For crates.io packaging, crate naming, or manifest changes, use the README crate table and the manifest shape in [references/update-from-zed-gpui-closure.md](references/update-from-zed-gpui-closure.md#manifest-and-packaging-shape), then run `cargo package --workspace`.
-- For ordinary code changes, use the active RayX AgentX taxonomy in `../RayX/.agentx/memory/`: start with `runtime/gpux-foundation`, then expand only to the narrow matching subdomain such as `tooling/validation`, `ui/theming-components`, or `ui/virtualization` when the touched behavior belongs there.
+- For ordinary code changes, use gpux's own memory domains and expand only to the narrow matching subdomain; consult RayX memory only for RayX consumer behavior.
 
 ## Validation
 
@@ -61,10 +57,19 @@ The web check disables default features only because the default multithreaded b
 
 ### UI-thread input snapshots
 
-`KeymapSnapshot` and `GestureMapSnapshot` retain boxed actions and are deliberately UI-thread
-state. Retain them with `Rc`, capture one immutable snapshot plus map revision at input-sequence
-start, and pass that same pair through completion. Do not change these snapshots to `Arc` unless
-every contained action becomes `Send + Sync`; doing so triggers unsound cross-thread assumptions.
+`KeymapSnapshot` retains boxed actions and is deliberately UI-thread state. Retain it with `Rc`,
+capture one immutable snapshot plus map revision at input-sequence start, and pass that same pair
+through completion. Do not change it to `Arc` unless every contained action becomes `Send + Sync`;
+doing so triggers unsound cross-thread assumptions.
+
+### Input model
+
+gpux uses upstream GPUI's input model unchanged: `MouseDown`/`MouseUp`/`MouseMove`/`ScrollWheel`
+events, raw `Touch` events recognized by `TouchGestureRecognizer` (tap, pan with fling momentum,
+long press, touch drag), `ClickEvent::Touch`, and a single active drag with platform drag-out
+handoff. Platforms emit raw touches and choose fling physics through `Platform::gestures`. Do not
+reintroduce a gpux pointer layer (`PointerEvent`, per-pointer ownership, gesture maps, touch
+momentum in `ScrollActivity`, or extra `ScrollWheelEvent` metadata).
 
 - Keep gpux scoped to this repository's copy of Zed's GPUI crate closure unless the user explicitly changes repository scope.
 - Preserve Zed GPUI closure paths (Zed `crates/<name>/` is Gpux `crates/<name>/`) and support crate topology, but keep the main framework package/import crate named `gpux` and the other packages named `gpux-*` with their GPUI Rust names in `[lib] name`.
@@ -103,7 +108,7 @@ every contained action becomes `Send + Sync`; doing so triggers unsound cross-th
 - Audit platform/rendering sibling crates and shader files during imports; RayX patches are not limited to `crates/gpui`.
 - On macOS Metal shader fixes, preserve packed Rust buffer ABIs and convert cbindgen-exported array fields to Metal vector types in shader helpers at use sites.
 - Keep platform text capability answers tied to negotiated renderer features. Windows may expose subpixel text only when `WgpuRenderer` negotiated dual-source blending; snapshot that immutable capability during window construction instead of borrowing the renderer during paint.
-- Update RayX AgentX `runtime/gpux-foundation` memory (`../RayX/.agentx/memory/`) when source hashes, latest imported upstream Zed or `gpui_mobile` commit, the forked wgpu release, multithreaded WASM rules, or replay rules change.
+- Update gpux memory (`.agentx/memory/knowledge/repository/upstream-sync/state.md` and the affected domain) when source hashes, latest imported upstream Zed or `gpui_mobile` commit, the forked wgpu release, multithreaded WASM rules, or replay rules change.
 - Keep public usage examples on `gpux::{...}` and the package name `gpux`, while preserving the repository path `crates/gpui`.
 - Keep RayX browser/WASM apps multithreaded by default. Do not disable `gpui_web` default features unless a task explicitly proves single-threaded output is required.
 - Bridge browser paste from the trusted DOM `paste` event into the active GPUI
