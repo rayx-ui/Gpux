@@ -1,27 +1,65 @@
-#![cfg(target_family = "wasm")]
+//! The gpux browser platform uses one document-owned canvas and supports one top-level window.
+//! Browser WebGPU is preferred by default, with an automatic WebGL2 fallback. Applications can
+//! force either backend with `WebBackendPreference`.
 
+pub mod canvas_fallback;
+
+pub use canvas_fallback::CanvasFontFallback;
+
+#[cfg(target_family = "wasm")]
+mod canvas_text;
+#[cfg(target_family = "wasm")]
 mod dispatcher;
+#[cfg(target_family = "wasm")]
 mod display;
+#[cfg(target_family = "wasm")]
 mod events;
+#[cfg(any(target_family = "wasm", test))]
+mod glyph_cache;
+#[cfg(target_family = "wasm")]
 mod html_element;
+#[cfg(target_family = "wasm")]
 mod html_in_canvas;
+#[cfg(target_family = "wasm")]
 mod html_island;
+#[cfg(target_family = "wasm")]
 mod http_client;
+#[cfg(target_family = "wasm")]
+mod ime_mirror;
+#[cfg(target_family = "wasm")]
 mod keyboard;
+#[cfg(target_family = "wasm")]
 mod logging;
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(all(target_family = "wasm", feature = "rayx_diagnostics"))]
 mod media_query_diagnostics;
+#[cfg(target_family = "wasm")]
 mod platform;
+#[cfg(any(target_family = "wasm", test))]
+mod run_replacements;
+#[cfg(target_family = "wasm")]
+mod text_system;
+#[cfg(target_family = "wasm")]
+mod viewport;
+#[cfg(target_family = "wasm")]
 mod web_viewport_scheduler;
+#[cfg(target_family = "wasm")]
 mod window;
 
+#[cfg(target_family = "wasm")]
 pub use dispatcher::WebDispatcher;
+#[cfg(target_family = "wasm")]
 pub use display::WebDisplay;
+#[cfg(target_family = "wasm")]
 pub use gpui_wgpu::WebBackendPreference;
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(all(target_family = "wasm", feature = "rayx_diagnostics"))]
 pub use html_in_canvas::{HtmlInCanvasDiagnostics, HtmlInCanvasProbes, HtmlInCanvasSupport};
-pub use http_client::FetchHttpClient;
+#[cfg(target_family = "wasm")]
+pub use http_client::{FetchCredentials, FetchHttpClient};
+#[cfg(target_family = "wasm")]
 pub use keyboard::WebKeyboardLayout;
+#[cfg(target_family = "wasm")]
 pub use logging::init_logging;
+#[cfg(target_family = "wasm")]
 pub use platform::WebPlatform;
+#[cfg(target_family = "wasm")]
 pub use window::WebWindow;

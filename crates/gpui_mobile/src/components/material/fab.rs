@@ -42,7 +42,7 @@
 //!     .on_click(cx.listener(|this, _, _, cx| { /* compose */ }));
 //! ```
 
-use gpui::{MouseButton, PointerEvent, Stateful, Window, div, prelude::*, px, rgb};
+use gpui::{MouseButton, MouseDownEvent, Stateful, Window, div, prelude::*, px, rgb};
 
 use super::theme::MaterialTheme;
 
@@ -67,7 +67,7 @@ const FAB_EXTENDED_GAP: f32 = 12.0;
 
 // ── Click handler alias ──────────────────────────────────────────────────────
 
-type ClickHandler = Box<dyn Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static>;
+type ClickHandler = Box<dyn Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static>;
 
 // ── FAB Size ─────────────────────────────────────────────────────────────────
 
@@ -243,11 +243,11 @@ impl FloatingActionButton {
 
     /// Set the click handler.
     ///
-    /// The handler signature matches GPUI's `on_pointer_down`, so
+    /// The handler signature matches GPUI's `on_mouse_down`, so
     /// `cx.listener(...)` can be used directly.
     pub fn on_click(
         mut self,
-        handler: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
+        handler: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.on_click = Some(Box::new(handler));
         self
@@ -309,7 +309,7 @@ impl IntoElement for FloatingActionButton {
         fab = fab.child(self.icon);
 
         if let Some(handler) = self.on_click {
-            fab = fab.on_pointer_down(MouseButton::Left, handler);
+            fab = fab.on_mouse_down(MouseButton::Left, handler);
         }
 
         fab.into_element()
@@ -389,7 +389,7 @@ impl ExtendedFab {
     /// Set the click handler.
     pub fn on_click(
         mut self,
-        handler: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
+        handler: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.on_click = Some(Box::new(handler));
         self
@@ -457,7 +457,7 @@ impl IntoElement for ExtendedFab {
         }
 
         if let Some(handler) = self.on_click {
-            fab = fab.on_pointer_down(MouseButton::Left, handler);
+            fab = fab.on_mouse_down(MouseButton::Left, handler);
         }
 
         fab.into_element()

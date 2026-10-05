@@ -1,8 +1,11 @@
 #![cfg_attr(target_family = "wasm", no_main)]
 
+#[path = "example_support/fonts.rs"]
+mod example_support;
+
 use gpui_platform::application;
 use gpux::{
-    Bounds, Context, Div, ElementId, FocusHandle, KeyBinding, SharedString, Stateful, Window,
+    App, Bounds, Context, Div, ElementId, FocusHandle, KeyBinding, SharedString, Stateful, Window,
     WindowBounds, WindowOptions, actions, div, prelude::*, px, size,
 };
 
@@ -182,16 +185,14 @@ impl Render for Example {
 
 fn run_example() {
     application().run(|cx| async move {
-        cx.update(|cx| {
-            cx.set_keymap_layer(gpux::KeymapLayer::new(
-                gpux::InputLayerId::new("example.tab-stop"),
-                0,
-                [
-                    KeyBinding::new("tab", Tab, None),
-                    KeyBinding::new("shift-tab", TabPrev, None),
-                ],
-            ))
-            .unwrap();
+        cx.update(|cx: &mut App| {
+            if !example_support::load_fonts(cx) {
+                return;
+            }
+            cx.bind_keys([
+                KeyBinding::new("tab", Tab, None),
+                KeyBinding::new("shift-tab", TabPrev, None),
+            ]);
 
             let bounds = Bounds::centered(None, size(px(800.), px(600.0)), cx);
             cx.open_window(

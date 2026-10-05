@@ -54,7 +54,7 @@
 //!     .build();
 //! ```
 
-use gpui::{AnyElement, MouseButton, PointerEvent, Stateful, Window, div, prelude::*, px, rgb};
+use gpui::{AnyElement, MouseButton, MouseDownEvent, Stateful, Window, div, prelude::*, px, rgb};
 
 use super::theme::{MaterialTheme, ShapeScale};
 
@@ -83,7 +83,7 @@ const _MIN_CARD_WIDTH: f32 = 0.0;
 
 // ── Click handler alias ──────────────────────────────────────────────────────
 
-type ClickHandler = Box<dyn Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static>;
+type ClickHandler = Box<dyn Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static>;
 
 // ── Card variant ─────────────────────────────────────────────────────────────
 
@@ -212,7 +212,7 @@ impl Card {
     /// a pointer cursor on hover.
     pub fn on_click(
         mut self,
-        handler: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
+        handler: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.on_click = Some(Box::new(handler));
         self
@@ -335,7 +335,7 @@ impl IntoElement for Card {
 
         // Click handler
         if let Some(handler) = self.on_click {
-            card = card.on_pointer_down(MouseButton::Left, handler);
+            card = card.on_mouse_down(MouseButton::Left, handler);
         }
 
         card.into_element()
@@ -550,7 +550,7 @@ impl CardBuilder {
     pub fn action_text(
         mut self,
         label: impl Into<String>,
-        on_click: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
+        on_click: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.actions.push(CardAction {
             label: label.into(),
@@ -564,7 +564,7 @@ impl CardBuilder {
     pub fn action_filled(
         mut self,
         label: impl Into<String>,
-        on_click: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
+        on_click: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.actions.push(CardAction {
             label: label.into(),
@@ -578,7 +578,7 @@ impl CardBuilder {
     pub fn action_outlined(
         mut self,
         label: impl Into<String>,
-        on_click: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
+        on_click: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.actions.push(CardAction {
             label: label.into(),
@@ -592,7 +592,7 @@ impl CardBuilder {
     pub fn action_tonal(
         mut self,
         label: impl Into<String>,
-        on_click: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
+        on_click: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.actions.push(CardAction {
             label: label.into(),
@@ -607,7 +607,7 @@ impl CardBuilder {
     /// Make the entire card clickable.
     pub fn on_click(
         mut self,
-        handler: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
+        handler: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.on_click = Some(Box::new(handler));
         self
@@ -822,7 +822,7 @@ impl CardBuilder {
 
         // ── Card click handler ───────────────────────────────────────
         if let Some(handler) = self.on_click {
-            card = card.on_pointer_down(MouseButton::Left, handler);
+            card = card.on_mouse_down(MouseButton::Left, handler);
         }
 
         card
@@ -844,7 +844,7 @@ impl CardBuilder {
                 .text_color(rgb(theme.primary))
                 .cursor_pointer()
                 .child(action.label)
-                .on_pointer_down(MouseButton::Left, action.on_click)
+                .on_mouse_down(MouseButton::Left, action.on_click)
                 .into_any_element(),
 
             CardActionStyle::Filled => div()
@@ -857,7 +857,7 @@ impl CardBuilder {
                 .text_color(rgb(theme.on_primary))
                 .cursor_pointer()
                 .child(action.label)
-                .on_pointer_down(MouseButton::Left, action.on_click)
+                .on_mouse_down(MouseButton::Left, action.on_click)
                 .into_any_element(),
 
             CardActionStyle::Outlined => div()
@@ -871,7 +871,7 @@ impl CardBuilder {
                 .text_color(rgb(theme.primary))
                 .cursor_pointer()
                 .child(action.label)
-                .on_pointer_down(MouseButton::Left, action.on_click)
+                .on_mouse_down(MouseButton::Left, action.on_click)
                 .into_any_element(),
 
             CardActionStyle::Tonal => div()
@@ -884,7 +884,7 @@ impl CardBuilder {
                 .text_color(rgb(theme.on_secondary_container))
                 .cursor_pointer()
                 .child(action.label)
-                .on_pointer_down(MouseButton::Left, action.on_click)
+                .on_mouse_down(MouseButton::Left, action.on_click)
                 .into_any_element(),
         }
     }

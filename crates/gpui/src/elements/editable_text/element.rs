@@ -1,9 +1,9 @@
 use crate::{
     App, Bounds, Color, ContentMask, CursorStyle, DecorationRun, DispatchPhase, Element, ElementId,
     ElementInputHandler, Entity, GlobalElementId, IntoElement, KeyDownEvent, LayoutId, MouseButton,
-    PaintQuad, Pixels, PointerEvent, RenderOnce, ScrollWheelEvent, ShapedLine, SharedString, Style,
-    TextAlign, TextRun, UnderlineStyle, WeakEntity, Window, WrappedLine, div, fill, point,
-    prelude::*, px, relative, size,
+    MouseDownEvent, MouseMoveEvent, MouseUpEvent, PaintQuad, Pixels, RenderOnce, ScrollWheelEvent,
+    ShapedLine, SharedString, Style, TextAlign, TextRun, UnderlineStyle, WeakEntity, Window,
+    WrappedLine, div, fill, point, prelude::*, px, relative, size,
 };
 use std::ops::Range;
 
@@ -84,9 +84,9 @@ impl RenderOnce for EditableText {
                     cx.stop_propagation();
                 }
             })
-            .on_pointer_down(
+            .on_mouse_down(
                 MouseButton::Left,
-                move |event: &PointerEvent, window, cx| {
+                move |event: &MouseDownEvent, window, cx| {
                     if mode.permits_focus() {
                         window.focus(&down_focus_handle, cx);
                     }
@@ -100,7 +100,7 @@ impl RenderOnce for EditableText {
                     });
                 },
             )
-            .on_pointer_up(MouseButton::Left, move |_: &PointerEvent, _window, cx| {
+            .on_mouse_up(MouseButton::Left, move |_: &MouseUpEvent, _window, cx| {
                 up_state.update(cx, |state, _| state.pointer_up());
             })
             .on_scroll_wheel(move |event: &ScrollWheelEvent, window, cx| {
@@ -521,24 +521,14 @@ impl Element for EditableTextPaintElement {
         });
 
         let drag_state = self.state.clone();
-        window.on_pointer_event(move |event: &PointerEvent, phase, _window, cx| {
-            if phase == DispatchPhase::Bubble
-                && matches!(
-                    event.phase,
-                    crate::PointerPhase::Move | crate::PointerPhase::Hover
-                )
-            {
+        window.on_mouse_event(move |event: &MouseMoveEvent, phase, _window, cx| {
+            if phase == DispatchPhase::Bubble {
                 drag_state.update(cx, |state, cx| state.pointer_move(event.position, cx));
             }
         });
         let release_state = self.state.clone();
-        window.on_pointer_event(move |event: &PointerEvent, phase, _window, cx| {
-            if phase == DispatchPhase::Bubble
-                && matches!(
-                    event.phase,
-                    crate::PointerPhase::Up | crate::PointerPhase::Cancel
-                )
-            {
+        window.on_mouse_event(move |_: &MouseUpEvent, phase, _window, cx| {
+            if phase == DispatchPhase::Bubble {
                 release_state.update(cx, |state, _| state.pointer_up());
             }
         });

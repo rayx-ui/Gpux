@@ -81,7 +81,7 @@ mod tests {
                         .left_0()
                         .w(px(100.))
                         .h(px(100.))
-                        .on_pointer_down(MouseButton::Left, |_, _, _| {})
+                        .on_mouse_down(MouseButton::Left, |_, _, _| {})
                         .on_action(move |_: &Activate, _, _| left.set(left.get() + 1)),
                 )
                 .child(
@@ -281,7 +281,7 @@ mod tests {
             div()
                 .id("cached-target")
                 .size_full()
-                .on_pointer_down(MouseButton::Left, |_, _, _| {})
+                .on_mouse_down(MouseButton::Left, |_, _, _| {})
                 .on_action(move |_: &Activate, _, _| actions.set(actions.get() + 1))
         }
     }

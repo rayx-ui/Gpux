@@ -918,7 +918,7 @@ impl EditableTextState {
             self.focus_subscriptions = vec![focus, blur];
         }
         if self.focus_handle.is_focused(window) && !self.mode.permits_focus() {
-            window.blur();
+            window.blur(cx);
             self.did_blur(cx);
         } else if self.focus_handle.is_focused(window) && !self.is_focused {
             self.did_focus(window, cx);
@@ -1286,7 +1286,7 @@ impl EditableTextState {
 
     fn did_focus(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if !self.mode.permits_focus() {
-            window.blur();
+            window.blur(cx);
             return;
         }
         self.is_focused = true;

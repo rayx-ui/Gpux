@@ -8,7 +8,7 @@
 //!
 //! All components use a **builder pattern** and implement `IntoElement`,
 //! making them composable with GPUI's standard `.child(...)` API. Click
-//! handlers use GPUI's `on_pointer_down` signature, so `cx.listener(...)`
+//! handlers use GPUI's `on_mouse_down` signature, so `cx.listener(...)`
 //! works directly.
 //!
 //! ## Theme System

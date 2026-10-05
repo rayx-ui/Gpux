@@ -154,7 +154,6 @@ struct DirectManipulationEventHandler {
     last_x_offset: Cell<f32>,
     last_y_offset: Cell<f32>,
     scroll_phase: Cell<TouchPhase>,
-    in_momentum: Cell<bool>,
     pending_events: Rc<RefCell<Vec<PlatformInput>>>,
 }
 
@@ -174,7 +173,6 @@ impl DirectManipulationEventHandler {
             last_x_offset: Cell::new(0.0),
             last_y_offset: Cell::new(0.0),
             scroll_phase: Cell::new(TouchPhase::Started),
-            in_momentum: Cell::new(false),
             pending_events,
         }
     }
@@ -209,15 +207,6 @@ impl DirectManipulationEventHandler {
                         delta: ScrollDelta::Pixels(point(px(0.0), px(0.0))),
                         modifiers,
                         touch_phase: TouchPhase::Ended,
-                        scroll_source: ScrollWheelSource::DirectManipulation,
-                        scroll_phase: ScrollWheelPhase::Ended,
-                        precise_delta: true,
-                        native_momentum_phase: self
-                            .in_momentum
-                            .get()
-                            .then_some(ScrollWheelMomentumPhase::Ended),
-                        release_velocity: None,
-                        timestamp: Some(Instant::now()),
                     }));
                 self.post_input_update_window();
             }
@@ -292,8 +281,6 @@ impl IDirectManipulationViewportEventHandler_Impl for DirectManipulationEventHan
             self.last_x_offset.set(0.0);
             self.last_y_offset.set(0.0);
         }
-
-        self.in_momentum.set(current == DIRECTMANIPULATION_INERTIA);
 
         Ok(())
     }
@@ -377,15 +364,6 @@ impl IDirectManipulationViewportEventHandler_Impl for DirectManipulationEventHan
                         delta: ScrollDelta::Pixels(point(px(dx), px(dy))),
                         modifiers,
                         touch_phase,
-                        scroll_source: ScrollWheelSource::DirectManipulation,
-                        scroll_phase: scroll_phase_from_touch_phase(touch_phase),
-                        precise_delta: true,
-                        native_momentum_phase: self
-                            .in_momentum
-                            .get()
-                            .then_some(ScrollWheelMomentumPhase::Moved),
-                        release_velocity: None,
-                        timestamp: Some(Instant::now()),
                     }));
                 self.post_input_update_window();
             }
@@ -415,13 +393,4 @@ impl IDirectManipulationViewportEventHandler_Impl for DirectManipulationEventHan
 fn float_equals(f1: f32, f2: f32) -> bool {
     const EPSILON_SCALE: f32 = 0.00001;
     (f1 - f2).abs() < EPSILON_SCALE * f1.abs().max(f2.abs()).max(EPSILON_SCALE)
-}
-
-fn scroll_phase_from_touch_phase(phase: TouchPhase) -> ScrollWheelPhase {
-    match phase {
-        TouchPhase::Started => ScrollWheelPhase::Started,
-        TouchPhase::Moved => ScrollWheelPhase::Moved,
-        TouchPhase::Ended => ScrollWheelPhase::Ended,
-        TouchPhase::Cancelled => ScrollWheelPhase::Cancelled,
-    }
 }

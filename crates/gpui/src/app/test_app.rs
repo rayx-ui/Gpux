@@ -27,9 +27,9 @@
 use crate::{
     AnyWindowHandle, App, AppCell, AppContext, AsyncApp, BackgroundExecutor, BorrowAppContext,
     Bounds, ClipboardItem, Context, Entity, ForegroundExecutor, Global, InputEvent, Keystroke,
-    MouseButton, Pixels, Platform, PlatformTextSystem, Point, PointerEvent, Render, Size, Task,
-    TestDispatcher, TestPlatform, TextSystem, Window, WindowBounds, WindowHandle, WindowOptions,
-    app::GpuiMode,
+    MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, Platform,
+    PlatformTextSystem, Point, Render, Size, Task, TestDispatcher, TestPlatform, TextSystem,
+    Window, WindowBounds, WindowHandle, WindowOptions, app::GpuiMode,
 };
 use std::{future::Future, rc::Rc, sync::Arc, time::Duration};
 
@@ -410,28 +410,32 @@ impl<V: 'static + Render> TestAppWindow<V> {
 
     /// Simulate a mouse move.
     pub fn simulate_mouse_move(&mut self, position: Point<Pixels>) {
-        self.simulate_event(PointerEvent::mouse_move(position, None, Default::default()));
+        self.simulate_event(MouseMoveEvent {
+            position,
+            modifiers: Default::default(),
+            pressed_button: None,
+        });
     }
 
     /// Simulate a mouse down event.
     pub fn simulate_mouse_down(&mut self, position: Point<Pixels>, button: MouseButton) {
-        self.simulate_event(PointerEvent::mouse_down(
+        self.simulate_event(MouseDownEvent {
             position,
             button,
-            Default::default(),
-            1,
-            false,
-        ));
+            modifiers: Default::default(),
+            click_count: 1,
+            first_mouse: false,
+        });
     }
 
     /// Simulate a mouse up event.
     pub fn simulate_mouse_up(&mut self, position: Point<Pixels>, button: MouseButton) {
-        self.simulate_event(PointerEvent::mouse_up(
+        self.simulate_event(MouseUpEvent {
             position,
             button,
-            Default::default(),
-            1,
-        ));
+            modifiers: Default::default(),
+            click_count: 1,
+        });
     }
 
     /// Simulate a click at the given position.
@@ -447,12 +451,6 @@ impl<V: 'static + Render> TestAppWindow<V> {
             delta: crate::ScrollDelta::Pixels(delta),
             modifiers: Default::default(),
             touch_phase: crate::TouchPhase::Moved,
-            scroll_source: crate::ScrollWheelSource::PrecisionWheel,
-            scroll_phase: crate::ScrollWheelPhase::Moved,
-            precise_delta: true,
-            native_momentum_phase: None,
-            release_velocity: None,
-            timestamp: Some(crate::Instant::now()),
         });
     }
 
@@ -483,12 +481,30 @@ impl<V: 'static + Render> TestAppWindow<V> {
         self.background_executor.run_until_parked();
     }
 
+    /// Simulate the window moving to a display with a different scale factor.
+    pub fn simulate_scale_factor_change(&mut self, scale_factor: f32) {
+        let window_id = self.handle.window_id();
+        let test_window = {
+            let mut app = self.app.borrow_mut();
+            app.windows
+                .get_mut(window_id)
+                .and_then(|window| window.as_mut())
+                .and_then(|window| window.platform_window.as_test())
+                .cloned()
+        };
+        // The resize callback needs to borrow the app again synchronously.
+        if let Some(mut test_window) = test_window {
+            test_window.simulate_scale_factor_change(scale_factor);
+        }
+        self.background_executor.run_until_parked();
+    }
+
     /// Force a redraw of the window.
     pub fn draw(&mut self) {
         let mut app = self.app.borrow_mut();
         let any_handle: AnyWindowHandle = self.handle.into();
         app.update_window(any_handle, |_, window, cx| {
-            window.draw(cx).clear();
+            window.draw(cx).clear(cx);
         })
         .unwrap();
     }
@@ -553,6 +569,26 @@ mod tests {
 
         window.read(|counter, _| {
             assert_eq!(counter.count, 1);
+        });
+
+        drop(window);
+        app.update(|cx| cx.shutdown());
+    }
+
+    #[test]
+    fn test_simulate_scale_factor_change() {
+        let mut app = TestApp::new();
+        let mut window = app.open_window(|_, _| crate::EmptyView);
+        let viewport_size = window.update(|_, window, _| {
+            assert_eq!(window.scale_factor(), 2.0);
+            window.viewport_size()
+        });
+
+        window.simulate_scale_factor_change(1.0);
+
+        window.update(|_, window, _| {
+            assert_eq!(window.scale_factor(), 1.0);
+            assert_eq!(window.viewport_size(), viewport_size);
         });
 
         drop(window);

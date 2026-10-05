@@ -12,15 +12,17 @@ use super::{IosDispatcher, IosDisplay, IosWindow};
 use anyhow::anyhow;
 use futures::channel::oneshot;
 use gpui::{
-    Action, AnyWindowHandle, BackgroundExecutor, ClipboardItem, CursorStyle, DummyKeyboardMapper,
-    ForegroundExecutor, Keymap, Menu, MenuItem, PathPromptOptions, Platform, PlatformDisplay,
-    PlatformKeyboardLayout, PlatformKeyboardMapper, PlatformTextSystem, PlatformWindow, Result,
-    Task, ThermalState, WindowAppearance, WindowParams,
+    Action, ActivityGuard, AnyWindowHandle, BackgroundExecutor, ClipboardItem, CursorStyle,
+    DummyKeyboardMapper, ForegroundExecutor, GestureTuning, Keymap, Menu, MenuItem,
+    PathPromptOptions, Platform, PlatformDisplay, PlatformGestures, PlatformKeyboardLayout,
+    PlatformKeyboardMapper, PlatformTextSystem, PlatformWindow, Result, ScrollPhysics, Task,
+    ThermalState, WindowAppearance, WindowParams,
 };
 use objc2::runtime::AnyObject;
 use objc2::{class, msg_send};
 use parking_lot::Mutex;
 use std::{
+    ffi::OsString,
     path::{Path, PathBuf},
     rc::Rc,
     sync::Arc,
@@ -28,12 +30,24 @@ use std::{
 
 pub struct IosPlatform(Mutex<IosPlatformState>);
 
+/// Touch gesture tuning that matches UIKit's scroll deceleration.
+struct IosGestures;
+
+impl PlatformGestures for IosGestures {
+    fn tuning(&self) -> GestureTuning {
+        GestureTuning {
+            scroll_physics: ScrollPhysics::ios(),
+            ..GestureTuning::default()
+        }
+    }
+}
+
 pub(crate) struct IosPlatformState {
     background_executor: BackgroundExecutor,
     foreground_executor: ForegroundExecutor,
     text_system: Arc<dyn PlatformTextSystem>,
     finish_launching: Option<Box<dyn FnOnce()>>,
-    quit_callback: Option<Box<dyn FnMut()>>,
+    quit_callback: Option<Box<dyn FnMut() -> bool>>,
     open_urls_callback: Option<Box<dyn FnMut(Vec<String>)>>,
     thermal_state_callback: Option<Box<dyn FnMut()>>,
 }
@@ -119,7 +133,7 @@ impl Platform for IosPlatform {
         log::warn!("iOS apps cannot programmatically quit");
     }
 
-    fn restart(&self, _binary_path: Option<PathBuf>) {
+    fn restart(&self, _binary_path: Option<PathBuf>, _arguments: Vec<OsString>) {
         // iOS apps cannot restart themselves
         log::warn!("iOS apps cannot restart themselves");
     }
@@ -239,8 +253,23 @@ impl Platform for IosPlatform {
         // Would use UIDocumentInteractionController or UIActivityViewController
     }
 
-    fn on_quit(&self, callback: Box<dyn FnMut()>) {
+    fn on_quit(&self, callback: Box<dyn FnMut() -> bool>) {
         self.0.lock().quit_callback = Some(callback);
+    }
+
+    // UIKit delivers no system sleep or wake notifications to apps.
+    fn on_system_sleep(&self, _callback: Box<dyn FnMut()>) {}
+
+    fn on_system_wake(&self, _callback: Box<dyn FnMut()>) {}
+
+    fn prevent_idle_sleep(&self, reason: &str) -> Task<Result<ActivityGuard>> {
+        Task::ready(Err(anyhow!(
+            "Idle sleep prevention for {reason:?} is not supported on iOS"
+        )))
+    }
+
+    fn gestures(&self) -> Option<Rc<dyn PlatformGestures>> {
+        Some(Rc::new(IosGestures))
     }
 
     fn on_reopen(&self, _callback: Box<dyn FnMut()>) {

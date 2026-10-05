@@ -1,7 +1,7 @@
 use std::{rc::Rc, sync::atomic::Ordering};
 
-use ::util::ResultExt;
 use anyhow::Context as _;
+use gpui_util::ResultExt;
 use windows::{
     Win32::{
         Foundation::*,
@@ -29,10 +29,11 @@ pub(crate) const WM_GPUI_FORCE_UPDATE_WINDOW: u32 = WM_USER + 5;
 pub(crate) const WM_GPUI_KEYBOARD_LAYOUT_CHANGED: u32 = WM_USER + 6;
 pub(crate) const WM_GPUI_GPU_DEVICE_LOST: u32 = WM_USER + 7;
 pub(crate) const WM_GPUI_KEYDOWN: u32 = WM_USER + 8;
+pub(crate) const WM_GPUI_END_SESSION: u32 = WM_USER + 9;
 // Keep interactive updates off the WM_PAINT path. Fast hover, wheel, keyboard, IME, and drag
 // interaction can otherwise end up waiting behind paint invalidation and feel visibly laggy.
 // This message lets the Windows backend process the latest input state and draw immediately.
-pub(crate) const WM_GPUI_INPUT_UPDATE_WINDOW: u32 = WM_USER + 9;
+pub(crate) const WM_GPUI_INPUT_UPDATE_WINDOW: u32 = WM_USER + 10;
 
 const SIZE_MOVE_LOOP_TIMER_ID: usize = 1;
 
@@ -66,6 +67,8 @@ impl WindowsWindowInner {
             WM_PAINT => self.handle_paint_msg(handle),
             WM_CLOSE => self.handle_close_msg(),
             WM_DESTROY => self.handle_destroy_msg(handle),
+            WM_QUERYENDSESSION => Some(1),
+            WM_ENDSESSION => self.handle_end_session_msg(wparam),
             WM_MOUSEMOVE => self.handle_mouse_move_msg(handle, lparam, wparam),
             WM_MOUSELEAVE | WM_NCMOUSELEAVE => self.handle_mouse_leave_msg(handle),
             WM_NCMOUSEMOVE => self.handle_nc_mouse_move_msg(handle, lparam),
@@ -128,6 +131,20 @@ impl WindowsWindowInner {
         }
     }
 
+    fn handle_end_session_msg(&self, wparam: WPARAM) -> Option<isize> {
+        if wparam.0 != 0 {
+            unsafe {
+                SendMessageW(
+                    self.platform_window_handle,
+                    WM_GPUI_END_SESSION,
+                    Some(WPARAM(self.validation_number)),
+                    None,
+                );
+            }
+        }
+        Some(0)
+    }
+
     fn handle_move_msg(&self, handle: HWND, lparam: LPARAM) -> Option<isize> {
         let origin = logical_point(
             lparam.signed_loword() as f32,
@@ -177,7 +194,11 @@ impl WindowsWindowInner {
         Some(0)
     }
 
-    fn handle_size_msg(&self, wparam: WPARAM, lparam: LPARAM) -> Option<isize> {
+    fn handle_size_msg(self: &Rc<Self>, wparam: WPARAM, lparam: LPARAM) -> Option<isize> {
+        // Minimizing and restoring both arrive as `WM_SIZE`; the deferred report
+        // reads `IsIconic` at delivery, so one call covers both directions.
+        self.report_visibility();
+
         let raw_width = lparam.loword() as i32;
         let raw_height = lparam.hiword() as i32;
         let minimized = wparam.0 == SIZE_MINIMIZED as usize;
@@ -363,11 +384,11 @@ impl WindowsWindowInner {
         };
         let x = lparam.signed_loword() as f32;
         let y = lparam.signed_hiword() as f32;
-        let event = PointerEvent::mouse_move(
-            logical_point(x, y, scale_factor),
+        let event = MouseMoveEvent {
+            position: logical_point(x, y, scale_factor),
             pressed_button,
-            current_modifiers(),
-        );
+            modifiers: current_modifiers(),
+        };
 
         // This coalescing is intentional and should survive upstream merges. Dispatching every
         // raw WM_MOUSEMOVE on Windows can starve redraw delivery, which breaks hover visuals,
@@ -484,13 +505,13 @@ impl WindowsWindowInner {
         let click_count = self.state.click_state.update(button, physical_point);
         let scale_factor = self.state.scale_factor.get();
 
-        let input = PlatformInput::Pointer(PointerEvent::mouse_down(
-            logical_point(x as f32, y as f32, scale_factor),
+        let input = PlatformInput::MouseDown(MouseDownEvent {
             button,
-            current_modifiers(),
+            position: logical_point(x as f32, y as f32, scale_factor),
+            modifiers: current_modifiers(),
             click_count,
-            false,
-        ));
+            first_mouse: false,
+        });
         let handled = !func(input).propagate;
         self.state.callbacks.input.set(Some(func));
         self.post_input_update_window(handle);
@@ -515,12 +536,12 @@ impl WindowsWindowInner {
         let click_count = self.state.click_state.current_count.get();
         let scale_factor = self.state.scale_factor.get();
 
-        let input = PlatformInput::Pointer(PointerEvent::mouse_up(
-            logical_point(x, y, scale_factor),
+        let input = PlatformInput::MouseUp(MouseUpEvent {
             button,
-            current_modifiers(),
+            position: logical_point(x, y, scale_factor),
+            modifiers: current_modifiers(),
             click_count,
-        ));
+        });
         let handled = !func(input).propagate;
         self.state.callbacks.input.set(Some(func));
         self.post_input_update_window(handle);
@@ -589,12 +610,6 @@ impl WindowsWindowInner {
             }),
             modifiers,
             touch_phase: TouchPhase::Moved,
-            scroll_source: ScrollWheelSource::MouseWheel,
-            scroll_phase: ScrollWheelPhase::Moved,
-            precise_delta: false,
-            native_momentum_phase: None,
-            release_velocity: None,
-            timestamp: Some(Instant::now()),
         });
         let handled = !func(input).propagate;
         self.state.callbacks.input.set(Some(func));
@@ -634,12 +649,6 @@ impl WindowsWindowInner {
             }),
             modifiers: current_modifiers(),
             touch_phase: TouchPhase::Moved,
-            scroll_source: ScrollWheelSource::MouseWheel,
-            scroll_phase: ScrollWheelPhase::Moved,
-            precise_delta: false,
-            native_momentum_phase: None,
-            release_velocity: None,
-            timestamp: Some(Instant::now()),
         });
         let handled = !func(event).propagate;
         self.state.callbacks.input.set(Some(func));
@@ -855,8 +864,9 @@ impl WindowsWindowInner {
                 &mut a11y.activation_handler,
             )?
         };
-        // Conversion can re-enter this window procedure with another WM_GETOBJECT,
-        // so the adapter borrow must be released first.
+        // The borrow above must be dropped before calling `.into()`, because
+        // it calls `UiaReturnRawElementProvider` which may send a nested
+        // `WM_GETOBJECT` back into this window procedure.
         let lresult: accesskit_windows::LRESULT = result.into();
         Some(lresult.0)
     }
@@ -1030,11 +1040,11 @@ impl WindowsWindowInner {
             y: lparam.signed_hiword().into(),
         };
         unsafe { ScreenToClient(handle, &mut cursor_point).ok().log_err() };
-        let input = PlatformInput::Pointer(PointerEvent::mouse_move(
-            logical_point(cursor_point.x as f32, cursor_point.y as f32, scale_factor),
-            None,
-            current_modifiers(),
-        ));
+        let input = PlatformInput::MouseMove(MouseMoveEvent {
+            position: logical_point(cursor_point.x as f32, cursor_point.y as f32, scale_factor),
+            pressed_button: None,
+            modifiers: current_modifiers(),
+        });
         let handled = !func(input).propagate;
         self.state.callbacks.input.set(Some(func));
         self.post_input_update_window(handle);
@@ -1059,13 +1069,13 @@ impl WindowsWindowInner {
             let physical_point = point(DevicePixels(cursor_point.x), DevicePixels(cursor_point.y));
             let click_count = self.state.click_state.update(button, physical_point);
 
-            let input = PlatformInput::Pointer(PointerEvent::mouse_down(
-                logical_point(cursor_point.x as f32, cursor_point.y as f32, scale_factor),
+            let input = PlatformInput::MouseDown(MouseDownEvent {
                 button,
-                current_modifiers(),
+                position: logical_point(cursor_point.x as f32, cursor_point.y as f32, scale_factor),
+                modifiers: current_modifiers(),
                 click_count,
-                false,
-            ));
+                first_mouse: false,
+            });
             let handled = !func(input).propagate;
             self.state.callbacks.input.set(Some(func));
             self.post_input_update_window(handle);
@@ -1105,12 +1115,12 @@ impl WindowsWindowInner {
                 y: lparam.signed_hiword().into(),
             };
             unsafe { ScreenToClient(handle, &mut cursor_point).ok().log_err() };
-            let input = PlatformInput::Pointer(PointerEvent::mouse_up(
-                logical_point(cursor_point.x as f32, cursor_point.y as f32, scale_factor),
+            let input = PlatformInput::MouseUp(MouseUpEvent {
                 button,
-                current_modifiers(),
-                1,
-            ));
+                position: logical_point(cursor_point.x as f32, cursor_point.y as f32, scale_factor),
+                modifiers: current_modifiers(),
+                click_count: 1,
+            });
             let handled = !func(input).propagate;
             self.state.callbacks.input.set(Some(func));
             self.post_input_update_window(handle);
@@ -1256,7 +1266,12 @@ impl WindowsWindowInner {
         Some(0)
     }
 
-    fn handle_window_visibility_changed(&self, handle: HWND, wparam: WPARAM) -> Option<isize> {
+    fn handle_window_visibility_changed(
+        self: &Rc<Self>,
+        handle: HWND,
+        wparam: WPARAM,
+    ) -> Option<isize> {
+        self.report_visibility();
         if wparam.0 == 1 {
             self.draw_window(handle, false, false);
         }
@@ -1266,6 +1281,30 @@ impl WindowsWindowInner {
     fn handle_force_update_window(&self, handle: HWND) -> Option<isize> {
         self.state.wgpu_force_update_posted.set(false);
         self.draw_window(handle, false, true)
+    }
+
+    // The window procedure can run while GPUI is updating this window (e.g.
+    // `ShowWindow` from an action handler), so deliver observers after that
+    // update completes, as activation does. The state is read at delivery so
+    // a burst of messages collapses to the final value.
+    fn report_visibility(self: &Rc<Self>) {
+        if self.state.last_visibility.get().is_none() {
+            return;
+        }
+        let this = self.clone();
+        self.executor
+            .spawn(async move {
+                let visibility = this.visibility();
+                if this.state.last_visibility.get() == Some(visibility) {
+                    return;
+                }
+                this.state.last_visibility.set(Some(visibility));
+                if let Some(mut callback) = this.state.callbacks.visibility_change.take() {
+                    callback(visibility);
+                    this.state.callbacks.visibility_change.set(Some(callback));
+                }
+            })
+            .detach();
     }
 
     fn handle_device_lost(&self, _lparam: LPARAM) -> Option<isize> {
@@ -1316,12 +1355,20 @@ impl WindowsWindowInner {
 
         let resize_frame_pending = self.state.pending_drawable_size.get().is_some();
         let recovery_frame_pending = self.state.force_render_after_recovery.take();
-        request_frame(windows_wgpu_frame_request_options(
-            force_render,
-            require_presentation,
-            resize_frame_pending,
-            recovery_frame_pending,
-        ));
+        let (signal_at, signal_source) = self.state.frame_signal.take().map_or(
+            (None, FrameRequestSource::NativeCallback),
+            |(at, source)| (Some(at), source),
+        );
+        request_frame(RequestFrameOptions {
+            signal_at,
+            signal_source,
+            ..windows_wgpu_frame_request_options(
+                force_render,
+                require_presentation,
+                resize_frame_pending,
+                recovery_frame_pending,
+            )
+        });
 
         self.state.callbacks.request_frame.set(Some(request_frame));
         self.update_ime_enabled(handle);
@@ -1357,7 +1404,7 @@ impl WindowsWindowInner {
             return false;
         };
 
-        let _ = func(PlatformInput::Pointer(event));
+        let _ = func(PlatformInput::MouseMove(event));
         self.state.callbacks.input.set(Some(func));
         true
     }

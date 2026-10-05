@@ -167,6 +167,7 @@ pub extern "C" fn gpui_ios_will_enter_foreground(_app_ptr: *mut c_void) {
             for &window_ptr in windows.iter() {
                 if !window_ptr.is_null() {
                     let window = &*window_ptr;
+                    window.notify_visibility_change(gpui::WindowVisibility::Visible);
                     window.notify_active_status_change(true);
                 }
             }
@@ -235,6 +236,7 @@ pub extern "C" fn gpui_ios_did_enter_background(_app_ptr: *mut c_void) {
                 if !window_ptr.is_null() {
                     let window = &*window_ptr;
                     window.notify_active_status_change(false);
+                    window.notify_visibility_change(gpui::WindowVisibility::Hidden);
                 }
             }
         }

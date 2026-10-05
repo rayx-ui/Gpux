@@ -17,6 +17,12 @@ pub fn derive_into_element(input: TokenStream) -> TokenStream {
             fn into_element(self) -> Self::Element {
                 gpux::ViewElement::new(self)
             }
+
+            #[track_caller]
+            #[inline(never)]
+            fn into_any_element(self) -> gpux::AnyElement {
+                gpux::Element::into_any(self.into_element())
+            }
         }
     };
 

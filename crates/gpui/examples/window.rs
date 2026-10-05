@@ -1,5 +1,8 @@
 #![cfg_attr(target_family = "wasm", no_main)]
 
+#[path = "example_support/fonts.rs"]
+mod example_support;
+
 use gpui_platform::application;
 use gpux::{
     App, Bounds, Context, KeyBinding, PromptButton, PromptLevel, Window, WindowBounds, WindowKind,
@@ -310,7 +313,10 @@ actions!(window, [Quit]);
 
 fn run_example() {
     application().run(|cx| async move {
-        cx.update(|cx| {
+        cx.update(|cx: &mut App| {
+            if !example_support::load_fonts(cx) {
+                return;
+            }
             let bounds = Bounds::centered(None, size(px(800.0), px(600.0)), cx);
 
             cx.open_window(
@@ -333,12 +339,7 @@ fn run_example() {
 
             cx.activate(true);
             cx.on_action(|_: &Quit, cx| cx.quit());
-            cx.set_keymap_layer(gpux::KeymapLayer::new(
-                gpux::InputLayerId::new("example.window"),
-                0,
-                [KeyBinding::new("cmd-q", Quit, None)],
-            ))
-            .unwrap();
+            cx.bind_keys([KeyBinding::new("cmd-q", Quit, None)]);
         });
     });
 }

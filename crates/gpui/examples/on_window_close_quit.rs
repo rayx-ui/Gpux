@@ -1,9 +1,12 @@
 #![cfg_attr(target_family = "wasm", no_main)]
 
+#[path = "example_support/fonts.rs"]
+mod example_support;
+
 use gpui_platform::application;
 use gpux::{
-    Bounds, Context, FocusHandle, KeyBinding, Window, WindowBounds, WindowOptions, actions, div,
-    prelude::*, px, rgb, size,
+    App, Bounds, Context, FocusHandle, KeyBinding, Window, WindowBounds, WindowOptions, actions,
+    div, prelude::*, px, rgb, size,
 };
 
 actions!(example, [CloseWindow]);
@@ -39,15 +42,13 @@ impl Render for ExampleWindow {
 
 fn run_example() {
     application().run(|cx| async move {
-        cx.update(|cx| {
+        cx.update(|cx: &mut App| {
+            if !example_support::load_fonts(cx) {
+                return;
+            }
             let mut bounds = Bounds::centered(None, size(px(500.), px(500.0)), cx);
 
-            cx.set_keymap_layer(gpux::KeymapLayer::new(
-                gpux::InputLayerId::new("example.close-window"),
-                0,
-                [KeyBinding::new("cmd-w", CloseWindow, None)],
-            ))
-            .unwrap();
+            cx.bind_keys([KeyBinding::new("cmd-w", CloseWindow, None)]);
             cx.on_window_closed(|cx, _window_id| {
                 if cx.windows().is_empty() {
                     cx.quit();

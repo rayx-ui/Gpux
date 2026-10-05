@@ -10,7 +10,7 @@
 //! - **RangeSlider** — a two-thumb range selector
 //!
 //! All controls follow a builder pattern and implement `IntoElement`.
-//! Click/change handlers use GPUI's `on_pointer_down` signature, fully
+//! Click/change handlers use GPUI's `on_mouse_down` signature, fully
 //! compatible with `cx.listener(...)`.
 //!
 //! # Examples
@@ -59,13 +59,13 @@
 //!     .label("Price range");
 //! ```
 
-use gpui::{Hsla, MouseButton, PointerEvent, Window, div, prelude::*, px, rgb};
+use gpui::{Hsla, MouseButton, MouseDownEvent, Window, div, prelude::*, px, rgb};
 
 use super::theme::{MaterialTheme, TRANSPARENT, color};
 
 // ── Click handler alias ──────────────────────────────────────────────────────
 
-type ClickHandler = Box<dyn Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static>;
+type ClickHandler = Box<dyn Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static>;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  Constants
@@ -189,11 +189,11 @@ impl Checkbox {
 
     /// Set the toggle handler, invoked when the checkbox is tapped.
     ///
-    /// The handler signature matches GPUI's `on_pointer_down`, so
+    /// The handler signature matches GPUI's `on_mouse_down`, so
     /// `cx.listener(...)` can be used directly.
     pub fn on_toggle(
         mut self,
-        handler: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
+        handler: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.on_toggle = Some(Box::new(handler));
         self
@@ -305,7 +305,7 @@ impl IntoElement for Checkbox {
 
         if let Some(handler) = self.on_toggle {
             if !self.disabled {
-                row = row.on_pointer_down(MouseButton::Left, handler);
+                row = row.on_mouse_down(MouseButton::Left, handler);
             }
         }
 
@@ -367,7 +367,7 @@ impl Radio {
     /// Set the selection handler, invoked when this radio is tapped.
     pub fn on_select(
         mut self,
-        handler: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
+        handler: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.on_select = Some(Box::new(handler));
         self
@@ -462,7 +462,7 @@ impl IntoElement for Radio {
 
         if let Some(handler) = self.on_select {
             if !self.disabled {
-                row = row.on_pointer_down(MouseButton::Left, handler);
+                row = row.on_mouse_down(MouseButton::Left, handler);
             }
         }
 
@@ -535,7 +535,7 @@ impl Switch {
     /// Set the toggle handler, invoked when the switch is tapped.
     pub fn on_toggle(
         mut self,
-        handler: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
+        handler: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.on_toggle = Some(Box::new(handler));
         self
@@ -686,7 +686,7 @@ impl IntoElement for Switch {
 
         if let Some(handler) = self.on_toggle {
             if !self.disabled {
-                row = row.on_pointer_down(MouseButton::Left, handler);
+                row = row.on_mouse_down(MouseButton::Left, handler);
             }
         }
 
@@ -706,7 +706,7 @@ impl IntoElement for Switch {
 ///
 /// **Note:** Since GPUI does not have built-in drag gesture handling,
 /// this slider is rendered as a visual representation. For interactive
-/// use, wrap it in a view that handles `PointerEvent` to update the
+/// use, wrap it in a view that handles `MouseDownEvent` to update the
 /// value based on horizontal drag position.
 ///
 /// # Layout
@@ -808,7 +808,7 @@ impl Slider {
     /// Set a click handler (tapped position for approximate value selection).
     pub fn on_change(
         mut self,
-        handler: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
+        handler: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.on_change = Some(Box::new(handler));
         self
@@ -1001,7 +1001,7 @@ impl IntoElement for Slider {
         // Click handler
         if let Some(handler) = self.on_change {
             if !self.disabled {
-                container = container.on_pointer_down(MouseButton::Left, handler);
+                container = container.on_mouse_down(MouseButton::Left, handler);
             }
         }
 
@@ -1020,7 +1020,7 @@ impl IntoElement for Slider {
 ///
 /// Like the single-thumb [`Slider`], this component provides a visual
 /// representation. Interactive drag handling requires wrapping in a view
-/// that processes `PointerEvent`.
+/// that processes `MouseDownEvent`.
 ///
 /// # Layout
 ///
@@ -1275,7 +1275,7 @@ impl RadioGroup {
         mut self,
         label: impl Into<String>,
         selected: bool,
-        on_select: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
+        on_select: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.options
             .push((label.into(), selected, Box::new(on_select)));

@@ -1,9 +1,12 @@
 #![cfg_attr(target_family = "wasm", no_main)]
 
+#[path = "example_support/fonts.rs"]
+mod example_support;
+
 use gpui_platform::application;
 use gpux::{
-    Bounds, Context, CursorStyle, Decorations, HitboxBehavior, Hsla, MouseButton, Pixels, Point,
-    ResizeEdge, Size, Window, WindowBackgroundAppearance, WindowBounds, WindowDecorations,
+    App, Bounds, Context, CursorStyle, Decorations, HitboxBehavior, Hsla, MouseButton, Pixels,
+    Point, ResizeEdge, Size, Window, WindowBackgroundAppearance, WindowBounds, WindowDecorations,
     WindowOptions, black, canvas, div, green, point, prelude::*, px, rgb, size, transparent_black,
     white,
 };
@@ -79,8 +82,8 @@ impl Render for WindowShadow {
                     .when(!tiling.bottom, |div| div.pb(shadow_size))
                     .when(!tiling.left, |div| div.pl(shadow_size))
                     .when(!tiling.right, |div| div.pr(shadow_size))
-                    .on_pointer_move(|_e, window, _cx| window.refresh())
-                    .on_pointer_down(MouseButton::Left, move |e, window, _cx| {
+                    .on_mouse_move(|_e, window, _cx| window.refresh())
+                    .on_mouse_down(MouseButton::Left, move |e, window, _cx| {
                         let size = window.window_bounds().get_bounds().size;
                         let pos = e.position;
 
@@ -107,22 +110,22 @@ impl Render for WindowShadow {
                             .when(!tiling.left, |div| div.border_l(border_size))
                             .when(!tiling.right, |div| div.border_r(border_size))
                             .when(!tiling.is_tiled(), |div| {
-                                div.shadow(vec![gpux::BoxShadow {
-                                    color: Hsla {
-                                        h: 0.,
-                                        s: 0.,
-                                        l: 0.,
-                                        a: 0.4,
-                                    }
-                                    .into(),
-                                    blur_radius: shadow_size / 2.,
-                                    spread_radius: px(0.),
-                                    inset: false,
-                                    offset: point(px(0.0), px(0.0)),
-                                }])
+                                div.shadow(vec![
+                                    gpux::BoxShadow::new(
+                                        px(0.),
+                                        px(0.),
+                                        Hsla {
+                                            h: 0.,
+                                            s: 0.,
+                                            l: 0.,
+                                            a: 0.4,
+                                        },
+                                    )
+                                    .blur_radius(shadow_size / 2.),
+                                ])
                             }),
                     })
-                    .on_pointer_move(|_e, _, cx| {
+                    .on_mouse_move(|_e, _, cx| {
                         cx.stop_propagation();
                     })
                     .bg(gpux::rgb(0xCCCCFF))
@@ -149,23 +152,23 @@ impl Render for WindowShadow {
                                         .w(px(200.0))
                                         .h(px(100.0))
                                         .bg(green())
-                                        .shadow(vec![gpux::BoxShadow {
-                                            color: Hsla {
-                                                h: 0.,
-                                                s: 0.,
-                                                l: 0.,
-                                                a: 1.0,
-                                            }
-                                            .into(),
-                                            blur_radius: px(20.0),
-                                            spread_radius: px(0.0),
-                                            inset: false,
-                                            offset: point(px(0.0), px(0.0)),
-                                        }])
+                                        .shadow(vec![
+                                            gpux::BoxShadow::new(
+                                                px(0.),
+                                                px(0.),
+                                                Hsla {
+                                                    h: 0.,
+                                                    s: 0.,
+                                                    l: 0.,
+                                                    a: 1.0,
+                                                },
+                                            )
+                                            .blur_radius(px(20.0)),
+                                        ])
                                         .map(|div| match decorations {
                                             Decorations::Server => div,
                                             Decorations::Client { .. } => div
-                                                .on_pointer_down(
+                                                .on_mouse_down(
                                                     MouseButton::Left,
                                                     |_e, window, _| {
                                                         window.start_window_move();
@@ -211,7 +214,10 @@ fn resize_edge(pos: Point<Pixels>, shadow_size: Pixels, size: Size<Pixels>) -> O
 
 fn run_example() {
     application().run(|cx| async move {
-        cx.update(|cx| {
+        cx.update(|cx: &mut App| {
+            if !example_support::load_fonts(cx) {
+                return;
+            }
             let bounds = Bounds::centered(None, size(px(600.0), px(600.0)), cx);
             cx.open_window(
                 WindowOptions {

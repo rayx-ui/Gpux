@@ -1,6 +1,7 @@
 use std::{
     cell::{Cell, RefCell},
-    ffi::OsStr,
+    ffi::{OsStr, OsString},
+    os::windows::ffi::{OsStrExt as _, OsStringExt as _},
     path::{Path, PathBuf},
     rc::{Rc, Weak},
     sync::{
@@ -9,9 +10,10 @@ use std::{
     },
 };
 
-use ::util::{ResultExt, paths::SanitizedPath};
+use ::util::paths::SanitizedPath;
 use anyhow::{Context as _, Result, anyhow};
-use futures::channel::oneshot::{self, Receiver};
+use futures::channel::oneshot::Receiver;
+use gpui_util::{ResultExt, get_powershell, new_std_command};
 use itertools::Itertools;
 use parking_lot::RwLock;
 use smallvec::SmallVec;
@@ -21,7 +23,15 @@ use windows::{
         Foundation::*,
         Graphics::Gdi::*,
         Security::Credentials::*,
-        System::{Com::*, LibraryLoader::*, Ole::*, Power::*, SystemInformation::*},
+        System::{
+            Com::*,
+            LibraryLoader::*,
+            Ole::*,
+            Power::*,
+            SystemInformation::*,
+            SystemServices::POWER_REQUEST_CONTEXT_VERSION,
+            Threading::{POWER_REQUEST_CONTEXT_SIMPLE_STRING, REASON_CONTEXT, REASON_CONTEXT_0},
+        },
         UI::{Input::KeyboardAndMouse::*, Shell::*, WindowsAndMessaging::*},
     },
     core::*,
@@ -31,9 +41,20 @@ use crate::*;
 use gpui_wgpu::CosmicTextSystem;
 use gpux::*;
 
+struct TrackedWindow {
+    handle: SafeHwnd,
+    frame_signal: Arc<PlatformFrameSignal>,
+}
+
+impl TrackedWindow {
+    fn as_raw(&self) -> HWND {
+        self.handle.as_raw()
+    }
+}
+
 pub struct WindowsPlatform {
     inner: Rc<WindowsPlatformInner>,
-    raw_window_handles: Arc<RwLock<SmallVec<[SafeHwnd; 4]>>>,
+    raw_window_handles: Arc<RwLock<SmallVec<[TrackedWindow; 4]>>>,
     // The below members will never change throughout the entire lifecycle of the app.
     headless: bool,
     icon: HICON,
@@ -51,7 +72,7 @@ pub struct WindowsPlatform {
 
 struct WindowsPlatformInner {
     state: WindowsPlatformState,
-    raw_window_handles: std::sync::Weak<RwLock<SmallVec<[SafeHwnd; 4]>>>,
+    raw_window_handles: std::sync::Weak<RwLock<SmallVec<[TrackedWindow; 4]>>>,
     // The below members will never change throughout the entire lifecycle of the app.
     validation_number: usize,
     main_receiver: PriorityQueueReceiver<RunnableVariant>,
@@ -71,13 +92,14 @@ pub(crate) struct WindowsPlatformState {
 #[derive(Default)]
 struct PlatformCallbacks {
     open_urls: Cell<Option<Box<dyn FnMut(Vec<String>)>>>,
-    quit: Cell<Option<Box<dyn FnMut()>>>,
+    quit: Cell<Option<Box<dyn FnMut() -> bool>>>,
     reopen: Cell<Option<Box<dyn FnMut()>>>,
-    system_wake: Cell<Option<Box<dyn FnMut()>>>,
     app_menu_action: Cell<Option<Box<dyn FnMut(&dyn Action)>>>,
     will_open_app_menu: Cell<Option<Box<dyn FnMut()>>>,
     validate_app_menu_command: Cell<Option<Box<dyn FnMut(&dyn Action) -> bool>>>,
     keyboard_layout_change: Cell<Option<Box<dyn FnMut()>>>,
+    system_sleep: Cell<Option<Box<dyn FnMut()>>>,
+    system_wake: Cell<Option<Box<dyn FnMut()>>>,
 }
 
 impl WindowsPlatformState {
@@ -101,6 +123,51 @@ fn create_platform_text_system(headless: bool) -> Arc<dyn PlatformTextSystem> {
         Arc::new(gpux::NoopTextSystem::new())
     } else {
         Arc::new(CosmicTextSystem::new("Segoe UI"))
+    }
+}
+
+struct PowerRequest {
+    handle: HANDLE,
+    // `PowerCreateRequest` retains a pointer into the reason string for the
+    // lifetime of the handle, so the UTF-16 buffer must outlive the request.
+    _reason: Vec<u16>,
+}
+
+unsafe impl Send for PowerRequest {}
+
+impl PowerRequest {
+    fn prevent_idle_sleep(reason: &str) -> Result<Self> {
+        let mut reason = reason.encode_utf16().chain([0]).collect::<Vec<_>>();
+        let context = REASON_CONTEXT {
+            Version: POWER_REQUEST_CONTEXT_VERSION,
+            Flags: POWER_REQUEST_CONTEXT_SIMPLE_STRING,
+            Reason: REASON_CONTEXT_0 {
+                SimpleReasonString: PWSTR(reason.as_mut_ptr()),
+            },
+        };
+        let handle = unsafe { PowerCreateRequest(&context) }
+            .context("Failed to create a Windows power request")?;
+        if let Err(error) = unsafe { PowerSetRequest(handle, PowerRequestSystemRequired) } {
+            unsafe { CloseHandle(handle) }
+                .context("Failed to close the Windows power request")
+                .log_err();
+            return Err(error).context("Failed to set the Windows power request");
+        }
+        Ok(Self {
+            handle,
+            _reason: reason,
+        })
+    }
+}
+
+impl Drop for PowerRequest {
+    fn drop(&mut self) {
+        unsafe { PowerClearRequest(self.handle, PowerRequestSystemRequired) }
+            .context("Failed to clear the Windows power request")
+            .log_err();
+        unsafe { CloseHandle(self.handle) }
+            .context("Failed to close the Windows power request")
+            .log_err();
     }
 }
 
@@ -291,13 +358,26 @@ impl WindowsPlatform {
             .spawn(move || {
                 let vsync_provider = VSyncProvider::new();
                 loop {
-                    vsync_provider.wait_for_vsync();
+                    let signal_source = vsync_provider.wait_for_vsync();
+                    let signal_at = PlatformFrameSignal::capture(scheduler::Instant::now);
                     let Some(all_windows) = all_windows.upgrade() else {
                         break;
                     };
                     for hwnd in all_windows.read().iter() {
                         unsafe {
-                            let _ = RedrawWindow(Some(hwnd.as_raw()), None, None, RDW_INVALIDATE);
+                            if let Some(signal_at) = signal_at {
+                                if IsWindowVisible(hwnd.as_raw()).as_bool()
+                                    && !IsIconic(hwnd.as_raw()).as_bool()
+                                {
+                                    hwnd.frame_signal.record(signal_at, signal_source);
+                                } else {
+                                    // Hidden windows may not consume WM_PAINT until shown again.
+                                    hwnd.frame_signal.take();
+                                }
+                            }
+                            RedrawWindow(Some(hwnd.as_raw()), None, None, RDW_INVALIDATE)
+                                .ok()
+                                .log_err();
                         }
                     }
                 }
@@ -320,6 +400,39 @@ fn translate_accelerator(msg: &MSG) -> Option<()> {
         )
     };
     (result.0 == 0).then_some(())
+}
+
+fn encode_restart_arguments(arguments: &[OsString]) -> OsString {
+    // `Start-Process` accepts a single native command line, so quote each argument according to
+    // the Windows argv parsing rules before passing the complete string through the environment.
+    let mut encoded = Vec::new();
+
+    for (index, argument) in arguments.iter().enumerate() {
+        if index > 0 {
+            encoded.push(b' ' as u16);
+        }
+        encoded.push(b'"' as u16);
+
+        let mut backslash_count = 0;
+        for code_unit in argument.encode_wide() {
+            if code_unit == b'\\' as u16 {
+                backslash_count += 1;
+            } else {
+                if code_unit == b'"' as u16 {
+                    encoded.extend(std::iter::repeat_n(b'\\' as u16, backslash_count * 2 + 1));
+                } else {
+                    encoded.extend(std::iter::repeat_n(b'\\' as u16, backslash_count));
+                }
+                backslash_count = 0;
+                encoded.push(code_unit);
+            }
+        }
+
+        encoded.extend(std::iter::repeat_n(b'\\' as u16, backslash_count * 2));
+        encoded.push(b'"' as u16);
+    }
+
+    OsString::from_wide(&encoded)
 }
 
 impl Platform for WindowsPlatform {
@@ -361,6 +474,13 @@ impl Platform for WindowsPlatform {
         ThermalState::Nominal
     }
 
+    fn prevent_idle_sleep(&self, reason: &str) -> Task<Result<ActivityGuard>> {
+        Task::ready(
+            PowerRequest::prevent_idle_sleep(reason)
+                .map(|request| ActivityGuard::new(move || drop(request))),
+        )
+    }
+
     fn run(&self, on_finish_launching: Box<dyn 'static + FnOnce()>) {
         on_finish_launching();
         if !self.headless {
@@ -377,8 +497,12 @@ impl Platform for WindowsPlatform {
             }
         }
 
-        self.inner
-            .with_callback(|callbacks| &callbacks.quit, |callback| callback());
+        self.inner.with_callback(
+            |callbacks| &callbacks.quit,
+            |callback| {
+                callback();
+            },
+        );
 
         // Bypass the CRT exit logic, which runs atexit handlers before calling ExitProcess.
         // aws-lc registers an atexit handler that intentionally acquires a lock without releasing it.
@@ -398,45 +522,62 @@ impl Platform for WindowsPlatform {
             .detach();
     }
 
-    fn restart(&self, binary_path: Option<PathBuf>) {
+    fn graphical_environment(&self) -> Option<GraphicalEnvironment> {
+        (!self.headless).then(GraphicalEnvironment::detect)
+    }
+
+    fn restart(&self, binary_path: Option<PathBuf>, arguments: Vec<OsString>) {
         let pid = std::process::id();
         let Some(app_path) = binary_path.or(self.app_path().log_err()) else {
             return;
         };
-        let script = format!(
-            r#"
-            $pidToWaitFor = {}
-            $exePath = "{}"
+        let script = r#"
+            $pidToWaitFor = $env:ZED_RESTART_PID
+            $exePath = $env:ZED_RESTART_EXECUTABLE
+            $argumentList = $env:ZED_RESTART_ARGUMENTS
 
-            while ($true) {{
+            [Environment]::SetEnvironmentVariable("ZED_RESTART_PID", $null)
+            [Environment]::SetEnvironmentVariable("ZED_RESTART_EXECUTABLE", $null)
+            [Environment]::SetEnvironmentVariable("ZED_RESTART_ARGUMENTS", $null)
+
+            while ($true) {
                 $process = Get-Process -Id $pidToWaitFor -ErrorAction SilentlyContinue
-                if (-not $process) {{
-                    Start-Process -FilePath $exePath
+                if (-not $process) {
+                    if ([string]::IsNullOrEmpty($argumentList)) {
+                        Start-Process -FilePath $exePath
+                    } else {
+                        Start-Process -FilePath $exePath -ArgumentList $argumentList
+                    }
                     break
-                }}
+                }
                 Start-Sleep -Seconds 0.1
-            }}
-            "#,
-            pid,
-            app_path.display(),
-        );
+            }
+            "#;
 
         // Defer spawning to the foreground executor so it runs after the
         // current `AppCell` borrow is released. On Windows, `Command::spawn()`
         // can pump the Win32 message loop (via `CreateProcessW`), which
         // re-enters message handling possibly resulting in another mutable
         // borrow of the `AppCell` ending up with a double borrow panic
+        let Some(powershell) = get_powershell() else {
+            log::error!("failed to restart: PowerShell is unavailable");
+            return;
+        };
         self.foreground_executor
             .spawn(async move {
+                let mut command = new_std_command(powershell);
+                let arguments = encode_restart_arguments(&arguments);
+                command
+                    .arg("-command")
+                    .arg(script)
+                    .env("ZED_RESTART_PID", pid.to_string())
+                    .env("ZED_RESTART_EXECUTABLE", app_path)
+                    .env("ZED_RESTART_ARGUMENTS", arguments);
                 #[allow(
                     clippy::disallowed_methods,
                     reason = "We are restarting ourselves, using std command thus is fine"
                 )]
-                let restart_process =
-                    ::util::command::new_std_command(::util::shell::get_windows_system_shell())
-                        .arg("-command")
-                        .arg(script)
-                        .spawn();
+                let restart_process = command.spawn();
 
                 match restart_process {
                     Ok(_) => unsafe { PostQuitMessage(0) },
@@ -476,7 +617,7 @@ impl Platform for WindowsPlatform {
     #[cfg(feature = "screen-capture")]
     fn screen_capture_sources(
         &self,
-    ) -> oneshot::Receiver<Result<Vec<Rc<dyn ScreenCaptureSource>>>> {
+    ) -> futures::channel::oneshot::Receiver<Result<Vec<Rc<dyn ScreenCaptureSource>>>> {
         gpux::scap_screen_capture::scap_screen_sources(&self.foreground_executor)
     }
 
@@ -496,7 +637,10 @@ impl Platform for WindowsPlatform {
         }
         let window = WindowsWindow::new(handle, options, self.generate_creation_info())?;
         let handle = window.get_raw_handle();
-        self.raw_window_handles.write().push(handle.into());
+        self.raw_window_handles.write().push(TrackedWindow {
+            handle: handle.into(),
+            frame_signal: window.state.frame_signal.clone(),
+        });
 
         Ok(Box::new(window))
     }
@@ -527,15 +671,13 @@ impl Platform for WindowsPlatform {
         &self,
         options: PathPromptOptions,
     ) -> Receiver<Result<Option<Vec<PathBuf>>>> {
-        let (tx, rx) = oneshot::channel();
-        let window = self.find_current_active_window();
-        self.foreground_executor()
-            .spawn(async move {
-                let _ = tx.send(file_open_dialog(options, window));
-            })
-            .detach();
-
-        rx
+        let owner = self
+            .find_current_active_window()
+            .and_then(|hwnd| self.window_from_hwnd(hwnd))
+            .map(|window| window.dialog_owner.clone());
+        crate::dialog::show_dialog(owner, &self.foreground_executor, move |window| {
+            file_open_dialog(options, Some(window))
+        })
     }
 
     fn prompt_for_new_path(
@@ -545,15 +687,13 @@ impl Platform for WindowsPlatform {
     ) -> Receiver<Result<Option<PathBuf>>> {
         let directory = directory.to_owned();
         let suggested_name = suggested_name.map(|s| s.to_owned());
-        let (tx, rx) = oneshot::channel();
-        let window = self.find_current_active_window();
-        self.foreground_executor()
-            .spawn(async move {
-                let _ = tx.send(file_save_dialog(directory, suggested_name, window));
-            })
-            .detach();
-
-        rx
+        let owner = self
+            .find_current_active_window()
+            .and_then(|hwnd| self.window_from_hwnd(hwnd))
+            .map(|window| window.dialog_owner.clone());
+        crate::dialog::show_dialog(owner, &self.foreground_executor, move |window| {
+            file_save_dialog(directory, suggested_name, Some(window))
+        })
     }
 
     fn can_select_mixed_files_and_dirs(&self) -> bool {
@@ -589,7 +729,7 @@ impl Platform for WindowsPlatform {
             .detach();
     }
 
-    fn on_quit(&self, callback: Box<dyn FnMut()>) {
+    fn on_quit(&self, callback: Box<dyn FnMut() -> bool>) {
         self.inner.state.callbacks.quit.set(Some(callback));
     }
 
@@ -597,11 +737,16 @@ impl Platform for WindowsPlatform {
         self.inner.state.callbacks.reopen.set(Some(callback));
     }
 
+    fn on_system_sleep(&self, callback: Box<dyn FnMut()>) {
+        self.inner.state.callbacks.system_sleep.set(Some(callback));
+    }
+
     fn on_system_wake(&self, callback: Box<dyn FnMut()>) {
         self.inner.state.callbacks.system_wake.set(Some(callback));
         let mut notification = self.suspend_resume_notification.borrow_mut();
         if notification.is_none() {
             *notification = unsafe {
+                // SAFETY: self.handle is the platform window receiving WM_POWERBROADCAST.
                 RegisterSuspendResumeNotification(
                     HANDLE(self.handle.0),
                     DEVICE_NOTIFY_WINDOW_HANDLE,
@@ -612,10 +757,13 @@ impl Platform for WindowsPlatform {
     }
 
     fn set_app_identity(&self, identifier: &str, name: &str) {
+        // If the process has package identity, it's automatally granted an AUMID by the system.
         if self.has_package_identity {
             return;
         }
+
         let identifier_utf16 = windows::core::HSTRING::from(identifier);
+        // SAFETY: `identifier_utf16` outlives the call and is null-terminated.
         if let Err(error) = unsafe {
             windows::Win32::UI::Shell::SetCurrentProcessExplicitAppUserModelID(
                 windows::core::PCWSTR(identifier_utf16.as_ptr()),
@@ -748,13 +896,22 @@ impl Platform for WindowsPlatform {
     }
 
     fn write_credentials(&self, url: &str, username: &str, password: &[u8]) -> Task<Result<()>> {
+        // CredWriteW rejects larger blobs with the opaque RPC error
+        // 0x800706F7 "The stub received bad data", so fail with a clear
+        // message instead.
+        if password.len() > CRED_MAX_CREDENTIAL_BLOB_SIZE as usize {
+            return Task::ready(Err(anyhow!(
+                "credential for {url} is {} bytes, which exceeds the Windows Credential Manager limit of {CRED_MAX_CREDENTIAL_BLOB_SIZE} bytes",
+                password.len()
+            )));
+        }
         let password = password.to_vec();
         let mut username = username.encode_utf16().chain(Some(0)).collect_vec();
         let mut target_name = windows_credentials_target_name(url)
             .encode_utf16()
             .chain(Some(0))
             .collect_vec();
-        self.foreground_executor().spawn(async move {
+        self.background_executor().spawn(async move {
             let credentials = CREDENTIALW {
                 LastWritten: unsafe { GetSystemTimeAsFileTime() },
                 Flags: CRED_FLAGS(0),
@@ -783,7 +940,7 @@ impl Platform for WindowsPlatform {
             .encode_utf16()
             .chain(Some(0))
             .collect_vec();
-        self.foreground_executor().spawn(async move {
+        self.background_executor().spawn(async move {
             let mut credentials: *mut CREDENTIALW = std::ptr::null_mut();
             let result = unsafe {
                 CredReadW(
@@ -804,19 +961,13 @@ impl Platform for WindowsPlatform {
             }
 
             if credentials.is_null() {
-                Ok(None)
-            } else {
-                let username: String = unsafe { (*credentials).UserName.to_string()? };
-                let credential_blob = unsafe {
-                    std::slice::from_raw_parts(
-                        (*credentials).CredentialBlob,
-                        (*credentials).CredentialBlobSize as usize,
-                    )
-                };
-                let password = credential_blob.to_vec();
-                unsafe { CredFree(credentials as *const _ as _) };
-                Ok(Some((username, password)))
+                return Ok(None);
             }
+
+            // SAFETY: `CredReadW` succeeded, so this points to a valid `CREDENTIALW` until `CredFree` below.
+            let result = unsafe { username_and_password(&*credentials) };
+            unsafe { CredFree(credentials as *const _ as _) };
+            result.map(Some)
         })
     }
 
@@ -825,7 +976,7 @@ impl Platform for WindowsPlatform {
             .encode_utf16()
             .chain(Some(0))
             .collect_vec();
-        self.foreground_executor().spawn(async move {
+        self.background_executor().spawn(async move {
             unsafe {
                 CredDeleteW(
                     PCWSTR::from_raw(target_name.as_ptr()),
@@ -906,7 +1057,8 @@ impl WindowsPlatformInner {
             | WM_GPUI_TASK_DISPATCHED_ON_MAIN_THREAD
             | WM_GPUI_DOCK_MENU_ACTION
             | WM_GPUI_KEYBOARD_LAYOUT_CHANGED
-            | WM_GPUI_GPU_DEVICE_LOST => self.handle_gpui_events(msg, wparam, lparam),
+            | WM_GPUI_GPU_DEVICE_LOST
+            | WM_GPUI_END_SESSION => self.handle_gpui_events(msg, wparam, lparam),
             WM_POWERBROADCAST => self.handle_power_broadcast(wparam),
             _ => None,
         };
@@ -931,8 +1083,27 @@ impl WindowsPlatformInner {
             WM_GPUI_DOCK_MENU_ACTION => self.handle_dock_action_event(lparam.0 as _),
             WM_GPUI_KEYBOARD_LAYOUT_CHANGED => self.handle_keyboard_layout_change(),
             WM_GPUI_GPU_DEVICE_LOST => self.handle_device_lost(lparam),
+            WM_GPUI_END_SESSION => self.handle_end_session(),
             _ => unreachable!(),
         }
+    }
+
+    fn handle_end_session(&self) -> Option<isize> {
+        let mut shutdown_completed = false;
+        self.with_callback(
+            |callbacks| &callbacks.quit,
+            |callback| shutdown_completed = callback(),
+        );
+        log::logger().flush();
+        if shutdown_completed {
+            std::process::exit(0);
+        }
+
+        // Shutdown couldn't run synchronously, since the AppCell is already borrowed.
+        // Windows may terminate the application as soon as we return from this handler, but if we post a WM_QUIT message now,
+        // we may get to gracefully shut down the app before we're terminated by the OS.
+        unsafe { PostQuitMessage(0) };
+        Some(0)
     }
 
     fn close_one_window(&self, target_window: HWND) -> bool {
@@ -959,8 +1130,8 @@ impl WindowsPlatformInner {
             'timeout_loop: loop {
                 if start.elapsed().as_millis() >= MAIN_TASK_TIMEOUT {
                     log::debug!("foreground task timeout reached");
-                    // we spent our budget on gpux tasks, we likely have a lot of work queued so drain system events first to stay responsive
-                    // then quit out of foreground work to allow us to process other gpux events first before returning back to foreground task work
+                    // we spent our budget on gpui tasks, we likely have a lot of work queued so drain system events first to stay responsive
+                    // then quit out of foreground work to allow us to process other gpui events first before returning back to foreground task work
                     // if we don't we might not for example process window quit events
                     let mut msg = MSG::default();
                     let process_message = |msg: &_| {
@@ -980,7 +1151,7 @@ impl WindowsPlatformInner {
                     while peek_msg(&mut msg, PM_QS_INPUT) {
                         process_message(&msg);
                     }
-                    // Allow the main loop to process other gpux events before going back into `run_foreground_task`
+                    // Allow the main loop to process other gpui events before going back into `run_foreground_task`
                     unsafe {
                         if let Err(_) = PostMessageW(
                             Some(self.dispatcher.platform_window_handle.as_raw()),
@@ -1045,8 +1216,14 @@ impl WindowsPlatformInner {
     }
 
     fn handle_power_broadcast(&self, wparam: WPARAM) -> Option<isize> {
-        if wparam.0 as u32 == PBT_APMRESUMEAUTOMATIC {
-            self.with_callback(|callbacks| &callbacks.system_wake, |callback| callback());
+        match wparam.0 as u32 {
+            PBT_APMSUSPEND => {
+                self.with_callback(|callbacks| &callbacks.system_sleep, |callback| callback());
+            }
+            PBT_APMRESUMEAUTOMATIC => {
+                self.with_callback(|callbacks| &callbacks.system_wake, |callback| callback());
+            }
+            _ => {}
         }
         Some(1)
     }
@@ -1060,6 +1237,10 @@ impl WindowsPlatformInner {
 impl Drop for WindowsPlatform {
     fn drop(&mut self) {
         unsafe {
+            if let Some(notification) = self.suspend_resume_notification.borrow_mut().take() {
+                // SAFETY: notification was returned by RegisterSuspendResumeNotification.
+                UnregisterSuspendResumeNotification(notification).log_err();
+            }
             DestroyWindow(self.handle)
                 .context("Destroying platform window")
                 .log_err();
@@ -1082,7 +1263,7 @@ pub(crate) struct WindowCreationInfo {
 
 struct PlatformWindowCreateContext {
     inner: Option<Result<Rc<WindowsPlatformInner>>>,
-    raw_window_handles: std::sync::Weak<RwLock<SmallVec<[SafeHwnd; 4]>>>,
+    raw_window_handles: std::sync::Weak<RwLock<SmallVec<[TrackedWindow; 4]>>>,
     validation_number: usize,
     main_sender: Option<PriorityQueueSender<RunnableVariant>>,
     main_receiver: Option<PriorityQueueReceiver<RunnableVariant>>,
@@ -1193,9 +1374,11 @@ fn file_open_dialog(
             folder_dialog.SetOkButtonLabel(&HSTRING::from(prompt))?;
         }
 
-        if folder_dialog.Show(window).is_err() {
-            // User cancelled
-            return Ok(None);
+        if let Err(error) = folder_dialog.Show(window) {
+            if error.code() == HRESULT::from_win32(ERROR_CANCELLED.0) {
+                return Ok(None);
+            }
+            return Err(error.into());
         }
     }
 
@@ -1363,10 +1546,43 @@ unsafe extern "system" fn window_procedure(
     result
 }
 
+/// Copies the username and secret out of a credential returned by `CredReadW`.
+///
+/// Both `UserName` and `CredentialBlob` are optional in Credential Manager and
+/// come back as null pointers when absent, so they are treated as empty here.
+///
+/// # Safety
+///
+/// A non-null `UserName` must point to a NUL-terminated wide string and a
+/// non-null `CredentialBlob` must be readable for `CredentialBlobSize` bytes,
+/// as is the case for credentials returned by `CredReadW`.
+unsafe fn username_and_password(credential: &CREDENTIALW) -> Result<(String, Vec<u8>)> {
+    let username = if credential.UserName.is_null() {
+        String::new()
+    } else {
+        // SAFETY: guaranteed by the caller.
+        unsafe { credential.UserName.to_string()? }
+    };
+    let password = if credential.CredentialBlob.is_null() {
+        Vec::new()
+    } else {
+        // SAFETY: guaranteed by the caller.
+        unsafe {
+            std::slice::from_raw_parts(
+                credential.CredentialBlob,
+                credential.CredentialBlobSize as usize,
+            )
+        }
+        .to_vec()
+    };
+    Ok((username, password))
+}
+
 #[cfg(test)]
 mod tests {
+    use std::ffi::{OsStr, OsString};
+
     use crate::{read_from_clipboard, write_to_clipboard};
-    use gpux::ClipboardItem;
 
     #[test]
     fn non_headless_text_system_uses_wgpu_compatible_system_fonts() {
@@ -1375,6 +1591,83 @@ mod tests {
         text_system
             .font_id(&gpux::font("Segoe UI"))
             .expect("Windows WGPU text system should resolve the system UI font");
+    }
+    use gpux::ClipboardItem;
+    use windows::Win32::Security::Credentials::{
+        CRED_PERSIST_SESSION, CRED_TYPE_GENERIC, CREDENTIALW, CredDeleteW, CredFree, CredReadW,
+        CredWriteW,
+    };
+    use windows::core::{PCWSTR, PWSTR};
+
+    use super::{encode_restart_arguments, username_and_password};
+
+    #[test]
+    fn test_read_credential_with_username() {
+        assert_eq!(
+            round_trip_credential(Some("alice"), b"secret"),
+            ("alice".to_string(), b"secret".to_vec())
+        );
+    }
+
+    #[test]
+    fn test_read_credential_without_username() {
+        assert_eq!(
+            round_trip_credential(None, b"secret"),
+            (String::new(), b"secret".to_vec())
+        );
+    }
+
+    fn round_trip_credential(username: Option<&str>, secret: &[u8]) -> (String, Vec<u8>) {
+        let mut target_name: Vec<u16> = format!(
+            "zed-test-{}-{}",
+            std::process::id(),
+            username.unwrap_or_default()
+        )
+        .encode_utf16()
+        .chain(Some(0))
+        .collect();
+        let mut username: Vec<u16> = username
+            .map(|username| username.encode_utf16().chain(Some(0)).collect())
+            .unwrap_or_default();
+        let mut secret = secret.to_vec();
+        let credential = CREDENTIALW {
+            Type: CRED_TYPE_GENERIC,
+            TargetName: PWSTR::from_raw(target_name.as_mut_ptr()),
+            CredentialBlobSize: secret.len() as u32,
+            CredentialBlob: secret.as_mut_ptr(),
+            Persist: CRED_PERSIST_SESSION,
+            UserName: if username.is_empty() {
+                PWSTR::null()
+            } else {
+                PWSTR::from_raw(username.as_mut_ptr())
+            },
+            ..CREDENTIALW::default()
+        };
+        let target_name = PCWSTR::from_raw(target_name.as_ptr());
+        unsafe { CredWriteW(&credential, 0) }.unwrap();
+
+        let mut credentials: *mut CREDENTIALW = std::ptr::null_mut();
+        unsafe { CredReadW(target_name, CRED_TYPE_GENERIC, None, &mut credentials) }.unwrap();
+        let result = unsafe { username_and_password(&*credentials) };
+        unsafe { CredFree(credentials as *const _ as _) };
+        unsafe { CredDeleteW(target_name, CRED_TYPE_GENERIC, None) }.unwrap();
+        result.unwrap()
+    }
+
+    #[test]
+    fn test_encode_restart_arguments() {
+        assert_eq!(encode_restart_arguments(&[]), OsStr::new(""));
+        assert_eq!(
+            encode_restart_arguments(&[
+                OsString::from("--user-data-dir"),
+                OsString::from(r"C:\Zed Data"),
+            ]),
+            OsStr::new(r#""--user-data-dir" "C:\Zed Data""#)
+        );
+        assert_eq!(
+            encode_restart_arguments(&[OsString::from(r"C:\")]),
+            OsStr::new(r#""C:\\""#)
+        );
     }
 
     #[test]
@@ -1390,5 +1683,16 @@ mod tests {
         let item = ClipboardItem::new_string_with_json_metadata("abcdef".to_string(), vec![3, 4]);
         write_to_clipboard(item.clone());
         assert_eq!(read_from_clipboard(), Some(item));
+
+        let item =
+            ClipboardItem::new_string_with_json_metadata("before\0after".to_string(), vec![12]);
+        write_to_clipboard(item);
+        assert_eq!(
+            read_from_clipboard(),
+            Some(ClipboardItem::new_string_with_json_metadata(
+                "before after".to_string(),
+                vec![12],
+            )),
+        );
     }
 }

@@ -8,11 +8,14 @@
 
 #![cfg_attr(target_family = "wasm", no_main)]
 
+#[path = "example_support/fonts.rs"]
+mod example_support;
+
 use std::time::Duration;
 
 use gpui_platform::application;
 use gpux::{
-    AppContext as _, Bounds, Context, EventEmitter, MouseButton, Render, SharedString,
+    App, AppContext as _, Bounds, Context, EventEmitter, MouseButton, Render, SharedString,
     Subscription, Task, Window, WindowBounds, WindowOptions, div, prelude::*, px, rgb, size,
 };
 
@@ -105,7 +108,7 @@ impl Render for HelloWorld {
             .items_center()
             .text_xl()
             .text_color(rgb(0xffffff))
-            .child(format!("Hello, {}!", &self.text))
+            .child(format!("Hello, {}!", self.text))
             .child(format!("Rendering in window: {window_id}"))
             .child(format!("Ticks observed by entity: {}", self.tick_count))
             .child(format!("Moves observed by entity: {}", self.move_count))
@@ -116,7 +119,7 @@ impl Render for HelloWorld {
                     .bg(rgb(0x4040ff))
                     .rounded_md()
                     .child("Move me to a new window")
-                    .on_pointer_down(
+                    .on_mouse_down(
                         MouseButton::Left,
                         cx.listener(|_this, _, _window, cx| {
                             cx.emit(MoveToNewWindow);
@@ -128,7 +131,10 @@ impl Render for HelloWorld {
 
 fn run_example() {
     application().run(|cx| async move {
-        cx.update(|cx| {
+        cx.update(|cx: &mut App| {
+            if !example_support::load_fonts(cx) {
+                return;
+            }
             let bounds = Bounds::centered(None, size(px(500.0), px(500.0)), cx);
             cx.open_window(
                 WindowOptions {

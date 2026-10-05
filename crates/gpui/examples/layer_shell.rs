@@ -75,7 +75,7 @@ mod example {
 
     pub fn main() {
         application().run(|cx| async move {
-            cx.update(|cx| {
+            cx.update(|cx: &mut App| {
                 cx.open_window(
                     WindowOptions {
                         titlebar: None,

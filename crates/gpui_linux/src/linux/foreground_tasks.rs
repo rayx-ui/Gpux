@@ -21,7 +21,7 @@ const IDLE_PASS_BUDGET: Duration = Duration::from_millis(10);
 /// events that arrived meanwhile are dispatched before the next pass.
 pub(crate) struct ForegroundTasks<Data: 'static, Task: 'static> {
     handle: LoopHandle<'static, Data>,
-    run: fn(Task),
+    run: Box<dyn Fn(Task)>,
     queue: RefCell<VecDeque<Task>>,
     pass_scheduled: Cell<bool>,
     wake: Ping,
@@ -31,7 +31,7 @@ impl<Data, Task> ForegroundTasks<Data, Task> {
     /// Creates the queue on `handle`'s event loop; `run` runs one task.
     pub(crate) fn new(
         handle: LoopHandle<'static, Data>,
-        run: fn(Task),
+        run: impl Fn(Task) + 'static,
     ) -> anyhow::Result<Rc<Self>> {
         let (wake, wake_source) = calloop::ping::make_ping()?;
         // The wake-up only ends the loop's wait; the idle pass scheduled with it runs the tasks.
@@ -45,7 +45,7 @@ impl<Data, Task> ForegroundTasks<Data, Task> {
             })?;
         Ok(Rc::new(Self {
             handle,
-            run,
+            run: Box::new(run),
             queue: RefCell::default(),
             pass_scheduled: Cell::new(false),
             wake,

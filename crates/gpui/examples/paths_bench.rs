@@ -1,10 +1,13 @@
 #![cfg_attr(target_family = "wasm", no_main)]
 
+#[path = "example_support/fonts.rs"]
+mod example_support;
+
 use gpui_platform::application;
 use gpux::{
-    Background, Bounds, ColorSpace, Context, Path, PathBuilder, Pixels, Render, TitlebarOptions,
-    Window, WindowBounds, WindowOptions, canvas, div, linear_color_stop, linear_gradient, point,
-    prelude::*, px, rgb, size,
+    App, Background, Bounds, ColorSpace, Context, Path, PathBuilder, Pixels, Render,
+    TitlebarOptions, Window, WindowBounds, WindowOptions, canvas, div, linear_color_stop,
+    linear_gradient, point, prelude::*, px, rgb, size,
 };
 
 const DEFAULT_WINDOW_WIDTH: Pixels = px(1024.0);
@@ -75,7 +78,10 @@ impl Render for PaintingViewer {
 
 fn run_example() {
     application().run(|cx| async move {
-        cx.update(|cx| {
+        cx.update(|cx: &mut App| {
+            if !example_support::load_fonts(cx) {
+                return;
+            }
             cx.open_window(
                 WindowOptions {
                     titlebar: Some(TitlebarOptions {
