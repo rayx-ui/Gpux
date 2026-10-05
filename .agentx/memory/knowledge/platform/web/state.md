@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/platform/web
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-05T23:00:00+02:00
+  updated: 2026-10-06T00:00:00+02:00
   topics:
     - gpui-web
     - wasm
@@ -32,6 +32,8 @@ Read before changing browser startup, `WebWindow`, browser input/clipboard, WASM
 Browser displays default to the full visible viewport, and `WebWindow` sizes its logical bounds and canvas/WebGPU backing store from viewport × `devicePixelRatio` before the first frame. Pointer coordinates come from `clientX/clientY` minus the canvas bounding rect, so events inside canvas-child DOM do not corrupt GPUI coordinates. Closing a `WebWindow` marks it closed, cancels the pending animation frame, disconnects its `ResizeObserver`, and removes its canvas and input elements before retained JavaScript closures drop; frame and resize callbacks stop after closure.
 
 Clipboard writes start `navigator.clipboard.writeText` during the trusted action gesture and also run a synchronous one-shot `copy` event fallback that saves the document selection, selects a focus-neutral offscreen range, supplies the exact text through `ClipboardEvent.clipboardData`, and restores the selection. Paste is bridged from the trusted DOM `paste` event: the plain-text payload becomes the cached `ClipboardItem` and replaces the active input-handler selection; platform clipboard reads return that cache.
+
+Text input uses Zed's hidden IME mirror textarea (`ime_mirror.rs`): desktop keystrokes dispatch as key events, while IME and software-keyboard edits are imported from the mirror's `input` events by diffing its value against the stored text; gpux caps that diff at the stored selection so an edit always replaces the whole selection.
 
 On WASM, `Asset::load` futures are not `Send`, `App::fetch_asset` spawns them on the foreground executor, and `Svg::external_path(...)` resolves relative URLs against the page and fetches bytes with `reqwest` before `paint_svg`.
 

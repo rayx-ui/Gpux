@@ -7,7 +7,7 @@ This directory and the repository's archived Git refs are the complete local sou
 The latest Zed GPUI closure represented is:
 
 ```text
-c24358d96cdb4ce14ecbc088462295353b0103f0
+d544470d1d3770f0024651dbf121525564a2657c
 ```
 
 Use `https://github.com/zed-industries/zed` as the authoritative upstream. [zed-imports.tsv](zed-imports.tsv) records every recovered closure import point and its original fork-merge provenance.
@@ -44,6 +44,17 @@ from `c24358d96cdb4ce14ecbc088462295353b0103f0` by three-way merge from
 `x11/window.rs`, which had the same partial import but still compiled, was
 re-imported the same way.
 
+The 2026-10-05 import of `d544470d1d3770f0024651dbf121525564a2657c` (Zed
+"Reduce the dependency footprint (#65176)") was a three-way merge from
+`c24358d96cdb4ce14ecbc088462295353b0103f0`. It adopted Zed's input model
+unchanged (mouse events, raw touches through `TouchGestureRecognizer`, one active
+drag with platform drag-out handoff) and deleted the gpux pointer layer:
+`PointerEvent` and per-pointer ownership, the gesture map and arena, touch
+momentum in `ScrollActivity`, rotate events, and the multi-drag extras. It
+imported `gpux-bench-metrics` and `gpui_apple`, dropped `media`, and kept
+gpux's cached thermal state by requesting Zed's follow-up frame from frame
+demand without re-entering the app on idle frames.
+
 History mapping files:
 
 - [gpux-commit-map.tsv](gpux-commit-map.tsv) maps the original standalone gpux hashes to the filtered hashes used by the predecessor repository.
@@ -51,7 +62,7 @@ History mapping files:
 
 ## Update contract
 
-1. Read this file, `zed-imports.tsv`, the archived gpux history, this repository's history, and RayX's AgentX `runtime/gpux-foundation` patch-surface guidance (`../RayX/.agentx/memory/knowledge/runtime/gpux-foundation/`).
+1. Read this file, `zed-imports.tsv`, the archived gpux history, this repository's history, and this repository's AgentX memory for the patch surfaces the import touches (start at `.agentx/memory/knowledge/repository/upstream-sync/`).
 2. Treat the latest `zed_commit` in `zed-imports.tsv` as the three-way merge base.
 3. Fetch the chosen target from `zed-industries/zed` and import only the mapped GPUI closure.
 4. Preserve or replay archived and current-repository gpux patches, including the reduced workspace and `gpux` crate rename.

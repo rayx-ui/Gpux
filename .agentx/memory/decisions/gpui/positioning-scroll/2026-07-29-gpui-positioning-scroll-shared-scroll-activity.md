@@ -2,16 +2,17 @@
 agentx:
   kind: decision
   scope: decisions/gpui/positioning-scroll
-  status: current
+  status: superseded
   created: 2026-07-29T01:30:00+02:00
-  updated: 2026-07-29T01:30:00+02:00
+  updated: 2026-10-05T23:30:00+02:00
   topics:
     - AD-041
     - gpux
     - scroll-activity
     - programmatic-scroll
   supersedes: []
-  superseded_by: []
+  superseded_by:
+    - ../input/2026-10-05-gpui-input-upstream-input-model.md
 ---
 
 ## Decision: AD-041 share ScrollActivity between touch and programmatic scrolling

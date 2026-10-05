@@ -2,16 +2,17 @@
 agentx:
   kind: decision
   scope: decisions/gpui/input
-  status: current
+  status: superseded
   created: 2026-07-30T21:05:00+02:00
-  updated: 2026-07-30T21:05:00+02:00
+  updated: 2026-10-05T23:30:00+02:00
   topics:
     - gpux
     - pointer-capture
     - pointer-interaction-owner
     - reconciliation
   supersedes: []
-  superseded_by: []
+  superseded_by:
+    - 2026-10-05-gpui-input-upstream-input-model.md
 ---
 
 # Per-pointer Capture Reconciliation

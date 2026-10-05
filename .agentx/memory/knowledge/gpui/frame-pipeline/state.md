@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/gpui/frame-pipeline
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-05T23:00:00+02:00
+  updated: 2026-10-05T23:30:00+02:00
   topics:
     - window
     - frame
@@ -41,7 +41,7 @@ Read before changing `Window::draw`, prepaint/paint bookkeeping, `Scene`, `Bound
 
 Renderer paint paths prepare the original immutable `Color` or `Background` when inherited opacity is exactly `1.0`, reusing its lazy paint cache; other factors keep the authored-opacity transformation.
 
-`Window` caches the platform thermal state in window-owned `Rc<Cell<ThermalState>>`, updated through an app thermal-state subscription, so frame callbacks never re-enter `AnyWindowHandle::update` (required for browser animation-frame scheduling during an active app borrow).
+`Window` caches the platform thermal state in window-owned `Rc<Cell<ThermalState>>`, updated through an app thermal-state subscription, so idle frame callbacks never re-enter `AnyWindowHandle::update` (required for browser animation-frame scheduling during an active app borrow). A frame that starts with demand (dirty, awaiting presentation, or pending next-frame callbacks) requests one follow-up frame through a guarded trailing schedule, matching Zed's scheduling without its per-frame thermal App update.
 
 DevKit inspection: `Window::devtools_frame_snapshot()` is a read-only surface populated during the element lifecycle from rendered occurrence ids and parents, dispatch nodes, bounds, hitbox and listener counts, global ids, source locations, component semantics, and writable-property metadata. `InspectableElementExt` attaches semantics without adding hitboxes, focus, or listeners; `Window::register_devtools_property_setter(...)` registers live property callbacks for the current occurrence. The rendered occurrence stack is separate from the dispatch stack. Cached prepaint replay remaps occurrence ids, parents, dispatch ids, focus, and setters; prepaint rollback truncates inspection ranges. Frame nodes use direct id-to-index lookup and materialize owned snapshot strings only on request. `InspectableElement` also forwards the wrapped element's AccessKit surface.
 
@@ -58,3 +58,4 @@ Under `rayx_diagnostics`, `gpui_wgpu` keeps a bounded latest-frame telemetry sna
 - [Frame telemetry](../../../../../crates/gpui_wgpu/src/frame_telemetry.rs)
 - 2026-06-29 current [Unclipped deferred overlays](../../../decisions/gpui/frame-pipeline/2026-06-29-gpui-frame-pipeline-unclipped-deferred-overlays.md)
 - 2026-07-24 current [Cached thermal-state frame throttling](../../../decisions/gpui/frame-pipeline/2026-07-24-gpui-frame-pipeline-cached-thermal-frame-throttling.md)
+- 2026-10-05 current [Frame-demand follow-up](../../../decisions/gpui/frame-pipeline/2026-10-05-gpui-frame-pipeline-frame-demand-follow-up.md)

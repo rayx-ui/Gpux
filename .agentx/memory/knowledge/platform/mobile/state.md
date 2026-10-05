@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/platform/mobile
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-05T23:00:00+02:00
+  updated: 2026-10-05T23:30:00+02:00
   topics:
     - gpui-mobile
     - android
@@ -23,7 +23,7 @@ Read before changing `gpui_mobile` or importing upstream `gpui-mobile` (use the 
 
 ## Current Technical Shape
 
-`gpui_mobile` is Rust 2024 and distributed under its Apache-2.0 option. Android routes `AndroidBackend` preference into WGPU backend policy: `Vulkan` means `VULKAN | GL`, because emulator images can fail Vulkan surface creation while supporting GL/EGL; `Gles` is strict GL. Diagnostics can therefore show `backend_policy=VULKAN|GL` with `backend=gl`. Apps using the native activity JNI helper enable the `android-native-activity` feature. Foreground task draining clones the dispatcher under the platform state mutex, releases it, then runs queued callbacks. Android coalesces touch moves to one scroll event per frame and attaches `release_velocity` on touch end.
+`gpui_mobile` is Rust 2024 and distributed under its Apache-2.0 option. Android routes `AndroidBackend` preference into WGPU backend policy: `Vulkan` means `VULKAN | GL`, because emulator images can fail Vulkan surface creation while supporting GL/EGL; `Gles` is strict GL. Diagnostics can therefore show `backend_policy=VULKAN|GL` with `backend=gl`. Apps using the native activity JNI helper enable the `android-native-activity` feature. Foreground task draining clones the dispatcher under the platform state mutex, releases it, then runs queued callbacks. Android and iOS deliver touches as raw `PlatformInput::Touch` events for Zed's touch recognizer, supply fling physics through `Platform::gestures` (`ScrollPhysics::android()`/`ios()`), and synthesize two-finger `Pinch` input, cancelling the forwarded touches when a pinch starts.
 
 iOS keeps a Metal-specific WGPU path: `GPUIMetalView` exposes `CAMetalLayer`, the window creates a `wgpu::Instance` with `Backends::METAL`, pre-populates `WgpuContext`, and builds `WgpuRenderer` from it. Effect capabilities delegate to the active renderer. Text uses the independent `IosTextSystem` on CoreText and font-kit CoreText loaders. `gpui_mobile` retains a cloned `gpux::Application` in FFI-owned state after `Application::run()` returns, because UIKit owns the event loop and later callbacks need GPUI state.
 
