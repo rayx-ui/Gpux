@@ -1,0 +1,11 @@
+[package]
+name = "gpux-fonts"
+description = "The IBM Plex Sans and Lilex fonts bundled with gpux."
+version = "0.1.0"
+edition.workspace = true
+license = "OFL-1.1"
+keywords = ["gpux", "fonts", "ibm-plex", "lilex"]
+categories = ["gui"]
+
+[lints]
+workspace = true

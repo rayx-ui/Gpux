@@ -2828,6 +2828,7 @@ dependencies = [
  "futures",
  "gpui_wgpu",
  "gpux",
+ "gpux-fonts",
  "http_client",
  "js-sys",
  "log",
@@ -2854,6 +2855,7 @@ dependencies = [
  "etagere",
  "gpui_util",
  "gpux",
+ "gpux-fonts",
  "image",
  "itertools 0.14.0",
  "js-sys",
@@ -2941,6 +2943,7 @@ dependencies = [
  "gpui_shared_string",
  "gpui_util",
  "gpui_web",
+ "gpux-fonts",
  "gpux_color",
  "hdrhistogram",
  "heapless",
@@ -3002,6 +3005,10 @@ dependencies = [
  "zed-reqwest",
  "zed-scap",
 ]
+
+[[package]]
+name = "gpux-fonts"
+version = "0.1.0"
 
 [[package]]
 name = "gpux_color"

@@ -1137,8 +1137,7 @@ mod tests {
         }
     }
 
-    const IBM_PLEX: &[u8] =
-        include_bytes!("../../../assets/fonts/ibm-plex-sans/IBMPlexSans-Regular.ttf");
+    const IBM_PLEX: &[u8] = gpux_fonts::IBM_PLEX_SANS_REGULAR;
 
     /// Every code point of `Bidi_Class=B`, each of which starts a new bidi
     /// paragraph and so can split one line into mixed-direction paragraphs.

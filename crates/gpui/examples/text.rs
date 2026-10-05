@@ -355,12 +355,7 @@ fn run_example() {
                 items: vec![],
             }]);
 
-            let fonts = [include_bytes!(
-                "../../../assets/fonts/lilex/Lilex-Regular.ttf"
-            )]
-            .iter()
-            .map(|b| Cow::Borrowed(&b[..]))
-            .collect();
+            let fonts = vec![Cow::Borrowed(gpux_fonts::LILEX_REGULAR)];
 
             _ = cx.text_system().add_fonts(fonts);
 

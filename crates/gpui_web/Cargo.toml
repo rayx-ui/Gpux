@@ -21,6 +21,7 @@ path = "src/gpui_web.rs"
 gpux.workspace = true
 parking_lot = { workspace = true, features = ["nightly"] }
 gpui_wgpu.workspace = true
+gpux_fonts.workspace = true
 http_client.workspace = true
 anyhow.workspace = true
 futures.workspace = true

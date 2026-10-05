@@ -344,9 +344,7 @@ mod tests {
     use super::*;
     use usvg::fontdb::{Database, Family, Query};
 
-    const IBM_PLEX_REGULAR: &[u8] =
-        include_bytes!("../../../assets/fonts/ibm-plex-sans/IBMPlexSans-Regular.ttf");
-    const LILEX_REGULAR: &[u8] = include_bytes!("../../../assets/fonts/lilex/Lilex-Regular.ttf");
+    use gpux_fonts::{IBM_PLEX_SANS_REGULAR as IBM_PLEX_REGULAR, LILEX_REGULAR};
 
     fn db_with_bundled_fonts() -> Database {
         let mut db = Database::new();
