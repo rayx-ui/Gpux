@@ -12,8 +12,8 @@ use gpux::{
 };
 
 use collections::FxHashSet;
+use gpui_util::{ResultExt, maybe};
 use raw_window_handle as rwh;
-use util::{ResultExt, maybe};
 use x11rb::{
     connection::Connection,
     cookie::{Cookie, VoidCookie},
