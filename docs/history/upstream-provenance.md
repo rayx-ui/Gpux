@@ -36,6 +36,12 @@ renderer ABI. Browser startup now prefers WebGPU and falls back to WebGL2; the
 WebGL path transports every packed scene record through exact `Rgba32Uint`
 textures rather than silently omitting RayX effects or HTML-island data.
 
+That import left `crates/gpui_linux/src/linux/wayland/client.rs` and `window.rs`
+at the previous closure state, and the follow-up hand-ported popups onto them, so
+the Wayland backend no longer compiled. On 2026-10-05 both files were re-imported
+from `c24358d96cdb4ce14ecbc088462295353b0103f0` by three-way merge from
+`481854f7541636c63f79abec9785697ed74f4005`, with the gpux Linux patches replayed.
+
 History mapping files:
 
 - [gpux-commit-map.tsv](gpux-commit-map.tsv) maps the original standalone gpux hashes to the filtered hashes used by the predecessor repository.

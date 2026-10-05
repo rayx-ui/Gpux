@@ -126,6 +126,7 @@ Original subject: <original local subject>
    - Run `cargo fmt --check`.
    - Run at least `cargo check -p gpux --all-targets`.
    - Prefer targeted package checks for `gpux-platform`, `gpux-windows`, `gpux-wgpu-renderer`, `gpux-web` (`--target wasm32-unknown-unknown --no-default-features`), `gpux-util`, and `gpux-shared-string` when the update touches those surfaces.
+   - `gpux-linux` only compiles on Linux, so a Windows-host check never sees it. Run `cargo check`/`clippy -p gpux-linux --all-targets` on Linux or WSL with the default features (`wayland` + `x11`) and with each of `--no-default-features --features x11` and `--no-default-features --features wayland`.
    - Prefer `cargo check --workspace --all-targets` when time and platform dependencies allow.
    - Run `cargo package --workspace`, because imports change manifests, dependencies, and included files.
    - Run targeted tests/examples for changed framework or backend behavior.
@@ -152,6 +153,14 @@ The RayX memories identify these gpux-owned patches as especially easy to miss d
 - Preserve Windows interactive redraw priority, mouse-move coalescing, and live-resize coalescing into scheduled frames. Pending resize frames must present and force a fresh GPUI draw so scene geometry and surface size come from the same resize sample.
 - Preserve native WGPU waiting before `Surface::configure`; browser/WASM resize remains nonblocking.
 - Preserve target-specific `WgpuRenderer::gpu_specs()` backend-label helpers so WASM does not read native-only backend policy fields.
+
+### Linux
+
+- Import `crates/gpui_linux` as a whole: the Wayland and X11 `client.rs`/`window.rs` depend on the same revision's `platform.rs`, `wayland/serial.rs`, and `wayland/clipboard.rs` (`Serial`, `LinuxCommon::new`'s system-wake receiver, `read_fd_with_timeout`).
+- Route main-thread runnables through `ForegroundTasks::push` (see Manifest And Packaging Shape) and keep the system-wake receiver source.
+- Deliver mouse input as `PlatformInput::Pointer(PointerEvent::...)`; a pointer leave is a `PointerPhase::Cancel` move. Scroll events carry gpux's `scroll_source`, `scroll_phase`, `precise_delta`, `native_momentum_phase`, `release_velocity`, and `timestamp` fields.
+- Preserve Linux window `on_minimized_status_change`, `effect_capabilities()`, and `render_to_image()`.
+- Leave out Zed's Wayland external drag source (`start_external_drag`, `ExternalDrag`, `DataSourceKind::Drag`) while the gpux core lacks Zed's drag-to-platform handoff and `FileDropEvent::Ended`; the window keeps the trait's default `can_start_external_drag() == false`.
 
 ### Browser And WASM
 
