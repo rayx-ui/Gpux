@@ -1,0 +1,4 @@
+interface:
+  display_name: "GPUX"
+  short_description: "Install and maintain gpux, the RayX-maintained GPUI fork"
+  default_prompt: "Use $gpux from the Gpux repository root to install prerequisites, update gpux from Zed, gpui-mobile, or a wgpu release, and validate the gpux-* crates."
