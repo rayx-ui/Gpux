@@ -66,8 +66,7 @@ use gpux::{
     AnyWindowHandle, Bounds, ClipboardItem, CursorStyle, DisplayId, FileDropEvent, Keystroke,
     Modifiers, ModifiersChangedEvent, MouseButton, Pixels, PlatformDisplay, PlatformInput,
     PlatformKeyboardLayout, PlatformWindow, Point, RequestFrameOptions, ScrollDelta, Size,
-    TouchPhase, WindowButtonLayout, WindowKind, WindowParams, point, popup::PopupNotSupportedError,
-    px,
+    TouchPhase, WindowButtonLayout, WindowParams, point, px,
 };
 
 /// Value for DeviceId parameters which selects all devices.
@@ -1595,9 +1594,6 @@ impl LinuxClient for X11Client {
         handle: AnyWindowHandle,
         params: WindowParams,
     ) -> anyhow::Result<Box<dyn PlatformWindow>> {
-        if matches!(params.kind, WindowKind::AnchoredPopup(_)) {
-            return Err(PopupNotSupportedError.into());
-        }
         let mut state = self.0.borrow_mut();
         let parent_window = state
             .keyboard_focused_window

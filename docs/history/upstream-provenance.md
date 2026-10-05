@@ -41,6 +41,8 @@ at the previous closure state, and the follow-up hand-ported popups onto them, s
 the Wayland backend no longer compiled. On 2026-10-05 both files were re-imported
 from `c24358d96cdb4ce14ecbc088462295353b0103f0` by three-way merge from
 `481854f7541636c63f79abec9785697ed74f4005`, with the gpux Linux patches replayed.
+`x11/window.rs`, which had the same partial import but still compiled, was
+re-imported the same way.
 
 History mapping files:
 
