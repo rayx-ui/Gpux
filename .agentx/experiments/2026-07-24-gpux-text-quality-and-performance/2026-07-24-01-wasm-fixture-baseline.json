@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "id": "3b93248b-e333-4505-84d9-1e8d99f6706b",
+  "loopId": "a1be1070-037c-491e-bc2c-36c4295bd81f",
+  "index": 1,
+  "type": "baseline",
+  "name": "WASM fixture baseline",
+  "slug": "wasm-fixture-baseline",
+  "path": "2026-07-24-01-wasm-fixture-baseline.json",
+  "createdAt": "2026-07-24T01:20:24Z",
+  "startedAt": "2026-07-24T01:20:24Z",
+  "finishedAt": "2026-07-24T02:03:00Z",
+  "state": "done",
+  "status": "stopped",
+  "checkpointCommit": "0a5981c0f6083b69ef4979b19ef115f4a70c4c58",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard 0a5981c0f6083b69ef4979b19ef115f4a70c4c58",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "0a5981c0f6083b69ef4979b19ef115f4a70c4c58",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard 0a5981c0f6083b69ef4979b19ef115f4a70c4c58",
+      "status": "stopped"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "wasm-webgpu",
+  "hypothesisMarkdown": "## Baseline Measurement\n\nMeasure and document the starting point for this improvement loop before making optimization changes.",
+  "measurementPlanMarkdown": "",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nBaseline metrics are captured and stored so later experiments compare against a known starting point.",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [],
+  "reportMarkdown": "",
+  "decisionMarkdown": "",
+  "notes": ""
+}

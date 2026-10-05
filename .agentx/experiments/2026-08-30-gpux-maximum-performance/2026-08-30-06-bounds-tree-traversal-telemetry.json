@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "id": "96f73388-ab4f-4126-8378-354a734b810f",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 6,
+  "type": "hypothesis",
+  "name": "Bounds Tree Traversal Telemetry",
+  "slug": "bounds-tree-traversal-telemetry",
+  "path": "2026-08-30-06-bounds-tree-traversal-telemetry.json",
+  "createdAt": "2026-08-30T19:20:37Z",
+  "startedAt": "2026-08-30T19:20:37Z",
+  "finishedAt": "2026-08-30T19:29:22Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "617b0ec0278f59eb473b1975e763d3548852a778",
+  "resultCommit": "6c46584f9283a53799b50b104f80ff1283aea5c4",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 617b0ec0278f59eb473b1975e763d3548852a778",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "617b0ec0278f59eb473b1975e763d3548852a778",
+      "resultCommit": "6c46584f9283a53799b50b104f80ff1283aea5c4",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 617b0ec0278f59eb473b1975e763d3548852a778",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "6c46584f9283a53799b50b104f80ff1283aea5c4"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux BoundsTree diagnostics with apps/test_suite wide DataTable headed WebGPU",
+  "hypothesisMarkdown": "# Hypothesis\n\nDiagnostics-only counters inside gpux `BoundsTree` will separate its measured 1.24-1.33% wide-DataTable CPU cost into global-max-leaf hits, slow spatial-search traversal, and insertion-descent child evaluation. The resulting per-frame counts will identify one bounded algorithmic target for experiment 7 without changing draw-order assignment, tree shape, insertion behavior, or production code when `rayx_diagnostics` is disabled.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\n1. Add feature-gated counters to `BoundsTree` for insertions, max-leaf fast-path hits, slow searches, visited search nodes, insertion-descent child evaluations, and retained nodes; reset them with the tree each frame.\n2. Aggregate the three Scene bounds trees into the existing WGPU latest-frame telemetry and numeric-only browser global. Do not change tree traversal, order assignment, primitives, batching, shaders, or renderer operations.\n3. Add a focused bounds-tree unit test proving counters cover both the max-leaf and slow-search paths while all existing randomized semantic tests continue to pass.\n4. Run diagnostics-off/on compilation, focused tests, Clippy, nested formatting, and the headed Test Suite wide DataTable at DPR 1 and 2.\n5. Choose exactly one next mechanism from observed ratios: optimize insertion descent when child evaluation dominates, optimize spatial search when slow-search node visits dominate, or leave the tree unchanged if the counters show neither is material per frame.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nThe warmed wide DataTable reports stable, bounded tree-work counts at both DPRs with unchanged renderer and scroll-correctness counters. A high max-leaf hit ratio would show that search is already effectively constant-time and redirect optimization to insertion descent; a low hit ratio with many visited nodes would justify a search-path experiment. Diagnostics-off builds contain no counter state or increments.\n",
+  "diagnostics": {
+    "playwright": [
+      "The wide DataTable passed 2/2 headed Chromium WebGPU projects at DPR 1 and DPR 2.",
+      "Tree-work counters were identical across DPRs and renderer work remained nine batches, 12 writes, 10 bind groups, two passes, zero atlas writes/restarts, and one submission."
+    ],
+    "rayx": [
+      "All runtime proof used apps/test_suite; apps/lab was neither launched nor modified.",
+      "Diagnostics-off and diagnostics-on checks passed for gpux, gpui_wgpu, and wasm32 gpui_web.",
+      "The feature-gated counter test and the existing 1,000-seed randomized bounds-tree ordering test passed in diagnostics-on and diagnostics-off builds; Clippy and nested formatting passed."
+    ],
+    "counters": [
+      "Both DPRs reported 504 insertions, seven max-leaf hits, 495 slow searches, 25,720 search-node visits, 14,351 insertion child evaluations, and 576 retained nodes.",
+      "The max-leaf hit ratio was 1.39%; slow searches averaged 51.96 visited nodes and insertion descent averaged 28.47 child evaluations.",
+      "Both scroll projects retained zero terminal error."
+    ],
+    "artifacts": [
+      "candidate/test_suite-rayx-data-table-ebb47-d-thumb-drag-render-cadence-chromium/data-table-wide-scroll-performance.json",
+      "candidate/test_suite-rayx-data-table-ebb47-d-thumb-drag-render-cadence-chromium-dpr2/data-table-wide-scroll-performance.json"
+    ]
+  },
+  "measurements": {
+    "checkpointCommit": "617b0ec0278f59eb473b1975e763d3548852a778",
+    "target": "wasm-webgpu-headed",
+    "dpr1": {
+      "insertions": 504,
+      "maxLeafHits": 7,
+      "maxLeafHitPercent": 1.3888888888888888,
+      "slowSearches": 495,
+      "searchNodeVisits": 25720,
+      "averageNodeVisitsPerSlowSearch": 51.95959595959596,
+      "insertionChildEvaluations": 14351,
+      "averageChildEvaluationsPerInsertion": 28.474206349206348,
+      "retainedNodes": 576
+    },
+    "dpr2": {
+      "insertions": 504,
+      "maxLeafHits": 7,
+      "maxLeafHitPercent": 1.3888888888888888,
+      "slowSearches": 495,
+      "searchNodeVisits": 25720,
+      "averageNodeVisitsPerSlowSearch": 51.95959595959596,
+      "insertionChildEvaluations": 14351,
+      "averageChildEvaluationsPerInsertion": 28.474206349206348,
+      "retainedNodes": 576
+    },
+    "renderer": {
+      "batches": 9,
+      "queueBufferWrites": 12,
+      "bindGroups": 10,
+      "renderPasses": 2,
+      "atlasWrites": 0,
+      "bufferRestarts": 0,
+      "submissions": 1
+    },
+    "maximumTerminalError": 0
+  },
+  "reportMarkdown": "# Bounds tree traversal telemetry report\n\nThe feature-gated `BoundsTree` instrumentation counts insertions, global-max-leaf hits, slow searches, visited search nodes, insertion-descent child evaluations, and retained nodes. `Scene` aggregates its ordinary, positioned, and top-layer trees into the existing bounded WGPU snapshot and browser numeric global. Diagnostics-off builds contain none of the counter state or increments; tree shape, traversal, draw-order assignment, primitives, batching, shaders, and renderer operations are unchanged.\n\nThe headed Test Suite wide DataTable passed at DPR 1 and DPR 2 with identical tree counts and zero terminal error. Each warmed frame made 504 insertions, but only seven used the max-leaf shortcut (1.39%). The remaining 495 slow searches visited 25,720 nodes, averaging 51.96 visits per slow search. Insertion descent performed 14,351 child evaluations, averaging 28.47 per insertion, and the three trees retained 576 nodes. Search traversal is therefore the larger direct operation count and the evidence-backed target for experiment 7.\n\nDiagnostics-off/on compilation passed for gpux, gpui_wgpu, and wasm32 gpui_web. The focused counter test and the existing 1,000-seed randomized ordering test passed in both modes; gpux/gpui_wgpu Clippy passed with warnings denied, and nested gpux formatting passed. The focused test's initial expected visit count was corrected from three to one after confirming that root spatial pruning intentionally prevents child visits; no implementation mechanism changed.\n",
+  "decisionMarkdown": "# Decision\n\nAccept the diagnostics. The global-max-leaf shortcut is too rarely hit to optimize for the wide virtualized DataTable, while slow searches account for 25,720 visited nodes per warmed frame. Experiment 7 should test one exact slow-search traversal/pruning mechanism while preserving the 1,000-seed ordering oracle. Do not alter insertion descent in the same experiment.\n",
+  "notes": ""
+}

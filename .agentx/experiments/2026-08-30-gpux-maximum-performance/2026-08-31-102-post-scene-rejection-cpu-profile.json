@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "id": "ea5e05d4-1bc1-45ed-80f2-f7e96a32ae2e",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 102,
+  "type": "hypothesis",
+  "name": "Post Scene Rejection CPU Profile",
+  "slug": "post-scene-rejection-cpu-profile",
+  "path": "2026-08-31-102-post-scene-rejection-cpu-profile.json",
+  "createdAt": "2026-08-31T16:39:47Z",
+  "startedAt": "2026-08-31T16:39:47Z",
+  "finishedAt": "2026-08-31T16:46:45Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "671884b9c59bc6474b1e700e833e8ede66efd319",
+  "resultCommit": "671884b9c59bc6474b1e700e833e8ede66efd319",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 671884b9c59bc6474b1e700e833e8ede66efd319",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "671884b9c59bc6474b1e700e833e8ede66efd319",
+      "resultCommit": "671884b9c59bc6474b1e700e833e8ede66efd319",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 671884b9c59bc6474b1e700e833e8ede66efd319",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "671884b9c59bc6474b1e700e833e8ede66efd319"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux current accepted wide DataTable CPU hotspots after cleanup branch rejections",
+  "hypothesisMarkdown": "## Post Scene Rejection CPU Profile Hypothesis\n\nA fresh accepted-build CPU profile will identify a higher-confidence gpux target after rejecting dirty propagation, stale state pooling, DispatchTree pooling, and compact Scene replay.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nMeasurement only through the exclusive headed Test Suite WASM/WebGPU DataTable route at both DPRs. Only AgentX metadata and ignored profiles/analysis may change. Production code, tests, dependencies, configuration, and adjacent cleanup are forbidden.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nCapture DPR 1 and DPR 2 Chromium CPU profiles from the accepted build, require exact final offsets/counters and zero errors, aggregate gpux-owned self and inclusive families, and exclude branches already rejected by measured experiments. Pass if one independent bounded target is selected with cross-DPR evidence.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nRefresh the hotspot ranking and select experiment 103 without speculative production edits.",
+  "diagnostics": {
+    "playwright": [
+      "2/2 headed Chromium WebGPU projects passed at DPR 1 and DPR 2.",
+      "Both projects reached final offset -351402.6875 with zero terminal error."
+    ],
+    "rayx": [
+      "All runtime measurement used apps/test_suite; apps/lab was not launched or modified.",
+      "CPU profiles were captured from the accepted checkpoint build with RAYX_CPU_PROFILE=1."
+    ],
+    "counters": [
+      "Both DPRs created 485 GlobalElementIds over 8668 path elements with 485 previous-frame hits.",
+      "DPR 1/DPR 2 retained 9 batches, 12 queue writes, 10 bind groups, 2 render passes, and 1 submission."
+    ],
+    "artifacts": []
+  },
+  "measurements": {
+    "schemaVersion": 1,
+    "status": "success",
+    "productFilesChanged": 0,
+    "browserPassedDpr1": true,
+    "browserPassedDpr2": true,
+    "terminalErrors": 0,
+    "profileTotalMs": {
+      "dpr1": 15568.806,
+      "dpr2": 15525.366
+    },
+    "globalElementIdArcConstructionMs": {
+      "dpr1": 154.209,
+      "dpr2": 131.954,
+      "shareDpr1Percent": 0.99,
+      "shareDpr2Percent": 0.85
+    },
+    "globalElementIdsPerFinalFrame": 485,
+    "globalElementIdPathElementsPerFinalFrame": 8668,
+    "globalElementIdPreviousFrameHitsPerFinalFrame": 485,
+    "medianAcknowledgedStepsPerSecond": {
+      "dpr1": 27.599698390495995,
+      "dpr2": 28.61858382082703
+    },
+    "medianPacedP95CatchUpLatencyMs": {
+      "dpr1": 27.9384765625,
+      "dpr2": 27.187744140625
+    },
+    "nextTarget": "Previous-frame GlobalElementId Arc path reuse"
+  },
+  "reportMarkdown": "# Post Scene Rejection CPU Profile\n\nThe accepted build passed the exclusive headed Test Suite Chromium/WebGPU benchmark at DPR 1 and DPR 2. Both runs reached the exact `-351402.6875` final offset, reported zero terminal errors, and preserved the established renderer, Taffy, text, style, and virtualization counters.\n\nThe fresh profiles confirm that the rejected compact Scene branch is gone and expose a separate allocation target. Constructing `Arc<[ElementId]>` for `GlobalElementId` paths sampled at 154.209 ms at DPR 1 and 131.954 ms at DPR 2, or 0.990% and 0.850% of total sampled time. Each final frame created 485 global IDs spanning 8,668 path elements, and all 485 were previous-frame hits.\n\nExperiment 10 rejected a small inline representation because the paths average 17.87 elements and only 36.70% fit within 16 elements. That result does not reject reusing the already allocated previous-frame `Arc` when the full path is unchanged. A bounded lookup/reuse design could eliminate the sampled path allocation and copy cost while preserving the current cheap clone, equality, and hashing representation. Experiment 103 should first locate the narrowest ownership and lookup mechanism before changing production behavior.\n\nNo product, test, dependency, or configuration source changed.\n",
+  "decisionMarkdown": "# Decision\n\nAccept the profile as read-only evidence. Select previous-frame `GlobalElementId` Arc path reuse as the next independent research target. Do not revisit small inline storage, compact Scene replay, stale state pooling, DispatchTree pooling, or Taffy measured dirty propagation.\n",
+  "notes": ""
+}

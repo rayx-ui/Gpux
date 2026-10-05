@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "id": "66bc09c9-560f-4608-bdfb-9beb66950113",
+  "loopId": "dc424089-d0a5-4558-ae79-72a6a8d787db",
+  "index": 2,
+  "type": "hypothesis",
+  "name": "Publish Current Candidate Measurements",
+  "slug": "publish-current-candidate-measurements",
+  "path": "2026-08-04-02-publish-current-candidate-measurements.json",
+  "createdAt": "2026-08-04T15:03:47Z",
+  "startedAt": "2026-08-04T15:03:47Z",
+  "finishedAt": "2026-08-04T15:06:31Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "af2c43d4be703493e9096e52846d66192a14460e",
+  "resultCommit": "5aa3499824b0af04a52edff624b1b5dba1345e4d",
+  "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\8da1\\RayX\" reset --hard af2c43d4be703493e9096e52846d66192a14460e",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "af2c43d4be703493e9096e52846d66192a14460e",
+      "resultCommit": "5aa3499824b0af04a52edff624b1b5dba1345e4d",
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\8da1\\RayX\" reset --hard af2c43d4be703493e9096e52846d66192a14460e",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "5aa3499824b0af04a52edff624b1b5dba1345e4d"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "wasm/web with headed Playwright and WebGPU enabled",
+  "hypothesisMarkdown": "## Publish Current Candidate Measurements\n\nIf the quality spec preserves the immutable Sprint 1 baseline artifact but evaluates the metrics captured by the current serial Playwright run, later renderer candidates can be judged atomically without overwriting baseline evidence.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nIntroduce one module-local current quality summary populated by the existing four-DPR capture test. Make the following serial target test require that current summary. Run the focused headed Test Suite WASM/WebGPU spec and confirm unchanged production pixels still fail with the same low-density ratio. Hash baseline.json before and after to prove it remains immutable.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nThe unchanged renderer still fails with approximately 0.8046 minimum acutance ratio, demonstrating that the target consumes live candidate data. The frozen baseline artifact remains byte-for-byte identical. No production Rust or shader source changes.",
+  "diagnostics": {
+    "playwright": [
+      "Synthetic metric contracts passed 8/8 with one worker.",
+      "The headed WASM/WebGPU quality matrix captured all four DPRs and then failed the live current-candidate target with the expected matched DOM quality target unmet predicate."
+    ],
+    "rayx": [
+      "No production Rust or shader source changed; current grayscale rendering remained the control."
+    ],
+    "counters": [
+      "Current minimum acutance ratio remained 0.8046, maximum RayX fringe ratio remained 0, and maximum alignment delta remained 2 physical pixels.",
+      "baseline.json SHA-256 remained D0C857005811DA18CF71104498793647C3DEF401CDEA64A4FE72BA718DF7EBE1 before and after the run."
+    ],
+    "artifacts": [
+      "tools-node/test_suite/rayx-wasm-text-rendering-quality.spec.ts"
+    ]
+  },
+  "measurements": [
+    {
+      "name": "current_minimum_acutance_ratio",
+      "value": 0.8046,
+      "unit": "ratio"
+    },
+    {
+      "name": "current_maximum_rayx_fringe_ratio",
+      "value": 0,
+      "unit": "ratio"
+    },
+    {
+      "name": "current_maximum_alignment_delta",
+      "value": 2,
+      "unit": "physical_pixels"
+    },
+    {
+      "name": "immutable_baseline_hash_changed",
+      "value": 0,
+      "unit": "boolean"
+    }
+  ],
+  "reportMarkdown": "## Experiment Report\n\nThe smallest measurement-only change succeeded. The serial capture test now publishes its current quality summary to the following target test, while baseline.json remains write-once and byte-identical. With unchanged renderer production code, the target still reports the same 0.8046 minimum ratio and expected red predicate. This proves future candidates will be evaluated from their own pixels rather than the frozen Sprint 1 artifact.",
+  "decisionMarkdown": "### Decision\n\nAccept and commit the candidate-aware target harness. Proceed to the first production candidate: inspect and correct only a proven grayscale sampling-phase, atlas-coordinate, or gamma/contrast defect.",
+  "notes": "The expected target failure is the success condition for this measurement-enablement experiment."
+}

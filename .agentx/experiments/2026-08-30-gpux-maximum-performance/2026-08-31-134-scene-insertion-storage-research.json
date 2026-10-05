@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "id": "67143054-f11f-406d-8370-d115e8a48e2a",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 134,
+  "type": "hypothesis",
+  "name": "Scene Insertion Storage Research",
+  "slug": "scene-insertion-storage-research",
+  "path": "2026-08-31-134-scene-insertion-storage-research.json",
+  "createdAt": "2026-08-31T20:45:38Z",
+  "startedAt": "2026-08-31T20:45:38Z",
+  "finishedAt": "2026-08-31T20:46:36Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "d219a3f4f157e5e4846ae2a1fb8e0d2496f8259b",
+  "resultCommit": "d219a3f4f157e5e4846ae2a1fb8e0d2496f8259b",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard d219a3f4f157e5e4846ae2a1fb8e0d2496f8259b",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "d219a3f4f157e5e4846ae2a1fb8e0d2496f8259b",
+      "resultCommit": "d219a3f4f157e5e4846ae2a1fb8e0d2496f8259b",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard d219a3f4f157e5e4846ae2a1fb8e0d2496f8259b",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "d219a3f4f157e5e4846ae2a1fb8e0d2496f8259b"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux Scene primitive insertion and storage reuse",
+  "hypothesisMarkdown": "## Scene Insertion Storage Research Hypothesis\n\nThe 93.2/74.8 ms monochrome `Scene::insert_primitive` profile site may expose avoidable allocation, repeated indexing, or bounds-tree work beyond the already profiled bounds insertion cost.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRead-only trace of Scene primitive insertion, family storage reuse, paint-operation indexing, clipping/layer ordering, and bounds-tree coupling. No edits.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nInspect insertion implementations and clear/finish behavior, relate operations to accepted frame counts/capacities, and identify only semantics-preserving reductions in work or prove the path is already direct.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nProduce a source-backed go/no-go decision for scene storage optimization without changing product code.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [
+      "1513-1515 monochrome sprites",
+      "zero atlas writes",
+      "family vectors retain capacity"
+    ],
+    "artifacts": [
+      "Scene insertion/clear/finish/replay source trace"
+    ]
+  },
+  "measurements": {
+    "profileSelfMs": {
+      "deviceScaleFactor1": 93.2,
+      "deviceScaleFactor2": 74.847
+    },
+    "monochromeSpritesPerFrame": 1515,
+    "atlasWrites": 0,
+    "vectorsRetainCapacityOnClear": true,
+    "familyAndReplayStorageBothRequired": true,
+    "smallDirectOptimizationFound": false
+  },
+  "reportMarkdown": "# Experiment 134 Report\n\n`Scene::insert_primitive` is already direct for monochrome sprites: one clip intersection, one layer/bounds-order selection, a `Copy` push into the retained-capacity family vector, and one ordered paint-history push. The family vector is required by rendering; `paint_operations` is required to replay cached subtrees with layer boundaries intact. `Scene::clear` retains all vector allocations.\n\nNo isolated allocation or redundant index exists that can be removed without redesigning replay ownership or bounds ordering. The profile site is an attribution envelope around necessary clip/order/history work and the separately measured bounds tree.\n",
+  "decisionMarkdown": "# Decision\n\nDo not change Scene storage. Preserve dual family/replay ownership and retained vector capacity; investigate bounds ordering or replay architecture only with separate workload evidence.\n",
+  "notes": ""
+}

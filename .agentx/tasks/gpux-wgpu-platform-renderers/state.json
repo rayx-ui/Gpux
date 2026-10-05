@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "status": "progress",
+  "totalSprints": 5,
+  "currentSprint": 4,
+  "currentTask": 8,
+  "lastResumeAt": "2026-07-08T06:24:52Z",
+  "lastResumeSpecHashes": {
+    "requirements": "f6805c146cece77353229884d3751a0588f11171c421233e7974ad4524b17b5e",
+    "design": "b40cab6106a34dc76c79dd134c23fcf377d22a9deae55f33c8e6d6ba07746dc4",
+    "plan": "a98f2b7e83d12e339c597a63d96dbb7318edf6fccc9adc13c67c5bb1daf519f1",
+    "contracts": "764e47e03262285926210e550e7e3dbe2b7837e8224adf7a9f9c9d31ee3f86e6"
+  }
+}

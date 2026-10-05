@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "id": "f51de112-ea3c-4da4-a5c6-44323b6019ca",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 151,
+  "type": "hypothesis",
+  "name": "Iteration Cap And Architecture Synthesis",
+  "slug": "iteration-cap-and-architecture-synthesis",
+  "path": "2026-08-31-151-iteration-cap-and-architecture-synthesis.json",
+  "createdAt": "2026-08-31T21:21:40Z",
+  "startedAt": "2026-08-31T21:21:40Z",
+  "finishedAt": "2026-08-31T21:28:04Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "c8abe9de8fa297c6c9af7a84aac4246938138ae6",
+  "resultCommit": "c8abe9de8fa297c6c9af7a84aac4246938138ae6",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard c8abe9de8fa297c6c9af7a84aac4246938138ae6",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "c8abe9de8fa297c6c9af7a84aac4246938138ae6",
+      "resultCommit": "c8abe9de8fa297c6c9af7a84aac4246938138ae6",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard c8abe9de8fa297c6c9af7a84aac4246938138ae6",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "c8abe9de8fa297c6c9af7a84aac4246938138ae6"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "complete gpux optimization evidence and 150-iteration cap",
+  "hypothesisMarkdown": "## Iteration Cap And Architecture Synthesis Hypothesis\n\nThe completed experiment ledger should contain exactly 150 non-baseline experiments with no unresolved repository state, and its accepted evidence should support a coherent final map of gpux's optimized architecture, measured wins, protected invariants, and remaining opportunities.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRead-only synthesis of the loop ledger, accepted commits, experiment outcomes, current source, validation evidence, and working tree. No product, test, dependency, skill, memory, or configuration edits during this experiment.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nCount baseline/non-baseline experiments and statuses from `_state.json`; verify every prior experiment is done, every success has a repository result, Git has no source changes, raw output is outside `.agentx`, and the final runtime/static validation evidence is present. Summarize accepted architecture changes and rank unresolved opportunities without implementing them.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nClose experiment 151 as the 150th non-baseline iteration with a reproducible final evidence map, then stop and validate the improvement loop instead of beginning experiment 152.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "iteration ledger",
+      "before": "1 baseline plus 149 completed non-baseline experiments; experiment 151 running",
+      "after": "1 baseline plus exactly 150 non-baseline experiments when this experiment finishes",
+      "delta": "150-iteration user cap reached without starting experiment 152",
+      "source": "loop _state.json and 151 experiment JSON files"
+    },
+    {
+      "metric": "non-baseline outcomes",
+      "before": "110 successes and 39 failures among 149 completed non-baseline experiments",
+      "after": "111 successes and 39 failures among 150 completed non-baseline experiments",
+      "delta": "74.0% accepted experiment rate",
+      "source": "loop _state.json"
+    },
+    {
+      "metric": "repository closure",
+      "before": "current checkpoint c8abe9de8fa297c6c9af7a84aac4246938138ae6",
+      "after": "0 non-AgentX working-tree changes; 0 successful non-baseline experiments missing a result commit",
+      "delta": "all product attempts either committed or reverted",
+      "source": "git status and loop ledger"
+    },
+    {
+      "metric": "metadata artifact boundary",
+      "before": "151 experiment JSON records",
+      "after": "0 tracked artifact-like files under .agentx",
+      "delta": "raw profiles, traces, screenshots, and reports remain under ignored artifacts-temp",
+      "source": "git ls-files .agentx and experiment artifact references"
+    },
+    {
+      "metric": "final runtime structure",
+      "before": "final accepted headed WASM/WebGPU Test Suite profile",
+      "after": "4440 bounds visits, 14351 child evaluations, 576 retained bounds nodes, 1123 pooled Taffy nodes, 9 batches, 2 render passes, 1 submission, 0 buffer restarts, and 0 atlas writes",
+      "delta": "exact DPR 1 and 2 rendering with zero terminal errors",
+      "source": "experiment 148"
+    },
+    {
+      "metric": "final static and focused validation",
+      "before": "5 required commands",
+      "after": "format and two warning-denying clippy modes passed; 491 gpux plus 52 gpui_wgpu tests passed",
+      "delta": "0 validation failures",
+      "source": "experiment 149"
+    },
+    {
+      "metric": "Taffy dependency footprint",
+      "before": "approximately 24000 vendored source lines",
+      "after": "exact crates.io Taffy 0.14.0 with minimum measured features and 0 vendor files",
+      "delta": "repository vendor bloat removed while lockfile provenance remains exact",
+      "source": "experiments 14, 15, and 150"
+    }
+  ],
+  "reportMarkdown": "## Iteration Cap And Architecture Synthesis Finished\n\n**Passed Status:** true. The loop now closes exactly 150 non-baseline experiments plus its baseline. The projected non-baseline outcome is 111 successes and 39 cleanly reverted failures, a 74.0% acceptance rate. Every successful non-baseline experiment has a result commit, the working tree contains no product changes, and `.agentx` contains no tracked raw artifacts.\n\n**Attempt Count:** 1.\n\n### Accepted Architecture Map\n\nThe accepted gpux path keeps frame-owned storage and scene capacities warm, reuses Taffy nodes and measured-context slots, elides unchanged Taffy style/topology writes, prunes bounds traversal and performs one propagation update, hashes stable identifiers and text keys once, checks out font and line-layout scratch state lazily, reuses retained paint state, skips identity opacity work, uses cached-key sprite ordering, and transfers element state only for replayed frames. WGPU remains pipeline-specialized with persistent pipeline/bind-group/buffer/atlas caches, one command submission, and two render passes because the retained-scene snapshot currently requires an intermediate texture.\n\n### Measured Wins And Invariants\n\nThe strongest structural wins include bounds visits reduced from 25720 to 4440, line-cache full hashes reduced from 921 to 320, decoration storage reduced from 10240 to 320 slots, 640 warmed font-scratch lock operations removed per frame, and 1344 failed element-state removals eliminated. The exact final Test Suite profile rendered DPR 1 and 2 correctly with zero terminal errors, 9 batches, 2 render passes, 1 submission, no buffer restart, and no atlas write. Final validation passed formatting, both warning-denying clippy modes, 491 gpux tests, and 52 gpui_wgpu tests.\n\n### Remaining Ranked Opportunities\n\n1. Taffy flex layout and gpux request-node/style conversion remain the dominant measured CPU costs; further work needs an independently measured upstream or integration mechanism.\n2. GlobalElementId Arc ownership/allocation, bounds insertion, and line painting remain sampled leaders.\n3. The ordinary WGPU frame still pays for an intermediate texture and pass-through pass; removing it requires a new retained-scene snapshot contract, not a local pass deletion.\n4. Warm glyph paint still performs both TextSystem raster-bounds and atlas cache lookups; a combined identity/lifetime design must prove that it reduces work without cache-staleness risk.\n5. Broad allocator activity remains visible, but arena, cache, and pooling changes must be justified by path-specific measurements rather than generic pooling.\n\n### Scope Lock\n\nOnly loop metadata and current source/evidence were read. No product, test, dependency, skill, memory, or configuration file changed.\n\n### Repository Checkpoints\n\n| Repo | Path | Checkpoint | Result Commit | Status | Rollback |\n| --- | --- | --- | --- | --- | --- |\n| main | . | c8abe9de8fa2 | unchanged | unchanged | `git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard c8abe9de8fa297c6c9af7a84aac4246938138ae6` |\n",
+  "decisionMarkdown": "### Decision\n\nAccept the architecture synthesis and close the loop at the configured cap. Preserve the accepted product commits and the crates.io-first Taffy provenance policy. Do not start experiment 152: the remaining opportunities require fresh atomic hypotheses, especially the retained-scene two-pass contract and Taffy-dominant layout path. Treat the final concurrent-browser throughput figures as host-sensitive runtime evidence rather than a monotonic baseline-to-final claim because the harness and workload evolved during the loop.",
+  "notes": "Read-only synthesis. Raw evidence remains ignored under artifacts-temp/agentx-experiments; no product source changed."
+}

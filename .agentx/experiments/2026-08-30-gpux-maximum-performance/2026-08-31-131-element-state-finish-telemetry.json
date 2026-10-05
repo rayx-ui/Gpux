@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "id": "563d969b-0e28-4b25-94d4-c036e2bfb834",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 131,
+  "type": "hypothesis",
+  "name": "Element State Finish Telemetry",
+  "slug": "element-state-finish-telemetry",
+  "path": "2026-08-31-131-element-state-finish-telemetry.json",
+  "createdAt": "2026-08-31T20:15:14Z",
+  "startedAt": "2026-08-31T20:15:14Z",
+  "finishedAt": "2026-08-31T20:25:17Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "a51639698713b3341dee43f86cc263d3ae8f4eb6",
+  "resultCommit": "5407f0f79ca2eb3bae9d8e92bcde0abeac791358",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard a51639698713b3341dee43f86cc263d3ae8f4eb6",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "a51639698713b3341dee43f86cc263d3ae8f4eb6",
+      "resultCommit": "5407f0f79ca2eb3bae9d8e92bcde0abeac791358",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard a51639698713b3341dee43f86cc263d3ae8f4eb6",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "5407f0f79ca2eb3bae9d8e92bcde0abeac791358"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux diagnostics for finish-time element-state transfer",
+  "hypothesisMarkdown": "## Element State Finish Telemetry Hypothesis\n\nDiagnostics-only counters around the existing `WindowFrame::finish` loop will quantify scanned keys, successful deferred transfers, and misses without changing state ownership or behavior, revealing whether redundant hash-table lookups dominate the measured 96.8/88.8 ms hotspot.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nAdd only three diagnostics-gated counters at the existing finish loop and publish them through `Scene`, bounded WGPU frame telemetry, the web numeric object, and the existing Test Suite schema/assertions. State maps, key histories, transfer ordering, replay, rollback, public APIs, dependencies, fixtures, and production non-diagnostics behavior are frozen.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nRun formatting, focused window/state tests, both gpux clippy matrices, full gpux diagnostics tests, gpui_wgpu diagnostics tests, and headed Test Suite WASM/WebGPU at DPR 1 and 2. Require scanned = transferred + missed, exact established renderer/layout counters, and zero terminal errors. Record the distribution at both DPRs.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nPublish a bounded exact distribution that either justifies restricting finish-time transfer attempts or proves that successful reused-subtree moves dominate the scan.\n",
+  "diagnostics": {
+    "playwright": [
+      {
+        "target": "apps/test_suite",
+        "runtime": "headed Chromium WASM/WebGPU",
+        "passed": 2,
+        "failed": 0
+      }
+    ],
+    "rayx": [],
+    "counters": [
+      "1344 finish scans at both DPRs",
+      "zero successful finish transfers at both DPRs",
+      "1344 misses and 100% miss rate at both DPRs",
+      "scan equals transfer plus miss",
+      "exact established layout/render counters and zero terminal error"
+    ],
+    "artifacts": [
+      "test-results",
+      "playwright-report"
+    ]
+  },
+  "measurements": {
+    "runs": [
+      {
+        "deviceScaleFactor": 1,
+        "throughput": 23.044029939955887,
+        "pacedP95Ms": 37.256103515625,
+        "finishScans": 1344,
+        "finishTransfers": 0,
+        "finishMisses": 1344,
+        "missRatePercent": 100.0,
+        "terminalErrorMax": 0.0
+      },
+      {
+        "deviceScaleFactor": 2,
+        "throughput": 22.71006469189028,
+        "pacedP95Ms": 36.524169921875,
+        "finishScans": 1344,
+        "finishTransfers": 0,
+        "finishMisses": 1344,
+        "missRatePercent": 100.0,
+        "terminalErrorMax": 0.0
+      }
+    ],
+    "exactCountersAtBothDprs": {
+      "boundsTreeVisits": 4440,
+      "boundsTreeChildEvaluations": 14351,
+      "boundsTreeRetainedNodes": 576
+    },
+    "playwright": {
+      "passed": 2,
+      "failed": 0
+    }
+  },
+  "reportMarkdown": "# Experiment 131 Report\n\nAdded three diagnostics-gated counters around the unchanged finish-time element-state loop and published them through Scene, bounded WGPU telemetry, the web numeric object, and Test Suite schema validation. Non-diagnostics state ownership and behavior are unchanged.\n\nFormatting, focused window tests, both gpux clippy matrices, 419 gpux diagnostics tests, gpui_wgpu diagnostics tests, and both headed Test Suite WebGPU cases passed. At both DPR 1 and DPR 2, the warmed frame scanned 1,344 accessed-state keys, transferred zero states, and missed 1,344 times. The exact identity `scans = transfers + misses` holds, established structural counters remain exact, and terminal error is zero.\n\nFor this representative workload, every finish-time hash-table removal is redundant. The result justifies a separate production experiment that tracks only replayed keys for deferred transfer while preserving the full access history for range replay and rollback.\n",
+  "decisionMarkdown": "# Decision\n\nAccept the diagnostic probe at product commit `5407f0f79ca2eb3bae9d8e92bcde0abeac791358`. Use the exact 1,344-scan, zero-transfer distribution to authorize an independent pending-replayed-state implementation experiment. Retain the probe until that candidate is decided, then retire it separately.\n",
+  "notes": ""
+}

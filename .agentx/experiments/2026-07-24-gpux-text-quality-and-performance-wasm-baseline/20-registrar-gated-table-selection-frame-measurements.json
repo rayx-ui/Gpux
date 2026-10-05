@@ -1,0 +1,1 @@
+{"target":"headed WASM/WebGPU DataTable fixture; 35 repetitions per DPR with five warmups discarded","baseline":{"dpr1":{"p50Ms":106.169,"p95Ms":113.772},"dpr2":{"p50Ms":100.149,"p95Ms":113.164}},"candidate":{"dpr1":{"p50Ms":112.75,"p95Ms":118.19},"dpr2":{"p50Ms":114.92,"p95Ms":121.60}}}

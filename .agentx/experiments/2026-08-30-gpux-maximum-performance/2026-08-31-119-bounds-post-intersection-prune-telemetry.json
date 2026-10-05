@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "id": "ce55af3f-c1a3-4161-b8c1-bdf4a5b107c9",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 119,
+  "type": "hypothesis",
+  "name": "Bounds Post Intersection Prune Telemetry",
+  "slug": "bounds-post-intersection-prune-telemetry",
+  "path": "2026-08-31-119-bounds-post-intersection-prune-telemetry.json",
+  "createdAt": "2026-08-31T18:51:56Z",
+  "startedAt": "2026-08-31T18:51:56Z",
+  "finishedAt": "2026-08-31T19:01:38Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "e5fc341c23ca9ee3d35d3e4d54fef2a222258353",
+  "resultCommit": "42427b14735ee6a3785b2cb6562ee7578899b85a",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard e5fc341c23ca9ee3d35d3e4d54fef2a222258353",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "e5fc341c23ca9ee3d35d3e4d54fef2a222258353",
+      "resultCommit": "42427b14735ee6a3785b2cb6562ee7578899b85a",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard e5fc341c23ca9ee3d35d3e4d54fef2a222258353",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "42427b14735ee6a3785b2cb6562ee7578899b85a"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux BoundsTree slow-search avoidable intersection measurement",
+  "hypothesisMarkdown": "## Bounds Post Intersection Prune Telemetry Hypothesis\n\nA single diagnostics counter on the existing top-of-loop `max_order <= max_found` branch will quantify how many child intersections were paid at enqueue and then rendered unnecessary by later priority discovery, establishing whether deferred intersection merits an optimization attempt.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nAdd only the new diagnostics field, its existing scene/web publication plumbing, focused diagnostics assertion coverage, and the Test Suite benchmark schema/assertion needed to capture it. The traversal algorithm, predicates, ordering, rendering behavior, dependencies, and all unrelated diagnostics are frozen.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nRun formatting, focused BoundsTree tests, both gpux clippy matrices, full gpux diagnostics tests, gpui_wgpu diagnostics tests, and the exclusive headed Test Suite WASM/WebGPU benchmark at DPR 1 and 2. Require exact existing tree counters and final rendering. Record the new prune count and divide it by existing search visits to estimate the avoidable-intersection population. Accept the telemetry if it is exact, bounded, and published consistently at both DPRs.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nThe new count should reveal whether priority updates make a material fraction of already-tested queued nodes unable to improve the result, providing a direct go/no-go gate for deferred intersection.\n",
+  "diagnostics": {
+    "playwright": [
+      {
+        "target": "apps/test_suite",
+        "runtime": "headed Chromium WASM/WebGPU",
+        "passed": 2,
+        "failed": 0
+      }
+    ],
+    "rayx": [],
+    "counters": [
+      "717 post-intersection max-order prunes at both DPRs",
+      "16.14864864864865 percent of 4440 search visits",
+      "all prior deterministic counters unchanged"
+    ],
+    "artifacts": [
+      "test-results",
+      "playwright-report"
+    ]
+  },
+  "measurements": {
+    "runs": [
+      {
+        "deviceScaleFactor": 1,
+        "throughput": 25.510908560166254,
+        "pacedP95Ms": 27.99853515625,
+        "terminalErrorMax": 0.0,
+        "searchNodeVisits": 4440,
+        "postIntersectionMaxOrderPrunes": 717,
+        "pruneSharePercent": 16.14864864864865
+      },
+      {
+        "deviceScaleFactor": 2,
+        "throughput": 26.23175294672756,
+        "pacedP95Ms": 27.072021484375,
+        "terminalErrorMax": 0.0,
+        "searchNodeVisits": 4440,
+        "postIntersectionMaxOrderPrunes": 717,
+        "pruneSharePercent": 16.14864864864865
+      }
+    ],
+    "deterministicCounters": {
+      "insertions": 504,
+      "slowSearches": 495,
+      "searchNodeVisits": 4440,
+      "insertionChildEvaluations": 14351,
+      "retainedNodes": 576,
+      "matchesExperiment114": true
+    },
+    "validation": {
+      "format": "pass",
+      "focusedBoundsTreeTests": "3 passed",
+      "clippyDefault": "pass",
+      "clippyDiagnostics": "pass",
+      "gpuxTests": "419 passed",
+      "gpuiWgpuTests": "52 passed",
+      "playwright": "2 passed"
+    }
+  },
+  "reportMarkdown": "# Experiment 119 Report\n\nThe diagnostics-only counter passed formatting, focused tests, both clippy matrices, 419 gpux tests, 52 gpui_wgpu tests, and both headed Test Suite WASM/WebGPU cases. The existing deterministic workload remained exact: 504 insertions, 495 slow searches, 4,440 visits, 14,351 insertion child evaluations, and 576 retained nodes at both DPRs.\n\nBoth DPRs reported 717 nodes that had already passed intersection at enqueue but were discarded by the later `max_order <= max_found` prune. That is 16.14864864864865% of existing search visits and therefore a direct, stable upper bound of 717 avoidable intersection calculations in this workload.\n\nFinal-state error was zero at both DPRs. The counter is bounded by visits, published consistently through the existing frame telemetry contract, and qualifies deferred intersection for a separate atomic implementation experiment.\n",
+  "decisionMarkdown": "# Decision\n\nAccept and commit the telemetry. A stable 16.149% post-intersection prune share is large enough to justify one deferred-intersection algorithm attempt. Retain the counter through that attempt so the structural effect can be measured; retire it in a later experiment once the branch is decided.\n",
+  "notes": ""
+}

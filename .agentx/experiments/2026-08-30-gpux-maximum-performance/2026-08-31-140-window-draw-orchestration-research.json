@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "id": "be6f459d-6bf6-4940-82f6-5595c30c4d88",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 140,
+  "type": "hypothesis",
+  "name": "Window Draw Orchestration Research",
+  "slug": "window-draw-orchestration-research",
+  "path": "2026-08-31-140-window-draw-orchestration-research.json",
+  "createdAt": "2026-08-31T20:53:56Z",
+  "startedAt": "2026-08-31T20:53:56Z",
+  "finishedAt": "2026-08-31T20:54:39Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "842bc587c5fd319ef36db7e68b4303f6d36af350",
+  "resultCommit": "842bc587c5fd319ef36db7e68b4303f6d36af350",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 842bc587c5fd319ef36db7e68b4303f6d36af350",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "842bc587c5fd319ef36db7e68b4303f6d36af350",
+      "resultCommit": "842bc587c5fd319ef36db7e68b4303f6d36af350",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 842bc587c5fd319ef36db7e68b4303f6d36af350",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "842bc587c5fd319ef36db7e68b4303f6d36af350"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux Window draw orchestration",
+  "hypothesisMarkdown": "## Window Draw Orchestration Research Hypothesis\n\nThe 218/181 ms `Window::draw` self-time envelope may contain repeated frame setup, whole-scene scans, or avoidable resets.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRead-only trace of draw initialization, layout/prepaint/paint sequencing, deferred draws, diagnostics, finish, swap, and clear. No edits.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nClassify frame-wide operations by necessity and allocation reuse, checking for duplicate traversals or materialization.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nSelect a bounded orchestration edit or prove the envelope aggregates necessary phase work.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [
+      "single root draw",
+      "single finish/swap/clear"
+    ],
+    "artifacts": [
+      "Window::draw source trace"
+    ]
+  },
+  "measurements": {
+    "profileSelfMs": {
+      "deviceScaleFactor1": 218.166,
+      "deviceScaleFactor2": 181.202
+    },
+    "rootDrawPasses": 1,
+    "frameSwaps": 1,
+    "retainedCapacityClear": true,
+    "duplicateWholeFrameTraversal": false
+  },
+  "reportMarkdown": "# Experiment 140 Report\n\n`Window::draw` coordinates one root draw, bounded diagnostics snapshots, layout/text finalization, pending replay-state transfer, one frame swap, and retained-capacity clear. It does not repeat layout, prepaint, paint, or scene traversal. Input-handler slot preservation and before/after focus paths maintain cached-range and focus-event correctness.\n\nThe profile frame is an orchestration envelope over already isolated hotspots, not a direct redundant-work site.\n",
+  "decisionMarkdown": "# Decision\n\nPreserve explicit draw sequencing. Optimize measured child phases independently rather than caching or fusing the frame coordinator.\n",
+  "notes": ""
+}

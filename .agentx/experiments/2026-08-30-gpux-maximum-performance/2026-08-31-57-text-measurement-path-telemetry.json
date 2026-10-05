@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "id": "8c02f7af-ae2b-4790-92c7-76a1209c1dfe",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 57,
+  "type": "hypothesis",
+  "name": "Text Measurement Path Telemetry",
+  "slug": "text-measurement-path-telemetry",
+  "path": "2026-08-31-57-text-measurement-path-telemetry.json",
+  "createdAt": "2026-08-31T04:57:04Z",
+  "startedAt": "2026-08-31T04:57:04Z",
+  "finishedAt": "2026-08-31T05:15:45Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "f4bc6ad3fa268e115d8e919ae6a8b33ff09f90d2",
+  "resultCommit": "e0889ba80cc083a0e6eb4cb7a3f7127898588031",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard f4bc6ad3fa268e115d8e919ae6a8b33ff09f90d2",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "f4bc6ad3fa268e115d8e919ae6a8b33ff09f90d2",
+      "resultCommit": "e0889ba80cc083a0e6eb4cb7a3f7127898588031",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard f4bc6ad3fa268e115d8e919ae6a8b33ff09f90d2",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "e0889ba80cc083a0e6eb4cb7a3f7127898588031"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "crates/gpux/crates/gpui/src/elements/text.rs",
+  "hypothesisMarkdown": "Most of the warmed wide DataTable's 882 text measurement callbacks return through `TextLayout`'s existing same-element size reuse path, while only a minority proceed through full text layout. Measuring that partition will show whether the remaining opportunity is callback/Taffy overhead or repeated text shaping.\n",
+  "measurementPlanMarkdown": "Add diagnostics-only per-frame counters for `TextLayout` local size reuse and full-layout execution, publish them through the existing frame telemetry, and assert that they partition text measurement calls. Run focused tests, full gpux and WGPU tests, production and diagnostic checks, formatting, clippy, and headed WebGPU Test Suite validation at DPR 1 and DPR 2 while preserving established layout and renderer invariants.\n",
+  "expectedOutcomeMarkdown": "Local size reuse should account for most of the 882 text measurement callbacks, with full text layout closer to the 229 measured leaves than to 882. The two path counts must sum exactly to text measurement calls at both DPRs, and all established wide DataTable invariants must remain exact.\n",
+  "diagnostics": {
+    "playwright": [
+      "The headed Chromium/WebGPU Test Suite passed DPR 1 and DPR 2: 2/2 cases, exact final offset -351402.6875, and zero browser errors.",
+      "Both final frames preserved 1123 Taffy nodes, 229 measured leaves, 82 root compute calls, 882 stable comparable measurements, nine batches, and 12 queue-buffer writes."
+    ],
+    "rayx": [
+      "All 414 gpux unit tests and every integration suite passed with rayx_diagnostics.",
+      "All 52 serialized gpui_wgpu tests passed with rayx_diagnostics.",
+      "Production and diagnostic checks, focused rustfmt, Clippy with warnings denied, diff checks, and the diagnostics drain oracle passed."
+    ],
+    "counters": [
+      "DPR 1: 882 text calls = 562 local size reuses + 320 full text layouts.",
+      "DPR 2: 882 text calls = 562 local size reuses + 320 full text layouts."
+    ],
+    "artifacts": [
+      "artifacts-temp/agentx-experiments/2026-08-30-gpux-maximum-performance/57-text-measurement-path-telemetry/playwright"
+    ]
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 text measurement path partition",
+      "before": "882 text measurement calls with internal path unknown",
+      "after": "562 local size reuses and 320 full text layouts",
+      "delta": "63.72% local reuse; 36.28% full layout",
+      "source": "headed Test Suite WebGPU frame telemetry"
+    },
+    {
+      "metric": "DPR 2 text measurement path partition",
+      "before": "882 text measurement calls with internal path unknown",
+      "after": "562 local size reuses and 320 full text layouts",
+      "delta": "63.72% local reuse; 36.28% full layout",
+      "source": "headed Test Suite WebGPU frame telemetry"
+    },
+    {
+      "metric": "behavioral invariants",
+      "before": "882 stable outputs, -351402.6875 final offset, 1123 nodes, 229 measured leaves, 82 compute calls",
+      "after": "exactly unchanged at both DPRs",
+      "delta": "zero",
+      "source": "headed Test Suite WebGPU frame telemetry"
+    }
+  ],
+  "reportMarkdown": "## Text Measurement Path Telemetry Finished\n\n**Index:** 57\n**Checkpoint:** `f4bc6ad3fa268e115d8e919ae6a8b33ff09f90d2`\n**Result:** `e0889ba80cc083a0e6eb4cb7a3f7127898588031`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. Diagnostics-only text measurement counters partition each frame's text callbacks into the existing local-size reuse path and full text-layout execution without changing production layout behavior or public APIs.\n\nThe final headed wide DataTable result is exact at both DPRs: 562 of 882 text callbacks reuse `TextLayout`'s local size and 320 perform full text layout. Local reuse therefore serves 63.72% of callbacks, while full layout serves 36.28%. The two paths sum exactly to all 882 text measurements. Both cases retained 882 comparable stable outputs, zero changed outputs, exact final offset `-351402.6875`, zero browser errors, 1,123 nodes, 229 measured leaves, 82 root compute calls, nine batches, and 12 queue-buffer writes.\n\nAll 414 gpux unit tests and integration suites, all 52 serialized WGPU tests, production and diagnostics checks, focused formatting, Clippy with warnings denied, and two headed WebGPU cases passed.\n\n### Scope Lock\n\nOnly diagnostics-gated path counters, bounded latest-frame telemetry publication, one focused drain oracle, and the Test Suite partition assertion changed. Production text measurement and caching behavior are unchanged.\n\n### Decision\n\nAccept the telemetry. Preserve `TextLayout`'s effective local reuse path and measure the 320 full-layout executions through `WindowTextSystem` before designing a text-owned cross-frame key. The 562 local hits do not justify hashing content and style on every callback without evidence that key construction is cheaper.\n",
+  "decisionMarkdown": "Accept diagnostics-only text path classification. The existing local cache serves 562/882 callbacks at both DPRs, so preserve it. Measure current-frame, previous-frame, and platform-shaping work within the remaining 320 full layouts before adding any text-owned cross-frame key or invalidation mechanism.\n",
+  "notes": ""
+}

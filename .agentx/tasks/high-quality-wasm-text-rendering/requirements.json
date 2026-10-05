@@ -1,0 +1,337 @@
+{
+  "schemaVersion": 5,
+  "epicId": "high-quality-wasm-text-rendering",
+  "title": "High-Quality WASM Text Rendering At Native Device Scale",
+  "scope": {
+    "problem": "RayX WASM text is visibly soft at DPR 1 and on real Windows high-DPI displays. The browser canvas and WGPU surface already attempt to follow window.devicePixelRatio, but gpui_web unconditionally reports subpixel text unsupported, which forces every browser glyph through the grayscale monochrome path. The prior text-quality regression removed RGB fringes but measured channel spread rather than spatial glyph sharpness, so it accepted text that users now describe as unusably blurry.",
+    "outcome": "RayX WASM renders text at the best quality supported by the actual browser/device scale, matches a visible browser-native reference within physical-pixel quality tolerances, remains correct across fractional DPR and live scale changes, and does so without forcing the entire application to DPR 2 or reintroducing unstable color fringes.",
+    "inScope": [
+      "Canvas CSS size, backing-store size, WGPU surface size, scene scale, and glyph raster scale diagnostics and invariants.",
+      "Visible Test Suite specimens paired with browser-native DOM text using identical font bytes, sizes, weights, colors, and backgrounds.",
+      "Objective physical-pixel measurements for edge-transition width, acutance, stem contrast, chromatic-fringe energy, glyph bounds, and advances at DPR 1, 1.25, 1.5, and 2.",
+      "WASM glyph rasterization, atlas keying/storage, sampling, gamma/contrast correction, and capability-driven grayscale or LCD/subpixel compositing policy.",
+      "Live browser scale changes, browser zoom/device emulation changes, transformed text, translucent destinations, light/dark themes, and representative proportional/monospace/script coverage.",
+      "Runtime, regression, and performance proof through apps/test_suite and tools-node/test_suite only."
+    ],
+    "outOfScope": [
+      "Forcing the complete RayX canvas or WGPU surface to a minimum DPR of 2.",
+      "Replacing gpux text layout, shaping, or selection architecture.",
+      "Creating a RayX-level text renderer, DOM mirror for production text, or platform-independent ClearType emulation service.",
+      "Automating apps/lab or tools-node/lab.",
+      "Changing native Windows, macOS, Linux, Android, or iOS text policy. WASM headed-WebGPU behavior is the required cross-target validation surface; no native target runtime or implementation-audit command is required by this epic."
+    ]
+  },
+  "constraints": {
+    "compatibility": [
+      "Preserve existing gpux font shaping, glyph advances, fallback selection, clipping, transforms, selection geometry, emoji rendering, and native-platform text behavior by keeping browser-specific policy target-gated and reviewing shared-code diffs; WASM headed-WebGPU proof is the required cross-target validation surface.",
+      "Keep the WebGPU canvas opaque for the standard RayX WASM window while retaining grayscale fallback for destinations or transforms that cannot safely use LCD/subpixel coverage."
+    ],
+    "publicApi": [
+      "Do not add a RayX public API, application service, or required application configuration for text sharpness.",
+      "Renderer diagnostics remain feature-gated by rayx_diagnostics and expose only bounded numeric/capability metadata."
+    ],
+    "dependencies": [
+      "Reuse gpui, gpui_web, gpui_wgpu, CosmicTextSystem/Swash, the existing glyph atlas, WgpuRenderer pipelines, Test Suite, Playwright, and the approved tools-node pnpm workspace.",
+      "Add no runtime dependency and no second font rasterizer unless measured evidence proves the existing Swash path cannot satisfy the quality contract and the design is explicitly reconciled before implementation continues."
+    ],
+    "data": [
+      "Quality artifacts contain only public deterministic fixture text, numeric image metrics, renderer capability metadata, screenshots of Test Suite specimens, and bounded timing/resource counters.",
+      "Diagnostics MUST NOT retain arbitrary application text, clipboard contents, user font files, or sampled production pixels."
+    ],
+    "operations": [
+      "All application-hosted validation runs through cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu with rayx_diagnostics enabled.",
+      "The focused quality matrix executes serially with one browser worker and records the actual browser DPR, visualViewport scale, canvas CSS/backing dimensions, surface dimensions, scene scale, glyph mode, raster scale, atlas counters, and GPU adapter capability.",
+      "A candidate rendering strategy is accepted only after it meets the full quality, correctness, and resource gates; failed candidates are reverted before another mechanism is attempted.",
+      "Implementation auditing and runtime testing use only WASM targets. Target-independent formatting, TypeScript type checking, schema validation, and AgentX/Git integrity checks remain allowed, but Windows, Android, iOS, macOS, and Linux target test commands are excluded."
+    ]
+  },
+  "actors": [
+    {
+      "id": "rayx-user",
+      "description": "Reads RayX text on standard-density, fractional-scale, and high-density browser displays and expects native-quality legibility."
+    },
+    {
+      "id": "rayx-maintainer",
+      "description": "Uses the Test Suite quality matrix and diagnostics to distinguish scale errors from glyph-rasterization/compositing defects and to prevent regressions."
+    }
+  ],
+  "functionalRequirements": [
+    {
+      "id": "REQ-F-001",
+      "title": "Matched visible text-quality measurement authority",
+      "statement": "The Test Suite MUST provide a visible, deterministic, side-by-side RayX WebGPU and browser-native DOM text specimen and MUST measure both crops in physical pixels at DPR 1, 1.25, 1.5, and 2 using identical bundled font bytes, text, size, weight, foreground, and background.",
+      "provenance": {
+        "basis": "explicit-requirement",
+        "userDecision": "High-quality text must be present at genuine DPR 1 and on the user's real high-DPI WASM build, not only in the DPR 2 Playwright window.",
+        "evidence": [
+          {
+            "repositoryId": "main",
+            "path": "apps/test_suite/src/pages/performance.rs",
+            "symbol": "text_quality",
+            "reason": "Current Test Suite specimen contains RayX text but no matched browser-native reference."
+          },
+          {
+            "repositoryId": "main",
+            "path": "tools-node/test_suite/performance-fixture.ts",
+            "symbol": "analyzePhysicalPixels",
+            "reason": "Current analysis records aggregate edge energy and chromatic pixels but does not isolate text sharpness against a matched reference."
+          }
+        ]
+      },
+      "behavior": {
+        "trigger": "The focused headed WebGPU text-quality spec opens the Test Suite quality route.",
+        "inputs": ["Bundled proportional and monospace fonts", "Deterministic Latin and representative complex-script strings", "Light and dark specimens", "DPR 1, 1.25, 1.5, and 2"],
+        "outputs": ["RayX and DOM crop geometry", "Edge-transition, acutance, stem-contrast, chromatic-fringe, bounds, and advance metrics", "Content-addressed screenshots and JSON diagnostics"],
+        "stateChanges": ["The test selects one deterministic specimen cell at a time and resets all counters before capture."],
+        "invariants": ["The RayX and DOM specimens use the same font bytes and authored typography.", "Whole-page color or unrelated UI pixels never contribute to text-quality metrics."],
+        "errors": ["Missing font load, mismatched geometry, unavailable WebGPU, empty glyph crop, or inconsistent DPR metadata fails the matrix cell."],
+        "edgeCases": ["Small 12 px regular text", "14-16 px ordinary UI text", "24 px heading text", "weights 400, 500, and 600", "light-on-dark and dark-on-light"]
+      },
+      "coverage": {
+        "happyPath": {"status": "required", "acceptanceCriteriaIds": ["AC-F-001-1"], "rationale": "Every density needs a matched visible specimen and metrics."},
+        "invalidInput": {"status": "required", "acceptanceCriteriaIds": ["AC-F-001-2"], "rationale": "A mismatched or empty crop must fail instead of producing a false quality score."},
+        "emptyInput": {"status": "required", "acceptanceCriteriaIds": ["AC-F-001-2"], "rationale": "An unloaded font or empty glyph crop is invalid evidence."},
+        "boundaryValues": {"status": "required", "acceptanceCriteriaIds": ["AC-F-001-1"], "rationale": "DPR 1 and small UI text are the primary failure boundary."},
+        "authorization": {"status": "not-applicable", "acceptanceCriteriaIds": [], "rationale": "The local deterministic Test Suite route has no authorization boundary."},
+        "cancellation": {"status": "required", "acceptanceCriteriaIds": ["AC-F-001-2"], "rationale": "A closed or interrupted browser run must not emit a passing partial artifact."},
+        "retryAndIdempotency": {"status": "required", "acceptanceCriteriaIds": ["AC-F-001-1"], "rationale": "Repeated captures must use reset counters and identical fixture content."},
+        "concurrency": {"status": "required", "acceptanceCriteriaIds": ["AC-F-001-2"], "rationale": "The quality matrix runs serially to prevent cross-window timing and screenshot contamination."},
+        "partialFailure": {"status": "required", "acceptanceCriteriaIds": ["AC-F-001-2"], "rationale": "One missing density or theme cell fails the complete matrix."},
+        "cleanupAndRollback": {"status": "required", "acceptanceCriteriaIds": ["AC-F-001-2"], "rationale": "Injected DOM reference/style state and diagnostic flags are removed with the test context."},
+        "compatibility": {"status": "required", "acceptanceCriteriaIds": ["AC-F-001-1"], "rationale": "The fixture reuses bundled application fonts and the current Test Suite host."},
+        "observability": {"status": "required", "acceptanceCriteriaIds": ["AC-F-001-1", "AC-F-001-2"], "rationale": "Every score must be attributable to exact crop and renderer metadata."},
+        "securityAndPrivacy": {"status": "required", "acceptanceCriteriaIds": ["AC-F-001-2"], "rationale": "Only deterministic fixture text and pixels are captured."},
+        "accessibility": {"status": "required", "acceptanceCriteriaIds": ["AC-F-001-1"], "rationale": "Readable text contrast and legibility are the user-facing accessibility outcome."}
+      },
+      "acceptanceCriteria": [
+        {
+          "id": "AC-F-001-1",
+          "statement": "One focused Test Suite matrix MUST capture matched RayX and visible DOM specimens at DPR 1, 1.25, 1.5, and 2 for 12/14/16/24 px text, weights 400/500/600, proportional and monospace fonts, and light/dark backgrounds, and MUST emit crop-local edge-transition, acutance, stem-contrast, chromatic-fringe, glyph-bounds, and advance metrics.",
+          "requiredValidationProfiles": ["runtime", "regression"]
+        },
+        {
+          "id": "AC-F-001-2",
+          "statement": "The measurement harness MUST fail on missing WebGPU, unloaded or substituted fonts, empty/misaligned crops, inconsistent DPR/geometry metadata, browser errors, partial matrix output, or content-derived diagnostics outside the deterministic fixture.",
+          "requiredValidationProfiles": ["runtime", "security"]
+        }
+      ],
+      "validationProfiles": ["runtime", "regression", "security"]
+    },
+    {
+      "id": "REQ-F-002",
+      "title": "Truthful native-DPR canvas and renderer scale",
+      "statement": "gpui_web MUST keep the canvas backing store, WGPU surface, GPUI logical bounds, scene scale, and glyph effective physical scale consistent with the actual browser DPR across initial launch, fractional DPR, resize, browser zoom/device-scale changes, and monitor-scale transitions.",
+      "provenance": {
+        "basis": "repository-pattern",
+        "evidence": [
+          {"repositoryId": "main", "path": "crates/gpux/crates/gpui_web/src/window.rs", "symbol": "physical_canvas_size", "reason": "Current owner multiplies CSS logical size by browser DPR and rounds the physical canvas axis."},
+          {"repositoryId": "main", "path": ".codex/skills/gpux/references/multithreaded-wasm-apps.md", "reason": "Repository guidance requires CSS contentRect multiplied by devicePixelRatio and explicit backing-store diagnostics."}
+        ]
+      },
+      "behavior": {
+        "trigger": "A browser window starts or its CSS size/device scale changes.",
+        "inputs": ["window.devicePixelRatio", "canvas contentRect", "max texture dimension", "WGPU surface configuration", "GPUI resize callback"],
+        "outputs": ["One consistent logical/physical scale tuple", "A forced fresh frame after scale change", "Bounded diagnostics"],
+        "stateChanges": ["Canvas backing size and surface size update together", "Scene scale and glyph cache key adopt the new effective scale", "Stale scale-dependent glyph entries are not reused for the new frame"],
+        "invariants": ["canvas.width equals round(cssWidth * DPR) within one physical pixel and likewise for height.", "Surface size equals canvas backing size.", "No global minimum DPR overrides the browser DPR."],
+        "errors": ["Invalid/non-finite DPR falls back to 1 and is reported", "Texture-dimension clamping is explicit and fails the quality fixture rather than silently scaling text"],
+        "edgeCases": ["DPR 1.25 and 1.5 rounding", "zero-size hidden canvas", "rapid consecutive scale changes", "maximum texture dimension"]
+      },
+      "coverage": {
+        "happyPath": {"status": "required", "acceptanceCriteriaIds": ["AC-F-002-1"], "rationale": "Every supported DPR must produce one consistent scale tuple."},
+        "invalidInput": {"status": "required", "acceptanceCriteriaIds": ["AC-F-002-1"], "rationale": "Invalid DPR and clamped dimensions require explicit behavior."},
+        "emptyInput": {"status": "not-applicable", "acceptanceCriteriaIds": [], "rationale": "Browser scale observation always has a window and canvas."},
+        "boundaryValues": {"status": "required", "acceptanceCriteriaIds": ["AC-F-002-1", "AC-F-002-2"], "rationale": "Fractional DPR and live transition boundaries are the suspected calculus failure."},
+        "authorization": {"status": "not-applicable", "acceptanceCriteriaIds": [], "rationale": "No authorization boundary exists in viewport sizing."},
+        "cancellation": {"status": "required", "acceptanceCriteriaIds": ["AC-F-002-2"], "rationale": "Window teardown must stop pending scale callbacks."},
+        "retryAndIdempotency": {"status": "required", "acceptanceCriteriaIds": ["AC-F-002-2"], "rationale": "Repeated identical observations must not reconfigure or rerasterize unnecessarily."},
+        "concurrency": {"status": "required", "acceptanceCriteriaIds": ["AC-F-002-2"], "rationale": "ResizeObserver, media-query, and animation-frame signals are coalesced into one tuple."},
+        "partialFailure": {"status": "required", "acceptanceCriteriaIds": ["AC-F-002-2"], "rationale": "Canvas, surface, and scene cannot commit different scale generations."},
+        "cleanupAndRollback": {"status": "required", "acceptanceCriteriaIds": ["AC-F-002-2"], "rationale": "Scale watchers are disconnected on close and failed candidate calculus changes are reverted."},
+        "compatibility": {"status": "required", "acceptanceCriteriaIds": ["AC-F-002-1"], "rationale": "Existing viewport and media-query behavior must remain stable."},
+        "observability": {"status": "required", "acceptanceCriteriaIds": ["AC-F-002-1", "AC-F-002-2"], "rationale": "The scale tuple and generation must be visible in diagnostics."},
+        "securityAndPrivacy": {"status": "required", "acceptanceCriteriaIds": ["AC-F-002-1"], "rationale": "Only numeric viewport metadata is published."},
+        "accessibility": {"status": "required", "acceptanceCriteriaIds": ["AC-F-002-2"], "rationale": "Text must stay legible after display-scale transitions."}
+      },
+      "acceptanceCriteria": [
+        {"id": "AC-F-002-1", "statement": "At DPR 1, 1.25, 1.5, and 2, diagnostics and runtime assertions MUST prove each backing axis equals round(CSS axis multiplied by browser DPR) within one physical pixel, WGPU surface dimensions equal backing dimensions, GPUI scene scale equals browser DPR, and no complete-canvas DPR floor is applied.", "requiredValidationProfiles": ["runtime", "contract"]},
+        {"id": "AC-F-002-2", "statement": "After each emulated live transition among DPR 1, 1.25, 1.5, and 2, the new scale tuple and correctly rasterized text MUST appear within two presented animation frames, stale glyph-scale entries MUST not be drawn, identical observations MUST not repeat surface reconfiguration, and window teardown MUST leave no active scale callback.", "requiredValidationProfiles": ["runtime", "regression"]}
+      ],
+      "validationProfiles": ["runtime", "contract", "regression"]
+    },
+    {
+      "id": "REQ-F-003",
+      "title": "High-quality adaptive browser glyph rendering",
+      "statement": "The gpux browser text path MUST select and render a measured high-quality glyph coverage strategy that satisfies the matched DOM quality gates at DPR 1, 1.25, 1.5, and 2 while preventing unsupported or composition-unsafe LCD/subpixel output.",
+      "provenance": {
+        "basis": "explicit-requirement",
+        "userDecision": "The current grayscale-only DPR 1 output is unacceptable and RayX must provide high-quality text rendering.",
+        "evidence": [
+          {"repositoryId": "main", "path": "crates/gpux/crates/gpui_web/src/window.rs", "symbol": "WebWindow::is_subpixel_rendering_supported", "reason": "Current browser platform hardcodes false, forcing grayscale coverage."},
+          {"repositoryId": "main", "path": "crates/gpux/crates/gpui/src/window.rs", "symbol": "Window::paint_glyph", "reason": "Existing selection point chooses SubpixelSprite or MonochromeSprite."},
+          {"repositoryId": "main", "path": "crates/gpux/crates/gpui_wgpu/src/cosmic_text_system.rs", "symbol": "CosmicTextSystemState::render_glyph_image", "reason": "Swash raster scale, hinting, alpha/subpixel format, and subpixel phase are owned here."},
+          {"repositoryId": "main", "path": "crates/gpux/crates/gpui_wgpu/src/wgpu_renderer.rs", "symbol": "WgpuRenderer", "reason": "WGPU sampling, gamma/contrast, dual-source capability, and glyph pipelines are renderer-owned."}
+        ]
+      },
+      "behavior": {
+        "trigger": "GPUI paints an axis-aligned text glyph into the browser scene.",
+        "inputs": ["Font/glyph ID and size", "actual scene DPR", "subpixel phase", "destination opacity and transform", "dual-source blend capability", "measured browser quality policy"],
+        "outputs": ["One atlas entry and sprite kind whose raster/sampling/compositing mode meets the quality contract", "Mode/raster-scale diagnostics"],
+        "stateChanges": ["The glyph cache key distinguishes every coverage/raster-scale state that changes pixels", "Only an accepted measured strategy becomes the browser default"],
+        "invariants": ["Text geometry and advances do not change with antialiasing mode.", "LCD/subpixel output is never selected from GPU capability alone.", "Color emoji and image masks remain separate from text coverage."],
+        "errors": ["Unsupported pipeline or failed candidate quality gate falls back to the accepted high-quality grayscale route and fails the candidate experiment", "Unknown coverage mode fails renderer validation"],
+        "edgeCases": ["DPR 1 low-density text", "fractional DPR sampling phase", "light and dark colors", "RGB/BGR uncertainty", "transforms and translucent backgrounds"]
+      },
+      "coverage": {
+        "happyPath": {"status": "required", "acceptanceCriteriaIds": ["AC-F-003-1"], "rationale": "Ordinary opaque axis-aligned browser text must meet the native reference."},
+        "invalidInput": {"status": "required", "acceptanceCriteriaIds": ["AC-F-003-2"], "rationale": "Unsupported coverage modes and inconsistent capabilities must fail safely."},
+        "emptyInput": {"status": "not-applicable", "acceptanceCriteriaIds": [], "rationale": "Empty text produces no glyph and no quality decision."},
+        "boundaryValues": {"status": "required", "acceptanceCriteriaIds": ["AC-F-003-1", "AC-F-003-2"], "rationale": "DPR 1, fractional phase, and small fonts are the quality boundaries."},
+        "authorization": {"status": "not-applicable", "acceptanceCriteriaIds": [], "rationale": "Glyph rendering has no authorization boundary."},
+        "cancellation": {"status": "not-applicable", "acceptanceCriteriaIds": [], "rationale": "Glyph rasterization is synchronous within frame preparation."},
+        "retryAndIdempotency": {"status": "required", "acceptanceCriteriaIds": ["AC-F-003-1"], "rationale": "Identical cache keys must return identical pixels without rerasterization."},
+        "concurrency": {"status": "required", "acceptanceCriteriaIds": ["AC-F-003-2"], "rationale": "Atlas insertion and renderer draw must observe one immutable mode/scale tuple."},
+        "partialFailure": {"status": "required", "acceptanceCriteriaIds": ["AC-F-003-2"], "rationale": "A missing LCD pipeline cannot silently sample an incompatible atlas texture."},
+        "cleanupAndRollback": {"status": "required", "acceptanceCriteriaIds": ["AC-F-003-2"], "rationale": "Every rejected candidate is reverted before the next experiment."},
+        "compatibility": {"status": "required", "acceptanceCriteriaIds": ["AC-F-003-2"], "rationale": "Native targets, emoji, masks, layout, and selection geometry remain unchanged."},
+        "observability": {"status": "required", "acceptanceCriteriaIds": ["AC-F-003-1", "AC-F-003-2"], "rationale": "Mode, raster scale, cache kind, and renderer capability are required for attribution."},
+        "securityAndPrivacy": {"status": "required", "acceptanceCriteriaIds": ["AC-F-003-2"], "rationale": "Diagnostics expose counts and modes, not glyph content."},
+        "accessibility": {"status": "required", "acceptanceCriteriaIds": ["AC-F-003-1"], "rationale": "Sharp readable text is the primary accessibility behavior."}
+      },
+      "acceptanceCriteria": [
+        {"id": "AC-F-003-1", "statement": "For every required DPR/theme/font-size/weight cell, RayX text MUST have p95 luminance edge-transition width no more than one physical sampling pixel wider than the matched DOM reference, median acutance and stem contrast no lower than the reference after the same one-pixel tolerance, and unchanged authored glyph advances and CSS bounds within 0.25 CSS px.", "requiredValidationProfiles": ["runtime", "regression", "performance"]},
+        {"id": "AC-F-003-2", "statement": "The accepted strategy MUST keep chromatic-fringe energy outside the matched DOM reference edge band at or below the DOM reference plus one 8-bit channel quantization unit, MUST use grayscale for transformed/translucent/unsupported cases, MUST keep emoji and image-mask coverage unchanged, and MUST never infer safe LCD geometry from dual-source blending alone.", "requiredValidationProfiles": ["runtime", "regression"]}
+      ],
+      "validationProfiles": ["runtime", "regression", "performance"]
+    },
+    {
+      "id": "REQ-F-004",
+      "title": "Text-surface and lifecycle regression safety",
+      "statement": "The accepted WASM text-quality change MUST preserve ordinary Text, RichText, editable fields, TextArea, code/monospace text, selection, clipping, scrolling, opacity, transforms, font fallback, emoji, and dynamic scale behavior without crashes, stale glyphs, geometry drift, or diagnostic leakage.",
+      "provenance": {
+        "basis": "repository-pattern",
+        "evidence": [
+          {"repositoryId": "main", "path": "apps/test_suite/src/pages/performance.rs", "reason": "Current Test Suite contains TextArea, SelectionArea, DataTable, and text-quality workloads."},
+          {"repositoryId": "main", "path": "tools-node/test_suite/rayx-text-quality-performance.spec.ts", "reason": "Existing focused runtime route supplies a regression starting point."},
+          {"repositoryId": "main", "path": ".agentx/tasks/rayx-text-system-refactor-bugfixes/requirements.json", "reason": "Prior work established script fallback, selection, and grayscale/no-fringe constraints that remain compatibility obligations."}
+        ]
+      },
+      "behavior": {
+        "trigger": "The final focused and broad WASM validation suite exercises representative text surfaces before and after scale changes.",
+        "inputs": ["Immutable and editable text", "scroll/selection input", "transforms and opacity", "font fallback strings", "DPR transitions"],
+        "outputs": ["Correct pixels and geometry", "No page/console/WGPU validation errors", "No content-bearing production diagnostics"],
+        "stateChanges": ["Glyph cache and surface state transition only when their keys/generation change", "Temporary traces are removed after proof"],
+        "invariants": ["Selection endpoints and text advances remain stable.", "A quality change cannot resurrect Lab automation or production diagnostic payloads."],
+        "errors": ["Any crash, Dawn validation error, missing glyph, geometry drift, stale-scale glyph, or content diagnostic fails convergence."],
+        "edgeCases": ["Scrolled virtualized text", "active selection", "clipped glyph edge", "opacity below one", "rotated/scaled text", "fallback scripts and emoji"]
+      },
+      "coverage": {
+        "happyPath": {"status": "required", "acceptanceCriteriaIds": ["AC-F-004-1"], "rationale": "Representative text surfaces must retain behavior with improved quality."},
+        "invalidInput": {"status": "required", "acceptanceCriteriaIds": ["AC-F-004-2"], "rationale": "Invalid renderer state and unsupported transforms must fail or fall back safely."},
+        "emptyInput": {"status": "required", "acceptanceCriteriaIds": ["AC-F-004-1"], "rationale": "Empty text surfaces remain empty without atlas work."},
+        "boundaryValues": {"status": "required", "acceptanceCriteriaIds": ["AC-F-004-1"], "rationale": "Clipping edges, small fonts, selection endpoints, and scale transitions are boundaries."},
+        "authorization": {"status": "not-applicable", "acceptanceCriteriaIds": [], "rationale": "No authorization behavior changes."},
+        "cancellation": {"status": "required", "acceptanceCriteriaIds": ["AC-F-004-2"], "rationale": "Window close cancels scale observation and rendering callbacks."},
+        "retryAndIdempotency": {"status": "required", "acceptanceCriteriaIds": ["AC-F-004-1"], "rationale": "Repeated unchanged frames reuse glyphs and render identically."},
+        "concurrency": {"status": "required", "acceptanceCriteriaIds": ["AC-F-004-2"], "rationale": "Multithreaded WASM startup and frame scheduling remain valid."},
+        "partialFailure": {"status": "required", "acceptanceCriteriaIds": ["AC-F-004-2"], "rationale": "A failed quality or compatibility cell fails the final matrix."},
+        "cleanupAndRollback": {"status": "required", "acceptanceCriteriaIds": ["AC-F-004-2"], "rationale": "Temporary instrumentation and rejected experiments are removed."},
+        "compatibility": {"status": "required", "acceptanceCriteriaIds": ["AC-F-004-1"], "rationale": "Shared text surfaces and native targets retain their contracts."},
+        "observability": {"status": "required", "acceptanceCriteriaIds": ["AC-F-004-2"], "rationale": "Final diagnostics prove mode and scale without content."},
+        "securityAndPrivacy": {"status": "required", "acceptanceCriteriaIds": ["AC-F-004-2"], "rationale": "Production builds omit diagnostic globals and sampled content."},
+        "accessibility": {"status": "required", "acceptanceCriteriaIds": ["AC-F-004-1"], "rationale": "Readable text and selection visibility must remain correct."}
+      },
+      "acceptanceCriteria": [
+        {"id": "AC-F-004-1", "statement": "Focused headed WebGPU tests MUST prove immutable Text/RichText, editable fields/TextArea, monospace/code text, selection, scrolling, clipping, light/dark colors, fallback scripts, and emoji at DPR 1 and 2, with unchanged text advances/selection geometry and the accepted quality policy active where applicable.", "requiredValidationProfiles": ["runtime", "interaction", "regression"]},
+        {"id": "AC-F-004-2", "statement": "Final WASM validation MUST report zero page errors, zero unexpected console/Dawn validation errors, zero stale-scale glyph frames after transitions, zero active scale callbacks after close, no Lab automation, and no production content-bearing text diagnostic global.", "requiredValidationProfiles": ["runtime", "security", "architecture"]}
+      ],
+      "validationProfiles": ["runtime", "interaction", "regression", "security", "architecture"]
+    }
+  ],
+  "nonFunctionalRequirements": [
+    {
+      "id": "REQ-NF-001",
+      "title": "Bounded quality cost",
+      "statement": "The accepted text-quality strategy MUST improve low-density text without a broad rendering-scale tax or unbounded glyph-atlas growth.",
+      "provenance": {"basis": "repository-pattern", "evidence": [{"repositoryId": "main", "path": ".agentx/experiments/2026-07-24-gpux-text-quality-and-performance-wasm-baseline/configuration.json", "reason": "Prior text experiments used a five-percent warm p95 rejection gate and atomic commit-or-revert decisions."}]},
+      "qualityContract": {
+        "attribute": "performance",
+        "metric": "Warm input-to-published-frame p95, glyph rasterization count, glyph atlas bytes/entries, canvas backing pixels, and renderer draw count",
+        "workload": "The focused matched specimen plus existing 2,000-line TextArea and text-quality Test Suite workloads at DPR 1, 1.25, 1.5, and 2 after five warmups and at least thirty measured samples per density",
+        "baseline": "Fresh Sprint 1 measurements from the current grayscale-only implementation",
+        "target": "No warm p95 regression greater than 5 percent per density; unchanged frames perform zero additional glyph rasterizations; atlas entries remain keyed and bounded by the existing atlas eviction policy; complete-canvas backing pixels remain round(CSS size multiplied by actual DPR) rather than a DPR-2 floor",
+        "measurement": "Focused headed WebGPU performance fixture and renderer diagnostics recorded by the AgentX frozen validation commands",
+        "environment": "apps/test_suite WASM, headed Chromium WebGPU, one worker, the same adapter/browser build and viewport for before/after samples"
+      },
+      "acceptanceCriteria": [
+        {"id": "AC-NF-001-1", "statement": "Against the fresh baseline, every required density MUST stay within the 5 percent warm p95 limit, unchanged frames MUST add zero glyph rasterizations, glyph entries/bytes MUST remain bounded by declared cache keys and existing atlas eviction, and canvas backing pixels MUST remain native-DPR sized.", "requiredValidationProfiles": ["performance"]}
+      ],
+      "validationProfiles": ["performance"]
+    },
+    {
+      "id": "REQ-NF-002",
+      "title": "Minimal renderer ownership",
+      "statement": "The implementation MUST remain inside existing gpux platform, text-system, atlas, scene, and WGPU renderer responsibilities and MUST introduce no duplicate service, renderer, font engine, application configuration, or speculative abstraction.",
+      "provenance": {"basis": "agentx-default", "evidence": [{"repositoryId": "main", "path": "AGENTS.md", "reason": "Repository simplicity and ownership rules prohibit unnecessary layers and duplicate owners."}, {"repositoryId": "main", "path": ".codex/skills/gpux/SKILL.md", "reason": "GPUX guidance keeps platform capability answers tied to negotiated renderer features."}]},
+      "qualityContract": {
+        "attribute": "maintainability",
+        "metric": "New public APIs, dependencies, top-level abstractions, duplicate rendering owners, and undeclared changed paths",
+        "workload": "Complete epic diff and generated AgentX design-quality audit",
+        "baseline": "Existing gpui_web, gpui, CosmicTextSystem, glyph atlas, and WgpuRenderer ownership",
+        "target": "Zero new runtime dependencies, zero RayX public APIs, zero duplicate renderer/service owners, and no undeclared abstraction or changed path",
+        "measurement": "Cargo metadata/source guards, strict AgentX audit, generated sprint design-quality audits, and manual simplicity review",
+        "environment": "RayX and embedded gpux workspaces"
+      },
+      "acceptanceCriteria": [
+        {"id": "AC-NF-002-1", "statement": "The final diff and generated audits MUST contain zero new runtime dependencies, zero RayX public text-quality APIs/services, zero duplicate font/rendering owners, zero full-canvas DPR-floor mechanism, and zero undeclared abstractions or paths.", "requiredValidationProfiles": ["architecture", "static-analysis"]}
+      ],
+      "validationProfiles": ["architecture", "static-analysis"]
+    },
+    {
+      "id": "REQ-NF-003",
+      "title": "Repeatable headed WebGPU proof",
+      "statement": "Text-quality completion MUST be based on repeatable headed WebGPU measurements and user-visible specimen evidence rather than screenshot-only judgment or one passing run.",
+      "provenance": {"basis": "repository-pattern", "evidence": [{"repositoryId": "main", "path": "AGENTS.md", "reason": "RayX runtime proof requires headed Test Suite WASM/WebGPU validation."}]},
+      "qualityContract": {
+        "attribute": "reliability",
+        "metric": "Complete focused matrix pass count and metric variance",
+        "workload": "Three consecutive complete quality/regression matrix runs after the accepted renderer implementation",
+        "baseline": "Current two-project smoke coverage lacks fractional DPR and matched-reference sharpness assertions",
+        "target": "Three consecutive complete passes with every quality/correctness cell present, coefficient of variation below 10 percent for warm timing samples, and zero browser/WebGPU errors",
+        "measurement": "Frozen focused Test Suite WASM command with retained JSON, screenshots, trace, and timing samples",
+        "environment": "Headed Chromium with WebGPU enabled, one worker, fixed viewport and adapter"
+      },
+      "acceptanceCriteria": [
+        {"id": "AC-NF-003-1", "statement": "The evidence ledger MUST contain three consecutive complete focused matrix passes with every density/theme/typography cell, warm timing coefficient of variation below 10 percent, and zero browser/WebGPU errors; a screenshot or smoke run alone MUST NOT close the epic.", "requiredValidationProfiles": ["runtime", "regression", "performance"]}
+      ],
+      "validationProfiles": ["runtime", "regression", "performance"]
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "ASM-001",
+      "statement": "A visible browser-native DOM specimen using the same bundled font bytes is the best available automated reference for browser text quality on the executing display stack.",
+      "basis": "bounded-assumption",
+      "evidence": [{"repositoryId": "main", "path": ".agentx/tasks/gpux-text-rendering-quality-performance/design.json", "reason": "Prior native work used a matched platform-native specimen rather than comparing unmatched screenshots."}],
+      "revalidationTrigger": "Sprint 1 must reject the assumption if DOM and RayX crops cannot be matched in font, scale, or physical-pixel geometry."
+    },
+    {
+      "id": "ASM-002",
+      "statement": "The exact production mechanism remains an internal measured choice among DPR/sampling-phase correction, grayscale hinting/gamma/sampling repair, text-only coverage supersampling, and capability/composition-gated LCD output; the smallest candidate meeting every frozen gate wins.",
+      "basis": "bounded-assumption",
+      "evidence": [{"repositoryId": "main", "path": "crates/gpux/crates/gpui_wgpu/src/wgpu_renderer.rs", "reason": "The renderer already contains grayscale and dual-source subpixel pipelines, so the defect can be investigated without a new renderer owner."}],
+      "revalidationTrigger": "If no existing-path candidate meets the full gate, implementation stops blocked and reconciles design before adding a dependency or new rasterizer."
+    }
+  ],
+  "risks": [
+    "Browser screenshots and physical monitor output can differ when the OS compositor applies display-only subpixel processing; the plan therefore combines crop metrics, renderer diagnostics, and visible headed inspection.",
+    "LCD/subpixel coverage can look sharper at DPR 1 but produce color fringes on fractional scale, transformed content, non-RGB pixel layouts, or composited/translucent destinations; it is never accepted without the full chromatic-fringe gate.",
+    "Text-only supersampling can increase atlas memory or soften hinted stems if filtering is incorrect; resource and acutance gates prevent accepting that trade-off blindly.",
+    "The implementation worktree was rebased to the current repository state after the epic was planned; every sprint must still remain within its declared scopes and avoid resurrecting superseded code."
+  ],
+  "deferredNonGoals": [
+    "Native-platform typography redesign or replacement of platform-native font systems.",
+    "A user-facing text antialiasing preference; add one only under a separate explicit product decision after automatic policy proves insufficient.",
+    "Perfect pixel identity across different browsers, GPUs, operating systems, and physical panel layouts; each supported environment must meet the reference-relative quality contract on its own stack."
+  ]
+}

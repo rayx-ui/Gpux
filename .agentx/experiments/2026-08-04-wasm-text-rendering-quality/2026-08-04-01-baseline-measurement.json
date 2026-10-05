@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "id": "cc0ee20f-acaf-472a-a1c1-627ec309d7d6",
+  "loopId": "dc424089-d0a5-4558-ae79-72a6a8d787db",
+  "index": 1,
+  "type": "baseline",
+  "name": "Baseline Measurement",
+  "slug": "baseline-measurement",
+  "path": "2026-08-04-01-baseline-measurement.json",
+  "createdAt": "2026-08-04T14:57:12Z",
+  "startedAt": "2026-08-04T14:57:12Z",
+  "finishedAt": "2026-08-04T15:03:11Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "ad371b2a0d408fe827935f9c6b3e02d3a2755ee2",
+  "resultCommit": "4ca42e6dee72184a2e6a1896fe8e1b5248ce864b",
+  "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\8da1\\RayX\" reset --hard ad371b2a0d408fe827935f9c6b3e02d3a2755ee2",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "ad371b2a0d408fe827935f9c6b3e02d3a2755ee2",
+      "resultCommit": "4ca42e6dee72184a2e6a1896fe8e1b5248ce864b",
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\8da1\\RayX\" reset --hard ad371b2a0d408fe827935f9c6b3e02d3a2755ee2",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "4ca42e6dee72184a2e6a1896fe8e1b5248ce864b"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "wasm/web with headed Playwright and WebGPU enabled",
+  "hypothesisMarkdown": "## Baseline Measurement\n\nMeasure and document the starting point for this improvement loop before making optimization changes.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nRun the frozen headed Test Suite WASM/WebGPU matrix at DPR 1, 1.25, 1.5, and 2. Record matched RayX/DOM acutance, chromatic fringe, physical alignment, native-DPR backing dimensions, and thirty-sample warm timing summaries. Inspect the existing glyph ownership and diagnostics surfaces without changing production rendering.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nBaseline metrics are captured and stored so later experiments compare against a known starting point.",
+  "diagnostics": {
+    "playwright": [
+      "The focused headed-WebGPU matrix completed its baseline capture and diagnostic-privacy tests; the frozen quality target failed with the expected matched DOM quality target unmet predicate."
+    ],
+    "rayx": [
+      "The active WASM path reports grayscale monochrome glyph coverage; browser subpixel support remains disabled and native-DPR canvas allocation is preserved."
+    ],
+    "counters": [
+      "DPR 1: min acutance ratio 0.80456135, warm p50 9.99 ms, warm p95 10.01 ms, backing 1440x1320.",
+      "DPR 1.25: min acutance ratio 0.87, warm p50 10.00 ms, warm p95 10.02 ms, backing 1800x1650.",
+      "DPR 1.5: min acutance ratio 0.97, warm p50 9.99 ms, warm p95 10.07 ms, backing 2160x1980.",
+      "DPR 2: min acutance ratio 1.03, warm p50 10.00 ms, warm p95 10.11 ms, backing 2880x2640.",
+      "Maximum RayX chromatic-fringe ratio is 0 at every density; maximum physical alignment delta is 2 pixels."
+    ],
+    "artifacts": [
+      "tools-node/test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+      ".agentx/tasks/high-quality-wasm-text-rendering/evidence.jsonl"
+    ]
+  },
+  "measurements": [
+    {
+      "name": "minimum_acutance_ratio_dpr_1",
+      "value": 0.80456135,
+      "unit": "ratio"
+    },
+    {
+      "name": "minimum_acutance_ratio_dpr_1_25",
+      "value": 0.87,
+      "unit": "ratio"
+    },
+    {
+      "name": "minimum_acutance_ratio_dpr_1_5",
+      "value": 0.97,
+      "unit": "ratio"
+    },
+    {
+      "name": "minimum_acutance_ratio_dpr_2",
+      "value": 1.03,
+      "unit": "ratio"
+    },
+    {
+      "name": "maximum_rayx_chromatic_fringe_ratio",
+      "value": 0,
+      "unit": "ratio"
+    },
+    {
+      "name": "maximum_alignment_delta",
+      "value": 2,
+      "unit": "physical_pixels"
+    },
+    {
+      "name": "warm_p95_dpr_1",
+      "value": 10.01,
+      "unit": "milliseconds"
+    },
+    {
+      "name": "warm_p95_dpr_1_25",
+      "value": 10.02,
+      "unit": "milliseconds"
+    },
+    {
+      "name": "warm_p95_dpr_1_5",
+      "value": 10.07,
+      "unit": "milliseconds"
+    },
+    {
+      "name": "warm_p95_dpr_2",
+      "value": 10.11,
+      "unit": "milliseconds"
+    }
+  ],
+  "reportMarkdown": "## Baseline Report\n\nThe mandatory baseline reproduced the intended red gate. Low-density text is the localized problem: DPR 1 reaches only 0.8046 of matched DOM acutance, while DPR 1.5 and 2 already exceed the 0.90 target. Chromatic-fringe energy remains zero and native-DPR backing dimensions remain exact. The worst DPR 1 cells are the smallest normal-weight specimens, not a broad geometry or scale failure. Read-only AST complexity scanning found broad renderer/font-database leads but no proven text-quality mechanism, so none enters the candidate ladder.\n\nThe current quality target reads the immutable Sprint 1 baseline rather than the just-captured candidate metrics. That is a measurement-publication gap: a renderer improvement cannot pass the target until the test consumes its current in-memory capture. The next atomic experiment will repair only that measurement path before any rasterization candidate is attempted.",
+  "decisionMarkdown": "### Decision\n\nAccept the baseline as a successful measurement-only experiment. Make no production rendering change. Preserve the fixed candidate order, but first run one measurement-enablement experiment so each later candidate is judged from its current capture rather than the immutable baseline artifact.",
+  "notes": "Baseline target failure was expected and matched exactly. No application other than apps/test_suite was launched."
+}

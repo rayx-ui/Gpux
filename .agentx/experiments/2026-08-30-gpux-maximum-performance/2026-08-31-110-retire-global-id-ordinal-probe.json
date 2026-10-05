@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "id": "32dd01c5-d11e-428d-931d-3e600088558a",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 110,
+  "type": "hypothesis",
+  "name": "Retire Global ID Ordinal Probe",
+  "slug": "retire-global-id-ordinal-probe",
+  "path": "2026-08-31-110-retire-global-id-ordinal-probe.json",
+  "createdAt": "2026-08-31T17:50:49Z",
+  "startedAt": "2026-08-31T17:50:49Z",
+  "finishedAt": "2026-08-31T17:59:55Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "5d40caf00139c219df90dfab05bd11b10c9f2824",
+  "resultCommit": "6309c823efd5e70a864a9179389bd9dda924e6c3",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 5d40caf00139c219df90dfab05bd11b10c9f2824",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "5d40caf00139c219df90dfab05bd11b10c9f2824",
+      "resultCommit": "6309c823efd5e70a864a9179389bd9dda924e6c3",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 5d40caf00139c219df90dfab05bd11b10c9f2824",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "6309c823efd5e70a864a9179389bd9dda924e6c3"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux diagnostics-only GlobalElementId instrumentation overhead",
+  "hypothesisMarkdown": "## Retire Global ID Ordinal Probe Hypothesis\n\nNow that both map and vector reuse are decisively rejected, removing the temporary same-ordinal hash vectors and ninth counter will eliminate diagnostics-only per-ID vector writes, frame rotations, and propagation while preserving the durable previous-frame membership telemetry.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRemove only experiment 107's two diagnostics-only order vectors, ninth counter, Scene/WGPU/web propagation field, and Test Suite type/assertion. Preserve all eight prior global-ID counters, product identity construction, public APIs, dependencies, and unrelated diagnostics.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nRun nested formatting, diagnostics-disabled/enabled Clippy with warnings denied, focused and full gpux tests, WGPU tests, then exclusive headed Test Suite WASM/WebGPU proof at both DPRs. Require exact offsets, all retained counters, and zero errors. Compare diagnostics-build throughput and paced p95 to experiment 107 as directional evidence; the primary proof is removal of two unbounded-by-frame-capacity vector writes per creation plus their rotation state with no contract loss.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nReturn global-ID diagnostics to eight durable counters, remove temporary order-vector work, and retain exact Test Suite behavior at both DPRs.\n",
+  "diagnostics": {
+    "playwright": [
+      "2/2 headed Chromium WebGPU projects passed at DPR 1 and DPR 2.",
+      "Both projects reached the exact final offset with all retained counters."
+    ],
+    "rayx": [
+      "All runtime validation used apps/test_suite; apps/lab was not launched or modified.",
+      "The retired ordinal field is absent from both result objects."
+    ],
+    "counters": [
+      "Both DPRs retained 485 creations and 485 previous-frame membership hits.",
+      "Two diagnostics-only hash vectors and one ninth counter were removed."
+    ],
+    "artifacts": [
+      "test-results/test_suite-rayx-data-table-ebb47-d-thumb-drag-render-cadence-chromium/data-table-wide-scroll-performance.json",
+      "test-results/test_suite-rayx-data-table-ebb47-d-thumb-drag-render-cadence-chromium-dpr2/data-table-wide-scroll-performance.json"
+    ]
+  },
+  "measurements": {
+    "schemaVersion": 1,
+    "status": "success",
+    "productFilesChanged": 6,
+    "gpuxTestsPassed": 419,
+    "gpuiWgpuTestsPassed": 52,
+    "headedWebgpuCasesPassed": 2,
+    "removedDiagnosticVectors": 2,
+    "removedPerFrameHashPushes": 485,
+    "retainedGlobalIdCounterCount": 8,
+    "dpr1CreationCount": 485,
+    "dpr1PreviousFrameHitCount": 485,
+    "dpr1MedianAcknowledgedStepsPerSecond": 26.076848341678684,
+    "dpr1MedianPacedP95CatchUpLatencyMs": 29.689697265625,
+    "dpr2CreationCount": 485,
+    "dpr2PreviousFrameHitCount": 485,
+    "dpr2MedianAcknowledgedStepsPerSecond": 25.28022018060569,
+    "dpr2MedianPacedP95CatchUpLatencyMs": 30.54541015625
+  },
+  "reportMarkdown": "# Retire Global ID Ordinal Probe\n\nThe completed reuse decision no longer leaves temporary order instrumentation in the diagnostics hot path. The change removes two hash vectors, one push per global-ID creation, vector rotation/clear work, the ninth scalar, and its Scene/WGPU/web/Test Suite propagation while preserving all eight durable counters and normal identity construction.\n\nFormatting, both warnings-denied Clippy matrices, 419 gpux tests plus integrations, 52 WGPU tests, and 2/2 headed Test Suite WebGPU cases passed. Both DPRs retained the exact final offset, 485 global-ID creations, and 485 previous-frame membership hits; the retired ordinal field is absent.\n\nAgainst experiment 107, throughput was effectively flat at DPR 1 (26.076848 versus 26.083318) and 4.95% higher at DPR 2 (25.280220 versus 24.088512). Paced p95 moved oppositely across DPRs, so no timing claim is made from that noise. The accepted improvement is the direct reduction in diagnostics-only work and state with unchanged retained contracts.\n",
+  "decisionMarkdown": "# Decision\n\nAccept removal of the temporary ordinal probe. Keep the eight durable global-ID distribution and previous-frame membership counters, and do not restore ordinal-order telemetry unless a new independent hypothesis requires it.\n",
+  "notes": ""
+}

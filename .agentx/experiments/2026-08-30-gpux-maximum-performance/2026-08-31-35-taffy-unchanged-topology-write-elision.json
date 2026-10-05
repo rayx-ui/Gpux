@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "id": "c02ac8c3-63e0-4098-bf1a-880657497697",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 35,
+  "type": "hypothesis",
+  "name": "Taffy Unchanged Topology Write Elision",
+  "slug": "taffy-unchanged-topology-write-elision",
+  "path": "2026-08-31-35-taffy-unchanged-topology-write-elision.json",
+  "createdAt": "2026-08-31T01:17:48Z",
+  "startedAt": "2026-08-31T01:17:48Z",
+  "finishedAt": "2026-08-31T01:31:17Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "c59e43aace79d712e983ccff3a108c4330ce6fd1",
+  "resultCommit": "4629d952d6e33b9df261b47a067068b3ee58902c",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard c59e43aace79d712e983ccff3a108c4330ce6fd1",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "c59e43aace79d712e983ccff3a108c4330ce6fd1",
+      "resultCommit": "4629d952d6e33b9df261b47a067068b3ee58902c",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard c59e43aace79d712e983ccff3a108c4330ce6fd1",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "4629d952d6e33b9df261b47a067068b3ee58902c"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "wasm/web with headed Playwright and WebGPU enabled",
+  "hypothesisMarkdown": "# Hypothesis\n\nPooled nodes currently detach every active container during `clear()` and reattach every non-empty child slice during reuse even when the exact ordered topology is unchanged. Retaining child topology, comparing current child IDs in place, and calling `set_children` only on exact change should remove redundant topology writes and dirty propagation while preserving changed/shrunk-tree reparenting.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\n1. Retain Taffy child topology across clear and compare exact ordered child IDs during pooled reuse; call `set_children` only on change.\n2. Track current-frame child membership in one capacity-retaining `FxHashSet` so a computed root detaches a stale parent left by topology shrinkage.\n3. Add focused tests proving exact unchanged topology remains cache-clean, reordered topology dirties/replaces children, and a reused root is detached from an inactive prior parent.\n4. Run package formatting, diagnostics-disabled gpux check, warning-denied gpux Clippy, all gpux diagnostics tests, and the serialized gpui_wgpu diagnostics suite.\n5. Run three fresh headed Test Suite WebGPU processes at DPR 1 and DPR 2 against experiment 33's accepted distribution, requiring exact telemetry/offsets, zero terminal error, and no more than 5% regression in central throughput or paced p95.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nExact unchanged child lists avoid `set_children` and preserve valid caches; changed order/contents and smaller trees still reconcile parents and children correctly. The active-child set remains bounded by the window's maximum active edge count, and central browser metrics remain within 5%.\n",
+  "diagnostics": {
+    "playwright": [
+      "Three fresh headed Chromium/WebGPU processes passed both DPRs with one worker (6/6 project runs), exact final offsets, and zero terminal errors.",
+      "apps/test_suite was the exclusive runtime fixture; each build verified shared memory and `wasm_thread_entry_point`. The changed WASM reported 101789 atomic prefix bytes versus 100322 at the experiment-33 checkpoint."
+    ],
+    "rayx": [
+      "Focused tests proved unchanged ordered child IDs preserve a clean root cache, reordered IDs dirty and replace the topology, and a reused root detaches from its inactive prior parent before computation.",
+      "All 405 gpux diagnostics tests, all 52 serialized gpui_wgpu diagnostics tests, diagnostics-disabled gpux check, package formatting, warning-denied Clippy, AgentX memory audit, and improvement-loop validation passed."
+    ],
+    "counters": [
+      "The frame-local active-child set retained capacity across clear and was bounded by the workload's 1,041 active child edges; no frame-local application state or closures were retained.",
+      "All six browser projects preserved the exact Taffy vector 1123,229,341,782,1041,25,673,726,755,780,405,377,0,82,0,0,3661,2574,1005,0 and zero terminal error."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "unchanged ordered topology behavior",
+      "before": "clear detaches every active container and reuse calls set_children for every container",
+      "after": "exactly equal retained children skip set_children and remain cache-clean",
+      "delta": "two unconditional topology-write phases replaced by one exact read comparison"
+    },
+    {
+      "metric": "DPR 1 median acknowledged steps/s",
+      "before": "30.058942580506102",
+      "after": "29.98411741300633",
+      "delta": "-0.2489%"
+    },
+    {
+      "metric": "DPR 2 median acknowledged steps/s",
+      "before": "29.92444526437424",
+      "after": "30.084109152368175",
+      "delta": "+0.5336%"
+    },
+    {
+      "metric": "DPR 1 median paced p95",
+      "before": "27.8046875 ms",
+      "after": "27.469482421875 ms",
+      "delta": "-1.2056%"
+    },
+    {
+      "metric": "DPR 2 median paced p95",
+      "before": "27.6884765625 ms",
+      "after": "27.32080078125 ms",
+      "delta": "-1.3279%"
+    },
+    {
+      "metric": "WASM atomic prefix bytes",
+      "before": "100322",
+      "after": "101789",
+      "delta": "+1467 bytes"
+    }
+  ],
+  "reportMarkdown": "## Taffy Unchanged Topology Write Elision Finished\n\n**Index:** 35\n**Checkpoint:** `c59e43aace79d712e983ccff3a108c4330ce6fd1`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. `TaffyLayoutEngine` now retains ordered child topology across frame clear, compares the exact current child IDs without allocation, and calls `set_children` only on change. A capacity-retaining active-child set identifies current roots so a smaller or changed tree detaches stale prior parents at the computation boundary. Focused tests prove clean-cache preservation, reordered-topology invalidation, and shrunk-tree root reconciliation.\n\nThree fresh headed WebGPU processes at both DPRs preserved exact telemetry, offsets, and zero terminal error. Median acknowledged throughput moved -0.25%/+0.53%; paced p95 improved 1.21%/1.33%, satisfying the 5% acceptance envelope.\n\n### Scope Lock\n\nThe only production mechanism is exact pooled child-topology retention/reconciliation in `TaffyLayoutEngine`; no dependency, style-comparison, layout-algorithm, renderer, shader, ID, or virtualization change was included.\n\n### Decision\n\nAccept and commit. The change removes unconditional per-frame detach/reattach work for unchanged topologies, preserves changed/shrunk-tree behavior, and satisfies all correctness and central-metric gates.\n",
+  "decisionMarkdown": "Accept and commit. Retain exact ordered child topology across clear, reconcile only changes, and use a bounded capacity-retaining current-child set to detach stale computed roots safely.",
+  "notes": "Attempt Count: 1. Out-of-scope changes: none. Baseline measurements use experiment 33's accepted three-process distribution. Raw browser output remains ignored under artifacts-temp/agentx-experiments/gpux-maximum-performance/35-taffy-unchanged-topology-write-elision/."
+}

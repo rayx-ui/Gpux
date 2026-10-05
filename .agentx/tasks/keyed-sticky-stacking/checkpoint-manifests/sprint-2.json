@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 5,
+  "epicId": "keyed-sticky-stacking",
+  "sprint": 2,
+  "auditSha256": "74b7e0f2430a5a988884aa253480443c05ce9c1127111f0655f03fdcdc86a6c6",
+  "evidenceSha256": "0d0e796a7a6ae7d3f29b4fc318f799f585994317613dfe42158267eac604d38c",
+  "repositories": [
+    {
+      "id": "rayx",
+      "path": "C:\\Users\\dinko\\Work\\projects\\RayX\\RayX",
+      "baselineHead": "427c5dbf13e632b9c29f64118dfbbbf779d9a059",
+      "resultHead": "b9259f7e8c61adefc17c09c41d9a7e12b1c82856",
+      "commits": [
+        "dba0713a8719b83a85e5dab639e3e2384e335564",
+        "94741a964e30f4789366a70adfbee66e25e7276a",
+        "d6cabfeb7561c6f102f785a428896ee241edabe0",
+        "e338942362e584f27587403bce40d35c3abc3921",
+        "7b3adb44b7075d2ed860a6b2d64893d63603326b",
+        "7a9b896e72cfe0a1ae671968cb4d5f26a04dffc2",
+        "7c7936675e4a0ad04a94a9ded6833c82601d96bf",
+        "e4e56c17a0084065cc4921b4588a0fe680d44553",
+        "2a38859771cca9779618a65fccd4559d0845cdab",
+        "9ee1b76f131d4cbbcb5fd0a42e8107a16e95abbb",
+        "81d3fc8d72f728ea0f7a6ec3066a4e175c737d2b",
+        "52b3e8770cfd87c9a74fba858c0319c27c3c9b4d",
+        "85198128885a41e4abc3098c56cf07ad5f58f304",
+        "b9259f7e8c61adefc17c09c41d9a7e12b1c82856"
+      ],
+      "statusHash": "833352b3bdf0a6457c3cca50b9e5c42f937950974f3927c29c6414a71851a2c7",
+      "sprintOwnedPaths": [],
+      "unrelatedDirtyPaths": [
+        " M .agentx/tasks/keyed-sticky-stacking/checkpoint-manifests/sprint-1.json"
+      ],
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\Work\\projects\\RayX\\RayX\" revert --no-commit 427c5dbf13e632b9c29f64118dfbbbf779d9a059..b9259f7e8c61adefc17c09c41d9a7e12b1c82856"
+    }
+  ],
+  "generatedAt": "2026-07-31T11:44:28Z"
+}

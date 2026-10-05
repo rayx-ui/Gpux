@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 5,
+  "epicId": "high-quality-wasm-text-rendering",
+  "sprint": 1,
+  "auditSha256": "909451e5ee3241b907a3579654b50475bf100fc5d7bc874cf8c991d46d168a1d",
+  "evidenceSha256": "14130eeca090f349cd3fc126e4bff726a9a5365faa50633c6c43f8a9aa453103",
+  "repositories": [
+    {
+      "id": "main",
+      "path": "C:\\Users\\dinko\\.codex\\worktrees\\8da1\\RayX",
+      "baselineHead": "b06f9af76e04f3c80a852c4db85aa96ef21eda40",
+      "resultHead": "2da7a79cf8246bfcb93433413a5128c115a8d5a7",
+      "commits": [
+        "2da7a79cf8246bfcb93433413a5128c115a8d5a7"
+      ],
+      "statusHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sprintOwnedPaths": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\8da1\\RayX\\artifacts-temp\\test_suite\\wasm-text-rendering-quality",
+        "C:\\Users\\dinko\\.codex\\worktrees\\8da1\\RayX\\tools-node\\test_suite",
+        "C:\\Users\\dinko\\.codex\\worktrees\\8da1\\RayX\\tools-node\\test_suite\\wasm-text-quality-metrics.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\8da1\\RayX\\tools-node\\test_suite\\wasm-text-quality-metrics.ts"
+      ],
+      "unrelatedDirtyPaths": [],
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\8da1\\RayX\" revert --no-commit b06f9af76e04f3c80a852c4db85aa96ef21eda40..2da7a79cf8246bfcb93433413a5128c115a8d5a7"
+    }
+  ],
+  "generatedAt": "2026-08-04T14:26:22Z"
+}

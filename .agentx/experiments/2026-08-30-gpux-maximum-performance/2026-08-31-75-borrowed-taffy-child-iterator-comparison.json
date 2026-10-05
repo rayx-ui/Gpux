@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "id": "02e91677-5364-46b3-a33b-a83b52b2fcb7",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 75,
+  "type": "hypothesis",
+  "name": "Borrowed Taffy Child Iterator Comparison",
+  "slug": "borrowed-taffy-child-iterator-comparison",
+  "path": "2026-08-31-75-borrowed-taffy-child-iterator-comparison.json",
+  "createdAt": "2026-08-31T11:11:50Z",
+  "startedAt": "2026-08-31T11:11:50Z",
+  "finishedAt": "2026-08-31T11:30:18Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "c9edd53ff85b7005186e705d303af74146be9880",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard c9edd53ff85b7005186e705d303af74146be9880",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "c9edd53ff85b7005186e705d303af74146be9880",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard c9edd53ff85b7005186e705d303af74146be9880",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "wasm/web with headed Playwright and WebGPU enabled",
+  "hypothesisMarkdown": "## Borrowed Taffy Child Iterator Comparison Hypothesis\n\nReplace the pooled-node topology check's separate `child_count` plus repeated fallible `child_at_index` calls with Taffy 0.14's borrowed `child_ids` iterator equality. This should preserve exact ordered topology semantics while reducing per-edge lookup, bounds-check, and `Result` handling in the 1,123-request hot path, without allocation or retained state.\n\n### Scope Lock\n\n**Tested mechanism:** `TraversePartialTree::child_ids(...).eq(...)`.\n\n**Allowed changes:** `crates/gpux/crates/gpui/src/taffy.rs`, this experiment metadata, and accepted-result gpux memory/skill guidance.\n\n**Forbidden:** style conversion, node-pool changes, topology shadows/caches, dependency changes, diagnostics schema changes, unrelated cleanup, and Test Suite fixture changes.\n\n**Attempt Count:** 1.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nRun three fresh pre-change and three fresh post-change headed Test Suite WebGPU processes, each covering DPR 1 and DPR 2. Require exact final scroll offset, zero terminal errors, and unchanged Taffy/render/identity diagnostics. Candidate median acknowledged throughput may not regress by more than 1% at either DPR; paced p95 may not regress by more than 3%; at least one aggregate performance metric must improve by 0.25%. Also run focused topology/cache tests, gpux production and diagnostic checks, warning-denied Clippy, the serialized WGPU suite, Test Suite checks, and focused formatting.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nThe 1,041 ordered child edges are compared through one borrowed slice iterator rather than 1,041 indexed public-API lookups. Complexity remains O(edges), but constant work and branching fall with zero new allocation or retained state.",
+  "diagnostics": {
+    "playwright": [
+      "Three independent pre-change and three independent candidate headed WebGPU processes passed both DPR cases (12/12 cases total)."
+    ],
+    "rayx": [
+      "All focused `taffy::tests` passed on the first implementation attempt: 18 passed, 0 failed."
+    ],
+    "counters": [
+      "Every browser case preserved final offset -351402.6875 and zero terminal errors.",
+      "Both phases retained 1,123 Taffy requests, 1,123 unchanged ordered topologies, zero topology writes, and 1,041 child edges at each DPR.",
+      "The candidate WASM atomic prefix measured 104,070 bytes versus 105,691 bytes before the change, but runtime gates remained authoritative."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "DPR1 median acknowledged steps/s",
+      "before": "25.2334122171855",
+      "after": "24.2465740803153",
+      "delta": "-3.9108%",
+      "source": "three independent headed WebGPU processes per phase"
+    },
+    {
+      "metric": "DPR1 median paced p95 catch-up latency",
+      "before": "29.382568359375 ms",
+      "after": "32.554931640625 ms",
+      "delta": "+10.7968%",
+      "source": "three independent headed WebGPU processes per phase"
+    },
+    {
+      "metric": "DPR2 median acknowledged steps/s",
+      "before": "25.8873018318955",
+      "after": "28.0940721577982",
+      "delta": "+8.5245%",
+      "source": "three independent headed WebGPU processes per phase"
+    },
+    {
+      "metric": "DPR2 median paced p95 catch-up latency",
+      "before": "28.28759765625 ms",
+      "after": "25.683837890625 ms",
+      "delta": "-9.2046%",
+      "source": "three independent headed WebGPU processes per phase"
+    },
+    {
+      "metric": "multithreaded WASM atomic prefix",
+      "before": "105691 bytes",
+      "after": "104070 bytes",
+      "delta": "-1621 bytes",
+      "source": "xtask WASM binary verification"
+    }
+  ],
+  "reportMarkdown": "## Borrowed Taffy Child Iterator Comparison Finished\n\n**Passed Status:** false. The implementation and all exact behavior checks passed, and DPR2 improved substantially, but DPR1 breached both runtime gates: acknowledged throughput regressed 3.91% and paced p95 regressed 10.80%.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nOnly the borrowed `child_ids` iterator equality mechanism was attempted. No out-of-scope production changes were made. The production source was restored byte-for-byte to checkpoint after measurement.\n\n### Repository Checkpoints\n\n| Repo | Path | Checkpoint | Result Commit | Status | Rollback |\n| --- | --- | --- | --- | --- | --- |\n| main | `.` | `c9edd53ff85b7005186e705d303af74146be9880` | unchanged | reverted | `git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard c9edd53ff85b7005186e705d303af74146be9880` |",
+  "decisionMarkdown": "### Decision\n\nReject and revert. Borrowed iteration reduces generated WASM code size and helped DPR2, but its repeatable DPR1 regression violates the predeclared cross-DPR acceptance gate. Preserve the existing `child_count` plus indexed comparison and do not tune this mechanism inside the failed experiment.",
+  "notes": "No memory or gpux skill update: the failed result does not establish durable production behavior."
+}

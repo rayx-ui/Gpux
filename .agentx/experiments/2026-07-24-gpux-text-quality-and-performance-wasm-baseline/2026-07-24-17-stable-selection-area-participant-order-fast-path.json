@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "id": "ca5b6c17-e1c4-45d1-a6bc-8ca54087486f",
+  "loopId": "54e74b74-483c-4598-92d7-fdbabbc9154b",
+  "index": 17,
+  "type": "hypothesis",
+  "name": "Stable SelectionArea participant-order fast path",
+  "slug": "stable-selection-area-participant-order-fast-path",
+  "path": "2026-07-24-17-stable-selection-area-participant-order-fast-path.json",
+  "createdAt": "2026-07-24T06:28:57Z",
+  "startedAt": "2026-07-24T06:28:57Z",
+  "finishedAt": "2026-07-24T06:37:52Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "6dc5be6282d1e1f36490f9c38102ad6807dd8422",
+  "resultCommit": "f02741deb",
+  "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard 6dc5be6282d1e1f36490f9c38102ad6807dd8422",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "6dc5be6282d1e1f36490f9c38102ad6807dd8422",
+      "resultCommit": "f02741deb",
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard 6dc5be6282d1e1f36490f9c38102ad6807dd8422",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "f02741deb"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "headed WASM/WebGPU SelectionArea fixture at DPR 1 and DPR 2",
+  "hypothesisMarkdown": "## Stable participant-order fast path\n\nAvoid materializing participant IDs and membership sets when the current and next traversals have the same length and the same selectable IDs in order. Preserve the existing membership-set path whenever that direct comparison detects a change.\n\n",
+  "measurementPlanMarkdown": "### Measurement plan\n\nUse the completed 16 baseline for the unchanged many-participant fixture, then measure the same headed WASM/WebGPU SelectionArea fixture at DPR 1 and DPR 2 with 35 repetitions per project and five warmups discarded. Retain the change only if p95 does not regress more than five percent and the focused fixture remains correct.\n\n",
+  "expectedOutcomeMarkdown": "### Expected outcome\n\nAn unchanged SelectionArea frame creates no participant ID vectors or participant-sized temporary `HashSet`s. Reordered, added, and removed participants continue through the established membership comparison, preserving all selection semantics.\n\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": {
+    "target": "headed WASM/WebGPU SelectionArea fixture; 35 repetitions per DPR with five warmups discarded",
+    "before": {
+      "dpr1": {
+        "count": 30,
+        "p50Ms": 88.19,
+        "p95Ms": 95.91
+      },
+      "dpr2": {
+        "count": 29,
+        "p50Ms": 89.56,
+        "p95Ms": 106.01
+      }
+    },
+    "after": {
+      "dpr1": {
+        "count": 30,
+        "p50Ms": 92.52,
+        "p95Ms": 96.55
+      },
+      "dpr2": {
+        "count": 30,
+        "p50Ms": 90.84,
+        "p95Ms": 98.86
+      }
+    }
+  },
+  "reportMarkdown": "## Stable SelectionArea participant-order fast path\n\nAccepted. `SelectionAreaState::end_frame` first compares the current and next participant sequences directly. When they are identical, no participant ID vectors or temporary membership `HashSet`s are created. A changed sequence retains the established set comparison to preserve membership semantics.\n\nThe focused WASM/WebGPU fixture passed at DPR 1 and DPR 2, then passed 70 repeated runs. Input-to-published-frame p50/p95 was 92.52/96.55 ms at DPR 1 versus the 88.19/95.91 ms baseline, and 90.84/98.86 ms at DPR 2 versus 89.56/106.01 ms. The small DPR 1 p95 variation remains below the five-percent rejection threshold; DPR 2 p95 improved. A fresh DPR 1 screenshot retains the expected participant rendering after the scroll action.\n\nDecision: retain the direct stable-order check. It is the smallest way to remove dormant participant-sized allocations without adding map-maintenance work to every traversal.\n",
+  "decisionMarkdown": "",
+  "notes": ""
+}

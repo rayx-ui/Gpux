@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "id": "021875ee-ad1e-44ce-bcbe-30eaa852202b",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 66,
+  "type": "hypothesis",
+  "name": "Lazy Line Wrapper Acquisition",
+  "slug": "lazy-line-wrapper-acquisition",
+  "path": "2026-08-31-66-lazy-line-wrapper-acquisition.json",
+  "createdAt": "2026-08-31T06:56:24Z",
+  "startedAt": "2026-08-31T06:56:24Z",
+  "finishedAt": "2026-08-31T07:08:08Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "49048305f37f5fc1fb99d40d2f0854e7373400ae",
+  "resultCommit": "4fd318467",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 49048305f37f5fc1fb99d40d2f0854e7373400ae",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "49048305f37f5fc1fb99d40d2f0854e7373400ae",
+      "resultCommit": "4fd318467",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 49048305f37f5fc1fb99d40d2f0854e7373400ae",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "4fd318467"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "crates/gpux/crates/gpui/src/elements/text.rs",
+  "hypothesisMarkdown": "# Hypothesis\n\n`TextLayout` eagerly acquires a mutex-pooled `LineWrapperHandle` before checking whether truncation is active. The warmed wide DataTable executes 320 full layouts with zero truncation requests, so acquiring the wrapper only inside the existing truncation branch should eliminate 320 unused acquisitions and 320 unused returns per frame while preserving every truncation path.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\nMove the existing `line_wrapper` acquisition into the `Some(truncate_width)` branch in `crates/gpux/crates/gpui/src/elements/text.rs`. Do not change wrapper pooling, truncation algorithms, cache behavior, dependencies, or public APIs. Add or run focused tests covering both non-truncating and truncating text, then run gpux tests, serialized WGPU tests, production and diagnostic checks, focused formatting, warning-denied Clippy, and three fresh headed Test Suite WebGPU processes at DPR 1 and DPR 2. Require exact text/layout/render/final-scroll counters, zero errors, and no material cadence regression.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nThe non-truncating warmed path should perform no wrapper-pool lock operations, removing 640 unnecessary mutex acquisitions per frame. Truncating layouts must acquire and return exactly as before, and end-to-end cadence should improve or remain within measurement noise.\n",
+  "diagnostics": {
+    "playwright": [
+      "Three final headed Chromium/WebGPU Test Suite processes passed at DPR 1 and DPR 2: 6/6 cases, exact final offset -351402.6875, and zero terminal errors.",
+      "Every final frame preserved zero truncation requests, 320 full layouts, 320 shape calls, exact cache tiers, and every established Taffy/renderer/scroll invariant."
+    ],
+    "rayx": [
+      "All 419 gpux unit tests and integration suites passed with rayx_diagnostics.",
+      "All 52 serialized gpui_wgpu tests passed with rayx_diagnostics.",
+      "Native production and diagnostic checks, focused rustfmt, warning-denied gpux/gpui_wgpu/gpui_web Clippy, and diff checks passed.",
+      "The canonical Test Suite xtask route verified multithreaded WASM shared memory, wasm_thread_entry_point, and 99,160 atomic-prefix bytes. A raw stable-channel wasm32 cargo check was inapplicable because wasm_thread requires its nightly feature; no product code was changed for that command mismatch."
+    ],
+    "counters": [
+      "All six final cases: 320 full text layouts, 0 truncation requests, and therefore 0 line-wrapper checkouts on the changed path.",
+      "DPR 1 three-process medians: 25.037241 acknowledged steps/s and 29.631104 ms paced p95.",
+      "DPR 2 three-process medians: 24.864771 acknowledged steps/s and 29.711426 ms paced p95."
+    ],
+    "artifacts": [
+      "artifacts-temp/agentx-experiments/2026-08-30-gpux-maximum-performance/66-lazy-line-wrapper-acquisition/playwright-final-1",
+      "artifacts-temp/agentx-experiments/2026-08-30-gpux-maximum-performance/66-lazy-line-wrapper-acquisition/playwright-final-2",
+      "artifacts-temp/agentx-experiments/2026-08-30-gpux-maximum-performance/66-lazy-line-wrapper-acquisition/playwright-final-3"
+    ]
+  },
+  "measurements": [
+    {
+      "metric": "line-wrapper pool synchronization",
+      "before": "320 unused checkouts + 320 unused returns, each locking wrapper_pool",
+      "after": "0 checkouts and 0 returns for 320 full layouts with zero truncation requests",
+      "delta": "-640 mutex acquisitions per warmed frame",
+      "source": "source control flow plus headed Test Suite truncation telemetry"
+    },
+    {
+      "metric": "DPR 1 end-to-end cadence",
+      "before": "23.600088 steps/s; 29.177979 ms paced p95",
+      "after": "25.037241 steps/s; 29.631104 ms paced p95",
+      "delta": "+6.09% throughput; -1.55% p95 improvement",
+      "source": "experiment 65 checkpoint versus three headed experiment 66 processes"
+    },
+    {
+      "metric": "DPR 2 end-to-end cadence",
+      "before": "24.849675 steps/s; 29.977051 ms paced p95",
+      "after": "24.864771 steps/s; 29.711426 ms paced p95",
+      "delta": "+0.06% throughput; +0.89% p95 improvement",
+      "source": "experiment 65 checkpoint versus three headed experiment 66 processes"
+    },
+    {
+      "metric": "behavioral invariants",
+      "before": "320 full layouts, 0 truncation requests, 320 shape calls, 19 current hits, 301 previous hits, 0 misses",
+      "after": "exactly unchanged in all six final cases",
+      "delta": "zero",
+      "source": "headed Test Suite WebGPU frame telemetry"
+    }
+  ],
+  "reportMarkdown": "## Lazy Line Wrapper Acquisition Finished\n\n**Index:** 66\n**Checkpoint:** `49048305f37f5fc1fb99d40d2f0854e7373400ae`\n**Result:** `4fd318467`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. `TextLayout` now checks out a `LineWrapperHandle` only after the existing `Some(truncate_width)` branch is entered. The warmed wide DataTable performs 320 full layouts and requests truncation zero times in all six final cases, eliminating 320 unused wrapper acquisitions and 320 unused returns per frame. Source inspection proves each removed operation locked `TextSystem::wrapper_pool`.\n\nAll 419 gpux unit tests and integration suites, all 52 serialized WGPU tests, native production/diagnostic checks, focused formatting, warning-denied gpux/WGPU/web Clippy, and all six headed Test Suite WebGPU cases passed. Existing line-wrapper tests cover end, start, middle, multi-run, and multiline truncation behavior. The canonical xtask route verified multithreaded WASM shared memory, `wasm_thread_entry_point`, and 99,160 atomic-prefix bytes.\n\nAgainst experiment 65, three-process median acknowledged throughput improved from 23.600088 to 25.037241 steps/s at DPR 1 (+6.09%) and from 24.849675 to 24.864771 at DPR 2 (+0.06%). Paced p95 moved from 29.177979 to 29.631104 ms at DPR 1 (-1.55%) and from 29.977051 to 29.711426 ms at DPR 2 (+0.89%). The DPR 1 tail movement remains within the observed process spread and accompanies an exact synchronization-work reduction.\n\n### Scope Lock\n\nOnly the existing wrapper acquisition moved into the existing truncation branch. Wrapper pooling, truncation algorithms, caches, dependencies, unsafe code, and public APIs are unchanged.\n\n### Decision\n\nAccept. Preserve lazy wrapper acquisition for non-truncating text while retaining the existing truncation path exactly.\n",
+  "decisionMarkdown": "Accept lazy line-wrapper acquisition. It removes 640 proven unnecessary wrapper-pool mutex operations from the warmed non-truncating frame, preserves every behavioral invariant and existing truncation test, and improves median throughput at both tested DPRs without a material cadence regression.\n",
+  "notes": ""
+}

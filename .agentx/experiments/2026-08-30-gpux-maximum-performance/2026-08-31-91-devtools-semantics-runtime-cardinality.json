@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "id": "3ae05066-9005-4ef5-beda-fa733dcd86eb",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 91,
+  "type": "hypothesis",
+  "name": "Devtools Semantics Runtime Cardinality",
+  "slug": "devtools-semantics-runtime-cardinality",
+  "path": "2026-08-31-91-devtools-semantics-runtime-cardinality.json",
+  "createdAt": "2026-08-31T15:15:37Z",
+  "startedAt": "2026-08-31T15:15:37Z",
+  "finishedAt": "2026-08-31T15:32:18Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "544283582a2f1851acbf828ff19c450f8571c56d",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 544283582a2f1851acbf828ff19c450f8571c56d",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "544283582a2f1851acbf828ff19c450f8571c56d",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 544283582a2f1851acbf828ff19c450f8571c56d",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "headed WASM/WebGPU Test Suite wide DataTable at DPR 1 and 2",
+  "hypothesisMarkdown": "## Devtools Semantics Runtime Cardinality Hypothesis\n\nThe warmed DataTable creates and destroys many owned DevtoolsSemantics payloads even when no DevKit snapshot consumer is active; measuring population and consumer state will determine whether inactive-frame elision is a valid next optimization.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nDiagnostics-only cardinality and consumer-contract measurement. Narrow rayx_diagnostics counters and Test Suite exposure/assertions are allowed. Semantics ownership/lifetime, skipped nodes, DevKit behavior, representation, pooling, unrelated rendering/layout work, dependencies, and public production APIs are forbidden.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nInspect all semantics producers and consumers first. Add the smallest compiled-out diagnostic counters only if current telemetry cannot answer population and consumption. Run focused gpux tests, clippy/format checks, and headed WebGPU DataTable validation at DPR 1 and 2. Pass if exact per-frame semantics cardinality and inactive-consumer state are established without changing output.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nEstablish whether inactive-frame semantics construction/destruction is substantial and whether consumer activity is explicitly observable, yielding one safe lifecycle hypothesis or rejecting inactive elision.",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": {
+    "schemaVersion": 1,
+    "status": "failure",
+    "gpuxUnitTestsPassed": 419,
+    "wgpuTestsPassed": 52,
+    "clippyPassed": true,
+    "rustFmtPassed": true,
+    "browser": {
+      "requiredAcknowledgedStepsPerSecond": 20.0,
+      "run1": {
+        "dpr1": 18.684370855427023,
+        "dpr2": 18.794281088207672
+      },
+      "run2": {
+        "dpr1": 19.958138801770232,
+        "dpr2": 18.84208332204771
+      },
+      "terminalRuntimeErrorsObserved": 0,
+      "telemetryAssertionsReached": false
+    },
+    "revertedTo": "544283582a2f1851acbf828ff19c450f8571c56d"
+  },
+  "reportMarkdown": "# Devtools Semantics Runtime Cardinality\n\nA diagnostics-only attempt added bounded counters for rendered DevTools nodes, semantics attachments, and explicit snapshot requests. The code compiled, 419 gpux unit tests plus all integration tests passed, all 52 serialized WGPU tests passed, Clippy passed with warnings denied, and Rust formatting passed.\n\nThe mandatory headed Test Suite measurement did not reach the new telemetry assertions because the existing absolute acknowledged-throughput gate failed in two unchanged runs:\n\n| Run | DPR 1 | DPR 2 | Required |\n| --- | ---: | ---: | ---: |\n| 1 | 18.6844 | 18.7943 | >20 steps/s |\n| 2 | 19.9581 | 18.8421 | >20 steps/s |\n\nBoth browser runs reached the benchmark with zero reported terminal/runtime errors, but the experiment cannot claim validated cardinality without passing the complete spec. All diagnostic source edits were restored to checkpoint `5442835`.\n\nThe workspace-wide TypeScript check also remains red on unrelated pre-existing specs/configuration; none of its errors referenced the touched DataTable benchmark.\n",
+  "decisionMarkdown": "# Decision\n\nFail and revert. The exact diagnostics mechanism compiled and passed Rust validation, but the mandatory headed browser gate failed twice before reaching the new assertions. Do not weaken the performance threshold or extend this experiment with an alternate harness. A fresh experiment may use existing profiles/source counts or a lower-overhead dedicated probe.\n",
+  "notes": ""
+}

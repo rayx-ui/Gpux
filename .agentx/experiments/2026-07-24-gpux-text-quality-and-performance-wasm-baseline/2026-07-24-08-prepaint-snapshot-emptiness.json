@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "id": "5c5f5ba2-2725-4be3-9c31-686191dcf1ec",
+  "loopId": "54e74b74-483c-4598-92d7-fdbabbc9154b",
+  "index": 8,
+  "type": "hypothesis",
+  "name": "Prepaint snapshot emptiness",
+  "slug": "prepaint-snapshot-emptiness",
+  "path": "2026-07-24-08-prepaint-snapshot-emptiness.json",
+  "createdAt": "2026-07-24T04:32:33Z",
+  "startedAt": "2026-07-24T04:32:33Z",
+  "finishedAt": "2026-07-24T04:42:41Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "371d5c64438ba9c1665569eeb2b5c150d710c449",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard 371d5c64438ba9c1665569eeb2b5c150d710c449",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "371d5c64438ba9c1665569eeb2b5c150d710c449",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard 371d5c64438ba9c1665569eeb2b5c150d710c449",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "headed WASM WebGPU TextArea fixture",
+  "hypothesisMarkdown": "# Hypothesis\n\nEditable-text prepaint currently materializes the complete `TextBufferSnapshot` solely to decide\nwhether a placeholder should be drawn. Using the snapshot's constant-time `is_empty` query removes\nthat allocation from every prepaint without changing layout, paint, selection, or placeholder\nsemantics.\n\n## Scope lock\n\nThis experiment changes only the placeholder emptiness check in editable-text prepaint. It does\nnot change row iteration, culling, cache retention, or editing behavior.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\nRun the existing page-isolated headed WASM/WebGPU TextArea wheel fixture at DPR 1 and 2 with five\nwarmups and thirty measured samples each. Inspect its DPR 2 screenshot and retain raw timing JSON.\nSource inspection must prove prepaint no longer calls `snapshot.text()`.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nScrolling the large populated TextArea remains visibly unchanged, including selection and the\nscrolled viewport. The placeholder remains present only for empty content, while prepaint no\nlonger allocates a whole text string merely to detect that condition.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": {
+    "target": "headed WASM WebGPU TextArea wheel action",
+    "protocol": "One page-isolated 35-run Playwright process per DPR with five warmups and thirty measured samples.",
+    "source": "08-prepaint-snapshot-emptiness-output",
+    "cells": [
+      {
+        "dpr": 1,
+        "samples": 30,
+        "p50Ms": 137.5916,
+        "p95Ms": 144.9597,
+        "priorP50Ms": 129.493,
+        "priorP95Ms": 141.935,
+        "minChangedPixels": 13706
+      },
+      {
+        "dpr": 2,
+        "samples": 30,
+        "p50Ms": 133.4106,
+        "p95Ms": 145.4,
+        "priorP50Ms": 137.29,
+        "priorP95Ms": 143.619,
+        "minChangedPixels": 53702
+      }
+    ],
+    "failures": 0
+  },
+  "reportMarkdown": "# Prepaint snapshot emptiness\n\nThe focused headed WASM/WebGPU TextArea fixture passed all 70 samples and its DPR 2 screenshot\nshowed the expected scrolled populated text. Replacing the placeholder check's whole-snapshot\nstring allocation produced a mixed timing result, so it is not retained.\n\n| DPR | Prior p50/p95 | Candidate p50/p95 | Change p50/p95 |\n| --- | --- | --- | --- |\n| 1 | 129.493 / 141.935 ms | 137.592 / 144.960 ms | +6.3% / +2.1% |\n| 2 | 137.290 / 143.619 ms | 133.411 / 145.400 ms | -2.8% / +1.2% |\n\nThe candidate is rejected because it regresses DPR 1 and DPR 2 p95. The raw output preserves all\ntimings and screenshots; the source is restored to the checkpoint.\n",
+  "decisionMarkdown": "# Decision\n\nReject the snapshot emptiness substitution. Although it removes a direct allocation, the fixed\nWASM benchmark is mixed and does not establish a reliable performance improvement.\n",
+  "notes": ""
+}

@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "id": "a96c3516-23c0-4a2b-89a7-5177784e4cfd",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 1,
+  "type": "baseline",
+  "name": "Baseline Measurement",
+  "slug": "baseline-measurement",
+  "path": "2026-08-30-01-baseline-measurement.json",
+  "createdAt": "2026-08-30T17:55:43Z",
+  "startedAt": "2026-08-30T17:55:43Z",
+  "finishedAt": "2026-08-30T18:22:53Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "4f4335e5b46f41bfc796700312480f2612ac3a0b",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 4f4335e5b46f41bfc796700312480f2612ac3a0b",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "4f4335e5b46f41bfc796700312480f2612ac3a0b",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 4f4335e5b46f41bfc796700312480f2612ac3a0b",
+      "status": "unchanged"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "wasm/web with headed Playwright and WebGPU enabled",
+  "hypothesisMarkdown": "## Baseline Measurement\n\nMeasure and document the starting point for this improvement loop before making optimization changes.",
+  "measurementPlanMarkdown": "",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nBaseline metrics are captured and stored so later experiments compare against a known starting point.",
+  "diagnostics": {
+    "playwright": [
+      "DataTable headed WebGPU passed 2/2 at DPR1 and DPR2 with one worker and CPU profiling enabled.",
+      "Sliver headed WebGPU passed 2/2 at DPR1 and DPR2 with one worker.",
+      "TextArea headed WebGPU passed 70/70: five warmups and 30 measured samples per DPR."
+    ],
+    "rayx": [
+      "All app-hosted runtime work used apps/test_suite; apps/lab was neither launched nor modified.",
+      "WebGPU adapter availability was asserted by every focused fixture.",
+      "No production source files changed during the baseline experiment."
+    ],
+    "counters": [
+      "DataTable: 41 acknowledged publications per run and zero terminal error.",
+      "Sliver: zero terminal error in every retained run.",
+      "TextArea: nonzero physical-pixel change in every retained run.",
+      "Renderer-owned WGPU submission, atlas, and pass counters are currently unavailable; experiment 2 will add a diagnostics-only surface."
+    ],
+    "artifacts": []
+  },
+  "measurements": {
+    "commit": "4f4335e5b46f41bfc796700312480f2612ac3a0b",
+    "target": "wasm-webgpu-headed",
+    "dataTable": {
+      "dpr1": {
+        "medianAcknowledgedStepsPerSecond": 24.76178083508734,
+        "medianPacedP95CatchUpLatencyMs": 27.731201171875,
+        "medianPacedP95ThumbLagPx": 36.81558231469876
+      },
+      "dpr2": {
+        "medianAcknowledgedStepsPerSecond": 25.89155799925834,
+        "medianPacedP95CatchUpLatencyMs": 27.544921875,
+        "medianPacedP95ThumbLagPx": 34.94024583542904
+      },
+      "measuredRunsPerDpr": 5,
+      "publicationsPerAcknowledgedRun": 41,
+      "maximumTerminalError": 0
+    },
+    "sliver": {
+      "dpr1": {
+        "medianAcknowledgedStepsPerSecond": 33.08287665868236,
+        "medianPacedP95CatchUpLatencyMs": 13.94384765625,
+        "medianPacedP95ThumbLagPx": 19.700000000000045
+      },
+      "dpr2": {
+        "medianAcknowledgedStepsPerSecond": 33.32217318216505,
+        "medianPacedP95CatchUpLatencyMs": 13.71728515625,
+        "medianPacedP95ThumbLagPx": 25.293213370311662
+      },
+      "measuredRunsPerDpr": 9,
+      "maximumTerminalError": 0
+    },
+    "textArea": {
+      "dpr1": {
+        "samples": 30,
+        "p50Ms": 66.15290000000005,
+        "p95Ms": 92.26339999999982,
+        "minChangedPixels": 13706
+      },
+      "dpr2": {
+        "samples": 30,
+        "p50Ms": 76.7219,
+        "p95Ms": 86.23030000000017,
+        "minChangedPixels": 53702
+      }
+    },
+    "nativeTextLayoutCriterionMs": {
+      "noFallback": 3.1322,
+      "asciiFallback": 3.282,
+      "mixedDirectionParagraphs": 3.4196,
+      "samplesPerCase": 100
+    },
+    "cpuProfile": {
+      "samples": {
+        "dpr1": 10386,
+        "dpr2": 10186
+      },
+      "selfPercentOfCompleteInterval": {
+        "taffyFlex": {
+          "dpr1": 4.38,
+          "dpr2": 4.62
+        },
+        "malloc": {
+          "dpr1": 2.34,
+          "dpr2": 2.39
+        },
+        "textLinePaint": {
+          "dpr1": 1.34,
+          "dpr2": 1.75
+        },
+        "taffyBlock": {
+          "dpr1": 1.34,
+          "dpr2": 1.56
+        },
+        "boundsTreeInsert": {
+          "dpr1": 1.24,
+          "dpr2": 1.33
+        },
+        "globalElementPath": {
+          "dpr1": 0.97,
+          "dpr2": 0.92
+        },
+        "monochromeSpriteSort": {
+          "dpr1": 0.78,
+          "dpr2": 0.55
+        }
+      }
+    }
+  },
+  "reportMarkdown": "# GPUX maximum-performance baseline\n\nBaseline commit: `4f4335e5b46f41bfc796700312480f2612ac3a0b`.\n\n## Runtime baseline\n\nAll application-hosted measurements used `apps/test_suite` through headed Chromium with WebGPU enabled. DPR projects were serialized with one worker.\n\n- Wide DataTable (100,000 rows, 48 columns, 4 fixed): DPR1 median 24.7618 acknowledged steps/s, 27.7312 ms paced p95 catch-up, 36.8156 px paced p95 thumb lag; DPR2 median 25.8916 steps/s, 27.5449 ms catch-up, 34.9402 px lag. Every measured run published 41 acknowledged offsets and ended with zero terminal error.\n- Sliver list/tree (100,001 list rows, 89,983 visible tree rows): DPR1 median 33.0829 acknowledged steps/s and 13.9438 ms paced p95 catch-up; DPR2 median 33.3222 steps/s and 13.7173 ms catch-up. Every measured run ended with zero terminal error.\n- TextArea wheel-to-published-frame (five warmups and 30 retained samples per DPR): DPR1 66.1529 ms p50 / 92.2634 ms p95; DPR2 76.7219 ms p50 / 86.2303 ms p95. All 70 runs passed and every action changed nonzero physical pixels.\n- Native `gpui_wgpu` line-layout Criterion control (100 samples): no fallback 3.1322 ms central estimate, ASCII fallback 3.2820 ms, mixed-direction paragraphs 3.4196 ms.\n\nThe current DataTable CPU profiles contain 10,386 DPR1 and 10,186 DPR2 samples. Grouped self-sample shares over the complete interaction interval (including idle time) identify cross-DPR costs in Taffy flex layout (4.38% / 4.62%), WASM malloc (2.34% / 2.39%), text-line paint (1.34% / 1.75%), Taffy block layout (1.34% / 1.56%), bounds-tree insertion (1.24% / 1.33%), global element-path construction (0.97% / 0.92%), and monochrome-sprite sorting (0.78% / 0.55%). These profiles do not expose sufficient renderer submission detail to attribute GPU/WGPU host-boundary time.\n\n## Architecture research\n\nThe frame path is `App` invalidation/effects -> `Window::draw` -> Taffy layout -> prepaint/deferred draws/hit-test -> paint -> `Scene::finish` -> platform present -> `WgpuRenderer`. `Scene` retains paint operations plus per-primitive-family vectors, sorts each family at finish, and merges families through `BatchIterator`; each iterator step builds and sorts a ten-entry order/kind array.\n\nThe local renderer packs primitive slices, writes instance/gradient buffers, and creates instance bind groups per scene batch. Paths add intermediate rasterization passes. Element visual effects and screen effects interrupt the main pass, use full-resolution intermediate textures, and may run horizontal blur, vertical blur, pass-through, filter, glow-add, snapshot, and screen-effect passes. Global data is issued as three queue writes per frame. Atlas cache misses allocate/rasterize while holding the atlas mutex, retain an owned upload copy, and flush one `write_texture` call per tile before a frame; sprite batches also lock the atlas to clone a texture view.\n\nCurrent upstream Zed at `399258feeaf90ad8a3a208c99221ee87b6452f38` writes each of six primitive families once before its main render pass, creates one instance binding per family, and draws batch ranges from those shared bindings. RayX's renderer is roughly 3,780 lines larger because it preserves the full WebGL2 packed transport plus element/screen effects and HTML islands, so the upstream mechanism must be ported semantically rather than by replacing the file. The atlas differs from current upstream by only a few lines and is not independently proven hot.\n\nThe focused AST scanner covered 174 `gpui` files (807 signals), eight `gpui_wgpu` files (107), 15 `gpui_web` files (34), and four `sum_tree` files (76). Scanner results are leads, not proof; many nested-iteration and panic findings are deliberate invariants or test code.\n\n## Ranked experiment backlog\n\n1. Add diagnostics-only renderer counters for scene family sizes, batches, instance/gradient bytes, buffer writes, bind-group creation, render passes, atlas uploads, and instance-buffer restarts; add a Test Suite effects stress surface because no current benchmark isolates shader-pass cost.\n2. Prepack ordinary primitive families once per frame and draw ranges from family-owned bindings, preserving WebGPU storage and WebGL texture ABIs plus RayX effect families.\n3. Measure and remove avoidable monochrome-sprite stable-sort work when insertion order already satisfies `(order, tile_id)`.\n4. Test whether retaining both paint operations and per-family primitive copies causes material clone/allocation cost; preserve replay semantics.\n5. Cache atlas texture bind groups or otherwise avoid repeated atlas mutex/view cloning and bind-group creation for repeated texture IDs in one frame.\n6. Replace the ten-entry sort in every `BatchIterator::next` with a direct minimum selection only if renderer counters show material batch-merge CPU time.\n7. Investigate Taffy tree reconstruction/cache clearing, bounds-tree insertion, and element-path allocation with contemporaneous serialized before/after samples; prior loops already rejected several speculative virtualization shortcuts.\n8. Investigate atlas upload coalescing, owned-copy avoidance, and rasterization lock scope only after upload/miss counters prove a hot workload.\n9. Measure full-resolution blur/effect intermediate bandwidth and pass count, then test bounded-resolution or pass-elision mechanisms without changing visual contracts.\n10. Evaluate web frame scheduling, scene invalidation, sum-tree cursor cloning, and low-level virtualization only from workload-specific profiles, not scanner counts.\n\nPrimary sources used for the renderer comparison and API semantics: current Zed `scene.rs` and `wgpu_renderer.rs`, wgpu `Queue` documentation, and the WebGPU specification. Raw profiles, traces, screenshots, scanner output, and upstream diffs remain under the ignored baseline artifact directory and are not durable AgentX metadata.\n",
+  "decisionMarkdown": "# Baseline decision\n\nAccept the serialized headed-WebGPU and native Criterion measurements as the loop baseline. Do not accept performance comparisons against historical runs because the current DataTable rate differs materially from August 21 measurements on the same machine. Every production experiment must collect a fresh checkpoint-before and candidate-after distribution under the same process order.\n\nThe first hypothesis will be measurement enablement: renderer-owned counters plus a shader/effects Test Suite stress fixture. This is required because the current CPU profile proves GPUI layout/paint costs but cannot distinguish instance packing, WGPU writes, bind-group creation, render-pass interruption, atlas traffic, and GPU shader work.\n",
+  "notes": ""
+}

@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "id": "64e65a3f-dbdf-4a9f-8b46-90f9b88c66fc",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 121,
+  "type": "hypothesis",
+  "name": "Retire Bounds Prune Probe",
+  "slug": "retire-bounds-prune-probe",
+  "path": "2026-08-31-121-retire-bounds-prune-probe.json",
+  "createdAt": "2026-08-31T19:13:08Z",
+  "startedAt": "2026-08-31T19:13:08Z",
+  "finishedAt": "2026-08-31T19:21:49Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "3832ea8f0015800061d7868a89f17d996c998c54",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 3832ea8f0015800061d7868a89f17d996c998c54",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "3832ea8f0015800061d7868a89f17d996c998c54",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 3832ea8f0015800061d7868a89f17d996c998c54",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux BoundsTree and frame telemetry production overhead",
+  "hypothesisMarkdown": "## Retire Bounds Prune Probe Hypothesis\n\nRemoving the now-decided post-intersection prune counter and its publication plumbing should return the accepted BoundsTree path and frame telemetry contract to their smaller production shape without changing traversal or rendering behavior.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRemove only the field, branch increment, scene aggregation slot, frame telemetry field, WGPU assignment, web publication, and Test Suite schema/assertion introduced by experiment 119. Traversal, insertion, remaining diagnostics, APIs, dependencies, configuration, and fixtures are frozen.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nRun formatting, focused BoundsTree tests, both gpux clippy matrices, full gpux diagnostics tests, gpui_wgpu diagnostics tests, and the exclusive headed Test Suite WASM/WebGPU benchmark at DPR 1 and 2. Require the original six-counter bounds telemetry contract, exact rendering, and no more than 2% throughput or paced-p95 regression versus experiment 119.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nThe temporary measurement surface disappears completely, leaving the accepted enqueue-time intersection algorithm and its pre-existing diagnostics with equal or better cadence.\n",
+  "diagnostics": {
+    "playwright": [
+      {
+        "target": "apps/test_suite",
+        "runtime": "headed Chromium WASM/WebGPU",
+        "passed": 2,
+        "failed": 0
+      }
+    ],
+    "rayx": [],
+    "counters": [
+      "six-counter schema restored during candidate",
+      "4440 visits, 14351 child evaluations, 576 retained nodes",
+      "DPR timing moved in opposite directions"
+    ],
+    "artifacts": [
+      "test-results",
+      "playwright-report"
+    ]
+  },
+  "measurements": {
+    "baselineExperiment": 119,
+    "runs": [
+      {
+        "deviceScaleFactor": 1,
+        "baselineThroughput": 25.510908560166254,
+        "candidateThroughput": 22.789291972591563,
+        "throughputDeltaPercent": -10.668442408297174,
+        "baselinePacedP95Ms": 27.99853515625,
+        "candidatePacedP95Ms": 32.5693359375,
+        "pacedP95DeltaPercent": 16.32514256814497
+      },
+      {
+        "deviceScaleFactor": 2,
+        "baselineThroughput": 26.23175294672756,
+        "candidateThroughput": 29.954498368116358,
+        "throughputDeltaPercent": 14.191752373351063,
+        "baselinePacedP95Ms": 27.072021484375,
+        "candidatePacedP95Ms": 25.033203125,
+        "pacedP95DeltaPercent": -7.531090208951452
+      }
+    ],
+    "schema": {
+      "postIntersectionPrunePropertyPresent": false,
+      "sixCounterBoundsContractRestored": true
+    },
+    "deterministicCounters": {
+      "searchNodeVisits": 4440,
+      "insertionChildEvaluations": 14351,
+      "retainedNodes": 576
+    },
+    "validation": {
+      "format": "pass",
+      "focusedBoundsTreeTests": "3 passed",
+      "clippyDefault": "pass",
+      "clippyDiagnostics": "pass",
+      "gpuxTests": "419 passed",
+      "gpuiWgpuTests": "52 passed",
+      "playwright": "2 passed with zero terminal error"
+    }
+  },
+  "reportMarkdown": "# Experiment 121 Report\n\nThe telemetry retirement correctly restored the original six-counter bounds contract and passed formatting, focused tests, both clippy matrices, 419 gpux tests, 52 gpui_wgpu tests, and both headed Test Suite WASM/WebGPU cases. Existing deterministic counters and exact rendering were preserved.\n\nThe predeclared paired timing gate nevertheless failed at DPR 1. Against experiment 119, throughput changed from 25.5109 to 22.7893 steps/s (-10.668%) and paced p95 changed from 27.9985 to 32.5693 ms (+16.325%). DPR 2 improved strongly (+14.192% throughput and -7.531% p95), demonstrating substantial process variance rather than a coherent cleanup regression, but the atomic gate cannot be waived after measurement.\n\nThe cleanup was therefore restored to the exact experiment checkpoint. A fresh telemetry-on measurement must precede any separately declared retirement retry.\n",
+  "decisionMarkdown": "# Decision\n\nReject and revert this attempt because its predeclared DPR 1 timing gate failed, despite correct schema removal and opposite-direction DPR 2 results. Establish a fresh process-local telemetry-on reference before a new retirement experiment; do not fix forward here.\n",
+  "notes": ""
+}

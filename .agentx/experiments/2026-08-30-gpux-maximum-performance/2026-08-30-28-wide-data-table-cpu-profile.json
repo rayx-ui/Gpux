@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "id": "d8253a85-77cd-4ce8-9dab-53d8d5926b43",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 28,
+  "type": "hypothesis",
+  "name": "Wide DataTable CPU Profile",
+  "slug": "wide-data-table-cpu-profile",
+  "path": "2026-08-30-28-wide-data-table-cpu-profile.json",
+  "createdAt": "2026-08-30T23:47:06Z",
+  "startedAt": "2026-08-30T23:47:06Z",
+  "finishedAt": "2026-08-30T23:54:38Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "79deeb47a37f6337a6846f2604a6cb6f8543d8ee",
+  "resultCommit": "79deeb47a19dbe87a953dc65113b13b05a874446",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 79deeb47a37f6337a6846f2604a6cb6f8543d8ee",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "79deeb47a37f6337a6846f2604a6cb6f8543d8ee",
+      "resultCommit": "79deeb47a19dbe87a953dc65113b13b05a874446",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 79deeb47a37f6337a6846f2604a6cb6f8543d8ee",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "79deeb47a19dbe87a953dc65113b13b05a874446"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "apps/test_suite headed WebGPU CPU profile",
+  "hypothesisMarkdown": "# Hypothesis\n\nA Chrome CPU profile of the established headed WebGPU wide DataTable interaction will identify gpux/WASM functions with materially greater sampled self time than the rejected deferred-draw path, allowing the next atomic production experiment to target measured active work rather than static complexity leads.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\n1. Run the existing apps/test_suite wide DataTable benchmark once at DPR 1 and DPR 2 with RAYX_CPU_PROFILE=1, headed Chromium, WebGPU enabled, and one worker.\n2. Keep production source unchanged and store raw profiles only under artifacts-temp/agentx-experiments.\n3. Parse each Chrome .cpuprofile by sample timeDelta, aggregate self time by call-frame function and URL, and inspect the highest-sampled WASM/gpux frames.\n4. Cross-reference the hottest symbols with current gpux source and existing telemetry.\n5. Finish success only if both projects pass with zero terminal error and the profiles yield an actionable, source-mappable next hypothesis; otherwise finish failure without source changes.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nBoth profiles preserve established renderer and scroll counters and expose at least one repeatable gpux-owned CPU hotspot. The next experiment will test one bounded source mechanism against fresh three-process before/after measurements.\n",
+  "diagnostics": {
+    "playwright": [
+      "One headed Chromium/WebGPU process passed DPR 1 and DPR 2 with one worker and zero terminal scroll error.",
+      "Chrome profiles covered 14.792 s / 9440 samples at DPR 1 and 14.744 s / 9406 samples at DPR 2."
+    ],
+    "rayx": [
+      "Production source remained unchanged; apps/test_suite was the exclusive runtime target.",
+      "Current upstream Taffy was shallow-cloned into the raw artifact tree at b3b387132be1dda0e9d08d5044692236532c166d for source comparison."
+    ],
+    "counters": [
+      "Taffy flexbox self time was 583.799 ms / 622.141 ms and block-layout self time was 252.299 ms / 236.699 ms at DPR 1 / DPR 2.",
+      "Allocator self time aggregated across dlmalloc malloc/free was 611.476 ms / 564.376 ms; TaffyTree-owned symbols totaled 181.082 ms / 168.581 ms.",
+      "Stable slice-sort quicksort symbols totaled 141.524 ms / 103.896 ms, confirming layout and allocation are larger targets than sprite sorting."
+    ],
+    "artifacts": [
+      "artifacts-temp/agentx-experiments/gpux-maximum-performance/28-wide-data-table-cpu-profile/"
+    ]
+  },
+  "measurements": [
+    {
+      "metric": "Taffy flexbox self time",
+      "before": "unprofiled",
+      "after": "583.799 ms DPR 1 / 622.141 ms DPR 2",
+      "delta": "largest source-mapped compute symbol"
+    },
+    {
+      "metric": "Taffy block-layout self time",
+      "before": "unprofiled",
+      "after": "252.299 ms DPR 1 / 236.699 ms DPR 2",
+      "delta": "second layout family"
+    },
+    {
+      "metric": "dlmalloc malloc/free self time",
+      "before": "unprofiled",
+      "after": "611.476 ms DPR 1 / 564.376 ms DPR 2",
+      "delta": "material allocation pressure"
+    },
+    {
+      "metric": "TaffyTree-owned symbol self time",
+      "before": "unprofiled",
+      "after": "181.082 ms DPR 1 / 168.581 ms DPR 2",
+      "delta": "source-mappable tree construction/management work"
+    },
+    {
+      "metric": "stable slice-sort quicksort self time",
+      "before": "unprofiled",
+      "after": "141.524 ms DPR 1 / 103.896 ms DPR 2",
+      "delta": "smaller than layout/allocation"
+    }
+  ],
+  "reportMarkdown": "## Wide DataTable CPU Profile Finished\n\n**Index:** 28\n**Checkpoint:** `79deeb47a`\n**Result Commit:** metadata only\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. Both profiles passed with zero terminal error and exposed consistent source-mapped hotspots.\n\n| Self-time family | DPR 1 | DPR 2 |\n|---|---:|---:|\n| Taffy flexbox | 583.799 ms | 622.141 ms |\n| Taffy block | 252.299 ms | 236.699 ms |\n| dlmalloc malloc/free | 611.476 ms | 564.376 ms |\n| TaffyTree-owned symbols | 181.082 ms | 168.581 ms |\n| stable slice-sort quicksort | 141.524 ms | 103.896 ms |\n\nThe active dependency is crates.io Taffy 0.14.0. Current upstream commit `b3b387132be1dda0e9d08d5044692236532c166d` still stores std/alloc children in `Vec`; `new_with_children` collects each child slice into a new child vector. This matches the measured tree-construction and allocator signal and confirms that the prior inline-child idea is not yet upstream.\n\n### Decision\n\nPrioritize Taffy/tree allocation work over deferred sorting or another sprite-sort variant. Experiment 29 should measure one dependency-safe inline-child mechanism without restoring a checked-in vendor tree; any accepted dependency must remain crates.io or an exact-revision Git source with compact provenance.",
+  "decisionMarkdown": "Accept the profiling evidence. Taffy flex/block computation and allocator activity dominate the mapped gpux work, while sprite sorting is secondary. The next experiment may test inline Taffy child storage, but must obey the updated gpux dependency policy and must not recreate the 24,000-line vendor surface.",
+  "notes": "No production or memory change was made. The gpux skill required upstream source comparison in a temporary artifact checkout and confirmed its flexible provenance policy is current."
+}

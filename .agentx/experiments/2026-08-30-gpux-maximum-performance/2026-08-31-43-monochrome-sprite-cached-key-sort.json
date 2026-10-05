@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "id": "dd245880-a60c-4611-972c-073b127954fe",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 43,
+  "type": "hypothesis",
+  "name": "Monochrome Sprite Cached Key Sort",
+  "slug": "monochrome-sprite-cached-key-sort",
+  "path": "2026-08-31-43-monochrome-sprite-cached-key-sort.json",
+  "createdAt": "2026-08-31T02:22:43Z",
+  "startedAt": "2026-08-31T02:22:43Z",
+  "finishedAt": "2026-08-31T02:33:32Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "2a544fd5611e05f3091afe88f9336507d27731a6",
+  "resultCommit": "0c029dda7fd9629d69935029c008f8791487aedf",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 2a544fd5611e05f3091afe88f9336507d27731a6",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "2a544fd5611e05f3091afe88f9336507d27731a6",
+      "resultCommit": "0c029dda7fd9629d69935029c008f8791487aedf",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 2a544fd5611e05f3091afe88f9336507d27731a6",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "0c029dda7fd9629d69935029c008f8791487aedf"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux Scene monochrome sprite ordering and apps/test_suite headed WASM/WebGPU wide DataTable",
+  "hypothesisMarkdown": "Replacing only the hot monochrome sprite stable `sort_by_key` with stable `sort_by_cached_key` will sort compact `(DrawOrder, TileId)` records and permute each 128-byte sprite once, reducing large-record movement while preserving the exact key order and stability contract.\n",
+  "measurementPlanMarkdown": "Change only the monochrome sprite sort mechanism. Run focused and full gpux tests, serialized gpui_wgpu tests, formatting, check, clippy, and three fresh headed WebGPU benchmark processes at DPR 1 and DPR 2 in apps/test_suite. Require exact final offsets, renderer/layout counters, and zero errors; compare throughput and paced p95 against experiment 41. If accepted, profile the sort separately in a later experiment.\n",
+  "expectedOutcomeMarkdown": "Stable cached-key sorting preserves identical scene/batch output and improves or leaves neutral the browser medians by avoiding repeated movement of 128-byte monochrome sprite records during comparison sorting.\n",
+  "diagnostics": {
+    "playwright": [
+      "Three fresh headed Chromium/WebGPU processes passed DPR 1 and DPR 2: 6/6 cases, exact final offsets, and zero terminal errors.",
+      "Every run preserved 1515/1513 monochrome sprites and 684/666 pre-sort adjacent inversions at DPR 1/2."
+    ],
+    "rayx": [
+      "410 gpux tests passed with rayx_diagnostics.",
+      "52 gpui_wgpu tests passed serially with rayx_diagnostics.",
+      "cargo check, cargo fmt --check, and clippy -D warnings passed."
+    ],
+    "counters": [
+      "All established renderer, layout, batching, buffer-write, and final-scroll diagnostics remained exact."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 median acknowledged throughput",
+      "before": "30.28333007913714 steps/s",
+      "after": "30.295874050356904 steps/s",
+      "delta": "+0.04%"
+    },
+    {
+      "metric": "DPR 2 median acknowledged throughput",
+      "before": "30.165632701898762 steps/s",
+      "after": "30.177166371621972 steps/s",
+      "delta": "+0.04%"
+    },
+    {
+      "metric": "DPR 1 median paced p95",
+      "before": "27.346923828125 ms",
+      "after": "26.5703125 ms",
+      "delta": "-2.84%"
+    },
+    {
+      "metric": "DPR 2 median paced p95",
+      "before": "27.276611328125 ms",
+      "after": "26.866943359375 ms",
+      "delta": "-1.50%"
+    },
+    {
+      "metric": "multithreaded WASM atomic prefix",
+      "before": "100897 bytes",
+      "after": "106906 bytes",
+      "delta": "+6009 bytes"
+    }
+  ],
+  "reportMarkdown": "## Monochrome Sprite Cached Key Sort Finished\n\n**Index:** 43\n**Checkpoint:** `2a544fd5611e05f3091afe88f9336507d27731a6`\n**Result:** `0c029dda7fd9629d69935029c008f8791487aedf`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. GPUI now stable-sorts the hot 128-byte monochrome sprite family through cached `(DrawOrder, TileId)` keys. Equal-key source order remains explicitly tested; the empty subpixel and polychrome paths retain direct stable sorting.\n\nAll 410 gpux tests, 52 serialized gpui_wgpu tests, formatting, check, clippy, and six headed WebGPU cases passed. Across three fresh processes, DPR 1/2 median throughput improved 0.04%/0.04% and paced p95 improved 2.84%/1.50% versus experiment 41. Exact final offsets, renderer/layout counters, sprite counts/disorder, and zero terminal errors were preserved. The multithreaded WASM atomic prefix grew by 6,009 bytes; this is recorded as the cost of the specialized stable cached-key implementation and should be weighed against the follow-up CPU profile.\n\n### Scope Lock\n\nOnly monochrome sprite sorting and its equal-key stability test changed. No public API, renderer ABI, shader, dependency, or other sprite-family sort changed.\n\n### Decision\n\nAccept the implementation because both DPRs improved paced p95 with neutral-positive throughput and exact behavior. Profile the sort in the next measurement-only experiment before considering any broader application.\n",
+  "decisionMarkdown": "Accept stable cached-key sorting only for monochrome sprites. It preserves equal-key order and exact runtime output while improving paced p95 at both DPRs. Keep direct stable sorting for the unmeasured empty subpixel and polychrome families, and quantify the sort self-time change separately.\n",
+  "notes": ""
+}

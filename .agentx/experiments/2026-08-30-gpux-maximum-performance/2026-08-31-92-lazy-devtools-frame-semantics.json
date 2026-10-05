@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "id": "84b9de6c-cf84-4eba-8c5a-b0ce51bbf30a",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 92,
+  "type": "hypothesis",
+  "name": "Lazy Devtools Frame Semantics",
+  "slug": "lazy-devtools-frame-semantics",
+  "path": "2026-08-31-92-lazy-devtools-frame-semantics.json",
+  "createdAt": "2026-08-31T15:33:02Z",
+  "startedAt": "2026-08-31T15:33:02Z",
+  "finishedAt": "2026-08-31T15:43:33Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "6da0309fa4ed274f6027e85d6665cf917882e13c",
+  "resultCommit": "848a48cf0c163d1a0e6e89ce03bfe90605cd447e",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 6da0309fa4ed274f6027e85d6665cf917882e13c",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "6da0309fa4ed274f6027e85d6665cf917882e13c",
+      "resultCommit": "848a48cf0c163d1a0e6e89ce03bfe90605cd447e",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 6da0309fa4ed274f6027e85d6665cf917882e13c",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "848a48cf0c163d1a0e6e89ce03bfe90605cd447e"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "wasm/web with headed Playwright and WebGPU enabled",
+  "hypothesisMarkdown": "## Lazy Devtools Frame Semantics Hypothesis\n\nRepresenting per-frame semantics as Option<DevtoolsSemantics> will avoid constructing and clearing a 20-field, four-vector default payload for every unannotated rendered node while preserving the public snapshot's concrete default semantics and all annotated merge/property behavior.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nLazy allocation of DevtoolsFrameNode semantics only on first authored semantics/property attachment. Only window.rs and focused tests may change. Skipping nodes, snapshot/property behavior changes, DevKit activation flags, counters, pooling, public API changes, rendering/layout/shader work, dependencies, and adjacent cleanup are forbidden.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nAdd focused tests for unannotated snapshot defaults plus multi-attachment merge/property behavior, run full gpux and serialized WGPU suites, Clippy/format, then the headed WebGPU DataTable benchmark at both DPRs. Compare repeated browser measurements to checkpoint and accept only with exact behavior and no representative performance regression.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nRemove default-semantics construction/drop work from every unannotated frame node, reduce cleanup ancestry, and preserve byte-for-byte semantic snapshot behavior; expected browser throughput is neutral-to-positive.",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": {
+    "schemaVersion": 1,
+    "status": "success",
+    "productCommit": "848a48cf0c163d1a0e6e89ce03bfe90605cd447e",
+    "gpuxUnitTestsPassed": 419,
+    "gpuxIntegrationTestsPassed": true,
+    "wgpuTestsPassed": 52,
+    "focusedSemanticsTestsPassed": 3,
+    "clippyPassed": true,
+    "rustFmtPassed": true,
+    "wasmAtomicPrefixBytes": 98553,
+    "browser": {
+      "dpr1": {
+        "medianAcknowledgedStepsPerSecond": 25.995531368157803,
+        "medianPacedP95CatchUpLatencyMs": 27.141357421875,
+        "terminalError": 0
+      },
+      "dpr2": {
+        "medianAcknowledgedStepsPerSecond": 26.22115697315289,
+        "medianPacedP95CatchUpLatencyMs": 27.122314453125,
+        "terminalError": 0
+      }
+    },
+    "behavior": {
+      "publicSnapshotSemanticsRemainConcrete": true,
+      "authoredMergePreserved": true,
+      "writablePropertyPreserved": true,
+      "establishedTelemetryExact": true
+    }
+  },
+  "reportMarkdown": "# Lazy Devtools Frame Semantics\n\n`DevtoolsFrameNode` now stores `Option<DevtoolsSemantics>`. Unannotated rendered nodes retain `None`; authored semantics allocate the payload on first attachment and preserve merge behavior; writable properties materialize the payload only when needed. Public snapshots still return a concrete `DevtoolsSemantics::default()` for unannotated nodes.\n\nValidation passed:\n\n- 419 gpux unit tests and every gpux integration test\n- 52 serialized WGPU tests\n- 3 focused RayX field-semantics tests\n- warning-denied gpux Clippy and Rust formatting\n- headed Test Suite WebGPU DataTable at DPR 1 and DPR 2, with exact established renderer/layout/cache/final-offset invariants and zero terminal errors\n\nThe passing browser process measured 25.9955/26.2212 acknowledged steps/s and 27.1414/27.1223 ms paced p95 at DPR 1/2. The two immediately preceding same-session diagnostic attempts had failed at 18.6844/18.7943 and 19.9581/18.8421 steps/s. Because those attempts carried extra counters, this comparison is directional rather than a pure A/B claim; the accepted result is supported primarily by the direct reduction in constructed/dropped payloads plus full runtime proof.\n\nThe multithreaded WASM atomic prefix was 98,553 bytes. All established telemetry remained exact.\n",
+  "decisionMarkdown": "# Decision\n\nAccept and commit. Lazy optional storage removes default `DevtoolsSemantics` construction and destruction from every unannotated frame node while preserving public snapshots, authored merges, writable properties, and runtime output. No activation mode, skipped-node path, pool, or public API was introduced.\n",
+  "notes": ""
+}

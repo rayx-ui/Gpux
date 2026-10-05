@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 5,
+  "generatorVersion": "5.0",
+  "epicId": "keyed-sticky-stacking",
+  "sprint": 3,
+  "status": "passed",
+  "headBeforeCommit": "e338942362e584f27587403bce40d35c3abc3921",
+  "filesReviewed": [
+    "C:\\Users\\dinko\\.codex\\worktrees\\bf9a\\RayX\\apps\\lab\\src",
+    "C:\\Users\\dinko\\.codex\\worktrees\\bf9a\\RayX\\apps\\test_suite\\src\\pages",
+    "C:\\Users\\dinko\\.codex\\worktrees\\bf9a\\RayX\\crates\\gpux\\crates\\gpui\\src",
+    "C:\\Users\\dinko\\.codex\\worktrees\\bf9a\\RayX\\crates\\gpux\\crates\\gpui\\src\\elements\\list.rs",
+    "C:\\Users\\dinko\\.codex\\worktrees\\bf9a\\RayX\\crates\\gpux\\crates\\gpui\\src\\elements\\uniform_list.rs",
+    "C:\\Users\\dinko\\.codex\\worktrees\\bf9a\\RayX\\tools-node\\test_suite\\keyed-sticky-stacking.spec.ts"
+  ],
+  "conformance": [
+    {
+      "requirementId": "REQ-F-004",
+      "taskIds": [
+        "sprint-3-task-1"
+      ],
+      "acceptanceCriteriaIds": [
+        "AC-F-004-1",
+        "AC-F-004-2",
+        "AC-F-004-3",
+        "AC-NF-002-2"
+      ],
+      "evidenceAcceptanceCriteriaIds": [
+        "AC-F-004-1",
+        "AC-F-004-2",
+        "AC-F-004-3",
+        "AC-NF-002-2"
+      ],
+      "missingAcceptanceCriteriaIds": [],
+      "implementationLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\bf9a\\RayX\\apps\\lab\\src",
+        "C:\\Users\\dinko\\.codex\\worktrees\\bf9a\\RayX\\crates\\gpux\\crates\\gpui\\src",
+        "C:\\Users\\dinko\\.codex\\worktrees\\bf9a\\RayX\\crates\\gpux\\crates\\gpui\\src\\elements\\list.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\bf9a\\RayX\\crates\\gpux\\crates\\gpui\\src\\elements\\uniform_list.rs"
+      ],
+      "testLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\bf9a\\RayX\\apps\\test_suite\\src\\pages",
+        "C:\\Users\\dinko\\.codex\\worktrees\\bf9a\\RayX\\tools-node\\test_suite\\keyed-sticky-stacking.spec.ts"
+      ],
+      "evidenceProfiles": [
+        "architecture",
+        "behavior-preservation",
+        "contract",
+        "interaction",
+        "regression",
+        "unit"
+      ],
+      "missingProfiles": [],
+      "result": "pass",
+      "reason": "All mapped tasks are done with fresh profile-complete evidence."
+    },
+    {
+      "requirementId": "REQ-NF-002",
+      "taskIds": [
+        "sprint-3-task-1"
+      ],
+      "acceptanceCriteriaIds": [
+        "AC-F-004-1",
+        "AC-F-004-2",
+        "AC-F-004-3",
+        "AC-NF-002-2"
+      ],
+      "evidenceAcceptanceCriteriaIds": [
+        "AC-F-004-1",
+        "AC-F-004-2",
+        "AC-F-004-3",
+        "AC-NF-002-2"
+      ],
+      "missingAcceptanceCriteriaIds": [],
+      "implementationLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\bf9a\\RayX\\apps\\lab\\src",
+        "C:\\Users\\dinko\\.codex\\worktrees\\bf9a\\RayX\\crates\\gpux\\crates\\gpui\\src",
+        "C:\\Users\\dinko\\.codex\\worktrees\\bf9a\\RayX\\crates\\gpux\\crates\\gpui\\src\\elements\\list.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\bf9a\\RayX\\crates\\gpux\\crates\\gpui\\src\\elements\\uniform_list.rs"
+      ],
+      "testLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\bf9a\\RayX\\apps\\test_suite\\src\\pages",
+        "C:\\Users\\dinko\\.codex\\worktrees\\bf9a\\RayX\\tools-node\\test_suite\\keyed-sticky-stacking.spec.ts"
+      ],
+      "evidenceProfiles": [
+        "architecture",
+        "behavior-preservation",
+        "contract",
+        "interaction",
+        "regression",
+        "unit"
+      ],
+      "missingProfiles": [],
+      "result": "pass",
+      "reason": "All mapped tasks are done with fresh profile-complete evidence."
+    }
+  ],
+  "designQuality": {
+    "declaredWritePaths": [
+      "rayx:.agentx/tasks/keyed-sticky-stacking/**",
+      "rayx:apps/lab/src/**",
+      "rayx:apps/test_suite/src/pages/**",
+      "rayx:crates/gpux/crates/gpui/src/elements.rs",
+      "rayx:crates/gpux/crates/gpui/src/elements/list.rs",
+      "rayx:crates/gpux/crates/gpui/src/elements/uniform_list.rs",
+      "rayx:crates/gpux/crates/gpui/src/lib.rs",
+      "rayx:tools-node/test_suite/keyed-sticky-stacking.spec.ts"
+    ],
+    "actualChangedPaths": [
+      "rayx:apps/lab/src/stories/sticky_display_story.rs",
+      "rayx:apps/test_suite/src/pages/keyed_sticky_stacking.rs",
+      "rayx:crates/gpux/crates/gpui/src/elements/list.rs",
+      "rayx:crates/gpux/crates/gpui/src/elements/uniform_list.rs",
+      "rayx:tools-node/test_suite/keyed-sticky-stacking.spec.ts"
+    ],
+    "unexpectedChangedPaths": [],
+    "responsibilityIds": [
+      "RESP-001",
+      "RESP-004",
+      "RESP-005"
+    ],
+    "newAbstractions": [
+      "Sticky relation index",
+      "StickyStacking",
+      "Structured low-level sticky candidate"
+    ],
+    "newDependencies": [],
+    "newPublicApi": [
+      "Structured gpux low-level sticky candidate and configuration"
+    ],
+    "unapprovedDesignAdditions": [],
+    "result": "pass",
+    "reason": "Actual changed paths stay within declared task scopes; declared responsibilities and explicitly allowed design additions are recorded for semantic review."
+  },
+  "commands": [
+    {
+      "command": "cargo test --manifest-path crates/gpux/Cargo.toml -p gpux sticky -- --nocapture",
+      "effectiveCommand": "cargo test --manifest-path crates/gpux/Cargo.toml -p gpux sticky -- --nocapture",
+      "exitCode": 0,
+      "assertion": "The complete gpux sticky suite MUST pass at the low-level convergence checkpoint.",
+      "stdoutHash": "a46bb0bfe8bce239065759c7b536ee172316b762ef20ba8dbc1d6d30a40c1219",
+      "stderrHash": "6d7f6d5cae5fc0fdb8ef574402243405987eab482af2ece7ec9a708002e12447",
+      "failureOutputTail": ""
+    }
+  ],
+  "defects": [],
+  "repairs": [],
+  "reauditCount": 1,
+  "residualRisks": [],
+  "generatedAt": "2026-07-31T03:24:37Z"
+}

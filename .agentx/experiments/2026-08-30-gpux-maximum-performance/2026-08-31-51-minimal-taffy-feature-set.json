@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "id": "dbecea25-16bd-44dd-aaaa-ce965962cbbb",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 51,
+  "type": "hypothesis",
+  "name": "Minimal Taffy Feature Set",
+  "slug": "minimal-taffy-feature-set",
+  "path": "2026-08-31-51-minimal-taffy-feature-set.json",
+  "createdAt": "2026-08-31T03:43:08Z",
+  "startedAt": "2026-08-31T03:43:08Z",
+  "finishedAt": "2026-08-31T03:57:56Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "538c73f2fe73c9c228065a52cfdfe470791492ac",
+  "resultCommit": "4b13cc8472e6e59c95e22eb9cc0d8bd7b89f2ab4",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 538c73f2fe73c9c228065a52cfdfe470791492ac",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "538c73f2fe73c9c228065a52cfdfe470791492ac",
+      "resultCommit": "4b13cc8472e6e59c95e22eb9cc0d8bd7b89f2ab4",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 538c73f2fe73c9c228065a52cfdfe470791492ac",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "4b13cc8472e6e59c95e22eb9cc0d8bd7b89f2ab4"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "crates/gpux/crates/gpui/Cargo.toml",
+  "hypothesisMarkdown": "Disabling Taffy default features that gpux does not use (`flexbox_balance`, `float_layout`, `calc`, and `detailed_layout_info`) while retaining `std`, `taffy_tree`, `flexbox`, `grid`, `block_layout`, and `content_size` will preserve exact gpux layout behavior, reduce compiled WASM size, and may reduce style equality and layout dispatch work.\n",
+  "measurementPlanMarkdown": "Change only the gpux Taffy dependency feature declaration. Prove the resolved feature graph with `cargo tree -e features -i taffy`; run gpux and gpui_wgpu diagnostic test suites, check, format, and clippy; then run three independent headed WebGPU Test Suite processes at DPR 1 and DPR 2. Compare median acknowledged throughput and paced p95 with experiment 49, require exact renderer/layout/final-scroll counters and zero terminal errors, and compare the WASM atomic-prefix byte count with 99,962 bytes.\n",
+  "expectedOutcomeMarkdown": "All static and runtime validation passes with exact output/counters. The Taffy feature graph excludes the four unused defaults. WASM atomic prefix shrinks below 99,962 bytes, while throughput and paced p95 remain neutral or improve within the established repeated-process acceptance envelope.\n",
+  "diagnostics": {
+    "playwright": [
+      "Three fresh headed Chromium/WebGPU processes passed DPR 1 and DPR 2: 6/6 cases, exact final offsets, and zero terminal errors.",
+      "Every run preserved 1123 Taffy nodes, 229 measured leaves, 341 leaves, 782 containers, 1041 edges, 405 flex/377 block/0 grid containers, 82 compute calls, and the established renderer and 485/24/485 global-ID signatures."
+    ],
+    "rayx": [
+      "411 gpux unit tests plus every integration suite passed with rayx_diagnostics.",
+      "52 gpui_wgpu tests passed serially with rayx_diagnostics.",
+      "Normal cargo check, cargo fmt --check, clippy -D warnings, feature-tree proof, and AgentX memory audit passed."
+    ],
+    "counters": [
+      "The resolved Taffy graph contains std, taffy_tree, flexbox, grid, block_layout, content_size, and implied alloc; flexbox_balance, float_layout, calc, and detailed_layout_info are absent.",
+      "The first cold WASM orchestration reported a 101772-byte atomic prefix; two subsequent source-identical builds both reported 98697 bytes. The repeated value is recorded because this prefix is a code-layout proxy, while the feature graph and runtime results are deterministic."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 median acknowledged throughput",
+      "before": "30.208721877284773 steps/s",
+      "after": "30.292478423046262 steps/s",
+      "delta": "+0.28%"
+    },
+    {
+      "metric": "DPR 2 median acknowledged throughput",
+      "before": "30.11703026204375 steps/s",
+      "after": "30.303477968045748 steps/s",
+      "delta": "+0.62%"
+    },
+    {
+      "metric": "DPR 1 median paced p95",
+      "before": "26.52392578125 ms",
+      "after": "26.067626953125 ms",
+      "delta": "-1.72%"
+    },
+    {
+      "metric": "DPR 2 median paced p95",
+      "before": "26.7646484375 ms",
+      "after": "25.834228515625 ms",
+      "delta": "-3.48%"
+    },
+    {
+      "metric": "multithreaded WASM atomic prefix (repeated stabilized build)",
+      "before": "99962 bytes",
+      "after": "98697 bytes",
+      "delta": "-1265 bytes"
+    }
+  ],
+  "reportMarkdown": "## Minimal Taffy Feature Set Finished\n\n**Index:** 51\n**Checkpoint:** `538c73f2fe73c9c228065a52cfdfe470791492ac`\n**Result:** `4b13cc8472e6e59c95e22eb9cc0d8bd7b89f2ab4`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. Gpux now disables Taffy 0.14's default feature bundle and explicitly retains only `std`, `taffy_tree`, `flexbox`, `grid`, `block_layout`, and `content_size`. The resolved graph excludes balanced flex wrapping, float layout, calc expressions, and detailed layout records without changing gpux source APIs.\n\nAll 411 gpux unit tests and integration suites, 52 serialized gpui_wgpu tests, normal check, formatting, clippy, and six headed WebGPU cases passed. Every final offset and renderer/layout/identity diagnostic remained exact. Against experiment 49, three-process median acknowledged throughput improved 0.28%/0.62% at DPR 1/2 and paced p95 improved 1.72%/3.48%. Two repeated builds reported 98,697 atomic-prefix bytes versus 99,962 previously (-1,265); the initial cold orchestration produced a 101,772-byte layout outlier, so the prefix remains supporting rather than primary evidence.\n\n### Scope Lock\n\nOnly the Taffy dependency feature declaration changed in product code. The crate version, lockfiles, layout conversion, algorithms, public APIs, shaders, and renderer paths are unchanged.\n\n### Decision\n\nAccept the explicit minimum feature set. It removes unused compiled capabilities, preserves content-sizing semantics and exact runtime behavior, improves both throughput medians and both tail-latency medians, and requires no fork or vendored source.\n",
+  "decisionMarkdown": "Accept the explicit minimum Taffy feature set. The feature graph deterministically removes four unused defaults, all static and headed runtime proof passes with exact behavior, throughput improves 0.28%/0.62%, and paced p95 improves 1.72%/3.48% at DPR 1/2. Retain `content_size` because it changes layout semantics even without a direct gpux field read.\n",
+  "notes": ""
+}

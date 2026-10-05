@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "id": "74de5480-589c-43f3-a4b2-3c986fc86f30",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 23,
+  "type": "hypothesis",
+  "name": "Layout bounds cache telemetry",
+  "slug": "layout-bounds-cache-telemetry",
+  "path": "2026-08-30-23-layout-bounds-cache-telemetry.json",
+  "createdAt": "2026-08-30T22:34:03Z",
+  "startedAt": "2026-08-30T22:34:03Z",
+  "finishedAt": "2026-08-30T22:42:05Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "a12738102ce684e4b715ff0bc22df2af05db8da8",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard a12738102ce684e4b715ff0bc22df2af05db8da8",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "a12738102ce684e4b715ff0bc22df2af05db8da8",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard a12738102ce684e4b715ff0bc22df2af05db8da8",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "Taffy layout bounds cache telemetry in wide DataTable WebGPU frame",
+  "hypothesisMarkdown": "Instrument `TaffyLayoutEngine::layout_bounds` to distinguish direct cache hits from recursive parent-origin cache hits and misses. The wide DataTable workload may expose repeated or recursively expensive bounds resolution that justifies a later single-mechanism optimization; this experiment changes diagnostics only and makes no production-path change when `rayx_diagnostics` is disabled.",
+  "measurementPlanMarkdown": "Before source edits, run three fresh headed WebGPU Test Suite benchmark processes with one worker at DPR 1 and DPR 2 and save raw output outside `.agentx`. Add exactly four bounded diagnostic counters at indices 16..19 through gpui, Scene, gpui_wgpu, gpui_web, and the focused TypeScript fixture; update the fixed 20-value Rust oracle. Then run 456 gpui tests, two sequential 52/52 gpui_wgpu diagnostics suites, native checks with diagnostics off/on, single-thread WASM diagnostics check, warning-denied Clippy, package formatting, and three fresh candidate browser processes. Require exact existing-counter parity, exact new-counter invariants, no terminal errors, and no material product regression. Any gate failure reverts immediately.",
+  "expectedOutcomeMarkdown": "All validation gates pass; existing renderer, Taffy tree-shape, traversal, and final-scroll counters remain identical; new counters quantify total bounds calls, direct cache hits, recursive parent-origin hits, and recursive parent-origin misses at both DPRs. Accept only as measurement infrastructure when it yields stable actionable evidence without materially degrading acknowledged throughput or paced p95.",
+  "diagnostics": {
+    "playwright": [
+      "Three fresh checkpoint processes passed both DPR 1 and DPR 2 with one worker; six samples and zero terminal errors were captured under artifacts-temp/agentx-experiments/gpux-maximum-performance/23-layout-bounds-cache-telemetry/."
+    ],
+    "rayx": [
+      "The first candidate gate, cargo fmt --check for gpui, failed on the fixed 20-value diagnostics oracle's line wrapping. Atomic discipline required immediate revert before compilation or runtime validation."
+    ],
+    "counters": [
+      "Checkpoint DPR1 acknowledged medians: 26.4095, 27.2610, 24.7730 steps/s; paced p95: 27.5681, 27.7871, 28.5256 ms.",
+      "Checkpoint DPR2 acknowledged medians: 25.2467, 26.9424, 26.0749 steps/s; paced p95: 27.9622, 26.9465, 27.1011 ms."
+    ],
+    "artifacts": [
+      "artifacts-temp/agentx-experiments/gpux-maximum-performance/23-layout-bounds-cache-telemetry/"
+    ]
+  },
+  "measurements": [
+    {
+      "name": "candidate_format_gate",
+      "before": "checkpoint clean",
+      "after": "failed: rustfmt requested single-line oracle formatting",
+      "unit": "gate"
+    }
+  ],
+  "reportMarkdown": "| Field | Result |\n|---|---|\n| Checkpoint | `a12738102ce684e4b715ff0bc22df2af05db8da8` |\n| Attempt Count | 1 |\n| Checkpoint browser samples | 6 passed, zero terminal errors |\n| First candidate gate | Failed formatting check |\n| Source state | Reverted to checkpoint |\n| Decision | Reject attempt |",
+  "decisionMarkdown": "Reject and revert. The implementation was not changed after the failed rustfmt gate, even though the issue was mechanical. A fresh experiment may retry with the exact formatter-compatible oracle representation.",
+  "notes": "No production or test source remains changed. The checkpoint browser samples are reusable only as historical evidence; the fresh retry will collect its own baseline as required."
+}

@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "id": "a4112a43-6bdc-44eb-93f8-22fbf73badaf",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 113,
+  "type": "hypothesis",
+  "name": "Sixteen Child Bounds Tree",
+  "slug": "sixteen-child-bounds-tree",
+  "path": "2026-08-31-113-sixteen-child-bounds-tree.json",
+  "createdAt": "2026-08-31T18:12:30Z",
+  "startedAt": "2026-08-31T18:12:30Z",
+  "finishedAt": "2026-08-31T18:19:40Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "b05be52897bfa9d1be3fe5a0d4ff8b0f182a1ada",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard b05be52897bfa9d1be3fe5a0d4ff8b0f182a1ada",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "b05be52897bfa9d1be3fe5a0d4ff8b0f182a1ada",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard b05be52897bfa9d1be3fe5a0d4ff8b0f182a1ada",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux BoundsTree depth and slow-search locality",
+  "hypothesisMarkdown": "## Sixteen-Child Bounds Tree Hypothesis\n\nIncreasing `BoundsTree`'s fixed branching factor from 12 to 16 will reduce internal-node count, tree depth, and slow-search visits enough to outweigh wider insertion scans, improving the repeatable 160-164 ms insertion hotspot and product throughput.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nChange only `MAX_CHILDREN` from 12 to 16. Do not alter traversal, insertion, propagation, diagnostics, public APIs, tests, dependencies, renderer behavior, or benchmark fixtures.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nRun nested formatting, both warnings-denied Clippy matrices, focused 1,000-seed randomized bounds-tree tests, full gpux and WGPU tests, then exclusive headed Test Suite WASM/WebGPU profiles at both DPRs. Require exact rendering and zero errors. Compare insertion self time, child evaluations, search visits, retained nodes, throughput, and paced p95 with experiment 102. Reject on material product regression or if wider scans are not offset by shallower-tree counters.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nReduce retained nodes and search visits enough to lower insertion self time and improve or preserve both-DPR product metrics.\n",
+  "diagnostics": {
+    "playwright": [
+      "2/2 headed Chromium WebGPU projects passed at DPR 1 and DPR 2.",
+      "Both projects retained exact final rendering and zero terminal error."
+    ],
+    "rayx": [
+      "All runtime validation used apps/test_suite; apps/lab was not launched or modified.",
+      "CPU profiles were captured with RAYX_CPU_PROFILE=1.",
+      "Product source was restored exactly to checkpoint b05be5289."
+    ],
+    "counters": [
+      "Search visits fell 24.707%, retained nodes fell 2.951%, child evaluations rose 13.915%.",
+      "Insertion self time and p95 improved at both DPRs, but throughput missed the declared reference gate."
+    ],
+    "artifacts": [
+      "test-results/test_suite-rayx-data-table-ebb47-d-thumb-drag-render-cadence-chromium/data-table-wide-scroll.cpuprofile",
+      "test-results/test_suite-rayx-data-table-ebb47-d-thumb-drag-render-cadence-chromium-dpr2/data-table-wide-scroll.cpuprofile"
+    ]
+  },
+  "measurements": {
+    "schemaVersion": 1,
+    "status": "failure",
+    "sourceRestoredToCheckpoint": true,
+    "gpuxTestsPassed": 419,
+    "gpuiWgpuTestsPassed": 52,
+    "headedWebgpuCasesPassed": 2,
+    "childEvaluations": {
+      "reference": 14351,
+      "candidate": 16348,
+      "deltaPercent": 13.915
+    },
+    "searchNodeVisits": {
+      "reference": 4440,
+      "candidate": 3343,
+      "deltaPercent": -24.707
+    },
+    "retainedNodes": {
+      "reference": 576,
+      "candidate": 559,
+      "deltaPercent": -2.951
+    },
+    "boundsTreeInsertSelfMs": {
+      "referenceDpr1": 163.528,
+      "candidateDpr1": 138.301,
+      "deltaPercentDpr1": -15.427,
+      "referenceDpr2": 159.763,
+      "candidateDpr2": 150.504,
+      "deltaPercentDpr2": -5.795
+    },
+    "throughputStepsPerSecond": {
+      "referenceDpr1": 27.599698390495995,
+      "candidateDpr1": 26.252415796524883,
+      "deltaPercentDpr1": -4.882,
+      "referenceDpr2": 28.61858382082703,
+      "candidateDpr2": 26.57424675131496,
+      "deltaPercentDpr2": -7.143
+    },
+    "pacedP95Ms": {
+      "referenceDpr1": 27.9384765625,
+      "candidateDpr1": 27.581298828125,
+      "deltaPercentDpr1": -1.278,
+      "referenceDpr2": 27.187744140625,
+      "candidateDpr2": 26.1953125,
+      "deltaPercentDpr2": -3.649
+    }
+  },
+  "reportMarkdown": "# Sixteen-Child Bounds Tree\n\nThe one-line candidate passed formatting, both warnings-denied Clippy matrices, focused bounds-tree tests including the 1,000-seed randomized oracle, all 419 gpux tests plus integrations, all 52 WGPU tests, and 2/2 headed Test Suite WebGPU profile cases. Rendering behavior and insertion count remained exact.\n\nThe wider tree produced the intended structural shift: slow-search visits fell from 4,440 to 3,343 (-24.707%), retained nodes fell from 576 to 559 (-2.951%), and insertion child evaluations rose from 14,351 to 16,348 (+13.915%). `BoundsTree::insert` self time improved from 163.528 to 138.301 ms at DPR 1 (-15.427%) and from 159.763 to 150.504 ms at DPR 2 (-5.795%). Paced p95 also improved at both DPRs.\n\nHowever, the experiment explicitly required comparison with accepted experiment 102 and rejection on material product regression. Median acknowledged throughput fell from 27.599698 to 26.252416 steps/s at DPR 1 (-4.882%) and from 28.618584 to 26.574247 at DPR 2 (-7.143%). The candidate therefore fails its declared gate despite promising local counters.\n\nThe source was restored exactly to checkpoint `b05be52897bfa9d1be3fe5a0d4ff8b0f182a1ada`. Recent profile runs vary enough that a fresh current 12-child profile is needed before a separately declared paired comparison can determine whether the throughput movement is stale-baseline noise.\n",
+  "decisionMarkdown": "# Decision\n\nReject this sixteen-child attempt against its predeclared experiment-102 throughput gate and restore twelve. The local mechanism remains promising because both insertion self time and p95 improved, but it may only be reconsidered after a fresh current 12-child paired baseline establishes present process variance.\n",
+  "notes": ""
+}

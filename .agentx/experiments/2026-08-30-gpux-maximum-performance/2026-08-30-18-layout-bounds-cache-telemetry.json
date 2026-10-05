@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "id": "8c95388f-9ecc-4e35-b738-ef8b38d5515c",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 18,
+  "type": "hypothesis",
+  "name": "Layout bounds cache telemetry",
+  "slug": "layout-bounds-cache-telemetry",
+  "path": "2026-08-30-18-layout-bounds-cache-telemetry.json",
+  "createdAt": "2026-08-30T21:58:18Z",
+  "startedAt": "2026-08-30T21:58:18Z",
+  "finishedAt": "2026-08-30T22:08:43Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "a0230916eecc94c5cc06f47d354780f342409e80",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard a0230916eecc94c5cc06f47d354780f342409e80",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "a0230916eecc94c5cc06f47d354780f342409e80",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard a0230916eecc94c5cc06f47d354780f342409e80",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "wasm/web headed Chromium with WebGPU",
+  "hypothesisMarkdown": "Instrument the existing Taffy absolute-bounds lookup path to count total `layout_bounds` calls, direct bounds-cache hits, parent-origin cache hits, and parent-origin cache misses. The counters will establish whether prepaint normally requests parent bounds before child bounds and whether a later experiment can safely target the redundant parent recursion/cache lookup.\n",
+  "measurementPlanMarkdown": "Before editing source, run three fresh headed Chromium/WebGPU Test Suite DataTable benchmark processes covering DPR 1 and DPR 2. Add diagnostics-only counters through the existing Taffy -> Scene -> WGPU frame-diagnostics surface and assert them in the focused benchmark. Run three equivalent candidate processes plus gpux formatting, tests, native/WASM checks, and warning-denied Clippy. Accept only if all existing rendering/correctness counters remain exact, the new counter accounting is internally consistent, and browser throughput/paced-p95 does not materially regress.\n",
+  "expectedOutcomeMarkdown": "Expect most parent-origin accesses to hit because GPUI prepaints parents before descendants, while direct bounds-cache hits should reveal repeated consumer reads. The diagnostic surface must not alter layout behavior, renderer work, dependency versions, shader code, scene ordering, or virtualization.\n",
+  "diagnostics": {
+    "playwright": [
+      "Three fresh checkpoint Test Suite processes passed 6/6 DPR projects in headed Chromium with WebGPU enabled and one Playwright worker.",
+      "No candidate browser process ran because the first implementation attempt failed the gpui compile/test gate."
+    ],
+    "rayx": [
+      "The candidate extended the existing Taffy -> Scene -> WGPU -> browser diagnostic path only, but gpui test compilation rejected the fixed 16-entry diagnostics oracle after the array grew to 20 entries.",
+      "All six production and focused Test Suite files were restored exactly to checkpoint a0230916e before finishing the experiment."
+    ],
+    "counters": [
+      "All checkpoint samples retained 1123 Taffy nodes, 82 compute-layout calls, the established renderer tuple, final offset -351402.6875, and zero terminal error."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 checkpoint distribution",
+      "before": "30.03753264798199, 30.08961514855655, 29.097956086819583 steps/s; median 30.03753264798199; paced-p95 median 27.652099609375 ms",
+      "after": "not measured",
+      "delta": "not applicable; implementation failed compile/test gate",
+      "source": "headed Test Suite Chromium/WebGPU DataTable benchmark"
+    },
+    {
+      "metric": "DPR 2 checkpoint distribution",
+      "before": "29.820222822668967, 25.87649343755953, 27.32699246909079 steps/s; median 27.32699246909079; paced-p95 median 28.09228515625 ms",
+      "after": "not measured",
+      "delta": "not applicable; implementation failed compile/test gate",
+      "source": "headed Test Suite Chromium/WebGPU DataTable benchmark"
+    }
+  ],
+  "reportMarkdown": "## Layout bounds cache telemetry Finished\n\n**Index:** 18\n**Checkpoint:** a0230916e\n**Result Commit:** none\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status**: false. The diagnostics implementation reached the intended six-file pipeline, but gpui test compilation failed because the existing telemetry unit oracle still compared against a 16-entry array.\n\n### Scope Lock\n\n**Tested mechanism:** add four layout-bounds/cache diagnostic counters.\n**Out-of-scope changes:** none. The missing fixed-array oracle update is reserved for a fresh experiment; no fix-forward patch was made.\n\n### Repository Checkpoints\n\n| Repo | Path | Checkpoint | Result Commit | Status | Rollback |\n| --- | --- | --- | --- | --- | --- |\n| main | . | a0230916e | unchanged | reverted | `git -C \"D:\\\\Work\\\\projects\\\\RayX\\\\RayX\" reset --hard a0230916e` |\n\n### Measurements\n\nThe fresh checkpoint distribution passed all six DPR projects. DPR 1 median throughput was 30.0375 steps/s with 27.6521 ms paced p95; DPR 2 was 27.3270 steps/s with 28.0923 ms paced p95. No candidate measurement was valid because static validation failed first.\n\n### Decision\n\nReverted failure. Production and focused test source match the checkpoint exactly; only AgentX metadata remains to commit.",
+  "decisionMarkdown": "Revert. The first implementation attempt omitted the existing fixed diagnostics-array oracle in crates/gpux/crates/gpui/src/taffy.rs. AgentX atomicity forbids patching that omission inside the same experiment. A later experiment may retry the same telemetry mechanism only with the oracle explicitly included in its scope and first patch.",
+  "notes": "No memory or gpux skill update was made because no diagnostic behavior was successfully validated."
+}

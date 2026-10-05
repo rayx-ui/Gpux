@@ -1,0 +1,9 @@
+{
+  "target": "headed WASM WebGPU TextArea wheel action",
+  "samples": [
+    {"dpr": 1, "changedPixels": 13706},
+    {"dpr": 2, "changedPixels": 53702}
+  ],
+  "source": "tools-node/test-results",
+  "note": "This focused runtime proof confirms visible behavior. The direct lookup reduction is established by replacing both row-wide searches with ordered partition searches."
+}

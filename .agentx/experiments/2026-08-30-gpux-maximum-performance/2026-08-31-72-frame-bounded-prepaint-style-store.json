@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "id": "5f91e93b-c652-4fe3-9327-a3472301da4a",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 72,
+  "type": "hypothesis",
+  "name": "Frame-Bounded Prepaint Style Store",
+  "slug": "frame-bounded-prepaint-style-store",
+  "path": "2026-08-31-72-frame-bounded-prepaint-style-store.json",
+  "createdAt": "2026-08-31T10:08:25Z",
+  "startedAt": "2026-08-31T10:08:25Z",
+  "finishedAt": "2026-08-31T10:31:46Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "6674483fe830bae392ee14a6b1f8f3b221a368aa",
+  "resultCommit": "0f5b73e46c479a9afa0450e19a753b7b7efeebb9",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 6674483fe830bae392ee14a6b1f8f3b221a368aa",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "6674483fe830bae392ee14a6b1f8f3b221a368aa",
+      "resultCommit": "0f5b73e46c479a9afa0450e19a753b7b7efeebb9",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 6674483fe830bae392ee14a6b1f8f3b221a368aa",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "0f5b73e46c479a9afa0450e19a753b7b7efeebb9"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpui Window draw-local style ownership and Interactivity paint reuse",
+  "hypothesisMarkdown": "Retaining only structurally reusable prepaint styles in one window-owned capacity-retaining vector, with one optional index in `Interactivity`, will avoid 729 warmed paint reconstructions while preserving the public API and avoiding per-element heap allocations. The store is cleared at every draw boundary and bounded by the maximum eligible elements observed in that window.\n",
+  "measurementPlanMarkdown": "Change only gpux `Window` draw-local style ownership and `Interactivity` retain/take behavior. Retain styles only when no focus, hover, active, or group refinement exists; consume them only when a hitboxed element is not in an active drag. Compare three independent headed WebGPU processes at DPR 1 and DPR 2 against experiment 70 and profile the final build. Require exact established renderer/layout/text/scroll/worker/error invariants, all gpux and serialized WGPU tests, production/diagnostic checks, warning-denied gpux Clippy, and focused formatting. Pass only if both DPRs avoid material regression and profile/cadence evidence justifies the roughly 519 KiB warmed draw-local storage for 729 retained 712-byte styles.\n",
+  "expectedOutcomeMarkdown": "The warmed frame should consume 729 retained styles and reduce `compute_style_internal`, `Style::refine`, refinement-drop, malloc, and free samples. Throughput and/or paced p95 should improve without changing public APIs or any renderer, layout, text, scroll, input, or sticky behavior.\n",
+  "diagnostics": {
+    "playwright": [
+      "Three independent headed Chromium/WebGPU processes passed DPR 1 and DPR 2: 6/6 final cadence cases, exact final offset -351402.6875, and zero terminal errors.",
+      "One additional profiled headed Chromium/WebGPU process passed both DPRs: 2/2 cases with CPU profiles and exact runtime invariants."
+    ],
+    "rayx": [
+      "All 419 gpux unit tests and every gpux integration suite passed with rayx_diagnostics.",
+      "All 52 serialized gpui_wgpu tests passed with rayx_diagnostics.",
+      "Gpux production and diagnostics checks, warning-denied gpux Clippy, native Test Suite production and diagnostics checks, focused rustfmt, and diff checks passed; existing unrelated Test Suite warnings remain."
+    ],
+    "counters": [
+      "Every headed case consumed 729 retained prepaint styles out of 845 paint style phases while preserving 1,123 Taffy nodes, exact text-cache counters, nine renderer batches, 12 queue-buffer writes, one submission, shared memory, and the worker entry point.",
+      "The threaded WASM atomic prefix was 99,253 bytes. The draw-local store retains roughly 519 KiB of capacity for this 729-style warmed workload and clears owned styles at every draw boundary."
+    ],
+    "artifacts": [
+      "artifacts-temp/agentx-experiments/2026-08-30-gpux-maximum-performance/72-frame-bounded-prepaint-style-store"
+    ]
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 three-process median acknowledged throughput",
+      "before": "30.81524504128783 steps/s",
+      "after": "30.602489573731802 steps/s",
+      "delta": "-0.69%"
+    },
+    {
+      "metric": "DPR 2 three-process median acknowledged throughput",
+      "before": "30.572779495203665 steps/s",
+      "after": "30.77069829484175 steps/s",
+      "delta": "+0.65%"
+    },
+    {
+      "metric": "DPR 1 three-process median paced p95",
+      "before": "25.54638671875 ms",
+      "after": "25.238037109375 ms",
+      "delta": "1.21% improvement"
+    },
+    {
+      "metric": "DPR 2 three-process median paced p95",
+      "before": "26.55810546875 ms",
+      "after": "26.13037109375 ms",
+      "delta": "1.61% improvement"
+    },
+    {
+      "metric": "DPR 1 normalized compute_style_internal profile self share",
+      "before": "75.141 ms / 14926.815 ms",
+      "after": "37.802 ms / 14258.347 ms",
+      "delta": "-47.33%"
+    },
+    {
+      "metric": "DPR 2 normalized compute_style_internal profile self share",
+      "before": "98.815 ms / 15064.955 ms",
+      "after": "48.547 ms / 14046.754 ms",
+      "delta": "-47.31%"
+    },
+    {
+      "metric": "DPR 1/DPR 2 normalized Style::refine profile self share",
+      "before": "214.152 ms / 177.860 ms",
+      "after": "87.624 ms / 60.006 ms",
+      "delta": "-57.16% / -63.82%"
+    },
+    {
+      "metric": "DPR 1/DPR 2 normalized StyleRefinement drop profile self share",
+      "before": "82.888 ms / 91.536 ms",
+      "after": "48.644 ms / 45.647 ms",
+      "delta": "-38.56% / -46.52%"
+    }
+  ],
+  "reportMarkdown": "## Frame-Bounded Prepaint Style Store Finished\n\n**Index:** 72\n**Checkpoint:** `6674483fe830bae392ee14a6b1f8f3b221a368aa`\n**Result:** `0f5b73e46c479a9afa0450e19a753b7b7efeebb9`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. `Window` now owns one capacity-retaining draw-local store for structurally static prepaint styles. `Interactivity` records only an optional index, consumes the style during paint when no dynamic refinement or active hitboxed drag can change it, and otherwise retains the original recomputation path. Public element APIs remain unchanged and no per-element heap allocation was added.\n\nThree independent headed WebGPU processes passed both DPRs. Versus experiment 70, median acknowledged throughput moved -0.69% at DPR 1 and +0.65% at DPR 2, while paced p95 improved 1.21% and 1.61%. All six cases reused exactly 729 of 845 paint styles. Fresh profiles reduced normalized `compute_style_internal` self share 47.33%/47.31%, `Style::refine` 57.16%/63.82%, and `StyleRefinement` drop work 38.56%/46.52% at DPR 1/2. Allocator samples were mixed, so the accepted claim is removal of style reconstruction work rather than a general allocation reduction.\n\nAll 419 gpux unit tests and integration suites, all 52 serialized WGPU tests, production and diagnostic checks, warning-denied gpux Clippy, focused formatting, six final headed cases, and two profiled headed cases passed. Exact renderer, layout, text, scroll, worker, and error invariants remained unchanged.\n\n### Scope Lock\n\nOnly gpux `Window` draw-local style ownership and `Interactivity` retain/take behavior changed. No RayX caller, public API, renderer, Taffy, shader, or adjacent lifecycle mechanism changed.\n\n### Repository Checkpoints\n\n| Repo | Path | Checkpoint | Result Commit | Status | Rollback |\n| --- | --- | --- | --- | --- | --- |\n| main | . | `6674483fe` | `0f5b73e46` | committed | `git -C \"D:\\\\Work\\\\projects\\\\RayX\\\\RayX\" reset --hard 6674483fe830bae392ee14a6b1f8f3b221a368aa` |\n\n### Decision\n\nAccept the frame-bounded store. It preserves the public API, removes the measured repeated style construction from 86.27% of paint phases, improves paced tail latency at both DPRs, and keeps ownership bounded to one window's maximum eligible draw size.\n",
+  "decisionMarkdown": "Accept the frame-bounded prepaint style store. Retain only styles with no focus, hover, active, or group refinement; consume only when an active drag cannot add hitbox-dependent styling. Clear owned styles at every draw boundary while retaining bounded vector capacity.\n",
+  "notes": ""
+}

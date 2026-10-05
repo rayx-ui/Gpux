@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "id": "ddbfdad9-131e-4f53-90d1-acf0bced3b3e",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 78,
+  "type": "hypothesis",
+  "name": "Crate Visible Style Eligibility Telemetry",
+  "slug": "crate-visible-style-eligibility-telemetry",
+  "path": "2026-08-31-78-crate-visible-style-eligibility-telemetry.json",
+  "createdAt": "2026-08-31T11:43:05Z",
+  "startedAt": "2026-08-31T11:43:05Z",
+  "finishedAt": "2026-08-31T11:58:24Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "92ff3c4e2d7ed7da21dcc82a3d7783865269552b",
+  "resultCommit": "bbf95b96a7b68dfdb6f1179f72ec8465baa949d1",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 92ff3c4e2d7ed7da21dcc82a3d7783865269552b",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "92ff3c4e2d7ed7da21dcc82a3d7783865269552b",
+      "resultCommit": "bbf95b96a7b68dfdb6f1179f72ec8465baa949d1",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 92ff3c4e2d7ed7da21dcc82a3d7783865269552b",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "bbf95b96a7b68dfdb6f1179f72ec8465baa949d1"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "wasm/web with headed Playwright and WebGPU enabled",
+  "hypothesisMarkdown": "## Crate Visible Style Eligibility Telemetry Hypothesis\n\nThe same diagnostics-only request-to-prepaint eligibility telemetry will compile and measure correctly when its per-element boolean follows `Interactivity`'s existing crate construction boundary with `pub(crate)` visibility.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRepeat iteration 77's two-counter telemetry with only the diagnosed field-visibility correction. Production reuse, storage, public API exposure, Taffy changes, dependencies, unrelated diagnostics, and any other adjustment are forbidden.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nUse iteration 77's validation and headed WebGPU plan. The initial diagnostic gpux check is the first gate. Runtime passes only if both DPRs preserve all established invariants and more than half of prepaint phases arrive with a matching structurally static request candidate.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nThe diagnostic build should compile, and the new counter should quantify the exact handoff population for a later production experiment while compiling completely out of production builds.",
+  "diagnostics": {
+    "playwright": [
+      "Headed Chromium WebGPU Test Suite passed 2/2 cases at DPR 1 and DPR 2 with exact final offset -351402.6875 and zero console, page, request, or terminal errors."
+    ],
+    "rayx": [
+      "Multithreaded WASM binary verification passed; atomic instruction prefix was 98878 bytes."
+    ],
+    "counters": [
+      "Both DPRs: request-layout=875, request-static-eligible=757, prepaint-initial=845, prepaint-request-candidate=729, paint=845, paint-reuse-eligible=729.",
+      "The 729 request-to-prepaint candidates exactly equal the existing 729 prepaint-to-paint reuse candidates."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "request styles structurally eligible for prepaint handoff",
+      "before": "not measured",
+      "after": "757 / 875 (86.51%) at DPR 1 and DPR 2",
+      "delta": "new diagnostic partition",
+      "source": "headed Test Suite WebGPU telemetry"
+    },
+    {
+      "metric": "prepaint phases with matching static request candidate",
+      "before": "not measured",
+      "after": "729 / 845 (86.27%) at DPR 1 and DPR 2",
+      "delta": "new diagnostic partition",
+      "source": "headed Test Suite WebGPU telemetry"
+    },
+    {
+      "metric": "acknowledged throughput",
+      "before": "diagnostic-only experiment",
+      "after": "29.7428750756863 DPR 1; 29.7505867001638 DPR 2",
+      "delta": "no performance claim",
+      "source": "single headed WebGPU process"
+    },
+    {
+      "metric": "paced frame p95",
+      "before": "diagnostic-only experiment",
+      "after": "26.160888671875 ms DPR 1; 26.02587890625 ms DPR 2",
+      "delta": "no performance claim",
+      "source": "single headed WebGPU process"
+    }
+  ],
+  "reportMarkdown": "## Crate Visible Style Eligibility Telemetry Finished\n\n**Index:** 78\n**Checkpoint:** `92ff3c4e2d7ed7da21dcc82a3d7783865269552b`\n**Result Commit:** `bbf95b96a7b68dfdb6f1179f72ec8465baa949d1`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. The crate-visible diagnostic field compiled, both headed WebGPU cases preserved exact behavior, and 729 of 845 prepaint phases arrived with a matching structurally static request candidate.\n\n### Scope Lock\n\n**Tested mechanism:** diagnostics-only request-to-prepaint eligibility counters with crate-visible per-element state.\n**Out-of-scope changes:** none. No production reuse, storage, public API, Taffy, dependency, or unrelated diagnostic behavior changed.\n\n### Repository Checkpoints\n\n| Repo | Path | Checkpoint | Result Commit | Status | Rollback |\n| --- | --- | --- | --- | --- | --- |\n| main | . | `92ff3c4e2` | `bbf95b96a` | committed | `git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 92ff3c4e2d7ed7da21dcc82a3d7783865269552b` |\n\n### Measurements\n\nBoth DPRs reported request-layout 875, request-static-eligible 757, prepaint-initial 845, prepaint-request-candidate 729, paint 845, and paint-reuse-eligible 729. The 729 candidates are 86.27% of prepaint and exactly match the existing paint handoff population. Full gpux tests passed (419 unit tests plus integrations), gpui_wgpu passed 52 tests, production and diagnostic checks passed, Clippy was warning-clean, focused rustfmt passed, and the Test Suite production/diagnostic checks passed.",
+  "decisionMarkdown": "### Decision\n\nCommit the diagnostics as a successful measurement experiment. The exact 729-candidate equality proves a conservative three-phase request/prepaint/paint opportunity for a later atomic production experiment; this experiment makes no speed claim.",
+  "notes": "Attempt Count: 1. Scope lock preserved. Raw browser/build output remains under artifacts-temp and is not referenced as durable AgentX metadata."
+}

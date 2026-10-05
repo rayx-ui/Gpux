@@ -1,0 +1,16 @@
+{
+  "target": "headed WASM WebGPU",
+  "protocol": "Three fresh 35-run replicates per scenario/DPR cell: five warmups and thirty measured samples each.",
+  "cells": [
+    { "scenario": "data-table", "dpr": 1, "sources": ["process-1", "process-2", "process-3"], "warmups": 15, "samples": 90, "p50Ms": 106.169, "p95Ms": 113.772, "maxMs": 116.998, "minChangedPixels": 30444 },
+    { "scenario": "data-table", "dpr": 2, "sources": ["process-1", "process-2", "process-3"], "warmups": 15, "samples": 90, "p50Ms": 100.149, "p95Ms": 113.164, "maxMs": 115.636, "minChangedPixels": 119412 },
+    { "scenario": "selection-area", "dpr": 1, "sources": ["process-1", "process-2", "process-3"], "warmups": 15, "samples": 90, "p50Ms": 84.614, "p95Ms": 89.413, "maxMs": 90.913, "minChangedPixels": 2418 },
+    { "scenario": "selection-area", "dpr": 2, "sources": ["process-1", "process-2", "process-3"], "warmups": 15, "samples": 90, "p50Ms": 80.296, "p95Ms": 89.336, "maxMs": 90.804, "minChangedPixels": 188511 },
+    { "scenario": "shell-isolation", "dpr": 1, "sources": ["process-1", "process-2", "process-3"], "warmups": 15, "samples": 90, "p50Ms": 27.393, "p95Ms": 35.109, "maxMs": 40.306, "minChangedPixels": 10074 },
+    { "scenario": "shell-isolation", "dpr": 2, "sources": ["process-1", "process-3", "shell-dpr2-replacement"], "warmups": 15, "samples": 90, "p50Ms": 28.819, "p95Ms": 32.871, "maxMs": 36.477, "minChangedPixels": 36814 },
+    { "scenario": "text-area", "dpr": 1, "sources": ["process-1", "process-2", "process-3"], "warmups": 15, "samples": 90, "p50Ms": 534.002, "p95Ms": 593.299, "maxMs": 653.234, "minChangedPixels": 13706 },
+    { "scenario": "text-area", "dpr": 2, "sources": ["process-1", "process-2", "text-area-dpr2-replacement"], "warmups": 15, "samples": 90, "p50Ms": 497.957, "p95Ms": 561.084, "maxMs": 687.211, "minChangedPixels": 53702 },
+    { "scenario": "text-quality", "dpr": 1, "sources": ["process-1", "process-2", "process-3"], "warmups": 15, "samples": 90, "p50Ms": 21.256, "p95Ms": 24.554, "maxMs": 25.860, "minChangedPixels": null },
+    { "scenario": "text-quality", "dpr": 2, "sources": ["process-1", "process-2", "text-quality-dpr2-replacement"], "warmups": 15, "samples": 90, "p50Ms": 19.510, "p95Ms": 25.490, "maxMs": 29.674, "minChangedPixels": null }
+  ]
+}

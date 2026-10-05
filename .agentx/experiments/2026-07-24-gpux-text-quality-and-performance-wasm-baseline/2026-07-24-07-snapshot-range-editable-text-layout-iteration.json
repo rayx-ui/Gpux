@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "id": "cb5a2efa-111b-4d7a-87b4-c4ec6c85fc60",
+  "loopId": "54e74b74-483c-4598-92d7-fdbabbc9154b",
+  "index": 7,
+  "type": "hypothesis",
+  "name": "Snapshot-range editable text layout iteration",
+  "slug": "snapshot-range-editable-text-layout-iteration",
+  "path": "2026-07-24-07-snapshot-range-editable-text-layout-iteration.json",
+  "createdAt": "2026-07-24T04:20:47Z",
+  "startedAt": "2026-07-24T04:20:47Z",
+  "finishedAt": "2026-07-24T04:29:53Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "8a9f6e32848ace0f725df89ab76eb35e4d4356c8",
+  "resultCommit": "cbdb709490d7de8f789f0d857c468e40a75f6d55",
+  "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard 8a9f6e32848ace0f725df89ab76eb35e4d4356c8",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "8a9f6e32848ace0f725df89ab76eb35e4d4356c8",
+      "resultCommit": "cbdb709490d7de8f789f0d857c468e40a75f6d55",
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard 8a9f6e32848ace0f725df89ab76eb35e4d4356c8",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "cbdb709490d7de8f789f0d857c468e40a75f6d55"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "headed WASM WebGPU TextArea fixture",
+  "hypothesisMarkdown": "# Hypothesis\n\nIterating unprojected `TextBufferSnapshot` logical-line ranges directly removes the whole\n`Rope::to_string()` materialization and the temporary logical-line vector. Projected display text\ncontinues to use its already-owned projection string, but also streams `split('\\n')` instead of\ncollecting rows first.\n\n## Scope lock\n\nThis experiment changes snapshot line-range access and layout-map line iteration only. It does not\nattempt retained-row splicing, cache invalidation, row indexes, or paint behavior.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\nRun the focused headed WASM/WebGPU TextArea fixture at both DPRs, inspect the screenshot, and\nrecord the action timing. Source inspection must prove the unprojected branch reaches the shaper\nwithout `snapshot.text()` or a logical-line vector, while the projection branch preserves display\nto buffer mapping.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nThe TextArea remains visually and interactively unchanged. Each source logical line is sliced by\nits validated Rope range, and the only line-wide allocation is the text retained by its layout row.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": {
+    "target": "headed WASM WebGPU TextArea wheel action",
+    "protocol": "One page-isolated 35-run Playwright process per DPR with five warmups and thirty measured samples.",
+    "source": "07-layout-snapshot-line-ranges-output",
+    "cells": [
+      {
+        "dpr": 1,
+        "samples": 30,
+        "p50Ms": 129.493,
+        "p95Ms": 141.935,
+        "baselineP50Ms": 534.002,
+        "baselineP95Ms": 593.299,
+        "minChangedPixels": 13706
+      },
+      {
+        "dpr": 2,
+        "samples": 30,
+        "p50Ms": 137.29,
+        "p95Ms": 143.619,
+        "baselineP50Ms": 497.957,
+        "baselineP95Ms": 561.084,
+        "minChangedPixels": 53702
+      }
+    ],
+    "failures": 0
+  },
+  "reportMarkdown": "# Snapshot-range editable text layout iteration\n\nAll 70 focused headed WASM/WebGPU samples passed with no diagnostics failures and visible,\nnonzero TextArea scroll pixels. Unprojected layout preparation no longer materializes the full Rope\nor creates a logical-line vector; it slices validated source line ranges one at a time. Projected\ntext streams its already-owned display string without a line vector.\n\n| DPR | Baseline p50/p95 | After p50/p95 | Reduction p50/p95 |\n| --- | --- | --- | --- |\n| 1 | 534.002 / 593.299 ms | 129.493 / 141.935 ms | 75.8% / 76.1% |\n| 2 | 497.957 / 561.084 ms | 137.290 / 143.619 ms | 72.4% / 74.4% |\n\nThe result is accepted. DPR 2 remains narrowly above the epic p50 target, so the next atomic\nexperiment must address a measured residual without weakening fixtures or thresholds.\n",
+  "decisionMarkdown": "# Decision\n\nAccept snapshot-range layout iteration. It eliminates the dominant whole-document allocation path\nand produces a material, stable WASM improvement while preserving visible TextArea behavior.\n",
+  "notes": ""
+}

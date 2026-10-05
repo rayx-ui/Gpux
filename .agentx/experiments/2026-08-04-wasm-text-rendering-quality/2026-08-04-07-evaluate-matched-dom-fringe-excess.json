@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "id": "3409a5b8-5711-4422-9846-db85e27d7864",
+  "loopId": "dc424089-d0a5-4558-ae79-72a6a8d787db",
+  "index": 7,
+  "type": "hypothesis",
+  "name": "Evaluate Matched DOM Fringe Excess",
+  "slug": "evaluate-matched-dom-fringe-excess",
+  "path": "2026-08-04-07-evaluate-matched-dom-fringe-excess.json",
+  "createdAt": "2026-08-04T15:28:09Z",
+  "startedAt": "2026-08-04T15:28:09Z",
+  "finishedAt": "2026-08-04T15:31:59Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "0eeb308236f1c3af32bbf9759cb3db692a58fe65",
+  "resultCommit": "bd937a2af22f3e19a64d1f358637be6542b92437",
+  "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\8da1\\RayX\" reset --hard 0eeb308236f1c3af32bbf9759cb3db692a58fe65",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "0eeb308236f1c3af32bbf9759cb3db692a58fe65",
+      "resultCommit": "bd937a2af22f3e19a64d1f358637be6542b92437",
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\8da1\\RayX\" reset --hard 0eeb308236f1c3af32bbf9759cb3db692a58fe65",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "bd937a2af22f3e19a64d1f358637be6542b92437"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "wasm/web with headed Playwright and WebGPU enabled",
+  "hypothesisMarkdown": "## Evaluate Matched DOM Fringe Excess\n\nThe acceptance criterion limits RayX chromatic-fringe energy relative to each matched DOM reference plus one 8-bit quantization unit, but the current target applies an unrelated absolute 0.02 limit even where the matched DOM control reaches approximately 0.88. Computing the maximum per-cell RayX-minus-DOM excess will implement the frozen requirement exactly without changing any pixels.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nAdd maximumFringeExcess to the current quality summary, compute it per matched cell, and gate it at 1/255. Preserve the absolute RayX value for diagnostics. Run the synthetic metric contracts and headed Test Suite WASM/WebGPU matrix with unchanged production code; the 0.8046 acutance failure must remain red.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nThe unchanged grayscale renderer still fails solely on minimum acutance, maximum fringe excess is zero or negative, and the target error reports both absolute RayX fringe and matched-reference excess. No baseline artifact or production source changes.",
+  "diagnostics": {
+    "playwright": [
+      "All eight synthetic metric tests passed.",
+      "The headed Test Suite WASM/WebGPU matrix remained red on acutance with the expected predicate."
+    ],
+    "rayx": [
+      "No production source or pixels changed. The current grayscale renderer supplied the control."
+    ],
+    "counters": [
+      "Minimum acutance ratio remained 0.8046; absolute maximum RayX fringe ratio was 0; maximum matched-reference fringe excess was 0; maximum alignment delta was 2 physical pixels."
+    ],
+    "artifacts": [
+      "tools-node/test_suite/rayx-wasm-text-rendering-quality.spec.ts"
+    ]
+  },
+  "measurements": [
+    {
+      "name": "minimum_acutance_ratio",
+      "value": 0.8046,
+      "unit": "ratio"
+    },
+    {
+      "name": "maximum_rayx_fringe_ratio",
+      "value": 0,
+      "unit": "ratio"
+    },
+    {
+      "name": "maximum_matched_fringe_excess",
+      "value": 0,
+      "unit": "ratio"
+    },
+    {
+      "name": "maximum_alignment_delta",
+      "value": 2,
+      "unit": "physical_pixels"
+    }
+  ],
+  "reportMarkdown": "## Experiment Report\n\nThe target now implements the requirement's per-cell matched-reference fringe excess and retains the absolute RayX fringe value for attribution. Unchanged grayscale output remains correctly red at 0.8046 acutance, with zero fringe excess and unchanged geometry. The measurement correction therefore does not weaken or manufacture the quality result.",
+  "decisionMarkdown": "### Decision\n\nAccept and commit the matched-fringe gate. Use it for the final composition-safe LCD candidate.",
+  "notes": "The first wrapper invocation exceeded its command timeout while its owned child processes completed; a clean focused rerun produced the recorded result."
+}

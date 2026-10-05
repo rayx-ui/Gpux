@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "id": "555a3f6b-40fd-4649-8f96-59ee0cfab3ff",
+  "loopId": "54e74b74-483c-4598-92d7-fdbabbc9154b",
+  "index": 19,
+  "type": "hypothesis",
+  "name": "Revision-gated editable SelectionArea hit map",
+  "slug": "revision-gated-editable-selection-area-hit-map",
+  "path": "2026-07-24-19-revision-gated-editable-selection-area-hit-map.json",
+  "createdAt": "2026-07-24T06:48:09Z",
+  "startedAt": "2026-07-24T06:48:09Z",
+  "finishedAt": "2026-07-24T07:04:42Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "b81946bb5936123b9479f61a0daf231c63dcc19d",
+  "resultCommit": "0ce4a6a3f",
+  "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard b81946bb5936123b9479f61a0daf231c63dcc19d",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "b81946bb5936123b9479f61a0daf231c63dcc19d",
+      "resultCommit": "0ce4a6a3f",
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard b81946bb5936123b9479f61a0daf231c63dcc19d",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "0ce4a6a3f"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "headed WASM/WebGPU TextArea and SelectionArea fixtures at DPR 1 and DPR 2",
+  "hypothesisMarkdown": "## Revision-gated editable SelectionArea hit map\n\nRebuild an editable adapter's row hit map only when text or layout geometry changed. Keep the retained map for unchanged SelectionArea paint frames; do not alter range lookup or hit-map geometry.\n\n",
+  "measurementPlanMarkdown": "### Measurement plan\n\nRun the focused TextArea and SelectionArea fixtures under headed WASM/WebGPU, then measure the existing many-participant SelectionArea fixture at DPR 1 and DPR 2. Retain only if p95 remains within five percent and screenshots preserve rendering.\n\n",
+  "expectedOutcomeMarkdown": "### Expected outcome\n\nUnchanged editable participants retain their existing hit rows, while edited, resized, scrolled, and re-laid-out participants rebuild exactly as before.\n\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": {
+    "target": "headed WASM/WebGPU nested TextArea SelectionArea fixture; 35 repetitions per DPR with five warmups discarded",
+    "before": {
+      "dpr1": {
+        "p50Ms": 126.57,
+        "p95Ms": 137.49
+      },
+      "dpr2": {
+        "p50Ms": 134.01,
+        "p95Ms": 135.71
+      }
+    },
+    "after": {
+      "dpr1": {
+        "p50Ms": 91.81,
+        "p95Ms": 127.03
+      },
+      "dpr2": {
+        "p50Ms": 79.51,
+        "p95Ms": 89.48
+      }
+    }
+  },
+  "reportMarkdown": "## Revision-gated editable SelectionArea hit map\n\nAccepted. The editable adapter now rebuilds row hits only after text or geometry changes, retaining the exact prior map on unchanged in-area paint frames. A dedicated 2,000-line TextArea-in-SelectionArea fixture passed 70/70 headed WASM/WebGPU runs and its screenshot retained the expected scrolled content.\n\nAgainst the same checkpoint fixture, DPR 1 p50/p95 improved from 126.57/137.49 ms to 91.81/127.03 ms; DPR 2 improved from 134.01/135.71 ms to 79.51/89.48 ms.\n",
+  "decisionMarkdown": "",
+  "notes": ""
+}

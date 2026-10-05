@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "id": "bf77906a-d7e7-49d6-9ce9-df5d9df6f6e6",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 20,
+  "type": "hypothesis",
+  "name": "Shader semantic test normalization",
+  "slug": "shader-semantic-test-normalization",
+  "path": "2026-08-30-20-shader-semantic-test-normalization.json",
+  "createdAt": "2026-08-30T22:20:40Z",
+  "startedAt": "2026-08-30T22:20:40Z",
+  "finishedAt": "2026-08-30T22:26:12Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "ae4c278ce436873463d64af506d049a82e31319a",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard ae4c278ce436873463d64af506d049a82e31319a",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "ae4c278ce436873463d64af506d049a82e31319a",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard ae4c278ce436873463d64af506d049a82e31319a",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpui_wgpu shader validation",
+  "hypothesisMarkdown": "Make the existing `transformed_quad_uses_analytic_coverage` test insensitive to WGSL indentation and line wrapping by normalizing whitespace before checking the `unrounded && axis_aligned` fast-path guard. This restores a reliable semantic validation gate without changing shaders or renderer behavior.\n",
+  "measurementPlanMarkdown": "At the checkpoint, run the single failing gpui_wgpu test and record its exact failure. Change only that test assertion in `crates/gpux/crates/gpui_wgpu/src/wgpu_renderer.rs`, then rerun the focused test, the full gpui_wgpu suite with diagnostics, package formatting, check, and warning-denied Clippy. No browser benchmark is required because production/WGSL code is unchanged; the performance purpose is to unblock trustworthy broad validation for subsequent gpux experiments.\n",
+  "expectedOutcomeMarkdown": "The focused checkpoint test fails on literal indentation, while the candidate passes after whitespace normalization and continues to prove the same `unrounded && axis_aligned` guard exists. All 52 gpui_wgpu tests should pass with zero production-source or runtime behavior change.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [
+      "Checkpoint focused test failed exactly on the indentation-sensitive `unrounded &&` newline assertion.",
+      "Candidate focused test passed after whitespace normalization.",
+      "Candidate full gpui_wgpu suite reached 50/52 tests and then produced no further output for more than three minutes; the process was terminated and the test-only source restored exactly."
+    ],
+    "counters": [
+      "No runtime counters were affected because only test code changed."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "focused shader semantic test",
+      "before": "failed: literal indentation fragment not found",
+      "after": "passed: whitespace-normalized `unrounded&&axis_aligned){` fragment found",
+      "delta": "red-green proof achieved",
+      "source": "cargo test -p gpui_wgpu transformed_quad_uses_analytic_coverage"
+    },
+    {
+      "metric": "full gpui_wgpu diagnostics suite",
+      "before": "previous run completed 51/52 with the focused assertion failure",
+      "after": "hung after reporting 50/52 for more than three minutes",
+      "delta": "reliability regression/indeterminate",
+      "source": "cargo test --manifest-path crates/gpui_wgpu/Cargo.toml --features rayx_diagnostics --quiet"
+    }
+  ],
+  "reportMarkdown": "## Shader semantic test normalization Finished\n\n**Index:** 20\n**Checkpoint:** ae4c278ce\n**Result Commit:** none\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status**: false. The focused test achieved the intended red-green result, but the required full gpui_wgpu suite stalled at 50/52 for more than three minutes and could not provide a reliable terminal pass.\n\n### Scope Lock\n\n**Tested mechanism:** normalize whitespace only inside the transformed-quad shader assertion.\n**Out-of-scope changes:** none. No shader, renderer, or hanging-test diagnosis was attempted.\n\n### Repository Checkpoints\n\n| Repo | Path | Checkpoint | Result Commit | Status | Rollback |\n| --- | --- | --- | --- | --- | --- |\n| main | . | ae4c278ce | unchanged | reverted | `git -C \"D:\\\\Work\\\\projects\\\\RayX\\\\RayX\" reset --hard ae4c278ce` |\n\n### Measurements\n\nThe focused test changed from one expected failure to one pass. The broad suite then stalled after 50 dots rather than finishing its 52 tests, so the declared reliability gate failed.\n\n### Decision\n\nReverted failure. The exact test source was restored. A later experiment must first identify the two full-suite tests involved in the hang before this normalization can be safely accepted.",
+  "decisionMarkdown": "Revert. The normalized assertion is semantically better and passed its focused proof, but the experiment's full-suite gate did not terminate. The one-attempt contract forbids diagnosing or changing the hanging tests inside this transaction.",
+  "notes": "The first checkpoint command used `--exact` with an incomplete test path and filtered all 52 tests; the immediately corrected checkpoint command ran the intended single test and recorded the expected failure. No memory or skill update was made."
+}

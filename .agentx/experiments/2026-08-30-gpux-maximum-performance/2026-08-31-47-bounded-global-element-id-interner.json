@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "id": "8d39843d-2140-4f46-90d1-f385b9f283b3",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 47,
+  "type": "hypothesis",
+  "name": "Bounded Global Element ID Interner",
+  "slug": "bounded-global-element-id-interner",
+  "path": "2026-08-31-47-bounded-global-element-id-interner.json",
+  "createdAt": "2026-08-31T03:01:03Z",
+  "startedAt": "2026-08-31T03:01:03Z",
+  "finishedAt": "2026-08-31T03:17:44Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "7b2e406ca6eb73df810a87befd93990e6f3057c6",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 7b2e406ca6eb73df810a87befd93990e6f3057c6",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "7b2e406ca6eb73df810a87befd93990e6f3057c6",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 7b2e406ca6eb73df810a87befd93990e6f3057c6",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux GlobalElementId allocation and apps/test_suite headed WASM/WebGPU wide DataTable",
+  "hypothesisMarkdown": "A window-owned interner retaining only current/previous-frame `GlobalElementId` values will reuse all stable `Arc<[ElementId]>` paths in the measured workload, eliminate repeated path allocation/copy work, preserve collision-safe full path equality, and improve both DPRs.\n",
+  "measurementPlanMarkdown": "Route runtime global-ID construction through one window-owned two-generation cache keyed by the existing cached hash and collision-resolved by full path equality. Cache same-frame and previous-frame values, swap/clear generations at draw start, and retain `GlobalElementId::new` for standalone/default construction. Run focused/full gpux tests, serialized gpui_wgpu tests, formatting, check, clippy, and three fresh headed WebGPU processes at both DPRs. Require exact output/counters and zero errors; compare against experiment 43/46 accepted behavior.\n",
+  "expectedOutcomeMarkdown": "After warmup, all 485 prior-frame path matches reuse existing Arcs, the 24 same-frame duplicates reuse current entries, retained cache ownership remains bounded to two frame generations, and browser throughput/paced p95 improve without changing public identity semantics.\n",
+  "diagnostics": {
+    "playwright": [
+      "Three fresh headed Chromium/WebGPU processes passed DPR 1 and DPR 2: 6/6 cases, exact final offsets, and zero terminal errors.",
+      "Every run preserved 485 global ID creations, 24 same-frame duplicates, and 485 previous-frame hits."
+    ],
+    "rayx": [
+      "412 gpux tests passed with rayx_diagnostics, including two focused cache correctness tests.",
+      "52 gpui_wgpu tests passed serially with rayx_diagnostics.",
+      "Normal cargo check, cargo fmt --check, and clippy -D warnings passed."
+    ],
+    "counters": [
+      "All established renderer, layout, batching, buffer-write, identity, and final-scroll diagnostics remained exact."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 median acknowledged throughput",
+      "before": "30.295874050356904 steps/s",
+      "after": "30.496905135945667 steps/s",
+      "delta": "+0.66%"
+    },
+    {
+      "metric": "DPR 2 median acknowledged throughput",
+      "before": "30.177166371621972 steps/s",
+      "after": "30.319113214449086 steps/s",
+      "delta": "+0.47%"
+    },
+    {
+      "metric": "DPR 1 median paced p95",
+      "before": "26.5703125 ms",
+      "after": "27.104248046875 ms",
+      "delta": "+2.01%"
+    },
+    {
+      "metric": "DPR 2 median paced p95",
+      "before": "26.866943359375 ms",
+      "after": "25.99560546875 ms",
+      "delta": "-3.24%"
+    },
+    {
+      "metric": "multithreaded WASM atomic prefix",
+      "before": "107170 bytes",
+      "after": "105446 bytes",
+      "delta": "-1724 bytes"
+    }
+  ],
+  "reportMarkdown": "## Bounded Global Element ID Interner Finished\n\n**Index:** 47\n**Checkpoint:** `7b2e406ca6eb73df810a87befd93990e6f3057c6`\n**Result:** reverted to checkpoint\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** false. A window-owned, collision-safe two-generation interner reused same-frame and previous-frame `Arc<[ElementId]>` allocations. All 412 gpux tests, 52 serialized gpui_wgpu tests, normal check, formatting, clippy, and six headed WebGPU cases passed. Every browser run preserved exact offsets, diagnostics, 485 global IDs, 24 same-frame duplicates, 485 previous-frame hits, and zero errors.\n\nAcross three fresh processes versus experiment 43, DPR 1/2 median acknowledged throughput improved 0.66%/0.47%. DPR 2 paced p95 improved 3.24%, but DPR 1 paced p95 regressed 2.01%. The multithreaded WASM atomic prefix shrank from 107,170 to 105,446 bytes. Because the scope-locked hypothesis required improvement at both DPRs and AgentX forbids retaining a degrading attempt, the implementation was fully reverted.\n\n### Decision\n\nReject the two-generation hash-map interner. Despite throughput and code-size improvements, its DPR 1 tail-latency regression does not justify the per-window maps, retained entries, and lookup branches. Retain the hash-only telemetry and direct `GlobalElementId` construction. Any future reuse attempt must use a materially different, lower-overhead mechanism in a new experiment.\n",
+  "decisionMarkdown": "Reject and revert the window-owned two-generation `GlobalElementId` hash-map interner. It improved throughput at both DPRs and DPR 2 tail latency, but regressed DPR 1 paced p95 by 2.01% and added persistent cache state. Keep direct construction and use a new experiment for any structurally different reuse mechanism.\n",
+  "notes": ""
+}

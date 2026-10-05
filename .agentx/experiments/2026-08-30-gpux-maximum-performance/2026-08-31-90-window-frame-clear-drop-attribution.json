@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "id": "dbe3d551-a00f-4e97-81ae-513d5b37f85c",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 90,
+  "type": "hypothesis",
+  "name": "Window Frame Clear Drop Attribution",
+  "slug": "window-frame-clear-drop-attribution",
+  "path": "2026-08-31-90-window-frame-clear-drop-attribution.json",
+  "createdAt": "2026-08-31T15:08:30Z",
+  "startedAt": "2026-08-31T15:08:30Z",
+  "finishedAt": "2026-08-31T15:14:48Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "6933853f18ddb3e604c972c6431df8a985cd9baa",
+  "resultCommit": "6933853f18ddb3e604c972c6431df8a985cd9baa",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 6933853f18ddb3e604c972c6431df8a985cd9baa",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "6933853f18ddb3e604c972c6431df8a985cd9baa",
+      "resultCommit": "6933853f18ddb3e604c972c6431df8a985cd9baa",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 6933853f18ddb3e604c972c6431df8a985cd9baa",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "6933853f18ddb3e604c972c6431df8a985cd9baa"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "accepted experiment-82 DPR 1/2 Chrome CPU profiles",
+  "hypothesisMarkdown": "## Window Frame Clear Drop Attribution Hypothesis\n\nReconstructing sampled stacks beneath WindowFrame::clear will identify one concrete field/type responsible for most of the measured 26.86/36.36 ms cleanup allocator ancestry, allowing a later optimization to target ownership rather than blindly reordering clears.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRead-only clear/drop stack attribution. Only AgentX metadata and ignored analysis scripts/output may change. Production/tests, clear order, data structures, pools/caches, public APIs, dependencies, Taffy, rendering/shaders, and performance claims beyond the sampled profiles are forbidden.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nParse both accepted Chrome profiles, reconstruct parent stacks for every sample, isolate samples containing WindowFrame::clear, and aggregate the first meaningful descendant drop/deallocation frames plus their deeper concrete types. Cross-check each result against current WindowFrame fields and clear() order.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nIdentify a repeatable cleanup owner at both DPRs or prove the profile cannot disambiguate the cleanup cost, requiring a dedicated counter/profile.",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": {
+    "schemaVersion": 1,
+    "profiles": {
+      "dpr1": {
+        "taffyLayoutEngineClearMs": 47.377,
+        "wrappedLineHashTableClearMs": 14.089,
+        "devtoolsSemanticsDropMs": 11.164,
+        "sceneClearMs": 23.735,
+        "dispatchTreeClearMs": 4.712,
+        "wrappedLineLayoutArcSlowDropMs": 9.37
+      },
+      "dpr2": {
+        "taffyLayoutEngineClearMs": 51.987,
+        "wrappedLineHashTableClearMs": 18.75,
+        "devtoolsSemanticsDropMs": 15.867,
+        "sceneClearMs": 9.558,
+        "dispatchTreeClearMs": 4.749,
+        "wrappedLineLayoutArcSlowDropMs": 11.101
+      }
+    },
+    "productionFilesChanged": 0,
+    "nextTarget": "DevtoolsSemantics population and lifetime"
+  },
+  "reportMarkdown": "# Window Frame Clear Drop Attribution\n\nAccepted experiment-82 Chrome CPU profiles were reconstructed into sampled parent stacks under `Window::draw`. `WindowFrame::clear` itself was inlined, so attribution used explicit cleanup descendants within the draw tail and cross-checked them against the current `WindowFrame` fields and clear order.\n\nThe repeatable explicit owners were:\n\n| Owner | DPR 1 | DPR 2 |\n| --- | ---: | ---: |\n| `TaffyLayoutEngine::clear` | 47.377 ms | 51.987 ms |\n| wrapped-line hash-table clear | 14.089 ms | 18.750 ms |\n| `drop_glue::<DevtoolsSemantics>` | 11.164 ms | 15.867 ms |\n| `Scene::clear` | 23.735 ms | 9.558 ms |\n| `DispatchTree::clear` | 4.712 ms | 4.749 ms |\n| wrapped `LineLayout` Arc slow drop | 9.370 ms | 11.101 ms |\n\nTaffy and line-cache cleanup have already been investigated by earlier experiments. `Scene::clear` is large but varies materially between DPRs. `DevtoolsSemantics` destruction is both independent and repeatable, making it the clearest next gpux-owned target.\n\nNo product or test source changed.\n",
+  "decisionMarkdown": "# Decision\n\nAccept this research experiment. The sampled profiles identify `DevtoolsSemantics` teardown as a repeatable cleanup owner at both DPRs. Start a separate experiment to establish the semantics population and consumer/lifetime contract before considering any representation or lifecycle change.\n\nDo not repeat Taffy or wrapped-line cleanup changes from this result, and do not claim a runtime improvement from this attribution-only experiment.\n",
+  "notes": ""
+}

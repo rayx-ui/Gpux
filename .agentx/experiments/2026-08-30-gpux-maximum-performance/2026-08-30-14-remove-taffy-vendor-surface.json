@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "id": "93a467fc-24fa-4b0d-a9f9-c20ca65ddbf2",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 14,
+  "type": "hypothesis",
+  "name": "Remove Taffy Vendor Surface",
+  "slug": "remove-taffy-vendor-surface",
+  "path": "2026-08-30-14-remove-taffy-vendor-surface.json",
+  "createdAt": "2026-08-30T20:48:21Z",
+  "startedAt": "2026-08-30T20:48:21Z",
+  "finishedAt": "2026-08-30T21:03:25Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "12c65283e9e7fdecd2c114c665c891f560bb85fc",
+  "resultCommit": "14ed00f48",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 12c65283e9e7fdecd2c114c665c891f560bb85fc",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "12c65283e9e7fdecd2c114c665c891f560bb85fc",
+      "resultCommit": "14ed00f48",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 12c65283e9e7fdecd2c114c665c891f560bb85fc",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "14ed00f48"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux Taffy dependency sourcing and apps/test_suite wide DataTable headed WebGPU",
+  "hypothesisMarkdown": "# Hypothesis\n\nReturning Taffy 0.12.2 to its normal crates.io release and removing the 24,000-line local vendor surface will preserve gpux layout/render behavior while materially reducing RayX repository size and maintenance cost. The gpux skill can retain compact provenance requirements while preferring crates.io, allowing exact-revision forks for essential tiny patches, and reserving full vendoring and dedicated workflow references for genuinely justified complexity.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\n1. Remove the root and nested `[patch.crates-io]` entries for Taffy, delete `crates/gpux/vendor/taffy`, and regenerate both lockfiles so `taffy = 0.12.2` resolves from crates.io.\n2. Delete the one-off Taffy update reference and replace its routing/rules with a concise general dependency-source policy in the gpux skill.\n3. Update the current gpux memory and architectural decision so they no longer claim the vendored patch is active, while retaining its measured result as historical evidence.\n4. Run dependency-tree proof, the focused Taffy telemetry test, all gpux library tests, diagnostics-disabled/enabled gpux/WGPU/browser-WASM checks, warning-denied gpux Clippy, package-scoped formatting, AgentX memory audit, and loop validation.\n5. Run three fresh headed Test Suite WebGPU processes at DPR 1 and DPR 2. Require exact Taffy/renderer/tree/final-scroll counters and zero terminal error.\n6. Accept the source-bloat reduction when correctness is exact because the user explicitly prioritizes removing the vendor surface; report any measured runtime regression transparently and retain the inline-child optimization only as an upstream/fork candidate.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nRayX deletes roughly 24,000 tracked Taffy source lines and resolves Taffy 0.12.2 from crates.io with its checksum in both lockfiles. Layout and renderer counters remain exact. Runtime may return toward the pre-inline-storage distribution; that cost is recorded as the explicit trade for repository and maintenance simplicity until an upstream or exact-revision fork carries the optimization.\n",
+  "diagnostics": {
+    "playwright": [
+      "Three independent headed Chromium/WebGPU processes; each passed the focused wide DataTable benchmark at DPR 1 and DPR 2 (6/6 project runs).",
+      "Every build verified shared WASM memory, wasm_thread_entry_point, and 103206 atomic prefix bytes."
+    ],
+    "rayx": [
+      "apps/test_suite was the exclusive runtime fixture and validation target.",
+      "All 400 gpux library tests passed; native and single-thread WASM checks passed with diagnostics disabled and enabled; warning-denied gpux/WGPU Clippy and package-scoped formatting passed."
+    ],
+    "counters": [
+      "All six browser results preserved Taffy counters 1123/229/341/782/1041/25/673/726/755/780/405/377/0/82/0/0.",
+      "All six browser results preserved 9 batches, 12 queue writes, 10 bind groups, 2 render passes, 1 submission, 4440 bounds visits, 576 retained nodes, 8668 global-id path elements, final offset -351402.6875, and zero terminal errors."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "tracked Taffy vendor surface",
+      "before": "67 files / 23,970 lines",
+      "after": "0 tracked files / 0 tracked lines",
+      "delta": "-67 files / -23,970 lines",
+      "source": "git diff --shortstat -- crates/gpux/vendor/taffy"
+    },
+    {
+      "metric": "DPR 1 median acknowledged steps/s",
+      "before": "29.8649990051",
+      "after": "24.9079371508",
+      "delta": "-16.5982%",
+      "source": "median of three independent headed WebGPU processes"
+    },
+    {
+      "metric": "DPR 2 median acknowledged steps/s",
+      "before": "30.0012022982",
+      "after": "24.7493861688",
+      "delta": "-17.5054%",
+      "source": "median of three independent headed WebGPU processes"
+    },
+    {
+      "metric": "DPR 1 median paced p95 catch-up latency",
+      "before": "27.9833984375 ms",
+      "after": "27.70068359375 ms",
+      "delta": "-1.0103%",
+      "source": "median of three independent headed WebGPU processes"
+    },
+    {
+      "metric": "DPR 2 median paced p95 catch-up latency",
+      "before": "27.883544921875 ms",
+      "after": "28.794921875 ms",
+      "delta": "+3.2685%",
+      "source": "median of three independent headed WebGPU processes"
+    }
+  ],
+  "reportMarkdown": "## Remove Taffy Vendor Surface Finished\n\n**Index:** 14\n**Checkpoint:** `12c65283e9e7fdecd2c114c665c891f560bb85fc`\n**Result Commit:** `14ed00f48`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. The repository-bloat objective succeeded with exact behavior and renderer counters. The measured throughput regression versus the local inline patch is an explicit, documented tradeoff required by the user's dependency-source policy.\n\n### Scope Lock\n\n**Tested mechanism:** replace the full local Taffy source patch with the normal crates.io 0.12.2 release and generalize the gpux dependency-source policy.\n**Out-of-scope changes:** none. No Git fork, Taffy upgrade, or alternate optimization was introduced.\n\n### Repository Checkpoints\n\n| Repo | Path | Checkpoint | Result Commit | Status | Rollback |\n| --- | --- | --- | --- | --- | --- |\n| main | . | `12c65283e` | `14ed00f48` | committed | `git -C \"D:\\\\Work\\\\projects\\\\RayX\\\\RayX\" reset --hard 12c65283e9e7fdecd2c114c665c891f560bb85fc` |\n\n### Measurements\n\n| Metric | Before | After | Delta |\n| --- | ---: | ---: | ---: |\n| Tracked Taffy vendor | 67 files / 23,970 lines | 0 | -100% |\n| DPR 1 acknowledged steps/s | 29.8650 | 24.9079 | -16.60% |\n| DPR 2 acknowledged steps/s | 30.0012 | 24.7494 | -17.51% |\n| DPR 1 paced p95 | 27.9834 ms | 27.7007 ms | -1.01% |\n| DPR 2 paced p95 | 27.8835 ms | 28.7949 ms | +3.27% |\n\nAll six browser project runs preserved exact Taffy, renderer, traversal, final-offset, and terminal-error counters.\n\nCommit done (main): `14ed00f48 refactor(gpux): remove vendored Taffy source`.\n",
+  "decisionMarkdown": "### Decision\n\nAccept and commit the crates.io dependency source because eliminating the 67-file/23,970-line vendor surface is the user's explicit priority and all behavior gates are exact. Retain the proven inline-child result only as evidence for an upstream contribution or a maintained exact-revision fork; do not recreate full vendoring for this tiny patch.\n",
+  "notes": "Attempt Count: 1. Source scope remained locked. Raw browser traces, screenshots, and measurement JSON are stored only under ignored artifacts-temp/agentx-experiments."
+}

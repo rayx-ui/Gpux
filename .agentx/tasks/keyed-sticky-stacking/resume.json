@@ -1,0 +1,154 @@
+{
+  "taskDir": "C:\\Users\\dinko\\Work\\projects\\RayX\\RayX\\.agentx\\tasks\\keyed-sticky-stacking",
+  "artifactFormat": "json",
+  "sprintCount": 4,
+  "taskCount": 4,
+  "state": {
+    "schemaVersion": 5,
+    "status": "done",
+    "planLifecycle": "completed",
+    "integrationStatus": "integration-ready",
+    "totalSprints": 4,
+    "currentSprint": -1,
+    "currentTask": -1,
+    "activeTasks": [],
+    "leaseEpoch": 10,
+    "attempts": {
+      "sprint-1-task-1": 3,
+      "sprint-2-task-1": 3,
+      "sprint-3-task-1": 1,
+      "sprint-4-task-1": 2
+    },
+    "run": {
+      "status": "done",
+      "requestedBoundary": "sprint",
+      "maxParallelSprints": 1,
+      "maxAttempts": 3,
+      "lastHeartbeatAt": "2026-07-31T17:19:22Z",
+      "blocker": {},
+      "repositoryBaselines": {
+        "rayx": "ff7d2738664c27fb2dd2385a41c1e35dcd70ed23"
+      },
+      "sprintBaselines": {
+        "1": {
+          "rayx": "ff7d2738664c27fb2dd2385a41c1e35dcd70ed23"
+        },
+        "2": {
+          "rayx": "427c5dbf13e632b9c29f64118dfbbbf779d9a059"
+        },
+        "3": {
+          "rayx": "d6cabfeb7561c6f102f785a428896ee241edabe0"
+        },
+        "4": {
+          "rayx": "7a9b896e72cfe0a1ae671968cb4d5f26a04dffc2"
+        }
+      },
+      "sprintDirtyBaselines": {
+        "1": {
+          "rayx": {
+            ".agentx/tasks/keyed-sticky-stacking/.agentx-task.lock": "189bd2b6b31670fd512f7245a663edaf93c403f5a406448ec2984e62c231e0dc",
+            ".agentx/tasks/keyed-sticky-stacking/contract-reconciliation.jsonl": "b365402f4954c8c367b3dc94567e81eda84b0564b0ba2ebc2e1539519878b3a8",
+            ".agentx/tasks/keyed-sticky-stacking/design.json": "4d13b407ce275e38e94f3bbe8eef5692ffa283a378909f17a594184d45ae9f02",
+            ".agentx/tasks/keyed-sticky-stacking/implementation-plan.json": "c67ccd9fa5c964228003187578ce13d8a3a78c6d19160c4aa09d71a51ccd2c06",
+            ".agentx/tasks/keyed-sticky-stacking/preflight.json": "ccec02fa98ac18b284afbe836dceda741db9bce0bb2b6c798b63241b7bbb529a",
+            ".agentx/tasks/keyed-sticky-stacking/repositories.json": "d0fbda0750cb3b1518d7d9ed1e7834787f223ace486b2f7a3714bf16fa40a3bb",
+            ".agentx/tasks/keyed-sticky-stacking/resume.json": "b2f7e8cd4b091450194e193a5b4ef66923d03dcdd69211dcf4fad9d71c4a028e",
+            ".agentx/tasks/keyed-sticky-stacking/state.json": "2f637bf6ed124f7091e61fab14cd9f5386106b792114e6032e7bfe54eacc4606",
+            ".agentx/tasks/keyed-sticky-stacking/task-contracts.json": "1f22ccfc8f33e3e98ac3ff5aab36e790957577bb12eee864626600cc0e52f0f8"
+          }
+        },
+        "2": {
+          "rayx": {
+            ".agentx/tasks/keyed-sticky-stacking/.agentx-task.lock": "810af02f2e89453e73d226dff649d656c14fa2b99f621e0e4c60982eb8785bc8",
+            ".agentx/tasks/keyed-sticky-stacking/preflight.json": "86327165909804e3fef9fed44a9234568e824ab28ad5d76be12faa357bc97923",
+            ".agentx/tasks/keyed-sticky-stacking/resume.json": "47c9d677b2d5b64d47687fd0afaa8bb69049b79501d9b03879b8c839f8fc483e",
+            ".agentx/tasks/keyed-sticky-stacking/state.json": "ee65624b1d43ef8274d9c34c745115553486a0b8ab9875040a11c55465fad63a"
+          }
+        },
+        "3": {
+          "rayx": {
+            ".agentx/tasks/keyed-sticky-stacking/.agentx-task.lock": "3c9b8330a7f39f303bcc6d988f04699451616b774eb5c98bec5b99c1b8aea7fe",
+            ".agentx/tasks/keyed-sticky-stacking/preflight.json": "5c2ea52aa21448580f0bd1fa57018ecc366285c8ff3e523b7216b82ac0bacae1",
+            ".agentx/tasks/keyed-sticky-stacking/resume.json": "87b6caca98230e72df74b3ea1ac1ef1cedba371fc4b09e5148fd77bd4564292f",
+            ".agentx/tasks/keyed-sticky-stacking/state.json": "87966880f9689e287bfaa637516f24e733eec9017915fe0c77861daf2e0bf748"
+          }
+        },
+        "4": {
+          "rayx": {
+            ".agentx/tasks/keyed-sticky-stacking/.agentx-task.lock": "29cd5da7025a69352af56269270e9cec34789f33168a6027d0a63bee227d81b7",
+            ".agentx/tasks/keyed-sticky-stacking/preflight.json": "8538069dbbe63c7dc6bea0639ff84e64e14510555cef63569219cc0c5c4fe40f",
+            ".agentx/tasks/keyed-sticky-stacking/state.json": "efb9a5a1f5ba11a3a9f86d5dc186e213ca8947ade9a3808581f3ccde0b67d803"
+          }
+        }
+      }
+    },
+    "lastResumeAt": "2026-07-31T19:15:10Z",
+    "lastResumeSpecHashes": {
+      "requirements": "46694d28d6b40387788818b0a0b7a68c58b43aeb2cec1839a46d380f38554519",
+      "design": "a3384f39568ed55aa261c2bb0bce761521dbfe2b674813c67bf61a95dd683c4c",
+      "plan": "9b689a36de185363fd452a058b3e9be2718b72f384ded96290a41dd85f873cd3",
+      "contracts": "653a8a237a408827db64cb66bee7c167ecbd54115c97ce92d0c453592d673fdb"
+    }
+  },
+  "currentTaskId": "",
+  "nextUncheckedTaskId": "",
+  "specHashes": {
+    "requirements": "46694d28d6b40387788818b0a0b7a68c58b43aeb2cec1839a46d380f38554519",
+    "design": "a3384f39568ed55aa261c2bb0bce761521dbfe2b674813c67bf61a95dd683c4c",
+    "plan": "9b689a36de185363fd452a058b3e9be2718b72f384ded96290a41dd85f873cd3",
+    "contracts": "653a8a237a408827db64cb66bee7c167ecbd54115c97ce92d0c453592d673fdb"
+  },
+  "satisfiability": {
+    "schemaVersion": 5,
+    "generatorVersion": "5.0",
+    "kind": "static-satisfiability",
+    "taskReports": [
+      {
+        "taskId": "sprint-1-task-1",
+        "sprint": 1,
+        "behaviorContractHash": "46af1e911587b19465d620db57d95d1373920f974fd8244af3b1aea8bb4fe805",
+        "planningMetadataHash": "52d4512ed79a66db6afc39f7e3d5408f33d88bd8465809dbd67eb370fbfc8e7d",
+        "diagnostics": [],
+        "disposition": "pass"
+      },
+      {
+        "taskId": "sprint-2-task-1",
+        "sprint": 2,
+        "behaviorContractHash": "aaf88e2df2c08d97dea518a9d304b7b4c906450a0b7d733575acad81797fc331",
+        "planningMetadataHash": "7d380e8c046f192ae3ce833a48feb7818639ca90ca73b13a6d8595cb00556b3e",
+        "diagnostics": [],
+        "disposition": "pass"
+      },
+      {
+        "taskId": "sprint-3-task-1",
+        "sprint": 3,
+        "behaviorContractHash": "6e58c604a5b34a34868285a10bde44f1e05dfa7d1e4d692b7f9bd75a3f9a997f",
+        "planningMetadataHash": "8b7b5417e2d63e11ab53d51e8a3119ecb683b354f8434e50925deb290d774e58",
+        "diagnostics": [],
+        "disposition": "pass"
+      },
+      {
+        "taskId": "sprint-4-task-1",
+        "sprint": 4,
+        "behaviorContractHash": "dc3fcf79f133e4eacc1f3d11471103456c2f8c8d1a3164c1b60c5d7071ab508b",
+        "planningMetadataHash": "d08002b055f80e931f3855d02d56a38d7f25ffa16f203b74ace20f4ada4da522",
+        "diagnostics": [],
+        "disposition": "pass"
+      }
+    ],
+    "diagnostics": [],
+    "closure": {
+      "acceptanceCriteria": 20,
+      "ownedAcceptanceCriteria": 20,
+      "tasks": 4
+    },
+    "disposition": "pass"
+  },
+  "schemaVersion": 5,
+  "resumedAt": "2026-07-31T19:15:10Z",
+  "gitHead": "c5082243859739d2cb5cab54c23c0f28a7080276",
+  "gitStatusShort": " M .agentx/tasks/keyed-sticky-stacking/resume.json\n M .agentx/tasks/keyed-sticky-stacking/state.json\n",
+  "errors": [],
+  "warnings": [],
+  "requiredNextAction": "Epic tasks appear done. Run the final semantic audit, gitmaster commit, and verify-sprint-checkpoint before claiming completion."
+}

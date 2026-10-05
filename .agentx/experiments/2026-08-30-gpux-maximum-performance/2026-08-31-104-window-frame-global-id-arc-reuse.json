@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "id": "80e76506-e122-4f97-9861-d5803de1e030",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 104,
+  "type": "hypothesis",
+  "name": "Window Frame Global ID Arc Reuse",
+  "slug": "window-frame-global-id-arc-reuse",
+  "path": "2026-08-31-104-window-frame-global-id-arc-reuse.json",
+  "createdAt": "2026-08-31T16:54:31Z",
+  "startedAt": "2026-08-31T16:54:31Z",
+  "finishedAt": "2026-08-31T17:03:53Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "ba1502ab1f76f5b67cfe92361ac813fa06cc9453",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard ba1502ab1f76f5b67cfe92361ac813fa06cc9453",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "ba1502ab1f76f5b67cfe92361ac813fa06cc9453",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard ba1502ab1f76f5b67cfe92361ac813fa06cc9453",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux GlobalElementId Arc path allocation in Window draw",
+  "hypothesisMarkdown": "## Window Frame Global ID Arc Reuse Hypothesis\n\nReusing exact current/previous-frame `GlobalElementId` paths through a collision-safe `WindowFrame` cache will remove hot Arc slice allocation and element cloning, improving the wide DataTable without changing identity, hashing, state, inspector, or accessibility behavior.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nAdd one private per-frame hash index, clear it with existing frame state, route the three production constructors through one window helper, and add focused exact-reuse/collision tests. Do not change public APIs, `GlobalElementId` representation, unrelated maps, dependencies, renderer behavior, or adjacent cleanup.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nRun nested formatting, focused global-ID tests, full gpux diagnostics tests, WGPU tests, Clippy with warnings denied, and the exclusive headed Test Suite WASM/WebGPU benchmark at both DPRs with CPU profiles. Require exact offsets/counters and zero errors. Compare acknowledged throughput, paced p95, and `Arc<[ElementId]>::from_iter_exact` samples against experiment 102.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nExact repeated paths share their Arc allocation, collisions never alias identities, the Arc construction hotspot falls materially at both DPRs, and throughput/tail latency do not regress beyond normal variation.\n",
+  "diagnostics": {
+    "playwright": [
+      "The headed Test Suite build was stopped before browser execution after the WASM gpux build emitted two unused-parameter warnings."
+    ],
+    "rayx": [
+      "All attempted runtime validation targeted apps/test_suite; apps/lab was not launched or modified.",
+      "Product source was restored exactly to checkpoint ba1502ab1."
+    ],
+    "counters": [
+      "421 gpux unit tests, all gpux integrations, 52 WGPU tests, and 4 focused global-ID tests passed before the feature-matrix warning."
+    ],
+    "artifacts": []
+  },
+  "measurements": {
+    "schemaVersion": 1,
+    "status": "failure",
+    "sourceRestoredToCheckpoint": true,
+    "formatPassed": true,
+    "focusedGlobalIdTestsPassed": 4,
+    "gpuxUnitTestsPassed": 421,
+    "wgpuTestsPassed": 52,
+    "clippyDiagnosticsFeaturePassed": true,
+    "wasmAcceptanceCompleted": false,
+    "wasmFeatureMatrixWarnings": 2,
+    "warningParameters": [
+      "path",
+      "cached_hash"
+    ]
+  },
+  "reportMarkdown": "# Window Frame Global ID Arc Reuse\n\nThe scoped implementation added a collision-safe current/previous `WindowFrame` cache, routed all production global-ID construction through the window, and added exact Arc reuse plus forced-collision tests. Nested formatting passed. Four focused global-ID tests passed, the full gpux suite passed 421 unit tests plus all integrations, all 52 WGPU tests passed, and diagnostics-enabled Clippy passed with warnings denied.\n\nThe headed WASM acceptance build then compiled gpux without its direct `rayx_diagnostics` feature and reported unused `path` and `cached_hash` parameters in the diagnostics helper. This exposed a feature-matrix warning that the earlier direct-feature Clippy command could not see. Under the atomic experiment rule, the browser run was stopped and no warning fix was applied in this attempt.\n\nBoth product files were restored exactly to checkpoint `ba1502ab1`. No candidate behavior or test remains.\n",
+  "decisionMarkdown": "# Decision\n\nReject this attempt because the WASM feature matrix was not warning-clean. Preserve the cache design and retry only as a new experiment with diagnostics-helper parameters intentionally valid when diagnostics are disabled; do not alter the cache mechanism or add adjacent fixes.\n",
+  "notes": ""
+}

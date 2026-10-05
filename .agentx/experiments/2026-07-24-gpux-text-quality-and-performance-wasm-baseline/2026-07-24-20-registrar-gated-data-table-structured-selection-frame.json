@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "id": "8ff5fbf3-0084-4f3e-b9a4-733c068fe9e7",
+  "loopId": "54e74b74-483c-4598-92d7-fdbabbc9154b",
+  "index": 20,
+  "type": "hypothesis",
+  "name": "Registrar-gated DataTable structured selection frame",
+  "slug": "registrar-gated-data-table-structured-selection-frame",
+  "path": "2026-07-24-20-registrar-gated-data-table-structured-selection-frame.json",
+  "createdAt": "2026-07-24T07:06:06Z",
+  "startedAt": "2026-07-24T07:06:06Z",
+  "finishedAt": "2026-07-24T07:16:01Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "a4fe7943b456839ec4b19e41781aa2d15242c912",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard a4fe7943b456839ec4b19e41781aa2d15242c912",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "a4fe7943b456839ec4b19e41781aa2d15242c912",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard a4fe7943b456839ec4b19e41781aa2d15242c912",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "headed WASM/WebGPU DataTable fixture at DPR 1 and DPR 2",
+  "hypothesisMarkdown": "## Registrar-gated DataTable structured selection frame\n\nStart `TableSelectionModel` frame collection only when the current traversal exposes a SelectionArea registrar. Outside an area, clear stale structured selection and preserve the table child unchanged.\n\n",
+  "measurementPlanMarkdown": "### Measurement plan\n\nRun the dedicated DataTable headed WASM/WebGPU fixture at DPR 1 and DPR 2 and inspect its screenshot. Compare input-to-published-frame samples before and after if fixture output is stable; reject any behavior or visual regression.\n\n",
+  "expectedOutcomeMarkdown": "### Expected outcome\n\nDataTables outside SelectionArea no longer call structured selection begin-frame collection, while an enclosing area retains registration and current behavior.\n\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": {
+    "target": "headed WASM/WebGPU DataTable fixture; 35 repetitions per DPR with five warmups discarded",
+    "baseline": {
+      "dpr1": {
+        "p50Ms": 106.169,
+        "p95Ms": 113.772
+      },
+      "dpr2": {
+        "p50Ms": 100.149,
+        "p95Ms": 113.164
+      }
+    },
+    "candidate": {
+      "dpr1": {
+        "p50Ms": 112.75,
+        "p95Ms": 118.19
+      },
+      "dpr2": {
+        "p50Ms": 114.92,
+        "p95Ms": 121.6
+      }
+    }
+  },
+  "reportMarkdown": "## Registrar-gated DataTable structured selection frame\n\nRejected and reverted. The DataTable fixture passed 70/70 headed WASM/WebGPU runs and its screenshot remained correct, but the candidate did not meet the p95 gate against the retained baseline: DPR 1 was 118.19 ms vs 113.772 ms and DPR 2 was 121.60 ms vs 113.164 ms. The source was returned to its checkpoint before this result was recorded.\n",
+  "decisionMarkdown": "",
+  "notes": ""
+}

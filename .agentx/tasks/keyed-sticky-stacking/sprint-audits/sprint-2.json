@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 5,
+  "generatorVersion": "5.0",
+  "epicId": "keyed-sticky-stacking",
+  "sprint": 2,
+  "status": "passed",
+  "headBeforeCommit": "427c5dbf13e632b9c29f64118dfbbbf779d9a059",
+  "filesReviewed": [
+    "C:\\Users\\dinko\\.codex\\worktrees\\bf9a\\RayX\\apps\\test_suite\\src\\pages",
+    "C:\\Users\\dinko\\.codex\\worktrees\\bf9a\\RayX\\crates\\rayx\\rayx_components\\rayx_components_core\\src",
+    "C:\\Users\\dinko\\.codex\\worktrees\\bf9a\\RayX\\crates\\rayx\\rayx_components\\rayx_components_core\\src\\components\\list_view",
+    "C:\\Users\\dinko\\.codex\\worktrees\\bf9a\\RayX\\crates\\rayx\\rayx_components\\rayx_components_core\\src\\components\\tree_view",
+    "C:\\Users\\dinko\\.codex\\worktrees\\bf9a\\RayX\\crates\\rayx\\rayx_components\\rayx_components_core\\src\\components\\virtual_list",
+    "C:\\Users\\dinko\\.codex\\worktrees\\bf9a\\RayX\\crates\\rayx\\rayx_components\\rayx_components_core\\src\\core\\sticky.rs",
+    "C:\\Users\\dinko\\.codex\\worktrees\\bf9a\\RayX\\tools-node\\test_suite\\keyed-sticky-stacking.spec.ts"
+  ],
+  "conformance": [
+    {
+      "requirementId": "REQ-F-003",
+      "taskIds": [
+        "sprint-2-task-1"
+      ],
+      "acceptanceCriteriaIds": [
+        "AC-F-003-1",
+        "AC-F-003-2",
+        "AC-F-003-3"
+      ],
+      "evidenceAcceptanceCriteriaIds": [
+        "AC-F-003-1",
+        "AC-F-003-2",
+        "AC-F-003-3"
+      ],
+      "missingAcceptanceCriteriaIds": [],
+      "implementationLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\bf9a\\RayX\\crates\\rayx\\rayx_components\\rayx_components_core\\src",
+        "C:\\Users\\dinko\\.codex\\worktrees\\bf9a\\RayX\\crates\\rayx\\rayx_components\\rayx_components_core\\src\\components\\list_view",
+        "C:\\Users\\dinko\\.codex\\worktrees\\bf9a\\RayX\\crates\\rayx\\rayx_components\\rayx_components_core\\src\\components\\tree_view",
+        "C:\\Users\\dinko\\.codex\\worktrees\\bf9a\\RayX\\crates\\rayx\\rayx_components\\rayx_components_core\\src\\components\\virtual_list",
+        "C:\\Users\\dinko\\.codex\\worktrees\\bf9a\\RayX\\crates\\rayx\\rayx_components\\rayx_components_core\\src\\core\\sticky.rs"
+      ],
+      "testLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\bf9a\\RayX\\apps\\test_suite\\src\\pages",
+        "C:\\Users\\dinko\\.codex\\worktrees\\bf9a\\RayX\\tools-node\\test_suite\\keyed-sticky-stacking.spec.ts"
+      ],
+      "evidenceProfiles": [
+        "behavior-preservation",
+        "interaction",
+        "unit"
+      ],
+      "missingProfiles": [],
+      "result": "pass",
+      "reason": "All mapped tasks are done with fresh profile-complete evidence."
+    }
+  ],
+  "designQuality": {
+    "declaredWritePaths": [
+      "rayx:.agentx/tasks/keyed-sticky-stacking/**",
+      "rayx:apps/test_suite/src/pages/**",
+      "rayx:crates/gpux/crates/gpui/src/window.rs",
+      "rayx:crates/rayx/rayx_components/rayx_components_core/src/components/list_view/**",
+      "rayx:crates/rayx/rayx_components/rayx_components_core/src/components/tree_view/**",
+      "rayx:crates/rayx/rayx_components/rayx_components_core/src/components/virtual_list/**",
+      "rayx:crates/rayx/rayx_components/rayx_components_core/src/core/sticky.rs",
+      "rayx:crates/rayx/rayx_components/rayx_components_core/src/lib.rs",
+      "rayx:tools-node/test_suite/keyed-sticky-stacking.spec.ts"
+    ],
+    "actualChangedPaths": [
+      "rayx:apps/test_suite/src/pages/keyed_sticky_stacking.rs",
+      "rayx:crates/gpux/crates/gpui/src/window.rs",
+      "rayx:crates/rayx/rayx_components/rayx_components_core/src/components/list_view/state.rs",
+      "rayx:crates/rayx/rayx_components/rayx_components_core/src/components/tree_view/state.rs",
+      "rayx:crates/rayx/rayx_components/rayx_components_core/src/components/virtual_list/mod.rs",
+      "rayx:crates/rayx/rayx_components/rayx_components_core/src/core/sticky.rs",
+      "rayx:tools-node/test_suite/keyed-sticky-stacking.spec.ts"
+    ],
+    "unexpectedChangedPaths": [],
+    "responsibilityIds": [
+      "RESP-001",
+      "RESP-003",
+      "RESP-005"
+    ],
+    "newAbstractions": [
+      "Sticky relation index",
+      "StickyStacking"
+    ],
+    "newDependencies": [],
+    "newPublicApi": [
+      "StickyRow::stack_id(id)"
+    ],
+    "unapprovedDesignAdditions": [],
+    "result": "pass",
+    "reason": "Actual changed paths stay within declared task scopes; declared responsibilities and explicitly allowed design additions are recorded for semantic review."
+  },
+  "commands": [
+    {
+      "command": "cargo test -p rayx_components_core sticky -- --nocapture",
+      "effectiveCommand": "cargo test -p rayx_components_core sticky -- --nocapture",
+      "exitCode": 0,
+      "assertion": "The complete RayX virtual sticky surface MUST pass at the sprint checkpoint.",
+      "stdoutHash": "0291296f47d545ef1cadd64c7f0cc7b141135cf713d602378c1e78eed9a16daa",
+      "stderrHash": "e4209fec1cc0bcdcd761b9dab019c3ec4b131127d2f861d70e4d6fd1ff566d96",
+      "failureOutputTail": ""
+    }
+  ],
+  "defects": [],
+  "repairs": [],
+  "reauditCount": 0,
+  "residualRisks": [],
+  "generatedAt": "2026-07-31T02:08:39Z"
+}

@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "id": "d016965c-c9cd-4e63-a155-44c92389034e",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 48,
+  "type": "hypothesis",
+  "name": "Global Element ID Cost Profile",
+  "slug": "global-element-id-cost-profile",
+  "path": "2026-08-31-48-global-element-id-cost-profile.json",
+  "createdAt": "2026-08-31T03:18:56Z",
+  "startedAt": "2026-08-31T03:18:56Z",
+  "finishedAt": "2026-08-31T03:23:26Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "876df394024a8b2aa73b0027c1026f9a5ed7ea2c",
+  "resultCommit": "876df394024a8b2aa73b0027c1026f9a5ed7ea2c",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 876df394024a8b2aa73b0027c1026f9a5ed7ea2c",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "876df394024a8b2aa73b0027c1026f9a5ed7ea2c",
+      "resultCommit": "876df394024a8b2aa73b0027c1026f9a5ed7ea2c",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 876df394024a8b2aa73b0027c1026f9a5ed7ea2c",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "876df394024a8b2aa73b0027c1026f9a5ed7ea2c"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "apps/test_suite headed WASM/WebGPU wide DataTable CPU profile",
+  "hypothesisMarkdown": "A fresh accepted-build CPU profile will quantify the direct `GlobalElementId` construction path after the rejected interner and identify whether hashing, Arc allocation/copy, or another gpux-owned symbol is the next evidence-backed optimization target.\n",
+  "measurementPlanMarkdown": "Run one headed WebGPU CPU-profile process for the wide DataTable at DPR 1 and DPR 2 in apps/test_suite. Aggregate self time for `GlobalElementId`, hashing, Arc slice allocation/copy, allocator/deallocator, and leading gpux-owned symbols; require exact final offsets, renderer/layout counters, and zero errors. Make no source change in this experiment.\n",
+  "expectedOutcomeMarkdown": "The profile either establishes a specific dominant subcost that supports one simpler follow-up hypothesis, or shows that GlobalElementId construction is too small or too inlined to justify further complexity and redirects the loop to a larger measured gpux hotspot.\n",
+  "diagnostics": {
+    "playwright": [
+      "One fresh headed Chromium/WebGPU process passed DPR 1 and DPR 2 with CPU profiling enabled, exact final offsets, and zero terminal errors.",
+      "apps/test_suite was the exclusive runtime fixture; shared memory, wasm_thread_entry_point, and 107170 atomic prefix bytes were verified."
+    ],
+    "rayx": [
+      "Measurement-only experiment; production source remained at the accepted checkpoint."
+    ],
+    "counters": [
+      "Both profiles preserved 485 global ID creations, 8668 path elements, 24 same-frame duplicates, 485 previous-frame hits, and all established renderer/Taffy signatures."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 ElementId Arc allocation/copy self time",
+      "before": "unprofiled",
+      "after": "99.091 ms",
+      "delta": "absolute"
+    },
+    {
+      "metric": "DPR 2 ElementId Arc allocation/copy self time",
+      "before": "unprofiled",
+      "after": "111.569 ms",
+      "delta": "absolute"
+    },
+    {
+      "metric": "DPR 1 ElementId hash plus SipHash self time",
+      "before": "unprofiled",
+      "after": "151.990 ms",
+      "delta": "absolute"
+    },
+    {
+      "metric": "DPR 2 ElementId hash plus SipHash self time",
+      "before": "unprofiled",
+      "after": "130.536 ms",
+      "delta": "absolute"
+    },
+    {
+      "metric": "DPR 1/2 Taffy compute self time",
+      "before": "unprofiled",
+      "after": "972.091 / 988.639 ms",
+      "delta": "absolute"
+    }
+  ],
+  "reportMarkdown": "## Global Element ID Cost Profile Finished\n\n**Index:** 48\n**Checkpoint:** `876df394024a8b2aa73b0027c1026f9a5ed7ea2c`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. Headed WebGPU CPU profiles at DPR 1 and DPR 2 preserved exact final offsets, renderer/layout counters, the 485/24/485 global-ID telemetry signature, and zero errors. The build verified shared memory, `wasm_thread_entry_point`, and 107,170 atomic-prefix bytes.\n\nDirect `Arc<[ElementId]>` allocation/copy consumed 99.091/111.569 ms self time at DPR 1/2. `ElementId::hash` consumed 43.703/39.425 ms, while SipHash rounds consumed another 108.287/91.111 ms. These are separate sampled leaves, totaling 251.081/242.105 ms of directly attributable path construction and hashing work. By comparison, all Taffy compute symbols totaled 972.091/988.639 ms and `TaffyLayoutEngine::request_taffy_node` totaled 149.050/162.311 ms.\n\n### Scope Lock\n\nMeasurement only. No source, dependency, shader, renderer, layout, or public API change was made.\n\n### Decision\n\nKeep direct `Arc` construction after the rejected stateful interner, but test replacing `DefaultHasher`/SipHash with the already-depended-on deterministic `FxHasher` in a separate atomic experiment. Hashing alone accounts for 151.990/130.536 ms and can be changed without retaining paths or adding cache state.\n",
+  "decisionMarkdown": "Use the existing `collections::FxHasher` as the next isolated GlobalElementId hypothesis. The current profile attributes 151.990/130.536 ms to ElementId hashing plus SipHash rounds at DPR 1/2, while the rejected interner showed that adding persistent lookup state harms one tail-latency case.\n",
+  "notes": ""
+}

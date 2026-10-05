@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "id": "d1085b1f-8c66-4a4c-a46f-e390a19c8386",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 70,
+  "type": "hypothesis",
+  "name": "Style Phase Reuse Eligibility Telemetry",
+  "slug": "style-phase-reuse-eligibility-telemetry",
+  "path": "2026-08-31-70-style-phase-reuse-eligibility-telemetry.json",
+  "createdAt": "2026-08-31T09:32:07Z",
+  "startedAt": "2026-08-31T09:32:07Z",
+  "finishedAt": "2026-08-31T09:50:15Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "0505ae4c0",
+  "resultCommit": "9979d1c94",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 0505ae4c0",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "0505ae4c0",
+      "resultCommit": "9979d1c94",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 0505ae4c0",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "9979d1c94"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpui Interactivity style lifecycle and headed Test Suite WASM/WebGPU diagnostics",
+  "hypothesisMarkdown": "`Interactivity::paint` rebuilds the style already resolved during prepaint. If most warmed paint calls have no focus, hover, active, group, or live-drag-sensitive refinement, conservative cross-phase style reuse can remove another full default-and-refine pass without changing behavior.\n",
+  "measurementPlanMarkdown": "Add only `rayx_diagnostics` counters for request-layout style computations, initial prepaint computations, conditional post-sticky prepaint recomputations, paint computations, statically reuse-safe paint calls, and runtime reuse-safe paint calls. Publish the bounded latest-frame values through the existing WGPU diagnostic object and assert consistent partitions in the Test Suite wide DataTable benchmark. Run headed WebGPU at DPR 1 and DPR 2 plus focused/full gpux validation. Pass if exact established behavior remains intact and the counters quantify the opportunity without material diagnostic-path regression.\n",
+  "expectedOutcomeMarkdown": "The warmed wide DataTable should show that a majority of paint style computations are eligible for exact reuse of the prepaint result. Prepaint recomputations should remain a small subset of initial prepaint computations after experiment 69.\n",
+  "diagnostics": {
+    "playwright": [
+      "The probe and final headed Chromium/WebGPU runs both passed DPR 1 and DPR 2: 4/4 cadence cases, exact final offset -351402.6875, and zero terminal errors.",
+      "Both final DPRs reported identical style phase counts and passed the benchmark's greater-than-50-percent reuse-opportunity assertion."
+    ],
+    "rayx": [
+      "All 419 gpux unit tests and every gpux integration suite passed with rayx_diagnostics.",
+      "All 52 serialized gpui_wgpu tests passed with rayx_diagnostics.",
+      "Gpux production and diagnostic checks, warning-denied gpux Clippy, native Test Suite production and diagnostic checks, focused rustfmt, and diff checks passed; existing unrelated Test Suite warnings remain."
+    ],
+    "counters": [
+      "Both DPRs reported request=875, prepaint=845, post-sticky-recompute=0, paint=845, static-eligible=729, runtime-eligible=729.",
+      "Both DPRs preserved 1,123 Taffy nodes, nine renderer batches, 12 queue-buffer writes, one submission, shared memory, the worker entry point, and a 99,523-byte diagnostic atomic prefix."
+    ],
+    "knownUnrelatedGates": [
+      "The broader gpux --all-targets production check reaches a pre-existing scene test that references a rayx_diagnostics-gated helper without that feature; the established package checks and the full diagnostic test suite passed.",
+      "The repository-wide TypeScript no-emit check has existing errors in unrelated Playwright specs and config; the changed benchmark compiled and passed in both headed projects."
+    ],
+    "artifacts": [
+      "artifacts-temp/agentx-experiments/2026-08-30-gpux-maximum-performance/70-style-phase-reuse-eligibility-telemetry"
+    ]
+  },
+  "measurements": [
+    {
+      "metric": "Warmed paint style reuse eligibility",
+      "before": "unknown",
+      "after": "729 / 845 paint calls (86.27%) at both DPRs",
+      "delta": "measured opportunity"
+    },
+    {
+      "metric": "Style phase counts at DPR 1 and DPR 2",
+      "before": "unknown",
+      "after": "request 875, prepaint 845, post-sticky recompute 0, paint 845, static eligible 729, runtime eligible 729",
+      "delta": "identical across DPRs"
+    },
+    {
+      "metric": "DPR 1 acknowledged throughput versus experiment 69 median",
+      "before": "30.0423988374793 steps/s",
+      "after": "30.81524504128783 steps/s",
+      "delta": "+2.57%"
+    },
+    {
+      "metric": "DPR 2 acknowledged throughput versus experiment 69 median",
+      "before": "30.4424150515824 steps/s",
+      "after": "30.572779495203665 steps/s",
+      "delta": "+0.43%"
+    },
+    {
+      "metric": "DPR 1 paced p95 versus experiment 69 median",
+      "before": "25.894775390625 ms",
+      "after": "25.54638671875 ms",
+      "delta": "1.35% improvement"
+    },
+    {
+      "metric": "DPR 2 paced p95 versus experiment 69 median",
+      "before": "26.193603515625 ms",
+      "after": "26.55810546875 ms",
+      "delta": "1.39% regression"
+    }
+  ],
+  "reportMarkdown": "## Style Phase Reuse Eligibility Telemetry Finished\n\n**Index:** 70\n**Checkpoint:** `0505ae4c0`\n**Result:** `9979d1c94`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. Diagnostics-only counters now partition Interactivity style work by request-layout, initial prepaint, conditional post-sticky prepaint recomputation, paint, structurally static paint, and runtime-safe paint reuse eligibility. Production builds contain none of the counter storage or increments.\n\nThe final headed WebGPU frame was identical at DPR 1 and DPR 2: 875 request-layout computations, 845 initial prepaint computations, zero post-sticky recomputations, 845 paint computations, and 729 structurally/runtime-safe reuse candidates. Thus 86.27% of paint style reconstruction is a measured target for the next production experiment. The benchmark now requires a majority-safe opportunity so telemetry drift is visible.\n\nThe probe and final headed processes passed all four DPR cases with exact final offset, renderer/layout/text invariants, shared-memory worker verification, and zero terminal errors. All 419 gpux unit tests and integration suites, all 52 serialized WGPU tests, package checks, warning-denied gpux Clippy, Test Suite production/diagnostic checks, focused formatting, and diff checks passed.\n\n### Scope Lock\n\nOnly diagnostics-gated counters and their existing WGPU/Web publication/Test Suite proof path changed. No production style reuse, caching, layout, Taffy, renderer batching, or lifecycle behavior changed.\n\n### Repository Checkpoints\n\n| Repo | Path | Checkpoint | Result Commit | Status | Rollback |\n| --- | --- | --- | --- | --- | --- |\n| main | . | `0505ae4c0` | `9979d1c94` | committed | `git -C \"D:\\\\Work\\\\projects\\\\RayX\\\\RayX\" reset --hard 0505ae4c0` |\n\n### Decision\n\nAccept the telemetry and use its conservative predicate for a separate cross-phase style reuse experiment. The 86.27% opportunity is large enough to justify carrying one prepaint style through Div state, while dynamic focus/hover/active/group and active-drag paths must continue recomputing.\n",
+  "decisionMarkdown": "Accept the diagnostics-only style-phase telemetry. It proves that 729 of 845 warmed paint style computations (86.27%) satisfy the conservative reuse predicate at both DPRs. Start a separate production experiment to retain the prepaint style only for that subset; recompute for focus, hover, active/group, or live-drag-sensitive paths.\n",
+  "notes": ""
+}

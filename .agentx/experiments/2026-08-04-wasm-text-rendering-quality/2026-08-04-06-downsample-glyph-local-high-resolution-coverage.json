@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "id": "9b2ba1b2-af11-4377-b740-d23df3153632",
+  "loopId": "dc424089-d0a5-4558-ae79-72a6a8d787db",
+  "index": 6,
+  "type": "hypothesis",
+  "name": "Downsample Glyph Local High Resolution Coverage",
+  "slug": "downsample-glyph-local-high-resolution-coverage",
+  "path": "2026-08-04-06-downsample-glyph-local-high-resolution-coverage.json",
+  "createdAt": "2026-08-04T15:20:50Z",
+  "startedAt": "2026-08-04T15:20:50Z",
+  "finishedAt": "2026-08-04T15:26:48Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "6c49321d9d549e8d32101c7c782ce47b41292d3d",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\8da1\\RayX\" reset --hard 6c49321d9d549e8d32101c7c782ce47b41292d3d",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "6c49321d9d549e8d32101c7c782ce47b41292d3d",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\8da1\\RayX\" reset --hard 6c49321d9d549e8d32101c7c782ce47b41292d3d",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "wasm/web with headed Playwright and WebGPU enabled",
+  "hypothesisMarkdown": "## Downsample Glyph Local High Resolution Coverage\n\nRasterizing only non-emoji grayscale WASM glyph masks at twice their native physical size and box-filtering coverage back onto the exact native pixel grid should improve low-density edge fidelity without increasing atlas dimensions, canvas backing size, or authored geometry. A raster-scale cache-key field prevents reuse across pixel-producing policies.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nAdd raster_scale to RenderGlyphParams and its hash, set it to 2 only for WASM grayscale glyphs, rasterize size and phase at that scale, then explicitly average the high-resolution mask into a native-size placement before atlas insertion. Add a synthetic placement/coverage unit test, run affected gpux formatting and tests, then run the full current-candidate headed Test Suite WASM/WebGPU matrix. Accept only the complete frozen gate.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nDPR 1 minimum acutance reaches at least 0.90, all other densities remain passing, fringe and alignment remain within target, warm p95 stays within five percent, and atlas/canvas dimensions remain native rather than globally supersampled.",
+  "diagnostics": {
+    "playwright": [
+      "The native-grid downsample contract passed and all 29 gpui_wgpu unit tests passed.",
+      "The headed Test Suite WASM/WebGPU matrix captured all densities, but the current-candidate target regressed and remained red."
+    ],
+    "rayx": [
+      "Only non-emoji grayscale WASM glyphs used the temporary 2x raster/downsample policy; canvas and atlas output dimensions remained native. The raster-scale key, downsampler, and tests were removed after failure."
+    ],
+    "counters": [
+      "Minimum acutance ratio regressed from 0.8046 to 0.6967; maximum RayX fringe ratio stayed 0; maximum alignment delta stayed 2 physical pixels."
+    ],
+    "artifacts": [
+      ".agentx/experiments/2026-08-04-wasm-text-rendering-quality/2026-08-04-06-downsample-glyph-local-high-resolution-coverage.json"
+    ]
+  },
+  "measurements": [
+    {
+      "name": "minimum_acutance_ratio",
+      "value": 0.6967,
+      "unit": "ratio"
+    },
+    {
+      "name": "minimum_acutance_ratio_delta",
+      "value": -0.1079,
+      "unit": "ratio"
+    },
+    {
+      "name": "maximum_rayx_fringe_ratio",
+      "value": 0,
+      "unit": "ratio"
+    },
+    {
+      "name": "maximum_alignment_delta",
+      "value": 2,
+      "unit": "physical_pixels"
+    }
+  ],
+  "reportMarkdown": "## Experiment Report\n\nThe glyph-local 2x box-filter path preserved native placement and passed its deterministic unit contract, but materially reduced matched-DOM acutance. The unchanged geometry and fringe values isolate the regression to the downsampled coverage. The complete raster-scale mechanism was reverted.",
+  "decisionMarkdown": "### Decision\n\nReject and revert glyph-local supersampling. Proceed to the final ordered composition-safe LCD candidate from the original grayscale checkpoint.",
+  "notes": "The first wrapper invocation exceeded its command timeout while its owned child processes completed; a clean focused rerun produced the recorded 0.6967 result."
+}

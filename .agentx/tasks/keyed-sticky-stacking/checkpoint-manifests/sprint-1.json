@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 5,
+  "epicId": "keyed-sticky-stacking",
+  "sprint": 1,
+  "auditSha256": "4b58f2e7bf9bb037f618dd449d27e1aeeb6ba83d96d03cd220b05df68f278296",
+  "evidenceSha256": "b69c31f7e98ba67a476c1eb07913a4d36c1f8e6c9ea34020e8f4f091d2228a9c",
+  "repositories": [
+    {
+      "id": "rayx",
+      "path": "C:\\Users\\dinko\\Work\\projects\\RayX\\RayX",
+      "baselineHead": "ff7d2738664c27fb2dd2385a41c1e35dcd70ed23",
+      "resultHead": "b9259f7e8c61adefc17c09c41d9a7e12b1c82856",
+      "commits": [
+        "23488b47341ceb2b91cf8ddf41549f362b0800cd",
+        "427c5dbf13e632b9c29f64118dfbbbf779d9a059",
+        "dba0713a8719b83a85e5dab639e3e2384e335564",
+        "94741a964e30f4789366a70adfbee66e25e7276a",
+        "d6cabfeb7561c6f102f785a428896ee241edabe0",
+        "e338942362e584f27587403bce40d35c3abc3921",
+        "7b3adb44b7075d2ed860a6b2d64893d63603326b",
+        "7a9b896e72cfe0a1ae671968cb4d5f26a04dffc2",
+        "7c7936675e4a0ad04a94a9ded6833c82601d96bf",
+        "e4e56c17a0084065cc4921b4588a0fe680d44553",
+        "2a38859771cca9779618a65fccd4559d0845cdab",
+        "9ee1b76f131d4cbbcb5fd0a42e8107a16e95abbb",
+        "81d3fc8d72f728ea0f7a6ec3066a4e175c737d2b",
+        "52b3e8770cfd87c9a74fba858c0319c27c3c9b4d",
+        "85198128885a41e4abc3098c56cf07ad5f58f304",
+        "b9259f7e8c61adefc17c09c41d9a7e12b1c82856"
+      ],
+      "statusHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sprintOwnedPaths": [],
+      "unrelatedDirtyPaths": [],
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\Work\\projects\\RayX\\RayX\" revert --no-commit ff7d2738664c27fb2dd2385a41c1e35dcd70ed23..b9259f7e8c61adefc17c09c41d9a7e12b1c82856"
+    }
+  ],
+  "generatedAt": "2026-07-31T11:44:28Z"
+}

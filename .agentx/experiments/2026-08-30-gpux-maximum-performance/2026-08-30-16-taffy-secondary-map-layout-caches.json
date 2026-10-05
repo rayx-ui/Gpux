@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "id": "884e1c1a-12b2-428e-8f55-21b006a503ea",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 16,
+  "type": "hypothesis",
+  "name": "Taffy SecondaryMap layout caches",
+  "slug": "taffy-secondary-map-layout-caches",
+  "path": "2026-08-30-16-taffy-secondary-map-layout-caches.json",
+  "createdAt": "2026-08-30T21:23:27Z",
+  "startedAt": "2026-08-30T21:23:27Z",
+  "finishedAt": "2026-08-30T21:37:51Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "1a6265c381996ae7119d39c9a3ac3b125500f3d2",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 1a6265c381996ae7119d39c9a3ac3b125500f3d2",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "1a6265c381996ae7119d39c9a3ac3b125500f3d2",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 1a6265c381996ae7119d39c9a3ac3b125500f3d2",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "wasm/web headed Chromium with WebGPU",
+  "hypothesisMarkdown": "Replace the three per-frame FxHashMap/FxHashSet layout caches keyed by dense Taffy NodeIds with slotmap SecondaryMap storage. This should remove hashing and hash-table probing from layout lookup/insertion for the measured 1,123-node frame while preserving generational-key correctness.\n",
+  "measurementPlanMarkdown": "Run focused gpui tests, the full gpux test suite, native and wasm checks, package-scoped formatting, clippy with warnings denied, and three independent headed Chromium/WebGPU DataTable benchmark processes at DPR 1 and DPR 2. Compare median acknowledged throughput and paced p95 against experiment 15. Require exact warmed Taffy, renderer, traversal, final-scroll, and terminal-error counters. Pass only if correctness/static/runtime gates pass and aggregate performance is non-regressing, with a preferred throughput or p95 improvement.\n",
+  "expectedOutcomeMarkdown": "Eliminate per-node hashing in absolute layout bounds, absolute origin, and computed-root tracking. Expect a modest CPU/throughput improvement with unchanged rendered behavior and bounded direct-index storage. No renderer, scene, shader, virtualization, or unrelated layout changes are allowed.\n",
+  "diagnostics": {
+    "playwright": [
+      "Three independent headed Chromium/WebGPU processes passed the focused wide DataTable benchmark at DPR 1 and DPR 2 (6/6 project runs).",
+      "Each browser build verified shared WASM memory, wasm_thread_entry_point, and 102282 atomic prefix bytes."
+    ],
+    "rayx": [
+      "apps/test_suite was the exclusive runtime validation fixture.",
+      "All 400 gpux tests passed; native diagnostics-off/on checks, single-thread WASM diagnostics, warning-denied Clippy, and package formatting passed.",
+      "The direct default-feature WASM cargo check hit the known stable-channel wasm_thread feature gate; the approved xtask route built and ran the actual multithreaded WASM target successfully three times."
+    ],
+    "counters": [
+      "All six browser results preserved Taffy counters 1123/229/341/782/1041/25/673/726/755/780/405/377/0/82/0/0.",
+      "All six browser results preserved 9 batches, 12 queue writes, 10 bind groups, 2 render passes, 1 submission, 4440 bounds visits, 576 retained nodes, 8668 global-id path elements, final offset -351402.6875, and zero terminal errors."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 median acknowledged steps/s",
+      "before": "29.9740716786",
+      "after": "26.9442880365946",
+      "delta": "-10.1080%",
+      "source": "median of three independent headed WebGPU processes"
+    },
+    {
+      "metric": "DPR 2 median acknowledged steps/s",
+      "before": "30.0073915707",
+      "after": "26.0581718720145",
+      "delta": "-13.1608%",
+      "source": "median of three independent headed WebGPU processes"
+    },
+    {
+      "metric": "DPR 1 median paced p95 catch-up latency",
+      "before": "27.58251953125 ms",
+      "after": "27.927978515625 ms",
+      "delta": "+1.2525%",
+      "source": "median of three independent headed WebGPU processes"
+    },
+    {
+      "metric": "DPR 2 median paced p95 catch-up latency",
+      "before": "27.47119140625 ms",
+      "after": "28.055908203125 ms",
+      "delta": "+2.1285%",
+      "source": "median of three independent headed WebGPU processes"
+    }
+  ],
+  "reportMarkdown": "## Taffy SecondaryMap Layout Caches Finished\n\n**Index:** 16\n**Checkpoint:** `1a6265c381996ae7119d39c9a3ac3b125500f3d2`\n**Result Commit:** none\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** false. Direct generational indexing preserved all behavior, but it materially regressed both throughput and paced p95 relative to experiment 15.\n\n### Scope Lock\n\n**Tested mechanism:** replace three per-frame Taffy-node-keyed FxHashMap/FxHashSet caches with slotmap SecondaryMap.\n**Out-of-scope changes:** none. Renderer, scene, shader, virtualization, and other layout mechanisms were untouched.\n\n### Repository Checkpoints\n\n| Repo | Path | Checkpoint | Result Commit | Status | Rollback |\n| --- | --- | --- | --- | --- | --- |\n| main | . | `1a6265c38` | unchanged | reverted | `git -C \"D:\\\\Work\\\\projects\\\\RayX\\\\RayX\" reset --hard 1a6265c381996ae7119d39c9a3ac3b125500f3d2` |\n\n### Measurements\n\n| Metric | Before | After | Delta |\n| --- | ---: | ---: | ---: |\n| DPR 1 acknowledged steps/s | 29.9741 | 26.9443 | -10.11% |\n| DPR 2 acknowledged steps/s | 30.0074 | 26.0582 | -13.16% |\n| DPR 1 paced p95 | 27.5825 ms | 27.9280 ms | +1.25% |\n| DPR 2 paced p95 | 27.4712 ms | 28.0559 ms | +2.13% |\n\nAll six candidate browser projects preserved exact Taffy, renderer, traversal, final-offset, and terminal-error counters. The source file was restored exactly to the checkpoint version before closing the experiment.\n\n### Decision\n\nReject and revert. The hash-based caches remain the stable implementation; direct `SecondaryMap` storage is not justified for this workload.\n",
+  "decisionMarkdown": "### Decision\n\nReject and revert the `SecondaryMap` layout caches. Despite exact semantic parity, the three-process medians materially regressed both acknowledged throughput and paced p95 at both DPRs. Keep the existing `FxHashMap`/`FxHashSet` caches and do not claim direct-index storage as a gpux performance improvement.\n",
+  "notes": ""
+}

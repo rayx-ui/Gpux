@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "id": "e9a36483-c659-401b-8971-ba8725a23f11",
+  "loopId": "54e74b74-483c-4598-92d7-fdbabbc9154b",
+  "index": 18,
+  "type": "hypothesis",
+  "name": "Reused SelectionArea geometry signature buffer",
+  "slug": "reused-selection-area-geometry-signature-buffer",
+  "path": "2026-07-24-18-reused-selection-area-geometry-signature-buffer.json",
+  "createdAt": "2026-07-24T06:38:34Z",
+  "startedAt": "2026-07-24T06:38:34Z",
+  "finishedAt": "2026-07-24T06:47:15Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "7b396138e10736c683163dd3a418bcb19da2c6f7",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard 7b396138e10736c683163dd3a418bcb19da2c6f7",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "7b396138e10736c683163dd3a418bcb19da2c6f7",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard 7b396138e10736c683163dd3a418bcb19da2c6f7",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "headed WASM/WebGPU SelectionArea fixture at DPR 1 and DPR 2",
+  "hypothesisMarkdown": "## Reused SelectionArea geometry signature buffer\n\nRetain an area-owned scratch buffer for the next geometry signature so unchanged frames compare revisions without allocating a new participant-sized signature vector. Keep the existing bounds index and geometry semantics unchanged.\n\n",
+  "measurementPlanMarkdown": "### Measurement plan\n\nMeasure the same headed WASM/WebGPU SelectionArea fixture at DPR 1 and DPR 2 using the existing completed baseline, then run 35 post-change repetitions per project with five warmups discarded. Reject any p95 regression above five percent or visual/fixture failure.\n\n",
+  "expectedOutcomeMarkdown": "### Expected outcome\n\nUnchanged SelectionArea frames reuse their geometry-comparison capacity rather than allocating a signature vector, while geometry revision detection and bounds behavior remain identical.\n\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": {
+    "target": "headed WASM/WebGPU SelectionArea fixture; 35 repetitions per DPR with five warmups discarded",
+    "before": {
+      "dpr1": {
+        "count": 30,
+        "p50Ms": 88.19,
+        "p95Ms": 95.91
+      },
+      "dpr2": {
+        "count": 29,
+        "p50Ms": 89.56,
+        "p95Ms": 106.01
+      }
+    },
+    "after": {
+      "dpr1": {
+        "count": 30,
+        "p50Ms": 90.34,
+        "p95Ms": 104.31
+      },
+      "dpr2": {
+        "count": 30,
+        "p50Ms": 91.19,
+        "p95Ms": 103.84
+      }
+    }
+  },
+  "reportMarkdown": "## Reused SelectionArea geometry signature buffer\n\nRejected and reverted. The candidate reused an area-owned scratch vector while calculating the next geometry signature. The focused DPR 1/DPR 2 fixture and the 70 repeated post-change runs passed, but DPR 1 p95 input-to-published-frame duration regressed from 95.91 ms to 104.31 ms (8.8%), exceeding the experiment's five-percent gate.\n\nThe candidate source has been restored to the checkpoint before this result is recorded. The retained direct stable-order fast path remains the accepted dormant-frame allocation reduction.\n",
+  "decisionMarkdown": "",
+  "notes": ""
+}

@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "id": "2d6a08c2-9294-4b00-a764-9775bfd53fc7",
+  "loopId": "54e74b74-483c-4598-92d7-fdbabbc9154b",
+  "index": 13,
+  "type": "hypothesis",
+  "name": "Full editable layout boundary parity",
+  "slug": "full-editable-layout-boundary-parity",
+  "path": "2026-07-24-13-full-editable-layout-boundary-parity.json",
+  "createdAt": "2026-07-24T05:31:29Z",
+  "startedAt": "2026-07-24T05:31:29Z",
+  "finishedAt": "2026-07-24T05:33:02Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "09a759cba362b46d00d1a889c7d3ecafbe1c581b",
+  "resultCommit": "fd5a08a32cab83228889c424de1715ba449f8eb8",
+  "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard 09a759cba362b46d00d1a889c7d3ecafbe1c581b",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "09a759cba362b46d00d1a889c7d3ecafbe1c581b",
+      "resultCommit": "fd5a08a32cab83228889c424de1715ba449f8eb8",
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard 09a759cba362b46d00d1a889c7d3ecafbe1c581b",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "fd5a08a32cab83228889c424de1715ba449f8eb8"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "headed WASM WebGPU TextArea edit fixture",
+  "hypothesisMarkdown": "# Hypothesis\n\nComparing every valid UTF-8 byte boundary after the retained 2,000-line edit will prove that the incremental row splice and full layout produce identical buffer/display and pixel geometry across unchanged and changed rows.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\nReplace the existing spot-check offsets in the 2,000-line differential test with all valid character boundaries, then run the focused headed WASM/WebGPU edit fixture and inspect its screenshot.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nEvery legal UTF-8 byte boundary maps to the same display point and position under retained and complete layout maps.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": {
+    "target": "headed WASM WebGPU",
+    "fixture": "/performance/text-area-edit",
+    "focusedSmoke": "passed at DPR 1 and DPR 2",
+    "sourceGuard": "passed",
+    "diffCheck": "passed"
+  },
+  "reportMarkdown": "## Full editable-layout boundary parity\n\nThe 2,000-line same-length edit differential test now compares every valid UTF-8 byte boundary, rather than five selected offsets, against a complete layout rebuild. Focused headed WASM/WebGPU TextArea editing passed at DPR 1 and DPR 2; source guard and whitespace validation passed.\n\nAccept. This strengthens the retained-layout oracle without altering production behavior.\n",
+  "decisionMarkdown": "## Decision\n\nAccept exhaustive UTF-8 boundary parity coverage for the retained same-length edit path.\n",
+  "notes": ""
+}

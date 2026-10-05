@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "id": "173be422-9201-4b19-9112-99545ce491bd",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 59,
+  "type": "hypothesis",
+  "name": "Line Layout Cache Key Cost Telemetry",
+  "slug": "line-layout-cache-key-cost-telemetry",
+  "path": "2026-08-31-59-line-layout-cache-key-cost-telemetry.json",
+  "createdAt": "2026-08-31T05:29:37Z",
+  "startedAt": "2026-08-31T05:29:37Z",
+  "finishedAt": "2026-08-31T05:38:12Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "132c0cb0e79e663e7cfe596862fee9e598a25d7b",
+  "resultCommit": "7b06d898ce2ca54ecfb72b5810e124635d0e5715",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 132c0cb0e79e663e7cfe596862fee9e598a25d7b",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "132c0cb0e79e663e7cfe596862fee9e598a25d7b",
+      "resultCommit": "7b06d898ce2ca54ecfb72b5810e124635d0e5715",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 132c0cb0e79e663e7cfe596862fee9e598a25d7b",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "7b06d898ce2ca54ecfb72b5810e124635d0e5715"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "crates/gpux/crates/gpui/src/text_system/line_layout.rs",
+  "hypothesisMarkdown": "The warmed wide DataTable's 301 previous-frame wrapped-layout promotions repeatedly hash full text and run slices for current lookup, previous removal, and current insertion, producing substantially more than 320 cache-key hash invocations per frame. Quantifying hash volume and equality probes will determine whether a cached-hash/raw-entry design is justified.\n",
+  "measurementPlanMarkdown": "Add diagnostics-only counters at the two existing ordinary `CacheKey` hashing and equality entrypoints, recording hash calls, text bytes hashed, run items hashed, and equality comparisons. Drain them into a separate bounded scene snapshot and latest-frame telemetry. Run focused tests, full gpux and serialized WGPU tests, production and diagnostic checks, formatting, clippy, and headed WebGPU Test Suite validation at DPR 1 and DPR 2 with all established invariants exact.\n",
+  "expectedOutcomeMarkdown": "Ordinary cache-key hash calls should materially exceed the 320 wrapped-layout requests and should hash a meaningful volume of repeated text bytes, while equality comparisons should track successful cache probes. All established wide DataTable invariants and cache-tier counts must remain exact.\n",
+  "diagnostics": {
+    "playwright": [
+      "The final headed Chromium/WebGPU Test Suite passed DPR 1 and DPR 2: 2/2 cases, exact final offset -351402.6875, and zero browser errors.",
+      "Both final frames preserved 1123 Taffy nodes, 229 measured leaves, 82 root compute calls, 882 stable comparable measurements, nine batches, and 12 queue-buffer writes."
+    ],
+    "rayx": [
+      "All 416 gpux unit tests and every integration suite passed with rayx_diagnostics.",
+      "All 52 serialized gpui_wgpu tests passed with rayx_diagnostics.",
+      "Production and diagnostic checks, focused rustfmt, Clippy with warnings denied, diff checks, and the cache-key volume/drain oracle passed."
+    ],
+    "counters": [
+      "DPR 1: 320 requests, 921 hashes, 17178 text bytes hashed, 921 run items hashed, 322 equality comparisons; 19 current hits, 301 previous hits, 0 misses.",
+      "DPR 2: 320 requests, 921 hashes, 17178 text bytes hashed, 921 run items hashed, 322 equality comparisons; 19 current hits, 301 previous hits, 0 misses."
+    ],
+    "artifacts": [
+      "artifacts-temp/agentx-experiments/2026-08-30-gpux-maximum-performance/59-line-layout-cache-key-cost-telemetry/playwright"
+    ]
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 wrapped-layout cache-key work",
+      "before": "320 wrapped requests with key hash/equality volume unknown",
+      "after": "921 hashes, 17178 text bytes hashed, 921 run items hashed, 322 equality comparisons",
+      "delta": "2.878 full-key hashes per request; repeated-key work confirmed",
+      "source": "headed Test Suite WebGPU frame telemetry"
+    },
+    {
+      "metric": "DPR 2 wrapped-layout cache-key work",
+      "before": "320 wrapped requests with key hash/equality volume unknown",
+      "after": "921 hashes, 17178 text bytes hashed, 921 run items hashed, 322 equality comparisons",
+      "delta": "identical to DPR 1; repeated-key work is deterministic",
+      "source": "headed Test Suite WebGPU frame telemetry"
+    },
+    {
+      "metric": "behavioral invariants",
+      "before": "882 stable outputs, -351402.6875 final offset, 1123 nodes, 229 measured leaves, 82 compute calls",
+      "after": "exactly unchanged at both DPRs",
+      "delta": "zero",
+      "source": "headed Test Suite WebGPU frame telemetry"
+    }
+  ],
+  "reportMarkdown": "## Line Layout Cache Key Cost Telemetry Finished\n\n**Index:** 59\n**Checkpoint:** `132c0cb0e79e663e7cfe596862fee9e598a25d7b`\n**Result:** `7b06d898ce2ca54ecfb72b5810e124635d0e5715`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. Diagnostics-only counters measure the ordinary wrapped-layout cache key's hash volume and equality probes without changing production hashing, equality, cache behavior, or public APIs.\n\nThe final headed wide DataTable result is identical at both DPRs: 320 wrapped-layout requests execute 921 full key hashes, hashing 17,178 text bytes and 921 font-run items, plus 322 equality comparisons. The same frame retains 19 current-frame hits, 301 previous-frame hits, and zero misses. This confirms that promotion across the two-generation cache repeatedly rehashes the same text and runs and provides a measured basis for a hash-aware lookup/promotion experiment.\n\nBoth cases retained 882 stable comparable measurements, exact final offset `-351402.6875`, zero browser errors, 1,123 nodes, 229 measured leaves, 82 root compute calls, nine batches, and 12 queue-buffer writes. All 416 gpux unit tests and integration suites, all 52 serialized WGPU tests, production and diagnostic checks, focused formatting, Clippy with warnings denied, and both headed WebGPU cases passed.\n\n### Scope Lock\n\nOnly diagnostics-gated counters at existing `CacheKey` hash/equality entrypoints, the bounded scene snapshot, latest-frame telemetry publication, one focused drain oracle, and Test Suite assertions changed. Production hash field order, equality, lookup, promotion, shaping, and rendering behavior are unchanged.\n\n### Decision\n\nAccept the telemetry. Start a separate atomic experiment for cached-hash, hash-aware wrapped-layout cache lookup and promotion. Preserve collision-safe full equality, current/previous generation rollover, and exact unused-entry eviction.\n",
+  "decisionMarkdown": "Accept diagnostics-only cache-key cost telemetry. The warmed frame performs 921 complete cache-key hashes for 320 requests, rehashing 17,178 text bytes and 921 run items at both DPRs. A separate production experiment may cache the owned-key hash and use hash-aware lookup/promotion, provided full equality remains collision-safe and two-generation eviction semantics remain exact.\n",
+  "notes": ""
+}

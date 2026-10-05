@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "id": "3414759b-9294-427a-b425-169b9402e720",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 96,
+  "type": "hypothesis",
+  "name": "Dispatch Tree Cleanup Attribution",
+  "slug": "dispatch-tree-cleanup-attribution",
+  "path": "2026-08-31-96-dispatch-tree-cleanup-attribution.json",
+  "createdAt": "2026-08-31T16:01:44Z",
+  "startedAt": "2026-08-31T16:01:44Z",
+  "finishedAt": "2026-08-31T16:03:58Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "5b532aea9f03d8e9608d962cb2a68a5bcbf4961a",
+  "resultCommit": "5b532aea9f03d8e9608d962cb2a68a5bcbf4961a",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 5b532aea9f03d8e9608d962cb2a68a5bcbf4961a",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "5b532aea9f03d8e9608d962cb2a68a5bcbf4961a",
+      "resultCommit": "5b532aea9f03d8e9608d962cb2a68a5bcbf4961a",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 5b532aea9f03d8e9608d962cb2a68a5bcbf4961a",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "5b532aea9f03d8e9608d962cb2a68a5bcbf4961a"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux DispatchTree::clear node and listener teardown",
+  "hypothesisMarkdown": "## Dispatch Tree Cleanup Attribution Hypothesis\n\nThe stable 15.629/14.225 ms DispatchTree clear family contains avoidable deallocation of reusable per-node listener storage that can support one bounded gpux optimization.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRead-only attribution of accepted CPU profiles and current DispatchTree ownership analysis. Only AgentX metadata and ignored analysis output may change. Production code, tests, listener lifetime changes, pooling, caches, and adjacent cleanup are forbidden.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nAggregate every CPU-profile sample descending through DispatchTree::clear at both DPRs. Rank descendants, listener/vector drops, Rc teardown, and allocator paths; inspect all DispatchTree node creation, truncate, and subtree reuse paths. Pass if a bounded reusable-storage mechanism is identified or the evidence proves teardown is required.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nSelect one atomic DispatchTree storage optimization for experiment 97, or reject this branch with exact profile and ownership evidence.",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": {
+    "schemaVersion": 1,
+    "dpr1": {
+      "samples": 10,
+      "inclusiveMs": 15.629,
+      "clearBodySelfMs": 14.121,
+      "clearBodySelfPercent": 90.35,
+      "visibleRequiredDropMs": 1.508
+    },
+    "dpr2": {
+      "samples": 9,
+      "inclusiveMs": 14.225,
+      "clearBodySelfMs": 12.566,
+      "clearBodySelfPercent": 88.34,
+      "visibleRequiredDropMs": 1.659
+    },
+    "outerContainerCapacityAlreadyRetained": true,
+    "reusedSubtreeListenerBuffersMoved": true,
+    "productFilesChanged": 0
+  },
+  "reportMarkdown": "# Dispatch Tree Cleanup Attribution\n\nAccepted DPR 1 and DPR 2 profiles contain 10 and 9 samples under `DispatchTree::clear`, totaling 15.629 ms and 14.225 ms.\n\n| Sample family | DPR 1 | DPR 2 |\n| --- | ---: | ---: |\n| DispatchTree clear inclusive | 15.629 ms | 14.225 ms |\n| Clear-body self samples | 14.121 ms | 12.566 ms |\n| Visible closure/Rc drop | 1.508 ms | 1.659 ms |\n\nThe clear-body samples represent 90.35% and 88.34% of the inclusive family. The only separately named descendants are required listener closure and `Rc` teardown.\n\n`DispatchTree::clear` already retains the allocations of the outer node, stack, and index containers because Rust `Vec::clear` and `HashMap::clear` preserve capacity. A node pool would therefore preserve only inner listener-vector allocations. It would still need to visit every node, release every listener/context/focus/view reference, reset parent metadata, and bound retained inner capacity. Current profiles contain no cardinality or capacity evidence showing those inner allocations dominate; the explicit listener drops are a small minority.\n\nSubtree replay already moves listener vectors from the prior node with `mem::take`, preserving their allocations for reused content. `truncate` must remove focus/view indices and destroy discarded nodes immediately. No product or test source changed.\n",
+  "decisionMarkdown": "# Decision\n\nAccept the attribution but reject speculative DispatchNode pooling. The outer containers already retain capacity, reused subtrees move listener buffers, and separately visible required closure destruction is only 1.508/1.659 ms. Move to Scene cleanup attribution, where independent profiles show 12.477/26.828 ms and the primitive storage is entirely gpux-owned.\n",
+  "notes": ""
+}

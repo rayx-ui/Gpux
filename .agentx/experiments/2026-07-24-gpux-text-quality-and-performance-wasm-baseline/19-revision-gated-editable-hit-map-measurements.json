@@ -1,0 +1,1 @@
+{"target":"headed WASM/WebGPU nested TextArea SelectionArea fixture; 35 repetitions per DPR with five warmups discarded","before":{"dpr1":{"p50Ms":126.57,"p95Ms":137.49},"dpr2":{"p50Ms":134.01,"p95Ms":135.71}},"after":{"dpr1":{"p50Ms":91.81,"p95Ms":127.03},"dpr2":{"p50Ms":79.51,"p95Ms":89.48}}}

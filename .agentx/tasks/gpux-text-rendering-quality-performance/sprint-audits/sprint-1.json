@@ -1,0 +1,284 @@
+{
+  "schemaVersion": 3,
+  "generatorVersion": "3.0",
+  "epicId": "gpux-text-rendering-quality-performance",
+  "sprint": 1,
+  "status": "passed",
+  "headBeforeCommit": "ffbc0033a54c0889cf5aeb7529b0f745fddd3ba3",
+  "filesReviewed": [
+    "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\_state.json",
+    "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\baseline-diagnostics.json",
+    "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\baseline-measurements.json",
+    "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance\\diagnostics\\editable-text-complexity.json",
+    "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\apps\\test_suite\\src\\pages\\performance.rs",
+    "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\performance-fixture.ts"
+  ],
+  "conformance": [
+    {
+      "requirementId": "REQ-F-001",
+      "taskIds": [
+        "sprint-1-task-1",
+        "sprint-1-task-2"
+      ],
+      "implementationLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\_state.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\baseline-diagnostics.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\baseline-measurements.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance\\diagnostics\\editable-text-complexity.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\apps\\test_suite\\src\\pages\\performance.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\performance-fixture.ts"
+      ],
+      "testLocations": [],
+      "evidenceProfiles": [
+        "contract",
+        "integration",
+        "interaction",
+        "performance",
+        "regression",
+        "runtime"
+      ],
+      "missingProfiles": [],
+      "result": "pass",
+      "reason": "All mapped tasks are done with fresh profile-complete evidence."
+    },
+    {
+      "requirementId": "REQ-F-002",
+      "taskIds": [
+        "sprint-1-task-1",
+        "sprint-1-task-2"
+      ],
+      "implementationLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\_state.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\baseline-diagnostics.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\baseline-measurements.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance\\diagnostics\\editable-text-complexity.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\apps\\test_suite\\src\\pages\\performance.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\performance-fixture.ts"
+      ],
+      "testLocations": [],
+      "evidenceProfiles": [
+        "contract",
+        "integration",
+        "interaction",
+        "performance",
+        "regression",
+        "runtime"
+      ],
+      "missingProfiles": [],
+      "result": "pass",
+      "reason": "All mapped tasks are done with fresh profile-complete evidence."
+    },
+    {
+      "requirementId": "REQ-F-003",
+      "taskIds": [
+        "sprint-1-task-1",
+        "sprint-1-task-2"
+      ],
+      "implementationLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\_state.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\baseline-diagnostics.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\baseline-measurements.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance\\diagnostics\\editable-text-complexity.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\apps\\test_suite\\src\\pages\\performance.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\performance-fixture.ts"
+      ],
+      "testLocations": [],
+      "evidenceProfiles": [
+        "contract",
+        "integration",
+        "interaction",
+        "performance",
+        "regression",
+        "runtime"
+      ],
+      "missingProfiles": [],
+      "result": "pass",
+      "reason": "All mapped tasks are done with fresh profile-complete evidence."
+    },
+    {
+      "requirementId": "REQ-F-004",
+      "taskIds": [
+        "sprint-1-task-1",
+        "sprint-1-task-2"
+      ],
+      "implementationLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\_state.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\baseline-diagnostics.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\baseline-measurements.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance\\diagnostics\\editable-text-complexity.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\apps\\test_suite\\src\\pages\\performance.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\performance-fixture.ts"
+      ],
+      "testLocations": [],
+      "evidenceProfiles": [
+        "contract",
+        "integration",
+        "interaction",
+        "performance",
+        "regression",
+        "runtime"
+      ],
+      "missingProfiles": [],
+      "result": "pass",
+      "reason": "All mapped tasks are done with fresh profile-complete evidence."
+    },
+    {
+      "requirementId": "REQ-F-005",
+      "taskIds": [
+        "sprint-1-task-1",
+        "sprint-1-task-2"
+      ],
+      "implementationLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\_state.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\baseline-diagnostics.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\baseline-measurements.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance\\diagnostics\\editable-text-complexity.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\apps\\test_suite\\src\\pages\\performance.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\performance-fixture.ts"
+      ],
+      "testLocations": [],
+      "evidenceProfiles": [
+        "contract",
+        "integration",
+        "interaction",
+        "performance",
+        "regression",
+        "runtime"
+      ],
+      "missingProfiles": [],
+      "result": "pass",
+      "reason": "All mapped tasks are done with fresh profile-complete evidence."
+    },
+    {
+      "requirementId": "REQ-F-006",
+      "taskIds": [
+        "sprint-1-task-2"
+      ],
+      "implementationLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\_state.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\baseline-diagnostics.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\baseline-measurements.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance\\diagnostics\\editable-text-complexity.json"
+      ],
+      "testLocations": [],
+      "evidenceProfiles": [
+        "contract",
+        "interaction",
+        "performance",
+        "regression",
+        "runtime"
+      ],
+      "missingProfiles": [],
+      "result": "pass",
+      "reason": "All mapped tasks are done with fresh profile-complete evidence."
+    },
+    {
+      "requirementId": "REQ-NF-001",
+      "taskIds": [
+        "sprint-1-task-1",
+        "sprint-1-task-2"
+      ],
+      "implementationLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\_state.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\baseline-diagnostics.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\baseline-measurements.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance\\diagnostics\\editable-text-complexity.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\apps\\test_suite\\src\\pages\\performance.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\performance-fixture.ts"
+      ],
+      "testLocations": [],
+      "evidenceProfiles": [
+        "contract",
+        "integration",
+        "interaction",
+        "performance",
+        "regression",
+        "runtime"
+      ],
+      "missingProfiles": [],
+      "result": "pass",
+      "reason": "All mapped tasks are done with fresh profile-complete evidence."
+    },
+    {
+      "requirementId": "REQ-NF-003",
+      "taskIds": [
+        "sprint-1-task-2"
+      ],
+      "implementationLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\_state.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\baseline-diagnostics.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\baseline-measurements.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance\\diagnostics\\editable-text-complexity.json"
+      ],
+      "testLocations": [],
+      "evidenceProfiles": [
+        "contract",
+        "interaction",
+        "performance",
+        "regression",
+        "runtime"
+      ],
+      "missingProfiles": [],
+      "result": "pass",
+      "reason": "All mapped tasks are done with fresh profile-complete evidence."
+    },
+    {
+      "requirementId": "REQ-NF-004",
+      "taskIds": [
+        "sprint-1-task-1",
+        "sprint-1-task-2"
+      ],
+      "implementationLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\_state.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\baseline-diagnostics.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\baseline-measurements.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance\\diagnostics\\editable-text-complexity.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\apps\\test_suite\\src\\pages\\performance.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\performance-fixture.ts"
+      ],
+      "testLocations": [],
+      "evidenceProfiles": [
+        "contract",
+        "integration",
+        "interaction",
+        "performance",
+        "regression",
+        "runtime"
+      ],
+      "missingProfiles": [],
+      "result": "pass",
+      "reason": "All mapped tasks are done with fresh profile-complete evidence."
+    }
+  ],
+  "commands": [
+    {
+      "command": "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-quality-performance.spec.ts",
+      "exitCode": 0,
+      "assertion": "Broad sprint validation passed.",
+      "stdoutHash": "bf2b2d3b87cf97d949a29952f921d4540580c54fc62d3d1e31ba495b82695596",
+      "stderrHash": "2107402fbcd1e3a5618132b6eb0655055a6f0c8500b7025cc5bf3e21be629c5c",
+      "failureOutputTail": ""
+    },
+    {
+      "command": "python C:/Users/dinko/.codex/skills/agentx/scripts/improvement_loop_state.py --root . validate",
+      "exitCode": 0,
+      "assertion": "Broad sprint validation passed.",
+      "stdoutHash": "6024844f74fc8706e8b6891ce0b37a65ff2ee195254a254ce90600fd7abf76db",
+      "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "failureOutputTail": ""
+    },
+    {
+      "command": "cargo run -p xtask -- check-source-guard",
+      "exitCode": 0,
+      "assertion": "Broad sprint validation passed.",
+      "stdoutHash": "2d13e37a3fa369e670d343477fafd2b2237ce41609d6de34f245662671bdf392",
+      "stderrHash": "b24a51373644ffc34e11e29b5ecc536927cb1df731140d0079822fef8e2df50d",
+      "failureOutputTail": ""
+    }
+  ],
+  "defects": [],
+  "repairs": [],
+  "reauditCount": 3,
+  "residualRisks": [],
+  "generatedAt": "2026-07-24T03:31:11Z"
+}

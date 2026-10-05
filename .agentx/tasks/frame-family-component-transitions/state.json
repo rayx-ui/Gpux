@@ -1,0 +1,10 @@
+{
+  "name": "frame-family-component-transitions",
+  "status": "done",
+  "currentSprint": -1,
+  "currentTask": -1,
+  "totalSprints": 5,
+  "created": "2026-07-07",
+  "updated": "2026-07-07",
+  "summary": "Implementation plan for the GPUI frame-family API: rename effects() to effect_frame(), add animated_frame() for frame property/layout animation, add transition_frame() for snapshot-backed component replacement transitions, and add Lab example pages."
+}

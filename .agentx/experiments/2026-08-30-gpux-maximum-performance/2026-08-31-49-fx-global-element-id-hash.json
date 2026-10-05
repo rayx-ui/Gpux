@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "id": "83e60e67-be00-442d-a372-7a7f6e819c07",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 49,
+  "type": "hypothesis",
+  "name": "Fx Global Element ID Hash",
+  "slug": "fx-global-element-id-hash",
+  "path": "2026-08-31-49-fx-global-element-id-hash.json",
+  "createdAt": "2026-08-31T03:23:58Z",
+  "startedAt": "2026-08-31T03:23:58Z",
+  "finishedAt": "2026-08-31T03:35:50Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "d54b787c1a3e84eda77d0e16750cac87c66c9944",
+  "resultCommit": "79551bb9812cbe5b49d733aff2d7599eaa14fefb",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard d54b787c1a3e84eda77d0e16750cac87c66c9944",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "d54b787c1a3e84eda77d0e16750cac87c66c9944",
+      "resultCommit": "79551bb9812cbe5b49d733aff2d7599eaa14fefb",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard d54b787c1a3e84eda77d0e16750cac87c66c9944",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "79551bb9812cbe5b49d733aff2d7599eaa14fefb"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux GlobalElementId hashing and apps/test_suite headed WASM/WebGPU wide DataTable",
+  "hypothesisMarkdown": "Replacing `DefaultHasher`/SipHash with gpux's existing deterministic `collections::FxHasher` for `GlobalElementId` cached hashes will remove most of the 151.990/130.536 ms hashing self time measured at DPR 1/2, preserve full-path equality and stable within-process AccessKit IDs, and improve throughput and paced p95 without adding retained state.\n",
+  "measurementPlanMarkdown": "Change only the hasher used by `GlobalElementId::new`, add focused identity/hash tests, and retain collision-safe full-path equality. Run focused/full gpux tests, serialized gpui_wgpu tests, normal check, formatting, clippy, and three fresh headed WebGPU processes at DPR 1/2 in apps/test_suite. Require exact final offsets, renderer/layout counters, stable global-ID telemetry, zero errors, and improved or neutral product medians versus experiment 43.\n",
+  "expectedOutcomeMarkdown": "The cached identity hash remains deterministic for an equal element path and different for representative neighboring paths, all map/accessibility behavior remains unchanged, and removing SipHash rounds improves both DPRs without the persistent-state and tail-latency costs of the rejected interner.\n",
+  "diagnostics": {
+    "playwright": [
+      "Three fresh headed Chromium/WebGPU processes passed DPR 1 and DPR 2: 6/6 cases, exact final offsets, and zero terminal errors.",
+      "Every run preserved 485 global ID creations, 24 same-frame duplicates, and 485 previous-frame hits."
+    ],
+    "rayx": [
+      "411 gpux tests passed with rayx_diagnostics, including the focused cached-hash identity test.",
+      "52 gpui_wgpu tests passed serially with rayx_diagnostics.",
+      "Normal cargo check, cargo fmt --check, clippy -D warnings, and AgentX memory audit passed."
+    ],
+    "counters": [
+      "All established renderer, layout, batching, buffer-write, identity, and final-scroll diagnostics remained exact."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 median acknowledged throughput",
+      "before": "30.295874050356904 steps/s",
+      "after": "30.208721877284773 steps/s",
+      "delta": "-0.29%"
+    },
+    {
+      "metric": "DPR 2 median acknowledged throughput",
+      "before": "30.177166371621972 steps/s",
+      "after": "30.11703026204375 steps/s",
+      "delta": "-0.20%"
+    },
+    {
+      "metric": "DPR 1 median paced p95",
+      "before": "26.5703125 ms",
+      "after": "26.52392578125 ms",
+      "delta": "-0.17%"
+    },
+    {
+      "metric": "DPR 2 median paced p95",
+      "before": "26.866943359375 ms",
+      "after": "26.7646484375 ms",
+      "delta": "-0.38%"
+    },
+    {
+      "metric": "multithreaded WASM atomic prefix",
+      "before": "107170 bytes",
+      "after": "99962 bytes",
+      "delta": "-7208 bytes"
+    }
+  ],
+  "reportMarkdown": "## Fx Global Element ID Hash Finished\n\n**Index:** 49\n**Checkpoint:** `d54b787c1a3e84eda77d0e16750cac87c66c9944`\n**Result:** `79551bb9812cbe5b49d733aff2d7599eaa14fefb`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. `GlobalElementId` now computes its cached path identity with gpux's existing deterministic `collections::FxHasher` instead of `DefaultHasher`/SipHash. Direct `Arc<[ElementId]>` ownership and full-path equality remain unchanged, so collisions cannot alias GPUI element state. A focused test proves equal-path hash stability and representative neighboring-path separation.\n\nAll 411 gpux tests, 52 serialized gpui_wgpu tests, normal check, formatting, clippy, and six headed WebGPU cases passed. Three-process DPR 1/2 median acknowledged throughput moved -0.29%/-0.20%, within the benchmark's neutral range, while paced p95 improved 0.17%/0.38%. Every final offset, renderer/layout counter, and 485/24/485 global-ID diagnostic signature remained exact with zero errors. The multithreaded WASM atomic prefix shrank from 107,170 to 99,962 bytes (-7,208).\n\n### Scope Lock\n\nOnly the cached `GlobalElementId` hasher and its focused test changed in product source. No path ownership, equality, renderer, shader, layout, dependency, or public API changed.\n\n### Decision\n\nAccept the simpler deterministic hasher. It removes the measured SipHash mechanism and 7.2 KiB of WASM atomic-prefix code without retained state, preserves exact behavior, and improves tail latency at both DPRs with neutral throughput. Confirm the hashing self-time reduction in a separate measurement-only CPU profile.\n",
+  "decisionMarkdown": "Accept `collections::FxHasher` for `GlobalElementId` cached identity. Full path equality remains authoritative, exact browser behavior is preserved, paced p95 improves at both DPRs, throughput stays within 0.3% of the accepted baseline, and the WASM atomic prefix shrinks by 7,208 bytes. Profile the direct CPU effect separately.\n",
+  "notes": ""
+}

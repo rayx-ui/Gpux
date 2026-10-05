@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "id": "d4a591d0-ba69-4446-91e1-1da9bc293a11",
+  "loopId": "54e74b74-483c-4598-92d7-fdbabbc9154b",
+  "index": 10,
+  "type": "hypothesis",
+  "name": "Visual-row bounded editable prepaint",
+  "slug": "visual-row-bounded-editable-prepaint",
+  "path": "2026-07-24-10-visual-row-bounded-editable-prepaint.json",
+  "createdAt": "2026-07-24T04:53:58Z",
+  "startedAt": "2026-07-24T04:53:58Z",
+  "finishedAt": "2026-07-24T05:02:51Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "dd8859e281e327d2a9b07094335e79b8bdd666c7",
+  "resultCommit": "e0a01ef60d98f7c216c4fc6bb86ba1ddddccbbc9",
+  "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard dd8859e281e327d2a9b07094335e79b8bdd666c7",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "dd8859e281e327d2a9b07094335e79b8bdd666c7",
+      "resultCommit": "e0a01ef60d98f7c216c4fc6bb86ba1ddddccbbc9",
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard dd8859e281e327d2a9b07094335e79b8bdd666c7",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "e0a01ef60d98f7c216c4fc6bb86ba1ddddccbbc9"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "headed WASM WebGPU TextArea fixture",
+  "hypothesisMarkdown": "# Hypothesis\n\nThe layout map's sorted logical rows carry `visual_start` and `visual_len`, so prepaint can find\nthe logical rows intersecting the viewport plus one visual-row overscan with two partition-point\nsearches. Iterating only that contiguous range removes the all-logical-row scan and per-row cull\nfrom steady scrolling.\n\n## Scope lock\n\nThis experiment adds only a visual-row-to-logical-row range query and uses it in prepaint. It does\nnot change layout creation, cache reuse, edit invalidation, selection geometry, or paint order.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\nRun the isolated headed WASM/WebGPU TextArea wheel fixture at DPR 1 and 2 with five warmups and\nthirty measured samples, inspect the DPR 2 screenshot, and retain raw timing artifacts. Source\ninspection must prove steady prepaint uses a bounded range rather than `0..logical_row_count`.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nThe scrolled large TextArea paints the same visible text and retains its cursor and selection\nsemantics. Prepaint visits only rows overlapping the viewport, with one visual row of overscan on\neach side.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": {
+    "target": "headed WASM WebGPU TextArea wheel action",
+    "protocol": "One page-isolated 35-run Playwright process per DPR with five warmups and thirty measured samples.",
+    "source": "10-visual-row-bounded-prepaint-output",
+    "cells": [
+      {
+        "dpr": 1,
+        "samples": 30,
+        "p50Ms": 112.8691,
+        "p95Ms": 116.5881,
+        "baselineP50Ms": 534.002,
+        "baselineP95Ms": 593.299,
+        "minChangedPixels": 13706
+      },
+      {
+        "dpr": 2,
+        "samples": 30,
+        "p50Ms": 112.8518,
+        "p95Ms": 124.2147,
+        "baselineP50Ms": 497.957,
+        "baselineP95Ms": 561.084,
+        "minChangedPixels": 53702
+      }
+    ],
+    "failures": 0
+  },
+  "reportMarkdown": "# Visual-row bounded editable prepaint\n\nAll 70 focused headed WASM/WebGPU samples passed. The DPR 2 screenshot shows the expected\nscrolled populated TextArea. Prepaint now uses two partition-point searches over sorted row\nmetadata and paints only viewport-intersecting rows plus one visual row of overscan.\n\n| DPR | Baseline p50/p95 | After p50/p95 | Reduction p50/p95 |\n| --- | --- | --- | --- |\n| 1 | 534.002 / 593.299 ms | 112.869 / 116.588 ms | 78.9% / 80.4% |\n| 2 | 497.957 / 561.084 ms | 112.852 / 124.215 ms | 77.3% / 77.9% |\n\nAccept the result: both cells meet the epic TextArea threshold of 25% of baseline.\n",
+  "decisionMarkdown": "# Decision\n\nAccept visual-row bounded prepaint. It removes the all-logical-row culling scan, preserves visible\noutput, and materially improves the fixed WASM interaction measurement at both DPRs.\n",
+  "notes": ""
+}

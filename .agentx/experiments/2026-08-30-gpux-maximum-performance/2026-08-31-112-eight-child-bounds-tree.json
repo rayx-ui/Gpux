@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "id": "4beb3822-552b-4659-96b7-405cd748fbb6",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 112,
+  "type": "hypothesis",
+  "name": "Eight Child Bounds Tree",
+  "slug": "eight-child-bounds-tree",
+  "path": "2026-08-31-112-eight-child-bounds-tree.json",
+  "createdAt": "2026-08-31T18:04:50Z",
+  "startedAt": "2026-08-31T18:04:50Z",
+  "finishedAt": "2026-08-31T18:11:52Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "ba0362ca14aefce7c77b9b80ff4c58048d47480c",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard ba0362ca14aefce7c77b9b80ff4c58048d47480c",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "ba0362ca14aefce7c77b9b80ff4c58048d47480c",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard ba0362ca14aefce7c77b9b80ff4c58048d47480c",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux BoundsTree insertion node width and cache locality",
+  "hypothesisMarkdown": "## Eight-Child Bounds Tree Hypothesis\n\nReducing `BoundsTree`'s fixed branching factor from 12 to 8 will shrink every internal node and cap insertion descent scans at eight children, lowering the measured 14,351 child evaluations and improving cache locality enough to reduce the 160-164 ms insertion hotspot without materially increasing tree depth or slow-search visits.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nChange only `MAX_CHILDREN` from 12 to 8. Do not alter traversal, insertion, propagation, diagnostics, public APIs, tests, dependencies, renderer behavior, or benchmark fixtures.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nRun nested formatting, diagnostics-disabled/enabled Clippy with warnings denied, focused 1,000-seed randomized bounds-tree tests, full gpux and WGPU tests, then exclusive headed Test Suite WASM/WebGPU profiles at both DPRs. Require exact final rendering and zero errors. Compare insertion self time, insertion child evaluations, slow-search visits, retained nodes, throughput, and paced p95 with experiment 102. Reject if narrower scans are offset by material tree/search growth or product regression.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nReduce insertion child evaluations and `BoundsTree::insert` self time at both DPRs while preserving ordering semantics and non-regressing product metrics.\n",
+  "diagnostics": {
+    "playwright": [
+      "2/2 headed Chromium WebGPU projects passed at DPR 1 and DPR 2.",
+      "Both projects retained exact final rendering and zero terminal error."
+    ],
+    "rayx": [
+      "All runtime validation used apps/test_suite; apps/lab was not launched or modified.",
+      "CPU profiles were captured with RAYX_CPU_PROFILE=1.",
+      "Product source was restored exactly to checkpoint ba0362ca1."
+    ],
+    "counters": [
+      "Child evaluations fell 7.776%, search visits rose 10.090%, retained nodes rose 3.993%.",
+      "Throughput regressed 9.122%/10.070% versus experiment 102."
+    ],
+    "artifacts": [
+      "test-results/test_suite-rayx-data-table-ebb47-d-thumb-drag-render-cadence-chromium/data-table-wide-scroll.cpuprofile",
+      "test-results/test_suite-rayx-data-table-ebb47-d-thumb-drag-render-cadence-chromium-dpr2/data-table-wide-scroll.cpuprofile"
+    ]
+  },
+  "measurements": {
+    "schemaVersion": 1,
+    "status": "failure",
+    "sourceRestoredToCheckpoint": true,
+    "gpuxTestsPassed": 419,
+    "gpuiWgpuTestsPassed": 52,
+    "headedWebgpuCasesPassed": 2,
+    "childEvaluations": {
+      "reference": 14351,
+      "candidate": 13235,
+      "deltaPercent": -7.776
+    },
+    "searchNodeVisits": {
+      "reference": 4440,
+      "candidate": 4888,
+      "deltaPercent": 10.09
+    },
+    "retainedNodes": {
+      "reference": 576,
+      "candidate": 599,
+      "deltaPercent": 3.993
+    },
+    "boundsTreeInsertSelfMs": {
+      "referenceDpr1": 163.528,
+      "candidateDpr1": 177.499,
+      "deltaPercentDpr1": 8.544,
+      "referenceDpr2": 159.763,
+      "candidateDpr2": 156.044,
+      "deltaPercentDpr2": -2.328
+    },
+    "throughputStepsPerSecond": {
+      "referenceDpr1": 27.599698390495995,
+      "candidateDpr1": 25.08199932629749,
+      "deltaPercentDpr1": -9.122,
+      "referenceDpr2": 28.61858382082703,
+      "candidateDpr2": 25.736673679052352,
+      "deltaPercentDpr2": -10.07
+    },
+    "pacedP95Ms": {
+      "referenceDpr1": 27.9384765625,
+      "candidateDpr1": 26.599853515625,
+      "deltaPercentDpr1": -4.791,
+      "referenceDpr2": 27.187744140625,
+      "candidateDpr2": 26.86328125,
+      "deltaPercentDpr2": -1.193
+    }
+  },
+  "reportMarkdown": "# Eight-Child Bounds Tree\n\nThe one-line candidate passed formatting, both warnings-denied Clippy matrices, the focused diagnostics and deterministic tests, the 1,000-seed randomized ordering oracle, all 419 gpux tests plus integrations, all 52 WGPU tests, and 2/2 headed Test Suite WebGPU profile cases. Rendering behavior and insertion count remained exact.\n\nThe narrower node reduced insertion child evaluations from 14,351 to 13,235 (-7.776%), but increased slow-search visits from 4,440 to 4,888 (+10.090%) and retained nodes from 576 to 599 (+3.993%). The expected scan-width benefit was therefore partly exchanged for a deeper/larger tree.\n\n`BoundsTree::insert` self time moved from 163.528 to 177.499 ms at DPR 1 (+8.544%) and from 159.763 to 156.044 ms at DPR 2 (-2.328%). Median acknowledged throughput fell from 27.599698 to 25.081999 steps/s at DPR 1 (-9.122%) and from 28.618584 to 25.736674 at DPR 2 (-10.070%). Paced p95 improved modestly, but the two-DPR throughput gate decisively rejects the candidate.\n\nThe source was restored exactly to checkpoint `ba0362ca14aefce7c77b9b80ff4c58048d47480c`. Do not retry a branching factor of eight.\n",
+  "decisionMarkdown": "# Decision\n\nReject the eight-child branching factor and restore twelve. The smaller node lowers descent scans but creates enough additional nodes and search work to regress both-DPR throughput. Any further bounds-tree work must use a different mechanism, not another unmeasured reduction to node width.\n",
+  "notes": ""
+}

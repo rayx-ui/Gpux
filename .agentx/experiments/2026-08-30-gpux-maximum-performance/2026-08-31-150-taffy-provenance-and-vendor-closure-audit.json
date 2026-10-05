@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "id": "b68df287-0c05-4752-89c9-fb4af8773056",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 150,
+  "type": "hypothesis",
+  "name": "Taffy Provenance And Vendor Closure Audit",
+  "slug": "taffy-provenance-and-vendor-closure-audit",
+  "path": "2026-08-31-150-taffy-provenance-and-vendor-closure-audit.json",
+  "createdAt": "2026-08-31T21:19:16Z",
+  "startedAt": "2026-08-31T21:19:16Z",
+  "finishedAt": "2026-08-31T21:21:22Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "350ed9926b5d7a5497259639e65d865f07425b08",
+  "resultCommit": "350ed9926b5d7a5497259639e65d865f07425b08",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 350ed9926b5d7a5497259639e65d865f07425b08",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "350ed9926b5d7a5497259639e65d865f07425b08",
+      "resultCommit": "350ed9926b5d7a5497259639e65d865f07425b08",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 350ed9926b5d7a5497259639e65d865f07425b08",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "350ed9926b5d7a5497259639e65d865f07425b08"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux Taffy dependency provenance and repository footprint",
+  "hypothesisMarkdown": "## Taffy Provenance And Vendor Closure Audit Hypothesis\n\nThe accepted dependency cleanup should leave gpux on the normal crates.io Taffy 0.14.0 release with the measured minimum feature set, no repository-local Taffy vendor tree or patch override, and compact provenance encoded by Cargo manifests/lockfiles and the gpux skill policy.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRead-only dependency and repository-footprint audit. No dependency, lockfile, source, skill, or vendor edits.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nInspect gpux manifests, workspace/root patch sections, both relevant lockfiles, repository paths and tracked files containing Taffy vendor material, Cargo metadata/tree resolution, and the gpux skill provenance rules. Pass only if resolution is registry 0.14.0, features match the accepted minimum, and no Taffy vendor source remains tracked.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nProve the user-requested bloat removal and flexible provenance policy are complete, reproducible, and free of hidden local path or Git overrides.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "Taffy dependency source",
+      "before": "vendored local source before experiment 14",
+      "after": "registry+https://github.com/rust-lang/crates.io-index, version 0.14.0, checksum 639627c87f43b9181c811f40a6296409e093a17bc761214cba3c15df74f86b99",
+      "delta": "no path or Git override",
+      "source": "root Cargo.lock, crates/gpux/Cargo.lock, cargo metadata, cargo tree"
+    },
+    {
+      "metric": "Taffy feature set",
+      "before": "unknown closure",
+      "after": "default-features=false with std, taffy_tree, flexbox, grid, block_layout; alloc is transitively required by grid",
+      "delta": "content_size, flexbox_balance, float_layout, calc, and detailed_layout_info absent",
+      "source": "crates/gpux/crates/gpui/Cargo.toml and cargo tree -e features"
+    },
+    {
+      "metric": "Taffy vendor footprint",
+      "before": "approximately 24,000 source lines before cleanup",
+      "after": "0 tracked Taffy vendor files and 0 Taffy vendor files on disk",
+      "delta": "full Taffy vendor surface removed",
+      "source": "git ls-files crates/gpux/vendor/** and filesystem scan"
+    },
+    {
+      "metric": "gpux provenance policy",
+      "before": "vendor-centric workflow requirement",
+      "after": "crates.io preferred; exact-revision maintained fork allowed for essential tiny unreleased patches; full vendor only for offline, unstable-upstream, or deep-modification needs; dedicated reference only for complex recurring workflows",
+      "delta": "provenance retained without mandatory repository bloat",
+      "source": ".codex/skills/gpux/SKILL.md:60-63"
+    }
+  ],
+  "reportMarkdown": "## Taffy Provenance And Vendor Closure Audit Finished\n\n**Passed Status:** true. Gpux resolves exactly Taffy 0.14.0 from crates.io in both lockfiles with the registry checksum. Its manifest disables default features and enables only `std`, `taffy_tree`, `flexbox`, `grid`, and `block_layout`; Cargo confirms only those plus grid's required `alloc`. No Taffy path/Git patch, tracked vendor source, or on-disk vendor source remains. The gpux skill records the requested flexible provenance escalation policy.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nOnly manifests, locks, Cargo resolution, tracked/disk vendor paths, and the existing gpux skill policy were inspected. No dependency, lockfile, source, skill, or vendor file changed.\n\n### Repository Checkpoints\n\n| Repo | Path | Checkpoint | Result Commit | Status | Rollback |\n| --- | --- | --- | --- | --- | --- |\n| main | . | 350ed9926b5d | unchanged | unchanged | `git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 350ed9926b5d7a5497259639e65d865f07425b08` |\n",
+  "decisionMarkdown": "### Decision\n\nAccept dependency closure. Keep Taffy on the normal pinned crates.io release and measured feature set. If a tiny essential unreleased patch becomes necessary, prefer an exact-revision maintained fork with compact provenance; do not recreate a full vendor tree unless offline builds, upstream instability, or deep modifications provide concrete justification.",
+  "notes": "Research-only closure audit; no product source edits."
+}

@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "id": "76e5bf2c-4dfb-4615-921b-04e007aa672a",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 54,
+  "type": "hypothesis",
+  "name": "Post-Content-Size Taffy Profile",
+  "slug": "post-content-size-taffy-profile",
+  "path": "2026-08-31-54-post-content-size-taffy-profile.json",
+  "createdAt": "2026-08-31T04:16:02Z",
+  "startedAt": "2026-08-31T04:16:02Z",
+  "finishedAt": "2026-08-31T04:18:45Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "26deae02c78fdb1e53cca3a1d8168af183455665",
+  "resultCommit": "26deae02c78fdb1e53cca3a1d8168af183455665",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 26deae02c78fdb1e53cca3a1d8168af183455665",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "26deae02c78fdb1e53cca3a1d8168af183455665",
+      "resultCommit": "26deae02c78fdb1e53cca3a1d8168af183455665",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 26deae02c78fdb1e53cca3a1d8168af183455665",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "26deae02c78fdb1e53cca3a1d8168af183455665"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "apps/test_suite headed WASM/WebGPU wide DataTable CPU profile",
+  "hypothesisMarkdown": "A fresh CPU profile of the accepted no-content-size Taffy build will show reduced flex/block aggregate work versus experiment 52 because scrollable-overflow propagation and rounding have been removed, while exact runtime telemetry remains unchanged.\n",
+  "measurementPlanMarkdown": "Run one headed Chromium/WebGPU Test Suite CPU-profile process at DPR 1 and DPR 2. Apply the same self/inclusive sample-time classifier used for experiments 50 and 52 to total Taffy compute, flexbox, block layout, request_taffy_node, equality, and gpux layout bounds. Compare experiment 52 directly, require exact final offsets/counters and zero errors, and make no source change.\n",
+  "expectedOutcomeMarkdown": "Both profiles pass with exact behavior, Taffy compute falls at both DPRs, and the resulting symbol distribution identifies a bounded next hypothesis.\n",
+  "diagnostics": {
+    "playwright": [
+      "One headed Chromium/WebGPU CPU-profile process passed DPR 1 and DPR 2 with exact final offset -351402.6875 and zero terminal errors.",
+      "Both profiles preserved 1123 Taffy nodes, 229 measured leaves, 782 containers, 1041 edges, 82 compute calls, nine batches, 12 queue writes, and the 485/24/485 identity signature."
+    ],
+    "rayx": [
+      "Measurement-only experiment; production source remained at checkpoint 26deae02c78fdb1e53cca3a1d8168af183455665.",
+      "The multithreaded WASM build verified shared memory, wasm_thread_entry_point, and 98441 atomic-prefix bytes."
+    ],
+    "counters": [
+      "The identical self/inclusive sample-time classifier was applied to experiment 52 and experiment 54 profiles.",
+      "Flexbox remains the dominant Taffy self-time family after the content-size reduction."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1/2 Taffy compute self time",
+      "before": "1237.212 / 1184.648 ms",
+      "after": "1134.584 / 1086.788 ms",
+      "delta": "-8.30% / -8.26%"
+    },
+    {
+      "metric": "DPR 1/2 flexbox self time",
+      "before": "827.132 / 828.472 ms",
+      "after": "807.844 / 777.501 ms",
+      "delta": "-2.33% / -6.15%"
+    },
+    {
+      "metric": "DPR 1/2 block-layout self time",
+      "before": "345.788 / 307.498 ms",
+      "after": "274.203 / 266.783 ms",
+      "delta": "-20.70% / -13.24%"
+    },
+    {
+      "metric": "DPR 1/2 all Taffy self time",
+      "before": "1580.210 / 1505.107 ms",
+      "after": "1450.805 / 1383.396 ms",
+      "delta": "-8.19% / -8.09%"
+    },
+    {
+      "metric": "DPR 1/2 Taffy compute inclusive time",
+      "before": "2665.820 / 2708.137 ms",
+      "after": "2657.459 / 2601.274 ms",
+      "delta": "-0.31% / -3.95%"
+    }
+  ],
+  "reportMarkdown": "## Post-Content-Size Taffy Profile Finished\n\n**Index:** 54\n**Checkpoint:** `26deae02c78fdb1e53cca3a1d8168af183455665`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. Headed WebGPU CPU profiles at DPR 1 and DPR 2 preserved exact final offsets, all established renderer/layout/identity counters, and zero terminal errors. The multithreaded build again reported 98,441 atomic-prefix bytes.\n\nUsing the same classifier as experiment 52, Taffy compute self time fell 8.30%/8.26% at DPR 1/2. Flexbox self time fell 2.33%/6.15%, block-layout self time fell 20.70%/13.24%, and all Taffy self time fell 8.19%/8.09%. Inclusive compute moved -0.31%/-3.95%, while flexbox remains the dominant layout family at 807.844/777.501 ms.\n\n### Scope Lock\n\nMeasurement only. No source, dependency, fixture, renderer, shader, layout, memory, or public API change was made.\n\n### Decision\n\nRetain the no-content-size configuration: direct profiles confirm the removed bookkeeping mechanism. Investigate measured-leaf invalidation next, because 229 measured nodes are marked dirty every frame and may be forcing otherwise stable flex/block ancestors to recompute.\n",
+  "decisionMarkdown": "Retain experiment 53. Direct profiles show Taffy compute self time down 8.30%/8.26% and all Taffy self time down 8.19%/8.09% at DPR 1/2. Flexbox remains dominant; measure repeated measured-leaf inputs and outputs before changing invalidation semantics.\n",
+  "notes": ""
+}

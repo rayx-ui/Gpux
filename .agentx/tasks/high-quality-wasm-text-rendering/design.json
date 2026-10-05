@@ -1,0 +1,248 @@
+{
+  "schemaVersion": 5,
+  "epicId": "high-quality-wasm-text-rendering",
+  "currentState": {
+    "summary": "The browser window computes canvas backing dimensions from CSS content bounds multiplied by window.devicePixelRatio, configures the WGPU surface to that physical size, stores DPR as the GPUI scale factor, and Swash rasterizes glyphs at font_size multiplied by that scale. Despite that scale path, WebWindow::is_subpixel_rendering_supported returns false unconditionally. Window::paint_glyph therefore creates MonochromeSprite glyphs for every WASM text frame, while WgpuRenderer's existing dual-source SubpixelSprite pipeline remains unreachable. The prior regression intentionally made this choice to eliminate RGB fringes and asserted zero glyph channel spread, but its crop metric did not compare spatial edge sharpness with a matched browser-native reference. The current Test Suite text-quality page has light/dark RayX specimens and aggregate edge energy only; it lacks fractional DPR, scale-tuple assertions, crop-local typography matching, dynamic scale transitions, and a quality threshold that rejects visibly soft glyphs.",
+    "codeAnchors": [
+      {"repositoryId": "main", "path": "crates/gpux/crates/gpui_web/src/window.rs", "symbol": "WebWindow::new / WebWindowInner::apply_logical_size / WebWindow::is_subpixel_rendering_supported", "reason": "Browser DPR observation, canvas/surface resize, scale lifecycle, and the grayscale-only capability answer."},
+      {"repositoryId": "main", "path": "crates/gpux/crates/gpui/src/window.rs", "symbol": "Window::paint_glyph / Window::should_use_subpixel_rendering", "reason": "Policy-neutral glyph mode selection and scene primitive creation."},
+      {"repositoryId": "main", "path": "crates/gpux/crates/gpui/src/text_system.rs", "symbol": "RenderGlyphParams / GlyphCacheKey", "reason": "Scale, phase, coverage mode, and atlas-cache identity."},
+      {"repositoryId": "main", "path": "crates/gpux/crates/gpui_wgpu/src/cosmic_text_system.rs", "symbol": "CosmicTextSystemState::render_glyph_image", "reason": "Swash size, hinting, phase, alpha/subpixel output, and glyph bytes."},
+      {"repositoryId": "main", "path": "crates/gpux/crates/gpui_wgpu/src/wgpu_renderer.rs", "symbol": "WgpuRenderer::create_pipelines / draw_subpixel_sprites / text_renderer_diagnostics", "reason": "Atlas sampling, gamma/contrast, dual-source blending, sprite pipelines, and renderer diagnostics."},
+      {"repositoryId": "main", "path": "apps/test_suite/src/pages/performance.rs", "symbol": "text_quality", "reason": "Existing Test Suite-only fixture that must be replaced by a focused vertical slice rather than expanded into a broader monolith."},
+      {"repositoryId": "main", "path": "tools-node/test_suite/performance-fixture.ts", "symbol": "analyzePhysicalPixels", "reason": "Existing image analysis that counts whole-crop color and edge energy without matched text isolation."},
+      {"repositoryId": "main", "path": "tools-node/playwright.config.ts", "reason": "Current DPR 1 and DPR 2 projects and headed WebGPU launch configuration."}
+    ],
+    "constraints": [
+      "apps/test_suite and tools-node/test_suite are the exclusive runtime/diagnostic surfaces; Lab remains production-quality and unautomated.",
+      "gpux owns browser scale, glyph rasterization, scene primitives, atlas identity, and WGPU compositing; RayX does not add a second text service or renderer.",
+      "The complete canvas remains native-DPR sized. Text-quality work is glyph-local unless Sprint 2 proves a current canvas/surface calculus defect.",
+      "Native target behavior, shaping, advances, fallback, selection geometry, emoji, and image masks remain compatibility boundaries.",
+      "The implementation accepts only a strategy that passes matched-reference sharpness, chromatic-fringe, performance, and lifecycle gates together."
+    ]
+  },
+  "responsibilities": [
+    {
+      "id": "RESP-001",
+      "owner": "gpui_web WebWindow scale pipeline",
+      "owns": ["Browser DPR observation", "CSS-to-backing-store conversion", "WGPU drawable-size updates", "live DPR watcher lifecycle", "bounded scale diagnostics"],
+      "doesNotOwn": ["Glyph shape or hinting", "text-quality thresholds", "RayX application typography policy"],
+      "stateOwned": ["Current logical bounds", "current browser DPR", "last/pending physical size", "scale notification generation", "DPR media-query handle"],
+      "invariants": ["Canvas backing and WGPU surface use one physical size.", "Scene scale equals the browser DPR for the committed generation.", "Window teardown cancels scale observation."],
+      "dependencies": ["Browser Window/ResizeObserver/MediaQueryList", "WgpuRenderer::update_drawable_size"],
+      "dependents": ["GPUI Window scene construction", "CosmicTextSystem glyph scale", "Test Suite scale diagnostics"],
+      "lifecycle": "One WebWindow from creation through close",
+      "evidence": [{"repositoryId": "main", "path": "crates/gpux/crates/gpui_web/src/window.rs", "reason": "Existing browser scale and surface owner."}]
+    },
+    {
+      "id": "RESP-002",
+      "owner": "GPUI Window text mode selection",
+      "owns": ["Policy-neutral selection among monochrome/subpixel/color glyph primitives", "transform and destination-safety fallback", "glyph origin/phase quantization"],
+      "doesNotOwn": ["Browser DOM reference", "WGPU adapter negotiation", "font byte loading", "application settings service"],
+      "stateOwned": ["Current TextRenderingMode", "frame transform/background context", "scene scale"],
+      "invariants": ["Text advances and authored bounds remain mode-independent.", "Unsafe transforms or destinations use grayscale coverage.", "Color emoji remains polychrome."],
+      "dependencies": ["PlatformWindow capability answer", "TextSystem recommendation", "RenderGlyphParams", "sprite atlas"],
+      "dependents": ["Scene monochrome/subpixel sprite lists", "WgpuRenderer"],
+      "lifecycle": "Per-window frame construction",
+      "evidence": [{"repositoryId": "main", "path": "crates/gpux/crates/gpui/src/window.rs", "symbol": "Window::paint_glyph", "reason": "Existing primitive-selection boundary."}]
+    },
+    {
+      "id": "RESP-003",
+      "owner": "CosmicTextSystem and glyph cache identity",
+      "owns": ["Swash glyph raster size", "hinting and subpixel phase", "alpha/subpixel bitmap production", "scale/mode-sensitive cache key"],
+      "doesNotOwn": ["Canvas scale", "surface composition", "DOM reference metrics", "application typography defaults"],
+      "stateOwned": ["Loaded fonts", "Swash scale context", "glyph raster parameters and cached atlas identity"],
+      "invariants": ["Every pixel-changing raster parameter participates in cache identity.", "Identical keys produce identical glyph bytes.", "Font shaping/advances do not change for an antialiasing experiment."],
+      "dependencies": ["RenderGlyphParams", "Swash", "PlatformAtlas"],
+      "dependents": ["Monochrome and subpixel atlas textures", "GPUI glyph sprites"],
+      "lifecycle": "Application text system with bounded atlas-backed glyph reuse",
+      "evidence": [{"repositoryId": "main", "path": "crates/gpux/crates/gpui_wgpu/src/cosmic_text_system.rs", "symbol": "render_glyph_image", "reason": "Existing rasterizer owner."}]
+    },
+    {
+      "id": "RESP-004",
+      "owner": "WgpuRenderer glyph pipelines",
+      "owns": ["Grayscale and dual-source LCD pipeline availability", "glyph atlas sampling", "gamma/contrast correction", "coverage compositing", "renderer quality/resource diagnostics"],
+      "doesNotOwn": ["Browser DPR calculation", "font shaping", "Test Suite acceptance policy", "RayX application services"],
+      "stateOwned": ["Negotiated GPU features", "surface format/configuration", "glyph pipelines and samplers", "gamma parameters", "diagnostic counters"],
+      "invariants": ["A selected sprite kind has a compatible pipeline and atlas format.", "Image masks never receive glyph gamma correction.", "Diagnostics contain modes/counts/sizes only, never glyph content."],
+      "dependencies": ["WGPU adapter/device/surface", "Scene", "WgpuAtlas", "shader modules"],
+      "dependents": ["Presented browser frame", "Test Suite renderer diagnostics"],
+      "lifecycle": "One WGPU surface renderer",
+      "evidence": [{"repositoryId": "main", "path": "crates/gpux/crates/gpui_wgpu/src/wgpu_renderer.rs", "reason": "Existing renderer and capability owner."}]
+    },
+    {
+      "id": "RESP-005",
+      "owner": "Test Suite WASM text-quality slice",
+      "owns": ["Visible matched RayX/DOM fixture", "crop geometry", "physical-pixel metrics", "fractional/dynamic DPR matrix", "repeatable runtime/performance evidence"],
+      "doesNotOwn": ["Production rendering decisions", "Lab presentation", "arbitrary application text capture"],
+      "stateOwned": ["Deterministic fixture selection", "run-local metric samples", "bounded diagnostic snapshot"],
+      "invariants": ["Reference and RayX typography are authored identically.", "Metrics use glyph crops rather than unrelated page pixels.", "The matrix runs serially in headed WebGPU."],
+      "dependencies": ["apps/test_suite route", "tools-node Playwright", "rayx_diagnostics", "bundled fonts"],
+      "dependents": ["AgentX quality gates", "renderer strategy selection", "final regression proof"],
+      "lifecycle": "One focused Playwright matrix run",
+      "evidence": [{"repositoryId": "main", "path": "apps/test_suite/src/pages/performance.rs", "symbol": "text_quality", "reason": "Current fixture to replace with a focused slice."}, {"repositoryId": "main", "path": "tools-node/test_suite/rayx-text-quality-performance.spec.ts", "reason": "Current focused spec entrypoint."}]
+    }
+  ],
+  "dependencyRules": [
+    {"from": "Test Suite WASM text-quality slice", "to": "gpui_web/WgpuRenderer diagnostics", "rule": "allowed", "rationale": "The diagnostic feature exposes bounded scale/mode/resource facts required for objective runtime proof."},
+    {"from": "RayX application/component crates", "to": "new text-quality service or renderer", "rule": "forbidden", "rationale": "Browser text quality belongs to the existing gpux platform/text/renderer path."},
+    {"from": "gpui_web WebWindow scale pipeline", "to": "glyph rasterization policy", "rule": "forbidden", "rationale": "The platform supplies scale/capability facts; GPUI/TextSystem select and rasterize glyphs."},
+    {"from": "CosmicTextSystem and glyph cache identity", "to": "WgpuRenderer glyph pipelines", "rule": "allowed", "rationale": "Raster output kind and cache key must match the renderer pipeline that consumes it."},
+    {"from": "Agent-driven runtime validation", "to": "apps/lab or tools-node/lab", "rule": "forbidden", "rationale": "Repository policy makes Test Suite exclusive for runtime diagnostics."}
+  ],
+  "decisions": [
+    {
+      "id": "DES-001",
+      "title": "Replace subjective and whole-page quality checks with a matched physical-pixel authority",
+      "requirementIds": ["REQ-F-001", "REQ-F-003", "REQ-NF-003"],
+      "responsibilityIds": ["RESP-005"],
+      "decision": "Create a focused Test Suite vertical slice with visible RayX WebGPU and browser-native DOM specimens using the same bundled font bytes and authored typography. Capture explicit crop rectangles and compute luminance edge-transition width, acutance, stem contrast, chromatic-fringe energy outside the matched reference edge band, glyph bounds, and advances per DPR/theme/font cell. Record renderer/scale metadata with every crop and run the complete matrix serially three times for final proof.",
+      "rationale": "The user-visible defect is spatial softness. The existing aggregate edge-energy/channel-count test can pass soft grayscale glyphs and cannot distinguish text from colored UI. A matched browser-native crop on the same compositor provides an attributable reference without inventing a second renderer.",
+      "provenance": {"basis": "explicit-requirement", "userDecision": "DPR 1 and the real high-DPI WASM build must look sharp, not merely avoid color fringes.", "evidence": [{"repositoryId": "main", "path": "tools-node/test_suite/performance-fixture.ts", "symbol": "analyzePhysicalPixels", "reason": "Current metric does not isolate matched text quality."}]},
+      "alternativesRejected": [
+        {"alternative": "Approve screenshots by visual inspection only.", "reason": "Screenshots are useful evidence but cannot close a repeatable sharpness contract."},
+        {"alternative": "Keep aggregate edgeEnergy/chromaticPixels thresholds.", "reason": "They count unrelated crop colors and do not compare edge softness to a matched reference."}
+      ],
+      "affectedSurfaces": ["apps/test_suite/src/pages", "apps/test_suite/src/routes.rs", "tools-node/test_suite", "tools-node/playwright.config.ts"],
+      "controlFlow": ["Open the focused Test Suite route in headed WebGPU.", "Wait for bundled RayX and DOM fonts to report ready.", "Select one deterministic typography cell.", "Capture RayX and DOM crop rectangles plus scale/renderer metadata.", "Compute crop-local metrics and assert measurement integrity.", "Repeat for every density/theme/typography cell and retain JSON/screenshots."],
+      "dataFlow": ["Fixture descriptor produces identical RayX and DOM authored values.", "Browser crop pixels and numeric geometry feed feature-specific metric functions.", "Metrics plus renderer diagnostics become AgentX evidence artifacts."],
+      "interfaces": ["Test Suite /rendering/wasm-text-quality route", "globalThis.__rayxTextRendererDiagnostics under rayx_diagnostics", "feature-specific Playwright metric module"],
+      "failureHandling": ["Fail on font substitution, empty crop, geometry mismatch, missing WebGPU/diagnostics, partial matrix, or browser error."],
+      "concurrencyAndTransactions": ["One Playwright worker and one matrix cell at a time; reset counters before every capture."],
+      "compatibilityAndMigration": ["Retire the old text-quality branch inside the generic performance fixture after the new focused route/spec proves equivalent timing coverage."],
+      "observability": ["Retain exact DPR, CSS/backing/surface/scene sizes, glyph mode/raster scale, adapter capability, crop rectangles, metric values, and timestamps."],
+      "securityAndPrivacy": ["Use only public deterministic fixture text; never publish arbitrary glyph content from production diagnostics."],
+      "validation": ["Synthetic metric unit cases distinguish sharp/blurred/fringed edges; headed WebGPU captures every required matrix cell."]
+    },
+    {
+      "id": "DES-002",
+      "title": "Treat browser scale as one atomic logical/physical generation",
+      "requirementIds": ["REQ-F-002", "REQ-F-004"],
+      "responsibilityIds": ["RESP-001", "RESP-002", "RESP-003", "RESP-004"],
+      "decision": "Keep window.devicePixelRatio authoritative and preserve native-DPR canvas allocation. Commit CSS logical size, rounded backing size, WGPU surface size, GPUI scene scale, and scale-dependent glyph cache identity as one observable generation. Coalesce ResizeObserver/media-query signals, force a fresh draw for a changed generation, and prove live transitions through Chromium device-metrics emulation. Change production calculus only where the new tuple assertions demonstrate an actual mismatch.",
+      "rationale": "The source path appears mathematically consistent but the real monitor report requires runtime proof at fractional scale and live transitions. Treating the tuple atomically prevents a new surface from presenting stale scene/glyph pixels and avoids masking a calculus bug with text antialiasing changes.",
+      "provenance": {"basis": "repository-pattern", "evidence": [{"repositoryId": "main", "path": "crates/gpux/crates/gpui_web/src/window.rs", "symbol": "apply_logical_size / apply_physical_size", "reason": "Existing resize pipeline already separates logical observation from frame-time physical application."}]},
+      "alternativesRejected": [
+        {"alternative": "Force max(devicePixelRatio, 2) for the complete canvas.", "reason": "It hides scale diagnostics, multiplies every render target at DPR 1, and still cannot create physical pixels on a genuine 1x panel."},
+        {"alternative": "Assume source arithmetic proves runtime correctness.", "reason": "Browser/Playwright fractional scale and callback ordering require headed runtime evidence."}
+      ],
+      "affectedSurfaces": ["crates/gpux/crates/gpui_web/src/window.rs", "crates/gpux/crates/gpui/src/text_system.rs", "tools-node/test_suite/rayx-wasm-text-dpr.spec.ts"],
+      "controlFlow": ["Observe CSS content bounds and current DPR.", "Derive one rounded physical size tuple.", "Queue and coalesce the observation.", "Update canvas and WGPU surface before drawing the forced fresh scene.", "Update scene/glyph scale generation and diagnostics.", "Ignore idempotent observations and disconnect watchers on close."],
+      "dataFlow": ["contentRect plus DPR produces physical dimensions.", "Physical dimensions and DPR produce logical GPUI bounds plus scene scale.", "Scene scale and text mode/raster scale produce glyph cache identity."],
+      "interfaces": ["WebViewportObservation", "PlatformWindow resize callback", "WgpuRenderer::update_drawable_size", "RenderGlyphParams/GlyphCacheKey"],
+      "failureHandling": ["Invalid DPR falls back to 1 with diagnostics.", "Texture clamping fails the quality contract explicitly.", "A partial generation never presents as passing evidence."],
+      "concurrencyAndTransactions": ["Resize/media-query signals coalesce into one frame-time generation; no synchronous blocking device wait occurs on WASM."],
+      "compatibilityAndMigration": ["Preserve existing responsive MediaQuery snapshots and multithreaded WASM startup."],
+      "observability": ["Publish current generation and every tuple component under rayx_diagnostics."],
+      "securityAndPrivacy": ["Publish numeric scale/size/counter data only."],
+      "validation": ["Unit-test rounding/idempotency and run headed fractional/live-DPR matrix with no stale frame."]
+    },
+    {
+      "id": "DES-003",
+      "title": "Select the smallest browser glyph strategy through a frozen candidate ladder",
+      "requirementIds": ["REQ-F-003", "REQ-F-004", "REQ-NF-001", "REQ-NF-002", "REQ-NF-003"],
+      "responsibilityIds": ["RESP-002", "RESP-003", "RESP-004", "RESP-005"],
+      "decision": "After Sprint 1 freezes the matched baseline and Sprint 2 proves scale truth, execute one checkpointed AgentX improvement loop with atomic commit-or-revert candidates in this order: (1) correct any proven glyph sampling-phase, atlas-coordinate, or gamma/contrast defect in the existing grayscale path; (2) correct existing Swash hinting/raster parameters without changing geometry; (3) add glyph-local higher-resolution coverage plus an explicit quality downsample only if native grayscale cannot meet the gate; (4) permit the existing dual-source LCD path only for an opaque, axis-aligned, exact-device-mapping browser state when it independently passes the chromatic-fringe gate. Stop at the first smallest candidate that satisfies every quality, compatibility, and resource contract; retain grayscale fallback for every unsafe/unsupported state. If no candidate passes, leave the epic blocked and reconcile the design instead of shipping a partial improvement.",
+      "rationale": "Current evidence identifies grayscale-only policy but does not prove whether softness comes from scale, sampling, gamma/hinting, or insufficient physical coverage. A fixed causal ladder prevents a costly supersampling or fragile LCD solution from being accepted before simpler correctness repairs are exhausted, while still giving implementation a deterministic end state and stop condition.",
+      "provenance": {"basis": "bounded-assumption", "evidence": [{"repositoryId": "main", "path": "crates/gpux/crates/gpui_wgpu/src/wgpu_renderer.rs", "symbol": "mono_sprites / subpixel_sprites", "reason": "Existing renderer contains both candidate pipelines and negotiated dual-source capability."}, {"repositoryId": "main", "path": ".agentx/experiments/2026-07-24-gpux-text-quality-and-performance-wasm-baseline", "reason": "Repository uses atomic measured experiments with a five-percent rejection threshold."}]},
+      "alternativesRejected": [
+        {"alternative": "Restore WebWindow::is_subpixel_rendering_supported to dual-source capability unconditionally.", "reason": "GPU capability does not prove stable panel pixel geometry or safe browser composition and previously produced visible RGB fringes."},
+        {"alternative": "Always use glyph-local 2x supersampling.", "reason": "It adds atlas/filter cost and can soften hinted stems; it must earn acceptance after simpler corrections fail."},
+        {"alternative": "Add a new font engine or DOM production-text overlay.", "reason": "It duplicates existing ownership and is prohibited unless all existing-path candidates are measured and design is reconciled."}
+      ],
+      "affectedSurfaces": [".agentx/experiments", "crates/gpux/crates/gpui/src/window.rs", "crates/gpux/crates/gpui/src/text_system.rs", "crates/gpux/crates/gpui_wgpu/src/cosmic_text_system.rs", "crates/gpux/crates/gpui_wgpu/src/wgpu_renderer.rs", "crates/gpux/crates/gpui_wgpu/src/shaders.wgsl", "crates/gpux/crates/gpui_wgpu/src/shaders_subpixel.wgsl"],
+      "controlFlow": ["Freeze baseline and candidate-specific expected outcome.", "Change one primary mechanism.", "Run the full relevant matched-reference and resource subset.", "Accept and commit only if all gates pass; otherwise revert exactly to checkpoint.", "Advance to the next candidate only after the prior result is finalized.", "Run the full matrix on the first accepted strategy."],
+      "dataFlow": ["Scale/mode/phase parameters form a complete glyph cache key.", "CosmicTextSystem produces alpha or subpixel coverage bytes.", "Atlas kind and sprite kind select a matching WGPU pipeline.", "Crop metrics and resource counters decide accept/revert."],
+      "interfaces": ["TextRenderingMode", "RenderGlyphParams", "GlyphCacheKey", "PlatformAtlas", "MonochromeSprite/SubpixelSprite", "WgpuRenderer negotiated features and diagnostics"],
+      "failureHandling": ["Unsupported pipeline selects grayscale.", "Unknown mode/kind fails validation.", "Failed candidate is reverted and cannot contribute evidence to task closure.", "No passing candidate blocks the epic."],
+      "concurrencyAndTransactions": ["One improvement experiment at a time; one immutable renderer capability snapshot per window; one mode/scale tuple per glyph cache key."],
+      "compatibilityAndMigration": ["No public migration. Existing grayscale atlas entries are naturally separated by corrected cache identity; native target behavior remains characterized."],
+      "observability": ["Publish chosen mode, reason/fallback category, effective raster scale, coverage kind, pipeline capability, glyph rasterization/cache counts, and atlas bytes/entries."],
+      "securityAndPrivacy": ["Diagnostics contain no glyph IDs, characters, strings, or raw atlas bytes."],
+      "validation": ["Matched headed-WebGPU quality matrix, synthetic metric tests, WASM scale/cache/fallback contracts, and warm timing/resource baseline. WASM is the required cross-target validation surface."]
+    },
+    {
+      "id": "DES-004",
+      "title": "Make every pixel-changing glyph parameter part of cache identity",
+      "requirementIds": ["REQ-F-002", "REQ-F-003", "REQ-F-004", "REQ-NF-001"],
+      "responsibilityIds": ["RESP-002", "RESP-003", "RESP-004"],
+      "decision": "Reuse RenderGlyphParams and GlyphCacheKey as the single glyph identity boundary. Include the accepted coverage mode, actual scene scale, subpixel phase, and any distinct glyph-local raster/downsample scale that changes atlas pixels. Reuse unchanged entries, avoid global cache flushes for idempotent observations, and ensure a live scale/mode transition cannot draw a stale entry.",
+      "rationale": "Improved pixels are incorrect if an old grayscale/scale entry is reused after DPR or policy changes. Extending the existing cache key is simpler and safer than adding a second atlas/cache or clearing the complete atlas on every viewport signal.",
+      "provenance": {"basis": "repository-pattern", "evidence": [{"repositoryId": "main", "path": "crates/gpux/crates/gpui/src/text_system.rs", "symbol": "RenderGlyphParams", "reason": "Existing key already carries scale, phase, and subpixel_rendering."}]},
+      "alternativesRejected": [
+        {"alternative": "Clear the complete atlas on every DPR event.", "reason": "It creates avoidable rerasterization and does not express pixel identity."},
+        {"alternative": "Add a browser-only second glyph cache.", "reason": "It duplicates atlas ownership and invalidation."}
+      ],
+      "affectedSurfaces": ["crates/gpux/crates/gpui/src/text_system.rs", "crates/gpux/crates/gpui/src/window.rs", "crates/gpux/crates/gpui_wgpu/src/cosmic_text_system.rs"],
+      "controlFlow": ["Resolve immutable mode/scale/phase parameters.", "Construct one complete key.", "Reuse or rasterize the matching atlas entry.", "Create a sprite whose bounds/sampling metadata match that entry."],
+      "dataFlow": ["Window state plus glyph identity becomes RenderGlyphParams/GlyphCacheKey.", "Key indexes PlatformAtlas entry and renderer coverage kind."],
+      "interfaces": ["RenderGlyphParams", "GlyphCacheKey", "PlatformAtlas::get_or_insert_with"],
+      "failureHandling": ["A key/atlas/sprite-kind mismatch fails a focused contract instead of silently drawing."],
+      "concurrencyAndTransactions": ["Key construction is immutable per glyph paint; atlas insertion remains under the existing owner."],
+      "compatibilityAndMigration": ["No persisted cache migration; entries are process-local."],
+      "observability": ["Expose aggregate hit/miss/rasterization counts per mode/scale without content."],
+      "securityAndPrivacy": ["Do not expose key glyph content in diagnostics."],
+      "validation": ["Unit tests prove key distinction and headed live-DPR tests prove no stale-scale glyph frame."]
+    },
+    {
+      "id": "DES-005",
+      "title": "Converge on production-clean Test Suite proof and durable ownership guidance",
+      "requirementIds": ["REQ-F-001", "REQ-F-002", "REQ-F-003", "REQ-F-004", "REQ-NF-001", "REQ-NF-002", "REQ-NF-003"],
+      "responsibilityIds": ["RESP-001", "RESP-002", "RESP-003", "RESP-004", "RESP-005"],
+      "decision": "Run final proof exclusively through the focused Test Suite WASM routes/specs, repeat the complete matrix three times, run gpux unit/static checks and existing text/selection regressions, remove temporary traces/candidate switches, keep only bounded rayx_diagnostics counters, update the narrow GPUX/RayX guidance and runtime/gpux-foundation memory from proven behavior, and close each sprint through generated AgentX audit plus gitmaster checkpoint.",
+      "rationale": "A visually improved screenshot is insufficient for a renderer change. Final state must prove quality, scale lifecycle, compatibility, performance, privacy, architecture, and clean production ownership together.",
+      "provenance": {"basis": "repository-pattern", "evidence": [{"repositoryId": "main", "path": "AGENTS.md", "reason": "Repository policy requires Test Suite headed WASM proof, temporary trace cleanup, skills/memory updates, and AgentX audit/checkpoints."}]},
+      "alternativesRejected": [
+        {"alternative": "Validate through Lab because it shows the reported example.", "reason": "Lab is forbidden as a diagnostic/automation target."},
+        {"alternative": "Close from compile tests and one screenshot.", "reason": "Neither exercises browser composition, fractional DPR, live transitions, or resource gates."}
+      ],
+      "affectedSurfaces": ["apps/test_suite", "tools-node/test_suite", "crates/gpux", ".codex/skills/gpux", ".codex/skills/rayx", ".agentx/memory/knowledge/runtime/gpux-foundation", ".agentx/tasks/high-quality-wasm-text-rendering"],
+      "controlFlow": ["Run focused browser-metric/runtime/performance matrix.", "Inspect retained artifacts and diagnostics.", "Run broad WASM regression plus target-independent static checks.", "Remove temporary instrumentation and rerun.", "Generate AgentX sprint audit and repair all rows.", "Use gitmaster commit, manifest commit, and checkpoint verification."],
+      "dataFlow": ["Frozen validation commands create content-addressed evidence.", "Evidence and source diff feed generated conformance/design-quality audit.", "Passing audit and commits feed checkpoint manifest."],
+      "interfaces": ["agentx_task.py", "gitmaster", "xtask Test Suite WASM command", "cargo fmt/test/check"],
+      "failureHandling": ["Any missing profile, stale artifact, dirty diagnostic hook, browser error, or design-quality drift leaves the task/sprint incomplete."],
+      "concurrencyAndTransactions": ["Sprints and tasks remain sequential because renderer/test/skill/memory scopes overlap."],
+      "compatibilityAndMigration": ["Retain old evidence as history but replace obsolete grayscale-sharpness guidance with proven current behavior."],
+      "observability": ["Final report names exact quality/resource results and blocked environments without claiming unrun targets."],
+      "securityAndPrivacy": ["Production builds omit text diagnostic globals; diagnostic builds retain numeric/capability facts only."],
+      "validation": ["Three complete headed WebGPU matrix passes, focused WASM regression/build checks, target-independent formatting/type checks, strict AgentX audit, and verified sprint manifests."]
+    }
+  ],
+  "minimalDesign": {
+    "existingMechanismsReused": ["WebWindow DPR/ResizeObserver/media-query pipeline", "GPUI TextRenderingMode and Window::paint_glyph selection", "RenderGlyphParams and glyph atlas", "CosmicTextSystem/Swash", "WgpuRenderer monochrome and dual-source subpixel pipelines", "rayx_diagnostics", "apps/test_suite", "tools-node/test_suite", "AgentX improvement-loop and task enforcement"],
+    "codeExpectedToBeDeletedOrReplaced": ["The generic performance fixture's text-quality-only branch after the focused quality slice takes ownership", "The unconditional browser false capability/policy only if the accepted measured strategy requires a truthful conditional answer", "Temporary candidate switches, traces, and content-bearing metric probes"],
+    "newAbstractions": [
+      {
+        "name": "WASM text-quality metric module",
+        "designIds": ["DES-001", "DES-005"],
+        "visibility": "internal",
+        "invariantOrPolicyOwned": "Crop-local physical-pixel metric calculations and deterministic synthetic sharpness validation.",
+        "whyExistingCodeIsInsufficient": "The generic performance helper mixes unrelated scenarios and whole-image metrics, so it cannot isolate glyph sharpness against a matched visible browser-native reference.",
+        "knownConsumers": ["rayx-wasm-text-rendering-quality.spec.ts", "wasm-text-quality-metrics.spec.ts"]
+      }
+    ],
+    "newDependencies": [],
+    "newPublicApi": []
+  },
+  "testingStrategy": {
+    "profiles": [
+      {"profile": "unit", "scope": "Physical canvas rounding/idempotency, glyph cache-key distinctions, and synthetic sharp/blur/fringe metric cases", "commandOrMethod": "Focused browser metric tests and headed Test Suite WASM contracts", "assertion": "Math, identity, and metrics distinguish required boundary states deterministically on the required WASM validation surface."},
+      {"profile": "runtime", "scope": "Headed WASM/WebGPU matched specimen and scale lifecycle", "commandOrMethod": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts", "assertion": "Every DPR/theme/typography cell has correct scale metadata, quality metrics, and no browser/WebGPU error."},
+      {"profile": "interaction", "scope": "Editable/selection/scroll surfaces before and after scale transitions", "commandOrMethod": "Focused existing Test Suite text and selection specs plus real pointer/keyboard/scroll input", "assertion": "Geometry and interaction remain stable with accepted glyph quality."},
+      {"profile": "performance", "scope": "Warm text-quality and 2,000-line TextArea workloads", "commandOrMethod": "One-worker baseline/after samples with five warmups and thirty measured samples per density", "assertion": "Warm p95 stays within five percent and unchanged frames add zero rasterizations."},
+      {"profile": "security", "scope": "Diagnostic privacy and production feature gate", "commandOrMethod": "Source guard plus diagnostic-key/runtime scan", "assertion": "Only bounded numeric/capability metadata exists under rayx_diagnostics and production omits the global."},
+      {"profile": "architecture", "scope": "Complete source diff and AgentX design-quality audit", "commandOrMethod": "cargo metadata/source guards plus agentx_task.py audit --strict and generated sprint audits", "assertion": "No duplicate renderer/service, dependency, public API, full-canvas DPR floor, or undeclared path is introduced."}
+    ]
+  },
+  "rollout": [
+    "Sprint 1 adds the measurement authority and freezes current grayscale-only baseline artifacts without changing production rendering.",
+    "Sprint 2 proves and repairs only demonstrated DPR/backing/surface/scene/cache lifecycle defects.",
+    "Sprint 3 runs the fixed candidate ladder and retains the first smallest strategy that satisfies every gate.",
+    "Sprint 4 removes temporary instrumentation, runs three complete matrices and broad regressions, updates narrow guidance/memory, and checkpoints the production-clean result."
+  ],
+  "alternatives": [
+    {"alternative": "Force the entire browser surface to DPR 2", "advantages": ["Simple global implementation", "Visually resembles the existing DPR 2 test on a high-density panel"], "disadvantages": ["Fourfold backing pixels at DPR 1", "Masks scale diagnostics", "Taxes every primitive/effect", "Cannot add physical pixels to a genuine 1x panel"], "reasonRejected": "The user requires high-quality text, and the architecture can target glyph quality directly without a global render-scale workaround."},
+    {"alternative": "Restore unconditional LCD/subpixel output", "advantages": ["Higher apparent horizontal resolution on compatible RGB LCD panels"], "disadvantages": ["Color fringes under browser composition, fractional scale, transforms, transparency, unknown RGB/BGR layout, and non-LCD panels"], "reasonRejected": "LCD remains an allowed final candidate only under measured capability/composition conditions and the chromatic-fringe gate."},
+    {"alternative": "Keep grayscale-only output and tune theme/font weight", "advantages": ["No renderer changes"], "disadvantages": ["Does not fix low-density spatial resolution and changes application typography to mask a platform defect"], "reasonRejected": "The reported blur is renderer-wide and must be corrected at its owner."}
+  ]
+}

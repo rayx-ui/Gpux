@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 3,
+  "epicId": "gpux-text-rendering-quality-performance",
+  "primaryRepositoryId": "main",
+  "repositories": [
+    {
+      "id": "main",
+      "path": ".",
+      "role": "primary",
+      "required": true,
+      "baselineHead": "ec46a2a5d1dae041786f71d8292b5febbeace105",
+      "ownedScope": [
+        ".agentx/tasks/gpux-text-rendering-quality-performance/**",
+        ".agentx/experiments/EXPERIMENT_INSTRUCTIONS.md",
+        ".agentx/experiments/INDEX.json",
+        ".agentx/experiments/YYYY-MM-DD-gpux-text-quality-performance/**",
+        ".agentx/memory/knowledge/runtime/gpux-foundation/**",
+        ".agentx/memory/knowledge/ui/theming-components/**",
+        ".agentx/memory/knowledge/ui/virtualization/**",
+        ".agentx/memory/decisions/** narrowly required by accepted final behavior",
+        ".codex/skills/gpux/references/** narrowly required by accepted final behavior",
+        ".codex/skills/rayx/references/diagnostics.md",
+        ".codex/skills/rayx/references/text-fields.md",
+        "apps/test_suite/**",
+        "tools-node/test_suite/**",
+        "tools-node/playwright.config.ts",
+        "tools-node/package.json",
+        "tools-node/pnpm-lock.yaml",
+        "crates/gpux/crates/gpui/src/elements/editable_text/**",
+        "crates/gpux/crates/gpui/src/platform.rs",
+        "crates/gpux/crates/gpui_wgpu/src/cosmic_text_system.rs",
+        "crates/gpux/crates/gpui_wgpu/src/shaders.wgsl",
+        "crates/gpux/crates/gpui_wgpu/src/shaders_subpixel.wgsl",
+        "crates/gpux/crates/gpui_wgpu/src/wgpu_context.rs",
+        "crates/gpux/crates/gpui_wgpu/src/wgpu_renderer.rs",
+        "crates/gpux/crates/gpui_windows/src/** text rendering slices",
+        "crates/rayx/rayx_components/rayx_components_core/src/components/form/text_area/**",
+        "crates/rayx/rayx_components/rayx_components_core/src/components/scroll/editable_text_scrollbar_handle.rs",
+        "crates/rayx/rayx_components/rayx_components_core/src/components/selection_area/**",
+        "crates/rayx/rayx_components/rayx_components_core/src/components/table/**",
+        "crates/rayx/rayx_components/rayx_components_core/src/components/text/selectable_text_surface.rs",
+        "crates/rayx/rayx_components/rayx_components_datatable/src/** measured selection slices"
+      ]
+    }
+  ]
+}

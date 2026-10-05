@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "id": "d2a0b3af-25c4-4ee3-9e0d-ffeb2ce042fe",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 108,
+  "type": "hypothesis",
+  "name": "Global ID Ordinal Vector Arc Reuse",
+  "slug": "global-id-ordinal-vector-arc-reuse",
+  "path": "2026-08-31-108-global-id-ordinal-vector-arc-reuse.json",
+  "createdAt": "2026-08-31T17:37:16Z",
+  "startedAt": "2026-08-31T17:37:16Z",
+  "finishedAt": "2026-08-31T17:40:02Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "4e2ce6e59fd107ed974aa17dedbc29daf7a9d8d7",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 4e2ce6e59fd107ed974aa17dedbc29daf7a9d8d7",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "4e2ce6e59fd107ed974aa17dedbc29daf7a9d8d7",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 4e2ce6e59fd107ed974aa17dedbc29daf7a9d8d7",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux GlobalElementId path Arc allocation",
+  "hypothesisMarkdown": "## Global ID Ordinal Vector Arc Reuse Hypothesis\n\nBecause 100% of the 485 warmed global IDs appeared at the same ordinal at both DPRs, a direct previous-frame vector candidate with authoritative full-path equality will eliminate most repeated `Arc<[ElementId]>` allocations without the rejected hash map's lookup and hashing-table overhead.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nAdd one `Vec<GlobalElementId>` to `WindowFrame`, one collision-safe constructor that may clone the same-ordinal previous ID after full-path equality, one private Window creation path used by all three production constructors, and focused reuse/mismatch assertions. Do not change public APIs, element identity semantics, diagnostics schema, dependencies, unrelated frame storage, or benchmark fixtures.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nRun nested formatting, diagnostics-disabled/enabled Clippy with warnings denied, focused and full gpux tests, WGPU tests, then exclusive headed Test Suite WASM/WebGPU proof at both DPRs with CPU profiles. Require exact offsets/counters and zero errors. Compare median acknowledged steps/second, paced p95 catch-up latency, and `Arc<[ElementId]>::from_iter` self time against accepted experiment 102; reject on material throughput or p95 regression even if allocation time falls.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nRetain collision-safe identity behavior, reduce repeated global-ID Arc construction by roughly 80% or more, and avoid the prior hash-map candidate's throughput regression through O(1) ordinal lookup with no auxiliary hashing table.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [
+      "Focused gpux compilation failed before runtime validation.",
+      "apps/test_suite and apps/lab were not launched."
+    ],
+    "counters": [
+      "Two E0624 errors: element.rs could not call the module-private Window::global_element_id helper."
+    ],
+    "artifacts": []
+  },
+  "measurements": {
+    "schemaVersion": 1,
+    "status": "failure",
+    "productFilesChangedAtDecision": 0,
+    "compilePassed": false,
+    "rustErrorCode": "E0624",
+    "failedCallSites": 2,
+    "runtimeCasesRun": 0,
+    "performanceCasesRun": 0,
+    "sourceRestoredToCheckpoint": true
+  },
+  "reportMarkdown": "# Global ID Ordinal Vector Arc Reuse\n\nThe single implementation attempt added the scoped ordinal vector, collision-safe full-path reuse constructor, Window creation path, and focused assertions, but failed the first focused compile gate. `element.rs` could not call the Window helper because it was private to the `window` module (`E0624` at both production call sites).\n\nAgentX atomic discipline forbids fixing forward inside the same experiment. Both touched product files were restored byte-for-byte to checkpoint `4e2ce6e59fd107ed974aa17dedbc29daf7a9d8d7`; no runtime or performance measurement was run.\n",
+  "decisionMarkdown": "# Decision\n\nReject this implementation attempt because it did not compile. Start a new atomic experiment only if the same mechanism is declared with the minimum crate-visible Window helper from the outset; do not attribute any performance result to this failed attempt.\n",
+  "notes": ""
+}

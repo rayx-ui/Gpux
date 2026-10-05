@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "id": "4e6c883f-8339-4ce5-bd26-ff69dce06126",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 101,
+  "type": "hypothesis",
+  "name": "Corrected Compact Scene Replay Operations",
+  "slug": "corrected-compact-scene-replay-operations",
+  "path": "2026-08-31-101-corrected-compact-scene-replay-operations.json",
+  "createdAt": "2026-08-31T16:28:05Z",
+  "startedAt": "2026-08-31T16:28:05Z",
+  "finishedAt": "2026-08-31T16:38:51Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "62609c9b71e1a802421b043a71bad800f9354c55",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 62609c9b71e1a802421b043a71bad800f9354c55",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "62609c9b71e1a802421b043a71bad800f9354c55",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 62609c9b71e1a802421b043a71bad800f9354c55",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux Scene compact replay with corrected old-to-new permutation",
+  "hypothesisMarkdown": "## Corrected Compact Scene Replay Operations Hypothesis\n\nUsing the completed original-to-sorted remap for in-place cycles will correct the only observed ordering defect while retaining the 86.21% metadata reduction and O(1) replay.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nImplement the compact Scene representation from experiment 100 with exactly one algorithm correction: copy the old-to-new replay remap into sort scratch before applying safe cycle swaps. Include formatter-normalized source and focused tests. Renderer layouts, shaders, public APIs, dependencies, and adjacent cleanup are forbidden. Any compile, test, lint, or runtime failure ends the attempt and requires full revert.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nRun formatter check, focused Scene tests, all gpux tests, gpui_wgpu tests, warning-denied clippy, and exclusive headed Test Suite WebGPU DataTable at DPR 1 and DPR 2. Verify compact size, stable duplicate-key identity, mixed replay, all established counters, exact final offsets, terminal errors, throughput, and paced p95 latency.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nAll correctness gates pass; Scene stores 24-byte operations plus 8-byte remaps, moves primitive payloads once, and browser cadence has no material regression.",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": {
+    "schemaVersion": 1,
+    "status": "failure",
+    "formatterPassed": true,
+    "focusedSceneTestsPassed": 12,
+    "gpuxUnitTestsPassed": 421,
+    "gpuxIntegrationTestsPassed": true,
+    "wgpuTestsPassed": 52,
+    "clippyPassed": true,
+    "browserPassedDpr1": true,
+    "browserPassedDpr2": true,
+    "terminalErrors": 0,
+    "candidate": {
+      "dpr1StepsPerSecond": 22.62512670777993,
+      "dpr2StepsPerSecond": 22.452826471253733,
+      "dpr1PacedP95Ms": 37.13134765625,
+      "dpr2PacedP95Ms": 37.133056640625
+    },
+    "acceptedReference": {
+      "dpr1StepsPerSecond": 25.995531368157803,
+      "dpr2StepsPerSecond": 26.22115697315289,
+      "dpr1PacedP95Ms": 27.141357421875,
+      "dpr2PacedP95Ms": 27.122314453125
+    },
+    "throughputDeltaPercent": {
+      "dpr1": -12.97,
+      "dpr2": -14.37
+    },
+    "pacedP95DeltaPercent": {
+      "dpr1": 36.81,
+      "dpr2": 36.91
+    },
+    "sourceReverted": true,
+    "sourceMatchesCheckpoint": true,
+    "productFilesChanged": 0
+  },
+  "reportMarkdown": "# Corrected Compact Scene Replay Operations\n\nThe corrected implementation passed every static and correctness gate:\n\n- gpux-scoped formatting\n- 12 focused Scene tests, including stable duplicate-key identity and compact representation\n- 421 gpux unit tests plus all integration suites\n- 52 serialized gpui_wgpu tests\n- warning-denied gpux Clippy\n- headed Test Suite WebGPU DataTable at DPR 1 and DPR 2 with exact final offsets, established renderer/layout/text/style counters, and zero terminal errors\n\nThe mandatory browser performance gate failed:\n\n| Metric | Accepted reference DPR 1 / DPR 2 | Candidate DPR 1 / DPR 2 | Change |\n| --- | ---: | ---: | ---: |\n| median acknowledged steps/s | 25.9955 / 26.2212 | 22.6251 / 22.4528 | -12.97% / -14.37% |\n| paced p95 catch-up latency | 27.1414 / 27.1223 ms | 37.1313 / 37.1331 ms | +36.81% / +36.91% |\n\nThe representation achieved the intended 232-byte to 24-byte operation reduction plus an 8-byte remap and eliminated the duplicate insertion clone. However, building compact sort keys, sorting indices, copying the old-to-new map, and applying an in-place permutation every frame added enough CPU work to materially regress the virtualization workload. Memory reduction does not compensate for that measured hot-path cost.\n\nThe complete `scene.rs` production/test delta was restored from checkpoint `62609c9b71e1a802421b043a71bad800f9354c55`; an exact diff check confirmed no product delta remains.\n",
+  "decisionMarkdown": "# Decision\n\nReject and revert compact replay locators with indirect sorting. Although correctness and memory goals were met, the representative browser workload regressed throughput by 12.97%/14.37% and paced p95 latency by 36.81%/36.91%. Keep the direct payload sort and full replay operations. Future Scene work must avoid adding an extra sort/permutation pass to frame finish.\n",
+  "notes": ""
+}

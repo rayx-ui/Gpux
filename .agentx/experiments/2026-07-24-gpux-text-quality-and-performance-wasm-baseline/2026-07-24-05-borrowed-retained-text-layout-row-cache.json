@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "id": "520cc262-2ec5-469d-83e0-91c6c058bb66",
+  "loopId": "54e74b74-483c-4598-92d7-fdbabbc9154b",
+  "index": 5,
+  "type": "hypothesis",
+  "name": "Borrowed retained TextLayout row cache",
+  "slug": "borrowed-retained-text-layout-row-cache",
+  "path": "2026-07-24-05-borrowed-retained-text-layout-row-cache.json",
+  "createdAt": "2026-07-24T04:12:10Z",
+  "startedAt": "2026-07-24T04:12:10Z",
+  "finishedAt": "2026-07-24T04:15:21Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "4089e042f66e58255aa5a014560c5997abbdb5fd",
+  "resultCommit": "0a2ad691374d2e232681d9514080b110aaead999",
+  "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard 4089e042f66e58255aa5a014560c5997abbdb5fd",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "4089e042f66e58255aa5a014560c5997abbdb5fd",
+      "resultCommit": "0a2ad691374d2e232681d9514080b110aaead999",
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard 4089e042f66e58255aa5a014560c5997abbdb5fd",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "0a2ad691374d2e232681d9514080b110aaead999"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "headed WASM WebGPU TextArea fixture",
+  "hypothesisMarkdown": "# Hypothesis\n\nBorrowing the installed row-layout map during changed-layout preparation removes its full\n`HashMap` clone while preserving the existing atomic install and error behavior. Individual\n`Arc<WrappedLineLayout>` values remain cloned only when retained by the next installed map.\n\n## Scope lock\n\nThis experiment changes only `TextLayoutCache::reusable_rows` and its call site. It does not alter\ndirty-row detection, text materialization, row metadata, or prepaint.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\nRun the focused headed WASM/WebGPU TextArea fixture at both DPRs and inspect its screenshot. Use\nsource inspection to prove no `HashMap::clone` remains in the reusable-row path, while the\ninstallation remains after successful shaping so an error cannot destroy the prior cache.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nThe focused TextArea wheel action stays visible and stable. Changed layouts access prior rows by\nborrow and only clone each retained `Arc` for the next cache, eliminating the full map clone.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": {
+    "target": "headed WASM WebGPU TextArea wheel action",
+    "samples": [
+      {
+        "dpr": 1,
+        "inputToPublishedFrameMs": 537.53,
+        "changedPixels": 13706
+      },
+      {
+        "dpr": 2,
+        "inputToPublishedFrameMs": 521.802,
+        "changedPixels": 53702
+      }
+    ],
+    "source": "tools-node/test-results",
+    "note": "The unchanged-key scroll path intentionally does not enter reusable-row lookup; this experiment proves a changed-layout allocation reduction by source ownership rather than treating this unrelated wheel timing as a benchmark improvement."
+  },
+  "reportMarkdown": "# Borrowed retained TextLayout row cache\n\nThe focused Test Suite TextArea page passed headed WASM/WebGPU at DPR 1 and DPR 2, with visible\nscroll deltas and nonempty physical-pixel change. `TextLayoutCache::reusable_rows` now returns an\noptional borrow of the retained map. `TextLayoutMap` only clones an individual `Arc` when a row is\ninstalled in the new cache; the former whole-map `self.rows.clone()` no longer exists.\n\nThe fixed wheel action follows the exact unchanged-key fast path and therefore does not exercise a\nchanged-layout cache lookup. Its one-sample timings are recorded as runtime health evidence, not as\nan allocation benchmark. The reduction is direct from the removed clone and does not alter atomic\nerror behavior because the installed map remains owned by the cache until successful replacement.\n",
+  "decisionMarkdown": "# Decision\n\nAccept the borrowed reusable-row map. It removes a full allocation and `Arc` cloning pass from\nchanged-layout preparation without adding state, invalidation rules, or failure paths.\n",
+  "notes": ""
+}

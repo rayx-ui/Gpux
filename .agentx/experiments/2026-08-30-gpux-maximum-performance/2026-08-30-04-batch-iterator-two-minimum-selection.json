@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "id": "91f0992b-77f3-4a14-96f6-ecbe4114acfb",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 4,
+  "type": "hypothesis",
+  "name": "Batch Iterator Two Minimum Selection",
+  "slug": "batch-iterator-two-minimum-selection",
+  "path": "2026-08-30-04-batch-iterator-two-minimum-selection.json",
+  "createdAt": "2026-08-30T18:56:46Z",
+  "startedAt": "2026-08-30T18:56:46Z",
+  "finishedAt": "2026-08-30T19:03:53Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "deae40e11122d90fa81c1e3c4edbe44e83b52265",
+  "resultCommit": "5e923f5a51ff094451afc06bff2805bd317f4bc9",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard deae40e11122d90fa81c1e3c4edbe44e83b52265",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "deae40e11122d90fa81c1e3c4edbe44e83b52265",
+      "resultCommit": "5e923f5a51ff094451afc06bff2805bd317f4bc9",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard deae40e11122d90fa81c1e3c4edbe44e83b52265",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "5e923f5a51ff094451afc06bff2805bd317f4bc9"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpui Scene BatchIterator with apps/test_suite wide DataTable headed WebGPU",
+  "hypothesisMarkdown": "# Hypothesis\n\n`BatchIterator::next` needs only the first and second `(draw_order, primitive_kind)` entries, but currently sorts all ten family heads for every emitted batch. A direct one-pass two-minimum selection will preserve the exact total-order/tie semantics while reducing comparisons and moves in every renderer batch merge. The change should improve or preserve wide DataTable timing without changing primitive vectors, family sorting, batch boundaries, shaders, renderer calls, or telemetry counters.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\n1. Use the immediately preceding serialized checkpoint run because experiment 3 restored the exact production source and changed only AgentX metadata.\n2. Replace the fixed ten-entry full sort in `BatchIterator::next` with a direct scan that maintains the smallest and second-smallest entries under the existing `(order.unwrap_or(u32::MAX), kind)` key.\n3. Add focused scene tests covering ties across primitive kinds, exhausted families, texture-based sprite splitting, positioned/top-layer ordering, and equivalence of emitted batches.\n4. Run gpux formatting, focused gpux unit tests and Clippy, diagnostics-off/on compilation, and the headed WebGPU wide DataTable benchmark at DPR1/DPR2.\n5. Accept only if all batch semantics and runtime correctness remain exact and the candidate does not materially regress serialized throughput or paced p95 latency.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nBatch sequences remain byte-for-byte equivalent for the focused scene fixtures, and the wide DataTable retains nine batches, 12 queue writes, 10 bind groups, two passes, one submission, and zero terminal error. Removing the ten-element sort should reduce the CPU work of every `BatchIterator::next`, with a small non-regressing end-to-end effect because the current table emits nine batches per frame.\n",
+  "diagnostics": {
+    "playwright": [
+      "Two candidate wide DataTable processes passed 4/4 DPR projects in headed Chromium with WebGPU enabled.",
+      "Renderer telemetry remained exactly nine batches, 12 writes, 10 bind groups, two passes, zero atlas writes/restarts, and one submission."
+    ],
+    "rayx": [
+      "All runtime proof used apps/test_suite; apps/lab was neither launched nor modified.",
+      "Eight focused gpux scene tests, gpux check, Clippy with warnings denied, and nested formatting passed."
+    ],
+    "counters": [
+      "The fixed ten-family merge now performs at most 17 key comparisons and retains only two entries instead of fully sorting ten.",
+      "All candidate runs retained zero terminal scroll error and unchanged renderer work counters."
+    ],
+    "artifacts": []
+  },
+  "measurements": {
+    "checkpointCommit": "deae40e11",
+    "target": "wasm-webgpu-headed",
+    "algorithm": {
+      "familyHeads": 10,
+      "selectedHeads": 2,
+      "candidateMaximumKeyComparisons": 17,
+      "removedOperation": "full ten-entry stable sort per emitted batch"
+    },
+    "candidateProcesses": [
+      {
+        "dpr1": {
+          "throughput": 26.92758056092574,
+          "pacedP95Ms": 28.378173828125
+        },
+        "dpr2": {
+          "throughput": 26.230120519534736,
+          "pacedP95Ms": 27.931396484375
+        }
+      },
+      {
+        "dpr1": {
+          "throughput": 26.574011945018377,
+          "pacedP95Ms": 28.2646484375
+        },
+        "dpr2": {
+          "throughput": 28.902922381707736,
+          "pacedP95Ms": 27.854736328125
+        }
+      }
+    ],
+    "candidatePacedP95MedianMs": {
+      "dpr1": 28.3214111328125,
+      "dpr2": 27.89306640625
+    },
+    "renderer": {
+      "batches": 9,
+      "queueBufferWrites": 12,
+      "bindGroups": 10,
+      "renderPasses": 2,
+      "atlasWrites": 0,
+      "bufferRestarts": 0,
+      "submissions": 1
+    },
+    "maximumTerminalError": 0
+  },
+  "reportMarkdown": "# Batch iterator two-minimum report\n\n`BatchIterator::next` now finds the first and second `(draw_order, primitive_kind)` heads with one linear scan. For ten families this requires at most 17 key comparisons and only moves the two retained entries, instead of fully sorting all ten heads for every emitted batch. The existing total key is unchanged, including `None -> u32::MAX` and `PrimitiveKind` tie order.\n\nAll eight focused scene tests passed, including interleaved HTML-island, visual-effect, quad, shadow, and path batch ordering plus replay and positioned/top-layer behavior. gpux check, Clippy with warnings denied, and nested formatting passed. The headed Test Suite wide DataTable passed at DPR1 and DPR2 in two candidate processes; every frame retained nine batches, 12 queue writes, 10 bind groups, two passes, zero atlas uploads/restarts, one submission, and zero terminal error.\n\nEnd-to-end acknowledged throughput was too process-noisy to attribute this small CPU change: identical checkpoint source measured from roughly 26 to 30 steps/s in adjacent experiments, while the two candidate processes measured 26.93/26.57 at DPR1 and 26.23/28.90 at DPR2. Paced p95 candidate medians were 28.32 ms at DPR1 (within 0.85% of the recent checkpoint) and 27.89 ms at DPR2 (5.20% lower). Acceptance therefore rests on the exact direct comparison-count reduction, focused semantic tests, and non-regressing product p95 rather than a throughput-speedup claim.\n",
+  "decisionMarkdown": "# Decision\n\nAccept. The full ten-entry sort computes eight positions the consumer never reads. One two-minimum scan is the smallest exact algorithm for the actual requirement, preserves the total order and batch contract, and has a direct bounded comparison advantage. Do not claim a quantified end-to-end speedup from the browser throughput counter because its process variance is larger than this mechanism.\n",
+  "notes": ""
+}

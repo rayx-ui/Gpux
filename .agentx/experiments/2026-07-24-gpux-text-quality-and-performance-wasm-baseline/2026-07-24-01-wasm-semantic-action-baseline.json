@@ -1,0 +1,251 @@
+{
+  "schemaVersion": 1,
+  "id": "c59bf561-f73b-4655-ad2e-623521c9462d",
+  "loopId": "54e74b74-483c-4598-92d7-fdbabbc9154b",
+  "index": 1,
+  "type": "baseline",
+  "name": "WASM semantic-action baseline",
+  "slug": "wasm-semantic-action-baseline",
+  "path": "2026-07-24-01-wasm-semantic-action-baseline.json",
+  "createdAt": "2026-07-24T02:04:30Z",
+  "startedAt": "2026-07-24T02:04:30Z",
+  "finishedAt": "2026-07-24T03:10:23Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "3296ce59ec6813b54eb703127743f776857bd42b",
+  "resultCommit": "3296ce59ec6813b54eb703127743f776857bd42b",
+  "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard 3296ce59ec6813b54eb703127743f776857bd42b",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "3296ce59ec6813b54eb703127743f776857bd42b",
+      "resultCommit": "3296ce59ec6813b54eb703127743f776857bd42b",
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard 3296ce59ec6813b54eb703127743f776857bd42b",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "3296ce59ec6813b54eb703127743f776857bd42b"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "wasm-webgpu",
+  "hypothesisMarkdown": "## Baseline Measurement\n\nMeasure and document the starting point for this improvement loop before making optimization changes.",
+  "measurementPlanMarkdown": "",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nBaseline metrics are captured and stored so later experiments compare against a known starting point.",
+  "diagnostics": {
+    "processes": [
+      {
+        "name": "process-1",
+        "passed": 350,
+        "failed": 0
+      },
+      {
+        "name": "process-2",
+        "passed": 349,
+        "failed": 1,
+        "failure": "browser.newContext: Target page, context or browser has been closed",
+        "affectedCell": "shell-isolation DPR 2"
+      },
+      {
+        "name": "process-3",
+        "passed": 348,
+        "failed": 2,
+        "failure": "page.screenshot: Target page, context or browser has been closed",
+        "affectedCells": [
+          "text-area DPR 2",
+          "text-quality DPR 2"
+        ]
+      },
+      {
+        "name": "shell-dpr2-replacement",
+        "passed": 35,
+        "failed": 0
+      },
+      {
+        "name": "text-area-dpr2-replacement",
+        "passed": 35,
+        "failed": 0
+      },
+      {
+        "name": "text-quality-dpr2-replacement",
+        "passed": 35,
+        "failed": 0
+      }
+    ],
+    "fixtureTrace": "Each failed app reached threaded WASM startup and BrowserWebGpu initialization. No page error, renderer error, or visual assertion failure was captured.",
+    "decision": "Use complete samples from unaffected cells and fresh narrow replacements for every incomplete DPR 2 cell."
+  },
+  "measurements": {
+    "target": "headed WASM WebGPU",
+    "protocol": "Three fresh 35-run replicates per scenario/DPR cell: five warmups and thirty measured samples each.",
+    "cells": [
+      {
+        "scenario": "data-table",
+        "dpr": 1,
+        "sources": [
+          "process-1",
+          "process-2",
+          "process-3"
+        ],
+        "warmups": 15,
+        "samples": 90,
+        "p50Ms": 106.169,
+        "p95Ms": 113.772,
+        "maxMs": 116.998,
+        "minChangedPixels": 30444
+      },
+      {
+        "scenario": "data-table",
+        "dpr": 2,
+        "sources": [
+          "process-1",
+          "process-2",
+          "process-3"
+        ],
+        "warmups": 15,
+        "samples": 90,
+        "p50Ms": 100.149,
+        "p95Ms": 113.164,
+        "maxMs": 115.636,
+        "minChangedPixels": 119412
+      },
+      {
+        "scenario": "selection-area",
+        "dpr": 1,
+        "sources": [
+          "process-1",
+          "process-2",
+          "process-3"
+        ],
+        "warmups": 15,
+        "samples": 90,
+        "p50Ms": 84.614,
+        "p95Ms": 89.413,
+        "maxMs": 90.913,
+        "minChangedPixels": 2418
+      },
+      {
+        "scenario": "selection-area",
+        "dpr": 2,
+        "sources": [
+          "process-1",
+          "process-2",
+          "process-3"
+        ],
+        "warmups": 15,
+        "samples": 90,
+        "p50Ms": 80.296,
+        "p95Ms": 89.336,
+        "maxMs": 90.804,
+        "minChangedPixels": 188511
+      },
+      {
+        "scenario": "shell-isolation",
+        "dpr": 1,
+        "sources": [
+          "process-1",
+          "process-2",
+          "process-3"
+        ],
+        "warmups": 15,
+        "samples": 90,
+        "p50Ms": 27.393,
+        "p95Ms": 35.109,
+        "maxMs": 40.306,
+        "minChangedPixels": 10074
+      },
+      {
+        "scenario": "shell-isolation",
+        "dpr": 2,
+        "sources": [
+          "process-1",
+          "process-3",
+          "shell-dpr2-replacement"
+        ],
+        "warmups": 15,
+        "samples": 90,
+        "p50Ms": 28.819,
+        "p95Ms": 32.871,
+        "maxMs": 36.477,
+        "minChangedPixels": 36814
+      },
+      {
+        "scenario": "text-area",
+        "dpr": 1,
+        "sources": [
+          "process-1",
+          "process-2",
+          "process-3"
+        ],
+        "warmups": 15,
+        "samples": 90,
+        "p50Ms": 534.002,
+        "p95Ms": 593.299,
+        "maxMs": 653.234,
+        "minChangedPixels": 13706
+      },
+      {
+        "scenario": "text-area",
+        "dpr": 2,
+        "sources": [
+          "process-1",
+          "process-2",
+          "text-area-dpr2-replacement"
+        ],
+        "warmups": 15,
+        "samples": 90,
+        "p50Ms": 497.957,
+        "p95Ms": 561.084,
+        "maxMs": 687.211,
+        "minChangedPixels": 53702
+      },
+      {
+        "scenario": "text-quality",
+        "dpr": 1,
+        "sources": [
+          "process-1",
+          "process-2",
+          "process-3"
+        ],
+        "warmups": 15,
+        "samples": 90,
+        "p50Ms": 21.256,
+        "p95Ms": 24.554,
+        "maxMs": 25.86,
+        "minChangedPixels": null
+      },
+      {
+        "scenario": "text-quality",
+        "dpr": 2,
+        "sources": [
+          "process-1",
+          "process-2",
+          "text-quality-dpr2-replacement"
+        ],
+        "warmups": 15,
+        "samples": 90,
+        "p50Ms": 19.51,
+        "p95Ms": 25.49,
+        "maxMs": 29.674,
+        "minChangedPixels": null
+      }
+    ]
+  },
+  "reportMarkdown": "## WASM WebGPU semantic-action baseline\n\nAll five page-isolated Test Suite fixtures were measured headed at DPR 1 and DPR 2. Each cell has three fresh replicates, five warmups per replicate, and ninety retained measured samples. See `baseline-measurements.json` for the exact distributions.\n\nThe visual captures are valid: the light/dark text specimen is readable, the TextArea scroll moved through the fixed 2,000-line workload, and the shell interaction changed only the shell fixture. Every action expected to change pixels had a nonzero physical-pixel difference.\n\nThe dominant baseline is TextArea scrolling: p50 534.002 ms at DPR 1 and 497.957 ms at DPR 2. DataTable and SelectionArea are roughly 80–106 ms p50, while text-quality capture and shell isolation are below 30 ms p50.\n\nTwo full-suite replicate processes were invalidated by late Chromium browser-context closures after 348–349 otherwise passing tests. Their unaffected scenario/DPR samples are retained only where complete, and each affected DPR 2 cell was replaced with its own fresh 35-run, one-page process. All three replacements passed 35/35.\n",
+  "decisionMarkdown": "## Decision\n\nUse this WASM-only baseline for subsequent atomic experiments. Prioritize a single TextArea-scroll hypothesis first because it is decisively slower than the other semantic actions. Keep the current fixed fixtures and per-action visual-difference guard unchanged so later results remain comparable.\n\nFor long sample collections, run affected page fixtures in fresh narrow Playwright processes when a full combined process exhibits browser-context churn. Do not classify the Chromium closure as a product improvement or regression without a reproducible fixture-state failure.\n",
+  "notes": ""
+}

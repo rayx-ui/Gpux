@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "id": "9d629dd9-69f7-4b86-a473-b935d218f8af",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 128,
+  "type": "hypothesis",
+  "name": "Taffy Child Iterator Topology Check",
+  "slug": "taffy-child-iterator-topology-check",
+  "path": "2026-08-31-128-taffy-child-iterator-topology-check.json",
+  "createdAt": "2026-08-31T20:00:40Z",
+  "startedAt": "2026-08-31T20:00:40Z",
+  "finishedAt": "2026-08-31T20:08:57Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "cb9fd1291652c21510a5ffde43b0db9ab49152e8",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard cb9fd1291652c21510a5ffde43b0db9ab49152e8",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "cb9fd1291652c21510a5ffde43b0db9ab49152e8",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard cb9fd1291652c21510a5ffde43b0db9ab49152e8",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux pooled Taffy topology comparison",
+  "hypothesisMarkdown": "## Taffy Child Iterator Topology Check Hypothesis\n\nReplacing pooled-node topology verification's separate `child_count` plus per-edge `child_at_index` calls with public allocation-free `child_ids` iterator equality will remove 1,041 repeated internal child-slot lookups per warmed frame and reduce `request_taffy_node` CPU cost without changing topology, invalidation, layout, or rendering behavior.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nChange only the topology comparison expression in `TaffyLayoutEngine::request_taffy_node`. Reuse the already imported `TraversePartialTree` trait. Style comparison, context refresh, topology mutation, dirtying, diagnostics, APIs, dependencies, tests, fixtures, and configuration are frozen.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nRun formatting, focused Taffy tests, both gpux clippy matrices, full gpux diagnostics tests, gpui_wgpu diagnostics tests, and headed Test Suite WASM/WebGPU with CPU profiles at DPR 1 and 2. Require exact established Taffy/layout/render counters and zero errors. Compare `request_taffy_node` self time plus throughput and paced p95 against experiment 126; reject a coherent same-direction regression over 10% at both DPRs.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nPreserve exact topology and rendering while lowering pooled-node topology-read overhead through the simplest public non-allocating Taffy API.\n",
+  "diagnostics": {
+    "playwright": [
+      {
+        "target": "apps/test_suite",
+        "runtime": "headed Chromium WASM/WebGPU with CPU profiling",
+        "passed": 2,
+        "failed": 0
+      }
+    ],
+    "rayx": [],
+    "counters": [
+      "all Taffy, bounds, render, and final-state invariants exact",
+      "coherent throughput regression exceeded 10% at both DPRs",
+      "target request_taffy_node self time worsened at both DPRs",
+      "source restored exactly to checkpoint"
+    ],
+    "artifacts": [
+      "two CPU profiles",
+      "test-results",
+      "playwright-report"
+    ]
+  },
+  "measurements": {
+    "referenceExperiment": 126,
+    "runs": [
+      {
+        "deviceScaleFactor": 1,
+        "throughput": 23.595092173637692,
+        "pacedP95Ms": 26.873291015625,
+        "requestTaffyNodeSelfMs": 284.766,
+        "throughputDeltaPercent": -13.919517612497568,
+        "pacedP95DeltaPercent": -0.3431354796653796,
+        "selfTimeDeltaPercent": 2.6890580543725617,
+        "terminalErrorMax": 0.0
+      },
+      {
+        "deviceScaleFactor": 2,
+        "throughput": 23.697719941649098,
+        "pacedP95Ms": 27.35595703125,
+        "requestTaffyNodeSelfMs": 314.875,
+        "throughputDeltaPercent": -16.0210509216014,
+        "pacedP95DeltaPercent": -4.153764562982221,
+        "selfTimeDeltaPercent": 7.155740382782927,
+        "terminalErrorMax": 0.0
+      }
+    ],
+    "exactCountersAtBothDprs": {
+      "taffyNodeRequests": 1123,
+      "taffyPooledNodeReuses": 1123,
+      "unchangedTopologies": 1123,
+      "topologyWrites": 0,
+      "boundsTreeVisits": 4440,
+      "boundsTreeChildEvaluations": 14351,
+      "boundsTreeRetainedNodes": 576
+    },
+    "playwright": {
+      "passed": 2,
+      "failed": 0
+    }
+  },
+  "reportMarkdown": "# Experiment 128 Report\n\nThe single attempted change replaced `child_count` plus indexed child reads with public iterator equality. Formatting, focused Taffy tests, both gpux clippy matrices, 419 gpux diagnostics tests, gpui_wgpu diagnostics tests, and both headed Test Suite WebGPU cases passed. Every Taffy, bounds, rendering, and final-state counter remained exact.\n\nPerformance failed decisively. Against experiment 126, DPR 1 throughput fell 13.92% while `request_taffy_node` self time rose 2.69%. DPR 2 throughput fell 16.02% while target self time rose 7.16%. Paced p95 improved slightly, but the declared coherent throughput gate was exceeded at both DPRs and the target hotspot itself moved in the wrong direction.\n\nThe public iterator abstraction removes source-level lookups but code-generates worse in this WASM workload than the explicit count-and-index path. The candidate was reverted exactly to checkpoint `cb9fd1291652c21510a5ffde43b0db9ab49152e8` with no fix-forward.\n",
+  "decisionMarkdown": "# Decision\n\nReject and revert the child-iterator topology comparison. Preserve the explicit count-and-index implementation. Any different Taffy refresh idea requires a separately declared hypothesis and cannot infer speed from fewer public API calls alone.\n",
+  "notes": ""
+}

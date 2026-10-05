@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "id": "1dad93bb-edf1-40ae-9495-822d3c358ed8",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 17,
+  "type": "hypothesis",
+  "name": "Combined absolute layout cache",
+  "slug": "combined-absolute-layout-cache",
+  "path": "2026-08-30-17-combined-absolute-layout-cache.json",
+  "createdAt": "2026-08-30T21:40:10Z",
+  "startedAt": "2026-08-30T21:40:10Z",
+  "finishedAt": "2026-08-30T21:56:12Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "bc6ad8d981f0a36ac7048b4cfbbe6528e9656b29",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard bc6ad8d981f0a36ac7048b4cfbbe6528e9656b29",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "bc6ad8d981f0a36ac7048b4cfbbe6528e9656b29",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard bc6ad8d981f0a36ac7048b4cfbbe6528e9656b29",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "wasm/web headed Chromium with WebGPU",
+  "hypothesisMarkdown": "Combine the snapped absolute bounds and unrounded absolute outer origin stored for each LayoutId into one FxHashMap cache entry. This preserves the existing hashing strategy and recursive lookup behavior while eliminating one hash-table insertion for every newly cached layout node and removing one per-frame table allocation/clear surface.\n",
+  "measurementPlanMarkdown": "After beginning the experiment and before editing source, run three independent headed Chromium/WebGPU DataTable benchmark processes at DPR 1 and DPR 2 as the fresh serialized checkpoint distribution. Change only crates/gpux/crates/gpui/src/taffy.rs to combine the two absolute-layout caches, then run three equivalent candidate processes. Compare median acknowledged throughput and paced p95, and require exact warmed Taffy, renderer, traversal, final-scroll, and terminal-error counters. Also run focused and full gpux tests, native and WASM checks, package formatting, and warning-denied Clippy. Accept only if all correctness gates pass, the direct insertion/table reduction is present, and neither DPR materially regresses versus the fresh checkpoint distribution.\n",
+  "expectedOutcomeMarkdown": "Preserve exact layout and rendering output while replacing two per-node cache insertions with one. Expect a small improvement or neutral end-to-end result, lower cache bookkeeping, and no new dependency or public API. Renderer, shaders, scene ownership, virtualization, Taffy dependency/version, and computed-root tracking remain unchanged.\n",
+  "diagnostics": {
+    "playwright": [
+      "Fresh checkpoint: three independent headed Chromium/WebGPU Test Suite processes passed for DPR 1 and DPR 2.",
+      "Candidate process 1 failed the benchmark's per-run >20 acknowledged-steps/s gate at both DPRs: 18.15440503022256 at DPR 1 and 17.562903074113958 at DPR 2. The spec aborted before publishing its aggregate JSON, so no candidate median or paced-p95 artifact exists."
+    ],
+    "rayx": [
+      "Candidate Test Suite WASM build verified shared memory, wasm_thread_entry_point, and 101028 atomic prefix bytes before the headed browser run.",
+      "gpui formatting passed; 456 tests passed across the package test targets; native checks with rayx_diagnostics disabled/enabled passed; single-thread WASM diagnostic check passed; warning-denied gpui Clippy passed."
+    ],
+    "counters": [
+      "All six checkpoint DPR samples preserved the exact warmed Taffy tuple 1123 nodes, 229 measured leaves, 341 leaves, 782 containers, 1041 child edges, max fanout 25, 673/726/755/780 containers at most 1/2/4/8 children, 405 flex, 377 block, 0 grid, 82 computes, 0 repeated computes, and 0 invalidated descendants.",
+      "All six checkpoint DPR samples preserved 4440 bounds-tree search visits, 576 retained nodes, 8668 GlobalElementId path elements, 9 batches, 12 queue writes, 10 bind groups, 2 render passes, 1 submission, final offset -351402.6875, and zero terminal error."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 acknowledged throughput",
+      "before": "fresh checkpoint process medians 27.10901163864422, 29.48871290025031, 25.884723677339167 steps/s; distribution median 27.10901163864422",
+      "after": "candidate process failed an individual-run gate at 18.15440503022256 steps/s before aggregate publication",
+      "delta": "9.23% below the mandatory 20 steps/s floor; aggregate delta unavailable",
+      "source": "headed Test Suite Chromium/WebGPU DataTable benchmark"
+    },
+    {
+      "metric": "DPR 2 acknowledged throughput",
+      "before": "fresh checkpoint process medians 26.952468849515668, 29.110806062208923, 27.667471029218177 steps/s; distribution median 27.667471029218177",
+      "after": "candidate process failed an individual-run gate at 17.562903074113958 steps/s before aggregate publication",
+      "delta": "12.19% below the mandatory 20 steps/s floor; aggregate delta unavailable",
+      "source": "headed Test Suite Chromium/WebGPU DataTable benchmark"
+    },
+    {
+      "metric": "DPR 1 paced p95 catch-up latency",
+      "before": "fresh checkpoint process medians 27.57421875, 26.77783203125, 28.283935546875 ms; distribution median 27.57421875 ms",
+      "after": "unavailable because the candidate spec rejected throughput before writing aggregate JSON",
+      "delta": "unavailable",
+      "source": "headed Test Suite Chromium/WebGPU DataTable benchmark"
+    },
+    {
+      "metric": "DPR 2 paced p95 catch-up latency",
+      "before": "fresh checkpoint process medians 27.025634765625, 26.874755859375, 27.049072265625 ms; distribution median 27.025634765625 ms",
+      "after": "unavailable because the candidate spec rejected throughput before writing aggregate JSON",
+      "delta": "unavailable",
+      "source": "headed Test Suite Chromium/WebGPU DataTable benchmark"
+    }
+  ],
+  "reportMarkdown": "## Combined absolute layout cache Finished\n\n**Index:** 17\n**Checkpoint:** bc6ad8d981f0a36ac7048b4cfbbe6528e9656b29\n**Result Commit:** none\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status**: false. Static validation and all 456 gpui tests passed, but the first headed candidate process failed the benchmark's required per-run throughput floor at both DPRs.\n\n### Scope Lock\n\n**Tested mechanism:** combine the snapped bounds and unrounded outer origin into one FxHashMap value.\n**Out-of-scope changes:** none. No second candidate or adjacent mechanism was attempted.\n\n### Repository Checkpoints\n\n| Repo | Path | Checkpoint | Result Commit | Status | Rollback |\n| --- | --- | --- | --- | --- | --- |\n| main | . | bc6ad8d981f0a36ac7048b4cfbbe6528e9656b29 | unchanged | reverted | `git -C \"D:\\\\Work\\\\projects\\\\RayX\\\\RayX\" reset --hard bc6ad8d981f0a36ac7048b4cfbbe6528e9656b29` |\n\n### Measurements\n\nThe fresh three-process checkpoint medians were 27.1090 steps/s and 27.5742 ms paced p95 at DPR 1, and 27.6675 steps/s and 27.0256 ms at DPR 2. Candidate process 1 rejected individual runs at 18.1544 steps/s (DPR 1) and 17.5629 steps/s (DPR 2), so the aggregate candidate JSON was intentionally not produced.\n\n### Decision\n\nReverted failure. The exact production source was restored to the checkpoint; only durable AgentX experiment metadata remains to commit.",
+  "decisionMarkdown": "Revert. Although combining the cache records directly removes one hash insertion per uncached layout and one table, the first representative headed browser process violated the benchmark's mandatory throughput gate at both DPRs. The one-attempt contract forbids additional candidate runs or a fix-forward mechanism in this experiment.",
+  "notes": "The candidate Playwright run emitted an HTML-report/output-folder clash warning because both environment paths resolved beneath tools-node; the tests still executed and failed their independent throughput assertions. Raw candidate output was moved into the approved root artifacts-temp/agentx-experiments tree. No gpux skill or repository memory update was made because the mechanism was rejected."
+}

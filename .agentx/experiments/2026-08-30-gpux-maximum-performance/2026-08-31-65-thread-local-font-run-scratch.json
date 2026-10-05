@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "id": "f242fee2-456f-445b-b209-6a4e801de1d2",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 65,
+  "type": "hypothesis",
+  "name": "Thread Local Font Run Scratch",
+  "slug": "thread-local-font-run-scratch",
+  "path": "2026-08-31-65-thread-local-font-run-scratch.json",
+  "createdAt": "2026-08-31T06:37:58Z",
+  "startedAt": "2026-08-31T06:37:58Z",
+  "finishedAt": "2026-08-31T06:53:21Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "75fb71bf56d533800d9502f38a50eeab47257ae2",
+  "resultCommit": "c09da1db7a4109e369cd98139b731777e8924cfe",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 75fb71bf56d533800d9502f38a50eeab47257ae2",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "75fb71bf56d533800d9502f38a50eeab47257ae2",
+      "resultCommit": "c09da1db7a4109e369cd98139b731777e8924cfe",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 75fb71bf56d533800d9502f38a50eeab47257ae2",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "c09da1db7a4109e369cd98139b731777e8924cfe"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "crates/gpux/crates/gpui/src/text_system.rs",
+  "hypothesisMarkdown": "Replacing `TextSystem`'s shared mutex-protected font-run vector pool with a thread-local pool used by all four scratch callers should remove 640 uncontended locks from the warmed frame while preserving its 100% hit rate. Because pop/push borrows are brief, nested calls remain safe; retained vectors per thread are naturally bounded by maximum concurrent outstanding scratch calls.\n",
+  "measurementPlanMarkdown": "Move font-run scratch vectors into a thread-local `RefCell<Vec<Vec<FontRun>>>`, add direct take/return helpers, and route `shape_text`, `layout_line`, `try_layout_line_by_hash`, and `layout_line_by_hash` through them. Remove the shared pool field and mutex without changing font-run construction or cache calls. Keep existing pool diagnostics at helper boundaries, add focused current-thread reuse proof, then run the full gpux and serialized WGPU suites, production and diagnostic checks, formatting, Clippy, and three headed WebGPU processes at DPR 1 and DPR 2. Require zero warmed scratch misses, exact behavior, and no material cadence regression.\n",
+  "expectedOutcomeMarkdown": "All 320 warmed scratch takes should still hit and return while the 640 shared mutex acquisitions disappear. End-to-end throughput or paced p95 should improve without changing decoration capacity, text-cache tiers, layout, rendering, or final geometry.\n",
+  "diagnostics": {
+    "playwright": [
+      "Three final headed Chromium/WebGPU Test Suite processes passed at DPR 1 and DPR 2: 6/6 cases, exact final offset -351402.6875, and zero browser errors.",
+      "Every final frame preserved 320 scratch hits, zero misses, and every established text-cache, Taffy, renderer, and scroll invariant."
+    ],
+    "rayx": [
+      "All 419 gpux unit tests and every integration suite passed with rayx_diagnostics.",
+      "All 52 serialized gpui_wgpu tests passed with rayx_diagnostics.",
+      "Production and diagnostic checks, focused rustfmt, Clippy with warnings denied, diff checks, diagnostics drain, and current-thread capacity reuse oracles passed."
+    ],
+    "counters": [
+      "All six final cases: 320 thread-local takes, 320 hits, 0 misses, 320 returns.",
+      "DPR 1 three-process medians: 23.600088 acknowledged steps/s and 29.177979 ms paced p95.",
+      "DPR 2 three-process medians: 24.849675 acknowledged steps/s and 29.977051 ms paced p95."
+    ],
+    "artifacts": [
+      "artifacts-temp/agentx-experiments/2026-08-30-gpux-maximum-performance/65-thread-local-font-run-scratch/playwright-final-1",
+      "artifacts-temp/agentx-experiments/2026-08-30-gpux-maximum-performance/65-thread-local-font-run-scratch/playwright-final-2",
+      "artifacts-temp/agentx-experiments/2026-08-30-gpux-maximum-performance/65-thread-local-font-run-scratch/playwright-final-3"
+    ]
+  },
+  "measurements": [
+    {
+      "metric": "font-run scratch synchronization",
+      "before": "320 shared-pool takes + 320 shared-pool returns = 640 mutex acquisitions",
+      "after": "320 thread-local takes, 320 hits, 0 misses, 320 returns in all six final cases",
+      "delta": "-640 mutex acquisitions; allocation behavior unchanged",
+      "source": "source plus headed Test Suite WebGPU telemetry"
+    },
+    {
+      "metric": "DPR 1 end-to-end cadence",
+      "before": "23.188214 steps/s; 30.332764 ms paced p95",
+      "after": "23.600088 steps/s median; 29.177979 ms paced p95 median across three processes",
+      "delta": "+1.78% throughput; +3.81% p95 improvement",
+      "source": "experiment 64 checkpoint versus three headed experiment 65 processes"
+    },
+    {
+      "metric": "DPR 2 end-to-end cadence",
+      "before": "23.583934 steps/s; 31.233398 ms paced p95",
+      "after": "24.849675 steps/s median; 29.977051 ms paced p95 median across three processes",
+      "delta": "+5.37% throughput; +4.02% p95 improvement",
+      "source": "experiment 64 checkpoint versus three headed experiment 65 processes"
+    },
+    {
+      "metric": "behavioral invariants",
+      "before": "320 scratch hits, 320 decoration slots/runs, 320 key hashes, 19 current hits, 301 previous hits, 0 misses",
+      "after": "exactly unchanged in all six final cases",
+      "delta": "zero",
+      "source": "headed Test Suite WebGPU frame telemetry"
+    }
+  ],
+  "reportMarkdown": "## Thread Local Font Run Scratch Finished\n\n**Index:** 65\n**Checkpoint:** `75fb71bf5`\n**Result:** `c09da1db7a4109e369cd98139b731777e8924cfe`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. All four font-run scratch callers now take and return vectors through a thread-local pool. The `RefCell` borrow is limited to each pop or push, so nested calls can take another vector; retained count per thread grows only to maximum concurrent outstanding calls.\n\nEvery one of six final headed cases preserves 320 takes, 320 hits, zero misses, and 320 returns while removing the shared mutex and its 640 warmed acquisitions. Decoration capacity remains 320 for 320 live runs, and every established cache, layout, renderer, and final-scroll invariant is exact. A focused oracle proves a returned vector's capacity is reused on the current thread.\n\nAgainst experiment 64's instrumented checkpoint, three-process median acknowledged throughput improved from 23.188214 to 23.600088 steps/s at DPR 1 (+1.78%) and from 23.583934 to 24.849675 at DPR 2 (+5.37%). Paced p95 improved from 30.332764 to 29.177979 ms (+3.81%) and from 31.233398 to 29.977051 ms (+4.02%).\n\nAll 419 gpux unit tests and integration suites, all 52 serialized WGPU tests, production and diagnostics checks, focused formatting, Clippy with warnings denied, thread-local reuse proof, and all six headed WebGPU cases passed.\n\n### Scope Lock\n\nOnly font-run scratch ownership and the four existing callers changed. Font resolution, run merging, cache keys, shaping, output ownership, and public APIs remain unchanged. No dependency or unsafe code was added.\n\n### Decision\n\nAccept thread-local font-run scratch. Preserve brief borrow scope and all-caller consistency. Next avoid acquiring pooled `LineWrapperHandle`s for the measured non-truncating text path.\n",
+  "decisionMarkdown": "Accept thread-local font-run scratch across all four callers. It removes 640 warmed shared mutex acquisitions, preserves zero misses and exact behavior, improves throughput and paced p95 at both DPRs, and remains reentrant because pool borrows cover only pop/push.\n",
+  "notes": ""
+}

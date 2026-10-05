@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "id": "8de84f7b-c5fa-4b13-9f33-f01da070f090",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 116,
+  "type": "hypothesis",
+  "name": "Bounds Tree Area Cost Research",
+  "slug": "bounds-tree-area-cost-research",
+  "path": "2026-08-31-116-bounds-tree-area-cost-research.json",
+  "createdAt": "2026-08-31T18:36:07Z",
+  "startedAt": "2026-08-31T18:36:07Z",
+  "finishedAt": "2026-08-31T18:38:03Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "e4be0b4e7d1867b4d717f2469116db30a027c4bd",
+  "resultCommit": "e4be0b4e7d1867b4d717f2469116db30a027c4bd",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard e4be0b4e7d1867b4d717f2469116db30a027c4bd",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "e4be0b4e7d1867b4d717f2469116db30a027c4bd",
+      "resultCommit": "e4be0b4e7d1867b4d717f2469116db30a027c4bd",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard e4be0b4e7d1867b4d717f2469116db30a027c4bd",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "e4be0b4e7d1867b4d717f2469116db30a027c4bd"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux BoundsTree child-ranking CPU cost",
+  "hypothesisMarkdown": "## Bounds Tree Area Cost Research Hypothesis\n\nThe accepted 12-child BoundsTree insertion path may perform redundant rectangle-area work while ranking candidate children; a source-and-profile attribution pass should determine whether one simple cached-area or single-computation mechanism is justified for a later atomic optimization.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nResearch only. Inspect the current BoundsTree insertion implementation, its geometry helpers, focused tests, existing diagnostics, and experiment 114 CPU profiles. Product source, tests, dependencies, configuration, and fixtures are forbidden.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nTrace every area and union calculation performed for the 14,351 child evaluations in experiment 114, inspect optimized CPU-profile symbol attribution where available, and derive an exact per-evaluation operation count from current source. Accept the research if it identifies one bounded mechanism with preserved semantics and a measurable static reduction, or conclusively rules this path out.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nProduce a source-backed cost model and either a precisely scoped next experiment or a decision to leave the area-ranking loop unchanged.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [
+      "14351 child evaluations",
+      "one union-half-perimeter calculation per evaluation",
+      "find_max_ordering filter self-time 91.337 ms at DPR 1 and 82.946 ms at DPR 2"
+    ],
+    "artifacts": [
+      "experiment 114 CPU profiles",
+      "current bounds_tree.rs and geometry.rs source"
+    ]
+  },
+  "measurements": {
+    "baselineExperiment": 114,
+    "childEvaluations": 14351,
+    "unionHalfPerimeterEvaluationsPerChild": 1,
+    "totalUnionHalfPerimeterEvaluations": 14351,
+    "cachedChildAreaReadsAvailable": 0,
+    "profiles": [
+      {
+        "deviceScaleFactor": 1,
+        "boundsTreeInsertSelfMs": 155.246,
+        "findMaxOrderingFilterSelfMs": 91.337
+      },
+      {
+        "deviceScaleFactor": 2,
+        "boundsTreeInsertSelfMs": 144.38899999999998,
+        "findMaxOrderingFilterSelfMs": 82.94600000000001
+      }
+    ],
+    "sourceFinding": "The ranking path invokes bounds.union(child.bounds).half_perimeter() exactly once per child. The generic union constructs a temporary Bounds, but there is no repeated child-area computation or reusable cached area in the chosen cost function."
+  },
+  "reportMarkdown": "# Experiment 116 Report\n\nCurrent source performs one `union(...).half_perimeter()` calculation for each child considered by the insertion ranking loop. Experiment 114 recorded 14,351 child evaluations, so the workload contains exactly 14,351 such calculations. It does not compute a standalone child area, does not repeat the same union cost within an evaluation, and has no existing area value whose caching would remove work.\n\nThe generic union path materializes a temporary `Bounds`, but release compilation can inline and scalarize it. Adding cached area state would increase every node's footprint and invalidation burden without eliminating a source-visible repeated calculation. A specialized fused helper would only speculate about compiler behavior and lacks an independent cost attribution.\n\nThe same accepted profiles expose a stronger bounded target: the `find_max_ordering` iterator/filter closure samples at 91.337 ms for DPR 1 and 82.946 ms for DPR 2, separate from insertion's 155.246 ms and 144.389 ms. Its current iterator chain can be replaced by one direct loop without changing the traversal stack contract, making that a better next atomic hypothesis.\n",
+  "decisionMarkdown": "# Decision\n\nDo not add cached bounds areas or a fused area helper: current source has no redundant area computation to eliminate, and node-state growth is unjustified. Advance the direct slow-search child loop as a separate experiment because it has explicit sampled cost and can remove iterator/filter machinery without changing the algorithm.\n",
+  "notes": ""
+}

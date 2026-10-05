@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "87e4d43f-8956-40de-ac8f-5524004435d6",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 77,
+  "type": "hypothesis",
+  "name": "Request to Prepaint Style Eligibility Telemetry",
+  "slug": "request-to-prepaint-style-eligibility-telemetry",
+  "path": "2026-08-31-77-request-to-prepaint-style-eligibility-telemetry.json",
+  "createdAt": "2026-08-31T11:39:41Z",
+  "startedAt": "2026-08-31T11:39:41Z",
+  "finishedAt": "2026-08-31T11:42:47Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "95e98c3a4636cce1381aa52315b372855fca3c65",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 95e98c3a4636cce1381aa52315b372855fca3c65",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "95e98c3a4636cce1381aa52315b372855fca3c65",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 95e98c3a4636cce1381aa52315b372855fca3c65",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "wasm/web with headed Playwright and WebGPU enabled",
+  "hypothesisMarkdown": "## Request to Prepaint Style Eligibility Telemetry Hypothesis\n\nTwo diagnostics-only counters plus one diagnostics-only per-element boolean can measure how many structurally static request-layout styles reach the matching prepaint phase without changing production behavior. If the warmed workload exposes a large matching population, a later experiment can move those owned styles through a private draw-local store instead of recomputing them.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRecord request-layout static eligibility and matching prepaint arrival only. Production style reuse, window storage, public APIs, Taffy conversion, dependencies, unrelated telemetry, and performance claims are forbidden.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nExtend the existing six-counter style diagnostics array to eight entries, add a `rayx_diagnostics`-only boolean to `Interactivity`, propagate the two values through the existing frame snapshot, and run the canonical headed WebGPU benchmark at DPR1 and DPR2. Require exact established runtime counters, final offset, zero errors, and internally consistent eligibility counts. Then run the full gpux and serialized WGPU validation gates plus production/diagnostic checks and warning-denied Clippy.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nAt least half of prepaint phases should arrive with a structurally static request-layout candidate. Production builds remain structurally unchanged because all new state and branches are behind `rayx_diagnostics`.",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [
+      "The first diagnostic gpux check failed with E0451 because `uniform_list` constructs `Interactivity` with crate-level struct update syntax while the new diagnostics-only candidate field was private."
+    ],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [],
+  "reportMarkdown": "## Request to Prepaint Style Eligibility Telemetry Finished\n\n**Passed Status:** false. The first implementation attempt failed its diagnostic compile gate before runtime measurement. `uniform_list` constructs `Interactivity` with `Interactivity { ..Interactivity::new() }`; the new diagnostics-only boolean was private and therefore unavailable to that sibling module.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nOnly the printed two-counter telemetry mechanism was attempted. All six source/fixture files were restored byte-for-byte to checkpoint. No runtime measurement or out-of-scope change occurred.\n\n### Repository Checkpoints\n\n| Repo | Path | Checkpoint | Result Commit | Status | Rollback |\n| --- | --- | --- | --- | --- | --- |\n| main | `.` | `95e98c3a4636cce1381aa52315b372855fca3c65` | unchanged | reverted | `git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 95e98c3a4636cce1381aa52315b372855fca3c65` |",
+  "decisionMarkdown": "### Decision\n\nReject and revert this attempt. A fresh experiment may repeat the same diagnostics mechanism with the per-element boolean declared `pub(crate)`, matching the existing crate-level construction boundary.",
+  "notes": "No memory or skill update because the experiment produced no runtime evidence."
+}

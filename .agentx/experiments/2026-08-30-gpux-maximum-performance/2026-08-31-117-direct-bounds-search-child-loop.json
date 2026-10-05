@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "id": "ed037601-9634-4975-b164-a8ec3478a33d",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 117,
+  "type": "hypothesis",
+  "name": "Direct Bounds Search Child Loop",
+  "slug": "direct-bounds-search-child-loop",
+  "path": "2026-08-31-117-direct-bounds-search-child-loop.json",
+  "createdAt": "2026-08-31T18:39:03Z",
+  "startedAt": "2026-08-31T18:39:03Z",
+  "finishedAt": "2026-08-31T18:48:27Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "77f9873daddec4d063ab8d09deb6b0abf4ad7c04",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 77f9873daddec4d063ab8d09deb6b0abf4ad7c04",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "77f9873daddec4d063ab8d09deb6b0abf4ad7c04",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 77f9873daddec4d063ab8d09deb6b0abf4ad7c04",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux BoundsTree slow-search traversal CPU cost",
+  "hypothesisMarkdown": "## Direct Bounds Search Child Loop Hypothesis\n\nReplacing the `find_max_ordering` child iterator/map/filter/map/extend chain with an equivalent direct loop should remove adapter and closure overhead from the 495 slow searches while preserving forward push order, reverse pop priority, pruning, and intersection semantics.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nChange only the child-enqueue expression inside `BoundsTree::find_max_ordering` in `crates/gpux/crates/gpui/src/bounds_tree.rs`. Preserve the same predicate, forward iteration order, `NonNull` stack representation, all APIs, diagnostics, tests, dependencies, configuration, and fixtures. No other traversal or insertion changes are allowed.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nRun formatting, focused BoundsTree tests, both gpux clippy matrices, full gpux diagnostics tests, gpui_wgpu diagnostics tests, and headed Test Suite WASM/WebGPU CPU profiles at DPR 1 and 2. Require identical deterministic BoundsTree counters and exact final rendering. Accept only if the iterator-specific profile symbol is eliminated, total sampled `find_max_ordering` self-time improves at both DPRs, and throughput and paced p95 do not regress by more than 2% at either DPR relative to experiment 114.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nThe direct loop should compile to simpler control flow with no iterator adapter state while pushing exactly the same child pointers in the same order, reducing the sampled slow-search cost without changing the tree structure or rendering result.\n",
+  "diagnostics": {
+    "playwright": [
+      {
+        "target": "apps/test_suite",
+        "runtime": "headed Chromium WASM/WebGPU",
+        "passed": 2,
+        "failed": 0
+      }
+    ],
+    "rayx": [],
+    "counters": [
+      "deterministic BoundsTree counters exactly match experiment 114",
+      "iterator symbol eliminated but insertion self-time increased at both DPRs"
+    ],
+    "artifacts": [
+      "test-results",
+      "playwright-report",
+      "two CPU profiles"
+    ]
+  },
+  "measurements": {
+    "baselineExperiment": 114,
+    "runs": [
+      {
+        "deviceScaleFactor": 1,
+        "baselineThroughput": 29.06310573869915,
+        "candidateThroughput": 22.65925505093203,
+        "throughputDeltaPercent": -22.0342958021862,
+        "baselinePacedP95Ms": 27.759033203125,
+        "candidatePacedP95Ms": 25.86328125,
+        "pacedP95DeltaPercent": -6.829315485351928,
+        "baselineInsertSelfMs": 155.246,
+        "candidateInsertSelfMs": 196.3629999999999,
+        "insertSelfDeltaPercent": 26.485062417067027
+      },
+      {
+        "deviceScaleFactor": 2,
+        "baselineThroughput": 29.347909265949358,
+        "candidateThroughput": 22.421529690925926,
+        "throughputDeltaPercent": -23.600930179580804,
+        "baselinePacedP95Ms": 27.533447265625,
+        "candidatePacedP95Ms": 33.64892578125,
+        "pacedP95DeltaPercent": 22.211089140516236,
+        "baselineInsertSelfMs": 144.38899999999998,
+        "candidateInsertSelfMs": 248.56299999999987,
+        "insertSelfDeltaPercent": 72.14815533039214
+      }
+    ],
+    "deterministicCounters": {
+      "searchNodeVisits": 4440,
+      "childEvaluations": 14351,
+      "retainedNodes": 576,
+      "matchesBaseline": true
+    },
+    "iteratorProfileSymbolEliminated": true,
+    "validation": {
+      "format": "pass",
+      "focusedBoundsTreeTests": "3 passed",
+      "clippyDefault": "pass",
+      "clippyDiagnostics": "pass",
+      "gpuxTests": "419 passed",
+      "gpuiWgpuTests": "52 passed",
+      "playwright": "2 passed with zero terminal error"
+    }
+  },
+  "reportMarkdown": "# Experiment 117 Report\n\nThe direct child loop passed formatting, both clippy matrices, three focused BoundsTree tests, 419 gpux tests, 52 gpui_wgpu tests, and both headed Test Suite WASM/WebGPU cases. Its deterministic tree counters exactly matched experiment 114: 4,440 visits, 14,351 child evaluations, and 576 retained nodes.\n\nThe iterator-specific CPU-profile symbol disappeared, but its work was inlined into `BoundsTree::insert` and became substantially slower. Insertion self-time increased from 155.246 to 196.363 ms (+26.485%) at DPR 1 and from 144.389 to 248.563 ms (+72.148%) at DPR 2.\n\nEnd-to-end throughput regressed from 29.0631 to 22.6593 steps/s (-22.034%) at DPR 1 and from 29.3479 to 22.4215 steps/s (-23.601%) at DPR 2. DPR 1 paced p95 improved 6.829%, but DPR 2 worsened 22.211%.\n\nThe candidate therefore failed both the sampled slow-search-cost requirement and the 2% end-to-end non-regression gate. The exact iterator implementation was restored.\n",
+  "decisionMarkdown": "# Decision\n\nReject and revert the direct child loop. LLVM's release code generation for the iterator chain is materially better for this workload despite the visible adapter symbol. Treat the iterator implementation as the accepted simple fast path unless a different algorithm, not merely syntax, is independently justified.\n",
+  "notes": ""
+}

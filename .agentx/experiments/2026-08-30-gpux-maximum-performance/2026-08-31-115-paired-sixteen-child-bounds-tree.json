@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "id": "a18b774b-fdf1-4d21-9fc0-b32c4b5eca9c",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 115,
+  "type": "hypothesis",
+  "name": "Paired Sixteen Child Bounds Tree",
+  "slug": "paired-sixteen-child-bounds-tree",
+  "path": "2026-08-31-115-paired-sixteen-child-bounds-tree.json",
+  "createdAt": "2026-08-31T18:27:28Z",
+  "startedAt": "2026-08-31T18:27:28Z",
+  "finishedAt": "2026-08-31T18:35:02Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "fde1ae374ff20de5a66dd41a7add0877dc8311cc",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard fde1ae374ff20de5a66dd41a7add0877dc8311cc",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "fde1ae374ff20de5a66dd41a7add0877dc8311cc",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard fde1ae374ff20de5a66dd41a7add0877dc8311cc",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux BoundsTree insertion and end-to-end Test Suite WASM/WebGPU cadence",
+  "hypothesisMarkdown": "## Paired Sixteen-Child Bounds Tree Hypothesis\n\nIncreasing `MAX_CHILDREN` from 12 to 16 should reduce BoundsTree depth, search-node visits, and retained nodes enough to lower insertion self-time without materially regressing end-to-end wide DataTable throughput or paced p95 latency.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nChange only the `MAX_CHILDREN` constant in `crates/gpux/crates/gpui/src/bounds_tree.rs` from 12 to 16. Preserve insertion ordering, intersection semantics, public APIs, diagnostics, tests, dependencies, configuration, and fixtures. Adjacent BoundsTree algorithm changes are forbidden.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nRun formatting, focused BoundsTree tests, both gpux clippy feature matrices, the full gpux diagnostic suite, the gpui_wgpu diagnostic suite, and headed Test Suite WASM/WebGPU with CPU profiles at DPR 1 and 2. Compare only with experiment 114. Accept only if insertion self-time decreases at both DPRs, deterministic search visits and retained nodes decrease, and neither throughput nor paced p95 regresses by more than 2% at either DPR. Require exact final rendering and zero errors.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nThe wider node should exchange additional child evaluations per visited node for a shallower tree. A successful candidate will demonstrate that the structural reduction translates into lower insertion CPU cost while keeping end-to-end rendering cadence within the strict paired non-regression gate.\n",
+  "diagnostics": {
+    "playwright": [
+      {
+        "target": "apps/test_suite",
+        "runtime": "headed Chromium WASM/WebGPU",
+        "passed": 2,
+        "failed": 0
+      }
+    ],
+    "rayx": [],
+    "counters": [
+      "504 insertions and zero terminal error at both DPRs",
+      "3343 visits, 16348 child evaluations, 559 retained nodes"
+    ],
+    "artifacts": [
+      "test-results",
+      "playwright-report",
+      "two CPU profiles"
+    ]
+  },
+  "measurements": {
+    "baselineExperiment": 114,
+    "checkpointCommit": "fde1ae374ff20de5a66dd41a7add0877dc8311cc",
+    "candidateMaxChildren": 16,
+    "runs": [
+      {
+        "deviceScaleFactor": 1,
+        "baselineThroughput": 29.06310573869915,
+        "candidateThroughput": 22.458727596296267,
+        "throughputDeltaPercent": -22.72426641726223,
+        "baselinePacedP95Ms": 27.759033203125,
+        "candidatePacedP95Ms": 35.40673828125,
+        "pacedP95DeltaPercent": 27.55033090922722,
+        "baselineInsertSelfMs": 155.246,
+        "candidateInsertSelfMs": 176.81699999999998,
+        "insertSelfDeltaPercent": 13.895951715859978,
+        "terminalErrorMax": 0.0
+      },
+      {
+        "deviceScaleFactor": 2,
+        "baselineThroughput": 29.347909265949358,
+        "candidateThroughput": 29.632739969817575,
+        "throughputDeltaPercent": 0.9705329402699486,
+        "baselinePacedP95Ms": 27.533447265625,
+        "candidatePacedP95Ms": 27.193359375,
+        "pacedP95DeltaPercent": -1.2351925401202797,
+        "baselineInsertSelfMs": 144.38899999999998,
+        "candidateInsertSelfMs": 143.20700000000002,
+        "insertSelfDeltaPercent": -0.818623299490965,
+        "terminalErrorMax": 0.0
+      }
+    ],
+    "boundsTree": {
+      "baselineSearchNodeVisitCount": 4440,
+      "candidateSearchNodeVisitCount": 3343,
+      "searchNodeVisitDeltaPercent": -24.707207207207205,
+      "baselineInsertionChildEvaluationCount": 14351,
+      "candidateInsertionChildEvaluationCount": 16348,
+      "childEvaluationDeltaPercent": 13.915058184098669,
+      "baselineRetainedNodeCount": 576,
+      "candidateRetainedNodeCount": 559,
+      "retainedNodeDeltaPercent": -2.951388888888889
+    },
+    "validation": {
+      "format": "pass",
+      "focusedBoundsTreeTests": "3 passed",
+      "clippyDefault": "pass",
+      "clippyDiagnostics": "pass",
+      "gpuxTests": "419 passed",
+      "gpuiWgpuTests": "52 passed",
+      "playwright": "2 passed"
+    }
+  },
+  "reportMarkdown": "# Experiment 115 Report\n\nThe one-line 16-child candidate passed formatting, both clippy feature matrices, all three focused BoundsTree tests, 419 gpux tests, 52 gpui_wgpu tests, and both headed Test Suite WASM/WebGPU cases with exact final rendering.\n\nThe deterministic structure changed as predicted: search visits fell from 4,440 to 3,343 (-24.707%), retained nodes fell from 576 to 559 (-2.951%), and child evaluations increased from 14,351 to 16,348 (+13.915%).\n\nThe performance gate failed at DPR 1. Throughput fell from 29.0631 to 22.4587 steps/s (-22.724%), paced p95 worsened from 27.7590 to 35.4067 ms (+27.550%), and sampled insertion self-time increased from 155.246 to 176.817 ms (+13.896%). DPR 2 was nearly neutral: throughput +0.971%, paced p95 -1.235%, and insertion self-time -0.819%.\n\nBecause insertion self-time did not improve at both DPRs and the DPR 1 end-to-end regressions exceeded 2%, the candidate was rejected and the source was restored to the exact checkpoint state.\n",
+  "decisionMarkdown": "# Decision\n\nReject the 16-child BoundsTree candidate. Its shallower structure does not reliably translate to lower insertion CPU cost and materially degrades DPR 1 rendering cadence. Restore `MAX_CHILDREN` to 12 and close this width-only branch; any different tree-search mechanism must be a new experiment.\n",
+  "notes": ""
+}

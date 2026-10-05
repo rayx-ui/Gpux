@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "id": "6420a9af-2f6e-4643-81ab-1b47a777a8b1",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 24,
+  "type": "hypothesis",
+  "name": "Layout bounds cache telemetry with formatted oracle",
+  "slug": "layout-bounds-cache-telemetry-with-formatted-oracle",
+  "path": "2026-08-30-24-layout-bounds-cache-telemetry-with-formatted-oracle.json",
+  "createdAt": "2026-08-30T22:42:11Z",
+  "startedAt": "2026-08-30T22:42:11Z",
+  "finishedAt": "2026-08-30T23:03:02Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "e15517b2b",
+  "resultCommit": "8cf836a39930876cae7d65c6dfd227c8815fd1c2",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard e15517b2b",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "e15517b2b",
+      "resultCommit": "8cf836a39930876cae7d65c6dfd227c8815fd1c2",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard e15517b2b",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "8cf836a39930876cae7d65c6dfd227c8815fd1c2"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "Taffy layout bounds cache telemetry in wide DataTable WebGPU frame",
+  "hypothesisMarkdown": "Add the same four diagnostic-only `TaffyLayoutEngine::layout_bounds` counters attempted in experiment 23, but encode the expanded fixed diagnostics oracle in rustfmt's exact single-line form. This should expose direct and recursive bounds-cache behavior without affecting non-diagnostic production code.",
+  "measurementPlanMarkdown": "Collect three new headed WebGPU Test Suite checkpoint processes before editing, one worker and both DPRs. Apply only four counters at diagnostics indices 16..19 through gpui, Scene, gpui_wgpu, gpui_web, and the focused TypeScript fixture, with the 20-value Rust oracle written in rustfmt-compatible form. Run package formatting first, then 456 gpui tests, two sequential 52/52 gpui_wgpu suites, native checks with diagnostics off/on, single-thread WASM diagnostics check, warning-denied Clippy, and three fresh candidate browser processes. Require existing-counter parity, new-counter invariants, zero terminal errors, and no material product regression.",
+  "expectedOutcomeMarkdown": "Every static, test, and browser gate passes. The new counters are stable at both DPRs and reveal whether recursive parent-origin resolution performs enough misses to motivate a later optimization. Accept only as bounded diagnostic infrastructure; otherwise immediately revert.",
+  "diagnostics": {
+    "playwright": [
+      "Three fresh checkpoint and three fresh candidate headed Chromium/WebGPU processes passed at DPR 1 and DPR 2 with one worker (12/12 project runs).",
+      "Candidate builds verified shared WASM memory, wasm_thread_entry_point, and 100268 atomic prefix bytes; all runs used apps/test_suite and recorded zero terminal errors."
+    ],
+    "rayx": [
+      "Package formatting passed for gpui, gpui_wgpu, and gpui_web.",
+      "All 456 gpui package tests passed; two sequential gpui_wgpu diagnostics suites passed 52/52 in 0.86 s and 0.83 s.",
+      "Native diagnostics-off/on checks, single-thread WASM diagnostics check, and warning-denied gpux/WGPU Clippy passed."
+    ],
+    "counters": [
+      "Every candidate frame reported 3661 layout-bounds calls, 2574 cache hits, 1005 recursive parent-origin hits, and 0 recursive parent-origin misses at both DPRs.",
+      "Every established renderer counter was identical across all checkpoint and candidate runs at each DPR, including 1123 Taffy nodes, 9 batches, 12 queue writes, 10 bind groups, 2 passes, 1 submission, 4440 bounds visits, 8668 global-id path elements, and final offset -351402.6875."
+    ],
+    "artifacts": [
+      "artifacts-temp/agentx-experiments/gpux-maximum-performance/24-layout-bounds-cache-telemetry/"
+    ]
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 median acknowledged steps/s",
+      "before": "28.476279152679776",
+      "after": "30.19922732256971",
+      "delta": "+6.0505%",
+      "source": "median of three independent headed WebGPU processes"
+    },
+    {
+      "metric": "DPR 2 median acknowledged steps/s",
+      "before": "26.06044172188116",
+      "after": "30.145665362313956",
+      "delta": "+15.6760%",
+      "source": "median of three independent headed WebGPU processes"
+    },
+    {
+      "metric": "DPR 1 median paced p95 catch-up latency",
+      "before": "27.7392578125 ms",
+      "after": "27.568115234375 ms",
+      "delta": "-0.6170%",
+      "source": "median of three independent headed WebGPU processes"
+    },
+    {
+      "metric": "DPR 2 median paced p95 catch-up latency",
+      "before": "28.07666015625 ms",
+      "after": "27.252685546875 ms",
+      "delta": "-2.9347%",
+      "source": "median of three independent headed WebGPU processes"
+    },
+    {
+      "metric": "recursive parent-origin cache behavior",
+      "before": "unmeasured",
+      "after": "1005 hits / 0 misses per warmed frame",
+      "delta": "actionable evidence",
+      "source": "all six candidate DPR runs"
+    }
+  ],
+  "reportMarkdown": "## Layout Bounds Cache Telemetry Finished\n\n**Index:** 24\n**Checkpoint:** `e15517b2b5c24bf3a866ee9d39e417dd8d349a88`\n**Result Commit:** `8cf836a39930876cae7d65c6dfd227c8815fd1c2`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. The bounded diagnostics pipeline passed every static, test, and headed WebGPU gate and produced stable actionable evidence.\n\n### Measurements\n\n| Metric | Checkpoint | Candidate | Delta |\n|---|---:|---:|---:|\n| DPR 1 acknowledged steps/s | 28.4763 | 30.1992 | +6.05% |\n| DPR 2 acknowledged steps/s | 26.0604 | 30.1457 | +15.68% |\n| DPR 1 paced p95 | 27.7393 ms | 27.5681 ms | -0.62% |\n| DPR 2 paced p95 | 28.0767 ms | 27.2527 ms | -2.93% |\n\nThe throughput movement is treated only as non-regression evidence because this experiment adds diagnostics rather than optimizing production behavior. All six candidate frames reported exactly 3,661 calls, 2,574 hits, 1,005 recursive parent hits, and zero recursive parent misses.\n\n### Decision\n\nAccept and commit the telemetry. It is compiled out of production builds, preserves every established counter, and identifies a separately testable optimization: remove the always-hit recursive parent bounds lookup in favor of the cached parent origin.",
+  "decisionMarkdown": "Accept. The telemetry is bounded, diagnostics-only, fully validated, and reveals a stable 1,005-hit/0-miss recursive parent lookup pattern. Do not claim the observed browser throughput increase as a production optimization; use the counters to drive a separate direct-parent-origin experiment.",
+  "notes": "No gpux skill reference change was warranted; this experiment adds workload-specific measurement evidence rather than a reusable maintenance workflow."
+}

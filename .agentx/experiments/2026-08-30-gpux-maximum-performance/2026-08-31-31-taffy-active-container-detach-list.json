@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "id": "91bc898b-6326-4442-9316-9bf872de5b57",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 31,
+  "type": "hypothesis",
+  "name": "Taffy Active Container Detach List",
+  "slug": "taffy-active-container-detach-list",
+  "path": "2026-08-31-31-taffy-active-container-detach-list.json",
+  "createdAt": "2026-08-31T00:31:01Z",
+  "startedAt": "2026-08-31T00:31:01Z",
+  "finishedAt": "2026-08-31T00:43:30Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "38e668eed06d3a70477a574fc195c0eff15487e8",
+  "resultCommit": "2a610742271e151c04545f4b4a41a5a2684e487a",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 38e668eed06d3a70477a574fc195c0eff15487e8",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "38e668eed06d3a70477a574fc195c0eff15487e8",
+      "resultCommit": "2a610742271e151c04545f4b4a41a5a2684e487a",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 38e668eed06d3a70477a574fc195c0eff15487e8",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "2a610742271e151c04545f4b4a41a5a2684e487a"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "wasm/web with headed Playwright and WebGPU enabled",
+  "hypothesisMarkdown": "# Hypothesis\n\nThe pooled Taffy clear path probes all 1,123 active nodes with `child_count` even though only 782 are containers. Recording only nodes requested with children and draining that list in reverse post-order should replace those topology lookups and branches with allocation-free warmed vector appends and direct detach operations.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\n1. Add an active-container vector to `TaffyLayoutEngine`, record every non-empty child request, and drain it in reverse during clear.\n2. Extend the focused topology test to prove only the current frame's container is recorded after a changed-tree reuse cycle.\n3. Run package formatting, both focused Taffy tests, all gpux tests, the serialized gpui_wgpu diagnostics suite, diagnostics-disabled gpux check, and warning-denied gpux Clippy.\n4. Run three fresh headed Test Suite WebGPU processes at DPR 1 and DPR 2 and compare against experiment 30's three-process accepted distribution.\n5. Require exact rendering/layout counters, exact terminal offsets, zero terminal error, and no more than 5% regression in central throughput or paced p95.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nThe warmed wide DataTable clear path performs 782 direct container detaches instead of 1,123 topology queries plus 782 conditional detaches. The retained vector is allocation-free after warmup, behavior remains exact, and browser throughput and paced p95 remain within the 5% non-regression envelope.\n",
+  "diagnostics": {
+    "playwright": [
+      "Three fresh headed Chromium/WebGPU processes passed both DPRs with one worker (6/6 project runs), exact final offsets, and zero terminal errors.",
+      "apps/test_suite was the exclusive runtime fixture; each build verified shared memory, wasm_thread_entry_point, and 101599 atomic prefix bytes."
+    ],
+    "rayx": [
+      "Both focused Taffy topology/context tests passed; all 402 gpux diagnostics tests passed.",
+      "All 52 gpui_wgpu diagnostics tests passed serially in 0.87 s.",
+      "Diagnostics-disabled gpux check, package formatting, warning-denied gpux Clippy, AgentX memory audit, and improvement-loop validation passed."
+    ],
+    "counters": [
+      "Frame clear now performs 782 direct detaches and zero child_count topology probes for the warmed 1,123-node tree; the 782-entry container vector reuses its allocation.",
+      "All six browser projects preserved the exact Taffy vector 1123,229,341,782,1041,25,673,726,755,780,405,377,0,82,0,0,3661,2574,1005,0 and zero terminal error."
+    ],
+    "artifacts": [
+      "artifacts-temp/agentx-experiments/gpux-maximum-performance/31-taffy-active-container-detach-list/"
+    ]
+  },
+  "measurements": [
+    {
+      "metric": "per-frame pooled-tree topology probes",
+      "before": "1,123 child_count lookups and branches plus 782 detaches",
+      "after": "782 allocation-free warmed container records plus 782 direct detaches",
+      "delta": "341 leaf probes and all detach-condition branches removed"
+    },
+    {
+      "metric": "DPR 1 median acknowledged steps/s",
+      "before": "30.08180144266304",
+      "after": "30.04547909056237",
+      "delta": "-0.1207%"
+    },
+    {
+      "metric": "DPR 2 median acknowledged steps/s",
+      "before": "30.04301483756909",
+      "after": "30.13326587499544",
+      "delta": "+0.3004%"
+    },
+    {
+      "metric": "DPR 1 median paced p95",
+      "before": "26.94287109375 ms",
+      "after": "27.218017578125 ms",
+      "delta": "+1.0212%"
+    },
+    {
+      "metric": "DPR 2 median paced p95",
+      "before": "26.511474609375 ms",
+      "after": "27.8154296875 ms",
+      "delta": "+4.9185%"
+    }
+  ],
+  "reportMarkdown": "## Taffy Active Container Detach List Finished\n\n**Index:** 31\n**Checkpoint:** `38e668eed06d3a70477a574fc195c0eff15487e8`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. `TaffyLayoutEngine` now records only active containers and drains that list in reverse request order. The warmed 1,123-node/782-container DataTable replaces 1,123 `child_count` topology lookups and conditional branches with 782 allocation-free vector appends and 782 direct detach calls, while preserving the reverse-post-order ownership invariant.\n\nThree fresh headed WebGPU processes at both DPRs preserved exact Taffy/renderer telemetry, exact terminal offsets, and zero terminal errors. Median acknowledged throughput moved -0.12% at DPR 1 and +0.30% at DPR 2. Paced p95 moved +1.02% and +4.92%, remaining inside the declared 5% non-regression envelope.\n\n### Scope Lock\n\nThe only production mechanism is the active-container detach list inside `TaffyLayoutEngine`; no dependency, layout algorithm, renderer, shader, ID, or virtualization change was included.\n\n### Decision\n\nAccept and commit. The change directly reduces pooled-tree clear work, retains bounded allocation-free ownership after warmup, and satisfies all correctness and non-regression gates.\n",
+  "decisionMarkdown": "Accept and commit. Record active Taffy containers during requests and detach only that list in reverse post-order, eliminating topology probes for active leaves.",
+  "notes": "Attempt Count: 1. Out-of-scope changes: none. The first focused command used the old package name and the second filter initially selected zero tests; both were command-only corrections, and the correctly named tests plus full suites passed. Baseline measurements use experiment 30's three-process accepted distribution."
+}

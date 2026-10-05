@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "id": "00cd98f4-8eec-43cc-a479-d698f3b2ef47",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 3,
+  "type": "hypothesis",
+  "name": "WebGPU Family Instance Writes",
+  "slug": "web-gpu-family-instance-writes",
+  "path": "2026-08-30-03-web-gpu-family-instance-writes.json",
+  "createdAt": "2026-08-30T18:42:32Z",
+  "startedAt": "2026-08-30T18:42:32Z",
+  "finishedAt": "2026-08-30T18:54:56Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "087d1dece2ca2fc5b289d3317c9dcc8e4d93d450",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 087d1dece2ca2fc5b289d3317c9dcc8e4d93d450",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "087d1dece2ca2fc5b289d3317c9dcc8e4d93d450",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 087d1dece2ca2fc5b289d3317c9dcc8e4d93d450",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpui_wgpu storage-buffer path with apps/test_suite wide DataTable headed WebGPU",
+  "hypothesisMarkdown": "# Hypothesis\n\nOn the WebGPU storage-buffer path, packing and writing each ordinary primitive family once per frame and drawing scene batch ranges from those family allocations will reduce queue traffic without changing scene order or shader data. The wide DataTable should reduce its renderer telemetry from 12 queue-buffer writes to five: three globals, one packed quad-family write, and one monochrome-sprite-family write. WebGL2, paths, HTML islands, visual effects, and screen effects remain on their existing paths in this experiment.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\n1. Collect a fresh serialized headed-WebGPU checkpoint run of the existing wide DataTable benchmark at DPR1 and DPR2.\n2. Add one WebGPU-only prepared ordinary-family allocation for quads, shadows, underlines, and the three atlas-sprite families. Pack quads and gradient stops once, write each nonempty family once, and draw the existing scene ranges with first-instance offsets.\n3. Preserve all existing WebGL2 packed-texture behavior, batch iteration and ordering, atlas texture selection, effect/path/HTML-island handling, buffer overflow growth/retry behavior, shaders, and public APIs.\n4. Extend the existing telemetry assertions to require five queue-buffer writes for the warmed wide-table frame while retaining byte, primitive, batch, pass, atlas, submission, and correctness gates.\n5. Run diagnostics-off/on compilation, focused Clippy, relevant unit tests, forced WebGL2 compatibility proof if available, and headed WebGPU candidate measurement. Accept only if correctness is unchanged, write count is five at both DPRs, and serialized throughput does not materially regress.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nThe warmed wide DataTable frame still reports nine scene batches, two render passes, zero atlas uploads, zero buffer restarts, one submission, and zero scroll terminal error, but queue-buffer writes fall from 12 to five. Instance bytes remain within the same narrow range because data representation is unchanged. DPR1/DPR2 acknowledged throughput should improve or remain within normal run variance, establishing whether fewer WGPU queue calls materially help the workload.\n",
+  "diagnostics": {
+    "playwright": [
+      "Fresh checkpoint wide DataTable passed 2/2 DPR projects.",
+      "Three candidate wide DataTable processes passed 6/6 DPR projects with exact five-write and at-most-six-bind-group assertions.",
+      "Forced WebGL2 and automatic WebGPU selection passed 4/4, proving the unchanged packed-texture branch remained functional."
+    ],
+    "rayx": [
+      "All runtime validation used apps/test_suite; apps/lab was neither launched nor modified.",
+      "Diagnostics-off/on gpui_wgpu checks, diagnostics-off gpui_web WASM check, Clippy with warnings denied, nested formatting, and storage/WebGL shader tests passed.",
+      "Candidate source and benchmark assertions were restored exactly to the experiment checkpoint after rejection."
+    ],
+    "counters": [
+      "Candidate consistently reduced queue-buffer writes 12 to 5 and bind groups 10 to 6 without changing bytes, batches, passes, atlas uploads, restarts, submissions, or correctness.",
+      "Candidate median throughput changed -1.07% DPR1 and -6.99% DPR2; paced p95 changed -0.85% DPR1 and -5.60% DPR2."
+    ],
+    "artifacts": []
+  },
+  "measurements": {
+    "checkpointCommit": "087d1dece",
+    "target": "wasm-webgpu-headed",
+    "checkpoint": {
+      "dpr1": {
+        "throughput": 30.07067736831955,
+        "pacedP95Ms": 28.082763671875,
+        "writes": 12,
+        "bindGroups": 10
+      },
+      "dpr2": {
+        "throughput": 29.998551819910883,
+        "pacedP95Ms": 29.423583984375,
+        "writes": 12,
+        "bindGroups": 10
+      }
+    },
+    "candidateProcesses": [
+      {
+        "dpr1": {
+          "throughput": 28.89880663822928,
+          "pacedP95Ms": 27.84423828125
+        },
+        "dpr2": {
+          "throughput": 27.506797617361197,
+          "pacedP95Ms": 27.4853515625
+        }
+      },
+      {
+        "dpr1": {
+          "throughput": 31.40603894160392,
+          "pacedP95Ms": 27.240478515625
+        },
+        "dpr2": {
+          "throughput": 29.09958182445938,
+          "pacedP95Ms": 27.775146484375
+        }
+      },
+      {
+        "dpr1": {
+          "throughput": 29.748265713294277,
+          "pacedP95Ms": 28.202392578125
+        },
+        "dpr2": {
+          "throughput": 27.901775982918522,
+          "pacedP95Ms": 27.903564453125
+        }
+      }
+    ],
+    "candidateMedianChangePercent": {
+      "dpr1Throughput": -1.0721795557719793,
+      "dpr2Throughput": -6.989590196152973,
+      "dpr1PacedP95": -0.8493658010727878,
+      "dpr2PacedP95": -5.602436130402677
+    },
+    "candidateRenderer": {
+      "dpr1": {
+        "writes": 5,
+        "bindGroups": 6,
+        "queueBytes": 240160,
+        "instanceBytes": 240096
+      },
+      "dpr2": {
+        "writes": 5,
+        "bindGroups": 6,
+        "queueBytes": 239904,
+        "instanceBytes": 239840
+      }
+    },
+    "maximumTerminalError": 0
+  },
+  "reportMarkdown": "# WebGPU family instance writes report\n\nThe attempted WebGPU-only family preparation reduced the warmed wide DataTable frame from 12 to five queue-buffer writes and from 10 to six transient bind groups while preserving exactly 240,160/239,904 queue bytes, 240,096/239,840 instance bytes, nine batches, two passes, zero atlas uploads, zero buffer restarts, one submission, and zero scroll terminal error at DPR1/DPR2.\n\nThe fresh checkpoint measured 30.0707 acknowledged steps/s at DPR1 and 29.9986 at DPR2. Three candidate processes measured 28.8988/31.4060/29.7483 at DPR1 and 27.5068/29.0996/27.9018 at DPR2. The candidate-process median was therefore 1.07% below checkpoint at DPR1 and 6.99% below checkpoint at DPR2. Paced p95 medians improved 0.85% and 5.60%, but the repeated DPR2 throughput regression violates the experiment's no-material-regression gate.\n\nThe implementation passed diagnostics-off/on gpui_wgpu checks, Clippy with warnings denied, nested formatting, diagnostics-off WASM compilation, storage/WebGL shader validation, the forced-WebGL2 plus automatic-WebGPU browser suite (4/4), and three headed WebGPU DataTable candidate runs (6/6 project runs). It was nevertheless reverted in full because lower end-to-end throughput is not acceptable for this loop.\n",
+  "decisionMarkdown": "# Decision\n\nReject and revert. Fewer WGPU queue writes and bind groups did not translate into reliable end-to-end throughput improvement; DPR2 regressed across all three candidate processes. The source and focused benchmark assertion are restored exactly to checkpoint `087d1dece`.\n\nDo not retry family-wide prepacking unchanged. Future renderer experiments should target measured CPU work that remains after experiment 2 telemetry, such as the scene batch merge or sprite sorting, and must retain fresh serialized before/after measurements.\n",
+  "notes": ""
+}

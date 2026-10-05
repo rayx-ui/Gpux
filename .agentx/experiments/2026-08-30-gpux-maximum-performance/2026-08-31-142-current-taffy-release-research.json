@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "id": "2f25f27a-ae76-48ea-a643-a068f3ed767e",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 142,
+  "type": "hypothesis",
+  "name": "Current Taffy Release Research",
+  "slug": "current-taffy-release-research",
+  "path": "2026-08-31-142-current-taffy-release-research.json",
+  "createdAt": "2026-08-31T20:56:38Z",
+  "startedAt": "2026-08-31T20:56:38Z",
+  "finishedAt": "2026-08-31T20:57:35Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "9eb5617ef0e7bd7fc989a6ab8351d40e6cb8a9d8",
+  "resultCommit": "9eb5617ef0e7bd7fc989a6ab8351d40e6cb8a9d8",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 9eb5617ef0e7bd7fc989a6ab8351d40e6cb8a9d8",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "9eb5617ef0e7bd7fc989a6ab8351d40e6cb8a9d8",
+      "resultCommit": "9eb5617ef0e7bd7fc989a6ab8351d40e6cb8a9d8",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 9eb5617ef0e7bd7fc989a6ab8351d40e6cb8a9d8",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "9eb5617ef0e7bd7fc989a6ab8351d40e6cb8a9d8"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "upstream Taffy release performance and compatibility",
+  "hypothesisMarkdown": "## Current Taffy Release Research Hypothesis\n\nA newer crates.io Taffy release may contain layout-performance or API improvements beyond the accepted 0.14.0 upgrade.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRead-only crates.io and upstream GitHub release/source research for versions newer than 0.14.0, MSRV, features, breaking changes, and performance-relevant commits. No dependency edits.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nVerify the current published version from primary sources and compare its manifest/changelog/API to gpux integration requirements.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nAuthorize a pinned crates.io upgrade experiment or confirm 0.14.0 is current.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [
+      "crates.io index reports 0.14.0 current"
+    ],
+    "artifacts": [
+      "cargo search result",
+      "official upstream changelog/issues/PR inspection"
+    ]
+  },
+  "measurements": {
+    "lockedVersion": "0.14.0",
+    "cargoSearchCurrentVersion": "0.14.0",
+    "newerPublishedVersion": false,
+    "upstreamUnreleasedPerformanceWork": true,
+    "dependencyChangeAuthorized": false
+  },
+  "reportMarkdown": "# Experiment 142 Report\n\nThe live crates.io index reports Taffy 0.14.0 as the current published release, matching both RayX lockfiles. The official upstream repository contains active unreleased performance and correctness work, including scoped-recalculation and bounded flex-balance discussions, but no newer stable crate is available.\n\nDepending on upstream main or a fork would trade the current reproducible registry checksum for unreleased churn without a specific required patch. The accepted exact registry release remains the best provenance/performance balance.\n",
+  "decisionMarkdown": "# Decision\n\nKeep exact crates.io Taffy 0.14.0. Recheck releases later; do not vendor or pin unreleased upstream work without a measured essential patch.\n",
+  "notes": ""
+}

@@ -1,0 +1,9 @@
+{
+  "target": "headed WASM WebGPU TextArea wheel action",
+  "samples": [
+    {"dpr": 1, "inputToPublishedFrameMs": 537.53, "changedPixels": 13706},
+    {"dpr": 2, "inputToPublishedFrameMs": 521.802, "changedPixels": 53702}
+  ],
+  "source": "tools-node/test-results",
+  "note": "The unchanged-key scroll path intentionally does not enter reusable-row lookup; this experiment proves a changed-layout allocation reduction by source ownership rather than treating this unrelated wheel timing as a benchmark improvement."
+}

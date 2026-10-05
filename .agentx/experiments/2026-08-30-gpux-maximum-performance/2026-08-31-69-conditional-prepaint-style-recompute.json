@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "id": "1a95f2ab-4de7-4db9-93c1-0c5271bb5268",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 69,
+  "type": "hypothesis",
+  "name": "Conditional Prepaint Style Recompute",
+  "slug": "conditional-prepaint-style-recompute",
+  "path": "2026-08-31-69-conditional-prepaint-style-recompute.json",
+  "createdAt": "2026-08-31T09:00:28Z",
+  "startedAt": "2026-08-31T09:00:28Z",
+  "finishedAt": "2026-08-31T09:23:29Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "443d81d75faf3f9dca2c2fd056adafe83aca62b5",
+  "resultCommit": "87c84bb49ba024f2f8ca708101af4e7ceb64e770",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 443d81d75faf3f9dca2c2fd056adafe83aca62b5",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "443d81d75faf3f9dca2c2fd056adafe83aca62b5",
+      "resultCommit": "87c84bb49ba024f2f8ca708101af4e7ceb64e770",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 443d81d75faf3f9dca2c2fd056adafe83aca62b5",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "87c84bb49ba024f2f8ca708101af4e7ceb64e770"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpui Interactivity prepaint and headed Test Suite WASM/WebGPU",
+  "hypothesisMarkdown": "`Interactivity::prepaint` computes the same style twice for ordinary non-sticky elements. Reusing the first result unless a sticky-state refinement or synchronous sticky-state listener can change the result will remove one full style construction/refinement pass per ordinary prepaint while preserving dynamic sticky behavior.\n",
+  "measurementPlanMarkdown": "Change only the redundant second prepaint style computation in `crates/gpux/crates/gpui/src/elements/div.rs`, retaining recomputation when a stuck style can apply or a sticky-state listener can synchronously change style inputs. Compare three independent headed WebGPU benchmark processes at DPR 1 and DPR 2 against experiment 68 medians. Require exact established rendering, layout, text, scroll, worker, and error invariants; focused/full gpux tests; all serialized WGPU tests; production and diagnostic checks; focused formatting; and warning-denied Clippy. Pass if both DPRs avoid material regression and profile/cadence evidence is consistent with removed repeated work.\n",
+  "expectedOutcomeMarkdown": "Style refinement and allocation pressure should fall, with a modest throughput and/or paced-p95 improvement. Ordinary nodes must reuse the first prepaint style, while sticky-state callbacks and applicable stuck styles retain their existing recomputation path.\n",
+  "diagnostics": {
+    "playwright": [
+      "Three independent headed Chromium/WebGPU processes passed DPR 1 and DPR 2: 6/6 cadence cases, exact final offset -351402.6875, and zero terminal errors.",
+      "One additional profiled headed Chromium/WebGPU process passed both DPRs: 2/2 cases with CPU profiles and exact runtime invariants."
+    ],
+    "rayx": [
+      "All 419 gpux unit tests and every gpux integration suite passed with rayx_diagnostics, including focused sticky callback and when_stuck behavior.",
+      "All 52 serialized gpui_wgpu tests passed with rayx_diagnostics.",
+      "Gpux production and diagnostics checks, warning-denied gpux Clippy, native Test Suite production and diagnostics checks, focused rustfmt, and diff checks passed; existing unrelated Test Suite warnings remain."
+    ],
+    "counters": [
+      "Every headed case preserved 1,123 Taffy nodes, 229 measured leaves, 82 compute-layout calls, exact text-cache counters, nine renderer batches, 12 queue-buffer writes, one submission, shared memory, and the worker entry point.",
+      "The threaded WASM atomic prefix changed from 99,112 to 99,106 bytes."
+    ],
+    "artifacts": [
+      "artifacts-temp/agentx-experiments/2026-08-30-gpux-maximum-performance/69-conditional-prepaint-style-recompute"
+    ]
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 three-process median acknowledged throughput",
+      "before": "30.2280738399296 steps/s",
+      "after": "30.0423988374793 steps/s",
+      "delta": "-0.61%"
+    },
+    {
+      "metric": "DPR 2 three-process median acknowledged throughput",
+      "before": "29.9894339726756 steps/s",
+      "after": "30.4424150515824 steps/s",
+      "delta": "+1.51%"
+    },
+    {
+      "metric": "DPR 1 three-process median paced p95",
+      "before": "26.1435546875 ms",
+      "after": "25.894775390625 ms",
+      "delta": "0.95% improvement"
+    },
+    {
+      "metric": "DPR 2 three-process median paced p95",
+      "before": "26.356201171875 ms",
+      "after": "26.193603515625 ms",
+      "delta": "0.62% improvement"
+    },
+    {
+      "metric": "DPR 1 compute_style_internal profile self time",
+      "before": "106.44 ms",
+      "after": "75.14 ms",
+      "delta": "-29.41%"
+    },
+    {
+      "metric": "DPR 2 compute_style_internal profile self time",
+      "before": "110.58 ms",
+      "after": "98.82 ms",
+      "delta": "-10.63%"
+    }
+  ],
+  "reportMarkdown": "## Conditional Prepaint Style Recompute Finished\n\n**Index:** 69\n**Checkpoint:** `443d81d75faf3f9dca2c2fd056adafe83aca62b5`\n**Result:** `87c84bb49ba024f2f8ca708101af4e7ceb64e770`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. `Interactivity::prepaint` now retains the style computed before positioned-bounds resolution and recomputes only when an applicable stuck refinement or a sticky-state listener can change the post-publication result. Ordinary nodes avoid one complete style default-and-refine pass without cross-phase caching or new invalidation state.\n\nThree independent headed WebGPU processes passed both DPRs. Versus experiment 68, median acknowledged throughput moved -0.61% at DPR 1 and +1.51% at DPR 2; paced p95 improved 0.95% and 0.62%. The small DPR 1 throughput movement is within process spread and is paired with lower p95. Fresh profiles reduced `compute_style_internal` self time 29.41%/10.63% at DPR 1/2.\n\nAll 419 gpux unit tests and integration suites, all 52 serialized WGPU tests, production and diagnostic checks, warning-denied gpux Clippy, focused formatting, six final headed cases, and two profiled headed cases passed. Exact renderer, layout, text, scroll, worker, and error invariants remained unchanged.\n\n### Scope Lock\n\nOnly conditional reuse of the already-computed prepaint style and the narrow sticky-positioning guidance changed. No style cache, refinement-macro, Taffy, renderer, or adjacent lifecycle change was included.\n\n### Repository Checkpoints\n\n| Repo | Path | Checkpoint | Result Commit | Status | Rollback |\n| --- | --- | --- | --- | --- | --- |\n| main | . | `443d81d` | `87c84bb49` | committed | `git -C \"D:\\\\Work\\\\projects\\\\RayX\\\\RayX\" reset --hard 443d81d75faf3f9dca2c2fd056adafe83aca62b5` |\n\n### Decision\n\nAccept the conditional recomputation. It removes a structurally redundant ordinary-node pass, preserves conservative recomputation for synchronous sticky callbacks and applicable stuck styles, lowers the targeted profile cost, and passes the no-material-regression cadence gate.\n",
+  "decisionMarkdown": "Accept the conditional prepaint style recomputation. Preserve recomputation when a sticky-state listener exists or the resolved element is stuck with a `when_stuck(...)` refinement; reuse the first style for all other prepaint paths.\n",
+  "notes": ""
+}

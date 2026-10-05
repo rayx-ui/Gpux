@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "id": "05dc934f-a855-49e4-8ac0-ceddf1780db8",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 61,
+  "type": "hypothesis",
+  "name": "Text Local Cache Miss Reasons",
+  "slug": "text-local-cache-miss-reasons",
+  "path": "2026-08-31-61-text-local-cache-miss-reasons.json",
+  "createdAt": "2026-08-31T05:56:17Z",
+  "startedAt": "2026-08-31T05:56:17Z",
+  "finishedAt": "2026-08-31T06:06:38Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "7b01e3c3aac330eaec2f58f9995c5120f61e3e04",
+  "resultCommit": "10e7c904e05936d330ca8e5336a399d16fcb6867",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 7b01e3c3aac330eaec2f58f9995c5120f61e3e04",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "7b01e3c3aac330eaec2f58f9995c5120f61e3e04",
+      "resultCommit": "10e7c904e05936d330ca8e5336a399d16fcb6867",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 7b01e3c3aac330eaec2f58f9995c5120f61e3e04",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "10e7c904e05936d330ca8e5336a399d16fcb6867"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "crates/gpux/crates/gpui/src/elements/text.rs",
+  "hypothesisMarkdown": "Most of the warmed frame's 320 full `TextLayout` executions occur because the measurement closure begins without a cached `TextLayoutInner`, rather than because wrap width changes or truncation invalidates a populated local entry. Partitioning the mutually exclusive first failing reuse condition will determine whether the next optimization must retain text layout state across element reconstruction or handle a small set of changing constraints.\n",
+  "measurementPlanMarkdown": "Extend diagnostics-only text measurement telemetry with a mutually exclusive partition for missing cached size, wrap-width mismatch, current truncation request, and previously truncated cached layout. Record exactly one reason for every existing full-layout count, publish the bounded counters through Scene/WGPU/web telemetry, and assert the reason sum equals full layouts. Run focused tests, the full gpux and serialized WGPU suites, production and diagnostic checks, formatting, Clippy, and headed WebGPU Test Suite proof at DPR 1 and DPR 2 with all established cache and rendering invariants exact.\n",
+  "expectedOutcomeMarkdown": "Missing cached size should dominate the 320 full text layouts at both DPRs, while wrap mismatch and truncation reasons remain small or zero. The four reason counters must partition full-layout count exactly, and full-key hashing must remain one per wrapped request with every behavioral invariant unchanged.\n",
+  "diagnostics": {
+    "playwright": [
+      "The final headed Chromium/WebGPU Test Suite passed DPR 1 and DPR 2: 2/2 cases, exact final offset -351402.6875, and zero browser errors.",
+      "Both final frames preserved 1123 Taffy nodes, 229 measured leaves, 82 root compute calls, 882 stable comparable measurements, nine batches, and 12 queue-buffer writes."
+    ],
+    "rayx": [
+      "All 417 gpux unit tests and every integration suite passed with rayx_diagnostics.",
+      "All 52 serialized gpui_wgpu tests passed with rayx_diagnostics.",
+      "Production and diagnostic checks, focused rustfmt, Clippy with warnings denied, diff checks, and the text diagnostic drain oracle passed."
+    ],
+    "counters": [
+      "DPR 1: 320 full layouts = 229 missing cache + 91 wrap mismatch + 0 truncation request + 0 previous truncation; 562 local reuses.",
+      "DPR 2: 320 full layouts = 229 missing cache + 91 wrap mismatch + 0 truncation request + 0 previous truncation; 562 local reuses."
+    ],
+    "artifacts": [
+      "artifacts-temp/agentx-experiments/2026-08-30-gpux-maximum-performance/61-text-local-cache-miss-reasons/playwright"
+    ]
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 full text-layout reasons",
+      "before": "320 full layouts with local reuse failure unknown",
+      "after": "229 missing cache + 91 wrap mismatch + 0 truncation request + 0 previous truncation",
+      "delta": "71.56% empty first-use state; 28.44% initial width transition; exact partition",
+      "source": "headed Test Suite WebGPU frame telemetry"
+    },
+    {
+      "metric": "DPR 2 full text-layout reasons",
+      "before": "320 full layouts with local reuse failure unknown",
+      "after": "229 missing cache + 91 wrap mismatch + 0 truncation request + 0 previous truncation",
+      "delta": "identical to DPR 1; exact partition",
+      "source": "headed Test Suite WebGPU frame telemetry"
+    },
+    {
+      "metric": "behavioral invariants",
+      "before": "320 key hashes, 19 current hits, 301 previous hits, 0 misses, 882 stable outputs, -351402.6875 final offset",
+      "after": "exactly unchanged at both DPRs",
+      "delta": "zero",
+      "source": "headed Test Suite WebGPU frame telemetry"
+    }
+  ],
+  "reportMarkdown": "## Text Local Cache Miss Reasons Finished\n\n**Index:** 61\n**Checkpoint:** `7b01e3c3aac330eaec2f58f9995c5120f61e3e04`\n**Result:** `10e7c904e05936d330ca8e5336a399d16fcb6867`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. Diagnostics-only text telemetry now assigns exactly one first-failing reuse condition to every full `TextLayout` execution.\n\nThe final headed wide DataTable result is identical at both DPRs: 229 full layouts have no cached size, exactly matching the frame's 229 measured leaves; 91 full layouts are the first wrap-width transition; current truncation requests and prior-truncated cached layouts contribute zero. These reasons sum exactly to all 320 full layouts, while the other 562 callbacks reuse the current local size. The result shows that ephemeral first-use state dominates and that the remaining width misses are necessary initial transitions, not observed alternation back to an earlier constraint.\n\nBoth cases retained one full-field cache-key hash per each of 320 wrapped requests, 19 current hits, 301 previous hits, zero misses, all 882 stable comparable measurements, exact final offset `-351402.6875`, zero browser errors, 1,123 nodes, 229 measured leaves, 82 root compute calls, nine batches, and 12 queue-buffer writes.\n\nAll 417 gpux unit tests and integration suites, all 52 serialized WGPU tests, production and diagnostics checks, focused formatting, Clippy with warnings denied, the diagnostic drain oracle, and both headed WebGPU cases passed.\n\n### Scope Lock\n\nOnly diagnostics-gated first-failure counters, a separate bounded scene snapshot, latest-frame telemetry publication, one focused drain oracle, and a Test Suite partition assertion changed. Production layout reuse conditions, shaping, wrapping, caching, and rendering behavior are unchanged.\n\n### Decision\n\nAccept the telemetry. Do not add a multi-width local cache from this workload. Measure the remaining wrapped-result materialization and size-scan work on the 229 ephemeral first uses and 91 necessary width transitions before considering cross-frame retention or a narrower derived cache.\n",
+  "decisionMarkdown": "Accept diagnostics-only text local-cache miss telemetry. Empty first-use state accounts for 229 of 320 full layouts and one initial width transition accounts for the remaining 91; truncation contributes zero. Do not add a multi-width local cache without evidence of repeated transitions. Investigate wrapped-result materialization and cross-frame ephemeral reconstruction next.\n",
+  "notes": ""
+}

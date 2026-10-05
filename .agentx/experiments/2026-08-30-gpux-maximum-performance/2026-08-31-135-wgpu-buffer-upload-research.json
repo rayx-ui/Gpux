@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "id": "36eb38ba-74c1-4c74-a3a6-ba27e4b36cb4",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 135,
+  "type": "hypothesis",
+  "name": "WGPU Buffer Upload Research",
+  "slug": "wgpu-buffer-upload-research",
+  "path": "2026-08-31-135-wgpu-buffer-upload-research.json",
+  "createdAt": "2026-08-31T20:47:06Z",
+  "startedAt": "2026-08-31T20:47:06Z",
+  "finishedAt": "2026-08-31T20:48:04Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "a41a4653f4d5c99d64f5d39cefec2117ab96afd3",
+  "resultCommit": "a41a4653f4d5c99d64f5d39cefec2117ab96afd3",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard a41a4653f4d5c99d64f5d39cefec2117ab96afd3",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "a41a4653f4d5c99d64f5d39cefec2117ab96afd3",
+      "resultCommit": "a41a4653f4d5c99d64f5d39cefec2117ab96afd3",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard a41a4653f4d5c99d64f5d39cefec2117ab96afd3",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "a41a4653f4d5c99d64f5d39cefec2117ab96afd3"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpui_wgpu staging buffers and queue writes",
+  "hypothesisMarkdown": "## WGPU Buffer Upload Research Hypothesis\n\nThe accepted frame's ~240 KB across 12 queue writes may contain avoidable staging allocation, buffer recreation, or duplicate serialization in gpui_wgpu.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRead-only trace of instance/auxiliary packing, staging ownership, GPU buffer growth/restart, queue writes, and frame reuse. No edits.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nMap the 12 writes and byte counts to buffer families, inspect capacity/reallocation policy and serialization passes, and identify only source-proven redundant work.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nProduce a bounded upload-memory optimization decision without product changes.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [
+      "9 batch plus 3 global writes",
+      "zero auxiliary upload",
+      "zero buffer restart"
+    ],
+    "artifacts": [
+      "WGPU encode/write/growth source trace"
+    ]
+  },
+  "measurements": {
+    "queueWrites": 12,
+    "instanceBytes": 240000,
+    "auxiliaryBytes": 0,
+    "bufferRestarts": 0,
+    "batchWrites": 9,
+    "globalWrites": 3,
+    "instanceByteViewCopies": 0,
+    "persistentGeometricBufferGrowth": true
+  },
+  "reportMarkdown": "# Experiment 135 Report\n\nThe 12 writes are exactly nine batch-instance writes plus two global blocks and one gamma block. `instance_bytes` creates a borrowed byte slice without copying. Instance and gradient buffers persist across frames, align offsets, and grow geometrically only after an overflow/restart; the accepted frame reports zero restarts and zero auxiliary bytes.\n\nNo staging allocation or duplicate serialization exists at the write boundary. Coalescing families would add CPU packing/copying and was already rejected by paired WebGPU measurements earlier in this loop.\n",
+  "decisionMarkdown": "# Decision\n\nPreserve direct per-batch queue writes and persistent geometric buffers. Do not add staging or family coalescing without a new workload that demonstrates write-call dominance.\n",
+  "notes": ""
+}

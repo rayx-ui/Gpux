@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "id": "81cd7796-66e9-44d3-bbe5-8a027e7da770",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 123,
+  "type": "hypothesis",
+  "name": "Paired Bounds Probe Retirement",
+  "slug": "paired-bounds-probe-retirement",
+  "path": "2026-08-31-123-paired-bounds-probe-retirement.json",
+  "createdAt": "2026-08-31T19:27:13Z",
+  "startedAt": "2026-08-31T19:27:13Z",
+  "finishedAt": "2026-08-31T19:34:10Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "737ad9ac9376430b6cd3f67ec5fe6b41dd58b951",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 737ad9ac9376430b6cd3f67ec5fe6b41dd58b951",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "737ad9ac9376430b6cd3f67ec5fe6b41dd58b951",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 737ad9ac9376430b6cd3f67ec5fe6b41dd58b951",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux diagnostic hot-path and frame telemetry overhead",
+  "hypothesisMarkdown": "## Paired Bounds Probe Retirement Hypothesis\n\nRemoving the completed prune probe will strictly remove one diagnostics-branch increment opportunity, one aggregated counter slot, one frame field, and one browser property publication while restoring the smaller six-counter production contract with unchanged traversal and rendering.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRemove only the experiment 119 counter, increment, aggregation/publication plumbing, and Test Suite schema/assertion. Traversal, insertion, remaining diagnostics, APIs, dependencies, configuration, and fixtures are frozen.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nRun formatting, focused BoundsTree tests, both gpux clippy matrices, full gpux diagnostics tests, gpui_wgpu diagnostics tests, and headed Test Suite WASM/WebGPU at DPR 1 and 2. Require the six-counter contract, exact prior structural counters, zero errors, and no coherent regression greater than 10% in the same direction at both DPRs versus experiment 122. Acceptance also requires the direct static reduction: no prune field, branch increment, aggregation slot, frame field, or JS property remains.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nProduction diagnostics perform strictly less work and carry less state, with runtime cadence remaining within the observed browser variance envelope and all behavior unchanged.\n",
+  "diagnostics": {
+    "playwright": [
+      {
+        "target": "apps/test_suite",
+        "passed": 0,
+        "failed": 0,
+        "blockedBeforeStart": "Access is denied rotating verified WASM assets"
+      }
+    ],
+    "rayx": [],
+    "counters": [],
+    "artifacts": [
+      "successful verified multithreaded WASM build output",
+      "xtask OS error 5 output"
+    ]
+  },
+  "measurements": {
+    "baselineExperiment": 122,
+    "staticReductionVerified": true,
+    "validation": {
+      "format": "pass",
+      "focusedBoundsTreeTests": "3 passed",
+      "clippyDefault": "pass",
+      "clippyDiagnostics": "pass",
+      "gpuxTests": "419 passed",
+      "gpuiWgpuTests": "52 passed",
+      "wasmReleaseBuild": "pass",
+      "playwright": "not started: asset directory rotation failed with OS error 5"
+    },
+    "runtimeMeasurements": []
+  },
+  "reportMarkdown": "# Experiment 123 Report\n\nThe paired cleanup passed formatting, focused BoundsTree tests, both clippy matrices, 419 gpux tests, 52 gpui_wgpu tests, and the release WASM build. Static inspection confirmed complete removal of the probe field, branch increment, aggregation slot, frame field, browser publication, and Test Suite schema assertion.\n\nThe runtime measurement could not start. After producing and verifying the multithreaded WASM artifact, `xtask` failed while moving `artifacts/apps/RayXTestSuite/wasm/release/assets` to its backup path with `Access is denied (os error 5)`. No Playwright case ran and no cadence result exists.\n\nAtomic discipline requires a measurement failure to be reverted rather than retried or repaired in the same experiment. The cleanup was restored to the exact checkpoint source.\n",
+  "decisionMarkdown": "# Decision\n\nMark the experiment failed and revert because the browser measurement could not start. The candidate itself passed every completed gate; a fresh experiment may retry only after verifying the stale asset lock is gone.\n",
+  "notes": ""
+}

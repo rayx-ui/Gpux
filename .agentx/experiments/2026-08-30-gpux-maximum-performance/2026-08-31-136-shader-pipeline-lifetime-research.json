@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "id": "95127f98-522a-407f-8f3f-80c19b369d2b",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 136,
+  "type": "hypothesis",
+  "name": "Shader Pipeline Lifetime Research",
+  "slug": "shader-pipeline-lifetime-research",
+  "path": "2026-08-31-136-shader-pipeline-lifetime-research.json",
+  "createdAt": "2026-08-31T20:48:36Z",
+  "startedAt": "2026-08-31T20:48:36Z",
+  "finishedAt": "2026-08-31T20:49:13Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "8c6fad5ef90a92fb364858e0781fc10131c7510a",
+  "resultCommit": "8c6fad5ef90a92fb364858e0781fc10131c7510a",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 8c6fad5ef90a92fb364858e0781fc10131c7510a",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "8c6fad5ef90a92fb364858e0781fc10131c7510a",
+      "resultCommit": "8c6fad5ef90a92fb364858e0781fc10131c7510a",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 8c6fad5ef90a92fb364858e0781fc10131c7510a",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "8c6fad5ef90a92fb364858e0781fc10131c7510a"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpui_wgpu shaders and pipeline lifetime",
+  "hypothesisMarkdown": "## Shader Pipeline Lifetime Research Hypothesis\n\nShader module, pipeline, or bind-group-layout recreation may impose avoidable per-frame work.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRead-only trace of WGSL loading, shader compilation, pipeline/layout creation, cache ownership, and frame encode use. No edits.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nClassify creation sites as renderer-init, resize/format, effect-target, atlas, or per-frame and identify redundant construction.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nEstablish whether pipeline lifetime is already amortized or select a bounded cache change.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [
+      "zero per-frame shader/pipeline creation",
+      "two render passes"
+    ],
+    "artifacts": [
+      "pipeline creation/use source trace"
+    ]
+  },
+  "measurements": {
+    "wgslEmbedding": "compile-time include_str",
+    "shaderModuleCreation": "renderer initialization",
+    "pipelineCreation": "renderer initialization",
+    "perFramePipelineCreation": 0,
+    "measuredRenderPasses": 2
+  },
+  "reportMarkdown": "# Experiment 136 Report\n\nWGSL is embedded with `include_str!`. Shader modules, bind-group layouts, pipeline layouts, and all family/post-process pipelines are created during renderer resource initialization and retained in `WgpuResources`. Per-frame encode paths select these stored objects; resize/effect-target paths do not compile shaders or recreate pipelines.\n\nNo pipeline-cache work is present in the frame hot path.\n",
+  "decisionMarkdown": "# Decision\n\nPreserve renderer-owned immutable pipeline resources. Do not add another pipeline cache.\n",
+  "notes": ""
+}

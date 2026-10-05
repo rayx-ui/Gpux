@@ -1,0 +1,12 @@
+{
+  "target": "headed WASM/WebGPU SelectionArea fixture; 35 repetitions per DPR with five warmups discarded",
+  "before": {
+    "dpr1": { "count": 30, "p50Ms": 88.19, "p95Ms": 95.91 },
+    "dpr2": { "count": 29, "p50Ms": 89.56, "p95Ms": 106.01 }
+  },
+  "after": {
+    "dpr1": { "count": 30, "p50Ms": 94.62, "p95Ms": 105.4 },
+    "dpr2": { "count": 30, "p50Ms": 93.14, "p95Ms": 104.05 }
+  },
+  "artifacts": "16-participant-reconciliation-before-output and 16-participant-reconciliation-after-retry-output"
+}

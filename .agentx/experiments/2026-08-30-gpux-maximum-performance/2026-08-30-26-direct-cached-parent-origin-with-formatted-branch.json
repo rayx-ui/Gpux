@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "id": "1f856e9b-9658-452c-8a00-6754de9d90c9",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 26,
+  "type": "hypothesis",
+  "name": "Direct cached parent origin with formatted branch",
+  "slug": "direct-cached-parent-origin-with-formatted-branch",
+  "path": "2026-08-30-26-direct-cached-parent-origin-with-formatted-branch.json",
+  "createdAt": "2026-08-30T23:08:40Z",
+  "startedAt": "2026-08-30T23:08:40Z",
+  "finishedAt": "2026-08-30T23:23:34Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "8ebeb5362003ab729fe8d6e7a0cfd520100f8c87",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 8ebeb5362003ab729fe8d6e7a0cfd520100f8c87",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "8ebeb5362003ab729fe8d6e7a0cfd520100f8c87",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 8ebeb5362003ab729fe8d6e7a0cfd520100f8c87",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "Taffy layout bounds parent-origin resolution",
+  "hypothesisMarkdown": "Retry the single direct cached-parent-origin mechanism from experiment 25 using rustfmt's exact continuation layout in the initial patch. Read `absolute_outer_origins` first and recurse only on a miss, preserving arbitrary child-first calls while removing the measured 1,005 redundant bounds-map probes in the warmed DataTable frame.",
+  "measurementPlanMarkdown": "Collect three fresh checkpoint Test Suite WebGPU processes before editing. Change only `crates/gpux/crates/gpui/src/taffy.rs` with the formatter-compatible branch. Run package formatting first, all 456 gpui tests, two sequential 52/52 gpui_wgpu diagnostics suites, diagnostics-off/on native checks, single-thread WASM diagnostics check, warning-denied Clippy, and three candidate browser processes. Require established-counter parity; exact counter movement 3661→2656 calls and 2574→1569 bounds hits while parent hits remain 1005 and misses remain 0; zero terminal errors; and non-regressing three-process medians.",
+  "expectedOutcomeMarkdown": "The final source passes rustfmt on the first gate, preserves fallback semantics, and removes exactly 1,005 helper calls and bounds-map probes per warmed frame. Accept only if all correctness gates pass and product medians are non-regressing, preferably improving throughput or paced p95.",
+  "diagnostics": {
+    "playwright": [
+      "Three checkpoint and three candidate headed Chromium/WebGPU processes passed both DPRs with one worker (12/12 project runs) and zero terminal errors.",
+      "apps/test_suite was the exclusive runtime fixture; candidate builds verified shared memory, wasm_thread_entry_point, and 100456 atomic prefix bytes."
+    ],
+    "rayx": [
+      "Package formatting passed on the first gate; all 456 gpui tests passed.",
+      "Two sequential gpui_wgpu diagnostics suites passed 52/52 in 0.84 s and 0.81 s.",
+      "Native diagnostics-off/on checks, single-thread WASM diagnostics check, and warning-denied gpux/WGPU Clippy passed."
+    ],
+    "counters": [
+      "All six candidates changed layout-bounds calls from 3661 to 2656 and bounds-cache hits from 2574 to 1569, exactly removing 1005 helper calls and bounds-map probes.",
+      "Parent-origin hits remained 1005 and misses remained 0. Every established renderer, Taffy, traversal, final-offset, and terminal-error counter remained exact."
+    ],
+    "artifacts": [
+      "artifacts-temp/agentx-experiments/gpux-maximum-performance/26-direct-cached-parent-origin/"
+    ]
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 median acknowledged steps/s",
+      "before": "30.143532196495126",
+      "after": "29.943010964382058",
+      "delta": "-0.6652%"
+    },
+    {
+      "metric": "DPR 2 median acknowledged steps/s",
+      "before": "30.07640911736266",
+      "after": "30.00313532764175",
+      "delta": "-0.2436%"
+    },
+    {
+      "metric": "DPR 1 median paced p95",
+      "before": "27.29931640625 ms",
+      "after": "27.91845703125 ms",
+      "delta": "+2.2680%"
+    },
+    {
+      "metric": "DPR 2 median paced p95",
+      "before": "27.126220703125 ms",
+      "after": "27.763916015625 ms",
+      "delta": "+2.3508%"
+    },
+    {
+      "metric": "layout-bounds helper calls and bounds-map hits",
+      "before": "3661 calls / 2574 hits",
+      "after": "2656 calls / 1569 hits",
+      "delta": "-1005 each"
+    }
+  ],
+  "reportMarkdown": "## Direct Cached Parent Origin Finished\n\n**Index:** 26\n**Checkpoint:** `8ebeb5362003ab729fe8d6e7a0cfd520100f8c87`\n**Result Commit:** none\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** false. The mechanism removed exactly the predicted work and preserved behavior, but all four product medians regressed.\n\n| Metric | Checkpoint | Candidate | Delta |\n|---|---:|---:|---:|\n| DPR 1 acknowledged steps/s | 30.1435 | 29.9430 | -0.67% |\n| DPR 2 acknowledged steps/s | 30.0764 | 30.0031 | -0.24% |\n| DPR 1 paced p95 | 27.2993 ms | 27.9185 ms | +2.27% |\n| DPR 2 paced p95 | 27.1262 ms | 27.7639 ms | +2.35% |\n\nExact telemetry proved 1,005 fewer helper calls and bounds-map hits in every warmed frame. The direct-origin lookup and cold fallback nevertheless did not improve end-to-end performance.\n\n### Decision\n\nReject and revert. Retain the existing recursive cached-bounds path because the simpler measured-work count did not translate into product performance.",
+  "decisionMarkdown": "Reject and revert. Exact work reduction was insufficient: acknowledged throughput regressed at both DPRs and paced p95 worsened by more than 2% at both DPRs. Preserve the stable recursive lookup implementation.",
+  "notes": "No source or memory change remains. No gpux skill reference change was warranted."
+}

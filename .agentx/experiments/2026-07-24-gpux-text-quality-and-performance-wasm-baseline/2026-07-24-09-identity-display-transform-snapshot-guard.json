@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "id": "f7dcf492-e26b-45c7-9819-2b462ad6dd0f",
+  "loopId": "54e74b74-483c-4598-92d7-fdbabbc9154b",
+  "index": 9,
+  "type": "hypothesis",
+  "name": "Identity display-transform snapshot guard",
+  "slug": "identity-display-transform-snapshot-guard",
+  "path": "2026-07-24-09-identity-display-transform-snapshot-guard.json",
+  "createdAt": "2026-07-24T04:44:03Z",
+  "startedAt": "2026-07-24T04:44:03Z",
+  "finishedAt": "2026-07-24T04:52:45Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "97d4cd2e8b703e7ade22de9b9f72a65b0b011b50",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard 97d4cd2e8b703e7ade22de9b9f72a65b0b011b50",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "97d4cd2e8b703e7ade22de9b9f72a65b0b011b50",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard 97d4cd2e8b703e7ade22de9b9f72a65b0b011b50",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "headed WASM WebGPU TextArea fixture",
+  "hypothesisMarkdown": "# Hypothesis\n\n`EditableTextState::update_layout` materializes `snapshot.text()` before calling the display\ntransform, even when the default identity transform necessarily returns no projection. Bypassing\nthat materialization on the identity branch removes a whole-buffer allocation from the ordinary\nTextArea layout path while preserving transformed display text behavior.\n\n## Scope lock\n\nThis experiment changes only identity-transform projection selection. It does not alter\nincremental row splicing, cache behavior, prepaint, or transformed projection mapping.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\nRun the page-isolated headed WASM/WebGPU TextArea wheel fixture at DPR 1 and 2 with five warmups\nand thirty measured samples each, inspect the DPR 2 screenshot, and retain raw artifacts. Source\ninspection must prove `snapshot.text()` is called only for non-identity display transforms.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nThe default identity TextArea remains visually and interactively identical, including scroll,\nselection, and caret geometry. Non-identity projection behavior remains unchanged because it still\nreceives the authoritative snapshot text.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": {
+    "target": "headed WASM WebGPU TextArea wheel action",
+    "protocol": "One page-isolated 35-run Playwright process per DPR with five warmups and thirty measured samples.",
+    "source": "09-identity-display-transform-output",
+    "cells": [
+      {
+        "dpr": 1,
+        "samples": 30,
+        "p50Ms": 133.3564,
+        "p95Ms": 143.6374,
+        "priorP50Ms": 129.493,
+        "priorP95Ms": 141.935,
+        "minChangedPixels": 13706
+      },
+      {
+        "dpr": 2,
+        "samples": 30,
+        "p50Ms": 133.7175,
+        "p95Ms": 143.8698,
+        "priorP50Ms": 137.29,
+        "priorP95Ms": 143.619,
+        "minChangedPixels": 53702
+      }
+    ],
+    "failures": 0
+  },
+  "reportMarkdown": "# Identity display-transform snapshot guard\n\nAll 70 headed WASM/WebGPU samples passed and the DPR 2 screenshot retained the expected scrolled\nTextArea. The identity-only guard is rejected because the full fixed benchmark is mixed.\n\n| DPR | Prior p50/p95 | Candidate p50/p95 | Change p50/p95 |\n| --- | --- | --- | --- |\n| 1 | 129.493 / 141.935 ms | 133.356 / 143.637 ms | +3.0% / +1.2% |\n| 2 | 137.290 / 143.619 ms | 133.718 / 143.870 ms | -2.6% / +0.2% |\n\nThe source is restored to the checkpoint and raw artifacts are retained.\n",
+  "decisionMarkdown": "# Decision\n\nReject the identity display-transform guard: its direct allocation reduction does not yield a\nreliable two-DPR timing improvement under the fixed workload.\n",
+  "notes": ""
+}

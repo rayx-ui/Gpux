@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "id": "3a47be1f-6d54-444c-862a-6f67b671fdf2",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 50,
+  "type": "hypothesis",
+  "name": "Post-Fx Element ID Profile",
+  "slug": "post-fx-element-id-profile",
+  "path": "2026-08-31-50-post-fx-element-id-profile.json",
+  "createdAt": "2026-08-31T03:36:17Z",
+  "startedAt": "2026-08-31T03:36:17Z",
+  "finishedAt": "2026-08-31T03:38:49Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "cca5812f2a7d224ea816403bd91901063ca7cd28",
+  "resultCommit": "cca5812f2a7d224ea816403bd91901063ca7cd28",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard cca5812f2a7d224ea816403bd91901063ca7cd28",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "cca5812f2a7d224ea816403bd91901063ca7cd28",
+      "resultCommit": "cca5812f2a7d224ea816403bd91901063ca7cd28",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard cca5812f2a7d224ea816403bd91901063ca7cd28",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "cca5812f2a7d224ea816403bd91901063ca7cd28"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "apps/test_suite headed WASM/WebGPU wide DataTable CPU profile",
+  "hypothesisMarkdown": "A fresh CPU profile of the accepted FxHasher build will show that `GlobalElementId` hashing self time falls materially from experiment 48's 151.990/130.536 ms at DPR 1/2, confirming the mechanism independently of noisy aggregate browser throughput.\n",
+  "measurementPlanMarkdown": "Run one headed WebGPU CPU-profile process for the wide DataTable at DPR 1 and DPR 2 in apps/test_suite. Aggregate `ElementId::hash`, FxHasher, direct ElementId Arc allocation/copy, allocator/deallocator, Taffy, and leading gpux-owned self time; compare hashing against experiment 48 and require exact final offsets, diagnostics, and zero errors. Make no source change.\n",
+  "expectedOutcomeMarkdown": "Element-path hashing self time drops substantially and SipHash symbols disappear, validating the accepted hasher change; the remaining profile identifies the next larger gpux-owned optimization opportunity.\n",
+  "diagnostics": {
+    "playwright": [
+      "One fresh headed Chromium/WebGPU process passed DPR 1 and DPR 2 with CPU profiling enabled, exact final offsets, and zero terminal errors.",
+      "apps/test_suite remained the exclusive runtime fixture; shared memory, wasm_thread_entry_point, and 99962 atomic prefix bytes were verified."
+    ],
+    "rayx": [
+      "Measurement-only experiment; production source remained at the accepted checkpoint."
+    ],
+    "counters": [
+      "Both profiles preserved 485 global ID creations, 8668 path elements, 24 same-frame duplicates, 485 previous-frame hits, and all established renderer/Taffy signatures."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 GlobalElementId hashing self time",
+      "before": "151.990 ms",
+      "after": "14.173 ms",
+      "delta": "-90.68%"
+    },
+    {
+      "metric": "DPR 2 GlobalElementId hashing self time",
+      "before": "130.536 ms",
+      "after": "17.221 ms",
+      "delta": "-86.81%"
+    },
+    {
+      "metric": "DPR 1/2 ElementId Arc allocation/copy self time",
+      "before": "99.091 / 111.569 ms",
+      "after": "131.863 / 84.477 ms",
+      "delta": "profile variance; ownership unchanged"
+    },
+    {
+      "metric": "DPR 1/2 Taffy compute self time",
+      "before": "972.091 / 988.639 ms",
+      "after": "969.647 / 1118.915 ms",
+      "delta": "next dominant target"
+    }
+  ],
+  "reportMarkdown": "## Post-Fx Element ID Profile Finished\n\n**Index:** 50\n**Checkpoint:** `cca5812f2a7d224ea816403bd91901063ca7cd28`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. Headed WebGPU CPU profiles at DPR 1 and DPR 2 preserved exact final offsets, all renderer/layout counters, the 485/24/485 global-ID signature, and zero errors. The multithreaded build again verified 99,962 atomic-prefix bytes.\n\nExperiment 48 attributed 151.990/130.536 ms to `ElementId::hash` plus its SipHash rounds at DPR 1/2. In the accepted FxHasher build, the corresponding element-path hash self time is 14.173/17.221 ms and the prior GlobalElementId SipHash child path is absent: reductions of 90.68%/86.81%. Direct `Arc<[ElementId]>` allocation/copy measured 131.863/84.477 ms, while Taffy compute remained the dominant aggregate at 969.647/1,118.915 ms and `TaffyLayoutEngine::request_taffy_node` measured 169.723/181.739 ms.\n\n### Scope Lock\n\nMeasurement only. No source, dependency, shader, renderer, layout, or public API change was made.\n\n### Decision\n\nRetain FxHasher: direct profiling confirms that it removes nearly nine-tenths of the measured GlobalElementId hashing cost. Do not revisit retained path interning from this evidence; the remaining Arc allocation requires a different ownership design, while the larger next profile target is Taffy node request/layout work.\n",
+  "decisionMarkdown": "Retain the accepted FxHasher change. GlobalElementId hashing self time fell 90.68%/86.81% at DPR 1/2, independently confirming the mechanism. Direct Arc allocation and Taffy node/layout work remain separate future targets.\n",
+  "notes": ""
+}

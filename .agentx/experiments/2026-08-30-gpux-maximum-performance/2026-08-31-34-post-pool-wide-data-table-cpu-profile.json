@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "id": "2d69f94d-cbc5-45b0-9e27-491fc52d0eeb",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 34,
+  "type": "hypothesis",
+  "name": "Post-Pool Wide DataTable CPU Profile",
+  "slug": "post-pool-wide-data-table-cpu-profile",
+  "path": "2026-08-31-34-post-pool-wide-data-table-cpu-profile.json",
+  "createdAt": "2026-08-31T01:11:37Z",
+  "startedAt": "2026-08-31T01:11:37Z",
+  "finishedAt": "2026-08-31T01:16:49Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "4f1d47a0fe3730f4d970d96bfd73797d167ee977",
+  "resultCommit": "a6d832c6ed7a717d3edc1ca88160992078ac88a7",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 4f1d47a0fe3730f4d970d96bfd73797d167ee977",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "4f1d47a0fe3730f4d970d96bfd73797d167ee977",
+      "resultCommit": "a6d832c6ed7a717d3edc1ca88160992078ac88a7",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 4f1d47a0fe3730f4d970d96bfd73797d167ee977",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "a6d832c6ed7a717d3edc1ca88160992078ac88a7"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "apps/test_suite headed WebGPU CPU profile",
+  "hypothesisMarkdown": "# Hypothesis\n\nAfter bounded Taffy node, child-buffer, active-container, unchanged-style, and measured-context-slot reuse, TaffyTree-owned allocator and mutation self time should fall materially versus experiment 28 while flex/block computation remains the dominant layout cost. A fresh source-mapped profile should identify the next bounded gpux-owned hypothesis without changing production code.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\n1. Run the existing wide DataTable scroll benchmark once at DPR 1 and DPR 2 in one headed Chromium/WebGPU process with CPU profiling enabled.\n2. Require shared-memory and `wasm_thread_entry_point` verification, exact terminal offsets, zero terminal errors, and both Playwright projects passing.\n3. Parse both current profiles and the experiment-28 profiles with the same self-time classifier for flex layout, block layout, dlmalloc, TaffyTree-owned methods, gpux TaffyLayoutEngine methods, total Taffy-crate symbols, stable quicksort, node request/construction, and clear paths.\n4. Make no production, dependency, fixture, renderer, shader, benchmark, or memory-guidance changes.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nBoth DPR cases pass unchanged. TaffyTree-owned and clear-path self time materially decline from experiment 28, flex/block algorithms remain the largest layout symbols, and the profile yields one source-mapped gpux-owned candidate for the next atomic experiment.\n",
+  "diagnostics": {
+    "playwright": [
+      "One fresh headed Chromium/WebGPU process passed the wide DataTable benchmark at DPR 1 and DPR 2 (2/2 projects) in about 21.2 seconds, with exact terminal offsets and zero terminal errors.",
+      "The Test Suite build verified shared memory and `wasm_thread_entry_point`; the profiled WASM reported 100322 atomic prefix bytes."
+    ],
+    "rayx": [
+      "The current profiles parsed successfully with 9516 samples over 14907.266 ms at DPR 1 and 9444 samples over 14788.629 ms at DPR 2.",
+      "The experiment-28 comparison profiles parsed successfully with 9440 samples over 14792.425 ms at DPR 1 and 9406 samples over 14744.094 ms at DPR 2."
+    ],
+    "counters": [
+      "TaffyTree-owned self time fell from 181.082/168.581 ms to 6.224/6.325 ms at DPR 1/2; clear-path self time fell from 80.220/75.340 ms to 31.511/46.856 ms.",
+      "Flexbox root self time remained 601.068/614.435 ms and block-inner self time remained 259.549/276.427 ms at DPR 1/2, confirming layout algorithms still dominate Taffy-owned CPU cost.",
+      "The gpux TaffyLayoutEngine symbol family measured 1632.422/1677.960 ms; `request_taffy_node` alone measured 148.820/148.053 ms and is the next source-mapped gpux-owned candidate."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "TaffyTree-owned self time at DPR 1",
+      "before": "181.082 ms",
+      "after": "6.224 ms",
+      "delta": "-96.56%"
+    },
+    {
+      "metric": "TaffyTree-owned self time at DPR 2",
+      "before": "168.581 ms",
+      "after": "6.325 ms",
+      "delta": "-96.25%"
+    },
+    {
+      "metric": "clear-path self time at DPR 1",
+      "before": "80.220 ms",
+      "after": "31.511 ms",
+      "delta": "-60.72%"
+    },
+    {
+      "metric": "clear-path self time at DPR 2",
+      "before": "75.340 ms",
+      "after": "46.856 ms",
+      "delta": "-37.80%"
+    },
+    {
+      "metric": "total Taffy-crate self time at DPR 1",
+      "before": "1709.426 ms",
+      "after": "1606.692 ms",
+      "delta": "-6.01%"
+    },
+    {
+      "metric": "total Taffy-crate self time at DPR 2",
+      "before": "1622.985 ms",
+      "after": "1584.185 ms",
+      "delta": "-2.39%"
+    }
+  ],
+  "reportMarkdown": "## Post-Pool Wide DataTable CPU Profile Finished\n\n**Index:** 34\n**Checkpoint:** `4f1d47a0fe3730f4d970d96bfd73797d167ee977`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. Both headed WebGPU projects completed with exact output and zero terminal errors. Against the identically classified experiment-28 profiles, TaffyTree-owned self time fell 96.56%/96.25% and clear-path self time fell 60.72%/37.80% at DPR 1/2. Total Taffy-crate self time fell 6.01%/2.39%; flexbox and block computation remain the dominant layout symbols.\n\nThe current source-mapped gpux-owned hotspot is `TaffyLayoutEngine::request_taffy_node` at 148.820/148.053 ms. Its retained-style comparison and child-topology update branches are the bounded surface for subsequent atomic experiments.\n\n### Scope Lock\n\nThis was measurement-only. No production source, dependency, fixture, renderer, shader, benchmark, or durable memory guidance changed.\n\n### Decision\n\nAccept the profile as evidence that node-pool structural churn was removed. Start a fresh experiment for exactly one request-path mechanism; do not combine style comparison and topology preservation in one attempt.\n",
+  "decisionMarkdown": "Accept the measurement. TaffyTree-owned structural churn fell about 96% at both DPRs; use the 148 ms pooled request path as the next bounded gpux-owned investigation surface.",
+  "notes": "Attempt Count: 1. Raw CPU profiles remain ignored under artifacts-temp/agentx-experiments/gpux-maximum-performance/34-post-pool-wide-data-table-cpu-profile/. No durable memory or gpux skill guidance changed because this experiment was measurement-only."
+}

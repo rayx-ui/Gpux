@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "id": "709a899f-c8fa-4011-9797-4923aef12135",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 144,
+  "type": "hypothesis",
+  "name": "WGSL Shader Branch Audit",
+  "slug": "wgsl-shader-branch-audit",
+  "path": "2026-08-31-144-wgsl-shader-branch-audit.json",
+  "createdAt": "2026-08-31T21:03:51Z",
+  "startedAt": "2026-08-31T21:03:51Z",
+  "finishedAt": "2026-08-31T21:05:33Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "3967142fb6a712ff048d6d268d6f319fa4326e05",
+  "resultCommit": "3967142fb6a712ff048d6d268d6f319fa4326e05",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 3967142fb6a712ff048d6d268d6f319fa4326e05",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "3967142fb6a712ff048d6d268d6f319fa4326e05",
+      "resultCommit": "3967142fb6a712ff048d6d268d6f319fa4326e05",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 3967142fb6a712ff048d6d268d6f319fa4326e05",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "3967142fb6a712ff048d6d268d6f319fa4326e05"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux WGPU shader hot paths",
+  "hypothesisMarkdown": "## WGSL Shader Branch Audit Hypothesis\n\nThe shared WGPU shader may execute avoidable runtime kind/feature branches in the dominant sprite and quad vertex/fragment paths; a source audit can identify whether pipeline specialization or branch removal has a bounded, behavior-preserving target.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRead-only trace of `shaders.wgsl`, pipeline entry points, primitive-kind dispatch, blend modes, and pipeline construction. No edits.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nInventory shader entry points and conditional/switch sites, map them to separate pipelines versus shared runtime dispatch, and determine whether any condition is invariant for a hot pipeline. Pass when each candidate is classified with source evidence; fail if evidence requires profiling or backend inspection outside this experiment.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nSelect one bounded shader specialization candidate or preserve the shared shader where branches encode real per-instance behavior.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "render pipeline specialization",
+      "before": "unknown",
+      "after": "separate pipelines/entry points for quads, shadows, paths, underlines, mono/subpixel/poly sprites, HTML islands, surfaces, post-process variants, visual effects, glow, and screen effects",
+      "delta": "primitive-family dispatch is already pipeline-specialized",
+      "source": "wgpu_renderer.rs:2155-2490 and shaders.wgsl entry-point inventory"
+    },
+    {
+      "metric": "dominant sprite runtime kind dispatch",
+      "before": "unknown",
+      "after": "one two-case switch in fs_mono_sprite distinguishes glyph gamma correction from image-mask raw coverage",
+      "delta": "branch represents real per-instance behavior inside texture/order batches; splitting requires new pipelines and potentially more batch/draw boundaries",
+      "source": "shaders.wgsl:1219-1263; scene.rs:1270-1300; wgpu_renderer.rs:3317-3328,3578-3594"
+    },
+    {
+      "metric": "quad fast-path specialization",
+      "before": "unknown",
+      "after": "axis-aligned, unrounded, borderless quads already return before analytic border/SDF work",
+      "delta": "remaining branches depend on authored gradient, border, radius, transform, and fragment position",
+      "source": "shaders.wgsl:495-840"
+    }
+  ],
+  "reportMarkdown": "## WGSL Shader Branch Audit Finished\n\n**Passed Status:** true. The renderer already specializes primitive families into separate pipelines and shader entry points. The remaining hot branches encode per-instance authored state or clipping. The mono-sprite glyph/image-mask switch is the only obvious family-kind branch, but those sprites share order- and texture-constrained batches; splitting it would add pipeline/batch state and needs GPU evidence before implementation.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nOnly WGSL and WGPU pipeline/batch construction were inspected. No production source or adjacent renderer behavior changed.\n\n### Repository Checkpoints\n\n| Repo | Path | Checkpoint | Result Commit | Status | Rollback |\n| --- | --- | --- | --- | --- | --- |\n| main | . | 3967142fb6a7 | unchanged | unchanged | `git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 3967142fb6a712ff048d6d268d6f319fa4326e05` |\n",
+  "decisionMarkdown": "### Decision\n\nPreserve current shader dispatch. Do not add shader/pipeline variants without GPU timing that proves the saved branch outweighs extra pipeline and batch transitions. The existing quad fast paths and family-specific pipelines already remove invariant work where the renderer can do so without changing ordering.",
+  "notes": "Research-only success; no product source edits."
+}

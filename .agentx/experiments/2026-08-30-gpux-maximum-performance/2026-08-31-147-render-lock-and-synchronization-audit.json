@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "id": "1ae9841d-c9d2-4456-a224-5c211a21b132",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 147,
+  "type": "hypothesis",
+  "name": "Render Lock And Synchronization Audit",
+  "slug": "render-lock-and-synchronization-audit",
+  "path": "2026-08-31-147-render-lock-and-synchronization-audit.json",
+  "createdAt": "2026-08-31T21:10:18Z",
+  "startedAt": "2026-08-31T21:10:18Z",
+  "finishedAt": "2026-08-31T21:11:52Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "fb93b584687979b82e37d75ebb49a4a5069153a4",
+  "resultCommit": "fb93b584687979b82e37d75ebb49a4a5069153a4",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard fb93b584687979b82e37d75ebb49a4a5069153a4",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "fb93b584687979b82e37d75ebb49a4a5069153a4",
+      "resultCommit": "fb93b584687979b82e37d75ebb49a4a5069153a4",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard fb93b584687979b82e37d75ebb49a4a5069153a4",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "fb93b584687979b82e37d75ebb49a4a5069153a4"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux render-thread locking and synchronization",
+  "hypothesisMarkdown": "## Render Lock And Synchronization Audit Hypothesis\n\nGpux may acquire shared mutexes or read-write locks repeatedly inside warmed per-glyph, per-primitive, or per-node render loops even though rendering is UI-thread-owned; tracing lock sites can identify a bounded ownership simplification.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRead-only inventory of Mutex/RwLock acquisition sites reachable from text paint, atlas lookup, renderer draw, layout, scene insertion, and WASM frame dispatch. No edits.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nClassify hot-path locks by acquisition frequency, protected owner, cross-thread requirement, and whether a lock is held across callbacks or asynchronous boundaries. Cross-check against the current CPU profile and prior lock-removal experiments.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nSelect one measured lock-removal candidate or preserve locks whose cross-thread ownership is required and whose cost is not profile-visible.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "warmed per-glyph cache locks",
+      "before": "unknown",
+      "after": "1 TextSystem raster-bounds RwLock acquisition and 1 WgpuAtlas Mutex acquisition per visible cached glyph/sprite",
+      "delta": "locks are short, uncontended cache lookups; platform text-system write locks are reached only on cache/atlas misses",
+      "source": "gpui/src/text_system.rs:444-462; gpui_wgpu/src/wgpu_atlas.rs:122-140; gpui_wgpu/src/cosmic_text_system.rs:201-214"
+    },
+    {
+      "metric": "ordinary renderer synchronization",
+      "before": "unknown",
+      "after": "1 std::sync::Mutex acquisition per frame to take asynchronous device error state",
+      "delta": "required bridge from the WGPU uncaptured-error callback; no lock is held through command encoding or submission",
+      "source": "gpui_wgpu/src/wgpu_renderer.rs:1276,1811-1817,3007"
+    },
+    {
+      "metric": "layout/text shared locks",
+      "before": "unknown",
+      "after": "current/previous line-layout caches use read/upgradable/write locks per lookup or rollover; the pooled line-wrapper mutex is acquired only for active truncation after prior optimization",
+      "delta": "current CPU profile attributes hot time to Taffy/layout/draw functions rather than lock primitives",
+      "source": "gpui/src/text_system/line_layout.rs:432-808; gpui/src/text_system.rs:416-440,982-998; experiment 126 CPU profile"
+    },
+    {
+      "metric": "async lock lifetime",
+      "before": "unknown",
+      "after": "dispatcher/timer/priority-queue locks guard cross-thread queues and are released before runnable execution or await boundaries",
+      "delta": "no synchronous render lock was found held across await",
+      "source": "gpui/src/queue.rs; gpui/src/platform/threaded_dispatcher.rs; gpui_web/src/dispatcher.rs"
+    }
+  ],
+  "reportMarkdown": "## Render Lock And Synchronization Audit Finished\n\n**Passed Status:** true. The warmed paint path performs short, uncontended shared-cache locks for raster bounds and atlas tiles. Backend text write locks occur only on cache misses. Renderer error polling is one lock per frame; scheduling and entity/focus locks enforce real cross-thread or shared-handle ownership. No synchronous render lock was found held across an async boundary, and lock primitives are not current CPU profile leaders.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nOnly lock declarations/acquisition sites and their immediate ownership/call paths were inspected. No production source or adjacent concurrency behavior changed.\n\n### Repository Checkpoints\n\n| Repo | Path | Checkpoint | Result Commit | Status | Rollback |\n| --- | --- | --- | --- | --- | --- |\n| main | . | fb93b5846879 | unchanged | unchanged | `git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard fb93b584687979b82e37d75ebb49a4a5069153a4` |\n",
+  "decisionMarkdown": "### Decision\n\nPreserve current locks. Removing the two per-glyph cache locks requires a separate ownership/cache fusion design and measurement; the current evidence does not justify weakening cross-thread cache safety. Keep the already accepted truncation-only wrapper checkout and thread-local font-run scratch optimizations.",
+  "notes": "Research-only success; no product source edits."
+}

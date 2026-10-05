@@ -1,0 +1,18 @@
+{
+  "target": "headed WASM WebGPU Test Suite",
+  "fixture": "text-quality",
+  "baseline": {
+    "dpr1P50Ms": 21.256,
+    "dpr1P95Ms": 24.554,
+    "dpr2P50Ms": 19.51,
+    "dpr2P95Ms": 25.49
+  },
+  "verification": {
+    "dpr1": "passed",
+    "dpr2": "passed",
+    "dpr2InputToPublishedFrameMs": 27.0384,
+    "dpr2EdgeEnergy": 4994507,
+    "dpr2ChromaticPixels": 202900,
+    "interpretation": "The verification sample is warmup index 0 and is retained only as a no-crash, image-gate observation; it is not compared as a performance replicate."
+  }
+}

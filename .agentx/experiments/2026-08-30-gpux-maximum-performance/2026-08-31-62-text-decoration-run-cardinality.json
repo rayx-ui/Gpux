@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "id": "7df9a554-6859-4fef-a2e2-20b9f54eaf56",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 62,
+  "type": "hypothesis",
+  "name": "Text Decoration Run Cardinality",
+  "slug": "text-decoration-run-cardinality",
+  "path": "2026-08-31-62-text-decoration-run-cardinality.json",
+  "createdAt": "2026-08-31T06:07:57Z",
+  "startedAt": "2026-08-31T06:07:57Z",
+  "finishedAt": "2026-08-31T06:17:02Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "f3208a2fe32aa22d7e1999245d95cdc9567958e4",
+  "resultCommit": "dc755adb23c431d2d3aaaf3681cf865104c84c11",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard f3208a2fe32aa22d7e1999245d95cdc9567958e4",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "f3208a2fe32aa22d7e1999245d95cdc9567958e4",
+      "resultCommit": "dc755adb23c431d2d3aaaf3681cf865104c84c11",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard f3208a2fe32aa22d7e1999245d95cdc9567958e4",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "dc755adb23c431d2d3aaaf3681cf865104c84c11"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "crates/gpux/crates/gpui/src/text_system.rs",
+  "hypothesisMarkdown": "The warmed wide DataTable's 320 full `shape_text` calls mostly produce one line with one decoration run, so the unconditional `Vec::with_capacity(32)` in each processed line reserves far more `DecorationRun` storage than the workload uses. Measuring call, line, total-run, maximum-run, and single-run-line counts will determine whether a direct smaller allocation policy is justified.\n",
+  "measurementPlanMarkdown": "Add diagnostics-only bounded counters around `TextSystem::shape_text` for call count, processed line count, total decoration runs, maximum decoration runs in one line, and lines with at most one decoration run. Drain and publish them through Scene/WGPU/web telemetry and assert structural bounds. Run focused tests, the full gpux and serialized WGPU suites, production and diagnostic checks, formatting, Clippy, and headed WebGPU Test Suite proof at DPR 1 and DPR 2 while preserving every established text-cache and renderer invariant.\n",
+  "expectedOutcomeMarkdown": "Shape-text calls and processed lines should be close to the 320 full text layouts, average decoration-run cardinality should be near one, and nearly all lines should have at most one run. All existing cache tiers, miss reasons, geometry, and rendering counters must remain exact.\n",
+  "diagnostics": {
+    "playwright": [
+      "The final headed Chromium/WebGPU Test Suite passed DPR 1 and DPR 2: 2/2 cases, exact final offset -351402.6875, and zero browser errors.",
+      "Both final frames preserved every established Taffy, text-cache, renderer, and scroll invariant."
+    ],
+    "rayx": [
+      "All 418 gpux unit tests and every integration suite passed with rayx_diagnostics.",
+      "All 52 serialized gpui_wgpu tests passed with rayx_diagnostics.",
+      "Production and diagnostic checks, focused rustfmt, Clippy with warnings denied, diff checks, and the bounded text-shape drain oracle passed."
+    ],
+    "counters": [
+      "DPR 1: 320 shape calls, 320 processed lines, 320 decoration runs, maximum 1, 320 lines at most 1.",
+      "DPR 2: 320 shape calls, 320 processed lines, 320 decoration runs, maximum 1, 320 lines at most 1."
+    ],
+    "artifacts": [
+      "artifacts-temp/agentx-experiments/2026-08-30-gpux-maximum-performance/62-text-decoration-run-cardinality/playwright"
+    ]
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 text-shape cardinality",
+      "before": "unconditional decoration Vec capacity 32 with runtime cardinality unknown",
+      "after": "320 shape calls, 320 lines, 320 total runs, max 1, 320 lines at most 1",
+      "delta": "31 of 32 reserved slots unused on every warmed line",
+      "source": "headed Test Suite WebGPU frame telemetry"
+    },
+    {
+      "metric": "DPR 2 text-shape cardinality",
+      "before": "unconditional decoration Vec capacity 32 with runtime cardinality unknown",
+      "after": "320 shape calls, 320 lines, 320 total runs, max 1, 320 lines at most 1",
+      "delta": "identical to DPR 1",
+      "source": "headed Test Suite WebGPU frame telemetry"
+    },
+    {
+      "metric": "behavioral invariants",
+      "before": "229 missing states, 91 wrap mismatches, 320 key hashes, 19 current hits, 301 previous hits, 0 misses",
+      "after": "exactly unchanged at both DPRs",
+      "delta": "zero",
+      "source": "headed Test Suite WebGPU frame telemetry"
+    }
+  ],
+  "reportMarkdown": "## Text Decoration Run Cardinality Finished\n\n**Index:** 62\n**Checkpoint:** `f3208a2fe`\n**Result:** `dc755adb23c431d2d3aaaf3681cf865104c84c11`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. Diagnostics-only counters now report `shape_text` calls, processed lines, total decoration runs, maximum decoration runs per line, and lines with at most one run.\n\nThe final headed result is exact and identical at both DPRs: 320 `shape_text` calls process 320 lines and produce 320 total decoration runs. Every one of the 320 lines has at most one run and the maximum is exactly one. The unconditional `Vec::with_capacity(32)` therefore reserves 32 entries to retain one on every warmed hot-path line, leaving 31 unused slots per vector.\n\nBoth cases preserve 229 missing local states, 91 first wrap-width transitions, 320 full-field key hashes, 19 current wrapped-cache hits, 301 previous hits, zero misses, 882 stable outputs, exact final offset `-351402.6875`, and every established renderer/layout counter.\n\nAll 418 gpux unit tests and integration suites, all 52 serialized WGPU tests, production and diagnostics checks, focused formatting, Clippy with warnings denied, the bounded drain oracle, and both headed WebGPU cases passed.\n\n### Scope Lock\n\nOnly diagnostics-gated text-shape cardinality counters, a bounded scene snapshot, latest-frame telemetry publication, one focused drain oracle, and structural Test Suite assertions changed. Production allocation, decoration merging, font resolution, caching, and rendering behavior are unchanged.\n\n### Decision\n\nAccept the telemetry. Run a separate atomic experiment that derives initial decoration-run capacity from the input `TextRun` count, capped at the existing 32, while preserving general multiline and multi-style growth.\n",
+  "decisionMarkdown": "Accept diagnostics-only decoration-run cardinality telemetry. Every warmed line uses exactly one of 32 reserved slots. A separate production experiment should derive initial capacity from input run count with the existing 32 cap and retain ordinary vector growth for more complex lines.\n",
+  "notes": ""
+}

@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "id": "fb591b9f-a630-4dc2-96a7-e8c8bcb5fbbf",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 32,
+  "type": "hypothesis",
+  "name": "Taffy Unchanged Style Write Elision",
+  "slug": "taffy-unchanged-style-write-elision",
+  "path": "2026-08-31-32-taffy-unchanged-style-write-elision.json",
+  "createdAt": "2026-08-31T00:45:16Z",
+  "startedAt": "2026-08-31T00:45:16Z",
+  "finishedAt": "2026-08-31T00:58:07Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "8786c813fea964b07afefd27b5db5caca802831c",
+  "resultCommit": "6c16014a855af70224e2c25fabf4b1fdaf9105fd",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 8786c813fea964b07afefd27b5db5caca802831c",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "8786c813fea964b07afefd27b5db5caca802831c",
+      "resultCommit": "6c16014a855af70224e2c25fabf4b1fdaf9105fd",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 8786c813fea964b07afefd27b5db5caca802831c",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "6c16014a855af70224e2c25fabf4b1fdaf9105fd"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "wasm/web with headed Playwright and WebGPU enabled",
+  "hypothesisMarkdown": "# Hypothesis\n\nPooled nodes currently overwrite their complete Taffy `Style` and call `mark_dirty` every frame even when the freshly converted style is unchanged. Comparing the retained style first and calling `set_style` only on exact change should remove redundant writes, drops, and dirty calls while preserving valid caches on unchanged unmeasured leaves.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\n1. Compare each reused node's retained Taffy style with the freshly converted current style and call `set_style` only when they differ.\n2. Add a focused test proving an unchanged unmeasured leaf stays cache-clean across clear/reuse and a changed style dirties the same node and computes the new width.\n3. Run package formatting, focused topology/cache tests, all gpux tests, the serialized gpui_wgpu diagnostics suite, diagnostics-disabled gpux check, and warning-denied gpux Clippy.\n4. Run three fresh headed Test Suite WebGPU processes at DPR 1 and DPR 2 and compare against experiment 31's accepted three-process distribution.\n5. Require exact rendering/layout counters, exact terminal offsets, zero terminal error, and no more than 5% regression in central throughput or paced p95.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nExactly unchanged pooled styles avoid replacement and invalidation; unchanged unmeasured leaves retain valid Taffy caches while changed styles preserve normal dirty propagation. Browser throughput and paced p95 remain within the 5% non-regression envelope.\n",
+  "diagnostics": {
+    "playwright": [
+      "Three fresh headed Chromium/WebGPU processes passed both DPRs with one worker (6/6 project runs), exact final offsets, and zero terminal errors.",
+      "apps/test_suite was the exclusive runtime fixture; each build verified shared memory and wasm_thread_entry_point. The changed WASM reported 100125 atomic prefix bytes versus 101599 at the experiment-31 checkpoint."
+    ],
+    "rayx": [
+      "The focused cache test proved an exact unchanged style leaves a reused unmeasured node clean, while a changed style dirties the same node and recomputes the new width.",
+      "The changed-topology test, all 403 gpux diagnostics tests, and all 52 serialized gpui_wgpu diagnostics tests passed.",
+      "Diagnostics-disabled gpux check, package-scoped formatting, warning-denied gpux Clippy, AgentX memory audit, and improvement-loop validation passed."
+    ],
+    "counters": [
+      "All six browser projects preserved the exact Taffy vector 1123,229,341,782,1041,25,673,726,755,780,405,377,0,82,0,0,3661,2574,1005,0 and zero terminal error.",
+      "Exact style equality is evaluated against the freshly converted current style; no pool-position or element-identity assumption is used."
+    ],
+    "artifacts": [
+      "artifacts-temp/agentx-experiments/gpux-maximum-performance/32-taffy-unchanged-style-write-elision/"
+    ]
+  },
+  "measurements": [
+    {
+      "metric": "unchanged unmeasured pooled-leaf cache state",
+      "before": "dirty after unconditional set_style",
+      "after": "clean after exact-equality write elision",
+      "delta": "valid leaf cache preserved"
+    },
+    {
+      "metric": "WASM atomic prefix bytes",
+      "before": "101599",
+      "after": "100125",
+      "delta": "-1474 bytes"
+    },
+    {
+      "metric": "DPR 1 median acknowledged steps/s",
+      "before": "30.04547909056237",
+      "after": "30.12608519807523",
+      "delta": "+0.2683%"
+    },
+    {
+      "metric": "DPR 2 median acknowledged steps/s",
+      "before": "30.13326587499544",
+      "after": "30.11437514967786",
+      "delta": "-0.0627%"
+    },
+    {
+      "metric": "DPR 1 median paced p95",
+      "before": "27.218017578125 ms",
+      "after": "27.731689453125 ms",
+      "delta": "+1.8872%"
+    },
+    {
+      "metric": "DPR 2 median paced p95",
+      "before": "27.8154296875 ms",
+      "after": "28.86572265625 ms",
+      "delta": "+3.7759%"
+    }
+  ],
+  "reportMarkdown": "## Taffy Unchanged Style Write Elision Finished\n\n**Index:** 32\n**Checkpoint:** `8786c813fea964b07afefd27b5db5caca802831c`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. Reused Taffy nodes now call `set_style` only when the freshly converted current style differs exactly from the retained style. The focused oracle proves unchanged unmeasured leaves preserve valid caches and changed styles still dirty and recompute the same node correctly.\n\nThree fresh headed WebGPU processes at both DPRs preserved exact Taffy/renderer telemetry, exact terminal offsets, and zero terminal errors. Median acknowledged throughput moved +0.27% at DPR 1 and -0.06% at DPR 2. Paced p95 moved +1.89% and +3.78%, remaining inside the declared 5% non-regression envelope.\n\n### Scope Lock\n\nThe only production mechanism is exact-equality style-write elision on reused Taffy nodes; no dependency, topology, layout algorithm, renderer, shader, ID, or virtualization change was included.\n\n### Decision\n\nAccept and commit. The change removes redundant full-style replacement and dirty calls, preserves a proven leaf-cache reuse opportunity, and satisfies all correctness and non-regression gates.\n",
+  "decisionMarkdown": "Accept and commit. Compare retained and freshly converted Taffy styles exactly, skipping `set_style` only when equal so unchanged unmeasured leaf caches remain valid.",
+  "notes": "Attempt Count: 1. Out-of-scope changes: none. Root-wide cargo fmt hit the Windows path-length limit, so the gpux package-scoped formatter was used. A test-only ownership compile error was corrected with a clone in the test; the production mechanism was unchanged. Baseline measurements use experiment 31's accepted three-process distribution."
+}

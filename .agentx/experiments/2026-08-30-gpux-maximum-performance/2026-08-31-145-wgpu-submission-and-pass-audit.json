@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "id": "ccb80239-b3fa-4d18-8dca-cf478f1c79e0",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 145,
+  "type": "hypothesis",
+  "name": "WGPU Submission And Pass Audit",
+  "slug": "wgpu-submission-and-pass-audit",
+  "path": "2026-08-31-145-wgpu-submission-and-pass-audit.json",
+  "createdAt": "2026-08-31T21:05:48Z",
+  "startedAt": "2026-08-31T21:05:48Z",
+  "finishedAt": "2026-08-31T21:07:50Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "9ff07c8f58987c2b4f23abbb81eea2bfb075fb90",
+  "resultCommit": "9ff07c8f58987c2b4f23abbb81eea2bfb075fb90",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 9ff07c8f58987c2b4f23abbb81eea2bfb075fb90",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "9ff07c8f58987c2b4f23abbb81eea2bfb075fb90",
+      "resultCommit": "9ff07c8f58987c2b4f23abbb81eea2bfb075fb90",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 9ff07c8f58987c2b4f23abbb81eea2bfb075fb90",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "9ff07c8f58987c2b4f23abbb81eea2bfb075fb90"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux WGPU command encoding and submission",
+  "hypothesisMarkdown": "## WGPU Submission And Pass Audit Hypothesis\n\nThe renderer may create avoidable command encoders, render passes, or queue submissions for ordinary frames; tracing the full draw path can identify a bounded pass-merging or submission reduction candidate.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRead-only trace of `WgpuRenderer::draw`, command-encoder creation, render-pass construction, effect gates, queue writes, submit, and present. No edits.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nCount unconditional and conditional encoders, render passes, submissions, and surface presents in the ordinary and effect paths. Classify whether pass boundaries are required by attachments, sampling dependencies, or ordering.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nSelect one pass/submission reduction with exact preconditions, or preserve the architecture if ordinary frames are already single-submit and optional work is gated.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "ordinary frame command submission",
+      "before": "unknown",
+      "after": "1 command encoder, 1 queue submission, 1 surface present",
+      "delta": "no redundant ordinary-frame submissions",
+      "source": "wgpu_renderer.rs:2809-2840,3143-3435"
+    },
+    {
+      "metric": "ordinary frame render passes",
+      "before": "unknown",
+      "after": "2 passes: main scene into SceneColor, then pass-through into the surface; plus one retained-scene texture copy",
+      "delta": "second pass is unconditional because the renderer retains the latest presented scene for future screen-effect transitions",
+      "source": "wgpu_renderer.rs:3168-3200,3414-3432; WgpuEffectTargets::remember_presented_scene"
+    },
+    {
+      "metric": "conditional pass boundaries",
+      "before": "unknown",
+      "after": "paths add an intermediate rasterization pass and resume main; visual effects add ping-pong/filter/composite passes; screen effects add a sampled source-to-destination pass",
+      "delta": "boundaries correspond to attachment/sampling dependencies and are gated by scene batches/effect presence",
+      "source": "wgpu_renderer.rs:3200-3410,3836-4126,4230-4275"
+    }
+  ],
+  "reportMarkdown": "## WGPU Submission And Pass Audit Finished\n\n**Passed Status:** true. Ordinary drawing uses one encoder, one submission, and one present. It always renders through an intermediate SceneColor target, retains a copy for future screen-effect transitions, and then performs a pass-through render to the swapchain. Conditional path/effect passes are gated and have real attachment or sampling dependencies.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nOnly command encoding, pass creation, submission, and effect target lifetime were inspected. No production source or adjacent behavior changed.\n\n### Repository Checkpoints\n\n| Repo | Path | Checkpoint | Result Commit | Status | Rollback |\n| --- | --- | --- | --- | --- | --- |\n| main | . | 9ff07c8f5898 | unchanged | unchanged | `git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 9ff07c8f58987c2b4f23abbb81eea2bfb075fb90` |\n",
+  "decisionMarkdown": "### Decision\n\nPreserve the single-submit architecture. Record direct-to-surface rendering for effect-free frames as a high-value but cross-cutting hypothesis: it can remove the pass-through pass only if gpux gains a sound way to retain or request the previous presented scene for transitions without changing first-frame transition behavior or surface usage guarantees.",
+  "notes": "Research-only success; no product source edits."
+}

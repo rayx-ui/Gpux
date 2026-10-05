@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "id": "36749cb8-cbc7-4214-bafa-f7ab21f79928",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 10,
+  "type": "hypothesis",
+  "name": "Global Element ID Path Telemetry",
+  "slug": "global-element-id-path-telemetry",
+  "path": "2026-08-30-10-global-element-id-path-telemetry.json",
+  "createdAt": "2026-08-30T19:54:20Z",
+  "startedAt": "2026-08-30T19:54:20Z",
+  "finishedAt": "2026-08-30T20:04:36Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "8868c11e9b83d3b65118ff1abc844cec4de89124",
+  "resultCommit": "81344712d",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 8868c11e9b83d3b65118ff1abc844cec4de89124",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "8868c11e9b83d3b65118ff1abc844cec4de89124",
+      "resultCommit": "81344712d",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 8868c11e9b83d3b65118ff1abc844cec4de89124",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "81344712d"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux GlobalElementId diagnostics with apps/test_suite wide DataTable headed WebGPU",
+  "hypothesisMarkdown": "# Hypothesis\n\nDiagnostics-only `GlobalElementId::new` path statistics will show whether the wide DataTable's measured 0.92-0.97% global-path construction and 2.34-2.39% malloc shares are addressable with bounded inline storage. Counting creations, total path elements, maximum depth, and the number fitting within 4/8/16 elements will identify an evidence-backed capacity or reject inline storage before changing the current cheap `Arc` clone behavior.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\n1. Under `rayx_diagnostics`, collect rendering-thread counters in `GlobalElementId::new`: creation count, total path elements, maximum length, and counts with lengths at most 4, 8, and 16.\n2. Reset counters at the start of `Window::draw`, attach the completed snapshot to the frame Scene, and publish it through the existing bounded WGPU/browser telemetry.\n3. Do not change `GlobalElementId` hashing, allocation, clone/equality semantics, element behavior, or production code when diagnostics are disabled.\n4. Add a focused counter test, run diagnostics-off/on checks, Clippy, formatting, and headed Test Suite wide DataTable proof at DPR 1 and 2.\n5. Choose experiment 11 from the measured distribution: test the smallest capacity covering a dominant share only if avoided allocations plausibly outweigh larger/cloned values; otherwise retain `Arc<[ElementId]>` and move to Taffy child allocation.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nThe warmed wide DataTable reports a stable creation count and path distribution at both DPRs with exact tree, renderer, and scroll counters. If at least 90% of created paths fit a small capacity, a separate candidate can test inline storage; if paths are deep or clone pressure dominates, the loop avoids a speculative representation change.\n",
+  "diagnostics": {
+    "playwright": [
+      "The wide DataTable passed 2/2 headed Chromium WebGPU projects at DPR 1 and DPR 2.",
+      "Both DPRs published the identical 485/8668/max-23 global-element path distribution and exact renderer/tree/scroll counters."
+    ],
+    "rayx": [
+      "All runtime proof used apps/test_suite; apps/lab was neither launched nor modified.",
+      "The focused counter test, diagnostics-disabled/enabled gpux/WGPU/browser-WASM checks, Clippy with warnings denied, and nested formatting passed."
+    ],
+    "counters": [
+      "Only 3/485 paths fit within 4 elements, 15/485 within 8, and 178/485 within 16.",
+      "Average path depth is 17.87 and maximum depth is 23 at both DPRs.",
+      "Both DPRs retained nine batches, 12 writes, 10 bind groups, two passes, one submission, and zero terminal error."
+    ],
+    "artifacts": []
+  },
+  "measurements": {
+    "target": "wasm-webgpu-headed",
+    "candidate": {
+      "dpr1": {
+        "throughput": 28.687173118627065,
+        "pacedP95Ms": 28.08251953125
+      },
+      "dpr2": {
+        "throughput": 26.594552877085164,
+        "pacedP95Ms": 27.914794921875
+      }
+    },
+    "globalElementIds": {
+      "creationCount": 485,
+      "pathElementCount": 8668,
+      "averagePathLength": 17.87216494845361,
+      "maximumPathLength": 23,
+      "atMost4Count": 3,
+      "atMost8Count": 15,
+      "atMost16Count": 178,
+      "atMost16Share": 0.3670103092783505
+    },
+    "renderer": {
+      "batches": 9,
+      "queueBufferWrites": 12,
+      "bindGroups": 10,
+      "renderPasses": 2,
+      "atlasWrites": 0,
+      "bufferRestarts": 0,
+      "submissions": 1
+    },
+    "maximumTerminalError": 0
+  },
+  "reportMarkdown": "# Global element ID path telemetry report\n\nDiagnostics-only counters now measure `GlobalElementId::new` creations, total path elements, maximum depth, and the number of paths fitting within 4, 8, and 16 elements. Counters reset at `Window::draw`, the completed snapshot travels with the frame `Scene`, and the existing WGPU/browser telemetry publishes numeric-only values. Diagnostics-disabled builds retain the prior representation and hot path.\n\nThe headed Test Suite wide DataTable passed at DPR 1 and DPR 2. Both projects reported exactly 485 creations, 8,668 path elements, maximum depth 23, and 3/15/178 paths fitting within 4/8/16 elements. Average depth is 17.87 and only 36.70% fit within 16 elements. This is stable enough to reject the proposed small inline representation for this workload: most paths would still allocate, while the current `Arc<[ElementId]>` keeps clones cheap.\n\nThe candidate retained exact renderer and tree counters and passed focused counter tests, diagnostics-disabled/enabled checks for gpux/WGPU/browser WASM, diagnostic Clippy with warnings denied, nested formatting, and 2/2 headed WebGPU projects. Candidate paced p95 was 28.08 ms at DPR 1 and 27.91 ms at DPR 2, within ordinary process variance for diagnostics-only observation.\n",
+  "decisionMarkdown": "# Decision\n\nAccept the diagnostics telemetry and reject small bounded inline storage as the next optimization. Only 36.70% of the observed paths fit within 16 elements, so a small inline capacity would not avoid the dominant allocations and would compromise the current compact, cheap-clone Arc representation. Move the next experiment to a different measured hotspot.\n",
+  "notes": ""
+}

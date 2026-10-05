@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "id": "c917479f-bfc9-4781-a303-583259765db5",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 83,
+  "type": "hypothesis",
+  "name": "Current Taffy Flex Allocation Research",
+  "slug": "current-taffy-flex-allocation-research",
+  "path": "2026-08-31-83-current-taffy-flex-allocation-research.json",
+  "createdAt": "2026-08-31T13:28:16Z",
+  "startedAt": "2026-08-31T13:28:16Z",
+  "finishedAt": "2026-08-31T13:42:31Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "23733a4c35f38a6f767233d67610c43f4d9a1546",
+  "resultCommit": "23733a4c35f38a6f767233d67610c43f4d9a1546",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 23733a4c35f38a6f767233d67610c43f4d9a1546",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "23733a4c35f38a6f767233d67610c43f4d9a1546",
+      "resultCommit": "23733a4c35f38a6f767233d67610c43f4d9a1546",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 23733a4c35f38a6f767233d67610c43f4d9a1546",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "23733a4c35f38a6f767233d67610c43f4d9a1546"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "current upstream Taffy releases and flexbox allocation source",
+  "hypothesisMarkdown": "## Current Taffy Flex Allocation Research Hypothesis\n\nCurrent upstream Taffy releases or unreleased source may contain flexbox allocation, cache, or traversal improvements beyond gpux's registry 0.14.0 that map directly to experiment 82's dominant 580/658 ms flexbox and 84/73 ms flex-owned allocator samples. Primary-source comparison should determine whether one isolated registry upgrade, exact-revision fork, or no dependency change is the next evidence-backed mechanism.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRead-only research of current crates.io metadata, Taffy repository releases/changelog/source, gpux's active Taffy integration, and exact relevant source diffs only. Production source, Cargo manifests, lockfiles, vendoring, forks, diagnostics, benchmarks, and dependency changes are forbidden.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nVerify the latest stable Taffy version from primary registry/repository sources, inspect release notes and source changes since 0.14.0 for flexbox allocations and layout-cache behavior, compare the active gpux feature/API surface against the candidate version, and inspect exact upstream code around flex line/item vectors. Rank one-mechanism next steps under the gpux dependency policy: crates.io first, exact-revision fork only for an essential tiny unreleased patch, full vendoring only when justified. Accept if the research yields a reproducible isolated next hypothesis or a well-supported no-change decision.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nEither a current crates.io Taffy upgrade offers directly relevant allocation/layout improvements with a bounded migration surface, an unreleased exact commit contains one essential tiny fix worth a pinned-fork experiment, or upstream evidence shows that a local telemetry experiment is safer than changing the dependency.",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [
+      "crates.io latest stable: 0.14.0; gpux active pin: =0.14.0",
+      "origin/main after v0.14.0: 4 commits; ordinary flexbox changes: 1 correctness commit, 18 changed lines",
+      "v0.14.0 standard flexbox allocation sites: flex-item Vec collection, flex-line Vec construction, and per-iteration unfrozen Vec<&mut FlexItem>",
+      "flexbox_balance allocation-bounding commit is outside origin/main and irrelevant because gpux disables flexbox_balance",
+      "out-of-flow branch candidate spans 20 source files, 1667 insertions, and 931 deletions relative to v0.14.0"
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "latest stable Taffy version",
+      "before": "gpux =0.14.0",
+      "after": "crates.io 0.14.0",
+      "delta": "no upgrade available",
+      "source": "cargo search taffy --limit 5; cargo info taffy"
+    },
+    {
+      "metric": "ordinary flexbox source changes after v0.14.0 on origin/main",
+      "before": "v0.14.0 commit 77f385683c1d698c91a23a259f87fdddf26925fb",
+      "after": "origin/main b3b387132be1dda0e9d08d5044692236532c166d",
+      "delta": "one 18-line correctness diff; zero allocation mechanisms",
+      "source": "git log/diff v0.14.0..origin/main -- src/compute/flexbox.rs"
+    },
+    {
+      "metric": "standard flexbox dynamic allocation families",
+      "before": "unknown attribution inside upstream flexbox",
+      "after": "three structural families identified",
+      "delta": "FlexItem collection, FlexLine storage, and loop-local unfrozen reference collection",
+      "source": "Taffy v0.14.0 src/compute/flexbox.rs lines 647-738, 1094-1168, 1634-1758"
+    },
+    {
+      "metric": "unreleased out-of-flow branch migration surface",
+      "before": "candidate exact-revision patch",
+      "after": "20 source files; +1667/-931 lines; 20 commits after v0.14.0",
+      "delta": "too broad and semantically coupled for a tiny pinned-fork patch",
+      "source": "git diff v0.14.0..4da3011 -- src"
+    },
+    {
+      "metric": "flexbox balance memory patch applicability",
+      "before": "possible upstream allocation improvement",
+      "after": "commit 5da8826 affects flexbox_balance only and is not on origin/main",
+      "delta": "not applicable to gpux minimum feature set",
+      "source": "git show 5da8826; gpux Cargo.toml feature list"
+    }
+  ],
+  "reportMarkdown": "## Current Taffy Flex Allocation Research Finished\n\n**Index:** 83\n**Checkpoint:** 23733a4c3\n**Result Commit:** 23733a4c3 (source unchanged)\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. Primary-source inspection yielded a reproducible no-dependency-change decision and isolated the remaining standard-flex allocation families. crates.io still publishes 0.14.0, which gpux already pins. Taffy origin/main has four post-release commits; its only ordinary-flexbox change is an 18-line intrinsic-contribution correctness fix with no allocation work. The allocation-bounding flexbox commit belongs exclusively to the disabled `flexbox_balance` feature and is not on origin/main. The out-of-flow branch is a 20-commit, 20-source-file architecture change (+1667/-931) rather than an essential tiny patch.\n\n### Scope Lock\n\n**Tested mechanism:** read-only current-upstream Taffy release and source comparison.\n**Out-of-scope changes:** none; production source, manifests, lockfiles, vendoring, forks, diagnostics, and benchmarks remained untouched.\n\n### Repository Checkpoints\n\n| Repo | Path | Checkpoint | Result Commit | Status | Rollback |\n| --- | --- | --- | --- | --- | --- |\n| main | . | 23733a4c3 | unchanged | unchanged | `git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 23733a4c35f38a6f767233d67610c43f4d9a1546` |\n\n### Measurements\n\n| Metric | Result |\n| --- | --- |\n| Latest stable | 0.14.0; gpux already pins it |\n| Post-release ordinary flex diff | one 18-line correctness change, zero allocation mechanisms |\n| Standard-flex allocation families | FlexItem Vec, FlexLine Vec, loop-local unfrozen reference Vec |\n| Unreleased OOF branch | 20 source files, +1667/-931; too broad for a tiny pinned patch |\n| Balance memory patch | disabled-feature-only and not on origin/main |",
+  "decisionMarkdown": "### Decision\n\nKeep registry Taffy 0.14.0 and the current minimum feature set. Do not pin Taffy main, create a fork, or restore vendoring: no current upstream commit removes the measured standard-flex allocation cost, and the only broad candidate adds substantial semantic migration risk. The next safe isolated mechanism is gpux-owned telemetry that quantifies default versus mutated boxed `StyleRefinement` state at request layout, pursuing the profile's gpux `div()` allocation lead without transferring maintenance to a Taffy fork.",
+  "notes": "No source or dependency changes. Raw shallow-clone research remained under ignored artifacts-temp. No AgentX memory update was written because this was a forensic research pass rather than new implemented behavior."
+}

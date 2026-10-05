@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "id": "9e5af291-1240-4d51-b4b4-5cc281cbc696",
+  "loopId": "54e74b74-483c-4598-92d7-fdbabbc9154b",
+  "index": 15,
+  "type": "hypothesis",
+  "name": "Registrar-gated editable adapter synchronization",
+  "slug": "registrar-gated-editable-adapter-synchronization",
+  "path": "2026-07-24-15-registrar-gated-editable-adapter-synchronization.json",
+  "createdAt": "2026-07-24T05:53:59Z",
+  "startedAt": "2026-07-24T05:53:59Z",
+  "finishedAt": "2026-07-24T06:09:39Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "ab2373e14",
+  "resultCommit": "b19f89c1b",
+  "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard ab2373e14",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "ab2373e14",
+      "resultCommit": "b19f89c1b",
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard ab2373e14",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "b19f89c1b"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "headed WASM/WebGPU TextArea fixture at DPR 1 and DPR 2",
+  "hypothesisMarkdown": "## Registrar-gated editable adapter synchronization\n\nOnly synchronize `EditableTextSelectableAdapter` while the current traversal scope exposes a SelectionArea registrar. Outside a SelectionArea, retain local ownership without reading text, layout, or rebuilding the row hit map.\n\nAllowed production scope: `selection_area/mod.rs`, `selection_area/state.rs`, and `selection_area/editable_text_selectable_adapter.rs`.\n\nPreserve local editing, IME, scrolling, privacy, and every SelectionArea gesture. Do not change hit-map geometry, participant reconciliation, or selection rendering in this experiment.\n",
+  "measurementPlanMarkdown": "### Measurement plan\n\nMeasure the existing 2,000-line TextArea fixture with headed WASM/WebGPU at DPR 1 and DPR 2 using 35 repetitions per project, discarding the five configured warmups. Compare p50 and p95 input-to-published-frame durations before and after the gate.\n\nRun the focused TextArea and SelectionArea fixtures after the change. Inspect the DPR 2 TextArea screenshot and retain its JSON/image artifacts. The static gate is that adapter synchronization is unreachable when no registrar is present.\n",
+  "expectedOutcomeMarkdown": "### Expected outcome\n\nThe standalone TextArea fixture should avoid SelectionArea adapter text and row-hit-map work, improving or maintaining p50 and p95 while preserving rendered scroll behavior. The SelectionArea fixture must continue to register and operate normally.\n\nReject the experiment if a focused fixture fails, a screenshot regresses, or the standalone TextArea p95 worsens by more than five percent.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": {
+    "target": "headed WASM/WebGPU, 35 repetitions per DPR with five warmups discarded",
+    "inputToPublishedFrameMs": {
+      "dpr1": {
+        "beforeP50": 126.2468,
+        "beforeP95": 135.2297,
+        "afterP50": 63.41,
+        "afterP95": 89.48
+      },
+      "dpr2": {
+        "beforeP50": 133.9514,
+        "beforeP95": 136.3979,
+        "afterP50": 86.43,
+        "afterP95": 93.75
+      }
+    },
+    "harnessElapsedMs": {
+      "dpr1": {
+        "afterP50": 539.36,
+        "afterP95": 750.75
+      },
+      "dpr2": {
+        "afterP50": 747.39,
+        "afterP95": 820.1
+      }
+    },
+    "focusedFixtures": {
+      "textArea": "70 passed across DPR 1 and DPR 2",
+      "selectionArea": "2 passed across DPR 1 and DPR 2"
+    }
+  },
+  "reportMarkdown": "## Registrar-gated editable adapter synchronization\n\n`EditableTextSelectionElement::paint` now asks `SelectionContext` whether the current traversal has a registrar before reading the editable model or synchronizing the adapter. Outside a SelectionArea it resets to local ownership directly, so it cannot clone the editable text or rebuild row hit maps for a registrar that cannot consume it.\n\nIn 30 measured samples per DPR, input-to-published-frame p50/p95 improved from 126.2468/135.2297 ms to 63.41/89.48 ms at DPR 1 and from 133.9514/136.3979 ms to 86.43/93.75 ms at DPR 2. The aggregate Playwright elapsed time varied with browser/process startup and is recorded separately rather than used as the acceptance metric.\n\nThe focused TextArea fixture passed 70 headed WASM/WebGPU repetitions, the focused SelectionArea fixture passed at DPR 1 and DPR 2, and the fresh DPR 1 TextArea screenshot retained the expected 2,000-line scrolled rendering.\n",
+  "decisionMarkdown": "## Decision\n\nKeep the registrar gate. It uses the existing scoped SelectionContext, adds no allocation or new lifecycle, and removes the otherwise unusable editable adapter synchronization outside SelectionArea traversal.\n",
+  "notes": "Raw Playwright JSON and screenshot artifacts are retained under tools-node/.agentx/experiments/2026-07-24-gpux-text-quality-and-performance-wasm-baseline/15-adapter-registrar-gate-output/."
+}

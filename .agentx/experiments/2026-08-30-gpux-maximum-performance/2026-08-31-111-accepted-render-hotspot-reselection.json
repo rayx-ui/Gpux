@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "id": "c17ad5b7-fe77-4187-83f4-bce038dc7691",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 111,
+  "type": "hypothesis",
+  "name": "Accepted Render Hotspot Reselection",
+  "slug": "accepted-render-hotspot-reselection",
+  "path": "2026-08-31-111-accepted-render-hotspot-reselection.json",
+  "createdAt": "2026-08-31T18:00:49Z",
+  "startedAt": "2026-08-31T18:00:49Z",
+  "finishedAt": "2026-08-31T18:04:14Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "a18d0d963b175823f50af8cc3179825129583688",
+  "resultCommit": "a18d0d963b175823f50af8cc3179825129583688",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard a18d0d963b175823f50af8cc3179825129583688",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "a18d0d963b175823f50af8cc3179825129583688",
+      "resultCommit": "a18d0d963b175823f50af8cc3179825129583688",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard a18d0d963b175823f50af8cc3179825129583688",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "a18d0d963b175823f50af8cc3179825129583688"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux accepted CPU profile hotspot selection",
+  "hypothesisMarkdown": "## Accepted Render Hotspot Reselection Hypothesis\n\nRe-ranking the accepted experiment 102 CPU profile against the complete experiment 83-110 decision ledger will identify a material gpux-owned hotspot that has not already been optimized, rejected, or closed by current source invariants.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nResearch only. Inspect the accepted CPU profile, current gpux source, and completed experiment reports for the top renderer/layout/allocation stacks. Produce one ranked next target with its ownership, measured cost, minimal mechanism, and rejection threshold. Product code, tests, dependencies, configuration, and runtime launches are forbidden.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nExtract the accepted profile's top gpux/Taffy/allocator self stacks, map each to experiments 83-110 and current source, exclude branches with measured regressions or completed optimizations, then inspect the highest remaining owner deeply enough to specify a single atomic experiment and proof gate.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nSelect one unclosed, source-supported hotspot for experiment 112, or prove that a fresh accepted CPU profile is required before more implementation work.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [
+      "Research used accepted experiment 102 CPU profiles and current gpux source.",
+      "No app was launched; apps/test_suite and apps/lab were unchanged."
+    ],
+    "counters": [
+      "Accepted profiles sample BoundsTree::insert at 163.528/159.763 ms.",
+      "Current telemetry: 504 inserts, 495 slow searches, 4,440 visits, 14,351 child evaluations, 576 retained nodes."
+    ],
+    "artifacts": []
+  },
+  "measurements": {
+    "schemaVersion": 1,
+    "status": "success",
+    "productFilesChanged": 0,
+    "boundsTreeSelfMsDpr1": 163.528,
+    "boundsTreeSelfPercentDpr1": 1.05,
+    "boundsTreeSelfMsDpr2": 159.763,
+    "boundsTreeSelfPercentDpr2": 1.029,
+    "warmedInsertions": 504,
+    "warmedMaxLeafHits": 7,
+    "warmedSlowSearches": 495,
+    "warmedSearchNodeVisits": 4440,
+    "warmedInsertionChildEvaluations": 14351,
+    "warmedRetainedNodes": 576,
+    "currentMaxChildren": 12,
+    "selectedMaxChildren": 8,
+    "nextTarget": "BoundsTree eight-child fixed branching factor"
+  },
+  "reportMarkdown": "# Accepted Render Hotspot Reselection\n\nThe accepted experiment 102 profiles were re-ranked against current source and the complete experiment 83-110 decision ledger. The largest sampled family remains upstream Taffy flex/block layout, but experiment 83 proved that current upstream does not remove the standard-flex allocations and that a fork/vendor branch is not justified. `request_taffy_node`, style conversion/handoff, line-layout caching, frame cleanup, Scene replay, and global-ID Arc reuse have each already been optimized, rejected by product measurements, or closed by source invariants.\n\nThe highest remaining fully gpux-owned and unclosed hotspot is `BoundsTree::insert`: 163.528 ms (1.050%) at DPR 1 and 159.763 ms (1.029%) at DPR 2. Earlier bounds-tree work moved intersection pruning to the push boundary and removed duplicate propagation, reducing search visits from 25,720 to 4,440, but it did not test the fixed branching factor.\n\nCurrent warmed telemetry is unusually specific: 504 insertions, seven max-leaf hits, 495 slow searches, 4,440 search visits, 14,351 insertion child evaluations, and 576 retained nodes. `NodeChildren` embeds `[usize; 12]`; every descent scans up to twelve bounds and every search loads these relatively wide fixed nodes. A branching factor of eight is the narrowest independent candidate: it reduces each child array by four native indices and caps each descent scan at eight, at the possible cost of more internal nodes and tree depth.\n\nExperiment 112 should change only `MAX_CHILDREN` from 12 to 8. It must preserve randomized order semantics and exact render counters, then measure child evaluations, search visits, retained nodes, CPU self time, throughput, and paced p95 at both DPRs. Reject if reduced scan width is offset by materially higher search visits/tree size or any product regression.\n\nNo product, test, dependency, configuration, or runtime state changed.\n",
+  "decisionMarkdown": "# Decision\n\nSelect an eight-child `BoundsTree` branching-factor experiment as the next atomic target. This is distinct from prior traversal and propagation changes, affects a repeatable 160-164 ms gpux-owned hotspot, and has exact existing diagnostics for both expected benefit and countervailing tree-depth cost. Do not reopen Taffy forks, Scene compaction, state/tree pooling, line-cache shaping, or global-ID reuse.\n",
+  "notes": ""
+}

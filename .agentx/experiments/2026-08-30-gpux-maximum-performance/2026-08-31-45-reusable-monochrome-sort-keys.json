@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "id": "09f32ec8-0503-4955-9e3f-a49b21896e7c",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 45,
+  "type": "hypothesis",
+  "name": "Reusable Monochrome Sort Keys",
+  "slug": "reusable-monochrome-sort-keys",
+  "path": "2026-08-31-45-reusable-monochrome-sort-keys.json",
+  "createdAt": "2026-08-31T02:38:40Z",
+  "startedAt": "2026-08-31T02:38:40Z",
+  "finishedAt": "2026-08-31T02:50:00Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "208be99a4e9249309b849e02a5c0d2d1205370aa",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 208be99a4e9249309b849e02a5c0d2d1205370aa",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "208be99a4e9249309b849e02a5c0d2d1205370aa",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 208be99a4e9249309b849e02a5c0d2d1205370aa",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux Scene monochrome sprite sort storage and apps/test_suite headed WASM/WebGPU wide DataTable",
+  "hypothesisMarkdown": "Replacing `sort_by_cached_key`'s fresh key/index vector with one `Scene`-owned capacity-retaining key/index vector and the same stable permutation algorithm will preserve exact ordering while eliminating the measured per-frame allocation/deallocation cost.\n",
+  "measurementPlanMarkdown": "Change only monochrome cached-key storage ownership: retain one compact key/index vector in `Scene`, clear/repopulate it per finish, unstable-sort the unique key/index pairs, and apply the standard stable permutation. Run focused/full gpux tests, serialized gpui_wgpu tests, formatting, check, clippy, and three fresh headed WebGPU benchmark processes at both DPRs. Require exact output/counters and zero errors; compare throughput and paced p95 against experiment 43.\n",
+  "expectedOutcomeMarkdown": "After the first capacity growth, monochrome sprite sorting performs no key-vector allocation or deallocation per frame, preserves stable equal-key order, and improves or leaves neutral both DPR browser medians without retaining a second 128-byte sprite buffer.\n",
+  "diagnostics": {
+    "playwright": [
+      "Three fresh headed Chromium/WebGPU processes passed DPR 1 and DPR 2: 6/6 cases, exact final offsets, and zero terminal errors.",
+      "Every run preserved 1515/1513 monochrome sprites and 684/666 pre-sort adjacent inversions at DPR 1/2."
+    ],
+    "rayx": [
+      "411 gpux tests passed with rayx_diagnostics, including stable-order and standard-sort equivalence checks.",
+      "52 gpui_wgpu tests passed serially with rayx_diagnostics.",
+      "cargo check, cargo fmt --check, and clippy -D warnings passed before the measured attempt was reverted."
+    ],
+    "counters": [
+      "All established renderer, layout, batching, buffer-write, and final-scroll diagnostics remained exact."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 median acknowledged throughput",
+      "before": "30.295874050356904 steps/s",
+      "after": "29.930582747697837 steps/s",
+      "delta": "-1.21%"
+    },
+    {
+      "metric": "DPR 2 median acknowledged throughput",
+      "before": "30.177166371621972 steps/s",
+      "after": "30.110618886132944 steps/s",
+      "delta": "-0.22%"
+    },
+    {
+      "metric": "DPR 1 median paced p95",
+      "before": "26.5703125 ms",
+      "after": "27.16015625 ms",
+      "delta": "+2.22%"
+    },
+    {
+      "metric": "DPR 2 median paced p95",
+      "before": "26.866943359375 ms",
+      "after": "27.8515625 ms",
+      "delta": "+3.67%"
+    },
+    {
+      "metric": "multithreaded WASM atomic prefix",
+      "before": "106906 bytes",
+      "after": "102532 bytes",
+      "delta": "-4374 bytes"
+    }
+  ],
+  "reportMarkdown": "## Reusable Monochrome Sort Keys Finished\n\n**Index:** 45\n**Checkpoint:** `208be99a4e9249309b849e02a5c0d2d1205370aa`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** false. A `Scene`-owned capacity-retaining key/index vector reproduced the standard stable cached-key permutation without retaining a second sprite buffer. All 411 gpux tests, 52 serialized gpui_wgpu tests, formatting, check, clippy, and six headed WebGPU cases passed with exact output and zero errors.\n\nPerformance nevertheless regressed versus experiment 43: DPR 1/2 median throughput fell 1.21%/0.22%, while paced p95 worsened 2.22%/3.67%. The manual implementation reduced the multithreaded WASM atomic prefix by 4,374 bytes, but that size benefit does not compensate for slower rendering. The source attempt was reverted completely to checkpoint behavior before closeout.\n\n### Scope Lock\n\nThe single attempted mechanism was reusable monochrome key/index storage. No other sort family, renderer path, dependency, shader, or API changed.\n\n### Decision\n\nReject and revert. Retain Rust's optimized `sort_by_cached_key`; do not replace it with a hand-maintained persistent key vector for this workload.\n",
+  "decisionMarkdown": "Reject the reusable scene-owned key vector because both DPRs regressed in paced p95 and throughput. Keep the standard-library stable cached-key implementation despite its per-frame allocation; its optimized implementation is faster here.\n",
+  "notes": ""
+}

@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "id": "c1f77372-a169-4b17-bcfd-85c58cec43f8",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 120,
+  "type": "hypothesis",
+  "name": "Deferred Bounds Intersection",
+  "slug": "deferred-bounds-intersection",
+  "path": "2026-08-31-120-deferred-bounds-intersection.json",
+  "createdAt": "2026-08-31T19:03:39Z",
+  "startedAt": "2026-08-31T19:03:39Z",
+  "finishedAt": "2026-08-31T19:12:12Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "0c5be8b17fc14ab478b040b9bf0a7adc5e54e367",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 0c5be8b17fc14ab478b040b9bf0a7adc5e54e367",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "0c5be8b17fc14ab478b040b9bf0a7adc5e54e367",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 0c5be8b17fc14ab478b040b9bf0a7adc5e54e367",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux BoundsTree slow-search CPU cost and Test Suite WASM/WebGPU cadence",
+  "hypothesisMarkdown": "## Deferred Bounds Intersection Hypothesis\n\nMoving child intersection tests from enqueue to pop, after the updated max-order prune, should eliminate the 717 measured post-intersection prunes while preserving LIFO priority and all ordering results, reducing slow-search CPU cost enough to improve or preserve end-to-end rendering cadence.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nChange only `BoundsTree::find_max_ordering` in `crates/gpux/crates/gpui/src/bounds_tree.rs`: enqueue children using the existing max-order predicate, perform the intersection predicate after pop and max-order pruning, and count visits only after intersection succeeds. Keep the existing post-intersection counter as an oracle that must become zero. APIs, child ordering, insertion, diagnostics plumbing, tests, dependencies, configuration, and fixtures are frozen.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nRun formatting, focused BoundsTree tests, both gpux clippy matrices, full gpux diagnostics tests, gpui_wgpu diagnostics tests, and headed Test Suite WASM/WebGPU CPU profiles at DPR 1 and 2. Compare end-to-end cadence only with experiment 119. Require exact final rendering, identical insertions/slow searches/insertion evaluations/retained nodes, zero post-intersection prunes, and search visits reduced from 4,440 to 3,723. Accept only if insertion self-time improves at both DPRs versus experiment 114 and throughput and paced p95 do not regress more than 2% at either DPR versus experiment 119.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nThe same highest-priority-first traversal should discover identical maxima while pruning 717 queued nodes before intersection, shifting their cost from geometry comparisons to a cheaper integer comparison and stack pop.\n",
+  "diagnostics": {
+    "playwright": [
+      {
+        "target": "apps/test_suite",
+        "runtime": "headed Chromium WASM/WebGPU",
+        "passed": 2,
+        "failed": 0
+      }
+    ],
+    "rayx": [],
+    "counters": [
+      "search visits reduced from 4440 to 3723",
+      "post-intersection prunes reduced from 717 to zero",
+      "all other deterministic counters and rendering results unchanged"
+    ],
+    "artifacts": [
+      "test-results",
+      "playwright-report",
+      "two CPU profiles"
+    ]
+  },
+  "measurements": {
+    "endToEndBaselineExperiment": 119,
+    "profileReferenceExperiment": 114,
+    "runs": [
+      {
+        "deviceScaleFactor": 1,
+        "baselineThroughput": 25.510908560166254,
+        "candidateThroughput": 25.262261749241087,
+        "throughputDeltaPercent": -0.9746685828093682,
+        "baselinePacedP95Ms": 27.99853515625,
+        "candidatePacedP95Ms": 27.48681640625,
+        "pacedP95DeltaPercent": -1.8276625800038415,
+        "referenceInsertSelfMs": 155.246,
+        "candidateInsertSelfMs": 250.08200000000002,
+        "insertSelfDeltaPercent": 61.08756425286319
+      },
+      {
+        "deviceScaleFactor": 2,
+        "baselineThroughput": 26.23175294672756,
+        "candidateThroughput": 24.763474766204943,
+        "throughputDeltaPercent": -5.597331537486083,
+        "baselinePacedP95Ms": 27.072021484375,
+        "candidatePacedP95Ms": 27.29541015625,
+        "pacedP95DeltaPercent": 0.8251643565070799,
+        "referenceInsertSelfMs": 144.38899999999998,
+        "candidateInsertSelfMs": 217.12900000000005,
+        "insertSelfDeltaPercent": 50.37779886279423
+      }
+    ],
+    "structural": {
+      "baselineVisits": 4440,
+      "candidateVisits": 3723,
+      "visitDeltaPercent": -16.14864864864865,
+      "baselinePostIntersectionPrunes": 717,
+      "candidatePostIntersectionPrunes": 0,
+      "otherCountersMatch": true
+    },
+    "validation": {
+      "format": "pass",
+      "focusedBoundsTreeTests": "3 passed",
+      "clippyDefault": "pass",
+      "clippyDiagnostics": "pass",
+      "gpuxTests": "419 passed",
+      "gpuiWgpuTests": "52 passed",
+      "playwright": "2 passed with zero terminal error"
+    }
+  },
+  "reportMarkdown": "# Experiment 120 Report\n\nThe deferred-intersection candidate passed formatting, focused tests, both clippy matrices, 419 gpux tests, 52 gpui_wgpu tests, and both headed Test Suite WASM/WebGPU cases with zero final-state error.\n\nIts structural mechanism worked exactly: search visits fell from 4,440 to 3,723 (-16.149%), post-intersection max-order prunes fell from 717 to zero, and insertions, slow searches, insertion child evaluations, retained nodes, and rendering results remained unchanged.\n\nPerformance did not follow the structural saving. Against experiment 119, DPR 1 throughput changed -0.975% and paced p95 improved 1.828%, but DPR 2 throughput regressed 5.597% and paced p95 worsened 0.825%. Against the accepted experiment 114 profiles, insertion self-time increased 61.088% at DPR 1 and 50.378% at DPR 2.\n\nThe additional queued non-intersecting nodes and changed release code generation cost more than the 717 avoided geometry checks. The candidate failed the insertion self-time and DPR 2 throughput gates and was restored to the exact checkpoint source.\n",
+  "decisionMarkdown": "# Decision\n\nReject and revert deferred intersection. The measured 16.149% reduction in post-intersection work is real but insufficient to compensate for extra stack traffic and worse release code generation. Preserve the accepted enqueue-time intersection filter and move to a different hotspot after retiring the temporary prune telemetry in a separate experiment.\n",
+  "notes": ""
+}

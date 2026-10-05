@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "id": "17fb09fc-ad81-474e-b352-bac0a2b20be1",
+  "loopId": "dc424089-d0a5-4558-ae79-72a6a8d787db",
+  "index": 8,
+  "type": "hypothesis",
+  "name": "Enable Composition Safe Browser LCD",
+  "slug": "enable-composition-safe-browser-lcd",
+  "path": "2026-08-04-08-enable-composition-safe-browser-lcd.json",
+  "createdAt": "2026-08-04T15:34:08Z",
+  "startedAt": "2026-08-04T15:34:08Z",
+  "finishedAt": "2026-08-04T15:38:15Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "94cdff718e4ca4b509a51727410cf83bdefd8290",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\8da1\\RayX\" reset --hard 94cdff718e4ca4b509a51727410cf83bdefd8290",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "94cdff718e4ca4b509a51727410cf83bdefd8290",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\8da1\\RayX\" reset --hard 94cdff718e4ca4b509a51727410cf83bdefd8290",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "wasm/web with headed Playwright and WebGPU enabled",
+  "hypothesisMarkdown": "## Enable Composition Safe Browser LCD\n\nThe existing dual-source LCD pipeline can improve low-density luminance edges when the browser adapter negotiated dual-source blending and the draw maps exactly to an opaque device surface. Reporting actual adapter capability and requiring opaque window, opaque text, full element opacity, identity transform, and subpixel mode should enable LCD only for safe cells while preserving grayscale fallback everywhere else.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nMake WebWindow capability reflect WgpuRenderer::supports_dual_source_blending and add color/element-opacity guards to Window::should_use_subpixel_rendering; retain the existing identity-transform and opaque-window checks. Run affected gpux formatting and tests, then the full current-candidate headed Test Suite WASM/WebGPU matrix. Accept only if acutance, per-cell matched fringe excess, geometry, warm p95, and native-DPR gates all pass.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nOpaque identity-mapped quality cells use the existing subpixel atlas/pipeline and reach at least 0.90 minimum acutance while RayX fringe stays within the matched DOM plus 1/255. Translucent, transformed, unsupported, emoji, and image-mask cases remain on their existing safe paths.",
+  "diagnostics": {
+    "playwright": [
+      "All 28 gpui_wgpu unit tests passed.",
+      "The headed Test Suite WASM/WebGPU matrix exercised the negotiated dual-source path but failed both acutance and matched-fringe gates."
+    ],
+    "rayx": [
+      "The attempt required opaque window, opaque text, full element opacity, identity transform, subpixel mode, and negotiated dual-source blending. Browser LCD capability and opacity guards were removed immediately after failure."
+    ],
+    "counters": [
+      "Minimum acutance ratio regressed from 0.8046 to 0.6541; maximum RayX fringe ratio and matched-reference excess rose to 0.965608; maximum alignment delta stayed 2 physical pixels."
+    ],
+    "artifacts": [
+      ".agentx/experiments/2026-08-04-wasm-text-rendering-quality/2026-08-04-08-enable-composition-safe-browser-lcd.json"
+    ]
+  },
+  "measurements": [
+    {
+      "name": "minimum_acutance_ratio",
+      "value": 0.6541,
+      "unit": "ratio"
+    },
+    {
+      "name": "minimum_acutance_ratio_delta",
+      "value": -0.1505,
+      "unit": "ratio"
+    },
+    {
+      "name": "maximum_rayx_fringe_ratio",
+      "value": 0.965608,
+      "unit": "ratio"
+    },
+    {
+      "name": "maximum_matched_fringe_excess",
+      "value": 0.965608,
+      "unit": "ratio"
+    },
+    {
+      "name": "maximum_alignment_delta",
+      "value": 2,
+      "unit": "physical_pixels"
+    }
+  ],
+  "reportMarkdown": "## Experiment Report\n\nThe composition guards correctly restricted LCD to opaque identity-mapped draws on a dual-source-capable adapter, but the existing LCD pipeline produced substantially worse luminance acutance and extreme unmatched chromatic fringe. The candidate fails the core quality and safety contracts. Its capability and policy changes were fully reverted.",
+  "decisionMarkdown": "### Decision\n\nReject and revert composition-safe LCD. The fixed candidate ladder is exhausted without a complete quality win. Stop the improvement loop and leave Sprint 3 blocked for design reconciliation before any new rasterizer, dependency, or unplanned mechanism is considered.",
+  "notes": "No production renderer candidate is retained. The accepted changes from this loop are measurement harness corrections and experiment evidence only."
+}

@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "id": "aec0fe44-9d72-48b3-aa47-f158c1940a88",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 64,
+  "type": "hypothesis",
+  "name": "Font Run Pool Telemetry",
+  "slug": "font-run-pool-telemetry",
+  "path": "2026-08-31-64-font-run-pool-telemetry.json",
+  "createdAt": "2026-08-31T06:28:28Z",
+  "startedAt": "2026-08-31T06:28:28Z",
+  "finishedAt": "2026-08-31T06:36:48Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "06b1b3962719eba8853ab411b497992a78e004aa",
+  "resultCommit": "aa2c2683f866c2ce3386d2f9266d4d63351ddd22",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 06b1b3962719eba8853ab411b497992a78e004aa",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "06b1b3962719eba8853ab411b497992a78e004aa",
+      "resultCommit": "aa2c2683f866c2ce3386d2f9266d4d63351ddd22",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 06b1b3962719eba8853ab411b497992a78e004aa",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "aa2c2683f866c2ce3386d2f9266d4d63351ddd22"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "crates/gpux/crates/gpui/src/text_system.rs",
+  "hypothesisMarkdown": "The warmed frame's 320 serial `shape_text` calls almost always reuse a returned font-run vector, yet each call pays two uncontended `font_runs_pool` mutex acquisitions. Measuring take, hit, miss, and return counts on this path will determine whether bounded thread-local scratch reuse can remove approximately 640 locks per frame without increasing allocation churn.\n",
+  "measurementPlanMarkdown": "Extend diagnostics-only text-shape telemetry with `shape_text` font-run pool take, hit, miss, and return counts at the existing lock sites. Publish the bounded counters and assert take partitions into hit plus miss and return does not exceed take. Run focused tests, the full gpux and serialized WGPU suites, production and diagnostic checks, formatting, Clippy, and headed WebGPU Test Suite proof at DPR 1 and DPR 2 with every existing invariant exact.\n",
+  "expectedOutcomeMarkdown": "Pool takes and returns should each equal the 320 `shape_text` calls, hits should account for almost all takes after at most one initial miss, and existing output plus cache telemetry must remain exact. This would justify a separate bounded thread-local scratch experiment.\n",
+  "diagnostics": {
+    "playwright": [
+      "The final headed Chromium/WebGPU Test Suite passed DPR 1 and DPR 2: 2/2 cases, exact final offset -351402.6875, and zero browser errors.",
+      "Both final frames preserved every established text-cache, Taffy, renderer, and scroll invariant."
+    ],
+    "rayx": [
+      "All 418 gpux unit tests and every integration suite passed with rayx_diagnostics.",
+      "All 52 serialized gpui_wgpu tests passed with rayx_diagnostics.",
+      "Production and diagnostic checks, focused rustfmt, Clippy with warnings denied, diff checks, and the font-run pool partition/drain oracle passed."
+    ],
+    "counters": [
+      "DPR 1: 320 pool takes, 320 hits, 0 misses, 320 returns for 320 shape-text calls.",
+      "DPR 2: 320 pool takes, 320 hits, 0 misses, 320 returns for 320 shape-text calls."
+    ],
+    "artifacts": [
+      "artifacts-temp/agentx-experiments/2026-08-30-gpux-maximum-performance/64-font-run-pool-telemetry/playwright"
+    ]
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 shape-text font-run pool",
+      "before": "scratch reuse and shared lock frequency unknown",
+      "after": "320 takes = 320 hits + 0 misses; 320 returns",
+      "delta": "100% hit rate; 640 mutex acquisitions per warmed frame",
+      "source": "headed Test Suite WebGPU frame telemetry"
+    },
+    {
+      "metric": "DPR 2 shape-text font-run pool",
+      "before": "scratch reuse and shared lock frequency unknown",
+      "after": "320 takes = 320 hits + 0 misses; 320 returns",
+      "delta": "identical to DPR 1",
+      "source": "headed Test Suite WebGPU frame telemetry"
+    },
+    {
+      "metric": "behavioral invariants",
+      "before": "320 decoration slots/runs, 320 key hashes, 19 current hits, 301 previous hits, 0 misses, 882 stable outputs",
+      "after": "exactly unchanged at both DPRs",
+      "delta": "zero",
+      "source": "headed Test Suite WebGPU frame telemetry"
+    }
+  ],
+  "reportMarkdown": "## Font Run Pool Telemetry Finished\n\n**Index:** 64\n**Checkpoint:** `06b1b3962`\n**Result:** `aa2c2683f866c2ce3386d2f9266d4d63351ddd22`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. Diagnostics-only counters measure `shape_text` font-run scratch takes, hits, misses, and returns at the existing shared-pool lock sites.\n\nThe final result is exact and identical at both DPRs: 320 `shape_text` calls perform 320 takes, all 320 takes hit an existing vector, zero miss, and all 320 vectors return. The warmed path therefore allocates no font-run scratch vectors but still acquires the shared mutex twice per call, or 640 times per frame.\n\nBoth cases retain the accepted 320 decoration slots for 320 live runs, 320 full-field key hashes, 19 current wrapped-cache hits, 301 previous hits, zero misses, 882 stable outputs, exact final offset `-351402.6875`, and all established layout/render counters.\n\nAll 418 gpux unit tests and integration suites, all 52 serialized WGPU tests, production and diagnostics checks, focused formatting, Clippy with warnings denied, the pool partition/drain oracle, and both headed WebGPU cases passed.\n\n### Scope Lock\n\nOnly diagnostics-gated counters at the existing `shape_text` pool lock sites, the bounded snapshot, latest-frame telemetry publication, one focused oracle, and Test Suite partition assertions changed. Production pool ownership, locking, allocation, shaping, and rendering remain unchanged.\n\n### Decision\n\nAccept the telemetry. Run a separate atomic thread-local font-run scratch experiment covering all four scratch callers. Preserve bounded per-thread retention, reentrancy, and safe multi-threaded `TextSystem` use.\n",
+  "decisionMarkdown": "Accept diagnostics-only font-run pool telemetry. The warmed `shape_text` path has a 100% scratch hit rate and zero allocation misses but pays 640 shared mutex acquisitions per frame. A separate experiment may replace shared scratch ownership with a bounded reentrant thread-local pool across all callers.\n",
+  "notes": ""
+}

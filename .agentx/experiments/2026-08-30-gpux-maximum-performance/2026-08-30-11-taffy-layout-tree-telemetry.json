@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "id": "b2fefd52-38e0-4aac-86a6-b037ca59c42a",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 11,
+  "type": "hypothesis",
+  "name": "Taffy Layout Tree Telemetry",
+  "slug": "taffy-layout-tree-telemetry",
+  "path": "2026-08-30-11-taffy-layout-tree-telemetry.json",
+  "createdAt": "2026-08-30T20:07:32Z",
+  "startedAt": "2026-08-30T20:07:32Z",
+  "finishedAt": "2026-08-30T20:15:48Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "e595e535cb2bbf47e6183ea5e5941016d8aab935",
+  "resultCommit": "f90e8127b",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard e595e535cb2bbf47e6183ea5e5941016d8aab935",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "e595e535cb2bbf47e6183ea5e5941016d8aab935",
+      "resultCommit": "f90e8127b",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard e595e535cb2bbf47e6183ea5e5941016d8aab935",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "f90e8127b"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux TaffyLayoutEngine diagnostics with apps/test_suite wide DataTable headed WebGPU",
+  "hypothesisMarkdown": "# Hypothesis\n\nDiagnostics-only Taffy tree-shape counters will show that gpux rebuilds a large number of shallow-fanout containers every warmed DataTable frame, making Taffy's heap `Vec<NodeId>` per non-leaf a measurable allocation target. Counting total/measured/leaf/container nodes, child edges, maximum fanout, container fit within 1/2/4/8 children, display-mode mix, root compute calls, repeated computes, and invalidated descendants will identify whether a bounded small-vector dependency patch is plausible without changing layout semantics.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\n1. Add a fixed-size diagnostics array directly to the window-owned `TaffyLayoutEngine`, compiled only with `rayx_diagnostics`.\n2. Count node creation, measured leaves, ordinary leaves, containers, child edges, maximum child count, containers fitting within 1/2/4/8 children, flex/block/grid container mix, compute-root calls, repeated root computes, and descendants invalidated by a repeated compute.\n3. Snapshot counters into the completed frame Scene before `TaffyLayoutEngine::clear`, then publish them through the existing WGPU/browser telemetry.\n4. Preserve Taffy styles, tree construction, layout calls, caches, child ordering, and diagnostics-disabled code exactly.\n5. Add a focused counter test and run diagnostics-off/on checks, Clippy, formatting, and headed Test Suite wide DataTable proof at DPR 1 and 2.\n6. Test a local Taffy child small-vector patch in experiment 12 only if at least 90% of non-leaf containers fit a small capacity and the avoided allocation count is material; otherwise move to a different layout hotspot.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nThe warmed DataTable publishes identical tree-shape counts at DPR 1 and 2. A dominant one-to-four-child distribution would justify a separate small-vector candidate; broad fanout or low container count would reject vendoring or patching Taffy for this mechanism.\n",
+  "diagnostics": {
+    "playwright": [
+      "The wide DataTable passed 2/2 headed Chromium WebGPU projects at DPR 1 and DPR 2.",
+      "Both DPRs published identical 1123-node, 782-container, 1041-edge Taffy tree shape and exact renderer/tree/scroll counters."
+    ],
+    "rayx": [
+      "All runtime proof used apps/test_suite; apps/lab was neither launched nor modified.",
+      "The focused tree-shape test, diagnostics-disabled/enabled gpux/WGPU/browser-WASM checks, Clippy with warnings denied, and nested formatting passed."
+    ],
+    "counters": [
+      "726 of 782 containers (92.84%) fit two children; 755 (96.55%) fit four; 780 (99.74%) fit eight.",
+      "The warmed frame has 405 flex and 377 block containers, no grid containers, and maximum fanout 25.",
+      "There are 82 root layout calls with zero repeated computes and zero invalidated descendants."
+    ],
+    "artifacts": []
+  },
+  "measurements": {
+    "target": "wasm-webgpu-headed",
+    "candidate": {
+      "dpr1": {
+        "throughput": 30.034350286422583,
+        "pacedP95Ms": 27.704833984375
+      },
+      "dpr2": {
+        "throughput": 30.01902530776443,
+        "pacedP95Ms": 28.02587890625
+      }
+    },
+    "taffy": {
+      "nodeCount": 1123,
+      "measuredLeafCount": 229,
+      "leafCount": 341,
+      "containerCount": 782,
+      "childEdgeCount": 1041,
+      "averageContainerFanout": 1.3312020460358056,
+      "maximumChildCount": 25,
+      "atMost1Count": 673,
+      "atMost1Share": 0.8606138107416879,
+      "atMost2Count": 726,
+      "atMost2Share": 0.928388746803069,
+      "atMost4Count": 755,
+      "atMost4Share": 0.9654731457800512,
+      "atMost8Count": 780,
+      "atMost8Share": 0.9974424552429667,
+      "flexContainerCount": 405,
+      "blockContainerCount": 377,
+      "gridContainerCount": 0,
+      "computeLayoutCount": 82,
+      "repeatedComputeLayoutCount": 0,
+      "invalidatedDescendantCount": 0
+    },
+    "maximumTerminalError": 0
+  },
+  "reportMarkdown": "# Taffy layout tree telemetry report\n\nDiagnostics-only counters now capture the window-owned Taffy tree's node, leaf, measured-leaf, container, edge, fanout, display-mode, compute-root, repeated-compute, and invalidated-descendant counts. The completed snapshot is attached to the frame before `TaffyLayoutEngine::clear` drops the rebuilt tree. Diagnostics-disabled construction and layout remain unchanged.\n\nThe headed Test Suite wide DataTable passed at DPR 1 and DPR 2 with identical tree shape: 1,123 nodes, 341 leaves including 229 measured leaves, 782 containers, 1,041 child edges, and maximum fanout 25. Container fanout averages 1.33. Capacity 1 covers 673 containers (86.06%), capacity 2 covers 726 (92.84%), capacity 4 covers 755 (96.55%), and capacity 8 covers 780 (99.74%). The containers split into 405 flex and 377 block nodes with no grid nodes. There were 82 root compute calls and no repeated-root recomputation or invalidated descendants.\n\nThe distribution makes the current heap `Vec<NodeId>` per non-leaf a material target: a two-slot inline representation could avoid 726 of 782 child-buffer allocations per warmed frame while retaining overflow for the remaining 56. Candidate paced p95 was 27.70 ms at DPR 1 and 28.03 ms at DPR 2. Focused counter tests, diagnostics-disabled/enabled checks, diagnostic Clippy with warnings denied, nested formatting, and 2/2 headed WebGPU projects passed.\n",
+  "decisionMarkdown": "# Decision\n\nAccept the diagnostics telemetry. Begin a separate experiment with exactly two inline Taffy child slots because this is the smallest measured capacity covering more than 90% of containers. Accept that candidate only if the avoided allocation count produces non-regressing runtime measurements and the larger outer child-storage entries remain a favorable trade.\n",
+  "notes": ""
+}

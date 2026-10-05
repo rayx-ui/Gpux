@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "id": "7d500b58-381a-4bfb-945f-45c80bcd55f3",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 42,
+  "type": "hypothesis",
+  "name": "Post-Arena Wide DataTable CPU Profile",
+  "slug": "post-arena-wide-data-table-cpu-profile",
+  "path": "2026-08-31-42-post-arena-wide-data-table-cpu-profile.json",
+  "createdAt": "2026-08-31T02:18:16Z",
+  "startedAt": "2026-08-31T02:18:16Z",
+  "finishedAt": "2026-08-31T02:21:28Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "20aa95d4fc0d37d00c56ae3002e76c8b8c97ad5b",
+  "resultCommit": "20aa95d4fc0d37d00c56ae3002e76c8b8c97ad5b",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 20aa95d4fc0d37d00c56ae3002e76c8b8c97ad5b",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "20aa95d4fc0d37d00c56ae3002e76c8b8c97ad5b",
+      "resultCommit": "20aa95d4fc0d37d00c56ae3002e76c8b8c97ad5b",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 20aa95d4fc0d37d00c56ae3002e76c8b8c97ad5b",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "20aa95d4fc0d37d00c56ae3002e76c8b8c97ad5b"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "apps/test_suite headed WASM/WebGPU wide DataTable CPU profile",
+  "hypothesisMarkdown": "An accepted-build CPU profile will quantify arena force-clear/drop changes after trivial drop-record elision and refresh the leading gpux-owned hotspot ranking.\n",
+  "measurementPlanMarkdown": "Run one headed WebGPU CPU-profile process for the wide DataTable at DPR 1 and DPR 2 in apps/test_suite. Compare Arena::force_clear, ArenaElement/drop families, ColorInner drops, and leading gpux-owned symbols against experiment 39; require exact output and zero errors.\n",
+  "expectedOutcomeMarkdown": "Arena bookkeeping self time falls or remains negligible, destructor-bearing style drops remain visible as required work, and the refreshed profile provides a concrete next gpux hypothesis without source changes.\n",
+  "diagnostics": {
+    "playwright": [
+      "One fresh headed Chromium/WebGPU process passed DPR 1 and DPR 2 with CPU profiling enabled, exact final offsets, and zero terminal errors.",
+      "apps/test_suite was the exclusive runtime fixture and the build verified shared memory, wasm_thread_entry_point, and 100897 atomic prefix bytes."
+    ],
+    "rayx": [
+      "Measurement-only experiment; no source change required static revalidation beyond the accepted experiment-41 gate."
+    ],
+    "counters": [
+      "Both profiles preserved the accepted renderer and Taffy diagnostic signatures."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 Arena::force_clear self time",
+      "before": "18.538 ms",
+      "after": "12.380 ms",
+      "delta": "-33.22%"
+    },
+    {
+      "metric": "DPR 2 Arena::force_clear self time",
+      "before": "26.324 ms",
+      "after": "17.083 ms",
+      "delta": "-35.10%"
+    },
+    {
+      "metric": "DPR 1 arena force-clear plus drop-thunk self time",
+      "before": "44.849 ms",
+      "after": "40.364 ms",
+      "delta": "-10.00%"
+    },
+    {
+      "metric": "DPR 2 arena force-clear plus drop-thunk self time",
+      "before": "57.380 ms",
+      "after": "38.698 ms",
+      "delta": "-32.56%"
+    },
+    {
+      "metric": "DPR 1 profiled throughput",
+      "before": "29.933337708589523 steps/s",
+      "after": "29.956876327604483 steps/s",
+      "delta": "+0.08%"
+    },
+    {
+      "metric": "DPR 2 profiled throughput",
+      "before": "29.9085881389269 steps/s",
+      "after": "29.88086350316968 steps/s",
+      "delta": "-0.09%"
+    }
+  ],
+  "reportMarkdown": "## Post-Arena Wide DataTable CPU Profile Finished\n\n**Index:** 42\n**Checkpoint:** `20aa95d4fc0d37d00c56ae3002e76c8b8c97ad5b`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. Headed WebGPU CPU profiles at both DPRs preserved the exact `-351402.6875` final offset, renderer/layout telemetry, and zero errors. Relative to experiment 39, `Arena::force_clear` self time fell from 18.538 ms to 12.380 ms at DPR 1 (-33.22%) and from 26.324 ms to 17.083 ms at DPR 2 (-35.10%). Combined `force_clear` plus registered arena drop-thunk self time fell 10.00% at DPR 1 and 32.56% at DPR 2.\n\nRequired destructor work remains visible, while the direct arena bookkeeping hotspot is smaller. The refreshed ranking is led by Taffy flex/block layout, monochrome sprite sorting, style refinement, node requests, element-ID path allocation, bounds insertion, and window drawing; each needs a separate atomic hypothesis.\n\n### Scope Lock\n\nMeasurement only. No source, dependency, shader, renderer, layout, or public API change was made.\n\n### Decision\n\nAccept the profile as evidence that trivial drop-record elision reduced arena clearing work without changing output. Use the refreshed gpux hotspot ranking to choose the next atomic experiment.\n",
+  "decisionMarkdown": "Accept the profile as evidence that trivial drop-record elision reduced `Arena::force_clear` self time at both DPRs while exact output and renderer telemetry remained stable. Keep required destructor-bearing drop records and investigate the next gpux-owned hotspot in a separate experiment.\n",
+  "notes": ""
+}

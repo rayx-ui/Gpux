@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "id": "3cdfb71b-c066-4e19-b6cd-e242b4760763",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 122,
+  "type": "hypothesis",
+  "name": "Current Bounds Probe Baseline",
+  "slug": "current-bounds-probe-baseline",
+  "path": "2026-08-31-122-current-bounds-probe-baseline.json",
+  "createdAt": "2026-08-31T19:22:39Z",
+  "startedAt": "2026-08-31T19:22:39Z",
+  "finishedAt": "2026-08-31T19:26:26Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "70ec1c671eed593d311220d04a23991f56034946",
+  "resultCommit": "70ec1c671eed593d311220d04a23991f56034946",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 70ec1c671eed593d311220d04a23991f56034946",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "70ec1c671eed593d311220d04a23991f56034946",
+      "resultCommit": "70ec1c671eed593d311220d04a23991f56034946",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 70ec1c671eed593d311220d04a23991f56034946",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "70ec1c671eed593d311220d04a23991f56034946"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "current telemetry-on Test Suite WASM/WebGPU cadence",
+  "hypothesisMarkdown": "## Current Bounds Probe Baseline Hypothesis\n\nA fresh unprofiled run of the restored telemetry-on checkpoint will establish the current process-local DPR cadence needed to distinguish experiment 121's opposite-direction variance from cleanup cost.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nMeasurement only. Run the existing exclusive Test Suite wide DataTable benchmark at both DPRs. Product source, tests, dependencies, configuration, fixtures, and diagnostics are forbidden.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nRun headed Test Suite WASM/WebGPU without CPU profiling at DPR 1 and 2. Require exact rendering, the telemetry-on seven-counter contract, 717 post-intersection prunes, and zero errors. Record throughput and paced p95 as the sole paired reference for a separately declared cleanup retry.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nProduce a fresh same-process reference that makes the next telemetry-removal decision fair and isolates browser variance from code effects.\n",
+  "diagnostics": {
+    "playwright": [
+      {
+        "target": "apps/test_suite",
+        "runtime": "headed Chromium WASM/WebGPU",
+        "passed": 2,
+        "failed": 0
+      }
+    ],
+    "rayx": [],
+    "counters": [
+      "717 post-intersection prunes at both DPRs",
+      "4440 visits, 14351 child evaluations, 576 retained nodes",
+      "zero terminal error"
+    ],
+    "artifacts": [
+      "test-results",
+      "playwright-report"
+    ]
+  },
+  "measurements": {
+    "runs": [
+      {
+        "deviceScaleFactor": 1,
+        "throughput": 29.312079925834592,
+        "pacedP95Ms": 27.040283203125,
+        "terminalErrorMax": 0.0
+      },
+      {
+        "deviceScaleFactor": 2,
+        "throughput": 29.615059020591517,
+        "pacedP95Ms": 26.230224609375,
+        "terminalErrorMax": 0.0
+      }
+    ],
+    "deterministicCounters": {
+      "searchNodeVisits": 4440,
+      "postIntersectionMaxOrderPrunes": 717,
+      "insertionChildEvaluations": 14351,
+      "retainedNodes": 576
+    },
+    "playwright": {
+      "passed": 2,
+      "failed": 0
+    }
+  },
+  "reportMarkdown": "# Experiment 122 Report\n\nThe restored telemetry-on checkpoint passed both headed Test Suite WASM/WebGPU cases with exact final rendering and zero error. DPR 1 measured 29.312079925834592 steps/s and 27.040283203125 ms paced p95. DPR 2 measured 29.615059020591517 steps/s and 26.230224609375 ms paced p95.\n\nThe seven-counter telemetry contract remained exact: 4,440 search visits, 717 post-intersection prunes, 14,351 insertion child evaluations, and 576 retained nodes at both DPRs.\n\nThese values return to the faster process-local range and supersede experiment 119 as the sole paired timing reference for a new cleanup attempt.\n",
+  "decisionMarkdown": "# Decision\n\nAccept the measurement-only baseline. No product source changed. Use only these current DPR values to judge a separately declared telemetry retirement retry.\n",
+  "notes": ""
+}

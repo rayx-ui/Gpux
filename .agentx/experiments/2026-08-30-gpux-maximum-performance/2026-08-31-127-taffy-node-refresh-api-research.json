@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "id": "cd06a350-31ed-49ec-af1c-86390c32312a",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 127,
+  "type": "hypothesis",
+  "name": "Taffy Node Refresh API Research",
+  "slug": "taffy-node-refresh-api-research",
+  "path": "2026-08-31-127-taffy-node-refresh-api-research.json",
+  "createdAt": "2026-08-31T19:58:08Z",
+  "startedAt": "2026-08-31T19:58:08Z",
+  "finishedAt": "2026-08-31T19:59:57Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "ca2e8350d7016cc03e03e7975486c7bd414a1ed0",
+  "resultCommit": "ca2e8350d7016cc03e03e7975486c7bd414a1ed0",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard ca2e8350d7016cc03e03e7975486c7bd414a1ed0",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "ca2e8350d7016cc03e03e7975486c7bd414a1ed0",
+      "resultCommit": "ca2e8350d7016cc03e03e7975486c7bd414a1ed0",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard ca2e8350d7016cc03e03e7975486c7bd414a1ed0",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "ca2e8350d7016cc03e03e7975486c7bd414a1ed0"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux pooled Taffy node topology verification",
+  "hypothesisMarkdown": "## Taffy Node Refresh API Research Hypothesis\n\nThe 277/294 ms `request_taffy_node` profile leader may contain avoidable topology verification work: every pooled node is unchanged in the warmed frame, yet gpux checks child count and calls `child_at_index` once per retained edge. Taffy 0.14 may expose a non-allocating bulk child view or another direct equality surface that can preserve exact order and duplicates with less dispatch.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRead-only source and API research across gpux's `request_taffy_node` implementation and the exact registry Taffy 0.14.0 source selected by the lockfiles. Determine the simplest legal topology comparison and its ownership/allocation behavior. Do not edit source, tests, dependencies, configuration, or fixtures.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nTrace gpux's pooled-node refresh calls, inspect TaffyTree and trait APIs plus their implementations, and count calls/edges from accepted diagnostics. Accept the research only if it identifies a concrete non-allocating alternative with exact semantics or proves that the current public API is already the narrowest safe path.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nProduce an API-grounded go/no-go decision for a separate topology-comparison implementation experiment, including exact allocation, ordering, duplicate, and invalidation constraints.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [
+      "1123 pooled requests and unchanged topologies",
+      "1041 retained child edges",
+      "public TraversePartialTree::child_ids iterator is allocation-free"
+    ],
+    "artifacts": [
+      "locked registry Taffy 0.14.0 source inspection",
+      "gpux request_taffy_node source inspection"
+    ]
+  },
+  "measurements": {
+    "checkpointCommit": "ca2e8350d7016cc03e03e7975486c7bd414a1ed0",
+    "acceptedFrame": {
+      "pooledNodeRequests": 1123,
+      "unchangedTopologies": 1123,
+      "retainedChildEdges": 1041
+    },
+    "currentTopologyReadCalls": {
+      "childCount": 1123,
+      "childAtIndex": 1041,
+      "totalSlotMapLookups": 2164
+    },
+    "candidateTopologyReadCalls": {
+      "childIds": 1123,
+      "totalSlotMapLookups": 1123,
+      "allocationCount": 0
+    },
+    "avoidedSlotMapLookups": 1041,
+    "profileSelfMs": {
+      "deviceScaleFactor1": 277.309,
+      "deviceScaleFactor2": 293.848
+    }
+  },
+  "reportMarkdown": "# Experiment 127 Report\n\nThe exact registry Taffy 0.14.0 source exposes `TraversePartialTree::child_ids`, and `TaffyTree` implements it as a `TaffyTreeChildIter` over the internal child slice. Construction performs one child-slot lookup and does not allocate. The iterator copies `NodeId` values from the slice.\n\nGpux currently calls public `child_count` once for every one of the 1,123 pooled nodes, then calls `child_at_index` for each of 1,041 retained child edges. Each `child_at_index` repeats the child-slot lookup, obtains the length, checks bounds, constructs `TaffyResult`, and indexes. On the accepted warmed frame that is 2,164 child-slot lookups.\n\nComparing `self.taffy.child_ids(id.0)` with `taffy_children.iter().copied()` using iterator equality preserves length, order, duplicates, and full `NodeId` equality. It uses one non-allocating child-slot lookup per pooled node, retains the necessary 1,041 value comparisons when equal, and removes 1,041 repeated slot lookups plus per-edge bounds/result handling. The public `children()` convenience method is unsuitable because it clones into a new `Vec`.\n",
+  "decisionMarkdown": "# Decision\n\nAccept the research and authorize a separate implementation experiment replacing only the current `child_count` plus `child_at_index` topology comparison with exact iterator equality through public `TraversePartialTree::child_ids`. Do not use the allocating `children()` API and do not change topology mutation or dirtying behavior.\n",
+  "notes": ""
+}

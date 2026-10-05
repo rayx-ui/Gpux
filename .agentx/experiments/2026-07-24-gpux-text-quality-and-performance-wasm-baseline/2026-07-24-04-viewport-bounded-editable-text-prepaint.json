@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "id": "8756e6dc-b8e3-45cb-af3e-98fa1ed5c70d",
+  "loopId": "54e74b74-483c-4598-92d7-fdbabbc9154b",
+  "index": 4,
+  "type": "hypothesis",
+  "name": "Viewport-bounded editable text prepaint",
+  "slug": "viewport-bounded-editable-text-prepaint",
+  "path": "2026-07-24-04-viewport-bounded-editable-text-prepaint.json",
+  "createdAt": "2026-07-24T03:58:10Z",
+  "startedAt": "2026-07-24T03:58:10Z",
+  "finishedAt": "2026-07-24T04:11:15Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "5367ab27dcce1d1199f5b9805858dbc6fb3a949c",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard 5367ab27dcce1d1199f5b9805858dbc6fb3a949c",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "5367ab27dcce1d1199f5b9805858dbc6fb3a949c",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard 5367ab27dcce1d1199f5b9805858dbc6fb3a949c",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "headed WASM WebGPU TextArea fixture",
+  "hypothesisMarkdown": "# Hypothesis\n\nSelecting the logical rows that intersect the viewport with the already ordered visual-row\nmetadata will replace the current all-row prepaint scan. It will preserve the same visible rows\nwhile bounding ordinary scroll work to the visible rows instead of all 2,000 lines.\n\n## Scope lock\n\nThis experiment changes only the prepaint row enumeration in `editable_text/element.rs` and the\nlayout-map query that supplies the exact range. It does not change layout rebuilding, row caching,\nselection geometry, or style processing.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\nRun the page-isolated Test Suite TextArea wheel-scroll fixture headed with WebGPU at DPR 1 and DPR\n2 for 35 runs per scale, discarding five warmups. Verify physical-pixel change and inspect the DPR\n2 screenshot. Compare p50/p95 with the frozen baseline and the accepted installed-key result.\n\nSource inspection will prove the prepaint loop receives only the binary-search-selected row range\nand no longer starts from `0..logical_row_count()`.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nVisible rendering, the scroll delta, selection-compatible rows, and no-crash behavior remain\nunchanged. The row enumeration is bounded by viewport intersection, and the fixed 2,000-line\nTextArea action improves directly without a fixture or threshold change.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": {
+    "target": "headed WASM WebGPU TextArea wheel action",
+    "protocol": "One page-isolated 35-run Playwright process per DPR with five warmups and thirty measured samples.",
+    "source": "04-layout-viewport-prepaint-output",
+    "cells": [
+      {
+        "dpr": 1,
+        "samples": 30,
+        "p50Ms": 484.844,
+        "p95Ms": 529.776,
+        "baselineP50Ms": 534.002,
+        "baselineP95Ms": 593.299,
+        "minChangedPixels": 13706
+      },
+      {
+        "dpr": 2,
+        "samples": 30,
+        "p50Ms": 501.996,
+        "p95Ms": 522.796,
+        "baselineP50Ms": 497.957,
+        "baselineP95Ms": 561.084,
+        "minChangedPixels": 53702
+      }
+    ],
+    "failures": 0
+  },
+  "reportMarkdown": "# Rejected viewport-bounded editable-text prepaint\n\nThe experiment passed 70/70 page-isolated headed WASM/WebGPU samples and preserved the visible\nTextArea scroll output. It did not demonstrate a sufficiently stable direct improvement: DPR 1\nimproved from 534.002/593.299 ms to 484.844/529.776 ms p50/p95, while DPR 2 p50 regressed from\n497.957 ms to 501.996 ms despite a p95 improvement to 522.796 ms.\n\nThe source change was restored to checkpoint `5367ab27d` immediately. The raw run remains for\nfuture diagnosis, but this hypothesis contributes no accepted production change.\n",
+  "decisionMarkdown": "# Decision\n\nReject the viewport-prepaint enumeration experiment. Do not infer an accepted optimization from a\nmixed two-scale result. The all-row scan remains a candidate only after a separate diagnostic can\nisolate its owned contribution from the fixture's remaining frame cost.\n",
+  "notes": ""
+}

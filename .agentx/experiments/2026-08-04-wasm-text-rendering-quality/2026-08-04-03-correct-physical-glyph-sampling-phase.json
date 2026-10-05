@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "id": "4e863422-0ff1-47a5-b75e-eac283720d59",
+  "loopId": "dc424089-d0a5-4558-ae79-72a6a8d787db",
+  "index": 3,
+  "type": "hypothesis",
+  "name": "Correct Physical Glyph Sampling Phase",
+  "slug": "correct-physical-glyph-sampling-phase",
+  "path": "2026-08-04-03-correct-physical-glyph-sampling-phase.json",
+  "createdAt": "2026-08-04T15:06:59Z",
+  "startedAt": "2026-08-04T15:06:59Z",
+  "finishedAt": "2026-08-04T15:11:40Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "d46037c0d4ff9a1aaf1c7ba45f64810959e7e8ac",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\8da1\\RayX\" reset --hard d46037c0d4ff9a1aaf1c7ba45f64810959e7e8ac",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "d46037c0d4ff9a1aaf1c7ba45f64810959e7e8ac",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\8da1\\RayX\" reset --hard d46037c0d4ff9a1aaf1c7ba45f64810959e7e8ac",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "wasm/web with headed Playwright and WebGPU enabled",
+  "hypothesisMarkdown": "## Correct Physical Glyph Sampling Phase\n\nGPUI quantizes the already-physical glyph origin into four X variants, but CosmicTextSystem divides that physical phase by DPR again before passing it to Swash. Removing only that extra division should restore the intended 0, 0.25, 0.5, and 0.75 physical-pixel offsets at every DPR without changing glyph geometry, scale, mode, or cache identity.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nAdd a focused unit contract for the four physical offsets, run the affected gpui_wgpu tests, then run the full current-candidate headed Test Suite WASM/WebGPU matrix. Compare all four DPR quality summaries and require the complete frozen target. Because DPR 1 divides by one today, expect its pixels to remain unchanged; if the full target remains red, revert this experiment despite the local phase correction.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nFractional/high-DPR phase sampling becomes correct and the focused unit test passes. The complete quality gate may remain red at DPR 1; if so, this candidate is rejected and reverted before the next rung-1 hypothesis.",
+  "diagnostics": {
+    "playwright": [
+      "The focused physical-quarter-pixel unit contract passed 1/1.",
+      "The headed Test Suite WASM/WebGPU matrix captured all four DPRs but the current-candidate target remained red."
+    ],
+    "rayx": [
+      "The attempted physical phase correction was removed immediately after the complete acceptance target failed."
+    ],
+    "counters": [
+      "Minimum acutance ratio remained 0.8046; maximum RayX fringe ratio remained 0; maximum alignment delta remained 2 physical pixels."
+    ],
+    "artifacts": [
+      ".agentx/experiments/2026-08-04-wasm-text-rendering-quality/2026-08-04-03-correct-physical-glyph-sampling-phase.json"
+    ]
+  },
+  "measurements": [
+    {
+      "name": "minimum_acutance_ratio",
+      "value": 0.8046,
+      "unit": "ratio"
+    },
+    {
+      "name": "maximum_rayx_fringe_ratio",
+      "value": 0,
+      "unit": "ratio"
+    },
+    {
+      "name": "maximum_alignment_delta",
+      "value": 2,
+      "unit": "physical_pixels"
+    }
+  ],
+  "reportMarkdown": "## Experiment Report\n\nThe focused unit proof confirmed that removing the extra DPR division restores physical quarter-pixel offsets, but the complete current-candidate quality target remained unchanged at its DPR 1 minimum. Because this atomic candidate did not satisfy the full frozen gate, its production and unit-test changes were reverted before closing the experiment.",
+  "decisionMarkdown": "### Decision\n\nReject and revert this candidate. Continue within rung 1 with a glyph-only grayscale coverage/gamma experiment that can affect the DPR 1 control, while preserving raw image-mask coverage and conservative grayscale composition.",
+  "notes": "Failure was the expected full-gate outcome because division by DPR is identity at DPR 1. The local defect is recorded but not retained under the first-complete-win contract."
+}

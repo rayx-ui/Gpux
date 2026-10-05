@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 3,
+  "epicId": "gpux-text-rendering-quality-performance",
+  "sprint": 1,
+  "auditSha256": "b3757f841ebc4c355237523ed5c3b16cd0caee4b91ad15657df013c5e13f6468",
+  "evidenceSha256": "c6687a50cb529f93d8874be05c45f8899b370c4323a31f4b21afec8e8c39e401",
+  "repositories": [
+    {
+      "id": "main",
+      "path": "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX",
+      "baselineHead": "c7bfe2a8eac14d2c0181fd0729f188213e652f8d",
+      "resultHead": "66b1af71297e16b2e05f3ac3de9d2302f52db521",
+      "commits": [
+        "0a5981c0f6083b69ef4979b19ef115f4a70c4c58",
+        "3296ce59ec6813b54eb703127743f776857bd42b",
+        "ffbc0033a54c0889cf5aeb7529b0f745fddd3ba3",
+        "66b1af71297e16b2e05f3ac3de9d2302f52db521"
+      ],
+      "statusHash": "2217f7559e4c51ec3659dc83b05c4cdf786d7e2a041e76982b6db1d3da0da618",
+      "sprintOwnedPaths": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\_state.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\baseline-diagnostics.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\baseline-measurements.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance\\diagnostics\\editable-text-complexity.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\apps\\test_suite\\src\\pages\\performance.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\performance-fixture.ts"
+      ],
+      "unrelatedDirtyPaths": [
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance-wasm-baseline/playwright-process-1-output/",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance-wasm-baseline/playwright-process-1.json",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance-wasm-baseline/playwright-process-2-output/",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance-wasm-baseline/playwright-process-2.json",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance-wasm-baseline/playwright-process-3-output/",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance-wasm-baseline/playwright-process-3.json",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance-wasm-baseline/playwright-shell-dpr2-replacement-output/",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance-wasm-baseline/playwright-shell-dpr2-replacement.json",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance-wasm-baseline/playwright-text-area-dpr2-replacement-output/",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance-wasm-baseline/playwright-text-area-dpr2-replacement.json",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance-wasm-baseline/playwright-text-quality-dpr2-replacement-output/",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance-wasm-baseline/playwright-text-quality-dpr2-replacement.json",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance-wasm-baseline/server.pid",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance/diagnostics/datatable-complexity.json",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance/diagnostics/editable-text-fallback.json",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance/diagnostics/selection-area-complexity.json",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance/diagnostics/table-selection-complexity.json",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance/diagnostics/wgpu-complexity.json",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance/playwright/",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance/scanner-isolation/",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance/server.pid",
+        "?? tools-node/.agentx/"
+      ],
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" revert --no-commit c7bfe2a8eac14d2c0181fd0729f188213e652f8d..66b1af71297e16b2e05f3ac3de9d2302f52db521"
+    }
+  ],
+  "generatedAt": "2026-07-24T03:31:38Z"
+}

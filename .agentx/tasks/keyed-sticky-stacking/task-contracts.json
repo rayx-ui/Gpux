@@ -1,0 +1,1647 @@
+{
+  "schemaVersion": 5,
+  "generatorVersion": "5.0",
+  "canonicalPlanHash": "9b689a36de185363fd452a058b3e9be2718b72f384ded96290a41dd85f873cd3",
+  "acceptanceTraceability": [
+    {
+      "acceptanceCriterionId": "AC-F-001-1",
+      "requirementId": "REQ-F-001",
+      "ownerTaskId": "sprint-1-task-1",
+      "supportingTaskIds": [],
+      "designIds": [
+        "DES-001",
+        "DES-002"
+      ],
+      "validationCommandIds": [
+        "VAL-SPRINT-1-TASK-1-GREEN-UNIT-01"
+      ]
+    },
+    {
+      "acceptanceCriterionId": "AC-F-001-2",
+      "requirementId": "REQ-F-001",
+      "ownerTaskId": "sprint-1-task-1",
+      "supportingTaskIds": [],
+      "designIds": [
+        "DES-001",
+        "DES-002"
+      ],
+      "validationCommandIds": [
+        "VAL-SPRINT-1-TASK-1-GREEN-UNIT-01"
+      ]
+    },
+    {
+      "acceptanceCriterionId": "AC-F-001-3",
+      "requirementId": "REQ-F-001",
+      "ownerTaskId": "sprint-1-task-1",
+      "supportingTaskIds": [],
+      "designIds": [
+        "DES-001",
+        "DES-002"
+      ],
+      "validationCommandIds": [
+        "VAL-SPRINT-1-TASK-1-BROAD-STICKY-01",
+        "VAL-SPRINT-1-TASK-1-GREEN-UNIT-01"
+      ]
+    },
+    {
+      "acceptanceCriterionId": "AC-F-002-1",
+      "requirementId": "REQ-F-002",
+      "ownerTaskId": "sprint-1-task-1",
+      "supportingTaskIds": [],
+      "designIds": [
+        "DES-001",
+        "DES-002"
+      ],
+      "validationCommandIds": [
+        "VAL-SPRINT-1-TASK-1-GREEN-RUNTIME-01",
+        "VAL-SPRINT-1-TASK-1-GREEN-UNIT-01"
+      ]
+    },
+    {
+      "acceptanceCriterionId": "AC-F-002-2",
+      "requirementId": "REQ-F-002",
+      "ownerTaskId": "sprint-1-task-1",
+      "supportingTaskIds": [],
+      "designIds": [
+        "DES-001",
+        "DES-002"
+      ],
+      "validationCommandIds": [
+        "VAL-SPRINT-1-TASK-1-GREEN-RUNTIME-01",
+        "VAL-SPRINT-1-TASK-1-GREEN-UNIT-01"
+      ]
+    },
+    {
+      "acceptanceCriterionId": "AC-F-002-3",
+      "requirementId": "REQ-F-002",
+      "ownerTaskId": "sprint-1-task-1",
+      "supportingTaskIds": [],
+      "designIds": [
+        "DES-001",
+        "DES-002"
+      ],
+      "validationCommandIds": [
+        "VAL-SPRINT-1-TASK-1-BROAD-STICKY-01",
+        "VAL-SPRINT-1-TASK-1-GREEN-RUNTIME-01",
+        "VAL-SPRINT-1-TASK-1-GREEN-UNIT-01"
+      ]
+    },
+    {
+      "acceptanceCriterionId": "AC-F-003-1",
+      "requirementId": "REQ-F-003",
+      "ownerTaskId": "sprint-2-task-1",
+      "supportingTaskIds": [],
+      "designIds": [
+        "DES-001",
+        "DES-003"
+      ],
+      "validationCommandIds": [
+        "VAL-SPRINT-2-TASK-1-GREEN-RUNTIME-01",
+        "VAL-SPRINT-2-TASK-1-GREEN-UNIT-01"
+      ]
+    },
+    {
+      "acceptanceCriterionId": "AC-F-003-2",
+      "requirementId": "REQ-F-003",
+      "ownerTaskId": "sprint-2-task-1",
+      "supportingTaskIds": [],
+      "designIds": [
+        "DES-001",
+        "DES-003"
+      ],
+      "validationCommandIds": [
+        "VAL-SPRINT-2-TASK-1-GREEN-RUNTIME-01",
+        "VAL-SPRINT-2-TASK-1-GREEN-UNIT-01"
+      ]
+    },
+    {
+      "acceptanceCriterionId": "AC-F-003-3",
+      "requirementId": "REQ-F-003",
+      "ownerTaskId": "sprint-2-task-1",
+      "supportingTaskIds": [],
+      "designIds": [
+        "DES-001",
+        "DES-003"
+      ],
+      "validationCommandIds": [
+        "VAL-SPRINT-2-TASK-1-BROAD-STICKY-01",
+        "VAL-SPRINT-2-TASK-1-GREEN-RUNTIME-01",
+        "VAL-SPRINT-2-TASK-1-GREEN-UNIT-01"
+      ]
+    },
+    {
+      "acceptanceCriterionId": "AC-F-004-1",
+      "requirementId": "REQ-F-004",
+      "ownerTaskId": "sprint-3-task-1",
+      "supportingTaskIds": [],
+      "designIds": [
+        "DES-001",
+        "DES-004"
+      ],
+      "validationCommandIds": [
+        "VAL-SPRINT-3-TASK-1-AFTER-RUNTIME-01",
+        "VAL-SPRINT-3-TASK-1-AFTER-UNIT-01",
+        "VAL-SPRINT-3-TASK-1-BROAD-GPUX-01"
+      ]
+    },
+    {
+      "acceptanceCriterionId": "AC-F-004-2",
+      "requirementId": "REQ-F-004",
+      "ownerTaskId": "sprint-3-task-1",
+      "supportingTaskIds": [],
+      "designIds": [
+        "DES-001",
+        "DES-004"
+      ],
+      "validationCommandIds": [
+        "VAL-SPRINT-3-TASK-1-AFTER-RUNTIME-01",
+        "VAL-SPRINT-3-TASK-1-AFTER-UNIT-01",
+        "VAL-SPRINT-3-TASK-1-BROAD-GPUX-01"
+      ]
+    },
+    {
+      "acceptanceCriterionId": "AC-F-004-3",
+      "requirementId": "REQ-F-004",
+      "ownerTaskId": "sprint-3-task-1",
+      "supportingTaskIds": [],
+      "designIds": [
+        "DES-001",
+        "DES-004"
+      ],
+      "validationCommandIds": [
+        "VAL-SPRINT-3-TASK-1-AFTER-ARCHITECTURE-01",
+        "VAL-SPRINT-3-TASK-1-AFTER-RUNTIME-01",
+        "VAL-SPRINT-3-TASK-1-AFTER-UNIT-01",
+        "VAL-SPRINT-3-TASK-1-BEFORE-01",
+        "VAL-SPRINT-3-TASK-1-BROAD-GPUX-01"
+      ]
+    },
+    {
+      "acceptanceCriterionId": "AC-F-005-1",
+      "requirementId": "REQ-F-005",
+      "ownerTaskId": "sprint-4-task-1",
+      "supportingTaskIds": [],
+      "designIds": [
+        "DES-001",
+        "DES-002",
+        "DES-003",
+        "DES-004",
+        "DES-005"
+      ],
+      "validationCommandIds": [
+        "VAL-SPRINT-4-TASK-1-AFTER-RUNTIME-01"
+      ]
+    },
+    {
+      "acceptanceCriterionId": "AC-F-005-2",
+      "requirementId": "REQ-F-005",
+      "ownerTaskId": "sprint-4-task-1",
+      "supportingTaskIds": [],
+      "designIds": [
+        "DES-001",
+        "DES-002",
+        "DES-003",
+        "DES-004",
+        "DES-005"
+      ],
+      "validationCommandIds": [
+        "VAL-SPRINT-4-TASK-1-AFTER-RUNTIME-01",
+        "VAL-SPRINT-4-TASK-1-BROAD-GPUX-01",
+        "VAL-SPRINT-4-TASK-1-BROAD-REGRESSION-01"
+      ]
+    },
+    {
+      "acceptanceCriterionId": "AC-NF-001-1",
+      "requirementId": "REQ-NF-001",
+      "ownerTaskId": "sprint-1-task-1",
+      "supportingTaskIds": [],
+      "designIds": [
+        "DES-001",
+        "DES-002"
+      ],
+      "validationCommandIds": [
+        "VAL-SPRINT-1-TASK-1-GREEN-PERFORMANCE-01"
+      ]
+    },
+    {
+      "acceptanceCriterionId": "AC-NF-001-2",
+      "requirementId": "REQ-NF-001",
+      "ownerTaskId": "sprint-1-task-1",
+      "supportingTaskIds": [],
+      "designIds": [
+        "DES-001",
+        "DES-002"
+      ],
+      "validationCommandIds": [
+        "VAL-SPRINT-1-TASK-1-GREEN-PERFORMANCE-01"
+      ]
+    },
+    {
+      "acceptanceCriterionId": "AC-NF-002-1",
+      "requirementId": "REQ-NF-002",
+      "ownerTaskId": "sprint-4-task-1",
+      "supportingTaskIds": [],
+      "designIds": [
+        "DES-001",
+        "DES-002",
+        "DES-003",
+        "DES-004",
+        "DES-005"
+      ],
+      "validationCommandIds": [
+        "VAL-SPRINT-4-TASK-1-AFTER-ARCHITECTURE-01",
+        "VAL-SPRINT-4-TASK-1-BEFORE-GPUX-01",
+        "VAL-SPRINT-4-TASK-1-BEFORE-RAYX-01",
+        "VAL-SPRINT-4-TASK-1-BROAD-GPUX-01",
+        "VAL-SPRINT-4-TASK-1-BROAD-REGRESSION-01"
+      ]
+    },
+    {
+      "acceptanceCriterionId": "AC-NF-002-2",
+      "requirementId": "REQ-NF-002",
+      "ownerTaskId": "sprint-3-task-1",
+      "supportingTaskIds": [],
+      "designIds": [
+        "DES-001",
+        "DES-004"
+      ],
+      "validationCommandIds": [
+        "VAL-SPRINT-3-TASK-1-AFTER-ARCHITECTURE-01",
+        "VAL-SPRINT-3-TASK-1-AFTER-CONTRACT-01"
+      ]
+    },
+    {
+      "acceptanceCriterionId": "AC-NF-003-1",
+      "requirementId": "REQ-NF-003",
+      "ownerTaskId": "sprint-4-task-1",
+      "supportingTaskIds": [],
+      "designIds": [
+        "DES-001",
+        "DES-002",
+        "DES-003",
+        "DES-004",
+        "DES-005"
+      ],
+      "validationCommandIds": [
+        "VAL-SPRINT-4-TASK-1-AFTER-CLIPPY-01",
+        "VAL-SPRINT-4-TASK-1-AFTER-FMT-01",
+        "VAL-SPRINT-4-TASK-1-AFTER-GPUX-CLIPPY-01",
+        "VAL-SPRINT-4-TASK-1-AFTER-GPUX-FMT-01",
+        "VAL-SPRINT-4-TASK-1-AFTER-RUNTIME-01",
+        "VAL-SPRINT-4-TASK-1-BROAD-GPUX-01",
+        "VAL-SPRINT-4-TASK-1-BROAD-REGRESSION-01"
+      ]
+    },
+    {
+      "acceptanceCriterionId": "AC-NF-003-2",
+      "requirementId": "REQ-NF-003",
+      "ownerTaskId": "sprint-4-task-1",
+      "supportingTaskIds": [],
+      "designIds": [
+        "DES-001",
+        "DES-002",
+        "DES-003",
+        "DES-004",
+        "DES-005"
+      ],
+      "validationCommandIds": [
+        "VAL-SPRINT-4-TASK-1-AFTER-ARCHITECTURE-01",
+        "VAL-SPRINT-4-TASK-1-AFTER-DOCS-01"
+      ]
+    }
+  ],
+  "sourceTraceRequired": false,
+  "tasks": [
+    {
+      "id": "sprint-1-task-1",
+      "revisionId": "sprint-1-task-1@46af1e911587b194",
+      "behaviorContractHash": "46af1e911587b19465d620db57d95d1373920f974fd8244af3b1aea8bb4fe805",
+      "planningMetadataHash": "52d4512ed79a66db6afc39f7e3d5408f33d88bd8465809dbd67eb370fbfc8e7d",
+      "sprint": 1,
+      "taskIndex": 1,
+      "kind": "feature",
+      "text": "Add the gpux StickyStacking relation and linear-memory active-chain index, add sticky_stack_id to ordinary sticky styling, implement complete per-scroll-context keyed candidate discovery and resolution before Div commits visual bounds, preserve the existing unkeyed resolver, and prove the behavior with focused gpux tests plus an ordinary-div Test Suite fixture.",
+      "taskTextHash": "f27a6f4fff2e93f6f2e35d564185c49520827a70b7198ff38797f3e354f99c69",
+      "scope": {
+        "writePaths": [
+          "crates/gpux/crates/gpui/src/style.rs",
+          "crates/gpux/crates/gpui/src/window.rs",
+          "crates/gpux/crates/gpui/src/elements/div.rs",
+          "crates/gpux/crates/gpui/src/elements/sticky*.rs",
+          "crates/gpux/crates/gpui/src/elements.rs",
+          "crates/gpux/crates/gpui/src/lib.rs",
+          "apps/test_suite/src/pages/**",
+          "tools-node/test_suite/keyed-sticky-stacking.spec.ts",
+          ".agentx/tasks/keyed-sticky-stacking/**"
+        ],
+        "generatedPaths": [],
+        "forbiddenPaths": [
+          "apps/lab/**",
+          "tools-node/lab/**",
+          "crates/rayx/rayx_components/rayx_components_core/src/components/virtual_list/**",
+          "crates/gpux/crates/gpui/src/elements/list.rs",
+          "crates/gpux/crates/gpui/src/elements/uniform_list.rs"
+        ],
+        "responsibilityIds": [
+          "RESP-001",
+          "RESP-002",
+          "RESP-005"
+        ],
+        "symbols": [
+          "StickyStacking",
+          "Sticky relation index",
+          "Styled::sticky_stack_id",
+          "Window keyed sticky frame plan",
+          "Div positioned lifecycle"
+        ]
+      },
+      "repositoryIds": [
+        "rayx"
+      ],
+      "requirementIds": [
+        "REQ-F-001",
+        "REQ-F-002",
+        "REQ-NF-001"
+      ],
+      "designIds": [
+        "DES-001",
+        "DES-002"
+      ],
+      "acceptanceCriteriaIds": [
+        "AC-F-001-1",
+        "AC-F-001-2",
+        "AC-F-001-3",
+        "AC-F-002-1",
+        "AC-F-002-2",
+        "AC-F-002-3",
+        "AC-NF-001-1",
+        "AC-NF-001-2"
+      ],
+      "proofMode": "red-green",
+      "proofObligations": [
+        "Focused relation and ordinary Div tests fail for missing keyed stacking after the tests are added and before production implementation.",
+        "The same tests pass after equal-run stacking, replacement, A-B-A, clipping, callbacks, hitboxes, and unkeyed compatibility are implemented.",
+        "A 10,000-candidate test proves linear record count and bounded active lookup.",
+        "The ordinary-div Test Suite section passes at DPR 1 and DPR 2 with numeric bounds and click assertions."
+      ],
+      "implementationConstraints": {
+        "reuse": [
+          "Existing Style, Window scroll contexts, PositionedBounds, StickyState, Div masks and child deltas, positioned hitboxes, and positioned scene paint",
+          "ElementId for author-provided stack identity unless sprint source proof invalidates ASM-003"
+        ],
+        "prohibitedAdditions": [
+          "App-level overlay or proxy elements",
+          "Global sticky registration service",
+          "RayX dependency from gpux",
+          "Cache without frame-local ownership and invalidation",
+          "Bottom or right keyed behavior",
+          "External dependency"
+        ],
+        "allowedAdditions": [
+          "StickyStacking",
+          "Sticky relation index",
+          "Styled sticky_stack_id(id) for ordinary sticky elements",
+          "Window frame-local keyed sticky plan",
+          "Focused tests and production-shaped Test Suite fixture state"
+        ]
+      },
+      "validation": {
+        "red": [
+          {
+            "id": "VAL-SPRINT-1-TASK-1-RED-UNIT-01",
+            "phase": "red",
+            "repositoryId": "rayx",
+            "workingDirectory": ".",
+            "runner": {
+              "kind": "argv",
+              "executable": "cargo",
+              "arguments": [
+                "test",
+                "--manifest-path",
+                "crates/gpux/Cargo.toml",
+                "-p",
+                "gpux",
+                "keyed_sticky",
+                "--",
+                "--nocapture"
+              ]
+            },
+            "target": "host",
+            "validationProfile": "unit",
+            "acceptanceCriteriaIds": [
+              "AC-F-001-1",
+              "AC-F-001-2",
+              "AC-F-002-1",
+              "AC-F-002-2"
+            ],
+            "expected": {
+              "exitCode": "nonzero",
+              "failurePattern": "keyed_sticky"
+            },
+            "command": "cargo test --manifest-path crates/gpux/Cargo.toml -p gpux keyed_sticky -- --nocapture",
+            "assertion": "New relation and ordinary Div tests MUST fail for the expected missing stack identifier and planner behavior before production changes.",
+            "artifactPaths": [
+              "rayx:crates/gpux/crates/gpui/src/elements/div.rs",
+              "rayx:crates/gpux/crates/gpui/src/window.rs"
+            ]
+          }
+        ],
+        "green": [
+          {
+            "id": "VAL-SPRINT-1-TASK-1-GREEN-UNIT-01",
+            "phase": "green",
+            "repositoryId": "rayx",
+            "workingDirectory": ".",
+            "runner": {
+              "kind": "argv",
+              "executable": "cargo",
+              "arguments": [
+                "test",
+                "--manifest-path",
+                "crates/gpux/Cargo.toml",
+                "-p",
+                "gpux",
+                "keyed_sticky",
+                "--",
+                "--nocapture"
+              ]
+            },
+            "target": "host",
+            "validationProfile": "unit",
+            "acceptanceCriteriaIds": [
+              "AC-F-001-1",
+              "AC-F-001-2",
+              "AC-F-001-3",
+              "AC-F-002-1",
+              "AC-F-002-2",
+              "AC-F-002-3"
+            ],
+            "expected": {
+              "exitCode": 0
+            },
+            "command": "cargo test --manifest-path crates/gpux/Cargo.toml -p gpux keyed_sticky -- --nocapture",
+            "assertion": "Canonical relation and ordinary Div keyed stacking matrices MUST pass.",
+            "artifactPaths": [
+              "rayx:crates/gpux/crates/gpui/src/elements",
+              "rayx:crates/gpux/crates/gpui/src/window.rs",
+              "rayx:crates/gpux/crates/gpui/src/style.rs"
+            ]
+          },
+          {
+            "id": "VAL-SPRINT-1-TASK-1-GREEN-PERFORMANCE-01",
+            "phase": "green",
+            "repositoryId": "rayx",
+            "workingDirectory": ".",
+            "runner": {
+              "kind": "argv",
+              "executable": "cargo",
+              "arguments": [
+                "test",
+                "--manifest-path",
+                "crates/gpux/Cargo.toml",
+                "-p",
+                "gpux",
+                "sticky_relation_10000",
+                "--",
+                "--nocapture"
+              ]
+            },
+            "target": "host",
+            "validationProfile": "performance",
+            "acceptanceCriteriaIds": [
+              "AC-NF-001-1",
+              "AC-NF-001-2"
+            ],
+            "expected": {
+              "exitCode": 0
+            },
+            "command": "cargo test --manifest-path crates/gpux/Cargo.toml -p gpux sticky_relation_10000 -- --nocapture",
+            "assertion": "Ten thousand candidates MUST use linear relation records and candidate search plus active-depth reconstruction.",
+            "artifactPaths": [
+              "rayx:crates/gpux/crates/gpui/src/elements"
+            ]
+          },
+          {
+            "id": "VAL-SPRINT-1-TASK-1-GREEN-RUNTIME-01",
+            "phase": "green",
+            "repositoryId": "rayx",
+            "workingDirectory": ".",
+            "runner": {
+              "kind": "shell",
+              "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/keyed-sticky-stacking.spec.ts",
+              "platform": "portable"
+            },
+            "target": "wasm-headed-webgpu-dpr-1-and-2",
+            "validationProfile": "interaction",
+            "acceptanceCriteriaIds": [
+              "AC-F-002-1",
+              "AC-F-002-2",
+              "AC-F-002-3"
+            ],
+            "expected": {
+              "exitCode": 0
+            },
+            "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/keyed-sticky-stacking.spec.ts",
+            "assertion": "The ordinary Div fixture MUST prove keyed bounds, replacement, callbacks, and clicks at DPR 1 and DPR 2.",
+            "artifactPaths": [
+              "rayx:apps/test_suite/src/pages",
+              "rayx:tools-node/test_suite/keyed-sticky-stacking.spec.ts"
+            ]
+          }
+        ],
+        "broad": [
+          {
+            "id": "VAL-SPRINT-1-TASK-1-BROAD-STICKY-01",
+            "phase": "broad",
+            "repositoryId": "rayx",
+            "workingDirectory": ".",
+            "runner": {
+              "kind": "argv",
+              "executable": "cargo",
+              "arguments": [
+                "test",
+                "--manifest-path",
+                "crates/gpux/Cargo.toml",
+                "-p",
+                "gpux",
+                "sticky",
+                "--",
+                "--nocapture"
+              ]
+            },
+            "target": "host",
+            "validationProfile": "behavior-preservation",
+            "acceptanceCriteriaIds": [
+              "AC-F-001-3",
+              "AC-F-002-3"
+            ],
+            "expected": {
+              "exitCode": 0
+            },
+            "command": "cargo test --manifest-path crates/gpux/Cargo.toml -p gpux sticky -- --nocapture",
+            "assertion": "All existing gpux sticky tests and new keyed tests MUST pass.",
+            "artifactPaths": [
+              "rayx:crates/gpux/crates/gpui/src"
+            ]
+          }
+        ],
+        "profiles": [
+          "unit",
+          "performance",
+          "interaction",
+          "behavior-preservation"
+        ]
+      },
+      "validationProfiles": [
+        "unit",
+        "performance",
+        "interaction",
+        "behavior-preservation"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-2-task-1",
+      "revisionId": "sprint-2-task-1@aaf88e2df2c08d97",
+      "behaviorContractHash": "aaf88e2df2c08d97dea518a9d304b7b4c906450a0b7d733575acad81797fc331",
+      "planningMetadataHash": "7d380e8c046f192ae3ce833a48feb7818639ca90ca73b13a6d8595cb00556b3e",
+      "sprint": 2,
+      "taskIndex": 1,
+      "kind": "feature",
+      "text": "Expose the existing gpux StickyRelationIndex as a #[doc(hidden)] cross-crate internal surface, add StickyRow::stack_id backed by the canonical relation, replace VirtualStickyItems copied stacks with that shared linear-memory index, preserve the sticky_policy and root-wrapper architecture, rebuild keyed candidates across ListView and TreeView projection changes, and extend the Test Suite with variable-size, mutation, reversed, tree-collapse, ParentViewport, callback, and click proof.",
+      "taskTextHash": "e4b42999fe80bcad47adcdd37a52a8e86013d4eaa4dfc520e31ea6c06bea2b35",
+      "scope": {
+        "writePaths": [
+          "crates/gpux/crates/gpui/src/window.rs",
+          "crates/rayx/rayx_components/rayx_components_core/src/core/sticky.rs",
+          "crates/rayx/rayx_components/rayx_components_core/src/components/virtual_list/**",
+          "crates/rayx/rayx_components/rayx_components_core/src/components/list_view/**",
+          "crates/rayx/rayx_components/rayx_components_core/src/components/tree_view/**",
+          "crates/rayx/rayx_components/rayx_components_core/src/lib.rs",
+          "apps/test_suite/src/pages/**",
+          "tools-node/test_suite/keyed-sticky-stacking.spec.ts",
+          ".agentx/tasks/keyed-sticky-stacking/**"
+        ],
+        "generatedPaths": [],
+        "forbiddenPaths": [
+          "apps/lab/**",
+          "tools-node/lab/**",
+          "crates/gpux/crates/gpui/src/elements/div.rs",
+          "crates/gpux/crates/gpui/src/elements/list.rs",
+          "crates/gpux/crates/gpui/src/elements/uniform_list.rs"
+        ],
+        "responsibilityIds": [
+          "RESP-001",
+          "RESP-003",
+          "RESP-005"
+        ],
+        "symbols": [
+          "gpux::StickyRelationIndex hidden cross-crate API",
+          "StickyRow::stack_id",
+          "VirtualStickyItem",
+          "VirtualStickyItems",
+          "ListViewState sticky policy",
+          "TreeViewState sticky policy",
+          "VirtualList sticky root wrapper"
+        ]
+      },
+      "repositoryIds": [
+        "rayx"
+      ],
+      "requirementIds": [
+        "REQ-F-003"
+      ],
+      "designIds": [
+        "DES-001",
+        "DES-003"
+      ],
+      "acceptanceCriteriaIds": [
+        "AC-F-003-1",
+        "AC-F-003-2",
+        "AC-F-003-3"
+      ],
+      "proofMode": "red-green",
+      "proofObligations": [
+        "Focused rayx_components_core tests fail for the missing StickyRow key relation and virtual active-run behavior before production changes.",
+        "The same tests pass for ListView, TreeView, replacement, A-B-A, mutations, projection reversal, collapse, gaps, callbacks, identity, and visible-range preservation.",
+        "The Test Suite list and tree sections pass at DPR 1 and DPR 2 with numeric bounds and real click results.",
+        "A 10,000-candidate virtual index test uses the shared linear-memory representation."
+      ],
+      "implementationConstraints": {
+        "reuse": [
+          "Canonical gpux relation from sprint 1",
+          "Existing sticky_policy caches",
+          "Existing conditional VirtualList root wrapper",
+          "Existing item extent and gap geometry"
+        ],
+        "prohibitedAdditions": [
+          "Second ListView or TreeView sticky policy",
+          "Overlay or duplicate rows",
+          "Child-only sticky wrapper",
+          "Per-scroll full projection scan",
+          "External dependency"
+        ],
+        "allowedAdditions": [
+          "StickyStacking",
+          "Sticky relation index",
+          "StickyRow::stack_id(id)",
+          "Relation field conversion in VirtualStickyItem",
+          "Focused cache rebuild and regression tests",
+          "ListView and TreeView Test Suite fixture sections"
+        ]
+      },
+      "validation": {
+        "red": [
+          {
+            "id": "VAL-SPRINT-2-TASK-1-RED-UNIT-01",
+            "phase": "red",
+            "repositoryId": "rayx",
+            "workingDirectory": ".",
+            "runner": {
+              "kind": "argv",
+              "executable": "cargo",
+              "arguments": [
+                "test",
+                "-p",
+                "rayx_components_core",
+                "keyed_sticky",
+                "--",
+                "--nocapture"
+              ]
+            },
+            "target": "host",
+            "validationProfile": "unit",
+            "acceptanceCriteriaIds": [
+              "AC-F-003-1",
+              "AC-F-003-2"
+            ],
+            "expected": {
+              "exitCode": "nonzero",
+              "failurePattern": "keyed_sticky"
+            },
+            "command": "cargo test -p rayx_components_core keyed_sticky -- --nocapture",
+            "assertion": "New virtual keyed tests MUST fail for the missing StickyRow relation and active-run implementation.",
+            "artifactPaths": [
+              "rayx:crates/rayx/rayx_components/rayx_components_core/src/core/sticky.rs",
+              "rayx:crates/rayx/rayx_components/rayx_components_core/src/components/virtual_list"
+            ]
+          }
+        ],
+        "green": [
+          {
+            "id": "VAL-SPRINT-2-TASK-1-GREEN-UNIT-01",
+            "phase": "green",
+            "repositoryId": "rayx",
+            "workingDirectory": ".",
+            "runner": {
+              "kind": "argv",
+              "executable": "cargo",
+              "arguments": [
+                "test",
+                "-p",
+                "rayx_components_core",
+                "keyed_sticky",
+                "--",
+                "--nocapture"
+              ]
+            },
+            "target": "host",
+            "validationProfile": "unit",
+            "acceptanceCriteriaIds": [
+              "AC-F-003-1",
+              "AC-F-003-2",
+              "AC-F-003-3"
+            ],
+            "expected": {
+              "exitCode": 0
+            },
+            "command": "cargo test -p rayx_components_core keyed_sticky -- --nocapture",
+            "assertion": "VirtualList, ListView, and TreeView keyed behavior and compatibility matrices MUST pass.",
+            "artifactPaths": [
+              "rayx:crates/rayx/rayx_components/rayx_components_core/src/core/sticky.rs",
+              "rayx:crates/rayx/rayx_components/rayx_components_core/src/components/virtual_list",
+              "rayx:crates/rayx/rayx_components/rayx_components_core/src/components/list_view",
+              "rayx:crates/rayx/rayx_components/rayx_components_core/src/components/tree_view"
+            ]
+          },
+          {
+            "id": "VAL-SPRINT-2-TASK-1-GREEN-RUNTIME-01",
+            "phase": "green",
+            "repositoryId": "rayx",
+            "workingDirectory": ".",
+            "runner": {
+              "kind": "shell",
+              "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/keyed-sticky-stacking.spec.ts",
+              "platform": "portable"
+            },
+            "target": "wasm-headed-webgpu-dpr-1-and-2",
+            "validationProfile": "interaction",
+            "acceptanceCriteriaIds": [
+              "AC-F-003-1",
+              "AC-F-003-2",
+              "AC-F-003-3"
+            ],
+            "expected": {
+              "exitCode": 0
+            },
+            "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/keyed-sticky-stacking.spec.ts",
+            "assertion": "ListView and TreeView keyed sections MUST prove exact geometry, mutations, replacement, callbacks, visible range, and clicks.",
+            "artifactPaths": [
+              "rayx:apps/test_suite/src/pages",
+              "rayx:tools-node/test_suite/keyed-sticky-stacking.spec.ts"
+            ]
+          }
+        ],
+        "broad": [
+          {
+            "id": "VAL-SPRINT-2-TASK-1-BROAD-STICKY-01",
+            "phase": "broad",
+            "repositoryId": "rayx",
+            "workingDirectory": ".",
+            "runner": {
+              "kind": "argv",
+              "executable": "cargo",
+              "arguments": [
+                "test",
+                "-p",
+                "rayx_components_core",
+                "sticky",
+                "--",
+                "--nocapture"
+              ]
+            },
+            "target": "host",
+            "validationProfile": "behavior-preservation",
+            "acceptanceCriteriaIds": [
+              "AC-F-003-3"
+            ],
+            "expected": {
+              "exitCode": 0
+            },
+            "command": "cargo test -p rayx_components_core sticky -- --nocapture",
+            "assertion": "All current and keyed RayX sticky tests MUST remain green.",
+            "artifactPaths": [
+              "rayx:crates/rayx/rayx_components/rayx_components_core/src"
+            ]
+          }
+        ],
+        "profiles": [
+          "unit",
+          "interaction",
+          "behavior-preservation"
+        ]
+      },
+      "validationProfiles": [
+        "unit",
+        "interaction",
+        "behavior-preservation"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-3-task-1",
+      "revisionId": "sprint-3-task-1@6e58c604a5b34a34",
+      "behaviorContractHash": "6e58c604a5b34a34868285a10bde44f1e05dfa7d1e4d692b7f9bd75a3f9a997f",
+      "planningMetadataHash": "8b7b5417e2d63e11ab53d51e8a3119ecb683b354f8434e50925deb290d774e58",
+      "sprint": 3,
+      "taskIndex": 1,
+      "kind": "api",
+      "text": "Introduce one structured low-level sticky candidate containing item index and the canonical relation, replace backward scans with the relation index, implement keyed offscreen retention and incoming replacement in variable and uniform lists, preserve flat and explicit-level behavior, migrate all repository callers atomically, and extend the Test Suite without using Lab for automation.",
+      "taskTextHash": "05307c435f17b48219657fd605cf7e558dbbe9c2390654abc53babdf36ca41a7",
+      "scope": {
+        "writePaths": [
+          "crates/gpux/crates/gpui/src/elements/list.rs",
+          "crates/gpux/crates/gpui/src/elements/uniform_list.rs",
+          "crates/gpux/crates/gpui/src/elements.rs",
+          "crates/gpux/crates/gpui/src/lib.rs",
+          "apps/lab/src/**",
+          "apps/test_suite/src/pages/**",
+          "tools-node/test_suite/keyed-sticky-stacking.spec.ts",
+          ".agentx/tasks/keyed-sticky-stacking/**"
+        ],
+        "generatedPaths": [],
+        "forbiddenPaths": [
+          "tools-node/lab/**",
+          "crates/gpux/crates/gpui/src/elements/div.rs",
+          "crates/gpux/crates/gpui/src/window.rs",
+          "crates/rayx/rayx_components/rayx_components_core/src/components/virtual_list/**",
+          "crates/rayx/rayx_components/rayx_components_core/src/components/list_view/**",
+          "crates/rayx/rayx_components/rayx_components_core/src/components/tree_view/**"
+        ],
+        "responsibilityIds": [
+          "RESP-001",
+          "RESP-004",
+          "RESP-005"
+        ],
+        "symbols": [
+          "Structured low-level sticky candidate",
+          "ListState sticky configuration",
+          "List active lookup",
+          "UniformList sticky configuration",
+          "UniformList active lookup"
+        ]
+      },
+      "repositoryIds": [
+        "rayx"
+      ],
+      "requirementIds": [
+        "REQ-F-004",
+        "REQ-NF-002"
+      ],
+      "designIds": [
+        "DES-001",
+        "DES-004"
+      ],
+      "acceptanceCriteriaIds": [
+        "AC-F-004-1",
+        "AC-F-004-2",
+        "AC-F-004-3",
+        "AC-NF-002-2"
+      ],
+      "proofMode": "contract-before-after",
+      "proofObligations": [
+        "Before-change focused low-level sticky tests capture flat, explicit-level, clipping, focus retention, paint, and hit behavior.",
+        "New keyed tests fail for the missing structured keyed candidate behavior before implementation.",
+        "After the clean API cutover, old behavior and new keyed behavior pass in List and UniformList.",
+        "Source inspection proves no third key-only candidate API, backward full-candidate scan, compatibility alias, or row-local keyed depth remains.",
+        "The Test Suite low-level sections pass at DPR 1 and DPR 2."
+      ],
+      "implementationConstraints": {
+        "reuse": [
+          "Canonical gpux relation index",
+          "Existing List measured item geometry and UniformList fixed geometry",
+          "Existing offscreen row rendering, focus retention, scrollport intersection, and item origins"
+        ],
+        "prohibitedAdditions": [
+          "RayX StickyRow dependency in gpux",
+          "Third independent key-only candidate vector or builder",
+          "Compatibility alias for removed APIs",
+          "Row-local keyed depth calculations",
+          "Lab automation or diagnostics",
+          "External dependency"
+        ],
+        "allowedAdditions": [
+          "StickyStacking",
+          "Sticky relation index",
+          "Structured low-level sticky candidate",
+          "Structured gpux low-level sticky candidate and configuration",
+          "One structured configuration method per low-level list kind",
+          "Production-quality Lab caller migration",
+          "Focused low-level Test Suite sections"
+        ]
+      },
+      "validation": {
+        "red": [],
+        "green": [
+          {
+            "id": "VAL-SPRINT-3-TASK-1-BEFORE-01",
+            "phase": "before",
+            "repositoryId": "rayx",
+            "workingDirectory": ".",
+            "runner": {
+              "kind": "argv",
+              "executable": "cargo",
+              "arguments": [
+                "test",
+                "--manifest-path",
+                "crates/gpux/Cargo.toml",
+                "-p",
+                "gpux",
+                "sticky_item",
+                "--",
+                "--nocapture"
+              ]
+            },
+            "target": "host",
+            "validationProfile": "behavior-preservation",
+            "acceptanceCriteriaIds": [
+              "AC-F-004-3"
+            ],
+            "expected": {
+              "exitCode": 0
+            },
+            "command": "cargo test --manifest-path crates/gpux/Cargo.toml -p gpux sticky_item -- --nocapture",
+            "assertion": "Current flat, level, clipping, focus, and row-order behavior MUST pass before API replacement.",
+            "artifactPaths": [
+              "rayx:crates/gpux/crates/gpui/src/elements/list.rs",
+              "rayx:crates/gpux/crates/gpui/src/elements/uniform_list.rs"
+            ]
+          },
+          {
+            "id": "VAL-SPRINT-3-TASK-1-AFTER-UNIT-01",
+            "phase": "after",
+            "repositoryId": "rayx",
+            "workingDirectory": ".",
+            "runner": {
+              "kind": "argv",
+              "executable": "cargo",
+              "arguments": [
+                "test",
+                "--manifest-path",
+                "crates/gpux/Cargo.toml",
+                "-p",
+                "gpux",
+                "keyed_sticky_item",
+                "--",
+                "--nocapture"
+              ]
+            },
+            "target": "host",
+            "validationProfile": "unit",
+            "acceptanceCriteriaIds": [
+              "AC-F-004-1",
+              "AC-F-004-2",
+              "AC-F-004-3"
+            ],
+            "expected": {
+              "exitCode": 0
+            },
+            "command": "cargo test --manifest-path crates/gpux/Cargo.toml -p gpux keyed_sticky_item -- --nocapture",
+            "assertion": "List and UniformList structured keyed candidate matrices MUST pass.",
+            "artifactPaths": [
+              "rayx:crates/gpux/crates/gpui/src/elements/list.rs",
+              "rayx:crates/gpux/crates/gpui/src/elements/uniform_list.rs"
+            ]
+          },
+          {
+            "id": "VAL-SPRINT-3-TASK-1-AFTER-ARCHITECTURE-01",
+            "phase": "after",
+            "repositoryId": "rayx",
+            "workingDirectory": ".",
+            "runner": {
+              "kind": "argv",
+              "executable": "powershell",
+              "arguments": [
+                "-NoProfile",
+                "-Command",
+                "if (rg -n 'sticky_stack_keys|with_sticky_stack_keys|sticky_item_levels\\(|with_sticky_item_levels\\(' crates/gpux crates/rayx apps) { exit 1 } else { exit 0 }"
+              ]
+            },
+            "target": "source-tree",
+            "validationProfile": "architecture",
+            "acceptanceCriteriaIds": [
+              "AC-F-004-3",
+              "AC-NF-002-2"
+            ],
+            "expected": {
+              "exitCode": 0
+            },
+            "command": "rg -n \"sticky_stack_keys|with_sticky_stack_keys|sticky_item_levels\\(|with_sticky_item_levels\\(\" crates/gpux crates/rayx apps",
+            "assertion": "No third key-only API or superseded explicit-level-only builder MUST remain after structured migration.",
+            "artifactPaths": [
+              "rayx:crates/gpux/crates/gpui/src/elements/list.rs",
+              "rayx:crates/gpux/crates/gpui/src/elements/uniform_list.rs",
+              "rayx:apps/lab/src"
+            ]
+          },
+          {
+            "id": "VAL-SPRINT-3-TASK-1-AFTER-CONTRACT-01",
+            "phase": "after",
+            "repositoryId": "rayx",
+            "workingDirectory": ".",
+            "runner": {
+              "kind": "argv",
+              "executable": "cargo",
+              "arguments": [
+                "test",
+                "--manifest-path",
+                "crates/gpux/Cargo.toml",
+                "-p",
+                "gpux",
+                "keyed_sticky_item",
+                "--",
+                "--nocapture"
+              ]
+            },
+            "target": "host",
+            "validationProfile": "contract",
+            "acceptanceCriteriaIds": [
+              "AC-NF-002-2"
+            ],
+            "expected": {
+              "exitCode": 0
+            },
+            "command": "cargo test --manifest-path crates/gpux/Cargo.toml -p gpux keyed_sticky_item -- --nocapture",
+            "assertion": "The structured candidate API MUST express flat, explicit-level, and keyed candidates without a parallel key-only surface.",
+            "artifactPaths": [
+              "rayx:crates/gpux/crates/gpui/src/elements/list.rs",
+              "rayx:crates/gpux/crates/gpui/src/elements/uniform_list.rs"
+            ]
+          },
+          {
+            "id": "VAL-SPRINT-3-TASK-1-AFTER-RUNTIME-01",
+            "phase": "after",
+            "repositoryId": "rayx",
+            "workingDirectory": ".",
+            "runner": {
+              "kind": "shell",
+              "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/keyed-sticky-stacking.spec.ts",
+              "platform": "portable"
+            },
+            "target": "wasm-headed-webgpu-dpr-1-and-2",
+            "validationProfile": "interaction",
+            "acceptanceCriteriaIds": [
+              "AC-F-004-1",
+              "AC-F-004-2",
+              "AC-F-004-3"
+            ],
+            "expected": {
+              "exitCode": 0
+            },
+            "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/keyed-sticky-stacking.spec.ts",
+            "assertion": "Low-level List and UniformList sections MUST prove keyed geometry, replacement, clipping, and clicks.",
+            "artifactPaths": [
+              "rayx:apps/test_suite/src/pages",
+              "rayx:tools-node/test_suite/keyed-sticky-stacking.spec.ts"
+            ]
+          }
+        ],
+        "broad": [
+          {
+            "id": "VAL-SPRINT-3-TASK-1-BROAD-GPUX-01",
+            "phase": "broad",
+            "repositoryId": "rayx",
+            "workingDirectory": ".",
+            "runner": {
+              "kind": "argv",
+              "executable": "cargo",
+              "arguments": [
+                "test",
+                "--manifest-path",
+                "crates/gpux/Cargo.toml",
+                "-p",
+                "gpux",
+                "sticky",
+                "--",
+                "--nocapture"
+              ]
+            },
+            "target": "host",
+            "validationProfile": "regression",
+            "acceptanceCriteriaIds": [
+              "AC-F-004-1",
+              "AC-F-004-2",
+              "AC-F-004-3"
+            ],
+            "expected": {
+              "exitCode": 0
+            },
+            "command": "cargo test --manifest-path crates/gpux/Cargo.toml -p gpux sticky -- --nocapture",
+            "assertion": "All ordinary and low-level gpux sticky tests MUST pass after convergence.",
+            "artifactPaths": [
+              "rayx:crates/gpux/crates/gpui/src"
+            ]
+          }
+        ],
+        "profiles": [
+          "unit",
+          "interaction",
+          "regression",
+          "behavior-preservation",
+          "architecture",
+          "contract"
+        ]
+      },
+      "validationProfiles": [
+        "unit",
+        "interaction",
+        "regression",
+        "behavior-preservation",
+        "architecture",
+        "contract"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-4-task-1",
+      "revisionId": "sprint-4-task-1@dc3fcf79f133e4ea",
+      "behaviorContractHash": "dc3fcf79f133e4eacc1f3d11471103456c2f8c8d1a3164c1b60c5d7071ab508b",
+      "planningMetadataHash": "d08002b055f80e931f3855d02d56a38d7f25ffa16f203b74ace20f4ada4da522",
+      "sprint": 4,
+      "taskIndex": 1,
+      "kind": "api",
+      "text": "Finalize one cross-surface Test Suite keyed sticky specification, prove common membership and geometry at DPR 1 and DPR 2, run focused and broad Rust quality gates, remove temporary diagnostics and accidental abstractions, validate no duplicate APIs or forbidden Lab automation exist, then update the RayX and gpux skill references and the narrowest AgentX state, rules, decisions, and indexes from the completed evidence.",
+      "taskTextHash": "860059af57fff4918976df541bf0951b82d35c37d377642ccc07cf37c11bfef4",
+      "scope": {
+        "writePaths": [
+          "Cargo.toml",
+          "crates/gpux/Cargo.toml",
+          "crates/gpux/crates/gpui/src/**",
+          "crates/gpux/crates/gpui/tests/pointer_interaction_owner.rs",
+          "crates/gpux/crates/gpui/tests/text_buffer.rs",
+          "crates/rayx/rayx_components/rayx_components_core/**",
+          "crates/rayx/rayx_components/rayx_components_canvas_infinite/src/canvas/element.rs",
+          "crates/rayx/rayx_components/rayx_components_canvas_infinite/src/minimap/element.rs",
+          "crates/rayx/rayx_components/rayx_components_code_view/src/code_view/element.rs",
+          "crates/rayx/rayx_components/rayx_components_datatable/src/state/mod.rs",
+          "crates/rayx/rayx_components/rayx_components_dock/src/dock/dock.rs",
+          "crates/rayx/rayx_components/rayx_components_dock/src/dock/tiles.rs",
+          "crates/rayx/rayx_components/rayx_components_markup_view/src/markup_view/inline.rs",
+          "crates/rayx/rayx_components/rayx_components_markup_view/src/markup_view/view.rs",
+          "crates/rayx/rayx_components/rayx_components_node_editor/src/editor/element.rs",
+          "crates/rayx/rayx_components/rayx_components_webview/src/webview/mod.rs",
+          "apps/test_suite/src/**",
+          "tools-node/test_suite/**",
+          "xtask/src/source_guard.rs",
+          ".codex/skills/rayx/SKILL.md",
+          ".codex/skills/rayx/references/sticky-positioning.md",
+          ".codex/skills/rayx/references/virtualization.md",
+          ".codex/skills/gpux/**",
+          ".agentx/memory/knowledge/runtime/gpux-foundation/**",
+          ".agentx/memory/knowledge/ui/virtualization/**",
+          ".agentx/memory/knowledge/runtime/INDEX.md",
+          ".agentx/memory/knowledge/ui/INDEX.md",
+          ".agentx/memory/knowledge/INDEX.md",
+          ".agentx/memory/decisions/runtime/gpux-foundation/**",
+          ".agentx/memory/decisions/ui/virtualization/**",
+          ".agentx/memory/decisions/INDEX.md",
+          ".agentx/tasks/keyed-sticky-stacking/**"
+        ],
+        "generatedPaths": [],
+        "forbiddenPaths": [
+          "apps/lab/**",
+          "tools-node/lab/**"
+        ],
+        "responsibilityIds": [
+          "RESP-001",
+          "RESP-002",
+          "RESP-003",
+          "RESP-004",
+          "RESP-005"
+        ],
+        "symbols": [
+          "Cross-surface keyed sticky fixture",
+          "Keyed sticky source guards",
+          "RayX sticky skill guidance",
+          "gpux sticky maintenance guidance",
+          "AgentX keyed sticky decision and rules"
+        ]
+      },
+      "repositoryIds": [
+        "rayx"
+      ],
+      "requirementIds": [
+        "REQ-F-005",
+        "REQ-NF-002",
+        "REQ-NF-003"
+      ],
+      "designIds": [
+        "DES-001",
+        "DES-002",
+        "DES-003",
+        "DES-004",
+        "DES-005"
+      ],
+      "acceptanceCriteriaIds": [
+        "AC-F-005-1",
+        "AC-F-005-2",
+        "AC-NF-002-1",
+        "AC-NF-003-1",
+        "AC-NF-003-2"
+      ],
+      "proofMode": "contract-before-after",
+      "proofObligations": [
+        "Before finalization, focused ordinary, virtual, and low-level sticky suites pass independently and establish the implemented contract.",
+        "After finalization, one headed WASM/WebGPU Test Suite run proves all surfaces at DPR 1 and DPR 2 with numeric and interaction assertions.",
+        "Formatting, clippy, focused crates, API guards, and existing virtualization regressions pass.",
+        "The final diff contains no temporary diagnostics, duplicate relation owner, compatibility shim, forbidden Lab automation, or new dependency.",
+        "Skill and memory guidance is updated only after passing evidence and matches the final source."
+      ],
+      "implementationConstraints": {
+        "reuse": [
+          "The production APIs and focused fixtures delivered by sprints 1 through 3",
+          "Existing Test Suite diagnostics and xtask validation paths",
+          "Existing RayX and gpux skill reference structure",
+          "Current AgentX runtime/gpux-foundation and ui/virtualization taxonomy"
+        ],
+        "prohibitedAdditions": [
+          "New production behavior unrelated to keyed sticky stacking",
+          "Lab automation or diagnostics",
+          "Screenshot-only acceptance",
+          "Speculative memory claims",
+          "Compatibility shim or new dependency"
+        ],
+        "allowedAdditions": [
+          "StickyStacking",
+          "Sticky relation index",
+          "Styled sticky_stack_id(id) for ordinary sticky elements",
+          "Window frame-local keyed sticky plan",
+          "StickyRow::stack_id(id)",
+          "Structured low-level sticky candidate",
+          "Structured gpux low-level sticky candidate and configuration",
+          "Focused source guards against duplicate or obsolete sticky APIs",
+          "Final cross-surface fixture assertions",
+          "Proven skill, state, rule, and decision updates"
+        ]
+      },
+      "validation": {
+        "red": [],
+        "green": [
+          {
+            "id": "VAL-SPRINT-4-TASK-1-BEFORE-GPUX-01",
+            "phase": "before",
+            "repositoryId": "rayx",
+            "workingDirectory": ".",
+            "runner": {
+              "kind": "argv",
+              "executable": "cargo",
+              "arguments": [
+                "test",
+                "--manifest-path",
+                "crates/gpux/Cargo.toml",
+                "-p",
+                "gpux",
+                "sticky",
+                "--",
+                "--nocapture"
+              ]
+            },
+            "target": "host",
+            "validationProfile": "contract",
+            "acceptanceCriteriaIds": [
+              "AC-NF-002-1"
+            ],
+            "expected": {
+              "exitCode": 0
+            },
+            "command": "cargo test --manifest-path crates/gpux/Cargo.toml -p gpux sticky -- --nocapture",
+            "assertion": "The complete gpux sticky contract MUST pass before integration finalization.",
+            "artifactPaths": [
+              "rayx:crates/gpux/crates/gpui/src"
+            ]
+          },
+          {
+            "id": "VAL-SPRINT-4-TASK-1-BEFORE-RAYX-01",
+            "phase": "before",
+            "repositoryId": "rayx",
+            "workingDirectory": ".",
+            "runner": {
+              "kind": "argv",
+              "executable": "cargo",
+              "arguments": [
+                "test",
+                "-p",
+                "rayx_components_core",
+                "sticky",
+                "--",
+                "--nocapture"
+              ]
+            },
+            "target": "host",
+            "validationProfile": "behavior-preservation",
+            "acceptanceCriteriaIds": [
+              "AC-NF-002-1"
+            ],
+            "expected": {
+              "exitCode": 0
+            },
+            "command": "cargo test -p rayx_components_core sticky -- --nocapture",
+            "assertion": "The complete RayX virtual sticky contract MUST pass before integration finalization.",
+            "artifactPaths": [
+              "rayx:crates/rayx/rayx_components/rayx_components_core/src"
+            ]
+          },
+          {
+            "id": "VAL-SPRINT-4-TASK-1-AFTER-RUNTIME-01",
+            "phase": "after",
+            "repositoryId": "rayx",
+            "workingDirectory": ".",
+            "runner": {
+              "kind": "shell",
+              "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/keyed-sticky-stacking.spec.ts",
+              "platform": "portable"
+            },
+            "target": "wasm-headed-webgpu-dpr-1-and-2",
+            "validationProfile": "interaction",
+            "acceptanceCriteriaIds": [
+              "AC-F-005-1",
+              "AC-F-005-2",
+              "AC-NF-003-1"
+            ],
+            "expected": {
+              "exitCode": 0
+            },
+            "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/keyed-sticky-stacking.spec.ts",
+            "assertion": "All five sticky surfaces MUST pass common membership, bounds, replacement, callback, click, clipping, mutation, and duplicate-row assertions at DPR 1 and DPR 2.",
+            "artifactPaths": [
+              "rayx:apps/test_suite/src",
+              "rayx:tools-node/test_suite/keyed-sticky-stacking.spec.ts"
+            ]
+          },
+          {
+            "id": "VAL-SPRINT-4-TASK-1-AFTER-FMT-01",
+            "phase": "after",
+            "repositoryId": "rayx",
+            "workingDirectory": ".",
+            "runner": {
+              "kind": "argv",
+              "executable": "cargo",
+              "arguments": [
+                "fmt",
+                "--all",
+                "--check"
+              ]
+            },
+            "target": "host",
+            "validationProfile": "static-analysis",
+            "acceptanceCriteriaIds": [
+              "AC-NF-003-1"
+            ],
+            "expected": {
+              "exitCode": 0
+            },
+            "command": "cargo fmt --all --check",
+            "assertion": "The root workspace MUST be formatted.",
+            "artifactPaths": [
+              "rayx:Cargo.toml"
+            ]
+          },
+          {
+            "id": "VAL-SPRINT-4-TASK-1-AFTER-GPUX-FMT-01",
+            "phase": "after",
+            "repositoryId": "rayx",
+            "workingDirectory": ".",
+            "runner": {
+              "kind": "argv",
+              "executable": "cargo",
+              "arguments": [
+                "fmt",
+                "--manifest-path",
+                "crates/gpux/Cargo.toml",
+                "--all",
+                "--check"
+              ]
+            },
+            "target": "host",
+            "validationProfile": "static-analysis",
+            "acceptanceCriteriaIds": [
+              "AC-NF-003-1"
+            ],
+            "expected": {
+              "exitCode": 0
+            },
+            "command": "cargo fmt --manifest-path crates/gpux/Cargo.toml --all --check",
+            "assertion": "The nested gpux workspace MUST be formatted.",
+            "artifactPaths": [
+              "rayx:crates/gpux/Cargo.toml",
+              "rayx:crates/gpux/crates/gpui/src"
+            ]
+          },
+          {
+            "id": "VAL-SPRINT-4-TASK-1-AFTER-CLIPPY-01",
+            "phase": "after",
+            "repositoryId": "rayx",
+            "workingDirectory": ".",
+            "runner": {
+              "kind": "argv",
+              "executable": "cargo",
+              "arguments": [
+                "clippy",
+                "-p",
+                "rayx_components_core",
+                "--all-targets",
+                "--",
+                "-D",
+                "warnings"
+              ]
+            },
+            "target": "host",
+            "validationProfile": "static-analysis",
+            "acceptanceCriteriaIds": [
+              "AC-NF-003-1"
+            ],
+            "expected": {
+              "exitCode": 0
+            },
+            "command": "cargo clippy -p rayx_components_core --all-targets -- -D warnings",
+            "assertion": "The affected RayX component crate MUST be warning-clean.",
+            "artifactPaths": [
+              "rayx:crates/rayx/rayx_components/rayx_components_core"
+            ]
+          },
+          {
+            "id": "VAL-SPRINT-4-TASK-1-AFTER-GPUX-CLIPPY-01",
+            "phase": "after",
+            "repositoryId": "rayx",
+            "workingDirectory": ".",
+            "runner": {
+              "kind": "argv",
+              "executable": "cargo",
+              "arguments": [
+                "clippy",
+                "--manifest-path",
+                "crates/gpux/Cargo.toml",
+                "-p",
+                "gpux",
+                "--all-targets",
+                "--",
+                "-D",
+                "warnings"
+              ]
+            },
+            "target": "host",
+            "validationProfile": "static-analysis",
+            "acceptanceCriteriaIds": [
+              "AC-NF-003-1"
+            ],
+            "expected": {
+              "exitCode": 0
+            },
+            "command": "cargo clippy --manifest-path crates/gpux/Cargo.toml -p gpux --all-targets -- -D warnings",
+            "assertion": "The affected gpux crate MUST be warning-clean.",
+            "artifactPaths": [
+              "rayx:crates/gpux/crates/gpui"
+            ]
+          },
+          {
+            "id": "VAL-SPRINT-4-TASK-1-AFTER-ARCHITECTURE-01",
+            "phase": "after",
+            "repositoryId": "rayx",
+            "workingDirectory": ".",
+            "runner": {
+              "kind": "argv",
+              "executable": "powershell",
+              "arguments": [
+                "-NoProfile",
+                "-Command",
+                "if (rg -n 'sticky_stack_keys|with_sticky_stack_keys|tools-node/lab|apps/lab.*keyed.sticky' crates apps/test_suite tools-node/test_suite .codex/skills) { exit 1 } else { exit 0 }"
+              ]
+            },
+            "target": "source-tree",
+            "validationProfile": "architecture",
+            "acceptanceCriteriaIds": [
+              "AC-NF-002-1",
+              "AC-NF-003-2"
+            ],
+            "expected": {
+              "exitCode": 0
+            },
+            "command": "rg -n \"sticky_stack_keys|with_sticky_stack_keys|tools-node/lab|apps/lab.*keyed.sticky\" crates apps/test_suite tools-node/test_suite .codex/skills",
+            "assertion": "No duplicate key-only API, compatibility shim, or Lab automation route MUST remain.",
+            "artifactPaths": [
+              "rayx:xtask/src/source_guard.rs",
+              "rayx:apps/test_suite",
+              "rayx:tools-node/test_suite",
+              "rayx:.codex/skills"
+            ]
+          },
+          {
+            "id": "VAL-SPRINT-4-TASK-1-AFTER-DOCS-01",
+            "phase": "after",
+            "repositoryId": "rayx",
+            "workingDirectory": ".",
+            "runner": {
+              "kind": "argv",
+              "executable": "python",
+              "arguments": [
+                "C:/Users/dinko/.codex/skills/.system/skill-creator/scripts/quick_validate.py",
+                ".codex/skills/rayx"
+              ]
+            },
+            "target": "skill-source",
+            "validationProfile": "docs",
+            "acceptanceCriteriaIds": [
+              "AC-NF-003-2"
+            ],
+            "expected": {
+              "exitCode": 0
+            },
+            "command": "python C:/Users/dinko/.codex/skills/.system/skill-creator/scripts/quick_validate.py .codex/skills/rayx",
+            "assertion": "The RayX skill MUST be structurally valid and its sticky references MUST match current source.",
+            "artifactPaths": [
+              "rayx:.codex/skills/rayx/SKILL.md",
+              "rayx:.codex/skills/rayx/references/sticky-positioning.md",
+              "rayx:.codex/skills/rayx/references/virtualization.md"
+            ]
+          }
+        ],
+        "broad": [
+          {
+            "id": "VAL-SPRINT-4-TASK-1-BROAD-REGRESSION-01",
+            "phase": "broad",
+            "repositoryId": "rayx",
+            "workingDirectory": ".",
+            "runner": {
+              "kind": "argv",
+              "executable": "cargo",
+              "arguments": [
+                "test",
+                "-p",
+                "rayx_components_core"
+              ]
+            },
+            "target": "host",
+            "validationProfile": "regression",
+            "acceptanceCriteriaIds": [
+              "AC-F-005-2",
+              "AC-NF-002-1",
+              "AC-NF-003-1"
+            ],
+            "expected": {
+              "exitCode": 0
+            },
+            "command": "cargo test -p rayx_components_core",
+            "assertion": "The complete RayX components core test suite MUST pass.",
+            "artifactPaths": [
+              "rayx:crates/rayx/rayx_components/rayx_components_core"
+            ]
+          },
+          {
+            "id": "VAL-SPRINT-4-TASK-1-BROAD-GPUX-01",
+            "phase": "broad",
+            "repositoryId": "rayx",
+            "workingDirectory": ".",
+            "runner": {
+              "kind": "argv",
+              "executable": "cargo",
+              "arguments": [
+                "test",
+                "--manifest-path",
+                "crates/gpux/Cargo.toml",
+                "-p",
+                "gpux",
+                "sticky",
+                "--",
+                "--nocapture"
+              ]
+            },
+            "target": "host",
+            "validationProfile": "regression",
+            "acceptanceCriteriaIds": [
+              "AC-F-005-2",
+              "AC-NF-002-1",
+              "AC-NF-003-1"
+            ],
+            "expected": {
+              "exitCode": 0
+            },
+            "command": "cargo test --manifest-path crates/gpux/Cargo.toml -p gpux sticky -- --nocapture",
+            "assertion": "The complete gpux sticky test suite MUST pass.",
+            "artifactPaths": [
+              "rayx:crates/gpux/crates/gpui/src"
+            ]
+          }
+        ],
+        "profiles": [
+          "interaction",
+          "regression",
+          "behavior-preservation",
+          "static-analysis",
+          "architecture",
+          "docs",
+          "contract"
+        ]
+      },
+      "validationProfiles": [
+        "interaction",
+        "regression",
+        "behavior-preservation",
+        "static-analysis",
+        "architecture",
+        "docs",
+        "contract"
+      ],
+      "evidenceRequired": true
+    }
+  ]
+}

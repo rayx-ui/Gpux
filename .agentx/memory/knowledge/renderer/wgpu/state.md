@@ -1,0 +1,52 @@
+---
+agentx:
+  kind: state
+  scope: knowledge/renderer/wgpu
+  status: current
+  created: 2026-06-24T14:05:00+02:00
+  updated: 2026-10-05T23:00:00+02:00
+  topics:
+    - wgpu-renderer
+    - wgsl
+    - surfaces
+    - resize
+    - shader-effects
+    - snapshot-transitions
+    - webgl-fallback
+    - srgb-compositing
+    - border-antialiasing
+  supersedes: []
+  superseded_by: []
+---
+# WGPU Renderer State
+
+## Purpose And Usage
+
+Read before changing `gpui_wgpu` pipelines, shaders, surface configuration, resize handling, effects, or the browser backend transport.
+
+## Current Technical Shape
+
+Surfaces are configured with an empty `view_formats` list on a non-sRGB format (`Bgra8Unorm`, then `Rgba8Unorm`, then any non-sRGB format); an sRGB-only surface logs a warning. Paint is premultiplied encoded sRGB, so fixed-function blending and in-shader compositing (border over fill, coverage, gradients) happen in encoded sRGB. Linear-light math happens only inside effects that average light: blur taps decode with `premultiplied_srgb_to_linear`, average, and re-encode with `premultiplied_linear_to_srgb`. Images, HTML islands, and video already hold encoded sRGB and composite as sampled.
+
+Quad border edges pass inner and outer coverage through `border_edge_coverage`, the grayscale-text gamma/contrast correction keyed on the border color, so 1 px rounded borders do not bead; WGPU reads `gamma_params` (gamma 1.8, contrast 1.0, `ZED_FONTS_*` overrides). Transformed borderless quads expand their raster bounds by one analytic-antialias pixel before evaluating signed-distance coverage; axis-aligned quads keep the zero-margin fast path.
+
+Live resize coalesces drawable-size changes into scheduled frames; a frame with a pending drawable or canvas backing-store change must present and force a fresh GPUI draw, so surface size and scene geometry come from the same sample. Native surface reconfiguration waits for prior submitted work before `Surface::configure`; WASM polls without blocking. `WgpuRenderer::gpu_specs()` uses target-specific helpers so WASM never reads native-only backend policy fields. Dual-source blending is reported only when negotiated and not on the WebGL instance-data path.
+
+Effects: element effects render through offscreen effect targets; backdrop blur samples a full-resolution source with a normalized multi-tap kernel (glass-blur/fast-Gaussian look); `glass(...)` is Liquid Glass refraction from an OverShifted-style squircle SDF (`sdSquircle(..., 3.0, 1.0)`, sample scale `pow(liquid_glass_refract(dist), 1.779)`, then noise/glow/tint); glow composites in a separate additive color pass that preserves destination alpha. Screen ripples and snapshot transitions (`crossfade`, `blur_crossfade`, `radial_reveal`, `ripple_reveal`) share one packed storage struct with a `kind` tag. The renderer retains a previous-frame color texture and copies it into per-snapshot textures when `Scene.active_screen_effect_snapshots` requests new ids; if an encoder overflows and is discarded, newly copied ids are marked uncaptured before retry.
+
+Browser backends: startup prefers WebGPU and retries with WebGL2. WebGPU moves packed scene instances through storage buffers; WebGL2 carries the same complete record ABI (effects, HTML islands, paths, sprites, auxiliary families) through exact word-addressable `Rgba32Uint` textures. Adapter selection is surface-compatible, a failed WebGPU canvas is removed before the WebGL surface is created, and `?backend=webgl` / `?backend=webgpu` force one backend for diagnostics. HTML islands composite through a dedicated `html_islands` pipeline (upload path under [platform/web](../../platform/web/state.md)).
+
+Ordinary presentation still renders through an intermediate retained-scene texture plus a pass-through pass, which snapshot transitions depend on.
+
+## Backlinks
+
+- [WGPU renderer](../../../../../crates/gpui_wgpu/src/wgpu_renderer.rs)
+- [WGPU context](../../../../../crates/gpui_wgpu/src/wgpu_context.rs)
+- [Shaders](../../../../../crates/gpui_wgpu/src/shaders.wgsl)
+- [Storage-buffer shaders](../../../../../crates/gpui_wgpu/src/shaders_storage.wgsl)
+- [WebGL shaders](../../../../../crates/gpui_wgpu/src/shaders_webgl.wgsl)
+- [HTML island texture](../../../../../crates/gpui_wgpu/src/html_island_texture.rs)
+- 2026-09-30 current [Encoded sRGB compositing](../../../decisions/renderer/wgpu/2026-09-30-renderer-wgpu-srgb-compositing.md)
+- 2026-08-07 current [WebGPU-first with full WebGL2 fallback](../../../decisions/renderer/wgpu/2026-08-07-renderer-wgpu-browser-backend-fallback.md)
+- 2026-07-04 current [Shader effect backend capabilities](../../../decisions/renderer/wgpu/2026-07-04-renderer-wgpu-shader-effects-backend-capabilities.md)
+- 2026-07-16 superseded [Downlevel surface formats](../../../decisions/renderer/wgpu/2026-07-16-renderer-wgpu-downlevel-surface-formats.md)

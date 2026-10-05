@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "id": "2a56d963-e946-4423-908c-f169371e10ef",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 25,
+  "type": "hypothesis",
+  "name": "Direct cached parent origin lookup",
+  "slug": "direct-cached-parent-origin-lookup",
+  "path": "2026-08-30-25-direct-cached-parent-origin-lookup.json",
+  "createdAt": "2026-08-30T23:03:35Z",
+  "startedAt": "2026-08-30T23:03:35Z",
+  "finishedAt": "2026-08-30T23:08:34Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "b47057f53b1e715de9b1fc493d21901e66cf8bfd",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard b47057f53b1e715de9b1fc493d21901e66cf8bfd",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "b47057f53b1e715de9b1fc493d21901e66cf8bfd",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard b47057f53b1e715de9b1fc493d21901e66cf8bfd",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "Taffy layout bounds parent-origin resolution",
+  "hypothesisMarkdown": "In `TaffyLayoutEngine::layout_bounds_for`, read an existing parent from `absolute_outer_origins` before recursively resolving its bounds. Preserve the recursive fallback when the origin is absent. Experiment 24 measured 1,005 parent-origin hits and zero misses per warmed frame, so this should eliminate 1,005 redundant `absolute_layout_bounds` hash lookups and helper calls without changing behavior.",
+  "measurementPlanMarkdown": "Run three fresh checkpoint headed WebGPU Test Suite processes at DPR 1 and DPR 2 before editing. Change only the parent branch in `crates/gpux/crates/gpui/src/taffy.rs`; retain recursive fallback and update existing diagnostic hit/miss accounting to describe the direct origin cache. Run package formatting, all 456 gpui tests, two sequential 52/52 gpui_wgpu diagnostics suites, native checks with diagnostics off/on, single-thread WASM diagnostics check, warning-denied Clippy, and three fresh candidate browser processes. Require established-counter parity, layout calls 3661 to 2656, bounds hits 2574 to 1569, parent hits 1005, parent misses 0, zero terminal errors, and non-regressing three-process medians.",
+  "expectedOutcomeMarkdown": "Remove exactly 1,005 helper invocations and bounds-map probes per warmed frame while preserving the 1,005 parent-origin hits and zero misses. Expect a modest acknowledged-throughput or paced-p95 improvement; reject on any correctness, counter, static, or material performance regression.",
+  "diagnostics": {
+    "playwright": [
+      "Three fresh checkpoint headed Chromium/WebGPU processes passed both DPRs with one worker and zero terminal errors."
+    ],
+    "rayx": [
+      "The first candidate gate failed because cargo fmt --check required rustfmt's continuation indentation in the direct-origin branch. Atomic discipline required immediate revert before compilation."
+    ],
+    "counters": [
+      "All six checkpoint frames reproduced 3661 calls, 2574 bounds hits, 1005 parent-origin hits, and 0 parent-origin misses."
+    ],
+    "artifacts": [
+      "artifacts-temp/agentx-experiments/gpux-maximum-performance/25-direct-cached-parent-origin-lookup/"
+    ]
+  },
+  "measurements": [
+    {
+      "metric": "checkpoint DPR 1 median acknowledged steps/s",
+      "before": "29.95389496487008",
+      "after": "not measured",
+      "delta": "n/a"
+    },
+    {
+      "metric": "checkpoint DPR 2 median acknowledged steps/s",
+      "before": "30.038840972348268",
+      "after": "not measured",
+      "delta": "n/a"
+    }
+  ],
+  "reportMarkdown": "| Field | Result |\n|---|---|\n| Checkpoint | `b47057f53b1e715de9b1fc493d21901e66cf8bfd` |\n| Attempt Count | 1 |\n| Checkpoint browser projects | 6/6 passed |\n| First candidate gate | Failed rustfmt check |\n| Source state | Reverted to checkpoint |\n| Decision | Reject attempt |",
+  "decisionMarkdown": "Reject and revert the attempt at the first formatting gate. No formatted correction or second implementation attempt was made inside the experiment. The same isolated mechanism may be retried from a fresh checkpoint with rustfmt's exact expression layout.",
+  "notes": "No source changes remain."
+}

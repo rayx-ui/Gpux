@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "id": "6522929e-3fc5-4889-94b8-f88bc6e74312",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 137,
+  "type": "hypothesis",
+  "name": "Atlas Upload Cache Research",
+  "slug": "atlas-upload-cache-research",
+  "path": "2026-08-31-137-atlas-upload-cache-research.json",
+  "createdAt": "2026-08-31T20:49:47Z",
+  "startedAt": "2026-08-31T20:49:47Z",
+  "finishedAt": "2026-08-31T20:50:31Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "4b791515d4655fa8c7bac941571d0488358b1539",
+  "resultCommit": "4b791515d4655fa8c7bac941571d0488358b1539",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 4b791515d4655fa8c7bac941571d0488358b1539",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "4b791515d4655fa8c7bac941571d0488358b1539",
+      "resultCommit": "4b791515d4655fa8c7bac941571d0488358b1539",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 4b791515d4655fa8c7bac941571d0488358b1539",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "4b791515d4655fa8c7bac941571d0488358b1539"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpui_wgpu atlas uploads and cache lifetime",
+  "hypothesisMarkdown": "## Atlas Upload Cache Research Hypothesis\n\nAtlas upload ownership may reveal avoidable repeated writes or unbounded texture retention outside the warmed zero-write frame.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRead-only trace of atlas allocation, upload queues, texture writes, eviction, and frame reuse. No edits.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nMap zero warmed writes to cache lifetime and inspect bounds/eviction and upload-copy behavior.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nConfirm amortized atlas behavior or identify a bounded repeated-upload target.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [
+      "zero warmed atlas writes",
+      "zero warmed atlas bytes"
+    ],
+    "artifacts": [
+      "WgpuAtlas cache/upload/removal source trace"
+    ]
+  },
+  "measurements": {
+    "warmedTextureWrites": 0,
+    "warmedTextureBytes": 0,
+    "keyedTileCache": true,
+    "pendingUploadsDrainedOncePerFrame": true,
+    "unreferencedTextureSlotsRecycled": true
+  },
+  "reportMarkdown": "# Experiment 137 Report\n\nAtlas tiles are cached by full `AtlasKey`; cache hits return a copied tile without rebuilding bytes. Misses allocate once and enqueue owned bytes, and `before_frame` drains the pending queue exactly once. Removal deallocates tiles and recycles fully unreferenced texture slots. Device loss explicitly clears storage for lazy recovery.\n\nThe warmed benchmark's zero texture writes/bytes prove complete residency, so no repeated upload exists to optimize.\n",
+  "decisionMarkdown": "# Decision\n\nPreserve the keyed persistent atlas and lazy upload queue. Do not add another cache or eager upload path.\n",
+  "notes": ""
+}

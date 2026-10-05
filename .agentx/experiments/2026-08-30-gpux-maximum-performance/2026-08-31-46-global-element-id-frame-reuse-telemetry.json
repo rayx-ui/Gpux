@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "id": "70468928-bab3-423c-9129-090db2616dea",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 46,
+  "type": "hypothesis",
+  "name": "Global Element ID Frame Reuse Telemetry",
+  "slug": "global-element-id-frame-reuse-telemetry",
+  "path": "2026-08-31-46-global-element-id-frame-reuse-telemetry.json",
+  "createdAt": "2026-08-31T02:51:36Z",
+  "startedAt": "2026-08-31T02:51:36Z",
+  "finishedAt": "2026-08-31T02:59:53Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "685cc0a0c3072a8caa4f74089814d969f94fd317",
+  "resultCommit": "6ab6f13331c855cd14199ae01e85317362403d74",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 685cc0a0c3072a8caa4f74089814d969f94fd317",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "685cc0a0c3072a8caa4f74089814d969f94fd317",
+      "resultCommit": "6ab6f13331c855cd14199ae01e85317362403d74",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 685cc0a0c3072a8caa4f74089814d969f94fd317",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "6ab6f13331c855cd14199ae01e85317362403d74"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux GlobalElementId diagnostics and apps/test_suite headed WASM/WebGPU wide DataTable",
+  "hypothesisMarkdown": "Hash-only diagnostic tracking will show that most global element-ID paths repeat from the preceding frame, providing evidence for or against a bounded one-frame path interner without allocating diagnostic path copies.\n",
+  "measurementPlanMarkdown": "Under rayx_diagnostics only, retain current/previous-frame sets of the already-computed 64-bit global-ID path hashes and publish same-frame duplicate plus previous-frame hit counts through existing frame telemetry. Run focused/full gpux tests, serialized gpui_wgpu tests, formatting, check, clippy, and one headed WebGPU run at both DPRs. Require exact existing output/counters and zero errors; classify reuse before attempting an interner.\n",
+  "expectedOutcomeMarkdown": "The warmed DataTable reports a high previous-frame hash-hit rate and a bounded unique set, justifying a separately measured one-frame path reuse mechanism; otherwise path interning is rejected without production changes.\n",
+  "diagnostics": {
+    "playwright": [
+      "One fresh headed Chromium/WebGPU process passed DPR 1 and DPR 2 with exact final offsets, exact established counters, and zero terminal errors."
+    ],
+    "rayx": [
+      "410 gpux tests passed with rayx_diagnostics.",
+      "52 gpui_wgpu tests passed serially with rayx_diagnostics.",
+      "cargo check, cargo fmt --check, and clippy -D warnings passed."
+    ],
+    "counters": [
+      "Both DPRs reported 485 creations, 8668 path elements, 24 same-frame duplicates, and 485 preceding-frame hits."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 preceding-frame global ID hits",
+      "value": "485 / 485",
+      "rate": "100.00%"
+    },
+    {
+      "metric": "DPR 2 preceding-frame global ID hits",
+      "value": "485 / 485",
+      "rate": "100.00%"
+    },
+    {
+      "metric": "DPR 1 same-frame global ID duplicates",
+      "value": "24 / 485",
+      "rate": "4.95%"
+    },
+    {
+      "metric": "DPR 2 same-frame global ID duplicates",
+      "value": "24 / 485",
+      "rate": "4.95%"
+    },
+    {
+      "metric": "path elements copied into IDs per warmed frame",
+      "value": "8668"
+    },
+    {
+      "metric": "diagnostic multithreaded WASM atomic prefix",
+      "before": "106906 bytes",
+      "after": "107170 bytes",
+      "delta": "+264 bytes"
+    }
+  ],
+  "reportMarkdown": "## Global Element ID Frame Reuse Telemetry Finished\n\n**Index:** 46\n**Checkpoint:** `685cc0a0c3072a8caa4f74089814d969f94fd317`\n**Result:** `6ab6f13331c855cd14199ae01e85317362403d74`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. Hash-only, diagnostic-only tracking now publishes same-frame duplicate and preceding-frame hit counts without retaining full path copies. Both headed WebGPU DPR cases created 485 global IDs containing 8,668 path elements; all 485 hashes matched the preceding frame (100%), and 24 repeated within the same frame (4.95%).\n\nAll 410 gpux tests, 52 serialized gpui_wgpu tests, formatting, check, clippy, and both headed WebGPU cases passed with exact existing output/counters and zero errors. The diagnostic WASM atomic prefix increased by 264 bytes.\n\n### Scope Lock\n\nOnly `rayx_diagnostics` reuse telemetry and its browser publication/test contract changed. Production global-ID allocation, equality, hashing, APIs, and renderer behavior are unchanged.\n\n### Decision\n\nAccept the bounded telemetry. The 100% preceding-frame hit rate justifies a separate one-frame interner experiment with full path equality and bounded ownership.\n",
+  "decisionMarkdown": "Accept hash-only frame-reuse telemetry and proceed to a separate bounded previous-frame `GlobalElementId` path interner experiment. Require full path equality in production; diagnostic hashes are evidence, not an equality substitute.\n",
+  "notes": ""
+}

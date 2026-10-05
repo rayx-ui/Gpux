@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "id": "397e9904-eef5-4eb3-92fd-04bd4c9e63ab",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 97,
+  "type": "hypothesis",
+  "name": "Scene Cleanup Attribution",
+  "slug": "scene-cleanup-attribution",
+  "path": "2026-08-31-97-scene-cleanup-attribution.json",
+  "createdAt": "2026-08-31T16:04:13Z",
+  "startedAt": "2026-08-31T16:04:13Z",
+  "finishedAt": "2026-08-31T16:07:10Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "733cbf9c1c79a4d91022c7cd4bd43ef3bc52965c",
+  "resultCommit": "733cbf9c1c79a4d91022c7cd4bd43ef3bc52965c",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 733cbf9c1c79a4d91022c7cd4bd43ef3bc52965c",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "733cbf9c1c79a4d91022c7cd4bd43ef3bc52965c",
+      "resultCommit": "733cbf9c1c79a4d91022c7cd4bd43ef3bc52965c",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 733cbf9c1c79a4d91022c7cd4bd43ef3bc52965c",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "733cbf9c1c79a4d91022c7cd4bd43ef3bc52965c"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux Scene::clear primitive and bounds-tree teardown",
+  "hypothesisMarkdown": "## Scene Cleanup Attribution Hypothesis\n\nThe asymmetric 12.477/26.828 ms Scene clear family is dominated by one primitive collection whose payload drops or nested allocations can be removed with a bounded gpux change.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRead-only CPU-profile attribution and current Scene ownership analysis. Only AgentX metadata and ignored analysis output may change. Production code, tests, primitive lifetimes, pooling, caches, shaders, and adjacent cleanup are forbidden.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nAggregate every accepted CPU-profile sample descending through Scene::clear at both DPRs. Rank exact descendants, BoundsTree cleanup, primitive payload drops, and allocator paths. Compare the result with each Scene vector's element ownership and capacity behavior. Pass if one bounded next mechanism is identified or speculation is decisively rejected.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nSelect one atomic Scene storage optimization for experiment 98, or reject Scene teardown and return to a fresh runtime profile target.",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": {
+    "schemaVersion": 1,
+    "dpr1": {
+      "samples": 8,
+      "inclusiveMs": 12.477,
+      "clearBodySelfMs": 9.366,
+      "clearBodySelfPercent": 75.06,
+      "primitiveDropMs": 3.111
+    },
+    "dpr2": {
+      "samples": 17,
+      "inclusiveMs": 26.828,
+      "clearBodySelfMs": 25.314,
+      "clearBodySelfPercent": 94.35,
+      "primitiveDropMs": 1.514
+    },
+    "fullPrimitiveRepresentationsPerAcceptedPrimitive": 2,
+    "perKindVectorsSortedAfterInsertion": true,
+    "drawOrdersMayRepeatWithinFixedLayers": true,
+    "productFilesChanged": 0
+  },
+  "reportMarkdown": "# Scene Cleanup Attribution\n\nAccepted DPR 1 and DPR 2 profiles contain 8 and 17 samples under `Scene::clear`, totaling 12.477 ms and 26.828 ms.\n\n| Sample family | DPR 1 | DPR 2 |\n| --- | ---: | ---: |\n| Scene clear inclusive | 12.477 ms | 26.828 ms |\n| Clear-body self samples | 9.366 ms | 25.314 ms |\n| `Primitive` drop | 3.111 ms | 1.514 ms |\n\nThe clear-body samples represent 75.06% and 94.35% of the inclusive family. The only separately named descendant is `Primitive` drop.\n\nScene owns two representations of every accepted primitive. `insert_primitive` clones or copies the payload into a renderer-facing per-kind vector, then moves the full `Primitive` into `paint_operations`. The latter preserves original operation/layer order for subtree replay. For the wide DataTable, that means every quad and sprite payload is stored and scanned twice even though the outer vectors retain capacity across `clear`.\n\nThis is a stronger candidate than pooling: compact replay metadata could reduce steady-state scene memory, insertion copies, and teardown scanning simultaneously. It is not safe to replace `Primitive` with only a kind/index naively because `Scene::finish` sorts the per-kind vectors, invalidating insertion indices, and fixed layers can assign duplicate draw orders. The next experiment must establish a compact stable replay locator or reject the design before implementation.\n\nNo product or test source changed.\n",
+  "decisionMarkdown": "# Decision\n\nAccept the attribution and select compact Scene replay metadata as the next research target. `paint_operations` duplicates every primitive payload already held in per-kind vectors, while the profile directly samples `Primitive` destruction and Scene clear scanning. Do not implement a kind/index reference until sorting, duplicate-order, layer, and subtree-range contracts have a proven locator design.\n",
+  "notes": ""
+}

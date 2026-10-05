@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "id": "de6fb091-120e-4fae-96a4-b6e95cf72177",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 141,
+  "type": "hypothesis",
+  "name": "WASM Frame Scheduling Research",
+  "slug": "wasm-frame-scheduling-research",
+  "path": "2026-08-31-141-wasm-frame-scheduling-research.json",
+  "createdAt": "2026-08-31T20:55:10Z",
+  "startedAt": "2026-08-31T20:55:10Z",
+  "finishedAt": "2026-08-31T20:56:02Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "dbc1fc10c25dd5db6046e4d504a24d0e1fe047d1",
+  "resultCommit": "dbc1fc10c25dd5db6046e4d504a24d0e1fe047d1",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard dbc1fc10c25dd5db6046e4d504a24d0e1fe047d1",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "dbc1fc10c25dd5db6046e4d504a24d0e1fe047d1",
+      "resultCommit": "dbc1fc10c25dd5db6046e4d504a24d0e1fe047d1",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard dbc1fc10c25dd5db6046e4d504a24d0e1fe047d1",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "dbc1fc10c25dd5db6046e4d504a24d0e1fe047d1"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpui_web frame scheduling and WASM virtualization",
+  "hypothesisMarkdown": "## WASM Frame Scheduling Research Hypothesis\n\nBrowser frame dispatch may add redundant task hops, serialization, or main-thread blocking between input, GPUI draw, and WebGPU submission.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRead-only trace of requestAnimationFrame, invalidation, event callbacks, WASM thread entry, shared memory, draw/present, and cancellation/backpressure. No edits.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nMap event-to-frame sequencing and identify duplicate scheduling, cross-thread copies, or unbounded queues.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nConfirm direct browser scheduling or select a bounded scheduling change.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [
+      "single persistent RAF callback",
+      "direct Scene reference draw",
+      "shared WASM memory verified"
+    ],
+    "artifacts": [
+      "gpui_web RAF/draw/dispatcher source trace"
+    ]
+  },
+  "measurements": {
+    "rafClosures": 1,
+    "sceneSerializationCopies": 0,
+    "renderThread": "browser main thread",
+    "sharedMemoryDispatcher": "background tasks",
+    "multithreadedWasmVerified": true,
+    "unboundedRenderQueue": false
+  },
+  "reportMarkdown": "# Experiment 141 Report\n\nGpui_web owns one persistent RAF closure. Each tick flushes viewport/DOM state and directly invokes the stored GPUI frame callback; `draw` borrows the Scene and renderer without serialization. WebGPU submission remains main-thread owned. SharedArrayBuffer-backed workers serve the background dispatcher rather than copying rendering state across threads.\n\nContinuous RAF scheduling supports viewport/media-query/HTML-island integration; render necessity remains callback/invalidator controlled. No duplicate frame queue or transport copy is present.\n",
+  "decisionMarkdown": "# Decision\n\nPreserve direct main-thread RAF/WebGPU ownership and shared-memory background dispatch. Do not add scene transport or alter the platform heartbeat without separate idle-power requirements.\n",
+  "notes": ""
+}

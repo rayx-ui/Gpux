@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "id": "d8ad61c2-566f-4e6c-a610-0cbfa6d88698",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 133,
+  "type": "hypothesis",
+  "name": "Retire Element State Finish Probe",
+  "slug": "retire-element-state-finish-probe",
+  "path": "2026-08-31-133-retire-element-state-finish-probe.json",
+  "createdAt": "2026-08-31T20:36:39Z",
+  "startedAt": "2026-08-31T20:36:39Z",
+  "finishedAt": "2026-08-31T20:44:22Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "c4d2d668f6a20e7da504538b82a632089c5821a4",
+  "resultCommit": "7b4a2cf3a00036abe5d9781d55aca9f202acabbd",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard c4d2d668f6a20e7da504538b82a632089c5821a4",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "c4d2d668f6a20e7da504538b82a632089c5821a4",
+      "resultCommit": "7b4a2cf3a00036abe5d9781d55aca9f202acabbd",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard c4d2d668f6a20e7da504538b82a632089c5821a4",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "7b4a2cf3a00036abe5d9781d55aca9f202acabbd"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux diagnostic hot-path and frame telemetry overhead",
+  "hypothesisMarkdown": "## Retire Element State Finish Probe Hypothesis\n\nThe element-state finish probe has proven the replay-only optimization and can now be removed, reducing diagnostics hot-path increments and frame publication state while preserving the accepted pending-replay ownership change.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRemove only experiment 131's three counters, Scene storage/accessors, WGPU telemetry fields/assignment, web properties, and Test Suite schema/assertion. The replay-only pending list, state transfer loop, histories, rollback, layout/render algorithms, APIs, dependencies, and fixtures are frozen.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nRun formatting, focused window tests, both gpux clippy matrices, full gpux diagnostics tests, gpui_wgpu diagnostics tests, static probe-removal search, and headed Test Suite WASM/WebGPU at DPR 1 and 2. Require exact established layout/render counters, zero errors, and no coherent same-direction regression over 10% at both DPRs versus experiment 132.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nReturn production diagnostics to a smaller bounded contract without altering the accepted replay-only state-transfer behavior.\n",
+  "diagnostics": {
+    "playwright": [
+      {
+        "target": "apps/test_suite",
+        "runtime": "headed Chromium WASM/WebGPU",
+        "passed": 2,
+        "failed": 0
+      }
+    ],
+    "rayx": [],
+    "counters": [
+      "element-state finish probe absent",
+      "exact established layout/render counters",
+      "zero terminal error"
+    ],
+    "artifacts": [
+      "test-results",
+      "playwright-report"
+    ]
+  },
+  "measurements": {
+    "referenceExperiment": 132,
+    "probeStaticRemoval": true,
+    "runs": [
+      {
+        "deviceScaleFactor": 1,
+        "throughput": 23.98542405780007,
+        "pacedP95Ms": 32.5263671875,
+        "throughputDeltaPercent": -1.9386159031156147,
+        "pacedP95DeltaPercent": 18.38490110007287,
+        "terminalErrorMax": 0.0
+      },
+      {
+        "deviceScaleFactor": 2,
+        "throughput": 28.726485934937962,
+        "pacedP95Ms": 25.873291015625,
+        "throughputDeltaPercent": 17.369218363808294,
+        "pacedP95DeltaPercent": -4.830453680089086,
+        "terminalErrorMax": 0.0
+      }
+    ],
+    "exactCountersAtBothDprs": {
+      "boundsTreeVisits": 4440,
+      "boundsTreeChildEvaluations": 14351,
+      "boundsTreeRetainedNodes": 576
+    },
+    "playwright": {
+      "passed": 2,
+      "failed": 0
+    }
+  },
+  "reportMarkdown": "# Experiment 133 Report\n\nRemoved only the completed element-state finish probe across Scene, the finish loop, bounded WGPU telemetry, web publication, and Test Suite schema validation. The accepted replay-only pending-transfer implementation remains unchanged.\n\nFormatting, focused window tests, both gpux clippy matrices, 419 gpux diagnostics tests, gpui_wgpu diagnostics tests, static removal search, and both headed Test Suite WebGPU cases passed. Exact structural counters and zero terminal error held. Relative timing was mixed across DPRs and did not form a coherent regression, so the cleanup meets its declared gate.\n",
+  "decisionMarkdown": "# Decision\n\nAccept probe retirement at product commit `7b4a2cf3a00036abe5d9781d55aca9f202acabbd`. The proven replay-only optimization remains, while completed diagnostics hot-path and publication state are removed.\n",
+  "notes": ""
+}

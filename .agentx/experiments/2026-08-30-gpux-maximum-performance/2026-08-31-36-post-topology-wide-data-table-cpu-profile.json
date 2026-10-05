@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "id": "7e95459b-2452-430b-a255-bd5f9861d88e",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 36,
+  "type": "hypothesis",
+  "name": "Post-Topology Wide DataTable CPU Profile",
+  "slug": "post-topology-wide-data-table-cpu-profile",
+  "path": "2026-08-31-36-post-topology-wide-data-table-cpu-profile.json",
+  "createdAt": "2026-08-31T01:31:28Z",
+  "startedAt": "2026-08-31T01:31:28Z",
+  "finishedAt": "2026-08-31T01:35:18Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "6a7a8d354409d183d1161542e70d9a07029313c1",
+  "resultCommit": "d2833ce34e41e1113d0e0ebd888c74af15480f57",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 6a7a8d354409d183d1161542e70d9a07029313c1",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "6a7a8d354409d183d1161542e70d9a07029313c1",
+      "resultCommit": "d2833ce34e41e1113d0e0ebd888c74af15480f57",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 6a7a8d354409d183d1161542e70d9a07029313c1",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "d2833ce34e41e1113d0e0ebd888c74af15480f57"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "wasm/web with headed Playwright and WebGPU enabled",
+  "hypothesisMarkdown": "# Hypothesis\n\nAfter exact child-topology retention, total Taffy-crate self time should fall versus experiment 34 because unchanged detach/reattach work is gone. Any new cost from exact child comparison and current-child tracking should appear inside the gpux request family and identify the next bounded mechanism.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\n1. Run the unchanged wide DataTable benchmark once at DPR 1 and DPR 2 in one headed Chromium/WebGPU process with CPU profiling enabled.\n2. Require shared-memory and `wasm_thread_entry_point` verification, exact terminal offsets, zero terminal errors, and both projects passing.\n3. Parse current and experiment-34 profiles with the same self-time classifier for flex, block, dlmalloc, TaffyTree, total Taffy, gpux TaffyLayoutEngine, `request_taffy_node`, clear, hash operations, child accessors, and stable quicksort.\n4. Make no production, dependency, fixture, renderer, shader, benchmark, memory, or skill changes.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nBoth DPR cases pass unchanged, total Taffy self time declines, and the post-change request/hash/accessor split yields one source-mapped next hypothesis without modifying product code.\n",
+  "diagnostics": {
+    "playwright": [
+      "One fresh headed Chromium/WebGPU process passed the wide DataTable benchmark at DPR 1 and DPR 2 (2/2 projects), with exact terminal offsets and zero terminal errors.",
+      "The Test Suite build verified shared memory and `wasm_thread_entry_point`; the profiled WASM reported 101789 atomic prefix bytes."
+    ],
+    "rayx": [
+      "The current profiles parsed successfully with 9350 samples over 14646.326 ms at DPR 1 and 9352 samples over 14654.085 ms at DPR 2.",
+      "Matched experiment-34 and experiment-36 symbol families showed lower total Taffy-crate time at both DPRs while the inlined gpux request path became the bounded remaining topology surface."
+    ],
+    "counters": [
+      "Total Taffy-crate self time fell from 1606.692/1584.185 ms to 1535.997/1481.849 ms at DPR 1/2 (-4.40%/-6.46%).",
+      "`request_taffy_node` self time moved from 148.820/148.053 ms to 208.833/157.437 ms; the active-child `FxHashSet<LayoutId>` insert symbol itself measured only 3.132/1.579 ms.",
+      "Flexbox root self time remained 579.480/611.465 ms and block-inner self time remained 271.923/243.245 ms at DPR 1/2."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "total Taffy-crate self time at DPR 1",
+      "before": "1606.692 ms",
+      "after": "1535.997 ms",
+      "delta": "-4.40%"
+    },
+    {
+      "metric": "total Taffy-crate self time at DPR 2",
+      "before": "1584.185 ms",
+      "after": "1481.849 ms",
+      "delta": "-6.46%"
+    },
+    {
+      "metric": "gpux TaffyLayoutEngine family self time at DPR 1",
+      "before": "1632.422 ms",
+      "after": "1676.915 ms",
+      "delta": "+2.73%"
+    },
+    {
+      "metric": "gpux TaffyLayoutEngine family self time at DPR 2",
+      "before": "1677.960 ms",
+      "after": "1573.597 ms",
+      "delta": "-6.22%"
+    },
+    {
+      "metric": "request_taffy_node self time at DPR 1",
+      "before": "148.820 ms",
+      "after": "208.833 ms",
+      "delta": "+40.33%"
+    },
+    {
+      "metric": "request_taffy_node self time at DPR 2",
+      "before": "148.053 ms",
+      "after": "157.437 ms",
+      "delta": "+6.34%"
+    }
+  ],
+  "reportMarkdown": "## Post-Topology Wide DataTable CPU Profile Finished\n\n**Index:** 36\n**Checkpoint:** `6a7a8d354409d183d1161542e70d9a07029313c1`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. Both headed WebGPU projects completed with exact output and zero terminal errors. Against experiment 34, total Taffy-crate self time fell 4.40%/6.46% at DPR 1/2, corroborating the accepted topology-reuse result.\n\n`request_taffy_node` now measures 208.833/157.437 ms. The active-child hash insertion accounts for only 3.132/1.579 ms, so replacing that set is not supported as the next mechanism. The source-mapped remaining topology cost is the inlined repeated Taffy `child_count`/`child_at_index` comparison. A separate experiment may test a bounded gpux-owned retained child slice; it must not combine that representation with another layout or style change.\n\n### Scope Lock\n\nThis was measurement-only. No production source, dependency, fixture, renderer, shader, benchmark, memory, or skill guidance changed.\n\n### Decision\n\nAccept the profile. Retain experiment 35 and isolate a gpux-owned child-topology shadow as the next atomic hypothesis; do not optimize the measured-low active-child hash set.\n",
+  "decisionMarkdown": "Accept the measurement. Total Taffy self time fell at both DPRs; target the repeated Taffy child accessor comparison next, not the 1.6-3.1 ms active-child hash insertion.",
+  "notes": "Attempt Count: 1. Raw CPU profiles remain ignored under artifacts-temp/agentx-experiments/gpux-maximum-performance/36-post-topology-wide-data-table-cpu-profile/. No durable memory or gpux skill guidance changed because this experiment was measurement-only."
+}

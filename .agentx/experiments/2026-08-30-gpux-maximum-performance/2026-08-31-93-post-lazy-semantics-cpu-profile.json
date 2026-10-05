@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "id": "ade9cbc6-ac86-4a06-8680-46bb7c5b9a21",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 93,
+  "type": "hypothesis",
+  "name": "Post Lazy Semantics CPU Profile",
+  "slug": "post-lazy-semantics-cpu-profile",
+  "path": "2026-08-31-93-post-lazy-semantics-cpu-profile.json",
+  "createdAt": "2026-08-31T15:44:23Z",
+  "startedAt": "2026-08-31T15:44:23Z",
+  "finishedAt": "2026-08-31T15:47:46Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "1d6cb1dc74452a5f63dbebdd993f4a64d5ef6021",
+  "resultCommit": "1d6cb1dc74452a5f63dbebdd993f4a64d5ef6021",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 1d6cb1dc74452a5f63dbebdd993f4a64d5ef6021",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "1d6cb1dc74452a5f63dbebdd993f4a64d5ef6021",
+      "resultCommit": "1d6cb1dc74452a5f63dbebdd993f4a64d5ef6021",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 1d6cb1dc74452a5f63dbebdd993f4a64d5ef6021",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "1d6cb1dc74452a5f63dbebdd993f4a64d5ef6021"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "headed Test Suite WASM/WebGPU CPU profile",
+  "hypothesisMarkdown": "## Post Lazy Semantics CPU Profile Hypothesis\n\nA fresh accepted-build CPU profile will eliminate or materially reduce the prior 11.164/15.867 ms DevtoolsSemantics drop samples and reveal the next independent gpux-owned cleanup mechanism.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRead-only CPU profiling and sampled-stack comparison after lazy frame semantics. Only AgentX metadata and ignored CPU-profile analysis/output may change. Production/tests, DevTools lifecycle changes, pools/caches, rendering/layout/shader changes, dependencies, and performance fixes are forbidden.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nRun the canonical headed DataTable benchmark with RAYX_CPU_PROFILE=1 at DPR 1 and DPR 2. Require exact final offsets, established renderer/layout/text/style counters, and zero terminal errors. Compare DevtoolsSemantics drop samples to experiment 82, then rank explicit cleanup descendants for the next single mechanism.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nConfirm the accepted semantics mechanism through independent profile evidence and identify one next cleanup target, or show that semantics drop remains and needs deeper attribution.",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": {
+    "schemaVersion": 1,
+    "status": "success",
+    "productFilesChanged": 0,
+    "browserPassedDpr1": true,
+    "browserPassedDpr2": true,
+    "terminalErrors": 0,
+    "devtoolsSemanticsDropMs": {
+      "beforeDpr1": 11.164,
+      "afterDpr1": 12.474,
+      "deltaPercentDpr1": 11.733,
+      "beforeDpr2": 15.867,
+      "afterDpr2": 9.329,
+      "deltaPercentDpr2": -41.205
+    },
+    "taffyCleanupMs": {
+      "clearDpr1": 118.001,
+      "clearDpr2": 129.056,
+      "measuredClosureDropDpr1": 64.647,
+      "measuredClosureDropDpr2": 71.033,
+      "markDirtyRecursiveDpr1": 34.659,
+      "markDirtyRecursiveDpr2": 37.679
+    },
+    "nextTarget": "Taffy measured-node dirty propagation during frame clear"
+  },
+  "reportMarkdown": "# Post Lazy Semantics CPU Profile\n\nOne headed Chromium/WebGPU CPU-profile process passed at DPR 1 and DPR 2 with exact DataTable final offsets, established renderer/layout/text/style invariants, and zero terminal errors.\n\n`DevtoolsSemantics` drop sampled at 12.474 ms (DPR 1) and 9.329 ms (DPR 2), versus 11.164/15.867 ms in experiment 82. This is +11.73%/-41.21%, a mixed sampled result. Lazy optional storage removes all default payloads by construction, but authored semantics still own strings/vectors and therefore retain a visible teardown family. The profile does not justify further semantics lifecycle complexity.\n\nThe strongest repeatable next cleanup family is Taffy measured-closure teardown plus dirty propagation:\n\n| Metric | DPR 1 | DPR 2 |\n| --- | ---: | ---: |\n| `TaffyLayoutEngine::clear` | 118.001 ms | 129.056 ms |\n| measured `StackSafe<Box<FnMut>>` drop | 64.647 ms | 71.033 ms |\n| `mark_dirty_recursive` | 34.659 ms | 37.679 ms |\n\n`Scene::clear` measured 12.477/26.828 ms, DispatchTree clear 15.629/14.225 ms, and element-state table clear 13.939/22.017 ms. Taffy's overlapping per-measured-node dirty propagation is the highest-confidence next research target; any change must preserve closure release and layout invalidation.\n\nNo product or test source changed.\n",
+  "decisionMarkdown": "# Decision\n\nAccept the profile as read-only evidence. Keep lazy optional frame semantics, but do not add another semantics lifecycle mechanism: sampled authored-payload teardown remains and the two-DPR movement is mixed. Next inspect whether `TaffyLayoutEngine::clear` redundantly propagates dirty state once per measured leaf and whether one bounded root/node invalidation can preserve exact semantics.\n",
+  "notes": ""
+}

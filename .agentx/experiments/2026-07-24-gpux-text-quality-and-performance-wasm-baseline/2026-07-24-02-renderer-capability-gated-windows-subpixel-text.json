@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "id": "2cbe9a86-ba59-4244-9c96-519879d0322b",
+  "loopId": "54e74b74-483c-4598-92d7-fdbabbc9154b",
+  "index": 2,
+  "type": "hypothesis",
+  "name": "Renderer capability-gated Windows subpixel text",
+  "slug": "renderer-capability-gated-windows-subpixel-text",
+  "path": "2026-07-24-02-renderer-capability-gated-windows-subpixel-text.json",
+  "createdAt": "2026-07-24T03:32:35Z",
+  "startedAt": "2026-07-24T03:32:35Z",
+  "finishedAt": "2026-07-24T03:35:32Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "ad1a40cfa8c900cd4f0b7e3799bb78cdc5724825",
+  "resultCommit": "8e8c1a002",
+  "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard ad1a40cfa8c900cd4f0b7e3799bb78cdc5724825",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "ad1a40cfa8c900cd4f0b7e3799bb78cdc5724825",
+      "resultCommit": "8e8c1a002",
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard ad1a40cfa8c900cd4f0b7e3799bb78cdc5724825",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "8e8c1a002"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "headed WASM WebGPU Test Suite",
+  "hypothesisMarkdown": "## Hypothesis\n\nWindows currently reports subpixel text support unconditionally even when its WGPU renderer did not negotiate `DUAL_SOURCE_BLENDING`. Capturing that negotiated renderer capability in `WindowsWindowState` and returning it from `is_subpixel_rendering_supported` will prevent an unsupported LCD request from selecting an RGB glyph path.\n\n## Single mechanism\n\nSnapshot `WgpuRenderer::supports_dual_source_blending()` when constructing the Windows window state, then use that snapshot for the platform capability query. Do not change glyph cache keys, raster parameters, shader code, sampling, transfer, or layout.\n\n## Scope and limitation\n\nThe requested validation matrix is WASM-only. The change is therefore checked by the equivalent WASM grayscale path and a focused source-level capability invariant, not by a Windows runtime claim.\n",
+  "measurementPlanMarkdown": "## Measurement plan\n\n1. Confirm the renderer exposes its negotiated dual-source capability and the Windows platform query is the only unconditional `true` path.\n2. Change only that query to the renderer capability snapshot.\n3. Run the isolated `rayx-text-quality-performance.spec.ts` page through headed WASM WebGPU at DPR 1 and 2.\n4. Inspect the emitted DPR 2 screenshot and retain its raw metrics.\n5. Compare the focused test output with the frozen WASM text-quality baseline. This experiment has a no-regression expectation; it does not claim a WASM speedup.\n\n## Acceptance\n\n- The Windows implementation has no unconditional subpixel-support return.\n- WASM remains grayscale and the focused quality page passes at both DPRs.\n- No measured text-quality timing, image gate, or crash regression appears.\n",
+  "expectedOutcomeMarkdown": "## Expected outcome\n\nOn adapters without dual-source blending, the Windows platform will report subpixel text unsupported, so the existing GPUI mode selection falls back to grayscale before text rasterization. On capable adapters, the existing subpixel path is preserved.\n\nThe WASM Test Suite continues to report grayscale text and passes its light/dark DPR 1/2 image checks. This validates no cross-platform regression under the user-selected target; Windows runtime quality remains explicitly unmeasured in this experiment.\n",
+  "diagnostics": {
+    "sourceInvariant": "WindowsWindow::is_subpixel_rendering_supported returns the immutable renderer capability snapshot.",
+    "wasm": {
+      "platformSubpixelSupported": false,
+      "backend": "webgpu",
+      "dpr1": "passed",
+      "dpr2": "passed"
+    },
+    "windowsRuntime": "not run by explicit WASM-only target constraint"
+  },
+  "measurements": {
+    "target": "headed WASM WebGPU Test Suite",
+    "fixture": "text-quality",
+    "baseline": {
+      "dpr1P50Ms": 21.256,
+      "dpr1P95Ms": 24.554,
+      "dpr2P50Ms": 19.51,
+      "dpr2P95Ms": 25.49
+    },
+    "verification": {
+      "dpr1": "passed",
+      "dpr2": "passed",
+      "dpr2InputToPublishedFrameMs": 27.0384,
+      "dpr2EdgeEnergy": 4994507,
+      "dpr2ChromaticPixels": 202900,
+      "interpretation": "The verification sample is warmup index 0 and is retained only as a no-crash, image-gate observation; it is not compared as a performance replicate."
+    }
+  },
+  "reportMarkdown": "## Result: accepted\n\nThe Windows platform capability now reflects the renderer feature that determines whether the LCD/subpixel pipeline exists. This removes the inconsistent state where GPUI could request subpixel rasterization although the renderer had not negotiated dual-source blending.\n\nThe mechanism is intentionally limited to capability truthfulness. It leaves glyph caching, texture formats, shaders, sampling, transfer, and all editable or table behavior untouched.\n\nFocused headed WASM WebGPU validation passed at DPR 1 and DPR 2. The inspected viewport contains the expected sharp light and dark text specimens. Because the change is Windows-specific and the selected test target is WASM-only, this is a no-regression proof rather than a Windows quality claim.\n",
+  "decisionMarkdown": "## Decision: accept renderer capability gating\n\nAccept the capability snapshot. It is the narrowest correction to the demonstrated mismatch and requires no additional mutable state, fallback wrapper, or shader branch.\n\nThe next experiment, if any, must investigate a distinct measurable quality mechanism. It must not extend this accepted capability change opportunistically.\n",
+  "notes": ""
+}

@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "id": "e9156cde-b4fb-42b5-9536-cf68c3704f13",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 15,
+  "type": "hypothesis",
+  "name": "Registry Taffy 0.14 Upgrade",
+  "slug": "registry-taffy-0-14-upgrade",
+  "path": "2026-08-30-15-registry-taffy-0-14-upgrade.json",
+  "createdAt": "2026-08-30T21:04:21Z",
+  "startedAt": "2026-08-30T21:04:21Z",
+  "finishedAt": "2026-08-30T21:17:57Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "db7e21e0ae2465f96492cf7dec94658ef1412345",
+  "resultCommit": "3dc3f199b",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard db7e21e0ae2465f96492cf7dec94658ef1412345",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "db7e21e0ae2465f96492cf7dec94658ef1412345",
+      "resultCommit": "3dc3f199b",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard db7e21e0ae2465f96492cf7dec94658ef1412345",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "3dc3f199b"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux registry Taffy 0.14.0 layout engine with apps/test_suite wide DataTable headed WebGPU",
+  "hypothesisMarkdown": "# Hypothesis\n\nUpgrading gpux from registry Taffy 0.12.2 to the current registry release 0.14.0 will recover some or all of the removed inline-storage throughput through upstream flexbox measurement skips and newer cache/layout behavior, while keeping RayX free of a Taffy vendor tree and preserving gpux layout semantics, tree shape, renderer output, and public API.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\n1. Use experiment 14's three fresh registry-0.12.2 browser processes as the checkpoint distribution at DPR 1 and DPR 2.\n2. Change only the gpux Taffy dependency to exact registry 0.14.0, update both lockfiles, and make the minimum gpux API adaptations required by Taffy 0.14's public API changes.\n3. Do not add a vendor tree, Git patch, child-storage patch, unrelated layout behavior, or any second optimization mechanism.\n4. Run all gpux library tests, focused layout telemetry, diagnostics-disabled/enabled native and browser-WASM checks, warning-denied gpux/WGPU Clippy, package-scoped formatting, dependency-tree/provenance proof, AgentX memory audit, and loop validation.\n5. Run three fresh headed Test Suite WebGPU processes at DPR 1 and DPR 2. Require exact Taffy/renderer/traversal/final-scroll counters and zero terminal errors.\n6. Accept only if the three-process median throughput and paced p95 do not regress at either DPR relative to registry 0.12.2; otherwise restore every source file exactly to checkpoint and finish failure.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nTaffy 0.14's upstream measurement skips and cache changes preserve the 1,123-node/782-container warmed tree and renderer behavior while improving or preserving acknowledged scroll cadence and paced p95 at both DPRs, without adding any non-registry source surface.\n",
+  "diagnostics": {
+    "playwright": [
+      "Three independent headed Chromium/WebGPU processes passed the focused wide DataTable benchmark at DPR 1 and DPR 2 (6/6 project runs).",
+      "Each browser build verified shared WASM memory, wasm_thread_entry_point, and 100050 atomic prefix bytes."
+    ],
+    "rayx": [
+      "apps/test_suite was the exclusive runtime validation fixture.",
+      "All 400 gpux library tests passed; native gpux/WGPU and single-thread WASM checks passed with diagnostics disabled and enabled; warning-denied gpux/WGPU Clippy and package formatting passed."
+    ],
+    "counters": [
+      "All six browser results preserved Taffy counters 1123/229/341/782/1041/25/673/726/755/780/405/377/0/82/0/0.",
+      "All six browser results preserved 9 batches, 12 queue writes, 10 bind groups, 2 render passes, 1 submission, 4440 bounds visits, 576 retained nodes, 8668 global-id path elements, final offset -351402.6875, and zero terminal errors."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 median acknowledged steps/s",
+      "before": "24.9079371508",
+      "after": "29.9740716786",
+      "delta": "+20.3394%",
+      "source": "median of three independent headed WebGPU processes"
+    },
+    {
+      "metric": "DPR 2 median acknowledged steps/s",
+      "before": "24.7493861688",
+      "after": "30.0073915707",
+      "delta": "+21.2450%",
+      "source": "median of three independent headed WebGPU processes"
+    },
+    {
+      "metric": "DPR 1 median paced p95 catch-up latency",
+      "before": "27.70068359375 ms",
+      "after": "27.58251953125 ms",
+      "delta": "-0.4266%",
+      "source": "median of three independent headed WebGPU processes"
+    },
+    {
+      "metric": "DPR 2 median paced p95 catch-up latency",
+      "before": "28.794921875 ms",
+      "after": "27.47119140625 ms",
+      "delta": "-4.5971%",
+      "source": "median of three independent headed WebGPU processes"
+    },
+    {
+      "metric": "registry package count",
+      "before": "Taffy 0.12.2 plus grid 1.0.1",
+      "after": "Taffy 0.14.0 without grid 1.0.1",
+      "delta": "-1 transitive package",
+      "source": "cargo update and both lockfile diffs"
+    }
+  ],
+  "reportMarkdown": "## Registry Taffy 0.14 Upgrade Finished\n\n**Index:** 15\n**Checkpoint:** `db7e21e0ae2465f96492cf7dec94658ef1412345`\n**Result Commit:** `3dc3f199b`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. Registry 0.14.0 improved both throughput and paced p95 at both DPRs, preserved every required counter, and kept gpux free of a Taffy fork or vendor tree.\n\n### Scope Lock\n\n**Tested mechanism:** exact registry upgrade from Taffy 0.12.2 to 0.14.0 with only required public-API adaptations.\n**Out-of-scope changes:** none. No fork, vendoring, inline-storage patch, or adjacent layout optimization was introduced.\n\n### Repository Checkpoints\n\n| Repo | Path | Checkpoint | Result Commit | Status | Rollback |\n| --- | --- | --- | --- | --- | --- |\n| main | . | `db7e21e0a` | `3dc3f199b` | committed | `git -C \"D:\\\\Work\\\\projects\\\\RayX\\\\RayX\" reset --hard db7e21e0ae2465f96492cf7dec94658ef1412345` |\n\n### Measurements\n\n| Metric | Before | After | Delta |\n| --- | ---: | ---: | ---: |\n| DPR 1 acknowledged steps/s | 24.9079 | 29.9741 | +20.34% |\n| DPR 2 acknowledged steps/s | 24.7494 | 30.0074 | +21.24% |\n| DPR 1 paced p95 | 27.7007 ms | 27.5825 ms | -0.43% |\n| DPR 2 paced p95 | 28.7949 ms | 27.4712 ms | -4.60% |\n\nAll six browser project runs preserved exact Taffy, renderer, traversal, final-offset, and terminal-error counters. Registry 0.14.0 slightly beat the removed inline patch on all four medians.\n\nCommit done (main): `3dc3f199b perf(gpux): upgrade to Taffy 0.14`.\n",
+  "decisionMarkdown": "### Decision\n\nAccept and commit registry Taffy 0.14.0. It restores and slightly exceeds the removed local patch's measured performance without repository bloat, while preserving behavior and passing all required validation.\n",
+  "notes": "Attempt Count: 1. Source scope remained locked. Raw browser traces, screenshots, and measurement JSON are stored only under ignored artifacts-temp/agentx-experiments."
+}

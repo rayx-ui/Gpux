@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "id": "7170a8c7-2b2f-4385-8433-1483f41000e7",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 13,
+  "type": "hypothesis",
+  "name": "Taffy 0.14.0 Upgrade",
+  "slug": "taffy-0-14-0-upgrade",
+  "path": "2026-08-30-13-taffy-0-14-0-upgrade.json",
+  "createdAt": "2026-08-30T20:36:36Z",
+  "startedAt": "2026-08-30T20:36:36Z",
+  "finishedAt": "2026-08-30T20:47:30Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "5054802e566a342ae742c6288d34a9800bfc8661",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 5054802e566a342ae742c6288d34a9800bfc8661",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "5054802e566a342ae742c6288d34a9800bfc8661",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 5054802e566a342ae742c6288d34a9800bfc8661",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux Taffy 0.14.0 layout engine with apps/test_suite wide DataTable headed WebGPU",
+  "hypothesisMarkdown": "# Hypothesis\n\nUpgrading the vendored layout engine from Taffy 0.12.2 to the current published 0.14.0, while replaying the accepted two-slot child storage patch, will reduce gpux layout work through upstream flexbox measurement skips and newer cache/layout algorithms without changing gpux style semantics, DataTable geometry, tree shape, or renderer output.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\n1. Use experiment 12's three fresh accepted candidate processes as the exact checkpoint distribution at DPR 1 and DPR 2.\n2. Import the complete crates.io Taffy 0.14.0 package and update its checksum/version provenance.\n3. Replay only the accepted std `SmallVec<[NodeId; 2]>` child-storage patch and make the narrow gpux source adaptations required by Taffy 0.14's public API changes. Do not add unrelated layout behavior or optimizations.\n4. Run the full vendored Taffy library suite, alloc-only feature check, focused gpux layout/telemetry tests, diagnostics-disabled/enabled gpux/WGPU/browser-WASM checks, warning-denied gpux Clippy, package-scoped formatting, dependency-tree proof, and vendored-package integrity comparison.\n5. Run at least three fresh headed Test Suite WebGPU processes at DPR 1 and DPR 2.\n6. Require exact DataTable tree/renderer counters, exact final scroll offset, and zero terminal error. Accept only if the median throughput and paced p95 distributions do not regress at either DPR; otherwise revert the entire package upgrade and API adaptation to the checkpoint.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nTaffy 0.14's layout and measurement improvements preserve the 1,123-node/782-container warmed tree and renderer behavior, retain 726 inline child lists, and improve or preserve acknowledged scroll cadence and paced p95 at both DPRs. If the large upstream semantic delta changes geometry or regresses performance, the upgrade is rejected atomically.\n",
+  "diagnostics": {
+    "playwright": [
+      "The first candidate browser process was interrupted during compilation after the user superseded the vendoring mechanism; no browser measurement was accepted."
+    ],
+    "rayx": [
+      "Taffy 0.14.0 passed 130/130 library tests and its alloc-only check before rollback.",
+      "gpux passed 400/400 library tests, native checks, single-threaded WASM checks, gpux-owned warning-denied Clippy, and package-scoped formatting before rollback.",
+      "All application work targeted apps/test_suite; apps/lab was neither launched nor modified.",
+      "The worktree source was restored exactly to checkpoint 5054802e566a342ae742c6288d34a9800bfc8661."
+    ],
+    "counters": [],
+    "knownPreexisting": [
+      "The published Taffy 0.14.0 package has five warning-denied current-Clippy findings in unchanged upstream code."
+    ],
+    "artifacts": []
+  },
+  "measurements": {
+    "target": "wasm-webgpu-headed",
+    "candidateCompleted": false,
+    "candidateMeasurements": [],
+    "sourceRevertedTo": "5054802e566a342ae742c6288d34a9800bfc8661"
+  },
+  "reportMarkdown": "# Taffy 0.14.0 upgrade report\n\nThe exact Taffy 0.14.0 package compiled after two narrow gpux API adaptations. Its 130 library tests, alloc-only check, all 400 gpux library tests, native checks, single-threaded WASM checks, gpux-owned warning-denied Clippy, formatting, and package-integrity comparison passed.\n\nBefore the candidate browser build reached execution, the user explicitly replaced the vendored-dependency policy: prefer crates.io, allow a tiny exact-revision fork when essential, and vendor only when stronger constraints justify the repository cost. Because this experiment's hypothesis required replacing the existing vendored tree with another full vendored package, continuing would violate the new requirement and AgentX's one-mechanism rule.\n\nThe browser build was interrupted during compilation. All source changes were reverted exactly to checkpoint `5054802e566a342ae742c6288d34a9800bfc8661`; only this experiment's metadata remains.\n",
+  "decisionMarkdown": "# Decision\n\nReject this vendored Taffy 0.14.0 upgrade attempt because its dependency-distribution mechanism was superseded by the user's explicit repository-bloat constraint before performance measurement completed. Start a new atomic experiment to remove the Taffy vendor surface and update the gpux skill policy. Do not reuse the unmeasured candidate.\n",
+  "notes": ""
+}

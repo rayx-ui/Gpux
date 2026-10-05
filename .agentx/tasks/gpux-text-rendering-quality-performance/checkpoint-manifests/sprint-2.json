@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 3,
+  "epicId": "gpux-text-rendering-quality-performance",
+  "sprint": 2,
+  "auditSha256": "f520228ce4b777f195bb4ea6a1dbcc2debaec18c17775b141ff636934e318f0d",
+  "evidenceSha256": "1a84a3fb7499686db6ab1a46fe0fdd803f534e760255af3ee5bdc6aa1cebd49e",
+  "repositories": [
+    {
+      "id": "main",
+      "path": "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX",
+      "baselineHead": "ad1a40cfa8c900cd4f0b7e3799bb78cdc5724825",
+      "resultHead": "e26e4eb431c00f58c1473e55245accca6420c3a9",
+      "commits": [
+        "8e8c1a002207cfef8f07df929726a1aea8986099",
+        "7f14eb79b7c9a67a75736430cc500ff838635035",
+        "1f7535c4ddb279a16046f7130a6bd6234c341167",
+        "4d3c7c20c9185dd3c62ef8c228ee6f9967dce279",
+        "e26e4eb431c00f58c1473e55245accca6420c3a9"
+      ],
+      "statusHash": "2217f7559e4c51ec3659dc83b05c4cdf786d7e2a041e76982b6db1d3da0da618",
+      "sprintOwnedPaths": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\2026-07-24-02-renderer-capability-gated-windows-subpixel-text.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\gpux\\crates\\gpui_windows\\src\\window.rs"
+      ],
+      "unrelatedDirtyPaths": [
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance-wasm-baseline/playwright-process-1-output/",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance-wasm-baseline/playwright-process-1.json",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance-wasm-baseline/playwright-process-2-output/",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance-wasm-baseline/playwright-process-2.json",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance-wasm-baseline/playwright-process-3-output/",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance-wasm-baseline/playwright-process-3.json",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance-wasm-baseline/playwright-shell-dpr2-replacement-output/",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance-wasm-baseline/playwright-shell-dpr2-replacement.json",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance-wasm-baseline/playwright-text-area-dpr2-replacement-output/",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance-wasm-baseline/playwright-text-area-dpr2-replacement.json",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance-wasm-baseline/playwright-text-quality-dpr2-replacement-output/",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance-wasm-baseline/playwright-text-quality-dpr2-replacement.json",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance-wasm-baseline/server.pid",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance/diagnostics/datatable-complexity.json",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance/diagnostics/editable-text-complexity.json",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance/diagnostics/editable-text-fallback.json",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance/diagnostics/selection-area-complexity.json",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance/diagnostics/table-selection-complexity.json",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance/diagnostics/wgpu-complexity.json",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance/playwright/",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance/scanner-isolation/",
+        "?? .agentx/experiments/2026-07-24-gpux-text-quality-and-performance/server.pid",
+        "?? tools-node/.agentx/"
+      ],
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" revert --no-commit ad1a40cfa8c900cd4f0b7e3799bb78cdc5724825..e26e4eb431c00f58c1473e55245accca6420c3a9"
+    }
+  ],
+  "generatedAt": "2026-07-24T03:40:27Z"
+}

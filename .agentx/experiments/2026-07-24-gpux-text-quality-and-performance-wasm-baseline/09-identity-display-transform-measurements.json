@@ -1,0 +1,10 @@
+{
+  "target": "headed WASM WebGPU TextArea wheel action",
+  "protocol": "One page-isolated 35-run Playwright process per DPR with five warmups and thirty measured samples.",
+  "source": "09-identity-display-transform-output",
+  "cells": [
+    {"dpr": 1, "samples": 30, "p50Ms": 133.3564, "p95Ms": 143.6374, "priorP50Ms": 129.493, "priorP95Ms": 141.935, "minChangedPixels": 13706},
+    {"dpr": 2, "samples": 30, "p50Ms": 133.7175, "p95Ms": 143.8698, "priorP50Ms": 137.29, "priorP95Ms": 143.619, "minChangedPixels": 53702}
+  ],
+  "failures": 0
+}

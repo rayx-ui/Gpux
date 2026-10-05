@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "id": "5b3ac35a-5500-44f3-a21d-3771ce268b87",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 27,
+  "type": "hypothesis",
+  "name": "Deferred Draw Traversal Telemetry",
+  "slug": "deferred-draw-traversal-telemetry",
+  "path": "2026-08-30-27-deferred-draw-traversal-telemetry.json",
+  "createdAt": "2026-08-30T23:27:40Z",
+  "startedAt": "2026-08-30T23:27:40Z",
+  "finishedAt": "2026-08-30T23:45:44Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "04b13bf99a3c67e319144fe2744359a0bfe74bc1",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 04b13bf99a3c67e319144fe2744359a0bfe74bc1",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "04b13bf99a3c67e319144fe2744359a0bfe74bc1",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 04b13bf99a3c67e319144fe2744359a0bfe74bc1",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "crates/gpux/crates/gpui/src/window.rs",
+  "hypothesisMarkdown": "# Hypothesis\n\nDeferred draws may perform redundant priority sorting: each newly discovered prepaint round is sorted independently, then the complete deferred-draw list is sorted again for painting. Bounded diagnostics for draw count, round count, items sorted by each phase, and final priority disorder will establish whether this path is active and whether the final paint sort can be eliminated or reused in a later production experiment without changing rendering behavior.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\n1. Run three fresh headed Chromium/WebGPU Test Suite DataTable benchmark processes at DPR 1 and DPR 2 before editing.\n2. Add diagnostics-only deferred-draw counters through WindowFrame, Scene, WGPU frame telemetry, the web diagnostics bridge, and the existing benchmark oracle. Do not change production traversal or sorting behavior.\n3. Measure total deferred draws, prepaint round count, total prepaint items sorted, paint items sorted, and adjacent priority disorder after prepaint.\n4. Run package formatting, all gpui tests, two sequential gpui_wgpu diagnostics suites, diagnostics-disabled/enabled native checks, single-threaded WASM diagnostics check, warning-denied Clippy, and three fresh candidate browser processes.\n5. Require exact established diagnostics, new-counter invariants, zero terminal errors, and non-regressing three-process medians at both DPRs.\n6. Accept useful zero values as evidence that this workload does not exercise deferred draws; otherwise use the measured counts to scope one later production mechanism.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nThe telemetry will preserve all existing behavior and benchmark counters while quantifying deferred-draw sort work. If deferred draws are absent, the candidate is ruled out for this workload. If present with zero or low final priority disorder, a later experiment can test reuse or sort elision; if disorder is material, the paint sort remains necessary.\n",
+  "diagnostics": {
+    "playwright": [
+      "Three checkpoint and three candidate headed Chromium/WebGPU processes passed both DPRs with one worker (12/12 project runs) and zero terminal errors.",
+      "apps/test_suite was the exclusive runtime fixture; candidate builds verified shared memory, wasm_thread_entry_point, and 100778 atomic prefix bytes."
+    ],
+    "rayx": [
+      "Package formatting passed on the first gate; all 400 gpux library tests passed.",
+      "Two sequential gpui_wgpu diagnostics suites passed 52/52 in 0.84 s and 0.79 s.",
+      "Diagnostics-off/on native checks, the single-threaded WASM diagnostics check, and warning-denied gpux/WGPU Clippy passed."
+    ],
+    "counters": [
+      "Every candidate at both DPRs reported 0 deferred draws, 0 prepaint rounds, 0 prepaint sort items, 0 paint sort items, and 0 priority disorder.",
+      "Every established renderer, Taffy, traversal, final-offset, and terminal-error counter remained exact."
+    ],
+    "artifacts": [
+      "artifacts-temp/agentx-experiments/gpux-maximum-performance/27-deferred-draw-traversal-telemetry/"
+    ]
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 median acknowledged steps/s",
+      "before": "29.970956644463666",
+      "after": "30.08064319634509",
+      "delta": "+0.3660%"
+    },
+    {
+      "metric": "DPR 2 median acknowledged steps/s",
+      "before": "29.848380673113812",
+      "after": "30.0257944093322",
+      "delta": "+0.5944%"
+    },
+    {
+      "metric": "DPR 1 median paced p95",
+      "before": "27.572265625 ms",
+      "after": "26.972900390625 ms",
+      "delta": "-2.1738%"
+    },
+    {
+      "metric": "DPR 2 median paced p95",
+      "before": "27.164306640625 ms",
+      "after": "28.4140625 ms",
+      "delta": "+4.6007%"
+    },
+    {
+      "metric": "deferred-draw traversal and sort work",
+      "before": "unknown",
+      "after": "0 draws / 0 rounds / 0 prepaint items / 0 paint items / 0 disorder",
+      "delta": "hotspot absent"
+    }
+  ],
+  "reportMarkdown": "## Deferred Draw Traversal Telemetry Finished\n\n**Index:** 27\n**Checkpoint:** `04b13bf99a3c67e319144fe2744359a0bfe74bc1`\n**Result Commit:** none\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** false. The telemetry proved that the wide DataTable workload contains no deferred draws, so its two sorting paths perform no work in the measured frame. The candidate also violated the non-regression gate at DPR 2 paced p95.\n\n| Metric | Checkpoint | Candidate | Delta |\n|---|---:|---:|---:|\n| DPR 1 acknowledged steps/s | 29.9710 | 30.0806 | +0.37% |\n| DPR 2 acknowledged steps/s | 29.8484 | 30.0258 | +0.59% |\n| DPR 1 paced p95 | 27.5723 ms | 26.9729 ms | -2.17% |\n| DPR 2 paced p95 | 27.1643 ms | 28.4141 ms | +4.60% |\n\nAll six candidate projects reported exactly zero deferred draws, rounds, sorted items, and priority disorder. Optimizing deferred traversal would not improve this benchmark and should not be pursued without a different workload that proves material deferred-draw volume.\n\n### Decision\n\nReject and revert. Preserve the stable implementation and move research to a path exercised by the benchmark.",
+  "decisionMarkdown": "Reject and revert. Deferred-draw sorting is absent from the measured DataTable frame, and the diagnostics candidate exceeded the DPR 2 paced-p95 non-regression limit. Do not optimize this path for the current workload without new runtime evidence.",
+  "notes": "No source or memory change remains. The gpux dependency-source skill policy and registry Taffy 0.14 state were independently verified current; no further skill edit was warranted."
+}

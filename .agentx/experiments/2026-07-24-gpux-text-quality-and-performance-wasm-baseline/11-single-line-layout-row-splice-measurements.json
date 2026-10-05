@@ -1,0 +1,21 @@
+{
+  "target": "headed WASM WebGPU",
+  "fixture": "/performance/text-area-edit",
+  "action": "replace-one-text-area-character",
+  "repeatsPerDpr": 35,
+  "warmupsPerDpr": 5,
+  "measuredSamplesPerDpr": 30,
+  "failures": 0,
+  "dpr": {
+    "1": {
+      "p50InputToPublishedFrameMs": 185.2906,
+      "p95InputToPublishedFrameMs": 207.9167,
+      "changedPixels": 2857
+    },
+    "2": {
+      "p50InputToPublishedFrameMs": 176.5264,
+      "p95InputToPublishedFrameMs": 203.7505,
+      "changedPixels": 10784
+    }
+  }
+}

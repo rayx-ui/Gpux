@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "id": "91b7cbfd-c19b-4f9f-be28-a75a9be65f65",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 9,
+  "type": "hypothesis",
+  "name": "Bounds Tree Recorded Descent Positions",
+  "slug": "bounds-tree-recorded-descent-positions",
+  "path": "2026-08-30-09-bounds-tree-recorded-descent-positions.json",
+  "createdAt": "2026-08-30T19:45:03Z",
+  "startedAt": "2026-08-30T19:45:03Z",
+  "finishedAt": "2026-08-30T19:52:29Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "f3700c2db50835e213a3263a68c14a04e37a7c62",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard f3700c2db50835e213a3263a68c14a04e37a7c62",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "f3700c2db50835e213a3263a68c14a04e37a7c62",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard f3700c2db50835e213a3263a68c14a04e37a7c62",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux BoundsTree propagation with apps/test_suite wide DataTable headed WebGPU",
+  "hypothesisMarkdown": "# Hypothesis\n\n`BoundsTree::insert_leaf` already computes `best_child_pos` at every descent level, but reverse propagation currently discards that position and scans the same fixed child array with `.position(...)` when an increased max order must move the updated child to the end. Retaining `(node_index, child_position)` in the reusable insertion path will remove these repeated scans without changing child selection, swaps, tree shape, or ordering.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\n1. Change the reusable insertion path entries from node indices to `(node_index, selected_child_position)` and record them after selecting the best child.\n2. During reverse propagation, skip terminal-node swapping as today and use each ancestor's recorded child position directly instead of scanning for `updated_child_idx`.\n3. Preserve all selection costs, child swaps, max-order updates, tree shape, and public behavior.\n4. Run diagnostics-off/on compilation, focused diagnostics, the 1,000-seed ordering oracle, Clippy, nested formatting, and headed WebGPU wide DataTable proof at both DPRs.\n5. Accept on the direct removal of ancestor position scans, exact counters/semantics, and non-regressing p95; otherwise revert.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nAll bounds-tree and renderer telemetry remains exact. The insertion path stores one additional `usize` per shallow tree level but reuses its allocation, while propagation no longer performs up-to-12-child equality scans for ancestors whose max order increases. Randomized ordering and headed WebGPU p95 remain unchanged.\n",
+  "diagnostics": {
+    "playwright": [
+      "Two candidate processes passed functional assertions across 4/4 headed WebGPU DPR projects, but both repeated throughput degradation.",
+      "DPR 2 candidate median throughput fell 6.64% and paced p95 rose 4.21% versus the checkpoint."
+    ],
+    "rayx": [
+      "All runtime proof used apps/test_suite; apps/lab was neither launched nor modified.",
+      "The 1,000-seed randomized ordering oracle, diagnostics-off/on focused tests, Clippy, and formatting passed before runtime rejection.",
+      "The candidate source was reverted exactly to checkpoint before recording failure."
+    ],
+    "counters": [
+      "Tree and renderer counters were unchanged, so the regression is attributable to the attempted insertion-path representation trade rather than changed work output.",
+      "The tuple doubled each reusable path entry from one usize to two while removing only shallow ancestor scans."
+    ],
+    "artifacts": [
+      "candidate/*/data-table-wide-scroll-performance.json",
+      "candidate-2/*/data-table-wide-scroll-performance.json"
+    ]
+  },
+  "measurements": {
+    "checkpointCommit": "f3700c2db",
+    "target": "wasm-webgpu-headed",
+    "checkpoint": {
+      "dpr1": {
+        "throughput": 30.210496924156,
+        "pacedP95Ms": 27.315673828125
+      },
+      "dpr2": {
+        "throughput": 30.1832849797108,
+        "pacedP95Ms": 27.140625
+      }
+    },
+    "candidateProcesses": [
+      {
+        "dpr1": {
+          "throughput": 29.1100222022139,
+          "pacedP95Ms": 27.60791015625
+        },
+        "dpr2": {
+          "throughput": 28.4658406354145,
+          "pacedP95Ms": 27.948974609375
+        }
+      },
+      {
+        "dpr1": {
+          "throughput": 29.311684700070014,
+          "pacedP95Ms": 27.60791015625
+        },
+        "dpr2": {
+          "throughput": 27.891937152213707,
+          "pacedP95Ms": 28.616943359375
+        }
+      }
+    ],
+    "candidateMedian": {
+      "dpr1": {
+        "throughput": 29.210853451141958,
+        "pacedP95Ms": 27.60791015625
+      },
+      "dpr2": {
+        "throughput": 28.178888893814104,
+        "pacedP95Ms": 28.282958984375
+      }
+    },
+    "tree": {
+      "insertions": 504,
+      "searchNodeVisits": 4440,
+      "insertionChildEvaluations": 14351,
+      "retainedNodes": 576
+    },
+    "maximumTerminalError": 0
+  },
+  "reportMarkdown": "# Bounds tree recorded descent positions report\n\nThe candidate changed reusable insertion-path entries from one node index to `(node_index, child_position)` and used the recorded positions to replace ancestor child scans. The 1,000-seed ordering oracle, diagnostics modes, Clippy, formatting, and all headed functional assertions passed, and tree/renderer counters remained exact.\n\nThe trade regressed runtime twice. Candidate median throughput was 29.21 steps/s at DPR 1 versus checkpoint 30.21 (-3.31%) and 28.18 at DPR 2 versus 30.18 (-6.64%). Candidate median paced p95 was 27.61 ms at DPR 1 versus 27.32 (+1.07%) and 28.28 ms at DPR 2 versus 27.14 (+4.21%). The doubled path-entry width costs more than the eliminated shallow scans in this workload.\n\nPer AgentX atomic discipline, the candidate source was reverted exactly to checkpoint `f3700c2db` before recording failure. No durable memory or gpux skill guidance was added from this failed attempt.\n",
+  "decisionMarkdown": "# Decision\n\nReject and revert. Functional equivalence is insufficient: two independent processes repeat lower throughput, with DPR 2 showing a 6.64% throughput loss and 4.21% p95 regression. Retain the compact single-index insertion path and its shallow ancestor scan.\n",
+  "notes": ""
+}

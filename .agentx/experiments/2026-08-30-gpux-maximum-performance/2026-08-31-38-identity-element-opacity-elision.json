@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "id": "569f6122-f930-4bd9-85db-8f67db602252",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 38,
+  "type": "hypothesis",
+  "name": "Identity Element Opacity Elision",
+  "slug": "identity-element-opacity-elision",
+  "path": "2026-08-31-38-identity-element-opacity-elision.json",
+  "createdAt": "2026-08-31T01:49:50Z",
+  "startedAt": "2026-08-31T01:49:50Z",
+  "finishedAt": "2026-08-31T02:02:47Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "5e9cdeeb0105e324961a3aee86f155d2d73bd80c",
+  "resultCommit": "aee90f5e6",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 5e9cdeeb0105e324961a3aee86f155d2d73bd80c",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "5e9cdeeb0105e324961a3aee86f155d2d73bd80c",
+      "resultCommit": "aee90f5e6",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 5e9cdeeb0105e324961a3aee86f155d2d73bd80c",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "aee90f5e6"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux color preparation and apps/test_suite headed WASM/WebGPU wide DataTable",
+  "hypothesisMarkdown": "When the current element opacity is exactly 1.0, preparing the original cached Color or Background directly will eliminate redundant immutable Color reconstruction and cache population without changing renderer output.\n",
+  "measurementPlanMarkdown": "Add one identity-only preparation branch shared by gpux paint paths. Run gpux color/GPUI tests, formatting, clippy, and three independent headed WebGPU wide-DataTable runs at DPR 1 and DPR 2. Compare throughput, paced p95, exact diagnostics, final offsets, browser errors, and WASM size against experiment 35.\n",
+  "expectedOutcomeMarkdown": "Color::from_encoded disappears from default-opacity paint stacks, exact output remains unchanged, and browser medians improve or remain within the loop acceptance envelope at both DPRs.\n",
+  "diagnostics": {
+    "playwright": [
+      "Three fresh headed Chromium/WebGPU processes passed both DPRs with one worker (6/6 project runs), exact final offsets, and zero terminal errors.",
+      "apps/test_suite was the exclusive runtime fixture; each build verified shared memory and wasm_thread_entry_point. The changed WASM reported 101805 atomic prefix bytes versus 101789 at experiment 35."
+    ],
+    "rayx": [
+      "Focused tests prove identity opacity prepares and reuses the original paint cache, non-identity opacity equals the previous preparation path, and identity background preparation avoids rebuilding its colors.",
+      "All 408 gpux diagnostics tests, all 52 serialized gpui_wgpu diagnostics tests, diagnostics-disabled gpux check, package formatting, warning-denied Clippy, and AgentX memory audit passed."
+    ],
+    "counters": [
+      "All six browser projects preserved the exact renderer and Taffy diagnostic signatures used by experiment 35.",
+      "Every measured and paced run ended at the exact expected final offset with terminalError 0."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "identity paint preparation",
+      "before": "every default-opacity paint rebuilt immutable Color values and fresh lazy caches",
+      "after": "exact opacity 1.0 prepares the original cached Color or Background",
+      "delta": "identity transformation allocation and cache reconstruction removed"
+    },
+    {
+      "metric": "DPR 1 median acknowledged steps/s",
+      "before": "29.98411741300633",
+      "after": "30.208397919517438",
+      "delta": "+0.7480%"
+    },
+    {
+      "metric": "DPR 2 median acknowledged steps/s",
+      "before": "30.084109152368175",
+      "after": "30.234875853710054",
+      "delta": "+0.5012%"
+    },
+    {
+      "metric": "DPR 1 median paced p95",
+      "before": "27.469482421875 ms",
+      "after": "27.0439453125 ms",
+      "delta": "-1.5491%"
+    },
+    {
+      "metric": "DPR 2 median paced p95",
+      "before": "27.32080078125 ms",
+      "after": "27.302490234375 ms",
+      "delta": "-0.0670%"
+    },
+    {
+      "metric": "WASM atomic prefix bytes",
+      "before": "101789",
+      "after": "101805",
+      "delta": "+16 bytes"
+    }
+  ],
+  "reportMarkdown": "## Identity Element Opacity Elision Finished\n\n**Index:** 38\n**Checkpoint:** `5e9cdeeb0105e324961a3aee86f155d2d73bd80c`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. GPUI paint preparation now reuses the original immutable `Color` or `Background` when inherited element opacity is exactly `1.0`. Non-identity factors execute the previous transformation path unchanged. Focused tests prove identity cache reuse and non-identity equivalence.\n\nThree fresh headed WebGPU processes at both DPRs preserved exact final offsets, renderer/layout telemetry, and zero terminal error. Median acknowledged throughput improved 0.75%/0.50%; paced p95 improved 1.55%/0.07%.\n\n### Scope Lock\n\nThe only production mechanism is identity-only paint opacity elision in gpux color/background preparation and its renderer call sites. No authored `Color::opacity` semantics, non-identity opacity behavior, layout, shader, dependency, or RayX component behavior changed.\n\n### Decision\n\nAccept and commit. The change removes redundant immutable color allocation, XYZ-source rebuilding, and fresh lazy caches from the default paint path while preserving exact browser behavior and improving both DPR throughput medians.\n",
+  "decisionMarkdown": "Accept and commit. Prepare original colors/backgrounds only for exact identity inherited opacity and retain the previous authored-color path for every non-identity factor.\n",
+  "notes": ""
+}

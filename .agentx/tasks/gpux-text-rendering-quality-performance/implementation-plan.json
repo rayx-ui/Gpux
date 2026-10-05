@@ -1,0 +1,1766 @@
+{
+  "schemaVersion": 3,
+  "epicId": "gpux-text-rendering-quality-performance",
+  "title": "GPUX Text Rendering Quality, Throughput, and Selection Complexity Implementation Plan",
+  "executionPolicy": {
+    "defaultMode": "sequential",
+    "subagentsRequireExplicitUserAuthorization": true,
+    "coordinatorOwnsTaskCompletion": true,
+    "maxParallelSprints": 1,
+    "leaseDurationSeconds": 1800,
+    "maxAttempts": 8
+  },
+  "sprints": [
+    {
+      "id": "sprint-1",
+      "number": 1,
+      "title": "Build the measurement authority and immutable baseline",
+      "dependencies": [],
+      "parallelization": {
+        "mode": "sequential",
+        "rationale": "The harness must be committed before the read-only baseline and the baseline must exist before any production mechanism changes.",
+        "disjointOwnedScopes": []
+      },
+      "groups": [
+        {
+          "id": "group-1-1",
+          "title": "Create deterministic Test Suite fixtures and diagnostics",
+          "dependencies": [],
+          "parallelization": {
+            "mode": "sequential",
+            "rationale": "Fixture identity, diagnostic schema, image analysis, and automation selectors form one measurement contract.",
+            "disjointOwnedScopes": []
+          },
+          "tasks": [
+            {
+              "id": "sprint-1-task-1",
+              "title": "Add Test Suite text quality and load scenarios",
+              "action": "MUST add one focused Test Suite diagnostics page per text-quality, TextArea, SelectionArea, DataTable, and shell-isolation Playwright test, with fixed public content; MUST add stable scenario selection, semantic action targets, fixture revisions, renderer and owner work counters, correlation IDs, raw JSON output, browser physical-pixel image analysis, and serial headed WASM Playwright files; MUST register the focused files in tools-node/playwright.config.ts, keep permanent diagnostics bounded and content-free, and make repository guards fail for new Lab fixture or automation changes.",
+              "kind": "infra",
+              "requirementIds": [
+                "REQ-F-001",
+                "REQ-F-002",
+                "REQ-F-003",
+                "REQ-F-004",
+                "REQ-F-005",
+                "REQ-NF-001",
+                "REQ-NF-004"
+              ],
+              "designIds": [
+                "DES-001",
+                "DES-003"
+              ],
+              "dependencies": [],
+              "repositoryIds": [
+                "main"
+              ],
+              "ownedScope": [
+                "apps/test_suite/Cargo.toml",
+                "apps/test_suite/src/**",
+                "tools-node/test_suite/**",
+                "tools-node/playwright.config.ts",
+                "tools-node/package.json and pnpm-lock.yaml only for a proven test-only image dependency",
+                "bounded renderer, editable, SelectionArea, and table diagnostic snapshot fields required by the harness"
+              ],
+              "forbiddenScope": [
+                "apps/lab/**",
+                "tools-node/lab/**",
+                "production optimization",
+                "theme color, font size, font weight, or font family changes",
+                "user-owned dirty files outside the exact diagnostic field edits",
+                "committed screenshots, reports, test results, node_modules, target output, or traces"
+              ],
+              "acceptanceCriteria": [
+                "Test Suite exposes deterministic scenario selectors for every REQ-F-001 fixture on headed WASM/WebGPU.",
+                "The diagnostic JSON schema includes commit, target, backend, adapter, theme, scale, viewport, fixture revision, correlation stages, warm-ups, samples, work counters, and artifact hashes.",
+                "Synthetic image tests distinguish sharp from blurred edges, RGB from BGR, and grayscale from chromatic output.",
+                "The focused Playwright file is serial, requires headed WebGPU, and fails on missing stages, stale revisions, mixed samples, or absent output.",
+                "Repository search and source guard report zero new Lab fixture, diagnostic, or automation change."
+              ],
+              "validation": {
+                "profiles": [
+                  "integration",
+                  "runtime",
+                  "interaction",
+                  "contract",
+                  "performance",
+                  "regression"
+                ],
+                "redCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-quality-performance.spec.ts"
+                ],
+                "greenCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-quality-performance.spec.ts",
+                  "python C:/Users/dinko/.codex/skills/agentx/scripts/improvement_loop_state.py --root . validate"
+                ],
+                "broadCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-quality-performance.spec.ts",
+                  "cargo run -p xtask -- check-source-guard"
+                ]
+              },
+              "status": "done"
+            }
+          ]
+        },
+        {
+          "id": "group-1-2",
+          "title": "Start the atomic loop and capture the clean baseline",
+          "dependencies": [
+            "group-1-1"
+          ],
+          "parallelization": {
+            "mode": "sequential",
+            "rationale": "The loop baseline consumes the committed fixture and establishes immutable denominators for every later task.",
+            "disjointOwnedScopes": []
+          },
+          "tasks": [
+            {
+              "id": "sprint-1-task-2",
+              "title": "Record complexity, image, work-count, and timing baselines",
+              "action": "MUST create or use a clean worktree at the sprint checkpoint, run a successful AST-backed AgentX complexity scan over gpux editable text, gpui_wgpu, SelectionArea, core table selection, and DataTable, and retain the report; MUST add or correct Test Suite-only focused Playwright measurement support so every TextArea, SelectionArea, DataTable, and shell scenario executes its fixed semantic action and records input-to-published-frame timing, owned-work counters, and raw samples; MUST start one AgentX improvement loop named GPUX Text Quality and Performance with maxIterations 20, the main repository ledger, the fixed one-hypothesis discipline, and the exact headed-WASM/WebGPU target matrix; MUST complete the mandatory read-only baseline experiment with light and dark browser captures at DPR 1 and 2 plus three runs of every action scenario on headed WASM/WebGPU; MUST prove each claimed performance reproduction and freeze the fixture manifest, metrics, thresholds, and sample protocol.",
+              "kind": "performance",
+              "requirementIds": [
+                "REQ-F-001",
+                "REQ-F-002",
+                "REQ-F-003",
+                "REQ-F-004",
+                "REQ-F-005",
+                "REQ-F-006",
+                "REQ-NF-001",
+                "REQ-NF-003",
+                "REQ-NF-004"
+              ],
+              "designIds": [
+                "DES-001",
+                "DES-003",
+                "DES-007",
+                "DES-008"
+              ],
+              "dependencies": [
+                "sprint-1-task-1"
+              ],
+              "repositoryIds": [
+                "main"
+              ],
+              "ownedScope": [
+                "apps/test_suite/src/pages/performance.rs Test Suite-only action diagnostics",
+                "tools-node/test_suite/performance-fixture.ts",
+                "tools-node/test_suite/rayx-text-area-performance.spec.ts",
+                "tools-node/test_suite/rayx-selection-area-performance.spec.ts",
+                "tools-node/test_suite/rayx-data-table-performance.spec.ts",
+                "tools-node/test_suite/rayx-shell-performance.spec.ts",
+                ".agentx/experiments/INDEX.json",
+                ".agentx/experiments/EXPERIMENT_INSTRUCTIONS.md",
+                ".agentx/experiments/YYYY-MM-DD-gpux-text-quality-performance/**",
+                ".agentx/tasks/gpux-text-rendering-quality-performance/evidence.jsonl",
+                "ignored Test Suite measurement outputs",
+                "clean temporary baseline worktree"
+              ],
+              "forbiddenScope": [
+                "production source mutation during the baseline experiment",
+                "apps/lab/**",
+                "tools-node/lab/**",
+                "changed fixture, threshold, warm-up, sample count, or action sequence after baseline",
+                "low-confidence complexity fallback as final complexity evidence",
+                "baseline capture from the user's dirty worktree",
+                "retained temporary worktree or committed measurement output"
+              ],
+              "acceptanceCriteria": [
+                "The AST-backed complexity report completes successfully and records the installed parser versions and every owned scan root.",
+                "The loop status validates with one completed baseline, maxIterations 20, one main repository, and no production source change in the baseline experiment.",
+                "Headed WASM diagnostics report WebGPU availability, adapter, effective glyph mode, surface transfer, DPR, work counters, and raw image metrics.",
+                "The baseline contains three fresh runs of at least 30 homogeneous samples after five warm-ups for every required performance scenario and target.",
+                "Every scenario claimed slow has a reproducible headed-WASM baseline; non-reproduced scenarios are labeled no-regression targets.",
+                "Fixture manifest, image gates, duration gates, environment, and baseline artifact hashes are immutable after this task."
+              ],
+              "validation": {
+                "profiles": [
+                  "runtime",
+                  "interaction",
+                  "contract",
+                  "performance",
+                  "regression"
+                ],
+                "redCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-quality-performance.spec.ts"
+                ],
+                "greenCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-quality-performance.spec.ts",
+                  "python C:/Users/dinko/.codex/skills/agentx/scripts/improvement_loop_state.py --root . validate"
+                ],
+                "broadCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-quality-performance.spec.ts",
+                  "cargo run -p xtask -- check-source-guard"
+                ]
+              },
+              "status": "done"
+            }
+          ]
+        }
+      ],
+      "exitContract": {
+        "requirementIds": [
+          "REQ-F-001",
+          "REQ-F-002",
+          "REQ-F-003",
+          "REQ-F-004",
+          "REQ-F-005",
+          "REQ-F-006",
+          "REQ-NF-001",
+          "REQ-NF-003",
+          "REQ-NF-004"
+        ],
+        "broadValidation": [
+          "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-quality-performance.spec.ts",
+          "python C:/Users/dinko/.codex/skills/agentx/scripts/improvement_loop_state.py --root . validate",
+          "cargo run -p xtask -- check-source-guard"
+        ],
+        "auditFocus": [
+          "The harness is Test Suite-only and production code is unchanged during baseline.",
+          "The baseline is clean, immutable, complete, raw, and reproducible.",
+          "The light-mode quality failure and each performance reproduction are demonstrated rather than inferred.",
+          "The AST complexity scan succeeds without fallback.",
+          "The user's dirty files remain untouched."
+        ],
+        "commitScope": [
+          "Test Suite fixtures and bounded diagnostics.",
+          "Focused serial automation and analyzers.",
+          "Loop configuration and completed read-only baseline metadata.",
+          "Sprint 1 evidence and audit artifacts."
+        ]
+      }
+    },
+    {
+      "id": "sprint-2",
+      "number": 2,
+      "title": "Restore native Windows text sharpness through WGPU",
+      "dependencies": [
+        "sprint-1"
+      ],
+      "parallelization": {
+        "mode": "sequential",
+        "rationale": "Renderer capability correctness must land before visual tuning, and each later mechanism must be measured against the same accepted renderer state.",
+        "disjointOwnedScopes": []
+      },
+      "groups": [
+        {
+          "id": "group-2-1",
+          "title": "Correct text-mode capability and fallback",
+          "dependencies": [],
+          "parallelization": {
+            "mode": "sequential",
+            "rationale": "Capability, raster format, atlas key, pipeline, and fallback form one correctness transaction.",
+            "disjointOwnedScopes": []
+          },
+          "tasks": [
+            {
+              "id": "sprint-2-task-1",
+              "title": "Implement truthful Windows raster and pipeline selection",
+              "action": "MUST run one atomic renderer-capability experiment that replaces unconditional Windows subpixel support with an effective grayscale, LCD subpixel, or color mode derived from actual DUAL_SOURCE_BLENDING, destination compatibility, Windows RGB/BGR or flat geometry, and system gamma, ClearType level, grayscale contrast, and subpixel contrast; MUST key glyph coverage by every raster-affecting setting, dispatch only matching atlas and pipeline formats, and make unsupported LCD requests use grayscale rasterization instead of the monochrome pipeline over an RGB atlas; MUST retain WGPU/DX12, premultiplied linear PaintColor, exact single output transfer, public draw APIs, and bounded content-free diagnostics.",
+              "kind": "bugfix",
+              "requirementIds": [
+                "REQ-F-002",
+                "REQ-F-006",
+                "REQ-NF-002",
+                "REQ-NF-003"
+              ],
+              "designIds": [
+                "DES-002",
+                "DES-007"
+              ],
+              "dependencies": [
+                "sprint-1-task-2"
+              ],
+              "repositoryIds": [
+                "main"
+              ],
+              "ownedScope": [
+                "crates/gpux/crates/gpui/src/platform.rs text capability surface",
+                "crates/gpux/crates/gpui_windows/src/** text parameter and window capability slices",
+                "crates/gpux/crates/gpui_wgpu/src/wgpu_context.rs",
+                "crates/gpux/crates/gpui_wgpu/src/wgpu_renderer.rs",
+                "crates/gpux/crates/gpui_wgpu/src/cosmic_text_system.rs",
+                "crates/gpux/crates/gpui_wgpu/src/shaders.wgsl",
+                "crates/gpux/crates/gpui_wgpu/src/shaders_subpixel.wgsl",
+                "focused gpux tests",
+                "active improvement experiment JSON and artifacts"
+              ],
+              "forbiddenScope": [
+                "DirectX renderer restoration",
+                "apps/lab/**",
+                "tools-node/lab/**",
+                "font, size, weight, or theme changes",
+                "shader tuning beyond capability and correct system-parameter plumbing",
+                "editable, SelectionArea, or DataTable changes",
+                "red-channel fallback",
+                "compatibility wrapper or duplicate renderer"
+              ],
+              "acceptanceCriteria": [
+                "Mode-matrix tests cover dual-source present and absent, RGB, BGR, flat geometry, opaque, transparent, effect-composited, sRGB-view, and downlevel surface cases.",
+                "Forced no-dual-source diagnostics report grayscale rasterization, grayscale atlas, monochrome glyph pipeline, and an explicit feature fallback reason.",
+                "Native Windows diagnostics report actual DX12 adapter capability and Windows rendering parameters rather than hard-coded defaults.",
+                "PaintColor ABI, scene blending, surface transfer, glyph bounds, advances, color glyphs, and WASM grayscale behavior remain intact.",
+                "The experiment commits only after focused correctness and no-regression metrics pass; failure restores the checkpoint before another experiment begins."
+              ],
+              "validation": {
+                "profiles": [
+                  "unit",
+                  "integration",
+                  "runtime",
+                  "contract",
+                  "behavior-preservation",
+                  "performance",
+                  "regression"
+                ],
+                "redCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-quality-performance.spec.ts"
+                ],
+                "greenCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-quality-performance.spec.ts",
+                  "python C:/Users/dinko/.codex/skills/agentx/scripts/improvement_loop_state.py --root . validate"
+                ],
+                "broadCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-quality-performance.spec.ts",
+                  "cargo run -p xtask -- check-source-guard"
+                ]
+              },
+              "status": "done"
+            }
+          ]
+        },
+        {
+          "id": "group-2-2",
+          "title": "Reach the light-mode image gate",
+          "dependencies": [
+            "group-2-1"
+          ],
+          "parallelization": {
+            "mode": "sequential",
+            "rationale": "The accepted quality path is discovered through ordered one-mechanism experiments and every accepted result becomes the next checkpoint.",
+            "disjointOwnedScopes": []
+          },
+          "tasks": [
+            {
+              "id": "sprint-2-task-2",
+              "title": "Run atomic raster, transfer, sampling, and phase experiments",
+              "action": "MUST execute sequential one-mechanism image-quality experiments until every REQ-F-002 gate passes or maxIterations stops the loop incomplete; MUST rank and test Windows system parameter application, grayscale versus LCD mode by destination, RGB/BGR channel order, shader gamma and contrast transfer, atlas sampler and texel phase, surface sRGB encoding, Swash hinting and raster phase, and DirectWrite glyph rasterization feeding WGPU in that order according to current diagnostics; MUST preserve one fixed specimen manifest and exact thresholds, retain raw crops and metrics, reject dark-mode, bounds, advance, color-glyph, transparent-surface, or WASM regression, delete every superseded path, and keep DirectWrite isolated to Windows text rasterization only when that single experiment is required to meet the gate.",
+              "kind": "performance",
+              "requirementIds": [
+                "REQ-F-002",
+                "REQ-F-006",
+                "REQ-NF-001",
+                "REQ-NF-002",
+                "REQ-NF-003",
+                "REQ-NF-004"
+              ],
+              "designIds": [
+                "DES-002",
+                "DES-003",
+                "DES-007",
+                "DES-008"
+              ],
+              "dependencies": [
+                "sprint-2-task-1"
+              ],
+              "repositoryIds": [
+                "main"
+              ],
+              "ownedScope": [
+                "crates/gpux/crates/gpui_windows/src/** Windows text rasterization slices",
+                "crates/gpux/crates/gpui_wgpu/src/cosmic_text_system.rs",
+                "crates/gpux/crates/gpui_wgpu/src/wgpu_renderer.rs",
+                "crates/gpux/crates/gpui_wgpu/src/shaders.wgsl",
+                "crates/gpux/crates/gpui_wgpu/src/shaders_subpixel.wgsl",
+                "focused gpux tests",
+                "Test Suite quality metric outputs",
+                "active improvement experiment JSON and artifacts"
+              ],
+              "forbiddenScope": [
+                "DirectX renderer restoration",
+                "apps/lab/**",
+                "tools-node/lab/**",
+                "fixture or threshold change",
+                "two quality mechanisms in one experiment",
+                "editable, SelectionArea, or DataTable changes",
+                "typeface, size, weight, or theme change",
+                "accepted light-only fix with dark or composition regression",
+                "parallel rasterizer implementations in final code"
+              ],
+              "acceptanceCriteria": [
+                "Every light-mode scale satisfies edge width, acutance, stroke contrast, and channel gates against the matched DirectWrite specimen.",
+                "The normalized final RayX crop has no visible haze, double edge, wrong channel fringe, or washed-out stroke and matches the supplied left-side readability target.",
+                "Dark mode, transparent, clipped, effect-composited, color-glyph, bounds, advance, and WASM results remain within their registered no-regression gates.",
+                "Every experiment record names one mechanism, checkpoint, exact command, raw metrics, decision, result commit or rollback, and repository-clean result.",
+                "Final Windows diagnostics report WGPU, DX12, effective rasterizer, mode, parameters, geometry, atlas, pipeline, transfer, and fallback truthfully."
+              ],
+              "validation": {
+                "profiles": [
+                  "unit",
+                  "integration",
+                  "runtime",
+                  "parity",
+                  "performance",
+                  "behavior-preservation",
+                  "regression"
+                ],
+                "redCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-quality-performance.spec.ts"
+                ],
+                "greenCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-quality-performance.spec.ts",
+                  "python C:/Users/dinko/.codex/skills/agentx/scripts/improvement_loop_state.py --root . validate"
+                ],
+                "broadCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-quality-performance.spec.ts",
+                  "cargo run -p xtask -- check-source-guard"
+                ]
+              },
+              "status": "done"
+            }
+          ]
+        }
+      ],
+      "exitContract": {
+        "requirementIds": [
+          "REQ-F-002",
+          "REQ-F-006",
+          "REQ-NF-001",
+          "REQ-NF-002",
+          "REQ-NF-003",
+          "REQ-NF-004"
+        ],
+        "broadValidation": [
+          "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-quality-performance.spec.ts",
+          "python C:/Users/dinko/.codex/skills/agentx/scripts/improvement_loop_state.py --root . validate",
+          "cargo run -p xtask -- check-source-guard"
+        ],
+        "auditFocus": [
+          "Windows remains WGPU/DX12 and the DirectX renderer stays deleted.",
+          "Effective raster mode, atlas format, pipeline, pixel geometry, parameters, and destination are mutually consistent.",
+          "Light-mode image gates pass at all scales and the supplied target is visually met.",
+          "Dark mode, composition, color glyphs, metrics, and WASM retain correct behavior.",
+          "Each accepted mechanism has isolated experiment evidence."
+        ],
+        "commitScope": [
+          "Truthful renderer mode and fallback.",
+          "Accepted quality mechanisms only.",
+          "Focused renderer and image tests.",
+          "Sprint 2 experiment, evidence, and audit artifacts."
+        ]
+      }
+    },
+    {
+      "id": "sprint-3",
+      "number": 3,
+      "title": "Make editable layout and TextArea work viewport-bounded",
+      "dependencies": [
+        "sprint-2"
+      ],
+      "parallelization": {
+        "mode": "sequential",
+        "rationale": "The retained layout fast path establishes the state model that dirty-row locality and final TextArea convergence consume.",
+        "disjointOwnedScopes": []
+      },
+      "groups": [
+        {
+          "id": "group-3-1",
+          "title": "Retain unchanged layout and update dirty rows",
+          "dependencies": [],
+          "parallelization": {
+            "mode": "sequential",
+            "rationale": "Map keying, row retention, dirty splicing, row indexes, and visible queries share one coherence invariant.",
+            "disjointOwnedScopes": []
+          },
+          "tasks": [
+            {
+              "id": "sprint-3-task-1",
+              "title": "Implement retained incremental TextLayoutMap",
+              "action": "MUST execute atomic editable-layout experiments that add an exact installed-key unchanged fast path, replace whole Rope-to-String and logical-line vector construction with snapshot range access, retain stable row metadata and shaped layouts, splice only dirty logical rows and wrap dependents, maintain direct byte-offset and vertical-position row indexes, and make prepaint enumerate the viewport plus bounded overscan rather than every logical row; MUST preserve projection, shaping and paint-only style invalidation, UTF-8, graphemes, bidi, tabs, wrapping, caret, IME, selection, decorations, scroll bounds, and public EditableText behavior through differential full-versus-incremental tests; MUST delete the cloned reusable-row HashMap path after the retained map is proven.",
+              "kind": "performance",
+              "requirementIds": [
+                "REQ-F-003",
+                "REQ-F-006",
+                "REQ-NF-001",
+                "REQ-NF-002",
+                "REQ-NF-003"
+              ],
+              "designIds": [
+                "DES-004",
+                "DES-007",
+                "DES-008"
+              ],
+              "dependencies": [
+                "sprint-2-task-2"
+              ],
+              "repositoryIds": [
+                "main"
+              ],
+              "ownedScope": [
+                "crates/gpux/crates/gpui/src/elements/editable_text/buffer.rs",
+                "crates/gpux/crates/gpui/src/elements/editable_text/layout_map.rs",
+                "crates/gpux/crates/gpui/src/elements/editable_text/state.rs",
+                "crates/gpux/crates/gpui/src/elements/editable_text/element.rs",
+                "crates/gpux/crates/gpui/src/elements/editable_text/geometry.rs",
+                "crates/gpux/crates/gpui/src/elements/editable_text/selection.rs",
+                "focused gpux editable tests",
+                "active improvement experiment JSON and artifacts"
+              ],
+              "forbiddenScope": [
+                "apps/lab/**",
+                "tools-node/lab/**",
+                "new background layout service",
+                "parallel shaping",
+                "second full-document cache",
+                "unsafe code",
+                "form, editor, fold, search, or SelectionArea policy in gpux",
+                "two editable mechanisms in one experiment",
+                "retained old and new map implementations"
+              ],
+              "acceptanceCriteria": [
+                "An unchanged 2,000-line prepaint records zero whole-text materializations, logical-row rebuilds, row-cache clones, boundary builds, and reshapes.",
+                "Steady scroll enumerates visible rows plus bounded overscan and performs no all-logical-row culling scan.",
+                "Single-line edits rebuild only the changed row and measured wrap dependents; global font, width, scale, tab, or shaping-style changes perform one full rebuild.",
+                "Differential tests prove exact parity for offsets, positions, wraps, projections, styles, UTF-8, bidi, tabs, caret, IME, selections, decorations, and scroll geometry.",
+                "Each accepted experiment commits and every failed experiment restores its checkpoint."
+              ],
+              "validation": {
+                "profiles": [
+                  "unit",
+                  "integration",
+                  "behavior-preservation",
+                  "performance",
+                  "regression"
+                ],
+                "redCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-area-performance.spec.ts"
+                ],
+                "greenCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-area-performance.spec.ts",
+                  "python C:/Users/dinko/.codex/skills/agentx/scripts/improvement_loop_state.py --root . validate"
+                ],
+                "broadCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-area-performance.spec.ts",
+                  "cargo run -p xtask -- check-source-guard"
+                ]
+              },
+              "status": "done"
+            }
+          ]
+        },
+        {
+          "id": "group-3-2",
+          "title": "Reach the TextArea and shell performance gate",
+          "dependencies": [
+            "group-3-1"
+          ],
+          "parallelization": {
+            "mode": "sequential",
+            "rationale": "The final TextArea ratios must be measured on the accepted retained-map implementation before selection-owner work changes.",
+            "disjointOwnedScopes": []
+          },
+          "tasks": [
+            {
+              "id": "sprint-3-task-2",
+              "title": "Converge 2,000-line TextArea scrolling and local selection",
+              "action": "MUST profile the accepted retained map and run further one-mechanism experiments limited to remaining TextArea-owned full-value normalization, redundant refresh_layout_rows or scrollbar synchronization, visible selection-quad enumeration, decoration-run lookup, and caret reveal invalidation; MUST accept only direct reductions with work-counter evidence, preserve form operations, history, IME, local selection, resize, scrollbar, soft-wrap, privacy, and style-revision behavior, and repeat the fixed three-run native Windows and headed WASM matrix until wheel scroll, drag selection, keyboard selection, and shell action p50 and p95 are each no greater than 25 percent of baseline on reproduced targets and every other target stays within 5 percent.",
+              "kind": "performance",
+              "requirementIds": [
+                "REQ-F-003",
+                "REQ-F-006",
+                "REQ-NF-001",
+                "REQ-NF-002",
+                "REQ-NF-003"
+              ],
+              "designIds": [
+                "DES-004",
+                "DES-007",
+                "DES-008"
+              ],
+              "dependencies": [
+                "sprint-3-task-1"
+              ],
+              "repositoryIds": [
+                "main"
+              ],
+              "ownedScope": [
+                "crates/gpux/crates/gpui/src/elements/editable_text/**",
+                "crates/rayx/rayx_components/rayx_components_core/src/components/form/text_area/**",
+                "crates/rayx/rayx_components/rayx_components_core/src/components/scroll/editable_text_scrollbar_handle.rs",
+                "focused gpux and TextArea tests",
+                "Test Suite TextArea performance outputs",
+                "active improvement experiment JSON and artifacts"
+              ],
+              "forbiddenScope": [
+                "apps/lab/**",
+                "tools-node/lab/**",
+                "SelectionArea adapter or frame reconciliation changes",
+                "DataTable changes",
+                "fixture or threshold change",
+                "batching, parallelism, unsafe code, or new cache service",
+                "form operation, history, privacy, or public API changes",
+                "claim based on mean, screenshot, compile, or one target"
+              ],
+              "acceptanceCriteria": [
+                "TextArea wheel scroll, drag selection, keyboard selection, and shell action each satisfy the 75-percent p50 and p95 duration reduction on every reproduced target.",
+                "Owned CPU work and input-to-published-frame duration are reported separately and both satisfy the registered target.",
+                "Non-reproduced targets and unrelated TextArea scenarios remain within 5 percent of baseline.",
+                "TextArea editing, operations, history, IME, local selection, resize, scrollbar, wrapping, privacy, style revisions, and no-crash tests pass.",
+                "Remaining repeated work has a measured retention rationale and no accepted experiment changes more than one mechanism."
+              ],
+              "validation": {
+                "profiles": [
+                  "unit",
+                  "integration",
+                  "runtime",
+                  "interaction",
+                  "behavior-preservation",
+                  "performance",
+                  "regression"
+                ],
+                "redCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-area-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-shell-performance.spec.ts"
+                ],
+                "greenCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-area-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-shell-performance.spec.ts",
+                  "python C:/Users/dinko/.codex/skills/agentx/scripts/improvement_loop_state.py --root . validate"
+                ],
+                "broadCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-area-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-shell-performance.spec.ts",
+                  "cargo run -p xtask -- check-source-guard"
+                ]
+              },
+              "status": "done"
+            }
+          ]
+        }
+      ],
+      "exitContract": {
+        "requirementIds": [
+          "REQ-F-003",
+          "REQ-F-006",
+          "REQ-NF-001",
+          "REQ-NF-002",
+          "REQ-NF-003"
+        ],
+        "broadValidation": [
+          "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-area-performance.spec.ts",
+          "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-shell-performance.spec.ts",
+          "python C:/Users/dinko/.codex/skills/agentx/scripts/improvement_loop_state.py --root . validate",
+          "cargo run -p xtask -- check-source-guard"
+        ],
+        "auditFocus": [
+          "Unchanged paint performs zero full-document layout work.",
+          "Edit locality and visible-row work remain exact and bounded.",
+          "TextArea and shell p50 and p95 meet the 75-percent gate.",
+          "Editing, IME, selection, styles, wrapping, scroll, operations, history, and privacy remain correct.",
+          "No second cache, background service, unsafe code, or retained old path exists."
+        ],
+        "commitScope": [
+          "Retained incremental editable layout.",
+          "Measured TextArea-local reductions.",
+          "Differential and behavior tests.",
+          "Sprint 3 experiment, performance, evidence, and audit artifacts."
+        ]
+      }
+    },
+    {
+      "id": "sprint-4",
+      "number": 4,
+      "title": "Remove SelectionArea and DataTable selection overhead",
+      "dependencies": [
+        "sprint-3"
+      ],
+      "parallelization": {
+        "mode": "sequential",
+        "rationale": "SelectionArea demand gating establishes the registrar contract that DataTable structured-selection mounting consumes.",
+        "disjointOwnedScopes": []
+      },
+      "groups": [
+        {
+          "id": "group-4-1",
+          "title": "Make SelectionArea dormant and revisioned",
+          "dependencies": [],
+          "parallelization": {
+            "mode": "sequential",
+            "rationale": "Traversal gating, editable adapter state, participant reconciliation, and bounds indexing share one selection lifecycle.",
+            "disjointOwnedScopes": []
+          },
+          "tasks": [
+            {
+              "id": "sprint-4-task-1",
+              "title": "Eliminate absent and unchanged SelectionArea work",
+              "action": "MUST run atomic SelectionArea experiments that expose a cheap traversal registrar-presence check, bypass EditableTextSelectableAdapter synchronization without an area, retain adapter snapshot and layout revisions, read only changed text ranges, build hit maps only for visible rows plus active endpoints, reconcile participant identity and order in one pass without temporary HashSets, update geometry entries only for changed revisions, sort the bounds index only when order keys change, and keep selected-content materialization query-only; MUST preserve bounded areas, nested and disabled scopes, authoritative content, editable local-to-area promotion, reverse direction, UTF-8, RTL, overlays, virtualized content, scrolling and stationary-pointer auto-scroll, Copy, Select All, callbacks, navigation reconciliation, and privacy.",
+              "kind": "performance",
+              "requirementIds": [
+                "REQ-F-004",
+                "REQ-F-006",
+                "REQ-NF-001",
+                "REQ-NF-002",
+                "REQ-NF-003"
+              ],
+              "designIds": [
+                "DES-005",
+                "DES-007",
+                "DES-008"
+              ],
+              "dependencies": [
+                "sprint-3-task-2"
+              ],
+              "repositoryIds": [
+                "main"
+              ],
+              "ownedScope": [
+                "crates/rayx/rayx_components/rayx_components_core/src/components/selection_area/**",
+                "crates/rayx/rayx_components/rayx_components_core/src/components/text/selectable_text_surface.rs",
+                "focused SelectionArea tests",
+                "Test Suite SelectionArea performance outputs",
+                "active improvement experiment JSON and artifacts"
+              ],
+              "forbiddenScope": [
+                "apps/lab/**",
+                "tools-node/lab/**",
+                "root-global selection controller",
+                "editable layout implementation changes",
+                "DataTable model changes",
+                "full text in diagnostics",
+                "global cache, selection manager, unsafe code, or new production dependency",
+                "changed selection semantics to obtain speed"
+              ],
+              "acceptanceCriteria": [
+                "TextArea outside SelectionArea records zero adapter text copies, grapheme visits, hit rows, and registrations.",
+                "Idle unchanged SelectionArea records zero bounds-index rebuilds, sorts, semantic-content builds, and participant-sized temporary HashSet allocation.",
+                "Active hit-map work is bounded to visible rows plus explicit active endpoints and endpoint lookup remains bounded and deterministic.",
+                "The complete SelectionArea behavior, privacy, and scrolling matrix passes.",
+                "Reproduced 2,000-line and many-participant SelectionArea interaction p50 and p95 are no greater than 25 percent of baseline."
+              ],
+              "validation": {
+                "profiles": [
+                  "unit",
+                  "integration",
+                  "runtime",
+                  "interaction",
+                  "behavior-preservation",
+                  "performance",
+                  "regression"
+                ],
+                "redCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-selection-area-performance.spec.ts"
+                ],
+                "greenCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-selection-area-performance.spec.ts",
+                  "python C:/Users/dinko/.codex/skills/agentx/scripts/improvement_loop_state.py --root . validate"
+                ],
+                "broadCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-selection-area-performance.spec.ts",
+                  "cargo run -p xtask -- check-source-guard"
+                ]
+              },
+              "status": "done"
+            }
+          ]
+        },
+        {
+          "id": "group-4-2",
+          "title": "Make DataTable structured selection demand-driven",
+          "dependencies": [
+            "group-4-1"
+          ],
+          "parallelization": {
+            "mode": "sequential",
+            "rationale": "DataTable bypass and mount behavior depends on the accepted registrar-presence contract.",
+            "disjointOwnedScopes": []
+          },
+          "tasks": [
+            {
+              "id": "sprint-4-task-2",
+              "title": "Eliminate unnecessary DataTable selection bookkeeping",
+              "action": "MUST run atomic DataTable experiments that bypass TableSelectionContainer begin-frame and selectable-cell wrapper creation without an enclosing SelectionArea, add an explicit structural selection-model revision for row, order, selectable-column, key, and provider changes, reuse stable row and cell locations for visible mounts and selection lookups, retain bounded mount capacity, avoid key and path string conversion on unchanged frames, and materialize semantic text only for mounted-only providers; MUST retain uniform-list row virtualization, horizontal visible-column behavior, ordinary row, column, and cell selection, complete and mounted-only truthfulness, stable paths, endpoint direction, reorder and delete reconciliation, duplicate policy, Copy, and plain text, Markdown, HTML, and metadata output.",
+              "kind": "performance",
+              "requirementIds": [
+                "REQ-F-005",
+                "REQ-F-006",
+                "REQ-NF-001",
+                "REQ-NF-002",
+                "REQ-NF-003"
+              ],
+              "designIds": [
+                "DES-005",
+                "DES-006",
+                "DES-007",
+                "DES-008"
+              ],
+              "dependencies": [
+                "sprint-4-task-1"
+              ],
+              "repositoryIds": [
+                "main"
+              ],
+              "ownedScope": [
+                "crates/rayx/rayx_components/rayx_components_core/src/components/table/**",
+                "crates/rayx/rayx_components/rayx_components_datatable/src/state/mod.rs selection-owned slices",
+                "crates/rayx/rayx_components/rayx_components_datatable/src/delegate/mod.rs selection revision surface",
+                "focused core table and DataTable tests",
+                "Test Suite DataTable performance outputs",
+                "active improvement experiment JSON and artifacts"
+              ],
+              "forbiddenScope": [
+                "apps/lab/**",
+                "tools-node/lab/**",
+                "virtualization replacement",
+                "ordinary selection behavior change",
+                "complete provider downgraded to mounted-only",
+                "unbounded cache or global index",
+                "cell content in diagnostics",
+                "editable or renderer changes",
+                "two DataTable mechanisms in one experiment"
+              ],
+              "acceptanceCriteria": [
+                "DataTable outside SelectionArea performs zero structured begin-frame, cell mount, path clone, key clone, semantic value, and structured highlight work.",
+                "An unchanged active structured DataTable frame performs zero logical model rebuild and complete providers materialize zero mounted semantic values.",
+                "Visible active mount lookup uses stable resolved locations without repeated row-map plus linear cell scans.",
+                "Uniform-list virtualization, ordinary selection, structured capability, paths, direction, reconciliation, duplicates, Copy, and every format pass focused tests.",
+                "Every accepted experiment records direct work reduction and keeps cold small-table code direct."
+              ],
+              "validation": {
+                "profiles": [
+                  "unit",
+                  "integration",
+                  "runtime",
+                  "interaction",
+                  "behavior-preservation",
+                  "performance",
+                  "regression"
+                ],
+                "redCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-data-table-performance.spec.ts"
+                ],
+                "greenCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-data-table-performance.spec.ts",
+                  "python C:/Users/dinko/.codex/skills/agentx/scripts/improvement_loop_state.py --root . validate"
+                ],
+                "broadCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-data-table-performance.spec.ts",
+                  "cargo run -p xtask -- check-source-guard"
+                ]
+              },
+              "status": "done"
+            },
+            {
+              "id": "sprint-4-task-3",
+              "title": "Converge DataTable selection and shell performance",
+              "action": "MUST repeat the frozen heavy DataTable native Windows and headed WASM matrix and run further one-mechanism experiments only for measured residual text scene construction, visible-cell selection lookup, mounted bounds search, ordinary selection notification, or structural model synchronization; MUST keep row virtualization and all behavior intact, accept no fixture or threshold change, and reach after p50 and p95 no greater than 25 percent of baseline for wheel scrolling, ordinary row and cell selection, structured drag selection, and shell action on every reproduced target while non-reproduced targets remain within 5 percent.",
+              "kind": "performance",
+              "requirementIds": [
+                "REQ-F-005",
+                "REQ-F-006",
+                "REQ-NF-001",
+                "REQ-NF-002",
+                "REQ-NF-003"
+              ],
+              "designIds": [
+                "DES-006",
+                "DES-007",
+                "DES-008"
+              ],
+              "dependencies": [
+                "sprint-4-task-2"
+              ],
+              "repositoryIds": [
+                "main"
+              ],
+              "ownedScope": [
+                "measured DataTable render and selection slices under crates/rayx/rayx_components/rayx_components_datatable/src",
+                "measured core table selection slices",
+                "focused DataTable tests",
+                "Test Suite DataTable performance outputs",
+                "active improvement experiment JSON and artifacts"
+              ],
+              "forbiddenScope": [
+                "apps/lab/**",
+                "tools-node/lab/**",
+                "renderer or editable changes",
+                "fixture or threshold change",
+                "virtualization replacement",
+                "parallel rendering, unsafe code, pooling framework, or global cache",
+                "mean-only or one-target performance claim"
+              ],
+              "acceptanceCriteria": [
+                "Heavy DataTable wheel scroll, ordinary row and cell selection, structured drag selection, and shell action each satisfy the 75-percent p50 and p95 duration reduction on every reproduced target.",
+                "Owned CPU work and input-to-published-frame duration are reported separately and both satisfy the registered target.",
+                "Non-reproduced targets and unaffected table scenarios remain within 5 percent of baseline.",
+                "Virtualization, ordinary selection, structured selection, capability, stable paths, reconciliation, and copy-format regressions remain green.",
+                "Every retained per-cell allocation, clone, lookup, scan, and notification has measured necessity in the final task report."
+              ],
+              "validation": {
+                "profiles": [
+                  "unit",
+                  "integration",
+                  "runtime",
+                  "interaction",
+                  "behavior-preservation",
+                  "performance",
+                  "regression"
+                ],
+                "redCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-data-table-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-shell-performance.spec.ts"
+                ],
+                "greenCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-data-table-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-shell-performance.spec.ts",
+                  "python C:/Users/dinko/.codex/skills/agentx/scripts/improvement_loop_state.py --root . validate"
+                ],
+                "broadCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-data-table-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-shell-performance.spec.ts",
+                  "cargo run -p xtask -- check-source-guard"
+                ]
+              },
+              "status": "done"
+            }
+          ]
+        }
+      ],
+      "exitContract": {
+        "requirementIds": [
+          "REQ-F-004",
+          "REQ-F-005",
+          "REQ-F-006",
+          "REQ-NF-001",
+          "REQ-NF-002",
+          "REQ-NF-003"
+        ],
+        "broadValidation": [
+          "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-selection-area-performance.spec.ts",
+          "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-data-table-performance.spec.ts",
+          "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-shell-performance.spec.ts",
+          "python C:/Users/dinko/.codex/skills/agentx/scripts/improvement_loop_state.py --root . validate",
+          "cargo run -p xtask -- check-source-guard"
+        ],
+        "auditFocus": [
+          "Absent registrar produces zero SelectionArea and structured DataTable preparation.",
+          "Unchanged present areas update no identity, geometry, or semantic work.",
+          "Visible active selection work is bounded and uses stable locations.",
+          "SelectionArea and DataTable p50 and p95 meet the 75-percent gate.",
+          "All selection, virtualization, reconciliation, copy, privacy, and scrolling semantics remain intact."
+        ],
+        "commitScope": [
+          "Demand-driven SelectionArea participation.",
+          "Revisioned area reconciliation and visible editable hit maps.",
+          "Demand-driven DataTable structured selection and stable locations.",
+          "Sprint 4 experiments, performance, evidence, and audit artifacts."
+        ]
+      }
+    },
+    {
+      "id": "sprint-5",
+      "number": 5,
+      "title": "Converge complexity and stop the improvement loop",
+      "dependencies": [
+        "sprint-4"
+      ],
+      "parallelization": {
+        "mode": "sequential",
+        "rationale": "Complexity cleanup must inspect the accepted implementation, then the final matrix and successful loop stop must run on the cleaned final commit.",
+        "disjointOwnedScopes": []
+      },
+      "groups": [
+        {
+          "id": "group-5-1",
+          "title": "Remove residual measured complexity",
+          "dependencies": [],
+          "parallelization": {
+            "mode": "sequential",
+            "rationale": "The final complexity scan and manual pass cover shared accepted code and produce one coherent cleanup checkpoint.",
+            "disjointOwnedScopes": []
+          },
+          "tasks": [
+            {
+              "id": "sprint-5-task-1",
+              "title": "Run final complexity optimizer and simplicity experiments",
+              "action": "MUST run the successful AST-backed AgentX scanner over every owned production scope and compare its output with Sprint 1; MUST perform a manual owner-by-owner audit of loops, repeated scans, clones, String and Vec and HashMap materialization, allocations, locks, cache ownership, invalidation, branches, helpers, file responsibilities, public surfaces, and production dependencies; MUST run one-mechanism experiments for residual measured complexity only, delete superseded helpers and temporary counters, retain permanent bounded counters required for diagnosis, keep gpui entry modules thin and component slices cohesive, and reject every change that adds speculative abstraction or fails the frozen quality, performance, or correctness gates.",
+              "kind": "refactor",
+              "requirementIds": [
+                "REQ-F-006",
+                "REQ-NF-001",
+                "REQ-NF-002",
+                "REQ-NF-003",
+                "REQ-NF-004"
+              ],
+              "designIds": [
+                "DES-007",
+                "DES-008"
+              ],
+              "dependencies": [
+                "sprint-4-task-3"
+              ],
+              "repositoryIds": [
+                "main"
+              ],
+              "ownedScope": [
+                "accepted renderer text slices",
+                "crates/gpux/crates/gpui/src/elements/editable_text/**",
+                "crates/rayx/rayx_components/rayx_components_core/src/components/selection_area/**",
+                "crates/rayx/rayx_components/rayx_components_core/src/components/table/**",
+                "accepted DataTable selection slices",
+                "focused tests and bounded diagnostics",
+                "active improvement experiment JSON and artifacts"
+              ],
+              "forbiddenScope": [
+                "apps/lab/**",
+                "tools-node/lab/**",
+                "unmeasured cleanup",
+                "manager, provider, service, registry, factory, event bus, generic cache framework, unsafe code, or production dependency",
+                "compatibility shim or duplicate old path",
+                "quality, threshold, fixture, semantics, or public API regression",
+                "permanent trace or content-bearing diagnostic"
+              ],
+              "acceptanceCriteria": [
+                "The final AST-backed scan completes and its report is compared directly with the Sprint 1 report.",
+                "Runtime counters prove removal of every full-document, all-row, absent-registrar, unchanged-area, and redundant mounted-cell operation named by the requirements.",
+                "The manual audit reports every retained clone, collection, scan, cache, lock, and abstraction with measured or invariant-based necessity.",
+                "No speculative abstraction, duplicate cache, compatibility layer, unsafe code, new production dependency, unexplained forwarding helper, or mixed-responsibility file remains.",
+                "Quality, performance, correctness, native runtime, and headed WASM gates remain green after cleanup."
+              ],
+              "validation": {
+                "profiles": [
+                  "unit",
+                  "integration",
+                  "contract",
+                  "behavior-preservation",
+                  "performance",
+                  "regression"
+                ],
+                "redCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-quality-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-area-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-selection-area-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-data-table-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-shell-performance.spec.ts"
+                ],
+                "greenCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-quality-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-area-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-selection-area-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-data-table-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-shell-performance.spec.ts",
+                  "python C:/Users/dinko/.codex/skills/agentx/scripts/improvement_loop_state.py --root . validate"
+                ],
+                "broadCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-quality-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-area-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-selection-area-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-data-table-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-shell-performance.spec.ts",
+                  "cargo run -p xtask -- check-source-guard"
+                ]
+              },
+              "status": "done"
+            }
+          ]
+        },
+        {
+          "id": "group-5-2",
+          "title": "Run the final matrix and stop the loop",
+          "dependencies": [
+            "group-5-1"
+          ],
+          "parallelization": {
+            "mode": "sequential",
+            "rationale": "The loop can stop successfully only from the final cleaned commit after every registered gate passes.",
+            "disjointOwnedScopes": []
+          },
+          "tasks": [
+            {
+              "id": "sprint-5-task-2",
+              "title": "Prove all targets and finish the improvement loop",
+              "action": "MUST run the complete frozen native Windows image matrix and three-run native Windows plus headed WASM performance matrix on final HEAD; MUST rerun every focused renderer, editable, TextArea, SelectionArea, table, DataTable, privacy, API, format, clippy, and source-guard validation; MUST prove light-mode quality parity, all reproduced p50 and p95 duration ratios no greater than 0.25, all non-reproduced ratios no greater than 1.05, and every work-count and behavior gate; MUST validate the loop, attach raw measurements and diagnostics to the final experiment, commit the accepted final result, stop the loop with status success and the exact stable commit, and print the repository rollback command; MUST leave the loop incomplete instead of weakening a target when any gate fails or maxIterations is exhausted.",
+              "kind": "performance",
+              "requirementIds": [
+                "REQ-F-002",
+                "REQ-F-003",
+                "REQ-F-004",
+                "REQ-F-005",
+                "REQ-F-006",
+                "REQ-NF-001",
+                "REQ-NF-002",
+                "REQ-NF-003",
+                "REQ-NF-004"
+              ],
+              "designIds": [
+                "DES-003",
+                "DES-007",
+                "DES-008"
+              ],
+              "dependencies": [
+                "sprint-5-task-1"
+              ],
+              "repositoryIds": [
+                "main"
+              ],
+              "ownedScope": [
+                "final Test Suite quality and performance outputs",
+                ".agentx/experiments/YYYY-MM-DD-gpux-text-quality-performance/**",
+                ".agentx/experiments/INDEX.json",
+                ".agentx/tasks/gpux-text-rendering-quality-performance/evidence.jsonl",
+                "final accepted production and test scopes"
+              ],
+              "forbiddenScope": [
+                "apps/lab/**",
+                "tools-node/lab/**",
+                "threshold, fixture, manifest, sample protocol, or baseline change",
+                "success stop with a failed or missing gate",
+                "compile-only, screenshot-only, smoke-only, mean-only, or one-target proof",
+                "uncommitted accepted experiment",
+                "committed measurement outputs"
+              ],
+              "acceptanceCriteria": [
+                "Every native light-mode image gate passes at every scale and the final crop meets the supplied readability target.",
+                "Every reproduced TextArea, SelectionArea, DataTable, and shell scenario has final p50 and p95 no greater than 25 percent of baseline for owned CPU work and input-to-published-frame duration.",
+                "Every non-reproduced target and unaffected scenario remains within 5 percent of baseline.",
+                "All renderer, layout, editing, selection, table, privacy, API, native, WASM, static, and complexity validation passes on final HEAD.",
+                "The loop validates and stops with status success, final stable commit, raw final artifacts, failed-experiment ledger, and exact rollback command."
+              ],
+              "validation": {
+                "profiles": [
+                  "unit",
+                  "integration",
+                  "runtime",
+                  "interaction",
+                  "contract",
+                  "parity",
+                  "behavior-preservation",
+                  "performance",
+                  "regression"
+                ],
+                "redCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-quality-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-area-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-selection-area-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-data-table-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-shell-performance.spec.ts"
+                ],
+                "greenCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-quality-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-area-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-selection-area-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-data-table-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-shell-performance.spec.ts",
+                  "python C:/Users/dinko/.codex/skills/agentx/scripts/improvement_loop_state.py --root . validate"
+                ],
+                "broadCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-quality-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-area-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-selection-area-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-data-table-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-shell-performance.spec.ts",
+                  "cargo run -p xtask -- check-source-guard"
+                ]
+              },
+              "status": "done"
+            }
+          ]
+        }
+      ],
+      "exitContract": {
+        "requirementIds": [
+          "REQ-F-002",
+          "REQ-F-003",
+          "REQ-F-004",
+          "REQ-F-005",
+          "REQ-F-006",
+          "REQ-NF-001",
+          "REQ-NF-002",
+          "REQ-NF-003",
+          "REQ-NF-004"
+        ],
+        "broadValidation": [
+          "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-quality-performance.spec.ts",
+          "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-area-performance.spec.ts",
+          "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-selection-area-performance.spec.ts",
+          "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-data-table-performance.spec.ts",
+          "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-shell-performance.spec.ts",
+          "python C:/Users/dinko/.codex/skills/agentx/scripts/improvement_loop_state.py --root . validate",
+          "cargo run -p xtask -- check-source-guard"
+        ],
+        "auditFocus": [
+          "All quality and 75-percent duration gates pass on final HEAD.",
+          "No no-regression target exceeds 5 percent.",
+          "Final source is simpler and the AST scanner succeeds.",
+          "The loop has a clean committed success state and rollback command.",
+          "No temporary trace, duplicate path, artifact, or user change entered the result."
+        ],
+        "commitScope": [
+          "Final measured simplicity reductions.",
+          "Final quality, performance, behavior, static, and target evidence.",
+          "Successful improvement-loop stop and result ledger.",
+          "Sprint 5 audit artifacts."
+        ]
+      }
+    },
+    {
+      "id": "sprint-6",
+      "number": 6,
+      "title": "Finalize runtime proof, guidance, and AgentX state",
+      "dependencies": [
+        "sprint-5"
+      ],
+      "parallelization": {
+        "mode": "sequential",
+        "rationale": "Final cleanup and validation establish the evidence that guidance, memory, and task completion are allowed to claim.",
+        "disjointOwnedScopes": []
+      },
+      "groups": [
+        {
+          "id": "group-6-1",
+          "title": "Audit the final production and test shape",
+          "dependencies": [],
+          "parallelization": {
+            "mode": "sequential",
+            "rationale": "All runtime, static, artifact, and specification checks must pass before durable documentation or memory changes.",
+            "disjointOwnedScopes": []
+          },
+          "tasks": [
+            {
+              "id": "sprint-6-task-1",
+              "title": "Run final deep validation and remove temporary instrumentation",
+              "action": "MUST inspect the final diff and every owned file, remove trace-only hooks, auto-enabled diagnostic environment variables, scratch analyzers, duplicate counters, and stale fallbacks while retaining the bounded permanent owner diagnostics required by the final tests; MUST rerun the complete focused and broad Rust suites, native Windows Test Suite through DevKit/MCP, headed WASM/WebGPU, image matrix, performance matrix, complexity scanner, format, clippy, source guard, loop validation, and artifact hygiene checks; MUST perform a requirement-by-requirement deep audit and record final-revision evidence for every acceptance criterion without touching Lab or unrelated user changes.",
+              "kind": "integration",
+              "requirementIds": [
+                "REQ-F-001",
+                "REQ-F-002",
+                "REQ-F-003",
+                "REQ-F-004",
+                "REQ-F-005",
+                "REQ-F-006",
+                "REQ-NF-001",
+                "REQ-NF-002",
+                "REQ-NF-003",
+                "REQ-NF-004"
+              ],
+              "designIds": [
+                "DES-001",
+                "DES-002",
+                "DES-003",
+                "DES-004",
+                "DES-005",
+                "DES-006",
+                "DES-007",
+                "DES-008"
+              ],
+              "dependencies": [
+                "sprint-5-task-2"
+              ],
+              "repositoryIds": [
+                "main"
+              ],
+              "ownedScope": [
+                "all final owned source and tests",
+                "bounded production diagnostics",
+                "apps/test_suite/**",
+                "tools-node/test_suite/**",
+                ".agentx/tasks/gpux-text-rendering-quality-performance/evidence.jsonl",
+                "final ignored runtime artifacts for hashing and audit only"
+              ],
+              "forbiddenScope": [
+                "apps/lab/**",
+                "tools-node/lab/**",
+                "new production behavior",
+                "threshold or baseline change",
+                "retained temporary trace, scratch hook, duplicate counter, or debug environment default",
+                "completion from partial, failed, blocked, compile-only, smoke-only, or screenshot-only evidence",
+                "unrelated user-owned dirty files"
+              ],
+              "acceptanceCriteria": [
+                "Every requirement and acceptance criterion maps to passing final-HEAD evidence with command output or hashed runtime artifacts.",
+                "Native Windows Test Suite proves WGPU/DX12 quality, TextArea, SelectionArea, DataTable, shell, and no-crash behavior through DevKit/MCP.",
+                "Headed WASM/WebGPU proves the shared behavior and no-regression matrix.",
+                "Format, clippy, focused and broad tests, complexity scanner, source guard, loop validation, and artifact hygiene all pass.",
+                "The final diff contains no trace-only hook, duplicate old path, Lab change, generated output, or unrelated user change."
+              ],
+              "validation": {
+                "profiles": [
+                  "unit",
+                  "integration",
+                  "runtime",
+                  "interaction",
+                  "contract",
+                  "parity",
+                  "behavior-preservation",
+                  "performance",
+                  "regression"
+                ],
+                "redCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-quality-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-area-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-selection-area-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-data-table-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-shell-performance.spec.ts"
+                ],
+                "greenCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-quality-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-area-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-selection-area-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-data-table-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-shell-performance.spec.ts",
+                  "python C:/Users/dinko/.codex/skills/agentx/scripts/improvement_loop_state.py --root . validate"
+                ],
+                "broadCommands": [
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-quality-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-area-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-selection-area-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-data-table-performance.spec.ts",
+                  "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-shell-performance.spec.ts",
+                  "cargo run -p xtask -- check-source-guard"
+                ]
+              },
+              "status": "done"
+            }
+          ]
+        },
+        {
+          "id": "group-6-2",
+          "title": "Synchronize proven guidance and close the epic",
+          "dependencies": [
+            "group-6-1"
+          ],
+          "parallelization": {
+            "mode": "sequential",
+            "rationale": "Guidance and memory can describe only behavior proven by the final validation task.",
+            "disjointOwnedScopes": []
+          },
+          "tasks": [
+            {
+              "id": "sprint-6-task-2",
+              "title": "Update narrow skills, memory, and AgentX completion evidence",
+              "action": "MUST update the narrowest RayX diagnostics, text-fields, SelectionArea, virtualization, and GPUX Windows WGPU guidance only for reusable final behavior proved by Sprint 6 Task 1, or record explicitly that no durable skill guidance changed; MUST update runtime/gpux-foundation, ui/theming-components, and ui/virtualization state, knowledge, rules, hypotheses, indexes, and a decision record only for durable evidence-backed changes, never for failed experiments or timing summaries; MUST run AgentX memory audit, validate-schemas, task audit, loop validate, final sprint audit, checkpoint manifest, checkpoint verification, requirement mapping reconciliation, and resume status, and MUST mark the epic done only after every task contract and acceptance criterion has passing final-revision evidence.",
+              "kind": "docs",
+              "requirementIds": [
+                "REQ-F-006",
+                "REQ-NF-002",
+                "REQ-NF-003",
+                "REQ-NF-004"
+              ],
+              "designIds": [
+                "DES-007",
+                "DES-008"
+              ],
+              "dependencies": [
+                "sprint-6-task-1"
+              ],
+              "repositoryIds": [
+                "main"
+              ],
+              "ownedScope": [
+                ".codex/skills/rayx/references/diagnostics.md",
+                ".codex/skills/rayx/references/text-fields.md",
+                "narrow SelectionArea and virtualization RayX guidance with proven changes",
+                ".codex/skills/gpux/references/** narrow Windows WGPU guidance with proven changes",
+                ".agentx/memory/knowledge/runtime/gpux-foundation/**",
+                ".agentx/memory/knowledge/ui/theming-components/**",
+                ".agentx/memory/knowledge/ui/virtualization/**",
+                "required memory and decision indexes",
+                ".agentx/tasks/gpux-text-rendering-quality-performance/**"
+              ],
+              "forbiddenScope": [
+                "production source changes",
+                "speculative, failed, blocked, or partial memory claims",
+                "broad unrelated skill or memory edits",
+                "filler guidance",
+                "completion with missing evidence",
+                "apps/lab/**",
+                "tools-node/lab/**"
+              ],
+              "acceptanceCriteria": [
+                "Narrow skills describe only the final truthful renderer, layout, SelectionArea, DataTable, diagnostic, and validation rules that changed durably, or the evidence states that no durable guidance changed.",
+                "Memory state matches final source and tests, promotes no unconfirmed hypothesis, and keeps the existing runtime and UI taxonomy.",
+                "Every requirement, design decision, task, acceptance criterion, experiment, result commit, and evidence record is reconciled.",
+                "Memory audit, loop validation, validate-schemas, task audit, sprint audit, checkpoint manifest, checkpoint verification, and resume report no error.",
+                "Epic state becomes done only after every required profile has passing evidence on final HEAD."
+              ],
+              "validation": {
+                "profiles": [
+                  "contract",
+                  "regression",
+                  "docs"
+                ],
+                "redCommands": [],
+                "greenCommands": [
+                  "python C:/Users/dinko/.codex/skills/agentx/scripts/audit_agentx_memory.py --repo-root .",
+                  "python C:/Users/dinko/.codex/skills/agentx/scripts/improvement_loop_state.py --root . validate",
+                  "python C:/Users/dinko/.codex/skills/agentx/scripts/agentx_task.py validate-schemas --task-dir .agentx/tasks/gpux-text-rendering-quality-performance",
+                  "python C:/Users/dinko/.codex/skills/agentx/scripts/agentx_task.py audit --task-dir .agentx/tasks/gpux-text-rendering-quality-performance"
+                ],
+                "broadCommands": [
+                  "python C:/Users/dinko/.codex/skills/agentx/scripts/agentx_task.py generate-sprint-audit --task-dir .agentx/tasks/gpux-text-rendering-quality-performance --sprint 6",
+                  "python C:/Users/dinko/.codex/skills/agentx/scripts/agentx_task.py generate-checkpoint-manifest --task-dir .agentx/tasks/gpux-text-rendering-quality-performance --sprint 6",
+                  "python C:/Users/dinko/.codex/skills/agentx/scripts/agentx_task.py verify-sprint-checkpoint --task-dir .agentx/tasks/gpux-text-rendering-quality-performance --sprint 6",
+                  "python C:/Users/dinko/.codex/skills/agentx/scripts/agentx_task.py resume --task-dir .agentx/tasks/gpux-text-rendering-quality-performance"
+                ]
+              },
+              "status": "done"
+            }
+          ]
+        }
+      ],
+      "exitContract": {
+        "requirementIds": [
+          "REQ-F-001",
+          "REQ-F-002",
+          "REQ-F-003",
+          "REQ-F-004",
+          "REQ-F-005",
+          "REQ-F-006",
+          "REQ-NF-001",
+          "REQ-NF-002",
+          "REQ-NF-003",
+          "REQ-NF-004"
+        ],
+        "broadValidation": [
+          "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-quality-performance.spec.ts",
+          "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-area-performance.spec.ts",
+          "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-selection-area-performance.spec.ts",
+          "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-data-table-performance.spec.ts",
+          "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-shell-performance.spec.ts",
+          "python C:/Users/dinko/.codex/skills/agentx/scripts/improvement_loop_state.py --root . validate",
+          "cargo run -p xtask -- check-source-guard"
+        ],
+        "auditFocus": [
+          "Every requirement and acceptance criterion has passing final-HEAD evidence.",
+          "Native Windows light-mode quality and every 75-percent duration target are proven with raw artifacts.",
+          "SelectionArea is measured explicitly and no longer performs absent or unchanged work.",
+          "WGPU/DX12, public contracts, behavior, privacy, and WASM remain correct.",
+          "The final repository is simpler, guidance and memory are evidence-backed, and no artifact or user change leaked into the result."
+        ],
+        "commitScope": [
+          "Final validation and cleanup.",
+          "Evidence-backed narrow skill and memory updates.",
+          "Final AgentX evidence, audits, checkpoint manifest, resume, and done state."
+        ]
+      }
+    }
+  ],
+  "specificationTraceability": [
+    {
+      "requirementId": "REQ-F-001",
+      "designIds": [
+        "DES-001",
+        "DES-003"
+      ],
+      "taskIds": [
+        "sprint-1-task-1",
+        "sprint-1-task-2",
+        "sprint-6-task-1"
+      ],
+      "acceptanceCriteriaIds": [
+        "AC-F-001-1",
+        "AC-F-001-2",
+        "AC-F-001-3",
+        "AC-F-001-4"
+      ],
+      "validationProfiles": [
+        "integration",
+        "runtime",
+        "interaction",
+        "contract",
+        "performance",
+        "regression"
+      ]
+    },
+    {
+      "requirementId": "REQ-F-002",
+      "designIds": [
+        "DES-002",
+        "DES-003",
+        "DES-007"
+      ],
+      "taskIds": [
+        "sprint-1-task-1",
+        "sprint-1-task-2",
+        "sprint-2-task-1",
+        "sprint-2-task-2",
+        "sprint-5-task-2",
+        "sprint-6-task-1"
+      ],
+      "acceptanceCriteriaIds": [
+        "AC-F-002-1",
+        "AC-F-002-2",
+        "AC-F-002-3",
+        "AC-F-002-4",
+        "AC-F-002-5"
+      ],
+      "validationProfiles": [
+        "unit",
+        "integration",
+        "runtime",
+        "parity",
+        "performance",
+        "regression"
+      ]
+    },
+    {
+      "requirementId": "REQ-F-003",
+      "designIds": [
+        "DES-004",
+        "DES-005",
+        "DES-007"
+      ],
+      "taskIds": [
+        "sprint-1-task-1",
+        "sprint-1-task-2",
+        "sprint-3-task-1",
+        "sprint-3-task-2",
+        "sprint-5-task-2",
+        "sprint-6-task-1"
+      ],
+      "acceptanceCriteriaIds": [
+        "AC-F-003-1",
+        "AC-F-003-2",
+        "AC-F-003-3",
+        "AC-F-003-4"
+      ],
+      "validationProfiles": [
+        "unit",
+        "integration",
+        "runtime",
+        "interaction",
+        "behavior-preservation",
+        "performance",
+        "regression"
+      ]
+    },
+    {
+      "requirementId": "REQ-F-004",
+      "designIds": [
+        "DES-005",
+        "DES-007"
+      ],
+      "taskIds": [
+        "sprint-1-task-1",
+        "sprint-1-task-2",
+        "sprint-4-task-1",
+        "sprint-5-task-2",
+        "sprint-6-task-1"
+      ],
+      "acceptanceCriteriaIds": [
+        "AC-F-004-1",
+        "AC-F-004-2",
+        "AC-F-004-3",
+        "AC-F-004-4"
+      ],
+      "validationProfiles": [
+        "unit",
+        "integration",
+        "runtime",
+        "interaction",
+        "behavior-preservation",
+        "performance",
+        "regression"
+      ]
+    },
+    {
+      "requirementId": "REQ-F-005",
+      "designIds": [
+        "DES-005",
+        "DES-006",
+        "DES-007"
+      ],
+      "taskIds": [
+        "sprint-1-task-1",
+        "sprint-1-task-2",
+        "sprint-4-task-2",
+        "sprint-4-task-3",
+        "sprint-5-task-2",
+        "sprint-6-task-1"
+      ],
+      "acceptanceCriteriaIds": [
+        "AC-F-005-1",
+        "AC-F-005-2",
+        "AC-F-005-3",
+        "AC-F-005-4"
+      ],
+      "validationProfiles": [
+        "unit",
+        "integration",
+        "runtime",
+        "interaction",
+        "behavior-preservation",
+        "performance",
+        "regression"
+      ]
+    },
+    {
+      "requirementId": "REQ-F-006",
+      "designIds": [
+        "DES-002",
+        "DES-004",
+        "DES-005",
+        "DES-006",
+        "DES-007",
+        "DES-008"
+      ],
+      "taskIds": [
+        "sprint-1-task-2",
+        "sprint-2-task-1",
+        "sprint-2-task-2",
+        "sprint-3-task-1",
+        "sprint-3-task-2",
+        "sprint-4-task-1",
+        "sprint-4-task-2",
+        "sprint-4-task-3",
+        "sprint-5-task-1",
+        "sprint-5-task-2",
+        "sprint-6-task-1",
+        "sprint-6-task-2"
+      ],
+      "acceptanceCriteriaIds": [
+        "AC-F-006-1",
+        "AC-F-006-2",
+        "AC-F-006-3"
+      ],
+      "validationProfiles": [
+        "contract",
+        "performance",
+        "regression"
+      ]
+    },
+    {
+      "requirementId": "REQ-NF-001",
+      "designIds": [
+        "DES-001",
+        "DES-003",
+        "DES-004",
+        "DES-006",
+        "DES-007"
+      ],
+      "taskIds": [
+        "sprint-1-task-1",
+        "sprint-1-task-2",
+        "sprint-2-task-2",
+        "sprint-3-task-1",
+        "sprint-3-task-2",
+        "sprint-4-task-1",
+        "sprint-4-task-2",
+        "sprint-4-task-3",
+        "sprint-5-task-1",
+        "sprint-5-task-2",
+        "sprint-6-task-1"
+      ],
+      "acceptanceCriteriaIds": [
+        "AC-NF-001-1",
+        "AC-NF-001-2",
+        "AC-NF-001-3"
+      ],
+      "validationProfiles": [
+        "contract",
+        "performance",
+        "regression"
+      ]
+    },
+    {
+      "requirementId": "REQ-NF-002",
+      "designIds": [
+        "DES-002",
+        "DES-004",
+        "DES-005",
+        "DES-006",
+        "DES-008"
+      ],
+      "taskIds": [
+        "sprint-2-task-1",
+        "sprint-2-task-2",
+        "sprint-3-task-1",
+        "sprint-3-task-2",
+        "sprint-4-task-1",
+        "sprint-4-task-2",
+        "sprint-4-task-3",
+        "sprint-5-task-1",
+        "sprint-5-task-2",
+        "sprint-6-task-1",
+        "sprint-6-task-2"
+      ],
+      "acceptanceCriteriaIds": [
+        "AC-NF-002-1",
+        "AC-NF-002-2",
+        "AC-NF-002-3"
+      ],
+      "validationProfiles": [
+        "integration",
+        "runtime",
+        "contract",
+        "behavior-preservation",
+        "regression"
+      ]
+    },
+    {
+      "requirementId": "REQ-NF-003",
+      "designIds": [
+        "DES-002",
+        "DES-004",
+        "DES-005",
+        "DES-006",
+        "DES-007",
+        "DES-008"
+      ],
+      "taskIds": [
+        "sprint-1-task-2",
+        "sprint-2-task-1",
+        "sprint-2-task-2",
+        "sprint-3-task-1",
+        "sprint-3-task-2",
+        "sprint-4-task-1",
+        "sprint-4-task-2",
+        "sprint-4-task-3",
+        "sprint-5-task-1",
+        "sprint-5-task-2",
+        "sprint-6-task-1",
+        "sprint-6-task-2"
+      ],
+      "acceptanceCriteriaIds": [
+        "AC-NF-003-1",
+        "AC-NF-003-2",
+        "AC-NF-003-3"
+      ],
+      "validationProfiles": [
+        "unit",
+        "contract",
+        "behavior-preservation",
+        "performance",
+        "regression"
+      ]
+    },
+    {
+      "requirementId": "REQ-NF-004",
+      "designIds": [
+        "DES-001",
+        "DES-003",
+        "DES-007",
+        "DES-008"
+      ],
+      "taskIds": [
+        "sprint-1-task-1",
+        "sprint-1-task-2",
+        "sprint-2-task-2",
+        "sprint-5-task-1",
+        "sprint-5-task-2",
+        "sprint-6-task-1",
+        "sprint-6-task-2"
+      ],
+      "acceptanceCriteriaIds": [
+        "AC-NF-004-1",
+        "AC-NF-004-2",
+        "AC-NF-004-3"
+      ],
+      "validationProfiles": [
+        "runtime",
+        "interaction",
+        "contract",
+        "regression",
+        "docs"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "id": "ab3c8418-1749-45b4-a144-a11d77d1480a",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 100,
+  "type": "hypothesis",
+  "name": "Formatted Compact Scene Replay Operations",
+  "slug": "formatted-compact-scene-replay-operations",
+  "path": "2026-08-31-100-formatted-compact-scene-replay-operations.json",
+  "createdAt": "2026-08-31T16:22:02Z",
+  "startedAt": "2026-08-31T16:22:02Z",
+  "finishedAt": "2026-08-31T16:27:46Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "fcae00e5c5f9435037ad7abc94bc7c13adc8d9bf",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard fcae00e5c5f9435037ad7abc94bc7c13adc8d9bf",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "fcae00e5c5f9435037ad7abc94bc7c13adc8d9bf",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard fcae00e5c5f9435037ad7abc94bc7c13adc8d9bf",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux Scene compact paint operations with formatter-normalized stable remaps",
+  "hypothesisMarkdown": "## Formatted Compact Scene Replay Operations Hypothesis\n\nA formatter-normalized implementation of the designed compact replay locator will pass static gates and preserve behavior while reducing Scene replay metadata by 86.21%.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nImplement only compact Scene primitive operations, per-kind native-index remaps, stable indirect sorting, safe in-place permutation, O(1) replay, and focused Scene tests. Run the formatter once as part of producing the implementation before validation. Renderer-facing layouts, shaders, public APIs, dependencies, and adjacent cleanup are forbidden. Any subsequent compile, test, lint, or runtime failure ends the attempt and requires full revert.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nFormat once, then run formatter check, focused Scene tests, all gpux tests, gpui_wgpu tests, warning-denied clippy, and exclusive headed Test Suite WebGPU DataTable at DPR 1 and DPR 2. Verify compact size, stable duplicate-key remaps, mixed replay, established renderer/layout/text/style counters, exact final offsets, terminal errors, throughput, and paced p95 latency.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nPass every gate with 24-byte operations plus 8-byte remaps, no duplicate insertion clone, exact replay behavior, and no material cadence regression.",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": {
+    "schemaVersion": 1,
+    "status": "failure",
+    "formatterPassed": true,
+    "focusedSceneTestsPassed": 11,
+    "focusedSceneTestsFailed": 1,
+    "failure": "in-place permutation used new-to-original indices instead of original-to-sorted indices",
+    "broaderTestsRun": false,
+    "browserRun": false,
+    "sourceReverted": true,
+    "sourceMatchesCheckpoint": true,
+    "productFilesChanged": 0,
+    "checkpointCommit": "fcae00e5c5f9435037ad7abc94bc7c13adc8d9bf"
+  },
+  "reportMarkdown": "# Formatted Compact Scene Replay Operations\n\nThe formatter-normalized implementation passed `cargo fmt --manifest-path crates/gpux/Cargo.toml --all --check` and compiled successfully. The focused Scene suite ran 12 tests: 11 passed and the new stable-remap identity test failed.\n\nFor original quad orders `[3, 1, 1]`, stable sorting should produce original indices `[1, 2, 0]`. The implementation built the correct original-to-sorted replay remap, but applied in-place swaps using the separate new-to-original permutation. The resulting payload order began with original index 2 rather than original index 1, reversing the expected equal-order identity.\n\nThe exact correction is independently known: copy the completed original-to-sorted remap into the scratch vector, then apply cycle swaps from that old-to-new permutation. The current experiment may not fix forward. The complete `scene.rs` production/test delta was restored from checkpoint `fcae00e5c5f9435037ad7abc94bc7c13adc8d9bf`, and an exact diff check confirmed no product delta remains. Broader tests and browser measurements were not run after the terminal focused-test failure.\n",
+  "decisionMarkdown": "# Decision\n\nReject and revert experiment 100 because the focused stable-remap test exposed an incorrect permutation direction. Start a new atomic experiment using the old-to-new replay remap for in-place cycles. Retain the same compact representation and O(1) replay design; do not claim a performance result yet.\n",
+  "notes": ""
+}

@@ -1,0 +1,404 @@
+{
+  "schemaVersion": 3,
+  "generatorVersion": "3.0",
+  "epicId": "gpux-text-rendering-quality-performance",
+  "sprint": 6,
+  "status": "passed",
+  "headBeforeCommit": "c12393082fceb20880fff1b06e6f943c36b753d2",
+  "filesReviewed": [
+    "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\INDEX.json",
+    "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\memory\\knowledge\\ui\\theming-components\\state.md",
+    "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\tasks\\gpux-text-rendering-quality-performance\\task-contracts.json",
+    "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\rayx\\rayx_components\\rayx_components_core\\src\\components\\table\\selection_container.rs",
+    "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-data-table-performance.spec.ts",
+    "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-selection-area-performance.spec.ts",
+    "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-shell-performance.spec.ts",
+    "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-area-performance.spec.ts",
+    "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-quality-performance.spec.ts"
+  ],
+  "conformance": [
+    {
+      "requirementId": "REQ-F-001",
+      "taskIds": [
+        "sprint-6-task-1"
+      ],
+      "implementationLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\rayx\\rayx_components\\rayx_components_core\\src\\components\\table\\selection_container.rs"
+      ],
+      "testLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-data-table-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-selection-area-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-shell-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-area-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-quality-performance.spec.ts"
+      ],
+      "evidenceProfiles": [
+        "behavior-preservation",
+        "contract",
+        "integration",
+        "interaction",
+        "parity",
+        "performance",
+        "regression",
+        "runtime",
+        "unit"
+      ],
+      "missingProfiles": [],
+      "result": "pass",
+      "reason": "All mapped tasks are done with fresh profile-complete evidence."
+    },
+    {
+      "requirementId": "REQ-F-002",
+      "taskIds": [
+        "sprint-6-task-1"
+      ],
+      "implementationLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\rayx\\rayx_components\\rayx_components_core\\src\\components\\table\\selection_container.rs"
+      ],
+      "testLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-data-table-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-selection-area-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-shell-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-area-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-quality-performance.spec.ts"
+      ],
+      "evidenceProfiles": [
+        "behavior-preservation",
+        "contract",
+        "integration",
+        "interaction",
+        "parity",
+        "performance",
+        "regression",
+        "runtime",
+        "unit"
+      ],
+      "missingProfiles": [],
+      "result": "pass",
+      "reason": "All mapped tasks are done with fresh profile-complete evidence."
+    },
+    {
+      "requirementId": "REQ-F-003",
+      "taskIds": [
+        "sprint-6-task-1"
+      ],
+      "implementationLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\rayx\\rayx_components\\rayx_components_core\\src\\components\\table\\selection_container.rs"
+      ],
+      "testLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-data-table-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-selection-area-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-shell-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-area-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-quality-performance.spec.ts"
+      ],
+      "evidenceProfiles": [
+        "behavior-preservation",
+        "contract",
+        "integration",
+        "interaction",
+        "parity",
+        "performance",
+        "regression",
+        "runtime",
+        "unit"
+      ],
+      "missingProfiles": [],
+      "result": "pass",
+      "reason": "All mapped tasks are done with fresh profile-complete evidence."
+    },
+    {
+      "requirementId": "REQ-F-004",
+      "taskIds": [
+        "sprint-6-task-1"
+      ],
+      "implementationLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\rayx\\rayx_components\\rayx_components_core\\src\\components\\table\\selection_container.rs"
+      ],
+      "testLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-data-table-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-selection-area-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-shell-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-area-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-quality-performance.spec.ts"
+      ],
+      "evidenceProfiles": [
+        "behavior-preservation",
+        "contract",
+        "integration",
+        "interaction",
+        "parity",
+        "performance",
+        "regression",
+        "runtime",
+        "unit"
+      ],
+      "missingProfiles": [],
+      "result": "pass",
+      "reason": "All mapped tasks are done with fresh profile-complete evidence."
+    },
+    {
+      "requirementId": "REQ-F-005",
+      "taskIds": [
+        "sprint-6-task-1"
+      ],
+      "implementationLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\rayx\\rayx_components\\rayx_components_core\\src\\components\\table\\selection_container.rs"
+      ],
+      "testLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-data-table-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-selection-area-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-shell-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-area-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-quality-performance.spec.ts"
+      ],
+      "evidenceProfiles": [
+        "behavior-preservation",
+        "contract",
+        "integration",
+        "interaction",
+        "parity",
+        "performance",
+        "regression",
+        "runtime",
+        "unit"
+      ],
+      "missingProfiles": [],
+      "result": "pass",
+      "reason": "All mapped tasks are done with fresh profile-complete evidence."
+    },
+    {
+      "requirementId": "REQ-F-006",
+      "taskIds": [
+        "sprint-6-task-1",
+        "sprint-6-task-2"
+      ],
+      "implementationLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\INDEX.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\memory\\knowledge\\ui\\theming-components\\state.md",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\tasks\\gpux-text-rendering-quality-performance\\task-contracts.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\rayx\\rayx_components\\rayx_components_core\\src\\components\\table\\selection_container.rs"
+      ],
+      "testLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-data-table-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-selection-area-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-shell-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-area-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-quality-performance.spec.ts"
+      ],
+      "evidenceProfiles": [
+        "behavior-preservation",
+        "contract",
+        "docs",
+        "integration",
+        "interaction",
+        "parity",
+        "performance",
+        "regression",
+        "runtime",
+        "unit"
+      ],
+      "missingProfiles": [],
+      "result": "pass",
+      "reason": "All mapped tasks are done with fresh profile-complete evidence."
+    },
+    {
+      "requirementId": "REQ-NF-001",
+      "taskIds": [
+        "sprint-6-task-1"
+      ],
+      "implementationLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\rayx\\rayx_components\\rayx_components_core\\src\\components\\table\\selection_container.rs"
+      ],
+      "testLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-data-table-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-selection-area-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-shell-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-area-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-quality-performance.spec.ts"
+      ],
+      "evidenceProfiles": [
+        "behavior-preservation",
+        "contract",
+        "integration",
+        "interaction",
+        "parity",
+        "performance",
+        "regression",
+        "runtime",
+        "unit"
+      ],
+      "missingProfiles": [],
+      "result": "pass",
+      "reason": "All mapped tasks are done with fresh profile-complete evidence."
+    },
+    {
+      "requirementId": "REQ-NF-002",
+      "taskIds": [
+        "sprint-6-task-1",
+        "sprint-6-task-2"
+      ],
+      "implementationLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\INDEX.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\memory\\knowledge\\ui\\theming-components\\state.md",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\tasks\\gpux-text-rendering-quality-performance\\task-contracts.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\rayx\\rayx_components\\rayx_components_core\\src\\components\\table\\selection_container.rs"
+      ],
+      "testLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-data-table-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-selection-area-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-shell-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-area-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-quality-performance.spec.ts"
+      ],
+      "evidenceProfiles": [
+        "behavior-preservation",
+        "contract",
+        "docs",
+        "integration",
+        "interaction",
+        "parity",
+        "performance",
+        "regression",
+        "runtime",
+        "unit"
+      ],
+      "missingProfiles": [],
+      "result": "pass",
+      "reason": "All mapped tasks are done with fresh profile-complete evidence."
+    },
+    {
+      "requirementId": "REQ-NF-003",
+      "taskIds": [
+        "sprint-6-task-1",
+        "sprint-6-task-2"
+      ],
+      "implementationLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\INDEX.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\memory\\knowledge\\ui\\theming-components\\state.md",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\tasks\\gpux-text-rendering-quality-performance\\task-contracts.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\rayx\\rayx_components\\rayx_components_core\\src\\components\\table\\selection_container.rs"
+      ],
+      "testLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-data-table-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-selection-area-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-shell-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-area-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-quality-performance.spec.ts"
+      ],
+      "evidenceProfiles": [
+        "behavior-preservation",
+        "contract",
+        "docs",
+        "integration",
+        "interaction",
+        "parity",
+        "performance",
+        "regression",
+        "runtime",
+        "unit"
+      ],
+      "missingProfiles": [],
+      "result": "pass",
+      "reason": "All mapped tasks are done with fresh profile-complete evidence."
+    },
+    {
+      "requirementId": "REQ-NF-004",
+      "taskIds": [
+        "sprint-6-task-1",
+        "sprint-6-task-2"
+      ],
+      "implementationLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\INDEX.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\memory\\knowledge\\ui\\theming-components\\state.md",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\tasks\\gpux-text-rendering-quality-performance\\task-contracts.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\rayx\\rayx_components\\rayx_components_core\\src\\components\\table\\selection_container.rs"
+      ],
+      "testLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-data-table-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-selection-area-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-shell-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-area-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-quality-performance.spec.ts"
+      ],
+      "evidenceProfiles": [
+        "behavior-preservation",
+        "contract",
+        "docs",
+        "integration",
+        "interaction",
+        "parity",
+        "performance",
+        "regression",
+        "runtime",
+        "unit"
+      ],
+      "missingProfiles": [],
+      "result": "pass",
+      "reason": "All mapped tasks are done with fresh profile-complete evidence."
+    }
+  ],
+  "commands": [
+    {
+      "command": "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-quality-performance.spec.ts",
+      "exitCode": 0,
+      "assertion": "Broad sprint validation passed.",
+      "stdoutHash": "8c5a3434acc2de1f12c67a0f6387469dc47fa61a71fe2b94f23e378e5fac4d0a",
+      "stderrHash": "21d373244a84b44c7490bae0065b371e94a65ceafff531d7d6659da158ae9b47",
+      "failureOutputTail": ""
+    },
+    {
+      "command": "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-area-performance.spec.ts",
+      "exitCode": 0,
+      "assertion": "Broad sprint validation passed.",
+      "stdoutHash": "16f08600cbf2e915990a718216cc8d4b9fbf7c36a6b0b7fc774f6f515f083064",
+      "stderrHash": "980176787df530ffee31fb3e23c2fd33ef0a49c50baab0cd4183c09521ed46f2",
+      "failureOutputTail": ""
+    },
+    {
+      "command": "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-selection-area-performance.spec.ts",
+      "exitCode": 0,
+      "assertion": "Broad sprint validation passed.",
+      "stdoutHash": "f7e3fce0221f9dd3a025edbe41b4a34c63be315408c4840c378d7a39d686a3b5",
+      "stderrHash": "c9c3523fe42179bab663b11dbae249eac67bc6cd7281c3b5eabb68ac5fc085d7",
+      "failureOutputTail": ""
+    },
+    {
+      "command": "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-data-table-performance.spec.ts",
+      "exitCode": 0,
+      "assertion": "Broad sprint validation passed.",
+      "stdoutHash": "ab3ac9f0dc066c04cbf217398f1a69cc087f6852ccc76e55911f2d6450b63f0c",
+      "stderrHash": "7bdceac96e22a7f1aa902649eae77033207d26c2d6016fef08b854ed9e1627bb",
+      "failureOutputTail": ""
+    },
+    {
+      "command": "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-shell-performance.spec.ts",
+      "exitCode": 0,
+      "assertion": "Broad sprint validation passed.",
+      "stdoutHash": "14f7aab985af927363a626d25ba8b7f81d98d1443b5f7bbf2caac8500e1e9e8c",
+      "stderrHash": "4d368870490d2244bddaa750d828d7fa0e7f6167e5da43e591fb96afa248dc89",
+      "failureOutputTail": ""
+    },
+    {
+      "command": "python C:/Users/dinko/.codex/skills/agentx/scripts/improvement_loop_state.py --root . validate",
+      "exitCode": 0,
+      "assertion": "Broad sprint validation passed.",
+      "stdoutHash": "6024844f74fc8706e8b6891ce0b37a65ff2ee195254a254ce90600fd7abf76db",
+      "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "failureOutputTail": ""
+    },
+    {
+      "command": "cargo run -p xtask -- check-source-guard",
+      "exitCode": 0,
+      "assertion": "Broad sprint validation passed.",
+      "stdoutHash": "2d13e37a3fa369e670d343477fafd2b2237ce41609d6de34f245662671bdf392",
+      "stderrHash": "3750e9ccd118cb12c70875f7f364e9d71d84428b2cb5d5be824a80b84079fce3",
+      "failureOutputTail": ""
+    }
+  ],
+  "defects": [],
+  "repairs": [],
+  "reauditCount": 2,
+  "residualRisks": [],
+  "generatedAt": "2026-07-24T11:01:26Z"
+}

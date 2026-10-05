@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "currentLoopId": null,
+  "loops": [
+    {
+      "id": "a1be1070-037c-491e-bc2c-36c4295bd81f",
+      "name": "GPUX Text Quality and Performance",
+      "path": "2026-07-24-gpux-text-quality-and-performance/",
+      "createdAt": "2026-07-24T01:20:24Z",
+      "finishedAt": "2026-07-24T02:03:00Z",
+      "state": "done",
+      "status": "stopped"
+    },
+    {
+      "id": "54e74b74-483c-4598-92d7-fdbabbc9154b",
+      "name": "GPUX Text Quality and Performance WASM Baseline",
+      "path": "2026-07-24-gpux-text-quality-and-performance-wasm-baseline/",
+      "createdAt": "2026-07-24T02:04:30Z",
+      "finishedAt": "2026-07-24T07:16:25Z",
+      "state": "done",
+      "status": "stopped"
+    },
+    {
+      "id": "dc424089-d0a5-4558-ae79-72a6a8d787db",
+      "name": "WASM Text Rendering Quality",
+      "path": "2026-08-04-wasm-text-rendering-quality/",
+      "createdAt": "2026-08-04T14:57:12Z",
+      "finishedAt": "2026-08-04T15:38:30Z",
+      "state": "done",
+      "status": "failure"
+    },
+    {
+      "id": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+      "name": "GPUX Maximum Performance",
+      "path": "2026-08-30-gpux-maximum-performance/",
+      "createdAt": "2026-08-30T17:55:43Z",
+      "finishedAt": "2026-08-31T21:28:04Z",
+      "state": "done",
+      "status": "stopped"
+    }
+  ]
+}

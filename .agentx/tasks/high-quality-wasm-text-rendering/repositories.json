@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 5,
+  "epicId": "high-quality-wasm-text-rendering",
+  "primaryRepositoryId": "main",
+  "repositories": [
+    {
+      "id": "main",
+      "role": "primary",
+      "required": true,
+      "baselineHead": "b06f9af76e04f3c80a852c4db85aa96ef21eda40",
+      "ownedScope": [
+        ".agentx/tasks/high-quality-wasm-text-rendering/**",
+        ".agentx/experiments/**",
+        "crates/gpux/crates/gpui/**",
+        "crates/gpux/crates/gpui_web/**",
+        "crates/gpux/crates/gpui_wgpu/**",
+        "apps/test_suite/**",
+        "tools-node/test_suite/**",
+        "tools-node/playwright.config.ts",
+        ".codex/skills/gpux/**",
+        ".codex/skills/rayx/**",
+        ".agentx/memory/**"
+      ],
+      "binding": "task-directory-git-root",
+      "identity": {
+        "gitCommonDirectoryFingerprint": "b0a04520f4628b482b6b98e49d09506e91c959129f441bfa9f9a484654f34108",
+        "remoteFingerprint": "9d1a100e73eaddf5452c9762cce778f735ebb45786db2b0594125472130860ef"
+      },
+      "pathHint": "C:\\Users\\dinko\\Work\\projects\\RayX\\RayX"
+    }
+  ]
+}

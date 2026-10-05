@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "id": "f599bcad-2cad-45b2-bae9-493a08f62759",
+  "loopId": "54e74b74-483c-4598-92d7-fdbabbc9154b",
+  "index": 11,
+  "type": "hypothesis",
+  "name": "Single-line editable layout row splice",
+  "slug": "single-line-editable-layout-row-splice",
+  "path": "2026-07-24-11-single-line-editable-layout-row-splice.json",
+  "createdAt": "2026-07-24T05:06:23Z",
+  "startedAt": "2026-07-24T05:06:23Z",
+  "finishedAt": "2026-07-24T05:24:20Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "37e6693d12a048c27a23a320e7a662a3d9caba4e",
+  "resultCommit": "6beeca554b7fcd82bc92a4d77c8f7e1ea5175919",
+  "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard 37e6693d12a048c27a23a320e7a662a3d9caba4e",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "37e6693d12a048c27a23a320e7a662a3d9caba4e",
+      "resultCommit": "6beeca554b7fcd82bc92a4d77c8f7e1ea5175919",
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard 37e6693d12a048c27a23a320e7a662a3d9caba4e",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "6beeca554b7fcd82bc92a4d77c8f7e1ea5175919"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "headed WASM WebGPU TextArea edit fixture",
+  "hypothesisMarkdown": "# Hypothesis\n\nFor an identity-projection edit that replaces bytes within one logical row without changing that\nrow's byte length or introducing a newline, the layout map can retain every unaffected `LayoutRow`\nand only reshape/splice the changed row. Any style, projection, line-count, or geometry condition\noutside that narrow invariant falls back to the existing full update.\n\n## Scope lock\n\nThis experiment only carries a precise `TextEdit` from editable state to layout and splices the\nsingle safe row. It does not generalize insertion/deletion, multi-line changes, projections, or\nfont/style invalidation.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\nAdd a deterministic differential test that applies a same-length single-line edit to a 2,000-line\nbuffer and compares offset/position/visual-row parity with the full update. Run the focused headed\nWASM/WebGPU TextArea editing fixture at both DPRs and inspect its screenshot; retain raw timing and\nwork-counter artifacts.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nThe safe edit shapes exactly one row and retains stable metadata/layout allocations for every\nother row. Unsafe edits use the existing complete update, preserving projection, styles, UTF-8,\nwrapping, caret, selection, and scroll behavior.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": {
+    "target": "headed WASM WebGPU",
+    "fixture": "/performance/text-area-edit",
+    "action": "replace-one-text-area-character",
+    "repeatsPerDpr": 35,
+    "warmupsPerDpr": 5,
+    "measuredSamplesPerDpr": 30,
+    "failures": 0,
+    "dpr": {
+      "1": {
+        "p50InputToPublishedFrameMs": 185.2906,
+        "p95InputToPublishedFrameMs": 207.9167,
+        "changedPixels": 2857
+      },
+      "2": {
+        "p50InputToPublishedFrameMs": 176.5264,
+        "p95InputToPublishedFrameMs": 203.7505,
+        "changedPixels": 10784
+      }
+    }
+  },
+  "reportMarkdown": "## Single-line editable layout row splice\n\nThe same-length, single-logical-line edit path reshapes and replaces only the changed row when the installed layout is unprojected, unstyled, and geometry-preserving. Every other edit takes the existing full layout path.\n\n### Focused WASM validation\n\n- `cargo run -p xtask -- check-source-guard` passed.\n- `cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-area-edit-performance.spec.ts` passed at DPR 1 and DPR 2.\n- The dedicated Test Suite page is `/performance/text-area-edit`; its action selects and replaces one visible character in a 2,000-line `TextArea`.\n- The DPR 2 screenshot shows the edited character and retained caret with no text or scroll corruption.\n\n### Measurement protocol\n\nThe headed Chromium WebGPU run used one worker, both configured DPR projects, 35 repeats per project, and discarded the first five samples per project. It produced 30 measured samples at each DPR and no failures.\n\n| DPR | p50 input-to-published-frame | p95 | changed pixels |\n| --- | ---: | ---: | ---: |\n| 1 | 185.2906 ms | 207.9167 ms | 2,857 |\n| 2 | 176.5264 ms | 203.7505 ms | 10,784 |\n\nRaw Playwright artifacts remain in `11-single-line-layout-row-splice-output/`; they are intentionally untracked.\n\n### Decision\n\nAccept. The targeted path keeps UTF-8 row boundaries, existing visual-row metadata, and unchanged shaped layouts intact while strictly falling back for newlines, style runs, projections, length changes, duplicate old rows, and a possible maximum-width reduction. The focused source test checks that a 2,000-row same-length edit reports one shaped row and 1,999 reused rows while matching full-layout coordinate geometry.\n",
+  "decisionMarkdown": "## Decision\n\nAccept the safe same-length single-line splice. It preserves the installed unprojected layout and shapes only the edited row; all edits outside those explicit invariants continue through the complete layout update.\n",
+  "notes": ""
+}

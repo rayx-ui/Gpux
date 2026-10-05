@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "id": "003f9b68-bcf5-4312-a560-5e326473cd08",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 8,
+  "type": "hypothesis",
+  "name": "Bounds Tree Single Propagation Update",
+  "slug": "bounds-tree-single-propagation-update",
+  "path": "2026-08-30-08-bounds-tree-single-propagation-update.json",
+  "createdAt": "2026-08-30T19:38:32Z",
+  "startedAt": "2026-08-30T19:38:32Z",
+  "finishedAt": "2026-08-30T19:44:22Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "99e7d819a9dfabd3ea9af9cd534cd8cca1b2d23f",
+  "resultCommit": "f2606e81f2e6a0f6258ac487870f6f13c73f6a1e",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 99e7d819a9dfabd3ea9af9cd534cd8cca1b2d23f",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "99e7d819a9dfabd3ea9af9cd534cd8cca1b2d23f",
+      "resultCommit": "f2606e81f2e6a0f6258ac487870f6f13c73f6a1e",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 99e7d819a9dfabd3ea9af9cd534cd8cca1b2d23f",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "f2606e81f2e6a0f6258ac487870f6f13c73f6a1e"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux BoundsTree insertion with apps/test_suite wide DataTable headed WebGPU",
+  "hypothesisMarkdown": "# Hypothesis\n\nWhen `BoundsTree::insert_leaf` adds a leaf to a non-full internal node, it currently unions the terminal node bounds and updates max order before breaking, then repeats those updates because the same node is already the last entry in `insert_path`. Removing the first duplicate update will perform one bounds union and max comparison instead of two for every non-full terminal insertion while preserving child placement, propagation, tree shape, and ordering.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\n1. Delete only the immediate terminal-node `bounds` union and `max_order` assignment in the non-full-child branch; retain the child push/swap and the existing reverse propagation loop.\n2. Preserve the current root, full-node, child-order, search, and diagnostics behavior exactly.\n3. Run diagnostics-off/on compilation, the focused counter test, the 1,000-seed brute-force ordering oracle, Clippy, nested formatting, and headed WebGPU wide DataTable proof at DPR 1 and 2.\n4. Accept on the direct one-union/one-comparison reduction for every execution of this branch, exact semantic tests/counters, and non-regressing paced p95; otherwise revert.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nAll tree and renderer telemetry remains exact, including 4,440 search-node visits, because the resulting node bounds and max order are still updated once by the existing propagation loop. The randomized oracle proves identical assigned order, and headed WebGPU p95 remains within process variance.\n",
+  "diagnostics": {
+    "playwright": [
+      "The wide DataTable passed 2/2 headed Chromium WebGPU projects at DPR 1 and DPR 2.",
+      "All tree, renderer, and scroll-correctness counters remained exact."
+    ],
+    "rayx": [
+      "All runtime proof used apps/test_suite; apps/lab was neither launched nor modified.",
+      "Diagnostics-off/on focused bounds-tree tests, the 1,000-seed randomized ordering oracle, Clippy with warnings denied, and nested formatting passed."
+    ],
+    "counters": [
+      "504 leaves and 72 internal nodes across at most three scene trees imply at least 429 non-full terminal insertions, each now avoiding one duplicate bounds union and one duplicate max comparison.",
+      "Candidate paced p95 was 27.32 ms at DPR 1 and 27.14 ms at DPR 2.",
+      "Both DPRs retained 4,440 search visits, 14,351 child evaluations, nine batches, 12 writes, 10 bind groups, two passes, and zero terminal error."
+    ],
+    "artifacts": [
+      "candidate/*/data-table-wide-scroll-performance.json"
+    ]
+  },
+  "measurements": {
+    "checkpointCommit": "99e7d819a",
+    "target": "wasm-webgpu-headed",
+    "directReduction": {
+      "insertions": 504,
+      "retainedNodes": 576,
+      "internalNodes": 72,
+      "maximumSceneTrees": 3,
+      "minimumNonFullTerminalInsertions": 429,
+      "removedBoundsUnionsPerNonFullTerminalInsertion": 1,
+      "removedMaxComparisonsPerNonFullTerminalInsertion": 1
+    },
+    "candidate": {
+      "dpr1": {
+        "throughput": 30.210496924156,
+        "pacedP95Ms": 27.315673828125
+      },
+      "dpr2": {
+        "throughput": 30.1832849797108,
+        "pacedP95Ms": 27.140625
+      }
+    },
+    "tree": {
+      "insertions": 504,
+      "maxLeafHits": 7,
+      "slowSearches": 495,
+      "searchNodeVisits": 4440,
+      "insertionChildEvaluations": 14351,
+      "retainedNodes": 576
+    },
+    "renderer": {
+      "batches": 9,
+      "queueBufferWrites": 12,
+      "bindGroups": 10,
+      "renderPasses": 2,
+      "atlasWrites": 0,
+      "bufferRestarts": 0,
+      "submissions": 1
+    },
+    "maximumTerminalError": 0
+  },
+  "reportMarkdown": "# Bounds tree single-propagation update report\n\nWhen a non-full internal node accepts a new leaf, `insert_leaf` still pushes or swaps the child exactly as before, but it no longer unions the terminal node bounds and updates max order immediately. The terminal node is already the last entry in `insert_path`, so the unchanged reverse-propagation loop performs those same updates once. Root handling, full-node conversion, child order, search, tree shape, and assigned draw orders are unchanged.\n\nThe warmed frame has 504 leaf nodes and 72 internal nodes across at most three Scene trees. Every insertion except each tree's first leaf and each internal-node creation uses the non-full terminal branch, proving at least `504 - 72 - 3 = 429` executions. The change therefore removes at least 429 duplicate bounds unions and 429 duplicate max comparisons per warmed frame.\n\nThe 1,000-seed brute-force ordering oracle passed with diagnostics enabled and disabled. The headed Test Suite wide DataTable passed at both DPRs with p95 27.32/27.14 ms and exact counters: 4,440 search visits, 14,351 child evaluations, 576 nodes, nine batches, 12 writes, 10 bind groups, two passes, one submission, and zero terminal error. Clippy with warnings denied and nested formatting passed. Acceptance rests on the direct operation reduction and non-regressing runtime proof, not a quantified end-to-end speedup.\n",
+  "decisionMarkdown": "# Decision\n\nAccept. The removed assignments duplicate work already guaranteed by the shared propagation loop. The resulting tree is identical under the randomized oracle, at least 429 union/comparison pairs disappear from the warmed frame, and headed WebGPU behavior and p95 remain within process variance.\n",
+  "notes": ""
+}

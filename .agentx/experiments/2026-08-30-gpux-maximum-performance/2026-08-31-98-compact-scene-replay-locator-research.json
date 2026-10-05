@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "id": "425716e5-cd63-4b2d-b08b-5362f8a4042d",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 98,
+  "type": "hypothesis",
+  "name": "Compact Scene Replay Locator Research",
+  "slug": "compact-scene-replay-locator-research",
+  "path": "2026-08-31-98-compact-scene-replay-locator-research.json",
+  "createdAt": "2026-08-31T16:08:18Z",
+  "startedAt": "2026-08-31T16:08:18Z",
+  "finishedAt": "2026-08-31T16:15:10Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "ba09b3eb5ec90491648b6563cdbc4bcf7c0051c5",
+  "resultCommit": "ba09b3eb5ec90491648b6563cdbc4bcf7c0051c5",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard ba09b3eb5ec90491648b6563cdbc4bcf7c0051c5",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "ba09b3eb5ec90491648b6563cdbc4bcf7c0051c5",
+      "resultCommit": "ba09b3eb5ec90491648b6563cdbc4bcf7c0051c5",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard ba09b3eb5ec90491648b6563cdbc4bcf7c0051c5",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "ba09b3eb5ec90491648b6563cdbc4bcf7c0051c5"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux Scene paint_operations duplicate Primitive representation and stable replay lookup",
+  "hypothesisMarkdown": "## Compact Scene Replay Locator Research Hypothesis\n\nA compact replay locator can replace the duplicate Primitive payload without adding per-replay searches, changing renderer-facing layouts, or violating stable sorting and duplicate draw-order behavior.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRead-only representation sizing and source-contract analysis. Only AgentX metadata and ignored analysis output may change. Production code, tests, replay behavior, primitive layouts, sorting, caching, shaders, and adjacent cleanup are forbidden.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nMeasure Primitive and PaintOperation representation sizes; enumerate insertion, finish-sort, replay, truncate/range, and layer contracts. Evaluate direct indices, draw-order locators, sidecar stable IDs, indirect sorting, and post-sort remapping for time, memory, and complexity. Pass if one design preserves O(1) replay with materially less steady-state memory and a bounded implementation, or if every design introduces disproportionate hot-path work.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nProduce one implementation-ready compact locator contract for experiment 99 or reject duplicate removal until stronger replay telemetry exists.",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": {
+    "schemaVersion": 1,
+    "primitiveBytes": 232,
+    "currentPaintOperationBytes": 232,
+    "compactU32PaintOperationBytes": 20,
+    "compactNativeIndexPaintOperationBytes": 24,
+    "nativeRemapBytesPerPrimitive": 8,
+    "netReplayMetadataBytesPerPrimitive": 32,
+    "netReductionPercent": 86.21,
+    "quadBytes": 224,
+    "monochromeSpriteBytes": 128,
+    "subpixelSpriteBytes": 128,
+    "polychromeSpriteBytes": 136,
+    "scaledPathBytes": 168,
+    "replayLookupComplexity": "O(1)",
+    "gpuFacingLayoutChanged": false,
+    "productFilesChanged": 0
+  },
+  "reportMarkdown": "# Compact Scene Replay Locator Research\n\nA native size probe against the built gpux crate measured:\n\n| Representation | Bytes |\n| --- | ---: |\n| `Primitive` | 232 |\n| current `PaintOperation` layout | 232 |\n| compact operation with `u32` index | 20 |\n| compact operation with native `usize` index | 24 |\n| `Quad` | 224 |\n| monochrome/subpixel sprite | 128 |\n| polychrome sprite | 136 |\n| scaled path | 168 |\n\nAn implementation-ready contract exists:\n\n1. Store `PaintOperation::Primitive` as `{ kind, original_index }`, where `original_index` is the per-kind insertion position. Layer operations remain unchanged.\n2. Move each primitive into its per-kind vector exactly once instead of cloning it into that vector and retaining the original in `paint_operations`.\n3. During `finish`, sort compact `(key, original_index)` entries using the same key plus original index as the tie-breaker. This exactly preserves the current stable ordering for duplicate keys.\n4. Apply the resulting permutation to the renderer-facing vector with safe in-place swaps.\n5. Retain one `original_index -> sorted_index` vector per primitive kind. `replay` resolves the compact locator through this vector in O(1), clones the sorted payload, and calls the existing insertion path.\n6. Clear remap lengths with the frame while retaining their capacities.\n\nWith a native 24-byte operation plus an 8-byte `usize` remap entry, replay metadata falls from 232 bytes to 32 bytes per primitive, an 86.21% reduction. A `u32` remap could reduce this further, but native indices avoid a new overflow invariant and remain directly usable for slice indexing.\n\nDirect per-kind indices without remapping are invalid because `finish` sorts renderer vectors. Draw order alone is invalid because fixed layers legitimately share an order. Binary-search locators preserve correctness but add work to every replay. Adding IDs to GPU structs changes renderer layouts. The sidecar remap is the only evaluated design that preserves O(1) replay and GPU-facing layouts while remaining bounded.\n\nNo product or test source changed.\n",
+  "decisionMarkdown": "# Decision\n\nAccept the compact locator design for one implementation experiment. Use native `usize` indices, per-kind original-to-sorted remaps, stable-key indirect sorting, and safe in-place permutation. The design removes the duplicate full primitive and preserves O(1) replay, stable duplicate ordering, layer operations, subtree ranges, and renderer-facing layouts. Experiment 99 must benchmark the added indirect-sort cost; failure requires full revert.\n",
+  "notes": ""
+}

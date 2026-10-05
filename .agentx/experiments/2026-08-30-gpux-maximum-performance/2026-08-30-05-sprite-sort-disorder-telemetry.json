@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "id": "0d8a23d2-41f3-4f5f-8365-fc98a848dfc8",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 5,
+  "type": "hypothesis",
+  "name": "Sprite Sort Disorder Telemetry",
+  "slug": "sprite-sort-disorder-telemetry",
+  "path": "2026-08-30-05-sprite-sort-disorder-telemetry.json",
+  "createdAt": "2026-08-30T19:06:05Z",
+  "startedAt": "2026-08-30T19:06:05Z",
+  "finishedAt": "2026-08-30T19:19:04Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "da0af1a7c0c9e1a784f8d69f9f29d2230cd60b45",
+  "resultCommit": "35feb9471a76894605437ff03a5afc3b46513622",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard da0af1a7c0c9e1a784f8d69f9f29d2230cd60b45",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "da0af1a7c0c9e1a784f8d69f9f29d2230cd60b45",
+      "resultCommit": "35feb9471a76894605437ff03a5afc3b46513622",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard da0af1a7c0c9e1a784f8d69f9f29d2230cd60b45",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "35feb9471a76894605437ff03a5afc3b46513622"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux Scene diagnostics with apps/test_suite wide DataTable headed WebGPU",
+  "hypothesisMarkdown": "# Hypothesis\n\nDiagnostics-only counts of adjacent pre-sort key inversions for the monochrome, subpixel, and polychrome sprite families will reveal whether `Scene::finish` can safely skip or narrow its stable sprite sorts in real gpux frames. Publishing only three bounded numeric counts through the existing WGPU frame snapshot will have no production cost when `rayx_diagnostics` is disabled and will turn the baseline's 0.55-0.78% monochrome-sort CPU lead into an evidence-backed next experiment.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\n1. Add a `gpux/rayx_diagnostics` feature and forward `gpui_wgpu/rayx_diagnostics` to it; production builds must compile with no diagnostic scene fields or scans.\n2. Immediately before the existing stable sprite sorts, count adjacent pairs whose `(order, tile_id)` keys are descending for each sprite family. Retain only the latest frame's three counts in `Scene`.\n3. Copy the counts into the existing bounded WGPU frame telemetry and numeric-only browser global. Do not alter sorting, insertion, batching, renderer operations, shaders, or public production behavior.\n4. Extend the existing wide DataTable benchmark to assert and record the counts at DPR1 and DPR2, then run diagnostics-off/on compilation, focused tests, Clippy, and headed WebGPU runtime proof.\n5. Use the observed counts to choose exactly one sprite-sort optimization hypothesis for experiment 6; do not optimize inside this instrumentation experiment.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nThe warmed wide DataTable frame reports a stable monochrome pre-sort disorder count and zero subpixel/polychrome disorder when those families are empty. If monochrome disorder is zero, experiment 6 can test an insertion-order fast path; if it is nonzero but sparse, experiment 6 can test a bounded adaptive mechanism; if it is dense, the loop will retain stable sorting and move to a different hotspot. Renderer work and scroll correctness counters remain unchanged.\n",
+  "diagnostics": {
+    "playwright": [
+      "The wide DataTable passed 2/2 headed Chromium WebGPU projects at DPR 1 and DPR 2.",
+      "Renderer work remained nine batches, 12 writes, 10 bind groups, two passes, zero atlas writes/restarts, and one submission."
+    ],
+    "rayx": [
+      "All runtime proof used apps/test_suite; apps/lab was neither launched nor modified.",
+      "Diagnostics-off and diagnostics-on checks passed for gpux, gpui_wgpu, and wasm32 gpui_web.",
+      "The focused disorder unit test, eight diagnostics-off scene tests, Clippy with warnings denied, and nested formatting passed."
+    ],
+    "counters": [
+      "DPR 1 reported 684 descending adjacent pairs among 1,514 monochrome pairs (45.18%).",
+      "DPR 2 reported 666 descending adjacent pairs among 1,512 monochrome pairs (44.05%).",
+      "Empty subpixel and polychrome families reported zero disorder; both scroll projects retained zero terminal error."
+    ],
+    "artifacts": [
+      "candidate/test_suite-rayx-data-table-ebb47-d-thumb-drag-render-cadence-chromium/data-table-wide-scroll-performance.json",
+      "candidate/test_suite-rayx-data-table-ebb47-d-thumb-drag-render-cadence-chromium-dpr2/data-table-wide-scroll-performance.json"
+    ]
+  },
+  "measurements": {
+    "checkpointCommit": "da0af1a7c0c9e1a784f8d69f9f29d2230cd60b45",
+    "target": "wasm-webgpu-headed",
+    "dpr1": {
+      "monochromeSprites": 1515,
+      "adjacentPairs": 1514,
+      "descendingAdjacentPairs": 684,
+      "disorderPercent": 45.17833553500661,
+      "subpixelSprites": 0,
+      "subpixelDisorder": 0,
+      "polychromeSprites": 0,
+      "polychromeDisorder": 0
+    },
+    "dpr2": {
+      "monochromeSprites": 1513,
+      "adjacentPairs": 1512,
+      "descendingAdjacentPairs": 666,
+      "disorderPercent": 44.04761904761905,
+      "subpixelSprites": 0,
+      "subpixelDisorder": 0,
+      "polychromeSprites": 0,
+      "polychromeDisorder": 0
+    },
+    "renderer": {
+      "batches": 9,
+      "queueBufferWrites": 12,
+      "bindGroups": 10,
+      "renderPasses": 2,
+      "atlasWrites": 0,
+      "bufferRestarts": 0,
+      "submissions": 1
+    },
+    "maximumTerminalError": 0
+  },
+  "reportMarkdown": "# Sprite sort disorder telemetry report\n\nThe diagnostics-only scene instrumentation counts descending adjacent `(order, tile_id)` pairs immediately before the existing stable sprite sorts. The `gpux/rayx_diagnostics` feature is forwarded by `gpui_wgpu`; without it, the scene field, scans, renderer fields, and browser publication compile out. Sorting, batching, shaders, renderer operations, and production behavior are unchanged.\n\nThe headed Test Suite wide DataTable passed at DPR 1 and DPR 2 with zero terminal scroll error. Its warmed monochrome stream is densely disordered: DPR 1 reported 684 descending pairs among 1,514 adjacent pairs (45.18%), and DPR 2 reported 666 among 1,512 (44.05%). Empty subpixel and polychrome families correctly reported zero. Renderer work stayed at nine batches, 12 queue writes, 10 bind groups, two passes, zero atlas uploads/restarts, and one submission.\n\nDiagnostics-off/on compilation passed for gpux, gpui_wgpu, and wasm32 gpui_web. The focused counter test and the eight diagnostics-off scene tests passed; gpux and gpui_wgpu Clippy passed with warnings denied, and nested gpux formatting passed. The first runtime launch encountered a recoverable Windows asset-directory lock before Chromium; moving the exact generated assets directory to an ignored recovery backup allowed the unchanged rerun to complete.\n",
+  "decisionMarkdown": "# Decision\n\nAccept the bounded diagnostics because they answer the planned question with no production-path cost. Reject an already-sorted or sparsely-disordered monochrome fast path for the wide virtualized DataTable: approximately 44-45% of adjacent pairs are descending at both DPRs. Retain the stable sprite sorts and move experiment 6 to a different measured hotspot; do not implement an adaptive sprite sorter from this workload.\n",
+  "notes": ""
+}

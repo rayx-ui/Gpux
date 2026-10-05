@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "id": "8083883e-a203-441d-a421-d8a24ca3d4d6",
+  "loopId": "54e74b74-483c-4598-92d7-fdbabbc9154b",
+  "index": 6,
+  "type": "hypothesis",
+  "name": "Direct editable TextLayout row lookup",
+  "slug": "direct-editable-text-layout-row-lookup",
+  "path": "2026-07-24-06-direct-editable-text-layout-row-lookup.json",
+  "createdAt": "2026-07-24T04:16:21Z",
+  "startedAt": "2026-07-24T04:16:21Z",
+  "finishedAt": "2026-07-24T04:19:22Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "d5a23624482a8ae4c2b04661e14f97a3bda49184",
+  "resultCommit": "1bd6613011da07c7f236b8fc62093d35dcbef0ff",
+  "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard d5a23624482a8ae4c2b04661e14f97a3bda49184",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "d5a23624482a8ae4c2b04661e14f97a3bda49184",
+      "resultCommit": "1bd6613011da07c7f236b8fc62093d35dcbef0ff",
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard d5a23624482a8ae4c2b04661e14f97a3bda49184",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "1bd6613011da07c7f236b8fc62093d35dcbef0ff"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "headed WASM WebGPU TextArea fixture",
+  "hypothesisMarkdown": "# Hypothesis\n\nThe ordered row metadata can locate buffer offsets and visual rows with `partition_point` rather\nthan scanning every logical row. This removes linear lookup cost from caret, selection, hit test,\nand geometry requests while preserving exact newline and final-row ownership rules.\n\n## Scope lock\n\nThis experiment changes only `row_for_buffer_offset` and `row_for_visual_row` in `layout_map.rs`.\nIt does not change layout rows, cache invalidation, paint enumeration, or selection semantics.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\nRun the focused headed WASM/WebGPU TextArea page at DPR 1 and DPR 2 and inspect the scroll\nscreenshot. Source inspection and focused behavior exercise must prove that EOF, line delimiters,\nand visual row boundaries return the same row as the former linear scans.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nThe fixed TextArea scroll remains visible and stable. Buffer and visual row queries use direct\npartition searches with the prior inclusive/exclusive newline and final-row behavior preserved.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": {
+    "target": "headed WASM WebGPU TextArea wheel action",
+    "samples": [
+      {
+        "dpr": 1,
+        "changedPixels": 13706
+      },
+      {
+        "dpr": 2,
+        "changedPixels": 53702
+      }
+    ],
+    "source": "tools-node/test-results",
+    "note": "This focused runtime proof confirms visible behavior. The direct lookup reduction is established by replacing both row-wide searches with ordered partition searches."
+  },
+  "reportMarkdown": "# Direct editable TextLayout row lookup\n\nThe focused headed WASM/WebGPU Test Suite TextArea page passed at DPR 1 and DPR 2 with the expected\nnonzero scroll pixel deltas. `row_for_buffer_offset` and `row_for_visual_row` now use the ordered\nrow starts with `partition_point`, then retain the former membership predicates for LF ownership,\nEOF, and visual-row end boundaries. The previous whole-row `find_map` and `find` scans are gone.\n",
+  "decisionMarkdown": "# Decision\n\nAccept direct row lookup. It removes repeated linear searches without changing row ownership or\nadding index state that must be invalidated after edits.\n",
+  "notes": ""
+}

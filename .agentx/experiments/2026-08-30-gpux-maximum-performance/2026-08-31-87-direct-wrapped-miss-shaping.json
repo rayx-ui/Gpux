@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "id": "4ddc3749-9b91-4c88-93f2-1e14faee520c",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 87,
+  "type": "hypothesis",
+  "name": "Direct Wrapped Miss Shaping",
+  "slug": "direct-wrapped-miss-shaping",
+  "path": "2026-08-31-87-direct-wrapped-miss-shaping.json",
+  "createdAt": "2026-08-31T14:18:44Z",
+  "startedAt": "2026-08-31T14:18:44Z",
+  "finishedAt": "2026-08-31T14:41:28Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "92f93df683a594f92f9947f87f2f898332c3410f",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 92f93df683a594f92f9947f87f2f898332c3410f",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "92f93df683a594f92f9947f87f2f898332c3410f",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 92f93df683a594f92f9947f87f2f898332c3410f",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "wasm/web with headed Playwright and WebGPU enabled",
+  "hypothesisMarkdown": "## Direct Wrapped Miss Shaping Hypothesis\n\nOn a wrapped-cache miss, shaping the unwrapped line directly and storing it only inside the wrapped layout will remove one redundant unwrapped `CacheKey` allocation, hash-map insertion, used-key entry, and later cleanup per miss. Full-run telemetry predicts 46,074/48,006 eliminated nested cache transactions at DPR 1/2.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nOnly `LineLayoutCache` miss shaping/helper, focused diagnostics tests, existing cumulative Test Suite assertions, and successful durable guidance may change. Cache key/equality semantics, wrapped-cache behavior, platform shaping, text output, dependencies, Taffy, shaders, renderer work, public APIs, pooling, and unrelated cleanup are forbidden.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nCapture three fresh checkpoint benchmark processes at DPR 1/2. Implement one direct-shaping helper used by both ordinary line misses and wrapped misses; wrapped misses must no longer register nested line requests. Run full gpux tests, serialized WGPU tests, production/diagnostic checks, warning-denied clippy, formatting, and three fresh candidate WebGPU processes. Require exact text/render/final-offset/error invariants, zero cumulative nested line requests for the candidate, and no material median throughput or paced-p95 regression; report allocation transactions removed and browser medians.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nEliminate 100% of measured nested line-cache misses and their redundant key/map ownership, reduce line-cache allocator work, and keep rendering output identical with neutral or better browser performance.",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 median acknowledged steps per second",
+      "before": "29.71546108812373",
+      "after": "26.250403517921573",
+      "delta": "-11.66079018570917%",
+      "source": "three fresh headed Playwright/WebGPU processes per side"
+    },
+    {
+      "metric": "DPR 2 median acknowledged steps per second",
+      "before": "29.69277847131034",
+      "after": "27.127137160637837",
+      "delta": "-8.64062389160203%",
+      "source": "three fresh headed Playwright/WebGPU processes per side"
+    },
+    {
+      "metric": "DPR 1 median paced p95 catch-up latency",
+      "before": "26.03564453125 ms",
+      "after": "27.667236328125 ms",
+      "delta": "+6.2667616886404875%",
+      "source": "three fresh headed Playwright/WebGPU processes per side"
+    },
+    {
+      "metric": "DPR 2 median paced p95 catch-up latency",
+      "before": "26.02978515625 ms",
+      "after": "26.288818359375 ms",
+      "delta": "+0.9951415333245839%",
+      "source": "three fresh headed Playwright/WebGPU processes per side"
+    },
+    {
+      "metric": "median nested line-cache requests",
+      "before": "48755 DPR 1; 49203 DPR 2",
+      "after": "0 DPR 1; 0 DPR 2",
+      "delta": "-100%",
+      "source": "full-run cumulative frame telemetry"
+    }
+  ],
+  "reportMarkdown": "## Direct Wrapped Miss Shaping Finished\n\n**Index:** 87\n**Checkpoint:** 92f93df683a594f92f9947f87f2f898332c3410f\n**Result Commit:** none\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status**: false. Direct shaping eliminated every nested unwrapped-cache transaction, but median browser throughput regressed materially at both DPRs and paced p95 regressed materially at DPR 1.\n\n### Scope Lock\n\n**Tested mechanism:** shape wrapped-cache misses directly without inserting the intermediate unwrapped layout into `LineLayoutCache`.\n\n**Out-of-scope changes:** none. The implementation and its benchmark assertion were restored exactly to the checkpoint.\n\n### Repository Checkpoints\n\n| Repo | Path | Checkpoint | Result Commit | Status | Rollback |\n| --- | --- | --- | --- | --- | --- |\n| main | . | 92f93df683a594f92f9947f87f2f898332c3410f | unchanged | reverted | `git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 92f93df683a594f92f9947f87f2f898332c3410f` |\n\n### Measurements\n\n| Metric | Before | After | Delta | Command/Source |\n| --- | ---: | ---: | ---: | --- |\n| DPR 1 median acknowledged steps/s | 29.7155 | 26.2504 | -11.66% | 3 fresh headed WebGPU processes per side |\n| DPR 2 median acknowledged steps/s | 29.6928 | 27.1271 | -8.64% | 3 fresh headed WebGPU processes per side |\n| DPR 1 median paced p95 catch-up | 26.0356 ms | 27.6672 ms | +6.27% | 3 fresh headed WebGPU processes per side |\n| DPR 2 median paced p95 catch-up | 26.0298 ms | 26.2888 ms | +1.00% | 3 fresh headed WebGPU processes per side |\n| DPR 1 median nested line requests | 48,755 | 0 | -100% | cumulative frame telemetry |\n| DPR 2 median nested line requests | 49,203 | 0 | -100% | cumulative frame telemetry |\n\nAll candidate browser processes passed exact render, final-offset, terminal-error, and zero-nested-request invariants. Full gpux tests (420 unit tests plus integrations), 52 serialized gpui_wgpu tests, production and diagnostic checks, warning-denied clippy, and formatting also passed.\n\n### Decision\n\nReverted failure. The removed cache ownership was useful to later wrapped layouts and its loss outweighed the saved allocation/hash-map work in this workload.\n",
+  "decisionMarkdown": "### Decision\n\nReject and revert direct wrapped-miss shaping. It removed 100% of nested line-cache requests but caused material throughput regressions of 11.66% at DPR 1 and 8.64% at DPR 2. Preserve the unwrapped cache population performed by wrapped misses; future experiments should target the transaction cost without discarding its reuse value.\n",
+  "notes": ""
+}

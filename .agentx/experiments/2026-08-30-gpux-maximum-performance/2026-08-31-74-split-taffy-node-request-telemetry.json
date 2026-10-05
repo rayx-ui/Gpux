@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "id": "a4dbf38c-ac4d-4cdc-8c84-d7e25cd89b4f",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 74,
+  "type": "hypothesis",
+  "name": "Split Taffy Node Request Telemetry",
+  "slug": "split-taffy-node-request-telemetry",
+  "path": "2026-08-31-74-split-taffy-node-request-telemetry.json",
+  "createdAt": "2026-08-31T10:48:11Z",
+  "startedAt": "2026-08-31T10:48:11Z",
+  "finishedAt": "2026-08-31T11:01:22Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "bf4f0591f2afafc4b3d80fa997e48d9f48fe3b97",
+  "resultCommit": "e5bdc30dee7c885f7a4ed98c62f76f3440013ee0",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard bf4f0591f2afafc4b3d80fa997e48d9f48fe3b97",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "bf4f0591f2afafc4b3d80fa997e48d9f48fe3b97",
+      "resultCommit": "e5bdc30dee7c885f7a4ed98c62f76f3440013ee0",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard bf4f0591f2afafc4b3d80fa997e48d9f48fe3b97",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "e5bdc30dee7c885f7a4ed98c62f76f3440013ee0"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpui Taffy node requests and headed Test Suite WASM/WebGPU diagnostics",
+  "hypothesisMarkdown": "A separate diagnostics-only `[u64; 11]` node-request counter array will compile without disturbing the existing Taffy telemetry and will partition the 1,123 warmed requests sufficiently to identify the next production optimization.\n",
+  "measurementPlanMarkdown": "Require request = reused + new, reused = unchanged + changed style, reused = unchanged + changed topology, dirty <= context refill, and unique child insertions <= child edges. Run headed WebGPU at DPR 1 and DPR 2, capture the final renderer JSON, and execute the established gpux/WGPU/Test Suite validation gates.\n",
+  "expectedOutcomeMarkdown": "The final warmed frame should contain zero or very few new nodes, mostly unchanged style/topology comparisons, 320 measured-context refills, and fewer unique child-set insertions than edge attempts. Those ratios will choose one subsequent production experiment.\n",
+  "diagnostics": {
+    "playwright": [
+      "Headed Chromium/WebGPU passed the wide DataTable benchmark at DPR 1 and DPR 2 with exact final offset -351402.6875 and zero terminal errors.",
+      "Both final renderer snapshots satisfied every new arithmetic partition and all established renderer/layout/text/style invariants."
+    ],
+    "rayx": [
+      "All 419 gpux unit tests and every gpux integration suite passed with rayx_diagnostics.",
+      "All 52 serialized gpui_wgpu tests passed with rayx_diagnostics.",
+      "Gpux production/diagnostic checks, warning-denied gpux Clippy, native Test Suite production/diagnostic checks, focused rustfmt, diff checks, AgentX state validation, and memory audit passed; existing unrelated Test Suite warnings remain."
+    ],
+    "counters": [
+      "Both DPRs reported requests=1123, pooled=1123, new=0, unchanged styles=1123, style writes=0, unchanged topologies=1123, topology writes=0.",
+      "Both DPRs reported measured-context refill=229, context install=0, additional dirty=0, and unique child insertions=1041 of 1041 edges.",
+      "The multithreaded WASM verifier reported shared memory, the worker entry point, and a 105,691-byte diagnostic atomic prefix."
+    ],
+    "artifacts": [
+      "artifacts-temp/agentx-experiments/2026-08-30-gpux-maximum-performance/74-split-taffy-node-request-telemetry"
+    ]
+  },
+  "measurements": [
+    {
+      "metric": "Pooled Taffy request partition at DPR 1 and DPR 2",
+      "before": "unknown",
+      "after": "1123 requests; 1123 reused; 0 new",
+      "delta": "100% pooled reuse"
+    },
+    {
+      "metric": "Retained style and topology equality at DPR 1 and DPR 2",
+      "before": "unknown",
+      "after": "1123 unchanged styles and 1123 unchanged topologies; 0 writes for either",
+      "delta": "100% equality"
+    },
+    {
+      "metric": "Measured context and child membership at DPR 1 and DPR 2",
+      "before": "unknown",
+      "after": "229 refills, 0 installs, 0 extra dirty marks; 1041 unique inserts / 1041 edges",
+      "delta": "no redundant dirty or duplicate insertion opportunity"
+    },
+    {
+      "metric": "DPR 1 acknowledged throughput versus experiment 72 median",
+      "before": "30.602489573731802 steps/s",
+      "after": "29.608208638979505 steps/s",
+      "delta": "-3.25% on diagnostics path"
+    },
+    {
+      "metric": "DPR 2 acknowledged throughput versus experiment 72 median",
+      "before": "30.77069829484175 steps/s",
+      "after": "29.871078664813556 steps/s",
+      "delta": "-2.92% on diagnostics path"
+    },
+    {
+      "metric": "Paced p95 at DPR 1 / DPR 2 versus experiment 72 median",
+      "before": "25.238037109375 / 26.13037109375 ms",
+      "after": "25.232421875 / 25.281982421875 ms",
+      "delta": "0.02% / 3.25% improvement"
+    }
+  ],
+  "reportMarkdown": "## Split Taffy Node Request Telemetry Finished\n\n**Index:** 74\n**Checkpoint:** `bf4f059`\n**Result:** `e5bdc30de`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. A separate diagnostics-only 11-counter array preserves the existing 31-counter layout telemetry and compiles out of production builds. Both headed DPRs produced identical request partitions: all 1,123 nodes were pooled, all 1,123 converted styles and ordered topologies compared equal, and no new node, style write, or topology write occurred. All 229 measured contexts refilled retained slots without another dirty mark. Every one of the 1,041 child edges inserted a unique active child.\n\nThe result rules out new-node allocation, redundant context dirtying, and duplicate child filtering for the warmed workload. The remaining request cost is the verification itself: upstream `Style::to_taffy` conversion plus exact retained-style and ordered-topology comparisons. The previous topology-shadow failure means a later optimization must establish a cheaper sound invalidation signal, not maintain a parallel child copy.\n\nHeaded Chromium/WebGPU passed both DPR cases with exact final offset and zero terminal errors. All 419 gpux tests and integration suites, all 52 serialized WGPU tests, package checks, warning-denied Clippy, Test Suite production/diagnostic checks, focused formatting, diff checks, and AgentX memory audit passed. Existing unrelated Test Suite warnings remain.\n\n### Scope Lock\n\nOnly diagnostics-gated node-request counters, their existing Scene/WGPU/Web transport, Test Suite proof, and durable guidance changed. Production layout, caching, topology, dependencies, and allocation behavior are unchanged.\n\n### Repository Checkpoints\n\n| Repo | Path | Checkpoint | Result Commit | Status | Rollback |\n| --- | --- | --- | --- | --- | --- |\n| main | . | `bf4f059` | `e5bdc30de` | committed | `git -C \"D:\\\\Work\\\\projects\\\\RayX\\\\RayX\" reset --hard bf4f0591f2afafc4b3d80fa997e48d9f48fe3b97` |\n\n### Decision\n\nAccept the bounded telemetry. Do not optimize new-node creation, repeated dirty marking, or duplicate child insertion for the warmed DataTable. Investigate whether a sound caller-visible style/layout generation can avoid repeated conversion and equality verification without relying on pool position.\n",
+  "decisionMarkdown": "Accept the split diagnostics-only request telemetry. It proves a fully warm 1,123-node request stream with exact style/topology equality, zero writes, no redundant dirty marks, and no duplicate active-child insertions. Use a later experiment to measure or introduce a sound style/layout generation; do not repeat the failed topology shadow.\n",
+  "notes": ""
+}

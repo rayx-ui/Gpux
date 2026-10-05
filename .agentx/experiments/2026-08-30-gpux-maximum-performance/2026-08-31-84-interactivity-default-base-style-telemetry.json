@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "id": "3ce65d12-10d9-4072-a2b7-06d0c7833914",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 84,
+  "type": "hypothesis",
+  "name": "Interactivity Default Base Style Telemetry",
+  "slug": "interactivity-default-base-style-telemetry",
+  "path": "2026-08-31-84-interactivity-default-base-style-telemetry.json",
+  "createdAt": "2026-08-31T13:45:47Z",
+  "startedAt": "2026-08-31T13:45:47Z",
+  "finishedAt": "2026-08-31T13:58:41Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "474e0ac7418e3e17192b23e04d343ed6c78400b8",
+  "resultCommit": "73d5f21d6f838e389c5aeb8b57233b55969457f5",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 474e0ac7418e3e17192b23e04d343ed6c78400b8",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "474e0ac7418e3e17192b23e04d343ed6c78400b8",
+      "resultCommit": "73d5f21d6f838e389c5aeb8b57233b55969457f5",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 474e0ac7418e3e17192b23e04d343ed6c78400b8",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "73d5f21d6f838e389c5aeb8b57233b55969457f5"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "wasm/web with headed Playwright and WebGPU enabled",
+  "hypothesisMarkdown": "## Interactivity Default Base Style Telemetry Hypothesis\n\nThe post-handoff CPU profile attributes 28.11/37.93 ms of allocator ancestry to `div()`, while every `Interactivity` eagerly owns a heap-allocated `Box<StyleRefinement>`. Counting request-layout instances whose base refinement is still exactly default will determine whether delayed base-style allocation has enough coverage for a separate production experiment.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nAdd one diagnostics-only counter for exact-default base styles at `Interactivity::request_layout_inner`, carry it through the existing bounded scene/WGPU/web snapshot, and assert its accounting in the existing Test Suite wide-DataTable spec. Only the diagnostics array/transport and focused spec may change. Production layout/style behavior, public types, allocation ownership, Taffy, dependencies, shaders, benchmarks, and other counters are forbidden.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nCompile and test gpux with `rayx_diagnostics`, run the serialized gpui_wgpu suite, then run the existing headed Test Suite wide-DataTable WebGPU spec at DPR 1 and DPR 2. Record `styleRequestDefaultBaseCount`, require it to be positive and no greater than `styleRequestLayoutCount`, preserve the established 716 gpux-owned request reuses, 13 external candidates, exact final scroll offset, renderer/Taffy/text invariants, and zero terminal errors. Pass if the new counter is exact and yields a decisive coverage ratio for or against delayed allocation.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nA large exact-default share would justify a later atomic lazy-allocation experiment; a small share would reject that mechanism and redirect allocation work without changing production behavior in this experiment.",
+  "diagnostics": {
+    "playwright": [
+      "The focused headed Chromium/WebGPU Test Suite spec passed at DPR 1 and DPR 2 (2/2).",
+      "Both runs preserved exact final offset -351402.6875 and zero terminal errors."
+    ],
+    "rayx": [
+      "The multithreaded WASM build verified shared memory, wasm_thread_entry_point, and 99282 atomic-prefix bytes."
+    ],
+    "counters": [
+      "DPR 1 and DPR 2 each reported styleRequestDefaultBaseCount=13 and styleRequestLayoutCount=875.",
+      "Both DPRs preserved stylePrepaintRequestReuseCount=716, gpux-owned candidates=716, and external candidates=13."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "DPR1 exact-default base-style share",
+      "before": "unknown",
+      "after": "13 / 875",
+      "delta": "1.49% coverage",
+      "source": "headed Test Suite WASM/WebGPU renderer telemetry"
+    },
+    {
+      "metric": "DPR2 exact-default base-style share",
+      "before": "unknown",
+      "after": "13 / 875",
+      "delta": "1.49% coverage",
+      "source": "headed Test Suite WASM/WebGPU renderer telemetry"
+    },
+    {
+      "metric": "Gpux-owned request-style reuse",
+      "before": "716",
+      "after": "716",
+      "delta": "0",
+      "source": "headed Test Suite WASM/WebGPU renderer telemetry at both DPRs"
+    },
+    {
+      "metric": "External request-style candidates",
+      "before": "13",
+      "after": "13",
+      "delta": "0",
+      "source": "headed Test Suite WASM/WebGPU renderer telemetry at both DPRs"
+    }
+  ],
+  "reportMarkdown": "## Interactivity Default Base Style Telemetry Finished\n\n**Index:** 84\n**Checkpoint:** 474e0ac74\n**Result Commit:** 73d5f21d6\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status**: true. The diagnostics-only counter compiled in diagnostic and production configurations, all focused and broad gpux tests passed, and the headed Test Suite WebGPU run passed at DPR 1 and DPR 2.\n\nBoth browser runs measured exactly 13 request-layout elements with an exact-default base refinement out of 875 total request-layout style computations, a 1.49% share. The count is positive, bounded by the request total, identical across DPRs, and decisive against delayed base-style allocation as a material optimization for the representative wide DataTable workload. The established 716 gpux-owned request-style reuses, 13 external candidates, exact final scroll offset -351402.6875, renderer/Taffy/text invariants, and zero terminal errors were preserved.\n\n### Scope Lock\n\nThe experiment changed only the diagnostics style-phase array, bounded scene/WGPU/web telemetry transport, and the focused Test Suite assertion. Production style behavior, public APIs, allocation ownership, Taffy, dependencies, shaders, and unrelated counters were unchanged.\n\n### Repository Checkpoints\n\n| Repo | Path | Checkpoint | Result Commit | Status | Rollback |\n| --- | --- | --- | --- | --- | --- |\n| main | . | 474e0ac74 | 73d5f21d6 | committed | `git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 474e0ac7418e3e17192b23e04d343ed6c78400b8` |\n\n### Decision\n\nAccept the diagnostics telemetry. Reject lazy allocation of exact-default `Interactivity::base_style` as the next production mechanism for this workload because its measured coverage is only 1.49%; redirect allocator work to a broader, measured ownership source.\n",
+  "decisionMarkdown": "### Decision\n\nCommit the bounded diagnostic telemetry and do not pursue delayed allocation for exact-default `Interactivity::base_style` on the representative wide DataTable path. Only 13 of 875 request-layout elements (1.49%) qualify at both DPRs, so the likely savings are too narrow relative to the public-type and ownership risk. Investigate a broader measured allocation family in the next atomic experiment.\n",
+  "notes": ""
+}

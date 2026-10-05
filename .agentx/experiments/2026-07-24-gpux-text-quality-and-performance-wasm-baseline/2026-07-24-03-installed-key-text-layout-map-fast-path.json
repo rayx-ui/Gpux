@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "id": "5bd1d4ad-029b-46ae-897f-0a5b33dbdf3d",
+  "loopId": "54e74b74-483c-4598-92d7-fdbabbc9154b",
+  "index": 3,
+  "type": "hypothesis",
+  "name": "Installed-key TextLayoutMap fast path",
+  "slug": "installed-key-text-layout-map-fast-path",
+  "path": "2026-07-24-03-installed-key-text-layout-map-fast-path.json",
+  "createdAt": "2026-07-24T03:44:40Z",
+  "startedAt": "2026-07-24T03:44:40Z",
+  "finishedAt": "2026-07-24T03:57:06Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "339aed9e3049bc997e3aeca678fee0cd6a008615",
+  "resultCommit": "e3d8c82e5",
+  "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard 339aed9e3049bc997e3aeca678fee0cd6a008615",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "339aed9e3049bc997e3aeca678fee0cd6a008615",
+      "resultCommit": "e3d8c82e5",
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard 339aed9e3049bc997e3aeca678fee0cd6a008615",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "e3d8c82e5"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "headed WASM WebGPU TextArea fixture",
+  "hypothesisMarkdown": "# Hypothesis\n\nWhen the editable buffer revision, normalized style runs, display projection, and layout style\nmatch the installed `TextLayoutMap`, returning the installed map before text materialization will\nremove the whole-document `Rope::to_string`, logical-line vector, row-cache clone, UTF-8 boundary\nscan, and shaping work from ordinary prepaint updates.\n\n## Scope lock\n\nThis experiment changes only the exact installed-key fast path in `layout_map.rs` and its cache\nstate. It does not attempt row splicing, direct lookup indexes, or viewport painting; those are\nseparate hypotheses.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\nRun the focused Test Suite TextArea page through headed Chromium with WebGPU at DPR 1 and DPR 2.\nThe test performs a visible wheel-scroll action, verifies the published frame and screenshot, and\nrecords input-to-published-frame time. Inspect the screenshot and retain the measurement JSON.\n\nCompare against the frozen baseline TextArea action median/p95: DPR 1 534.002/593.299 ms and DPR\n2 497.957/561.084 ms. The retained map must preserve rendering and interaction while source\ninspection confirms the exact-key return precedes `snapshot.text()`, `logical_lines`, and\n`reusable_rows`.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nUnchanged layout updates return `TextLayoutUpdate::default()` before whole-text and all-row work.\nChanged source style runs or projection continue through validation and full layout preparation.\nThe focused WASM fixture passes at both configured DPRs with a nonempty, visibly changed scroll\nresult and no browser/runtime crash.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": {
+    "target": "headed WASM WebGPU TextArea wheel action",
+    "protocol": "One page-isolated 35-run Playwright process per DPR with five warmups and thirty measured samples.",
+    "source": "03-layout-installed-key-output",
+    "cells": [
+      {
+        "dpr": 1,
+        "samples": 30,
+        "p50Ms": 501.607,
+        "p95Ms": 557.942,
+        "minMs": 353.109,
+        "maxMs": 575.483,
+        "baselineP50Ms": 534.002,
+        "baselineP95Ms": 593.299,
+        "minChangedPixels": 13706
+      },
+      {
+        "dpr": 2,
+        "samples": 30,
+        "p50Ms": 382.557,
+        "p95Ms": 494.546,
+        "minMs": 352.043,
+        "maxMs": 557.867,
+        "baselineP50Ms": 497.957,
+        "baselineP95Ms": 561.084,
+        "minChangedPixels": 53702
+      }
+    ],
+    "failures": 0
+  },
+  "reportMarkdown": "# Installed-key TextLayoutMap fast path\n\n## Scope confirmation\n\nThis experiment added only the exact installed-key return. It compares the buffer revision and\nlayout style kept by `TextLayoutCache`, then compares the retained normalized source style runs\nand display projection. The return is before `snapshot.text()`, `logical_lines(...)`, and\n`reusable_rows(...)`; therefore unchanged updates do no whole-text materialization, logical-line\nvector build, row-cache clone, boundary build, or shaping.\n\n## WASM measurement\n\nThe focused TextArea Test Suite page passed 70/70 headed Chromium/WebGPU samples: 35 at DPR 1 and\n35 at DPR 2, with five warmups and thirty measured samples in each group. There were no browser or\nruntime failure diagnostics. The final screenshots showed the visible 2,000-line fixture scrolled\nnear its final rows and every action changed physical pixels.\n\n| DPR | Baseline p50/p95 | After p50/p95 | Delta p50/p95 |\n| --- | --- | --- | --- |\n| 1 | 534.002 / 593.299 ms | 501.607 / 557.942 ms | -6.1% / -6.0% |\n| 2 | 497.957 / 561.084 ms | 382.557 / 494.546 ms | -23.2% / -11.9% |\n\nThe result is a direct improvement on both measured scales, but does not yet meet the epic's\n75-percent reduction target. The remaining all-row rebuild path is reserved for a separate,\natomic incremental-layout experiment.\n",
+  "decisionMarkdown": "# Decision\n\nAccept the exact installed-key fast path. It preserves the existing layout map whenever the full\nlayout input is unchanged and measurably improves the fixed WASM TextArea action without changing\nprojection, style validation, or changed-layout behavior. Continue with a separate experiment for\nretained row data and incremental changed-row layout; do not combine it with the accepted fast\npath change.\n",
+  "notes": ""
+}

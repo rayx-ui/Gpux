@@ -1,0 +1,185 @@
+{
+  "schemaVersion": 1,
+  "id": "3c92cb03-90ad-43c0-b25e-7c4ce749cadc",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 12,
+  "type": "hypothesis",
+  "name": "Taffy Two Child Inline Storage",
+  "slug": "taffy-two-child-inline-storage",
+  "path": "2026-08-30-12-taffy-two-child-inline-storage.json",
+  "createdAt": "2026-08-30T20:17:29Z",
+  "startedAt": "2026-08-30T20:17:29Z",
+  "finishedAt": "2026-08-30T20:34:48Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "5f152c5b7fdb5e5f859678d5c8a45cc9e5cb5988",
+  "resultCommit": "4ec9bf019796ae55c59d2d773e734d0baece3231",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 5f152c5b7fdb5e5f859678d5c8a45cc9e5cb5988",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "5f152c5b7fdb5e5f859678d5c8a45cc9e5cb5988",
+      "resultCommit": "4ec9bf019796ae55c59d2d773e734d0baece3231",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 5f152c5b7fdb5e5f859678d5c8a45cc9e5cb5988",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "4ec9bf019796ae55c59d2d773e734d0baece3231"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux vendored Taffy child storage with apps/test_suite wide DataTable headed WebGPU",
+  "hypothesisMarkdown": "# Hypothesis\n\nReplacing Taffy 0.12.2's `std` child alias from `Vec<NodeId>` to `SmallVec<[NodeId; 2]>` will avoid one heap allocation for 726 of the 782 non-leaf nodes rebuilt by the warmed DataTable frame (92.84%), improving allocation pressure and layout/render cadence while preserving child order, arbitrary fanout through overflow, all Taffy algorithms, and gpux APIs.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\n1. Record repeated headed Test Suite checkpoint measurements at DPR 1 and 2 before editing.\n2. Import the exact crates.io Taffy 0.12.2 package under `crates/gpux/vendor/taffy`, record its version/checksum provenance, and patch both root and nested workspaces to that path.\n3. Change only the `std` `ChildrenVec<A>` alias to `SmallVec<[A; 2]>`, initialize leaf child storage with the same type, and add `smallvec` only to Taffy's `std` feature. Preserve alloc-only and heapless configurations.\n4. Run the vendored Taffy library suite, focused gpux Taffy/scene tests, diagnostics-off/on checks, Clippy, nested/root formatting, and dependency-tree proof.\n5. Run at least three fresh headed candidate processes at DPR 1 and 2. Compare per-process medians and p95 against the checkpoint distribution while requiring exact Taffy/renderer/tree/scroll counters.\n6. Accept only if behavior is exact and central runtime measurements do not regress; otherwise revert the complete vendor import and dependency patch to the experiment checkpoint.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nThe two-slot child representation removes 726 per-frame child-buffer heap allocations, leaves 56 overflowing containers, preserves all 1,123 nodes/1,041 edges and layout output, and improves or preserves repeated headed cadence enough to justify the approximately one-megabyte vendored dependency maintenance surface.\n",
+  "diagnostics": {
+    "playwright": [
+      "Three fresh candidate processes passed 6/6 headed Chromium WebGPU projects across DPR 1 and DPR 2.",
+      "All candidate projects preserved the exact Taffy, renderer, bounds-tree, global-path, and final-scroll counters with zero terminal error."
+    ],
+    "rayx": [
+      "All application runtime proof used apps/test_suite; apps/lab was neither launched nor modified.",
+      "cargo test --manifest-path crates/gpux/vendor/taffy/Cargo.toml --lib passed 96/96 tests.",
+      "The vendored alloc-only configuration passed without std.",
+      "Focused gpux Taffy telemetry, diagnostics-off/on gpux/WGPU/browser-WASM checks, gpux-owned warning-denied Clippy, and package-scoped formatting passed.",
+      "Both root and nested dependency trees resolved taffy 0.12.2 to crates/gpux/vendor/taffy.",
+      "All 61 unmodified published-package files were byte-identical to the crates.io package; only the manifests, vendor lockfile, sys child alias, tree adaptations, and RayX provenance file differ.",
+      "AgentX memory audit and improvement-loop JSON validation passed."
+    ],
+    "counters": [
+      "726 of 782 containers use inline storage, avoiding 726 child-buffer heap allocations per warmed frame.",
+      "Median throughput improved 19.92% at DPR 1 and 17.43% at DPR 2.",
+      "Median paced p95 improved 3.45% at DPR 1 and 0.51% at DPR 2."
+    ],
+    "knownPreexisting": [
+      "Root cargo fmt --all remains unavailable on Windows because the workspace command exceeds process command-line length (error 206); package-scoped formatting passed.",
+      "The unchanged published Taffy 0.12.2 grid style source has four current-toolchain wrong_self_convention Clippy findings and predates current rustfmt output."
+    ],
+    "artifacts": []
+  },
+  "measurements": {
+    "target": "wasm-webgpu-headed",
+    "processesPerVariant": 3,
+    "checkpoint": {
+      "dpr1": [
+        {
+          "throughput": 30.034350286422583,
+          "pacedP95Ms": 27.704833984375
+        },
+        {
+          "throughput": 24.903554758309745,
+          "pacedP95Ms": 28.984130859375
+        },
+        {
+          "throughput": 24.57429337233764,
+          "pacedP95Ms": 31.8759765625
+        }
+      ],
+      "dpr2": [
+        {
+          "throughput": 30.01902530776443,
+          "pacedP95Ms": 28.02587890625
+        },
+        {
+          "throughput": 25.548393063560194,
+          "pacedP95Ms": 29.1162109375
+        },
+        {
+          "throughput": 24.771906478126024,
+          "pacedP95Ms": 27.923828125
+        }
+      ]
+    },
+    "candidate": {
+      "dpr1": [
+        {
+          "throughput": 25.378855555736024,
+          "pacedP95Ms": 27.9833984375
+        },
+        {
+          "throughput": 30.08133994320641,
+          "pacedP95Ms": 27.185302734375
+        },
+        {
+          "throughput": 29.864999005122204,
+          "pacedP95Ms": 28.23974609375
+        }
+      ],
+      "dpr2": [
+        {
+          "throughput": 30.00120229818209,
+          "pacedP95Ms": 27.883544921875
+        },
+        {
+          "throughput": 30.050672947257333,
+          "pacedP95Ms": 27.0458984375
+        },
+        {
+          "throughput": 29.885741579935146,
+          "pacedP95Ms": 28.73876953125
+        }
+      ]
+    },
+    "medianComparison": {
+      "dpr1": {
+        "checkpointThroughput": 24.903554758309745,
+        "candidateThroughput": 29.864999005122204,
+        "throughputChangePercent": 19.922634720077227,
+        "checkpointPacedP95Ms": 28.984130859375,
+        "candidatePacedP95Ms": 27.9833984375,
+        "pacedP95ChangePercent": -3.452690807705594
+      },
+      "dpr2": {
+        "checkpointThroughput": 25.548393063560194,
+        "candidateThroughput": 30.00120229818209,
+        "throughputChangePercent": 17.428920964007567,
+        "checkpointPacedP95Ms": 28.02587890625,
+        "candidatePacedP95Ms": 27.883544921875,
+        "pacedP95ChangePercent": -0.50786626478736
+      }
+    },
+    "allocationEffect": {
+      "containers": 782,
+      "inlineContainers": 726,
+      "overflowContainers": 56,
+      "avoidedHeapAllocationsPerWarmFrame": 726,
+      "inlineCoveragePercent": 92.8388746803069
+    },
+    "exactTaffyCounters": [
+      1123,
+      229,
+      341,
+      782,
+      1041,
+      25,
+      673,
+      726,
+      755,
+      780,
+      405,
+      377,
+      0,
+      82,
+      0,
+      0
+    ],
+    "maximumTerminalError": 0
+  },
+  "reportMarkdown": "# Taffy two-child inline storage report\n\nRayX now uses the exact crates.io Taffy 0.12.2 package from `crates/gpux/vendor/taffy`, patched so standard-library `TaffyTree` child lists use `SmallVec<[NodeId; 2]>`. Larger child lists retain heap overflow, alloc-only and heapless modes are unchanged, and Taffy's public `children()` API still returns `Vec<NodeId>`.\n\nThe change removes child-buffer heap allocation from 726 of the 782 non-leaf nodes rebuilt by each warmed wide DataTable frame (92.84%). The remaining 56 containers spill normally, including the measured maximum fanout of 25.\n\nThree independent headed WebGPU processes were measured on each side. At DPR 1, the median of process medians improved from 24.9036 to 29.8650 acknowledged steps/s (+19.92%) and paced p95 improved from 28.9841 to 27.9834 ms (-3.45%). At DPR 2, throughput improved from 25.5484 to 30.0012 steps/s (+17.43%) and paced p95 improved from 28.0259 to 27.8835 ms (-0.51%).\n\nAll six candidate projects preserved the exact Taffy vector `1123,229,341,782,1041,25,673,726,755,780,405,377,0,82,0,0`, nine batches, 12 buffer writes, 10 bind groups, two passes, one submission, 4,440 bounds-tree search visits, 576 retained bounds nodes, 8,668 global path elements, the exact final scroll offset, and zero terminal error.\n\nThe vendored Taffy library suite passed 96 tests. Its alloc-only feature check, focused gpux Taffy telemetry test, diagnostics-off/on gpux/WGPU/browser-WASM checks, gpux-owned warning-denied Clippy, package-scoped formatting, dependency-tree proof, vendored-file integrity comparison, AgentX memory audit, and improvement-loop validation passed. The complete published Taffy package predates the active rustfmt and has four existing current-Clippy `wrong_self_convention` findings in unchanged grid style code; those upstream-only findings were not mixed into this atomic optimization.\n",
+  "decisionMarkdown": "# Decision\n\nAccept the two-slot inline Taffy child representation. It removes 726 measured heap allocations per warmed frame, preserves all behavior counters, and improves the central runtime distribution at both DPRs without a paced-p95 regression.\n\nRetain the full package provenance and dedicated gpux update guide. Re-evaluate the patch during every Taffy upgrade and remove it if upstream gains an equivalent representation. Do not increase the capacity without fresh fanout and runtime measurements.\n",
+  "notes": ""
+}

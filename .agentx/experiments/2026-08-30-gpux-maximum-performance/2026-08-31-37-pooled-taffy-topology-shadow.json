@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "id": "5cc16ab2-ac64-4ae8-bdb4-1ad2a3d9a9a7",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 37,
+  "type": "hypothesis",
+  "name": "Pooled Taffy Topology Shadow",
+  "slug": "pooled-taffy-topology-shadow",
+  "path": "2026-08-31-37-pooled-taffy-topology-shadow.json",
+  "createdAt": "2026-08-31T01:35:29Z",
+  "startedAt": "2026-08-31T01:35:29Z",
+  "finishedAt": "2026-08-31T01:46:28Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "fdf9547c1505044fb44bdd955bbf758fbb056d9c",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard fdf9547c1505044fb44bdd955bbf758fbb056d9c",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "fdf9547c1505044fb44bdd955bbf758fbb056d9c",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard fdf9547c1505044fb44bdd955bbf758fbb056d9c",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "wasm/web with headed Playwright and WebGPU enabled",
+  "hypothesisMarkdown": "# Hypothesis\n\nRepeated Taffy `child_count`/`child_at_index` access inside pooled topology comparison contributes to the profiled request-path cost. Keeping one ordered `SmallVec<[LayoutId; 2]>` shadow aligned with the bounded node pool should replace those accessor calls with a direct slice comparison while limiting heap storage to the 7.16% of containers above two children.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\n1. Add a retained child `SmallVec<[LayoutId; 2]>` per pooled node, initialize it with new nodes, compare it directly during reuse, and update it only after a real `set_children`.\n2. Prove exact unchanged and reordered topology behavior with focused tests.\n3. Run package formatting, diagnostics-disabled gpux check, warning-denied Clippy, all gpux diagnostics tests, and serialized gpui_wgpu diagnostics tests.\n4. Run three fresh headed Test Suite WebGPU processes at DPR 1 and DPR 2 against experiment 35, requiring exact output and no more than 5% regression in central throughput or paced p95.\n5. Revert immediately if the memory/lookup trade-off misses any gate; do not tune the representation in place.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nThe bounded shadow eliminates repeated Taffy child accessor calls, preserves exact topology behavior, and keeps central browser metrics within 5% while adding no dependency or vendor surface.\n",
+  "diagnostics": {
+    "playwright": [
+      "Three fresh headed Chromium/WebGPU processes passed both DPRs (6/6 project runs), exact final offsets, exact telemetry, and zero terminal errors.",
+      "The candidate WASM reported 100809 atomic prefix bytes versus 101789 at the checkpoint, but paced p95 exceeded the acceptance envelope at both DPRs."
+    ],
+    "rayx": [
+      "Focused topology tests, package formatting, diagnostics-disabled check, warning-denied Clippy, all 405 gpux diagnostics tests, and all 52 serialized gpui_wgpu diagnostics tests passed.",
+      "The entire source attempt was reverted after browser measurement; the worktree matches checkpoint production source."
+    ],
+    "counters": [
+      "All browser results preserved the exact Taffy vector 1123,229,341,782,1041,25,673,726,755,780,405,377,0,82,0,0,3661,2574,1005,0 and zero terminal error.",
+      "The candidate added one inline-two child shadow per 1,123 pooled nodes and would heap-allocate only for the 56 containers above two children in the measured topology."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 median acknowledged steps/s",
+      "before": "29.98411741300633",
+      "after": "29.340039097069116",
+      "delta": "-2.1481%"
+    },
+    {
+      "metric": "DPR 2 median acknowledged steps/s",
+      "before": "30.084109152368175",
+      "after": "29.00092607207181",
+      "delta": "-3.6005%"
+    },
+    {
+      "metric": "DPR 1 median paced p95",
+      "before": "27.469482421875 ms",
+      "after": "29.114501953125 ms",
+      "delta": "+5.9885%"
+    },
+    {
+      "metric": "DPR 2 median paced p95",
+      "before": "27.32080078125 ms",
+      "after": "28.966796875 ms",
+      "delta": "+6.0247%"
+    },
+    {
+      "metric": "WASM atomic prefix bytes",
+      "before": "101789",
+      "after": "100809",
+      "delta": "-980 bytes"
+    }
+  ],
+  "reportMarkdown": "## Pooled Taffy Topology Shadow Finished\n\n**Index:** 37\n**Checkpoint:** `fdf9547c1505044fb44bdd955bbf758fbb056d9c`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** false. The aligned inline-two topology shadow passed every correctness/static gate and reduced the WASM atomic prefix by 980 bytes. However, three-process browser medians regressed: throughput moved -2.15%/-3.60%, and paced p95 regressed +5.99%/+6.02% at DPR 1/2. Both p95 results exceed the predeclared 5% envelope.\n\n### Scope Lock\n\nThe attempted production mechanism was only the bounded gpux-owned topology shadow. No dependency, active-child-set, style, layout algorithm, renderer, shader, ID, or virtualization changes were included.\n\n### Decision\n\nReject and revert. The direct slice comparison does not earn its per-node memory footprint on the representative workload. Retain Taffy's accessor-based exact comparison and start any different idea as a new experiment.\n",
+  "decisionMarkdown": "Reject and revert to the checkpoint. The topology shadow exceeded the paced-p95 regression gate at both DPRs despite correct behavior and smaller WASM output.",
+  "notes": "Attempt Count: 1. The source attempt was fully reverted before finishing this experiment. Raw browser output remains ignored under artifacts-temp/agentx-experiments/gpux-maximum-performance/37-pooled-taffy-topology-shadow/. No memory or gpux skill guidance changed for this failed experiment."
+}

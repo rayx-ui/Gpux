@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "id": "194aaeab-9a14-4cb4-bcdc-63b590e52347",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 55,
+  "type": "hypothesis",
+  "name": "Taffy Measured Leaf Stability Telemetry",
+  "slug": "taffy-measured-leaf-stability-telemetry",
+  "path": "2026-08-31-55-taffy-measured-leaf-stability-telemetry.json",
+  "createdAt": "2026-08-31T04:21:50Z",
+  "startedAt": "2026-08-31T04:21:50Z",
+  "finishedAt": "2026-08-31T04:34:42Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "d3d282cca5e9aed348d82478c6eadff84fcd2e63",
+  "resultCommit": "930e71d092cdb3d207108fcecfb7419d36d3e4df",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard d3d282cca5e9aed348d82478c6eadff84fcd2e63",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "d3d282cca5e9aed348d82478c6eadff84fcd2e63",
+      "resultCommit": "930e71d092cdb3d207108fcecfb7419d36d3e4df",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard d3d282cca5e9aed348d82478c6eadff84fcd2e63",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "930e71d092cdb3d207108fcecfb7419d36d3e4df"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "crates/gpux/crates/gpui/src/taffy.rs",
+  "hypothesisMarkdown": "Most measured Taffy leaves in the warmed wide DataTable receive the same ordered known-dimension and available-space inputs as the preceding frame and return the same snapped output, revealing a concrete opportunity to avoid redundant measurement work once gpux has an explicit invalidation contract.\n",
+  "measurementPlanMarkdown": "Add diagnostics-only, bounded per-pooled-node previous/current measurement samples and five aggregate counters. Validate focused unit behavior, full gpux tests, formatting, clippy, and one headed WebGPU Test Suite run at DPR 1 and DPR 2. Record exact call, comparable-input, same-input, stable-output, and changed-output counts while preserving all established renderer/layout/final-scroll invariants.\n",
+  "expectedOutcomeMarkdown": "Comparable calls should approach total calls after warmup, most comparable calls should have identical inputs and exact snapped outputs, and same-input changed-output calls should be zero or near zero. The instrumentation must compile out without rayx_diagnostics and add no unbounded state.\n",
+  "diagnostics": {
+    "playwright": [
+      "One headed Chromium/WebGPU process passed DPR 1 and DPR 2: 2/2 cases, exact final offset -351402.6875, and zero browser errors.",
+      "Both final frames preserved 1123 Taffy nodes, 229 measured leaves, 82 root compute calls, nine renderer batches, 12 queue-buffer writes, and every established layout/render invariant."
+    ],
+    "rayx": [
+      "All 412 gpux unit tests and every gpux integration suite passed with rayx_diagnostics.",
+      "All 52 serialized gpui_wgpu tests passed with rayx_diagnostics.",
+      "Production and diagnostics checks, focused nested formatting, Clippy with warnings denied, diff checks, and the headed Test Suite route passed."
+    ],
+    "counters": [
+      "DPR 1: 882 calls, 882 prior-frame comparable calls, 882 same-input calls, 882 same-output calls, zero changed-output calls.",
+      "DPR 2: 882 calls, 882 prior-frame comparable calls, 882 same-input calls, 882 same-output calls, zero changed-output calls."
+    ],
+    "artifacts": [
+      "artifacts-temp/agentx-experiments/2026-08-30-gpux-maximum-performance/55-taffy-measured-leaf-stability-telemetry/playwright"
+    ]
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 stable comparable measured calls",
+      "before": "unknown",
+      "after": "882 / 882 (100%)",
+      "delta": "zero same-input changed-output calls"
+    },
+    {
+      "metric": "DPR 2 stable comparable measured calls",
+      "before": "unknown",
+      "after": "882 / 882 (100%)",
+      "delta": "zero same-input changed-output calls"
+    }
+  ],
+  "reportMarkdown": "## Taffy Measured Leaf Stability Telemetry Finished\n\n**Index:** 55\n**Checkpoint:** `d3d282cca5e9aed348d82478c6eadff84fcd2e63`\n**Result:** `930e71d092cdb3d207108fcecfb7419d36d3e4df`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. Diagnostics-only state now compares each pooled measured node's current call sequence with the preceding measured frame while retaining at most two frame-local sample vectors and clearing history if the slot becomes unmeasured. The entire path compiles out without `rayx_diagnostics`.\n\nThe headed wide DataTable produced an exact result at both DPRs: all 882 measurement calls were comparable with the prior frame, all 882 had identical known dimensions and available space, all 882 returned the same snapped output, and none changed output. Both cases retained the exact `-351402.6875` final scroll offset, zero errors, 1,123 nodes, 229 measured leaves, 82 root compute calls, nine batches, 12 queue writes, and all established invariants.\n\nAll 412 gpux unit tests and integration suites, all 52 serialized WGPU tests, production and diagnostics checks, formatting, Clippy with warnings denied, and two headed WebGPU cases passed.\n\n### Scope Lock\n\nOnly diagnostics-gated measurement history/counters, telemetry publication, the focused unit oracle, and Test Suite consistency assertions changed. Production measurement behavior, public layout APIs, Taffy configuration, and renderer behavior are unchanged.\n\n### Decision\n\nAccept the telemetry and its evidence. Do not skip measurement closures from numeric-input equality alone: captured content and application state are invisible to Taffy. Test a separate opt-in caller-owned invalidation generation before adding any production result reuse.\n",
+  "decisionMarkdown": "Accept the bounded diagnostics and the 882/882 stability result at both DPRs. Retain measurement execution until a separate experiment supplies and validates an explicit caller-owned invalidation generation; Taffy numeric inputs alone are not a sound content-freshness contract.\n",
+  "notes": ""
+}

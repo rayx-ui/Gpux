@@ -1,0 +1,840 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-07-07T21:12:31Z",
+  "updatedAt": "2026-07-07T21:12:31Z",
+  "sourceTraceRequired": true,
+  "tasks": [
+    {
+      "id": "sprint-1-task-1",
+      "sprint": 1,
+      "taskIndex": 1,
+      "kind": "port",
+      "text": "Re-read the touched renderer surfaces and update `source-inventory.md` if current source has drifted. Owned scope: AgentX task artifacts only. Validation: source inventory links every touched renderer/platform file to at least one requirement.",
+      "taskTextHash": "bdfd3d9ced809b82363b14d62e52746f7f85268aeb489577976779d4c78d3d4e",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "interaction",
+        "parity",
+        "runtime",
+        "traceability",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-1-task-2",
+      "sprint": 1,
+      "taskIndex": 2,
+      "kind": "ui",
+      "text": "Run the baseline WASM headed WebGPU validation before code changes: `cargo run -p xtask -- app apps/lab test wasm --headed --webgpu`. Owned scope: validation only. Validation: command succeeds or exact pre-existing blocker is recorded before implementation begins.",
+      "taskTextHash": "7e1d0f31c6fa330ac9b9bdd20d8600ab74b1e6c9d150d01638e15423dd225aa7",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "interaction",
+        "runtime",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-1-task-3",
+      "sprint": 1,
+      "taskIndex": 3,
+      "kind": "ui",
+      "text": "Run a Windows native Lab/host startup baseline and record the current active renderer diagnostics or source-confirmed DirectX state. Owned scope: validation only. Validation: baseline evidence distinguishes current DirectX path from the target WGPU path.",
+      "taskTextHash": "ccc86917f96a02c345c4174658b1fe759e1d758956d3f88bf95246a4cb0230a4",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "interaction",
+        "runtime",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-1-task-4",
+      "sprint": 1,
+      "taskIndex": 4,
+      "kind": "ui",
+      "text": "Add `gpui_wgpu` as a Windows platform dependency without changing app-facing platform APIs. Owned scope: `crates/gpux/crates/gpui_windows/Cargo.toml`. Validation: focused `cargo check` for `gpui_windows`.",
+      "taskTextHash": "e744a8a246e0c6a2e131acdf6e74b75ba80885c3f543e8b17cdd488b5cb330d6",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "contract",
+        "integration",
+        "interaction",
+        "runtime",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-1-task-5",
+      "sprint": 1,
+      "taskIndex": 5,
+      "kind": "ui",
+      "text": "Add a focused Win32 raw-window wrapper for WGPU surface creation using the existing HWND/display handle data and satisfying `Clone + Send + Sync + 'static`. Owned scope: `crates/gpux/crates/gpui_windows/src/window.rs` or a small adjacent module. Validation: compile-time trait bounds prove the wrapper can be passed to `WgpuRenderer::new`.",
+      "taskTextHash": "bd4924900fc6828a96ebf90c199d19325855681a68d96f110a434a4a3bde6479",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "interaction",
+        "runtime",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-1-task-6",
+      "sprint": 1,
+      "taskIndex": 6,
+      "kind": "ui",
+      "text": "Construct `WgpuRenderer` for Windows windows with explicit WGPU surface configuration and backend diagnostics. Owned scope: `gpui_windows` platform/window creation. Validation: Windows native Lab/host opens a nonblank first frame through WGPU.",
+      "taskTextHash": "467ba816ee577df0196abd7e796f1c498b5cba1ed343085bd18f2203fdb9a870",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "interaction",
+        "runtime",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-1-task-7",
+      "sprint": 1,
+      "taskIndex": 7,
+      "kind": "feature",
+      "text": "Add temporary traces for renderer kind, backend set, selected adapter, surface size, and present mode while bringing up first frame. Owned scope: temporary diagnostics around Windows WGPU construction. Validation: traces identify WGPU renderer state during first-frame validation.",
+      "taskTextHash": "23bd52779031f5d2ec28dee9698e52be33ea27974aec6181da2e704da2f2b99c",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-1-task-8",
+      "sprint": 1,
+      "taskIndex": 8,
+      "kind": "feature",
+      "text": "Promote only useful stable fields into existing diagnostics if they belong there; remove all trace-only code. Owned scope: diagnostics surfaces only. Validation: final diff has no auto-enabled temporary traces.",
+      "taskTextHash": "8d574b8fee1e9873bfe26c0913c2896480d47bad3fed790c50171f825c0920ef",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-1-task-9",
+      "sprint": 1,
+      "taskIndex": 9,
+      "kind": "ui",
+      "text": "Re-run `cargo run -p xtask -- app apps/lab test wasm --headed --webgpu` after the first Windows WGPU construction change. Owned scope: validation only. Validation: WASM shared WGPU path remains green.",
+      "taskTextHash": "0a49f85c7eeca1827243c2b32b1215d7b690ba17080c7a682d2eb31a17b48716",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "interaction",
+        "runtime",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-2-task-1",
+      "sprint": 2,
+      "taskIndex": 1,
+      "kind": "ui",
+      "text": "Replace the active Windows DirectX-backed text system with a WGPU-compatible text path, expected to be `CosmicTextSystem` unless current source proves a cleaner alternative. Owned scope: `gpui_windows` platform text-system initialization and imports. Validation: Windows native Lab renders text on WGPU without creating `DirectXDevices`.",
+      "taskTextHash": "1deb9259e261f0568ff29e55c184c746e08d48328773192408fa8b7f2ff08e84",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "interaction",
+        "runtime",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-2-task-2",
+      "sprint": 2,
+      "taskIndex": 2,
+      "kind": "bugfix",
+      "text": "Verify font fallback, emoji fallback where supported, high-DPI text scale, and text input surfaces on Windows WGPU. Owned scope: Windows runtime validation and any narrow text fixes. Validation: diagnostics or runtime assertions prove text renders at expected scale.",
+      "taskTextHash": "5ebc3f2848e2170a667fb32959a74ad253f110a5d142973af03c8213d44f4357",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "regression",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-2-task-3",
+      "sprint": 2,
+      "taskIndex": 3,
+      "kind": "ui",
+      "text": "Remove DirectX GPU device requirements from the active Windows WGPU route. Owned scope: `gpui_windows` platform state and creation info. Validation: source search shows the active WGPU route does not instantiate `DirectXDevices`.",
+      "taskTextHash": "b1f4167205c3647d62676e1cf5854252186dbfab3c2b0449e5035526d6c753c1",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "interaction",
+        "runtime",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-2-task-4",
+      "sprint": 2,
+      "taskIndex": 4,
+      "kind": "ui",
+      "text": "Make Windows `PlatformWindow::effect_capabilities()` delegate to `WgpuRenderer::effect_capabilities()` when the WGPU renderer is active. Owned scope: `gpui_windows` window implementation. Validation: DevKit/runtime diagnostics report WGPU effect support on Windows WGPU.",
+      "taskTextHash": "3ba13703985c067e44ff490ff1b27c64dda0f6c44b98b33d893b3296c085dd10",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "interaction",
+        "runtime",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-2-task-5",
+      "sprint": 2,
+      "taskIndex": 5,
+      "kind": "ui",
+      "text": "Ensure headless or missing-renderer Windows states report unsupported capabilities. Owned scope: `gpui_windows` platform/window capability paths. Validation: focused unit/compile test or source-level assertion for headless behavior.",
+      "taskTextHash": "c4413d27c7d09360fce8815effbfc6421b8d3e6e7c25a1333edd9e0d16d3038f",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "interaction",
+        "runtime",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-2-task-6",
+      "sprint": 2,
+      "taskIndex": 6,
+      "kind": "feature",
+      "text": "Confirm DirectX and other non-WGPU states do not report fake shader-effect support. Owned scope: capability defaults and tests. Validation: existing capability tests plus focused Windows checks.",
+      "taskTextHash": "80f45d4779f05c74faaa76e396c21e05f40008c224e09433203c061a25dc37c8",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-2-task-7",
+      "sprint": 2,
+      "taskIndex": 7,
+      "kind": "feature",
+      "text": "Add or use a Lab story that visibly exercises text plus a WGPU shader/effect capability probe on Windows. Owned scope: Lab validation surface only if existing stories are insufficient. Validation: Windows native runtime proof shows text and effect-capability diagnostics.",
+      "taskTextHash": "157c4b320bd940a8e651826444492c15acbe2ad8181323195e5673134f3f349b",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-2-task-8",
+      "sprint": 2,
+      "taskIndex": 8,
+      "kind": "ui",
+      "text": "Run headed WASM/WebGPU validation after text/capability changes. Owned scope: validation only. Validation: WebGPU run passes without shader/device errors.",
+      "taskTextHash": "75dcd33c0df1f825f42bd489a3c349fd9827eb13857919012722f395d5206fdc",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "interaction",
+        "runtime",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-2-task-9",
+      "sprint": 2,
+      "taskIndex": 9,
+      "kind": "ui",
+      "text": "Record exact blockers if Windows WGPU text behavior differs from DirectWrite and requires a follow-up decision. Owned scope: task evidence and decision prep only. Validation: blocker includes source file, runtime symptom, and proposed narrow decision.",
+      "taskTextHash": "3fd4d53fedecf7ce08a298b74557e8c4c0f98fb808792d979184fc330887eaa0",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "interaction",
+        "runtime",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-3-task-1",
+      "sprint": 3,
+      "taskIndex": 1,
+      "kind": "ui",
+      "text": "Wire resize, scale factor, redraw, minimized or zero-sized surface handling, and close/drop behavior through `WgpuRenderer` using existing Linux/mobile patterns as required references where they match Windows source constraints. Owned scope: `gpui_windows` window lifecycle. Validation: Windows native runtime proof covers resize, minimize/restore, and clean close, or records an exact OS/tooling blocker for any lifecycle action that cannot be triggered locally.",
+      "taskTextHash": "71db5ec3936e96e5acae7b85f2d1848e7041510108a0c5d4ea4cc72456425d58",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "interaction",
+        "runtime",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-3-task-2",
+      "sprint": 3,
+      "taskIndex": 2,
+      "kind": "ui",
+      "text": "Wire transparency/background updates through the WGPU renderer path or explicitly document unsupported Windows transparency behavior with a narrow follow-up decision. Owned scope: `gpui_windows` renderer/window settings. Validation: runtime proof or documented target-specific blocker.",
+      "taskTextHash": "1b9d385cab06dad8e4b4579bd0afb41644a2ecd2f39aaa8bd1b789d9af64f09d",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "docs",
+        "interaction",
+        "runtime"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-3-task-3",
+      "sprint": 3,
+      "taskIndex": 3,
+      "kind": "ui",
+      "text": "Wire device-loss detection/recovery through WGPU recovery APIs and add temporary traces around recovery state while validating. Owned scope: `gpui_windows` WGPU device lifecycle. Validation: targeted diagnostics prove recovery path is reachable or failures are clear and non-silent.",
+      "taskTextHash": "4ca02ae2d6d8e3ec6009dcca34666c445c2c204011e95232c39ed176da44e57c",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "contract",
+        "integration",
+        "interaction",
+        "runtime",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-3-task-4",
+      "sprint": 3,
+      "taskIndex": 4,
+      "kind": "ui",
+      "text": "Preserve screenshot/render-to-image behavior if current Windows APIs expose it; otherwise document the precise unsupported surface. Owned scope: `gpui_windows` render-to-image/screenshot methods. Validation: focused check or runtime capture proof.",
+      "taskTextHash": "3e17412cc9baec7d7dc122083a0eafd7422ccf5124c47c19ce43c5cd793b8d67",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "contract",
+        "docs",
+        "integration",
+        "interaction",
+        "runtime"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-3-task-5",
+      "sprint": 3,
+      "taskIndex": 5,
+      "kind": "ui",
+      "text": "Preserve input, cursor, IME/text input, mouse, keyboard, and window actions while replacing the renderer. Owned scope: `gpui_windows` event/window code adjacent to renderer ownership. Validation: Windows native interaction smoke plus existing input tests/checks.",
+      "taskTextHash": "f29c928d237935de3bc78b255747313e8f94ffb696b85dc2b2bba0d56ca922b5",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "interaction",
+        "runtime",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-3-task-6",
+      "sprint": 3,
+      "taskIndex": 6,
+      "kind": "feature",
+      "text": "Keep renderer diagnostics truthful across startup, resize, device-loss, and close. Owned scope: diagnostics surfaces. Validation: DevKit/runtime diagnostics match actual WGPU lifecycle state.",
+      "taskTextHash": "85b8d084ff29d9008f018c9b2eb5344d8ae8c7ef088e0d0b9bf6811d89b9ff73",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-3-task-7",
+      "sprint": 3,
+      "taskIndex": 7,
+      "kind": "ui",
+      "text": "Remove `DirectXRenderer` ownership from `WindowsWindowState` and update all active call sites to the WGPU renderer path. Owned scope: `crates/gpux/crates/gpui_windows/src/window.rs` and adjacent platform state. Validation: source search shows no active `DirectXRenderer` window ownership.",
+      "taskTextHash": "cd5009b028b33183f91053afd1dc21a871730b8773b7535236cdfa24d001b08d",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "interaction",
+        "runtime",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-3-task-8",
+      "sprint": 3,
+      "taskIndex": 8,
+      "kind": "ui",
+      "text": "Delete or decommission DirectX renderer/device/atlas code that has no remaining active callers, keeping only clearly named Windows OS integration that is still required. Owned scope: `gpui_windows` DirectX modules/imports/Cargo dependencies. Validation: `rg` confirms obsolete renderer modules are unused or removed.",
+      "taskTextHash": "22022ed8ce41ce3ca8a0261affdfb1a568de219d22dc3738f7bfaaf6944bf915",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "interaction",
+        "runtime",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-3-task-9",
+      "sprint": 3,
+      "taskIndex": 9,
+      "kind": "ui",
+      "text": "Run `cargo fmt --all`, focused gpux checks/tests, Windows native runtime proof, and headed WASM/WebGPU validation. Owned scope: validation only. Validation: commands succeed or exact blockers are recorded with root-cause notes.",
+      "taskTextHash": "f2e25673c1542c50560d0d3c1169650cb8a1f78dec4c0c5fb2cce8000237cb9b",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "interaction",
+        "runtime",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-4-task-1",
+      "sprint": 4,
+      "taskIndex": 1,
+      "kind": "ui",
+      "text": "Route `AndroidBackend::{Vulkan,Gles}` preference into WGPU instance/backend selection, or replace the preference API with a clean truthful surface. Owned scope: `crates/gpux/crates/gpui_mobile/src/android/platform.rs`, `android/window.rs`, and any narrow WGPU context factory needed. Validation: Android diagnostics report the selected backend policy and source proves it is used.",
+      "taskTextHash": "26f16654f71bbf7c4bf6486b323e2a76b4f12af4d21b4a728267c6c92a04515a",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "contract",
+        "integration",
+        "interaction",
+        "runtime",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-4-task-2",
+      "sprint": 4,
+      "taskIndex": 2,
+      "kind": "feature",
+      "text": "Preserve Android `Mailbox` present mode and surface unconfigure/replacement behavior across `term_window` and `init_window`. Owned scope: Android window lifecycle. Validation: Android runtime proof or exact `adb`/device blocker plus compile/configuration checks.",
+      "taskTextHash": "2e477b3a3a1c31f12ad150749ec248c43c034cc668a8253bca2948894fc07183",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-4-task-3",
+      "sprint": 4,
+      "taskIndex": 3,
+      "kind": "feature",
+      "text": "Add targeted temporary traces around Android native window lifecycle only when diagnosing failures, then remove them. Owned scope: temporary Android diagnostics. Validation: final diff has no trace-only hooks.",
+      "taskTextHash": "fa7ab56406eff1715e3e38b909026507f7776b8b7fb02a212587e659ad1098b5",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-4-task-4",
+      "sprint": 4,
+      "taskIndex": 4,
+      "kind": "ui",
+      "text": "Prove Android renders every WGPU shader-effect capability advertised by `WgpuRenderer`, including element effects, screen effects, and retained snapshot/transition effects. Owned scope: Android WGPU renderer validation and any Android-specific WGPU fixes. Validation: Android runtime proof shows nonblank effect output and no shader compilation, pipeline, bind-layout, surface, or logcat renderer errors.",
+      "taskTextHash": "8170618034edbfa90814bbb4b6114c4707afce5555e46cc81a5f867fd6a11dc1",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "interaction",
+        "regression",
+        "runtime",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-4-task-5",
+      "sprint": 4,
+      "taskIndex": 5,
+      "kind": "ui",
+      "text": "Make iOS platform-window capability reporting delegate to `WgpuRenderer::effect_capabilities()` when the renderer exists. Owned scope: `crates/gpux/crates/gpui_mobile/src/ios/window.rs`. Validation: compile/source proof plus runtime proof through macOS/device/simulator/CI tooling.",
+      "taskTextHash": "2876250f3f5c5b9452d77ea18057383c6bc46d2207d541d1462cda1baaa46801",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "interaction",
+        "runtime",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-4-task-6",
+      "sprint": 4,
+      "taskIndex": 6,
+      "kind": "ui",
+      "text": "Preserve explicit `wgpu::Backends::METAL` instance creation for `GPUIMetalView`/`CAMetalLayer`. Owned scope: iOS WGPU initialization. Validation: source assertion and compile/configuration check.",
+      "taskTextHash": "a0a8af502ba004f47c44c454e53082124eda65f828bc7384a630a5a863c1a645",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "interaction",
+        "runtime",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-4-task-7",
+      "sprint": 4,
+      "taskIndex": 7,
+      "kind": "port",
+      "text": "Confirm iOS CoreText text system remains independent from the Windows text-system migration. Owned scope: source audit only unless breakage is found. Validation: source inventory/traceability updated.",
+      "taskTextHash": "3042972db371daf13e858b7973e51227d0d7f8548a32adb5cdd0e0098f1e59bf",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "integration",
+        "migration",
+        "parity",
+        "runtime",
+        "traceability",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-4-task-8",
+      "sprint": 4,
+      "taskIndex": 8,
+      "kind": "ui",
+      "text": "Prove iOS renders every WGPU shader-effect capability advertised by `WgpuRenderer`, including element effects, screen effects, and retained snapshot/transition effects. Owned scope: iOS WGPU renderer validation and any Metal/WGPU fixes. Validation: iOS runtime proof shows nonblank effect output and no shader compilation, pipeline, bind-layout, surface, or renderer errors.",
+      "taskTextHash": "31de454c01de1a6e578d7b37d6be6f166841363296f20eac5e4ecf834958908e",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "interaction",
+        "regression",
+        "runtime",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-4-task-9",
+      "sprint": 4,
+      "taskIndex": 9,
+      "kind": "ui",
+      "text": "Run Android validation through the repository `xtask` path plus `adb`/`logcat`. Owned scope: validation only. Validation: app launches, first frame renders, backend diagnostics appear, the full WGPU shader-effect suite renders, and no renderer crash occurs.",
+      "taskTextHash": "9fb730257888054fc518ef9bb0c22bf7d915f60166ffa7e0cdf3acc31bc9cc2b",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "interaction",
+        "runtime",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-4-task-10",
+      "sprint": 4,
+      "taskIndex": 10,
+      "kind": "ui",
+      "text": "Run iOS validation through macOS/device/simulator/CI tooling. Owned scope: validation only. Validation: app launches, first frame renders, Metal/WGPU diagnostics appear, the full WGPU shader-effect suite renders, and no renderer crash occurs.",
+      "taskTextHash": "166af6c6392774a781539df27f2fec12e8e38a37317ea61e5ca012b6ce40a5cb",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "interaction",
+        "runtime",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-4-task-11",
+      "sprint": 4,
+      "taskIndex": 11,
+      "kind": "ui",
+      "text": "Run headed WASM/WebGPU validation after mobile changes to protect the shared WGPU renderer path. Owned scope: validation only. Validation: WebGPU run remains green.",
+      "taskTextHash": "ae77f3bd68acd230c97b30a44ade3709ac7ca54989f973d23cecf119ea3b0502",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "interaction",
+        "runtime",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-5-task-1",
+      "sprint": 5,
+      "taskIndex": 1,
+      "kind": "feature",
+      "text": "Run `cargo fmt --all`. Owned scope: validation only. Validation: command succeeds.",
+      "taskTextHash": "d31cef82b26f3773306a55e3c5c5cba668a1bf55839e027ef28019e0e4bd3e1c",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-5-task-2",
+      "sprint": 5,
+      "taskIndex": 2,
+      "kind": "feature",
+      "text": "Run focused checks/tests for changed gpux crates and affected app manifests. Owned scope: validation only. Validation: commands succeed or exact blockers are recorded.",
+      "taskTextHash": "6dc12fa03fa4598ae8bd8ee66e1bd2bccce526d076bdec238d99426e9f94fb00",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-5-task-3",
+      "sprint": 5,
+      "taskIndex": 3,
+      "kind": "docs",
+      "text": "Run `cargo clippy --workspace --all-features -- -D warnings`. Owned scope: validation only. Validation: command succeeds or an exact pre-existing blocker is documented.",
+      "taskTextHash": "4846e7a9e2c6c2905ab4681ef9e50fff9ef33a54b0723f6d5a40e872ea6249f7",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "docs"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-5-task-4",
+      "sprint": 5,
+      "taskIndex": 4,
+      "kind": "ui",
+      "text": "Run `cargo run -p xtask -- app apps/lab test wasm --headed --webgpu`. Owned scope: validation only. Validation: headed Playwright/WebGPU passes with no page/WebGPU errors.",
+      "taskTextHash": "ed674788e7b2dd1852f6914e980253b5af75194dca0e147e6e2b706109fb954b",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "interaction",
+        "runtime",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-5-task-5",
+      "sprint": 5,
+      "taskIndex": 5,
+      "kind": "feature",
+      "text": "Run Windows native Lab/host runtime proof and inspect diagnostics for WGPU renderer state. Owned scope: validation only. Validation: first frame, resize, text, effect capabilities, and clean close are proven.",
+      "taskTextHash": "587e7ff7afe5ca03261aeb456eb40000bebd616682df954d518e141da0c17473",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-5-task-6",
+      "sprint": 5,
+      "taskIndex": 6,
+      "kind": "port",
+      "text": "Update `source-inventory.md` and `traceability.md` with implemented source links, validation commands, and any accepted blockers. Owned scope: AgentX task artifacts. Validation: every requirement maps to implementation and proof.",
+      "taskTextHash": "5d303fb0eb21ebda8258eda66339bda39f106bec4d427893f61b2bbc86ceb292",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "interaction",
+        "parity",
+        "runtime",
+        "traceability",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-5-task-7",
+      "sprint": 5,
+      "taskIndex": 7,
+      "kind": "migration",
+      "text": "Update any gpux/RayX docs that still claim Windows native rendering is DirectX-only after the WGPU migration lands. Owned scope: docs only. Validation: `rg` over docs/tasks finds no stale Windows renderer claims.",
+      "taskTextHash": "4896732289d8182f1e72ddfa68b11c29481b8bd2d30c72d2eb9665096f8900fd",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "docs",
+        "integration",
+        "migration"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-5-task-8",
+      "sprint": 5,
+      "taskIndex": 8,
+      "kind": "port",
+      "text": "Record a decision if backend policy changes beyond the planned Windows `VULKAN | GL` default or Android preference wiring. Owned scope: `.agentx/memory/decisions/runtime/gpux-foundation/`. Validation: decision follows AgentX format and is linked from traceability.",
+      "taskTextHash": "22a07aa6097ab89dce0ee3368c6379c9daf529b6646cef1be5be4b1570bba498",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "measurement",
+        "parity",
+        "performance",
+        "runtime",
+        "traceability",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-5-task-9",
+      "sprint": 5,
+      "taskIndex": 9,
+      "kind": "bugfix",
+      "text": "Remove temporary traces, debug flags, local validation artifacts, and unused renderer imports/modules. Owned scope: cleanup only. Validation: `rg` confirms no trace-only markers remain and git status contains no generated artifacts.",
+      "taskTextHash": "f32eb9f3134e7a2ff7ac7fcd400ae7acb2e5a336a7fbfefccfc123030de554d1",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "regression",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-5-task-10",
+      "sprint": 5,
+      "taskIndex": 10,
+      "kind": "performance",
+      "text": "Update `.agentx/memory/knowledge/runtime/gpux-foundation/state.md`, `knowledge.md`, `rules.md`, or `hypotheses.md` only with proven durable behavior from the completed implementation. Owned scope: AgentX memory. Validation: memory statements cite source/validation facts and do not overclaim untested targets.",
+      "taskTextHash": "2f23201f620c59bdeb4035c215de8d788bdaf8839692aac8146e774b2c371aa2",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "measurement",
+        "performance",
+        "unit"
+      ],
+      "evidenceRequired": true
+    },
+    {
+      "id": "sprint-5-task-11",
+      "sprint": 5,
+      "taskIndex": 11,
+      "kind": "port",
+      "text": "Run the AgentX task audit and repair any contract/state/traceability issues before closeout. Owned scope: AgentX task artifacts. Validation: audit exits successfully.",
+      "taskTextHash": "6d593b4f59d8581837e6b4a4ba560f04ae8623bc43031e6e83c0dcac9dfe8f2a",
+      "ownedScope": [],
+      "requirements": [],
+      "acceptance": [],
+      "validationProfiles": [
+        "contract",
+        "integration",
+        "parity",
+        "runtime",
+        "traceability",
+        "unit"
+      ],
+      "evidenceRequired": true
+    }
+  ]
+}

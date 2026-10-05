@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 3,
+  "status": "done",
+  "totalSprints": 6,
+  "currentSprint": -1,
+  "currentTask": -1,
+  "activeTasks": [],
+  "leaseEpoch": 26,
+  "attempts": {
+    "sprint-1-task-1": 8,
+    "sprint-1-task-2": 6,
+    "sprint-2-task-1": 1,
+    "sprint-2-task-2": 1,
+    "sprint-3-task-1": 1,
+    "sprint-3-task-2": 1,
+    "sprint-4-task-1": 2,
+    "sprint-4-task-2": 1,
+    "sprint-4-task-3": 1,
+    "sprint-5-task-1": 1,
+    "sprint-5-task-2": 1,
+    "sprint-6-task-1": 1,
+    "sprint-6-task-2": 1
+  },
+  "run": {
+    "status": "done",
+    "requestedBoundary": "epic",
+    "maxParallelSprints": 1,
+    "maxAttempts": 8,
+    "lastHeartbeatAt": "2026-07-24T10:53:28Z",
+    "blocker": {},
+    "repositoryBaselines": {
+      "main": "ec46a2a5d1dae041786f71d8292b5febbeace105"
+    },
+    "sprintBaselines": {
+      "1": {
+        "main": "c7bfe2a8eac14d2c0181fd0729f188213e652f8d"
+      },
+      "2": {
+        "main": "ad1a40cfa8c900cd4f0b7e3799bb78cdc5724825"
+      },
+      "3": {
+        "main": "339aed9e3049bc997e3aeca678fee0cd6a008615"
+      },
+      "4": {
+        "main": "ab2373e14b3e424d261d1f34f5583485a1ba9216"
+      },
+      "5": {
+        "main": "6c96e2489ca45518c45ffae9e6a2c88d951cdf8b"
+      },
+      "6": {
+        "main": "964679145edb9feff2a5719b50d35afd00e2644b"
+      }
+    }
+  },
+  "lastResumeAt": "2026-07-24T11:01:57Z",
+  "lastResumeSpecHashes": {
+    "requirements": "ae3d92b7a929370b91a9fff25a0ed28f8bd477ec1cc16c6ea9f12691fc0a0fac",
+    "design": "b0fb0e9a1e3c9ab4ccb5dd7351bedcdb0ebd623b7ab716b07c780ce27680448a",
+    "plan": "211f6c39325322d2a8482f3b9251b695676d6f56dc49d5bdf3f11222e98ce656",
+    "contracts": "4cb09b020225e14a17cfdab41808876f7ef4e886f126e019ad673f5f1e8c8f0d"
+  }
+}

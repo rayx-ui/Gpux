@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "id": "1038b27f-4878-497b-ae7c-826827836208",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 56,
+  "type": "hypothesis",
+  "name": "Taffy Measurement Origin Telemetry",
+  "slug": "taffy-measurement-origin-telemetry",
+  "path": "2026-08-31-56-taffy-measurement-origin-telemetry.json",
+  "createdAt": "2026-08-31T04:36:27Z",
+  "startedAt": "2026-08-31T04:36:27Z",
+  "finishedAt": "2026-08-31T04:55:12Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "524e63d5e8f9860084d5d4e6b39acd581a7d6d7c",
+  "resultCommit": "d7b828a11546922704c2e5c942420c2e043f53d8",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 524e63d5e8f9860084d5d4e6b39acd581a7d6d7c",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "524e63d5e8f9860084d5d4e6b39acd581a7d6d7c",
+      "resultCommit": "d7b828a11546922704c2e5c942420c2e043f53d8",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 524e63d5e8f9860084d5d4e6b39acd581a7d6d7c",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "d7b828a11546922704c2e5c942420c2e043f53d8"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "crates/gpux/crates/gpui/src/taffy.rs",
+  "hypothesisMarkdown": "Text measurement accounts for the dominant share of the warmed wide DataTable's 882 repeated measured-leaf calls, while custom list and uniform-list sizing contribute only a small minority. Identifying the owner distribution will constrain any explicit invalidation contract to the hot owner rather than broadening the public layout API prematurely.\n",
+  "measurementPlanMarkdown": "Tag the four existing measured-layout entry paths as text, list, uniform-list, or custom inside diagnostics only, publish aggregate call counts in the existing latest-frame telemetry, and assert the counts partition total calls. Run focused tests, full gpux and WGPU tests, formatting, clippy, production/diagnostic checks, and one headed WebGPU Test Suite run at DPR 1 and DPR 2 with all established invariants exact.\n",
+  "expectedOutcomeMarkdown": "Text should account for most or all 882 calls at each DPR. The four category counts must sum exactly to total measurement calls, and the existing 882 comparable/same-input/same-output with zero changed-output signature should remain unchanged.\n",
+  "diagnostics": {
+    "playwright": [
+      "The final headed Chromium/WebGPU build passed DPR 1 and DPR 2: 2/2 cases, exact final offset -351402.6875, and zero browser errors.",
+      "Both final frames preserved 1123 Taffy nodes, 229 measured leaves, 82 root compute calls, 882 stable comparable measurements, and all established renderer/layout invariants."
+    ],
+    "rayx": [
+      "All 413 gpux unit tests and every integration suite passed with rayx_diagnostics.",
+      "All 52 serialized gpui_wgpu tests passed with rayx_diagnostics.",
+      "Production check, diagnostic checks, focused formatting, Clippy with warnings denied, diff checks, and source-owner classification tests passed."
+    ],
+    "counters": [
+      "DPR 1: text 882, list 0, uniform-list 0, custom 0; category sum exactly equals 882 total calls.",
+      "DPR 2: text 882, list 0, uniform-list 0, custom 0; category sum exactly equals 882 total calls."
+    ],
+    "artifacts": [
+      "artifacts-temp/agentx-experiments/2026-08-30-gpux-maximum-performance/56-taffy-measurement-origin-telemetry/playwright-final"
+    ]
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 text share of measured calls",
+      "before": "unknown",
+      "after": "882 / 882 (100%)",
+      "delta": "list 0, uniform-list 0, custom 0"
+    },
+    {
+      "metric": "DPR 2 text share of measured calls",
+      "before": "unknown",
+      "after": "882 / 882 (100%)",
+      "delta": "list 0, uniform-list 0, custom 0"
+    }
+  ],
+  "reportMarkdown": "## Taffy Measurement Origin Telemetry Finished\n\n**Index:** 56\n**Checkpoint:** `524e63d5e8f9860084d5d4e6b39acd581a7d6d7c`\n**Result:** `d7b828a11546922704c2e5c942420c2e043f53d8`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. Diagnostics-only caller classification partitions Taffy measurement calls into text, list, uniform-list, and custom categories without changing the public measured-layout API or production builds. The diagnostic build uses caller source location only to label the existing bounded latest-frame counters.\n\nThe final headed wide DataTable result is exact at both DPRs: text owns all 882 measurement calls; list, uniform-list, and custom each own zero. All 882 calls remain comparable with identical inputs and snapped outputs, with zero changed outputs. Both cases retained the exact `-351402.6875` final offset, zero errors, 1,123 nodes, 229 measured leaves, 82 root compute calls, and all renderer invariants.\n\nAll 413 gpux unit tests and integration suites, all 52 serialized WGPU tests, production and diagnostics checks, formatting, Clippy with warnings denied, and two headed WebGPU cases passed.\n\n### Scope Lock\n\nOnly diagnostics-gated origin classification/counters, telemetry publication, one focused classification oracle, and Test Suite partition assertions changed. Production measurement behavior, public APIs, Taffy configuration, and rendering are unchanged.\n\n### Decision\n\nAccept the telemetry. Constrain the next cache/invalidation research to `TextLayout`; do not add a generic measured-layout cache API based on this workload because non-text owners contribute no calls here.\n",
+  "decisionMarkdown": "Accept diagnostics-only owner classification. The warmed wide DataTable's 882/882 calls at both DPRs are text, so the next optimization must be text-owned and must not broaden generic measured-layout APIs without separate evidence from list, uniform-list, or custom workloads.\n",
+  "notes": ""
+}

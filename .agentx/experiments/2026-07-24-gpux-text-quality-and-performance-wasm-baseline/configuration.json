@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "maxIterations": 20,
+  "instructions": "Use only apps/test_suite and tools-node/test_suite. Run headed Playwright with WebGPU enabled. Baseline and every experiment retain raw JSON, screenshots, work counters, and fixed fixtures. Do not run Windows, Android, iOS, or macOS validation.",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "lastStableCommit": "0ce4a6a3f"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  }
+}

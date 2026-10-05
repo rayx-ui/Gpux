@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "id": "dc424089-d0a5-4558-ae79-72a6a8d787db",
+  "name": "WASM Text Rendering Quality",
+  "objective": "Select the smallest existing-path glyph rendering strategy that meets the frozen matched-DOM quality, geometry, performance, cache, atlas, and native-DPR gates",
+  "metric": "",
+  "target": "",
+  "maxIterations": 8,
+  "maxExperiments": 8,
+  "state": "done",
+  "status": "failure",
+  "createdAt": "2026-08-04T14:57:12Z",
+  "finishedAt": "2026-08-04T15:38:30Z",
+  "lastStableCommit": "8332a2881cd29395e5048eb65faa8fc725a252ba",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "lastStableCommit": "8332a2881cd29395e5048eb65faa8fc725a252ba"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "currentExperimentId": null,
+  "nextExperimentIndex": 9,
+  "experiments": [
+    {
+      "id": "cc0ee20f-acaf-472a-a1c1-627ec309d7d6",
+      "index": 1,
+      "type": "baseline",
+      "name": "Baseline Measurement",
+      "path": "2026-08-04-01-baseline-measurement.json",
+      "startedAt": "2026-08-04T14:57:12Z",
+      "finishedAt": "2026-08-04T15:03:11Z",
+      "state": "done",
+      "status": "success",
+      "resultCommit": "4ca42e6dee72184a2e6a1896fe8e1b5248ce864b"
+    },
+    {
+      "id": "66bc09c9-560f-4608-bdfb-9beb66950113",
+      "index": 2,
+      "type": "hypothesis",
+      "name": "Publish Current Candidate Measurements",
+      "path": "2026-08-04-02-publish-current-candidate-measurements.json",
+      "startedAt": "2026-08-04T15:03:47Z",
+      "finishedAt": "2026-08-04T15:06:31Z",
+      "state": "done",
+      "status": "success",
+      "resultCommit": "5aa3499824b0af04a52edff624b1b5dba1345e4d"
+    },
+    {
+      "id": "4e863422-0ff1-47a5-b75e-eac283720d59",
+      "index": 3,
+      "type": "hypothesis",
+      "name": "Correct Physical Glyph Sampling Phase",
+      "path": "2026-08-04-03-correct-physical-glyph-sampling-phase.json",
+      "startedAt": "2026-08-04T15:06:59Z",
+      "finishedAt": "2026-08-04T15:11:40Z",
+      "state": "done",
+      "status": "failure"
+    },
+    {
+      "id": "11c2571e-3085-4c32-82b9-7fe30f2d6ae3",
+      "index": 4,
+      "type": "hypothesis",
+      "name": "Use Native Swash Alpha On WASM",
+      "path": "2026-08-04-04-use-native-swash-alpha-on-wasm.json",
+      "startedAt": "2026-08-04T15:13:02Z",
+      "finishedAt": "2026-08-04T15:15:49Z",
+      "state": "done",
+      "status": "failure"
+    },
+    {
+      "id": "1ba85301-ebb0-43f3-9bbd-dfff115cf5e3",
+      "index": 5,
+      "type": "hypothesis",
+      "name": "Align Swash Raster Hinting With Layout",
+      "path": "2026-08-04-05-align-swash-raster-hinting-with-layout.json",
+      "startedAt": "2026-08-04T15:17:14Z",
+      "finishedAt": "2026-08-04T15:19:14Z",
+      "state": "done",
+      "status": "failure"
+    },
+    {
+      "id": "9b2ba1b2-af11-4377-b740-d23df3153632",
+      "index": 6,
+      "type": "hypothesis",
+      "name": "Downsample Glyph Local High Resolution Coverage",
+      "path": "2026-08-04-06-downsample-glyph-local-high-resolution-coverage.json",
+      "startedAt": "2026-08-04T15:20:50Z",
+      "finishedAt": "2026-08-04T15:26:48Z",
+      "state": "done",
+      "status": "failure"
+    },
+    {
+      "id": "3409a5b8-5711-4422-9846-db85e27d7864",
+      "index": 7,
+      "type": "hypothesis",
+      "name": "Evaluate Matched DOM Fringe Excess",
+      "path": "2026-08-04-07-evaluate-matched-dom-fringe-excess.json",
+      "startedAt": "2026-08-04T15:28:09Z",
+      "finishedAt": "2026-08-04T15:31:59Z",
+      "state": "done",
+      "status": "success",
+      "resultCommit": "bd937a2af22f3e19a64d1f358637be6542b92437"
+    },
+    {
+      "id": "17fb09fc-ad81-474e-b352-bac0a2b20be1",
+      "index": 8,
+      "type": "hypothesis",
+      "name": "Enable Composition Safe Browser LCD",
+      "path": "2026-08-04-08-enable-composition-safe-browser-lcd.json",
+      "startedAt": "2026-08-04T15:34:08Z",
+      "finishedAt": "2026-08-04T15:38:15Z",
+      "state": "done",
+      "status": "failure"
+    }
+  ]
+}

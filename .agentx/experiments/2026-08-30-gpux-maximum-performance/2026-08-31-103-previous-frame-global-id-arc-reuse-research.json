@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "id": "18e362d4-965c-427f-a7d7-4439057963a6",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 103,
+  "type": "hypothesis",
+  "name": "Previous Frame Global ID Arc Reuse Research",
+  "slug": "previous-frame-global-id-arc-reuse-research",
+  "path": "2026-08-31-103-previous-frame-global-id-arc-reuse-research.json",
+  "createdAt": "2026-08-31T16:48:07Z",
+  "startedAt": "2026-08-31T16:48:07Z",
+  "finishedAt": "2026-08-31T16:53:07Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "a5dd0782b5a3e3662a8e9b8abaced2f7fee7c9c6",
+  "resultCommit": "a5dd0782b5a3e3662a8e9b8abaced2f7fee7c9c6",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard a5dd0782b5a3e3662a8e9b8abaced2f7fee7c9c6",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "a5dd0782b5a3e3662a8e9b8abaced2f7fee7c9c6",
+      "resultCommit": "a5dd0782b5a3e3662a8e9b8abaced2f7fee7c9c6",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard a5dd0782b5a3e3662a8e9b8abaced2f7fee7c9c6",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "a5dd0782b5a3e3662a8e9b8abaced2f7fee7c9c6"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux GlobalElementId path allocation ownership and bounded previous-frame reuse",
+  "hypothesisMarkdown": "## Previous-Frame Global ID Arc Reuse Research Hypothesis\n\nA window-owned, two-generation hash-to-`GlobalElementId` cache can reuse unchanged `Arc<[ElementId]>` paths without changing the public representation or relying on hash equality alone.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nResearch only. Inspect current gpux construction, draw reset, state-map ownership, tests, and prior evidence; calculate bounds and define a collision-safe mechanism. Production code, tests, dependencies, configuration, and adjacent cleanup are forbidden.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nTrace every `GlobalElementId::new` call and window draw boundary, determine whether all hot constructors can route through one window-owned cache, prove full-path equality is checked after cached-hash lookup, quantify retained entries/bytes and avoided path copies from existing counters, and identify focused tests. Pass only if the design is bounded, collision-safe, and simpler than a general interner.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nSelect or reject one exact production mechanism for experiment 104 with source-backed invariants and quantitative expected benefit.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [
+      "Research inspected only current gpux source and prior accepted Test Suite evidence.",
+      "The isolated native size probe ran from ignored experiment artifacts."
+    ],
+    "counters": [
+      "Current evidence reports 485 creations, 8668 path elements, 24 same-frame duplicates, and 485 previous-frame hash hits.",
+      "Full-path equality remains mandatory because the existing previous-frame counter is hash-based."
+    ],
+    "artifacts": []
+  },
+  "measurements": {
+    "schemaVersion": 1,
+    "status": "success",
+    "productFilesChanged": 0,
+    "productionConstructorSites": 3,
+    "constructorSitesWithMutableWindowAccess": 3,
+    "elementIdSizeBytes": 40,
+    "globalElementIdSizeBytes": 24,
+    "globalIdsPerFrame": 485,
+    "pathElementsPerFrame": 8668,
+    "sameFrameDuplicates": 24,
+    "previousFrameHashHits": 485,
+    "elementPayloadCopiedPerFrameBytes": 346720,
+    "profileFrameCountApproximate": 1400,
+    "profileArcAllocationsApproximate": 679000,
+    "profileElementPayloadCopiedBytesApproximate": 485408000,
+    "profileElementPayloadCopiedMiBApproximate": 462.921142578125,
+    "uniqueHashesPerGeneration": 461,
+    "twoGenerationEntryCount": 922,
+    "twoGenerationKeyValuePayloadBytes": 29504,
+    "nextTarget": "WindowFrame two-generation GlobalElementId Arc reuse"
+  },
+  "reportMarkdown": "# Previous-Frame Global ID Arc Reuse Research\n\nAll production `GlobalElementId` construction sites already have mutable `Window` access: `Drawable::request_layout`, its inspector-path branch, and `Window::with_global_id`. The narrowest owner is therefore `WindowFrame`, not a process-wide or window-lifetime interner.\n\n`Window` already rotates `rendered_frame` and `next_frame`, then clears the old frame after the swap. Adding a hash-indexed path cache to each `WindowFrame` naturally gives exactly two generations during construction: current-frame duplicate lookup in `next_frame`, previous-frame reuse from `rendered_frame`, and automatic stale-entry removal through `WindowFrame::clear`. The maps retain capacity like the frame's existing vectors and maps, but live `GlobalElementId` entries stay bounded to current and previous frames.\n\nCorrectness does not rely on the 64-bit cached hash. Lookup must filter candidates with authoritative full-slice equality and allocate normally on a collision. A single value per hash remains correct: if distinct paths collide, one may miss cache reuse but can never receive the wrong identity. The inspector branch can clone the already-created global ID because it uses the identical stack.\n\nThe native size probe reports `ElementId = 40` bytes and `GlobalElementId = 24` bytes. The measured frame clones 8,668 elements into 485 Arc slices, at least 346,720 bytes of element payload per frame before allocation headers and nested reference-count work. Across roughly 1,400 profiled frames that is 679,000 allocations and 462.92 MiB of element payload copied. With 24 same-frame duplicates, the observed upper map population is 461 hashes per generation; two generations carry 922 `(u64, GlobalElementId)` payloads, 29,504 bytes before table control/capacity overhead, while sharing the Arc allocations.\n\nThe design is bounded, private, collision-safe, and substantially narrower than changing `GlobalElementId` representation. Experiment 104 should implement only this `WindowFrame` cache and route the three constructors through it.\n\nNo product, test, dependency, or configuration source changed.\n",
+  "decisionMarkdown": "# Decision\n\nProceed with a two-generation `WindowFrame` global-ID path cache. Index by the existing cached hash, require full path equality before reuse, tolerate collisions as cache misses, clear through the existing frame lifecycle, clone the existing global ID for inspector identity, and keep `Arc<[ElementId]>` plus all public semantics unchanged.\n",
+  "notes": ""
+}

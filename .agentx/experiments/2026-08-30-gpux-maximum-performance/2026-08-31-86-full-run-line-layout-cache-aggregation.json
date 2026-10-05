@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "id": "874d3210-7a1d-4d41-ae95-d07a1e13d0cf",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 86,
+  "type": "hypothesis",
+  "name": "Full Run Line Layout Cache Aggregation",
+  "slug": "full-run-line-layout-cache-aggregation",
+  "path": "2026-08-31-86-full-run-line-layout-cache-aggregation.json",
+  "createdAt": "2026-08-31T14:09:55Z",
+  "startedAt": "2026-08-31T14:09:55Z",
+  "finishedAt": "2026-08-31T14:16:06Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "78a62eec8c77f1e2eff370193f558e8be9519653",
+  "resultCommit": "2e157e1b316f6acaea21a92f850127830f0bd1ea",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 78a62eec8c77f1e2eff370193f558e8be9519653",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "78a62eec8c77f1e2eff370193f558e8be9519653",
+      "resultCommit": "2e157e1b316f6acaea21a92f850127830f0bd1ea",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 78a62eec8c77f1e2eff370193f558e8be9519653",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "2e157e1b316f6acaea21a92f850127830f0bd1ea"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "wasm/web with headed Playwright and WebGPU enabled",
+  "hypothesisMarkdown": "## Full Run Line Layout Cache Aggregation Hypothesis\n\nCapturing every existing per-frame WGPU telemetry object during the profiled benchmark interval and summing its line-cache path counters will reveal the true full-run request/hit/miss cardinality without adding gpux hot-path instrumentation.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nOnly the focused wide-DataTable Playwright spec and AgentX metadata may change. Gpux production source, telemetry schemas, cache representation, pooling, dependencies, Taffy, shaders, RayX application code, and unrelated assertions are forbidden.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nInstall a page-local setter around `__rayxWgpuFrameDiagnostics` before CPU profiling and benchmark interactions, aggregate every published snapshot's wrapped/line requests and current/previous/miss counters, and persist the aggregate with the existing result JSON. Run the focused headed WebGPU spec at DPR 1/2 and preserve all established exact invariants and zero errors. Pass if aggregate accounting is exact and produces a decisive positive miss population.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nA material miss population will justify a separate atomic cache-miss ownership experiment; negligible misses will reject cache representation work and redirect to frame cleanup or broader element ownership.",
+  "diagnostics": {
+    "playwright": [
+      "The focused headed Chromium/WebGPU spec passed at DPR 1 and DPR 2 (2/2).",
+      "The modified spec compiled through Playwright and captured 1511/1424 frame snapshots."
+    ],
+    "rayx": [
+      "The multithreaded WASM build verified shared memory, wasm_thread_entry_point, and 99282 atomic-prefix bytes."
+    ],
+    "counters": [
+      "DPR1: 484348 wrapped requests = 28903 current hits + 409371 previous hits + 46074 misses.",
+      "DPR2: 456481 wrapped requests = 27246 current hits + 381229 previous hits + 48006 misses.",
+      "Nested line requests exactly equaled wrapped misses and had zero current/previous hits at both DPRs."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "DPR1 full-run wrapped cache misses",
+      "before": "final-frame only: 0 / 320",
+      "after": "46074 / 484348",
+      "delta": "9.5126% cumulative miss rate",
+      "source": "1511 captured WGPU frame snapshots"
+    },
+    {
+      "metric": "DPR2 full-run wrapped cache misses",
+      "before": "final-frame only: 0 / 320",
+      "after": "48006 / 456481",
+      "delta": "10.5165% cumulative miss rate",
+      "source": "1424 captured WGPU frame snapshots"
+    },
+    {
+      "metric": "Nested unwrapped line requests",
+      "before": "unknown cumulative cardinality",
+      "after": "46074 / 48006",
+      "delta": "one per wrapped miss",
+      "source": "DPR1 / DPR2 aggregate telemetry"
+    },
+    {
+      "metric": "Nested unwrapped line cache hits",
+      "before": "unknown",
+      "after": "0 / 0",
+      "delta": "all 94080 requests missed",
+      "source": "DPR1 / DPR2 aggregate telemetry"
+    }
+  ],
+  "reportMarkdown": "## Full Run Line Layout Cache Aggregation Finished\n\n**Index:** 86\n**Checkpoint:** 78a62eec8\n**Result Commit:** 2e157e1b3\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status**: true. The focused headed Test Suite WASM/WebGPU spec passed at DPR 1 and DPR 2, and every aggregate accounting identity was exact.\n\nDPR 1 observed 1,511 published frames, 484,348 wrapped-layout requests, 28,903 current-frame hits, 409,371 previous-frame hits, and 46,074 misses (9.5126%). DPR 2 observed 1,424 frames, 456,481 requests, 27,246 current hits, 381,229 previous hits, and 48,006 misses (10.5165%). Every wrapped miss invoked the unwrapped line cache exactly once, and all 94,080 nested line requests missed both current and previous caches. This is a material, repeatable population and directly explains the profiled `LineLayoutCache::layout_line` allocation ancestry.\n\nThe established renderer, Taffy, text, style, final offset -351402.6875, and zero-error invariants remained exact. The repository-wide TypeScript check still reports its pre-existing unrelated configuration/test errors; none refer to the modified benchmark spec, which compiled and ran through Playwright.\n\n### Scope Lock\n\nOnly the focused Test Suite spec aggregates existing frame telemetry. No gpux source, telemetry schema, cache behavior, dependency, Taffy, shader, or RayX application source changed.\n\n### Repository Checkpoints\n\n| Repo | Path | Checkpoint | Result Commit | Status | Rollback |\n| --- | --- | --- | --- | --- | --- |\n| main | . | 78a62eec8 | 2e157e1b3 | committed | `git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 78a62eec8c77f1e2eff370193f558e8be9519653` |\n\n### Decision\n\nAccept the full-run aggregation. Proceed to one production experiment that removes the redundant nested unwrapped-cache ownership work for wrapped misses while preserving wrapped cache identity and exact rendering behavior.\n",
+  "decisionMarkdown": "### Decision\n\nThe cumulative 46,074/48,006 wrapped misses and exact 94,080 nested line-cache misses justify a separate atomic cache-miss ownership experiment. Preserve the wrapped cache and semantics; test only removal of redundant nested unwrapped-cache insertion/allocation for wrapped misses, with broad tests and repeated headed WebGPU measurement.\n",
+  "notes": ""
+}

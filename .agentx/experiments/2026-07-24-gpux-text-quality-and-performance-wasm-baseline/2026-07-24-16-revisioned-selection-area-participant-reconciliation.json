@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "id": "9ab9e8eb-ebc4-4e32-8f45-7549bdc18b2f",
+  "loopId": "54e74b74-483c-4598-92d7-fdbabbc9154b",
+  "index": 16,
+  "type": "hypothesis",
+  "name": "Revisioned SelectionArea participant reconciliation",
+  "slug": "revisioned-selection-area-participant-reconciliation",
+  "path": "2026-07-24-16-revisioned-selection-area-participant-reconciliation.json",
+  "createdAt": "2026-07-24T06:11:14Z",
+  "startedAt": "2026-07-24T06:11:14Z",
+  "finishedAt": "2026-07-24T06:28:07Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "e83f512a55f5d26dab7c1f68160362284b129436",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard e83f512a5",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "e83f512a55f5d26dab7c1f68160362284b129436",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard e83f512a5",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "headed WASM/WebGPU SelectionArea fixture at DPR 1 and DPR 2",
+  "hypothesisMarkdown": "## Revisioned SelectionArea participant reconciliation\n\nReplace per-frame participant ID vectors and temporary `HashSet`s with an area-owned revisioned position map. Reconcile registration identity and order from the next traversal in one pass, retaining only active participants without participant-sized temporary sets.\n\n",
+  "measurementPlanMarkdown": "### Measurement plan\n\nMeasure the existing many-participant SelectionArea fixture with headed WASM/WebGPU at DPR 1 and DPR 2 using 35 repetitions per project and discard five warmups. Compare p50 and p95 input-to-published-frame durations, then run the focused fixture after the change.\n\n",
+  "expectedOutcomeMarkdown": "### Expected outcome\n\nUnchanged SelectionArea frames avoid temporary ID and `HashSet` allocations while preserving participant order, nested and disabled scopes, and selection behavior. Reject on a focused fixture failure, screenshot regression, or a p95 regression above five percent.\n\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": {
+    "target": "headed WASM/WebGPU SelectionArea fixture; 35 repetitions per DPR with five warmups discarded",
+    "before": {
+      "dpr1": {
+        "count": 30,
+        "p50Ms": 88.19,
+        "p95Ms": 95.91
+      },
+      "dpr2": {
+        "count": 29,
+        "p50Ms": 89.56,
+        "p95Ms": 106.01
+      }
+    },
+    "after": {
+      "dpr1": {
+        "count": 30,
+        "p50Ms": 94.62,
+        "p95Ms": 105.4
+      },
+      "dpr2": {
+        "count": 30,
+        "p50Ms": 93.14,
+        "p95Ms": 104.05
+      }
+    },
+    "artifacts": "16-participant-reconciliation-before-output and 16-participant-reconciliation-after-retry-output"
+  },
+  "reportMarkdown": "## Revisioned SelectionArea participant reconciliation\n\nRejected and reverted. The candidate replaced temporary participant ID vectors and `HashSet`s with a revisioned area-owned position map. The focused SelectionArea fixture rendered correctly and passed its normal DPR 1/DPR 2 smoke run, but its repeated DPR 1 p95 input-to-published-frame duration regressed from 95.91 ms to 105.40 ms (9.9%). That exceeds the experiment's five-percent limit.\n\nThe first baseline pass had one unrelated DPR 2 browser closure during screenshot capture; a narrow DPR 2 retry passed. The accepted 70-run post-change measurement completed with no failures. The source was returned exactly to its checkpoint implementation before recording this result.\n\nDecision: do not retain the map. A later experiment must improve dormant reconciliation without introducing a map-maintenance cost on every participant traversal.\n",
+  "decisionMarkdown": "",
+  "notes": ""
+}

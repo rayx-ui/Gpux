@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "id": "585bc604-dc33-41d6-a6a6-856318a052da",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 129,
+  "type": "hypothesis",
+  "name": "Global Element ID Ownership Research",
+  "slug": "global-element-id-ownership-research",
+  "path": "2026-08-31-129-global-element-id-ownership-research.json",
+  "createdAt": "2026-08-31T20:09:45Z",
+  "startedAt": "2026-08-31T20:09:45Z",
+  "finishedAt": "2026-08-31T20:11:53Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "264194e3c8023a2c29d57787bd8f9ddc95ba0a0f",
+  "resultCommit": "264194e3c8023a2c29d57787bd8f9ddc95ba0a0f",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 264194e3c8023a2c29d57787bd8f9ddc95ba0a0f",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "264194e3c8023a2c29d57787bd8f9ddc95ba0a0f",
+      "resultCommit": "264194e3c8023a2c29d57787bd8f9ddc95ba0a0f",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 264194e3c8023a2c29d57787bd8f9ddc95ba0a0f",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "264194e3c8023a2c29d57787bd8f9ddc95ba0a0f"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux global element ID path allocation and frame-state ownership",
+  "hypothesisMarkdown": "## Global Element ID Ownership Research Hypothesis\n\nFresh `Arc<[ElementId]>` creation costs 96.7/131.6 ms and diagnostics show all 485 warmed IDs match a previous-frame hash. The existing previous-frame element-state lookup may allow gpux to reuse the canonical stored `GlobalElementId` path before allocating a new arc, while retaining full collision-safe equality and current public semantics.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRead-only trace of global-ID construction, path hashing, element-state keys, previous/next frame ownership, call ordering, and collision handling. Inspect all current creation sites and state-transfer APIs. Do not edit source, tests, dependencies, configuration, or fixtures.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nMap `GlobalElementId::new` callers to previous-frame state access and determine whether an existing canonical key can be found without first constructing an owned path. Quantify the available warmed hit population and identify required API/data-structure changes, additional hashing, collision checks, allocation, and borrow constraints. Accept only a source-complete go/no-go result.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nEstablish whether previous-frame canonical ID reuse can remove fresh path allocations with simple safe ownership, or reject it when lookup requires equivalent allocation, global indexing, or complex lifetime machinery.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [
+      "485 of 485 previous-frame hash hits",
+      "8668 path elements and maximum depth 23",
+      "global ID construction precedes state TypeId selection",
+      "existing element-state key cannot canonicalize before allocation"
+    ],
+    "artifacts": [
+      "Drawable phase source trace",
+      "WindowFrame state ownership source trace",
+      "with_global_id and with_element_state source trace"
+    ]
+  },
+  "measurements": {
+    "acceptedFrame": {
+      "globalIdCreations": 485,
+      "previousFrameHashHits": 485,
+      "sameFrameDuplicateHashes": 24,
+      "pathElements": 8668,
+      "averagePathLength": 17.87216494845361,
+      "maximumPathLength": 23
+    },
+    "profileSelfMs": {
+      "deviceScaleFactor1": 96.725,
+      "deviceScaleFactor2": 131.63
+    },
+    "existingCanonicalLookupAvailableBeforeAllocation": false,
+    "stateKeyRequiresTypeId": true,
+    "diagnosticHashSetCollisionSafe": false,
+    "newIndexRequired": true
+  },
+  "reportMarkdown": "# Experiment 129 Report\n\n`Drawable::request_layout` constructs and owns `GlobalElementId` before calling an element's request-layout implementation. The ID then lives across the request-layout, prepaint, and paint phases. At construction time no element-state type is known.\n\nThe persistent state table cannot serve as an allocation-free canonical path source: it is keyed by `(GlobalElementId, TypeId)`, and `with_element_state` is reached only after the owned ID has already been created. Its removal lookup therefore requires both a fully hashable/equatable global ID and the state type. `with_global_id` has the same construction-before-callback ordering. The diagnostics-only previous-hash set proves hash recurrence but cannot be used as a canonical source because hash collisions must retain full-path equality.\n\nSafe reuse would require a separate collision-safe canonical-ID index owned by `Window`, populated across frames and consulted during every ID construction. It would add bounded two-generation cache ownership, lookup, invalidation, collision buckets, and current-frame duplicate handling. The existing state table offers no direct small reuse path, so the hypothesized change is not justified without a dedicated cache-cost measurement and design.\n",
+  "decisionMarkdown": "# Decision\n\nReject direct canonical path reuse from the existing element-state table. Preserve collision-safe `Arc<[ElementId]>` ownership. If global-ID allocation remains a priority, first measure a separately scoped bounded canonical-index design; do not repurpose diagnostic hashes or couple ID construction to a state `TypeId` that is not yet available.\n",
+  "notes": ""
+}

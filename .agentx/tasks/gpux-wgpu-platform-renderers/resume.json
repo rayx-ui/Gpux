@@ -1,0 +1,34 @@
+{
+  "taskDir": ".\\.agentx\\tasks\\gpux-wgpu-platform-renderers",
+  "sprintCount": 5,
+  "taskCount": 49,
+  "state": {
+    "schemaVersion": 1,
+    "status": "progress",
+    "totalSprints": 5,
+    "currentSprint": 4,
+    "currentTask": 8,
+    "lastResumeAt": "2026-07-08T06:24:52Z",
+    "lastResumeSpecHashes": {
+      "requirements": "f6805c146cece77353229884d3751a0588f11171c421233e7974ad4524b17b5e",
+      "design": "b40cab6106a34dc76c79dd134c23fcf377d22a9deae55f33c8e6d6ba07746dc4",
+      "plan": "a98f2b7e83d12e339c597a63d96dbb7318edf6fccc9adc13c67c5bb1daf519f1",
+      "contracts": "764e47e03262285926210e550e7e3dbe2b7837e8224adf7a9f9c9d31ee3f86e6"
+    }
+  },
+  "currentTaskId": "sprint-4-task-8",
+  "nextUncheckedTaskId": "sprint-4-task-8",
+  "specHashes": {
+    "requirements": "f6805c146cece77353229884d3751a0588f11171c421233e7974ad4524b17b5e",
+    "design": "b40cab6106a34dc76c79dd134c23fcf377d22a9deae55f33c8e6d6ba07746dc4",
+    "plan": "a98f2b7e83d12e339c597a63d96dbb7318edf6fccc9adc13c67c5bb1daf519f1",
+    "contracts": "764e47e03262285926210e550e7e3dbe2b7837e8224adf7a9f9c9d31ee3f86e6"
+  },
+  "schemaVersion": 1,
+  "resumedAt": "2026-07-08T06:24:52Z",
+  "gitHead": "4c28f981a6135709659fa2c3a495d23e7a349669",
+  "gitStatusShort": " M .agentx/memory/decisions/INDEX.md\n M .agentx/memory/knowledge/runtime/gpux-foundation/knowledge.md\n M .agentx/memory/knowledge/runtime/gpux-foundation/rules.md\n M .agentx/memory/knowledge/runtime/gpux-foundation/state.md\n M .agentx/tasks/gpux-wgpu-platform-renderers/implementation-plan.md\n M .agentx/tasks/gpux-wgpu-platform-renderers/source-inventory.md\n M .agentx/tasks/gpux-wgpu-platform-renderers/state.json\n M .agentx/tasks/gpux-wgpu-platform-renderers/traceability.md\n M Cargo.lock\n M Cargo.toml\n M apps/lab/Cargo.lock\n M apps/lab/Cargo.toml\n M apps/lab/assets/index.entries.json\n M crates/gpux/Cargo.lock\n M crates/gpux/crates/gpui/src/gpui.rs\n M crates/gpux/crates/gpui/src/scene.rs\n M crates/gpux/crates/gpui/src/window.rs\n M crates/gpux/crates/gpui_mobile/Cargo.toml\n M crates/gpux/crates/gpui_mobile/src/android/mod.rs\n M crates/gpux/crates/gpui_mobile/src/android/platform.rs\n M crates/gpux/crates/gpui_mobile/src/android/window.rs\n M crates/gpux/crates/gpui_mobile/src/ios/window.rs\n M crates/gpux/crates/gpui_mobile/src/lib.rs\n M crates/gpux/crates/gpui_web/src/events.rs\n M crates/gpux/crates/gpui_web/src/window.rs\n M crates/gpux/crates/gpui_wgpu/src/cosmic_text_system.rs\n M crates/gpux/crates/gpui_wgpu/src/wgpu_context.rs\n M crates/gpux/crates/gpui_wgpu/src/wgpu_renderer.rs\n M crates/gpux/crates/gpui_windows/Cargo.toml\n D crates/gpux/crates/gpui_windows/build.rs\n D crates/gpux/crates/gpui_windows/src/alpha_correction.hlsl\n D crates/gpux/crates/gpui_windows/src/color_text_raster.hlsl\n D crates/gpux/crates/gpui_windows/src/direct_write.rs\n D crates/gpux/crates/gpui_windows/src/directx_atlas.rs\n D crates/gpux/crates/gpui_windows/src/directx_devices.rs\n D crates/gpux/crates/gpui_windows/src/directx_renderer.rs\n M crates/gpux/crates/gpui_windows/src/events.rs\n M crates/gpux/crates/gpui_windows/src/gpui_windows.rs\n M crates/gpux/crates/gpui_windows/src/platform.rs\n D crates/gpux/crates/gpui_windows/src/shaders.hlsl\n M crates/gpux/crates/gpui_windows/src/util.rs\n M crates/gpux/crates/gpui_windows/src/window.rs\n M crates/gpux/vendor/wgpu/Cargo.toml\n M crates/gpux/vendor/wgpu/wgpu-hal/Cargo.toml\n M crates/gpux/vendor/wgpu/wgpu-hal/src/dx12/mod.rs\n M crates/gpux/vendor/wgpu/wgpu-hal/src/dx12/suballocation.rs\n M crates/rayx/rayx_devkit/src/app_ext.rs\n M crates/rayx/rayx_devkit/src/lib.rs\n M crates/rayx/rayx_devkit/src/nodes.rs\n M crates/rayx/rayx_devkit/src/protocol.rs\n M crates/rayx/rayx_devkit/src/runtime.rs\n?? .agentx/memory/decisions/runtime/gpux-foundation/2026-07-08-runtime-gpux-foundation-windows-wgpu-dx12-policy.md\n?? .agentx/memory/decisions/runtime/gpux-foundation/2026-07-08-runtime-gpux-foundation-windows-wgpu-dxgi-scaling.md\n?? .agentx/tasks/gpux-wgpu-platform-renderers/evidence.jsonl\n?? .agentx/tasks/gpux-wgpu-platform-renderers/resume.json\n?? crates/gpux/crates/gpui_mobile/src/android_backend.rs\n",
+  "errors": [],
+  "warnings": [],
+  "requiredNextAction": "Continue or resolve active task sprint-4-task-8; do not switch tasks without recording a blocker."
+}

@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "id": "c4068194-17c0-4a03-a646-2bef37d5d59e",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 68,
+  "type": "hypothesis",
+  "name": "Explicit WASM Constructors",
+  "slug": "explicit-wasm-constructors",
+  "path": "2026-08-31-68-explicit-wasm-constructors.json",
+  "createdAt": "2026-08-31T07:50:12Z",
+  "startedAt": "2026-08-31T07:50:12Z",
+  "finishedAt": "2026-08-31T08:04:32Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "69e3b7ccd",
+  "resultCommit": "82b6fdb1e46ae897b80cbaea9b97ff8cb590d8ed",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 69e3b7ccd",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "69e3b7ccd",
+      "resultCommit": "82b6fdb1e46ae897b80cbaea9b97ff8cb590d8ed",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 69e3b7ccd",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "82b6fdb1e46ae897b80cbaea9b97ff8cb590d8ed"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpui_platform browser startup and headed Test Suite WebGPU",
+  "hypothesisMarkdown": "# Hypothesis\n\nCalling the linker-synthesized `__wasm_call_ctors` routine explicitly from `gpui_platform::web_init` will make the final browser module reactor-style, remove the linker-injected constructor call from every command export, and eliminate the measured repeated `inventory::Registry::submit` overhead without changing application or worker behavior.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\nMake only the explicit constructor-call change in gpui_platform. Build the canonical threaded Test Suite WASM target and disassemble the final `run`, worker, allocator, and constructor symbols. Require exactly one source-owned call path and no command-export wrappers that call the constructor routine. Run focused gpux tests, clippy, native checks, all serialized WGPU tests, and three independent headed WebGPU benchmark processes at DPR 1 and DPR 2. Compare three-process throughput and p95 medians to experiment 66 while preserving exact established diagnostics and zero terminal errors.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nThe final binary no longer calls `__wasm_call_ctors` from every command export, application startup and background workers remain correct, CPU profiles no longer attribute substantial time to repeated inventory registration, and acknowledged rendering throughput improves at both DPRs without semantic drift.\n",
+  "diagnostics": {
+    "tests": {
+      "gpux_unit_tests": 419,
+      "gpux_integration_suites": "passed",
+      "gpui_platform_tests": "passed",
+      "serialized_wgpu_tests": 52,
+      "headed_webgpu_cases": 6,
+      "profiled_headed_webgpu_cases": 2,
+      "terminal_errors": 0
+    },
+    "static_validation": {
+      "focused_rustfmt": "passed",
+      "diff_check": "passed",
+      "gpui_platform_clippy_denied_warnings": "passed",
+      "native_production_check": "passed",
+      "native_diagnostic_check": "passed"
+    },
+    "runtime_invariants": {
+      "final_offset": -351402.6875,
+      "taffy_nodes": 1123,
+      "taffy_measured_leaves": 229,
+      "taffy_compute_calls": 82,
+      "batches": 9,
+      "queue_writes": 12,
+      "submissions": 1,
+      "shared_memory": true,
+      "wasm_thread_entry_point": true
+    }
+  },
+  "measurements": {
+    "binary": {
+      "constructor_call_sites_before": "linker-generated command wrappers on every export",
+      "constructor_call_sites_after": 1,
+      "remaining_call_owner": "gpui_platform::web_init",
+      "command_export_wrappers_after": 0,
+      "atomic_prefix_bytes_before": 99160,
+      "atomic_prefix_bytes_after": 99112
+    },
+    "cpu_profile": {
+      "inventory_submit_self_ms_before_dpr1_dpr2": [
+        506.85,
+        464.9
+      ],
+      "inventory_or_constructor_samples_after_dpr1_dpr2": [
+        0,
+        0
+      ]
+    },
+    "three_process_medians": {
+      "dpr1": {
+        "throughput_before": 25.0372413316532,
+        "throughput_after": 30.2280738399296,
+        "throughput_delta_percent": 20.7324,
+        "paced_p95_ms_before": 29.631103515625,
+        "paced_p95_ms_after": 26.1435546875,
+        "paced_p95_improvement_percent": 11.7699
+      },
+      "dpr2": {
+        "throughput_before": 24.8647713867649,
+        "throughput_after": 29.9894339726756,
+        "throughput_delta_percent": 20.6101,
+        "paced_p95_ms_before": 29.71142578125,
+        "paced_p95_ms_after": 26.356201171875,
+        "paced_p95_improvement_percent": 11.2927
+      }
+    }
+  },
+  "reportMarkdown": "# Explicit WASM Constructors\n\n`gpui_platform::web_init` now explicitly invokes the linker-synthesized `__wasm_call_ctors` routine once before GPUI browser initialization. This makes the application reactor-style from wasm-ld's perspective and removes the command wrapper that previously traversed the complete constructor list before every exported call.\n\nFinal-binary disassembly proves one constructor call remains, owned by `gpui_platform::web_init`. Linker-generated wrappers are absent from `run`, `wasm_thread_entry_point`, `__wbindgen_malloc`, `__wbindgen_free`, `__wbindgen_realloc`, and the other exports. Atomic-prefix bytes fell from 99,160 to 99,112. Fresh DPR 1/2 CPU profiles contain zero samples for `inventory` or `__wasm_call_ctors`, versus 506.85/464.90 ms of `inventory::Registry::submit` self time before the change.\n\nAll 419 gpux unit tests and integration suites, gpui_platform checks, all 52 serialized WGPU tests, native production and diagnostic Test Suite checks, focused formatting, warning-denied gpui_platform Clippy, and eight headed WebGPU cases passed. The final six cadence cases preserved exact layout, text, renderer, scroll, worker, and error invariants.\n\nAgainst experiment 66, three-process median acknowledged throughput improved from 25.037241 to 30.228074 steps/s at DPR 1 (+20.73%) and from 24.864771 to 29.989434 at DPR 2 (+20.61%). Paced p95 improved from 29.631104 to 26.143555 ms (+11.77%) and from 29.711426 to 26.356201 ms (+11.29%).\n",
+  "decisionMarkdown": "# Decision\n\nAccept the explicit constructor initialization. It removes a directly proven repeated traversal from every browser export, eliminates all constructor/inventory samples from the same CPU profile, improves both throughput and paced p95 by double digits at both DPRs, and preserves main-thread and multithreaded worker runtime behavior. Keep browser applications routed through `gpui_platform::web_init` exactly once before GPUI use, and retain final-binary disassembly as the validation guard.\n",
+  "notes": ""
+}

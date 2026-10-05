@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "id": "331910cb-6310-420a-8a1e-8c9b4e6f1170",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 81,
+  "type": "hypothesis",
+  "name": "Gpux Owned Request Style Handoff",
+  "slug": "gpux-owned-request-style-handoff",
+  "path": "2026-08-31-81-gpux-owned-request-style-handoff.json",
+  "createdAt": "2026-08-31T12:37:59Z",
+  "startedAt": "2026-08-31T12:37:59Z",
+  "finishedAt": "2026-08-31T13:16:06Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "80b31c4e1cdaf6d98efe9e9fd57ece279325f572",
+  "resultCommit": "5974344141f60fcff3adef101e4ef3aa3f5a14f8",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 80b31c4e1cdaf6d98efe9e9fd57ece279325f572",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "80b31c4e1cdaf6d98efe9e9fd57ece279325f572",
+      "resultCommit": "5974344141f60fcff3adef101e4ef3aa3f5a14f8",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 80b31c4e1cdaf6d98efe9e9fd57ece279325f572",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "5974344141f60fcff3adef101e4ef3aa3f5a14f8"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "wasm/web with headed Playwright and WebGPU enabled",
+  "hypothesisMarkdown": "## Gpux Owned Request Style Handoff Hypothesis\n\nA private borrowed-style request path used only by gpux-owned Div, Img, Svg, and UniformList implementations can retain the already-computed request `Style` in the existing window-owned draw-local slot, consume it during prepaint, and replace that same slot with the final prepaint style for paint. This should remove exactly 716 warmed prepaint style computations while leaving all 13 external custom `Interactivity::request_layout` consumers on the unchanged public consuming-callback path.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nAllowed changes are the private `Interactivity` request helper, gpux-owned Div/Img/Svg/UniformList call sites, borrowed internal Window/Taffy layout entry points, the existing draw-local style store, a diagnostic actual-consumption counter, WGPU/web transport, focused tests, Test Suite assertions, and successful durable guidance. Public `Interactivity::request_layout` semantics or signatures, RayX callers, external ownership, Taffy algorithms/dependencies, shaders, renderer batching, unrelated cleanup, cross-frame caches, and any second mechanism are forbidden.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nCapture three independent headed Test Suite WebGPU processes at DPR 1 and DPR 2 before editing and three after. Require exact established final-scroll, renderer, Taffy, text, ownership-partition, and error invariants. Require request-static-eligible=757, prepaint-request-candidate=729, gpux-owned-prepaint-candidate=716, external-prepaint-candidate=13, and a production consumption counter proving exactly 716 request styles were consumed at both DPRs. Run focused gpux tests, the complete gpux suite, serialized gpui_wgpu tests, production/diagnostic package checks, Test Suite production/diagnostic checks, focused rustfmt, warning-denied gpux Clippy, loop validation, and memory audit. Accept only if both DPRs avoid material throughput or p95 regression and diagnostic/profile evidence proves the 716 computations were removed without cloning `Style` or changing external semantics.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nThe warmed frame should reuse 716 gpux-owned request styles in prepaint and then retain the existing 729 final-style reuses in paint. The external 13 candidates should continue recomputing through the public callback path. The draw-local store should remain bounded near the 742 gpux-owned request-eligible slots rather than doubling capacity, while acknowledged throughput and/or paced p95 improve without behavior or public API changes.",
+  "diagnostics": {
+    "playwright": [
+      "Three independent pre-change and three independent post-change headed Test Suite WebGPU processes passed at DPR 1 and DPR 2 (12 cases total)."
+    ],
+    "rayx": [
+      "Every case preserved final offset -351402.6875, exact established renderer/Taffy/text/style counters, and zero terminal errors."
+    ],
+    "counters": [
+      "Post-change stylePrepaintRequestReuseCount=716, stylePrepaintGpuxOwnedRequestCandidateCount=716, and stylePrepaintExternalRequestCandidateCount=13 at both DPRs in all three processes.",
+      "Repeated multithreaded WASM atomic prefix decreased from 99385 to 99188 bytes."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "DPR1 median acknowledged steps/s",
+      "before": "30.558132836967403",
+      "after": "30.517850539284748",
+      "delta": "-0.13%",
+      "source": "three independent headed Test Suite WebGPU processes"
+    },
+    {
+      "metric": "DPR2 median acknowledged steps/s",
+      "before": "30.60432758964064",
+      "after": "30.680947522770477",
+      "delta": "+0.25%",
+      "source": "three independent headed Test Suite WebGPU processes"
+    },
+    {
+      "metric": "DPR1 median paced p95 catch-up latency",
+      "before": "24.136474609375 ms",
+      "after": "24.9189453125 ms",
+      "delta": "+3.24%",
+      "source": "three independent headed Test Suite WebGPU processes"
+    },
+    {
+      "metric": "DPR2 median paced p95 catch-up latency",
+      "before": "25.18310546875 ms",
+      "after": "25.588623046875 ms",
+      "delta": "+1.61%",
+      "source": "three independent headed Test Suite WebGPU processes"
+    },
+    {
+      "metric": "Gpux-owned request styles consumed in prepaint",
+      "before": "0",
+      "after": "716",
+      "delta": "+716 exact reuses per warmed frame",
+      "source": "rayx_diagnostics WGPU frame telemetry at DPR 1 and DPR 2"
+    },
+    {
+      "metric": "Multithreaded WASM atomic prefix",
+      "before": "99385 bytes",
+      "after": "99188 bytes",
+      "delta": "-197 bytes",
+      "source": "xtask WASM verification"
+    }
+  ],
+  "reportMarkdown": "## Gpux Owned Request Style Handoff Finished\n\n**Index:** 81\n**Time:** 2026-08-31-15-14\n**Checkpoint:** 80b31c4e1\n**Result Commit:** 597434414\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status**: true. The private gpux-owned handoff removed exactly 716 warmed prepaint style computations while preserving the 13 external public consuming-callback paths and every established runtime invariant. Three-process medians showed no material throughput or p95 regression.\n\n### Scope Lock\n\n**Tested mechanism:** move the already-computed gpux-owned request Style through the existing draw-local slot into prepaint, then replace that same slot with the final style for paint.\n**Out-of-scope changes:** none.\n\n### Repository Checkpoints\n\n| Repo | Path | Checkpoint | Result Commit | Status | Rollback |\n| --- | --- | --- | --- | --- | --- |\n| main | . | 80b31c4e1 | 597434414 | committed | `git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 80b31c4e1cdaf6d98efe9e9fd57ece279325f572` |\n\n### Measurements\n\n| Metric | Before | After | Delta | Source |\n| --- | ---: | ---: | ---: | --- |\n| DPR1 acknowledged throughput | 30.5581 | 30.5179 | -0.13% | three headed WebGPU processes |\n| DPR2 acknowledged throughput | 30.6043 | 30.6809 | +0.25% | three headed WebGPU processes |\n| DPR1 paced p95 | 24.1365 ms | 24.9189 ms | +3.24% | three headed WebGPU processes |\n| DPR2 paced p95 | 25.1831 ms | 25.5886 ms | +1.61% | three headed WebGPU processes |\n| Request styles reused in prepaint | 0 | 716 | +716 | exact WGPU telemetry |\n| WASM atomic prefix | 99385 bytes | 99188 bytes | -197 bytes | xtask verification |\n\n### Decision\n\nCommitted success. Public `Interactivity::request_layout` semantics remain unchanged; only gpux-owned Div, Img, Svg, and UniformList use the private borrowed handoff. Complete gpux tests (419 unit plus integrations), 52 serialized WGPU tests, production/diagnostic checks, warning-denied gpux Clippy, focused rustfmt, headed Test Suite WebGPU, loop validation, and memory audit passed.\n\nCommit done (main): 597434414 `perf(gpux): hand off request styles through prepaint`.",
+  "decisionMarkdown": "### Decision\n\nAccept and commit. The exact 716-computation removal is proven, external semantics remain unchanged, all correctness gates pass, and three-process timing movement is within observed variance rather than a material regression.",
+  "notes": "Attempt Count: 1. Scope lock held. Raw browser output remains under artifacts-temp/agentx-experiments/2026-08-30-gpux-maximum-performance/81-gpux-owned-request-style-handoff/."
+}

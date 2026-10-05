@@ -1,0 +1,256 @@
+{
+  "schemaVersion": 3,
+  "generatorVersion": "3.0",
+  "epicId": "gpux-text-rendering-quality-performance",
+  "sprint": 3,
+  "status": "passed",
+  "headBeforeCommit": "e3b6056db8edfdb03d768e1aa78ad24ce59320bf",
+  "filesReviewed": [
+    "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\11-single-line-layout-row-splice-hypothesis.md",
+    "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\11-single-line-layout-row-splice-measurements.json",
+    "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\11-single-line-layout-row-splice-report.md",
+    "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\12-wrapped-row-splice-parity-report.md",
+    "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\13-full-boundary-parity-report.md",
+    "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\14-visible-selection-quad-bounds-report.md",
+    "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\apps\\test_suite\\src\\routes.rs",
+    "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\gpux\\crates\\gpui\\src\\elements\\editable_text\\element.rs",
+    "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\gpux\\crates\\gpui\\src\\elements\\editable_text\\layout_map.rs",
+    "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\rayx\\rayx_components\\rayx_components_core\\src\\components\\form\\text_area\\text_area.rs",
+    "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\rayx\\rayx_components\\rayx_components_core\\src\\components\\scroll\\editable_text_scrollbar_handle.rs",
+    "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test-results\\test_suite-rayx-text-area--e56f9-ishes-a-headed-WebGPU-frame-chromium-dpr2\\text-area-keyboard-selection.png",
+    "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-area-drag-selection-performance.spec.ts",
+    "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-area-edit-performance.spec.ts",
+    "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-area-keyboard-selection-performance.spec.ts"
+  ],
+  "conformance": [
+    {
+      "requirementId": "REQ-F-003",
+      "taskIds": [
+        "sprint-3-task-1",
+        "sprint-3-task-2"
+      ],
+      "implementationLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\11-single-line-layout-row-splice-hypothesis.md",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\11-single-line-layout-row-splice-measurements.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\11-single-line-layout-row-splice-report.md",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\12-wrapped-row-splice-parity-report.md",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\13-full-boundary-parity-report.md",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\14-visible-selection-quad-bounds-report.md",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\gpux\\crates\\gpui\\src\\elements\\editable_text\\element.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\gpux\\crates\\gpui\\src\\elements\\editable_text\\layout_map.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\rayx\\rayx_components\\rayx_components_core\\src\\components\\form\\text_area\\text_area.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\rayx\\rayx_components\\rayx_components_core\\src\\components\\scroll\\editable_text_scrollbar_handle.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test-results\\test_suite-rayx-text-area--e56f9-ishes-a-headed-WebGPU-frame-chromium-dpr2\\text-area-keyboard-selection.png"
+      ],
+      "testLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\apps\\test_suite\\src\\routes.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-area-drag-selection-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-area-edit-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-area-keyboard-selection-performance.spec.ts"
+      ],
+      "evidenceProfiles": [
+        "behavior-preservation",
+        "integration",
+        "interaction",
+        "performance",
+        "regression",
+        "runtime",
+        "unit"
+      ],
+      "missingProfiles": [],
+      "result": "pass",
+      "reason": "All mapped tasks are done with fresh profile-complete evidence."
+    },
+    {
+      "requirementId": "REQ-F-006",
+      "taskIds": [
+        "sprint-3-task-1",
+        "sprint-3-task-2"
+      ],
+      "implementationLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\11-single-line-layout-row-splice-hypothesis.md",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\11-single-line-layout-row-splice-measurements.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\11-single-line-layout-row-splice-report.md",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\12-wrapped-row-splice-parity-report.md",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\13-full-boundary-parity-report.md",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\14-visible-selection-quad-bounds-report.md",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\gpux\\crates\\gpui\\src\\elements\\editable_text\\element.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\gpux\\crates\\gpui\\src\\elements\\editable_text\\layout_map.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\rayx\\rayx_components\\rayx_components_core\\src\\components\\form\\text_area\\text_area.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\rayx\\rayx_components\\rayx_components_core\\src\\components\\scroll\\editable_text_scrollbar_handle.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test-results\\test_suite-rayx-text-area--e56f9-ishes-a-headed-WebGPU-frame-chromium-dpr2\\text-area-keyboard-selection.png"
+      ],
+      "testLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\apps\\test_suite\\src\\routes.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-area-drag-selection-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-area-edit-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-area-keyboard-selection-performance.spec.ts"
+      ],
+      "evidenceProfiles": [
+        "behavior-preservation",
+        "integration",
+        "interaction",
+        "performance",
+        "regression",
+        "runtime",
+        "unit"
+      ],
+      "missingProfiles": [],
+      "result": "pass",
+      "reason": "All mapped tasks are done with fresh profile-complete evidence."
+    },
+    {
+      "requirementId": "REQ-NF-001",
+      "taskIds": [
+        "sprint-3-task-1",
+        "sprint-3-task-2"
+      ],
+      "implementationLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\11-single-line-layout-row-splice-hypothesis.md",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\11-single-line-layout-row-splice-measurements.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\11-single-line-layout-row-splice-report.md",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\12-wrapped-row-splice-parity-report.md",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\13-full-boundary-parity-report.md",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\14-visible-selection-quad-bounds-report.md",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\gpux\\crates\\gpui\\src\\elements\\editable_text\\element.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\gpux\\crates\\gpui\\src\\elements\\editable_text\\layout_map.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\rayx\\rayx_components\\rayx_components_core\\src\\components\\form\\text_area\\text_area.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\rayx\\rayx_components\\rayx_components_core\\src\\components\\scroll\\editable_text_scrollbar_handle.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test-results\\test_suite-rayx-text-area--e56f9-ishes-a-headed-WebGPU-frame-chromium-dpr2\\text-area-keyboard-selection.png"
+      ],
+      "testLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\apps\\test_suite\\src\\routes.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-area-drag-selection-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-area-edit-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-area-keyboard-selection-performance.spec.ts"
+      ],
+      "evidenceProfiles": [
+        "behavior-preservation",
+        "integration",
+        "interaction",
+        "performance",
+        "regression",
+        "runtime",
+        "unit"
+      ],
+      "missingProfiles": [],
+      "result": "pass",
+      "reason": "All mapped tasks are done with fresh profile-complete evidence."
+    },
+    {
+      "requirementId": "REQ-NF-002",
+      "taskIds": [
+        "sprint-3-task-1",
+        "sprint-3-task-2"
+      ],
+      "implementationLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\11-single-line-layout-row-splice-hypothesis.md",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\11-single-line-layout-row-splice-measurements.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\11-single-line-layout-row-splice-report.md",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\12-wrapped-row-splice-parity-report.md",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\13-full-boundary-parity-report.md",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\14-visible-selection-quad-bounds-report.md",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\gpux\\crates\\gpui\\src\\elements\\editable_text\\element.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\gpux\\crates\\gpui\\src\\elements\\editable_text\\layout_map.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\rayx\\rayx_components\\rayx_components_core\\src\\components\\form\\text_area\\text_area.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\rayx\\rayx_components\\rayx_components_core\\src\\components\\scroll\\editable_text_scrollbar_handle.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test-results\\test_suite-rayx-text-area--e56f9-ishes-a-headed-WebGPU-frame-chromium-dpr2\\text-area-keyboard-selection.png"
+      ],
+      "testLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\apps\\test_suite\\src\\routes.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-area-drag-selection-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-area-edit-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-area-keyboard-selection-performance.spec.ts"
+      ],
+      "evidenceProfiles": [
+        "behavior-preservation",
+        "integration",
+        "interaction",
+        "performance",
+        "regression",
+        "runtime",
+        "unit"
+      ],
+      "missingProfiles": [],
+      "result": "pass",
+      "reason": "All mapped tasks are done with fresh profile-complete evidence."
+    },
+    {
+      "requirementId": "REQ-NF-003",
+      "taskIds": [
+        "sprint-3-task-1",
+        "sprint-3-task-2"
+      ],
+      "implementationLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\11-single-line-layout-row-splice-hypothesis.md",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\11-single-line-layout-row-splice-measurements.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\11-single-line-layout-row-splice-report.md",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\12-wrapped-row-splice-parity-report.md",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\13-full-boundary-parity-report.md",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\14-visible-selection-quad-bounds-report.md",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\gpux\\crates\\gpui\\src\\elements\\editable_text\\element.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\gpux\\crates\\gpui\\src\\elements\\editable_text\\layout_map.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\rayx\\rayx_components\\rayx_components_core\\src\\components\\form\\text_area\\text_area.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\rayx\\rayx_components\\rayx_components_core\\src\\components\\scroll\\editable_text_scrollbar_handle.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test-results\\test_suite-rayx-text-area--e56f9-ishes-a-headed-WebGPU-frame-chromium-dpr2\\text-area-keyboard-selection.png"
+      ],
+      "testLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\apps\\test_suite\\src\\routes.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-area-drag-selection-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-area-edit-performance.spec.ts",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\tools-node\\test_suite\\rayx-text-area-keyboard-selection-performance.spec.ts"
+      ],
+      "evidenceProfiles": [
+        "behavior-preservation",
+        "integration",
+        "interaction",
+        "performance",
+        "regression",
+        "runtime",
+        "unit"
+      ],
+      "missingProfiles": [],
+      "result": "pass",
+      "reason": "All mapped tasks are done with fresh profile-complete evidence."
+    }
+  ],
+  "commands": [
+    {
+      "command": "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-area-performance.spec.ts",
+      "exitCode": 0,
+      "assertion": "Broad sprint validation passed.",
+      "stdoutHash": "bf31d034d864793be7586f93aad34b84b36c74c5dd6e8f1d187d9a42b3585597",
+      "stderrHash": "aede6f48c49689965be87c92f642a68eca27754dad03dc29f742dd28d97cd8da",
+      "failureOutputTail": ""
+    },
+    {
+      "command": "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-shell-performance.spec.ts",
+      "exitCode": 0,
+      "assertion": "Broad sprint validation passed.",
+      "stdoutHash": "1a52958885c35983173fcbd036c37fb7655fc894f7c9bb06ffc7dbc2af3ab25d",
+      "stderrHash": "ad4b2a80fd04b6050754b79be5861da301ba27f06948723d93e199da991a4306",
+      "failureOutputTail": ""
+    },
+    {
+      "command": "python C:/Users/dinko/.codex/skills/agentx/scripts/improvement_loop_state.py --root . validate",
+      "exitCode": 0,
+      "assertion": "Broad sprint validation passed.",
+      "stdoutHash": "6024844f74fc8706e8b6891ce0b37a65ff2ee195254a254ce90600fd7abf76db",
+      "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "failureOutputTail": ""
+    },
+    {
+      "command": "cargo run -p xtask -- check-source-guard",
+      "exitCode": 0,
+      "assertion": "Broad sprint validation passed.",
+      "stdoutHash": "2d13e37a3fa369e670d343477fafd2b2237ce41609d6de34f245662671bdf392",
+      "stderrHash": "6b2dcc5d42510525fa8b6aae5fd563601b81085503713ba17b17893d3c8847a3",
+      "failureOutputTail": ""
+    }
+  ],
+  "defects": [],
+  "repairs": [],
+  "reauditCount": 2,
+  "residualRisks": [],
+  "generatedAt": "2026-07-24T05:50:09Z"
+}

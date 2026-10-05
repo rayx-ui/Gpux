@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "id": "b190c7f7-8589-41d1-b471-d6ab6bc6cf9a",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 7,
+  "type": "hypothesis",
+  "name": "Bounds Tree Intersection Push Pruning",
+  "slug": "bounds-tree-intersection-push-pruning",
+  "path": "2026-08-30-07-bounds-tree-intersection-push-pruning.json",
+  "createdAt": "2026-08-30T19:30:11Z",
+  "startedAt": "2026-08-30T19:30:11Z",
+  "finishedAt": "2026-08-30T19:37:57Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "c47eb4607dfd0bc02150a12cc5e47cfbe39262d5",
+  "resultCommit": "0259855b83ce340e456f5a441f6977af0625218c",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard c47eb4607dfd0bc02150a12cc5e47cfbe39262d5",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "c47eb4607dfd0bc02150a12cc5e47cfbe39262d5",
+      "resultCommit": "0259855b83ce340e456f5a441f6977af0625218c",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard c47eb4607dfd0bc02150a12cc5e47cfbe39262d5",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "0259855b83ce340e456f5a441f6977af0625218c"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux BoundsTree slow search with apps/test_suite wide DataTable headed WebGPU",
+  "hypothesisMarkdown": "# Hypothesis\n\nTesting child bounds before pushing them onto `BoundsTree::search_stack` will eliminate stack writes and later pop/branch work for spatially irrelevant nodes in the measured slow-search path. Because the current algorithm already performs the same intersection test immediately after pop, moving it to the parent expansion boundary preserves maximum-order results and tree shape while reducing the wide DataTable's 25,720 visited-node count and not regressing headed WebGPU latency.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\n1. In `find_max_ordering`, reject a non-intersecting root before pushing it, and push internal children only when both `max_order > max_found` and their bounds intersect the query. Remove the now-redundant post-pop spatial test; do not change max-order pruning, child order, insertion, or tree shape.\n2. Update the focused diagnostic assertion for the exact root-rejection visit count. Preserve the existing 1,000-seed brute-force ordering oracle.\n3. Run diagnostics-off/on compilation, focused bounds-tree tests, Clippy, nested formatting, and two serialized headed WebGPU candidate processes at DPR 1 and 2.\n4. Accept only if the warmed search-node visit count drops at both DPRs, renderer/scroll contracts remain exact, and product p95 does not materially regress. Otherwise revert to the checkpoint and record failure.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nThe wide DataTable retains 504 insertions, seven max-leaf hits, 495 slow searches, 14,351 insertion child evaluations, 576 retained nodes, nine batches, 12 queue writes, 10 bind groups, two passes, and zero terminal error, while search-node visits fall below the 25,720 checkpoint count. The direct stack-operation reduction should preserve or improve paced p95 at both DPRs across two candidate processes.\n",
+  "diagnostics": {
+    "playwright": [
+      "Two independent wide DataTable candidate processes passed 4/4 headed Chromium WebGPU projects across DPR 1 and DPR 2.",
+      "Every candidate reported 4,440 search-node visits and unchanged tree, renderer, and scroll-correctness counters."
+    ],
+    "rayx": [
+      "All runtime proof used apps/test_suite; apps/lab was neither launched nor modified.",
+      "Diagnostics-off/on gpux checks, wasm32 gpui_web diagnostics check, the 1,000-seed randomized ordering oracle, Clippy with warnings denied, and nested formatting passed."
+    ],
+    "counters": [
+      "Moving intersection rejection before stack push reduced warmed search-node visits by 21,280 per frame, from 25,720 to 4,440 (82.74%).",
+      "Candidate median paced p95 was 26.91 ms at DPR 1 and 27.04 ms at DPR 2 versus checkpoint 26.76/28.05 ms.",
+      "All four projects retained 504 insertions, seven max-leaf hits, 495 slow searches, 14,351 insertion child evaluations, 576 nodes, nine batches, 12 writes, 10 bind groups, two passes, and zero terminal error."
+    ],
+    "artifacts": [
+      "candidate-1/*/data-table-wide-scroll-performance.json",
+      "candidate-2/*/data-table-wide-scroll-performance.json"
+    ]
+  },
+  "measurements": {
+    "checkpointCommit": "c47eb4607",
+    "target": "wasm-webgpu-headed",
+    "checkpoint": {
+      "searchNodeVisits": 25720,
+      "pacedP95Ms": {
+        "dpr1": 26.7568359375,
+        "dpr2": 28.046142578125
+      }
+    },
+    "candidateProcesses": [
+      {
+        "dpr1": {
+          "throughput": 30.205421027322622,
+          "pacedP95Ms": 26.848876953125,
+          "searchNodeVisits": 4440
+        },
+        "dpr2": {
+          "throughput": 30.11646564302306,
+          "pacedP95Ms": 27.159912109375,
+          "searchNodeVisits": 4440
+        }
+      },
+      {
+        "dpr1": {
+          "throughput": 30.00933890626762,
+          "pacedP95Ms": 26.96435546875,
+          "searchNodeVisits": 4440
+        },
+        "dpr2": {
+          "throughput": 29.398103234379327,
+          "pacedP95Ms": 26.91064453125,
+          "searchNodeVisits": 4440
+        }
+      }
+    ],
+    "searchNodeVisitReduction": 21280,
+    "searchNodeVisitReductionPercent": 82.73716951788491,
+    "candidatePacedP95MedianMs": {
+      "dpr1": 26.9066162109375,
+      "dpr2": 27.0352783203125
+    },
+    "tree": {
+      "insertions": 504,
+      "maxLeafHits": 7,
+      "slowSearches": 495,
+      "insertionChildEvaluations": 14351,
+      "retainedNodes": 576
+    },
+    "renderer": {
+      "batches": 9,
+      "queueBufferWrites": 12,
+      "bindGroups": 10,
+      "renderPasses": 2,
+      "atlasWrites": 0,
+      "bufferRestarts": 0,
+      "submissions": 1
+    },
+    "maximumTerminalError": 0
+  },
+  "reportMarkdown": "# Bounds tree intersection push-pruning report\n\n`BoundsTree::find_max_ordering` now rejects a non-intersecting root before stacking and filters non-intersecting children at internal-node expansion. The old algorithm performed the identical bounds test only after popping each node, so the change removes unnecessary `NonNull` stack writes, pops, and post-pop branches without changing max-order pruning, child order, insertion, tree shape, or assigned draw orders.\n\nThe warmed wide DataTable search-node count fell from 25,720 to 4,440 at both DPRs, eliminating 21,280 visits (82.74%) per frame. Two independent headed Test Suite processes passed all four DPR projects. Every other tree and renderer counter stayed exact: 504 insertions, seven max-leaf hits, 495 slow searches, 14,351 insertion child evaluations, 576 retained nodes, nine batches, 12 writes, 10 bind groups, two passes, zero atlas writes/restarts, one submission, and zero terminal scroll error.\n\nCandidate median paced p95 was 26.91 ms at DPR 1, 0.56% above the single checkpoint process, and 27.04 ms at DPR 2, 3.60% below it. Throughput remained process-noisy, so acceptance rests on the exact stack-operation reduction, randomized semantic oracle, and non-regressing p95 rather than a claimed end-to-end speedup. Diagnostics-off/on gpux checks, wasm32 gpui_web diagnostics check, the 1,000-seed randomized bounds-tree test, Clippy with warnings denied, and nested formatting all passed.\n",
+  "decisionMarkdown": "# Decision\n\nAccept. The change performs the same spatial test earlier and demonstrably removes 82.74% of search-stack visits in the profiled workload without adding state, changing tree structure, or regressing product p95. Do not combine this with child ordering or insertion-descent changes; those require separate hypotheses.\n",
+  "notes": ""
+}

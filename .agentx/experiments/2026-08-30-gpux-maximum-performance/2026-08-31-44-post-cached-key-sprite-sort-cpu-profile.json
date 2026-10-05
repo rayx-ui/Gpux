@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "id": "574dd8b2-c358-4368-be39-9111b892766c",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 44,
+  "type": "hypothesis",
+  "name": "Post-Cached-Key Sprite Sort CPU Profile",
+  "slug": "post-cached-key-sprite-sort-cpu-profile",
+  "path": "2026-08-31-44-post-cached-key-sprite-sort-cpu-profile.json",
+  "createdAt": "2026-08-31T02:33:56Z",
+  "startedAt": "2026-08-31T02:33:56Z",
+  "finishedAt": "2026-08-31T02:37:28Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "158ca7ba4efe6b1dc2b130f79759f0d520199231",
+  "resultCommit": "158ca7ba4efe6b1dc2b130f79759f0d520199231",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 158ca7ba4efe6b1dc2b130f79759f0d520199231",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "158ca7ba4efe6b1dc2b130f79759f0d520199231",
+      "resultCommit": "158ca7ba4efe6b1dc2b130f79759f0d520199231",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 158ca7ba4efe6b1dc2b130f79759f0d520199231",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "158ca7ba4efe6b1dc2b130f79759f0d520199231"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "apps/test_suite headed WASM/WebGPU wide DataTable CPU profile",
+  "hypothesisMarkdown": "A fresh accepted-build CPU profile will show whether stable cached-key sorting materially reduces monochrome sprite sorting self time, and will expose any key-vector or permutation costs hidden by the aggregate browser medians.\n",
+  "measurementPlanMarkdown": "Run one headed WebGPU CPU-profile process for the wide DataTable at DPR 1 and DPR 2 in apps/test_suite. Compare monochrome sprite sort, cached-key construction/permutation, allocations, and leading gpux-owned symbols against experiment 42; require exact final offsets, renderer/layout counters, and zero errors.\n",
+  "expectedOutcomeMarkdown": "The large-record stable-sort hotspot falls enough to justify the added code and temporary key storage, or the profile provides direct evidence to revert the accepted mechanism in a separate atomic experiment.\n",
+  "diagnostics": {
+    "playwright": [
+      "One fresh headed Chromium/WebGPU process passed DPR 1 and DPR 2 with CPU profiling enabled, exact final offsets, and zero terminal errors.",
+      "apps/test_suite was the exclusive runtime fixture and the build verified shared memory, wasm_thread_entry_point, and 106906 atomic prefix bytes."
+    ],
+    "rayx": [
+      "Measurement-only experiment; no source change required static revalidation beyond the accepted experiment-43 gate."
+    ],
+    "counters": [
+      "Both profiles preserved 1515/1513 monochrome sprites and 684/666 pre-sort adjacent inversions at DPR 1/2 plus all established renderer/Taffy signatures."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 comparable sprite sort-path self time",
+      "before": "193.431 ms",
+      "after": "136.613 ms",
+      "delta": "-29.37%"
+    },
+    {
+      "metric": "DPR 2 comparable sprite sort-path self time",
+      "before": "262.357 ms",
+      "after": "120.026 ms",
+      "delta": "-54.25%"
+    },
+    {
+      "metric": "DPR 1 global Rust deallocation self time",
+      "before": "31.300 ms",
+      "after": "40.751 ms",
+      "delta": "+30.20%"
+    },
+    {
+      "metric": "DPR 2 global Rust deallocation self time",
+      "before": "33.285 ms",
+      "after": "44.234 ms",
+      "delta": "+32.90%"
+    }
+  ],
+  "reportMarkdown": "## Post-Cached-Key Sprite Sort CPU Profile Finished\n\n**Index:** 44\n**Checkpoint:** `158ca7ba4efe6b1dc2b130f79759f0d520199231`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. Headed WebGPU CPU profiles at both DPRs preserved exact final offsets, renderer/layout counters, sprite counts/disorder, and zero errors. Linker folding attributes some direct stable-sort samples to empty sprite-family monomorphizations, so the comparison aggregates all sprite-record stable-sort symbols plus `Scene::finish` self time (where cached-key construction and permutation inline).\n\nThat comparable sort-path self time fell from 193.431 ms to 136.613 ms at DPR 1 (-29.37%) and from 262.357 ms to 120.026 ms at DPR 2 (-54.25%). Global Rust deallocation self time increased from 31.300/33.285 ms to 40.751/44.234 ms (+30.20%/+32.90%), confirming that fresh cached-key storage has a measurable allocation trade-off. The net sort-path reduction and experiment-43 p95 gains justify retaining the change, while a reusable bounded scratch design is now a concrete separate hypothesis.\n\n### Scope Lock\n\nMeasurement only. No source, dependency, shader, renderer, layout, or public API change was made.\n\n### Decision\n\nAccept the profile as direct evidence that cached-key sorting materially reduces sprite sort CPU time. Investigate eliminating its per-frame allocation through scene-owned bounded scratch storage in a separate atomic experiment.\n",
+  "decisionMarkdown": "Retain the cached-key monochrome sprite sort: measured sort-path self time fell 29.37%/54.25% at DPR 1/2. Treat the increased deallocation work as the next bounded optimization opportunity rather than broadening cached-key sorting to unmeasured families.\n",
+  "notes": ""
+}

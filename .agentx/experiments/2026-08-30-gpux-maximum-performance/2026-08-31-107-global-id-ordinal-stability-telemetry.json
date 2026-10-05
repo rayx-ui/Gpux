@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "id": "92786121-af96-4149-96a7-f6eb915adaa2",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 107,
+  "type": "hypothesis",
+  "name": "Global ID Ordinal Stability Telemetry",
+  "slug": "global-id-ordinal-stability-telemetry",
+  "path": "2026-08-31-107-global-id-ordinal-stability-telemetry.json",
+  "createdAt": "2026-08-31T17:21:49Z",
+  "startedAt": "2026-08-31T17:21:49Z",
+  "finishedAt": "2026-08-31T17:35:31Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "8733512b5ba254c4ee7ed8b4ea0d0f9e0393d492",
+  "resultCommit": "d507094af2f122b7211e6f31ff534276780a3ec4",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 8733512b5ba254c4ee7ed8b4ea0d0f9e0393d492",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "8733512b5ba254c4ee7ed8b4ea0d0f9e0393d492",
+      "resultCommit": "d507094af2f122b7211e6f31ff534276780a3ec4",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 8733512b5ba254c4ee7ed8b4ea0d0f9e0393d492",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "d507094af2f122b7211e6f31ff534276780a3ec4"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux diagnostics-only same-ordinal GlobalElementId creation stability",
+  "hypothesisMarkdown": "## Global ID Ordinal Stability Telemetry Hypothesis\n\nDiagnostics-only current/previous creation-order hashes will show whether the warmed wide DataTable creates at least 95% of its global IDs at the same ordinal across frames, justifying a direct vector reuse candidate.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nAdd exactly one ninth global-ID diagnostic counter, two diagnostics-only hash vectors, the existing Scene/WGPU/web/Test Suite propagation, and focused counter assertions. Do not change production identity construction, allocation, public APIs, dependencies, or unrelated telemetry.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nRun nested formatting, diagnostics-disabled/enabled Clippy with warnings denied, focused and full gpux tests, WGPU tests, then exclusive headed Test Suite WASM/WebGPU proof at both DPRs. Require exact offsets/counters and zero errors. Accept vector reuse as the next target only if same-ordinal hits are at least 95% of creations at both DPRs.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nPublish an exact warmed same-ordinal hit count that either selects a direct vector reuse experiment or closes the global-ID allocation branch.\n",
+  "diagnostics": {
+    "playwright": [
+      "Test Suite headed WASM/WebGPU DPR 1 passed with exact final offset and diagnostics counters.",
+      "Test Suite headed WASM/WebGPU DPR 2 passed with exact final offset and diagnostics counters."
+    ],
+    "rayx": [
+      "apps/test_suite was the exclusive runtime target; apps/lab was not launched or modified.",
+      "The built WASM artifact verified shared memory, wasm_thread_entry_point, and atomic instructions."
+    ],
+    "counters": [
+      "DPR 1: 485 creations, 485 previous-frame hits, 485 same-ordinal hits (100%).",
+      "DPR 2: 485 creations, 485 previous-frame hits, 485 same-ordinal hits (100%)."
+    ],
+    "artifacts": [
+      "test-results/test_suite-rayx-data-table-ebb47-d-thumb-drag-render-cadence-chromium/data-table-wide-scroll-performance.json",
+      "test-results/test_suite-rayx-data-table-ebb47-d-thumb-drag-render-cadence-chromium-dpr2/data-table-wide-scroll-performance.json"
+    ]
+  },
+  "measurements": {
+    "schemaVersion": 1,
+    "status": "success",
+    "productFilesChanged": 6,
+    "focusedGlobalIdTestsPassed": 2,
+    "gpuxTestsPassed": 419,
+    "gpuiWgpuTestsPassed": 52,
+    "headedWebgpuCasesPassed": 2,
+    "dpr1CreationCount": 485,
+    "dpr1PreviousFrameHitCount": 485,
+    "dpr1PreviousFrameOrdinalHitCount": 485,
+    "dpr1OrdinalHitRatePercent": 100,
+    "dpr1MedianAcknowledgedStepsPerSecond": 26.083318465841824,
+    "dpr1MedianPacedP95CatchUpLatencyMs": 27.35205078125,
+    "dpr2CreationCount": 485,
+    "dpr2PreviousFrameHitCount": 485,
+    "dpr2PreviousFrameOrdinalHitCount": 485,
+    "dpr2OrdinalHitRatePercent": 100,
+    "dpr2MedianAcknowledgedStepsPerSecond": 24.088511791266292,
+    "dpr2MedianPacedP95CatchUpLatencyMs": 33.443359375,
+    "acceptanceThresholdPercent": 95,
+    "nextTarget": "Collision-safe previous-frame ordinal-vector GlobalElementId Arc reuse"
+  },
+  "reportMarkdown": "# Global ID Ordinal Stability Telemetry\n\nThe diagnostics-only experiment proves that the warmed wide DataTable creates every observed `GlobalElementId` at the same ordinal as the preceding frame. Both DPR 1 and DPR 2 reported 485 creations, 485 previous-frame membership hits, and 485 exact previous-frame same-ordinal hits: a 100% ordinal hit rate at both scales.\n\nThe ninth counter is propagated through Scene, WGPU telemetry, the browser diagnostics object, and the Test Suite contract. It changes no production identity construction or allocation behavior. Formatting, both warnings-denied Clippy feature matrices, 419 gpux unit tests plus integrations, 52 WGPU tests, and the two headed WebGPU Test Suite cases all passed.\n\nThis exceeds the predefined 95% threshold and selects a collision-safe direct-vector reuse candidate for the next atomic experiment. The candidate must still compare the authoritative full path before cloning the previous frame's `Arc`; ordinal hash equality alone is not sufficient for correctness.\n",
+  "decisionMarkdown": "# Decision\n\nAccept the diagnostics telemetry and proceed to a separate direct previous-frame ordinal-vector reuse experiment. Require full-path equality at the candidate slot, preserve ordinary allocation on every mismatch, and judge the implementation against the accepted experiment 102 performance baseline because the prior hash-map locator regressed throughput.\n",
+  "notes": ""
+}

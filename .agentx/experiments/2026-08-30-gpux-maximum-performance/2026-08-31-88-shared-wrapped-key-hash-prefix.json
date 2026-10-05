@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "id": "84757c30-d379-4787-8188-638ba4671498",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 88,
+  "type": "hypothesis",
+  "name": "Shared Wrapped Key Hash Prefix",
+  "slug": "shared-wrapped-key-hash-prefix",
+  "path": "2026-08-31-88-shared-wrapped-key-hash-prefix.json",
+  "createdAt": "2026-08-31T14:45:05Z",
+  "startedAt": "2026-08-31T14:45:05Z",
+  "finishedAt": "2026-08-31T14:59:34Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "49d3db25ccc870a71f0de259205bb7889b4cd428",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 49d3db25ccc870a71f0de259205bb7889b4cd428",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "49d3db25ccc870a71f0de259205bb7889b4cd428",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 49d3db25ccc870a71f0de259205bb7889b4cd428",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "wasm/web with headed Playwright and WebGPU enabled",
+  "hypothesisMarkdown": "## Shared Wrapped Key Hash Prefix Hypothesis\n\nOn wrapped-cache misses only, clone the FxHasher state after hashing the common text/font/run prefix and finish separate wrapped and unwrapped suffixes. This should preserve the beneficial unwrapped-cache insertion while avoiding a second pass over text and font runs.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nOnly LineLayoutCache private hashing/miss helpers, focused collision/hash diagnostics, existing Test Suite cumulative counters, and successful durable guidance may change. Cache ownership/lifetime, map structure, equality semantics, wrapping/shaping output, Taffy, renderer/shaders, dependencies, public APIs, and unrelated cleanup are forbidden.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nUse the three-process DPR 1/2 checkpoint baseline captured minutes earlier in experiment 87 because product sources and the built WASM payload are byte-identical at this checkpoint. Run full gpux tests, serialized WGPU tests, production/diagnostic checks, warning-denied clippy, formatting, and three fresh candidate browser processes. Require identical request/hit/miss counts and rendering invariants, lower cumulative text bytes/run items hashed, and no material throughput or paced-p95 regression.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nRetain all 48k-class nested line-cache transactions and their reuse while removing one redundant text/run hash traversal for every wrapped miss.",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 median acknowledged steps per second",
+      "before": "29.71546108812373",
+      "after": "24.764347116157726",
+      "delta": "-16.66174372082956%",
+      "source": "three headed Playwright/WebGPU processes per side"
+    },
+    {
+      "metric": "DPR 2 median acknowledged steps per second",
+      "before": "29.69277847131034",
+      "after": "25.29379213827205",
+      "delta": "-14.815004049852277%",
+      "source": "three headed Playwright/WebGPU processes per side"
+    },
+    {
+      "metric": "DPR 1 median paced p95 catch-up latency",
+      "before": "26.03564453125 ms",
+      "after": "27.99169921875 ms",
+      "delta": "+7.512987378331237%",
+      "source": "three headed Playwright/WebGPU processes per side"
+    },
+    {
+      "metric": "DPR 2 median paced p95 catch-up latency",
+      "before": "26.02978515625 ms",
+      "after": "27.76220703125 ms",
+      "delta": "+6.655536588568545%",
+      "source": "three headed Playwright/WebGPU processes per side"
+    }
+  ],
+  "reportMarkdown": "## Shared Wrapped Key Hash Prefix Finished\n\n**Index:** 88\n**Checkpoint:** 49d3db25ccc870a71f0de259205bb7889b4cd428\n**Result Commit:** none\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status**: false. Cache ownership, rendering, and nested request behavior remained correct, but carrying a cloned common FxHasher state materially regressed both throughput and paced p95 at both DPRs.\n\n### Scope Lock\n\n**Tested mechanism:** share the common cache-key hash prefix between wrapped and nested unwrapped keys.\n\n**Out-of-scope changes:** none. The line-layout source was restored exactly to the checkpoint.\n\n### Repository Checkpoints\n\n| Repo | Path | Checkpoint | Result Commit | Status | Rollback |\n| --- | --- | --- | --- | --- | --- |\n| main | . | 49d3db25ccc870a71f0de259205bb7889b4cd428 | unchanged | reverted | `git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 49d3db25ccc870a71f0de259205bb7889b4cd428` |\n\n### Measurements\n\n| Metric | Before | After | Delta | Command/Source |\n| --- | ---: | ---: | ---: | --- |\n| DPR 1 median acknowledged steps/s | 29.7155 | 24.7643 | -16.66% | 3 headed WebGPU processes per side |\n| DPR 2 median acknowledged steps/s | 29.6928 | 25.2938 | -14.82% | 3 headed WebGPU processes per side |\n| DPR 1 median paced p95 catch-up | 26.0356 ms | 27.9917 ms | +7.51% | 3 headed WebGPU processes per side |\n| DPR 2 median paced p95 catch-up | 26.0298 ms | 27.7622 ms | +6.66% | 3 headed WebGPU processes per side |\n| DPR 1 median nested line requests | 48,755 | 48,573 | -182 | cumulative frame telemetry |\n| DPR 2 median nested line requests | 49,203 | 49,098 | -105 | cumulative frame telemetry |\n\nAll six candidate cases passed exact render, final-offset, terminal-error, request partition, and cache-miss invariants. Full gpux tests (420 unit tests plus integrations), 52 serialized gpui_wgpu tests, production and diagnostic checks, warning-denied clippy, formatting, and the focused hash-equivalence oracle passed.\n\n### Decision\n\nReverted failure. On this WASM path, retaining and cloning the common hasher prefix costs substantially more than independently hashing the nested key.\n",
+  "decisionMarkdown": "### Decision\n\nReject and revert shared wrapped-key hash prefixes. Preserve independent `CacheKeyRef::new` hashing for wrapped and nested unwrapped requests; the cloned FxHasher state caused material regressions despite retaining exact cache semantics.\n",
+  "notes": ""
+}

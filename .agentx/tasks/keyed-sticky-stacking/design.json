@@ -1,0 +1,919 @@
+{
+  "schemaVersion": 5,
+  "epicId": "keyed-sticky-stacking",
+  "currentState": {
+    "summary": "Ordinary gpux Div stickies resolve independently in Window against the nearest per-axis scroll context and paint through the positioned scene lane. RayX VirtualStickyItems stores sorted StickyRow candidates and a copied active stack at every candidate. ListViewState and TreeViewState rebuild one cached sticky policy outside the scroll path and render sticky metadata on the virtual row root wrapper. gpux List and UniformList retain offscreen candidates through separate flat-index and explicit-level APIs and derive active stacks locally.",
+    "codeAnchors": [
+      {
+        "repositoryId": "rayx",
+        "path": "crates/gpux/crates/gpui/src/window.rs",
+        "symbol": "Window::resolve_positioned_bounds",
+        "reason": "Owns ordinary sticky resolution against nearest scroll contexts."
+      },
+      {
+        "repositoryId": "rayx",
+        "path": "crates/gpux/crates/gpui/src/elements/div.rs",
+        "symbol": "Div::prepaint",
+        "reason": "Owns div bounds, children, hitboxes, masks, sticky state, and positioned paint."
+      },
+      {
+        "repositoryId": "rayx",
+        "path": "crates/rayx/rayx_components/rayx_components_core/src/core/sticky.rs",
+        "symbol": "StickyRow",
+        "reason": "Owns the current high-level sticky metadata."
+      },
+      {
+        "repositoryId": "rayx",
+        "path": "crates/rayx/rayx_components/rayx_components_core/src/components/virtual_list/mod.rs",
+        "symbol": "VirtualStickyItems",
+        "reason": "Owns high-level virtual candidate indexing and active stack lookup."
+      },
+      {
+        "repositoryId": "rayx",
+        "path": "crates/gpux/crates/gpui/src/elements/list.rs",
+        "symbol": "ListState::with_sticky_item_levels",
+        "reason": "Owns variable-height low-level sticky candidates."
+      },
+      {
+        "repositoryId": "rayx",
+        "path": "crates/gpux/crates/gpui/src/elements/uniform_list.rs",
+        "symbol": "UniformList::sticky_item_levels",
+        "reason": "Owns uniform low-level sticky candidates."
+      }
+    ],
+    "constraints": [
+      "Ordinary sticky layout remains in normal flow while only visual bounds move.",
+      "Fixed and sticky primitives retain the existing positioned scene and point-local hit-test ordering.",
+      "Virtualized offscreen sticky candidates remain known before row rendering.",
+      "ListView and TreeView retain one sticky_policy and one root wrapper per sticky row.",
+      "The Test Suite is the exclusive application-hosted diagnostics and automation target.",
+      "No external dependency, compatibility layer, overlay clone, or proxy row is permitted."
+    ]
+  },
+  "responsibilities": [
+    {
+      "id": "RESP-001",
+      "owner": "gpux sticky relation slice",
+      "owns": [
+        "StickyStacking relation values for explicit level and stack identifier",
+        "Contiguous-run construction and replacement semantics",
+        "Linear-memory predecessor index and active-chain reconstruction",
+        "Canonical cumulative offset calculation"
+      ],
+      "doesNotOwn": [
+        "Application data identity",
+        "Sticky visual styling or callbacks",
+        "Collection projection rebuild policy",
+        "Scroll container rendering"
+      ],
+      "stateOwned": [
+        "Ordered candidate relation records",
+        "Run root and predecessor links",
+        "Active chain scratch output"
+      ],
+      "invariants": [
+        "Level and stack identifier are mutually exclusive.",
+        "Equal identifiers stack only in one contiguous run.",
+        "Index storage is O(n) and lookup is O(log n + active depth).",
+        "The relation is independent of RayX component types."
+      ],
+      "dependencies": [
+        "gpux ElementId",
+        "ordered candidate indices"
+      ],
+      "dependents": [
+        "Window ordinary sticky planning",
+        "RayX VirtualStickyItems",
+        "gpux ListState",
+        "gpux UniformList"
+      ],
+      "lifecycle": "Built or updated when candidate order changes; queried during layout or prepaint; no global persistence.",
+      "evidence": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx/rayx_components/rayx_components_core/src/components/virtual_list/mod.rs",
+          "symbol": "VirtualStickyItems::new",
+          "reason": "Existing candidate-index construction is the logic being generalized and made linear-memory."
+        }
+      ]
+    },
+    {
+      "id": "RESP-002",
+      "owner": "gpux Window and Div positioned lifecycle",
+      "owns": [
+        "Ordinary div candidate collection within the nearest scroll context",
+        "Resolution of keyed active runs before final visual bounds are committed",
+        "Propagation of resolved visual deltas to children, masks, hitboxes, and sticky callbacks",
+        "Top and left ordinary stack scoping"
+      ],
+      "doesNotOwn": [
+        "Virtualized offscreen candidate retention",
+        "ListView or TreeView policy evaluation",
+        "Application-level stack registration",
+        "General z-index semantics"
+      ],
+      "stateOwned": [
+        "Frame-local keyed candidate metadata",
+        "Per-scroll-context active keyed plans",
+        "Resolved bounds keyed by candidate occurrence"
+      ],
+      "invariants": [
+        "Candidate discovery precedes final keyed visual-bound commitment.",
+        "Normal layout bounds remain unchanged.",
+        "Nearest scroll context, content boundary, and mask intersection remain authoritative.",
+        "Unkeyed ordinary sticky resolution takes the existing path."
+      ],
+      "dependencies": [
+        "RESP-001",
+        "Window scroll container contexts",
+        "PositionedBounds and StickyState",
+        "Div element lifecycle"
+      ],
+      "dependents": [
+        "Ordinary div authors",
+        "DevKit occurrence bounds",
+        "Positioned scene and hit testing"
+      ],
+      "lifecycle": "Frame-local collection and resolution are reset at the positioned traversal boundary and discarded after frame construction.",
+      "evidence": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/gpux/crates/gpui/src/window.rs",
+          "symbol": "PositionedBounds::resolve_sticky_for_scroll_contexts_with_state",
+          "reason": "Current per-element bounds resolver and sticky-state source."
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/gpux/crates/gpui/src/elements/div.rs",
+          "symbol": "Div::prepaint",
+          "reason": "Current lifecycle owner for final visual state."
+        }
+      ]
+    },
+    {
+      "id": "RESP-003",
+      "owner": "RayX virtual sticky slice",
+      "owns": [
+        "StickyRow relation builder and metadata",
+        "VirtualStickyItem conversion and indexed active lookup",
+        "ListViewState and TreeViewState sticky policy rebuild integration",
+        "Sticky row root-wrapper geometry, styling, callbacks, identity, and semantics"
+      ],
+      "doesNotOwn": [
+        "Canonical relation math",
+        "Ordinary div frame planning",
+        "Low-level gpux list public configuration",
+        "Application overlay rendering"
+      ],
+      "stateOwned": [
+        "Cached projected sticky candidates",
+        "Relation index for the current projection",
+        "Per-row sticky phase callback state"
+      ],
+      "invariants": [
+        "sticky_policy remains the single high-level declaration surface.",
+        "Only rows with sticky metadata receive the root wrapper.",
+        "The row primary extent including gap is the default stack extent.",
+        "Sticky-only retained rows do not widen mounted visible-range publication."
+      ],
+      "dependencies": [
+        "RESP-001",
+        "VirtualList geometry",
+        "ListViewState and TreeViewState projection caches"
+      ],
+      "dependents": [
+        "ListView",
+        "TreeView",
+        "RayX component authors"
+      ],
+      "lifecycle": "Rebuilt on policy, projection, or relevant size changes and queried on scroll frames.",
+      "evidence": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx/rayx_components/rayx_components_core/src/core/sticky.rs",
+          "symbol": "StickyRow",
+          "reason": "Current public metadata owner."
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx/rayx_components/rayx_components_core/src/components/virtual_list/mod.rs",
+          "symbol": "VirtualList::prepaint",
+          "reason": "Current sticky root wrapper and row ordering owner."
+        }
+      ]
+    },
+    {
+      "id": "RESP-004",
+      "owner": "gpux low-level list sticky slices",
+      "owns": [
+        "Structured sticky candidate configuration for ListState and UniformList",
+        "Offscreen active row retention",
+        "Incoming candidate replacement and push-out",
+        "Low-level list scrollport intersection and row placement"
+      ],
+      "doesNotOwn": [
+        "RayX StickyRow metadata",
+        "High-level collection policy evaluation",
+        "Row-local keyed hierarchy calculation",
+        "Ordinary div candidate collection"
+      ],
+      "stateOwned": [
+        "Configured structured candidates",
+        "Canonical relation index",
+        "Active retained item indices and stack offsets"
+      ],
+      "invariants": [
+        "Flat candidates map to explicit level zero.",
+        "gpux does not import RayX crates.",
+        "Focused item retention and ordinary row virtualization remain intact.",
+        "Visible scrollport intersection remains the clipping boundary."
+      ],
+      "dependencies": [
+        "RESP-001",
+        "ListState measured item geometry",
+        "UniformList item geometry"
+      ],
+      "dependents": [
+        "gpux list authors",
+        "production-quality Lab examples",
+        "Test Suite keyed sticky fixture"
+      ],
+      "lifecycle": "Built when configured candidates change and queried during each list layout.",
+      "evidence": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/gpux/crates/gpui/src/elements/list.rs",
+          "symbol": "List::active_sticky_items",
+          "reason": "Current variable-list offscreen candidate selection."
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/gpux/crates/gpui/src/elements/uniform_list.rs",
+          "symbol": "UniformList::active_sticky_items",
+          "reason": "Current uniform-list offscreen candidate selection."
+        }
+      ]
+    },
+    {
+      "id": "RESP-005",
+      "owner": "Test Suite keyed sticky validation slice",
+      "owns": [
+        "Production-shaped ordinary and virtual keyed sticky fixtures",
+        "DPR 1 and DPR 2 numeric geometry assertions",
+        "Click, callback, replacement, mutation, clipping, and duplicate-row assertions",
+        "Reusable documentation and source guards after proof"
+      ],
+      "doesNotOwn": [
+        "Test-only behavior in production crates",
+        "Lab diagnostics or automation",
+        "Screenshot-only acceptance"
+      ],
+      "stateOwned": [
+        "Fixture-local scroll and mutation controls",
+        "Inspectable active identifiers and callback counts",
+        "Playwright result artifacts"
+      ],
+      "invariants": [
+        "The fixture exercises production APIs.",
+        "apps/test_suite is the only launched application.",
+        "Numeric and interaction assertions close behavior."
+      ],
+      "dependencies": [
+        "RESP-002",
+        "RESP-003",
+        "RESP-004",
+        "RayX DevKit and headed WASM/WebGPU test route"
+      ],
+      "dependents": [
+        "AgentX evidence and sprint audits",
+        "Future sticky maintainers"
+      ],
+      "lifecycle": "Added incrementally with each vertical slice and retained as permanent regression coverage.",
+      "evidence": [
+        {
+          "repositoryId": "rayx",
+          "path": "apps/test_suite/src/pages/virtualization.rs",
+          "reason": "Existing production-shaped virtualization fixture."
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "tools-node/test_suite/rayx-virtualization-overscan.spec.ts",
+          "reason": "Existing headed numeric virtualization assertions."
+        }
+      ]
+    }
+  ],
+  "dependencyRules": [
+    {
+      "from": "RESP-002",
+      "to": "RESP-001",
+      "rule": "allowed",
+      "rationale": "Ordinary positioning consumes canonical relation planning."
+    },
+    {
+      "from": "RESP-003",
+      "to": "RESP-001",
+      "rule": "allowed",
+      "rationale": "RayX virtual metadata and lookup consume the neutral gpux relation."
+    },
+    {
+      "from": "RESP-004",
+      "to": "RESP-001",
+      "rule": "allowed",
+      "rationale": "Low-level list retention consumes the neutral gpux relation."
+    },
+    {
+      "from": "RESP-001",
+      "to": "RESP-003",
+      "rule": "forbidden",
+      "rationale": "gpux cannot depend on RayX component policy or types."
+    },
+    {
+      "from": "RESP-002",
+      "to": "RESP-003",
+      "rule": "forbidden",
+      "rationale": "Ordinary div positioning cannot depend on virtualization."
+    },
+    {
+      "from": "RESP-005",
+      "to": "apps/lab",
+      "rule": "forbidden",
+      "rationale": "Repository policy reserves Lab for polished examples, not diagnostics or automation."
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DES-001",
+      "title": "Use one neutral relation with contiguous keyed runs",
+      "requirementIds": ["REQ-F-001", "REQ-F-002", "REQ-F-003", "REQ-F-004", "REQ-NF-001", "REQ-NF-002"],
+      "responsibilityIds": ["RESP-001"],
+      "decision": "Introduce a gpux-owned StickyStacking relation with mutually exclusive Level(u16) and StackId(ElementId) modes. Build ordered relation indexes in linear memory. Equal adjacent StackId values append to a run; every different identifier starts a new root and drops the prior chain; A-B-A creates three runs.",
+      "rationale": "The existing level algorithm already defines parent replacement. A keyed run is the same relation with depth derived from adjacent equality, while explicit levels remain available for real hierarchy. Centralizing the relation prevents four subtly different stack algorithms.",
+      "provenance": {
+        "basis": "user-decision",
+        "evidence": [
+          {
+            "repositoryId": "rayx",
+            "path": "crates/rayx/rayx_components/rayx_components_core/src/components/virtual_list/mod.rs",
+            "symbol": "VirtualStickyItems",
+            "reason": "Existing level stack demonstrates replacement and cumulative offsets."
+          }
+        ],
+        "userDecision": "Use an identical identifier to make sticky elements stack like parent-child stickies."
+      },
+      "alternativesRejected": [
+        {
+          "alternative": "Treat every occurrence of an identifier anywhere in the scrollport as one persistent group.",
+          "reason": "A-B-A would resurrect obsolete headers and violate document-order section replacement."
+        },
+        {
+          "alternative": "Convert identifiers to caller-authored numeric levels.",
+          "reason": "It preserves the manual hierarchy calculation the feature is intended to remove."
+        },
+        {
+          "alternative": "Keep separate algorithms in each collection.",
+          "reason": "It multiplies semantics, complexity, and regression risk."
+        }
+      ],
+      "affectedSurfaces": [
+        "gpux public sticky metadata",
+        "Window sticky planning",
+        "VirtualStickyItems",
+        "ListState",
+        "UniformList"
+      ],
+      "controlFlow": [
+        "Candidate configuration or frame discovery yields ordered relation entries.",
+        "The relation index records each candidate's run root and predecessor.",
+        "A binary candidate search selects the last eligible candidate.",
+        "Predecessor traversal reconstructs the current active chain in document order.",
+        "Extent accumulation yields each active offset."
+      ],
+      "dataFlow": [
+        "ElementId remains an opaque equality value.",
+        "Candidate index and relation enter the planner.",
+        "Planner output contains active candidate indices and offsets only.",
+        "Surface owners map those outputs to bounds and rows."
+      ],
+      "interfaces": [
+        "StickyStacking::Level(u16)",
+        "StickyStacking::StackId(ElementId)",
+        "A focused internal relation index API shared within gpux"
+      ],
+      "failureHandling": [
+        "Empty inputs return an empty plan.",
+        "Unsupported bottom or right keyed builders do not configure a keyed relation.",
+        "Duplicate or invalid collection indices are normalized or rejected at configuration boundaries."
+      ],
+      "concurrencyAndTransactions": [
+        "All relation construction and lookup is synchronous and window-thread owned.",
+        "Candidate reconfiguration replaces the index atomically."
+      ],
+      "compatibilityAndMigration": [
+        "Existing Level behavior remains exact.",
+        "Flat candidates remain level zero.",
+        "No compatibility alias is added for superseded low-level configuration names."
+      ],
+      "observability": [
+        "Unit tests inspect run roots, predecessor counts, active membership, and offsets.",
+        "Runtime fixtures expose current membership through production callbacks and semantics."
+      ],
+      "securityAndPrivacy": [
+        "Stack identifiers stay in local render state and are neither logged as user content nor transmitted."
+      ],
+      "validation": [
+        "Unit matrices cover equal runs, replacement, A-B-A, mixed modes, empty input, and 10,000 candidates.",
+        "Architecture checks prove gpux has no RayX dependency."
+      ]
+    },
+    {
+      "id": "DES-002",
+      "title": "Plan ordinary keyed stickies before committing final bounds",
+      "requirementIds": ["REQ-F-002", "REQ-F-005", "REQ-NF-002"],
+      "responsibilityIds": ["RESP-002"],
+      "decision": "Extend the gpux positioned lifecycle with a frame-local discovery and resolution phase for keyed ordinary sticky candidates. Scope candidate registries by the nearest scroll context and edge, compute the active keyed plan after candidate layout bounds and group boundaries are known, then let Div commit the resolved visual bounds through the existing sticky bounds, mask, hitbox, child, callback, and positioned paint path.",
+      "rationale": "A sequential accumulator cannot remove old descendant lanes when a later different-key root becomes active. Ordinary keyed replacement requires later candidate knowledge, while the existing Div lifecycle must remain the only owner of final visual effects.",
+      "provenance": {
+        "basis": "repository-pattern",
+        "evidence": [
+          {
+            "repositoryId": "rayx",
+            "path": "crates/gpux/crates/gpui/src/window.rs",
+            "symbol": "Window::resolve_positioned_bounds",
+            "reason": "Existing Window positioning is the correct framework boundary."
+          },
+          {
+            "repositoryId": "rayx",
+            "path": ".agentx/memory/decisions/runtime/gpux-foundation/2026-07-04-runtime-gpux-foundation-fixed-sticky-positioning.md",
+            "reason": "Prior architecture decision places layout-affecting positioned behavior in GPUI."
+          }
+        ]
+      },
+      "alternativesRejected": [
+        {
+          "alternative": "Maintain a sequential per-scrollport accumulator during prepaint.",
+          "reason": "A later group cannot retroactively remove or reposition already committed earlier candidates."
+        },
+        {
+          "alternative": "Render keyed ordinary stickies as overlay clones.",
+          "reason": "Clones detach identity, hitboxes, semantics, callbacks, masks, and descendants."
+        },
+        {
+          "alternative": "Require authors to wrap every group in a synthetic parent div.",
+          "reason": "It does not satisfy grouping unrelated elements by identifier."
+        }
+      ],
+      "affectedSurfaces": [
+        "Style and Styled builder state",
+        "Window frame-local positioned state",
+        "Div layout/prepaint lifecycle",
+        "StickyState callbacks and positioned scene order"
+      ],
+      "controlFlow": [
+        "Layout preserves normal-flow bounds.",
+        "The positioned discovery traversal records keyed sticky occurrences and their nearest scroll contexts.",
+        "Window builds per-context keyed plans and content boundaries.",
+        "Div resolves each candidate through the precomputed plan or the existing unkeyed path.",
+        "Existing positioned hitbox and paint lanes receive final visual bounds."
+      ],
+      "dataFlow": [
+        "sticky_stack_id enters Style or Div sticky metadata.",
+        "Occurrence, scroll context, edge, inset, layout bounds, and extent enter frame-local planning.",
+        "Resolved origin delta enters PositionedBounds and StickyState.",
+        "The delta moves descendants, masks, hitboxes, and paint together."
+      ],
+      "interfaces": [
+        "div().sticky().top_0().sticky_stack_id(id)",
+        "Internal Window keyed candidate discovery and resolved-bounds lookup"
+      ],
+      "failureHandling": [
+        "A nonsticky div ignores sticky_stack_id.",
+        "A missing scroll context yields unchanged visual bounds.",
+        "Unsupported keyed edges remain outside the first public contract."
+      ],
+      "concurrencyAndTransactions": [
+        "All planning is frame-local under Window mutable ownership.",
+        "A frame either uses one complete candidate plan or no keyed plan; partial plans are not published."
+      ],
+      "compatibilityAndMigration": [
+        "No-key Div takes the current resolver path.",
+        "Positioned scene, mask, and hitbox ordering are unchanged.",
+        "Existing nested parent-child sticky behavior remains green."
+      ],
+      "observability": [
+        "gpux render tests inspect final bounds, masks, callbacks, and hitboxes.",
+        "Test Suite exposes active group identities and click results."
+      ],
+      "securityAndPrivacy": [
+        "Frame-local identifiers are not serialized or exposed through diagnostics as sensitive data."
+      ],
+      "validation": [
+        "Focused gpux unit and render tests cover top, left, nested contexts, clipped ancestors, A-B-A, unkeyed compatibility, and callbacks.",
+        "Headed WASM/WebGPU proves numeric bounds and clicks at DPR 1 and DPR 2."
+      ]
+    },
+    {
+      "id": "DES-003",
+      "title": "Extend StickyRow and replace copied virtual stacks",
+      "requirementIds": ["REQ-F-003", "REQ-F-005", "REQ-NF-001", "REQ-NF-002"],
+      "responsibilityIds": ["RESP-003"],
+      "decision": "Add StickyRow::stack_id(id) and store the canonical StickyStacking relation. Replace VirtualStickyItems.active_stack_indices with the shared linear-memory relation index. Preserve sticky_policy evaluation during projection rebuilds and preserve the existing conditional root wrapper for geometry, styling, callbacks, identity, semantics, and interaction.",
+      "rationale": "Virtual layers already have the right single-source policy and root wrapper. Only relation metadata and the candidate index need to change; creating another policy or wrapper would duplicate ownership.",
+      "provenance": {
+        "basis": "repository-pattern",
+        "evidence": [
+          {
+            "repositoryId": "rayx",
+            "path": ".agentx/memory/decisions/ui/virtualization/2026-07-05-ui-virtualization-virtualized-sticky-policy.md",
+            "reason": "Prior decision establishes the single policy and root-wrapper architecture."
+          },
+          {
+            "repositoryId": "rayx",
+            "path": "crates/rayx/rayx_components/rayx_components_core/src/components/virtual_list/mod.rs",
+            "symbol": "VirtualStickyItems::active_stack_indices",
+            "reason": "Current copied stack representation is the performance issue being removed."
+          }
+        ]
+      },
+      "alternativesRejected": [
+        {
+          "alternative": "Add ListView and TreeView stack-key callbacks separate from sticky_policy.",
+          "reason": "It recreates the split declaration surface previously removed."
+        },
+        {
+          "alternative": "Infer keys from item or tree node keys.",
+          "reason": "Data identity and stack membership are different author decisions."
+        },
+        {
+          "alternative": "Apply sticky positioning to the rendered child only.",
+          "reason": "It detaches the wrapper's identity, events, semantics, and hitboxes."
+        }
+      ],
+      "affectedSurfaces": [
+        "StickyRow",
+        "VirtualStickyItem",
+        "VirtualStickyItems",
+        "ListViewState sticky policy cache",
+        "TreeViewState projected sticky cache",
+        "VirtualList sticky root wrapper"
+      ],
+      "controlFlow": [
+        "sticky_policy returns StickyRow relation metadata during cache rebuild.",
+        "VirtualStickyItems builds the shared relation index once.",
+        "Scroll lookup finds the current candidate and reconstructs the active chain.",
+        "VirtualList retains offscreen rows and applies cumulative offsets to root wrappers.",
+        "Mutations and projection changes rebuild the index."
+      ],
+      "dataFlow": [
+        "Application stack identifier enters StickyRow.",
+        "Projection order and relation enter VirtualStickyItems.",
+        "Active indices and offsets enter VirtualList row placement.",
+        "Existing wrapper reports phase transitions and interactions."
+      ],
+      "interfaces": [
+        "StickyRow::top().stack_id(id)",
+        "StickyRow::left().stack_id(id)",
+        "StickyRow::level(level) as the preserved exclusive alternative"
+      ],
+      "failureHandling": [
+        "Calling level after stack_id or stack_id after level deterministically selects the latest declared relation and tests document that behavior.",
+        "Absent policy and empty projection yield no candidate index.",
+        "Stale projected candidates are replaced on rebuild before render."
+      ],
+      "concurrencyAndTransactions": [
+        "Policy evaluation and cache replacement occur on the GPUI thread.",
+        "A projection mutation publishes one complete candidate index."
+      ],
+      "compatibilityAndMigration": [
+        "Existing level, inset, measured_size, when_stuck, and callback APIs remain.",
+        "Visible-range and external-scroll contracts remain unchanged.",
+        "No separate keyed policy is introduced."
+      ],
+      "observability": [
+        "Unit tests inspect active membership, offsets, wrapper identity, and callback transitions.",
+        "Test Suite diagnostics expose list/tree membership and click identity."
+      ],
+      "securityAndPrivacy": [
+        "Policy identifiers remain local render metadata."
+      ],
+      "validation": [
+        "Unit tests cover list/tree mutations, reversed projection, collapse, gaps, variable extents, and 10,000 candidates.",
+        "Headed WASM/WebGPU covers ListView and TreeView interactions."
+      ]
+    },
+    {
+      "id": "DES-004",
+      "title": "Converge low-level list candidates on structured metadata",
+      "requirementIds": ["REQ-F-004", "REQ-F-005", "REQ-NF-001", "REQ-NF-002"],
+      "responsibilityIds": ["RESP-004"],
+      "decision": "Replace the internal flat and level-only candidate storage in ListState and UniformList with one structured gpux sticky candidate type containing item index and StickyStacking relation. Keep one flat level-zero convenience entry point only where it remains a direct mapping, provide one structured configuration surface for level or key, and remove superseded parallel APIs and row-local keyed depth calculations in the same change.",
+      "rationale": "Low-level lists must retain offscreen candidates, so row-local div metadata is insufficient. A structured candidate type reuses the canonical relation without importing RayX StickyRow or adding a third stack-key vector.",
+      "provenance": {
+        "basis": "repository-pattern",
+        "evidence": [
+          {
+            "repositoryId": "rayx",
+            "path": ".agentx/memory/decisions/ui/virtualization/2026-07-05-ui-virtualization-gpux-list-sticky-levels.md",
+            "reason": "ListState already requires collection-level hierarchy metadata."
+          },
+          {
+            "repositoryId": "rayx",
+            "path": ".agentx/memory/decisions/ui/virtualization/2026-07-05-ui-virtualization-uniform-list-sticky-levels.md",
+            "reason": "UniformList mirrors the same ownership boundary."
+          }
+        ]
+      },
+      "alternativesRejected": [
+        {
+          "alternative": "Add with_sticky_stack_keys and sticky_stack_keys alongside current APIs.",
+          "reason": "A third parallel vector duplicates candidate identity and invites inconsistent updates."
+        },
+        {
+          "alternative": "Inspect rendered row div sticky_stack_id.",
+          "reason": "Offscreen candidates are not rendered and cannot be retained from row-local metadata."
+        },
+        {
+          "alternative": "Depend on RayX StickyRow.",
+          "reason": "It reverses the crate dependency direction."
+        }
+      ],
+      "affectedSurfaces": [
+        "gpux ListState candidate configuration",
+        "gpux List active lookup and layout",
+        "UniformList builder and active lookup",
+        "In-repository low-level sticky callers and polished Lab examples"
+      ],
+      "controlFlow": [
+        "Caller supplies ordered structured candidates.",
+        "The list validates and builds the shared relation index once.",
+        "Scroll lookup reconstructs active candidates.",
+        "Offscreen active rows are rendered and assigned cumulative offsets.",
+        "Incoming visible candidates push out or replace the current run."
+      ],
+      "dataFlow": [
+        "Item index and relation enter list state.",
+        "Measured or uniform item extent enters offset accumulation.",
+        "Active offsets enter existing row prepaint origins.",
+        "Existing row content owns styling and callbacks unless the final direct wrapper eliminates that split cleanly."
+      ],
+      "interfaces": [
+        "A public gpux StickyListItem or equivalently focused structured candidate type",
+        "ListState structured sticky candidate configuration",
+        "UniformList structured sticky candidate configuration",
+        "Existing flat level-zero convenience where retained by final API review"
+      ],
+      "failureHandling": [
+        "Out-of-range indices are rejected or excluded deterministically.",
+        "Duplicate indices use one documented winner and never render duplicate retained rows.",
+        "Empty configuration clears retained sticky state."
+      ],
+      "concurrencyAndTransactions": [
+        "Candidate configuration replaces the complete list index under existing state ownership.",
+        "Layout reads one coherent index per frame."
+      ],
+      "compatibilityAndMigration": [
+        "All repository callers migrate in the same sprint.",
+        "Flat and explicit-level behavior remain behaviorally equivalent.",
+        "No obsolete candidate alias or compatibility wrapper remains."
+      ],
+      "observability": [
+        "Unit and render tests inspect active indices, offsets, clipping, focus retention, and hitboxes.",
+        "Test Suite exposes low-level List and UniformList active identities."
+      ],
+      "securityAndPrivacy": [
+        "Candidate metadata remains local and contains no application payload."
+      ],
+      "validation": [
+        "Focused gpux tests cover variable and uniform lists, flat and level compatibility, keys, clipping, and 10,000 candidates.",
+        "Headed Test Suite proves both low-level surfaces."
+      ]
+    },
+    {
+      "id": "DES-005",
+      "title": "Use production-shaped Test Suite proof and update guidance last",
+      "requirementIds": ["REQ-F-005", "REQ-NF-003"],
+      "responsibilityIds": ["RESP-005"],
+      "decision": "Add one focused Test Suite keyed sticky page or section and one Playwright specification that exercises all production APIs at DPR 1 and DPR 2. Record exact bounds, active identities, click identities, callbacks, replacement, mutations, clipping, and duplicate-row absence. Update the RayX and gpux skill references and the narrowest AgentX state/rules/decision files only after source and runtime evidence prove the final behavior.",
+      "rationale": "The repository mandates Test Suite runtime proof and forbids Lab diagnostics. Deferring durable guidance until proof prevents speculative memory or skill claims.",
+      "provenance": {
+        "basis": "explicit-requirement",
+        "evidence": [
+          {
+            "repositoryId": "rayx",
+            "path": "AGENTS.md",
+            "reason": "Defines the exclusive runtime diagnostics boundary and documentation completion rule."
+          }
+        ],
+        "userDecision": "Future agents must know the correct sticky state, usage, and mechanics."
+      },
+      "alternativesRejected": [
+        {
+          "alternative": "Automate the polished Lab sticky examples.",
+          "reason": "Repository policy explicitly forbids Lab as a testing or diagnostics target."
+        },
+        {
+          "alternative": "Close behavior from screenshots.",
+          "reason": "Screenshots do not prove membership, callbacks, hit testing, or duplicate absence."
+        },
+        {
+          "alternative": "Update memory during planning.",
+          "reason": "AgentX memory cannot claim unimplemented behavior."
+        }
+      ],
+      "affectedSurfaces": [
+        "apps/test_suite sticky fixture",
+        "tools-node/test_suite Playwright coverage",
+        ".codex/skills/rayx sticky references",
+        ".codex/skills/gpux references when public usage changes",
+        ".agentx memory after proven implementation"
+      ],
+      "controlFlow": [
+        "Each implementation sprint adds focused production and test coverage.",
+        "The final Test Suite specification drives all surfaces through shared scroll boundaries.",
+        "Numeric and interaction assertions capture evidence.",
+        "Static validation and broad regressions run.",
+        "Only then are durable guidance and decisions updated."
+      ],
+      "dataFlow": [
+        "Fixture state exposes production callback and semantic output.",
+        "Playwright reads numeric bounds and triggers real clicks and mutations.",
+        "Validation output becomes AgentX evidence.",
+        "Proven behavior is summarized in skills and memory."
+      ],
+      "interfaces": [
+        "A focused Test Suite route or virtualization section",
+        "tools-node/test_suite/keyed-sticky-stacking.spec.ts",
+        "Updated sticky-positioning.md and virtualization.md"
+      ],
+      "failureHandling": [
+        "A target that cannot run remains non-complete with an exact blocker.",
+        "A screenshot-only or compile-only result cannot close runtime acceptance.",
+        "Temporary diagnostics are removed before completion."
+      ],
+      "concurrencyAndTransactions": [
+        "Runtime checks execute serially against one Test Suite instance.",
+        "Documentation changes occur after the final source contract is stable."
+      ],
+      "compatibilityAndMigration": [
+        "Existing sticky Test Suite coverage remains green.",
+        "Lab source changes are limited to production-quality caller migration and are never used for proof."
+      ],
+      "observability": [
+        "The fixture exposes active stack IDs, bounds, transition counts, visible range, and clicked row IDs.",
+        "Playwright artifacts are retained only under approved transient output paths."
+      ],
+      "securityAndPrivacy": [
+        "Fixtures use synthetic identifiers and contain no sensitive data."
+      ],
+      "validation": [
+        "Run headed WASM/WebGPU at DPR 1 and DPR 2.",
+        "Run fmt, affected clippy, focused crates, existing sticky specs, skill validation, and strict AgentX audit."
+      ]
+    }
+  ],
+  "minimalDesign": {
+    "existingMechanismsReused": [
+      "gpux ElementId and existing Styled builder vocabulary",
+      "Window nearest scroll container contexts and PositionedBounds",
+      "Div sticky state, masks, child offsets, positioned hitboxes, and positioned scene paint",
+      "StickyRow policy metadata and conditional VirtualList root wrapper",
+      "ListViewState and TreeViewState projection-time sticky policy caches",
+      "ListState and UniformList offscreen row retention",
+      "apps/test_suite, RayX DevKit, and headed WASM/WebGPU Playwright"
+    ],
+    "codeExpectedToBeDeletedOrReplaced": [
+      "VirtualStickyItems per-candidate copied active_stack_indices",
+      "Low-level backward scans through every prior sticky candidate",
+      "Superseded parallel level-only low-level candidate storage and APIs after structured cutover",
+      "Any row-local keyed depth calculation introduced during implementation"
+    ],
+    "newAbstractions": [
+      {
+        "name": "StickyStacking",
+        "designIds": ["DES-001"],
+        "visibility": "public",
+        "invariantOrPolicyOwned": "Mutually exclusive explicit level or stack identifier relation.",
+        "whyExistingCodeIsInsufficient": "Current APIs carry only numeric levels and cannot express author-declared group equality.",
+        "knownConsumers": ["Div keyed metadata", "StickyRow", "ListState", "UniformList"]
+      },
+      {
+        "name": "Sticky relation index",
+        "designIds": ["DES-001"],
+        "visibility": "internal",
+        "invariantOrPolicyOwned": "Linear-memory run roots and predecessor links with bounded active lookup.",
+        "whyExistingCodeIsInsufficient": "VirtualStickyItems copies complete stacks and low-level lists scan earlier candidates.",
+        "knownConsumers": ["Window keyed planner", "VirtualStickyItems", "ListState", "UniformList"]
+      },
+      {
+        "name": "Window frame-local keyed sticky plan",
+        "designIds": ["DES-002"],
+        "visibility": "private",
+        "invariantOrPolicyOwned": "Complete per-scroll-context candidate discovery before final ordinary keyed bounds.",
+        "whyExistingCodeIsInsufficient": "The current independent sequential resolver cannot remove a prior run after observing a later replacement root.",
+        "knownConsumers": ["Div prepaint"]
+      },
+      {
+        "name": "Structured low-level sticky candidate",
+        "designIds": ["DES-004"],
+        "visibility": "public",
+        "invariantOrPolicyOwned": "One item index paired with one canonical relation.",
+        "whyExistingCodeIsInsufficient": "Separate flat and level vectors cannot add identifiers without a third parallel API.",
+        "knownConsumers": ["ListState", "UniformList"]
+      }
+    ],
+    "newDependencies": [],
+    "newPublicApi": [
+      {
+        "surface": "Styled sticky_stack_id(id) for ordinary sticky elements",
+        "requirementIds": ["REQ-F-002"],
+        "designIds": ["DES-002"],
+        "compatibility": "Purely opt-in; unkeyed style behavior is unchanged."
+      },
+      {
+        "surface": "StickyRow::stack_id(id)",
+        "requirementIds": ["REQ-F-003"],
+        "designIds": ["DES-003"],
+        "compatibility": "Adds a mutually exclusive alternative to level(level)."
+      },
+      {
+        "surface": "Structured gpux low-level sticky candidate and configuration",
+        "requirementIds": ["REQ-F-004"],
+        "designIds": ["DES-004"],
+        "compatibility": "Repository callers migrate atomically; flat and level behaviors remain, but superseded duplicate names are removed."
+      }
+    ]
+  },
+  "testingStrategy": {
+    "profiles": [
+      {
+        "profile": "unit",
+        "scope": "Canonical relation, Window/Div positioning, VirtualStickyItems, ListView, TreeView, List, and UniformList",
+        "commandOrMethod": "Focused cargo test filters in the gpux and rayx_components_core workspaces",
+        "assertion": "Membership, offsets, replacement, A-B-A, clipping, callbacks, identity, mutations, and compatibility are exact."
+      },
+      {
+        "profile": "performance",
+        "scope": "10,000-candidate relation indexes",
+        "commandOrMethod": "Focused unit instrumentation records relation record and lookup visit counts",
+        "assertion": "Storage is O(n) and lookup is O(log n + active depth)."
+      },
+      {
+        "profile": "interaction",
+        "scope": "Ordinary div, ListView, TreeView, List, and UniformList keyed fixtures",
+        "commandOrMethod": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/keyed-sticky-stacking.spec.ts",
+        "assertion": "At DPR 1 and DPR 2, active identities, bounds, clicks, callbacks, replacement, mutations, and duplicate-row absence match the contract."
+      },
+      {
+        "profile": "behavior-preservation",
+        "scope": "Existing sticky tests and APIs",
+        "commandOrMethod": "Run all sticky-focused gpux and rayx_components_core tests plus existing Test Suite virtualization specifications",
+        "assertion": "Unkeyed, explicit-level, clipping, visible-range, callback, paint, and hit-test behavior remains green."
+      },
+      {
+        "profile": "static-analysis",
+        "scope": "Affected Rust workspaces and public API shape",
+        "commandOrMethod": "cargo fmt --all --check; affected cargo clippy commands with -- -D warnings; source guards",
+        "assertion": "The code is formatted, warning-clean, dependency-clean, and contains no duplicate sticky framework or compatibility shim."
+      },
+      {
+        "profile": "docs",
+        "scope": "RayX and gpux skill references and proven AgentX guidance",
+        "commandOrMethod": "Skill validation plus manual link and source-anchor review",
+        "assertion": "Usage, ownership, semantics, limits, and validation commands match current source."
+      }
+    ]
+  },
+  "rollout": [
+    "Land sequential sprint checkpoints because the gpux relation and Test Suite surfaces overlap.",
+    "Keep new public APIs unused outside focused fixtures until their owning sprint tests pass.",
+    "Migrate all low-level in-repository callers in the same checkpoint that removes superseded APIs.",
+    "Do not claim or document keyed behavior as current until headed runtime proof passes.",
+    "Treat bottom and right keyed stacks as a separate future design."
+  ],
+  "alternatives": [
+    {
+      "alternative": "Implement keys only in RayX VirtualList",
+      "advantages": ["Small initial diff", "Existing policy already sees offscreen candidates"],
+      "disadvantages": ["Ordinary divs remain unsupported", "gpux lists retain divergent semantics", "Framework behavior depends on collection choice"],
+      "reasonRejected": "The user explicitly wants the general sticky feature extended across divs, list views, and tree views."
+    },
+    {
+      "alternative": "Use app-level keyed sticky overlay wrappers",
+      "advantages": ["Avoids gpux changes"],
+      "disadvantages": ["Breaks normal layout and containment", "Duplicates rows", "Detaches hitboxes, callbacks, semantics, and DevKit identity"],
+      "reasonRejected": "Sticky positioning already belongs to GPUI lifecycle and must move the real element."
+    },
+    {
+      "alternative": "Add independent stack-key fields and algorithms to every surface",
+      "advantages": ["Each implementation can be locally optimized"],
+      "disadvantages": ["Four contracts drift", "Performance fixes repeat", "Mixed mode behavior becomes inconsistent"],
+      "reasonRejected": "One neutral relation is smaller and enforces identical semantics."
+    },
+    {
+      "alternative": "Store the complete active stack for every candidate",
+      "advantages": ["Constant-time access to a copied chain"],
+      "disadvantages": ["Quadratic memory for long runs", "Repeated cloning during rebuild"],
+      "reasonRejected": "Predecessor links provide linear memory and bounded reconstruction."
+    }
+  ]
+}

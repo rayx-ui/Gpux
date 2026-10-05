@@ -1,0 +1,2063 @@
+{
+  "schemaVersion": 5,
+  "epicId": "high-quality-wasm-text-rendering",
+  "title": "High-Quality WASM Text Rendering At Native Device Scale Implementation Plan",
+  "lifecycle": "implementing",
+  "plannedAgainst": {
+    "repositoryId": "main",
+    "targetBranch": "master",
+    "head": "b06f9af76e04f3c80a852c4db85aa96ef21eda40",
+    "tree": "73321bc18a56e13f1c8e68eb8f130ab68a62c2ab"
+  },
+  "executionPolicy": {
+    "defaultMode": "sequential",
+    "subagentsRequireExplicitUserAuthorization": true,
+    "coordinatorOwnsTaskCompletion": true,
+    "maxParallelSprints": 1,
+    "leaseDurationSeconds": 900,
+    "maxAttempts": 5,
+    "allowImportedEvidence": false
+  },
+  "integrationPolicy": {
+    "epicDependencies": [],
+    "restorationAuthorizations": []
+  },
+  "sprints": [
+    {
+      "id": "sprint-1",
+      "number": 1,
+      "title": "Matched physical-pixel authority and frozen baseline",
+      "dependencies": [],
+      "parallelization": {
+        "mode": "sequential",
+        "rationale": "The quality metric, visible DOM reference, and current renderer baseline must be frozen before production pixels change.",
+        "disjointOwnedScopes": []
+      },
+      "groups": [
+        {
+          "id": "group-1-1",
+          "title": "Create the Test Suite measurement authority",
+          "dependencies": [],
+          "tasks": [
+            {
+              "id": "sprint-1-task-1",
+              "title": "Build and baseline the matched RayX and DOM quality matrix",
+              "action": "MUST add one polished Test Suite-only text-quality page with visible matched RayX WebGPU and browser-native DOM specimens, implement crop-local physical-pixel metrics with synthetic sharp/blur/fringe tests, capture the current grayscale baseline at DPR 1, 1.25, 1.5, and 2, and fail incomplete, substituted-font, misaligned, or content-bearing diagnostic evidence.",
+              "kind": "performance",
+              "requirementIds": [
+                "REQ-F-001"
+              ],
+              "designIds": [
+                "DES-001",
+                "DES-005"
+              ],
+              "dependencies": [],
+              "repositoryIds": [
+                "main"
+              ],
+              "scope": {
+                "writePaths": [
+                  "apps/test_suite/src/pages/wasm_text_rendering_quality.rs",
+                  "apps/test_suite/src/pages/mod.rs",
+                  "apps/test_suite/src/routes.rs",
+                  "tools-node/test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+                  "tools-node/test_suite/wasm-text-quality-metrics.ts",
+                  "tools-node/test_suite/wasm-text-quality-metrics.spec.ts",
+                  ".agentx/experiments/2026-*-wasm-text-rendering-quality-*",
+                  ".agentx/tasks/high-quality-wasm-text-rendering"
+                ],
+                "generatedPaths": [
+                  "artifacts-temp/test_suite/wasm-text-rendering-quality/**"
+                ],
+                "forbiddenPaths": [
+                  "apps/lab/**",
+                  "tools-node/lab/**",
+                  "crates/gpux/**"
+                ],
+                "responsibilityIds": [
+                  "RESP-005"
+                ],
+                "symbols": [
+                  "wasm_text_rendering_quality",
+                  "analyzeMatchedTextCrops",
+                  "WasmTextQualityDiagnostics"
+                ]
+              },
+              "acceptanceCriteriaIds": [
+                "AC-F-001-1",
+                "AC-F-001-2"
+              ],
+              "proofMode": "baseline-target",
+              "proofObligations": [
+                "The baseline MUST be captured before any production text-rendering edit and MUST name exact commit, browser, adapter, viewport, DPR, font bytes, and commands.",
+                "Synthetic images MUST prove the metric ranks a sharp edge above a blurred edge and rejects chromatic fringes, empty crops, and crop drift.",
+                "The visible DOM and RayX specimens MUST use the same bundled font bytes and authored typography."
+              ],
+              "implementationConstraints": {
+                "reuse": [
+                  "Existing Test Suite routing, bundled fonts, headed WebGPU xtask runner, Playwright screenshot APIs, and rayx_diagnostics."
+                ],
+                "prohibitedAdditions": [
+                  "Lab automation or diagnostics.",
+                  "Production renderer changes.",
+                  "Whole-page or aggregate-color proxy metrics.",
+                  "A new runtime dependency or content-bearing diagnostic global."
+                ],
+                "allowedAdditions": [
+                  "One Test Suite page, one focused Playwright spec, one feature-owned metric module, and deterministic synthetic metric tests.",
+                  "WASM text-quality metric module"
+                ]
+              },
+              "validation": {
+                "profiles": [
+                  "runtime",
+                  "regression",
+                  "security",
+                  "performance"
+                ],
+                "red": [
+                  {
+                    "id": "VAL-SPRINT-1-TASK-1-BASELINE-RUNTIME-01",
+                    "phase": "baseline",
+                    "repositoryId": "main",
+                    "workingDirectory": ".",
+                    "runner": {
+                      "kind": "shell",
+                      "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts:147",
+                      "platform": "windows"
+                    },
+                    "target": "wasm-webgpu",
+                    "validationProfile": "runtime",
+                    "acceptanceCriteriaIds": [
+                      "AC-F-001-1"
+                    ],
+                    "expected": {
+                      "exitCode": "nonzero",
+                      "failurePattern": "matched DOM quality target unmet"
+                    },
+                    "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts:147",
+                    "assertion": "The pre-renderer-change run MUST emit a complete matched baseline; it is not evidence that the final quality target passes.",
+                    "artifactPaths": [
+                      "main:artifacts-temp/test_suite/wasm-text-rendering-quality"
+                    ]
+                  }
+                ],
+                "green": [
+                  {
+                    "id": "VAL-SPRINT-1-TASK-1-TARGET-METRICS-01",
+                    "phase": "target",
+                    "repositoryId": "main",
+                    "workingDirectory": "tools-node",
+                    "runner": {
+                      "kind": "argv",
+                      "executable": "pnpm",
+                      "arguments": [
+                        "exec",
+                        "playwright",
+                        "test",
+                        "test_suite/wasm-text-quality-metrics.spec.ts",
+                        "--workers=1"
+                      ]
+                    },
+                    "target": "host",
+                    "validationProfile": "regression",
+                    "acceptanceCriteriaIds": [
+                      "AC-F-001-1",
+                      "AC-F-001-2"
+                    ],
+                    "expected": {
+                      "exitCode": 0
+                    },
+                    "command": "pnpm exec playwright test test_suite/wasm-text-quality-metrics.spec.ts --workers=1",
+                    "assertion": "Synthetic metric fixtures MUST distinguish spatial blur, channel fringes, empty crops, and alignment drift deterministically.",
+                    "artifactPaths": [
+                      "main:tools-node/test_suite/wasm-text-quality-metrics.ts",
+                      "main:tools-node/test_suite/wasm-text-quality-metrics.spec.ts"
+                    ]
+                  },
+                  {
+                    "id": "VAL-SPRINT-1-TASK-1-TARGET-RUNTIME-01",
+                    "phase": "target",
+                    "repositoryId": "main",
+                    "workingDirectory": ".",
+                    "runner": {
+                      "kind": "shell",
+                      "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts:59",
+                      "platform": "windows"
+                    },
+                    "target": "wasm-webgpu",
+                    "validationProfile": "runtime",
+                    "acceptanceCriteriaIds": [
+                      "AC-F-001-1",
+                      "AC-F-001-2"
+                    ],
+                    "expected": {
+                      "exitCode": 0
+                    },
+                    "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts:59",
+                    "assertion": "The complete serial matrix MUST produce only deterministic fixture pixels and bounded numeric/capability diagnostics.",
+                    "artifactPaths": [
+                      "main:artifacts-temp/test_suite/wasm-text-rendering-quality"
+                    ]
+                  },
+                  {
+                    "id": "VAL-SPRINT-1-TASK-1-TARGET-SECURITY-01",
+                    "phase": "target",
+                    "repositoryId": "main",
+                    "workingDirectory": ".",
+                    "runner": {
+                      "kind": "shell",
+                      "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts:135",
+                      "platform": "windows"
+                    },
+                    "target": "wasm-webgpu",
+                    "validationProfile": "security",
+                    "acceptanceCriteriaIds": [
+                      "AC-F-001-2"
+                    ],
+                    "expected": {
+                      "exitCode": 0
+                    },
+                    "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts:135",
+                    "assertion": "The diagnostic surface MUST contain only bounded numeric and capability metadata for deterministic fixture content.",
+                    "artifactPaths": [
+                      "main:artifacts-temp/test_suite/wasm-text-rendering-quality"
+                    ]
+                  },
+                  {
+                    "id": "VAL-SPRINT-1-TASK-1-TARGET-PERFORMANCE-01",
+                    "phase": "target",
+                    "repositoryId": "main",
+                    "workingDirectory": ".",
+                    "runner": {
+                      "kind": "shell",
+                      "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts:59",
+                      "platform": "windows"
+                    },
+                    "target": "wasm-webgpu",
+                    "validationProfile": "performance",
+                    "acceptanceCriteriaIds": [
+                      "AC-F-001-1"
+                    ],
+                    "expected": {
+                      "exitCode": 0
+                    },
+                    "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts:59",
+                    "assertion": "The baseline workload MUST emit complete warm timing and renderer resource counters without asserting the future quality target.",
+                    "artifactPaths": [
+                      "main:artifacts-temp/test_suite/wasm-text-rendering-quality"
+                    ]
+                  }
+                ],
+                "broad": [
+                  {
+                    "id": "VAL-SPRINT-1-TASK-1-BROAD-TSC-01",
+                    "phase": "broad",
+                    "repositoryId": "main",
+                    "workingDirectory": "tools-node",
+                    "runner": {
+                      "kind": "argv",
+                      "executable": "pnpm",
+                      "arguments": [
+                        "exec",
+                        "tsc",
+                        "--ignoreConfig",
+                        "--noEmit",
+                        "--strict",
+                        "--target",
+                        "es2024",
+                        "--module",
+                        "nodenext",
+                        "--moduleResolution",
+                        "nodenext",
+                        "--types",
+                        "node",
+                        "test_suite/wasm-text-quality-metrics.ts",
+                        "test_suite/wasm-text-quality-metrics.spec.ts",
+                        "test_suite/rayx-wasm-text-rendering-quality.spec.ts"
+                      ]
+                    },
+                    "target": "host",
+                    "validationProfile": "regression",
+                    "acceptanceCriteriaIds": [
+                      "AC-F-001-1",
+                      "AC-F-001-2"
+                    ],
+                    "expected": {
+                      "exitCode": 0
+                    },
+                    "command": "pnpm exec tsc --ignoreConfig --noEmit --strict --target es2024 --module nodenext --moduleResolution nodenext --types node test_suite/wasm-text-quality-metrics.ts test_suite/wasm-text-quality-metrics.spec.ts test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+                    "assertion": "The focused text-quality metric and runtime specs MUST type-check after the harness is added.",
+                    "artifactPaths": [
+                      "main:tools-node/test_suite"
+                    ]
+                  }
+                ]
+              },
+              "status": "done"
+            }
+          ]
+        }
+      ],
+      "exitContract": {
+        "requirementIds": [
+          "REQ-F-001"
+        ],
+        "acceptanceCriteriaIds": [
+          "AC-F-001-1",
+          "AC-F-001-2"
+        ],
+        "requirementProgress": {
+          "REQ-F-001": [
+            "AC-F-001-1",
+            "AC-F-001-2"
+          ]
+        },
+        "broadValidationCommandIds": [
+          "VAL-SPRINT-1-EXIT-TSC-01"
+        ],
+        "broadValidation": [
+          {
+            "id": "VAL-SPRINT-1-EXIT-TSC-01",
+            "phase": "broad",
+            "repositoryId": "main",
+            "workingDirectory": ".",
+            "runner": {
+              "kind": "argv",
+              "executable": "pnpm",
+              "arguments": [
+                "--dir",
+                "tools-node",
+                "exec",
+                "tsc",
+                "--ignoreConfig",
+                "--noEmit",
+                "--strict",
+                "--target",
+                "es2024",
+                "--module",
+                "nodenext",
+                "--moduleResolution",
+                "nodenext",
+                "--types",
+                "node",
+                "test_suite/wasm-text-quality-metrics.ts",
+                "test_suite/wasm-text-quality-metrics.spec.ts",
+                "test_suite/rayx-wasm-text-rendering-quality.spec.ts"
+              ]
+            },
+            "target": "host",
+            "validationProfile": "static-analysis",
+            "acceptanceCriteriaIds": [
+              "AC-F-001-1",
+              "AC-F-001-2"
+            ],
+            "expected": {
+              "exitCode": 0
+            },
+            "command": "pnpm --dir tools-node exec tsc --ignoreConfig --noEmit --strict --target es2024 --module nodenext --moduleResolution nodenext --types node test_suite/wasm-text-quality-metrics.ts test_suite/wasm-text-quality-metrics.spec.ts test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+            "assertion": "The focused metric and runtime specs MUST type-check in the approved tools-node workspace.",
+            "artifactPaths": [
+              "main:tools-node/test_suite"
+            ]
+          }
+        ],
+        "auditFocus": [
+          "The baseline predates production renderer changes.",
+          "The metric is crop-local, physical-pixel based, and paired against visible DOM text.",
+          "Lab remains untouched by diagnostic code."
+        ],
+        "designQualityFocus": [
+          "One feature-owned test helper replaces text-specific reliance on the generic performance helper.",
+          "No production abstraction or dependency is introduced."
+        ],
+        "commitScope": [
+          "Test Suite quality page and route",
+          "focused Playwright quality metric/spec",
+          "baseline artifacts and Sprint 1 AgentX evidence"
+        ]
+      }
+    },
+    {
+      "id": "sprint-2",
+      "number": 2,
+      "title": "Atomic browser scale truth and live DPR lifecycle",
+      "dependencies": [
+        "sprint-1"
+      ],
+      "parallelization": {
+        "mode": "sequential",
+        "rationale": "Scale defects must be isolated from glyph-quality changes so the later candidate experiment has a truthful physical-pixel foundation.",
+        "disjointOwnedScopes": []
+      },
+      "groups": [
+        {
+          "id": "group-2-1",
+          "title": "Prove and repair the browser scale tuple",
+          "dependencies": [
+            "group-1-1"
+          ],
+          "tasks": [
+            {
+              "id": "sprint-2-task-1",
+              "title": "Keep canvas, surface, scene, and glyph scale in one generation",
+              "action": "MUST add focused calculus and headed live-DPR tests, expose bounded scale-generation diagnostics, and repair only demonstrated defects so CSS bounds, backing store, WGPU surface, GPUI scene scale, and glyph cache scale update atomically and idempotently across DPR 1, 1.25, 1.5, and 2.",
+              "kind": "bugfix",
+              "requirementIds": [
+                "REQ-F-002"
+              ],
+              "designIds": [
+                "DES-002",
+                "DES-004"
+              ],
+              "dependencies": [
+                "sprint-1-task-1"
+              ],
+              "repositoryIds": [
+                "main"
+              ],
+              "scope": {
+                "writePaths": [
+                  "crates/gpux/crates/gpui_web/src/window.rs",
+                  "crates/gpux/crates/gpui/src/text_system.rs",
+                  "crates/gpux/crates/gpui/src/window.rs",
+                  "apps/test_suite/src/pages/wasm_text_rendering_quality.rs",
+                  "tools-node/test_suite/rayx-wasm-text-rendering-dpr.spec.ts",
+                  ".agentx/tasks/high-quality-wasm-text-rendering"
+                ],
+                "generatedPaths": [
+                  "artifacts-temp/test_suite/wasm-text-rendering-dpr/**"
+                ],
+                "forbiddenPaths": [
+                  "apps/lab/**",
+                  "tools-node/lab/**",
+                  "crates/rayx/**"
+                ],
+                "responsibilityIds": [
+                  "RESP-001",
+                  "RESP-002",
+                  "RESP-003",
+                  "RESP-005"
+                ],
+                "symbols": [
+                  "WebWindow",
+                  "physical_canvas_size",
+                  "ResizeObserver",
+                  "DprWatcher",
+                  "RenderGlyphParams",
+                  "GlyphCacheKey"
+                ]
+              },
+              "acceptanceCriteriaIds": [
+                "AC-F-002-1",
+                "AC-F-002-2"
+              ],
+              "proofMode": "red-green",
+              "proofObligations": [
+                "A failing test MUST demonstrate each repaired scale/lifecycle defect before its production edit.",
+                "The test MUST distinguish no-op repeated observations from a real scale generation.",
+                "No full-canvas minimum DPR is allowed."
+              ],
+              "implementationConstraints": {
+                "reuse": [
+                  "Existing WebWindow ResizeObserver, media-query DPR watcher, viewport scheduling, WGPU surface update, scene scale, RenderGlyphParams, and glyph cache."
+                ],
+                "prohibitedAdditions": [
+                  "A second resize/DPR service.",
+                  "Polling.",
+                  "A complete-canvas DPR floor.",
+                  "Global cache flush on an identical observation.",
+                  "Lab probes."
+                ],
+                "allowedAdditions": [
+                  "Small pure calculus tests, one monotonically increasing scale generation, and bounded numeric diagnostics under rayx_diagnostics."
+                ]
+              },
+              "validation": {
+                "profiles": [
+                  "unit",
+                  "contract",
+                  "runtime",
+                  "regression"
+                ],
+                "red": [
+                  {
+                    "id": "VAL-SPRINT-2-TASK-1-RED-UNIT-01",
+                    "phase": "red",
+                    "repositoryId": "main",
+                    "workingDirectory": ".",
+                    "runner": {
+                      "kind": "shell",
+                      "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-dpr.spec.ts",
+                      "platform": "windows"
+                    },
+                    "target": "wasm-webgpu",
+                    "validationProfile": "unit",
+                    "acceptanceCriteriaIds": [
+                      "AC-F-002-1",
+                      "AC-F-002-2"
+                    ],
+                    "expected": {
+                      "exitCode": "nonzero",
+                      "failurePattern": "pre-change behavior"
+                    },
+                    "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-dpr.spec.ts",
+                    "assertion": "The new focused contract MUST expose the pre-change calculus or lifecycle defect before repair.",
+                    "artifactPaths": [
+                      "main:crates/gpux/crates/gpui_web/src/window.rs"
+                    ]
+                  }
+                ],
+                "green": [
+                  {
+                    "id": "VAL-SPRINT-2-TASK-1-GREEN-UNIT-01",
+                    "phase": "green",
+                    "repositoryId": "main",
+                    "workingDirectory": ".",
+                    "runner": {
+                      "kind": "shell",
+                      "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-dpr.spec.ts",
+                      "platform": "windows"
+                    },
+                    "target": "wasm-webgpu",
+                    "validationProfile": "unit",
+                    "acceptanceCriteriaIds": [
+                      "AC-F-002-1",
+                      "AC-F-002-2"
+                    ],
+                    "expected": {
+                      "exitCode": 0
+                    },
+                    "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-dpr.spec.ts",
+                    "assertion": "Fractional rounding, idempotency, teardown, and atomic generation tests MUST pass.",
+                    "artifactPaths": [
+                      "main:crates/gpux/crates/gpui_web/src/window.rs",
+                      "main:crates/gpux/crates/gpui/src/text_system.rs"
+                    ]
+                  },
+                  {
+                    "id": "VAL-SPRINT-2-TASK-1-GREEN-CONTRACT-01",
+                    "phase": "green",
+                    "repositoryId": "main",
+                    "workingDirectory": ".",
+                    "runner": {
+                      "kind": "shell",
+                      "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-dpr.spec.ts",
+                      "platform": "windows"
+                    },
+                    "target": "wasm-webgpu",
+                    "validationProfile": "contract",
+                    "acceptanceCriteriaIds": [
+                      "AC-F-002-1",
+                      "AC-F-002-2"
+                    ],
+                    "expected": {
+                      "exitCode": 0
+                    },
+                    "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-dpr.spec.ts",
+                    "assertion": "The permanent scale contract MUST prove native-DPR rounding, atomic generation, idempotency, and teardown.",
+                    "artifactPaths": [
+                      "main:crates/gpux/crates/gpui_web/src/window.rs",
+                      "main:crates/gpux/crates/gpui/src/text_system.rs"
+                    ]
+                  },
+                  {
+                    "id": "VAL-SPRINT-2-TASK-1-GREEN-RUNTIME-01",
+                    "phase": "green",
+                    "repositoryId": "main",
+                    "workingDirectory": ".",
+                    "runner": {
+                      "kind": "shell",
+                      "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-dpr.spec.ts",
+                      "platform": "windows"
+                    },
+                    "target": "wasm-webgpu",
+                    "validationProfile": "runtime",
+                    "acceptanceCriteriaIds": [
+                      "AC-F-002-1",
+                      "AC-F-002-2"
+                    ],
+                    "expected": {
+                      "exitCode": 0
+                    },
+                    "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-dpr.spec.ts",
+                    "assertion": "Every requested DPR and live transition MUST report one correct scale tuple within two frames with no stale glyph or leaked callback.",
+                    "artifactPaths": [
+                      "main:artifacts-temp/test_suite/wasm-text-rendering-dpr"
+                    ]
+                  }
+                ],
+                "broad": [
+                  {
+                    "id": "VAL-SPRINT-2-TASK-1-BROAD-REGRESSION-01",
+                    "phase": "broad",
+                    "repositoryId": "main",
+                    "workingDirectory": ".",
+                    "runner": {
+                      "kind": "shell",
+                      "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-dpr.spec.ts",
+                      "platform": "windows"
+                    },
+                    "target": "wasm-webgpu",
+                    "validationProfile": "regression",
+                    "acceptanceCriteriaIds": [
+                      "AC-F-002-2"
+                    ],
+                    "expected": {
+                      "exitCode": 0
+                    },
+                    "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-dpr.spec.ts",
+                    "assertion": "The focused headed-WebGPU scale regression MUST preserve browser startup, resize, and lifecycle behavior after the repair.",
+                    "artifactPaths": [
+                      "main:crates/gpux/crates/gpui_web"
+                    ]
+                  }
+                ]
+              },
+              "status": "done"
+            }
+          ]
+        }
+      ],
+      "exitContract": {
+        "requirementIds": [
+          "REQ-F-002"
+        ],
+        "acceptanceCriteriaIds": [
+          "AC-F-002-1",
+          "AC-F-002-2"
+        ],
+        "requirementProgress": {
+          "REQ-F-002": [
+            "AC-F-002-1",
+            "AC-F-002-2"
+          ]
+        },
+        "broadValidationCommandIds": [
+          "VAL-SPRINT-2-EXIT-CHECK-01"
+        ],
+        "broadValidation": [
+          {
+            "id": "VAL-SPRINT-2-EXIT-CHECK-01",
+            "phase": "broad",
+            "repositoryId": "main",
+            "workingDirectory": ".",
+            "runner": {
+              "kind": "shell",
+              "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-dpr.spec.ts",
+              "platform": "windows"
+            },
+            "target": "wasm-webgpu",
+            "validationProfile": "static-analysis",
+            "acceptanceCriteriaIds": [
+              "AC-F-002-1",
+              "AC-F-002-2"
+            ],
+            "expected": {
+              "exitCode": 0
+            },
+            "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-dpr.spec.ts",
+            "assertion": "The complete focused headed-WebGPU scale-owner contract MUST pass on the required WASM validation surface.",
+            "artifactPaths": [
+              "main:crates/gpux/crates/gpui_web"
+            ]
+          }
+        ],
+        "auditFocus": [
+          "Every scale tuple comes from actual browser DPR.",
+          "Canvas and surface dimensions commit together.",
+          "Identical events do not reconfigure or rerasterize."
+        ],
+        "designQualityFocus": [
+          "Existing WebWindow lifecycle remains the sole owner.",
+          "Any scale-generation state is minimal and local."
+        ],
+        "commitScope": [
+          "gpui_web scale lifecycle and diagnostics",
+          "glyph key scale identity",
+          "focused DPR fixture/spec and Sprint 2 evidence"
+        ]
+      }
+    },
+    {
+      "id": "sprint-3",
+      "number": 3,
+      "title": "Measured high-quality browser glyph strategy",
+      "dependencies": [
+        "sprint-2"
+      ],
+      "parallelization": {
+        "mode": "sequential",
+        "rationale": "Candidate pixel mechanisms overlap the same rasterizer, atlas, shader, and quality matrix and must be evaluated atomically one at a time.",
+        "disjointOwnedScopes": []
+      },
+      "groups": [
+        {
+          "id": "group-3-1",
+          "title": "Select and harden the smallest passing renderer strategy",
+          "dependencies": [
+            "group-2-1"
+          ],
+          "tasks": [
+            {
+              "id": "sprint-3-task-1",
+              "title": "Run the candidate ladder and retain the first complete quality win",
+              "action": "MUST start an AgentX improvement loop from the frozen Sprint 1 baseline, evaluate one primary mechanism per experiment in the fixed order of scale/sampling/gamma correction, Swash hint/raster correction, glyph-local higher-resolution coverage/downsample, then composition-safe LCD, and retain only the first smallest implementation that passes every matched DOM quality, geometry, warm p95, cache, atlas, and native-DPR gate.",
+              "kind": "performance",
+              "requirementIds": [
+                "REQ-F-003",
+                "REQ-NF-001"
+              ],
+              "designIds": [
+                "DES-003",
+                "DES-004"
+              ],
+              "dependencies": [
+                "sprint-2-task-1"
+              ],
+              "repositoryIds": [
+                "main"
+              ],
+              "scope": {
+                "writePaths": [
+                  ".agentx/experiments/2026-*-wasm-text-rendering-quality-*",
+                  "crates/gpux/crates/gpui/src/window.rs",
+                  "crates/gpux/crates/gpui/src/text_system.rs",
+                  "crates/gpux/crates/gpui_web/src/window.rs",
+                  "crates/gpux/crates/gpui_wgpu/src/cosmic_text_system.rs",
+                  "crates/gpux/crates/gpui_wgpu/src/wgpu_renderer.rs",
+                  "crates/gpux/crates/gpui_wgpu/src/shaders.wgsl",
+                  "crates/gpux/crates/gpui_wgpu/src/shaders_subpixel.wgsl",
+                  "tools-node/test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+                  ".agentx/tasks/high-quality-wasm-text-rendering"
+                ],
+                "generatedPaths": [
+                  "artifacts-temp/test_suite/wasm-text-rendering-quality/**"
+                ],
+                "forbiddenPaths": [
+                  "apps/lab/**",
+                  "tools-node/lab/**",
+                  "crates/rayx/**"
+                ],
+                "responsibilityIds": [
+                  "RESP-002",
+                  "RESP-003",
+                  "RESP-004",
+                  "RESP-005"
+                ],
+                "symbols": [
+                  "Window::paint_glyph",
+                  "TextRenderingMode",
+                  "RenderGlyphParams",
+                  "GlyphCacheKey",
+                  "WebWindow::is_subpixel_rendering_supported",
+                  "CosmicTextSystemState::render_glyph_image",
+                  "WgpuRenderer"
+                ]
+              },
+              "acceptanceCriteriaIds": [
+                "AC-F-003-1",
+                "AC-NF-001-1"
+              ],
+              "proofMode": "baseline-target",
+              "proofObligations": [
+                "Each experiment MUST name one primary mechanism, checkpoint all participating repositories, and commit or revert before the next candidate.",
+                "The first smallest passing strategy wins; a larger candidate cannot remain merely because it looks better subjectively.",
+                "No passing candidate means the task remains blocked rather than lowering the frozen quality gates."
+              ],
+              "implementationConstraints": {
+                "reuse": [
+                  "Existing Swash rasterizer, RenderGlyphParams/GlyphCacheKey, glyph atlas, WGPU monochrome/subpixel pipelines, and AgentX improvement-loop state machine."
+                ],
+                "prohibitedAdditions": [
+                  "A complete-canvas DPR floor.",
+                  "A second font renderer or atlas.",
+                  "A runtime dependency.",
+                  "An application-facing setting or RayX service.",
+                  "Concurrent candidate experiments.",
+                  "Acceptance from screenshots without metrics."
+                ],
+                "allowedAdditions": [
+                  "The smallest pixel-changing parameters required in the existing glyph cache identity.",
+                  "A glyph-local raster/downsample scale only if earlier candidates fail.",
+                  "Composition-safe LCD policy only if every earlier candidate fails and fringe gates pass."
+                ]
+              },
+              "validation": {
+                "profiles": [
+                  "runtime",
+                  "performance",
+                  "regression"
+                ],
+                "red": [
+                  {
+                    "id": "VAL-SPRINT-3-TASK-1-BASELINE-QUALITY-01",
+                    "phase": "baseline",
+                    "repositoryId": "main",
+                    "workingDirectory": ".",
+                    "runner": {
+                      "kind": "shell",
+                      "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+                      "platform": "windows"
+                    },
+                    "target": "wasm-webgpu",
+                    "validationProfile": "performance",
+                    "acceptanceCriteriaIds": [
+                      "AC-F-003-1",
+                      "AC-NF-001-1"
+                    ],
+                    "expected": {
+                      "exitCode": "nonzero",
+                      "failurePattern": "matched DOM quality target unmet"
+                    },
+                    "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+                    "assertion": "The frozen current-strategy baseline MUST be recorded before candidate source changes; it MUST not be mislabeled as a final quality pass.",
+                    "artifactPaths": [
+                      "main:artifacts-temp/test_suite/wasm-text-rendering-quality"
+                    ]
+                  }
+                ],
+                "green": [
+                  {
+                    "id": "VAL-SPRINT-3-TASK-1-TARGET-QUALITY-01",
+                    "phase": "target",
+                    "repositoryId": "main",
+                    "workingDirectory": ".",
+                    "runner": {
+                      "kind": "shell",
+                      "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+                      "platform": "windows"
+                    },
+                    "target": "wasm-webgpu",
+                    "validationProfile": "runtime",
+                    "acceptanceCriteriaIds": [
+                      "AC-F-003-1",
+                      "AC-NF-001-1"
+                    ],
+                    "expected": {
+                      "exitCode": 0
+                    },
+                    "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+                    "assertion": "The accepted candidate MUST meet every matched DOM, geometry, native-DPR, warm p95, unchanged-frame, cache, and atlas gate.",
+                    "artifactPaths": [
+                      "main:artifacts-temp/test_suite/wasm-text-rendering-quality"
+                    ]
+                  },
+                  {
+                    "id": "VAL-SPRINT-3-TASK-1-TARGET-PERFORMANCE-01",
+                    "phase": "target",
+                    "repositoryId": "main",
+                    "workingDirectory": ".",
+                    "runner": {
+                      "kind": "shell",
+                      "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+                      "platform": "windows"
+                    },
+                    "target": "wasm-webgpu",
+                    "validationProfile": "performance",
+                    "acceptanceCriteriaIds": [
+                      "AC-F-003-1",
+                      "AC-NF-001-1"
+                    ],
+                    "expected": {
+                      "exitCode": 0
+                    },
+                    "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+                    "assertion": "Warm p95, unchanged-frame raster count, atlas bounds, and native-DPR backing pixels MUST satisfy the frozen target.",
+                    "artifactPaths": [
+                      "main:artifacts-temp/test_suite/wasm-text-rendering-quality"
+                    ]
+                  },
+                  {
+                    "id": "VAL-SPRINT-3-TASK-1-TARGET-REGRESSION-01",
+                    "phase": "target",
+                    "repositoryId": "main",
+                    "workingDirectory": ".",
+                    "runner": {
+                      "kind": "shell",
+                      "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+                      "platform": "windows"
+                    },
+                    "target": "wasm-webgpu",
+                    "validationProfile": "regression",
+                    "acceptanceCriteriaIds": [
+                      "AC-F-003-1"
+                    ],
+                    "expected": {
+                      "exitCode": 0
+                    },
+                    "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+                    "assertion": "Authored glyph advances and CSS bounds MUST remain within the frozen tolerance for every accepted quality cell.",
+                    "artifactPaths": [
+                      "main:artifacts-temp/test_suite/wasm-text-rendering-quality"
+                    ]
+                  }
+                ],
+                "broad": [
+                  {
+                    "id": "VAL-SPRINT-3-TASK-1-BROAD-GPUX-01",
+                    "phase": "broad",
+                    "repositoryId": "main",
+                    "workingDirectory": ".",
+                    "runner": {
+                      "kind": "shell",
+                      "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+                      "platform": "windows"
+                    },
+                    "target": "wasm-webgpu",
+                    "validationProfile": "regression",
+                    "acceptanceCriteriaIds": [
+                      "AC-F-003-1",
+                      "AC-NF-001-1"
+                    ],
+                    "expected": {
+                      "exitCode": 0
+                    },
+                    "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+                    "assertion": "The accepted quality strategy MUST preserve the shared gpui and renderer behavior exercised by the headed-WebGPU regression fixture.",
+                    "artifactPaths": [
+                      "main:crates/gpux/crates/gpui",
+                      "main:crates/gpux/crates/gpui_wgpu"
+                    ]
+                  }
+                ]
+              },
+              "status": "blocked"
+            },
+            {
+              "id": "sprint-3-task-2",
+              "title": "Enforce composition-safe fallbacks and coverage isolation",
+              "action": "MUST add failing-to-passing contracts for transformed text, translucent destinations, unsupported dual-source/LCD geometry, light/dark colors, emoji, and image masks so unsafe cases select the accepted grayscale path, color coverage remains isolated, and GPU capability alone can never enable LCD output.",
+              "kind": "bugfix",
+              "requirementIds": [
+                "REQ-F-003"
+              ],
+              "designIds": [
+                "DES-003",
+                "DES-004"
+              ],
+              "dependencies": [
+                "sprint-3-task-1"
+              ],
+              "repositoryIds": [
+                "main"
+              ],
+              "scope": {
+                "writePaths": [
+                  "crates/gpux/crates/gpui/src/window.rs",
+                  "crates/gpux/crates/gpui/src/text_system.rs",
+                  "crates/gpux/crates/gpui_wgpu/src/cosmic_text_system.rs",
+                  "crates/gpux/crates/gpui_wgpu/src/wgpu_renderer.rs",
+                  "crates/gpux/crates/gpui_wgpu/src/shaders.wgsl",
+                  "crates/gpux/crates/gpui_wgpu/src/shaders_subpixel.wgsl",
+                  "tools-node/test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+                  ".agentx/tasks/high-quality-wasm-text-rendering"
+                ],
+                "generatedPaths": [
+                  "artifacts-temp/test_suite/wasm-text-rendering-quality/**"
+                ],
+                "forbiddenPaths": [
+                  "apps/lab/**",
+                  "tools-node/lab/**",
+                  "crates/rayx/**"
+                ],
+                "responsibilityIds": [
+                  "RESP-002",
+                  "RESP-003",
+                  "RESP-004",
+                  "RESP-005"
+                ],
+                "symbols": [
+                  "Window::paint_glyph",
+                  "TextRenderingMode",
+                  "MonochromeSprite",
+                  "SubpixelSprite",
+                  "PlatformAtlas"
+                ]
+              },
+              "acceptanceCriteriaIds": [
+                "AC-F-003-2"
+              ],
+              "proofMode": "red-green",
+              "proofObligations": [
+                "Every unsafe condition MUST have an independently asserted grayscale fallback reason.",
+                "Emoji and image-mask pixels MUST be characterized before and after the text strategy.",
+                "The chromatic-fringe gate MUST be measured against the paired DOM edge band."
+              ],
+              "implementationConstraints": {
+                "reuse": [
+                  "Existing Window paint decision, atlas kinds, sprite kinds, negotiated WGPU features, and Test Suite quality matrix."
+                ],
+                "prohibitedAdditions": [
+                  "Treating dual-source blending as sufficient LCD authorization.",
+                  "RGB-order guessing.",
+                  "Text mode changes to emoji or image-mask coverage.",
+                  "Fallback policy in RayX application code."
+                ],
+                "allowedAdditions": [
+                  "A minimal renderer-owned eligibility predicate and bounded fallback-reason diagnostics."
+                ]
+              },
+              "validation": {
+                "profiles": [
+                  "unit",
+                  "runtime",
+                  "regression",
+                  "performance"
+                ],
+                "red": [
+                  {
+                    "id": "VAL-SPRINT-3-TASK-2-RED-FALLBACK-01",
+                    "phase": "red",
+                    "repositoryId": "main",
+                    "workingDirectory": ".",
+                    "runner": {
+                      "kind": "shell",
+                      "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+                      "platform": "windows"
+                    },
+                    "target": "wasm-webgpu",
+                    "validationProfile": "unit",
+                    "acceptanceCriteriaIds": [
+                      "AC-F-003-2"
+                    ],
+                    "expected": {
+                      "exitCode": "nonzero",
+                      "failurePattern": "pre-change behavior"
+                    },
+                    "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+                    "assertion": "New fallback contracts MUST expose missing or incorrect pre-change mode eligibility before repair.",
+                    "artifactPaths": [
+                      "main:crates/gpux/crates/gpui/src/window.rs",
+                      "main:crates/gpux/crates/gpui_wgpu/src/wgpu_renderer.rs"
+                    ]
+                  }
+                ],
+                "green": [
+                  {
+                    "id": "VAL-SPRINT-3-TASK-2-GREEN-FALLBACK-01",
+                    "phase": "green",
+                    "repositoryId": "main",
+                    "workingDirectory": ".",
+                    "runner": {
+                      "kind": "shell",
+                      "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+                      "platform": "windows"
+                    },
+                    "target": "wasm-webgpu",
+                    "validationProfile": "unit",
+                    "acceptanceCriteriaIds": [
+                      "AC-F-003-2"
+                    ],
+                    "expected": {
+                      "exitCode": 0
+                    },
+                    "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+                    "assertion": "Every unsafe case MUST resolve to grayscale while emoji and image-mask coverage stay unchanged.",
+                    "artifactPaths": [
+                      "main:crates/gpux/crates/gpui",
+                      "main:crates/gpux/crates/gpui_wgpu"
+                    ]
+                  },
+                  {
+                    "id": "VAL-SPRINT-3-TASK-2-GREEN-RUNTIME-01",
+                    "phase": "green",
+                    "repositoryId": "main",
+                    "workingDirectory": ".",
+                    "runner": {
+                      "kind": "shell",
+                      "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+                      "platform": "windows"
+                    },
+                    "target": "wasm-webgpu",
+                    "validationProfile": "runtime",
+                    "acceptanceCriteriaIds": [
+                      "AC-F-003-2"
+                    ],
+                    "expected": {
+                      "exitCode": 0
+                    },
+                    "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+                    "assertion": "The full headed matrix MUST prove fringe bounds, fallback reasons, and unchanged color coverage.",
+                    "artifactPaths": [
+                      "main:artifacts-temp/test_suite/wasm-text-rendering-quality"
+                    ]
+                  },
+                  {
+                    "id": "VAL-SPRINT-3-TASK-2-GREEN-REGRESSION-01",
+                    "phase": "green",
+                    "repositoryId": "main",
+                    "workingDirectory": ".",
+                    "runner": {
+                      "kind": "shell",
+                      "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+                      "platform": "windows"
+                    },
+                    "target": "wasm-webgpu",
+                    "validationProfile": "regression",
+                    "acceptanceCriteriaIds": [
+                      "AC-F-003-2"
+                    ],
+                    "expected": {
+                      "exitCode": 0
+                    },
+                    "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+                    "assertion": "Transformed, translucent, unsupported, emoji, and image-mask cases MUST preserve the correct coverage path.",
+                    "artifactPaths": [
+                      "main:artifacts-temp/test_suite/wasm-text-rendering-quality"
+                    ]
+                  },
+                  {
+                    "id": "VAL-SPRINT-3-TASK-2-GREEN-PERFORMANCE-01",
+                    "phase": "green",
+                    "repositoryId": "main",
+                    "workingDirectory": ".",
+                    "runner": {
+                      "kind": "shell",
+                      "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+                      "platform": "windows"
+                    },
+                    "target": "wasm-webgpu",
+                    "validationProfile": "performance",
+                    "acceptanceCriteriaIds": [
+                      "AC-F-003-2"
+                    ],
+                    "expected": {
+                      "exitCode": 0
+                    },
+                    "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+                    "assertion": "Fallback policy MUST not trigger duplicate rasterization or unbounded alternate-mode atlas entries.",
+                    "artifactPaths": [
+                      "main:artifacts-temp/test_suite/wasm-text-rendering-quality"
+                    ]
+                  }
+                ],
+                "broad": [
+                  {
+                    "id": "VAL-SPRINT-3-TASK-2-BROAD-GPUX-01",
+                    "phase": "broad",
+                    "repositoryId": "main",
+                    "workingDirectory": ".",
+                    "runner": {
+                      "kind": "shell",
+                      "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+                      "platform": "windows"
+                    },
+                    "target": "wasm-webgpu",
+                    "validationProfile": "regression",
+                    "acceptanceCriteriaIds": [
+                      "AC-F-003-2"
+                    ],
+                    "expected": {
+                      "exitCode": 0
+                    },
+                    "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+                    "assertion": "The complete headed-WebGPU fallback matrix MUST remain green after fallback hardening.",
+                    "artifactPaths": [
+                      "main:crates/gpux/crates/gpui",
+                      "main:crates/gpux/crates/gpui_wgpu"
+                    ]
+                  }
+                ]
+              },
+              "status": "pending"
+            }
+          ]
+        }
+      ],
+      "exitContract": {
+        "requirementIds": [
+          "REQ-F-003",
+          "REQ-NF-001"
+        ],
+        "acceptanceCriteriaIds": [
+          "AC-F-003-1",
+          "AC-F-003-2",
+          "AC-NF-001-1"
+        ],
+        "requirementProgress": {
+          "REQ-F-003": [
+            "AC-F-003-1",
+            "AC-F-003-2"
+          ],
+          "REQ-NF-001": [
+            "AC-NF-001-1"
+          ]
+        },
+        "broadValidationCommandIds": [
+          "VAL-SPRINT-3-EXIT-GPUX-01"
+        ],
+        "broadValidation": [
+          {
+            "id": "VAL-SPRINT-3-EXIT-GPUX-01",
+            "phase": "broad",
+            "repositoryId": "main",
+            "workingDirectory": ".",
+            "runner": {
+              "kind": "shell",
+              "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+              "platform": "windows"
+            },
+            "target": "wasm-webgpu",
+            "validationProfile": "regression",
+            "acceptanceCriteriaIds": [
+              "AC-F-003-1",
+              "AC-F-003-2",
+              "AC-NF-001-1"
+            ],
+            "expected": {
+              "exitCode": 0
+            },
+            "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+            "assertion": "The accepted renderer strategy MUST pass the complete focused headed-WebGPU quality and fallback surface.",
+            "artifactPaths": [
+              "main:crates/gpux/crates/gpui",
+              "main:crates/gpux/crates/gpui_wgpu"
+            ]
+          }
+        ],
+        "auditFocus": [
+          "Only one primary mechanism changes per experiment.",
+          "Every rejected candidate is fully reverted.",
+          "Cache identity covers every pixel-changing parameter.",
+          "LCD is composition-policy gated, never capability-only."
+        ],
+        "designQualityFocus": [
+          "The accepted implementation is the smallest passing candidate.",
+          "No second renderer, atlas, service, dependency, or application API exists."
+        ],
+        "commitScope": [
+          "accepted gpux glyph rendering strategy",
+          "composition-safe fallbacks and focused contracts",
+          "experiment ledger and Sprint 3 AgentX evidence"
+        ]
+      }
+    },
+    {
+      "id": "sprint-4",
+      "number": 4,
+      "title": "Surface regressions, repeatability, and production cleanup",
+      "dependencies": [
+        "sprint-3"
+      ],
+      "parallelization": {
+        "mode": "sequential",
+        "rationale": "Final validation, diagnostic cleanup, guidance, memory, and checkpoint evidence describe one production state and must converge together.",
+        "disjointOwnedScopes": []
+      },
+      "groups": [
+        {
+          "id": "group-4-1",
+          "title": "Converge and checkpoint production quality",
+          "dependencies": [
+            "group-3-1"
+          ],
+          "tasks": [
+            {
+              "id": "sprint-4-task-1",
+              "title": "Prove every text surface three times and remove experimental residue",
+              "action": "MUST exercise immutable, rich, editable, selection, scrolling, clipping, code, fallback-script, emoji, light, and dark text at DPR 1 and 2; run the complete quality matrix three consecutive times with warm timing CV below 10 percent; prove zero browser/WebGPU/lifecycle/privacy failures; remove all candidate switches and temporary traces; update only proven GPUX/RayX guidance and runtime/gpux-foundation memory; then pass strict AgentX audit and verified checkpoint.",
+              "kind": "bugfix",
+              "requirementIds": [
+                "REQ-F-004",
+                "REQ-NF-002",
+                "REQ-NF-003"
+              ],
+              "designIds": [
+                "DES-001",
+                "DES-002",
+                "DES-003",
+                "DES-004",
+                "DES-005"
+              ],
+              "dependencies": [
+                "sprint-3-task-2"
+              ],
+              "repositoryIds": [
+                "main"
+              ],
+              "scope": {
+                "writePaths": [
+                  "apps/test_suite/src/pages/wasm_text_rendering_quality.rs",
+                  "tools-node/test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+                  "tools-node/test_suite/rayx-text-system.spec.ts",
+                  "tools-node/test_suite/rayx-rich-text.spec.ts",
+                  "tools-node/test_suite/rayx-text-field.spec.ts",
+                  "tools-node/test_suite/rayx-text-area-performance.spec.ts",
+                  "tools-node/test_suite/rayx-selection-area-text-selectable.spec.ts",
+                  "crates/gpux/crates/gpui/src",
+                  "crates/gpux/crates/gpui_web/src",
+                  "crates/gpux/crates/gpui_wgpu/src",
+                  ".codex/skills/gpux/references/multithreaded-wasm-apps.md",
+                  ".codex/skills/rayx/references/diagnostics.md",
+                  ".agentx/memory/knowledge/runtime/gpux-foundation",
+                  ".agentx/tasks/high-quality-wasm-text-rendering"
+                ],
+                "generatedPaths": [
+                  "artifacts-temp/test_suite/wasm-text-rendering-quality/**"
+                ],
+                "forbiddenPaths": [
+                  "apps/lab/**",
+                  "tools-node/lab/**"
+                ],
+                "responsibilityIds": [
+                  "RESP-001",
+                  "RESP-002",
+                  "RESP-003",
+                  "RESP-004",
+                  "RESP-005"
+                ],
+                "symbols": [
+                  "Text",
+                  "RichText",
+                  "TextField",
+                  "TextArea",
+                  "SelectionArea",
+                  "WebWindow",
+                  "CosmicTextSystem",
+                  "WgpuRenderer"
+                ]
+              },
+              "acceptanceCriteriaIds": [
+                "AC-F-004-1",
+                "AC-F-004-2",
+                "AC-NF-002-1",
+                "AC-NF-003-1"
+              ],
+              "proofMode": "red-green",
+              "proofObligations": [
+                "Surface geometry and interaction MUST be characterized before final cleanup and preserved after it.",
+                "Three complete runs MUST be consecutive and individually recorded; a retry after failure restarts the sequence.",
+                "Only numeric/capability diagnostics MUST remain, and production builds MUST omit their global surface.",
+                "Skill and memory updates MUST state only behavior proven by final evidence."
+              ],
+              "implementationConstraints": {
+                "reuse": [
+                  "Existing Test Suite text/selection specs, focused quality page/spec, gpux test suites, diagnostics gate, AgentX audit/checkpoint, and gitmaster workflow."
+                ],
+                "prohibitedAdditions": [
+                  "Lab automation.",
+                  "Temporary trace switches in production.",
+                  "Content-bearing diagnostics.",
+                  "A new dependency, public API, service, renderer owner, or full-canvas DPR floor.",
+                  "Claims based only on a screenshot or one run."
+                ],
+                "allowedAdditions": [
+                  "Focused regression assertions and narrow proven documentation/memory updates.",
+                  "WASM text-quality metric module"
+                ]
+              },
+              "validation": {
+                "profiles": [
+                  "runtime",
+                  "interaction",
+                  "performance",
+                  "security",
+                  "architecture",
+                  "regression",
+                  "static-analysis"
+                ],
+                "red": [
+                  {
+                    "id": "VAL-SPRINT-4-TASK-1-BEFORE-SURFACES-01",
+                    "phase": "before",
+                    "repositoryId": "main",
+                    "workingDirectory": ".",
+                    "runner": {
+                      "kind": "shell",
+                      "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-text-system.spec.ts test_suite/rayx-rich-text.spec.ts test_suite/rayx-text-field.spec.ts test_suite/rayx-selection-area-text-selectable.spec.ts",
+                      "platform": "windows"
+                    },
+                    "target": "wasm-webgpu",
+                    "validationProfile": "interaction",
+                    "acceptanceCriteriaIds": [
+                      "AC-F-004-1"
+                    ],
+                    "expected": {
+                      "exitCode": "nonzero",
+                      "failurePattern": "production-clean convergence contract missing"
+                    },
+                    "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-text-system.spec.ts test_suite/rayx-rich-text.spec.ts test_suite/rayx-text-field.spec.ts test_suite/rayx-selection-area-text-selectable.spec.ts",
+                    "assertion": "The new complete surface and production-clean convergence contract MUST expose the incomplete pre-change state.",
+                    "artifactPaths": [
+                      "main:tools-node/test_suite"
+                    ]
+                  }
+                ],
+                "green": [
+                  {
+                    "id": "VAL-SPRINT-4-TASK-1-AFTER-SURFACES-01",
+                    "phase": "after",
+                    "repositoryId": "main",
+                    "workingDirectory": ".",
+                    "runner": {
+                      "kind": "shell",
+                      "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-text-system.spec.ts test_suite/rayx-rich-text.spec.ts test_suite/rayx-text-field.spec.ts test_suite/rayx-selection-area-text-selectable.spec.ts",
+                      "platform": "windows"
+                    },
+                    "target": "wasm-webgpu",
+                    "validationProfile": "regression",
+                    "acceptanceCriteriaIds": [
+                      "AC-F-004-1",
+                      "AC-F-004-2"
+                    ],
+                    "expected": {
+                      "exitCode": 0
+                    },
+                    "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-text-system.spec.ts test_suite/rayx-rich-text.spec.ts test_suite/rayx-text-field.spec.ts test_suite/rayx-selection-area-text-selectable.spec.ts",
+                    "assertion": "All representative text, editing, selection, scrolling, and clipping behavior MUST remain green after cleanup.",
+                    "artifactPaths": [
+                      "main:tools-node/test_suite"
+                    ]
+                  },
+                  {
+                    "id": "VAL-SPRINT-4-TASK-1-AFTER-QUALITY-01",
+                    "phase": "after",
+                    "repositoryId": "main",
+                    "workingDirectory": ".",
+                    "runner": {
+                      "kind": "shell",
+                      "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts --repeat-each=3",
+                      "platform": "windows"
+                    },
+                    "target": "wasm-webgpu",
+                    "validationProfile": "performance",
+                    "acceptanceCriteriaIds": [
+                      "AC-NF-003-1",
+                      "AC-F-004-2"
+                    ],
+                    "expected": {
+                      "exitCode": 0
+                    },
+                    "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts --repeat-each=3",
+                    "assertion": "Three consecutive complete one-worker matrix runs MUST pass with timing CV below 10 percent and zero browser or WebGPU errors.",
+                    "artifactPaths": [
+                      "main:artifacts-temp/test_suite/wasm-text-rendering-quality"
+                    ]
+                  },
+                  {
+                    "id": "VAL-SPRINT-4-TASK-1-AFTER-ARCHITECTURE-01",
+                    "phase": "after",
+                    "repositoryId": "main",
+                    "workingDirectory": ".",
+                    "runner": {
+                      "kind": "shell",
+                      "command": "python C:/Users/dinko/.codex/skills/agentx/scripts/agentx_task.py audit --task-dir .agentx/tasks/high-quality-wasm-text-rendering --strict",
+                      "platform": "windows"
+                    },
+                    "target": "host",
+                    "validationProfile": "architecture",
+                    "acceptanceCriteriaIds": [
+                      "AC-F-004-2",
+                      "AC-NF-002-1"
+                    ],
+                    "expected": {
+                      "exitCode": 0
+                    },
+                    "command": "python C:/Users/dinko/.codex/skills/agentx/scripts/agentx_task.py audit --task-dir .agentx/tasks/high-quality-wasm-text-rendering --strict",
+                    "assertion": "Strict generated audit MUST find no undeclared abstraction, dependency, path, duplicate owner, or full-canvas DPR floor.",
+                    "artifactPaths": [
+                      "main:.agentx/tasks/high-quality-wasm-text-rendering"
+                    ]
+                  },
+                  {
+                    "id": "VAL-SPRINT-4-TASK-1-AFTER-INTERACTION-01",
+                    "phase": "after",
+                    "repositoryId": "main",
+                    "workingDirectory": ".",
+                    "runner": {
+                      "kind": "shell",
+                      "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-text-system.spec.ts test_suite/rayx-rich-text.spec.ts test_suite/rayx-text-field.spec.ts test_suite/rayx-selection-area-text-selectable.spec.ts",
+                      "platform": "windows"
+                    },
+                    "target": "wasm-webgpu",
+                    "validationProfile": "interaction",
+                    "acceptanceCriteriaIds": [
+                      "AC-F-004-1"
+                    ],
+                    "expected": {
+                      "exitCode": 0
+                    },
+                    "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-text-system.spec.ts test_suite/rayx-rich-text.spec.ts test_suite/rayx-text-field.spec.ts test_suite/rayx-selection-area-text-selectable.spec.ts",
+                    "assertion": "Editable, selection, scrolling, and clipping interactions MUST remain correct at DPR 1 and 2.",
+                    "artifactPaths": [
+                      "main:tools-node/test_suite"
+                    ]
+                  },
+                  {
+                    "id": "VAL-SPRINT-4-TASK-1-AFTER-RUNTIME-01",
+                    "phase": "after",
+                    "repositoryId": "main",
+                    "workingDirectory": ".",
+                    "runner": {
+                      "kind": "shell",
+                      "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+                      "platform": "windows"
+                    },
+                    "target": "wasm-webgpu",
+                    "validationProfile": "runtime",
+                    "acceptanceCriteriaIds": [
+                      "AC-F-004-1",
+                      "AC-F-004-2",
+                      "AC-NF-003-1"
+                    ],
+                    "expected": {
+                      "exitCode": 0
+                    },
+                    "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+                    "assertion": "The complete production-clean quality matrix MUST pass with zero browser, Dawn, stale-scale, or lifecycle errors.",
+                    "artifactPaths": [
+                      "main:artifacts-temp/test_suite/wasm-text-rendering-quality"
+                    ]
+                  },
+                  {
+                    "id": "VAL-SPRINT-4-TASK-1-AFTER-SECURITY-01",
+                    "phase": "after",
+                    "repositoryId": "main",
+                    "workingDirectory": ".",
+                    "runner": {
+                      "kind": "shell",
+                      "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+                      "platform": "windows"
+                    },
+                    "target": "wasm-webgpu",
+                    "validationProfile": "security",
+                    "acceptanceCriteriaIds": [
+                      "AC-F-004-2"
+                    ],
+                    "expected": {
+                      "exitCode": 0
+                    },
+                    "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-wasm-text-rendering-quality.spec.ts",
+                    "assertion": "Diagnostic builds MUST expose only bounded numeric/capability metadata, and production builds MUST omit the diagnostic global.",
+                    "artifactPaths": [
+                      "main:tools-node/test_suite/rayx-wasm-text-rendering-quality.spec.ts"
+                    ]
+                  },
+                  {
+                    "id": "VAL-SPRINT-4-TASK-1-AFTER-STATIC-01",
+                    "phase": "after",
+                    "repositoryId": "main",
+                    "workingDirectory": ".",
+                    "runner": {
+                      "kind": "shell",
+                      "command": "cargo run -p xtask -- app apps/test_suite build wasm --no-default-features --features rayx_diagnostics",
+                      "platform": "windows"
+                    },
+                    "target": "wasm-webgpu",
+                    "validationProfile": "static-analysis",
+                    "acceptanceCriteriaIds": [
+                      "AC-NF-002-1"
+                    ],
+                    "expected": {
+                      "exitCode": 0
+                    },
+                    "command": "cargo run -p xtask -- app apps/test_suite build wasm --no-default-features --features rayx_diagnostics",
+                    "assertion": "All touched gpux packages MUST compile through the required Test Suite WASM build with the diagnostic feature graph.",
+                    "artifactPaths": [
+                      "main:crates/gpux/crates/gpui",
+                      "main:crates/gpux/crates/gpui_web",
+                      "main:crates/gpux/crates/gpui_wgpu"
+                    ]
+                  }
+                ],
+                "broad": [
+                  {
+                    "id": "VAL-SPRINT-4-TASK-1-BROAD-REGRESSION-01",
+                    "phase": "broad",
+                    "repositoryId": "main",
+                    "workingDirectory": ".",
+                    "runner": {
+                      "kind": "shell",
+                      "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-text-system.spec.ts test_suite/rayx-rich-text.spec.ts test_suite/rayx-text-field.spec.ts test_suite/rayx-selection-area-text-selectable.spec.ts",
+                      "platform": "windows"
+                    },
+                    "target": "wasm-webgpu",
+                    "validationProfile": "regression",
+                    "acceptanceCriteriaIds": [
+                      "AC-F-004-1",
+                      "AC-F-004-2",
+                      "AC-NF-002-1",
+                      "AC-NF-003-1"
+                    ],
+                    "expected": {
+                      "exitCode": 0
+                    },
+                    "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-text-system.spec.ts test_suite/rayx-rich-text.spec.ts test_suite/rayx-text-field.spec.ts test_suite/rayx-selection-area-text-selectable.spec.ts",
+                    "assertion": "The final shared text and renderer state MUST pass the complete focused headed-WebGPU text-surface regressions.",
+                    "artifactPaths": [
+                      "main:crates/gpux/crates/gpui",
+                      "main:crates/gpux/crates/gpui_wgpu"
+                    ]
+                  }
+                ]
+              },
+              "status": "pending"
+            }
+          ]
+        }
+      ],
+      "exitContract": {
+        "requirementIds": [
+          "REQ-F-004",
+          "REQ-NF-002",
+          "REQ-NF-003"
+        ],
+        "acceptanceCriteriaIds": [
+          "AC-F-004-1",
+          "AC-F-004-2",
+          "AC-NF-002-1",
+          "AC-NF-003-1"
+        ],
+        "requirementProgress": {
+          "REQ-F-004": [
+            "AC-F-004-1",
+            "AC-F-004-2"
+          ],
+          "REQ-NF-002": [
+            "AC-NF-002-1"
+          ],
+          "REQ-NF-003": [
+            "AC-NF-003-1"
+          ]
+        },
+        "broadValidationCommandIds": [
+          "VAL-SPRINT-4-EXIT-FMT-01",
+          "VAL-SPRINT-4-EXIT-CLIPPY-01",
+          "VAL-SPRINT-4-EXIT-GPUX-01"
+        ],
+        "broadValidation": [
+          {
+            "id": "VAL-SPRINT-4-EXIT-FMT-01",
+            "phase": "broad",
+            "repositoryId": "main",
+            "workingDirectory": ".",
+            "runner": {
+              "kind": "argv",
+              "executable": "cargo",
+              "arguments": [
+                "fmt",
+                "--manifest-path",
+                "crates/gpux/Cargo.toml",
+                "--all",
+                "--check"
+              ]
+            },
+            "target": "host",
+            "validationProfile": "static-analysis",
+            "acceptanceCriteriaIds": [
+              "AC-NF-002-1"
+            ],
+            "expected": {
+              "exitCode": 0
+            },
+            "command": "cargo fmt --manifest-path crates/gpux/Cargo.toml --all --check",
+            "assertion": "The gpux workspace MUST be formatted.",
+            "artifactPaths": [
+              "main:crates/gpux"
+            ]
+          },
+          {
+            "id": "VAL-SPRINT-4-EXIT-CLIPPY-01",
+            "phase": "broad",
+            "repositoryId": "main",
+            "workingDirectory": ".",
+            "runner": {
+              "kind": "shell",
+              "command": "cargo run -p xtask -- app apps/test_suite build wasm --no-default-features --features rayx_diagnostics",
+              "platform": "windows"
+            },
+            "target": "wasm-webgpu",
+            "validationProfile": "static-analysis",
+            "acceptanceCriteriaIds": [
+              "AC-NF-002-1"
+            ],
+            "expected": {
+              "exitCode": 0
+            },
+            "command": "cargo run -p xtask -- app apps/test_suite build wasm --no-default-features --features rayx_diagnostics",
+            "assertion": "All touched gpux packages MUST compile through the required Test Suite WASM build with diagnostics enabled.",
+            "artifactPaths": [
+              "main:crates/gpux/crates/gpui",
+              "main:crates/gpux/crates/gpui_web",
+              "main:crates/gpux/crates/gpui_wgpu"
+            ]
+          },
+          {
+            "id": "VAL-SPRINT-4-EXIT-GPUX-01",
+            "phase": "broad",
+            "repositoryId": "main",
+            "workingDirectory": ".",
+            "runner": {
+              "kind": "shell",
+              "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-text-system.spec.ts test_suite/rayx-rich-text.spec.ts test_suite/rayx-text-field.spec.ts test_suite/rayx-selection-area-text-selectable.spec.ts",
+              "platform": "windows"
+            },
+            "target": "wasm-webgpu",
+            "validationProfile": "regression",
+            "acceptanceCriteriaIds": [
+              "AC-F-004-1",
+              "AC-F-004-2",
+              "AC-NF-002-1",
+              "AC-NF-003-1"
+            ],
+            "expected": {
+              "exitCode": 0
+            },
+            "command": "cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/rayx-text-system.spec.ts test_suite/rayx-rich-text.spec.ts test_suite/rayx-text-field.spec.ts test_suite/rayx-selection-area-text-selectable.spec.ts",
+            "assertion": "The final production-clean shared renderer state MUST pass the headed-WebGPU text-surface regressions.",
+            "artifactPaths": [
+              "main:crates/gpux/crates/gpui",
+              "main:crates/gpux/crates/gpui_wgpu"
+            ]
+          }
+        ],
+        "auditFocus": [
+          "Three consecutive full matrix runs are individually recorded.",
+          "No candidate flags or temporary traces remain.",
+          "Production diagnostics contain no text content and are feature-gated.",
+          "All text surface geometry and interaction remain stable."
+        ],
+        "designQualityFocus": [
+          "The final diff contains no duplicate renderer/service/dependency/public API.",
+          "Guidance and memory state only proven behavior.",
+          "Every remaining abstraction has a current owner and necessity."
+        ],
+        "commitScope": [
+          "final Test Suite quality and surface regressions",
+          "production diagnostic cleanup",
+          "narrow GPUX/RayX skill and runtime memory updates",
+          "Sprint 4 audit and verified epic checkpoint"
+        ]
+      }
+    }
+  ],
+  "specificationTraceability": [
+    {
+      "requirementId": "REQ-F-001",
+      "designIds": [
+        "DES-001",
+        "DES-005"
+      ],
+      "taskIds": [
+        "sprint-1-task-1"
+      ],
+      "acceptanceCriteriaIds": [
+        "AC-F-001-1",
+        "AC-F-001-2"
+      ],
+      "validationProfiles": [
+        "runtime",
+        "regression",
+        "security"
+      ]
+    },
+    {
+      "requirementId": "REQ-F-002",
+      "designIds": [
+        "DES-002",
+        "DES-004",
+        "DES-005"
+      ],
+      "taskIds": [
+        "sprint-2-task-1"
+      ],
+      "acceptanceCriteriaIds": [
+        "AC-F-002-1",
+        "AC-F-002-2"
+      ],
+      "validationProfiles": [
+        "contract",
+        "regression",
+        "runtime"
+      ]
+    },
+    {
+      "requirementId": "REQ-F-003",
+      "designIds": [
+        "DES-001",
+        "DES-003",
+        "DES-004",
+        "DES-005"
+      ],
+      "taskIds": [
+        "sprint-3-task-1",
+        "sprint-3-task-2"
+      ],
+      "acceptanceCriteriaIds": [
+        "AC-F-003-1",
+        "AC-F-003-2"
+      ],
+      "validationProfiles": [
+        "performance",
+        "regression",
+        "runtime"
+      ]
+    },
+    {
+      "requirementId": "REQ-F-004",
+      "designIds": [
+        "DES-002",
+        "DES-003",
+        "DES-004",
+        "DES-005"
+      ],
+      "taskIds": [
+        "sprint-4-task-1"
+      ],
+      "acceptanceCriteriaIds": [
+        "AC-F-004-1",
+        "AC-F-004-2"
+      ],
+      "validationProfiles": [
+        "architecture",
+        "interaction",
+        "regression",
+        "runtime",
+        "security"
+      ]
+    },
+    {
+      "requirementId": "REQ-NF-001",
+      "designIds": [
+        "DES-003",
+        "DES-004",
+        "DES-005"
+      ],
+      "taskIds": [
+        "sprint-3-task-1"
+      ],
+      "acceptanceCriteriaIds": [
+        "AC-NF-001-1"
+      ],
+      "validationProfiles": [
+        "performance"
+      ]
+    },
+    {
+      "requirementId": "REQ-NF-002",
+      "designIds": [
+        "DES-003",
+        "DES-005"
+      ],
+      "taskIds": [
+        "sprint-4-task-1"
+      ],
+      "acceptanceCriteriaIds": [
+        "AC-NF-002-1"
+      ],
+      "validationProfiles": [
+        "architecture",
+        "static-analysis"
+      ]
+    },
+    {
+      "requirementId": "REQ-NF-003",
+      "designIds": [
+        "DES-001",
+        "DES-003",
+        "DES-005"
+      ],
+      "taskIds": [
+        "sprint-4-task-1"
+      ],
+      "acceptanceCriteriaIds": [
+        "AC-NF-003-1"
+      ],
+      "validationProfiles": [
+        "runtime",
+        "performance",
+        "regression"
+      ]
+    }
+  ],
+  "acceptanceTraceability": [
+    {
+      "acceptanceCriterionId": "AC-F-001-1",
+      "requirementId": "REQ-F-001",
+      "ownerTaskId": "sprint-1-task-1",
+      "supportingTaskIds": [],
+      "designIds": [
+        "DES-001",
+        "DES-005"
+      ],
+      "validationCommandIds": [
+        "VAL-SPRINT-1-TASK-1-BROAD-TSC-01",
+        "VAL-SPRINT-1-TASK-1-TARGET-METRICS-01",
+        "VAL-SPRINT-1-TASK-1-TARGET-PERFORMANCE-01",
+        "VAL-SPRINT-1-TASK-1-TARGET-RUNTIME-01"
+      ]
+    },
+    {
+      "acceptanceCriterionId": "AC-F-001-2",
+      "requirementId": "REQ-F-001",
+      "ownerTaskId": "sprint-1-task-1",
+      "supportingTaskIds": [],
+      "designIds": [
+        "DES-001",
+        "DES-005"
+      ],
+      "validationCommandIds": [
+        "VAL-SPRINT-1-TASK-1-BROAD-TSC-01",
+        "VAL-SPRINT-1-TASK-1-TARGET-METRICS-01",
+        "VAL-SPRINT-1-TASK-1-TARGET-RUNTIME-01",
+        "VAL-SPRINT-1-TASK-1-TARGET-SECURITY-01"
+      ]
+    },
+    {
+      "acceptanceCriterionId": "AC-F-002-1",
+      "requirementId": "REQ-F-002",
+      "ownerTaskId": "sprint-2-task-1",
+      "supportingTaskIds": [],
+      "designIds": [
+        "DES-002",
+        "DES-004"
+      ],
+      "validationCommandIds": [
+        "VAL-SPRINT-2-TASK-1-GREEN-CONTRACT-01",
+        "VAL-SPRINT-2-TASK-1-GREEN-RUNTIME-01",
+        "VAL-SPRINT-2-TASK-1-GREEN-UNIT-01"
+      ]
+    },
+    {
+      "acceptanceCriterionId": "AC-F-002-2",
+      "requirementId": "REQ-F-002",
+      "ownerTaskId": "sprint-2-task-1",
+      "supportingTaskIds": [],
+      "designIds": [
+        "DES-002",
+        "DES-004"
+      ],
+      "validationCommandIds": [
+        "VAL-SPRINT-2-TASK-1-BROAD-REGRESSION-01",
+        "VAL-SPRINT-2-TASK-1-GREEN-CONTRACT-01",
+        "VAL-SPRINT-2-TASK-1-GREEN-RUNTIME-01",
+        "VAL-SPRINT-2-TASK-1-GREEN-UNIT-01"
+      ]
+    },
+    {
+      "acceptanceCriterionId": "AC-F-003-1",
+      "requirementId": "REQ-F-003",
+      "ownerTaskId": "sprint-3-task-1",
+      "supportingTaskIds": [],
+      "designIds": [
+        "DES-003",
+        "DES-004"
+      ],
+      "validationCommandIds": [
+        "VAL-SPRINT-3-TASK-1-BROAD-GPUX-01",
+        "VAL-SPRINT-3-TASK-1-TARGET-PERFORMANCE-01",
+        "VAL-SPRINT-3-TASK-1-TARGET-QUALITY-01",
+        "VAL-SPRINT-3-TASK-1-TARGET-REGRESSION-01"
+      ]
+    },
+    {
+      "acceptanceCriterionId": "AC-F-003-2",
+      "requirementId": "REQ-F-003",
+      "ownerTaskId": "sprint-3-task-2",
+      "supportingTaskIds": [],
+      "designIds": [
+        "DES-003",
+        "DES-004"
+      ],
+      "validationCommandIds": [
+        "VAL-SPRINT-3-TASK-2-BROAD-GPUX-01",
+        "VAL-SPRINT-3-TASK-2-GREEN-FALLBACK-01",
+        "VAL-SPRINT-3-TASK-2-GREEN-PERFORMANCE-01",
+        "VAL-SPRINT-3-TASK-2-GREEN-REGRESSION-01",
+        "VAL-SPRINT-3-TASK-2-GREEN-RUNTIME-01"
+      ]
+    },
+    {
+      "acceptanceCriterionId": "AC-F-004-1",
+      "requirementId": "REQ-F-004",
+      "ownerTaskId": "sprint-4-task-1",
+      "supportingTaskIds": [],
+      "designIds": [
+        "DES-001",
+        "DES-002",
+        "DES-003",
+        "DES-004",
+        "DES-005"
+      ],
+      "validationCommandIds": [
+        "VAL-SPRINT-4-TASK-1-AFTER-INTERACTION-01",
+        "VAL-SPRINT-4-TASK-1-AFTER-RUNTIME-01",
+        "VAL-SPRINT-4-TASK-1-AFTER-SURFACES-01",
+        "VAL-SPRINT-4-TASK-1-BROAD-REGRESSION-01"
+      ]
+    },
+    {
+      "acceptanceCriterionId": "AC-F-004-2",
+      "requirementId": "REQ-F-004",
+      "ownerTaskId": "sprint-4-task-1",
+      "supportingTaskIds": [],
+      "designIds": [
+        "DES-001",
+        "DES-002",
+        "DES-003",
+        "DES-004",
+        "DES-005"
+      ],
+      "validationCommandIds": [
+        "VAL-SPRINT-4-TASK-1-AFTER-ARCHITECTURE-01",
+        "VAL-SPRINT-4-TASK-1-AFTER-QUALITY-01",
+        "VAL-SPRINT-4-TASK-1-AFTER-RUNTIME-01",
+        "VAL-SPRINT-4-TASK-1-AFTER-SECURITY-01",
+        "VAL-SPRINT-4-TASK-1-AFTER-SURFACES-01",
+        "VAL-SPRINT-4-TASK-1-BROAD-REGRESSION-01"
+      ]
+    },
+    {
+      "acceptanceCriterionId": "AC-NF-001-1",
+      "requirementId": "REQ-NF-001",
+      "ownerTaskId": "sprint-3-task-1",
+      "supportingTaskIds": [],
+      "designIds": [
+        "DES-003",
+        "DES-004"
+      ],
+      "validationCommandIds": [
+        "VAL-SPRINT-3-TASK-1-BROAD-GPUX-01",
+        "VAL-SPRINT-3-TASK-1-TARGET-PERFORMANCE-01",
+        "VAL-SPRINT-3-TASK-1-TARGET-QUALITY-01"
+      ]
+    },
+    {
+      "acceptanceCriterionId": "AC-NF-002-1",
+      "requirementId": "REQ-NF-002",
+      "ownerTaskId": "sprint-4-task-1",
+      "supportingTaskIds": [],
+      "designIds": [
+        "DES-001",
+        "DES-002",
+        "DES-003",
+        "DES-004",
+        "DES-005"
+      ],
+      "validationCommandIds": [
+        "VAL-SPRINT-4-TASK-1-AFTER-ARCHITECTURE-01",
+        "VAL-SPRINT-4-TASK-1-AFTER-STATIC-01",
+        "VAL-SPRINT-4-TASK-1-BROAD-REGRESSION-01"
+      ]
+    },
+    {
+      "acceptanceCriterionId": "AC-NF-003-1",
+      "requirementId": "REQ-NF-003",
+      "ownerTaskId": "sprint-4-task-1",
+      "supportingTaskIds": [],
+      "designIds": [
+        "DES-001",
+        "DES-002",
+        "DES-003",
+        "DES-004",
+        "DES-005"
+      ],
+      "validationCommandIds": [
+        "VAL-SPRINT-4-TASK-1-AFTER-QUALITY-01",
+        "VAL-SPRINT-4-TASK-1-AFTER-RUNTIME-01",
+        "VAL-SPRINT-4-TASK-1-BROAD-REGRESSION-01"
+      ]
+    }
+  ]
+}

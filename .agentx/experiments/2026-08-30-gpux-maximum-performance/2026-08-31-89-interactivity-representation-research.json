@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "id": "8f4d1962-a674-433f-886d-bf69fb5a4b9b",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 89,
+  "type": "hypothesis",
+  "name": "Interactivity Representation Research",
+  "slug": "interactivity-representation-research",
+  "path": "2026-08-31-89-interactivity-representation-research.json",
+  "createdAt": "2026-08-31T15:01:15Z",
+  "startedAt": "2026-08-31T15:01:15Z",
+  "finishedAt": "2026-08-31T15:07:17Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "e236054bcbfbb53a4188200ad6a94fefbda8f005",
+  "resultCommit": "e236054bcbfbb53a4188200ad6a94fefbda8f005",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard e236054bcbfbb53a4188200ad6a94fefbda8f005",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "e236054bcbfbb53a4188200ad6a94fefbda8f005",
+      "resultCommit": "e236054bcbfbb53a4188200ad6a94fefbda8f005",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard e236054bcbfbb53a4188200ad6a94fefbda8f005",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "e236054bcbfbb53a4188200ad6a94fefbda8f005"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "current gpux source, compiler type-layout output, and current upstream Zed GPUI",
+  "hypothesisMarkdown": "## Interactivity Representation Research Hypothesis\n\nExact type sizes and public usage analysis will show whether inlining StyleRefinement, lazily allocating it, or recycling its box can remove the measured div() allocation without imposing a larger move/drop cost or breaking gpux's public contract.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nResearch only. AgentX experiment metadata and ignored raw research output may change. Production/test code, public APIs, dependency changes, pools/caches, Taffy, renderer/shaders, and optimization benchmark claims are forbidden.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nUse compiler type-size output, grep all gpux/RayX field access and construction sites, inspect the current upstream Zed definition at an exact commit, and relate findings to the measured 29.66/42.66 ms div() allocator ancestry and 26.96/53.83 ms Interactivity drop ancestry. Pass if one representation option is safely isolated or all are rejected with concrete evidence.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nEither identify a private, bounded mechanism suitable for a later atomic experiment, or reject representation changes and move to Window::draw cleanup.",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "StyleRefinement size",
+      "before": "unknown",
+      "after": "720 bytes",
+      "delta": "measured",
+      "source": "isolated size_of probe against current gpux"
+    },
+    {
+      "metric": "Box<StyleRefinement> size",
+      "before": "unknown",
+      "after": "8 bytes",
+      "delta": "measured",
+      "source": "isolated size_of probe against current gpux"
+    },
+    {
+      "metric": "Interactivity size",
+      "before": "unknown",
+      "after": "1280 bytes",
+      "delta": "measured",
+      "source": "isolated size_of probe against current gpux"
+    },
+    {
+      "metric": "Div size",
+      "before": "unknown",
+      "after": "1384 bytes",
+      "delta": "measured",
+      "source": "isolated size_of probe against current gpux"
+    },
+    {
+      "metric": "upstream representation",
+      "before": "unverified current state",
+      "after": "same public boxed base style at e8fbacb6d7f5f127afa05a76ba555dd29fd900e1",
+      "delta": "no import candidate",
+      "source": "official zed-industries/zed source"
+    }
+  ],
+  "reportMarkdown": "## Interactivity Representation Research Finished\n\n**Index:** 89\n**Checkpoint:** e236054bcbfbb53a4188200ad6a94fefbda8f005\n**Result Commit:** e236054bcbfbb53a4188200ad6a94fefbda8f005\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status**: true. Exact representation and caller evidence rejects all non-breaking base-style representation changes and isolates `Window::draw` cleanup as the next measured gpux-owned target.\n\n`StyleRefinement` is 720 bytes while `Box<StyleRefinement>` is 8 bytes. `Interactivity` is already 1,280 bytes and `Div` is 1,384 bytes on the active Windows target, so inlining would add approximately 712 bytes to every element construction, move, and drop. The field is public and directly consumed by the gpux/RayX inspector, so changing it to an inline or lazy wrapper would break a real API contract. The warmed workload leaves only 13/875 request styles exactly default (1.49%), making lazy allocation a poor fit. A private reclaiming pool cannot take ownership back while preserving the public `Box<StyleRefinement>` field type.\n\nCurrent upstream Zed HEAD `e8fbacb6d7f5f127afa05a76ba555dd29fd900e1` retains the same `pub base_style: Box<StyleRefinement>` representation in `crates/gpui/src/elements/div.rs`; there is no upstream change to import.\n\n### Scope Lock\n\nResearch and ignored raw probe files only. No product, test, dependency, skill, or memory file changed.\n\n### Repository Checkpoints\n\n| Repo | Path | Checkpoint | Result Commit | Status | Rollback |\n| --- | --- | --- | --- | --- | --- |\n| main | . | e236054bcbfbb53a4188200ad6a94fefbda8f005 | e236054bcbfbb53a4188200ad6a94fefbda8f005 | unchanged | `git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard e236054bcbfbb53a4188200ad6a94fefbda8f005` |\n\n### Measurements\n\n| Metric | Result | Source |\n| --- | ---: | --- |\n| `StyleRefinement` size | 720 bytes | isolated `size_of` probe against current gpux |\n| `Box<StyleRefinement>` size | 8 bytes | isolated `size_of` probe against current gpux |\n| `Interactivity` size | 1,280 bytes | isolated `size_of` probe against current gpux |\n| `Div` size | 1,384 bytes | isolated `size_of` probe against current gpux |\n| exact-default request styles | 13/875 (1.49%) | accepted experiment 84 telemetry |\n| direct `div()` allocator ancestry | 29.66/42.66 ms DPR 1/2 | accepted experiment 85 profile attribution |\n| direct Interactivity drop ancestry | 26.96/53.83 ms DPR 1/2 | accepted experiment 85 profile attribution |\n\n### Decision\n\nPreserve the boxed public base style. Do not inline it, add a lazy wrapper, or create a reclaiming pool. Investigate the separately measured `Window::draw` cleanup family next.\n",
+  "decisionMarkdown": "### Decision\n\nKeep `Interactivity::base_style` as `pub Box<StyleRefinement>`. Inlining would add roughly 712 bytes to already-large 1,280-byte Interactivity values; lazy allocation misses 98.51% of the warmed request path; and pooling cannot remain private while preserving the public field type. Move to `Window::draw` cleanup attribution.\n",
+  "notes": ""
+}

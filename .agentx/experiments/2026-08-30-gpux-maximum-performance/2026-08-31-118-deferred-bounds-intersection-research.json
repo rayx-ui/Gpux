@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "id": "3bb8e9c2-4752-48ae-8db6-85604cf8bcbb",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 118,
+  "type": "hypothesis",
+  "name": "Deferred Bounds Intersection Research",
+  "slug": "deferred-bounds-intersection-research",
+  "path": "2026-08-31-118-deferred-bounds-intersection-research.json",
+  "createdAt": "2026-08-31T18:49:33Z",
+  "startedAt": "2026-08-31T18:49:33Z",
+  "finishedAt": "2026-08-31T18:51:00Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "e162e72891fe76e3ed5f259b912a08a42431bd43",
+  "resultCommit": "e162e72891fe76e3ed5f259b912a08a42431bd43",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard e162e72891fe76e3ed5f259b912a08a42431bd43",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "e162e72891fe76e3ed5f259b912a08a42431bd43",
+      "resultCommit": "e162e72891fe76e3ed5f259b912a08a42431bd43",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard e162e72891fe76e3ed5f259b912a08a42431bd43",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "e162e72891fe76e3ed5f259b912a08a42431bd43"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux BoundsTree slow-search intersection work",
+  "hypothesisMarkdown": "## Deferred Bounds Intersection Research Hypothesis\n\nThe accepted slow-search loop intersects every eligible child before the highest-priority child can raise `max_found`; deferring intersection until stack pop may allow max-order pruning to skip some intersection tests, but source invariants and available diagnostics must first prove that the mechanism is behaviorally valid and measurable.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nResearch only. Inspect current `find_max_ordering`, child-order maintenance, diagnostics definitions and consumers, and focused tests. Product source, tests, dependencies, configuration, fixtures, and runtime execution are forbidden.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nDerive the exact current and deferred predicate order, verify stack ordering and max-order invariants from source and tests, inventory whether existing counters can distinguish avoided intersections from extra stack entries, and identify the smallest telemetry needed before an optimization attempt. Accept the research if it yields one behavior-preserving algorithm contract plus a measurable decision path, or rejects the mechanism conclusively.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nProduce a precise deferred-intersection contract and determine whether a diagnostics-only experiment is required before changing traversal behavior.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [
+      "existing search_node_visits cannot separate processed from later max-order-pruned nodes",
+      "one new post-intersection prune counter is sufficient"
+    ],
+    "artifacts": [
+      "current bounds_tree.rs",
+      "scene diagnostics aggregation",
+      "Test Suite renderer diagnostics consumer"
+    ]
+  },
+  "measurements": {
+    "currentPredicateOrder": [
+      "child max_order check at enqueue",
+      "child intersection check at enqueue",
+      "push qualifying child",
+      "pop child in reverse order",
+      "repeat max_order check before processing"
+    ],
+    "deferredPredicateOrder": [
+      "push eligible children in forward order",
+      "pop highest-priority child first",
+      "max_order prune with updated max_found",
+      "intersection check only if still eligible",
+      "process intersecting node"
+    ],
+    "orderingInvariant": "Each internal node keeps its unique maximum-max_order child at the end; forward stack pushes therefore pop that child first.",
+    "behavioralValidity": true,
+    "existingDiagnosticsCanMeasureAvoidedIntersections": false,
+    "smallestRequiredTelemetry": "Count nodes discarded by the existing top-of-loop max_order prune after they already passed intersection at enqueue."
+  },
+  "reportMarkdown": "# Experiment 118 Report\n\nCurrent traversal filters each child by `max_order > max_found` and `query.intersects(...)` before pushing it. Children are pushed in forward order, while insertion maintains the highest-`max_order` child at the end of every internal child array. LIFO traversal therefore processes that highest-priority child first and can raise `max_found` before older queued siblings are popped.\n\nEvery queued sibling is checked again by the top-of-loop `node.max_order <= max_found` prune. When that prune succeeds, the sibling's earlier intersection calculation was unnecessary. A deferred implementation can preserve results by pushing eligible children in the same forward order, performing the updated max-order prune at pop, then testing intersection only for nodes still able to improve the result.\n\nThe current `search_node_visits` counter cannot distinguish nodes processed from nodes that already passed intersection but were later max-order-pruned. Therefore the potential savings cannot be quantified from existing experiment 114 data. The smallest evidence step is one diagnostic counter incremented on the existing top-of-loop max-order prune. This does not require an algorithm attempt and directly measures the upper bound of avoidable intersection tests.\n",
+  "decisionMarkdown": "# Decision\n\nThe deferred-intersection algorithm is source-valid but not yet evidence-qualified. Run a separate diagnostics-only experiment that counts existing post-intersection max-order prunes. Attempt the algorithm only if the counter proves a meaningful avoidable-intersection population.\n",
+  "notes": ""
+}

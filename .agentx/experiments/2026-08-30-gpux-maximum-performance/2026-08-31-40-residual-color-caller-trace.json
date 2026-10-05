@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "id": "b3742520-23de-47df-a9a9-3a636455586e",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 40,
+  "type": "hypothesis",
+  "name": "Residual Color Caller Trace",
+  "slug": "residual-color-caller-trace",
+  "path": "2026-08-31-40-residual-color-caller-trace.json",
+  "createdAt": "2026-08-31T02:06:11Z",
+  "startedAt": "2026-08-31T02:06:11Z",
+  "finishedAt": "2026-08-31T02:07:12Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "3035bcde0",
+  "resultCommit": "3035bcde0",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 3035bcde0",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "3035bcde0",
+      "resultCommit": "3035bcde0",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 3035bcde0",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "3035bcde0"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "experiment 39 headed WASM/WebGPU CPU profiles",
+  "hypothesisMarkdown": "The residual Color::from_encoded and ColorInner drop samples in experiment 39 are concentrated in a small number of identifiable non-identity opacity or component-construction call stacks that can route one subsequent optimization.\n",
+  "measurementPlanMarkdown": "Build reverse parent maps for both experiment-39 CPU profiles, aggregate sampled self time for Color::from_encoded and ColorInner::drop_slow by immediate caller and bounded ancestry, and report the dominant caller families. No source changes.\n",
+  "expectedOutcomeMarkdown": "At least one caller family explains a material majority of residual construction/drop time and yields a narrowly scoped next hypothesis; otherwise leave color work and move to another ranked family.\n",
+  "diagnostics": {
+    "playwright": [
+      "Analysis reused the two successful experiment-39 headed WebGPU CPU profiles; no application rerun was required."
+    ],
+    "rayx": [
+      "Measurement-only reverse-parent attribution; no source change."
+    ],
+    "counters": [
+      "Every sampled Color::from_encoded stack at DPR 1/2 was classified as gpux paint, RayX sidebar, or RayX button."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 residual from_encoded RayX sidebar/button share",
+      "before": "unattributed",
+      "after": "89.4% (26.288 of 29.427 ms)",
+      "delta": "dominant caller identified outside gpux-exclusive scope"
+    },
+    {
+      "metric": "DPR 2 residual from_encoded RayX sidebar/button share",
+      "before": "unattributed",
+      "after": "85.1% (26.420 of 31.081 ms)",
+      "delta": "dominant caller identified outside gpux-exclusive scope"
+    },
+    {
+      "metric": "DPR 1 residual gpux paint from_encoded",
+      "before": "unattributed",
+      "after": "3.139 ms (10.7%)",
+      "delta": "minor residual"
+    },
+    {
+      "metric": "DPR 2 residual gpux paint from_encoded",
+      "before": "unattributed",
+      "after": "4.661 ms (15.0%)",
+      "delta": "minor residual"
+    },
+    {
+      "metric": "DPR 1 arena style teardown ColorInner drops",
+      "before": "unattributed",
+      "after": "27.806 ms (41.6%)",
+      "delta": "largest gpux-owned drop family"
+    },
+    {
+      "metric": "DPR 2 arena style teardown ColorInner drops",
+      "before": "unattributed",
+      "after": "26.299 ms (56.8%)",
+      "delta": "largest gpux-owned drop family"
+    }
+  ],
+  "reportMarkdown": "## Residual Color Caller Trace Finished\n\n**Index:** 40\n**Checkpoint:** `3035bcde0`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. Residual `Color::from_encoded` is no longer principally a gpux renderer cost. RayX sidebar/button style construction accounts for 89.4% at DPR 1 and 85.1% at DPR 2; gpux non-identity paint accounts for only 10.7%/15.0% (3.139/4.661 ms).\n\n`ColorInner::drop_slow` is led by arena-owned style teardown (41.6%/56.8%), followed by RayX sidebar/button/datatable styles. This makes further public color or renderer-opacity changes a poor next gpux-exclusive target. The next gpux investigation should rank style/arena teardown or another independent local family.\n\n### Scope Lock\n\nMeasurement only. No source, dependency, renderer, component, or API change was made.\n\n### Decision\n\nAccept the attribution and leave residual component-authored color construction unchanged because the loop is scoped to gpux. Do not generalize the identity-only renderer optimization without a separate measured hypothesis.\n",
+  "decisionMarkdown": "Accept the caller attribution. Leave component-authored color construction outside this gpux-exclusive loop and move to a different gpux-owned family.\n",
+  "notes": ""
+}

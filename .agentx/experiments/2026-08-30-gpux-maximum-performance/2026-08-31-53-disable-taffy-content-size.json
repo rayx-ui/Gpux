@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "id": "38d08265-53ba-4781-816b-f316fcd5b920",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 53,
+  "type": "hypothesis",
+  "name": "Disable Taffy Content Size",
+  "slug": "disable-taffy-content-size",
+  "path": "2026-08-31-53-disable-taffy-content-size.json",
+  "createdAt": "2026-08-31T04:04:44Z",
+  "startedAt": "2026-08-31T04:04:44Z",
+  "finishedAt": "2026-08-31T04:15:33Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "a64e7768986d7530b5c0598b9a44775d15ede3d2",
+  "resultCommit": "2f69f0cbaa8c49b74bf93728816d0ec88f17f36b",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard a64e7768986d7530b5c0598b9a44775d15ede3d2",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "a64e7768986d7530b5c0598b9a44775d15ede3d2",
+      "resultCommit": "2f69f0cbaa8c49b74bf93728816d0ec88f17f36b",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard a64e7768986d7530b5c0598b9a44775d15ede3d2",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "2f69f0cbaa8c49b74bf93728816d0ec88f17f36b"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "crates/gpux/crates/gpui/Cargo.toml",
+  "hypothesisMarkdown": "Removing Taffy's `content_size` feature will preserve gpux behavior because gpux never reads Taffy's feature-gated scrollable overflow rectangle and instead derives scroll content extents from child layout bounds, while eliminating overflow-rectangle propagation/rounding from flex, block, grid, and leaf computation.\n",
+  "measurementPlanMarkdown": "Remove only `content_size` from the explicit Taffy feature list. Prove the resolved graph and absence of gpux reads of Taffy's scrollable overflow rectangle. Run all gpux diagnostic tests, all serialized gpui_wgpu tests, check, format, and clippy. Run three independent headed WebGPU Test Suite processes at DPR 1 and DPR 2; require exact final offsets, scroll/content behavior, and established layout/renderer/identity counters. Compare repeated-process medians with experiment 51 and the multithreaded WASM atomic prefix with 98697 bytes.\n",
+  "expectedOutcomeMarkdown": "All tests and six browser cases remain exact. Taffy resolves without content_size, repeated WASM output shrinks, and throughput or paced p95 improves without a regression outside the established measurement envelope.\n",
+  "diagnostics": {
+    "playwright": [
+      "Three fresh headed Chromium/WebGPU processes passed DPR 1 and DPR 2: 6/6 cases, exact final offset -351402.6875, and zero terminal errors.",
+      "Every run preserved 1123 Taffy nodes, 229 measured leaves, 341 leaves, 782 containers, 1041 edges, 405 flex/377 block/0 grid containers, 82 compute calls, and all established renderer and 485/24/485 identity signatures."
+    ],
+    "rayx": [
+      "411 gpux unit tests and every integration suite passed with rayx_diagnostics, including scroll-content shrink/expand and programmatic-scroll coverage.",
+      "52 gpui_wgpu tests passed serially with rayx_diagnostics.",
+      "Normal cargo check, cargo fmt --check, clippy -D warnings, feature-tree proof, source-consumer audit, and AgentX memory audit passed."
+    ],
+    "counters": [
+      "The resolved Taffy graph now contains std, taffy_tree, flexbox, grid, block_layout, and implied alloc; content_size and all other unused defaults are absent.",
+      "Gpux computes scroll content extents from child layout bounds in Div::prepaint and has no read of Taffy's feature-gated scrollable_overflow_rect."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 median acknowledged throughput",
+      "before": "30.292478423046262 steps/s",
+      "after": "30.338250253551927 steps/s",
+      "delta": "+0.15%"
+    },
+    {
+      "metric": "DPR 2 median acknowledged throughput",
+      "before": "30.303477968045748 steps/s",
+      "after": "30.418611810147723 steps/s",
+      "delta": "+0.38%"
+    },
+    {
+      "metric": "DPR 1 median paced p95",
+      "before": "26.067626953125 ms",
+      "after": "25.7509765625 ms",
+      "delta": "-1.21%"
+    },
+    {
+      "metric": "DPR 2 median paced p95",
+      "before": "25.834228515625 ms",
+      "after": "25.4267578125 ms",
+      "delta": "-1.58%"
+    },
+    {
+      "metric": "multithreaded WASM atomic prefix",
+      "before": "98697 bytes",
+      "after": "98441 bytes",
+      "delta": "-256 bytes"
+    }
+  ],
+  "reportMarkdown": "## Disable Taffy Content Size Finished\n\n**Index:** 53\n**Checkpoint:** `a64e7768986d7530b5c0598b9a44775d15ede3d2`\n**Result:** `2f69f0cbaa8c49b74bf93728816d0ec88f17f36b`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. Gpux no longer enables Taffy's `content_size` feature. Taffy's intrinsic/min-content sizing remains intact; the removed feature specifically tracked and rounded a scrollable-overflow rectangle that gpux never reads. GPUI continues to derive scroll content extents from child layout bounds during prepaint.\n\nAll 411 gpux unit tests and integration suites, 52 serialized gpui_wgpu tests, normal check, formatting, clippy, and six headed WebGPU cases passed. Every case retained the exact -351402.6875 final scroll offset and all layout/renderer/identity counters. Against experiment 51, three-process median acknowledged throughput improved 0.15%/0.38% at DPR 1/2, paced p95 improved 1.21%/1.58%, and the repeated multithreaded WASM atomic prefix shrank from 98,697 to 98,441 bytes.\n\n### Scope Lock\n\nOnly `content_size` was removed from the explicit Taffy feature list. The crate version, lockfiles, gpux layout/scroll algorithms, public APIs, shaders, and renderer paths are unchanged.\n\n### Decision\n\nAccept the five-feature Taffy configuration. It removes duplicate overflow bookkeeping, preserves gpux-owned scroll semantics exactly, improves every repeated browser median, and reduces WASM code layout without adding code or maintenance surface.\n",
+  "decisionMarkdown": "Accept disabling Taffy's content_size feature. Gpux owns scroll extents from child layout bounds, all static and six headed runtime cases preserve exact behavior, throughput improves 0.15%/0.38%, paced p95 improves 1.21%/1.58%, and the repeated WASM atomic prefix shrinks by 256 bytes.\n",
+  "notes": ""
+}

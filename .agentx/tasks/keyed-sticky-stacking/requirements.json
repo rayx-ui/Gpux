@@ -1,0 +1,714 @@
+{
+  "schemaVersion": 5,
+  "epicId": "keyed-sticky-stacking",
+  "title": "Keyed sticky stacking across ordinary and virtualized RayX surfaces",
+  "scope": {
+    "problem": "RayX supports ordinary sticky divs and explicit level-based sticky stacks in virtualized lists and trees, but unrelated sticky elements cannot declare that they belong to one logical stack. Same-inset ordinary sticky siblings overlap, virtual callers must derive hierarchy levels, and the three collection implementations retain separate candidate models.",
+    "outcome": "Sticky elements can opt into one explicit stack identifier. Consecutive candidates with the same identifier stack in document or projected order; a different identifier starts a replacement stack; unkeyed and explicit-level behavior remains unchanged. Ordinary divs, RayX VirtualList/ListView/TreeView, gpux List, and UniformList share the same relation semantics and bounded active-stack planning.",
+    "inScope": [
+      "A gpux-owned sticky stacking relation and active-stack planner",
+      "An ordinary div sticky stack identifier API scoped to the nearest scroll context and axis/edge",
+      "A StickyRow stack identifier API for VirtualList, ListView, and TreeView",
+      "Structured keyed candidate APIs for gpux ListState and UniformList",
+      "Contiguous-run replacement semantics and preservation of explicit level mode",
+      "Top and left keyed stacks, matching the current virtual sticky edge surface",
+      "Paint, hit-test, callback, clipping, identity, projection, and mutation correctness",
+      "Focused crate tests and headed WASM/WebGPU interaction proof through apps/test_suite",
+      "RayX skill and durable AgentX guidance updates after implementation evidence exists"
+    ],
+    "outOfScope": [
+      "Bottom or right keyed stack direction",
+      "A full CSS stacking-context or z-index implementation",
+      "Automatic inference of keys from element identity, data identity, or tree depth",
+      "Compatibility aliases or a second parallel sticky framework",
+      "App-level overlay clones, hidden placeholders, or proxy rows",
+      "Runtime automation or diagnostics against apps/lab"
+    ]
+  },
+  "constraints": {
+    "compatibility": [
+      "Unkeyed ordinary sticky elements MUST preserve current independent overlap, inset, clipping, paint, and hit-test behavior.",
+      "StickyRow::level and existing flat or level-based low-level list APIs MUST preserve their current behavior.",
+      "The implementation MUST update all in-repository callers during any clean API replacement and MUST NOT leave compatibility shims."
+    ],
+    "publicApi": [
+      "Ordinary sticky divs MUST expose sticky_stack_id(id) as an opt-in builder surface.",
+      "StickyRow MUST expose stack_id(id) as a mode mutually exclusive with level(level).",
+      "Low-level ListState and UniformList MUST accept structured sticky candidate metadata capable of expressing explicit level or stack identifier without adding a third independent key-only API."
+    ],
+    "dependencies": [
+      "The implementation MUST reuse gpux Style, Window positioned bounds, scroll contexts, positioned scene ordering, virtual row wrappers, and existing collection candidate caches.",
+      "The implementation MUST add no external crate dependency.",
+      "RayX components MAY depend on the gpux sticky relation; gpux MUST NOT depend on RayX component types."
+    ],
+    "data": [
+      "A stack identifier is distinct from element identity and collection item identity.",
+      "Stack scope is the tuple of nearest scroll context, axis/edge, and stack identifier.",
+      "Equal identifiers stack only within one contiguous candidate run; an intervening different identifier terminates the prior run.",
+      "Explicit level and identifier modes are mutually exclusive representations.",
+      "Default virtual stack extent includes the same primary-axis item extent and gap used for row origins."
+    ],
+    "operations": [
+      "Every application-hosted fixture, diagnostic, screenshot, and interaction check MUST use apps/test_suite and tools-node/test_suite.",
+      "Validation MUST include focused gpux and rayx_components_core tests, cargo fmt, affected clippy with warnings denied, and headed WASM/WebGPU interaction proof.",
+      "DPR 1 and DPR 2 runtime assertions MUST use numeric bounds and interaction results; screenshots alone are insufficient.",
+      "The implementation MUST use the repo-local rayx and gpux skill guidance before production changes."
+    ]
+  },
+  "actors": [
+    {
+      "id": "component-author",
+      "description": "Declares related sticky elements with one identifier without manually calculating cumulative top or left offsets."
+    },
+    {
+      "id": "virtualization-author",
+      "description": "Defines sticky policies for projected list and tree data while retaining offscreen candidates and stable row identity."
+    },
+    {
+      "id": "rayx-maintainer",
+      "description": "Maintains one framework-level sticky relation with bounded memory and consistent behavior across collection implementations."
+    },
+    {
+      "id": "application-user",
+      "description": "Scrolls and interacts with stacked headers whose geometry, visual order, and hit targets remain aligned."
+    }
+  ],
+  "functionalRequirements": [
+    {
+      "id": "REQ-F-001",
+      "title": "Canonical keyed stack relation",
+      "statement": "gpux MUST define one canonical sticky stacking relation that represents either an explicit hierarchy level or an explicit stack identifier and computes contiguous keyed stacks deterministically.",
+      "provenance": {
+        "basis": "user-decision",
+        "evidence": [
+          {
+            "repositoryId": "rayx",
+            "path": "crates/rayx/rayx_components/rayx_components_core/src/core/sticky.rs",
+            "symbol": "StickyRow",
+            "reason": "The current high-level metadata exposes only an explicit level."
+          },
+          {
+            "repositoryId": "rayx",
+            "path": "crates/gpux/crates/gpui/src/elements/list.rs",
+            "symbol": "StickyItem",
+            "reason": "The low-level list already models candidate ordering and levels."
+          }
+        ],
+        "userDecision": "Sticky elements with an identical key stack one under another in the same manner as parent-child sticky elements."
+      },
+      "behavior": {
+        "trigger": "An ordered candidate sequence contains sticky entries using explicit stack identifiers.",
+        "inputs": [
+          "Candidate order",
+          "Stack identifier or explicit level",
+          "Axis and edge",
+          "Candidate inset and measured extent",
+          "Current scroll position"
+        ],
+        "outputs": [
+          "The active candidate chain",
+          "A cumulative offset for each active candidate",
+          "Replacement boundaries between keyed runs"
+        ],
+        "stateChanges": [
+          "Equal consecutive identifiers append to the current keyed stack.",
+          "A different identifier starts a new level-zero stack and discards the prior active chain.",
+          "An identifier encountered after an intervening different identifier starts a new run and does not resurrect earlier members."
+        ],
+        "invariants": [
+          "Explicit level and stack identifier are mutually exclusive.",
+          "Different scroll contexts, axes, and edges never share an active stack.",
+          "Candidate order and duplicate behavior remain stable.",
+          "The planner owns relation math but not element styling or application data identity."
+        ],
+        "errors": [
+          "A keyed relation on an unsupported bottom or right edge is rejected by the public builder or left unconfigured without panic.",
+          "Unsorted low-level candidates are normalized once at configuration time or rejected deterministically."
+        ],
+        "edgeCases": [
+          "Empty candidate sequence",
+          "One candidate",
+          "Repeated equal identifiers",
+          "A-B-A identifier runs",
+          "Mixed explicit-level and keyed candidates",
+          "Zero extent and nonzero inset"
+        ]
+      },
+      "coverage": {
+        "happyPath": {"status": "required", "acceptanceCriteriaIds": ["AC-F-001-1"], "rationale": "Equal identifiers MUST form a cumulative stack."},
+        "invalidInput": {"status": "required", "acceptanceCriteriaIds": ["AC-F-001-3"], "rationale": "Unsupported edges and malformed candidate order MUST be deterministic."},
+        "emptyInput": {"status": "required", "acceptanceCriteriaIds": ["AC-F-001-3"], "rationale": "No candidates MUST produce no active stack."},
+        "boundaryValues": {"status": "required", "acceptanceCriteriaIds": ["AC-F-001-1", "AC-F-001-2"], "rationale": "Single, zero-extent, replacement, and A-B-A boundaries define the relation."},
+        "authorization": {"status": "not-applicable", "acceptanceCriteriaIds": [], "rationale": "Local layout has no authorization boundary."},
+        "cancellation": {"status": "not-applicable", "acceptanceCriteriaIds": [], "rationale": "Frame-local planning is synchronous."},
+        "retryAndIdempotency": {"status": "required", "acceptanceCriteriaIds": ["AC-F-001-2"], "rationale": "The same candidates and scroll geometry MUST yield the same plan."},
+        "concurrency": {"status": "not-applicable", "acceptanceCriteriaIds": [], "rationale": "Window layout state is window-thread owned."},
+        "partialFailure": {"status": "required", "acceptanceCriteriaIds": ["AC-F-001-3"], "rationale": "One unsupported relation MUST not corrupt other stacks."},
+        "cleanupAndRollback": {"status": "required", "acceptanceCriteriaIds": ["AC-F-001-2"], "rationale": "A later group MUST remove the complete prior active chain."},
+        "compatibility": {"status": "required", "acceptanceCriteriaIds": ["AC-F-001-3"], "rationale": "Explicit levels and unkeyed candidates MUST remain unchanged."},
+        "observability": {"status": "required", "acceptanceCriteriaIds": ["AC-F-001-1"], "rationale": "Unit-visible plans MUST expose membership and offsets."},
+        "securityAndPrivacy": {"status": "not-applicable", "acceptanceCriteriaIds": [], "rationale": "Identifiers remain local values and cross no trust boundary."},
+        "accessibility": {"status": "required", "acceptanceCriteriaIds": ["AC-F-001-3"], "rationale": "The relation MUST preserve rendered identity and semantics."}
+      },
+      "acceptanceCriteria": [
+        {
+          "id": "AC-F-001-1",
+          "statement": "For ordered top or left candidates, equal consecutive stack identifiers MUST produce cumulative offsets in candidate order, and a different identifier MUST start a replacement stack at the base inset.",
+          "requiredValidationProfiles": ["unit"]
+        },
+        {
+          "id": "AC-F-001-2",
+          "statement": "An A-B-A identifier sequence MUST create three runs, the final A run MUST contain no member from the first A run, and repeated planning with identical inputs MUST return identical membership and offsets.",
+          "requiredValidationProfiles": ["unit"]
+        },
+        {
+          "id": "AC-F-001-3",
+          "statement": "Explicit level candidates, unkeyed candidates, empty inputs, and unsupported keyed edges MUST preserve their documented behavior without panic or cross-stack state leakage.",
+          "requiredValidationProfiles": ["behavior-preservation"]
+        }
+      ],
+      "validationProfiles": ["unit", "behavior-preservation"]
+    },
+    {
+      "id": "REQ-F-002",
+      "title": "Ordinary div keyed stacking",
+      "statement": "Ordinary sticky divs sharing a stack identifier MUST stack under one another within the nearest matching scroll context while preserving positioned bounds, containment, paint order, and hit testing.",
+      "provenance": {
+        "basis": "explicit-requirement",
+        "evidence": [
+          {
+            "repositoryId": "rayx",
+            "path": "crates/gpux/crates/gpui/src/window.rs",
+            "symbol": "PositionedBounds::resolve_sticky_for_scroll_contexts_with_state",
+            "reason": "Window currently resolves each ordinary sticky independently against nearest scroll contexts."
+          },
+          {
+            "repositoryId": "rayx",
+            "path": "crates/gpux/crates/gpui/src/elements/div.rs",
+            "symbol": "Div",
+            "reason": "Div owns ordinary sticky prepaint, hitbox insertion, child bounds, and positioned painting."
+          }
+        ]
+      },
+      "behavior": {
+        "trigger": "A scroll container renders two or more ordinary sticky div candidates with sticky_stack_id.",
+        "inputs": [
+          "Document traversal order",
+          "Nearest horizontal or vertical scroll context",
+          "Top or left inset",
+          "Laid-out candidate extent",
+          "Stack identifier"
+        ],
+        "outputs": [
+          "Resolved visual bounds for the active keyed stack",
+          "Aligned child bounds, content masks, hitboxes, and positioned paint"
+        ],
+        "stateChanges": [
+          "Frame-local candidate metadata is collected before keyed positions are committed.",
+          "The active keyed run changes as later group roots reach the stack origin."
+        ],
+        "invariants": [
+          "Layout bounds remain in normal flow.",
+          "The nearest scroll context and content boundary remain authoritative.",
+          "Unkeyed siblings retain current independent sticky behavior.",
+          "Later positioned candidates retain current topmost paint and hit-test order."
+        ],
+        "errors": [
+          "A keyed div without sticky positioning has no stacking effect.",
+          "A keyed sticky without a matching scroll context remains at normal visual bounds."
+        ],
+        "edgeCases": [
+          "Nested scroll containers",
+          "Nested keyed sticky descendants",
+          "Different identifiers in one scrollport",
+          "Clipped ancestors",
+          "Different top insets",
+          "Horizontal left stacks"
+        ]
+      },
+      "coverage": {
+        "happyPath": {"status": "required", "acceptanceCriteriaIds": ["AC-F-002-1"], "rationale": "Same-key ordinary divs MUST stack at exact cumulative bounds."},
+        "invalidInput": {"status": "required", "acceptanceCriteriaIds": ["AC-F-002-3"], "rationale": "Nonsticky or unsupported uses MUST not alter layout."},
+        "emptyInput": {"status": "required", "acceptanceCriteriaIds": ["AC-F-002-3"], "rationale": "A scrollport with no keyed candidates preserves existing behavior."},
+        "boundaryValues": {"status": "required", "acceptanceCriteriaIds": ["AC-F-002-1", "AC-F-002-2"], "rationale": "Insets, content ends, and group transitions MUST clamp exactly."},
+        "authorization": {"status": "not-applicable", "acceptanceCriteriaIds": [], "rationale": "Local rendering has no authorization boundary."},
+        "cancellation": {"status": "not-applicable", "acceptanceCriteriaIds": [], "rationale": "Frame layout has no asynchronous cancellation."},
+        "retryAndIdempotency": {"status": "required", "acceptanceCriteriaIds": ["AC-F-002-1"], "rationale": "Repeated frames at one offset MUST retain exact bounds."},
+        "concurrency": {"status": "not-applicable", "acceptanceCriteriaIds": [], "rationale": "Window rendering is serialized."},
+        "partialFailure": {"status": "required", "acceptanceCriteriaIds": ["AC-F-002-3"], "rationale": "One missing context MUST not alter another scrollport."},
+        "cleanupAndRollback": {"status": "required", "acceptanceCriteriaIds": ["AC-F-002-2"], "rationale": "Replacement MUST remove the old run and its descendant lanes."},
+        "compatibility": {"status": "required", "acceptanceCriteriaIds": ["AC-F-002-3"], "rationale": "Existing unkeyed sticky rendering MUST remain identical."},
+        "observability": {"status": "required", "acceptanceCriteriaIds": ["AC-F-002-1", "AC-F-002-2"], "rationale": "Test Suite bounds and callbacks MUST expose the active stack."},
+        "securityAndPrivacy": {"status": "not-applicable", "acceptanceCriteriaIds": [], "rationale": "No security data crosses a boundary."},
+        "accessibility": {"status": "required", "acceptanceCriteriaIds": ["AC-F-002-3"], "rationale": "Hit targets and semantic identity MUST move with visual bounds."}
+      },
+      "acceptanceCriteria": [
+        {
+          "id": "AC-F-002-1",
+          "statement": "Same-key ordinary top or left sticky divs MUST occupy non-overlapping cumulative visual bounds inside one scroll context at DPR 1 and DPR 2, including nested scrollports and clipped ancestors.",
+          "requiredValidationProfiles": ["interaction"]
+        },
+        {
+          "id": "AC-F-002-2",
+          "statement": "When a later different-key root reaches the stack origin, it MUST replace the complete prior keyed run, and an A-B-A sequence MUST activate only members from the current run.",
+          "requiredValidationProfiles": ["interaction"]
+        },
+        {
+          "id": "AC-F-002-3",
+          "statement": "Unkeyed sticky divs, keyed nonsticky divs, ordinary descendants, content masks, positioned scene order, hitboxes, sticky-state styling, and callbacks MUST preserve existing behavior.",
+          "requiredValidationProfiles": ["behavior-preservation"]
+        }
+      ],
+      "validationProfiles": ["interaction", "behavior-preservation"]
+    },
+    {
+      "id": "REQ-F-003",
+      "title": "RayX virtualized keyed stacking",
+      "statement": "VirtualList, ListView, and TreeView MUST accept keyed StickyRow metadata, retain offscreen candidates, and render the active keyed run through the existing sticky row root wrapper.",
+      "provenance": {
+        "basis": "repository-pattern",
+        "evidence": [
+          {
+            "repositoryId": "rayx",
+            "path": "crates/rayx/rayx_components/rayx_components_core/src/components/virtual_list/mod.rs",
+            "symbol": "VirtualStickyItems",
+            "reason": "The current renderer owns candidate caching, active lookup, cumulative offsets, and sticky root wrappers."
+          },
+          {
+            "repositoryId": "rayx",
+            "path": "crates/rayx/rayx_components/rayx_components_core/src/components/tree_view/state.rs",
+            "symbol": "TreeViewState::rebuild_sticky_items",
+            "reason": "Tree projection rebuilds already evaluate the single sticky policy off the scroll path."
+          }
+        ]
+      },
+      "behavior": {
+        "trigger": "A ListView or TreeView sticky policy returns StickyRow::top or StickyRow::left with stack_id.",
+        "inputs": [
+          "Projected row order and stable identity",
+          "StickyRow relation, inset, optional measured size, style, and callback",
+          "Virtual row origin and extent including gap",
+          "Current internal or parent viewport"
+        ],
+        "outputs": [
+          "Retained active offscreen keyed rows",
+          "One positioned root wrapper per sticky row",
+          "Stable visible range excluding sticky-only retained rows"
+        ],
+        "stateChanges": [
+          "Policy rebuilds update the keyed candidate index.",
+          "Collection mutations, reversal, and tree expansion rebuild candidate relations.",
+          "Sticky callbacks fire only on real phase transitions."
+        ],
+        "invariants": [
+          "The sticky policy remains the single source of high-level stickiness.",
+          "Row identity, semantics, events, and hitboxes remain on the root wrapper.",
+          "Explicit level and keyed stack modes do not combine on one StickyRow.",
+          "Same-level existing behavior remains unchanged."
+        ],
+        "errors": [
+          "An absent policy produces no sticky candidates.",
+          "A measured-size override affects stack extent only and does not alter row layout."
+        ],
+        "edgeCases": [
+          "Variable row heights and gaps",
+          "Wide rows and horizontal scrolling",
+          "ParentViewport mode",
+          "Reversed projection",
+          "Tree collapse and expansion",
+          "Insert, remove, move, and update mutations",
+          "Duplicate rendered row prevention"
+        ]
+      },
+      "coverage": {
+        "happyPath": {"status": "required", "acceptanceCriteriaIds": ["AC-F-003-1"], "rationale": "Keyed policies MUST stack retained virtual rows."},
+        "invalidInput": {"status": "required", "acceptanceCriteriaIds": ["AC-F-003-3"], "rationale": "Mutually exclusive relation modes MUST be deterministic."},
+        "emptyInput": {"status": "required", "acceptanceCriteriaIds": ["AC-F-003-3"], "rationale": "Empty projections and absent policies MUST produce no wrappers."},
+        "boundaryValues": {"status": "required", "acceptanceCriteriaIds": ["AC-F-003-1", "AC-F-003-2"], "rationale": "Variable sizes, gaps, run boundaries, and first/last rows define geometry."},
+        "authorization": {"status": "not-applicable", "acceptanceCriteriaIds": [], "rationale": "Virtualized UI rendering has no authorization boundary."},
+        "cancellation": {"status": "not-applicable", "acceptanceCriteriaIds": [], "rationale": "Projection and frame work is synchronous."},
+        "retryAndIdempotency": {"status": "required", "acceptanceCriteriaIds": ["AC-F-003-2"], "rationale": "Stable projection and viewport inputs MUST yield stable active rows."},
+        "concurrency": {"status": "not-applicable", "acceptanceCriteriaIds": [], "rationale": "State mutations are GPUI-thread owned."},
+        "partialFailure": {"status": "required", "acceptanceCriteriaIds": ["AC-F-003-3"], "rationale": "One row without metadata MUST remain an ordinary virtual row."},
+        "cleanupAndRollback": {"status": "required", "acceptanceCriteriaIds": ["AC-F-003-2"], "rationale": "Mutation or collapse MUST remove stale candidates and wrappers."},
+        "compatibility": {"status": "required", "acceptanceCriteriaIds": ["AC-F-003-3"], "rationale": "Existing explicit levels, visible ranges, and external scroll behavior MUST remain stable."},
+        "observability": {"status": "required", "acceptanceCriteriaIds": ["AC-F-003-1", "AC-F-003-2"], "rationale": "Callbacks and Test Suite diagnostics MUST expose active membership."},
+        "securityAndPrivacy": {"status": "not-applicable", "acceptanceCriteriaIds": [], "rationale": "No trust boundary is crossed."},
+        "accessibility": {"status": "required", "acceptanceCriteriaIds": ["AC-F-003-3"], "rationale": "Stable identity, semantics, and interactions MUST remain attached to the visible row."}
+      },
+      "acceptanceCriteria": [
+        {
+          "id": "AC-F-003-1",
+          "statement": "ListView and TreeView keyed top or left candidates MUST retain the current offscreen run, stack by actual item extent including gap, and expose exact non-overlapping root-wrapper bounds and clickable hit targets.",
+          "requiredValidationProfiles": ["unit", "interaction"]
+        },
+        {
+          "id": "AC-F-003-2",
+          "statement": "Replacement, A-B-A runs, insert, remove, move, update, reversed projection, tree collapse, and tree expansion MUST rebuild active membership without stale rows, duplicate rows, or false sticky callbacks.",
+          "requiredValidationProfiles": ["unit", "interaction"]
+        },
+        {
+          "id": "AC-F-003-3",
+          "statement": "Explicit levels, unkeyed rows, measured-size overrides, wide rows, ParentViewport behavior, mounted visible-range publication, row identity, semantics, and callback contracts MUST preserve existing behavior.",
+          "requiredValidationProfiles": ["behavior-preservation", "interaction"]
+        }
+      ],
+      "validationProfiles": ["unit", "interaction", "behavior-preservation"]
+    },
+    {
+      "id": "REQ-F-004",
+      "title": "Low-level gpux list convergence",
+      "statement": "gpux ListState and UniformList MUST use structured sticky candidate metadata with the canonical relation semantics and MUST retain active offscreen keyed stacks without row-local depth calculations.",
+      "provenance": {
+        "basis": "repository-pattern",
+        "evidence": [
+          {
+            "repositoryId": "rayx",
+            "path": "crates/gpux/crates/gpui/src/elements/list.rs",
+            "symbol": "ListState::with_sticky_item_levels",
+            "reason": "ListState currently has separate flat and level APIs and scans prior candidates."
+          },
+          {
+            "repositoryId": "rayx",
+            "path": "crates/gpux/crates/gpui/src/elements/uniform_list.rs",
+            "symbol": "UniformList::sticky_item_levels",
+            "reason": "UniformList mirrors the explicit-level model."
+          }
+        ]
+      },
+      "behavior": {
+        "trigger": "A low-level list is configured with structured sticky candidates containing stack identifiers.",
+        "inputs": [
+          "Item index",
+          "Explicit level or stack identifier",
+          "Measured or uniform item extent",
+          "Scroll offset and visible scrollport intersection"
+        ],
+        "outputs": [
+          "Retained active candidate rows",
+          "Canonical cumulative offsets",
+          "Incoming candidate push-out and replacement"
+        ],
+        "stateChanges": [
+          "Candidate configuration builds one indexed relation.",
+          "Scrolling selects the active run without scanning every prior row.",
+          "Changing candidates replaces the index atomically."
+        ],
+        "invariants": [
+          "gpux remains independent of RayX StickyRow.",
+          "Flat candidates map to explicit level zero.",
+          "Visible scrollport intersection remains authoritative under ancestor clipping.",
+          "Row templates do not calculate keyed stack depth."
+        ],
+        "errors": [
+          "Out-of-range candidate indices are ignored or rejected without rendering an invalid row.",
+          "Duplicate indices are normalized deterministically."
+        ],
+        "edgeCases": [
+          "Variable-height List items",
+          "UniformList items",
+          "Clipped and page-scrolled ancestors",
+          "Focused offscreen item retention",
+          "Flat and explicit-level compatibility",
+          "Incoming replacement at exact boundary"
+        ]
+      },
+      "coverage": {
+        "happyPath": {"status": "required", "acceptanceCriteriaIds": ["AC-F-004-1"], "rationale": "Both low-level list kinds MUST render keyed stacks."},
+        "invalidInput": {"status": "required", "acceptanceCriteriaIds": ["AC-F-004-3"], "rationale": "Out-of-range and duplicate candidates MUST be deterministic."},
+        "emptyInput": {"status": "required", "acceptanceCriteriaIds": ["AC-F-004-3"], "rationale": "No candidates MUST retain standard virtualization behavior."},
+        "boundaryValues": {"status": "required", "acceptanceCriteriaIds": ["AC-F-004-1", "AC-F-004-2"], "rationale": "Exact scroll, item, inset, and clipping boundaries MUST be covered."},
+        "authorization": {"status": "not-applicable", "acceptanceCriteriaIds": [], "rationale": "Local list rendering has no authorization boundary."},
+        "cancellation": {"status": "not-applicable", "acceptanceCriteriaIds": [], "rationale": "List layout is synchronous."},
+        "retryAndIdempotency": {"status": "required", "acceptanceCriteriaIds": ["AC-F-004-2"], "rationale": "Repeated scroll layout MUST be stable."},
+        "concurrency": {"status": "not-applicable", "acceptanceCriteriaIds": [], "rationale": "List state is GPUI-thread owned."},
+        "partialFailure": {"status": "required", "acceptanceCriteriaIds": ["AC-F-004-3"], "rationale": "Invalid metadata MUST not corrupt ordinary rows."},
+        "cleanupAndRollback": {"status": "required", "acceptanceCriteriaIds": ["AC-F-004-2"], "rationale": "Candidate replacement MUST drop the prior index and retained rows."},
+        "compatibility": {"status": "required", "acceptanceCriteriaIds": ["AC-F-004-3"], "rationale": "Flat and explicit-level behavior MUST remain observable after clean API convergence."},
+        "observability": {"status": "required", "acceptanceCriteriaIds": ["AC-F-004-1"], "rationale": "Render tests MUST expose retained indices and bounds."},
+        "securityAndPrivacy": {"status": "not-applicable", "acceptanceCriteriaIds": [], "rationale": "No trust boundary is crossed."},
+        "accessibility": {"status": "required", "acceptanceCriteriaIds": ["AC-F-004-3"], "rationale": "Retained rows MUST preserve their original interaction and semantics."}
+      },
+      "acceptanceCriteria": [
+        {
+          "id": "AC-F-004-1",
+          "statement": "Variable-height List and UniformList MUST retain and render same-key offscreen candidates at canonical cumulative offsets, including under clipped ancestor scrollports.",
+          "requiredValidationProfiles": ["unit", "interaction"]
+        },
+        {
+          "id": "AC-F-004-2",
+          "statement": "Different-key replacement, A-B-A runs, incoming candidate push-out, exact scroll boundaries, and candidate reconfiguration MUST produce stable active rows without scanning all prior candidates per frame.",
+          "requiredValidationProfiles": ["unit", "regression"]
+        },
+        {
+          "id": "AC-F-004-3",
+          "statement": "Flat level-zero and explicit-level low-level list behavior, focused item retention, row paint order, hitboxes, and semantics MUST remain intact after the structured candidate cutover.",
+          "requiredValidationProfiles": ["behavior-preservation", "architecture"]
+        }
+      ],
+      "validationProfiles": ["unit", "interaction", "regression", "behavior-preservation", "architecture"]
+    },
+    {
+      "id": "REQ-F-005",
+      "title": "Cross-surface runtime contract",
+      "statement": "The completed feature MUST expose identical keyed-run membership and stacking geometry across ordinary divs, RayX virtualized views, gpux List, and UniformList in the Test Suite.",
+      "provenance": {
+        "basis": "explicit-requirement",
+        "evidence": [
+          {
+            "repositoryId": "rayx",
+            "path": "apps/test_suite/src/pages/virtualization.rs",
+            "reason": "The Test Suite is the mandatory application-hosted validation surface."
+          },
+          {
+            "repositoryId": "rayx",
+            "path": "tools-node/test_suite/rayx-virtualization-overscan.spec.ts",
+            "reason": "Existing headed Playwright coverage demonstrates virtualization bounds and state assertions."
+          }
+        ]
+      },
+      "behavior": {
+        "trigger": "The keyed sticky Test Suite fixture scrolls each supported surface through group activation and replacement boundaries.",
+        "inputs": [
+          "DPR 1 and DPR 2",
+          "Top and left stack fixtures",
+          "Same-key and A-B-A candidate sequences",
+          "Clicks on each active stacked row",
+          "List and tree mutations"
+        ],
+        "outputs": [
+          "Exact active identifiers and numeric bounds",
+          "Callback transition counts",
+          "Click results tied to visible identities",
+          "No runtime crash or duplicate row"
+        ],
+        "stateChanges": [
+          "Scrolling and mutations update diagnostic state through production behavior.",
+          "The fixture records current active membership without test-only production hooks."
+        ],
+        "invariants": [
+          "All application validation runs through apps/test_suite.",
+          "Screenshots are supplemental and do not replace numeric or interaction assertions.",
+          "Lab remains untouched as a diagnostics target."
+        ],
+        "errors": [
+          "A missing target capability remains a documented non-complete blocker rather than a passing result.",
+          "A visual-only match cannot close the interaction or runtime contract."
+        ],
+        "edgeCases": [
+          "DPR rounding",
+          "Nested scrollports",
+          "ParentViewport",
+          "Variable extents and gaps",
+          "Rapid replacement and reverse scrolling"
+        ]
+      },
+      "coverage": {
+        "happyPath": {"status": "required", "acceptanceCriteriaIds": ["AC-F-005-1"], "rationale": "Every supported surface MUST prove common keyed geometry."},
+        "invalidInput": {"status": "required", "acceptanceCriteriaIds": ["AC-F-005-2"], "rationale": "Unsupported edges and absent identifiers MUST remain safe."},
+        "emptyInput": {"status": "required", "acceptanceCriteriaIds": ["AC-F-005-2"], "rationale": "Empty fixtures MUST remain crash-free."},
+        "boundaryValues": {"status": "required", "acceptanceCriteriaIds": ["AC-F-005-1"], "rationale": "DPR and transition boundaries MUST be exact."},
+        "authorization": {"status": "not-applicable", "acceptanceCriteriaIds": [], "rationale": "The local Test Suite has no authorization boundary."},
+        "cancellation": {"status": "not-applicable", "acceptanceCriteriaIds": [], "rationale": "No asynchronous user transaction is introduced."},
+        "retryAndIdempotency": {"status": "required", "acceptanceCriteriaIds": ["AC-F-005-1"], "rationale": "Repeated scroll positions MUST report stable state."},
+        "concurrency": {"status": "not-applicable", "acceptanceCriteriaIds": [], "rationale": "The fixture exercises serialized UI state."},
+        "partialFailure": {"status": "required", "acceptanceCriteriaIds": ["AC-F-005-2"], "rationale": "One empty surface MUST not break the page."},
+        "cleanupAndRollback": {"status": "required", "acceptanceCriteriaIds": ["AC-F-005-2"], "rationale": "Reverse scroll and mutation MUST remove obsolete active state."},
+        "compatibility": {"status": "required", "acceptanceCriteriaIds": ["AC-F-005-2"], "rationale": "Existing sticky fixture behavior MUST remain green."},
+        "observability": {"status": "required", "acceptanceCriteriaIds": ["AC-F-005-1"], "rationale": "Membership, bounds, callbacks, and clicks MUST be queryable."},
+        "securityAndPrivacy": {"status": "not-applicable", "acceptanceCriteriaIds": [], "rationale": "No sensitive content is introduced."},
+        "accessibility": {"status": "required", "acceptanceCriteriaIds": ["AC-F-005-2"], "rationale": "Visible stacked identities MUST remain interactable and inspectable."}
+      },
+      "acceptanceCriteria": [
+        {
+          "id": "AC-F-005-1",
+          "statement": "A focused headed WASM/WebGPU Test Suite specification MUST prove at DPR 1 and DPR 2 that every supported surface reports the expected active keyed run, non-overlapping numeric bounds, replacement behavior, callback counts, and click identities.",
+          "requiredValidationProfiles": ["interaction"]
+        },
+        {
+          "id": "AC-F-005-2",
+          "statement": "The Test Suite MUST remain crash-free and existing sticky, clipping, visible-range, and interaction specifications MUST remain green without using apps/lab or tools-node/lab.",
+          "requiredValidationProfiles": ["interaction", "regression"]
+        }
+      ],
+      "validationProfiles": ["interaction", "regression"]
+    }
+  ],
+  "nonFunctionalRequirements": [
+    {
+      "id": "REQ-NF-001",
+      "title": "Linear candidate storage and bounded lookup",
+      "statement": "Sticky candidate indexes MUST use linear memory in candidate count and MUST avoid copying a complete active stack for every candidate.",
+      "provenance": {
+        "basis": "measured-evidence",
+        "evidence": [
+          {
+            "repositoryId": "rayx",
+            "path": "crates/rayx/rayx_components/rayx_components_core/src/components/virtual_list/mod.rs",
+            "symbol": "VirtualStickyItems::active_stack_indices",
+            "reason": "The current vector of SmallVec stacks copies ancestry per candidate and can grow quadratically for deep chains."
+          }
+        ]
+      },
+      "qualityContract": {
+        "attribute": "performance",
+        "metric": "Stored relation links and candidates, plus active lookup work",
+        "workload": "10,000 consecutive same-key candidates and alternating replacement runs",
+        "baseline": "VirtualStickyItems can store the complete active stack at every candidate; low-level list lookup scans earlier candidates.",
+        "target": "Index construction stores O(n) candidate and predecessor records; active lookup is O(log n + d), where d is active stack depth; ordinary frame planning performs no repeated full-tree scan per candidate.",
+        "measurement": "Focused unit instrumentation asserts record counts and lookup visit counts for 10,000 candidates.",
+        "environment": "Rust unit tests in gpux and rayx_components_core on the repository toolchain"
+      },
+      "acceptanceCriteria": [
+        {
+          "id": "AC-NF-001-1",
+          "statement": "A 10,000-candidate same-key index MUST store at most a constant number of relation records per candidate and MUST reconstruct the active chain through predecessor links or an equivalent linear-memory representation.",
+          "requiredValidationProfiles": ["performance"]
+        },
+        {
+          "id": "AC-NF-001-2",
+          "statement": "Active virtual and low-level list lookup MUST use candidate search plus active depth and MUST NOT scan every earlier candidate or clone every prior stack on each frame.",
+          "requiredValidationProfiles": ["performance"]
+        }
+      ],
+      "validationProfiles": ["performance"]
+    },
+    {
+      "id": "REQ-NF-002",
+      "title": "Compatibility and ownership",
+      "statement": "The feature MUST preserve existing unkeyed and explicit-level contracts while keeping relation math in gpux and high-level policy ownership in RayX components.",
+      "provenance": {
+        "basis": "repository-pattern",
+        "evidence": [
+          {
+            "repositoryId": "rayx",
+            "path": ".agentx/memory/decisions/runtime/gpux-foundation/2026-07-04-runtime-gpux-foundation-fixed-sticky-positioning.md",
+            "reason": "Framework-level positioning belongs to gpux."
+          },
+          {
+            "repositoryId": "rayx",
+            "path": ".agentx/memory/decisions/ui/virtualization/2026-07-05-ui-virtualization-virtualized-sticky-policy.md",
+            "reason": "High-level virtual stickiness remains single-source through sticky_policy."
+          }
+        ]
+      },
+      "qualityContract": {
+        "attribute": "compatibility",
+        "metric": "Existing public behavior and architecture checks",
+        "workload": "All current sticky-focused gpux and rayx_components_core tests plus source API guards",
+        "baseline": "28 focused gpux sticky tests and 25 rayx_components_core sticky tests pass before implementation.",
+        "target": "All baseline tests and new keyed tests pass; gpux has no RayX dependency; high-level views expose no second sticky candidate policy; no compatibility shim remains.",
+        "measurement": "Focused test commands, cargo tree or source guard assertions, and strict AgentX sprint audit",
+        "environment": "Repository Rust workspace and nested gpux workspace"
+      },
+      "acceptanceCriteria": [
+        {
+          "id": "AC-NF-002-1",
+          "statement": "All pre-existing focused sticky tests MUST remain green, gpux MUST remain independent of RayX crates, and ListView/TreeView MUST retain sticky_policy as their single sticky declaration surface.",
+          "requiredValidationProfiles": ["behavior-preservation"]
+        },
+        {
+          "id": "AC-NF-002-2",
+          "statement": "The final API MUST contain no alias, compatibility adapter, duplicate key-only candidate API, or row-local keyed-depth requirement.",
+          "requiredValidationProfiles": ["architecture"]
+        }
+      ],
+      "validationProfiles": ["behavior-preservation", "architecture"]
+    },
+    {
+      "id": "REQ-NF-003",
+      "title": "Repository quality and reusable guidance",
+      "statement": "The implementation MUST remain warning-clean, use the mandatory runtime validation boundary, and leave current skill and AgentX guidance aligned with proven behavior.",
+      "provenance": {
+        "basis": "explicit-requirement",
+        "evidence": [
+          {
+            "repositoryId": "rayx",
+            "path": "AGENTS.md",
+            "reason": "Repository policy defines formatting, diagnostics, Test Suite, AgentX, and skill-update completion gates."
+          },
+          {
+            "repositoryId": "rayx",
+            "path": ".codex/skills/rayx/references/sticky-positioning.md",
+            "reason": "The newly added reference documents the researched current state and must be updated after implementation."
+          }
+        ],
+        "userDecision": "Update the RayX skill so future agents know the correct sticky state, usage, and mechanics."
+      },
+      "qualityContract": {
+        "attribute": "maintainability",
+        "metric": "Static validation, task audit, documentation accuracy, and dependency count",
+        "workload": "Complete keyed sticky diff and affected documentation",
+        "baseline": "The RayX skill documents current unkeyed and explicit-level behavior but no implemented keyed API.",
+        "target": "cargo fmt and affected clippy pass; no external dependency is added; strict AgentX audit passes; the narrowest RayX and gpux skill references and proven AgentX memories describe the final API and invariants.",
+        "measurement": "Formatting, clippy, skill validation, source diff review, and AgentX strict audit",
+        "environment": "Repository root and nested gpux workspace"
+      },
+      "acceptanceCriteria": [
+        {
+          "id": "AC-NF-003-1",
+          "statement": "cargo fmt --all --check, affected clippy commands with warnings denied, focused crate tests, and the headed Test Suite command MUST pass with no new dependency.",
+          "requiredValidationProfiles": ["static-analysis", "interaction", "regression"]
+        },
+        {
+          "id": "AC-NF-003-2",
+          "statement": "The RayX sticky and virtualization skill references, gpux maintenance guidance when affected, and the narrowest proven AgentX state, rules, and decision indexes MUST describe the final keyed API, ownership, semantics, and validation route.",
+          "requiredValidationProfiles": ["docs", "architecture"]
+        }
+      ],
+      "validationProfiles": ["static-analysis", "interaction", "regression", "docs", "architecture"]
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "ASM-001",
+      "statement": "The accepted proposal authorizes contiguous-run semantics: equal adjacent identifiers stack, a different identifier replaces the complete prior run, and a later repeated identifier starts a new run.",
+      "basis": "user-decision",
+      "evidence": [],
+      "revalidationTrigger": "The user requests global same-key resurrection or independent interleaved groups."
+    },
+    {
+      "id": "ASM-002",
+      "statement": "The first keyed release covers top and left because those are the current StickyRow edges and have unambiguous forward stacking directions.",
+      "basis": "bounded-assumption",
+      "evidence": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx/rayx_components/rayx_components_core/src/core/sticky.rs",
+          "symbol": "StickyEdge",
+          "reason": "The current virtual metadata supports Top and Left only."
+        }
+      ],
+      "revalidationTrigger": "The user requires bottom or right grouped stacking."
+    },
+    {
+      "id": "ASM-003",
+      "statement": "ElementId is suitable as the gpux stack identifier representation because it already supports stable author-provided element identity values.",
+      "basis": "bounded-assumption",
+      "evidence": [
+        {
+          "repositoryId": "rayx",
+          "path": "crates/gpux/crates/gpui/src/element_id.rs",
+          "symbol": "ElementId",
+          "reason": "This is the existing gpux identifier vocabulary."
+        }
+      ],
+      "revalidationTrigger": "Source inspection during sprint 1 proves ElementId equality, cloning cost, or public conversion unsuitable for stack keys."
+    }
+  ],
+  "risks": [
+    "Ordinary div stacking needs frame-global knowledge of later candidates; committing bounds during one sequential prepaint pass can leave obsolete lanes active.",
+    "Mixed explicit-level and keyed candidates can create ambiguous replacement semantics unless the relation mode remains explicit and mutually exclusive.",
+    "VirtualStickyItems currently copies active stacks and low-level lists scan earlier candidates; naïve key support can amplify memory or frame cost.",
+    "Changing low-level candidate APIs can affect production-quality Lab examples even though Lab is forbidden as an automation target.",
+    "DPR rounding and variable gaps can create one-pixel overlaps unless offsets use the same logical extent source as row placement."
+  ],
+  "deferredNonGoals": [
+    "Bottom and right keyed stacking direction",
+    "Cross-scroll-context keyed groups",
+    "Persistent or globally registered sticky group services",
+    "Automatic grouping by data key or element identity",
+    "General z-index or CSS stacking contexts",
+    "Performance claims beyond the explicit candidate-index complexity contract"
+  ]
+}

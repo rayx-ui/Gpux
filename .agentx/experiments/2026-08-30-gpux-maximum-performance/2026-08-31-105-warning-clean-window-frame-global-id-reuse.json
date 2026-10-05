@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "id": "5ae3e4b8-2c56-4798-b0f7-9db8da7dd8ee",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 105,
+  "type": "hypothesis",
+  "name": "Warning Clean Window Frame Global ID Reuse",
+  "slug": "warning-clean-window-frame-global-id-reuse",
+  "path": "2026-08-31-105-warning-clean-window-frame-global-id-reuse.json",
+  "createdAt": "2026-08-31T17:04:45Z",
+  "startedAt": "2026-08-31T17:04:45Z",
+  "finishedAt": "2026-08-31T17:18:58Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "f03e1f85ce118df557e654076a662debfa04311e",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard f03e1f85ce118df557e654076a662debfa04311e",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "f03e1f85ce118df557e654076a662debfa04311e",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard f03e1f85ce118df557e654076a662debfa04311e",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux warning-clean GlobalElementId Arc path reuse across feature matrices",
+  "hypothesisMarkdown": "## Warning-Clean Window Frame Global ID Reuse Hypothesis\n\nThe same collision-safe `WindowFrame` cache from experiment 104, with diagnostics-helper parameters intentionally usable in diagnostics-disabled builds, will eliminate repeated Arc path allocation without warnings or behavioral regression.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRepeat only experiment 104's private per-frame cache, constructor routing, and focused tests. Prefix the two diagnostics-helper parameters for the disabled-feature build and add a diagnostics-disabled warning-denied gate. No other mechanism, public API, dependency, or cleanup may change.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nRun nested formatting, diagnostics-disabled and diagnostics-enabled Clippy with warnings denied, focused tests, full gpux and WGPU diagnostics tests, then exclusive headed Test Suite WASM/WebGPU profiles at DPR 1 and DPR 2. Require exact offsets/counters and zero errors; compare throughput, paced p95, and Arc-construction samples with experiment 102.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nBoth feature matrices are warning-clean, exact and colliding paths behave correctly, the Arc construction hotspot falls materially at both DPRs, and product throughput/tail latency remain neutral or improve.\n",
+  "diagnostics": {
+    "playwright": [
+      "2/2 headed Chromium WebGPU projects passed at DPR 1 and DPR 2.",
+      "Both projects reached final offset -351402.6875 with zero terminal error and exact final counters."
+    ],
+    "rayx": [
+      "All runtime validation used apps/test_suite; apps/lab was not launched or modified.",
+      "Misrouted relative Playwright output was moved from tools-node/artifacts-temp into the required root artifacts-temp experiment folder before analysis.",
+      "Product source was restored exactly to checkpoint f03e1f85c."
+    ],
+    "counters": [
+      "Both DPRs retained 485 global IDs, 8668 path elements, 24 same-frame duplicate hashes, and 485 previous-frame hash hits.",
+      "DPR 1/DPR 2 retained the accepted renderer signature including 222 quads and 1515/1513 monochrome sprites."
+    ],
+    "artifacts": []
+  },
+  "measurements": {
+    "schemaVersion": 1,
+    "status": "failure",
+    "sourceRestoredToCheckpoint": true,
+    "browserProjectsPassed": 2,
+    "terminalErrors": 0,
+    "gpuxUnitTestsPassed": 421,
+    "wgpuTestsPassed": 52,
+    "clippyFeatureMatricesPassed": 2,
+    "arcConstructionSelfMs": {
+      "referenceDpr1": 154.209,
+      "candidateDpr1": 17.233,
+      "deltaPercentDpr1": -88.825,
+      "referenceDpr2": 131.954,
+      "candidateDpr2": 25.431,
+      "deltaPercentDpr2": -80.727
+    },
+    "candidateReuseInclusiveMs": {
+      "dpr1": 326.543,
+      "dpr2": 374.159
+    },
+    "throughputStepsPerSecond": {
+      "referenceDpr1": 27.599698390495995,
+      "candidateDpr1": 25.694683057048042,
+      "deltaPercentDpr1": -6.902,
+      "referenceDpr2": 28.61858382082703,
+      "candidateDpr2": 23.751928211222097,
+      "deltaPercentDpr2": -17.005
+    },
+    "pacedP95Ms": {
+      "referenceDpr1": 27.9384765625,
+      "candidateDpr1": 25.61328125,
+      "deltaPercentDpr1": -8.323,
+      "referenceDpr2": 27.187744140625,
+      "candidateDpr2": 32.109130859375,
+      "deltaPercentDpr2": 18.101
+    }
+  },
+  "reportMarkdown": "# Warning-Clean Window Frame Global ID Reuse\n\nThe corrected implementation passed nested formatting; diagnostics-disabled and diagnostics-enabled Clippy with warnings denied; four focused global-ID tests; all 421 gpux unit tests and integration suites; all 52 WGPU tests; and 2/2 headed Test Suite Chromium/WebGPU projects. Both browser projects reached `-351402.6875`, reported zero terminal errors, and preserved the exact final renderer, Taffy, text, style, and global-ID counters.\n\nThe cache removed most of the intended allocation hotspot. `Arc<[ElementId]>::from_iter_exact` self time fell from 154.209 to 17.233 ms at DPR 1 (-88.825%) and from 131.954 to 25.431 ms at DPR 2 (-80.727%). However, `GlobalElementId::reuse_or_new` itself consumed 326.543/374.159 ms inclusive, showing that the additional hash-map lookup plus full-path equality cost more than the avoided Arc work.\n\nAgainst experiment 102's accepted CPU-profile process, median acknowledged throughput fell from 27.599698 to 25.694683 steps/s at DPR 1 (-6.902%) and from 28.618584 to 23.751928 at DPR 2 (-17.005%). Paced p95 improved from 27.938477 to 25.613281 ms at DPR 1 (-8.323%) but regressed from 27.187744 to 32.109131 ms at DPR 2 (+18.101%). The two-DPR product metric therefore rejects the cache despite its allocation win.\n\nBoth product files were restored exactly to checkpoint `f03e1f85c`. The result specifically rejects per-frame hash-map reuse; it does not reject an O(1) ordinal vector check if stable creation order can be proven separately.\n",
+  "decisionMarkdown": "# Decision\n\nReject the per-frame hash-map cache and restore the checkpoint. The map/equality path costs more than the eliminated Arc construction and significantly regresses DPR 2 throughput and paced p95. Do not retry hash-indexed interning. If global-ID path reuse continues, first measure exact ordinal stability and consider only a direct previous-frame vector slot comparison.\n",
+  "notes": ""
+}

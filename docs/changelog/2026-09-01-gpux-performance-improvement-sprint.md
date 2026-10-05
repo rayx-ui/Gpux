@@ -1,6 +1,6 @@
 # GPUX Performance Improvement Sprint Report
 
-The sprint ran while gpux lived in RayX under `crates/gpux`. Commit hashes refer to RayX history, and the experiment records stay in RayX (`../RayX/.agentx/experiments/2026-08-30-gpux-maximum-performance/`).
+The sprint ran while gpux lived in RayX under `crates/gpux`. Commit hashes refer to RayX history. The experiment records moved with gpux to `.agentx/experiments/2026-08-30-gpux-maximum-performance/` on 2026-10-05.
 
 ## Executive summary
 
@@ -54,7 +54,7 @@ The largest independently measured local gains were:
 
 These percentages are comparisons against each experiment’s immediate, contemporaneous checkpoint. They must not be added together.
 
-The authoritative loop state is RayX's `.agentx/experiments/2026-08-30-gpux-maximum-performance/_state.json`.
+The authoritative loop state is `.agentx/experiments/2026-08-30-gpux-maximum-performance/_state.json`.
 
 ---
 
@@ -116,7 +116,7 @@ This is why 39 apparently promising ideas were deliberately discarded.
 
 Baseline commit: `4f4335e5b46f41bfc796700312480f2612ac3a0b`.
 
-The complete baseline record is RayX's `.agentx/experiments/2026-08-30-gpux-maximum-performance/2026-08-30-01-baseline-measurement.json`.
+The complete baseline record is `.agentx/experiments/2026-08-30-gpux-maximum-performance/2026-08-30-01-baseline-measurement.json`.
 
 ### Wide DataTable
 
@@ -855,7 +855,7 @@ Final validation passed:
 - loop-state validation
 - AgentX memory audit
 
-The final validation record is RayX's `.agentx/experiments/2026-08-30-gpux-maximum-performance/2026-08-31-149-final-gpux-crate-validation.json`.
+The final validation record is `.agentx/experiments/2026-08-30-gpux-maximum-performance/2026-08-31-149-final-gpux-crate-validation.json`.
 
 ---
 

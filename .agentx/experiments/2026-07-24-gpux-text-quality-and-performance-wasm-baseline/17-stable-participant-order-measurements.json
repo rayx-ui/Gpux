@@ -1,0 +1,11 @@
+{
+  "target": "headed WASM/WebGPU SelectionArea fixture; 35 repetitions per DPR with five warmups discarded",
+  "before": {
+    "dpr1": { "count": 30, "p50Ms": 88.19, "p95Ms": 95.91 },
+    "dpr2": { "count": 29, "p50Ms": 89.56, "p95Ms": 106.01 }
+  },
+  "after": {
+    "dpr1": { "count": 30, "p50Ms": 92.52, "p95Ms": 96.55 },
+    "dpr2": { "count": 30, "p50Ms": 90.84, "p95Ms": 98.86 }
+  }
+}

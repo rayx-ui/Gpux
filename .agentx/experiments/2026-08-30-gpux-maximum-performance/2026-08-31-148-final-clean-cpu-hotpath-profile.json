@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "id": "0fd69593-0e98-40ad-a4d0-d26b02c3a008",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 148,
+  "type": "hypothesis",
+  "name": "Final Clean CPU Hotpath Profile",
+  "slug": "final-clean-cpu-hotpath-profile",
+  "path": "2026-08-31-148-final-clean-cpu-hotpath-profile.json",
+  "createdAt": "2026-08-31T21:12:49Z",
+  "startedAt": "2026-08-31T21:12:49Z",
+  "finishedAt": "2026-08-31T21:17:00Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "80f465f06149ffe2a3e19d9ed45fd6c759c0590d",
+  "resultCommit": "80f465f06149ffe2a3e19d9ed45fd6c759c0590d",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 80f465f06149ffe2a3e19d9ed45fd6c759c0590d",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "80f465f06149ffe2a3e19d9ed45fd6c759c0590d",
+      "resultCommit": "80f465f06149ffe2a3e19d9ed45fd6c759c0590d",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 80f465f06149ffe2a3e19d9ed45fd6c759c0590d",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "80f465f06149ffe2a3e19d9ed45fd6c759c0590d"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "accepted gpux WASM/WebGPU DataTable rendering at DPR 1 and 2",
+  "hypothesisMarkdown": "## Final Clean CPU Hotpath Profile Hypothesis\n\nA fresh two-DPR profile of the final accepted source will quantify the replay-only element-state improvement and reveal whether the remaining CPU leaders changed enough to invalidate the source audits.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nMeasurement only through the exclusive Test Suite headed WASM/WebGPU DataTable benchmark with CPU profiling at DPR 1 and 2. No product, fixture, dependency, or configuration edits.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nRun `rayx-data-table-scroll-benchmark.spec.ts` with `RAYX_CPU_PROFILE=1`, absolute ignored output/report directories, headed Chromium, and WebGPU. Require both DPR projects to pass, exact final rendering, zero terminal errors, profile files, and benchmark JSON. Compare throughput/tail latency and top gpux self-time with experiment 126.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nConfirm the final accepted source remains runtime-correct and establish its current throughput, tail latency, structural counters, and CPU hotspot ranking without making a product change.\n",
+  "diagnostics": {
+    "playwright": [
+      {
+        "target": "apps/test_suite",
+        "runtime": "headed Chromium WASM/WebGPU with CPU profiling",
+        "passed": 2,
+        "failed": 0
+      }
+    ],
+    "rayx": [],
+    "counters": [
+      "exact final offset -351402.6875 and zero terminal error for every run",
+      "4440 bounds visits, 14351 insertion child evaluations, and 576 retained bounds nodes at both DPRs",
+      "2 render passes, 1 submission, 0 buffer restarts, 0 atlas writes, and 9 batches",
+      "1123 pooled Taffy nodes with unchanged style and topology"
+    ],
+    "artifacts": [
+      "ignored artifacts-temp dual CPU profiles",
+      "ignored benchmark JSON, traces, screenshots, test-results, and Playwright report"
+    ]
+  },
+  "measurements": {
+    "checkpointCommit": "80f465f06149ffe2a3e19d9ed45fd6c759c0590d",
+    "comparisonExperiment": 126,
+    "runs": [
+      {
+        "deviceScaleFactor": 1,
+        "medianAcknowledgedStepsPerSecond": 24.73790651879089,
+        "throughputDeltaVs126Percent": -9.75,
+        "medianPacedP95CatchUpLatencyMs": 26.9453125,
+        "pacedP95DeltaVs126Percent": -0.08,
+        "profiledMs": 16183.696,
+        "samples": 10310,
+        "boundsTreeSearchNodeVisits": 4440,
+        "boundsTreeInsertionChildEvaluations": 14351,
+        "boundsTreeRetainedNodes": 576,
+        "terminalErrorMax": 0,
+        "leadersMs": {
+          "taffyFlexbox": 650.963,
+          "requestTaffyNode": 260.972,
+          "windowDraw": 195.155,
+          "taffyBlock": 162.616,
+          "paintLineLayer": 139.636,
+          "globalElementIdArcAllocation": 138.146,
+          "boundsTreeInsert": 129.569,
+          "styleToTaffy": 101.05,
+          "sceneMonochromeSpriteInsertion": 90.282,
+          "elementStateRemoval": 65.701
+        }
+      },
+      {
+        "deviceScaleFactor": 2,
+        "medianAcknowledgedStepsPerSecond": 24.744872630407794,
+        "throughputDeltaVs126Percent": -12.31,
+        "medianPacedP95CatchUpLatencyMs": 27.54931640625,
+        "pacedP95DeltaVs126Percent": -3.48,
+        "profiledMs": 16278.312,
+        "samples": 10375,
+        "boundsTreeSearchNodeVisits": 4440,
+        "boundsTreeInsertionChildEvaluations": 14351,
+        "boundsTreeRetainedNodes": 576,
+        "terminalErrorMax": 0,
+        "leadersMs": {
+          "taffyFlexbox": 712.181,
+          "requestTaffyNode": 256.033,
+          "windowDraw": 192.091,
+          "boundsTreeInsert": 149.105,
+          "taffyBlock": 139.807,
+          "paintLineLayer": 132.566,
+          "globalElementIdArcAllocation": 129.685,
+          "styleToTaffy": 106.092,
+          "elementStateRemoval": 91.27,
+          "sceneMonochromeSpriteInsertion": 85.507
+        }
+      }
+    ],
+    "playwright": {
+      "passed": 2,
+      "failed": 0
+    }
+  },
+  "reportMarkdown": "## Final Clean CPU Hotpath Profile Finished\n\n**Passed Status:** true. Both exclusive Test Suite headed WASM/WebGPU DPR projects passed with exact final rendering and zero terminal errors. Structural renderer/layout counters remained exact. Throughput was 9.75%/12.31% lower than experiment 126, while paced p95 latency was 0.08%/3.48% lower; this opposing movement in a concurrent dual-worker browser run is host-sensitive and does not establish a source regression. `WindowFrame::finish` was absent from sampled leaders after replay-only transfer, while ordinary direct element-state lookups/removals remain. Taffy flex layout remains the dominant self-time site at 650.963/712.181 ms.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nOnly the existing Test Suite benchmark/profile route ran. No product source, test fixture, dependency, configuration, or benchmark code changed.\n\n### Repository Checkpoints\n\n| Repo | Path | Checkpoint | Result Commit | Status | Rollback |\n| --- | --- | --- | --- | --- | --- |\n| main | . | 80f465f06149 | unchanged | unchanged | `git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 80f465f06149ffe2a3e19d9ed45fd6c759c0590d` |\n",
+  "decisionMarkdown": "### Decision\n\nAccept the final profile as runtime and hotspot evidence, not as a comparative performance verdict. Preserve replay-only element-state finish because its dedicated experiment passed both throughput and tail gates and this profile shows no sampled `WindowFrame::finish` leader. Treat Taffy flex, request-node integration, GlobalElementId ownership, bounds insertion, line painting, and broad allocator activity as the remaining measured costs; all require new independently scoped experiments beyond this loop.",
+  "notes": "Raw profiles, traces, screenshots, reports, and benchmark JSON remain ignored under artifacts-temp/agentx-experiments."
+}

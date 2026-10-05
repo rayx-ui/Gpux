@@ -1,0 +1,162 @@
+{
+  "taskDir": "C:\\Users\\dinko\\.codex\\worktrees\\8da1\\RayX\\.agentx\\tasks\\high-quality-wasm-text-rendering",
+  "artifactFormat": "json",
+  "sprintCount": 4,
+  "taskCount": 5,
+  "state": {
+    "schemaVersion": 5,
+    "status": "blocked",
+    "planLifecycle": "frozen",
+    "integrationStatus": "not-ready",
+    "totalSprints": 4,
+    "currentSprint": 3,
+    "currentTask": -1,
+    "activeTasks": [],
+    "leaseEpoch": 6,
+    "attempts": {
+      "sprint-1-task-1": 3,
+      "sprint-2-task-1": 1,
+      "sprint-3-task-1": 2
+    },
+    "run": {
+      "status": "blocked",
+      "requestedBoundary": "sprint",
+      "maxParallelSprints": 1,
+      "maxAttempts": 5,
+      "lastHeartbeatAt": "2026-08-04T15:33:42Z",
+      "blocker": {
+        "taskId": "sprint-3-task-1",
+        "reason": "All ordered existing-path candidates failed the frozen headed WASM/WebGPU quality gate: stable grayscale minimum acutance 0.8046 < 0.90; raw Swash alpha 0.8442; unhinted Swash 0.6294; 2x downsample 0.6967; LCD 0.6541 with 0.965608 fringe excess. Design reconciliation is required before any new mechanism or dependency.",
+        "attempts": 2
+      },
+      "repositoryBaselines": {
+        "main": "52dfa5aead56c66db516b601a39d8760acf17608"
+      },
+      "sprintBaselines": {
+        "1": {
+          "main": "b06f9af76e04f3c80a852c4db85aa96ef21eda40"
+        },
+        "2": {
+          "main": "94ea2685705007ee69a0d145210730f81c44f62a"
+        },
+        "3": {
+          "main": "174df09025b37400d7dd8e73eb5e2d5644a7c269"
+        }
+      },
+      "sprintDirtyBaselines": {
+        "1": {
+          "main": {
+            ".agentx/tasks/high-quality-wasm-text-rendering/.agentx-task.lock": "2829882a1dc7f0181849c2c42339f799b706c1f81338d17cc7909d7530fcea65",
+            ".agentx/tasks/high-quality-wasm-text-rendering/contract-reconciliation.jsonl": "de43df3c55e6080bd769bd08780187b5c361f7125ec8d26c7fbc81812d14f25c",
+            ".agentx/tasks/high-quality-wasm-text-rendering/design.json": "0a2a740f6010b873f9af33e5434c61e1a4253c5a0ce1f20bcc1487248ad98424",
+            ".agentx/tasks/high-quality-wasm-text-rendering/implementation-plan.json": "f70943b516c11319ffe3b718331023ce3d893ada0a56c4b35717735eceaef407",
+            ".agentx/tasks/high-quality-wasm-text-rendering/preflight.json": "00f57b16bff5966ae1aa36f1af864c8437f5c42dcd766ec12b771d3059f702f6",
+            ".agentx/tasks/high-quality-wasm-text-rendering/repositories.json": "43e5e72142eaabc818e0713925621c1fb5d452311eebcfab7117d60e9de776a1",
+            ".agentx/tasks/high-quality-wasm-text-rendering/requirements.json": "047938e15e8d894deef264066d958bb34cd566fb62e7648cd3ce13864ff014b3",
+            ".agentx/tasks/high-quality-wasm-text-rendering/resume.json": "28f70ec1f31d750b04bcc9275412cd70f94ac67cd4e43edfa96b2d8ab07ebfc4",
+            ".agentx/tasks/high-quality-wasm-text-rendering/state.json": "0c12fad0562be3f65e59bbd31a18408e36cb9524dbb552f8e885b6e6c80a7aee",
+            ".agentx/tasks/high-quality-wasm-text-rendering/task-contracts.json": "b017da11faf14435d0f1ee285483e51ccf8dafb2daab96b238f72f360f8e4935"
+          }
+        },
+        "2": {
+          "main": {
+            ".agentx/tasks/high-quality-wasm-text-rendering/.agentx-task.lock": "0e5745ee3acb0feec3c9c254b50d0d411fdee3a3afea930ae651ab4324897425",
+            ".agentx/tasks/high-quality-wasm-text-rendering/contract-reconciliation.jsonl": "1deb7e372f68d91555d2582444473b59cb0c6c0e1d05a633bd29df996f1b7d6a",
+            ".agentx/tasks/high-quality-wasm-text-rendering/implementation-plan.json": "330831289cd77650c4edeba112b4ea2b41f03d5da9230caabd11e7a0db58e43b",
+            ".agentx/tasks/high-quality-wasm-text-rendering/preflight.json": "b8fe4a006ce53a59a34f06e1aa870b2495b94ba5e2fd9ec7a47da6075cf95368",
+            ".agentx/tasks/high-quality-wasm-text-rendering/resume.json": "3a957d054c13dc166be53400dd12723043af32db74f8aab1872ccc9ec263f015",
+            ".agentx/tasks/high-quality-wasm-text-rendering/state.json": "b6e54a6f1b92ba04d96b4c7d0191d8cfcf706fa18ac9deb423706e7604cbc15c",
+            ".agentx/tasks/high-quality-wasm-text-rendering/task-contracts.json": "136c960217504bd74496e35fa755d7ae611a61fe63c2c06d8e0c590fdf34f72b"
+          }
+        },
+        "3": {
+          "main": {
+            ".agentx/tasks/high-quality-wasm-text-rendering/.agentx-task.lock": "d6ea0361c1d33bd7228e1ceb8d7914fe4c3a7b01b5d1e619e340615339eab00e",
+            ".agentx/tasks/high-quality-wasm-text-rendering/contract-reconciliation.jsonl": "32a9b37f253565d06e253b31545d8e4d3c3f8516b9af5f7d5262b7e3cbe7ddef",
+            ".agentx/tasks/high-quality-wasm-text-rendering/implementation-plan.json": "d4f79a1a2f0c0e0154a420b3ebbdef1f910475644b371a636d2f5d9b481993ac",
+            ".agentx/tasks/high-quality-wasm-text-rendering/preflight.json": "aaa468b4316e7149ac4eccb75e2a7b0b40e73a1b148580389cc24a5802855ecf",
+            ".agentx/tasks/high-quality-wasm-text-rendering/resume.json": "ee138f7174b821d24ba6f8d2af54fa540b2035e66cbb5fecf22a56f77f0c56b6",
+            ".agentx/tasks/high-quality-wasm-text-rendering/state.json": "2a587817002d022b1230416ec3b792676e17e157413a3f1cb62b109f7ed6e190",
+            ".agentx/tasks/high-quality-wasm-text-rendering/task-contracts.json": "316ef03371073bdbedaef62c896e1b228896fcdf1a59232ca89e6ed4228876da"
+          }
+        }
+      }
+    },
+    "lastResumeAt": "2026-08-04T15:46:29Z",
+    "lastResumeSpecHashes": {
+      "requirements": "9aac6d48ae340b78f8b6f8ac39241ed75cbc62b1bc5bd1e23fd3f34d6e512594",
+      "design": "764ecc34988c34fac27e2f489816cf9884a8e73d5268ac2e147c4e48ea351eb2",
+      "plan": "cf29075069aec771301424b622009b54a516b81d80f55898d09086889815e5dc",
+      "contracts": "5e0df48faf82edb53699ec878bbe4ec3177099cb47025676d4161b48f8fcabce"
+    }
+  },
+  "currentTaskId": "",
+  "nextUncheckedTaskId": "sprint-3-task-1",
+  "specHashes": {
+    "requirements": "9aac6d48ae340b78f8b6f8ac39241ed75cbc62b1bc5bd1e23fd3f34d6e512594",
+    "design": "764ecc34988c34fac27e2f489816cf9884a8e73d5268ac2e147c4e48ea351eb2",
+    "plan": "cf29075069aec771301424b622009b54a516b81d80f55898d09086889815e5dc",
+    "contracts": "5e0df48faf82edb53699ec878bbe4ec3177099cb47025676d4161b48f8fcabce"
+  },
+  "satisfiability": {
+    "schemaVersion": 5,
+    "generatorVersion": "5.0",
+    "kind": "static-satisfiability",
+    "taskReports": [
+      {
+        "taskId": "sprint-1-task-1",
+        "sprint": 1,
+        "behaviorContractHash": "88f271b36dffa93fcf95eb210f01a86bcb793a8314820dcbd4dcfcab9c728781",
+        "planningMetadataHash": "06298aef7536d798f59a208b73092b813f5294e9037268ba8421e65d21ada793",
+        "diagnostics": [],
+        "disposition": "pass"
+      },
+      {
+        "taskId": "sprint-2-task-1",
+        "sprint": 2,
+        "behaviorContractHash": "e2f7931852161cff096f481da5008df9a850fd9607b5f7b121080c365a975bf4",
+        "planningMetadataHash": "5206d841af6c14845dd717b13d11cb84d37ad029b50ff2853bcb0bec2d9c7381",
+        "diagnostics": [],
+        "disposition": "pass"
+      },
+      {
+        "taskId": "sprint-3-task-1",
+        "sprint": 3,
+        "behaviorContractHash": "debd5b98e600dd542ce071fba20e8f04f3f8c5b9f4693e07c5af89ad508152cf",
+        "planningMetadataHash": "5aea33e4e2bb67731477f7a10cdbcab65e1c673d0ed036a01d7e7a8d6f9f14c8",
+        "diagnostics": [],
+        "disposition": "pass"
+      },
+      {
+        "taskId": "sprint-3-task-2",
+        "sprint": 3,
+        "behaviorContractHash": "bd31711002477c6b516125a948b206a7813ff7404254f2fe8d578c1afd1b8d90",
+        "planningMetadataHash": "04b896c0ca74a41440c450d146dc9005f47c27f6098bbcf32298c3f7858585dd",
+        "diagnostics": [],
+        "disposition": "pass"
+      },
+      {
+        "taskId": "sprint-4-task-1",
+        "sprint": 4,
+        "behaviorContractHash": "c3bce8f06a5de25a9f28c2c8c5ef82af1db846b9c27ff49c6425d7c3ea4c366a",
+        "planningMetadataHash": "4a30a28457de078d353108b233aa702ec1f2995d9f5ee39a1c5207c5c5a9dfc7",
+        "diagnostics": [],
+        "disposition": "pass"
+      }
+    ],
+    "diagnostics": [],
+    "closure": {
+      "acceptanceCriteria": 11,
+      "ownedAcceptanceCriteria": 11,
+      "tasks": 5
+    },
+    "disposition": "pass"
+  },
+  "schemaVersion": 5,
+  "resumedAt": "2026-08-04T15:46:29Z",
+  "gitHead": "c2c3b542f748240468451ba539c1b5b72e914548",
+  "gitStatusShort": " M .agentx/tasks/high-quality-wasm-text-rendering/state.json\n",
+  "errors": [],
+  "warnings": [],
+  "requiredNextAction": "Start next unchecked task sprint-3-task-1 through agentx_task.py start-task."
+}

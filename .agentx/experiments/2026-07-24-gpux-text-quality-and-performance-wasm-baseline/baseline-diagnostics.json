@@ -1,0 +1,12 @@
+{
+  "processes": [
+    { "name": "process-1", "passed": 350, "failed": 0 },
+    { "name": "process-2", "passed": 349, "failed": 1, "failure": "browser.newContext: Target page, context or browser has been closed", "affectedCell": "shell-isolation DPR 2" },
+    { "name": "process-3", "passed": 348, "failed": 2, "failure": "page.screenshot: Target page, context or browser has been closed", "affectedCells": ["text-area DPR 2", "text-quality DPR 2"] },
+    { "name": "shell-dpr2-replacement", "passed": 35, "failed": 0 },
+    { "name": "text-area-dpr2-replacement", "passed": 35, "failed": 0 },
+    { "name": "text-quality-dpr2-replacement", "passed": 35, "failed": 0 }
+  ],
+  "fixtureTrace": "Each failed app reached threaded WASM startup and BrowserWebGpu initialization. No page error, renderer error, or visual assertion failure was captured.",
+  "decision": "Use complete samples from unaffected cells and fresh narrow replacements for every incomplete DPR 2 cell."
+}

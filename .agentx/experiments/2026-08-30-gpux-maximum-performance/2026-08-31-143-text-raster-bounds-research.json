@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "id": "2ddf92bb-d04f-4bc6-bf0f-ce19536d53c4",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 143,
+  "type": "hypothesis",
+  "name": "Text Raster Bounds Research",
+  "slug": "text-raster-bounds-research",
+  "path": "2026-08-31-143-text-raster-bounds-research.json",
+  "createdAt": "2026-08-31T20:58:09Z",
+  "startedAt": "2026-08-31T20:58:09Z",
+  "finishedAt": "2026-08-31T21:03:20Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "872a15f863b4b72aeffcf74e740dcc49653e9955",
+  "resultCommit": "872a15f863b4b72aeffcf74e740dcc49653e9955",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 872a15f863b4b72aeffcf74e740dcc49653e9955",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "872a15f863b4b72aeffcf74e740dcc49653e9955",
+      "resultCommit": "872a15f863b4b72aeffcf74e740dcc49653e9955",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 872a15f863b4b72aeffcf74e740dcc49653e9955",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "872a15f863b4b72aeffcf74e740dcc49653e9955"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux text raster bounds and glyph cache",
+  "hypothesisMarkdown": "## Text Raster Bounds Research Hypothesis\n\n`TextSystem::raster_bounds` may repeat font/glyph lookup or allocation per sprite despite stable atlas residency.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRead-only trace of raster bounds, font cache access, glyph cache/atlas keys, and paint-line calls. No edits.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nDetermine whether bounds are cached, allocated, or necessarily font-backend computed and whether duplicate requests have an existing key.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nSelect a bounded cache/reuse change or preserve direct lookup.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "raster-bounds cache layers",
+      "before": "unknown",
+      "after": "1 process-wide FxHashMap keyed by full RenderGlyphParams plus 1 atlas map keyed by AtlasKey::Glyph(RenderGlyphParams)",
+      "delta": "backend raster-bounds computation occurs only on TextSystem cache miss; warm paint retains two hash lookups per visible glyph",
+      "source": "source trace: gpui/src/text_system.rs:160-165,444-462; gpui/src/window.rs:7352-7382; gpui_wgpu/src/wgpu_atlas.rs:122-140"
+    },
+    {
+      "metric": "precomputed raster-data consumers",
+      "before": "documented producer/consumer API",
+      "after": "0 producers and 0 consumers; only GlyphRasterData plus two Window paint helpers remain",
+      "delta": "dormant surface cannot remove warm lookups without a separately designed prepaint/paint lifecycle",
+      "source": "repository-wide rg for GlyphRasterData, paint_glyph_with_raster_bounds, and paint_emoji_with_raster_bounds"
+    }
+  ],
+  "reportMarkdown": "## Text Raster Bounds Research Finished\n\n**Passed Status:** true. The read-only trace established that expensive platform glyph rendering is already cached, while warm visible glyphs still perform a bounds-cache lookup followed by an atlas lookup. `GlyphRasterData` and the precomputed-bounds Window helpers are dormant: their documented `ShapedLine` producer/consumer methods do not exist and there are no call sites.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nOnly gpux text-system, line-paint, atlas, and backend source was inspected. No production source or adjacent behavior changed.\n\n### Repository Checkpoints\n\n| Repo | Path | Checkpoint | Result Commit | Status | Rollback |\n| --- | --- | --- | --- | --- | --- |\n| main | . | 872a15f863b4 | unchanged | unchanged | `git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 872a15f863b4b72aeffcf74e740dcc49653e9955` |\n",
+  "decisionMarkdown": "### Decision\n\nPreserve the current cache path in this experiment. A future experiment may instrument bounds-cache and atlas hit counts or test a frame-owned precomputed raster-data lifecycle, but it must account for scale factor, subpixel variant, rendering mode, dilation, clipping, line wrapping, and the extra per-line vectors. The dormant API is not evidence that precomputing is faster.",
+  "notes": "Research-only success; no product source edits."
+}

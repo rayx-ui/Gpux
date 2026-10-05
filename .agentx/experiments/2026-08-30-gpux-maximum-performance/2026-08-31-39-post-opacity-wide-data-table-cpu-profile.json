@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "id": "f8a737fd-3e0d-4f4c-a123-34a9bd72432f",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 39,
+  "type": "hypothesis",
+  "name": "Post-Opacity Wide DataTable CPU Profile",
+  "slug": "post-opacity-wide-data-table-cpu-profile",
+  "path": "2026-08-31-39-post-opacity-wide-data-table-cpu-profile.json",
+  "createdAt": "2026-08-31T02:03:22Z",
+  "startedAt": "2026-08-31T02:03:22Z",
+  "finishedAt": "2026-08-31T02:05:38Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "e673845ea346d851995adb185c02103a4180359f",
+  "resultCommit": "e673845ea346d851995adb185c02103a4180359f",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard e673845ea346d851995adb185c02103a4180359f",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "e673845ea346d851995adb185c02103a4180359f",
+      "resultCommit": "e673845ea346d851995adb185c02103a4180359f",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard e673845ea346d851995adb185c02103a4180359f",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "e673845ea346d851995adb185c02103a4180359f"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "apps/test_suite headed WASM/WebGPU wide DataTable CPU profile",
+  "hypothesisMarkdown": "An accepted-build CPU profile will show that identity-opacity Color::from_encoded samples have been removed from default paint stacks and will identify the next dominant gpux-owned self-time family.\n",
+  "measurementPlanMarkdown": "Run one headed WebGPU CPU-profile process for the wide DataTable at DPR 1 and DPR 2 in apps/test_suite. Compare Color::from_encoded, Color::opacity, gpux color-family self time, and leading gpux-owned symbols against experiment 36; require exact final offsets, diagnostics, and zero errors.\n",
+  "expectedOutcomeMarkdown": "Default paint stacks no longer sample Color::from_encoded through identity opacity, total color-family self time falls materially, and the profile supplies a concrete next hypothesis without source changes.\n",
+  "diagnostics": {
+    "playwright": [
+      "One fresh headed Chromium/WebGPU process passed DPR 1 and DPR 2 with CPU profiling enabled, exact final offsets, and zero terminal errors.",
+      "apps/test_suite was the exclusive runtime fixture and the build verified shared memory, wasm_thread_entry_point, and 101805 atomic prefix bytes."
+    ],
+    "rayx": [
+      "Measurement-only experiment; no source change required static revalidation beyond the already accepted experiment-38 gate."
+    ],
+    "counters": [
+      "Both profiles preserved the accepted renderer and Taffy diagnostic signatures."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 Color::from_encoded self time",
+      "before": "117.612 ms",
+      "after": "29.427 ms",
+      "delta": "-74.98%"
+    },
+    {
+      "metric": "DPR 2 Color::from_encoded self time",
+      "before": "149.298 ms",
+      "after": "31.081 ms",
+      "delta": "-79.18%"
+    },
+    {
+      "metric": "DPR 1 Color::opacity self time",
+      "before": "15.726 ms",
+      "after": "6.344 ms",
+      "delta": "-59.66%"
+    },
+    {
+      "metric": "DPR 2 Color::opacity self time",
+      "before": "17.280 ms",
+      "after": "3.136 ms",
+      "delta": "-81.85%"
+    },
+    {
+      "metric": "DPR 1 gpux color-family self time",
+      "before": "401.303 ms",
+      "after": "174.555 ms",
+      "delta": "-56.50%"
+    },
+    {
+      "metric": "DPR 2 gpux color-family self time",
+      "before": "443.008 ms",
+      "after": "169.939 ms",
+      "delta": "-61.64%"
+    },
+    {
+      "metric": "DPR 1 text paint_layer self time",
+      "before": "230.753 ms",
+      "after": "81.730 ms",
+      "delta": "-64.58%"
+    },
+    {
+      "metric": "DPR 2 text paint_layer self time",
+      "before": "238.566 ms",
+      "after": "130.758 ms",
+      "delta": "-45.19%"
+    }
+  ],
+  "reportMarkdown": "## Post-Opacity Wide DataTable CPU Profile Finished\n\n**Index:** 39\n**Checkpoint:** `e673845ea346d851995adb185c02103a4180359f`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. Headed WebGPU CPU profiles at both DPRs preserved exact final offsets, renderer/layout telemetry, and zero errors. Relative to experiment 36, `Color::from_encoded` self time fell 74.98%/79.18%, `Color::opacity` fell 59.66%/81.85%, total gpux color-family self time fell 56.50%/61.64%, and text `Window::paint_layer` self time fell 64.58%/45.19% at DPR 1/2.\n\nThe identity-opacity optimization therefore removed the dominant default-paint color reconstruction cost. Remaining leading local families include style refinement, pooled Taffy requests, bounds insertion, monochrome sprite sorting, and global element-ID path allocation; residual color callers should be traced separately before another color change.\n\n### Scope Lock\n\nMeasurement only. No source, dependency, shader, renderer, layout, or public API change was made.\n\n### Decision\n\nAccept the profile as evidence and use it to route the next atomic hypothesis. Do not broaden the accepted identity-opacity implementation inside this experiment.\n",
+  "decisionMarkdown": "Accept the profile as evidence that identity-opacity elision removed the dominant default-paint color cost. Trace residual color callers and rank other local families in separate experiments.\n",
+  "notes": ""
+}

@@ -1,0 +1,189 @@
+{
+  "schemaVersion": 3,
+  "generatorVersion": "3.0",
+  "epicId": "gpux-text-rendering-quality-performance",
+  "sprint": 2,
+  "status": "passed",
+  "headBeforeCommit": "4d3c7c20c9185dd3c62ef8c228ee6f9967dce279",
+  "filesReviewed": [
+    "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\2026-07-24-02-renderer-capability-gated-windows-subpixel-text.json",
+    "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\gpux\\crates\\gpui_windows\\src\\window.rs"
+  ],
+  "conformance": [
+    {
+      "requirementId": "REQ-F-002",
+      "taskIds": [
+        "sprint-2-task-1",
+        "sprint-2-task-2"
+      ],
+      "implementationLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\2026-07-24-02-renderer-capability-gated-windows-subpixel-text.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\gpux\\crates\\gpui_windows\\src\\window.rs"
+      ],
+      "testLocations": [],
+      "evidenceProfiles": [
+        "behavior-preservation",
+        "contract",
+        "integration",
+        "parity",
+        "performance",
+        "regression",
+        "runtime",
+        "unit"
+      ],
+      "missingProfiles": [],
+      "result": "pass",
+      "reason": "All mapped tasks are done with fresh profile-complete evidence."
+    },
+    {
+      "requirementId": "REQ-F-006",
+      "taskIds": [
+        "sprint-2-task-1",
+        "sprint-2-task-2"
+      ],
+      "implementationLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\2026-07-24-02-renderer-capability-gated-windows-subpixel-text.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\gpux\\crates\\gpui_windows\\src\\window.rs"
+      ],
+      "testLocations": [],
+      "evidenceProfiles": [
+        "behavior-preservation",
+        "contract",
+        "integration",
+        "parity",
+        "performance",
+        "regression",
+        "runtime",
+        "unit"
+      ],
+      "missingProfiles": [],
+      "result": "pass",
+      "reason": "All mapped tasks are done with fresh profile-complete evidence."
+    },
+    {
+      "requirementId": "REQ-NF-001",
+      "taskIds": [
+        "sprint-2-task-2"
+      ],
+      "implementationLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\2026-07-24-02-renderer-capability-gated-windows-subpixel-text.json"
+      ],
+      "testLocations": [],
+      "evidenceProfiles": [
+        "behavior-preservation",
+        "integration",
+        "parity",
+        "performance",
+        "regression",
+        "runtime",
+        "unit"
+      ],
+      "missingProfiles": [],
+      "result": "pass",
+      "reason": "All mapped tasks are done with fresh profile-complete evidence."
+    },
+    {
+      "requirementId": "REQ-NF-002",
+      "taskIds": [
+        "sprint-2-task-1",
+        "sprint-2-task-2"
+      ],
+      "implementationLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\2026-07-24-02-renderer-capability-gated-windows-subpixel-text.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\gpux\\crates\\gpui_windows\\src\\window.rs"
+      ],
+      "testLocations": [],
+      "evidenceProfiles": [
+        "behavior-preservation",
+        "contract",
+        "integration",
+        "parity",
+        "performance",
+        "regression",
+        "runtime",
+        "unit"
+      ],
+      "missingProfiles": [],
+      "result": "pass",
+      "reason": "All mapped tasks are done with fresh profile-complete evidence."
+    },
+    {
+      "requirementId": "REQ-NF-003",
+      "taskIds": [
+        "sprint-2-task-1",
+        "sprint-2-task-2"
+      ],
+      "implementationLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\2026-07-24-02-renderer-capability-gated-windows-subpixel-text.json",
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\crates\\gpux\\crates\\gpui_windows\\src\\window.rs"
+      ],
+      "testLocations": [],
+      "evidenceProfiles": [
+        "behavior-preservation",
+        "contract",
+        "integration",
+        "parity",
+        "performance",
+        "regression",
+        "runtime",
+        "unit"
+      ],
+      "missingProfiles": [],
+      "result": "pass",
+      "reason": "All mapped tasks are done with fresh profile-complete evidence."
+    },
+    {
+      "requirementId": "REQ-NF-004",
+      "taskIds": [
+        "sprint-2-task-2"
+      ],
+      "implementationLocations": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\\.agentx\\experiments\\2026-07-24-gpux-text-quality-and-performance-wasm-baseline\\2026-07-24-02-renderer-capability-gated-windows-subpixel-text.json"
+      ],
+      "testLocations": [],
+      "evidenceProfiles": [
+        "behavior-preservation",
+        "integration",
+        "parity",
+        "performance",
+        "regression",
+        "runtime",
+        "unit"
+      ],
+      "missingProfiles": [],
+      "result": "pass",
+      "reason": "All mapped tasks are done with fresh profile-complete evidence."
+    }
+  ],
+  "commands": [
+    {
+      "command": "$env:RAYX_PLAYWRIGHT_WORKERS='1'; cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --playwright-test test_suite/rayx-text-quality-performance.spec.ts",
+      "exitCode": 0,
+      "assertion": "Broad sprint validation passed.",
+      "stdoutHash": "557fb0f3b708bf7be45b6495bf657460265253198b68e9555c70fc7c270417b8",
+      "stderrHash": "a956db2b4f166840d089b55fc7a8e180342923887cbf56f1ed0facc74ba57867",
+      "failureOutputTail": ""
+    },
+    {
+      "command": "python C:/Users/dinko/.codex/skills/agentx/scripts/improvement_loop_state.py --root . validate",
+      "exitCode": 0,
+      "assertion": "Broad sprint validation passed.",
+      "stdoutHash": "6024844f74fc8706e8b6891ce0b37a65ff2ee195254a254ce90600fd7abf76db",
+      "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "failureOutputTail": ""
+    },
+    {
+      "command": "cargo run -p xtask -- check-source-guard",
+      "exitCode": 0,
+      "assertion": "Broad sprint validation passed.",
+      "stdoutHash": "2d13e37a3fa369e670d343477fafd2b2237ce41609d6de34f245662671bdf392",
+      "stderrHash": "0f1720eb4e96a9042c2ba51ae1f25d8ff10424008f8e57feb08e24cc0a325036",
+      "failureOutputTail": ""
+    }
+  ],
+  "defects": [],
+  "repairs": [],
+  "reauditCount": 1,
+  "residualRisks": [],
+  "generatedAt": "2026-07-24T03:40:16Z"
+}

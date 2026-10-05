@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "id": "d14a7c93-7bb2-42f6-b9e3-a8c902ce4916",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 33,
+  "type": "hypothesis",
+  "name": "Taffy Measured Context Slot Reuse",
+  "slug": "taffy-measured-context-slot-reuse",
+  "path": "2026-08-31-33-taffy-measured-context-slot-reuse.json",
+  "createdAt": "2026-08-31T00:59:20Z",
+  "startedAt": "2026-08-31T00:59:20Z",
+  "finishedAt": "2026-08-31T01:11:11Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "8c802fdc7875966c3fa059f5eb0d14b56a5ddf87",
+  "resultCommit": "f0dee7f59916aa01c424986a4b2e035512a16911",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 8c802fdc7875966c3fa059f5eb0d14b56a5ddf87",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "8c802fdc7875966c3fa059f5eb0d14b56a5ddf87",
+      "resultCommit": "f0dee7f59916aa01c424986a4b2e035512a16911",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 8c802fdc7875966c3fa059f5eb0d14b56a5ddf87",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "f0dee7f59916aa01c424986a4b2e035512a16911"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "wasm/web with headed Playwright and WebGPU enabled",
+  "hypothesisMarkdown": "# Hypothesis\n\nThe 229 measured leaves remove and reinsert their Taffy `SecondaryMap` entries every frame. Retaining an empty per-node context slot, dropping only its captured measurement closure during clear, and refilling that slot on measured reuse should eliminate sparse-map churn while preserving current-frame closure lifetime and correctly dirtying measured/unmeasured transitions.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\n1. Store an optional measurement closure inside `NodeContext`; clear takes active closures and marks their nodes dirty without removing the context slot.\n2. Refill retained slots on measured reuse, marking a clean node dirty when it transitions back from unmeasured use; preserve new-slot insertion for nodes never previously measured.\n3. Prove closure drops and measured-to-unmeasured-to-measured layout/cache behavior with focused tests.\n4. Run package formatting, all gpux tests, the serialized gpui_wgpu diagnostics suite, diagnostics-disabled gpux check, and warning-denied gpux Clippy.\n5. Run three fresh headed Test Suite WebGPU processes at DPR 1 and DPR 2 against experiment 32's accepted distribution, requiring exact telemetry/offsets, zero terminal error, and a 5% central-metric envelope.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nThe warmed DataTable eliminates 229 context-entry removals and 229 context-entry insertions per frame while still dropping all 229 captured closures at clear. Empty retained slots remain bounded by the per-window node pool, measured/unmeasured transitions remain correct, and central browser metrics stay within 5%.\n",
+  "diagnostics": {
+    "playwright": [
+      "Three fresh headed Chromium/WebGPU processes passed both DPRs with one worker (6/6 project runs), exact final offsets, and zero terminal errors.",
+      "apps/test_suite was the exclusive runtime fixture; each build verified shared memory, wasm_thread_entry_point, and 100322 atomic prefix bytes."
+    ],
+    "rayx": [
+      "The closure-drop test proved all active measurement closures are released at clear while their empty context slots remain present.",
+      "The measured-to-unmeasured-to-measured test proved dormant slots retain default unmeasured sizing and a later measured refill dirties and recomputes the same pooled node.",
+      "All 404 gpux diagnostics tests, all 52 serialized gpui_wgpu diagnostics tests, diagnostics-disabled gpux check, package formatting, warning-denied Clippy, AgentX memory audit, and loop validation passed."
+    ],
+    "counters": [
+      "The warmed workload retains 229 empty context slots bounded by the 1,123-node pool and performs zero context-entry removals/reinsertions per frame; all 229 captured closures are still dropped at clear.",
+      "All six browser projects preserved the exact Taffy vector 1123,229,341,782,1041,25,673,726,755,780,405,377,0,82,0,0,3661,2574,1005,0 and zero terminal error."
+    ],
+    "artifacts": [
+      "artifacts-temp/agentx-experiments/gpux-maximum-performance/33-taffy-measured-context-slot-reuse/"
+    ]
+  },
+  "measurements": [
+    {
+      "metric": "warmed measured-context entry churn per frame",
+      "before": "229 SecondaryMap removals plus 229 insertions",
+      "after": "0 removals and 0 insertions; 229 bounded empty slots are refilled",
+      "delta": "458 sparse-map mutations removed"
+    },
+    {
+      "metric": "captured measurement closures after clear",
+      "before": "0 retained",
+      "after": "0 retained",
+      "delta": "lifetime guarantee preserved"
+    },
+    {
+      "metric": "DPR 1 median acknowledged steps/s",
+      "before": "30.12608519807523",
+      "after": "30.058942580506102",
+      "delta": "-0.2229%"
+    },
+    {
+      "metric": "DPR 2 median acknowledged steps/s",
+      "before": "30.11437514967786",
+      "after": "29.92444526437424",
+      "delta": "-0.6307%"
+    },
+    {
+      "metric": "DPR 1 median paced p95",
+      "before": "27.731689453125 ms",
+      "after": "27.8046875 ms",
+      "delta": "+0.2632%"
+    },
+    {
+      "metric": "DPR 2 median paced p95",
+      "before": "28.86572265625 ms",
+      "after": "27.6884765625 ms",
+      "delta": "-4.0784%"
+    }
+  ],
+  "reportMarkdown": "## Taffy Measured Context Slot Reuse Finished\n\n**Index:** 33\n**Checkpoint:** `8c802fdc7875966c3fa059f5eb0d14b56a5ddf87`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. `TaffyLayoutEngine` now retains empty measured-context slots inside its bounded per-window node pool. Clear takes every active measurement closure and dirties its node; measured reuse refills an existing slot, and transitions through unmeasured use preserve default measurement behavior and correctly dirty a later measured refill.\n\nThe warmed 229-measured-leaf workload removes 229 context-entry removals plus 229 insertions per frame without retaining any captured closure. Three fresh headed WebGPU processes at both DPRs preserved exact telemetry, offsets, and zero terminal error. Median acknowledged throughput moved -0.22%/-0.63%; paced p95 moved +0.26%/-4.08%.\n\n### Scope Lock\n\nThe only production mechanism is bounded empty measured-context-slot reuse in `TaffyLayoutEngine`; no dependency, topology, layout algorithm, renderer, shader, ID, or virtualization change was included.\n\n### Decision\n\nAccept and commit. The change removes 458 warmed sparse-map mutations per frame, preserves strict closure lifetime, and satisfies every correctness and central-metric gate.\n",
+  "decisionMarkdown": "Accept and commit. Retain only empty Taffy context slots bounded by the per-window node pool, take captured closures at clear, and refill/dirty slots correctly on measured reuse.",
+  "notes": "Attempt Count: 1. Out-of-scope changes: none. Baseline measurements use experiment 32's accepted three-process distribution."
+}

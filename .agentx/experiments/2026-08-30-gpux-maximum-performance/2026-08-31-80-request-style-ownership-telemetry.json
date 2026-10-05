@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "id": "538ace34-de19-402d-ad70-97c7fd2dafb6",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 80,
+  "type": "hypothesis",
+  "name": "Request Style Ownership Telemetry",
+  "slug": "request-style-ownership-telemetry",
+  "path": "2026-08-31-80-request-style-ownership-telemetry.json",
+  "createdAt": "2026-08-31T12:19:34Z",
+  "startedAt": "2026-08-31T12:19:34Z",
+  "finishedAt": "2026-08-31T12:37:24Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "9b57ece0d78be8e474fc06479b0a001dcb079114",
+  "resultCommit": "7af3176bd",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 9b57ece0d78be8e474fc06479b0a001dcb079114",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "9b57ece0d78be8e474fc06479b0a001dcb079114",
+      "resultCommit": "7af3176bd",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 9b57ece0d78be8e474fc06479b0a001dcb079114",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "7af3176bd"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "wasm/web with headed Playwright and WebGPU enabled",
+  "hypothesisMarkdown": "## Request Style Ownership Telemetry Hypothesis\n\nDiagnostics-only caller provenance will show that experiment 79's 13 predicted-but-unconsumed request styles belong to external `Interactivity::request_layout` consumers rather than the four gpux-owned interactive element implementations.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nAdd only diagnostic caller-location classification and bounded counters for gpux-owned versus external request/prepaint candidates, their WGPU/web transport, and Test Suite assertions. Production ownership, borrowed layout APIs, style stores, public signatures, RayX source, Taffy behavior/dependencies, shaders, renderer batching, and unrelated diagnostics are forbidden.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nCompile the diagnostic gpux and Test Suite first, then run one headed WebGPU process at DPR 1 and DPR 2. Require exact established invariants, total request-static eligibility 757, total prepaint candidates 729, and ownership partitions that sum exactly to those totals. The experiment passes if the prepaint candidate partition is 716 gpux-owned plus 13 external at both DPRs, explaining experiment 79 without production changes. Run focused formatting, warning-denied gpux Clippy, complete gpux and serialized WGPU tests, production checks, loop validation, and memory audit before acceptance.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nBoth DPRs should attribute 716 matching candidates to gpux-owned Div/Img/Svg/UniformList request paths and 13 to external custom elements such as RayX virtualization surfaces. This would justify a later gpux-only production experiment targeting the 716 owned candidates while deliberately leaving the 13 public consuming-callback paths unchanged.",
+  "diagnostics": {
+    "playwright": [
+      "One headed Test Suite WebGPU process passed at DPR 1 and DPR 2 with exact ownership assertions, exact final scroll -351402.6875, and zero terminal errors."
+    ],
+    "rayx": [
+      "cargo test --manifest-path crates/gpux/Cargo.toml -p gpux --features rayx_diagnostics -- --nocapture: 419 unit tests and every integration suite passed.",
+      "cargo test --manifest-path crates/gpux/Cargo.toml -p gpui_wgpu --features rayx_diagnostics -- --test-threads=1 --nocapture: 52 tests passed.",
+      "Production and diagnostic gpux checks, warning-denied diagnostic Clippy, production and diagnostic rayx_test_suite checks, focused rustfmt, loop validation, and AgentX memory audit passed."
+    ],
+    "counters": [
+      "Both DPRs: request layout 875, request static eligible 757 = 742 gpux-owned + 15 external.",
+      "Both DPRs: prepaint initial 845, matching request candidates 729 = 716 gpux-owned + 13 external.",
+      "Both DPRs: paint 845 and paint reuse 729 remained exact."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "gpux-owned matching prepaint candidates",
+      "before": "unpartitioned 729",
+      "after": "716 at DPR 1 and DPR 2",
+      "delta": "exact ownership partition",
+      "source": "headed Test Suite WebGPU frame telemetry"
+    },
+    {
+      "metric": "external matching prepaint candidates",
+      "before": "unpartitioned 729",
+      "after": "13 at DPR 1 and DPR 2",
+      "delta": "exactly explains experiment 79 mismatch",
+      "source": "headed Test Suite WebGPU frame telemetry"
+    },
+    {
+      "metric": "multithreaded WASM atomic prefix",
+      "before": "98,878 bytes",
+      "after": "99,386 bytes",
+      "delta": "+508 diagnostic-only bytes",
+      "source": "generated Test Suite WASM binary inspection"
+    },
+    {
+      "metric": "single-process acknowledged throughput",
+      "before": "not a performance gate",
+      "after": "23.964877554753304 DPR 1; 26.715622153742665 DPR 2",
+      "delta": "diagnostic observation only",
+      "source": "headed Test Suite WebGPU benchmark"
+    },
+    {
+      "metric": "single-process paced p95",
+      "before": "not a performance gate",
+      "after": "34.632080078125 ms DPR 1; 27.2265625 ms DPR 2",
+      "delta": "diagnostic observation only",
+      "source": "headed Test Suite WebGPU benchmark"
+    }
+  ],
+  "reportMarkdown": "## Request Style Ownership Telemetry Finished\n\n**Index:** 80\n**Checkpoint:** `9b57ece0d78be8e474fc06479b0a001dcb079114`\n**Result Commit:** `7af3176bd`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. Both DPRs partitioned the 729 matching candidates into exactly 716 gpux-owned and 13 external candidates while every established runtime invariant remained exact.\n\n### Scope Lock\n\n**Tested mechanism:** diagnostics-only caller provenance for request/prepaint style candidates.\n**Out-of-scope changes:** none. Production ownership, public APIs, Taffy, RayX source, shaders, batching, and unrelated diagnostics were unchanged.\n\n### Repository Checkpoints\n\n| Repo | Path | Checkpoint | Result Commit | Status | Rollback |\n| --- | --- | --- | --- | --- | --- |\n| main | . | `9b57ece0d` | `7af3176bd` | committed | `git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 9b57ece0d78be8e474fc06479b0a001dcb079114` |\n\n### Measurements\n\nBoth DPRs report 742/15 gpux/external structurally static request styles and 716/13 gpux/external matching prepaint candidates. The diagnostic WASM atomic prefix increased by 508 bytes and production builds compile the telemetry out.\n\n### Decision\n\nCommit the telemetry and narrow the next production hypothesis to the 716 gpux-owned candidates while preserving the public consuming callback path for all 13 external candidates.",
+  "decisionMarkdown": "### Decision\n\nAccepted as diagnostic success in `7af3176bd`. The exact 716/13 split explains experiment 79 without changing production behavior and provides a sound scope boundary for the next atomic experiment.",
+  "notes": "Raw output remains ignored under artifacts-temp/agentx-experiments/2026-08-30-gpux-maximum-performance/80-request-style-ownership-telemetry and is not stored under .agentx."
+}

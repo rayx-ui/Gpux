@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "id": "7e61d397-8276-4a53-bd70-fda144d0d964",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 126,
+  "type": "hypothesis",
+  "name": "Current Clean CPU Hotpath Profile",
+  "slug": "current-clean-cpu-hotpath-profile",
+  "path": "2026-08-31-126-current-clean-cpu-hotpath-profile.json",
+  "createdAt": "2026-08-31T19:52:24Z",
+  "startedAt": "2026-08-31T19:52:24Z",
+  "finishedAt": "2026-08-31T19:56:53Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "880d00dfd300f4bde0949e03eaf80e9ce0bfda9c",
+  "resultCommit": "880d00dfd300f4bde0949e03eaf80e9ce0bfda9c",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 880d00dfd300f4bde0949e03eaf80e9ce0bfda9c",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "880d00dfd300f4bde0949e03eaf80e9ce0bfda9c",
+      "resultCommit": "880d00dfd300f4bde0949e03eaf80e9ce0bfda9c",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 880d00dfd300f4bde0949e03eaf80e9ce0bfda9c",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "880d00dfd300f4bde0949e03eaf80e9ce0bfda9c"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux CPU hot paths across rendering, layout, text, data, memory, and virtualization",
+  "hypothesisMarkdown": "## Current Clean CPU Hotpath Profile Hypothesis\n\nAfter retiring the completed bounds probe, a fresh two-DPR CPU profile of the accepted source will identify the largest remaining gpux-owned self-time sites and prevent the final experiment tranche from targeting stale or already-resolved costs.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nMeasurement and source attribution only. Run the existing exclusive Test Suite wide DataTable CPU profile at DPR 1 and 2, rank gpux-owned self-time by function/source location, and map the leaders to rendering, layout, text, data, memory, or virtualization ownership. Do not edit product source, tests, dependencies, configuration, or fixtures.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nCapture headed Test Suite WASM/WebGPU CPU profiles and benchmark JSON at DPR 1 and 2. Require exact final rendering, zero terminal errors, the established six-counter bounds contract, and successful profile creation. Attribute sampled self time to gpux-owned functions and select only source-confirmed candidates for later independent experiments.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nProduce a current accepted-source hotspot ranking and a bounded list of source-backed opportunities, without making or claiming a product optimization in this measurement experiment.\n",
+  "diagnostics": {
+    "playwright": [
+      {
+        "target": "apps/test_suite",
+        "runtime": "headed Chromium WASM/WebGPU with CPU profiling",
+        "passed": 2,
+        "failed": 0
+      }
+    ],
+    "rayx": [],
+    "counters": [
+      "six-counter bounds contract preserved",
+      "4440 visits, 14351 child evaluations, and 576 retained nodes at both DPRs",
+      "zero terminal error"
+    ],
+    "artifacts": [
+      "two CPU profiles",
+      "test-results",
+      "playwright-report"
+    ]
+  },
+  "measurements": {
+    "checkpointCommit": "880d00dfd300f4bde0949e03eaf80e9ce0bfda9c",
+    "runs": [
+      {
+        "deviceScaleFactor": 1,
+        "medianAcknowledgedStepsPerSecond": 27.410501799259595,
+        "medianPacedP95CatchUpLatencyMs": 26.9658203125,
+        "profiledMs": 15409.084,
+        "samples": 10062,
+        "boundsTreeSearchNodeVisits": 4440,
+        "boundsTreeInsertionChildEvaluations": 14351,
+        "boundsTreeRetainedNodes": 576,
+        "terminalErrorMax": 0.0,
+        "leadersMs": {
+          "taffyFlexbox": 618.753,
+          "requestTaffyNode": 277.309,
+          "windowDraw": 218.166,
+          "taffyBlock": 188.152,
+          "boundsTreeInsert": 149.062,
+          "requestLayoutInner": 123.271,
+          "styleToTaffy": 122.075,
+          "globalElementIdArcAllocation": 96.725,
+          "elementStateRemoval": 96.795,
+          "sceneMonochromeSpriteInsertion": 93.2
+        }
+      },
+      {
+        "deviceScaleFactor": 2,
+        "medianAcknowledgedStepsPerSecond": 28.218643126298325,
+        "medianPacedP95CatchUpLatencyMs": 28.54150390625,
+        "profiledMs": 15501.207,
+        "samples": 10125,
+        "boundsTreeSearchNodeVisits": 4440,
+        "boundsTreeInsertionChildEvaluations": 14351,
+        "boundsTreeRetainedNodes": 576,
+        "terminalErrorMax": 0.0,
+        "leadersMs": {
+          "taffyFlexbox": 697.808,
+          "requestTaffyNode": 293.848,
+          "taffyBlock": 218.993,
+          "windowDraw": 181.202,
+          "boundsTreeInsert": 138.777,
+          "globalElementIdArcAllocation": 131.63,
+          "paintLineLayer": 122.651,
+          "styleToTaffy": 106.877,
+          "elementStateRemoval": 88.792,
+          "sceneMonochromeSpriteInsertion": 74.847
+        }
+      }
+    ],
+    "playwright": {
+      "passed": 2,
+      "failed": 0
+    }
+  },
+  "reportMarkdown": "# Experiment 126 Report\n\nThe accepted probe-free source passed both headed Test Suite WASM/WebGPU profile cases with exact final rendering, zero terminal error, and the established 4,440 bounds visits, 14,351 insertion child evaluations, and 576 retained nodes at both DPRs.\n\nThe profiles covered 15.409 seconds at DPR 1 and 15.501 seconds at DPR 2. Taffy flexbox was the clear leader at 618.753/697.808 ms self time. The largest gpux-owned integration site was `TaffyLayoutEngine::request_taffy_node` at 277.309/293.848 ms, followed by `Window::draw` at 218.166/181.202 ms. Taffy block layout cost 188.152/218.993 ms. `BoundsTree::insert` remained material at 149.062/138.777 ms, while `Style::to_taffy` cost 122.075/106.877 ms.\n\nTwo data-ownership costs were also stable enough to investigate separately: fresh `Arc<[ElementId]>` creation cost 96.725/131.630 ms and previous-frame element-state removal cost 96.795/88.792 ms. Monochrome scene insertion cost 93.200/74.847 ms. Current source confirms that pooled Taffy nodes still compare complete styles and scan retained children, global IDs allocate an owned arc after hashing every path, and element state is removed from the previous-frame hash table before insertion into the next frame.\n\nThe ranking selects bounded source-research experiments around Taffy node refresh, style conversion, global-ID ownership, element-state transfer, scene insertion, and draw orchestration. No performance claim or product change is made here.\n",
+  "decisionMarkdown": "# Decision\n\nAccept the measurement experiment with no product change. Prioritize source-confirmed Taffy node refresh and global-element-ID/state ownership research, while treating broad `Window::draw` and upstream Taffy algorithm frames as attribution envelopes rather than immediate edit targets.\n",
+  "notes": ""
+}

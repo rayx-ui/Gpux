@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "id": "98a8cac8-dff8-499a-8197-314d377a5f50",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 73,
+  "type": "hypothesis",
+  "name": "Taffy Node Request Cost Telemetry",
+  "slug": "taffy-node-request-cost-telemetry",
+  "path": "2026-08-31-73-taffy-node-request-cost-telemetry.json",
+  "createdAt": "2026-08-31T10:41:52Z",
+  "startedAt": "2026-08-31T10:41:52Z",
+  "finishedAt": "2026-08-31T10:47:34Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "c078531fb121b73a3f7a56af46d3fdff173e23f7",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard c078531fb121b73a3f7a56af46d3fdff173e23f7",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "c078531fb121b73a3f7a56af46d3fdff173e23f7",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard c078531fb121b73a3f7a56af46d3fdff173e23f7",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpui Taffy node requests and headed Test Suite WASM/WebGPU diagnostics",
+  "hypothesisMarkdown": "Diagnostics-gated partitions of `request_taffy_node` will show which retained-node operations still repeat across all 1,123 warmed layout requests, providing a concrete next optimization target without altering production execution.\n",
+  "measurementPlanMarkdown": "Add only `rayx_diagnostics` counters for pooled/new nodes, unchanged/changed style, unchanged/changed topology, measured-context refill/installation, dirty marking, and unique child membership insertion. Publish the bounded latest-frame values through the existing WGPU diagnostic object and assert arithmetic invariants in the Test Suite wide DataTable benchmark. Run headed WebGPU at DPR 1 and DPR 2 plus focused/full gpux validation. Pass if exact established behavior remains intact, production builds are unaffected, and the counters produce coherent nonzero partitions.\n",
+  "expectedOutcomeMarkdown": "The warmed tree should reuse nearly every pooled node. The counters should reveal whether exact style/topology checks mostly prove equality and quantify measured-context dirties and duplicate child-set insertions, selecting one later production mechanism rather than changing layout speculatively.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [
+      "Production gpux check passed before the diagnostic gate.",
+      "The rayx_diagnostics gpux check failed because Scene derives Default and [u64; 42] has no Default implementation on the repository toolchain."
+    ],
+    "counters": [
+      "No runtime counters were collected; the compile gate failed before headed measurement."
+    ],
+    "artifacts": [
+      "artifacts-temp/agentx-experiments/2026-08-30-gpux-maximum-performance/73-taffy-node-request-cost-telemetry"
+    ]
+  },
+  "measurements": [
+    {
+      "metric": "Production gpux compile",
+      "before": "passing",
+      "after": "passing",
+      "delta": "unchanged"
+    },
+    {
+      "metric": "Diagnostic gpux compile",
+      "before": "passing",
+      "after": "failed: [u64; 42] does not implement Default",
+      "delta": "regression; experiment reverted"
+    }
+  ],
+  "reportMarkdown": "## Taffy Node Request Cost Telemetry Finished\n\n**Index:** 73\n**Checkpoint:** `c078531`\n**Result:** none\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** false. The single diagnostics-array expansion attempt failed the diagnostic compile gate because `Scene` derives `Default` and this toolchain does not implement `Default` for `[u64; 42]`. No runtime measurement was attempted.\n\n### Scope Lock\n\nOnly the printed diagnostics mechanism was attempted. A separate diagnostic array or wrapper would be a different implementation mechanism and is deferred to a fresh experiment. All scoped source and Test Suite files were restored exactly to checkpoint content.\n\n### Repository Checkpoints\n\n| Repo | Path | Checkpoint | Result Commit | Status | Rollback |\n| --- | --- | --- | --- | --- | --- |\n| main | . | `c078531` | unchanged | reverted | `git -C \"D:\\\\Work\\\\projects\\\\RayX\\\\RayX\" reset --hard c078531fb121b73a3f7a56af46d3fdff173e23f7` |\n\n### Decision\n\nReject and revert the expanded-array representation. Start a fresh measurement experiment with a separate bounded request-counter array so the existing 31-counter layout telemetry and `Scene::default` contract remain intact.\n",
+  "decisionMarkdown": "Reject the expanded `[u64; 42]` Taffy diagnostic array after its compile failure. Preserve the existing `[u64; 31]` array and test a separate bounded node-request diagnostic array in a new experiment.\n",
+  "notes": ""
+}

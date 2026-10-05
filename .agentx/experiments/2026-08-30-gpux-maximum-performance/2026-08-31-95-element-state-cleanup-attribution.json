@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "id": "0fadf388-b02c-4f39-b74e-43c816f3730d",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 95,
+  "type": "hypothesis",
+  "name": "Element State Cleanup Attribution",
+  "slug": "element-state-cleanup-attribution",
+  "path": "2026-08-31-95-element-state-cleanup-attribution.json",
+  "createdAt": "2026-08-31T15:59:00Z",
+  "startedAt": "2026-08-31T15:59:00Z",
+  "finishedAt": "2026-08-31T16:01:28Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "b7febd3c6da2c48538f83ba18b51181d9f1a84c0",
+  "resultCommit": "b7febd3c6da2c48538f83ba18b51181d9f1a84c0",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard b7febd3c6da2c48538f83ba18b51181d9f1a84c0",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "b7febd3c6da2c48538f83ba18b51181d9f1a84c0",
+      "resultCommit": "b7febd3c6da2c48538f83ba18b51181d9f1a84c0",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard b7febd3c6da2c48538f83ba18b51181d9f1a84c0",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "b7febd3c6da2c48538f83ba18b51181d9f1a84c0"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux WindowFrame element_states stale-state cleanup and ElementStateBox payload ownership",
+  "hypothesisMarkdown": "## Element State Cleanup Attribution Hypothesis\n\nThe 13.939/22.017 ms element-state table clear family is dominated by a specific stale payload or allocator path that can identify a bounded gpux optimization target.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRead-only attribution of accepted CPU profiles plus current source ownership analysis. Only AgentX metadata and ignored analysis output may change. Production code, tests, state lifetimes, pooling, caches, dependency changes, and adjacent cleanup are forbidden.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nAggregate every CPU-profile sample whose stack descends through the exact ElementStateBox hash-table clear symbol at DPR 1 and DPR 2. Rank descendant functions and deallocation paths, then trace WindowFrame::finish, frame swap, WindowFrame::clear, with_element_state, and InteractiveElementState ownership. Pass if the evidence identifies a bounded next mechanism or decisively rejects speculative state pooling.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nIdentify the dominant stale element-state payload/deallocation family and either select one atomic optimization for experiment 96 or reject this branch and choose the next independently measured cleanup owner.",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": {
+    "schemaVersion": 1,
+    "dpr1": {
+      "samples": 9,
+      "inclusiveMs": 13.939,
+      "clearSelfMs": 7.727,
+      "clearSelfPercent": 55.43,
+      "interactiveElementStateDropMs": 4.7,
+      "itemSizeLayoutDropMs": 0.0,
+      "allocatorFreeMs": 1.512
+    },
+    "dpr2": {
+      "samples": 14,
+      "inclusiveMs": 22.017,
+      "clearSelfMs": 12.534,
+      "clearSelfPercent": 56.93,
+      "interactiveElementStateDropMs": 4.766,
+      "itemSizeLayoutDropInclusiveMs": 4.717,
+      "allocatorFreeMs": 3.152
+    },
+    "payloadFamilies": 2,
+    "remainingEntriesAreStale": true,
+    "productFilesChanged": 0
+  },
+  "reportMarkdown": "# Element State Cleanup Attribution\n\nAccepted DPR 1 and DPR 2 CPU profiles contain 9 and 14 samples respectively under the exact `ElementStateBox` hash-table clear symbol, totaling 13.939 ms and 22.017 ms.\n\n| Sample family | DPR 1 | DPR 2 |\n| --- | ---: | ---: |\n| Element-state table clear inclusive | 13.939 ms | 22.017 ms |\n| Clear-loop self samples | 7.727 ms | 12.534 ms |\n| `InteractiveElementState` drop | 4.700 ms | 4.766 ms |\n| `ItemSizeLayout` drop | 0 ms | 4.717 ms inclusive |\n| allocator free | 1.512 ms | 3.152 ms |\n\nThe clear-loop self samples are 55.43% and 56.93% of the inclusive family. Payload attribution is mixed: gpux `InteractiveElementState` appears at both DPRs, while the DPR 2 samples also include the RayX virtual-list `ItemSizeLayout` state.\n\nThe ownership trace explains why the remaining table contains only stale entries. `with_element_state` transfers an accessed state from the rendered frame into the next frame. `WindowFrame::finish` transfers states referenced by reused subtrees. After the frames swap, the old rendered frame contains only states that were not accessed or replayed, and `WindowFrame::clear` destroys them. Skipping the clear would retain dead element IDs and payloads.\n\nThe evidence does not justify a generic pool: payload types and allocation sizes differ, the stale cardinality is not measured, and a pool would need explicit type-safe reuse, bounds, and invalidation. Specializing only `InteractiveElementState` would not address the second observed payload family or the dominant generic clear loop. No product or test source changed.\n",
+  "decisionMarkdown": "# Decision\n\nAccept the attribution and reject element-state pooling or lifetime extension on current evidence. The table contains only stale states after transfer, payload costs span gpux and RayX types, and more than half of sampled time is the generic clear loop. Move to DispatchTree cleanup attribution, which is fully gpux-owned and independently measured at 15.629/14.225 ms.\n",
+  "notes": ""
+}

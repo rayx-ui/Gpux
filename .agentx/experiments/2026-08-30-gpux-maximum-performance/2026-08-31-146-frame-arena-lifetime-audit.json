@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "id": "2a8fd045-4b9d-47b7-a815-4874ed57907b",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 146,
+  "type": "hypothesis",
+  "name": "Frame Arena Lifetime Audit",
+  "slug": "frame-arena-lifetime-audit",
+  "path": "2026-08-31-146-frame-arena-lifetime-audit.json",
+  "createdAt": "2026-08-31T21:08:08Z",
+  "startedAt": "2026-08-31T21:08:08Z",
+  "finishedAt": "2026-08-31T21:10:04Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "17b82d2eb37107d7f848648733e1857d36541196",
+  "resultCommit": "17b82d2eb37107d7f848648733e1857d36541196",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 17b82d2eb37107d7f848648733e1857d36541196",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "17b82d2eb37107d7f848648733e1857d36541196",
+      "resultCommit": "17b82d2eb37107d7f848648733e1857d36541196",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 17b82d2eb37107d7f848648733e1857d36541196",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "17b82d2eb37107d7f848648733e1857d36541196"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux frame arenas and transient allocation lifetime",
+  "hypothesisMarkdown": "## Frame Arena Lifetime Audit Hypothesis\n\nGpux may release or reconstruct frame-local arena storage in a way that repeats chunk allocation or destructor bookkeeping on every draw; tracing arena ownership and clear/swap behavior can identify a bounded retention improvement.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRead-only trace of GPUI arenas, window frame swap/clear, deferred element storage, and renderer transient buffers. No edits.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nMap each arena/bump/chunk owner, allocation metadata, clear behavior, capacity retention, and maximum-lifetime bound. Identify repeated heap allocation or redundant drop traversal that remains after prior experiments.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nSelect one bounded allocator-lifetime change or preserve the current arenas where storage and capacities already survive frame turnover.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "arena chunk retention",
+      "before": "unknown",
+      "after": "all allocated 1 MiB chunks remain owned by the per-App element/event arenas and reset offsets in place",
+      "delta": "warmed draws allocate no new arena chunks unless the previous high-water mark is exceeded",
+      "source": "gpui/src/arena.rs:81-110,139-205; gpui/src/app.rs:712-716,849-850"
+    },
+    {
+      "metric": "arena destructor bookkeeping",
+      "before": "unknown",
+      "after": "drop records are retained in a capacity-preserving Vec and registered only for needs_drop::<T>()",
+      "delta": "trivial arena allocations add no destructor record; nontrivial values are necessarily dropped at clear",
+      "source": "gpui/src/arena.rs:150-205,298-304"
+    },
+    {
+      "metric": "per-clear allocator metadata allocation",
+      "before": "unknown",
+      "after": "one new Rc<Cell<bool>> validity token per arena clear",
+      "delta": "generation-counter replacement would save one allocation per clear but add stale-handle generation/wrap invariants and is absent from the current CPU profile leaders",
+      "source": "gpui/src/arena.rs:150-156; experiment 126 current CPU profile"
+    },
+    {
+      "metric": "window-frame transient storage",
+      "before": "unknown",
+      "after": "two WindowFrame instances swap; their Vec/HashMap/Scene storage is cleared in place and capacity retained",
+      "delta": "stable frames reuse transient collection allocations",
+      "source": "gpui/src/window.rs:936-1010,5310-5317"
+    }
+  ],
+  "reportMarkdown": "## Frame Arena Lifetime Audit Finished\n\n**Passed Status:** true. Per-App element/event arenas retain their chunks at the maximum observed size, reset only used chunk offsets, retain destructor-vector capacity, and register destructor records only for nontrivial types. Window frames swap two retained storage sets and clear collections in place. The sole obvious repeated arena metadata allocation is the validity-token Rc created on clear; it is one allocation per clear and is not a measured profile leader.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nOnly arena, window-frame, scene, and renderer transient-lifetime source was inspected. No production source or adjacent behavior changed.\n\n### Repository Checkpoints\n\n| Repo | Path | Checkpoint | Result Commit | Status | Rollback |\n| --- | --- | --- | --- | --- | --- |\n| main | . | 17b82d2eb371 | unchanged | unchanged | `git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 17b82d2eb37107d7f848648733e1857d36541196` |\n",
+  "decisionMarkdown": "### Decision\n\nPreserve current arena and frame storage. Do not replace the validity Rc with generation machinery until allocation profiling identifies it as material; the current design makes stale ArenaBox invalidation locally obvious and safely handles nested draw clears.",
+  "notes": "Research-only success; no product source edits."
+}

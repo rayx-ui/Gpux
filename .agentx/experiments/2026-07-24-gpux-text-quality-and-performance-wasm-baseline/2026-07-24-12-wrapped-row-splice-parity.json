@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "id": "49ec7f5d-078b-4960-9cf0-29b290f3ae07",
+  "loopId": "54e74b74-483c-4598-92d7-fdbabbc9154b",
+  "index": 12,
+  "type": "hypothesis",
+  "name": "Wrapped-row splice parity",
+  "slug": "wrapped-row-splice-parity",
+  "path": "2026-07-24-12-wrapped-row-splice-parity.json",
+  "createdAt": "2026-07-24T05:25:18Z",
+  "startedAt": "2026-07-24T05:25:18Z",
+  "finishedAt": "2026-07-24T05:27:14Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "c8c04efc311b8794f8936d8f32c2914375da6404",
+  "resultCommit": "883f4b4ace4646a3e75e741cc472a178e8f42e48",
+  "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard c8c04efc311b8794f8936d8f32c2914375da6404",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "c8c04efc311b8794f8936d8f32c2914375da6404",
+      "resultCommit": "883f4b4ace4646a3e75e741cc472a178e8f42e48",
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard c8c04efc311b8794f8936d8f32c2914375da6404",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "883f4b4ace4646a3e75e741cc472a178e8f42e48"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "headed WASM WebGPU TextArea edit fixture",
+  "hypothesisMarkdown": "# Hypothesis\n\nFor a same-length, single-line edit that changes the wrapped visual-row count, the retained layout map updates only the edited row and shifts the following visual-row starts without rebuilding unaffected rows. Full layout remains the oracle for every buffer/display coordinate.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\nAdd a deterministic differential test with a shaper whose wrapping changes for a same-length replacement. Compare every byte boundary and all visual-row offsets with a full layout update, then run the focused headed WASM/WebGPU TextArea edit fixture and inspect its screenshot.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nThe incremental map shapes one row, retains every other layout, preserves visual coordinate parity, and moves only following visual-start metadata when the changed row adds or removes wraps.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": {
+    "target": "headed WASM WebGPU",
+    "fixture": "/performance/text-area-edit",
+    "focusedSmoke": "passed at DPR 1 and DPR 2",
+    "sourceGuard": "passed",
+    "diffCheck": "passed"
+  },
+  "reportMarkdown": "## Wrapped-row splice parity\n\nThe differential map test now covers a same-byte-length edit that reduces the edited logical row from three wrapped visual rows to two. It compares every valid UTF-8 byte boundary with a full layout update, including the row after the changed row.\n\nFocused headed WASM/WebGPU validation of `/performance/text-area-edit` passed at DPR 1 and DPR 2 with the edited character and caret rendered correctly. `check-source-guard` and `git diff --check` also passed.\n\nAccept: the existing splice implementation already updates following `visual_start` metadata by the visual-row delta, and the new parity coverage proves the required coordinate behavior without expanding the fast-path eligibility.\n",
+  "decisionMarkdown": "## Decision\n\nAccept the wrapped-row parity coverage. The splice implementation remains limited to same-length, single-line, unprojected, unstyled edits and falls back for all other edits.\n",
+  "notes": ""
+}

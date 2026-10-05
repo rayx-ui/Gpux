@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "id": "d5d6ce53-ac1a-4ca1-8ac1-9162fbe32539",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 94,
+  "type": "hypothesis",
+  "name": "Taffy Measured Dirty Propagation Research",
+  "slug": "taffy-measured-dirty-propagation-research",
+  "path": "2026-08-31-94-taffy-measured-dirty-propagation-research.json",
+  "createdAt": "2026-08-31T15:50:48Z",
+  "startedAt": "2026-08-31T15:50:48Z",
+  "finishedAt": "2026-08-31T15:56:05Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "b5344120b62adfcfae3f599c0f7948671a9a1d02",
+  "resultCommit": "b5344120b62adfcfae3f599c0f7948671a9a1d02",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard b5344120b62adfcfae3f599c0f7948671a9a1d02",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "b5344120b62adfcfae3f599c0f7948671a9a1d02",
+      "resultCommit": "b5344120b62adfcfae3f599c0f7948671a9a1d02",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard b5344120b62adfcfae3f599c0f7948671a9a1d02",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "b5344120b62adfcfae3f599c0f7948671a9a1d02"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux TaffyLayoutEngine::clear and registry Taffy 0.14 dirty-cache contract",
+  "hypothesisMarkdown": "## Taffy Measured Dirty Propagation Research Hypothesis\n\nThe 34.659/37.679 ms mark_dirty_recursive profile family contains redundant ancestor traversal across 229 measured leaves; inspecting Taffy's exact cache and parent contract will identify a gpux-only bulk invalidation that preserves every leaf cache clear and ancestor invalidation.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRead-only source/contract analysis of measured-node dirty propagation. Only AgentX metadata and ignored analysis output may change. Gpux/Taffy production changes, forks, vendoring, dependency changes, cache semantics, measurement closure lifetime changes, tests, and adjacent cleanup are forbidden.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nTrace TaffyLayoutEngine::clear, measured-node reuse, Taffy 0.14 NodeData::mark_dirty, recursive parent propagation, and all public mutation APIs. Quantify the minimum required node/cache operations for 229 measured leaves and 82 roots. Pass if a behavior-preserving gpux-only mechanism is identified, or if the public API proves none exists and prevents a speculative implementation.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nEither isolate a direct bulk invalidation mechanism for experiment 95, or reject this branch with exact API evidence and move to the next independent cleanup owner.",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": {
+    "schemaVersion": 1,
+    "measuredLeaves": 229,
+    "roots": 82,
+    "profiledMarkDirtyRecursiveMs": {
+      "dpr1": 34.659,
+      "dpr2": 37.679
+    },
+    "requiredLeafCacheInvalidations": 229,
+    "publicBulkInvalidationApis": 0,
+    "ancestorTraversalStopsAtFirstDirtyNode": true,
+    "registryVersion": "0.14.0",
+    "upstreamCommit": "ac2b86929d35b7e0f1d24919595b89b4ce89baa4",
+    "productFilesChanged": 0
+  },
+  "reportMarkdown": "# Taffy Measured Dirty Propagation Research\n\nThe measured DataTable frame has 229 measured leaves under 82 roots. Every measured leaf receives a new frame-owned measurement closure, so its cached leaf measurement must be invalidated before the next layout. Invalidating roots alone would leave child caches eligible for reuse with stale measurement behavior.\n\nRegistry Taffy 0.14.0 and upstream Taffy main at exact commit `ac2b86929d35b7e0f1d24919595b89b4ce89baa4` expose the same relevant contract:\n\n- `TaffyTree::mark_dirty(node)` clears that node's cache and recurses to its parent only when the cache changed from populated to empty.\n- An already-empty cache returns `ClearState::AlreadyEmpty`, which terminates recursion because ancestors are already dirty.\n- `set_node_context` ends by calling the same `mark_dirty` path.\n- No public bulk cache-invalidation operation exists.\n\nThe profiled 34.659/37.679 ms `mark_dirty_recursive` family therefore includes 229 required leaf cache clears, while repeated ancestor traversal is already bounded by the first dirty ancestor. Moving invalidation from `clear` to request time would move rather than remove those operations and would separate closure release from the cache invalidation it requires. Clearing the whole Taffy tree would also discard the accepted node pool and topology reuse.\n\nA fork could add a bulk primitive, but current evidence does not show enough removable ancestor work to justify an external fork and network-dependent builds. Consistent with the gpux dependency policy, keep registry Taffy 0.14.0 and move to an independent measured cleanup owner.\n\nNo product or test source changed.\n",
+  "decisionMarkdown": "# Decision\n\nAccept the research result and reject a gpux-only dirty-propagation optimization. Each of the 229 measured leaf caches must be cleared, Taffy already short-circuits at the first dirty ancestor, and neither 0.14.0 nor current upstream exposes a bulk API. Do not fork or vendor Taffy on this evidence. Continue with a separately measured frame-cleanup owner.\n",
+  "notes": ""
+}

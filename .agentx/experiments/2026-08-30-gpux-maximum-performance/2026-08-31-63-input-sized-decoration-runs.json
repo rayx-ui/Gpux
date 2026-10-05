@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "id": "e9370e22-221f-469e-b6f4-c4f46e108e5f",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 63,
+  "type": "hypothesis",
+  "name": "Input Sized Decoration Runs",
+  "slug": "input-sized-decoration-runs",
+  "path": "2026-08-31-63-input-sized-decoration-runs.json",
+  "createdAt": "2026-08-31T06:17:43Z",
+  "startedAt": "2026-08-31T06:17:43Z",
+  "finishedAt": "2026-08-31T06:27:29Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "fee434340f69bbffb2bccfc6f108340a26ca5e9a",
+  "resultCommit": "32ed38c9e3baad08861a11e32db13f4962b8e92a",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard fee434340f69bbffb2bccfc6f108340a26ca5e9a",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "fee434340f69bbffb2bccfc6f108340a26ca5e9a",
+      "resultCommit": "32ed38c9e3baad08861a11e32db13f4962b8e92a",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard fee434340f69bbffb2bccfc6f108340a26ca5e9a",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "32ed38c9e3baad08861a11e32db13f4962b8e92a"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "crates/gpux/crates/gpui/src/text_system.rs",
+  "hypothesisMarkdown": "Seeding each processed line's decoration vector with `min(input_text_run_count, 32)` instead of an unconditional 32 should reduce the warmed frame's retained decoration capacity from 10,240 slots to approximately 320 while preserving one allocation for the exact one-run case and normal vector growth for complex styled text.\n",
+  "measurementPlanMarkdown": "Capture the input `TextRun` count before constructing the filtered iterator, use its value capped at 32 as each line's initial decoration vector capacity, and extend existing diagnostics with total resulting vector capacity after line construction. Keep decoration merging and output types unchanged. Validate focused capacity/diagnostic behavior, the full gpux and serialized WGPU suites, production and diagnostic checks, formatting, Clippy, and three headed WebGPU processes at DPR 1 and DPR 2. Require all established text-cache, geometry, and renderer invariants to remain exact and no material cadence regression.\n",
+  "expectedOutcomeMarkdown": "The warmed frame's total decoration-vector capacity should fall from the source-proven 10,240 slots (320 lines times 32) to about 320 while total live runs remains 320 and maximum run count remains one. End-to-end cadence must not materially regress at either DPR, and all behavioral counters must remain exact.\n",
+  "diagnostics": {
+    "playwright": [
+      "Three final headed Chromium/WebGPU Test Suite processes passed at DPR 1 and DPR 2: 6/6 cases, exact final offset -351402.6875, and zero browser errors.",
+      "Every final frame retained exactly 320 decoration slots for 320 live runs and preserved every established text-cache, Taffy, renderer, and scroll invariant."
+    ],
+    "rayx": [
+      "All 418 gpux unit tests and every integration suite passed with rayx_diagnostics.",
+      "All 52 serialized gpui_wgpu tests passed with rayx_diagnostics.",
+      "Production and diagnostic checks, focused rustfmt, Clippy with warnings denied, diff checks, and the bounded capacity/drain oracle passed."
+    ],
+    "counters": [
+      "All six final cases: 320 shape calls, 320 lines, 320 live decoration runs, total capacity 320, maximum run count 1.",
+      "DPR 1 three-process medians: 24.535891 acknowledged steps/s and 29.980713 ms paced p95.",
+      "DPR 2 three-process medians: 24.876081 acknowledged steps/s and 30.307129 ms paced p95."
+    ],
+    "artifacts": [
+      "artifacts-temp/agentx-experiments/2026-08-30-gpux-maximum-performance/63-input-sized-decoration-runs/playwright-final-1",
+      "artifacts-temp/agentx-experiments/2026-08-30-gpux-maximum-performance/63-input-sized-decoration-runs/playwright-final-2",
+      "artifacts-temp/agentx-experiments/2026-08-30-gpux-maximum-performance/63-input-sized-decoration-runs/playwright-final-3"
+    ]
+  },
+  "measurements": [
+    {
+      "metric": "decoration vector capacity",
+      "before": "10240 slots per warmed frame (320 lines x fixed capacity 32)",
+      "after": "320 slots for 320 live runs in every one of six final cases",
+      "delta": "-9920 slots (-96.875%)",
+      "source": "source checkpoint plus headed Test Suite WebGPU telemetry"
+    },
+    {
+      "metric": "DPR 1 end-to-end cadence",
+      "before": "23.382539 steps/s; 30.737549 ms paced p95",
+      "after": "24.535891 steps/s median; 29.980713 ms paced p95 median across three processes",
+      "delta": "+4.93% throughput; +2.46% p95 improvement",
+      "source": "experiment 62 checkpoint versus three headed experiment 63 processes"
+    },
+    {
+      "metric": "DPR 2 end-to-end cadence",
+      "before": "24.080901 steps/s; 30.539551 ms paced p95",
+      "after": "24.876081 steps/s median; 30.307129 ms paced p95 median across three processes",
+      "delta": "+3.30% throughput; +0.76% p95 improvement",
+      "source": "experiment 62 checkpoint versus three headed experiment 63 processes"
+    },
+    {
+      "metric": "behavioral invariants",
+      "before": "320 shape calls/lines/runs, 229 missing states, 91 wrap mismatches, 320 key hashes, 19 current hits, 301 previous hits, 0 misses",
+      "after": "exactly unchanged in all six final cases",
+      "delta": "zero",
+      "source": "headed Test Suite WebGPU frame telemetry"
+    }
+  ],
+  "reportMarkdown": "## Input Sized Decoration Runs Finished\n\n**Index:** 63\n**Checkpoint:** `fee434340`\n**Result:** `32ed38c9e3baad08861a11e32db13f4962b8e92a`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. Each processed line now seeds its decoration vector from the caller's input `TextRun` count capped at the previous 32-slot policy. Decoration merging, output ownership, and ordinary vector growth are unchanged.\n\nAll six final headed cases retain exactly 320 decoration slots for 320 live runs across 320 lines, down from the source-guaranteed checkpoint reservation of 10,240 slots. This is a 9,920-slot or 96.875% reduction, with maximum live cardinality still one. Every established text-cache, miss-reason, Taffy, renderer, and final-scroll invariant remains exact.\n\nAgainst experiment 62's instrumented checkpoint, three-process median acknowledged throughput improved from 23.382539 to 24.535891 steps/s at DPR 1 (+4.93%) and from 24.080901 to 24.876081 at DPR 2 (+3.30%). Paced p95 improved from 30.737549 to 29.980713 ms (+2.46%) and from 30.539551 to 30.307129 ms (+0.76%).\n\nAll 418 gpux unit tests and integration suites, all 52 serialized WGPU tests, production and diagnostics checks, focused formatting, Clippy with warnings denied, the bounded capacity oracle, and all six headed WebGPU cases passed.\n\n### Scope Lock\n\nOnly decoration-vector initial capacity and an extension of existing diagnostics to report resulting capacity changed. No new dependency, cache, pool, type, or public API was introduced.\n\n### Decision\n\nAccept input-sized decoration storage. Preserve the 32 cap for complex input and ordinary vector growth. Investigate the separate two-lock font-run pool path with measurement before changing its cross-thread ownership.\n",
+  "decisionMarkdown": "Accept input-sized decoration-run vector capacity. It reduces warmed retained slots by 96.875%, improves throughput and paced p95 at both DPRs, preserves exact behavior, and adds no dependency or cache layer. Keep the input-count seed capped at 32 and retain normal vector growth.\n",
+  "notes": ""
+}

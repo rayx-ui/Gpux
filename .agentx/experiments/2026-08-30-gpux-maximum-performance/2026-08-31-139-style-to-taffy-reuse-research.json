@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "id": "c7e90b49-4b98-484c-80c0-406b1e1be8eb",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 139,
+  "type": "hypothesis",
+  "name": "Style To Taffy Reuse Research",
+  "slug": "style-to-taffy-reuse-research",
+  "path": "2026-08-31-139-style-to-taffy-reuse-research.json",
+  "createdAt": "2026-08-31T20:52:28Z",
+  "startedAt": "2026-08-31T20:52:28Z",
+  "finishedAt": "2026-08-31T20:53:23Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "b1fe3ada0318ebdcb964c9610d62061daada4666",
+  "resultCommit": "b1fe3ada0318ebdcb964c9610d62061daada4666",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard b1fe3ada0318ebdcb964c9610d62061daada4666",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "b1fe3ada0318ebdcb964c9610d62061daada4666",
+      "resultCommit": "b1fe3ada0318ebdcb964c9610d62061daada4666",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard b1fe3ada0318ebdcb964c9610d62061daada4666",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "b1fe3ada0318ebdcb964c9610d62061daada4666"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux Style to Taffy conversion",
+  "hypothesisMarkdown": "## Style To Taffy Reuse Research Hypothesis\n\nBecause all 1,123 warmed Taffy styles are unchanged, gpux may avoid repeated full `Style::to_taffy` conversion by comparing or retaining a cheaper source representation before conversion.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRead-only trace of GPUI Style ownership/equality, conversion call sites, rem/scale inputs, pool correspondence, and retained Taffy style comparison. No edits.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nDetermine the smallest safe cache key and invalidation inputs, including rem size, scale factor, pool order, and style clone cost.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nSelect a bounded conversion-reuse experiment or reject it if key ownership costs match conversion.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [
+      "1123 conversions",
+      "1123 unchanged converted styles"
+    ],
+    "artifacts": [
+      "Style ownership and conversion source trace"
+    ]
+  },
+  "measurements": {
+    "styleConversions": 1123,
+    "unchangedConvertedStyles": 1123,
+    "profileSelfMs": {
+      "deviceScaleFactor1": 122.075,
+      "deviceScaleFactor2": 106.877
+    },
+    "conversionInputs": [
+      "layout subset of Style",
+      "rem_size",
+      "scale_factor"
+    ],
+    "cheapSafePreconversionKey": false
+  },
+  "reportMarkdown": "# Experiment 139 Report\n\nConverted-style equality is known only after conversion. GPUI `Style` is larger than the Taffy subset and contains paint/interactivity state; full-style cloning/comparison would add ownership work and over-invalidate. Conversion also depends on rem size and scale factor. A layout-only source key would duplicate the conversion field schema and increase maintenance risk, while pool position is not an invariant.\n\nNo smaller correctness key is currently available, so caching would add at least as much state and comparison complexity as it removes.\n",
+  "decisionMarkdown": "# Decision\n\nPreserve direct conversion followed by exact retained Taffy-style equality. Do not add a duplicate layout-style cache key.\n",
+  "notes": ""
+}

@@ -1,0 +1,10 @@
+{
+  "sourceInvariant": "WindowsWindow::is_subpixel_rendering_supported returns the immutable renderer capability snapshot.",
+  "wasm": {
+    "platformSubpixelSupported": false,
+    "backend": "webgpu",
+    "dpr1": "passed",
+    "dpr2": "passed"
+  },
+  "windowsRuntime": "not run by explicit WASM-only target constraint"
+}

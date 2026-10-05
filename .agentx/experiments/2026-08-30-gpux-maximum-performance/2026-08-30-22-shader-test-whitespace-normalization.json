@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "id": "ef8e10f2-7d31-4786-8259-83a90a67809e",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 22,
+  "type": "hypothesis",
+  "name": "Shader test whitespace normalization",
+  "slug": "shader-test-whitespace-normalization",
+  "path": "2026-08-30-22-shader-test-whitespace-normalization.json",
+  "createdAt": "2026-08-30T22:29:34Z",
+  "startedAt": "2026-08-30T22:29:34Z",
+  "finishedAt": "2026-08-30T22:33:35Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "60b80ceeea862ef7cb038b6b02cea1baec3fd80a",
+  "resultCommit": "0561ac909973f01c9671e870e6729abe06995a1c",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 60b80ceeea862ef7cb038b6b02cea1baec3fd80a",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "60b80ceeea862ef7cb038b6b02cea1baec3fd80a",
+      "resultCommit": "0561ac909973f01c9671e870e6729abe06995a1c",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 60b80ceeea862ef7cb038b6b02cea1baec3fd80a",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "0561ac909973f01c9671e870e6729abe06995a1c"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpui_wgpu sequential diagnostics suite",
+  "hypothesisMarkdown": "Normalize whitespace inside the single `transformed_quad_uses_analytic_coverage` test before checking the `unrounded && axis_aligned` guard. This removes indentation sensitivity while preserving the same shader semantic assertion and changing no production or WGSL code.\n",
+  "measurementPlanMarkdown": "Use experiment 21's two deterministic checkpoint failures as the before evidence. Change only the test body in `crates/gpux/crates/gpui_wgpu/src/wgpu_renderer.rs`. Run the focused test, then the full diagnostics suite sequentially with visible names twice, followed by package formatting, check, and warning-denied Clippy. Accept only if the focused test and both 52/52 sequential suites pass and production/WGSL hashes remain unchanged.\n",
+  "expectedOutcomeMarkdown": "The focused test changes from deterministic failure to pass, both sequential full suites pass 52/52 in about one second, and only test code changes. This restores a reliable broad gate for subsequent gpux telemetry and optimization experiments.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [
+      "Focused transformed_quad_uses_analytic_coverage test passed 1/1.",
+      "Two sequential gpui_wgpu diagnostics suites passed 52/52 in 0.85 s and 0.81 s.",
+      "Package formatting, diagnostics check, and warning-denied Clippy passed."
+    ],
+    "counters": [
+      "Checkpoint: transformed_quad_uses_analytic_coverage failed deterministically in both experiment 21 suites (51/52).",
+      "Candidate: focused 1/1 and both full suites 52/52."
+    ],
+    "artifacts": [
+      "crates/gpux/crates/gpui_wgpu/src/wgpu_renderer.rs",
+      "WGSL SHA-256 unchanged: 9b010743aef3ca6d49098c05a558bb7ddcb9ea6a"
+    ]
+  },
+  "measurements": [
+    {
+      "name": "focused_shader_semantic_test",
+      "before": "deterministic failure",
+      "after": "1/1 pass",
+      "unit": "test result"
+    },
+    {
+      "name": "sequential_gpui_wgpu_suite_run_1",
+      "before": "51/52 pass",
+      "after": "52/52 pass in 0.85 s",
+      "unit": "tests"
+    },
+    {
+      "name": "sequential_gpui_wgpu_suite_run_2",
+      "before": "51/52 pass",
+      "after": "52/52 pass in 0.81 s",
+      "unit": "tests"
+    },
+    {
+      "name": "production_wgsl_sha256",
+      "before": "9b010743aef3ca6d49098c05a558bb7ddcb9ea6a",
+      "after": "9b010743aef3ca6d49098c05a558bb7ddcb9ea6a",
+      "unit": "hash"
+    }
+  ],
+  "reportMarkdown": "| Field | Result |\n|---|---|\n| Checkpoint | `60b80ceeea862ef7cb038b6b02cea1baec3fd80a` |\n| Result commit | `0561ac909973f01c9671e870e6729abe06995a1c` |\n| Attempt Count | 1 |\n| Focused test | 1/1 passed |\n| Full suite | 52/52 passed twice (0.85 s, 0.81 s) |\n| WGSL | Unchanged SHA-256 |\n| Decision | Accept and commit |",
+  "decisionMarkdown": "Accept. Whitespace normalization makes the semantic guard assertion formatting-independent, restores the full gpui_wgpu suite as a reliable gate, and changes neither renderer behavior nor WGSL.",
+  "notes": "Only the test body changed in production source. Durable validation guidance was recorded in gpux-foundation state."
+}

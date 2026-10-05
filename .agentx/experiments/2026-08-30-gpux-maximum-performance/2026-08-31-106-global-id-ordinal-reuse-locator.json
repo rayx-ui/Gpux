@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "id": "8e93900b-83fe-435a-8253-3323697adaa1",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 106,
+  "type": "hypothesis",
+  "name": "Global ID Ordinal Reuse Locator",
+  "slug": "global-id-ordinal-reuse-locator",
+  "path": "2026-08-31-106-global-id-ordinal-reuse-locator.json",
+  "createdAt": "2026-08-31T17:20:04Z",
+  "startedAt": "2026-08-31T17:20:04Z",
+  "finishedAt": "2026-08-31T17:20:54Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "0b1b5e73b31d57ff1f72330a69428277bce6860a",
+  "resultCommit": "0b1b5e73b31d57ff1f72330a69428277bce6860a",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 0b1b5e73b31d57ff1f72330a69428277bce6860a",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "0b1b5e73b31d57ff1f72330a69428277bce6860a",
+      "resultCommit": "0b1b5e73b31d57ff1f72330a69428277bce6860a",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 0b1b5e73b31d57ff1f72330a69428277bce6860a",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "0b1b5e73b31d57ff1f72330a69428277bce6860a"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux previous-frame GlobalElementId creation order and vector reuse feasibility",
+  "hypothesisMarkdown": "## Global ID Ordinal Reuse Locator Hypothesis\n\nIf global IDs are created in the same exact order across warmed frames, a direct previous-frame vector slot comparison can retain Arc reuse while avoiding the rejected hash-map lookup cost.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nResearch only. Inspect construction order, frame rotation, deferred paths, and diagnostics propagation to define the minimum exact ordinal-stability measurement and a collision-safe vector mechanism. Production code, tests, dependencies, and configuration are forbidden.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nEnumerate production construction sites and ordering disruptions, determine whether existing counters prove ordinal equality, locate the narrowest diagnostics field propagation if they do not, and specify acceptance thresholds plus fallback semantics for a vector candidate.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nEither reject ordinal reuse from source invariants or define one exact diagnostics-only experiment that can prove its warmed hit rate before implementation.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [
+      "Research inspected current gpux creation, deferred traversal, frame rotation, Scene/WGPU/web telemetry, and Test Suite contracts.",
+      "No app was launched and apps/lab was not modified."
+    ],
+    "counters": [
+      "The current 485/485 previous-frame metric is set membership, not ordinal equality.",
+      "One ninth scalar plus current/previous hash vectors is sufficient to measure exact ordinal hash stability without path copies."
+    ],
+    "artifacts": []
+  },
+  "measurements": {
+    "schemaVersion": 1,
+    "status": "success",
+    "productFilesChanged": 0,
+    "existingCreationCount": 485,
+    "existingPreviousFrameMembershipHits": 485,
+    "existingSameFrameDuplicateHashes": 24,
+    "existingTelemetryProvesOrder": false,
+    "newCounterIndex": 8,
+    "diagnosticHashVectorsRequired": 2,
+    "fullPathCopiesRequiredForTelemetry": 0,
+    "candidateAcceptanceThresholdPercent": 95,
+    "nextTarget": "Exact previous-frame same-ordinal GlobalElementId hash telemetry"
+  },
+  "reportMarkdown": "# Global ID Ordinal Reuse Locator\n\nThe production creation sequence is deterministic only for an unchanged traversal. Root rendering, sorted deferred draws, inspector/source-location IDs, `with_global_id`, conditional elements, and prepaint reuse can insert, omit, or reorder constructors. Source invariants therefore cannot guarantee that ordinal `n` names the same path in adjacent frames.\n\nExisting diagnostics also cannot answer the question. `previous_hashes` is a set, so the observed 485/485 previous-frame hits prove only that every current hash appeared somewhere in the preceding frame. The 485 creation count and 24 same-frame duplicates likewise do not preserve order.\n\nThe minimum exact measurement is diagnostics-only: retain current and previous `Vec<u64>` creation sequences beside the existing sets, increment one ninth counter when the current hash equals the preceding vector's hash at the same ordinal, then publish that counter through the existing Scene, WGPU frame telemetry, gpui_web numeric object, and Test Suite type/assertion path. No full paths need to be copied for measurement.\n\nOnly a near-complete warmed ordinal hit rate should justify a vector candidate, because misses still allocate and the prior hash-map experiment established that reuse overhead has very little budget. A vector candidate would remain collision-safe by comparing the authoritative full path at the ordinal slot before cloning its Arc; any mismatch would allocate normally and append the new ID.\n\nNo product, test, dependency, or configuration source changed.\n",
+  "decisionMarkdown": "# Decision\n\nExisting evidence is insufficient to implement ordinal reuse safely. Proceed with one diagnostics-only ninth counter for exact same-ordinal previous-frame hash matches, backed by two rotating hash vectors. Preserve full-path equality as the later candidate's authoritative check and require a warmed hit rate near 100% before implementation.\n",
+  "notes": ""
+}

@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "id": "1ba85301-ebb0-43f3-9bbd-dfff115cf5e3",
+  "loopId": "dc424089-d0a5-4558-ae79-72a6a8d787db",
+  "index": 5,
+  "type": "hypothesis",
+  "name": "Align Swash Raster Hinting With Layout",
+  "slug": "align-swash-raster-hinting-with-layout",
+  "path": "2026-08-04-05-align-swash-raster-hinting-with-layout.json",
+  "createdAt": "2026-08-04T15:17:14Z",
+  "startedAt": "2026-08-04T15:17:14Z",
+  "finishedAt": "2026-08-04T15:19:14Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "c11f3287bd2c9be9b998adc966ca355adb11a7da",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\8da1\\RayX\" reset --hard c11f3287bd2c9be9b998adc966ca355adb11a7da",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "c11f3287bd2c9be9b998adc966ca355adb11a7da",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\8da1\\RayX\" reset --hard c11f3287bd2c9be9b998adc966ca355adb11a7da",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "wasm/web with headed Playwright and WebGPU enabled",
+  "hypothesisMarkdown": "## Align Swash Raster Hinting With Layout\n\nCosmic text shaping and authored advances explicitly use Hinting::Disabled, but the subsequent Swash outline rasterizer enables hinting. Disabling raster hinting should make coverage follow the same unhinted geometry and improve matched DOM edge fidelity without changing layout, cache identity, renderer compositing, or target policy.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nChange only the Swash scaler hint flag from true to false. Run gpui_wgpu formatting and its complete unit suite, then the current-candidate headed Test Suite WASM/WebGPU matrix across DPR 1, 1.25, 1.5, and 2. Accept only a complete quality win with unchanged geometry, fringe, native-DPR backing, and warm timing gates.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nThe unhinted raster coverage better matches the unhinted shaping geometry and raises the worst minimum acutance ratio to at least 0.90 without introducing fringe or geometry drift.",
+  "diagnostics": {
+    "playwright": [
+      "All 28 gpui_wgpu unit tests passed.",
+      "The headed Test Suite WASM/WebGPU matrix captured all densities, but the current-candidate target regressed and remained red."
+    ],
+    "rayx": [
+      "Only the Swash outline hint flag was disabled during the attempt. The original hinted rasterizer was restored immediately after failure."
+    ],
+    "counters": [
+      "Minimum acutance ratio regressed from 0.8046 to 0.6294; maximum RayX fringe ratio stayed 0; maximum alignment delta stayed 2 physical pixels."
+    ],
+    "artifacts": [
+      ".agentx/experiments/2026-08-04-wasm-text-rendering-quality/2026-08-04-05-align-swash-raster-hinting-with-layout.json"
+    ]
+  },
+  "measurements": [
+    {
+      "name": "minimum_acutance_ratio",
+      "value": 0.6294,
+      "unit": "ratio"
+    },
+    {
+      "name": "minimum_acutance_ratio_delta",
+      "value": -0.1752,
+      "unit": "ratio"
+    },
+    {
+      "name": "maximum_rayx_fringe_ratio",
+      "value": 0,
+      "unit": "ratio"
+    },
+    {
+      "name": "maximum_alignment_delta",
+      "value": 2,
+      "unit": "physical_pixels"
+    }
+  ],
+  "reportMarkdown": "## Experiment Report\n\nAligning raster hinting with unhinted shaping caused a large low-density acutance regression. The unchanged fringe and geometry values isolate the loss to coverage sharpness. This proves Swash outline hinting is necessary for the current font matrix. The attempted flag change was reverted.",
+  "decisionMarkdown": "### Decision\n\nReject and revert the unhinted-raster candidate. Preserve hinting and proceed to the ordered glyph-local higher-resolution coverage/downsample candidate.",
+  "notes": "No partial change was retained."
+}

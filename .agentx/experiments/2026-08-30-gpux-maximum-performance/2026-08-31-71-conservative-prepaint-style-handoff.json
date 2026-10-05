@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "id": "0ab17b08-38af-430b-97d3-84f31dd70833",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 71,
+  "type": "hypothesis",
+  "name": "Conservative Prepaint Style Handoff",
+  "slug": "conservative-prepaint-style-handoff",
+  "path": "2026-08-31-71-conservative-prepaint-style-handoff.json",
+  "createdAt": "2026-08-31T09:53:17Z",
+  "startedAt": "2026-08-31T09:53:17Z",
+  "finishedAt": "2026-08-31T10:02:09Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "61b9bceffc798571ed6989d1d3a27cfd1dddace8",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 61b9bceffc798571ed6989d1d3a27cfd1dddace8",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "61b9bceffc798571ed6989d1d3a27cfd1dddace8",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 61b9bceffc798571ed6989d1d3a27cfd1dddace8",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpui shared Interactivity lifecycle and headed Test Suite WASM/WebGPU",
+  "hypothesisMarkdown": "Carrying the already-resolved prepaint `Style` through each interactive element's prepaint state and consuming it at paint only when experiment 70's conservative predicate is safe will eliminate up to 729 of 845 warmed paint style reconstructions without a cache, lookup, or invalidation system.\n",
+  "measurementPlanMarkdown": "Change only the shared `Interactivity` prepaint-to-paint handoff and its Div, Img, Svg, and UniformList callers. Retain recomputation when focus, hover, active/group styling can differ or a hitboxed element participates in an active drag. Compare three independent headed WebGPU processes at DPR 1 and DPR 2 against experiment 70 and profile the final build. Require exact established rendering, layout, text, scroll, worker, and error invariants; all gpux and serialized WGPU tests; production and diagnostic checks; focused formatting; and warning-denied gpux Clippy. Pass only if both DPRs avoid material regression and profile/cadence evidence justifies the frame-bounded retained style lifetime.\n",
+  "expectedOutcomeMarkdown": "The warmed frame should reuse 729 prepaint styles, substantially reducing `compute_style_internal`, `Style::refine`, refinement-drop, malloc, and free samples. Acknowledged throughput and/or paced p95 should improve without changing any renderer, layout, text, scroll, or input behavior.\n",
+  "diagnostics": {
+    "build": [
+      "The gpux package check passed after the attempted API change.",
+      "The required Test Suite WASM build failed before measurement because rayx_components_base::virtual_list directly consumes the public Interactivity prepaint and paint signatures."
+    ],
+    "artifacts": [
+      "artifacts-temp/agentx-experiments/2026-08-30-gpux-maximum-performance/71-conservative-prepaint-style-handoff"
+    ]
+  },
+  "measurements": [],
+  "reportMarkdown": "## Conservative Prepaint Style Handoff Finished\n\n**Index:** 71\n**Checkpoint:** `61b9bceff`\n**Result:** reverted to checkpoint\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** false. The attempted shared handoff changed the public `Interactivity::prepaint` and `Interactivity::paint` signatures. The gpux package compiled, but the required Test Suite WASM build proved that `rayx_components_base::virtual_list` is another direct consumer. Updating that RayX component would violate this experiment's gpux-exclusive scope lock.\n\nThe attempt was reverted immediately without measurement or unrelated fixes. The repository is back at the experiment checkpoint.\n\n### Scope Lock\n\nNo source change was retained. No RayX caller, renderer, Taffy, shader, or lifecycle code was modified.\n\n### Repository Checkpoints\n\n| Repo | Path | Checkpoint | Result Commit | Status | Rollback |\n| --- | --- | --- | --- | --- | --- |\n| main | . | `61b9bceff` | — | reverted | `git -C \"D:\\\\Work\\\\projects\\\\RayX\\\\RayX\" reset --hard 61b9bceff` |\n\n### Decision\n\nReject the public-signature approach. Preserve `Interactivity`'s public lifecycle API and design the next gpux-only attempt around an internal handoff boundary.\n",
+  "decisionMarkdown": "Reject and revert this API-changing attempt. The public `Interactivity` lifecycle is consumed outside gpux by RayX virtual-list code, so changing its signatures violates the gpux-exclusive scope. A new experiment must preserve those public signatures.\n",
+  "notes": ""
+}

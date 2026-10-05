@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "id": "aac025d4-3e11-4dbc-acde-a1ca9c9622a8",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 132,
+  "type": "hypothesis",
+  "name": "Replay Only Element State Finish",
+  "slug": "replay-only-element-state-finish",
+  "path": "2026-08-31-132-replay-only-element-state-finish.json",
+  "createdAt": "2026-08-31T20:27:19Z",
+  "startedAt": "2026-08-31T20:27:19Z",
+  "finishedAt": "2026-08-31T20:35:27Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "883ea0da92dd0d56100baf6864ca04435c62b914",
+  "resultCommit": "baa5880963662d0b43fc5119f18a7c43d0ae7f4b",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 883ea0da92dd0d56100baf6864ca04435c62b914",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "883ea0da92dd0d56100baf6864ca04435c62b914",
+      "resultCommit": "baa5880963662d0b43fc5119f18a7c43d0ae7f4b",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 883ea0da92dd0d56100baf6864ca04435c62b914",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "baa5880963662d0b43fc5119f18a7c43d0ae7f4b"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux finish-time element-state transfer work",
+  "hypothesisMarkdown": "## Replay Only Element State Finish Hypothesis\n\nKeeping the full accessed-state history for subtree range replay while separately recording only replayed keys that still require deferred ownership transfer will eliminate 1,344 redundant finish-time hash-table removals in the warmed frame, preserving direct state access and reused-subtree behavior.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nAdd one private replay-pending key vector to `WindowFrame`. Populate it only when `reuse_prepaint` or `reuse_paint` copies access history; clear it with the frame; include its length in prepaint transaction rollback; and make `finish` scan it instead of the full history. Existing access history, key type, maps, transfer loop body/order, replay slices, diagnostics, APIs, dependencies, fixtures, and unrelated behavior are frozen.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nRun formatting, focused window tests, both gpux clippy matrices, full gpux diagnostics tests, gpui_wgpu diagnostics tests, and headed Test Suite WASM/WebGPU with CPU profiles at DPR 1 and 2. Require exact established layout/render/state behavior, zero errors, and finish scans dropping from 1,344 to zero for the measured no-replay-transfer frame. Compare hash removal self time, throughput, and paced p95 against experiment 131 and reject a coherent same-direction regression over 10% at both DPRs.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nRemove all redundant finish lookups in the representative frame while preserving replay correctness through explicit, bounded private ownership of only pending replay transfers.\n",
+  "diagnostics": {
+    "playwright": [
+      {
+        "target": "apps/test_suite",
+        "runtime": "headed Chromium WASM/WebGPU with CPU profiling",
+        "passed": 2,
+        "failed": 0
+      }
+    ],
+    "rayx": [],
+    "counters": [
+      "finish scans reduced from 1344 to zero at both DPRs",
+      "zero transfers and misses at both DPRs",
+      "full access history retained for replay ranges",
+      "pending replay list participates in prepaint transaction rollback",
+      "exact established layout/render counters and zero terminal error"
+    ],
+    "artifacts": [
+      "two CPU profiles",
+      "test-results",
+      "playwright-report"
+    ]
+  },
+  "measurements": {
+    "referenceExperiment": 131,
+    "runs": [
+      {
+        "deviceScaleFactor": 1,
+        "throughput": 24.459601787899032,
+        "pacedP95Ms": 27.47509765625,
+        "finishScans": 0,
+        "finishTransfers": 0,
+        "finishMisses": 0,
+        "matchingElementStateRemoveEntrySelfMs": 86.454,
+        "throughputDeltaPercent": 6.142900576121435,
+        "pacedP95DeltaPercent": -26.253432153131374,
+        "removeEntrySelfDeltaPercentVsExperiment126": -10.683403068340313,
+        "terminalErrorMax": 0.0
+      },
+      {
+        "deviceScaleFactor": 2,
+        "throughput": 24.475315023309378,
+        "pacedP95Ms": 27.1865234375,
+        "finishScans": 0,
+        "finishTransfers": 0,
+        "finishMisses": 0,
+        "matchingElementStateRemoveEntrySelfMs": 75.082,
+        "throughputDeltaPercent": 7.772986802848969,
+        "pacedP95DeltaPercent": -25.56566379016464,
+        "removeEntrySelfDeltaPercentVsExperiment126": -15.440580232453382,
+        "terminalErrorMax": 0.0
+      }
+    ],
+    "exactCountersAtBothDprs": {
+      "boundsTreeVisits": 4440,
+      "boundsTreeChildEvaluations": 14351,
+      "boundsTreeRetainedNodes": 576
+    },
+    "playwright": {
+      "passed": 2,
+      "failed": 0
+    }
+  },
+  "reportMarkdown": "# Experiment 132 Report\n\nAdded one private `pending_element_state_transfers` vector to `WindowFrame`. Direct state access continues to append the complete replay history and move state immediately, but does not enter the pending vector. `reuse_prepaint` and `reuse_paint` copy their replayed keys into both histories. Frame clearing and prepaint transaction rollback now clear/truncate the pending vector with the existing structures. The unchanged finish transfer loop scans only pending replay keys.\n\nFormatting, focused window tests, both gpux clippy matrices, 419 gpux diagnostics tests, gpui_wgpu diagnostics tests, and both profiled headed Test Suite WebGPU cases passed. Finish scans fell from 1,344 to zero at both DPRs, with zero transfers and misses, while all established layout/render counters and terminal correctness remained exact.\n\nAgainst experiment 131, throughput improved 6.14% at DPR 1 and 7.77% at DPR 2; paced p95 improved 26.25% and 25.57%. Matching element-state removal self time fell 10.68%/15.44% versus the clean experiment-126 profile reference. The change removes proven redundant work while retaining explicit replay ownership and rollback semantics.\n",
+  "decisionMarkdown": "# Decision\n\nAccept the replay-only finish transfer implementation at product commit `baa5880963662d0b43fc5119f18a7c43d0ae7f4b`. It removes all measured redundant finish lookups, improves both throughput and paced p95, reduces sampled removal cost, and preserves exact state, replay, layout, and rendering contracts.\n",
+  "notes": ""
+}

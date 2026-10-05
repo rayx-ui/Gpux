@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 5,
+  "epicId": "keyed-sticky-stacking",
+  "primaryRepositoryId": "rayx",
+  "repositories": [
+    {
+      "id": "rayx",
+      "binding": "task-directory-git-root",
+      "role": "primary",
+      "required": true,
+      "identity": {
+        "gitCommonDirectoryFingerprint": "b0a04520f4628b482b6b98e49d09506e91c959129f441bfa9f9a484654f34108",
+        "remoteFingerprint": "9d1a100e73eaddf5452c9762cce778f735ebb45786db2b0594125472130860ef"
+      },
+      "pathHint": "C:\\Users\\dinko\\.codex\\worktrees\\bf9a\\RayX",
+      "baselineHead": "ff7d2738664c27fb2dd2385a41c1e35dcd70ed23",
+      "ownedScope": [
+        "crates/gpux/crates/gpui/src/**",
+        "crates/rayx/rayx_components/rayx_components_core/src/**",
+        "apps/lab/src/**",
+        "apps/test_suite/src/**",
+        "tools-node/test_suite/**",
+        "xtask/src/source_guard.rs",
+        ".codex/skills/rayx/**",
+        ".codex/skills/gpux/**",
+        ".agentx/memory/knowledge/runtime/gpux-foundation/**",
+        ".agentx/memory/knowledge/ui/virtualization/**",
+        ".agentx/memory/knowledge/INDEX.md",
+        ".agentx/memory/knowledge/runtime/INDEX.md",
+        ".agentx/memory/knowledge/ui/INDEX.md",
+        ".agentx/memory/decisions/runtime/gpux-foundation/**",
+        ".agentx/memory/decisions/ui/virtualization/**",
+        ".agentx/memory/decisions/INDEX.md",
+        ".agentx/tasks/keyed-sticky-stacking/**"
+      ]
+    }
+  ]
+}

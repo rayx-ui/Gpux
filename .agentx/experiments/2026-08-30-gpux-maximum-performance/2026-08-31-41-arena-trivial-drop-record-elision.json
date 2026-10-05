@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "id": "cf98d910-0d63-442d-831e-612d116727d7",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 41,
+  "type": "hypothesis",
+  "name": "Arena Trivial Drop Record Elision",
+  "slug": "arena-trivial-drop-record-elision",
+  "path": "2026-08-31-41-arena-trivial-drop-record-elision.json",
+  "createdAt": "2026-08-31T02:07:54Z",
+  "startedAt": "2026-08-31T02:07:54Z",
+  "finishedAt": "2026-08-31T02:17:49Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "68a521ae7",
+  "resultCommit": "587f97534",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 68a521ae7",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "68a521ae7",
+      "resultCommit": "587f97534",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 68a521ae7",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "587f97534"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux Arena and apps/test_suite headed WASM/WebGPU wide DataTable",
+  "hypothesisMarkdown": "Arena::alloc can omit its per-allocation drop record when std::mem::needs_drop::<T>() is false, reducing element-vector writes and clear traversal without changing lifetime or destructor behavior.\n",
+  "measurementPlanMarkdown": "Conditionally register ArenaElement only for destructor-bearing T, add focused tests for trivial and Drop types, run full gpux/WGPU static validation, then run three headed WebGPU wide-DataTable processes at DPR 1 and DPR 2 against experiment 38.\n",
+  "expectedOutcomeMarkdown": "Trivial arena allocations create no drop records, destructor-bearing allocations still drop exactly once, and browser central metrics improve or remain within the 5% acceptance envelope with exact output.\n",
+  "diagnostics": {
+    "playwright": [
+      "Three fresh headed Chromium/WebGPU processes passed both DPRs with one worker (6/6 project runs), exact final offsets, and zero terminal errors.",
+      "apps/test_suite was the exclusive runtime fixture; builds verified shared memory, wasm_thread_entry_point, and 100897 atomic prefix bytes."
+    ],
+    "rayx": [
+      "Focused arena tests prove trivial allocations create no drop records while destructor-bearing allocations still drop.",
+      "All 409 gpux diagnostics tests, all 52 serialized gpui_wgpu diagnostics tests, package formatting, warning-denied Clippy, and AgentX memory audit passed."
+    ],
+    "counters": [
+      "All six browser projects preserved the accepted renderer and Taffy diagnostic signatures."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "trivial arena drop records",
+      "before": "one type-erased drop record per allocation",
+      "after": "zero records when needs_drop::<T>() is false",
+      "delta": "no-op drop bookkeeping removed"
+    },
+    {
+      "metric": "DPR 1 median acknowledged steps/s",
+      "before": "30.208397919517438",
+      "after": "30.28333007913714",
+      "delta": "+0.2481%"
+    },
+    {
+      "metric": "DPR 2 median acknowledged steps/s",
+      "before": "30.234875853710054",
+      "after": "30.165632701898762",
+      "delta": "-0.2290%"
+    },
+    {
+      "metric": "DPR 1 median paced p95",
+      "before": "27.0439453125 ms",
+      "after": "27.346923828125 ms",
+      "delta": "+1.1203%"
+    },
+    {
+      "metric": "DPR 2 median paced p95",
+      "before": "27.302490234375 ms",
+      "after": "27.276611328125 ms",
+      "delta": "-0.0948%"
+    },
+    {
+      "metric": "WASM atomic prefix bytes",
+      "before": "101805",
+      "after": "100897",
+      "delta": "-908 bytes"
+    }
+  ],
+  "reportMarkdown": "## Arena Trivial Drop Record Elision Finished\n\n**Index:** 41\n**Checkpoint:** `68a521ae7`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. `Arena::alloc` now appends a type-erased drop record only for `T` where `std::mem::needs_drop::<T>()` is true. Trivial values retain identical arena storage and invalidation but no longer write or traverse no-op destructor thunks. Focused tests prove trivial record elision and existing tests prove destructor-bearing values still drop.\n\nThree fresh headed WebGPU processes at both DPRs preserved exact final offsets, renderer/layout telemetry, and zero errors. Median acknowledged throughput moved +0.25%/-0.23%; paced p95 moved +1.12%/-0.09%, within the 5% envelope. The multithreaded WASM atomic-prefix count fell by 908 bytes.\n\n### Scope Lock\n\nThe only production change is conditional arena drop-record registration. Chunk allocation, pointer layout, scope deferral, clear ordering for destructor-bearing values, generation invalidation, and all callers remain unchanged.\n\n### Decision\n\nAccept and commit. The change removes provably unnecessary per-allocation writes and clear traversal with no added structure and stable browser metrics.\n",
+  "decisionMarkdown": "Accept and commit. Record arena destructor thunks only for types that actually need drop; retain the exact existing path for destructor-bearing allocations.\n",
+  "notes": ""
+}

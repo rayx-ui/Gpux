@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "id": "1691ed42-9fe5-44a6-91dc-88dfaafd8b8f",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 29,
+  "type": "hypothesis",
+  "name": "Taffy Measured Context Cleanup",
+  "slug": "taffy-measured-context-cleanup",
+  "path": "2026-08-30-29-taffy-measured-context-cleanup.json",
+  "createdAt": "2026-08-30T23:58:46Z",
+  "startedAt": "2026-08-30T23:58:46Z",
+  "finishedAt": "2026-08-31T00:10:59Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "abb2e76f56282e8c5168f2edf59f0b1886a8c6bb",
+  "resultCommit": "cb3709c59",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard abb2e76f56282e8c5168f2edf59f0b1886a8c6bb",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "abb2e76f56282e8c5168f2edf59f0b1886a8c6bb",
+      "resultCommit": "cb3709c59",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard abb2e76f56282e8c5168f2edf59f0b1886a8c6bb",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "cb3709c59"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "wasm/web with headed Playwright and WebGPU enabled",
+  "hypothesisMarkdown": "# Hypothesis\n\nTaffy 0.14's `TaffyTree::clear()` clears nodes, children, and parents but not its sparse measured-node context map. Because gpux rebuilds the layout tree every frame and creates 229 measured leaves in the profiled workload, explicitly removing those contexts before clearing the tree should eliminate unbounded closure retention without vendoring or forking Taffy.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\n1. Track measured layout IDs in `TaffyLayoutEngine` and remove their node contexts before calling `TaffyTree::clear()`.\n2. Add a drop-count regression test proving frame-local measure closures are released by `clear()`.\n3. Run package formatting, all gpux tests, the gpui_wgpu diagnostics suite, diagnostics-disabled gpux check, and warning-denied gpux Clippy.\n4. Run three fresh headed Test Suite WebGPU processes at DPR 1 and DPR 2 and compare against the three-process stable checkpoint distribution from experiment 27.\n5. Require exact rendering and layout counters, zero terminal error, bounded context lifetime, and no more than 5% regression in central throughput or paced p95.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nMeasured-node closures are bounded to the current frame rather than accumulating by 229 per warmed wide DataTable draw. Layout and rendering remain exact, while short-run throughput and paced p95 remain within the 5% non-regression envelope.\n",
+  "diagnostics": {
+    "playwright": [
+      "Three fresh headed Chromium/WebGPU processes passed both DPRs with one worker (6/6 project runs) and zero terminal errors.",
+      "apps/test_suite was the exclusive runtime fixture; each build verified shared memory and wasm_thread_entry_point."
+    ],
+    "rayx": [
+      "The focused drop-count regression passed and proves three captured measured-node contexts drop during TaffyLayoutEngine::clear().",
+      "All 401 gpux diagnostics tests and all 52 gpui_wgpu diagnostics tests passed.",
+      "Diagnostics-disabled gpux check, package formatting, warning-denied gpux Clippy, AgentX memory audit, and improvement-loop validation passed."
+    ],
+    "counters": [
+      "The warmed wide DataTable creates 229 measured Taffy leaves per frame; these contexts are now removed before the generational IDs become invalid.",
+      "All six browser projects preserved the exact Taffy vector 1123,229,341,782,1041,25,673,726,755,780,405,377,0,82,0,0,3661,2574,1005,0 and zero terminal error."
+    ],
+    "artifacts": [
+      "artifacts-temp/agentx-experiments/gpux-maximum-performance/29-taffy-measured-context-cleanup/"
+    ]
+  },
+  "measurements": [
+    {
+      "metric": "retained measured contexts after clear",
+      "before": "229 additional boxed closures per warmed frame",
+      "after": "0 frame-local measured contexts",
+      "delta": "unbounded growth removed"
+    },
+    {
+      "metric": "DPR 1 median acknowledged steps/s",
+      "before": "29.970956644463666",
+      "after": "30.050889679127124",
+      "delta": "+0.2667%"
+    },
+    {
+      "metric": "DPR 2 median acknowledged steps/s",
+      "before": "29.848380673113812",
+      "after": "30.158297889793747",
+      "delta": "+1.0383%"
+    },
+    {
+      "metric": "DPR 1 median paced p95",
+      "before": "27.572265625 ms",
+      "after": "27.727294921875 ms",
+      "delta": "+0.5623%"
+    },
+    {
+      "metric": "DPR 2 median paced p95",
+      "before": "27.164306640625 ms",
+      "after": "28.35888671875 ms",
+      "delta": "+4.3976%"
+    }
+  ],
+  "reportMarkdown": "## Taffy Measured Context Cleanup Finished\n\n**Index:** 29\n**Checkpoint:** `abb2e76f56282e8c5168f2edf59f0b1886a8c6bb`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. gpux now removes every measured-node context before Taffy's primary slot maps invalidate the corresponding generational IDs. The focused drop oracle proves the contexts are released, so the profiled workload no longer retains another 229 boxed measurement closures after every draw.\n\nThree fresh headed WebGPU processes at both DPRs preserved the exact Taffy and renderer counters and zero terminal errors. Median acknowledged throughput moved +0.27% at DPR 1 and +1.04% at DPR 2. Paced p95 moved +0.56% and +4.40%, remaining inside the declared 5% non-regression envelope.\n\n### Scope Lock\n\nThe only production mechanism is measured-context cleanup in `TaffyLayoutEngine`; no dependency source, Taffy storage, layout algorithm, renderer, or virtualization change was included.\n\n### Decision\n\nAccept and commit. The change converts an unbounded per-frame retention path into current-frame-bounded ownership while keeping registry Taffy 0.14 and preserving browser behavior.\n",
+  "decisionMarkdown": "Accept and commit. Track measured node IDs and remove their contexts before Taffy invalidates those IDs; retain crates.io Taffy 0.14 with no fork or vendor surface.",
+  "notes": "Attempt Count: 1. Out-of-scope changes: none. Baseline measurements use experiment 27's three-process stable checkpoint because no production source changed between that checkpoint and this experiment's checkpoint."
+}

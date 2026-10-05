@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "id": "7306d21a-fc9a-41c8-b423-712524576139",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 82,
+  "type": "hypothesis",
+  "name": "Post Request Handoff CPU Profile",
+  "slug": "post-request-handoff-cpu-profile",
+  "path": "2026-08-31-82-post-request-handoff-cpu-profile.json",
+  "createdAt": "2026-08-31T13:17:37Z",
+  "startedAt": "2026-08-31T13:17:37Z",
+  "finishedAt": "2026-08-31T13:27:30Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "bb593689aceaecc95f27e8a7f8b3fd82f2645a2f",
+  "resultCommit": "bb593689aceaecc95f27e8a7f8b3fd82f2645a2f",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard bb593689aceaecc95f27e8a7f8b3fd82f2645a2f",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "bb593689aceaecc95f27e8a7f8b3fd82f2645a2f",
+      "resultCommit": "bb593689aceaecc95f27e8a7f8b3fd82f2645a2f",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard bb593689aceaecc95f27e8a7f8b3fd82f2645a2f",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "bb593689aceaecc95f27e8a7f8b3fd82f2645a2f"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "headed Test Suite WASM/WebGPU CPU profile",
+  "hypothesisMarkdown": "## Post Request Handoff CPU Profile Hypothesis\n\nA fresh accepted-build CPU profile after removing 716 request-to-prepaint style computations will show the reduced style-construction family and identify the next dominant gpux-owned mechanism more reliably than the pre-handoff profile.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRead-only CPU profiling and sampled-stack aggregation only. Production source, dependencies, Test Suite fixtures, diagnostics schemas, performance fixes, and durable memory/skill claims are forbidden.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nRun the canonical wide DataTable benchmark once at DPR 1 and DPR 2 in one headed Chromium/WebGPU process with `RAYX_CPU_PROFILE=1`. Require exact final offset, renderer/Taffy/text/style ownership counters, 716 request-style reuses, 13 external candidates, and zero terminal errors. Aggregate sampled self time by function and subsystem, compare style compute/refine/drop and leading gpux-owned families with experiment 76, and produce a ranked list of single-mechanism candidates. Raw profiles remain under ignored `artifacts-temp`.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nThe profile should confirm that request/prepaint style construction is no longer the leading avoidable family and identify at least one higher-confidence gpux-owned mechanism for experiment 83, or establish that narrower telemetry is needed before another production change.",
+  "diagnostics": {
+    "playwright": [
+      "One headed Chromium/WebGPU CPU-profile process passed DPR 1 and DPR 2 with exact final offset -351402.6875 and zero terminal errors."
+    ],
+    "rayx": [
+      "The multithreaded WASM build verified shared memory, wasm_thread_entry_point, and 99187 atomic-prefix bytes."
+    ],
+    "counters": [
+      "Both DPRs preserved stylePrepaintRequestReuseCount=716, gpux-owned candidates=716, external candidates=13, and every established renderer/Taffy/text invariant."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "DPR1 style refine self time",
+      "before": "141.522 ms",
+      "after": "48.624 ms",
+      "delta": "-65.64%",
+      "source": "experiment 76 and 82 Chrome CPU profiles"
+    },
+    {
+      "metric": "DPR2 style refine self time",
+      "before": "130.374 ms",
+      "after": "61.222 ms",
+      "delta": "-53.04%",
+      "source": "experiment 76 and 82 Chrome CPU profiles"
+    },
+    {
+      "metric": "DPR1 compute_style_internal self time",
+      "before": "58.466 ms",
+      "after": "25.118 ms",
+      "delta": "-57.04%",
+      "source": "experiment 76 and 82 Chrome CPU profiles"
+    },
+    {
+      "metric": "DPR2 compute_style_internal self time",
+      "before": "77.150 ms",
+      "after": "45.521 ms",
+      "delta": "-41.00%",
+      "source": "experiment 76 and 82 Chrome CPU profiles"
+    },
+    {
+      "metric": "DPR1 Interactivity prepaint self time",
+      "before": "242.831 ms",
+      "after": "168.605 ms",
+      "delta": "-30.57%",
+      "source": "all prepaint monomorphs in experiment 76 and 82 profiles"
+    },
+    {
+      "metric": "DPR2 Interactivity prepaint self time",
+      "before": "234.251 ms",
+      "after": "154.604 ms",
+      "delta": "-34.00%",
+      "source": "all prepaint monomorphs in experiment 76 and 82 profiles"
+    },
+    {
+      "metric": "DPR1/DPR2 flexbox self time",
+      "before": "652.363 / 712.747 ms",
+      "after": "580.206 / 658.450 ms",
+      "delta": "-11.06% / -7.62%",
+      "source": "experiment 76 and 82 Chrome CPU profiles"
+    },
+    {
+      "metric": "DPR1/DPR2 allocator malloc plus free self time",
+      "before": "485.962 / 478.928 ms",
+      "after": "459.027 / 480.608 ms",
+      "delta": "-5.54% / +0.35%",
+      "source": "experiment 76 and 82 Chrome CPU profiles"
+    }
+  ],
+  "reportMarkdown": "## Post Request Handoff CPU Profile Finished\n\n**Index:** 82\n**Checkpoint:** bb593689a\n**Result Commit:** bb593689a\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status**: true. The measurement-only headed WebGPU run passed at both DPRs with exact runtime invariants and no production changes.\n\nThe accepted request handoff reduced sampled `Style::refine` self time 65.64%/53.04%, `compute_style_internal` 57.04%/41.00%, StyleRefinement drop work 31.00%/35.59%, and aggregate Interactivity prepaint self time 30.57%/34.00% at DPR 1/2 versus experiment 76. This directly confirms the intended CPU mechanism independently of cadence noise.\n\nThe remaining dominant sampled family is upstream Taffy flexbox at 580.206/658.450 ms, followed by allocator malloc plus free at 459.027/480.608 ms. Allocation ancestry attributes 83.71/73.21 ms to flexbox, 28.27/23.61 ms to block layout, 28.11/37.93 ms to `div()` construction, 23.72/44.34 ms to Interactivity drop, 25.29/36.35 ms to Window draw, and 15.62/20.05 ms to GlobalElementId Arc path creation. The next step should inspect current upstream Taffy release/flex allocation changes before introducing local allocation machinery; if no safe upstream improvement exists, add narrow Div base-style allocation telemetry rather than speculatively inlining its large refinement.\n\n### Scope Lock\n\nRead-only CPU profiling and aggregation only. No production source, dependency, fixture, diagnostics schema, memory, or skill file changed.\n\n### Repository Checkpoints\n\n| Repo | Path | Checkpoint | Result Commit | Status | Rollback |\n| --- | --- | --- | --- | --- | --- |\n| main | . | bb593689a | bb593689a | unchanged | `git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard bb593689aceaecc95f27e8a7f8b3fd82f2645a2f` |\n\n### Decision\n\nAccept the profile as proof that experiment 81 removed the targeted style CPU work. Research the current Taffy release and its flex allocation path as the next atomic read-only hypothesis before changing dependencies or local layout code.",
+  "decisionMarkdown": "### Decision\n\nKeep the accepted request-style handoff. Start experiment 83 as current upstream Taffy release and flex-allocation research; do not change a dependency or add a local pool until source and changelog evidence identify one isolated mechanism.",
+  "notes": "Attempt Count: 1. Raw CPU profiles remain only under the ignored artifacts-temp experiment directory. No durable memory or gpux skill guidance changed because this experiment was measurement-only."
+}

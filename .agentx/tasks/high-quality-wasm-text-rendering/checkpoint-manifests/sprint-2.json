@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 5,
+  "epicId": "high-quality-wasm-text-rendering",
+  "sprint": 2,
+  "auditSha256": "94413495bad271d2b31e1551695f45d47083751122c5424d40fceda16baad4ec",
+  "evidenceSha256": "3fb71da608be016b7bb41196d414ce3b6836e7a6a6824a9133b97cbdbcb9976b",
+  "repositories": [
+    {
+      "id": "main",
+      "path": "C:\\Users\\dinko\\.codex\\worktrees\\8da1\\RayX",
+      "baselineHead": "94ea2685705007ee69a0d145210730f81c44f62a",
+      "resultHead": "7b0eb15e9a134ac7acae30f2727a2ba2c61e1e70",
+      "commits": [
+        "7b0eb15e9a134ac7acae30f2727a2ba2c61e1e70"
+      ],
+      "statusHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sprintOwnedPaths": [
+        "C:\\Users\\dinko\\.codex\\worktrees\\8da1\\RayX\\artifacts-temp\\test_suite\\wasm-text-rendering-dpr",
+        "C:\\Users\\dinko\\.codex\\worktrees\\8da1\\RayX\\crates\\gpux\\crates\\gpui\\src\\text_system.rs",
+        "C:\\Users\\dinko\\.codex\\worktrees\\8da1\\RayX\\crates\\gpux\\crates\\gpui_web",
+        "C:\\Users\\dinko\\.codex\\worktrees\\8da1\\RayX\\crates\\gpux\\crates\\gpui_web\\src\\window.rs"
+      ],
+      "unrelatedDirtyPaths": [],
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\8da1\\RayX\" revert --no-commit 94ea2685705007ee69a0d145210730f81c44f62a..7b0eb15e9a134ac7acae30f2727a2ba2c61e1e70"
+    }
+  ],
+  "generatedAt": "2026-08-04T14:52:52Z"
+}

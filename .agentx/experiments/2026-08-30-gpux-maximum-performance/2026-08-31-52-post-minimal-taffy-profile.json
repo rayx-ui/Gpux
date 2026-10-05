@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "id": "74036172-8b40-4739-99ea-800d8307f1ba",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 52,
+  "type": "hypothesis",
+  "name": "Post-Minimal Taffy Profile",
+  "slug": "post-minimal-taffy-profile",
+  "path": "2026-08-31-52-post-minimal-taffy-profile.json",
+  "createdAt": "2026-08-31T03:58:58Z",
+  "startedAt": "2026-08-31T03:58:58Z",
+  "finishedAt": "2026-08-31T04:03:44Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "98b8f7730c6c2a26355d317a28b20591cb1a30e5",
+  "resultCommit": "98b8f7730c6c2a26355d317a28b20591cb1a30e5",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 98b8f7730c6c2a26355d317a28b20591cb1a30e5",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "98b8f7730c6c2a26355d317a28b20591cb1a30e5",
+      "resultCommit": "98b8f7730c6c2a26355d317a28b20591cb1a30e5",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 98b8f7730c6c2a26355d317a28b20591cb1a30e5",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "98b8f7730c6c2a26355d317a28b20591cb1a30e5"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "apps/test_suite headed WASM/WebGPU wide DataTable CPU profile",
+  "hypothesisMarkdown": "A fresh CPU profile of the accepted minimum-feature Taffy build will show lower `TaffyLayoutEngine::request_taffy_node` style-equality cost than experiment 50 because unused feature-gated `Style` fields are absent, while preserving exact output and identifying the next source-mappable gpux layout hotspot.\n",
+  "measurementPlanMarkdown": "Run one headed Chromium/WebGPU Test Suite process at DPR 1 and DPR 2 with CPU profiling enabled. Aggregate sample `timeDelta` by symbol for total Taffy compute, `TaffyLayoutEngine::request_taffy_node`, Taffy style/geometry equality, node access, layout bounds, and leading gpux-owned frames. Compare directly with experiment 50, require exact final offsets and established renderer/layout/identity counters, and make no source change.\n",
+  "expectedOutcomeMarkdown": "Both browser projects pass with exact behavior. The profile confirms whether minimum features reduce request/style comparison work and yields one evidence-backed next hypothesis without changing product source.\n",
+  "diagnostics": {
+    "playwright": [
+      "One headed Chromium/WebGPU CPU-profile process passed DPR 1 and DPR 2 with exact final offset -351402.6875 and zero terminal errors.",
+      "Both profiles preserved 1123 Taffy nodes, 229 measured leaves, 782 containers, 1041 child edges, 82 compute calls, 3661 bounds calls, nine batches, 12 queue writes, and the 485/24/485 global-ID signature."
+    ],
+    "rayx": [
+      "Measurement-only experiment; production source remained at checkpoint 98b8f7730c6c2a26355d317a28b20591cb1a30e5.",
+      "The multithreaded WASM build verified shared memory, wasm_thread_entry_point, and 98697 atomic-prefix bytes."
+    ],
+    "counters": [
+      "The same sample-time classifier was applied to experiment 50 and experiment 52 Chrome CPU profiles for self and inclusive comparisons.",
+      "Gpux derives scroll content size from child layout bounds in div prepaint rather than reading Taffy Layout.content_size, supporting a separate content_size-feature experiment with focused semantic validation."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 request_taffy_node inclusive time",
+      "before": "256.289 ms",
+      "after": "208.595 ms",
+      "delta": "-18.61%"
+    },
+    {
+      "metric": "DPR 2 request_taffy_node inclusive time",
+      "before": "237.163 ms",
+      "after": "190.341 ms",
+      "delta": "-19.74%"
+    },
+    {
+      "metric": "DPR 1/2 request_taffy_node self time",
+      "before": "169.723 / 181.739 ms",
+      "after": "158.263 / 122.650 ms",
+      "delta": "-6.75% / -32.51%"
+    },
+    {
+      "metric": "DPR 1/2 Taffy PartialEq self time",
+      "before": "69.182 / 50.711 ms",
+      "after": "36.358 / 47.208 ms",
+      "delta": "-47.45% / -6.91%"
+    },
+    {
+      "metric": "DPR 1/2 Taffy compute inclusive time",
+      "before": "2576.954 / 2928.324 ms",
+      "after": "2665.820 / 2708.137 ms",
+      "delta": "+3.45% / -7.52% (mixed process variance)"
+    }
+  ],
+  "reportMarkdown": "## Post-Minimal Taffy Profile Finished\n\n**Index:** 52\n**Checkpoint:** `98b8f7730c6c2a26355d317a28b20591cb1a30e5`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. Headed WebGPU CPU profiles at DPR 1 and DPR 2 preserved exact final offsets, all established renderer/layout/identity counters, and zero terminal errors. The multithreaded build again reported 98,697 atomic-prefix bytes.\n\nUsing the same sample-time classifier on experiment 50 and the current profiles, `request_taffy_node` inclusive time fell from 256.289/237.163 ms to 208.595/190.341 ms at DPR 1/2 (-18.61%/-19.74%). Its self time fell 6.75%/32.51%, while Taffy `PartialEq` leaves fell 47.45%/6.91%. Total Taffy compute inclusive time moved +3.45%/-7.52%, a mixed process result that does not justify a broad compute claim.\n\n### Scope Lock\n\nMeasurement only. No source, dependency, fixture, renderer, shader, layout, memory, or public API change was made.\n\n### Decision\n\nRetain the minimum Taffy feature set: direct profiling confirms lower request/equality cost at both DPRs. The remaining dominant work is Taffy flex/block computation. Gpux computes scroll content extents from child layout bounds and does not consume Taffy's `Layout.content_size`; test disabling that semantic feature as a separate atomic experiment with focused overflow/content-size tests and complete runtime proof.\n",
+  "decisionMarkdown": "Retain experiment 51. The same CPU-profile classifier shows request_taffy_node inclusive time down 18.61%/19.74% and Taffy equality self time down 47.45%/6.91% at DPR 1/2. Total compute remains mixed, so isolate disabling Taffy content_size in a new experiment rather than combining it with request-path changes.\n",
+  "notes": ""
+}

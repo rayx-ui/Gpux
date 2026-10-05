@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "id": "6481f7b9-0dfd-49ea-9726-99fbabe17e7b",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 67,
+  "type": "hypothesis",
+  "name": "Post Text Pool CPU Profile",
+  "slug": "post-text-pool-cpu-profile",
+  "path": "2026-08-31-67-post-text-pool-cpu-profile.json",
+  "createdAt": "2026-08-31T07:13:18Z",
+  "startedAt": "2026-08-31T07:13:18Z",
+  "finishedAt": "2026-08-31T07:48:47Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "e000c1a8c",
+  "resultCommit": "e000c1a8c",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard e000c1a8c",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "e000c1a8c",
+      "resultCommit": "e000c1a8c",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard e000c1a8c",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "e000c1a8c"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "headed Test Suite WebGPU CPU profile",
+  "hypothesisMarkdown": "# Hypothesis\n\nAfter accepted Taffy reuse, cached key hashing, input-sized decoration vectors, thread-local font-run scratch, and lazy line-wrapper acquisition, a fresh headed WebGPU CPU profile will show which gpux-owned call paths now dominate the warmed wide DataTable frame and provide stronger evidence for iteration 68 than the pre-text-optimization profiles.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\nMake no production source or dependency changes. Run the canonical headed Test Suite WebGPU benchmark once at DPR 1 and DPR 2 with Chromium CPU profiling enabled. Require exact established diagnostics, final offset, and zero errors. Aggregate self and total sampled time by function and gpux subsystem, compare against the most recent profile, and rank one-mechanism candidates. Store raw profiles only under this ignored experiment directory.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nThe profile should confirm that removed synchronization and allocation paths no longer dominate and identify at least one current gpux-owned path with enough sampled cost and a simple behavior-preserving mechanism for the next experiment. If samples are too noisy, record the measurement gap without changing source.\n",
+  "diagnostics": {
+    "headed_webgpu": {
+      "dpr1": "passed",
+      "dpr2": "passed",
+      "terminal_errors": 0,
+      "atomic_prefix_bytes": 99160
+    },
+    "binary_proof": {
+      "wasm_call_ctors_size_bytes": 760,
+      "inventory_submit_self_ms": [
+        506.85,
+        464.9
+      ],
+      "command_exports_with_constructor_call": [
+        "run",
+        "wasm_thread_entry_point",
+        "__wbindgen_malloc",
+        "__wbindgen_free",
+        "__wbindgen_realloc"
+      ]
+    }
+  },
+  "measurements": {
+    "dpr1": {
+      "taffy_compute_self_ms": 936.38,
+      "flexbox_self_ms": 627.36,
+      "block_layout_self_ms": 241.59,
+      "request_taffy_node_self_ms": 232.98,
+      "layout_bounds_self_ms": 73.92,
+      "style_refine_self_ms": 187.07,
+      "compute_style_self_ms": 107.99,
+      "global_element_id_new_self_ms": 34.74,
+      "arc_path_from_iter_self_ms": 96.58,
+      "malloc_self_ms": 258.79,
+      "free_self_ms": 141.74,
+      "inventory_submit_self_ms": 506.85
+    },
+    "dpr2": {
+      "taffy_compute_self_ms": 888.14,
+      "flexbox_self_ms": 580.63,
+      "block_layout_self_ms": 243.56,
+      "request_taffy_node_self_ms": 274.37,
+      "layout_bounds_self_ms": 69.22,
+      "style_refine_self_ms": 210.46,
+      "compute_style_self_ms": 79.49,
+      "global_element_id_new_self_ms": 20.45,
+      "arc_path_from_iter_self_ms": 120.82,
+      "malloc_self_ms": 279.29,
+      "free_self_ms": 163.97,
+      "inventory_submit_self_ms": 464.9
+    },
+    "comparison_to_experiment_54": {
+      "taffy_compute_self_delta_percent": [
+        -17.47,
+        -18.28
+      ],
+      "flexbox_self_delta_percent": [
+        -22.34,
+        -25.32
+      ],
+      "block_layout_self_delta_percent": [
+        -11.89,
+        -8.7
+      ]
+    }
+  },
+  "reportMarkdown": "# Post Text Pool CPU Profile\n\nThe canonical headed Test Suite WebGPU CPU-profile run passed at DPR 1 and DPR 2 with zero terminal errors and the established wide-DataTable invariants. The multithreaded build verified shared memory, `wasm_thread_entry_point`, and 99,160 atomic-prefix bytes.\n\nRelative to experiment 54, Taffy compute self time fell 17.47%/18.28%, flexbox self time fell 22.34%/25.32%, and block-layout self time fell 11.89%/8.70% at DPR 1/2. This confirms that the accepted layout and text-path changes materially reduced the former dominant family.\n\nThe largest newly exposed avoidable family is WebAssembly constructor registration. `inventory::Registry::submit` sampled 506.85/464.90 ms of self time. Inspection of the final `rayx_test_suite_web_bg.wasm` proves that the linker inserted a call to the 760-byte `__wasm_call_ctors` routine at the start of command exports including `run`, `wasm_thread_entry_point`, `__wbindgen_malloc`, `__wbindgen_free`, and `__wbindgen_realloc`. The routine calls the full constructor list without an outer guard; `inventory` makes each individual registration idempotent, but the repeated calls remain overhead.\n\nNo production source or dependency changed in this measurement-only experiment.\n",
+  "decisionMarkdown": "# Decision\n\nKeep all accepted gpux changes. Start a separate experiment that makes gpux's browser initialization call `__wasm_call_ctors` explicitly from the exported application path, which should cause the WASM linker to stop wrapping every command export. Preserve one constructor invocation per module instance and verify both main-thread startup and `wasm_thread_entry_point` behavior in the generated multithreaded binary before accepting any runtime result.\n",
+  "notes": ""
+}

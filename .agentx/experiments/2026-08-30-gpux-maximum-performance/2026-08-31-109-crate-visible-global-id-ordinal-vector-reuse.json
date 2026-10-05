@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "id": "72bf4db8-8f98-45a9-977e-259c815f5ea1",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 109,
+  "type": "hypothesis",
+  "name": "Crate Visible Global ID Ordinal Vector Reuse",
+  "slug": "crate-visible-global-id-ordinal-vector-reuse",
+  "path": "2026-08-31-109-crate-visible-global-id-ordinal-vector-reuse.json",
+  "createdAt": "2026-08-31T17:40:39Z",
+  "startedAt": "2026-08-31T17:40:39Z",
+  "finishedAt": "2026-08-31T17:49:50Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "ef077318a37e5a1b0134ef2bb7f53fa742ce0d64",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard ef077318a37e5a1b0134ef2bb7f53fa742ce0d64",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "ef077318a37e5a1b0134ef2bb7f53fa742ce0d64",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard ef077318a37e5a1b0134ef2bb7f53fa742ce0d64",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux GlobalElementId path Arc allocation",
+  "hypothesisMarkdown": "## Crate-Visible Global ID Ordinal Vector Reuse Hypothesis\n\nWith the Window creation helper correctly crate-visible from the outset, the 100%-stable previous-frame ordinal vector can eliminate most repeated `Arc<[ElementId]>` allocations using O(1) lookup and authoritative full-path equality without the rejected hash map's throughput cost.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nAdd one `Vec<GlobalElementId>` to `WindowFrame`, one collision-safe constructor, one `pub(crate)` Window creation path used by all three production constructors, and focused reuse/mismatch assertions. Do not change public APIs, element identity semantics, diagnostics schema, dependencies, unrelated frame storage, or benchmark fixtures.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nRun nested formatting, diagnostics-disabled/enabled Clippy with warnings denied, focused and full gpux tests, WGPU tests, then exclusive headed Test Suite WASM/WebGPU proof at both DPRs with CPU profiles. Require exact offsets/counters and zero errors. Compare median acknowledged steps/second, paced p95 catch-up latency, and `Arc<[ElementId]>::from_iter` self time against accepted experiment 102; reject on material throughput or p95 regression even if allocation time falls.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nRetain collision-safe identity behavior, reduce repeated global-ID Arc construction by roughly 80% or more, and avoid the prior hash-map candidate's throughput regression through direct ordinal lookup.\n",
+  "diagnostics": {
+    "playwright": [
+      "2/2 headed Chromium WebGPU projects passed at DPR 1 and DPR 2.",
+      "Both projects reached the exact final offset and retained 485/485 same-ordinal hits."
+    ],
+    "rayx": [
+      "All runtime validation used apps/test_suite; apps/lab was not launched or modified.",
+      "CPU profiles were captured with RAYX_CPU_PROFILE=1.",
+      "Product source was restored exactly to checkpoint ef077318a."
+    ],
+    "counters": [
+      "DPR 1 Arc construction self time: 28.059 ms; new_or_reuse inclusive: 245.142 ms.",
+      "DPR 2 Arc construction self time: 21.977 ms; new_or_reuse inclusive: 303.038 ms."
+    ],
+    "artifacts": [
+      "test-results/test_suite-rayx-data-table-ebb47-d-thumb-drag-render-cadence-chromium/data-table-wide-scroll.cpuprofile",
+      "test-results/test_suite-rayx-data-table-ebb47-d-thumb-drag-render-cadence-chromium-dpr2/data-table-wide-scroll.cpuprofile"
+    ]
+  },
+  "measurements": {
+    "schemaVersion": 1,
+    "status": "failure",
+    "sourceRestoredToCheckpoint": true,
+    "browserProjectsPassed": 2,
+    "gpuxUnitTestsPassed": 420,
+    "wgpuTestsPassed": 52,
+    "clippyFeatureMatricesPassed": 2,
+    "arcConstructionSelfMs": {
+      "referenceDpr1": 154.209,
+      "candidateDpr1": 28.059,
+      "deltaPercentDpr1": -81.804,
+      "referenceDpr2": 131.954,
+      "candidateDpr2": 21.977,
+      "deltaPercentDpr2": -83.345
+    },
+    "candidateNewOrReuseInclusiveMs": {
+      "dpr1": 245.142,
+      "dpr2": 303.038
+    },
+    "throughputStepsPerSecond": {
+      "referenceDpr1": 27.599698390495995,
+      "candidateDpr1": 25.919418471927184,
+      "deltaPercentDpr1": -6.088,
+      "referenceDpr2": 28.61858382082703,
+      "candidateDpr2": 26.599269437765294,
+      "deltaPercentDpr2": -7.056
+    },
+    "pacedP95Ms": {
+      "referenceDpr1": 27.9384765625,
+      "candidateDpr1": 28.873779296875,
+      "deltaPercentDpr1": 3.348,
+      "referenceDpr2": 27.187744140625,
+      "candidateDpr2": 28.94970703125,
+      "deltaPercentDpr2": 6.48
+    }
+  },
+  "reportMarkdown": "# Crate-Visible Global ID Ordinal Vector Reuse\n\nThe corrected implementation passed formatting, diagnostics-disabled and diagnostics-enabled Clippy with warnings denied, three focused global-ID tests, all 420 gpux unit tests plus integrations, all 52 WGPU tests, and 2/2 headed Test Suite WebGPU cases. Full-path equality remained authoritative, and both DPRs retained 485/485 exact same-ordinal hits.\n\nThe vector removed most of the intended allocation hotspot. `Arc<[ElementId]>::from_iter_exact` self time fell from 154.209 to 28.059 ms at DPR 1 (-81.804%) and from 131.954 to 21.977 ms at DPR 2 (-83.345%). However, `GlobalElementId::new_or_reuse` consumed 245.142/303.038 ms inclusive, so hashing, full-path equality, Arc reference counting, and vector retention still cost more than the eliminated allocation.\n\nAgainst experiment 102's accepted profile, median acknowledged throughput fell from 27.599698 to 25.919418 steps/s at DPR 1 (-6.088%) and from 28.618584 to 26.599269 at DPR 2 (-7.056%). Paced p95 regressed from 27.938477 to 28.873779 ms at DPR 1 (+3.348%) and from 27.187744 to 28.949707 ms at DPR 2 (+6.480%). The predeclared product gate therefore rejects the vector.\n\nBoth product files were restored exactly to checkpoint `ef077318a37e5a1b0134ef2bb7f53fa742ce0d64`. Together with the hash-map rejection, this closes previous-frame global-ID Arc reuse: path validation and extra ownership cost outweigh allocation savings in this workload.\n",
+  "decisionMarkdown": "# Decision\n\nReject the ordinal-vector reuse implementation and restore the checkpoint. Do not retry previous-frame `GlobalElementId` Arc reuse through a map or vector: both measured mechanisms reduce allocation samples but regress two-DPR product performance. Select a different current profile hotspot for the next research branch.\n",
+  "notes": ""
+}

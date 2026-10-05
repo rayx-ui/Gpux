@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "id": "57064dcb-e249-4e39-8a86-e84adcf0ba0a",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 30,
+  "type": "hypothesis",
+  "name": "Taffy Layout Node Reuse",
+  "slug": "taffy-layout-node-reuse",
+  "path": "2026-08-31-30-taffy-layout-node-reuse.json",
+  "createdAt": "2026-08-31T00:13:27Z",
+  "startedAt": "2026-08-31T00:13:27Z",
+  "finishedAt": "2026-08-31T00:30:38Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "bbb4b80926b89a52e95500106c57b6b29276b74b",
+  "resultCommit": "2708debca492e239822be04cebe9def4a518bbca",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard bbb4b80926b89a52e95500106c57b6b29276b74b",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "bbb4b80926b89a52e95500106c57b6b29276b74b",
+      "resultCommit": "2708debca492e239822be04cebe9def4a518bbca",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard bbb4b80926b89a52e95500106c57b6b29276b74b",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "2708debca492e239822be04cebe9def4a518bbca"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "wasm/web with headed Playwright and WebGPU enabled",
+  "hypothesisMarkdown": "# Hypothesis\n\nGPUI requests Taffy layouts in post-order and then discards the complete tree every frame. Retaining a per-window pool of Taffy nodes, detaching active edges in reverse post-order during clear, and reconfiguring those nodes next frame should eliminate repeated node and child-buffer allocation while preserving layout semantics and bounding storage to the maximum observed tree size.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\n1. Add a per-window node pool and active cursor to `TaffyLayoutEngine`; detach active topology in reverse request order, remove measured contexts, and reuse nodes through Taffy's mutation APIs.\n2. Add focused tests proving changed topology, parent links, layout results, measured-context release, and node-ID reuse across clears.\n3. Run package formatting, all gpux tests, the gpui_wgpu diagnostics suite, diagnostics-disabled gpux check, and warning-denied gpux Clippy.\n4. Run three fresh headed Test Suite WebGPU processes at DPR 1 and DPR 2 and compare against experiment 29's three-process stable distribution.\n5. Require exact rendering/layout counters, zero terminal error, and no more than 5% regression in central throughput or paced p95.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nAfter the first maximum-size frame, the profiled 1,123-node/782-container layout tree reuses its Taffy nodes and child-vector allocations rather than recreating them. Behavior remains exact, storage is bounded by the window's maximum observed layout-tree size, and browser throughput and paced p95 remain within the 5% non-regression envelope.\n",
+  "diagnostics": {
+    "playwright": [
+      "Three fresh headed Chromium/WebGPU processes passed both DPRs with one worker (6/6 project runs) and zero terminal errors.",
+      "apps/test_suite was the exclusive runtime fixture; each build verified shared memory and wasm_thread_entry_point."
+    ],
+    "rayx": [
+      "Both focused Taffy reuse/context tests passed; all 402 gpux diagnostics tests passed.",
+      "The parallel gpui_wgpu run reproduced the known last-two atlas-test device hang; the required serialized recovery run passed all 52 tests in 0.79 s.",
+      "Diagnostics-disabled gpux check, package formatting, and warning-denied gpux Clippy passed."
+    ],
+    "counters": [
+      "The warmed wide DataTable requests 1,123 Taffy nodes and 782 container child buffers per frame; these allocations are now reused after the first maximum-size frame.",
+      "All six browser projects preserved the exact Taffy vector 1123,229,341,782,1041,25,673,726,755,780,405,377,0,82,0,0,3661,2574,1005,0 and zero terminal error."
+    ],
+    "artifacts": [
+      "artifacts-temp/agentx-experiments/gpux-maximum-performance/30-taffy-layout-node-reuse/"
+    ]
+  },
+  "measurements": [
+    {
+      "metric": "Taffy node allocations after warmup",
+      "before": "1,123 node creations and 782 container child-buffer creations per frame",
+      "after": "0 node creations after reaching the window's maximum observed tree size; existing nodes and child-buffer capacities are reused",
+      "delta": "repeated tree allocation removed"
+    },
+    {
+      "metric": "DPR 1 median acknowledged steps/s",
+      "before": "30.050889679127124",
+      "after": "30.08180144266304",
+      "delta": "+0.1029%"
+    },
+    {
+      "metric": "DPR 2 median acknowledged steps/s",
+      "before": "30.158297889793747",
+      "after": "30.04301483756909",
+      "delta": "-0.3823%"
+    },
+    {
+      "metric": "DPR 1 median paced p95",
+      "before": "27.727294921875 ms",
+      "after": "26.94287109375 ms",
+      "delta": "-2.8291%"
+    },
+    {
+      "metric": "DPR 2 median paced p95",
+      "before": "28.35888671875 ms",
+      "after": "26.511474609375 ms",
+      "delta": "-6.5144%"
+    }
+  ],
+  "reportMarkdown": "## Taffy Layout Node Reuse Finished\n\n**Index:** 30\n**Checkpoint:** `bbb4b80926b89a52e95500106c57b6b29276b74b`\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** true. `TaffyLayoutEngine` now retains a window-owned pool bounded by the maximum observed layout-tree size. Because GPUI layout requests are post-order, clearing active nodes in reverse request order safely detaches parents before children, preserves child-vector capacity, releases measured contexts, and lets the next frame replace styles, contexts, and topology on the same node IDs.\n\nThree fresh headed WebGPU processes at both DPRs preserved exact Taffy/renderer telemetry and zero terminal errors. Median acknowledged throughput moved +0.10% at DPR 1 and -0.38% at DPR 2. Paced p95 improved 2.83% and 6.51%, respectively.\n\n### Scope Lock\n\nThe only production mechanism is per-window Taffy layout-node reuse in `TaffyLayoutEngine`; no dependency, Taffy algorithm, renderer, shader, `GlobalElementId`, or virtualization change was included.\n\n### Decision\n\nAccept and commit. The change removes repeated warmed-frame tree allocation with bounded ownership, focused topology/context proof, exact browser behavior, neutral central throughput, and better paced p95.\n",
+  "decisionMarkdown": "Accept and commit. Reuse a per-window Taffy node pool, detach topology in reverse post-order, and bound retained storage to the window's maximum observed layout-tree size.",
+  "notes": "Attempt Count: 1. Out-of-scope changes: none. The parallel gpui_wgpu device-test hang is a known scheduling issue; the serialized 52-test rerun passed. Baseline measurements use experiment 29's three-process accepted distribution."
+}

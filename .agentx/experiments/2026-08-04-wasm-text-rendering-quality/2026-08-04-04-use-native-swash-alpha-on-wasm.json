@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "id": "11c2571e-3085-4c32-82b9-7fe30f2d6ae3",
+  "loopId": "dc424089-d0a5-4558-ae79-72a6a8d787db",
+  "index": 4,
+  "type": "hypothesis",
+  "name": "Use Native Swash Alpha On WASM",
+  "slug": "use-native-swash-alpha-on-wasm",
+  "path": "2026-08-04-04-use-native-swash-alpha-on-wasm.json",
+  "createdAt": "2026-08-04T15:13:02Z",
+  "startedAt": "2026-08-04T15:13:02Z",
+  "finishedAt": "2026-08-04T15:15:49Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "97d1111fd8cd5c1603da2ea6289e610aa4e2f801",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\8da1\\RayX\" reset --hard 97d1111fd8cd5c1603da2ea6289e610aa4e2f801",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "97d1111fd8cd5c1603da2ea6289e610aa4e2f801",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\8da1\\RayX\" reset --hard 97d1111fd8cd5c1603da2ea6289e610aa4e2f801",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "wasm/web with headed Playwright and WebGPU enabled",
+  "hypothesisMarkdown": "## Use Native Swash Alpha On WASM\n\nThe WASM grayscale path rasterizes Swash Format::Alpha coverage but then applies DirectWrite-derived contrast and gamma intended for a different coverage producer. Selecting raw Swash alpha for grayscale Glyph sprites on WASM only should improve low-density edge fidelity while leaving ImageMask coverage, subpixel/LCD correction, native target behavior, geometry, and cache identity unchanged.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nReuse the existing GammaParams padding word as an explicit compile-target policy bit, select raw sample coverage only for monochrome Glyph sprites on WASM, and keep every other shader path intact. Run gpui_wgpu formatting/tests and the full current-candidate headed Test Suite WASM/WebGPU matrix. Accept only if every quality, fringe, alignment, native-DPR backing, and warm timing gate passes.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nDPR 1 minimum acutance rises to at least 0.90 without chromatic fringes or geometry drift, higher densities remain passing, and native builds retain the existing corrected coverage path because the policy bit is false outside WASM.",
+  "diagnostics": {
+    "playwright": [
+      "All 28 gpui_wgpu unit tests passed.",
+      "The headed Test Suite WASM/WebGPU matrix captured all densities, but the current-candidate target remained red."
+    ],
+    "rayx": [
+      "Raw Swash alpha was selected only for WASM monochrome Glyph sprites during the attempt; ImageMask, LCD, native, geometry, and cache paths were unchanged. The attempted source change was then removed."
+    ],
+    "counters": [
+      "Minimum acutance ratio improved from 0.8046 to 0.8442; maximum RayX fringe ratio stayed 0; maximum alignment delta stayed 2 physical pixels."
+    ],
+    "artifacts": [
+      ".agentx/experiments/2026-08-04-wasm-text-rendering-quality/2026-08-04-04-use-native-swash-alpha-on-wasm.json"
+    ]
+  },
+  "measurements": [
+    {
+      "name": "minimum_acutance_ratio",
+      "value": 0.8442,
+      "unit": "ratio"
+    },
+    {
+      "name": "minimum_acutance_ratio_delta",
+      "value": 0.0396,
+      "unit": "ratio"
+    },
+    {
+      "name": "maximum_rayx_fringe_ratio",
+      "value": 0,
+      "unit": "ratio"
+    },
+    {
+      "name": "maximum_alignment_delta",
+      "value": 2,
+      "unit": "physical_pixels"
+    }
+  ],
+  "reportMarkdown": "## Experiment Report\n\nUsing raw Swash alpha on WASM improved low-density acutance by about 4.9 percent relative to the 0.8046 baseline, proving the DirectWrite-derived post-correction contributes to softness. The result still missed the fixed 0.90 minimum, so it is not a complete quality win. The production attempt was reverted before closing the experiment.",
+  "decisionMarkdown": "### Decision\n\nReject and revert this candidate despite the partial improvement. Proceed to the ordered Swash hint/raster-parameter candidate with the original renderer restored.",
+  "notes": "The quality contract was not weakened and no partial production improvement was retained."
+}

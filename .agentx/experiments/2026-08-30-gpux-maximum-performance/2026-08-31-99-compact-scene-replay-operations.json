@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "8e678768-e91f-4ec2-b3e4-5b3ae1aea4b2",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 99,
+  "type": "hypothesis",
+  "name": "Compact Scene Replay Operations",
+  "slug": "compact-scene-replay-operations",
+  "path": "2026-08-31-99-compact-scene-replay-operations.json",
+  "createdAt": "2026-08-31T16:15:27Z",
+  "startedAt": "2026-08-31T16:15:27Z",
+  "finishedAt": "2026-08-31T16:21:41Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "0ecacf91b5a3fac6af48fff0661fe9c0c0fe8216",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 0ecacf91b5a3fac6af48fff0661fe9c0c0fe8216",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "0ecacf91b5a3fac6af48fff0661fe9c0c0fe8216",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 0ecacf91b5a3fac6af48fff0661fe9c0c0fe8216",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux Scene compact paint operations, per-kind sort remaps, and O(1) subtree replay",
+  "hypothesisMarkdown": "## Compact Scene Replay Operations Hypothesis\n\nReplacing full replay primitives with 24-byte locators and 8-byte sort remaps will reduce Scene insertion copies, steady-state memory, and teardown scanning enough to improve or preserve two-DPR DataTable cadence.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nImplement compact Scene primitive operations, per-kind original-to-sorted remaps, stable indirect sorting, and O(1) replay only. Focused Scene tests may change. Renderer-facing primitive layouts, shaders, renderer batching, layer semantics, public APIs, dependencies, caches outside Scene, and adjacent cleanup are forbidden. Any correctness, compile, lint, or runtime failure ends the attempt and requires full source revert.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nAdd focused tests for duplicate-order stable remapping, mixed primitive/layer replay, and compact representation size. Run gpux tests, gpui_wgpu tests, warning-denied clippy, formatting, and the exclusive headed Test Suite WebGPU DataTable benchmark at DPR 1 and DPR 2. Compare cadence and exact established renderer/layout/text/style/final-offset invariants. Pass only with full correctness and no material cadence regression.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nReduce replay metadata by 86.21% per primitive, eliminate the second full primitive copy at insertion, preserve O(1) replay and exact ordering, and maintain or improve browser cadence.",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": {
+    "schemaVersion": 1,
+    "status": "failure",
+    "formatterPassed": false,
+    "compileRun": false,
+    "testsRun": false,
+    "browserRun": false,
+    "sourceReverted": true,
+    "sourceMatchesCheckpoint": true,
+    "productFilesChanged": 0,
+    "checkpointCommit": "0ecacf91b5a3fac6af48fff0661fe9c0c0fe8216"
+  },
+  "reportMarkdown": "# Compact Scene Replay Operations\n\nThe single implementation attempt added compact primitive locators, native-index replay remaps, stable indirect sorting, in-place permutation, and O(1) replay lookup in `scene.rs`.\n\nThe first validation gate failed before compilation: gpux-scoped `cargo fmt --check` reported two formatting differences in `replay_primitive`. The earlier repository-root formatter invocation also hit Windows path error 206 before examining code, so the scoped command was used as the authoritative formatter gate.\n\nThe experiment contract states that any correctness, compile, lint, formatting, or runtime failure ends the attempt. No formatting rewrite or other fix-forward was made. The full production file was restored byte-for-byte from checkpoint `0ecacf91b5a3fac6af48fff0661fe9c0c0fe8216`; `git diff --exit-code` confirmed no product delta remains. Tests and browser benchmarks were not run after the terminal formatting failure.\n",
+  "decisionMarkdown": "# Decision\n\nReject and revert this attempt because the first gpux formatting gate failed. The failure is mechanical rather than architectural, so a new atomic experiment may reapply the same compact-locator design with formatter-normalized source from the outset. Do not claim any performance result from experiment 99.\n",
+  "notes": ""
+}

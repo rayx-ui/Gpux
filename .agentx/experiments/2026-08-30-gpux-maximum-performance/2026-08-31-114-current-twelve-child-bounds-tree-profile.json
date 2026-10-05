@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "id": "047a920a-d425-4cd7-811e-3f388f052dc8",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 114,
+  "type": "hypothesis",
+  "name": "Current Twelve Child Bounds Tree Profile",
+  "slug": "current-twelve-child-bounds-tree-profile",
+  "path": "2026-08-31-114-current-twelve-child-bounds-tree-profile.json",
+  "createdAt": "2026-08-31T18:20:13Z",
+  "startedAt": "2026-08-31T18:20:13Z",
+  "finishedAt": "2026-08-31T18:26:07Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "4e547e79c627ce5306f39ba313ff0f313d3af5a2",
+  "resultCommit": "4e547e79c627ce5306f39ba313ff0f313d3af5a2",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 4e547e79c627ce5306f39ba313ff0f313d3af5a2",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "4e547e79c627ce5306f39ba313ff0f313d3af5a2",
+      "resultCommit": "4e547e79c627ce5306f39ba313ff0f313d3af5a2",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 4e547e79c627ce5306f39ba313ff0f313d3af5a2",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "4e547e79c627ce5306f39ba313ff0f313d3af5a2"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "current gpux BoundsTree 12-child performance baseline",
+  "hypothesisMarkdown": "## Current Twelve-Child Bounds Tree Profile Hypothesis\n\nA fresh profile of the restored 12-child accepted source will establish the current process-local throughput, p95, and insertion self-time reference needed to distinguish experiment 113's structural improvement from stale experiment-102 benchmark variance.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nMeasurement only. Run the existing exclusive Test Suite wide DataTable profile at both DPRs and record current bounds-tree counters and timing. Product code, tests, dependencies, configuration, and fixtures are forbidden.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nRun headed Test Suite WASM/WebGPU with CPU profiles at DPR 1 and 2 from the restored 12-child checkpoint. Require exact final rendering and zero errors. Record throughput, paced p95, insertion self time, child evaluations, search visits, and retained nodes as the sole paired reference for a separately declared 16-child retest.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nProduce a fresh accepted-source two-DPR baseline that either confirms experiment 102 or quantifies current process variance precisely enough for a fair paired candidate decision.\n",
+  "diagnostics": {
+    "playwright": [
+      {
+        "target": "apps/test_suite",
+        "runtime": "headed Chromium WASM/WebGPU",
+        "passed": 2,
+        "failed": 0
+      }
+    ],
+    "rayx": [],
+    "counters": [
+      "device scale factors 1 and 2",
+      "zero terminal error at both DPRs",
+      "504 insertions, 4440 visits, 14351 child evaluations, 576 retained nodes"
+    ],
+    "artifacts": [
+      "test-results",
+      "playwright-report",
+      "two CPU profiles"
+    ]
+  },
+  "measurements": {
+    "checkpointCommit": "4e547e79c627ce5306f39ba313ff0f313d3af5a2",
+    "maxChildren": 12,
+    "runs": [
+      {
+        "deviceScaleFactor": 1,
+        "medianAcknowledgedStepsPerSecond": 29.06310573869915,
+        "medianPacedP95CatchUpLatencyMs": 27.759033203125,
+        "medianPacedP95ThumbLagPx": 36.025977751255766,
+        "boundsTreeInsertSelfMs": 155.246,
+        "terminalErrorMax": 0.0
+      },
+      {
+        "deviceScaleFactor": 2,
+        "medianAcknowledgedStepsPerSecond": 29.347909265949358,
+        "medianPacedP95CatchUpLatencyMs": 27.533447265625,
+        "medianPacedP95ThumbLagPx": 35.335073966707284,
+        "boundsTreeInsertSelfMs": 144.38899999999998,
+        "terminalErrorMax": 0.0
+      }
+    ],
+    "boundsTree": {
+      "insertionCount": 504,
+      "maxLeafHitCount": 7,
+      "slowSearchCount": 495,
+      "searchNodeVisitCount": 4440,
+      "insertionChildEvaluationCount": 14351,
+      "retainedNodeCount": 576
+    },
+    "playwright": {
+      "passed": 2,
+      "failed": 0
+    }
+  },
+  "reportMarkdown": "# Experiment 114 Report\n\nThe restored 12-child BoundsTree checkpoint passed the exclusive Test Suite headed WASM/WebGPU benchmark at DPR 1 and DPR 2. Both runs reached the exact final offset with zero terminal error.\n\nAt DPR 1, median acknowledged throughput was 29.06310573869915 steps/s, paced p95 catch-up latency was 27.759033203125 ms, and sampled BoundsTree insertion self-time was 155.246 ms. At DPR 2, the corresponding measurements were 29.347909265949358 steps/s, 27.533447265625 ms, and 144.38899999999998 ms.\n\nThe deterministic structural counters matched the accepted 12-child topology at both DPRs: 504 insertions, 7 fast leaf hits, 495 slow searches, 4,440 search-node visits, 14,351 child evaluations, and 576 retained nodes.\n\nThe fresh throughput is substantially above experiment 102's older process-local sample, confirming that experiment 113 cannot be decided fairly against that stale reference. These measurements are the sole paired baseline for a separately declared 16-child retest.\n",
+  "decisionMarkdown": "# Decision\n\nAccept the measurement experiment. No product source changed. Use this exact two-DPR result as the only performance reference for the next independently declared 16-child BoundsTree experiment.\n",
+  "notes": ""
+}

@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "id": "485f084d-8abb-4e98-98ce-cef32a263d90",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 79,
+  "type": "hypothesis",
+  "name": "Frame Bounded Request Style Handoff",
+  "slug": "frame-bounded-request-style-handoff",
+  "path": "2026-08-31-79-frame-bounded-request-style-handoff.json",
+  "createdAt": "2026-08-31T12:02:40Z",
+  "startedAt": "2026-08-31T12:02:40Z",
+  "finishedAt": "2026-08-31T12:17:33Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "7b19c8b2f81f4909c90065a21ccc331b495c80a4",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 7b19c8b2f81f4909c90065a21ccc331b495c80a4",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "7b19c8b2f81f4909c90065a21ccc331b495c80a4",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 7b19c8b2f81f4909c90065a21ccc331b495c80a4",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "wasm/web with headed Playwright and WebGPU enabled",
+  "hypothesisMarkdown": "## Frame Bounded Request Style Handoff Hypothesis\n\nA private borrowed-style request path for gpux-owned interactive elements can retain the already-computed request `Style` in the existing window-owned draw-local slot, consume it during prepaint, and replace the same slot with the final prepaint style for paint. This should remove 729 warmed prepaint style computations without cloning `Style`, growing public lifecycle APIs, or adding cross-frame invalidation.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nAllowed changes are the private `Interactivity` request helper, gpux-owned Div/Img/Svg/UniformList call sites, borrowed internal Window/Taffy layout entry points, the existing draw-local style store, focused tests/diagnostics, Test Suite assertions, and successful durable guidance. Public `Interactivity` lifecycle signatures, RayX callers, Taffy algorithms/dependencies, shaders, renderer batching, unrelated cleanup, cross-frame caches, and any second mechanism are forbidden.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nCapture three independent headed Test Suite WebGPU processes at DPR 1 and DPR 2 before editing and three after. Require exact established final-scroll, renderer, Taffy, text, and error invariants. Require request-static-eligible=757 and prepaint-request-candidate=729 at both DPRs, plus a new production reuse counter proving 729 request styles were consumed by prepaint. Run focused gpux tests, the complete gpux suite, serialized gpui_wgpu tests, production/diagnostic package checks, Test Suite production/diagnostic checks, focused rustfmt, warning-denied gpux Clippy, loop validation, and memory audit. Accept only if both DPRs avoid material throughput or p95 regression and profile/diagnostic evidence proves the 729 computations were removed without a `Style` clone.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nThe warmed frame should reuse 729 request styles in prepaint and then reuse the same 729 final styles in paint, eliminating 729 `compute_style_internal` and `Style::refine` passes while keeping the draw-local store bounded near the 757 request-eligible slots rather than doubling its capacity. Acknowledged throughput and/or paced p95 should improve without changing behavior or public APIs.",
+  "diagnostics": {
+    "playwright": [
+      "Three independent pre-change headed WebGPU processes passed both DPRs with exact invariants.",
+      "The first post-change headed process failed both DPR assertions because actual request-style consumption was 716 while the predeclared gate required all 729 candidates."
+    ],
+    "rayx": [
+      "The diagnostic gpux check and warning-denied gpux Clippy passed before runtime measurement.",
+      "The Test Suite diagnostic check passed with existing unrelated warnings.",
+      "The attempted threaded WASM binary verified shared memory and worker entry point but its atomic prefix increased from 98878 to 101890 bytes."
+    ],
+    "counters": [
+      "Both post-change DPRs: predicted request-to-prepaint candidates=729; actual request styles consumed by prepaint=716; mismatch=13.",
+      "The failed attempt was restored byte-identically to checkpoint before another mechanism was tried."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "DPR 1 pre-change three-process median acknowledged throughput",
+      "before": "29.6896753485958 steps/s",
+      "after": "not accepted",
+      "delta": "runtime gate failed before post sampling completed",
+      "source": "three headed WebGPU processes"
+    },
+    {
+      "metric": "DPR 2 pre-change three-process median acknowledged throughput",
+      "before": "29.5652824349257 steps/s",
+      "after": "not accepted",
+      "delta": "runtime gate failed before post sampling completed",
+      "source": "three headed WebGPU processes"
+    },
+    {
+      "metric": "DPR 1/DPR 2 request styles consumed by prepaint",
+      "before": "0 production handoffs",
+      "after": "716 / 729 predicted candidates",
+      "delta": "+716, but 13 below the required exact gate",
+      "source": "first post-change headed WebGPU process"
+    },
+    {
+      "metric": "multithreaded WASM atomic prefix",
+      "before": "98878 bytes",
+      "after": "101890 bytes",
+      "delta": "+3012 bytes",
+      "source": "xtask WASM verifier"
+    }
+  ],
+  "reportMarkdown": "## Frame Bounded Request Style Handoff Finished\n\n**Index:** 79\n**Checkpoint:** `7b19c8b2f81f4909c90065a21ccc331b495c80a4`\n**Result Commit:** none\n**Attempt Count:** 1\n\n### Report\n\n**Passed Status:** false. The private borrowed-style implementation compiled without changing public lifecycle signatures, but the first headed WebGPU process consumed only 716 of the 729 structurally predicted request candidates at both DPRs. The predeclared exact runtime gate failed, so the attempt was reverted immediately and no tuning or second mechanism was applied.\n\n### Scope Lock\n\n**Tested mechanism:** private draw-local request-style ownership transfer through borrowed internal layout entry points.\n**Out-of-scope changes:** none retained. No public API, RayX caller, Taffy algorithm/dependency, shader, renderer batch, cross-frame cache, or unrelated cleanup changed.\n\n### Repository Checkpoints\n\n| Repo | Path | Checkpoint | Result Commit | Status | Rollback |\n| --- | --- | --- | --- | --- | --- |\n| main | . | `7b19c8b2f` | unchanged | reverted | `git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 7b19c8b2f81f4909c90065a21ccc331b495c80a4` |\n\n### Measurements\n\nThe pre-change three-process medians were 29.6896753485958/29.5652824349257 acknowledged steps/s and 27.27734375/28.545166015625 ms paced p95 at DPR 1/2. Post-change performance sampling was not completed because the first process failed the exact handoff gate. Actual consumption was 716/729 at both DPRs, and the WASM atomic prefix increased 3012 bytes.\n\n### Decision\n\nReject and revert this implementation. A fresh diagnostics-only experiment must explain the 13 predicted-but-unconsumed candidates before another production handoff design is attempted.",
+  "decisionMarkdown": "### Decision\n\nRevert the complete production attempt. The 716/729 result disproves the assumption that every structurally matching candidate crosses the same gpux-owned internal request path; investigate the 13-item population separately before retrying production reuse.",
+  "notes": "Attempt Count: 1. Scope lock preserved. Production and Test Suite source restored byte-identically to checkpoint. No durable memory was written for this failed experiment."
+}

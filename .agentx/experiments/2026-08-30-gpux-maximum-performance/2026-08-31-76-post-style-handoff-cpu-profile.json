@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "id": "46d737ad-f4a3-4c92-bbe0-e59e5408ccde",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 76,
+  "type": "hypothesis",
+  "name": "Post Style Handoff CPU Profile",
+  "slug": "post-style-handoff-cpu-profile",
+  "path": "2026-08-31-76-post-style-handoff-cpu-profile.json",
+  "createdAt": "2026-08-31T11:31:52Z",
+  "startedAt": "2026-08-31T11:31:52Z",
+  "finishedAt": "2026-08-31T11:38:00Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "0608897a965c0ad7e5def9b8529ad38bb20958f4",
+  "resultCommit": "0608897a965c0ad7e5def9b8529ad38bb20958f4",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 0608897a965c0ad7e5def9b8529ad38bb20958f4",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "0608897a965c0ad7e5def9b8529ad38bb20958f4",
+      "resultCommit": "0608897a965c0ad7e5def9b8529ad38bb20958f4",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard 0608897a965c0ad7e5def9b8529ad38bb20958f4",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "0608897a965c0ad7e5def9b8529ad38bb20958f4"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "headed Test Suite WASM/WebGPU CPU profile",
+  "hypothesisMarkdown": "## Post Style Handoff CPU Profile Hypothesis\n\nA fresh CPU profile after the accepted frame-bounded style handoff and Taffy-request telemetry will identify the current dominant gpux-owned costs and provide a better-ranked next mechanism than further speculative topology micro-optimization.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRead-only CPU profiling and sampled-stack aggregation only. Production source, dependencies, Test Suite fixtures, diagnostics schemas, performance fixes, and memory/skill claims are forbidden.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nRun the canonical wide DataTable headed WebGPU benchmark once at DPR1 and DPR2 with Chromium CPU profiling enabled. Require exact runtime assertions, final offset, and zero errors. Aggregate sampled self time by function, compare the largest gpux/Taffy/allocator families with experiment 72, and produce a ranked list of single-mechanism candidates. Raw profiles remain under ignored `artifacts-temp`.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nThe profile should either identify at least one current high-confidence gpux-owned mechanism for iteration 77 or record that the remaining sampled costs require narrower telemetry before production changes.",
+  "diagnostics": {
+    "playwright": [
+      "The headed WebGPU profile run passed DPR1 and DPR2 with exact final offset -351402.6875 and zero terminal errors."
+    ],
+    "rayx": [
+      "The multithreaded WASM build verified shared memory, `wasm_thread_entry_point`, and 105,691 atomic-prefix bytes."
+    ],
+    "counters": [
+      "Both DPRs retained 1,123 Taffy requests, 845 initial prepaint style phases, 845 paint style phases, and 729 paint-style reuses."
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "DPR1 profile duration",
+      "before": "n/a",
+      "after": "14675.904 ms",
+      "delta": "measurement-only"
+    },
+    {
+      "metric": "DPR2 profile duration",
+      "before": "n/a",
+      "after": "14791.230 ms",
+      "delta": "measurement-only"
+    },
+    {
+      "metric": "DPR1/DPR2 Taffy flexbox self time",
+      "before": "n/a",
+      "after": "652.363 / 712.747 ms",
+      "delta": "current profile"
+    },
+    {
+      "metric": "DPR1/DPR2 Taffy block self time",
+      "before": "n/a",
+      "after": "219.906 / 194.298 ms",
+      "delta": "current profile"
+    },
+    {
+      "metric": "DPR1/DPR2 request_taffy_node self time",
+      "before": "n/a",
+      "after": "278.765 / 277.843 ms",
+      "delta": "current profile"
+    },
+    {
+      "metric": "DPR1/DPR2 Style::to_taffy self time",
+      "before": "n/a",
+      "after": "102.412 / 107.110 ms",
+      "delta": "current profile"
+    },
+    {
+      "metric": "DPR1/DPR2 allocator malloc plus free self time",
+      "before": "n/a",
+      "after": "485.962 / 478.928 ms",
+      "delta": "current profile"
+    },
+    {
+      "metric": "DPR1/DPR2 BoundsTree insert self time",
+      "before": "n/a",
+      "after": "176.006 / 155.439 ms",
+      "delta": "current profile"
+    },
+    {
+      "metric": "DPR1/DPR2 Arc element-path construction self time",
+      "before": "n/a",
+      "after": "120.032 / 149.270 ms",
+      "delta": "current profile"
+    },
+    {
+      "metric": "DPR1/DPR2 style refine plus compute self time",
+      "before": "n/a",
+      "after": "199.988 / 207.524 ms",
+      "delta": "current profile"
+    }
+  ],
+  "reportMarkdown": "## Post Style Handoff CPU Profile Finished\n\n**Passed Status:** true. The measurement-only headed WebGPU run passed at both DPRs with exact runtime invariants and no production changes.\n\n**Attempt Count:** 1.\n\nThe dominant sampled family remains upstream Taffy layout: flexbox plus block self time totals 872.269 ms at DPR1 and 907.045 ms at DPR2. The gpux-owned request path remains actionable: `request_taffy_node` samples 278.765/277.843 ms and `Style::to_taffy` another 102.412/107.110 ms, while diagnostics prove every warmed style and ordered topology is unchanged. However, iteration 75 rejects another topology comparison micro-optimization; sound invalidation or phase reuse is required.\n\nAllocator self time totals 485.962/478.928 ms, BoundsTree insertion 176.006/155.439 ms, element-path Arc construction 120.032/149.270 ms, and style refine plus compute 199.988/207.524 ms. The request-to-prepaint boundary is the narrowest next measurement opportunity because the same Interactivity currently computes request style and then 845 prepaint styles, while the accepted prepaint-to-paint store already proves 729 structurally static elements can cross the later boundary.\n\nRanked next candidates: (1) measure conservative request-to-prepaint style eligibility and consumption; (2) design a caller-visible style/layout generation before bypassing `to_taffy`; (3) narrow allocator attribution; (4) revisit BoundsTree only with a new traversal mechanism; (5) avoid another GlobalElementId interner because the earlier retained interner regressed.\n\n### Scope Lock\n\nNo production source, dependency, fixture, diagnostic schema, memory, or skill file changed.",
+  "decisionMarkdown": "### Decision\n\nKeep the current production checkpoint. Start iteration 77 as diagnostics-only request-to-prepaint style eligibility telemetry. Do not optimize topology again, and do not bypass Taffy style conversion without a sound caller-visible invalidation contract.",
+  "notes": "Raw CPU profiles remain only in the ignored AgentX experiment artifact tree and are not referenced as durable metadata artifacts."
+}

@@ -1,0 +1,712 @@
+{
+  "schemaVersion": 3,
+  "epicId": "gpux-text-rendering-quality-performance",
+  "title": "GPUX Text Rendering Quality, Throughput, and Selection Complexity",
+  "scope": {
+    "problem": "The WebGPU/WASM editable path rebuilds full-document layout metadata during paint, while EditableTextSelectableAdapter copies the full value and rebuilds grapheme hit maps for every visual row on every paint. DataTable selection wrappers clone and hash mounted row and column identifiers and semantic values per visible cell. These paths make the 2,000-line TextArea, DataTable interaction, selection, scrolling, and unrelated shell input slow. The browser renderer also needs a deterministic visual-quality regression surface rather than platform-specific DirectWrite comparisons.",
+    "outcome": "Headed WebGPU/WASM text is visually stable at browser DPR 1 and 2. TextArea, SelectionArea, DataTable, and shell-isolation interaction durations are reduced by at least 75 percent wherever a baseline reproduces the regression, with no WASM scenario slower by more than 5 percent. The final design performs work only for changed text, changed geometry, visible rows, active selection aggregation, and mounted table cells, preserves all selection and editing behavior, and is proven by checkpointed AgentX improvement-loop evidence.",
+    "inScope": [
+      "Create dedicated light-mode text-quality, 2,000-line TextArea, heavy DataTable, SelectionArea, and shell-isolation fixtures in apps/test_suite.",
+      "Add permanent bounded diagnostics for actual text rasterization mode, WGPU dual-source capability, selected glyph pipeline, fallback reason, gamma, grayscale and subpixel contrast, RGB/BGR geometry, surface format, scale factor, glyph counts, layout work, selection work, and mounted table work.",
+      "Measure headed WASM/WebGPU at browser DPR 1 and 2 with light mode as the primary quality gate and dark mode as a regression gate.",
+      "Compare deterministic physical-pixel crops against the frozen headed-WASM baseline and reject blur, channel-fringe, or contrast regressions.",
+      "Correct browser WGPU atlas, shader transfer, sampling, rasterization, or glyph phase behavior only when an atomic WASM experiment proves the mechanism.",
+      "Retain the browser WGPU renderer and its existing public draw APIs.",
+      "Eliminate unchanged full-document text materialization, logical-line scans, cache-map cloning, row-boundary reconstruction, and all-row culling from the steady paint path.",
+      "Make EditableTextSelectableAdapter dormant without an enclosing SelectionArea and revision-gated, viewport-bounded, and incremental when an area is present.",
+      "Reduce SelectionArea frame reconciliation, participant identity comparison, geometry signature creation, bounds-index rebuilds, selection dispatch, and selected-content materialization to work required by real membership, layout, or semantic changes.",
+      "Reduce DataTable structured-selection row-model rebuilds and visible-cell mount work without weakening complete versus mounted-only semantics, stable paths, copy formats, or ordinary row, column, and cell selection.",
+      "Run the AgentX complexity optimizer and manual hot-path audit before and after accepted changes, and remove superseded layers, clones, collections, scans, and temporary instrumentation.",
+      "Execute every optimization as one atomic AgentX improvement-loop experiment with a recorded baseline, checkpoint, metric result, commit-or-revert decision, and final report."
+    ],
+    "outOfScope": [
+      "Restoring the removed DirectX renderer or changing the Windows backend away from WGPU/DX12.",
+      "Using apps/lab, tools-node/lab, or Lab routes for runtime testing, diagnostics, automation, screenshots, fixtures, performance measurements, or improvement-loop experiments.",
+      "Changing theme foreground colors, font sizes, font weights, or typefaces to conceal rasterization defects.",
+      "Replacing public Text, RichText, TextArea, DataTable, SelectionArea, selection-service, or gpux editable-text APIs with compatibility wrappers or parallel implementations.",
+      "Adding a general renderer abstraction, cache service, selection manager, alternate text engine, or speculative indexing framework.",
+      "Optimizing unrelated components, application startup, networking, assets, reactive state, or non-text shader effects.",
+      "Claiming a visual or performance improvement from screenshots, compile checks, or a different runtime target alone.",
+      "Committing target output, Test Suite captures, Playwright reports, test results, node_modules, temporary traces, or experiment scratch files."
+    ]
+  },
+  "actors": [
+    {
+      "id": "windows-reader",
+      "description": "A Windows user reading RayX text in light and dark themes at common display scales."
+    },
+    {
+      "id": "text-editor-user",
+      "description": "A user scrolling, editing, and selecting in a 2,000-line TextArea while interacting with the surrounding shell."
+    },
+    {
+      "id": "table-user",
+      "description": "A user scrolling and selecting rows, columns, cells, and structured content in a large DataTable."
+    },
+    {
+      "id": "maintainer",
+      "description": "A RayX maintainer who needs reproducible image, timing, work-count, correctness, and complexity evidence for every accepted mechanism."
+    }
+  ],
+  "functionalRequirements": [
+    {
+      "id": "REQ-F-001",
+      "title": "Exclusive Test Suite diagnostic and baseline surface",
+      "statement": "apps/test_suite MUST own deterministic native Windows and headed WASM fixtures for text quality, 2,000-line TextArea scrolling and selection, heavy DataTable scrolling and selection, SelectionArea participation, and shell responsiveness, together with bounded diagnostics and raw artifact capture.",
+      "behavior": {
+        "trigger": "A maintainer starts the dedicated Test Suite scenario or focused Playwright file.",
+        "inputs": [
+          "Light or dark theme.",
+          "Display scale or browser device scale factor.",
+          "Fixed text specimen, 2,000-line value, large table model, wheel sequence, drag sequence, and shell action sequence.",
+          "Current renderer, editable-layout, SelectionArea, and table-selection diagnostic snapshots."
+        ],
+        "outputs": [
+          "Deterministic specimen crops and matched metadata.",
+          "Raw per-sample input-to-published-frame, layout, selection, scene-build, and present timing records.",
+          "Renderer capability and mode records.",
+          "Per-frame work and allocation-count proxies for the owned hot paths."
+        ],
+        "stateChanges": [
+          "Only Test Suite diagnostic state changes.",
+          "Production state remains unchanged during baseline capture.",
+          "Captured artifacts are stored under ignored task-scoped output directories."
+        ],
+        "invariants": [
+          "apps/lab and tools-node/lab are never launched or modified for this work.",
+          "The same fixture data, viewport, scale, font, theme, action sequence, warm-up, and sample count are reused before and after an experiment.",
+          "Permanent diagnostics expose counts, durations, modes, revisions, and bounds but never full field content."
+        ],
+        "errors": [
+          "A missing expected renderer mode, metric publication, frame correlation, image crop, or sample invalidates the run.",
+          "A hidden, throttled, occluded, debug, or tracing-enabled performance run is rejected."
+        ],
+        "edgeCases": [
+          "DPR 1, 1.25, 1.5, and 2.",
+          "Light and dark themes.",
+          "Dual-source blending available and unavailable.",
+          "SelectionArea absent, present but idle, dragging, and copying.",
+          "DataTable complete and mounted-only selection providers."
+        ]
+      },
+      "acceptanceCriteria": [
+        {
+          "id": "AC-F-001-1",
+          "statement": "The Test Suite exposes stable diagnostic scenario selectors for text quality, TextArea 2,000 lines, SelectionArea, DataTable, and shell isolation on native Windows and headed WASM."
+        },
+        {
+          "id": "AC-F-001-2",
+          "statement": "Each scenario emits schema-checked raw JSON with environment, commit, renderer, scale, theme, fixture revision, warm-up count, sample count, timings, counters, and artifact paths."
+        },
+        {
+          "id": "AC-F-001-3",
+          "statement": "A repository search and source-guard validation prove that no new Lab fixture, Lab diagnostic, or tools-node/lab automation was added."
+        },
+        {
+          "id": "AC-F-001-4",
+          "statement": "A baseline experiment completes without production-source mutation and records checkpointed Windows native and headed WASM results before optimization begins."
+        }
+      ],
+      "validationProfiles": [
+        "integration",
+        "runtime",
+        "interaction",
+        "contract",
+        "performance",
+        "regression"
+      ]
+    },
+    {
+      "id": "REQ-F-002",
+      "title": "Sharp and truthful Windows WGPU text",
+      "statement": "Windows native WGPU/DX12 text MUST select a rasterization and compositing path supported by the active adapter and surface, use correct rendering parameters and pixel geometry, and meet the light-mode sharpness and readability gates without a dark-mode regression.",
+      "behavior": {
+        "trigger": "A glyph run is rasterized and rendered in a Windows WGPU window.",
+        "inputs": [
+          "Font face, glyph, size, subpixel phase, device scale, foreground color, background opacity, and clip.",
+          "Actual DUAL_SOURCE_BLENDING support.",
+          "Windows system gamma, ClearType level, grayscale and subpixel enhanced contrast, and pixel geometry.",
+          "Surface format, sRGB view capability, atlas format, sampler, and glyph shader mode."
+        ],
+        "outputs": [
+          "A grayscale, subpixel, color, or emoji glyph atlas entry whose format matches the selected pipeline.",
+          "A premultiplied linear paint result encoded exactly once through the configured output transfer.",
+          "Diagnostics naming the chosen rasterizer, antialias mode, pipeline, fallback reason, parameters, geometry, and scale."
+        ],
+        "stateChanges": [
+          "Renderer-owned text settings update when the Windows rendering parameters, adapter capabilities, surface capabilities, or display scale change.",
+          "Glyph caches invalidate only for settings that change glyph coverage or phase.",
+          "An unsupported subpixel pipeline selects grayscale rasterization instead of sampling one channel from a subpixel atlas."
+        ],
+        "invariants": [
+          "Windows presentation remains WGPU on the DX12 backend.",
+          "PaintColor remains premultiplied linear sRGB and the surface transfer is applied exactly once.",
+          "RGB/BGR order matches the actual display geometry.",
+          "Subpixel rendering is not advertised when the active adapter or destination cannot render it correctly.",
+          "Text stays correct on opaque, transparent, clipped, and effect-composited surfaces."
+        ],
+        "errors": [
+          "Unavailable dual-source blending, unavailable sRGB view formats, flat pixel geometry, transparent destinations, and incompatible effect surfaces select an explicit truthful fallback.",
+          "Missing Windows rendering parameters use a documented safe grayscale policy and emit a diagnostic reason."
+        ],
+        "edgeCases": [
+          "100, 125, 150, and 200 percent scale.",
+          "Horizontal RGB, horizontal BGR, and flat pixel geometry.",
+          "Font sizes 11, 12, 13, 14, 16, and 20 physical-pixel equivalents.",
+          "Latin, punctuation, digits, thin strokes, bold, italic, underlined, mixed-script, and emoji runs.",
+          "Opaque light background, translucent layer, rounded clip, and shader-effect composition."
+        ]
+      },
+      "acceptanceCriteria": [
+        {
+          "id": "AC-F-002-1",
+          "statement": "At every tested Windows scale in light mode, RayX p95 10-to-90-percent luminance edge width is no more than 0.25 physical pixels wider than the matched DirectWrite specimen, median edge acutance is at least 95 percent of that specimen, and median stroke contrast is at least 95 percent of that specimen."
+        },
+        {
+          "id": "AC-F-002-2",
+          "statement": "The final normalized RayX crop is visually as sharp and readable as the application text on the left side of the supplied comparison, with no visible haze, doubled edge, wrong RGB/BGR fringe, or washed-out light-mode stroke."
+        },
+        {
+          "id": "AC-F-002-3",
+          "statement": "Grayscale fallback has p99 pairwise RGB channel spread no greater than 2 of 255, while subpixel output matches the system channel order and keeps channel-edge centroid error within 0.25 physical pixels of the matched DirectWrite specimen."
+        },
+        {
+          "id": "AC-F-002-4",
+          "statement": "Dark-mode edge width, acutance, contrast, glyph bounds, and advance metrics regress by no more than 5 percent from the clean baseline."
+        },
+        {
+          "id": "AC-F-002-5",
+          "statement": "A forced no-dual-source test proves that subpixel requests rasterize and draw through the grayscale path without a red-channel atlas fallback."
+        }
+      ],
+      "validationProfiles": [
+        "unit",
+        "integration",
+        "runtime",
+        "parity",
+        "performance",
+        "regression"
+      ]
+    },
+    {
+      "id": "REQ-F-003",
+      "title": "Viewport-bounded editable layout and paint",
+      "statement": "The gpux editable engine and TextArea wrapper MUST reuse an unchanged TextLayoutMap, rebuild only affected logical rows after edits, and enumerate only visible or explicitly queried visual rows during steady scrolling, paint, selection geometry, caret geometry, and scrollbar synchronization.",
+      "behavior": {
+        "trigger": "EditableText prepaint runs, the viewport scrolls, the selection changes, text changes, style runs change, wrapping width changes, or a geometry query executes.",
+        "inputs": [
+          "Revisioned Rope snapshot and changed range.",
+          "Display projection revision.",
+          "Font-affecting and paint-only style-run revisions.",
+          "Wrap width, line height, device scale, viewport, scroll offset, selection, and caret."
+        ],
+        "outputs": [
+          "Stable layout rows for unchanged content.",
+          "Rebuilt rows only for the dirty logical-line and wrap dependency range.",
+          "Visible paint lines, visible selection quads, caret geometry, scroll bounds, and direct point or range query results."
+        ],
+        "stateChanges": [
+          "The map retains immutable row layout entries across unchanged frames and unaffected edits.",
+          "Row start, visual-row range, and vertical-position indexes update with the changed row span.",
+          "Paint-only theme changes reuse glyph geometry."
+        ],
+        "invariants": [
+          "Steady scroll performs no full Rope-to-String conversion, no full logical-line vector creation, no full row-cache HashMap clone, and no all-logical-row culling scan.",
+          "Ordering, wrapping, UTF-8 byte offsets, grapheme boundaries, bidi behavior, IME geometry, tabs, decorations, folds, and style revisions remain correct.",
+          "Viewport work scales with visible rows plus bounded overscan rather than document length."
+        ],
+        "errors": [
+          "An invalid projection or stale style revision retains the existing explicit fallback or reset behavior without blank text.",
+          "A map-key mismatch rebuilds the affected range and increments a bounded diagnostic counter."
+        ],
+        "edgeCases": [
+          "Empty text, one line, 2,000 lines, long unwrapped lines, and soft-wrapped paragraphs.",
+          "Edits at the first, middle, and final line including newline insertion and deletion.",
+          "Forward and reverse multi-line selection.",
+          "Paint-only color change and font-affecting style change.",
+          "Viewport resize and display-scale change."
+        ]
+      },
+      "acceptanceCriteria": [
+        {
+          "id": "AC-F-003-1",
+          "statement": "An unchanged 2,000-line TextArea frame records zero Rope-to-String materializations, zero logical-line rebuilds, zero row-cache map clones, zero row reshapes, and visible-row enumeration bounded by viewport rows plus configured overscan."
+        },
+        {
+          "id": "AC-F-003-2",
+          "statement": "Single-line edits rebuild only the affected logical row and wrap dependents, while full-layout parity tests preserve offsets, positions, wraps, selection quads, caret, IME, scroll bounds, and decorations."
+        },
+        {
+          "id": "AC-F-003-3",
+          "statement": "For 2,000-line TextArea wheel scrolling, drag selection, keyboard selection, and shell action while the page is active, after p50 and p95 durations are each no greater than 25 percent of the clean baseline on every target where the regression reproduces."
+        },
+        {
+          "id": "AC-F-003-4",
+          "statement": "Targets where the regression does not reproduce retain p50 and p95 within 5 percent of baseline and pass the same correctness matrix."
+        }
+      ],
+      "validationProfiles": [
+        "unit",
+        "integration",
+        "runtime",
+        "interaction",
+        "behavior-preservation",
+        "performance",
+        "regression"
+      ]
+    },
+    {
+      "id": "REQ-F-004",
+      "title": "Dormant and incremental SelectionArea",
+      "statement": "SelectionArea adapters and frame reconciliation MUST perform no aggregate-selection preparation without an enclosing registrar and MUST update participant identity, geometry, hit maps, bounds indexes, and dispatched ranges only when their governing revisions or active gesture require it.",
+      "behavior": {
+        "trigger": "A selectable leaf paints, a SelectionArea frame begins or ends, membership or geometry changes, a drag moves, Copy or Select All is invoked, or scrolling changes endpoint geometry.",
+        "inputs": [
+          "Registrar presence and area identity.",
+          "Participant stable ID, content revision, layout revision, bounds, order key, selection status, and selected range.",
+          "Editable visible-row geometry and active drag endpoints.",
+          "Exclusion bounds and scroll delegates."
+        ],
+        "outputs": [
+          "No adapter work when no area is present.",
+          "Stable participant and bounds indexes for unchanged frames.",
+          "Viewport-bounded editable hit maps and bounded endpoint lookup.",
+          "Exact cross-participant range, selection paint, and selected content on demand."
+        ],
+        "stateChanges": [
+          "Participant membership and logical order update without rebuilding HashSets and signatures when the stable sequence is unchanged.",
+          "Bounds-index entries update only for participants whose geometry revision changed.",
+          "Editable adapters retain revisioned visible hit maps and avoid copying unchanged text.",
+          "Selected content materializes only for explicit query or copy."
+        ],
+        "invariants": [
+          "The bounded SelectionArea architecture and traversal scope remain intact.",
+          "Nested, disabled, authoritative-content, editable-local, editable-area, virtualized, overlay, RTL, and scrolling behavior remain intact.",
+          "No full-content payload enters permanent diagnostics.",
+          "Endpoint lookup remains bounded and deterministic."
+        ],
+        "errors": [
+          "A stale participant or disappeared endpoint follows the existing deterministic reconciliation rules.",
+          "A reentrant dispatch remains pending and converges on the next frame without duplicate publication."
+        ],
+        "edgeCases": [
+          "No SelectionArea ancestor.",
+          "Idle SelectionArea with hundreds of static text leaves.",
+          "2,000-line editable inside an area.",
+          "Stationary pointer during auto-scroll.",
+          "Nested area, disabled subtree, overlay, and virtualized content.",
+          "Reverse selection across participants."
+        ]
+      },
+      "acceptanceCriteria": [
+        {
+          "id": "AC-F-004-1",
+          "statement": "A 2,000-line TextArea outside SelectionArea records zero text copies, row-hit-map rebuilds, grapheme scans, and participant registrations from EditableTextSelectableAdapter."
+        },
+        {
+          "id": "AC-F-004-2",
+          "statement": "An idle unchanged SelectionArea frame records zero bounds-index rebuilds, zero semantic-content builds, and no participant-sized temporary HashSet allocation."
+        },
+        {
+          "id": "AC-F-004-3",
+          "statement": "SelectionArea drag, scroll reconciliation, Copy, Select All, nested boundaries, disabled scopes, editable ownership promotion, overlays, virtualized content, UTF-8, and RTL regression tests pass."
+        },
+        {
+          "id": "AC-F-004-4",
+          "statement": "SelectionArea interaction p50 and p95 are each no greater than 25 percent of baseline for the reproduced 2,000-line and many-participant scenarios."
+        }
+      ],
+      "validationProfiles": [
+        "unit",
+        "integration",
+        "runtime",
+        "interaction",
+        "behavior-preservation",
+        "performance",
+        "regression"
+      ]
+    },
+    {
+      "id": "REQ-F-005",
+      "title": "Fast DataTable text and structured selection",
+      "statement": "DataTable MUST retain row virtualization and selection semantics while eliminating unnecessary full-model synchronization and per-frame mounted-cell key, path, value, lookup, clone, hash, and allocation work from scrolling and unchanged selection frames.",
+      "behavior": {
+        "trigger": "A DataTable prepares columns, changes its logical data or order, renders visible rows and cells, scrolls, changes ordinary selection, changes structured selection, or copies structured content.",
+        "inputs": [
+          "Stable row keys, column keys, selectable columns, logical model revision, visible row and column range, mounted bounds, selection endpoints, and optional value resolver.",
+          "Ordinary row, column, and cell selection state.",
+          "Complete or mounted-only structured-selection capability."
+        ],
+        "outputs": [
+          "Visible virtualized rows and cells.",
+          "Correct ordinary selection highlight and events.",
+          "Correct structured range highlight, endpoint lookup, plain text, Markdown, HTML, metadata, and diagnostics."
+        ],
+        "stateChanges": [
+          "The logical structured-selection model updates only when rows, order, selectable columns, keys, or provider capability change.",
+          "Visible mount state reuses stable identifiers and stores semantic values only for mounted-only providers.",
+          "Cell lookup uses one direct stable location representation instead of repeated row-map plus linear cell scans."
+        ],
+        "invariants": [
+          "Uniform-list row virtualization remains the rendering mechanism.",
+          "Complete and mounted-only capability remain truthful.",
+          "Stable path order, duplicate policy, forward and reverse endpoints, copy formats, and ordinary selection events remain unchanged.",
+          "Cold or small tables retain direct readable code and no speculative global cache."
+        ],
+        "errors": [
+          "Missing mounted-only values continue to return the explicit mounted-only error.",
+          "Stale revisions and missing stable keys retain explicit error behavior."
+        ],
+        "edgeCases": [
+          "No enclosing SelectionArea.",
+          "Complete resolver and mounted-only provider.",
+          "Wide table with horizontal virtualization.",
+          "Large row count, sorting, column move, row reorder, deletion, and duplicate key rejection.",
+          "Forward and reverse multi-row multi-cell selection."
+        ]
+      },
+      "acceptanceCriteria": [
+        {
+          "id": "AC-F-005-1",
+          "statement": "An unchanged visible DataTable frame performs no logical-row-model rebuild and no semantic cell-text materialization for a complete provider."
+        },
+        {
+          "id": "AC-F-005-2",
+          "statement": "A DataTable outside SelectionArea performs no structured-selection mount bookkeeping while ordinary row, column, and cell selection remains fully functional."
+        },
+        {
+          "id": "AC-F-005-3",
+          "statement": "Heavy DataTable wheel scrolling, ordinary selection, structured drag selection, and shell action p50 and p95 are each no greater than 25 percent of clean baseline on every target where the regression reproduces."
+        },
+        {
+          "id": "AC-F-005-4",
+          "statement": "Virtualization, complete and mounted-only capability, stable paths, reorder and delete reconciliation, forward and reverse selection, all copy formats, and ordinary selection regression tests pass."
+        }
+      ],
+      "validationProfiles": [
+        "unit",
+        "integration",
+        "runtime",
+        "interaction",
+        "behavior-preservation",
+        "performance",
+        "regression"
+      ]
+    },
+    {
+      "id": "REQ-F-006",
+      "title": "Atomic measured improvement execution",
+      "statement": "The epic MUST execute through one checkpointed AgentX improvement loop whose baseline precedes production optimization, whose experiments change one mechanism only, and whose accepted sequence reaches every image-quality, performance, correctness, and complexity gate.",
+      "behavior": {
+        "trigger": "Implementation of this epic begins or an optimization hypothesis is selected.",
+        "inputs": [
+          "Current experiment index, loop state, loop configuration, maximum iteration count, checkpoint commit, one ranked hypothesis, exact metric command, and rollback command.",
+          "Baseline and current result artifacts for all affected repositories and targets."
+        ],
+        "outputs": [
+          "One baseline experiment.",
+          "One JSON record per atomic experiment.",
+          "A success commit or an exact rollback to the checkpoint before the next hypothesis.",
+          "A final report with last stable commit, result metrics, failed hypotheses, and rollback command."
+        ],
+        "stateChanges": [
+          "The improvement-loop state advances only through the AgentX state script.",
+          "A successful experiment commits before another experiment begins.",
+          "A failed, degraded, or off-hypothesis experiment reverts immediately and records failure."
+        ],
+        "invariants": [
+          "No experiment combines renderer parameters, rasterizer, shader transfer, editable layout, SelectionArea, and DataTable mechanisms in one attempt.",
+          "Thresholds, fixtures, warm-up, sampling, and metric definitions do not change inside a production optimization experiment.",
+          "The epic does not complete when the iteration limit is reached without all gates."
+        ],
+        "errors": [
+          "Invalid loop JSON, missing checkpoint, dirty participating repository, missing baseline, threshold drift, or mixed-mechanism change blocks the experiment.",
+          "A failed target or correctness regression forces rollback before continuation."
+        ],
+        "edgeCases": [
+          "A quality fix improves light mode but degrades dark mode.",
+          "A performance fix improves CPU time but increases input-to-frame latency.",
+          "An experiment exposes a different cause than its stated hypothesis.",
+          "The configured iteration limit is exhausted."
+        ]
+      },
+      "acceptanceCriteria": [
+        {
+          "id": "AC-F-006-1",
+          "statement": "The loop JSON validates and contains a completed read-only baseline followed by one-mechanism experiment records with exact checkpoints, commands, raw metrics, decisions, and rollback commands."
+        },
+        {
+          "id": "AC-F-006-2",
+          "statement": "Every failed or degraded experiment ends at its recorded checkpoint and every accepted experiment has a conventional commit before the next experiment begins."
+        },
+        {
+          "id": "AC-F-006-3",
+          "statement": "The loop stops successfully only after REQ-F-002 through REQ-F-005 and all non-functional gates have final-revision evidence."
+        }
+      ],
+      "validationProfiles": [
+        "contract",
+        "performance",
+        "regression"
+      ]
+    }
+  ],
+  "nonFunctionalRequirements": [
+    {
+      "id": "REQ-NF-001",
+      "title": "Exact performance protocol",
+      "statement": "Every 75-percent claim MUST use release or default-release builds, one foreground worker, three fresh process runs, fixed fixtures, five warm-up actions, at least 30 homogeneous measured actions per scenario per run, raw sample retention, and after p50 and p95 no greater than 25 percent of the clean baseline.",
+      "behavior": {
+        "trigger": "A baseline, experiment result, or final performance gate is measured.",
+        "inputs": [
+          "Clean baseline commit and accepted result commit.",
+          "Identical hardware, power mode, adapter, backend, viewport, scale, theme, fixture, input sequence, worker count, and instrumentation.",
+          "At least 30 homogeneous samples after five warm-ups in each of three process runs."
+        ],
+        "outputs": [
+          "Raw per-sample JSON.",
+          "Per-run p50 and p95 plus median of the three run percentiles.",
+          "Duration ratio, percent reduction, throughput ratio, work counters, environment, and confidence notes."
+        ],
+        "stateChanges": [
+          "Performance artifacts are appended to the active experiment only.",
+          "Acceptance uses the preregistered metric and threshold."
+        ],
+        "invariants": [
+          "A 75-percent improvement means after duration is no greater than 0.25 times baseline duration and equivalent throughput is at least 4 times baseline.",
+          "CPU-path duration and externally observable input-to-published-frame duration are reported separately.",
+          "A display refresh lower bound is reported but never used to weaken the 75-percent target."
+        ],
+        "errors": [
+          "Debug builds, mixed action types, hidden windows, tracing, missing frames, changed thresholds, fewer samples, or changed fixtures invalidate the comparison.",
+          "A result that improves only the mean does not pass."
+        ],
+        "edgeCases": [
+          "Vsync quantization.",
+          "Cold glyph atlas and warm glyph atlas.",
+          "GPU feature differences.",
+          "Thermal or power-state drift.",
+          "A baseline already near one refresh interval."
+        ]
+      },
+      "acceptanceCriteria": [
+        {
+          "id": "AC-NF-001-1",
+          "statement": "Every final 75-percent claim includes three raw runs of at least 30 homogeneous samples and reports p50, p95, duration ratio, percent reduction, and throughput ratio."
+        },
+        {
+          "id": "AC-NF-001-2",
+          "statement": "Every required reproduced scenario has final p50 and p95 no greater than 25 percent of baseline for both owned CPU work and externally observable input-to-published-frame duration."
+        },
+        {
+          "id": "AC-NF-001-3",
+          "statement": "Every non-reproduced target and unaffected scenario remains within 5 percent of baseline at p50 and p95."
+        }
+      ],
+      "validationProfiles": [
+        "contract",
+        "performance",
+        "regression"
+      ]
+    },
+    {
+      "id": "REQ-NF-002",
+      "title": "Renderer and platform compatibility",
+      "statement": "The final implementation MUST preserve WGPU/DX12 Windows rendering, gpux scene and PaintColor contracts, target-specific fallback truthfulness, public text and selection APIs, and correct native Windows plus headed WASM behavior.",
+      "behavior": {
+        "trigger": "Renderer, text engine, editable engine, SelectionArea, or DataTable changes are integrated.",
+        "inputs": [
+          "Existing public APIs, scene primitives, atlas formats, PaintColor ABI, Windows backend policy, and WASM WebGPU path."
+        ],
+        "outputs": [
+          "Source-compatible public behavior and target-correct rendering.",
+          "Target-specific diagnostics and runtime evidence."
+        ],
+        "stateChanges": [
+          "Only implementation details required by the measured fixes change.",
+          "Callers are updated in the same change for any clean internal API change."
+        ],
+        "invariants": [
+          "No DirectX renderer returns.",
+          "No compatibility alias, duplicate surface, or hidden fallback remains.",
+          "WASM does not consume Windows-only DirectWrite dependencies.",
+          "Selection privacy and clipboard limits remain intact."
+        ],
+        "errors": [
+          "A target-specific runtime failure blocks completion.",
+          "Compile-only evidence cannot substitute for native Windows or headed WASM proof."
+        ],
+        "edgeCases": [
+          "DX12 adapter without dual-source blending.",
+          "WASM WebGPU with subpixel unsupported.",
+          "Downlevel surface without sRGB view formats.",
+          "Transparent and effect-composited text."
+        ]
+      },
+      "acceptanceCriteria": [
+        {
+          "id": "AC-NF-002-1",
+          "statement": "Native Test Suite diagnostics report WGPU with DX12 for every Windows quality and performance result."
+        },
+        {
+          "id": "AC-NF-002-2",
+          "statement": "Headed WASM/WebGPU passes text, selection, TextArea, DataTable, and shell regression scenarios with truthful grayscale policy and no crash."
+        },
+        {
+          "id": "AC-NF-002-3",
+          "statement": "Public API and source-boundary tests report no compatibility shim, removed public contract, Windows dependency leak, or PaintColor ABI change."
+        }
+      ],
+      "validationProfiles": [
+        "integration",
+        "runtime",
+        "contract",
+        "behavior-preservation",
+        "regression"
+      ]
+    },
+    {
+      "id": "REQ-NF-003",
+      "title": "Measured simplicity and complexity reduction",
+      "statement": "The final code MUST use the smallest direct owner-specific changes that remove proven repeated work, and MUST pass a before-and-after AgentX complexity analysis plus a manual audit of loops, scans, clones, allocations, locks, collections, branches, abstractions, and file responsibilities.",
+      "behavior": {
+        "trigger": "A candidate mechanism is selected, an experiment succeeds, or final convergence begins.",
+        "inputs": [
+          "AgentX AST complexity report.",
+          "Manual map of repeated work.",
+          "Runtime counters, timings, allocation proxies, and call-path evidence."
+        ],
+        "outputs": [
+          "Ranked candidates with current and target complexity.",
+          "Accepted direct reductions tied to measurements.",
+          "Final report of removed and retained complexity with rationale."
+        ],
+        "stateChanges": [
+          "Superseded helpers, caches, aliases, branches, and temporary diagnostics are deleted.",
+          "Existing direct owners retain responsibility unless a measured multi-caller invariant requires a shared boundary."
+        ],
+        "invariants": [
+          "No new manager, provider, service, registry, factory, event bus, generic cache framework, unsafe code, or production dependency is introduced for one caller.",
+          "No allocation or cache is added without explicit ownership, invalidation, bounds, and measurement.",
+          "Every retained abstraction has more than one real use or enforces a necessary invariant."
+        ],
+        "errors": [
+          "An unavailable or crashing AST scanner is a blocker for the final complexity claim and its crash output is retained as tooling evidence.",
+          "A performance win that increases structural complexity without measured necessity is rejected."
+        ],
+        "edgeCases": [
+          "An index costs more for small collections.",
+          "A cache duplicates the existing row cache.",
+          "A helper only forwards one call.",
+          "A platform-specific rasterizer remains isolated from cross-platform shaping."
+        ]
+      },
+      "acceptanceCriteria": [
+        {
+          "id": "AC-NF-003-1",
+          "statement": "A successful AST-backed AgentX complexity report and manual hot-path inventory exist for the pre-change and final owned scopes."
+        },
+        {
+          "id": "AC-NF-003-2",
+          "statement": "Final counters prove removal of the full-document, all-row, absent-registrar, unchanged-area, and redundant mounted-cell work named in REQ-F-003 through REQ-F-005."
+        },
+        {
+          "id": "AC-NF-003-3",
+          "statement": "The final simplicity audit reports no speculative abstraction, duplicate cache, compatibility layer, unsafe code, new production dependency, unexplained clone, or mixed-responsibility file."
+        }
+      ],
+      "validationProfiles": [
+        "unit",
+        "contract",
+        "behavior-preservation",
+        "performance",
+        "regression"
+      ]
+    },
+    {
+      "id": "REQ-NF-004",
+      "title": "Proof, hygiene, and durable guidance",
+      "statement": "Completion MUST include focused and broad Rust validation, native Windows DevKit/MCP proof, headed WASM/WebGPU proof, image and performance artifacts, improvement-loop validation, AgentX task audit, and only evidence-backed updates to the narrow RayX or GPUX guidance and memory.",
+      "behavior": {
+        "trigger": "A sprint or the epic is proposed complete.",
+        "inputs": [
+          "Final source, tests, image artifacts, performance artifacts, DevKit snapshots, Playwright results, loop JSON, task evidence, skill guidance, and memory state."
+        ],
+        "outputs": [
+          "Passing focused and broad command evidence.",
+          "Final AgentX audit and checkpoint manifests.",
+          "Narrow durable guidance only for behavior proved by the final revision."
+        ],
+        "stateChanges": [
+          "Temporary traces and test outputs are removed or remain ignored.",
+          "Task and loop state advance only after exact evidence passes.",
+          "Memory and skill references update only when final behavior creates reusable guidance."
+        ],
+        "invariants": [
+          "User-owned dirty files remain untouched.",
+          "No task is marked done for blocked, failed, partial, compile-only, smoke-only, or screenshot-only work.",
+          "No planning or failed experiment result becomes durable memory."
+        ],
+        "errors": [
+          "A failed static, unit, runtime, parity, interaction, performance, loop, or AgentX audit blocks completion.",
+          "An untracked generated artifact or unrelated dirty-file overlap blocks checkpoint creation."
+        ],
+        "edgeCases": [
+          "No durable skill guidance changed.",
+          "One target cannot run because of a documented environment failure.",
+          "A failed experiment leaves ignored artifacts.",
+          "Existing user changes overlap an owned file."
+        ]
+      },
+      "acceptanceCriteria": [
+        {
+          "id": "AC-NF-004-1",
+          "statement": "Focused unit, integration, behavior, image, performance, native runtime, headed WASM, format, clippy, source-guard, loop validation, schema validation, and AgentX audit evidence pass on the final revision."
+        },
+        {
+          "id": "AC-NF-004-2",
+          "statement": "The final worktree contains no committed Test Suite captures, Playwright report, test result, node_modules file, target artifact, temporary trace, or unrelated user change."
+        },
+        {
+          "id": "AC-NF-004-3",
+          "statement": "RayX and GPUX guidance and AgentX memory contain only final evidence-backed reusable behavior, or the final report states explicitly that no durable guidance changed."
+        }
+      ],
+      "validationProfiles": [
+        "runtime",
+        "interaction",
+        "contract",
+        "regression",
+        "docs"
+      ]
+    }
+  ],
+  "assumptions": [
+    "The primary affected platform is native Windows using WGPU with the DX12 backend; cross-platform gpux and RayX changes are also exercised in headed WASM/WebGPU.",
+    "The primary supplied light-mode screenshot is C:/Users/dinko/AppData/Local/Temp/codex-clipboard-6544391b-f3d2-4b0d-8a18-58ffea9b76bd.png, 1515 by 910 physical pixels, with SHA-256 e7ddf7417834c2acd02a24ed3861175f450fcc5e121790dbaf414f44127958f1.",
+    "The supplied side-by-side comparison is C:/Users/dinko/AppData/Local/Temp/codex-clipboard-20703c42-db47-40ba-a99f-d2b5d0c1acf4.png, 1228 by 1073 physical pixels, with SHA-256 6722ae50c5d5b5e92ec26b730429023f5b0e35b73e4b8eb64cc9b8eb18d5e95d.",
+    "The two supplied PNG files remain available long enough for Sprint 1 to copy their immutable bytes into ignored experiment artifacts and verify these registered hashes.",
+    "A matched Segoe UI DirectWrite specimen can be generated on the same Windows machine without restoring the removed DirectX renderer.",
+    "The clean baseline is captured from the current repository head in a clean worktree so the user's unrelated dirty files do not contaminate measurements.",
+    "The existing Test Suite app is the exclusive permitted application for diagnostics and can add the required component dependencies and scenarios.",
+    "The 75-percent target applies separately to p50 and p95 duration for every scenario and target where the clean baseline reproduces the reported slowdown."
+  ],
+  "risks": [
+    "The supplied side-by-side image compares different themes, fonts, sizes, and applications, so automated parity uses a matched DirectWrite specimen while the supplied image remains the final human readability target.",
+    "LCD subpixel text is incompatible with some transparent or composited destinations; the correct result can require grayscale on those destinations while retaining sharp subpixel output on an opaque final surface.",
+    "Restoring Windows system rendering parameters alone can fail to reach the target because the migration also changed the glyph rasterizer from DirectWrite to Swash.",
+    "Vsync quantization can bound externally observed frame latency; the epic still requires the 75-percent duration reduction and reports CPU work separately without weakening the external target.",
+    "TextLayoutMap incremental edits interact with wrapping, projection, styles, IME, UTF-8, and bidi; differential parity tests are mandatory before accepting locality optimizations.",
+    "SelectionArea frame reconciliation and editable adapters are newer than the text refactor and can account for a large part of the regression independently of glyph rendering.",
+    "The installed AgentX Rust AST scanner currently crashes with a native tree-sitter access violation on this Windows environment; final complexity acceptance requires a successful AST-backed rerun instead of relying on the low-confidence fallback.",
+    "User-owned dirty files overlap gpui_wgpu Cargo configuration and application wiring; implementation must use a clean worktree or coordinate before touching an overlapping file."
+  ],
+  "deferredNonGoals": [
+    "GPU glyph atlas eviction redesign without evidence that eviction contributes to the measured scenarios.",
+    "Parallel text shaping, custom allocators, SIMD, unsafe rasterization, or multi-threaded selection.",
+    "A general retained scene graph or whole-window render cache.",
+    "Non-Windows platform-specific rasterizer replacement.",
+    "Document editor, code editor, and MarkupView policy changes beyond regression validation of the shared engine.",
+    "Theme redesign or new typography tokens."
+  ]
+}

@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "id": "b9e9153c-3772-4599-a6b0-b02dbea9da54",
+  "loopId": "901f1ffd-d3d8-4ee4-a6aa-2917ff32f493",
+  "index": 125,
+  "type": "hypothesis",
+  "name": "Recovered Bounds Probe Retirement",
+  "slug": "recovered-bounds-probe-retirement",
+  "path": "2026-08-31-125-recovered-bounds-probe-retirement.json",
+  "createdAt": "2026-08-31T19:39:41Z",
+  "startedAt": "2026-08-31T19:39:41Z",
+  "finishedAt": "2026-08-31T19:49:56Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "f48c219c4f1327a9869bc300e6504bbd806aa39e",
+  "resultCommit": "361114eb3e7efe3ce2fdf5620adae9a6ae7acbd4",
+  "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard f48c219c4f1327a9869bc300e6504bbd806aa39e",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "f48c219c4f1327a9869bc300e6504bbd806aa39e",
+      "resultCommit": "361114eb3e7efe3ce2fdf5620adae9a6ae7acbd4",
+      "rollbackCommand": "git -C \"D:\\Work\\projects\\RayX\\RayX\" reset --hard f48c219c4f1327a9869bc300e6504bbd806aa39e",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "361114eb3e7efe3ce2fdf5620adae9a6ae7acbd4"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "gpux diagnostic hot-path and frame telemetry overhead",
+  "hypothesisMarkdown": "## Recovered Bounds Probe Retirement Hypothesis\n\nWith the Test Suite asset path verified healthy, removing the completed prune probe will strictly reduce diagnostics hot-path work and frame publication state while preserving the accepted BoundsTree algorithm and rendering behavior.\n\n**Attempt Count:** 1.\n\n### Scope Lock\n\nRemove only experiment 119's counter, increment, aggregation/publication plumbing, and Test Suite schema/assertion. Traversal, insertion, remaining diagnostics, APIs, dependencies, configuration, and fixtures are frozen.\n",
+  "measurementPlanMarkdown": "### Measurement Plan\n\nRun formatting, focused BoundsTree tests, both gpux clippy matrices, full gpux diagnostics tests, gpui_wgpu diagnostics tests, and headed Test Suite WASM/WebGPU at DPR 1 and 2. Require complete static removal, the six-counter contract, exact prior structural counters, zero errors, and no coherent same-direction regression over 10% at both DPRs versus experiment 124.\n",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nThe temporary probe disappears from production, removing one conditional increment opportunity and one field across each telemetry layer with behavior and cadence preserved.\n",
+  "diagnostics": {
+    "playwright": [
+      {
+        "target": "apps/test_suite",
+        "runtime": "headed Chromium WASM/WebGPU",
+        "passed": 2,
+        "failed": 0
+      }
+    ],
+    "rayx": [],
+    "counters": [
+      "temporary post-intersection prune counter absent",
+      "six-counter bounds diagnostic contract retained",
+      "4440 visits, 14351 child evaluations, and 576 retained nodes at both DPRs",
+      "zero terminal error"
+    ],
+    "artifacts": [
+      "test-results",
+      "playwright-report"
+    ]
+  },
+  "measurements": {
+    "referenceExperiment": 124,
+    "probeStaticRemoval": true,
+    "remainingBoundsCounterContract": 6,
+    "runs": [
+      {
+        "deviceScaleFactor": 1,
+        "throughput": 29.87089351758298,
+        "pacedP95Ms": 26.8896484375,
+        "throughputDeltaPercent": 1.7134019198919992,
+        "pacedP95DeltaPercent": 2.984628043535187,
+        "searchNodeVisits": 4440,
+        "insertionChildEvaluations": 14351,
+        "retainedNodes": 576,
+        "terminalErrorMax": 0.0
+      },
+      {
+        "deviceScaleFactor": 2,
+        "throughput": 29.282726924662125,
+        "pacedP95Ms": 27.087890625,
+        "throughputDeltaPercent": 2.2821420021917893,
+        "pacedP95DeltaPercent": -1.9347539795476432,
+        "searchNodeVisits": 4440,
+        "insertionChildEvaluations": 14351,
+        "retainedNodes": 576,
+        "terminalErrorMax": 0.0
+      }
+    ],
+    "playwright": {
+      "passed": 2,
+      "failed": 0
+    }
+  },
+  "reportMarkdown": "# Experiment 125 Report\n\nRemoved only experiment 119's completed post-intersection prune probe: its traversal increment, bounds aggregation slot, frame telemetry field, WGPU assignment, web publication property, and Test Suite schema assertion. The accepted bounds-tree algorithm is unchanged.\n\nFormatting, focused bounds tests, both gpux clippy matrices, the full gpux diagnostics suite, and gpui_wgpu diagnostics tests passed. The approved headed Test Suite WASM/WebGPU benchmark passed at DPR 1 and 2. The six remaining bounds counters preserved the exact structural result of 4,440 node visits, 14,351 child evaluations, and 576 retained nodes at both DPRs with zero terminal error.\n\nAgainst experiment 124, DPR 1 throughput changed by +1.71% and paced p95 latency by +2.98%; DPR 2 throughput changed by +2.28% and paced p95 latency by -1.93%. These mixed, low-amplitude changes do not form a coherent regression and remain well inside the declared 10% gate.\n",
+  "decisionMarkdown": "# Decision\n\nAccept the probe retirement at product commit `361114eb3e7efe3ce2fdf5620adae9a6ae7acbd4`. It removes completed diagnostic overhead and state, preserves exact rendering structure and correctness, passes all required validation, and shows no coherent same-direction regression over the declared threshold.\n",
+  "notes": ""
+}

@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "id": "50aa1f6d-92bd-41a2-81fe-cea1e8f1e5b7",
+  "loopId": "54e74b74-483c-4598-92d7-fdbabbc9154b",
+  "index": 14,
+  "type": "hypothesis",
+  "name": "Visible selection quad bounds",
+  "slug": "visible-selection-quad-bounds",
+  "path": "2026-07-24-14-visible-selection-quad-bounds.json",
+  "createdAt": "2026-07-24T05:37:49Z",
+  "startedAt": "2026-07-24T05:37:49Z",
+  "finishedAt": "2026-07-24T05:38:40Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "55e794b36bf90d2cd6784152e0ad76f47f2ed0fe",
+  "resultCommit": "4c4222affa1ea5cf8ed02fb2f86f27c589bb984d",
+  "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard 55e794b36bf90d2cd6784152e0ad76f47f2ed0fe",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "55e794b36bf90d2cd6784152e0ad76f47f2ed0fe",
+      "resultCommit": "4c4222affa1ea5cf8ed02fb2f86f27c589bb984d",
+      "rollbackCommand": "git -C \"C:\\Users\\dinko\\.codex\\worktrees\\ecf5\\RayX\" reset --hard 55e794b36bf90d2cd6784152e0ad76f47f2ed0fe",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "4c4222affa1ea5cf8ed02fb2f86f27c589bb984d"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "headed WASM WebGPU TextArea selection fixtures",
+  "hypothesisMarkdown": "# Hypothesis\n\nSelection quad generation can be bounded to the visible visual-row range without changing selection geometry, avoiding work for offscreen rows during large TextArea selection interactions.\n",
+  "measurementPlanMarkdown": "# Measurement plan\n\nInspect the current selection-quad path, add a focused differential guard if the range is unbounded, and measure the dedicated drag and keyboard selection pages under headed WASM/WebGPU.\n",
+  "expectedOutcomeMarkdown": "# Expected outcome\n\nOnly visible selection geometry is enumerated while active selection endpoints and painted quads remain identical to the full selection range.\n",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": {
+    "target": "headed WASM WebGPU",
+    "keyboardSelection": {
+      "dpr1Ms": 243.73,
+      "dpr2Ms": 272.027
+    },
+    "dragSelectionSmoke": "passed",
+    "keyboardSelectionSmoke": "passed"
+  },
+  "reportMarkdown": "## Visible selection-quad bounds\n\nNo production change is accepted. Inspection confirms `editable_text_selection_quads` already derives `first_visible_row` and `visible_row_end`, intersects them with the selected display range, and enumerates only that bounded range.\n\nThe new dedicated drag- and keyboard-selection Test Suite pages passed focused headed WASM/WebGPU smoke validation. The DPR 2 keyboard screenshot visibly contains the selected range. Keyboard selection recorded 243.7300 ms at DPR 1 and 272.0270 ms at DPR 2 in the focused samples.\n\nDecision: retain the existing simple bounded implementation; another cache or index would not remove demonstrated work.\n",
+  "decisionMarkdown": "## Decision\n\nRetain the existing visible-range selection-quad enumeration. It already satisfies the experiment mechanism without additional state or indirection.\n",
+  "notes": ""
+}
