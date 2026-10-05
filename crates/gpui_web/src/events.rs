@@ -764,6 +764,13 @@ impl WebWindowInner {
                 return;
             }
 
+            // gpux: browser clipboard reads are event-based. Leave the paste
+            // shortcut to the browser so its trusted `paste` event caches the
+            // payload and delivers it to the active input handler.
+            if is_paste_shortcut(&key, modifiers, this.is_mac) {
+                return;
+            }
+
             let is_held = event.repeat();
             let key_char = compute_key_char(&event, &key, &modifiers);
 
@@ -1327,6 +1334,18 @@ fn dom_key_to_gpui_key(event: &web_sys::KeyboardEvent) -> String {
             other.to_lowercase()
         }
     }
+}
+
+fn is_paste_shortcut(key: &str, modifiers: Modifiers, is_mac: bool) -> bool {
+    key == "v"
+        && !modifiers.alt
+        && !modifiers.shift
+        && !modifiers.function
+        && if is_mac {
+            modifiers.platform && !modifiers.control
+        } else {
+            modifiers.control && !modifiers.platform
+        }
 }
 
 fn dom_mouse_button_to_gpui(button: i16) -> MouseButton {

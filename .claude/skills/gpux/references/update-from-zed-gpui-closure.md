@@ -168,6 +168,7 @@ The RayX memories identify these gpux-owned patches as especially easy to miss d
 - Preserve `gpui_web` ownership of visible viewport bounds, `devicePixelRatio`-backed canvas/backing-store sizing, `ResizeObserver` resize coalescing, and pending physical-size redraw/present behavior.
 - Preserve browser asset behavior: WASM `Asset::load` futures are local, `App::fetch_asset` foreground-spawns browser asset futures, and `Svg::external_path(...)` fetches browser-served SVG bytes.
 - Preserve browser WebGPU renderer reentrancy and WGPU shader parity.
+- Preserve the gpux paste-shortcut exemption in `gpui_web` `register_key_down` (`is_paste_shortcut`): Ctrl+V, or Cmd+V on macOS, returns before GPUI dispatch so the browser fires the trusted `paste` event that `register_paste` delivers to the input handler. Zed's handler prevents the default of every handled keystroke, which would suppress that event.
 - Preserve the gpux cap in `gpui_web` `register_input` (`crates/gpui_web/src/events.rs`): the IME edit import keeps its prefix/suffix diff out of the stored element selection, because it always replaces the whole app selection. Upstream lacks it, so text inserted over a selection it shares a prefix with replaced the selection with only the differing tail. Drop the cap once upstream fixes the import.
 - Candidate, not confirmed current gpux behavior: browser WebGPU adapter retry with softer power-preference hints from RayX memory.
 
