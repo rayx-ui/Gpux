@@ -900,6 +900,12 @@ impl WebWindowInner {
             let old_units: Vec<u16> = old_value.encode_utf16().collect();
             let new_units: Vec<u16> = new_value.encode_utf16().collect();
 
+            // The edit's shape relative to the element's pre-edit selection.
+            // The element is private to the IME and these syncs, so the
+            // stored selection is exact.
+            let (element_selection_start, element_selection_end) =
+                this.ime_mirror.stored_selection();
+
             // A prefix/suffix diff is ambiguous when the inserted text
             // shares characters with what follows it (inserting "pactor "
             // before "pact" also reads as inserting "or pact" four units
@@ -919,19 +925,31 @@ impl WebWindowInner {
                         && old_units[old_units.len() - suffix_length..]
                             == new_units[new_units.len() - suffix_length..]
                 });
-            let suffix_length = anchored_suffix_length.unwrap_or_else(|| {
-                old_units
-                    .iter()
-                    .rev()
-                    .zip(new_units.iter().rev())
-                    .take_while(|(old_unit, new_unit)| old_unit == new_unit)
-                    .count()
-            });
+            // gpux: the edit replaces the whole pre-edit selection (the app
+            // range below always spans the app selection), so the diff must
+            // not reach into it. Otherwise text inserted over a selection it
+            // shares a prefix or suffix with (select all, then insert) would
+            // replace the entire selection with only the differing units.
+            let suffix_length = anchored_suffix_length
+                .unwrap_or_else(|| {
+                    old_units
+                        .iter()
+                        .rev()
+                        .zip(new_units.iter().rev())
+                        .take_while(|(old_unit, new_unit)| old_unit == new_unit)
+                        .count()
+                })
+                .min(
+                    old_units
+                        .len()
+                        .saturating_sub(element_selection_end as usize),
+                );
             let prefix_length = old_units
                 .iter()
                 .zip(&new_units)
                 .take_while(|(old_unit, new_unit)| old_unit == new_unit)
                 .count()
+                .min(element_selection_start as usize)
                 .min(old_units.len() - suffix_length)
                 .min(new_units.len() - suffix_length);
 
@@ -940,11 +958,6 @@ impl WebWindowInner {
             );
             let replaced_old_end = old_units.len() - suffix_length;
 
-            // The edit's shape relative to the element's pre-edit selection.
-            // The element is private to the IME and these syncs, so the
-            // stored selection is exact.
-            let (element_selection_start, element_selection_end) =
-                this.ime_mirror.stored_selection();
             let removed_before_selection =
                 (element_selection_start as usize).saturating_sub(prefix_length);
             let removed_after_selection =
