@@ -1,4 +1,6 @@
 mod dispatcher;
+#[cfg(any(feature = "wayland", feature = "x11"))]
+mod foreground_tasks;
 mod headless;
 mod keyboard;
 mod platform;
@@ -14,6 +16,8 @@ mod x11;
 mod xdg_desktop_portal;
 
 pub use dispatcher::*;
+#[cfg(any(feature = "wayland", feature = "x11"))]
+pub(crate) use foreground_tasks::*;
 pub(crate) use headless::*;
 pub(crate) use keyboard::*;
 pub(crate) use platform::*;

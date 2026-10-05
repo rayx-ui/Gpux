@@ -78,10 +78,10 @@ use super::{
 };
 
 use crate::linux::{
-    DOUBLE_CLICK_INTERVAL, LinuxClient, LinuxCommon, LinuxKeyboardLayout, SCROLL_LINES,
-    capslock_from_xkb, cursor_style_to_icon_names, get_xkb_compose_state, is_within_click_distance,
-    keystroke_from_xkb, keystroke_underlying_dead_key, modifiers_from_xkb, open_uri_internal,
-    read_fd, reveal_path_internal,
+    DOUBLE_CLICK_INTERVAL, ForegroundTasks, LinuxClient, LinuxCommon, LinuxKeyboardLayout,
+    SCROLL_LINES, capslock_from_xkb, cursor_style_to_icon_names, get_xkb_compose_state,
+    is_within_click_distance, keystroke_from_xkb, keystroke_underlying_dead_key,
+    modifiers_from_xkb, open_uri_internal, read_fd, reveal_path_internal, run_runnable,
     wayland::{
         clipboard::{Clipboard, DataOffer, FILE_LIST_MIME_TYPE, TEXT_MIME_TYPES},
         cursor::Cursor,
@@ -97,8 +97,8 @@ use gpux::{
     ForegroundExecutor, KeyDownEvent, KeyUpEvent, Keystroke, Modifiers, ModifiersChangedEvent,
     MouseButton, NavigationDirection, Pixels, PlatformDisplay, PlatformInput,
     PlatformKeyboardLayout, PlatformWindow, Point, PointerEvent, PointerPhase, ScrollDelta,
-    ScrollWheelEvent, ScrollWheelPhase, ScrollWheelSource, SharedString, Size, TaskTiming,
-    TouchPhase, WindowButtonLayout, WindowKind, WindowParams, point, profiler, px, size,
+    ScrollWheelEvent, ScrollWheelPhase, ScrollWheelSource, SharedString, Size, TouchPhase,
+    WindowButtonLayout, WindowKind, WindowParams, point, px, size,
 };
 use wayland_protocols::wp::linux_dmabuf::zv1::client::{
     zwp_linux_dmabuf_feedback_v1, zwp_linux_dmabuf_v1,
@@ -570,30 +570,18 @@ impl WaylandClient {
         let (common, main_receiver) = LinuxCommon::new(event_loop.get_signal());
 
         let handle = event_loop.handle();
+        let foreground_tasks = ForegroundTasks::new(handle.clone(), run_runnable)
+            .expect("Failed to initialize the foreground task queue");
         handle
-            .insert_source(main_receiver, {
-                let handle = handle.clone();
+            .insert_source(
+                main_receiver,
                 move |event, _, _: &mut WaylandClientStatePtr| {
                     if let calloop::channel::Event::Msg(runnable) = event {
-                        handle.insert_idle(|_| {
-                            let start = Instant::now();
-                            let location = runnable.metadata().location;
-                            let mut timing = TaskTiming {
-                                location,
-                                start,
-                                end: None,
-                            };
-                            profiler::add_task_timing(timing);
-
-                            runnable.run();
-
-                            let end = Instant::now();
-                            timing.end = Some(end);
-                            profiler::add_task_timing(timing);
-                        });
+                        // Runnables run in the idle phase, after the Wayland events.
+                        foreground_tasks.push(runnable);
                     }
-                }
-            })
+                },
+            )
             .unwrap();
 
         let compositor_gpu = detect_compositor_gpu();

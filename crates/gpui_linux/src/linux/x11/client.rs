@@ -7,7 +7,7 @@ use calloop::{
 use collections::HashMap;
 use core::str;
 use gpui_util::ResultExt as _;
-use gpux::{Capslock, profiler};
+use gpux::Capslock;
 use http_client::Url;
 use log::Level;
 use smallvec::SmallVec;
@@ -56,7 +56,10 @@ use crate::linux::{
     reveal_path_internal,
     xdg_desktop_portal::{Event as XDPEvent, XDPEventSource},
 };
-use crate::linux::{LinuxCommon, LinuxKeyboardLayout, X11Window, modifiers_from_xinput_info};
+use crate::linux::{
+    ForegroundTasks, LinuxCommon, LinuxKeyboardLayout, X11Window, modifiers_from_xinput_info,
+    run_runnable,
+};
 
 use gpui_wgpu::{CompositorGpuHint, GpuContext};
 use gpux::{
@@ -313,22 +316,13 @@ impl X11Client {
 
         let handle = event_loop.handle();
 
+        let foreground_tasks = ForegroundTasks::new(handle.clone(), run_runnable)?;
         handle
-            .insert_source(main_receiver, {
-                let handle = handle.clone();
-                move |event, _, _: &mut X11Client| {
-                    if let calloop::channel::Event::Msg(runnable) = event {
-                        // Insert the runnables as idle callbacks, so we make sure that user-input and X11
-                        // events have higher priority and runnables are only worked off after the event
-                        // callbacks.
-                        handle.insert_idle(|_| {
-                            let location = runnable.metadata().location;
-                            let spawned = runnable.metadata().spawned;
-                            profiler::update_running_task(spawned, location);
-                            runnable.run();
-                            profiler::save_task_timing();
-                        });
-                    }
+            .insert_source(main_receiver, move |event, _, _: &mut X11Client| {
+                if let calloop::channel::Event::Msg(runnable) = event {
+                    // Runnables run in the idle phase, so user input and X11 events have higher
+                    // priority and runnables are only worked off after the event callbacks.
+                    foreground_tasks.push(runnable);
                 }
             })
             .map_err(|err| {
