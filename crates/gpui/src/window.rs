@@ -2961,6 +2961,14 @@ impl Window {
                 let force_render =
                     mem::take(&mut deferred_force_render) || request_frame_options.force_render;
 
+                // Upstream reads the thermal state through an App update whose effect flush
+                // requests a follow-up frame while this window has frame demand. gpux reads
+                // the cached thermal state instead, so idle frames never enter App; remember
+                // the demand and request the same follow-up after the frame.
+                let had_frame_demand = invalidator.is_dirty()
+                    || needs_present.get()
+                    || !next_frame_callbacks.borrow().is_empty();
+
                 // Throttle frame rate based on conditions:
                 // - Thermal pressure (Serious/Critical): cap to ~60fps
                 // - Inactive window (not focused): cap to ~30fps to save energy
@@ -3057,15 +3065,16 @@ impl Window {
                         .log_err();
                 }
 
-                handle
-                    .update(&mut cx, |_, window, _| {
-                        if window.invalidator.is_dirty()
-                            || !window.next_frame_callbacks.borrow().is_empty()
-                        {
+                if had_frame_demand
+                    || invalidator.is_dirty()
+                    || !next_frame_callbacks.borrow().is_empty()
+                {
+                    handle
+                        .update(&mut cx, |_, window, _| {
                             window.platform_window.schedule_frame();
-                        }
-                    })
-                    .log_err();
+                        })
+                        .log_err();
+                }
 
                 // Platforms that stop requesting frames for idle windows only
                 // deliver another request after a wakeup. If demand remains
