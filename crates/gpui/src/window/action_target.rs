@@ -6,7 +6,24 @@ impl Window {
     /// Unlike focused dispatch, this routes pointer controls through their own
     /// ancestors without moving keyboard focus. Occluding hitboxes block targets
     /// beneath them; an absent target is unhandled, never a fallback to focus.
+    ///
+    /// Dispatching from a mouse or key listener leaves that event's propagation
+    /// as it was, so the event still reaches the listeners after the caller.
     pub fn dispatch_action_at(
+        &mut self,
+        position: Point<Pixels>,
+        source: ActionInvocationSource,
+        action: &dyn Action,
+        cx: &mut App,
+    ) -> ActionDispatchReport {
+        // Action dispatch reuses the event propagation flag.
+        let propagate_event = cx.propagate_event;
+        let report = self.dispatch_action_at_position(position, source, action, cx);
+        cx.propagate_event = propagate_event;
+        report
+    }
+
+    fn dispatch_action_at_position(
         &mut self,
         position: Point<Pixels>,
         source: ActionInvocationSource,
@@ -128,6 +145,73 @@ mod tests {
                     )
                 })
         }
+    }
+
+    /// A target whose release listener follows an ancestor that dispatches
+    /// `Activate` at the release position during capture.
+    struct NestedDispatch {
+        actions: Rc<Cell<usize>>,
+        releases: Rc<Cell<usize>>,
+    }
+
+    impl Render for NestedDispatch {
+        fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+            let actions = self.actions.clone();
+            let releases = self.releases.clone();
+            div()
+                .relative()
+                .size_full()
+                .child(
+                    crate::canvas(
+                        |_, _, _| {},
+                        |_, _, window, _| {
+                            window.on_mouse_event(
+                                |event: &crate::MouseUpEvent, phase, window, cx| {
+                                    if phase.capture() {
+                                        window.dispatch_action_at(
+                                            event.position,
+                                            ActionInvocationSource::Pointer,
+                                            &Activate,
+                                            cx,
+                                        );
+                                    }
+                                },
+                            );
+                        },
+                    )
+                    .absolute()
+                    .size_full(),
+                )
+                .child(
+                    div()
+                        .id("target")
+                        .w(px(100.))
+                        .h(px(100.))
+                        .on_action(move |_: &Activate, _, _| actions.set(actions.get() + 1))
+                        .on_mouse_up(MouseButton::Left, move |_, _, _| {
+                            releases.set(releases.get() + 1)
+                        }),
+                )
+        }
+    }
+
+    #[gpux::test]
+    fn pointer_target_dispatch_keeps_the_mouse_event_propagating(cx: &mut TestAppContext) {
+        let actions = Rc::new(Cell::new(0));
+        let releases = Rc::new(Cell::new(0));
+        let fixture_actions = actions.clone();
+        let fixture_releases = releases.clone();
+        let (_, cx) = cx.add_window_view(move |_, _| NestedDispatch {
+            actions: fixture_actions,
+            releases: fixture_releases,
+        });
+        cx.run_until_parked();
+        let position = point(px(25.), px(25.));
+        cx.simulate_mouse_move(position, None, crate::Modifiers::none());
+        cx.simulate_mouse_down(position, MouseButton::Left, crate::Modifiers::none());
+        cx.simulate_mouse_up(position, MouseButton::Left, crate::Modifiers::none());
+        assert_eq!(actions.get(), 1, "the nested dispatch handles the action");
+        assert_eq!(releases.get(), 1, "the release still reaches the target");
     }
 
     #[gpux::test]
