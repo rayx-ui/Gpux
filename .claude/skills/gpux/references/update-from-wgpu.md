@@ -12,7 +12,7 @@ Run from the Gpux repository root. The upstream source is the published crates.i
 - Keep exactly one code change: DX12 window swap-chain scaling in `vendor/wgpu/wgpu-hal/src/dx12/mod.rs`. Every other difference from the published source is the mechanical manifest transformation below; change nothing else in the fork.
 - Keep HTML island element upload in gpux (`crates/gpui_wgpu/src/html_island_upload.rs`); never move it back into wgpu.
 - Keep the fork refresh and the gpux port as separate commits so provenance stays reviewable.
-- Retire the fork instead of refreshing it once a wgpu release ships `Dx12BackendOptions::swapchain_scaling` (see Retiring The Fork).
+- Retire the fork instead of refreshing it once a wgpu release ships `SurfaceConfiguration::scaling_mode` (see Retiring The Fork).
 
 ## Current Fork
 
@@ -47,7 +47,7 @@ Scaling: if matches!(&self.target, SurfaceTarget::WndHandle(_)) {
 ## Workflow
 
 1. Read current provenance:
-   - `docs/upstream/wgpu-dx12-swapchain-scaling.md`; if a wgpu release ships the option, retire the fork instead.
+   - `docs/upstream/wgpu-dx12-swapchain-scaling.md`; if a wgpu release ships `SurfaceConfiguration::scaling_mode`, retire the fork instead.
    - The header comment and `version` of `vendor/wgpu/wgpu/Cargo.toml` for the forked release and fork version.
    - `../RayX/.agentx/memory/knowledge/runtime/gpux-foundation/state.md`
    - `../RayX/.agentx/memory/knowledge/runtime/gpux-foundation/rules.md`
@@ -128,10 +128,10 @@ Check:
 
 ## Retiring The Fork
 
-The fork exists only until upstream wgpu ships the opt-in `Dx12BackendOptions::swapchain_scaling` change tracked in [docs/upstream/wgpu-dx12-swapchain-scaling.md](../../../../docs/upstream/wgpu-dx12-swapchain-scaling.md) (gfx-rs/wgpu#10196). When a release ships it:
+The fork exists only until upstream wgpu ships `SurfaceConfiguration::scaling_mode` (`SurfaceScalingMode::OneToOne` maps DX12 window swap chains to `DXGI_SCALING_NONE`), tracked in [docs/upstream/wgpu-dx12-swapchain-scaling.md](../../../../docs/upstream/wgpu-dx12-swapchain-scaling.md) (gfx-rs/wgpu#10196). When a release ships it:
 
 - Delete `vendor/wgpu/`, remove the seven fork crates from the workspace members, and depend on the crates.io release (`wgpu = "<version>"`).
-- Set `swapchain_scaling: wgpu::Dx12SwapchainScaling::None` in the `Dx12BackendOptions` of the instance gpux creates for Windows windows. gpui_windows renders through `gpui_wgpu`, whose `WgpuContext::instance_with_backend_policy` in `crates/gpui_wgpu/src/wgpu_context.rs` builds the native instance descriptor.
+- In the surface configuration of `WgpuRenderer` (`crates/gpui_wgpu/src/wgpu_renderer.rs`), request `scaling_mode: wgpu::SurfaceScalingMode::OneToOne` when the surface's `SurfaceCapabilities::scaling_modes` contains it, and `Auto` otherwise; requesting an unlisted mode fails validation. gpui_windows renders through `gpui_wgpu`, and only DX12 window surfaces list `OneToOne`.
 - Remove the fork rows and notes from `README.md`, `CLAUDE.md`, and `AGENTS.md`, the fork sections of this reference and `SKILL.md`, and `scripts/fork_wgpu.py`.
 - Validate as above, including the native Windows fast height-only live-resize check.
 
