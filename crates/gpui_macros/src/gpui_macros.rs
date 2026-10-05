@@ -244,6 +244,9 @@ pub fn bench(args: TokenStream, function: TokenStream) -> TokenStream {
 ///
 /// All other arguments are forwarded to the underlying proptest macro.
 ///
+/// The released `proptest::property_test` macro generates `::proptest` paths, so a crate using
+/// `#[gpux::property_test]` must depend on `proptest` (with its `attr-macro` feature) directly.
+///
 /// Note: much of the following is copied from the proptest docs, specifically the
 /// [`#[proptest::property_test]`] macro docs.
 ///

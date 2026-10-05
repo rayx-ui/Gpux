@@ -87,7 +87,6 @@ pub fn test(args: TokenStream, item: TokenStream) -> TokenStream {
 struct Args {
     config: Option<Expr>,
     remaining_args: Vec<MetaNameValue>,
-    errors: TokenStream,
 }
 
 impl Args {
@@ -102,12 +101,9 @@ impl Args {
 
         let fixed_config = quote!(::gpux::apply_seed_to_proptest_config(#user_provided_config));
         let remaining_args = &self.remaining_args;
-        let errors = &self.errors;
 
         quote! {
-            #errors
             #[::gpux::proptest::property_test(
-                proptest_path = "::gpux::proptest",
                 config = #fixed_config,
                 #(#remaining_args,)*
             )]
@@ -121,14 +117,10 @@ impl Parse for Args {
 
         let mut config = None;
         let mut remaining_args = vec![];
-        let mut errors = quote!();
 
         for pair in pairs {
             match pair.path.get_ident().map(Ident::to_string).as_deref() {
                 Some("config") => config = Some(pair.value),
-                Some("proptest_path") => errors.extend(quote_spanned! {pair.span() =>
-                    compile_error!("`gpux::property_test` overrides the `proptest_path` parameter")
-                }),
                 _ => remaining_args.push(pair),
             }
         }
@@ -136,7 +128,6 @@ impl Parse for Args {
         Ok(Self {
             config,
             remaining_args,
-            errors,
         })
     }
 }

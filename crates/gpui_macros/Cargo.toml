@@ -27,4 +27,5 @@ quote.workspace = true
 syn.workspace = true
 
 [dev-dependencies]
-gpux = { path = "../gpui", features = ["inspector"] }
+gpux = { path = "../gpui", features = ["inspector", "test-support"] }
+proptest.workspace = true
