@@ -1,15 +1,18 @@
 [package]
-name = "sum_tree"
-version = "0.1.0"
+name = "gpux-sum-tree"
+version.workspace = true
 edition.workspace = true
-publish = false
-license = "Apache-2.0"
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+license.workspace = true
 description = "A sum tree data structure, a concurrency-friendly B-tree"
 
 [lints]
 workspace = true
 
 [lib]
+name = "sum_tree"
 path = "src/sum_tree.rs"
 doctest = false
 

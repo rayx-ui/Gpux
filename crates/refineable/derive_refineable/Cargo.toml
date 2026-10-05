@@ -1,9 +1,11 @@
 [package]
-name = "derive_refineable"
-version = "0.1.0"
+name = "gpux-derive-refineable"
+version.workspace = true
 edition.workspace = true
-publish = false
-license = "Apache-2.0"
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+license.workspace = true
 description = "A derive macro for creating refinement types in Rust"
 
 
@@ -11,6 +13,7 @@ description = "A derive macro for creating refinement types in Rust"
 workspace = true
 
 [lib]
+name = "derive_refineable"
 path = "src/derive_refineable.rs"
 proc-macro = true
 doctest = false

@@ -1,9 +1,11 @@
 [package]
-name = "util"
-version = "0.1.0"
+name = "gpux-zed-util"
+version.workspace = true
 edition.workspace = true
-publish = false
-license = "Apache-2.0"
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+license.workspace = true
 description = "A collection of utility structs and functions used by Zed and GPUI"
 
 
@@ -11,6 +13,7 @@ description = "A collection of utility structs and functions used by Zed and GPU
 workspace = true
 
 [lib]
+name = "util"
 path = "src/util.rs"
 doctest = true
 

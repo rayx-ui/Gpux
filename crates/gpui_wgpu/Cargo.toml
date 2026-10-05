@@ -1,14 +1,18 @@
 [package]
-name = "gpui_wgpu"
-version = "0.1.0"
+name = "gpux-wgpu-renderer"
+description = "wgpu renderer and cosmic-text text system for gpux platforms."
+version.workspace = true
 edition.workspace = true
-publish.workspace = true
-license = "Apache-2.0"
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+license.workspace = true
 
 [lints]
 workspace = true
 
 [lib]
+name = "gpui_wgpu"
 path = "src/gpui_wgpu.rs"
 
 [features]

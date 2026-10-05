@@ -11,7 +11,7 @@ perf-test = [
     "--tests",
     "--all-features",
     "--config",
-    "target.'cfg(true)'.runner='cargo run -p perf --release'",
+    "target.'cfg(true)'.runner='cargo run -p gpux-perf --release'",
     "--config",
     "target.'cfg(true)'.rustflags=[\"--cfg\", \"perf_enabled\"]",
 ]
@@ -20,7 +20,7 @@ perf-compare = [
     "--profile",
     "release-fast",
     "-p",
-    "perf",
+    "gpux-perf",
     "--config",
     "target.'cfg(true)'.rustflags=[\"--cfg\", \"perf_enabled\"]",
     "--",

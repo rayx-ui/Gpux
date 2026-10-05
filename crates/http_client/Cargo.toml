@@ -1,9 +1,11 @@
 [package]
-name = "http_client"
-version = "0.1.0"
+name = "gpux-http-client"
+version.workspace = true
 edition.workspace = true
-publish = false
-license = "Apache-2.0"
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+license.workspace = true
 description = "A HTTP client library for Zed and GPUI"
 
 [lints]
@@ -20,6 +22,7 @@ github-download = [
 ]
 
 [lib]
+name = "http_client"
 path = "src/http_client.rs"
 doctest = true
 

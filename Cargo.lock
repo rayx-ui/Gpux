@@ -1283,15 +1283,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "collections"
-version = "0.1.0"
-dependencies = [
- "gpui_util",
- "indexmap",
- "rustc-hash 2.1.1",
-]
-
-[[package]]
 name = "color_quant"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1740,15 +1731,6 @@ dependencies = [
  "rustc_version",
  "syn",
  "unicode-xid",
-]
-
-[[package]]
-name = "derive_refineable"
-version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]
@@ -2646,8 +2628,171 @@ dependencies = [
 ]
 
 [[package]]
-name = "gpui_linux"
-version = "0.1.0"
+name = "gpux"
+version = "0.3.0"
+dependencies = [
+ "accesskit",
+ "anyhow",
+ "async-channel 2.5.0",
+ "async-task",
+ "backtrace",
+ "bindgen",
+ "bitflags 2.10.0",
+ "block",
+ "cbindgen",
+ "chrono",
+ "cocoa 0.26.0",
+ "cocoa-foundation 0.2.0",
+ "core-foundation 0.10.0",
+ "core-foundation-sys",
+ "core-graphics 0.24.0",
+ "core-text",
+ "core-video",
+ "criterion",
+ "ctor",
+ "derive_more",
+ "embed-resource",
+ "env_logger",
+ "etagere",
+ "foreign-types",
+ "futures",
+ "futures-concurrency",
+ "getrandom 0.3.4",
+ "gpux-collections",
+ "gpux-color",
+ "gpux-fonts",
+ "gpux-http-client",
+ "gpux-macros",
+ "gpux-media",
+ "gpux-platform",
+ "gpux-refineable",
+ "gpux-reqwest-client",
+ "gpux-scheduler",
+ "gpux-shared-string",
+ "gpux-sum-tree",
+ "gpux-util",
+ "gpux-web",
+ "gpux-zed-util-macros",
+ "hdrhistogram",
+ "heapless",
+ "image",
+ "inventory",
+ "itertools 0.14.0",
+ "js-sys",
+ "log",
+ "lyon",
+ "mach2",
+ "metal",
+ "num_cpus",
+ "objc",
+ "objc2 0.6.3",
+ "objc2-metal 0.3.2",
+ "parking",
+ "parking_lot",
+ "pathfinder_geometry",
+ "pin-project",
+ "pollster 0.4.0",
+ "postage",
+ "profiling",
+ "proptest",
+ "rand 0.9.4",
+ "raw-window-handle",
+ "regex",
+ "resvg",
+ "ropey",
+ "schemars",
+ "seahash",
+ "serde",
+ "serde_json",
+ "slotmap",
+ "smallvec",
+ "spin 0.10.0",
+ "stacksafe",
+ "strum",
+ "taffy",
+ "thiserror 2.0.17",
+ "tracing",
+ "ttf-parser",
+ "unicode-segmentation",
+ "url",
+ "usvg",
+ "uuid",
+ "waker-fn",
+ "wasm-bindgen",
+ "web-sys",
+ "web-time",
+ "windows 0.61.3",
+ "zed-font-kit",
+ "zed-reqwest",
+ "zed-scap",
+]
+
+[[package]]
+name = "gpux-collections"
+version = "0.3.0"
+dependencies = [
+ "gpux-util",
+ "indexmap",
+ "rustc-hash 2.1.1",
+]
+
+[[package]]
+name = "gpux-color"
+version = "0.3.0"
+dependencies = [
+ "criterion",
+ "dhat",
+ "static_assertions",
+]
+
+[[package]]
+name = "gpux-derive-refineable"
+version = "0.3.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "gpux-fonts"
+version = "0.3.0"
+
+[[package]]
+name = "gpux-http-client"
+version = "0.3.0"
+dependencies = [
+ "anyhow",
+ "async-compression",
+ "async-fs",
+ "async-tar",
+ "bytes",
+ "derive_more",
+ "futures",
+ "gpux-zed-util",
+ "http",
+ "http-body",
+ "log",
+ "parking_lot",
+ "serde",
+ "serde_json",
+ "serde_urlencoded",
+ "sha2",
+ "tempfile",
+ "url",
+]
+
+[[package]]
+name = "gpux-http-client-tls"
+version = "0.3.0"
+dependencies = [
+ "rustls",
+ "rustls-platform-verifier",
+]
+
+[[package]]
+name = "gpux-linux"
+version = "0.3.0"
 dependencies = [
  "accesskit",
  "accesskit_unix",
@@ -2658,13 +2803,13 @@ dependencies = [
  "bytemuck",
  "calloop",
  "calloop-wayland-source",
- "collections",
  "filedescriptor",
  "futures",
- "gpui_util",
- "gpui_wgpu",
  "gpux",
- "http_client",
+ "gpux-collections",
+ "gpux-http-client",
+ "gpux-util",
+ "gpux-wgpu-renderer",
  "image",
  "itertools 0.14.0",
  "libc",
@@ -2697,8 +2842,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "gpui_macos"
-version = "0.1.0"
+name = "gpux-macos"
+version = "0.3.0"
 dependencies = [
  "accesskit",
  "accesskit_macos",
@@ -2708,7 +2853,6 @@ dependencies = [
  "block2 0.6.2",
  "cbindgen",
  "cocoa 0.26.0",
- "collections",
  "core-foundation 0.10.0",
  "core-foundation-sys",
  "core-graphics 0.24.0",
@@ -2720,14 +2864,15 @@ dependencies = [
  "etagere",
  "foreign-types",
  "futures",
- "gpui_util",
  "gpux",
+ "gpux-collections",
+ "gpux-media",
+ "gpux-util",
  "image",
  "itertools 0.14.0",
  "libc",
  "log",
  "mach2",
- "media",
  "metal",
  "objc",
  "objc2 0.6.3",
@@ -2745,8 +2890,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "gpui_macros"
-version = "0.1.0"
+name = "gpux-macros"
+version = "0.3.0"
 dependencies = [
  "gpux",
  "heck 0.5.0",
@@ -2756,8 +2901,22 @@ dependencies = [
 ]
 
 [[package]]
-name = "gpui_mobile"
-version = "0.1.0"
+name = "gpux-media"
+version = "0.3.0"
+dependencies = [
+ "anyhow",
+ "bindgen",
+ "core-foundation 0.10.0",
+ "core-video",
+ "ctor",
+ "foreign-types",
+ "metal",
+ "objc",
+]
+
+[[package]]
+name = "gpux-mobile"
+version = "0.3.0"
 dependencies = [
  "android-activity",
  "android_logger",
@@ -2768,8 +2927,8 @@ dependencies = [
  "core-graphics 0.24.0",
  "core-text",
  "futures",
- "gpui_wgpu",
  "gpux",
+ "gpux-wgpu-renderer",
  "jni 0.22.4",
  "jni-sys 0.3.0",
  "libc",
@@ -2789,21 +2948,78 @@ dependencies = [
 ]
 
 [[package]]
-name = "gpui_platform"
-version = "0.1.0"
+name = "gpux-path"
+version = "0.3.0"
 dependencies = [
- "console_error_panic_hook",
- "gpui_linux",
- "gpui_macos",
- "gpui_mobile",
- "gpui_web",
- "gpui_windows",
- "gpux",
+ "anyhow",
+ "dunce",
+ "serde",
+ "tempfile",
 ]
 
 [[package]]
-name = "gpui_shared_string"
-version = "0.1.0"
+name = "gpux-perf"
+version = "0.3.0"
+dependencies = [
+ "gpux-collections",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "gpux-platform"
+version = "0.3.0"
+dependencies = [
+ "console_error_panic_hook",
+ "gpux",
+ "gpux-linux",
+ "gpux-macos",
+ "gpux-mobile",
+ "gpux-web",
+ "gpux-windows",
+]
+
+[[package]]
+name = "gpux-refineable"
+version = "0.3.0"
+dependencies = [
+ "gpux-derive-refineable",
+]
+
+[[package]]
+name = "gpux-reqwest-client"
+version = "0.3.0"
+dependencies = [
+ "anyhow",
+ "bytes",
+ "futures",
+ "gpux-http-client",
+ "gpux-http-client-tls",
+ "gpux-util",
+ "log",
+ "regex",
+ "serde",
+ "tokio",
+ "zed-reqwest",
+]
+
+[[package]]
+name = "gpux-scheduler"
+version = "0.3.0"
+dependencies = [
+ "async-task",
+ "backtrace",
+ "chrono",
+ "flume",
+ "futures",
+ "parking_lot",
+ "rand 0.9.4",
+ "web-time",
+]
+
+[[package]]
+name = "gpux-shared-string"
+version = "0.3.0"
 dependencies = [
  "schemars",
  "serde",
@@ -2811,8 +3027,20 @@ dependencies = [
 ]
 
 [[package]]
-name = "gpui_util"
-version = "0.1.0"
+name = "gpux-sum-tree"
+version = "0.3.0"
+dependencies = [
+ "heapless",
+ "log",
+ "proptest",
+ "rand 0.9.4",
+ "rayon",
+ "tracing",
+]
+
+[[package]]
+name = "gpux-util"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "log",
@@ -2820,16 +3048,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "gpui_web"
-version = "0.1.0"
+name = "gpux-web"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "console_error_panic_hook",
  "futures",
- "gpui_wgpu",
  "gpux",
  "gpux-fonts",
- "http_client",
+ "gpux-http-client",
+ "gpux-wgpu-renderer",
  "js-sys",
  "log",
  "parking_lot",
@@ -2844,18 +3072,18 @@ dependencies = [
 ]
 
 [[package]]
-name = "gpui_wgpu"
-version = "0.1.0"
+name = "gpux-wgpu-renderer"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "bytemuck",
- "collections",
  "cosmic-text",
  "criterion",
  "etagere",
- "gpui_util",
  "gpux",
+ "gpux-collections",
  "gpux-fonts",
+ "gpux-util",
  "image",
  "itertools 0.14.0",
  "js-sys",
@@ -2877,19 +3105,20 @@ dependencies = [
 ]
 
 [[package]]
-name = "gpui_windows"
-version = "0.1.0"
+name = "gpux-windows"
+version = "0.3.0"
 dependencies = [
  "accesskit",
  "accesskit_windows",
  "anyhow",
- "collections",
  "dunce",
  "etagere",
  "futures",
- "gpui_util",
- "gpui_wgpu",
  "gpux",
+ "gpux-collections",
+ "gpux-util",
+ "gpux-wgpu-renderer",
+ "gpux-zed-util",
  "image",
  "itertools 0.14.0",
  "log",
@@ -2897,7 +3126,6 @@ dependencies = [
  "rand 0.9.4",
  "raw-window-handle",
  "smallvec",
- "util",
  "uuid",
  "windows 0.61.3",
  "windows-core 0.61.2",
@@ -2907,116 +3135,55 @@ dependencies = [
 ]
 
 [[package]]
-name = "gpux"
-version = "0.2.2"
+name = "gpux-zed-util"
+version = "0.3.0"
 dependencies = [
- "accesskit",
  "anyhow",
- "async-channel 2.5.0",
- "async-task",
- "backtrace",
- "bindgen",
- "bitflags 2.10.0",
- "block",
- "cbindgen",
- "chrono",
- "cocoa 0.26.0",
- "cocoa-foundation 0.2.0",
- "collections",
- "core-foundation 0.10.0",
- "core-foundation-sys",
- "core-graphics 0.24.0",
- "core-text",
- "core-video",
- "criterion",
- "ctor",
- "derive_more",
- "embed-resource",
- "env_logger",
- "etagere",
- "foreign-types",
+ "async-fs",
+ "async_zip",
+ "command-fds",
+ "dirs 6.0.0",
+ "dunce",
  "futures",
- "futures-concurrency",
- "getrandom 0.3.4",
- "gpui_macros",
- "gpui_platform",
- "gpui_shared_string",
- "gpui_util",
- "gpui_web",
- "gpux-fonts",
- "gpux_color",
- "hdrhistogram",
- "heapless",
- "http_client",
- "image",
- "inventory",
+ "futures-lite 1.13.0",
+ "globset",
+ "gpux-collections",
+ "gpux-path",
+ "gpux-util",
+ "gpux-zed-util-macros",
  "itertools 0.14.0",
- "js-sys",
+ "libc",
  "log",
- "lyon",
  "mach2",
- "media",
- "metal",
- "num_cpus",
- "objc",
- "objc2 0.6.3",
- "objc2-metal 0.3.2",
- "parking",
- "parking_lot",
- "pathfinder_geometry",
- "pin-project",
- "pollster 0.4.0",
- "postage",
- "profiling",
- "proptest",
+ "nix 0.29.0",
+ "percent-encoding",
+ "pretty_assertions",
  "rand 0.9.4",
- "raw-window-handle",
- "refineable",
  "regex",
- "reqwest_client",
- "resvg",
- "ropey",
- "scheduler",
+ "rust-embed",
  "schemars",
- "seahash",
  "serde",
  "serde_json",
- "slotmap",
- "smallvec",
- "spin 0.10.0",
- "stacksafe",
- "strum",
- "sum_tree",
- "taffy",
- "thiserror 2.0.17",
- "tracing",
- "ttf-parser",
- "unicode-segmentation",
+ "serde_json_lenient",
+ "shlex",
+ "smol",
+ "take-until",
+ "tempfile",
+ "tendril",
+ "unicase",
  "url",
- "usvg",
- "util_macros",
- "uuid",
- "waker-fn",
- "wasm-bindgen",
- "web-sys",
- "web-time",
+ "walkdir",
+ "which",
  "windows 0.61.3",
- "zed-font-kit",
- "zed-reqwest",
- "zed-scap",
 ]
 
 [[package]]
-name = "gpux-fonts"
-version = "0.1.0"
-
-[[package]]
-name = "gpux_color"
-version = "0.1.0"
+name = "gpux-zed-util-macros"
+version = "0.3.0"
 dependencies = [
- "criterion",
- "dhat",
- "static_assertions",
+ "gpux-perf",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -3211,38 +3378,6 @@ dependencies = [
  "http",
  "http-body",
  "pin-project-lite",
-]
-
-[[package]]
-name = "http_client"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-compression",
- "async-fs",
- "async-tar",
- "bytes",
- "derive_more",
- "futures",
- "http",
- "http-body",
- "log",
- "parking_lot",
- "serde",
- "serde_json",
- "serde_urlencoded",
- "sha2",
- "tempfile",
- "url",
- "util",
-]
-
-[[package]]
-name = "http_client_tls"
-version = "0.1.0"
-dependencies = [
- "rustls",
- "rustls-platform-verifier",
 ]
 
 [[package]]
@@ -4063,20 +4198,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "media"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bindgen",
- "core-foundation 0.10.0",
- "core-video",
- "ctor",
- "foreign-types",
- "metal",
- "objc",
-]
-
-[[package]]
 name = "memchr"
 version = "2.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4853,16 +4974,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "35fb2e5f958ec131621fdd531e9fc186ed768cbe395337403ae56c17a74c68ec"
 
 [[package]]
-name = "path"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "dunce",
- "serde",
- "tempfile",
-]
-
-[[package]]
 name = "pathdiff"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4902,15 +5013,6 @@ name = "percent-encoding"
 version = "2.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
-
-[[package]]
-name = "perf"
-version = "0.1.0"
-dependencies = [
- "collections",
- "serde",
- "serde_json",
-]
 
 [[package]]
 name = "phf"
@@ -5650,13 +5752,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "refineable"
-version = "0.1.0"
-dependencies = [
- "derive_refineable",
-]
-
-[[package]]
 name = "regex"
 version = "1.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5690,23 +5785,6 @@ name = "renderdoc-sys"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "19b30a45b0cd0bcca8037f3d0dc3421eaf95327a17cad11964fb8179b4fc4832"
-
-[[package]]
-name = "reqwest_client"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bytes",
- "futures",
- "gpui_util",
- "http_client",
- "http_client_tls",
- "log",
- "regex",
- "serde",
- "tokio",
- "zed-reqwest",
-]
 
 [[package]]
 name = "resvg"
@@ -6004,20 +6082,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "891d81b926048e76efe18581bf793546b4c0eaf8448d72be8de2bbee5fd166e1"
 dependencies = [
  "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "scheduler"
-version = "0.1.0"
-dependencies = [
- "async-task",
- "backtrace",
- "chrono",
- "flume",
- "futures",
- "parking_lot",
- "rand 0.9.4",
- "web-time",
 ]
 
 [[package]]
@@ -6530,18 +6594,6 @@ name = "subtle"
 version = "2.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
-
-[[package]]
-name = "sum_tree"
-version = "0.1.0"
-dependencies = [
- "heapless",
- "log",
- "proptest",
- "rand 0.9.4",
- "rayon",
- "tracing",
-]
 
 [[package]]
 name = "sval"
@@ -7324,58 +7376,6 @@ name = "utf8parse"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
-
-[[package]]
-name = "util"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-fs",
- "async_zip",
- "collections",
- "command-fds",
- "dirs 6.0.0",
- "dunce",
- "futures",
- "futures-lite 1.13.0",
- "globset",
- "gpui_util",
- "itertools 0.14.0",
- "libc",
- "log",
- "mach2",
- "nix 0.29.0",
- "path",
- "percent-encoding",
- "pretty_assertions",
- "rand 0.9.4",
- "regex",
- "rust-embed",
- "schemars",
- "serde",
- "serde_json",
- "serde_json_lenient",
- "shlex",
- "smol",
- "take-until",
- "tempfile",
- "tendril",
- "unicase",
- "url",
- "util_macros",
- "walkdir",
- "which",
- "windows 0.61.3",
-]
-
-[[package]]
-name = "util_macros"
-version = "0.1.0"
-dependencies = [
- "perf",
- "quote",
- "syn",
-]
 
 [[package]]
 name = "uuid"

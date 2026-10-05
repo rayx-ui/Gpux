@@ -1,11 +1,15 @@
 [package]
-name = "path"
-version = "0.1.0"
+name = "gpux-path"
+description = "Relative and absolute path types used by gpux."
+version.workspace = true
 edition.workspace = true
-publish.workspace = true
-license = "Apache-2.0"
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+license.workspace = true
 
 [lib]
+name = "path"
 path = "src/path.rs"
 
 [features]

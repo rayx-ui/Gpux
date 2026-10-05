@@ -1,9 +1,11 @@
 [package]
-name = "gpui_macros"
-version = "0.1.0"
+name = "gpux-macros"
+version.workspace = true
 edition.workspace = true
-publish = false
-license = "Apache-2.0"
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+license.workspace = true
 description = "Macros used by gpux"
 
 [lints]
@@ -13,6 +15,7 @@ workspace = true
 inspector = []
 
 [lib]
+name = "gpui_macros"
 path = "src/gpui_macros.rs"
 proc-macro = true
 doctest = true
@@ -24,4 +27,4 @@ quote.workspace = true
 syn.workspace = true
 
 [dev-dependencies]
-gpux = { workspace = true, features = ["inspector"] }
+gpux = { path = "../gpui", features = ["inspector"] }

@@ -1,15 +1,18 @@
 [package]
-name = "collections"
-version = "0.1.0"
+name = "gpux-collections"
+version.workspace = true
 edition.workspace = true
-publish = false
-license = "Apache-2.0"
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+license.workspace = true
 description = "Standard collection types used by Zed and GPUI"
 
 [lints]
 workspace = true
 
 [lib]
+name = "collections"
 path = "src/collections.rs"
 doctest = false
 

@@ -1,8 +1,11 @@
 [package]
 name = "gpux-fonts"
 description = "The IBM Plex Sans and Lilex fonts bundled with gpux."
-version = "0.1.0"
+version.workspace = true
 edition.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
 license = "OFL-1.1"
 keywords = ["gpux", "fonts", "ibm-plex", "lilex"]
 categories = ["gui"]

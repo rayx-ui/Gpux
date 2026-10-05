@@ -1,9 +1,12 @@
 [package]
-name = "gpux_color"
+name = "gpux-color"
 description = "UI-neutral standards color engine for gpux."
-version = "0.1.0"
+version.workspace = true
 edition.workspace = true
-publish.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+license.workspace = true
 
 [dev-dependencies]
 criterion = { version = "0.5.1", default-features = false }

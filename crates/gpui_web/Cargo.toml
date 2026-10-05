@@ -1,9 +1,12 @@
 [package]
-name = "gpui_web"
-version = "0.1.0"
-publish.workspace = true
+name = "gpux-web"
+description = "Browser platform (WebGPU with a WebGL fallback) for gpux."
+version.workspace = true
 edition.workspace = true
-license = "Apache-2.0"
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+license.workspace = true
 autoexamples = false
 
 [lints]
@@ -15,6 +18,7 @@ multithreaded = ["dep:wasm_thread"]
 rayx_diagnostics = ["gpui_wgpu/rayx_diagnostics"]
 
 [lib]
+name = "gpui_web"
 path = "src/gpui_web.rs"
 
 [target.'cfg(target_family = "wasm")'.dependencies]

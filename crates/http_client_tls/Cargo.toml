@@ -1,9 +1,12 @@
 [package]
-name = "http_client_tls"
-version = "0.1.0"
+name = "gpux-http-client-tls"
+description = "TLS configuration for the gpux HTTP client."
+version.workspace = true
 edition.workspace = true
-publish.workspace = true
-license = "Apache-2.0"
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+license.workspace = true
 
 [lints]
 workspace = true
@@ -12,6 +15,7 @@ workspace = true
 test-support = []
 
 [lib]
+name = "http_client_tls"
 path = "src/http_client_tls.rs"
 doctest = true
 

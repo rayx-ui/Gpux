@@ -1,15 +1,18 @@
 [package]
-name = "media"
-version = "0.1.0"
+name = "gpux-media"
+version.workspace = true
 edition.workspace = true
-publish = false
-license = "Apache-2.0"
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+license.workspace = true
 description = "Bindings to macos media handling APIs for Zed"
 
 [lints]
 workspace = true
 
 [lib]
+name = "media"
 path = "src/media.rs"
 doctest = false
 

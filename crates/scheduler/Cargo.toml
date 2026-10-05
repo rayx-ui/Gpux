@@ -1,14 +1,18 @@
 [package]
-name = "scheduler"
-version = "0.1.0"
+name = "gpux-scheduler"
+description = "Task scheduler behind gpux's executors."
+version.workspace = true
 edition.workspace = true
-publish.workspace = true
-license = "Apache-2.0"
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+license.workspace = true
 
 [lints]
 workspace = true
 
 [lib]
+name = "scheduler"
 path = "src/scheduler.rs"
 doctest = false
 

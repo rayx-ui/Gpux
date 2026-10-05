@@ -1,15 +1,18 @@
 [package]
-name = "refineable"
-version = "0.1.0"
+name = "gpux-refineable"
+version.workspace = true
 edition.workspace = true
-publish = false
-license = "Apache-2.0"
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+license.workspace = true
 description = "A macro for creating 'refinement' types that can be used to partially initialize or mutate a complex struct"
 
 [lints]
 workspace = true
 
 [lib]
+name = "refineable"
 path = "src/refineable.rs"
 doctest = false
 

@@ -1,9 +1,9 @@
 [package]
-name = "gpui_mobile"
-version = "0.1.0"
+name = "gpux-mobile"
+version.workspace = true
 edition.workspace = true
-publish.workspace = true
-license = "Apache-2.0"
+rust-version.workspace = true
+license.workspace = true
 authors = ["Balamurali Pandranki <balamurali@live.com>"]
 description = "Mobile platform support for gpux on iOS and Android."
 repository = "https://github.com/itsbalamurali/gpui-mobile"
@@ -49,10 +49,13 @@ vibration = []
 video_player = []
 webview = []
 
+[lib]
+name = "gpui_mobile"
+
 [dependencies]
 anyhow.workspace = true
 futures.workspace = true
-gpui = { package = "gpux", path = "../gpui", default-features = false }
+gpui = { package = "gpux", path = "../gpui", version = "0.3.0", default-features = false }
 gpui_wgpu = { workspace = true }
 log.workspace = true
 parking_lot.workspace = true

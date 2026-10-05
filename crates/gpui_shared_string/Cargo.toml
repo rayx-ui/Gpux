@@ -1,10 +1,15 @@
 [package]
-name = "gpui_shared_string"
-version = "0.1.0"
-publish.workspace = true
+name = "gpux-shared-string"
+description = "The cheaply clonable shared string used by gpux."
+version.workspace = true
 edition.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+license.workspace = true
 
 [lib]
+name = "gpui_shared_string"
 path = "gpui_shared_string.rs"
 
 [dependencies]
