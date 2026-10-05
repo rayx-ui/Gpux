@@ -40,3 +40,6 @@ MACOSX_DEPLOYMENT_TARGET = "10.15.7"
 # Android cross-checks and builds need fontconfig to resolve through dlopen
 # instead of pkg-config, because the NDK sysroot does not provide fontconfig.
 RUST_FONTCONFIG_DLOPEN = "on"
+# gpux elements use larger stack frames than upstream GPUI in debug builds, so test threads need
+# more than Rust's 2 MiB default for upstream's deep randomized element-tree tests.
+RUST_MIN_STACK = "8388608"
