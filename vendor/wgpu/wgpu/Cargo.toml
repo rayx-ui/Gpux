@@ -1,25 +1,34 @@
-[package]
-name = "wgpu"
-version.workspace = true
-authors.workspace = true
-edition.workspace = true
-description = "Cross-platform, safe, pure-rust graphics API"
-homepage.workspace = true
-repository.workspace = true
-keywords.workspace = true
-license.workspace = true
-readme = "../README.md"
-exclude = ["Cargo.lock"]
+# gpux fork of wgpu 30.0.1 from https://github.com/gfx-rs/wgpu, published as gpux-wgpu
+# until upstream fixes https://github.com/gfx-rs/wgpu/issues/10196. The only behavior change is
+# in gpux-wgpu-hal: DX12 swap chains for window handles use DXGI_SCALING_NONE. This manifest is
+# the published (normalized) manifest with forked dependencies renamed and only the library kept.
 
-# Override the workspace's `rust-version` key. `wgpu` and its dependencies
-# have a less strict MSRV, to allow users more leeway in updating their Rust toolchain.
-#
-# See the repo README for more information on MSRV policy.
+[package]
+edition = "2021"
 rust-version = "1.87.0"
+name = "gpux-wgpu"
+version = "30.0.1-gpux.1"
+authors = ["gfx-rs developers"]
+build = "build.rs"
+exclude = ["Cargo.lock"]
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
+description = "Temporary gpux fork of wgpu 30.0.1 (DX12 window swap chains use DXGI_SCALING_NONE, gfx-rs/wgpu#10196). Cross-platform, safe, pure-rust graphics API"
+homepage = "https://wgpu.rs/"
+readme = "README.md"
+keywords = ["graphics"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/rayx-ui/Gpux"
 
 [package.metadata.docs.rs]
 all-features = true
-rustdoc-args = ["--cfg", "docsrs"]
+rustdoc-args = [
+    "--cfg",
+    "docsrs",
+]
 targets = [
     "x86_64-unknown-linux-gnu",
     "x86_64-apple-darwin",
@@ -28,12 +37,12 @@ targets = [
 ]
 
 [package.metadata.cargo-machete]
-# Cargo machete can't check build.rs dependencies. See https://github.com/bnjbvr/cargo-machete/issues/100
 ignored = ["cfg_aliases"]
 
-[lib]
-
 [features]
+angle = ["wgpu-core?/angle"]
+counters = ["wgpu-core?/counters"]
+custom = []
 default = [
     "std",
     "parking_lot",
@@ -44,134 +53,35 @@ default = [
     "wgsl",
     "webgpu",
 ]
-
-#! ### Backends
-# --------------------------------------------------------------------
-
-## Enables the DX12 backend on Windows.
+drm = ["wgpu-core?/drm"]
 dx12 = ["wgpu-core?/dx12"]
-
-## Enables the Metal backend on macOS & iOS.
-metal = ["wgpu-core?/metal"]
-
-## Enables the Vulkan backend on Windows, Linux, and Android.
-vulkan = ["wgpu-core?/vulkan"]
-
-## Enables the OpenGL/GLES backend on Windows, Linux, Android, and Emscripten.
-gles = ["wgpu-core?/gles"]
-
-## Enables the WebGPU backend on WebAssembly.
-webgpu = [
-    "web",
-    "naga?/wgsl-out",
-    "dep:wasm-bindgen-futures",
-    "web-sys/Document",
-    "web-sys/Event",
-    "web-sys/Navigator",
-    "web-sys/NodeList",
-    "web-sys/Window",
-    "web-sys/WorkerGlobalScope",
-    "web-sys/WorkerNavigator",
-]
-
-#! ### Conditional Backends
-
-## Enables the GLES backend on macOS only for use with [ANGLE](https://github.com/google/angle).
-angle = ["wgpu-core?/angle"]
-
-## Enables the Vulkan backend on macOS & iOS only for use with [MoltenVK](https://github.com/KhronosGroup/MoltenVK).
-vulkan-portability = ["wgpu-core?/vulkan-portability"]
-
-## Enables the GLES backend on WebAssembly only.
-webgl = ["web", "wgpu-core/webgl", "dep:wgpu-hal", "dep:smallvec"]
-
-## Enables the noop backend for testing.
-##
-## This backend allows creating resources such as buffers and textures,
-## but performs no computation.
-## Because it lacks basic functionality, it is only actually used if explicitly enabled
-## through `NoopBackendOptions`.
-noop = ["wgpu-core/noop", "dep:wgpu-hal", "dep:smallvec"]
-
-#! **Note:** In the documentation, if you see that an item depends on a backend,
-#! it means that the item is only available when that backend is enabled _and_ the backend
-#! is supported on the current platform.
-
-custom = []
-
-#! ### Shading language support
-# --------------------------------------------------------------------
-#! These features enable support for that input language on all platforms.
-#! We will translate the input language to whatever the backend requires.
-
-## Enable accepting SPIR-V shaders as input.
-spirv = ["naga/spv-in", "wgpu-core?/spirv"]
-
-## Enable accepting GLSL shaders as input.
-glsl = ["naga/glsl-in", "wgpu-core?/glsl"]
-
-## Enable accepting WGSL shaders as input.
-wgsl = ["wgpu-core?/wgsl"]
-
-## Enable accepting naga IR shaders as input.
-naga-ir = ["dep:naga"]
-
-#! ### Assertions and Serialization
-# --------------------------------------------------------------------
-## Apply run-time checks, even in release builds. These are in addition
-## to the validation carried out at public APIs in all builds.
-strict_asserts = ["wgpu-core?/strict_asserts", "wgpu-types/strict_asserts"]
-
-## Enables serialization via `serde` on common wgpu types.
-serde = ["wgpu-core?/serde", "wgpu-types/serde"]
-
-# ## Allow writing of trace capture files. See [`Adapter::request_device`].
-trace = ["serde", "wgpu-core?/trace"]
-
-#! ### External libraries
-# --------------------------------------------------------------------
-#! The following features facilitate integration with third-party supporting libraries.
-
-## Enables statically linking DXC.
-##
-## Normally, to use the modern DXC shader compiler with wgpu, the final application
-## must be shipped alongside `dxcompiler.dll` (min v1.8.2502) (which can be downloaded from [Microsoft's GitHub][dxc]).
-## This feature statically links a version of DXC so that no external binaries are required
-## to compile DX12 shaders.
-##
-## [dxc]: https://github.com/Microsoft/DirectXShaderCompiler
-static-dxc = ["wgpu-core?/static-dxc"]
-
-#! ### Other
-# --------------------------------------------------------------------
-
-## Internally count resources and events for debugging purposes. If the counters
-## feature is disabled, the counting infrastructure is removed from the build and
-## the exposed counters always return 0.
-counters = ["wgpu-core?/counters"]
-
-## Implement `Send` and `Sync` on Wasm, but only if atomics are not enabled.
-##
-## WebGL/WebGPU objects can not be shared between threads.
-## However, it can be useful to artificially mark them as `Send` and `Sync`
-## anyways to make it easier to write cross-platform code.
-## This is technically *very* unsafe in a multithreaded environment,
-## but on a wasm binary compiled without atomics is a definitionally single-threaded environment.
+exhaust = ["wgpu-types/exhaust"]
 fragile-send-sync-non-atomic-wasm = [
     "wgpu-core?/fragile-send-sync-non-atomic-wasm",
     "wgpu-types/fragile-send-sync-non-atomic-wasm",
 ]
-
-## Use web-specific libraries on WASM
-##
-## Those libraries (wasm-bindgen, web-sys, js-sys) can only be used when there is a JavaScript
-## context around the WASM VM, e.g., when the WASM binary is used in a browser.
-web = ["dep:wasm-bindgen", "dep:js-sys", "dep:web-sys", "wgpu-types/web"]
-
-## Enables use of the standard library within `wgpu` and its dependencies.
-##
-## This can allow for better error reporting and for improved multithreading
-## support.
+gles = ["wgpu-core?/gles"]
+glsl = [
+    "naga/glsl-in",
+    "wgpu-core?/glsl",
+]
+metal = ["wgpu-core?/metal"]
+naga-ir = ["dep:naga"]
+noop = [
+    "wgpu-core/noop",
+    "dep:wgpu-hal",
+    "dep:smallvec",
+]
+parking_lot = ["dep:parking_lot"]
+serde = [
+    "wgpu-core?/serde",
+    "wgpu-types/serde",
+]
+spirv = [
+    "naga/spv-in",
+    "wgpu-core?/spirv",
+]
+static-dxc = ["wgpu-core?/static-dxc"]
 std = [
     "raw-window-handle/std",
     "wgpu-types/std",
@@ -181,91 +91,189 @@ std = [
     "wasm-bindgen?/std",
     "wasm-bindgen-futures?/std",
 ]
+strict_asserts = [
+    "wgpu-core?/strict_asserts",
+    "wgpu-types/strict_asserts",
+]
+trace = [
+    "serde",
+    "wgpu-core?/trace",
+    "wgpu-types/trace",
+]
+vulkan = ["wgpu-core?/vulkan"]
+vulkan-portability = ["wgpu-core?/vulkan-portability"]
+web = [
+    "dep:wasm-bindgen",
+    "dep:js-sys",
+    "dep:web-sys",
+    "wgpu-types/web",
+]
+webgl = [
+    "web",
+    "wgpu-core/webgl",
+    "dep:wgpu-hal",
+    "dep:smallvec",
+]
+webgpu = [
+    "web",
+    "naga?/wgsl-out",
+    "dep:wasm-bindgen-futures",
+    "web-sys/Document",
+    "web-sys/Event",
+    "web-sys/MediaQueryList",
+    "web-sys/Navigator",
+    "web-sys/NodeList",
+    "web-sys/Window",
+    "web-sys/WorkerGlobalScope",
+    "web-sys/WorkerNavigator",
+]
+wgsl = ["wgpu-core?/wgsl"]
 
-## Uses `parking_lot` as the implementation for locking primitives.
-##
-## This is a recommended feature for most users and should only be disabled when
-## required, e.g., for `no_std` support.
-## If disabled, either `std::sync::Mutex` or `core::cell::RefCell` will be used,
-## based on whether `std` is enabled or not.
-parking_lot = ["dep:parking_lot"]
+[lib]
+name = "wgpu"
+path = "src/lib.rs"
 
-#########################
-# Standard Dependencies #
-#########################
+[dependencies.arrayvec]
+version = "0.7.1"
+default-features = false
 
-[dependencies]
-naga = { workspace = true, optional = true, features = ["termcolor"] }
-wgpu-core = { workspace = true, optional = true }
-wgpu-types.workspace = true
+[dependencies.bitflags]
+version = "2.9"
 
-# Needed for both wgpu-core and webgpu
-arrayvec.workspace = true
-bitflags.workspace = true
-bytemuck.workspace = true
-cfg-if.workspace = true
-document-features.workspace = true
-log.workspace = true
-hashbrown.workspace = true
-parking_lot = { workspace = true, optional = true }
-profiling.workspace = true
-raw-window-handle = { workspace = true, features = ["alloc"] }
-static_assertions.workspace = true
+[dependencies.bytemuck]
+version = "1.22"
+features = [
+    "extern_crate_alloc",
+    "min_const_generics",
+]
 
-########################################
-# Target Specific Feature Dependencies #
-########################################
+[dependencies.cfg-if]
+version = "1"
 
-###################
-# Not Webassembly #
-###################
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-# Needed for only wgpu-core backend. Not optional as only wgpu-core backend exists on native platforms.
-wgpu-core = { workspace = true, features = [
-    "renderdoc",
-    "wgsl",            # needed for indirect draw/dispatch validation
-    "portable-atomic",
-] }
-wgpu-hal.workspace = true
+[dependencies.document-features]
+version = "0.2.10"
 
-smallvec.workspace = true
+[dependencies.hashbrown]
+version = "0.17"
+features = [
+    "default-hasher",
+    "inline-more",
+]
+default-features = false
 
-###############
-# Webassembly #
-###############
-[target.'cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))'.dependencies]
-# Needed for all backends
-js-sys = { workspace = true, optional = true }
-wasm-bindgen = { workspace = true, optional = true }
-web-sys = { workspace = true, optional = true, features = [
+[dependencies.log]
+version = "0.4.29"
+
+[dependencies.naga]
+version = "30.0.0"
+features = ["termcolor"]
+optional = true
+
+[dependencies.parking_lot]
+version = "0.12.3"
+optional = true
+
+[dependencies.profiling]
+version = "1.0.1"
+default-features = false
+
+[dependencies.raw-window-handle]
+version = "0.6.2"
+features = ["alloc"]
+default-features = false
+
+[dependencies.static_assertions]
+version = "1.1"
+
+[dependencies.wgpu-core]
+package = "gpux-wgpu-core"
+version = "=30.0.1-gpux.1"
+path = "../wgpu-core"
+optional = true
+
+[dependencies.wgpu-types]
+version = "30.0.0"
+default-features = false
+
+[build-dependencies.cfg_aliases]
+version = "0.2.2"
+
+[target.'cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))'.dependencies.js-sys]
+version = "0.3.104"
+optional = true
+default-features = false
+
+[target.'cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))'.dependencies.smallvec]
+version = "1.14"
+optional = true
+
+[target.'cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))'.dependencies.wasm-bindgen]
+version = "0.2.127"
+optional = true
+default-features = false
+
+[target.'cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))'.dependencies.wasm-bindgen-futures]
+version = "0.4.77"
+optional = true
+default-features = false
+
+[target.'cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))'.dependencies.web-sys]
+version = "0.3.104"
+features = [
     "HtmlCanvasElement",
     "OffscreenCanvas",
-] }
+]
+optional = true
+default-features = false
 
-# Needed for only wgpu-core backend. Optional as webgl is optional on WebAssembly.
-wgpu-core = { workspace = true, optional = true }
-wgpu-hal = { workspace = true, optional = true }
+[target.'cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))'.dependencies.wgpu-core]
+package = "gpux-wgpu-core"
+version = "=30.0.1-gpux.1"
+path = "../wgpu-core"
+optional = true
 
-smallvec = { workspace = true, optional = true }
+[target.'cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))'.dependencies.wgpu-hal]
+package = "gpux-wgpu-hal"
+version = "=30.0.1-gpux.1"
+path = "../wgpu-hal"
+optional = true
 
-# Needed for the webgpu backend. Optional as webgpu is optional on WebAssembly.
-wasm-bindgen-futures = { workspace = true, optional = true }
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies.smallvec]
+version = "1.14"
 
-##############
-# Emscripten #
-##############
-[target.'cfg(target_os = "emscripten")'.dependencies]
-wgpu-core.workspace = true
-wgpu-hal.workspace = true
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies.wgpu-core]
+package = "gpux-wgpu-core"
+version = "=30.0.1-gpux.1"
+path = "../wgpu-core"
+features = [
+    "renderdoc",
+    "wgsl",
+    "portable-atomic",
+]
 
-smallvec.workspace = true
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies.wgpu-hal]
+package = "gpux-wgpu-hal"
+version = "=30.0.1-gpux.1"
+path = "../wgpu-hal"
 
-[target.'cfg(not(target_has_atomic = "64"))'.dependencies]
-portable-atomic.workspace = true
+[target.'cfg(not(target_has_atomic = "64"))'.dependencies.portable-atomic]
+version = "1.10"
 
-[dev-dependencies]
-# Used in doc-tests
-bytemuck.workspace = true
+[target.'cfg(target_os = "emscripten")'.dependencies.smallvec]
+version = "1.14"
 
-[build-dependencies]
-cfg_aliases.workspace = true
+[target.'cfg(target_os = "emscripten")'.dependencies.wgpu-core]
+package = "gpux-wgpu-core"
+version = "=30.0.1-gpux.1"
+path = "../wgpu-core"
+
+[target.'cfg(target_os = "emscripten")'.dependencies.wgpu-hal]
+package = "gpux-wgpu-hal"
+version = "=30.0.1-gpux.1"
+path = "../wgpu-hal"
+
+[lints.clippy]
+ref_as_ptr = "warn"
+
+[lints.rust]
+missing_debug_implementations = "warn"

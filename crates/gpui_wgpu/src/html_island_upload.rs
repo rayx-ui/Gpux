@@ -1,5 +1,20 @@
 use gpux::{DevicePixels, Size};
-use wasm_bindgen::JsCast;
+use wasm_bindgen::{JsCast, JsValue, prelude::wasm_bindgen};
+
+#[wasm_bindgen]
+extern "C" {
+    /// A `GPUQueue` viewed through Chrome's experimental HTML-in-canvas API, which wgpu does not
+    /// bind.
+    type ElementCopyQueue;
+
+    #[wasm_bindgen(catch, method, structural, js_name = copyElementImageToTexture)]
+    fn copy_element_image_to_texture(
+        this: &ElementCopyQueue,
+        source: &JsValue,
+        destination: &JsValue,
+        copy_size: &JsValue,
+    ) -> Result<(), JsValue>;
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HtmlIslandUploadPath {
@@ -62,29 +77,12 @@ pub fn upload_html_island_element_to_texture(
             anyhow::anyhow!("HTML island source element must be a direct child of the GPUI canvas")
         })?;
 
-    queue
-        .copy_element_image_to_texture(
-            element.as_ref(),
-            wgpu::CopyExternalImageDestInfo {
-                texture,
-                mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
-                aspect: wgpu::TextureAspect::All,
-                color_space: wgpu::PredefinedColorSpace::Srgb,
-                premultiplied_alpha: false,
-            },
-            wgpu::Extent3d {
-                width,
-                height,
-                depth_or_array_layers: 1,
-            },
+    copy_element_image(queue, element, texture, width, height).map_err(|error| {
+        anyhow::anyhow!(
+            "GPUQueue.copyElementImageToTexture failed: {}",
+            js_error_message(&error)
         )
-        .map_err(|error| {
-            anyhow::anyhow!(
-                "GPUQueue.copyElementImageToTexture failed: {}",
-                js_error_message(&error)
-            )
-        })?;
+    })?;
 
     Ok(HtmlIslandUploadResult {
         #[cfg(feature = "rayx_diagnostics")]
@@ -92,6 +90,52 @@ pub fn upload_html_island_element_to_texture(
         #[cfg(feature = "rayx_diagnostics")]
         texture_reallocated: false,
     })
+}
+
+/// Copies `element`, a live child of the GPUI canvas, into the top-left `width` x `height` texels
+/// of `texture`'s first mip level as unpremultiplied sRGB.
+fn copy_element_image(
+    queue: &wgpu::Queue,
+    element: &web_sys::HtmlElement,
+    texture: &wgpu::Texture,
+    width: u32,
+    height: u32,
+) -> Result<(), JsValue> {
+    let (Some(queue), Some(texture)) = (queue.as_webgpu(), texture.as_webgpu()) else {
+        return Err(JsValue::from_str(
+            "HTML island uploads require the WebGPU backend",
+        ));
+    };
+    let zero = JsValue::from(0u32);
+    let source = js_object(&[("source", element.as_ref())])?;
+    let origin = js_object(&[("x", &zero), ("y", &zero), ("z", &zero)])?;
+    let target = js_object(&[
+        ("texture", texture.as_ref()),
+        ("mipLevel", &zero),
+        ("origin", &origin),
+        ("aspect", &JsValue::from_str("all")),
+    ])?;
+    let destination = js_object(&[
+        ("destination", &target),
+        ("colorSpace", &JsValue::from_str("srgb")),
+        ("premultipliedAlpha", &JsValue::FALSE),
+    ])?;
+    let size = js_object(&[
+        ("width", &JsValue::from(width)),
+        ("height", &JsValue::from(height)),
+        ("depthOrArrayLayers", &JsValue::from(1u32)),
+    ])?;
+    queue
+        .unchecked_ref::<ElementCopyQueue>()
+        .copy_element_image_to_texture(&source, &destination, &size)
+}
+
+fn js_object(fields: &[(&str, &JsValue)]) -> Result<JsValue, JsValue> {
+    let object = js_sys::Object::new();
+    for (key, value) in fields {
+        js_sys::Reflect::set(&object, &JsValue::from_str(key), value)?;
+    }
+    Ok(object.into())
 }
 
 fn js_error_message(value: &wasm_bindgen::JsValue) -> String {

@@ -1650,6 +1650,7 @@ impl WgpuRenderer {
             desired_maximum_frame_latency: SURFACE_FRAME_LATENCY,
             alpha_mode,
             view_formats: Vec::new(),
+            color_space: wgpu::SurfaceColorSpace::Auto,
         };
         // Configure the surface immediately. The adapter selection process already validated
         // that this adapter can successfully configure this surface.
@@ -2797,7 +2798,7 @@ impl WgpuRenderer {
             Ok(encoder) => encoder,
             Err(error) => {
                 log::error!("{error}");
-                frame.present();
+                self.resources().queue.present(frame);
                 return true;
             }
         };
@@ -2809,7 +2810,7 @@ impl WgpuRenderer {
         self.update_frame_telemetry(|telemetry| {
             telemetry.submission_count = telemetry.submission_count.saturating_add(1);
         });
-        frame.present();
+        self.resources().queue.present(frame);
         true
     }
 
@@ -3436,7 +3437,9 @@ impl WgpuRenderer {
 
         let bytes_per_row = width as usize * 4;
         let padded_bytes_per_row = padded_bytes_per_row as usize;
-        let mapped = slice.get_mapped_range();
+        let mapped = slice.get_mapped_range().map_err(|error| {
+            anyhow::anyhow!("Failed to read capture readback buffer: {error:?}")
+        })?;
         let mut pixels = vec![0u8; bytes_per_row * height as usize];
 
         for y in 0..height as usize {

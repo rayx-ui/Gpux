@@ -79,11 +79,13 @@ fn main() {
 ## The wgpu fork
 
 `vendor/wgpu` contains `gpux-wgpu`, upstream wgpu 30.0.1's `wgpu`, `wgpu-core`, `wgpu-hal` and
-`wgpu-core/platform-deps/*` crates with a single change: DirectX 12 swap chains created for a
+`wgpu-core-deps-*` crates with a single change: DirectX 12 swap chains created for a
 window handle (HWND) use `DXGI_SCALING_NONE` instead of `DXGI_SCALING_STRETCH`, so resizing a
 Windows window does not stretch the previous frame
 ([gfx-rs/wgpu#10196](https://github.com/gfx-rs/wgpu/issues/10196)). The fork exists only until
-upstream wgpu ships that fix; gpux then returns to the crates.io `wgpu` release.
+upstream wgpu ships an equivalent option; gpux then returns to the crates.io `wgpu` release.
+[docs/upstream/wgpu-dx12-swapchain-scaling.md](docs/upstream/wgpu-dx12-swapchain-scaling.md)
+tracks the upstream change.
 
 ## Maintenance
 

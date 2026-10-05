@@ -1,5 +1,4 @@
 use alloc::sync::Arc;
-use core::mem::{forget, size_of, transmute_copy, ManuallyDrop};
 
 use gpu_allocator::{d3d12::AllocationCreateDesc, MemoryLocation};
 use parking_lot::Mutex;
@@ -81,7 +80,7 @@ impl Allocator {
         let host_memblock_size = allocation_sizes.min_host_memblock_size;
 
         let allocator_desc = gpu_allocator::d3d12::AllocatorCreateDesc {
-            device: gpu_allocator_device(raw),
+            device: gpu_allocator::d3d12::ID3D12DeviceVersion::Device(raw.clone()),
             debug_settings: Default::default(),
             allocation_sizes: allocation_sizes.into(),
         };
@@ -126,43 +125,6 @@ impl Allocator {
             total_allocated_bytes: upstream.total_allocated_bytes,
             total_reserved_bytes: upstream.total_capacity_bytes,
         }
-    }
-}
-
-fn gpu_allocator_device(
-    raw: &Direct3D12::ID3D12Device,
-) -> gpu_allocator::d3d12::ID3D12DeviceVersion {
-    let device = raw.clone();
-    // SAFETY: all supported `windows` crate versions represent generated COM
-    // interface wrappers as a transparent pointer wrapper. `clone` AddRefs the
-    // pointer before it is moved into the allocator's binding version.
-    let allocator_device = unsafe { transmute_copy(&device) };
-    forget(device);
-    gpu_allocator::d3d12::ID3D12DeviceVersion::Device(allocator_device)
-}
-
-fn wgpu_heap_from_allocator<Heap>(heap: &Heap) -> ManuallyDrop<Direct3D12::ID3D12Heap> {
-    debug_assert_eq!(size_of::<Heap>(), size_of::<Direct3D12::ID3D12Heap>());
-    // SAFETY: all supported `windows` crate versions represent generated COM
-    // interface wrappers as a transparent pointer wrapper. This is a borrowed
-    // view of the allocator-owned heap, so `ManuallyDrop` prevents releasing a
-    // reference count we did not acquire.
-    unsafe { ManuallyDrop::new(transmute_copy::<Heap, Direct3D12::ID3D12Heap>(heap)) }
-}
-
-fn resource_category(
-    desc: &Direct3D12::D3D12_RESOURCE_DESC,
-) -> gpu_allocator::d3d12::ResourceCategory {
-    if desc.Dimension == Direct3D12::D3D12_RESOURCE_DIMENSION_BUFFER {
-        gpu_allocator::d3d12::ResourceCategory::Buffer
-    } else if (desc.Flags
-        & (Direct3D12::D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
-            | Direct3D12::D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL))
-        != Direct3D12::D3D12_RESOURCE_FLAG_NONE
-    {
-        gpu_allocator::d3d12::ResourceCategory::RtvDsvTexture
-    } else {
-        gpu_allocator::d3d12::ResourceCategory::OtherTexture
     }
 }
 
@@ -334,17 +296,14 @@ impl<'a> DeviceAllocationContext<'a> {
             location,
             size: allocation_info.SizeInBytes,
             alignment: allocation_info.Alignment,
-            resource_category: resource_category(&raw_desc),
+            resource_category: gpu_allocator::d3d12::ResourceCategory::from(&raw_desc),
         };
 
         let allocation = allocator.allocate(&allocation_desc)?;
-        // SAFETY: `allocation` remains alive until after `CreatePlacedResource`
-        // returns, so its heap pointer is valid for the duration of this call.
-        let heap = wgpu_heap_from_allocator(unsafe { allocation.heap() });
         let mut resource = None;
         unsafe {
             self.raw.CreatePlacedResource(
-                &*heap,
+                allocation.heap(),
                 allocation.offset(),
                 &raw_desc,
                 Direct3D12::D3D12_RESOURCE_STATE_COMMON,
@@ -376,17 +335,14 @@ impl<'a> DeviceAllocationContext<'a> {
             location,
             size: allocation_info.SizeInBytes,
             alignment: allocation_info.Alignment,
-            resource_category: resource_category(&raw_desc),
+            resource_category: gpu_allocator::d3d12::ResourceCategory::from(&raw_desc),
         };
 
         let allocation = allocator.allocate(&allocation_desc)?;
-        // SAFETY: `allocation` remains alive until after `CreatePlacedResource`
-        // returns, so its heap pointer is valid for the duration of this call.
-        let heap = wgpu_heap_from_allocator(unsafe { allocation.heap() });
         let mut resource = None;
         unsafe {
             self.raw.CreatePlacedResource(
-                &*heap,
+                allocation.heap(),
                 allocation.offset(),
                 &raw_desc,
                 Direct3D12::D3D12_RESOURCE_STATE_COMMON,
@@ -418,17 +374,14 @@ impl<'a> DeviceAllocationContext<'a> {
             location,
             size: allocation_info.SizeInBytes,
             alignment: allocation_info.Alignment,
-            resource_category: resource_category(&raw_desc),
+            resource_category: gpu_allocator::d3d12::ResourceCategory::from(&raw_desc),
         };
 
         let allocation = allocator.allocate(&allocation_desc)?;
-        // SAFETY: `allocation` remains alive until after `CreatePlacedResource`
-        // returns, so its heap pointer is valid for the duration of this call.
-        let heap = wgpu_heap_from_allocator(unsafe { allocation.heap() });
         let mut resource = None;
         unsafe {
             self.raw.CreatePlacedResource(
-                &*heap,
+                allocation.heap(),
                 allocation.offset(),
                 &raw_desc,
                 Direct3D12::D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE,

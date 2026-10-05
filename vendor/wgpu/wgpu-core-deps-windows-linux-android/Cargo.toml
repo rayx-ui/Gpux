@@ -1,0 +1,45 @@
+# gpux fork of wgpu-core-deps-windows-linux-android 30.0.1 from https://github.com/gfx-rs/wgpu, published as gpux-wgpu-core-deps-windows-linux-android
+# until upstream fixes https://github.com/gfx-rs/wgpu/issues/10196. The only behavior change is
+# in gpux-wgpu-hal: DX12 swap chains for window handles use DXGI_SCALING_NONE. This manifest is
+# the published (normalized) manifest with forked dependencies renamed and only the library kept.
+
+[package]
+edition = "2021"
+rust-version = "1.76"
+name = "gpux-wgpu-core-deps-windows-linux-android"
+version = "30.0.1-gpux.1"
+authors = ["gfx-rs developers"]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
+description = "Temporary gpux fork of wgpu-core-deps-windows-linux-android 30.0.1 (DX12 window swap chains use DXGI_SCALING_NONE, gfx-rs/wgpu#10196). Feature unification helper crate for the Windows/Linux/Android platforms"
+homepage = "https://wgpu.rs/"
+readme = "README.md"
+keywords = ["graphics"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/rayx-ui/Gpux"
+
+[features]
+drm = ["wgpu-hal/drm"]
+dx12 = ["wgpu-hal/dx12"]
+gles = ["wgpu-hal/gles"]
+renderdoc = ["wgpu-hal/renderdoc"]
+vulkan = ["wgpu-hal/vulkan"]
+
+[lib]
+name = "wgpu_core_deps_windows_linux_android"
+path = "src/lib.rs"
+
+[target.'cfg(any(windows, target_os = "linux", target_os = "android", target_os = "freebsd", target_os = "netbsd"))'.dependencies.wgpu-hal]
+package = "gpux-wgpu-hal"
+version = "=30.0.1-gpux.1"
+path = "../wgpu-hal"
+
+[lints.clippy]
+ref_as_ptr = "warn"
+
+[lints.rust]
+missing_debug_implementations = "warn"

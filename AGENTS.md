@@ -21,10 +21,12 @@ wgpu), installation, platform prerequisites, and validation routing.
 ## The wgpu Fork
 
 `vendor/wgpu` holds `gpux-wgpu`: upstream wgpu's `wgpu`, `wgpu-core`, `wgpu-hal`, and
-`wgpu-core/platform-deps/*` at the released version, renamed `gpux-*` with version suffix
+`wgpu-core-deps-*` crates at the released version, renamed `gpux-*` with version suffix
 `-gpux.N`, carrying exactly one change: DX12 HWND swap chains use `DXGI_SCALING_NONE`
-(gfx-rs/wgpu#10196). Change nothing else there. Delete the fork and return to crates.io `wgpu`
-once upstream ships the fix.
+(gfx-rs/wgpu#10196). Its manifests are the published wgpu manifests with the forked dependencies
+renamed and only library targets kept; change nothing else there. The upstream replacement is
+tracked in [docs/upstream/wgpu-dx12-swapchain-scaling.md](docs/upstream/wgpu-dx12-swapchain-scaling.md);
+when a wgpu release ships it, delete the fork and return to crates.io `wgpu`.
 
 ## Validation
 
@@ -34,10 +36,10 @@ Test only what you changed. While iterating, run the touched crate's focused che
 cargo fmt --check
 cargo check -p <package> --all-targets
 cargo test -p <package> <filter>
-cargo clippy -p <package> --all-targets -- -D warnings
+cargo clippy -p <package> --all-targets --no-deps -- -D warnings
 ```
 
-Web crates also need `cargo check -p gpux-web --target wasm32-unknown-unknown`. Before a release
+Web crates also need `cargo check -p gpux-web --target wasm32-unknown-unknown --no-default-features` (the default multithreaded build needs nightly `-Z build-std`, which RayX's xtask provides). Before a release
 or a manifest change, run `cargo package --workspace`.
 
 Runtime proof happens in RayX (`../RayX`): its Test Suite app exercises gpux on WASM/WebGPU
