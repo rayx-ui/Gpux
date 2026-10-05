@@ -432,9 +432,21 @@ mod tests {
     use super::*;
     use gpux::block_on;
     use gpux::{ImageId, RenderImageParams};
-    use std::sync::Arc;
+    use std::sync::{Arc, OnceLock};
 
-    fn test_device_and_queue() -> anyhow::Result<(Arc<wgpu::Device>, Arc<wgpu::Queue>)> {
+    type TestDevice = (Arc<wgpu::Device>, Arc<wgpu::Queue>);
+
+    /// The device every test shares. Creating instances for DX12, Vulkan and GL on several
+    /// test threads at once can deadlock inside the graphics drivers on Windows.
+    fn test_device_and_queue() -> anyhow::Result<TestDevice> {
+        static DEVICE: OnceLock<Result<TestDevice, String>> = OnceLock::new();
+        DEVICE
+            .get_or_init(|| create_test_device_and_queue().map_err(|error| format!("{error:#}")))
+            .clone()
+            .map_err(anyhow::Error::msg)
+    }
+
+    fn create_test_device_and_queue() -> anyhow::Result<TestDevice> {
         block_on(async {
             let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
                 backends: wgpu::Backends::all(),
