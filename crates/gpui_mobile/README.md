@@ -90,11 +90,8 @@ The example app includes screens for Home, Counter, About, Settings, Components 
 
 ## License
 
-Licensed under any one of:
-
-- [GPL-3.0-or-later](LICENSE-GPL)
-- [AGPL-3.0-or-later](LICENSE-AGPL)
-- [Apache-2.0](LICENSE-APACHE)
+The upstream gpui-mobile project is licensed under any one of GPL-3.0-or-later, AGPL-3.0-or-later
+or Apache-2.0. gpux distributes this crate under the [Apache-2.0](LICENSE-APACHE) option.
 
 ## Acknowledgements
 

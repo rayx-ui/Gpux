@@ -28,3 +28,6 @@ xcuserdata/
 
 # Nix build output.
 /result
+
+# Local execution output.
+/artifacts-temp

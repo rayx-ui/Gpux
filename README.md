@@ -1,39 +1,103 @@
 # gpux
 
-`gpux` is the RayX-maintained fork of [GPUI](https://gpui.rs), Zed's GPU-accelerated UI framework for Rust.
+`gpux` is the RayX-maintained fork of [GPUI](https://gpui.rs), the GPU-accelerated UI framework
+from the [Zed](https://github.com/zed-industries/zed) editor. It keeps Zed's GPUI crate closure and
+crate boundaries and carries RayX's patch stack on top: web (WebGPU/WebGL) and mobile (Android,
+iOS) platforms, a wgpu renderer on Windows, Linux and the web, frame and shader effects,
+fixed/sticky positioning, programmatic scrolling, editable text, accessibility and DevKit
+semantics.
 
-The repository name and main Rust crate name are both `gpux`. Consumers import `gpux::{...}` while this repository carries the RayX-specific GPUI patch stack separately from the full Zed application workspace.
+For GPUI concepts, [gpui.rs](https://gpui.rs) remains a useful introduction; for exact APIs and
+behavior, use this repository, because gpux differs from upstream GPUI.
 
-## What This Repository Contains
+## Usage
 
-`gpux` is intentionally limited to Zed's GPUI crate closure:
+```toml
+[dependencies]
+gpux = "0.3"
+gpux-platform = "0.3"
+```
 
-- `crates/gpui`, the upstream closure path that contains the main `gpux` framework crate
-- platform crates such as `gpui_platform`, `gpui_windows`, `gpui_linux`, `gpui_macos`, `gpui_web`, and `gpui_wgpu`
-- GPUI support crates such as `collections`, `scheduler`, `sum_tree`, `util`, `http_client`, `media`, and tracing helpers
-- local maintenance and performance tooling needed by the reduced workspace
+```rust
+use gpui_platform::application;
+use gpux::{Context, Window, WindowOptions, div, prelude::*};
 
-This repository does not contain the full Zed editor application. Keeping the original GPUI crate boundaries makes upstream imports easier to review: import the GPUI closure from Zed, replay or preserve RayX GPUI patches, then validate the reduced workspace.
+struct Hello;
 
-## Documentation
+impl Render for Hello {
+    fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+        div().child("Hello from gpux")
+    }
+}
 
-- [Installation and usage](https://github.com/ray-platform/gpux/wiki/Installation-and-usage)
-- [GPUX Skill](https://github.com/ray-platform/gpux/wiki/GPUX-Skill)
+fn main() {
+    application().run(|cx| async move {
+        cx.update(|cx| {
+            cx.open_window(WindowOptions::default(), |_, cx| cx.new(|_| Hello))
+                .expect("open the window");
+        });
+    });
+}
+```
 
-## Who Should Use It
+`gpux-platform` selects the platform crate for the compilation target. Packages publish under
+`gpux-*` names and keep their GPUI Rust names, so `gpux-platform` is imported as `gpui_platform`.
+`crates/gpui/examples` has more examples, including the web entry point (`gpui_platform::web_init`).
 
-Use `gpux` when you need GPUI with RayX's maintained patch surface, especially from the sibling `RayX.GPUI2` repository.
+## Crates
 
-For a general introduction to GPUI concepts, upstream documentation at [gpui.rs](https://gpui.rs) is still a useful conceptual reference. For exact behavior, APIs, features, examples, and upstream-sync maintenance rules, prefer this repository because `gpux` may differ from upstream Zed GPUI.
+| Directory | Package | Rust name | Purpose |
+|---|---|---|---|
+| `crates/gpui` | `gpux` | `gpux` | The framework: elements, layout, text, input, windows, executors |
+| `crates/gpui_platform` | `gpux-platform` | `gpui_platform` | Platform selection for the current target |
+| `crates/gpui_windows` | `gpux-windows` | `gpui_windows` | Windows platform (DirectX 12 through wgpu) |
+| `crates/gpui_macos` | `gpux-macos` | `gpui_macos` | macOS platform (Metal) |
+| `crates/gpui_linux` | `gpux-linux` | `gpui_linux` | Linux platform (Wayland and X11) |
+| `crates/gpui_web` | `gpux-web` | `gpui_web` | Browser platform (WebGPU, WebGL fallback) |
+| `crates/gpui_mobile` | `gpux-mobile` | `gpui_mobile` | Android and iOS platforms |
+| `crates/gpui_wgpu` | `gpux-wgpu-renderer` | `gpui_wgpu` | wgpu renderer and cosmic-text text system |
+| `crates/gpui_macros` | `gpux-macros` | `gpui_macros` | Derive and attribute macros |
+| `crates/gpux_color` | `gpux-color` | `gpux_color` | Standards color engine behind `gpux::Color` |
+| `crates/gpux_fonts` | `gpux-fonts` | `gpux_fonts` | Bundled IBM Plex Sans and Lilex fonts |
+| `crates/gpui_shared_string` | `gpux-shared-string` | `gpui_shared_string` | `SharedString` |
+| `crates/gpui_util` | `gpux-util` | `gpui_util` | GPUI utilities |
+| `crates/collections` | `gpux-collections` | `collections` | Hash maps and sets |
+| `crates/scheduler` | `gpux-scheduler` | `scheduler` | Task scheduling for executors |
+| `crates/sum_tree` | `gpux-sum-tree` | `sum_tree` | B+ tree with summaries |
+| `crates/refineable` | `gpux-refineable` | `refineable` | Style refinement |
+| `crates/refineable/derive_refineable` | `gpux-derive-refineable` | `derive_refineable` | `#[derive(Refineable)]` |
+| `crates/http_client` | `gpux-http-client` | `http_client` | HTTP client abstraction |
+| `crates/http_client_tls` | `gpux-http-client-tls` | `http_client_tls` | TLS configuration |
+| `crates/reqwest_client` | `gpux-reqwest-client` | `reqwest_client` | reqwest-backed HTTP client |
+| `crates/media` | `gpux-media` | `media` | macOS media bindings |
+| `crates/path` | `gpux-path` | `path` | Path helpers |
+| `crates/util` | `gpux-zed-util` | `util` | Zed's general utilities |
+| `crates/util_macros` | `gpux-zed-util-macros` | `util_macros` | Zed's utility macros |
+| `tooling/perf` | `gpux-perf` | `perf` | Test performance measurement |
+| `vendor/wgpu/...` | `gpux-wgpu`, `gpux-wgpu-core`, `gpux-wgpu-hal`, `gpux-wgpu-core-deps-*` | `wgpu`, ... | Temporary wgpu fork, see below |
+
+## The wgpu fork
+
+`vendor/wgpu` contains `gpux-wgpu`, upstream wgpu 30.0.1's `wgpu`, `wgpu-core`, `wgpu-hal` and
+`wgpu-core/platform-deps/*` crates with a single change: DirectX 12 swap chains created for a
+window handle (HWND) use `DXGI_SCALING_NONE` instead of `DXGI_SCALING_STRETCH`, so resizing a
+Windows window does not stretch the previous frame
+([gfx-rs/wgpu#10196](https://github.com/gfx-rs/wgpu/issues/10196)). The fork exists only until
+upstream wgpu ships that fix; gpux then returns to the crates.io `wgpu` release.
+
+## Maintenance
+
+Upstream imports (Zed GPUI closure, gpui-mobile, wgpu), installation, platform prerequisites and
+validation are documented in the [gpux skill](.claude/skills/gpux/SKILL.md). Contributor rules
+are in [CLAUDE.md](CLAUDE.md).
 
 ## License
 
-Licensed under any one of:
-
-- [GPL-3.0-or-later](LICENSE-GPL)
-- [AGPL-3.0-or-later](LICENSE-AGPL)
-- [Apache-2.0](LICENSE-APACHE)
+gpux is licensed under the [Apache License, Version 2.0](LICENSE-APACHE), like upstream GPUI. The
+bundled fonts in `crates/gpux_fonts` are licensed under the SIL Open Font License 1.1.
 
 ## Acknowledgements
 
-[Zed Industries](https://github.com/zed-industries/zed) (GPUI framework) - [wgpu](https://wgpu.rs/) - [cosmic-text](https://github.com/pop-os/cosmic-text)
+[Zed Industries](https://github.com/zed-industries/zed) (GPUI) ·
+[gpui-mobile](https://github.com/itsbalamurali/gpui-mobile) · [wgpu](https://wgpu.rs/) ·
+[cosmic-text](https://github.com/pop-os/cosmic-text)
