@@ -944,7 +944,9 @@ impl TextLayout {
         let mut line_start_ix = 0;
         for line in &element_state.lines {
             let line_bottom = line_origin.y + line.size(line_height).height;
-            if position.y > line_bottom {
+            // Lines are half-open bands: a point on the boundary belongs to the
+            // line below, which is also where a wrapped line has no row for it.
+            if position.y >= line_bottom {
                 line_origin.y = line_bottom;
                 line_start_ix += line.len() + 1;
             } else {
@@ -1411,6 +1413,46 @@ mod tests {
             make_text_unstable_id(false).id,
             make_text_unstable_id(true).id
         );
+    }
+
+    #[test]
+    fn text_layout_hit_test_maps_a_line_boundary_into_the_lower_line() {
+        use crate::{
+            AppContext as _, Context, IntoElement, ParentElement as _, Render, Styled as _,
+            TestAppContext, Window, div, px,
+        };
+        use std::{cell::RefCell, rc::Rc};
+
+        struct Harness(Rc<RefCell<Option<TextLayout>>>);
+
+        impl Render for Harness {
+            fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+                let text = StyledText::new("first line\nsecond line");
+                *self.0.borrow_mut() = Some(text.layout().clone());
+                div().w(px(400.)).child(text)
+            }
+        }
+
+        let layout = Rc::new(RefCell::new(None));
+        let mut test_app = TestAppContext::single();
+        let window = test_app.add_window({
+            let layout = layout.clone();
+            move |_, _| Harness(layout)
+        });
+        test_app
+            .update_window(window.into(), |_, window, cx| window.draw(cx).clear(cx))
+            .unwrap();
+
+        let layout = layout.borrow().clone().expect("the text should render");
+        let second_line_start = "first line\n".len();
+        let boundary = layout
+            .position_for_index(second_line_start)
+            .expect("the second line should be laid out");
+        let index = layout
+            .index_for_position(boundary)
+            .unwrap_or_else(|nearest| nearest);
+
+        assert_eq!(index, second_line_start);
     }
 
     #[cfg(feature = "rayx_diagnostics")]
