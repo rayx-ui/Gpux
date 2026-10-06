@@ -8,7 +8,7 @@ use crate::text_system::WebTextSystem;
 use crate::window::WebWindow;
 use anyhow::Result;
 use futures::channel::oneshot;
-use gpui_wgpu::{PreparedWebGraphics, WebBackendPreference, WgpuContext, wgpu};
+use gpui_wgpu::{PreparedWebGraphics, WebBackendPreference, WgpuBackend, WgpuContext, wgpu};
 use gpux::{
     Action, ActivityGuard, AnyWindowHandle, BackgroundExecutor, ClipboardEntry, ClipboardItem,
     ClipboardReadError, ClipboardString, CursorStyle, DummyKeyboardMapper, ForegroundExecutor,
@@ -86,6 +86,34 @@ impl PlatformGestures for WebGestures {
 struct PreparedWebWindow {
     canvas: web_sys::HtmlCanvasElement,
     surface: wgpu::Surface<'static>,
+}
+
+impl PreparedWebWindow {
+    /// Prepares the canvas and surface of a top-level window after the first.
+    ///
+    /// The first window takes the canvas the graphics context was created
+    /// against. A browser WebGPU device can present to any canvas, so each
+    /// later window gets a canvas of its own. A WebGL context is bound to its
+    /// canvas, so WebGL supports one window.
+    fn additional(browser_window: &web_sys::Window, context: &WgpuContext) -> anyhow::Result<Self> {
+        if context.backend() != WgpuBackend::BrowserWebGpu {
+            anyhow::bail!("WebGL supports only one top-level web window");
+        }
+        let canvas = WebWindow::prepare_canvas(browser_window)?;
+        match context
+            .instance
+            .create_surface(wgpu::SurfaceTarget::Canvas(canvas.clone()))
+        {
+            Ok(surface) => Ok(Self { canvas, surface }),
+            Err(error) => {
+                let element: &web_sys::Element = canvas.as_ref();
+                element.remove();
+                Err(anyhow::anyhow!(
+                    "failed to create a WebGPU surface for a new window: {error}"
+                ))
+            }
+        }
+    }
 }
 
 #[derive(Default)]
@@ -386,11 +414,10 @@ impl Platform for WebPlatform {
             anyhow::anyhow!("WebGPU context not initialized. Was Platform::run() called?")
         })?;
 
-        let prepared_window = self.prepared_window.borrow_mut().take().ok_or_else(|| {
-            anyhow::anyhow!(
-                "browser graphics surface is unavailable; only one top-level web window is supported"
-            )
-        })?;
+        let prepared_window = match self.prepared_window.borrow_mut().take() {
+            Some(prepared_window) => prepared_window,
+            None => PreparedWebWindow::additional(&self.browser_window, context)?,
+        };
         let canvas = prepared_window.canvas;
         let canvas_for_cleanup = canvas.clone();
         let window = WebWindow::new(
