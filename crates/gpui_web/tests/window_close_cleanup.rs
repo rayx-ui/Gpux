@@ -6,10 +6,11 @@
 fn closing_a_web_window_releases_its_browser_resources() {
     let window = include_str!("../src/window.rs");
     for cleanup in [
-        "cancel_animation_frame(request_id)",
+        "cancel_animation_frame(raf_id)",
         "observer.disconnect()",
+        "self.inner.mql_handle.borrow_mut().take()",
         "self.inner.canvas.remove()",
-        "self.inner.input_element.remove()",
+        "self.inner.ime_mirror.remove()",
     ] {
         assert!(
             window.contains(cleanup),
