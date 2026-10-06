@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/platform/web
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-06T00:00:00+02:00
+  updated: 2026-10-06T03:20:00+02:00
   topics:
     - gpui-web
     - wasm
@@ -29,7 +29,9 @@ Read before changing browser startup, `WebWindow`, browser input/clipboard, WASM
 
 `gpui_web` defaults to `multithreaded` (pulling `wasm_thread`), and `gpui_platform::application()` creates `WebPlatform::new(true)`; `single_threaded_web()` is an explicit opt-out. `gpui_platform::web_init` invokes the linker-synthesized `__wasm_call_ctors` once before GPUI use, so wasm-ld does not wrap every browser export with constructor calls. `gpui_platform` builds `FetchHttpClient` from the owning `WebPlatform` dispatcher.
 
-Browser displays default to the full visible viewport, and `WebWindow` sizes its logical bounds and canvas/WebGPU backing store from viewport × `devicePixelRatio` before the first frame. Pointer coordinates come from `clientX/clientY` minus the canvas bounding rect, so events inside canvas-child DOM do not corrupt GPUI coordinates. Closing a `WebWindow` marks it closed, cancels the pending animation frame, disconnects its `ResizeObserver`, and removes its canvas and input elements before retained JavaScript closures drop; frame and resize callbacks stop after closure.
+Browser displays default to the full visible viewport, and `WebWindow` sizes its logical bounds and canvas/WebGPU backing store from viewport × `devicePixelRatio` before the first frame. Pointer coordinates come from `clientX/clientY` minus the canvas bounding rect, so events inside canvas-child DOM do not corrupt GPUI coordinates. Closing a `WebWindow` marks it closed, cancels the pending animation frame, disconnects its resize and safe-area observers, drops its media-query handle, and removes its canvas and IME mirror before retained JavaScript closures drop; frame and resize callbacks stop after closure.
+
+The first top-level window takes the canvas the graphics context was created against. On WebGPU each later window gets its own canvas and a surface from the shared instance (`PreparedWebWindow::additional`), appended to the page body; a WebGL context is bound to its canvas, so WebGL supports one window. Each window listens on its own canvas and IME mirror, and windows are active while the document has focus.
 
 Clipboard writes start `navigator.clipboard.writeText` during the trusted action gesture and also run a synchronous one-shot `copy` event fallback that saves the document selection, selects a focus-neutral offscreen range, supplies the exact text through `ClipboardEvent.clipboardData`, and restores the selection. Paste is bridged from the trusted DOM `paste` event: the plain-text payload becomes the cached `ClipboardItem` and replaces the active input-handler selection; platform clipboard reads return that cache.
 

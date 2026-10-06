@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/gpui/positioning-scroll
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-05T23:00:00+02:00
+  updated: 2026-10-06T03:20:00+02:00
   topics:
     - fixed-positioning
     - sticky-positioning
@@ -20,6 +20,7 @@ agentx:
 - Implement fixed/sticky behavior in `Style`/`Window`/element lifecycle when it affects layout, visual bounds, masks, and hitboxes; never simulate it with app-level overlay wrappers or hidden proxy elements.
 - Resolve `div().fixed()` insets against `Window::content_mask().bounds` and keep that mask for fixed hitboxes, paint, and children. Use top-layer APIs or `Deferred::unclipped()` for intentional global overlays.
 - Keep the shared positioned scene layer and per-primitive draw order inside positioned scopes; keep positioned hitbox ids with point-local hit-test ordering and never sort the stored hitbox vector globally.
+- Give a fixed or sticky element's whole subtree positioned hitbox ids (`Window::with_positioned_hitboxes`), not only its own hitbox: later normal content otherwise sorts above a stuck subtree's controls and takes their clicks.
 - Keep scrollbar paint and hitboxes in the top layer, anchor drag geometry to the scroll handle's viewport bounds, and give sibling scrollbar layers caller-unique keyed element ids.
 - Use `when_stuck(...)` for sticky visual effects; use `on_sticky_state_changed(...)` only when state or diagnostics need phase transitions.
 - Use `StickyStacking::StackId` only for contiguous keyed runs and `StickyStacking::Level` for explicit hierarchy. Discover all start-edge candidates in the nearest scroll context before committing bounds; derive unkeyed lanes from resolved start insets.
