@@ -1,12 +1,15 @@
 #![cfg_attr(target_family = "wasm", no_main)]
 
+#[path = "example_support/fonts.rs"]
+mod example_support;
+
 use std::{ops::Range, rc::Rc, time::Duration};
 
 use gpui_platform::application;
 use gpux::{
-    App, Bounds, Context, Pixels, Point, PointerEvent, Render, ScrollMutationSource, SharedString,
-    UniformListScrollHandle, Window, WindowBounds, WindowOptions, canvas, div, point, prelude::*,
-    px, rgb, size, uniform_list,
+    App, Bounds, Context, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, Point, Render,
+    ScrollMutationSource, SharedString, UniformListScrollHandle, Window, WindowBounds,
+    WindowOptions, canvas, div, point, prelude::*, px, rgb, size, uniform_list,
 };
 
 const TOTAL_ITEMS: usize = 10000;
@@ -323,12 +326,10 @@ impl DataTable {
                 canvas(
                     |_, _, _| (),
                     move |thumb_bounds, _, window, _| {
-                        window.on_pointer_event({
+                        window.on_mouse_event({
                             let entity = entity.clone();
-                            move |ev: &PointerEvent, _, _, cx| {
-                                if ev.phase != gpux::PointerPhase::Down
-                                    || !thumb_bounds.contains(&ev.position)
-                                {
+                            move |ev: &MouseDownEvent, _, _, cx| {
+                                if !thumb_bounds.contains(&ev.position) {
                                     return;
                                 }
 
@@ -339,23 +340,17 @@ impl DataTable {
                                 })
                             }
                         });
-                        window.on_pointer_event({
+                        window.on_mouse_event({
                             let entity = entity.clone();
-                            move |event: &PointerEvent, _, _, cx| {
-                                if event.phase == gpux::PointerPhase::Up {
-                                    entity.update(cx, |this, _| {
-                                        this.drag_position = None;
-                                    })
-                                }
+                            move |_: &MouseUpEvent, _, _, cx| {
+                                entity.update(cx, |this, _| {
+                                    this.drag_position = None;
+                                })
                             }
                         });
 
-                        window.on_pointer_event(move |ev: &PointerEvent, _, _, cx| {
-                            if !matches!(
-                                ev.phase,
-                                gpux::PointerPhase::Move | gpux::PointerPhase::Hover
-                            ) || !ev.dragging()
-                            {
+                        window.on_mouse_event(move |ev: &MouseMoveEvent, _, _, cx| {
+                            if !ev.dragging() {
                                 return;
                             }
 
@@ -462,7 +457,10 @@ impl Render for DataTable {
 
 fn run_example() {
     application().run(|cx| async move {
-        cx.update(|cx| {
+        cx.update(|cx: &mut App| {
+            if !example_support::load_fonts(cx) {
+                return;
+            }
             cx.open_window(
                 WindowOptions {
                     focus: true,

@@ -1,7 +1,10 @@
 #![cfg_attr(target_family = "wasm", no_main)]
 
+#[path = "example_support/fonts.rs"]
+mod example_support;
+
 use gpui_platform::application;
-use gpux::{Context, Entity, EventEmitter, prelude::*};
+use gpux::{App, Context, Entity, EventEmitter, prelude::*};
 
 struct Counter {
     count: usize,
@@ -15,7 +18,10 @@ impl EventEmitter<Change> for Counter {}
 
 fn run_example() {
     application().run(|cx| async move {
-        cx.update(|cx| {
+        cx.update(|cx: &mut App| {
+            if !example_support::load_fonts(cx) {
+                return;
+            }
             let counter: Entity<Counter> = cx.new(|_cx| Counter { count: 0 });
             let subscriber = cx.new(|cx: &mut Context<Counter>| {
                 cx.subscribe(&counter, |subscriber, _emitter, event, _cx| {

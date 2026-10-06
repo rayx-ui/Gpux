@@ -215,6 +215,8 @@ pub struct TouchPoint {
     pub y: f32,
     /// `AMOTION_EVENT_ACTION_*` action masked to a single pointer.
     pub action: u32,
+    /// When the input system sampled the touch, if known.
+    pub timestamp: Option<std::time::Instant>,
 }
 
 // ── shared logging helper ─────────────────────────────────────────────────────

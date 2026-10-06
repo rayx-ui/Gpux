@@ -58,7 +58,7 @@ Every gpux crate publishes to crates.io, so imported manifests and sources must 
 - Manifests keep `version.workspace`, `license.workspace`, `repository.workspace`, `homepage.workspace`, and `rust-version.workspace`, a `description`, and no `publish = false`.
 - Workspace dependency keys keep the Rust name with `package = "gpux-..."`, for example `collections = { package = "gpux-collections", path = "crates/collections", version = "0.3.0" }`.
 - Dev-dependencies on the cycle edges `gpui_macros` -> `gpux` and `gpux` -> `gpui_platform`/`gpui_web` stay path-only (no `version`), so publishing strips them.
-- Dependencies come from crates.io only: no git dependencies and no `[patch]`. Map Zed's git forks to their crates.io releases `zed-reqwest 0.12.15-zed`, `zed-scap 0.0.8-zed`, `zed-font-kit 0.14.1-zed`, and `zed-xim 0.4.0-zed` (declared with `package = "zed-..."`). `proptest 1.11`, `async-task 4.7.1`, and `calloop 0.14.5` come from crates.io. Zed's calloop fork bounds idle callbacks to about 10 ms per loop iteration; gpux gets that behavior from `ForegroundTasks` (`crates/gpui_linux/src/linux/foreground_tasks.rs`) instead, so when importing Zed's X11 or Wayland client, keep routing main-thread runnables through `ForegroundTasks::push` rather than Zed's per-runnable `insert_idle`.
+- Dependencies come from crates.io only: no git dependencies and no `[patch]`. Map Zed's git forks to their crates.io releases `zed-reqwest 0.12.15-zed`, `zed-scap 0.0.8-zed`, `zed-font-kit 0.14.1-zed`, and `zed-xim 0.4.0-zed` (declared with `package = "zed-..."`). `proptest 1.11`, `async-task 4.7.1`, and `calloop 0.14.5` come from crates.io. Zed's calloop fork bounds idle callbacks to about 10 ms per loop iteration; gpux gets that behavior from `ForegroundTasks` (`crates/gpui_linux/src/linux/foreground_tasks.rs`) instead, so when importing Zed's Linux platform, keep `LinuxCommon::register_sources` routing main-thread runnables through `ForegroundTasks::push` rather than Zed's per-runnable `insert_idle`.
 - Never include files from outside a crate directory. Zed's `include_bytes!` of `assets/fonts/...` become `gpux_fonts` constants (`gpux_fonts::IBM_PLEX_SANS_REGULAR`, `gpux_fonts::LILEX_REGULAR`, `gpux_fonts::ALL`, ...), with `gpux_fonts` added as a (dev-)dependency where needed. `crates/gpux_fonts/assets/` is also the asset root that holds `fonts/...` for the SVG renderer; a new upstream font file goes there with a matching constant.
 - Every gpux crate is Apache-2.0 (`gpux-fonts` is OFL-1.1). Never re-import Zed's `LICENSE-GPL` or `LICENSE-AGPL` files or GPL/AGPL license fields.
 
@@ -70,11 +70,9 @@ Every gpux crate publishes to crates.io, so imported manifests and sources must 
    - `docs/history/gpux-commit-map.tsv`
    - `docs/history/post-embed-filter-map.tsv`
    - `git log --reverse --format='%H %s%n%b' gpux-pre-migration-2026-06-17`
-   - `../RayX/.agentx/memory/knowledge/runtime/gpux-foundation/state.md`
-   - `../RayX/.agentx/memory/knowledge/runtime/gpux-foundation/rules.md`
-   - `../RayX/.agentx/memory/knowledge/runtime/gpux-foundation/knowledge.md`
-   - `../RayX/.agentx/memory/decisions/INDEX.md`
-   - Relevant `runtime/gpux-foundation`, `tooling/devkit-diagnostics`, and browser/WASM decisions for HTML DOM, fixed/sticky, shader/frame effects, Windows WGPU, and asset-loading behavior.
+   - `.agentx/memory/knowledge/repository/upstream-sync/state.md`
+   - `.agentx/memory/decisions/INDEX.md`
+   - The `gpui`, `renderer`, and `platform` state, rules, and decisions for the patch surfaces the import touches (HTML DOM, fixed/sticky, shader/frame effects, input, Windows WGPU, asset loading).
    - `../RayX/.agentx/memory/knowledge/tooling/validation/state.md`
    - `git log --format='%h%n%B' --grep='Source Zed'`
    - latest import commits with subjects like `chore(gpux): import zed gpui closure ...`
@@ -105,7 +103,7 @@ Original subject: <original source subject>
 ```
 
 5. Preserve or replay RayX/gpux GPUI patches:
-   - Use gpux's own history and RayX's AgentX patch-surface memories to identify local RayX/gpux patches that must survive the import.
+   - Use gpux's own history and AgentX patch-surface memories to identify local RayX/gpux patches that must survive the import.
    - Preserve patches already present after reconciliation or replay local gpux commits when upstream replacement overwrote them.
    - Keep each local patch as a separate gpux commit when practical.
    - Adapt only what is needed for the reduced workspace.
@@ -157,10 +155,9 @@ The RayX memories identify these gpux-owned patches as especially easy to miss d
 ### Linux
 
 - Import `crates/gpui_linux` as a whole: the Wayland and X11 `client.rs`/`window.rs` depend on the same revision's `platform.rs`, `wayland/serial.rs`, and `wayland/clipboard.rs` (`Serial`, `LinuxCommon::new`'s system-wake receiver, `read_fd_with_timeout`).
-- Route main-thread runnables through `ForegroundTasks::push` (see Manifest And Packaging Shape) and keep the system-wake receiver source.
-- Deliver mouse input as `PlatformInput::Pointer(PointerEvent::...)`; a pointer leave is a `PointerPhase::Cancel` move. Scroll events carry gpux's `scroll_source`, `scroll_phase`, `precise_delta`, `native_momentum_phase`, `release_velocity`, and `timestamp` fields.
+- Route main-thread runnables through `ForegroundTasks::push` from `LinuxCommon::register_sources` (see Manifest And Packaging Shape) and keep the system-wake receiver source.
+- Take Zed's input delivery unchanged (`Mouse*`, `ScrollWheel`, `Touch`), including the Wayland external drag source.
 - Preserve Linux window `on_minimized_status_change`, `effect_capabilities()`, and `render_to_image()`.
-- Leave out Zed's Wayland external drag source (`start_external_drag`, `ExternalDrag`, `DataSourceKind::Drag`) while the gpux core lacks Zed's drag-to-platform handoff and `FileDropEvent::Ended`; the window keeps the trait's default `can_start_external_drag() == false`.
 
 ### Browser And WASM
 
@@ -171,6 +168,10 @@ The RayX memories identify these gpux-owned patches as especially easy to miss d
 - Preserve `gpui_web` ownership of visible viewport bounds, `devicePixelRatio`-backed canvas/backing-store sizing, `ResizeObserver` resize coalescing, and pending physical-size redraw/present behavior.
 - Preserve browser asset behavior: WASM `Asset::load` futures are local, `App::fetch_asset` foreground-spawns browser asset futures, and `Svg::external_path(...)` fetches browser-served SVG bytes.
 - Preserve browser WebGPU renderer reentrancy and WGPU shader parity.
+- Preserve the gpux paste-shortcut exemption in `gpui_web` `register_key_down` (`is_paste_shortcut`): Ctrl+V, or Cmd+V on macOS, returns before GPUI dispatch so the browser fires the trusted `paste` event that `register_paste` delivers to the input handler. Zed's handler prevents the default of every handled keystroke, which would suppress that event.
+- Preserve the gpux cap in `gpui_web` `register_input` (`crates/gpui_web/src/events.rs`): the IME edit import keeps its prefix/suffix diff out of the stored element selection, because it always replaces the whole app selection. Upstream lacks it, so text inserted over a selection it shares a prefix with replaced the selection with only the differing tail. Drop the cap once upstream fixes the import.
+- Preserve additional top-level web windows (`PreparedWebWindow::additional` in `crates/gpui_web/src/platform.rs`): the first window takes the canvas the graphics context was created against, and each later window gets its own canvas and a surface from the shared WebGPU instance. WebGL contexts are bound to their canvas, so WebGL stays single-window. RayX's `rayx-multi-window-action-routing.spec.ts` drives two windows.
+- Preserve `event_instant` in `gpui_web` `events.rs`: touch pointer events carry `TouchEvent::timestamp` converted from `Event.timeStamp`.
 - Candidate, not confirmed current gpux behavior: browser WebGPU adapter retry with softer power-preference hints from RayX memory.
 
 ### HTML DOM Surfaces
@@ -184,14 +185,16 @@ The RayX memories identify these gpux-owned patches as especially easy to miss d
 ### Elements, Layout, And Input
 
 - Preserve optional `id(...)` hooks on `Anchored`, `Deferred`, `ImageCacheElement`, and `Surface`.
-- Preserve `Window`'s per-`PointerId` interaction-owner and captured-hitbox maps. After pointer interaction reconciliation, refresh the raw event's captured hitbox from the reconciled map before terminal Up/Cancel dispatch; do not retain a removed pre-reconciliation hitbox.
+- Take Zed's input model unchanged (see the gpux skill's Input model rule). Keep gpux's input additions that sit beside it: `HitboxBehavior::Ignore` with `with_subtree_hitbox_behavior`, `with_pointer_semantics_suppressed`, `Window::pressed_mouse_button()`, `capture_scroll_wheel`, layered keymaps, action dispatch outcomes, and `dispatch_action_at`.
+- Preserve `TouchEvent::timestamp` and sample-time gesture timing in `crates/gpui/src/gestures.rs` (`event.timestamp.unwrap_or(now)` for velocity samples, the stopped-finger check, tap intervals, and long-press deadlines; momentum stays on processing time) until upstream ships sample times; see [the upstream tracking note](../../../../docs/upstream/gpui-touch-sample-timestamps.md). Test group: `touch_timestamps`.
+- Preserve half-open line bands in `TextLayout::index_for_position` (`position.y >= line_bottom`): a point exactly on a line boundary belongs to the line below. Upstream advances only past `line_bottom`, so the boundary point reaches the upper line's wrapped layout one row past its end and resolves to offset 0. Test group: `text_layout_hit_test`.
 - Preserve `Style.direction`, `StyleRefinement.direction`, `Styled::direction(...)`, and Taffy direction mapping.
 - Preserve `TextStyle.letter_spacing` through layout, wrapping, shaping, and platform text systems.
 - Preserve `CursorStyle::None` across platform cursor conversion.
 - Preserve multi-stop linear gradients, gradient-capable borders, Oklab shader parity, and bounded gradient stop lookup.
 - Preserve `Deferred::unclipped()` while keeping default `deferred(...)` content-mask-preserving.
 - Prepaint deferred draws in place so cached deferred ranges keep stable indices. Moving completed entries to the end invalidates reuse ranges even when the frame appears correct without caching.
-- Preserve fixed/sticky as first-class `Position` variants, generated `.fixed()`/`.sticky()` APIs, Taffy mapping, scroll-container context, content-mask containing blocks, positioned scene layers, positioned hitboxes, top-layer scrollbars, and sticky state callbacks/refinements.
+- Preserve fixed/sticky as first-class `Position` variants, generated `.fixed()`/`.sticky()` APIs, Taffy mapping, scroll-container context, content-mask containing blocks, positioned scene layers, positioned hitboxes, top-layer scrollbars, and sticky state callbacks/refinements. A fixed or sticky subtree paints in the positioned layer, so `Window::with_positioned_hitboxes` gives every hitbox inserted while it prepaints a positioned id (test group `positioned_hitboxes`); otherwise later normal content sorts above the stuck subtree's controls and takes their clicks.
 - Preserve nested scroll wheel routing that stops propagation only when the current scrollport's clamped offset changes.
 
 ### DevKit And Text Inspection
@@ -212,10 +215,9 @@ The RayX memories identify these gpux-owned patches as especially easy to miss d
 
 8. Update durable memory:
    - Append the validated import to `docs/history/zed-imports.tsv` and update the current represented commit in `docs/history/upstream-provenance.md`.
-   - Update `../RayX/.agentx/memory/knowledge/runtime/gpux-foundation/state.md` with the new imported upstream Zed commit and any changed replay rule.
-   - Update `../RayX/.agentx/memory/knowledge/runtime/gpux-foundation/knowledge.md` only for durable facts that are not obvious from state.
-   - Add a decision in RayX memory if the closure boundaries, import method, or provenance policy changes.
-   - Run the AgentX audit script from `../RayX` after memory changes.
+   - Update `.agentx/memory/knowledge/repository/upstream-sync/state.md` with the new imported upstream Zed commit and any changed replay rule, and the affected domain state for changed current behavior.
+   - Add a decision in gpux memory if the closure boundaries, import method, provenance policy, or a preserved gpux patch changes.
+   - Run the AgentX audit script from the Gpux root after memory changes.
 
 ## Review Checklist
 
@@ -225,6 +227,6 @@ The RayX memories identify these gpux-owned patches as especially easy to miss d
 - Every manifest keeps the gpux publishing shape, dependencies stay on crates.io, no file is included from outside its crate, no GPL/AGPL license file or field came back, and `cargo package --workspace` passes.
 - Commit bodies preserve upstream Zed commit provenance.
 - Root workspace metadata still reflects gpux, not full Zed.
-- RayX AgentX upstream-sync memory (`../RayX/.agentx/memory/`) matches the new source hashes.
+- gpux upstream-sync memory (`.agentx/memory/knowledge/repository/upstream-sync/`) matches the new source hashes.
 - The checked-in provenance ledger matches the new source hash, and the workflow has no predecessor-repository dependency.
 - Validation results are recorded in the final response or PR notes.

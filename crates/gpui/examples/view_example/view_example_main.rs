@@ -11,7 +11,10 @@
 //!   * `Input` / `TextArea` — the shaping layer. Each takes a `String` (and grows
 //!                 the editor internally) OR an `Editor` (so you can read the cursor).
 //!
-//! Run: `cargo run -p gpux --example view_example`
+//! Run: `cargo run -p gpui --example view_example`
+
+#[path = "../example_support/fonts.rs"]
+mod example_support;
 
 mod example_editor;
 mod example_input;
@@ -134,23 +137,21 @@ fn section(title: &str) -> Div {
 
 fn run_example() {
     application().run(|cx| async move {
-        cx.update(|cx| {
+        cx.update(|cx: &mut App| {
+            if !example_support::load_fonts(cx) {
+                return;
+            }
             let bounds = Bounds::centered(None, size(px(560.0), px(480.0)), cx);
-            cx.set_keymap_layer(gpux::KeymapLayer::new(
-                gpux::InputLayerId::new("example.view"),
-                0,
-                [
-                    KeyBinding::new("backspace", Backspace, None),
-                    KeyBinding::new("delete", Delete, None),
-                    KeyBinding::new("left", Left, None),
-                    KeyBinding::new("right", Right, None),
-                    KeyBinding::new("home", Home, None),
-                    KeyBinding::new("end", End, None),
-                    KeyBinding::new("enter", Enter, None),
-                    KeyBinding::new("cmd-q", Quit, None),
-                ],
-            ))
-            .unwrap();
+            cx.bind_keys([
+                KeyBinding::new("backspace", Backspace, None),
+                KeyBinding::new("delete", Delete, None),
+                KeyBinding::new("left", Left, None),
+                KeyBinding::new("right", Right, None),
+                KeyBinding::new("home", Home, None),
+                KeyBinding::new("end", End, None),
+                KeyBinding::new("enter", Enter, None),
+                KeyBinding::new("cmd-q", Quit, None),
+            ]);
 
             cx.open_window(
                 WindowOptions {

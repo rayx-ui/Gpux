@@ -1,5 +1,8 @@
 #![cfg_attr(target_family = "wasm", no_main)]
 
+#[path = "example_support/fonts.rs"]
+mod example_support;
+
 use std::{path::Path, sync::Arc, time::Duration};
 
 use gpui_platform::application;
@@ -196,7 +199,10 @@ impl Render for ImageLoadingExample {
 
 fn run_example() {
     application().with_assets(Assets {}).run(|cx| async move {
-        cx.update(|cx| {
+        cx.update(|cx: &mut App| {
+            if !example_support::load_fonts(cx) {
+                return;
+            }
             let options = WindowOptions {
                 window_bounds: Some(WindowBounds::Windowed(Bounds::centered(
                     None,

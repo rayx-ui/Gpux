@@ -49,12 +49,11 @@ Scaling: if matches!(&self.target, SurfaceTarget::WndHandle(_)) {
 1. Read current provenance:
    - `docs/upstream/wgpu-dx12-swapchain-scaling.md`; if a wgpu release ships `SurfaceConfiguration::scaling_mode`, retire the fork instead.
    - The header comment and `version` of `vendor/wgpu/wgpu/Cargo.toml` for the forked release and fork version.
-   - `../RayX/.agentx/memory/knowledge/runtime/gpux-foundation/state.md`
-   - `../RayX/.agentx/memory/knowledge/runtime/gpux-foundation/rules.md`
-   - `../RayX/.agentx/memory/knowledge/runtime/gpux-foundation/knowledge.md`
-   - `../RayX/.agentx/memory/decisions/runtime/gpux-foundation/2026-07-02-runtime-gpux-foundation-html-island-wgpu-direct-upload.md`
-   - `../RayX/.agentx/memory/decisions/runtime/gpux-foundation/2026-07-08-runtime-gpux-foundation-windows-wgpu-dx12-policy.md`
-   - `../RayX/.agentx/memory/decisions/runtime/gpux-foundation/2026-07-08-runtime-gpux-foundation-windows-wgpu-dxgi-scaling.md`
+   - `.agentx/memory/knowledge/repository/packaging/state.md` and `.agentx/memory/knowledge/renderer/state.md`
+   - `.agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-gpux-wgpu-fork.md`
+   - `.agentx/memory/decisions/platform/web/2026-07-02-platform-web-html-island-wgpu-direct-upload.md`
+   - `.agentx/memory/decisions/platform/desktop/2026-07-08-platform-desktop-windows-wgpu-dx12-policy.md`
+   - `.agentx/memory/decisions/platform/desktop/2026-07-08-platform-desktop-windows-wgpu-dxgi-scaling.md`
    - `git log --format='%h%n%B' -- vendor/wgpu`
 
 2. Choose the release:
@@ -139,11 +138,10 @@ The fork exists only until upstream wgpu ships `SurfaceConfiguration::scaling_mo
 
 After a completed fork refresh, port, or retirement:
 
-- Update `../RayX/.agentx/memory/knowledge/runtime/gpux-foundation/state.md` with the forked wgpu release, fork version, and any changed current renderer behavior.
-- Update `../RayX/.agentx/memory/knowledge/runtime/gpux-foundation/knowledge.md` only for durable facts that are not obvious from state.
-- Update `../RayX/.agentx/memory/knowledge/runtime/gpux-foundation/rules.md` only if the fork or port rule changed.
-- Add a decision in RayX memory if the fork scope, its source, or its retirement condition changes.
-- Run the AgentX audit script from `../RayX` after memory changes.
+- Update `.agentx/memory/knowledge/repository/packaging/state.md` with the forked wgpu release and fork version, and the renderer state for any changed current renderer behavior.
+- Update the matching `knowledge.md` only for durable facts that are not obvious from state, and `rules.md` only if the fork or port rule changed.
+- Add a decision in gpux memory if the fork scope, its source, or its retirement condition changes.
+- Run the AgentX audit script from the Gpux root after memory changes.
 
 ## Review Checklist
 

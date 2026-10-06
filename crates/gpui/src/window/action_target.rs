@@ -1,4 +1,36 @@
-use crate::{Action, ActionDispatchReport, ActionInvocationSource, App, Pixels, Point, Window};
+use crate::{
+    Action, ActionDispatchReport, ActionInvocationSource, App, FocusHandle, Pixels, Point, Window,
+};
+
+impl FocusHandle {
+    /// Dispatch an action on the element that rendered this focus handle,
+    /// attributed to `source`.
+    ///
+    /// A component that recognized an input binding for its own key context
+    /// dispatches it here, so nested components never route it to an
+    /// ancestor. Dispatching from a mouse or key listener leaves that event's
+    /// propagation as it was.
+    pub fn dispatch_action_with_source(
+        &self,
+        source: ActionInvocationSource,
+        action: &dyn Action,
+        window: &mut Window,
+        cx: &mut App,
+    ) -> ActionDispatchReport {
+        // Action dispatch reuses the event propagation flag.
+        let propagate_event = cx.propagate_event;
+        let report = match window
+            .rendered_frame
+            .dispatch_tree
+            .focusable_node_id(self.id)
+        {
+            Some(node_id) => window.dispatch_action_on_node_from(node_id, source, action, cx),
+            None => window.dispatch_unhandled_action(source, action, cx),
+        };
+        cx.propagate_event = propagate_event;
+        report
+    }
+}
 
 impl Window {
     /// Dispatch through the frontmost action-capable scope at a window-relative position.
@@ -6,7 +38,24 @@ impl Window {
     /// Unlike focused dispatch, this routes pointer controls through their own
     /// ancestors without moving keyboard focus. Occluding hitboxes block targets
     /// beneath them; an absent target is unhandled, never a fallback to focus.
+    ///
+    /// Dispatching from a mouse or key listener leaves that event's propagation
+    /// as it was, so the event still reaches the listeners after the caller.
     pub fn dispatch_action_at(
+        &mut self,
+        position: Point<Pixels>,
+        source: ActionInvocationSource,
+        action: &dyn Action,
+        cx: &mut App,
+    ) -> ActionDispatchReport {
+        // Action dispatch reuses the event propagation flag.
+        let propagate_event = cx.propagate_event;
+        let report = self.dispatch_action_at_position(position, source, action, cx);
+        cx.propagate_event = propagate_event;
+        report
+    }
+
+    fn dispatch_action_at_position(
         &mut self,
         position: Point<Pixels>,
         source: ActionInvocationSource,
@@ -81,7 +130,7 @@ mod tests {
                         .left_0()
                         .w(px(100.))
                         .h(px(100.))
-                        .on_pointer_down(MouseButton::Left, |_, _, _| {})
+                        .on_mouse_down(MouseButton::Left, |_, _, _| {})
                         .on_action(move |_: &Activate, _, _| left.set(left.get() + 1)),
                 )
                 .child(
@@ -128,6 +177,103 @@ mod tests {
                     )
                 })
         }
+    }
+
+    /// A target whose release listener follows an ancestor that dispatches
+    /// `Activate` at the release position during capture.
+    struct NestedDispatch {
+        actions: Rc<Cell<usize>>,
+        releases: Rc<Cell<usize>>,
+    }
+
+    impl Render for NestedDispatch {
+        fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+            let actions = self.actions.clone();
+            let releases = self.releases.clone();
+            div()
+                .relative()
+                .size_full()
+                .child(
+                    crate::canvas(
+                        |_, _, _| {},
+                        |_, _, window, _| {
+                            window.on_mouse_event(
+                                |event: &crate::MouseUpEvent, phase, window, cx| {
+                                    if phase.capture() {
+                                        window.dispatch_action_at(
+                                            event.position,
+                                            ActionInvocationSource::Pointer,
+                                            &Activate,
+                                            cx,
+                                        );
+                                    }
+                                },
+                            );
+                        },
+                    )
+                    .absolute()
+                    .size_full(),
+                )
+                .child(
+                    div()
+                        .id("target")
+                        .w(px(100.))
+                        .h(px(100.))
+                        .on_action(move |_: &Activate, _, _| actions.set(actions.get() + 1))
+                        .on_mouse_up(MouseButton::Left, move |_, _, _| {
+                            releases.set(releases.get() + 1)
+                        }),
+                )
+        }
+    }
+
+    #[gpux::test]
+    fn pointer_target_dispatch_keeps_the_mouse_event_propagating(cx: &mut TestAppContext) {
+        let actions = Rc::new(Cell::new(0));
+        let releases = Rc::new(Cell::new(0));
+        let fixture_actions = actions.clone();
+        let fixture_releases = releases.clone();
+        let (_, cx) = cx.add_window_view(move |_, _| NestedDispatch {
+            actions: fixture_actions,
+            releases: fixture_releases,
+        });
+        cx.run_until_parked();
+        let position = point(px(25.), px(25.));
+        cx.simulate_mouse_move(position, None, crate::Modifiers::none());
+        cx.simulate_mouse_down(position, MouseButton::Left, crate::Modifiers::none());
+        cx.simulate_mouse_up(position, MouseButton::Left, crate::Modifiers::none());
+        assert_eq!(actions.get(), 1, "the nested dispatch handles the action");
+        assert_eq!(releases.get(), 1, "the release still reaches the target");
+    }
+
+    #[gpux::test]
+    fn focus_handle_dispatch_reports_its_source_and_keeps_propagation(cx: &mut TestAppContext) {
+        let window = cx.open_window(size(px(200.), px(100.)), |_, cx| Fixture {
+            focus: cx.focus_handle(),
+            left: Rc::new(Cell::new(0)),
+            right: Rc::new(Cell::new(0)),
+            overlay: None,
+            nonblocking_hitbox: false,
+        });
+        cx.run_until_parked();
+        window
+            .update(cx, |root, window, cx| {
+                cx.propagate();
+                let report = root.focus.dispatch_action_with_source(
+                    ActionInvocationSource::Pointer,
+                    &Activate,
+                    window,
+                    cx,
+                );
+                assert_eq!(report.outcome(), ActionDispatchOutcome::Handled);
+                assert_eq!(
+                    report.invocation().source(),
+                    ActionInvocationSource::Pointer
+                );
+                assert_eq!((root.left.get(), root.right.get()), (0, 1));
+                assert!(cx.propagate_event, "the caller's event keeps propagating");
+            })
+            .unwrap();
     }
 
     #[gpux::test]
@@ -281,7 +427,7 @@ mod tests {
             div()
                 .id("cached-target")
                 .size_full()
-                .on_pointer_down(MouseButton::Left, |_, _, _| {})
+                .on_mouse_down(MouseButton::Left, |_, _, _| {})
                 .on_action(move |_: &Activate, _, _| actions.set(actions.get() + 1))
         }
     }

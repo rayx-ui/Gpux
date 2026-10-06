@@ -31,5 +31,5 @@ disallowed_methods = { level = "allow", priority = 1}
 
 [dependencies]
 collections.workspace = true
-serde.workspace = true
+serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true

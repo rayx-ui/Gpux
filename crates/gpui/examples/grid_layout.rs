@@ -1,74 +1,75 @@
 #![cfg_attr(target_family = "wasm", no_main)]
 
+#[path = "example_support/fonts.rs"]
+mod example_support;
+
 use gpui_platform::application;
 use gpux::{
-    Bounds, Context, Hsla, Window, WindowBounds, WindowOptions, div, prelude::*, px, rgb, size,
+    App, Bounds, Context, Hsla, Window, WindowBounds, WindowOptions, container_query, div,
+    prelude::*, px, rgb, size,
 };
 
 // https://en.wikipedia.org/wiki/Holy_grail_(web_design)
+//
+// Resize the window: the layout is chosen by `container_query` based on the
+// measured size of the container, collapsing to a single stacked column when
+// it becomes too narrow for the three-column grid.
 struct HolyGrailExample {}
 
 impl Render for HolyGrailExample {
     fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
-        let block = |color: Hsla| {
-            div()
-                .size_full()
-                .bg(color)
-                .border_1()
-                .border_dashed()
-                .rounded_md()
-                .border_color(gpux::white())
-                .items_center()
-        };
+        container_query(|container_size, _window, _cx| {
+            let block = |color: Hsla| {
+                div()
+                    .size_full()
+                    .bg(color)
+                    .border_1()
+                    .border_dashed()
+                    .rounded_md()
+                    .border_color(gpux::white())
+                    .items_center()
+            };
 
-        div()
-            .gap_1()
-            .grid()
-            .bg(rgb(0x505050))
-            .size(px(500.0))
-            .shadow_lg()
-            .border_1()
-            .size_full()
-            .grid_cols(5)
-            .grid_rows(5)
-            .child(
-                block(gpux::white())
-                    .row_span(1)
-                    .col_span_full()
-                    .child("Header"),
-            )
-            .child(
-                block(gpux::red())
-                    .col_span(1)
-                    .h_56()
-                    .child("Table of contents"),
-            )
-            .child(
-                block(gpux::green())
-                    .col_span(3)
-                    .row_span(3)
-                    .child("Content"),
-            )
-            .child(
-                block(gpux::blue())
-                    .col_span(1)
-                    .row_span(3)
-                    .child("AD :(")
-                    .text_color(gpux::white()),
-            )
-            .child(
-                block(gpux::black())
-                    .row_span(1)
-                    .col_span_full()
-                    .text_color(gpux::white())
-                    .child("Footer"),
-            )
+            let header = block(gpux::white()).child(format!("Header — {}", container_size.width));
+            let table_of_contents = block(gpux::red()).child("Table of contents");
+            let content = block(gpux::green()).child("Content");
+            let ad = block(gpux::blue()).child("AD :(").text_color(gpux::white());
+            let footer = block(gpux::black())
+                .text_color(gpux::white())
+                .child("Footer");
+
+            let container = div().gap_1().bg(rgb(0x505050)).shadow_lg().size_full();
+
+            if container_size.width < px(400.) {
+                container
+                    .flex()
+                    .flex_col()
+                    .child(header.h_12().flex_none())
+                    .child(table_of_contents.h_20().flex_none())
+                    .child(content.flex_1())
+                    .child(ad.h_20().flex_none())
+                    .child(footer.h_12().flex_none())
+            } else {
+                container
+                    .grid()
+                    .grid_cols(5)
+                    .grid_rows(5)
+                    .child(header.row_span(1).col_span_full())
+                    .child(table_of_contents.col_span(1).h_56())
+                    .child(content.col_span(3).row_span(3))
+                    .child(ad.col_span(1).row_span(3))
+                    .child(footer.row_span(1).col_span_full())
+            }
+        })
     }
 }
 
 fn run_example() {
     application().run(|cx| async move {
-        cx.update(|cx| {
+        cx.update(|cx: &mut App| {
+            if !example_support::load_fonts(cx) {
+                return;
+            }
             let bounds = Bounds::centered(None, size(px(500.), px(500.0)), cx);
             cx.open_window(
                 WindowOptions {

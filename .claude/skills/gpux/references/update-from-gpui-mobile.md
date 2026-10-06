@@ -28,11 +28,9 @@ Re-check `crates/gpui_mobile/Cargo.toml`, the root `Cargo.toml`, and `crates/gpu
 ## Workflow
 
 1. Read current provenance:
-   - `../RayX/.agentx/memory/knowledge/runtime/gpux-foundation/state.md`
-   - `../RayX/.agentx/memory/knowledge/runtime/gpux-foundation/rules.md`
-   - `../RayX/.agentx/memory/knowledge/runtime/gpux-foundation/knowledge.md`
-   - `../RayX/.agentx/memory/decisions/INDEX.md`
-   - Relevant `runtime/gpux-foundation` decisions for mobile lifecycle, backend policy, Java/JNI package names, shader capabilities, and iOS proof limits.
+   - `.agentx/memory/knowledge/platform/mobile/state.md`, plus its `rules.md` and `knowledge.md` when they answer a question.
+   - `.agentx/memory/decisions/INDEX.md`
+   - Relevant `platform` decisions for mobile lifecycle, backend policy, Java/JNI package names, shader capabilities, and iOS proof limits.
    - `git log --format='%h%n%B' -- crates/gpui_mobile`
    - latest import commits with subjects like `chore(gpux): import gpui_mobile ...`
 
@@ -63,7 +61,7 @@ Original subject: <original source subject>
 ```
 
 5. Preserve or replay RayX/gpux mobile patches:
-   - Use gpux history and RayX's AgentX mobile state to identify local patches that must survive the import.
+   - Use gpux history and the AgentX mobile state to identify local patches that must survive the import.
    - Preserve patches already present after reconciliation or replay local gpux commits when upstream replacement overwrote them.
    - Keep each local patch as a separate gpux commit when practical.
    - Include commit body lines:
@@ -114,7 +112,9 @@ The RayX memories identify these `gpui_mobile` behaviors as easy to lose during 
 ### Android Frame Scheduling, Input, And Insets
 
 - Preserve Android frame callback policy that requires presentation for scroll-input frames but uses one-shot force-render for text dirtiness and lifecycle/surface resume dirtiness.
-- Preserve Android touch coalescing, touch source/phase metadata, pointer position, event timestamps, and `release_velocity`.
+- Deliver Android touches as raw `PlatformInput::Touch` events; GPUI's touch recognizer owns taps, pans, fling momentum (`ScrollPhysics::android()` from `Platform::gestures`), long presses, and touch drags. Keep two-finger pinch synthesis, cancelling the forwarded touches when a pinch starts.
+- Preserve touch sample times: `TouchPoint::timestamp` carries `AMotionEvent_getEventTime` converted to `Instant` (`input_event_instant` in `jni.rs`; `System.nanoTime()` and `Instant` both read `CLOCK_MONOTONIC`), and the embedded host stamps touches on arrival.
+- Preserve `poll_main_looper` in `jni.rs`: the NativeActivity loop blocks in gpux's own `ALooper_pollOnce`, where AChoreographer frame callbacks and the dispatcher's main-thread tasks run, and calls `AndroidApp::poll_events` only for android-activity's own idents. android-activity 0.6.1 logs every callback that runs inside its poll as a spurious `ALOOPER_POLL_CALLBACK` error, once per frame.
 - Preserve deleted RayX-active mobile momentum helpers; do not reintroduce a `gpui_mobile` momentum pump into active RayX input paths.
 - Preserve Android safe-area APIs and content-rect derived physical/logical inset conversion.
 - Preserve Android keyboard/input, permissions, picker, media, and platform-view package helpers when importing upstream package changes.
@@ -126,7 +126,7 @@ The RayX memories identify these `gpui_mobile` behaviors as easy to lose during 
 - Preserve iOS Metal-specific WGPU initialization: `GPUIMetalView`, `CAMetalLayer`, `wgpu::Backends::METAL`, pre-populated `WgpuContext`, and `WgpuRenderer` construction from that context.
 - Preserve iOS platform-window effect capabilities delegating to the active `WgpuRenderer`, with unsupported fallback only when no renderer exists.
 - Preserve iOS `IosTextSystem`/CoreText/font-kit text loading. Do not replace it with Windows `CosmicTextSystem` without a separate iOS text-system decision and runtime proof.
-- Preserve iOS safe-area, touch source/phase metadata, pointer position, timestamps, and `release_velocity`.
+- Preserve iOS safe-area insets. Deliver iOS touches as raw `PlatformInput::Touch` events with `ScrollPhysics::ios()` from `Platform::gestures`, and keep two-finger pinch synthesis like Android.
 
 GOOD:
 
@@ -150,10 +150,9 @@ Check:
 
 After a completed import:
 
-- Update `../RayX/.agentx/memory/knowledge/runtime/gpux-foundation/state.md` with any changed current mobile behavior and latest represented upstream `gpui_mobile` commit.
-- Update `../RayX/.agentx/memory/knowledge/runtime/gpux-foundation/knowledge.md` only for durable facts that are not obvious from state.
-- Update `../RayX/.agentx/memory/knowledge/runtime/gpux-foundation/rules.md` only if the import/replay rule changed.
-- Add a decision in RayX memory if the source repository, path mapping, provenance policy, or mobile patch ownership changes.
+- Update `.agentx/memory/knowledge/platform/mobile/state.md` with any changed current mobile behavior and `.agentx/memory/knowledge/repository/upstream-sync/state.md` with the latest represented upstream `gpui_mobile` commit.
+- Update the mobile `knowledge.md` only for durable facts that are not obvious from state, and `rules.md` only if the import/replay rule changed.
+- Add a decision in gpux memory if the source repository, path mapping, provenance policy, or mobile patch ownership changes.
 - Run the AgentX audit script from `../RayX` after memory changes.
 
 ## Review Checklist

@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/gpui/text
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-05T23:00:00+02:00
+  updated: 2026-10-06T03:20:00+02:00
   topics:
     - text-system
     - line-layout-cache
@@ -14,6 +14,9 @@ agentx:
   superseded_by: []
 ---
 # Text Knowledge
+
+- `TextLayout::index_for_position` treats lines as half-open bands: a point exactly on a line boundary belongs to the line below. Upstream routes it into the line above, whose wrapped layout has no row there and returns offset 0, so a drag ending on a boundary collapsed CodeView selections to their start.
+- A multi-line `EditableText` sizes its paint element to 100% of its parent, so it needs a definite-height container. A parent sized only by `min_h` leaves it zero-height: the text is clipped away and the editable has no hit area. Give the container a height or a flex basis.
 
 Measured on the warmed wide DataTable at both DPRs:
 

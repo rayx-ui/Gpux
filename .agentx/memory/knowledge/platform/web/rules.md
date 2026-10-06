@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/platform/web
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-05T23:00:00+02:00
+  updated: 2026-10-06T01:30:00+02:00
   topics:
     - wasm
     - multithreading
@@ -24,7 +24,8 @@ agentx:
 - Keep default window bounds tied to the visible viewport and initialize the backing store as logical size × `devicePixelRatio` before the first frame.
 - On browser-window teardown, cancel pending animation frames and disconnect observers before retained closures drop, and guard callbacks with closed state.
 - Keep clipboard writes on the trusted action stack, pairing the async Clipboard API with the synchronous one-shot `copy` fallback; never focus a temporary input, whose focus events can re-enter GPUI.
-- Handle browser paste on the trusted DOM `paste` event; do not rely on async clipboard reads or keydown-only paths.
+- Handle browser paste on the trusted DOM `paste` event; do not rely on async clipboard reads or keydown-only paths. Keep the paste shortcut (Ctrl+V, or Cmd+V on macOS) out of GPUI keydown dispatch: Zed's keydown handler prevents the default of every keystroke GPUI handles, which suppresses the trusted `paste` event.
+- Keep the IME edit import (`register_input`) from diffing into the stored element selection: the import always replaces the whole app selection, so a prefix or suffix shared with the selected text must stay inside the replacement. Upstream Zed (through d544470d1d) lacks this cap; remove it only when upstream fixes the import.
 - Keep WASM asset futures local and foreground-spawned; do not add `Send` back to the WASM `Asset::load` signature. Use `Svg::external_path(...)` for browser-served SVG and `Svg::path(...)` for native asset paths.
 - Keep HTML island roots as direct children of the real canvas when layout subtree is enabled; never create scratch canvases, cloned DOM, proxy roots, staging surfaces, or fallback upload paths.
 - Gate island uploads on browser paint readiness and treat "No cached paint record for element" as a retry deferral, not a failure. Without layout subtree support, create no island roots or uploads.

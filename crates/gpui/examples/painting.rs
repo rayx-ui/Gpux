@@ -1,9 +1,12 @@
 #![cfg_attr(target_family = "wasm", no_main)]
 
+#[path = "example_support/fonts.rs"]
+mod example_support;
+
 use gpui_platform::application;
 use gpux::{
-    Background, Bounds, ColorSpace, Context, Path, PathBuilder, PathStyle, Pixels, Point,
-    PointerEvent, Render, StrokeOptions, Window, WindowOptions, canvas, div, linear_color_stop,
+    App, Background, Bounds, ColorSpace, Context, MouseDownEvent, Path, PathBuilder, PathStyle,
+    Pixels, Point, Render, StrokeOptions, Window, WindowOptions, canvas, div, linear_color_stop,
     linear_gradient, point, prelude::*, px, quad, rgb, size,
 };
 
@@ -402,16 +405,16 @@ impl Render for PaintingViewer {
                         )
                         .size_full(),
                     )
-                    .on_pointer_down(
+                    .on_mouse_down(
                         gpux::MouseButton::Left,
-                        cx.listener(|this, ev: &PointerEvent, _, _| {
+                        cx.listener(|this, ev: &MouseDownEvent, _, _| {
                             this._painting = true;
                             this.start = ev.position;
                             let path = vec![ev.position];
                             this.lines.push(path);
                         }),
                     )
-                    .on_pointer_move(cx.listener(|this, ev: &PointerEvent, _, cx| {
+                    .on_mouse_move(cx.listener(|this, ev: &gpux::MouseMoveEvent, _, cx| {
                         if !this._painting {
                             return;
                         }
@@ -435,7 +438,7 @@ impl Render for PaintingViewer {
 
                         cx.notify();
                     }))
-                    .on_pointer_up(
+                    .on_mouse_up(
                         gpux::MouseButton::Left,
                         cx.listener(|this, _, _, _| {
                             this._painting = false;
@@ -447,7 +450,10 @@ impl Render for PaintingViewer {
 
 fn run_example() {
     application().run(|cx| async move {
-        cx.update(|cx| {
+        cx.update(|cx: &mut App| {
+            if !example_support::load_fonts(cx) {
+                return;
+            }
             cx.open_window(
                 WindowOptions {
                     focus: true,

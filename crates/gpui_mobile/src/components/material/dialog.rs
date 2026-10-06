@@ -12,7 +12,7 @@
 //!
 //! All dialog structs use a **builder pattern** and implement `IntoElement`,
 //! making them composable with GPUI's standard `.child(...)` API. Click
-//! handlers use GPUI's `on_pointer_down` signature, so `cx.listener(...)`
+//! handlers use GPUI's `on_mouse_down` signature, so `cx.listener(...)`
 //! works directly.
 //!
 //! ## Quick Start
@@ -45,7 +45,7 @@
 //!     .item("Luna", cx.listener(|this, _, _, cx| { /* ... */ }));
 //! ```
 
-use gpui::{AnyElement, Hsla, MouseButton, PointerEvent, Stateful, Window, div, prelude::*, px};
+use gpui::{AnyElement, Hsla, MouseButton, MouseDownEvent, Stateful, Window, div, prelude::*, px};
 
 use super::theme::{MaterialTheme, ShapeScale, color};
 
@@ -77,7 +77,7 @@ const SCRIM_OPACITY: f32 = 0.32;
 
 // ── Click handler alias ──────────────────────────────────────────────────────
 
-type ClickHandler = Box<dyn Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static>;
+type ClickHandler = Box<dyn Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static>;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  Basic Dialog
@@ -168,7 +168,7 @@ impl BasicDialog {
     pub fn dismiss_button(
         mut self,
         label: impl Into<String>,
-        on_click: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
+        on_click: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.actions.push(DialogAction {
             label: label.into(),
@@ -182,7 +182,7 @@ impl BasicDialog {
     pub fn confirm_button(
         mut self,
         label: impl Into<String>,
-        on_click: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
+        on_click: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.actions.push(DialogAction {
             label: label.into(),
@@ -197,7 +197,7 @@ impl BasicDialog {
         mut self,
         label: impl Into<String>,
         filled: bool,
-        on_click: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
+        on_click: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.actions.push(DialogAction {
             label: label.into(),
@@ -210,7 +210,7 @@ impl BasicDialog {
     /// Set a handler for tapping the scrim (backdrop) to dismiss.
     pub fn on_scrim_tap(
         mut self,
-        handler: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
+        handler: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.on_scrim_tap = Some(Box::new(handler));
         self
@@ -266,7 +266,7 @@ impl IntoElement for BasicDialog {
             scrim = scrim.bg(scrim_color);
 
             if let Some(handler) = self.on_scrim_tap {
-                scrim = scrim.on_pointer_down(MouseButton::Left, handler);
+                scrim = scrim.on_mouse_down(MouseButton::Left, handler);
             }
         }
 
@@ -354,7 +354,7 @@ impl IntoElement for BasicDialog {
                         .line_height(px(20.0))
                         .cursor_pointer()
                         .child(action.label)
-                        .on_pointer_down(MouseButton::Left, action.on_click)
+                        .on_mouse_down(MouseButton::Left, action.on_click)
                 } else {
                     div()
                         .id(gpui::ElementId::Name(format!("dialog-action-{i}").into()))
@@ -366,7 +366,7 @@ impl IntoElement for BasicDialog {
                         .line_height(px(20.0))
                         .cursor_pointer()
                         .child(action.label)
-                        .on_pointer_down(MouseButton::Left, action.on_click)
+                        .on_mouse_down(MouseButton::Left, action.on_click)
                 };
 
                 actions_row = actions_row.child(btn);
@@ -377,7 +377,7 @@ impl IntoElement for BasicDialog {
 
         // Stop propagation on the dialog container itself so that tapping
         // inside the dialog doesn't trigger the scrim handler.
-        dialog = dialog.on_pointer_down(MouseButton::Left, |_, _, _| {
+        dialog = dialog.on_mouse_down(MouseButton::Left, |_, _, _| {
             // Intentionally empty — just captures the event.
         });
 
@@ -444,7 +444,7 @@ impl FullScreenDialog {
     /// Set the close button handler (typically navigates back or dismisses).
     pub fn close_button(
         mut self,
-        handler: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
+        handler: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.close_handler = Some(Box::new(handler));
         self
@@ -454,7 +454,7 @@ impl FullScreenDialog {
     pub fn save_button(
         mut self,
         label: impl Into<String>,
-        handler: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
+        handler: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.save_label = Some(label.into());
         self.save_handler = Some(Box::new(handler));
@@ -523,7 +523,7 @@ impl IntoElement for FullScreenDialog {
                     .text_lg()
                     .text_color(on_surface)
                     .child("✕")
-                    .on_pointer_down(MouseButton::Left, close_handler),
+                    .on_mouse_down(MouseButton::Left, close_handler),
             );
         }
 
@@ -551,7 +551,7 @@ impl IntoElement for FullScreenDialog {
                     .text_sm()
                     .cursor_pointer()
                     .child(label)
-                    .on_pointer_down(MouseButton::Left, save_handler),
+                    .on_mouse_down(MouseButton::Left, save_handler),
             );
         }
 
@@ -649,7 +649,7 @@ impl SimpleDialog {
     pub fn item(
         mut self,
         label: impl Into<String>,
-        on_click: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
+        on_click: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.items.push(SimpleDialogItem {
             label: label.into(),
@@ -666,7 +666,7 @@ impl SimpleDialog {
         icon: impl Into<String>,
         label: impl Into<String>,
         selected: bool,
-        on_click: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
+        on_click: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.items.push(SimpleDialogItem {
             label: label.into(),
@@ -680,7 +680,7 @@ impl SimpleDialog {
     /// Set a handler for tapping the scrim to dismiss.
     pub fn on_scrim_tap(
         mut self,
-        handler: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
+        handler: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.on_scrim_tap = Some(Box::new(handler));
         self
@@ -736,7 +736,7 @@ impl IntoElement for SimpleDialog {
             scrim = scrim.bg(scrim_color);
 
             if let Some(handler) = self.on_scrim_tap {
-                scrim = scrim.on_pointer_down(MouseButton::Left, handler);
+                scrim = scrim.on_mouse_down(MouseButton::Left, handler);
             }
         }
 
@@ -811,13 +811,13 @@ impl IntoElement for SimpleDialog {
                 row = row.child(div().text_sm().text_color(selected_color).child("✓"));
             }
 
-            row = row.on_pointer_down(MouseButton::Left, item.on_click);
+            row = row.on_mouse_down(MouseButton::Left, item.on_click);
 
             dialog = dialog.child(row);
         }
 
         // Stop propagation inside dialog
-        dialog = dialog.on_pointer_down(MouseButton::Left, |_, _, _| {});
+        dialog = dialog.on_mouse_down(MouseButton::Left, |_, _, _| {});
 
         scrim = scrim.child(dialog);
         scrim.into_element()

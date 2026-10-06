@@ -1,7 +1,10 @@
 #![cfg_attr(target_family = "wasm", no_main)]
 
+#[path = "example_support/fonts.rs"]
+mod example_support;
+
 use gpui_platform::application;
-use gpux::{Context, Render, Window, WindowOptions, div, img, prelude::*};
+use gpux::{App, Context, Render, Window, WindowOptions, div, img, prelude::*};
 use std::path::PathBuf;
 
 struct GifViewer {
@@ -27,7 +30,10 @@ impl Render for GifViewer {
 
 fn run_example() {
     application().run(|cx| async move {
-        cx.update(|cx| {
+        cx.update(|cx: &mut App| {
+            if !example_support::load_fonts(cx) {
+                return;
+            }
             let gif_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                 .join("examples/image/black-cat-typing.gif");
 

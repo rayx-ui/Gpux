@@ -1,16 +1,20 @@
 #![cfg_attr(target_family = "wasm", no_main)]
 
+#[path = "example_support/fonts.rs"]
+mod example_support;
+
 use gpui_platform::application;
 use gpux::{
-    Bounds, Context, PointerEvent, Window, WindowBounds, WindowOptions, div, prelude::*, px, rgb,
-    size,
+    App, Bounds, Context, MousePressureEvent, PressureStage, Window, WindowBounds, WindowOptions,
+    div, prelude::*, px, rgb, size,
 };
 
-struct PointerContactExample {
+struct MousePressureExample {
+    pressure_stage: PressureStage,
     pressure_amount: f32,
 }
 
-impl Render for PointerContactExample {
+impl Render for MousePressureExample {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         div()
             .flex()
@@ -25,19 +29,21 @@ impl Render for PointerContactExample {
             .border_color(rgb(0x0000ff))
             .text_xl()
             .text_color(rgb(0xffffff))
-            .child(format!("Pressure amount: {:.2}", &self.pressure_amount))
-            .on_pointer_contact(cx.listener(Self::on_pointer_contact))
+            .child(format!("Pressure stage: {:?}", self.pressure_stage))
+            .child(format!("Pressure amount: {:.2}", self.pressure_amount))
+            .on_mouse_pressure(cx.listener(Self::on_mouse_pressure))
     }
 }
 
-impl PointerContactExample {
-    fn on_pointer_contact(
+impl MousePressureExample {
+    fn on_mouse_pressure(
         &mut self,
-        event: &PointerEvent,
+        pressure_event: &MousePressureEvent,
         _window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        self.pressure_amount = event.contact.pressure.unwrap_or_default();
+        self.pressure_amount = pressure_event.pressure;
+        self.pressure_stage = pressure_event.stage;
 
         cx.notify();
     }
@@ -45,7 +51,10 @@ impl PointerContactExample {
 
 fn run_example() {
     application().run(|cx| async move {
-        cx.update(|cx| {
+        cx.update(|cx: &mut App| {
+            if !example_support::load_fonts(cx) {
+                return;
+            }
             let bounds = Bounds::centered(None, size(px(500.), px(500.0)), cx);
 
             cx.open_window(
@@ -54,7 +63,8 @@ fn run_example() {
                     ..Default::default()
                 },
                 |_, cx| {
-                    cx.new(|_| PointerContactExample {
+                    cx.new(|_| MousePressureExample {
+                        pressure_stage: PressureStage::Zero,
                         pressure_amount: 0.0,
                     })
                 },

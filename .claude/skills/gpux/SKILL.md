@@ -13,15 +13,11 @@ Run from the Gpux repository root; Cargo commands use the root workspace `Cargo.
 
 Packages publish to crates.io under `gpux-*` names but keep their GPUI Rust names through `[lib] name`, so source code still writes `gpui_platform::`, `collections::`, and so on. `cargo -p` selectors take package names (`-p gpux-platform`, `-p gpux-wgpu-renderer`, `-p gpux-collections`); the [README crate table](../../../README.md#crates) is the authoritative directory/package/Rust-name mapping.
 
-gpux has no AgentX memory of its own; RayX's memory still records gpux decisions and state. For repository maintenance tasks, read the RayX AgentX memory entrypoints before acting:
+gpux memory lives in this repository's `.agentx/memory/` (moved from RayX on 2026-10-05). For repository maintenance tasks, start at `.agentx/memory/knowledge/INDEX.md` and `.agentx/memory/decisions/INDEX.md`, then read only the matching domain (`gpui`, `renderer`, `platform`, `repository`); `repository/upstream-sync` records the represented upstream commits.
 
-- `../RayX/.agentx/memory/knowledge/INDEX.md`
-- `../RayX/.agentx/memory/knowledge/runtime/state.md`
-- `../RayX/.agentx/memory/knowledge/runtime/gpux-foundation/state.md`
-- `../RayX/.agentx/memory/knowledge/runtime/gpux-foundation/rules.md`
+RayX memory records only RayX's consumer view. For RayX-side work, read the narrowest matching RayX memory:
 
-For GPUI patch-surface work, also read the narrowest matching RayX memory:
-
+- `../RayX/.agentx/memory/knowledge/runtime/gpux-foundation/state.md` for how RayX consumes gpux.
 - `../RayX/.agentx/memory/knowledge/tooling/validation/state.md` for build/test orchestration.
 - `../RayX/.agentx/memory/knowledge/ui/theming-components/state.md` for RayX component source copied from RayX.
 - `../RayX/.agentx/memory/knowledge/ui/virtualization/state.md` for RayX virtualization integration.
@@ -39,7 +35,7 @@ For GPUI patch-surface work, also read the narrowest matching RayX memory:
 - For upstream `gpui_mobile` updates from `itsbalamurali/gpui-mobile`, read [references/update-from-gpui-mobile.md](references/update-from-gpui-mobile.md).
 - For moving to a new wgpu release, maintaining the temporary `gpux-wgpu` fork in `vendor/wgpu/`, or retiring that fork, read [references/update-from-wgpu.md](references/update-from-wgpu.md).
 - For crates.io packaging, crate naming, or manifest changes, use the README crate table and the manifest shape in [references/update-from-zed-gpui-closure.md](references/update-from-zed-gpui-closure.md#manifest-and-packaging-shape), then run `cargo package --workspace`.
-- For ordinary code changes, use the active RayX AgentX taxonomy in `../RayX/.agentx/memory/`: start with `runtime/gpux-foundation`, then expand only to the narrow matching subdomain such as `tooling/validation`, `ui/theming-components`, or `ui/virtualization` when the touched behavior belongs there.
+- For ordinary code changes, use gpux's own memory domains and expand only to the narrow matching subdomain; consult RayX memory only for RayX consumer behavior.
 
 ## Validation
 
@@ -61,10 +57,19 @@ The web check disables default features only because the default multithreaded b
 
 ### UI-thread input snapshots
 
-`KeymapSnapshot` and `GestureMapSnapshot` retain boxed actions and are deliberately UI-thread
-state. Retain them with `Rc`, capture one immutable snapshot plus map revision at input-sequence
-start, and pass that same pair through completion. Do not change these snapshots to `Arc` unless
-every contained action becomes `Send + Sync`; doing so triggers unsound cross-thread assumptions.
+`KeymapSnapshot` retains boxed actions and is deliberately UI-thread state. Retain it with `Rc`,
+capture one immutable snapshot plus map revision at input-sequence start, and pass that same pair
+through completion. Do not change it to `Arc` unless every contained action becomes `Send + Sync`;
+doing so triggers unsound cross-thread assumptions.
+
+### Input model
+
+gpux uses upstream GPUI's input model unchanged: `MouseDown`/`MouseUp`/`MouseMove`/`ScrollWheel`
+events, raw `Touch` events recognized by `TouchGestureRecognizer` (tap, pan with fling momentum,
+long press, touch drag), `ClickEvent::Touch`, and a single active drag with platform drag-out
+handoff. Platforms emit raw touches and choose fling physics through `Platform::gestures`. Do not
+reintroduce a gpux pointer layer (`PointerEvent`, per-pointer ownership, gesture maps, touch
+momentum in `ScrollActivity`, or extra `ScrollWheelEvent` metadata).
 
 - Keep gpux scoped to this repository's copy of Zed's GPUI crate closure unless the user explicitly changes repository scope.
 - Preserve Zed GPUI closure paths (Zed `crates/<name>/` is Gpux `crates/<name>/`) and support crate topology, but keep the main framework package/import crate named `gpux` and the other packages named `gpux-*` with their GPUI Rust names in `[lib] name`.
@@ -94,7 +99,7 @@ every contained action becomes `Send + Sync`; doing so triggers unsound cross-th
 - Preserve gpux's per-window Taffy layout-node pool and exact ordered child topology across frames. Compare retained child IDs during reuse and call `set_children` only on change; track current-frame child membership in a capacity-retaining set so computed roots detach stale prior parents after topology shrinkage. Bound both the node pool and child-membership set by the window's maximum observed tree and drop them with the window.
 - For pooled Taffy nodes, skip `set_style` only when the freshly converted current style exactly equals the retained Taffy style; do not infer equality from pool position or element identity.
 - Taffy node-request diagnostics show a completely warm wide DataTable at both DPRs: 1,123/1,123 pooled nodes, unchanged converted styles, and unchanged ordered topologies; 229 context refills need zero extra dirty marks; all 1,041 active-child inserts are unique. Do not target new-node allocation, duplicate child filtering, or redundant dirty calls for that workload. Investigate a sound style/layout generation before bypassing conversion or equality, and do not repeat the regressive parallel topology shadow.
-- Keep request-to-prepaint style reuse private to gpux-owned Div, Img, Svg, and UniformList implementations. Their borrowed layout adapters retain the already-computed request `Style` in the window-owned draw-local slot, consume it during prepaint, and replace the same slot with the final style for paint. Preserve the public consuming-callback path for external custom `Interactivity` users, plus every focus/hover/active/group gate, sticky/listener recomputation, inspector behavior, drag-time paint path, and draw-boundary clear. The warmed wide DataTable reuses exactly 716 gpux-owned request styles while all 13 eligible external consumers still recompute; do not broaden this into a public or cross-frame cache.
+- Keep request-to-prepaint style reuse private to gpux-owned Div, Img, Svg, and UniformList implementations. Their borrowed layout adapters retain the already-computed request `Style` in the window-owned draw-local slot, consume it during prepaint, and replace the same slot with the final style for paint. Preserve the public consuming-callback path for external custom `Interactivity` users, plus every focus/hover/active/group gate, sticky/listener recomputation, inspector behavior, drag-time paint path, and draw-boundary clear. The warmed wide DataTable reuses exactly 761 gpux-owned request styles (each Test Suite sidebar navigation item adds three) while all 13 eligible external consumers still recompute; do not broaden this into a public or cross-frame cache.
 - In renderer paint paths, prepare the original `Color` or `Background` directly when inherited element opacity is exactly `1.0`. Preserve the established authored-opacity path for every non-identity factor; do not rebuild an immutable color and its lazy caches for an identity transform.
 - In GPUI arenas, register a type-erased drop record only when `std::mem::needs_drop::<T>()` is true. Trivial allocations still live in arena chunks and participate in generation invalidation, but clear must not traverse no-op destructor thunks.
 - Keep equal-key sprite order stable. For the hot, densely disordered 128-byte monochrome sprite family, use stable cached-key sorting on `(DrawOrder, TileId)` so sorting operates on compact keys before permuting records. Do not apply the extra allocation/code path to cold or empty sprite families without separate measurements.
@@ -103,7 +108,7 @@ every contained action becomes `Send + Sync`; doing so triggers unsound cross-th
 - Audit platform/rendering sibling crates and shader files during imports; RayX patches are not limited to `crates/gpui`.
 - On macOS Metal shader fixes, preserve packed Rust buffer ABIs and convert cbindgen-exported array fields to Metal vector types in shader helpers at use sites.
 - Keep platform text capability answers tied to negotiated renderer features. Windows may expose subpixel text only when `WgpuRenderer` negotiated dual-source blending; snapshot that immutable capability during window construction instead of borrowing the renderer during paint.
-- Update RayX AgentX `runtime/gpux-foundation` memory (`../RayX/.agentx/memory/`) when source hashes, latest imported upstream Zed or `gpui_mobile` commit, the forked wgpu release, multithreaded WASM rules, or replay rules change.
+- Update gpux memory (`.agentx/memory/knowledge/repository/upstream-sync/state.md` and the affected domain) when source hashes, latest imported upstream Zed or `gpui_mobile` commit, the forked wgpu release, multithreaded WASM rules, or replay rules change.
 - Keep public usage examples on `gpux::{...}` and the package name `gpux`, while preserving the repository path `crates/gpui`.
 - Keep RayX browser/WASM apps multithreaded by default. Do not disable `gpui_web` default features unless a task explicitly proves single-threaded output is required.
 - Bridge browser paste from the trusted DOM `paste` event into the active GPUI

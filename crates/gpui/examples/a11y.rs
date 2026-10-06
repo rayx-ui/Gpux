@@ -30,9 +30,12 @@
 //!     - "2. Run tests"
 //!     - "3. Ship it"
 
+#[path = "example_support/fonts.rs"]
+mod example_support;
+
 use gpui_platform::application;
 use gpux::{
-    AccessibleAction, Bounds, Context, FocusHandle, KeyBinding, Role, SharedString, Toggled,
+    AccessibleAction, App, Bounds, Context, FocusHandle, KeyBinding, Role, SharedString, Toggled,
     Window, WindowBounds, WindowOptions, actions, div, prelude::*, px, rgb, size, text,
 };
 
@@ -226,16 +229,14 @@ impl Render for A11yDemo {
 
 fn run_example() {
     application().run(|cx| async move {
-        cx.update(|cx| {
-            cx.set_keymap_layer(gpux::KeymapLayer::new(
-                gpux::InputLayerId::new("example.a11y"),
-                0,
-                [
-                    KeyBinding::new("tab", Tab, None),
-                    KeyBinding::new("shift-tab", TabPrev, None),
-                ],
-            ))
-            .unwrap();
+        cx.update(|cx: &mut App| {
+            if !example_support::load_fonts(cx) {
+                return;
+            }
+            cx.bind_keys([
+                KeyBinding::new("tab", Tab, None),
+                KeyBinding::new("shift-tab", TabPrev, None),
+            ]);
 
             let bounds = Bounds::centered(None, size(px(500.), px(400.0)), cx);
             cx.open_window(

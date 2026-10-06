@@ -11,6 +11,7 @@ license.workspace = true
 [lib]
 name = "path"
 path = "src/path.rs"
+doctest = false
 
 [features]
 test-support = []
@@ -18,10 +19,14 @@ test-support = []
 [dependencies]
 anyhow.workspace = true
 dunce.workspace = true
-serde = { workspace = true, optional = true }
+serde = { workspace = true, features = ["derive"], optional = true }
+
+[target.'cfg(windows)'.dependencies]
+tendril.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
+pretty_assertions.workspace = true
 
 [lints]
 workspace = true

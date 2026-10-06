@@ -1,11 +1,15 @@
 #![cfg_attr(target_family = "wasm", no_main)]
-//! Example demonstrating gpux's testing infrastructure.
+
+//! Example demonstrating GPUI's testing infrastructure.
 //!
 //! When run normally, this displays an interactive counter window.
 //! The tests below demonstrate various GPUI testing patterns.
 //!
 //! Run the app: cargo run -p gpux --example testing
 //! Run tests:   cargo test -p gpux --example testing --features test-support
+
+#[path = "example_support/fonts.rs"]
+mod example_support;
 
 use gpui_platform::application;
 use gpux::{
@@ -179,16 +183,14 @@ impl Render for Counter {
 
 fn run_example() {
     application().run(|cx| async move {
-        cx.update(|cx| {
-            cx.set_keymap_layer(gpux::KeymapLayer::new(
-                gpux::InputLayerId::new("example.testing"),
-                0,
-                [
-                    gpux::KeyBinding::new("up", Increment, Some("Counter")),
-                    gpux::KeyBinding::new("down", Decrement, Some("Counter")),
-                ],
-            ))
-            .unwrap();
+        cx.update(|cx: &mut App| {
+            if !example_support::load_fonts(cx) {
+                return;
+            }
+            cx.bind_keys([
+                gpux::KeyBinding::new("up", Increment, Some("Counter")),
+                gpux::KeyBinding::new("down", Decrement, Some("Counter")),
+            ]);
 
             let bounds = Bounds::centered(None, size(px(300.), px(200.)), cx);
             cx.open_window(
@@ -306,7 +308,7 @@ mod tests {
     }
 
     /// Note that the test executor panics if you await a future that waits on
-    /// something outside gpux's control, like a reading a file or network IO.
+    /// something outside GPUI's control, like a reading a file or network IO.
     /// You should mock external systems where possible, as this feature can be used
     /// to detect potential deadlocks in your async code.
     ///
@@ -323,7 +325,7 @@ mod tests {
             tx.send(42).ok();
         });
 
-        // Without allow_parking(), this await would panic because gpux's
+        // Without allow_parking(), this await would panic because GPUI's
         // scheduler runs out of tasks while waiting for the external thread.
         let result = rx.await.unwrap();
         assert_eq!(result, 42);

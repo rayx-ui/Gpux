@@ -1,18 +1,16 @@
 #![cfg_attr(target_family = "wasm", no_main)]
 
+#[path = "example_support/fonts.rs"]
+mod example_support;
+
 use std::{fs, path::PathBuf};
 
 use anyhow::Result;
 use gpui_platform::application;
 use gpux::{
-    AssetSource, Bounds, BoxShadow, ClickEvent, Color, Context, SharedString, Task, Window,
-    WindowBounds, WindowOptions, div, hsla as authored_hsla, img, point, prelude::*, px, rgb, size,
-    svg,
+    App, AssetSource, Bounds, BoxShadow, ClickEvent, Context, SharedString, Task, Window,
+    WindowBounds, WindowOptions, div, hsla, img, prelude::*, px, rgb, size, svg,
 };
-
-fn hsla(h: f32, s: f32, l: f32, a: f32) -> Color {
-    authored_hsla(h, s, l, a).into()
-}
 
 struct Assets {
     base: PathBuf,
@@ -119,13 +117,11 @@ impl Render for HelloWorld {
                             .bg(gpux::blue())
                             .border_3()
                             .border_color(gpux::black())
-                            .shadow(vec![BoxShadow {
-                                color: hsla(0.0, 0.0, 0.0, 0.5),
-                                blur_radius: px(1.0),
-                                spread_radius: px(5.0),
-                                inset: false,
-                                offset: point(px(10.0), px(10.0)),
-                            }])
+                            .shadow(vec![
+                                BoxShadow::new(px(10.0), px(10.0), hsla(0.0, 0.0, 0.0, 0.5))
+                                    .blur_radius(px(1.0))
+                                    .spread_radius(px(5.0)),
+                            ])
                             .child(img("image/app-icon.png").size_8())
                             .child("Opacity Panel (Click to test)")
                             .child(
@@ -170,7 +166,10 @@ fn run_example() {
             base: PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples"),
         })
         .run(|cx| async move {
-            cx.update(|cx| {
+            cx.update(|cx: &mut App| {
+                if !example_support::load_fonts(cx) {
+                    return;
+                }
                 let bounds = Bounds::centered(None, size(px(500.0), px(500.0)), cx);
                 cx.open_window(
                     WindowOptions {

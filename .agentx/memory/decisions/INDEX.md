@@ -4,7 +4,7 @@ agentx:
   scope: decisions
   status: current
   created: 2026-10-05T23:00:00+02:00
-  updated: 2026-10-05T23:00:00+02:00
+  updated: 2026-10-05T23:30:00+02:00
   topics:
     - decisions
     - gpux
@@ -30,17 +30,19 @@ Durable architecture choices for gpux. Current source remains the first evidence
   - [Keep measured-layout optimization text-owned for the wide DataTable](gpui/layout-style/2026-08-31-gpui-layout-style-text-measurement-scope.md)
   - [Add explicit unclipped deferred overlays](gpui/frame-pipeline/2026-06-29-gpui-frame-pipeline-unclipped-deferred-overlays.md)
   - [Cache thermal state for frame throttling](gpui/frame-pipeline/2026-07-24-gpui-frame-pipeline-cached-thermal-frame-throttling.md)
+  - [Request upstream's follow-up frame from frame demand without App re-entry](gpui/frame-pipeline/2026-10-05-gpui-frame-pipeline-frame-demand-follow-up.md)
   - [Order fixed and sticky divs through shared positioned paint and hit-test lanes](gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-fixed-sticky-positioned-scene-order.md)
   - [Implement fixed and sticky positioning in GPUI element lifecycle](gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-fixed-sticky-positioning.md)
   - [Clamp and consume nested scroll wheel input in the active scrollport](gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-nested-scroll-wheel-propagation.md)
   - [Resolve fixed divs against the active content-mask containing block](gpui/positioning-scroll/2026-07-06-gpui-positioning-scroll-fixed-containing-block.md)
-  - [AD-041 share ScrollActivity between touch and programmatic scrolling](gpui/positioning-scroll/2026-07-29-gpui-positioning-scroll-shared-scroll-activity.md)
+  - [AD-041 share ScrollActivity between touch and programmatic scrolling](gpui/positioning-scroll/2026-07-29-gpui-positioning-scroll-shared-scroll-activity.md) (superseded)
   - [Use one canonical relation for ordinary and virtualized sticky stacking](gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-keyed-sticky-stacking.md) (superseded)
   - [Capture wheel policy belongs on the opaque hit-test owner](gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-opaque-scroll-capture-owner.md)
   - [Order active sticky hierarchies through element traversal](gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-sticky-hierarchy-traversal-order.md)
   - [Apply one push-out replacement model to every start-edge sticky relation](gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-universal-sticky-push-out.md)
   - [Publish concrete ScrollHandle thumb offsets in the input turn](gpui/positioning-scroll/2026-08-21-gpui-positioning-scroll-immediate-scrollbar-publication.md)
-  - [Keep pointer ownership per PointerId and refresh capture after reconciliation](gpui/input/2026-07-30-gpui-input-pointer-capture-reconciliation.md)
+  - [Keep pointer ownership per PointerId and refresh capture after reconciliation](gpui/input/2026-07-30-gpui-input-pointer-capture-reconciliation.md) (superseded)
+  - [Use Zed GPUI's input model unchanged and delete the gpux pointer layer](gpui/input/2026-10-05-gpui-input-upstream-input-model.md)
   - [Split lightweight frame geometry from shader effects](gpui/frame-effects/2026-07-06-gpui-frame-effects-frame-effects-elements.md)
   - [Use frame-family naming for child-operating lightweight elements](gpui/frame-effects/2026-07-07-gpui-frame-effects-frame-family-naming.md)
 

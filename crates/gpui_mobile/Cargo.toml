@@ -72,7 +72,7 @@ gpui_wgpu = { workspace = true, features = ["font-kit"] }
 objc2 = "0.6"
 pathfinder_geometry = "0.5"
 smallvec.workspace = true
-uuid.workspace = true
+uuid = { workspace = true, features = ["v4", "v5"] }
 wgpu.workspace = true
 
 [target.'cfg(target_os = "android")'.dependencies]
@@ -85,4 +85,4 @@ ndk = { version = "0.9", features = ["nativewindow"] }
 ndk-context = "0.1"
 ndk-sys = "0.6"
 rustc-hash.workspace = true
-uuid.workspace = true
+uuid = { workspace = true, features = ["v5"] }

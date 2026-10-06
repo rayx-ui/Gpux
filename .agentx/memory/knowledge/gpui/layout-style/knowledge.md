@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/gpui/layout-style
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-05T23:00:00+02:00
+  updated: 2026-10-06T03:10:00+02:00
   topics:
     - taffy
     - layout
@@ -23,6 +23,7 @@ agentx:
 - Node-request diagnostics on that frame: all 1,123 requests reuse pooled nodes with equal converted styles and ordered topologies; zero new nodes, style writes, or topology writes; 229 measured leaves refill retained slots with no extra dirty marks; all 1,041 child-edge inserts are unique. The remaining request cost is equality verification and its upstream `Style::to_taffy` conversion.
 - Layout-bounds telemetry: 3,661 calls, 2,574 cache hits, 1,005 recursive parent-origin hits, zero parent-origin misses per warmed frame.
 - Measured-leaf stability: all 882 measurement calls match a prior-frame ordinal with identical inputs and snapped output, and text owns all 882 (list, uniform-list, and custom measurement own none). Closures can still depend on state Taffy does not see, so this is a lead, not a cache contract.
-- Style-phase counts per warmed frame: 875 request-layout computations, 845 initial prepaint, zero post-sticky recomputes, 845 paint, 729 structurally static and runtime-safe reuse candidates (86.27%). 757 of 875 request styles are structurally static; 742 come from gpux-owned elements and 15 from external `Interactivity` consumers (RayX Sliver and VirtualList); 716 gpux-owned and 13 external candidates stay eligible at prepaint. The draw-local store holds about 519 KiB for those 729 styles.
+- Style-phase counts per warmed frame, measured with a 73-item Test Suite sidebar: 875 request-layout computations, 845 initial prepaint, zero post-sticky recomputes, 845 paint, 729 structurally static and runtime-safe reuse candidates (86.27%). 757 of 875 request styles are structurally static; 742 come from gpux-owned elements and 15 from external `Interactivity` consumers (RayX Sliver and VirtualList); 716 gpux-owned and 13 external candidates stay eligible at prepaint. The draw-local store holds about 519 KiB for those 729 styles.
+- These counts include the Test Suite sidebar, which renders on every route: each navigation item adds three gpux-owned candidates (and four request layouts and five Taffy nodes). With 88 items the wide DataTable reuses 761 gpux-owned candidates while the 13 external candidates are unchanged.
 - Only 13 of 875 request-layout computations (1.49%) keep an exactly default `Interactivity::base_style`, so deferring allocation for default base refinements is not a material optimization.
 - An earlier parallel topology-shadow experiment regressed tail latency and was reverted.

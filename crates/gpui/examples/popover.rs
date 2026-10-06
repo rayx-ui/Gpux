@@ -1,8 +1,11 @@
 #![cfg_attr(target_family = "wasm", no_main)]
 
+#[path = "example_support/fonts.rs"]
+mod example_support;
+
 use gpui_platform::application;
 use gpux::{
-    Anchor, Context, Div, Hsla, Stateful, Window, WindowOptions, anchored, deferred, div,
+    Anchor, App, Context, Div, Hsla, Stateful, Window, WindowOptions, anchored, deferred, div,
     prelude::*, px,
 };
 
@@ -66,7 +69,7 @@ impl HelloWorld {
                                     .child("This is second level Popover with nested deferred!")
                                     .bg(gpux::white())
                                     .border_color(gpux::blue())
-                                    .on_pointer_down_out(cx.listener(|this, _, _, cx| {
+                                    .on_mouse_down_out(cx.listener(|this, _, _, cx| {
                                         this.secondary_open = false;
                                         cx.notify();
                                     })),
@@ -133,7 +136,7 @@ impl Render for HelloWorld {
                                                    Click outside to close.",
                                                     )
                                                     .when(!self.secondary_open, |this| {
-                                                        this.on_pointer_down_out(cx.listener(
+                                                        this.on_mouse_down_out(cx.listener(
                                                             |this, _, _, cx| {
                                                                 this.open = false;
                                                                 cx.notify();
@@ -167,7 +170,10 @@ impl Render for HelloWorld {
 
 fn run_example() {
     application().run(|cx| async move {
-        cx.update(|cx| {
+        cx.update(|cx: &mut App| {
+            if !example_support::load_fonts(cx) {
+                return;
+            }
             cx.open_window(WindowOptions::default(), |_, cx| {
                 cx.new(|_| HelloWorld {
                     open: false,

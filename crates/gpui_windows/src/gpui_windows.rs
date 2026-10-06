@@ -2,6 +2,7 @@
 
 mod clipboard;
 mod destination_list;
+mod dialog;
 mod direct_manipulation;
 mod dispatcher;
 mod display;

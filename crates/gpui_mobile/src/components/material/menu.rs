@@ -14,7 +14,7 @@
 //!
 //! All menu structs use a **builder pattern** and implement `IntoElement`,
 //! making them composable with GPUI's standard `.child(...)` API. Click
-//! handlers use GPUI's `on_pointer_down` signature, so `cx.listener(...)`
+//! handlers use GPUI's `on_mouse_down` signature, so `cx.listener(...)`
 //! works directly.
 //!
 //! ## Quick Start
@@ -60,7 +60,7 @@
 //! - Divider: outline-variant, 1dp height, 0dp horizontal margin
 //! - Disabled items: 38% opacity
 
-use gpui::{AnyElement, Hsla, MouseButton, PointerEvent, Stateful, Window, div, prelude::*, px};
+use gpui::{AnyElement, Hsla, MouseButton, MouseDownEvent, Stateful, Window, div, prelude::*, px};
 
 use super::theme::{MaterialTheme, ShapeScale, TRANSPARENT, color};
 
@@ -101,7 +101,7 @@ const DISABLED_OPACITY: f32 = 0.38;
 
 // ── Click handler alias ──────────────────────────────────────────────────────
 
-type ClickHandler = Box<dyn Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static>;
+type ClickHandler = Box<dyn Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static>;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  Menu Entry (internal)
@@ -191,7 +191,7 @@ impl Menu {
         mut self,
         label: impl Into<String>,
         icon: impl Into<String>,
-        on_click: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
+        on_click: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         let icon_str = icon.into();
         self.entries.push(MenuEntry::Item {
@@ -216,7 +216,7 @@ impl Menu {
         label: impl Into<String>,
         icon: impl Into<String>,
         trailing: impl Into<String>,
-        on_click: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
+        on_click: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         let icon_str = icon.into();
         self.entries.push(MenuEntry::Item {
@@ -241,7 +241,7 @@ impl Menu {
         label: impl Into<String>,
         leading_icon: impl Into<String>,
         trailing_icon: impl Into<String>,
-        on_click: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
+        on_click: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         let leading = leading_icon.into();
         let trailing = trailing_icon.into();
@@ -274,7 +274,7 @@ impl Menu {
         label: impl Into<String>,
         icon: impl Into<String>,
         checked: bool,
-        on_click: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
+        on_click: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         let icon_str = icon.into();
         self.entries.push(MenuEntry::Item {
@@ -504,7 +504,7 @@ impl IntoElement for Menu {
                     }
 
                     // Build the item row — always use an id so we get a
-                    // Stateful<Div> that supports on_pointer_down uniformly.
+                    // Stateful<Div> that supports on_mouse_down uniformly.
                     let mut item = div()
                         .id(gpui::ElementId::Name(format!("menu-item-{i}").into()))
                         .flex()
@@ -528,7 +528,7 @@ impl IntoElement for Menu {
                     // Click handler (only for enabled items)
                     if let Some(handler) = on_click {
                         if !disabled {
-                            item = item.on_pointer_down(MouseButton::Left, handler);
+                            item = item.on_mouse_down(MouseButton::Left, handler);
                         }
                     }
 

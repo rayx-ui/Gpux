@@ -2375,46 +2375,23 @@ impl Element for List {
         let scroll_top = prepaint.layout.scroll_top;
         let hitbox_id = prepaint.hitbox.id;
         let mut accumulated_scroll_delta = ScrollDelta::default();
-        window.on_pointer_event(move |event: &ScrollWheelEvent, phase, window, cx| {
+        window.on_mouse_event(move |event: &ScrollWheelEvent, phase, window, cx| {
             if phase == DispatchPhase::Bubble && hitbox_id.should_handle_scroll(window) {
                 accumulated_scroll_delta = accumulated_scroll_delta.coalesce(event.delta);
                 let pixel_delta = accumulated_scroll_delta.pixel_delta(px(20.));
-                let release_velocity = (event.scroll_source == crate::ScrollWheelSource::Touch
-                    && event.scroll_phase == crate::ScrollWheelPhase::Ended
-                    && event.native_momentum_phase.is_none())
-                .then_some((event.release_velocity, event.timestamp));
-                let mut start_activity = false;
                 let mut advanced = false;
                 if let Ok(mut state) = list_state.0.try_borrow_mut() {
+                    // Wheel, trackpad, and recognized touch scrolling replace any
+                    // programmatic driver.
                     state.pending_programmatic_scroll = None;
-                    match event.scroll_source {
-                        crate::ScrollWheelSource::Touch
-                            if matches!(
-                                event.scroll_phase,
-                                crate::ScrollWheelPhase::Started
-                                    | crate::ScrollWheelPhase::Cancelled
-                            ) =>
-                        {
-                            state.activity.stop();
-                        }
-                        crate::ScrollWheelSource::Touch => {}
-                        _ => state.activity.stop(),
-                    }
+                    state.activity.stop();
                     advanced =
                         state.scroll(&scroll_top, height, pixel_delta, current_view, window, cx);
-                    if advanced && let Some((Some(velocity), timestamp)) = release_velocity {
-                        state
-                            .activity
-                            .start_at(velocity, timestamp.unwrap_or_else(crate::Instant::now));
-                        start_activity = true;
-                    }
                 }
+                // At the scroll edge the unconsumed delta keeps bubbling, so an
+                // enclosing scroll owner continues the gesture.
                 if advanced {
                     cx.stop_propagation();
-                }
-                if start_activity {
-                    schedule_list_scroll_activity(list_state.clone(), current_view, window);
-                    window.refresh();
                 }
             }
         });
@@ -2507,47 +2484,6 @@ fn apply_list_programmatic_frame(
         cx,
     );
     Some(frame)
-}
-
-fn schedule_list_scroll_activity(list_state: ListState, current_view: EntityId, window: &Window) {
-    window.on_next_frame(move |window, cx| {
-        let delta = list_state
-            .0
-            .try_borrow_mut()
-            .ok()
-            .and_then(|mut state| state.activity.next_delta_at(crate::Instant::now()));
-        let Some(delta) = delta else {
-            return;
-        };
-
-        let advanced = if let Ok(mut state) = list_state.0.try_borrow_mut() {
-            let Some(bounds) = state.last_layout_bounds else {
-                state.activity.stop();
-                return;
-            };
-            let scroll_top = state.logical_scroll_top();
-            state.scroll(
-                &scroll_top,
-                bounds.size.height,
-                delta,
-                current_view,
-                window,
-                cx,
-            )
-        } else {
-            false
-        };
-
-        if !advanced {
-            if let Ok(mut state) = list_state.0.try_borrow_mut() {
-                state.activity.stop();
-            }
-            return;
-        }
-
-        schedule_list_scroll_activity(list_state, current_view, window);
-        window.refresh();
-    });
 }
 
 impl IntoElement for List {
@@ -2959,7 +2895,7 @@ mod test {
 
         test_app
             .update_window(any_window, |_, window, cx| {
-                window.draw(cx).clear();
+                window.draw(cx).clear(cx);
             })
             .unwrap();
 
@@ -3016,7 +2952,7 @@ mod test {
 
         test_app
             .update_window(any_window, |_, window, cx| {
-                window.draw(cx).clear();
+                window.draw(cx).clear(cx);
             })
             .unwrap();
 
@@ -3081,7 +3017,7 @@ mod test {
 
         test_app
             .update_window(any_window, |_, window, cx| {
-                window.draw(cx).clear();
+                window.draw(cx).clear(cx);
             })
             .unwrap();
 

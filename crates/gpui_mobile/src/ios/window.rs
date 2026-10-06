@@ -16,8 +16,9 @@ use gpui::{
     AnyWindowHandle, AtlasKey, AtlasTextureId, AtlasTextureKind, AtlasTile, Bounds, Capslock,
     DevicePixels, DispatchEventResult, EffectCapabilities, GpuSpecs, Modifiers, Pixels,
     PlatformAtlas, PlatformDisplay, PlatformInput, PlatformInputHandler, PlatformWindow, Point,
-    PromptButton, PromptLevel, RequestFrameOptions, Scene, Size, TileId, WindowAppearance,
-    WindowBackgroundAppearance, WindowBounds, WindowControlArea, WindowParams, point, px, size,
+    PromptButton, PromptLevel, RequestFrameOptions, Scene, Size, TileId, TouchEvent, TouchId,
+    TouchPhase, WindowAppearance, WindowBackgroundAppearance, WindowBounds, WindowControlArea,
+    WindowParams, WindowVisibility, point, px, size,
 };
 use gpui_wgpu::{GpuContext, WgpuContext, WgpuRenderer, WgpuSurfaceConfig};
 use objc2::encode::{Encode, Encoding, RefEncode};
@@ -29,7 +30,7 @@ use parking_lot::Mutex;
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle, UiKitDisplayHandle, UiKitWindowHandle};
 use std::{
     cell::{Cell, RefCell},
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     ffi::c_void,
     ptr::{self, NonNull},
     rc::Rc,
@@ -502,30 +503,6 @@ fn handle_touches(view: *mut AnyObject, touches: *mut AnyObject, event: *mut Any
 }
 
 /// iOS Window backed by UIWindow + UIViewController.
-/// Distance (logical px) the finger must travel before a touch
-/// is promoted from a potential tap to a scroll gesture.
-const SCROLL_SLOP: f32 = 8.0;
-
-/// Tracks the current touch gesture state machine.
-///
-/// This distinguishes taps (short, stationary touches) from scroll gestures
-/// (finger drags). The same pattern is used on Android.
-#[derive(Clone, Copy, Debug)]
-enum TouchState {
-    /// No active touch.
-    Idle,
-    /// Finger is down but hasn't moved beyond the slop threshold.
-    Pending { start_x: f32, start_y: f32 },
-    /// Finger has moved beyond the threshold — we are scrolling.
-    Scrolling {
-        prev_x: f32,
-        prev_y: f32,
-        prev_time: gpui::Instant,
-        velocity_x: f32,
-        velocity_y: f32,
-    },
-}
-
 #[derive(Clone, Copy, Debug)]
 enum MultiTouchState {
     Idle,
@@ -533,7 +510,6 @@ enum MultiTouchState {
         first_id: usize,
         second_id: usize,
         prev_distance: f32,
-        prev_angle: f32,
     },
 }
 
@@ -546,11 +522,11 @@ fn first_two_touch_ids(active: &HashMap<usize, Point<Pixels>>) -> Option<(usize,
     }
 }
 
-fn touch_geometry(
+fn pinch_geometry(
     active: &HashMap<usize, Point<Pixels>>,
     first_id: usize,
     second_id: usize,
-) -> Option<(Point<Pixels>, f32, f32)> {
+) -> Option<(Point<Pixels>, f32)> {
     let first = active.get(&first_id)?;
     let second = active.get(&second_id)?;
     let first_x: f32 = first.x.into();
@@ -564,19 +540,18 @@ fn touch_geometry(
     let dx = second_x - first_x;
     let dy = second_y - first_y;
     let distance = (dx * dx + dy * dy).sqrt().max(f32::EPSILON);
-    let angle = dy.atan2(dx);
-    Some((center, distance, angle))
+    Some((center, distance))
 }
 
-fn normalize_angle_delta_degrees(delta_radians: f32) -> f32 {
-    let mut delta = delta_radians.to_degrees();
-    while delta > 180.0 {
-        delta -= 360.0;
-    }
-    while delta < -180.0 {
-        delta += 360.0;
-    }
-    delta
+fn touch_input(id: usize, phase: TouchPhase, position: Point<Pixels>) -> PlatformInput {
+    PlatformInput::Touch(TouchEvent {
+        id: TouchId(id as u64),
+        phase,
+        position,
+        predicted_position: None,
+        force: None,
+        timestamp: None,
+    })
 }
 
 #[allow(clippy::type_complexity)]
@@ -606,6 +581,9 @@ pub(crate) struct IosWindow {
     input_callback: RefCell<Option<Box<dyn FnMut(PlatformInput) -> DispatchEventResult>>>,
     /// Callback for active status changes
     active_status_callback: RefCell<Option<Box<dyn FnMut(bool)>>>,
+    /// Whether the app's scene is in the foreground and presenting.
+    visible: Cell<bool>,
+    visibility_callback: RefCell<Option<Box<dyn FnMut(WindowVisibility)>>>,
     /// Callback for hover status changes (not really applicable on iOS)
     hover_status_callback: RefCell<Option<Box<dyn FnMut(bool)>>>,
     /// Callback for resize events
@@ -626,13 +604,11 @@ pub(crate) struct IosWindow {
     modifiers: Cell<Modifiers>,
     /// Track if a touch is currently pressed
     touch_pressed: Cell<bool>,
-    /// Touch gesture state machine — distinguishes taps from scroll drags.
-    touch_state: Cell<TouchState>,
     /// Active raw touches keyed by the stable UITouch object pointer.
     active_touches: RefCell<HashMap<usize, Point<Pixels>>>,
-    /// The UIKit touch that began the current contact sequence.
-    primary_touch: Cell<Option<usize>>,
-    /// Two-touch pinch/rotate gesture state.
+    /// Touches forwarded to GPUI's touch recognizer that have not ended.
+    forwarded_touches: RefCell<HashSet<usize>>,
+    /// Two-touch pinch gesture state.
     multi_touch_state: Cell<MultiTouchState>,
     /// Set when iOS lifecycle or layout events require the next GPUI
     /// frame callback to render even if GPUI has no ordinary invalidation.
@@ -733,6 +709,8 @@ impl IosWindow {
                 request_frame_callback: RefCell::new(None),
                 input_callback: RefCell::new(None),
                 active_status_callback: RefCell::new(None),
+                visible: Cell::new(true),
+                visibility_callback: RefCell::new(None),
                 hover_status_callback: RefCell::new(None),
                 resize_callback: RefCell::new(None),
                 moved_callback: RefCell::new(None),
@@ -743,9 +721,8 @@ impl IosWindow {
                 mouse_position: Cell::new(Point::default()),
                 modifiers: Cell::new(Modifiers::default()),
                 touch_pressed: Cell::new(false),
-                touch_state: Cell::new(TouchState::Idle),
                 active_touches: RefCell::new(HashMap::new()),
-                primary_touch: Cell::new(None),
+                forwarded_touches: RefCell::new(HashSet::new()),
                 multi_touch_state: Cell::new(MultiTouchState::Idle),
                 force_next_frame_render: AtomicBool::new(true),
                 renderer: Mutex::new(None),
@@ -958,349 +935,117 @@ impl IosWindow {
 
     /// Handle a touch event from UIKit.
     ///
-    /// Uses a state machine to distinguish **taps** from **drag gestures**:
-    ///
-    ///   DOWN  → record start position, enter "pending" (NO MouseDown yet)
-    ///   MOVE  → if finger moved > threshold → switch to "scrolling",
-    ///           emit `ScrollWheel` deltas (for scrollable containers) AND
-    ///           `MouseMove` (for interactive canvas screens like Animations)
-    ///   UP    → if still "pending" → emit `MouseDown` + `MouseUp` (tap)
-    ///           if "scrolling"   → emit final `ScrollWheel` (Ended) +
-    ///           `MouseUp` (so drag-to-throw works)
-    ///
-    /// MouseDown is **deferred** until finger-up so that starting a scroll
-    /// near a button or tab doesn't accidentally trigger navigation.
-    /// Interactive screens use `MouseMove` to track the finger during drags
-    /// and `MouseUp` to detect the end of a throw/drag gesture.
+    /// Raw touches go to GPUI's touch gesture recognizer, which resolves taps,
+    /// pans with fling momentum, long presses, and touch drags. Two fingers
+    /// form a pinch: the touches forwarded so far are cancelled so the
+    /// recognizer stops panning, and pinch events follow the pair's spread
+    /// until one of its fingers lifts. Fingers that took part in a pinch are
+    /// not forwarded again.
     pub fn handle_touch(&self, touch: *mut AnyObject, _event: *mut AnyObject) {
+        let phase = match touch_phase(touch) {
+            UITouchPhase::Began => TouchPhase::Started,
+            UITouchPhase::Moved => TouchPhase::Moved,
+            UITouchPhase::Ended => TouchPhase::Ended,
+            UITouchPhase::Cancelled => TouchPhase::Cancelled,
+            // No change.
+            UITouchPhase::Stationary => return,
+        };
         let position = touch_location_in_view(touch, self.view);
-        let phase = touch_phase(touch);
         let modifiers = self.modifiers.get();
-
-        let logical_x: f32 = position.x.into();
-        let logical_y: f32 = position.y.into();
-
+        let touch_id = touch as usize;
+        let lifted = matches!(phase, TouchPhase::Ended | TouchPhase::Cancelled);
         self.mouse_position.set(position);
 
-        let mut ts = self.touch_state.get();
-
-        let emit = |input: PlatformInput| {
-            if let Some(callback) = self.input_callback.borrow_mut().as_mut() {
-                callback(input);
-            }
-        };
-
-        let pointer_phase = match phase {
-            UITouchPhase::Began => gpui::PointerPhase::Down,
-            UITouchPhase::Moved | UITouchPhase::Stationary => gpui::PointerPhase::Move,
-            UITouchPhase::Ended => gpui::PointerPhase::Up,
-            UITouchPhase::Cancelled => gpui::PointerPhase::Cancel,
-        };
-        let touch_id = touch as usize;
-        if matches!(phase, UITouchPhase::Began) && self.active_touches.borrow().is_empty() {
-            self.primary_touch.set(Some(touch_id));
-        }
-        let mut pointer = gpui::PointerEvent::touch(
-            gpui::PointerId::new(touch_id as u64),
-            pointer_phase,
-            position,
-            modifiers,
-        );
-        pointer.is_primary = self.primary_touch.get() == Some(touch_id);
-        pointer.click_count = touch_tap_count(touch) as usize;
-        emit(PlatformInput::Pointer(pointer));
-
+        // Input callbacks re-enter GPUI, so they run after every borrow below ends.
+        let mut inputs = Vec::new();
         {
             let mut active = self.active_touches.borrow_mut();
+            if matches!(phase, TouchPhase::Started | TouchPhase::Moved) {
+                active.insert(touch_id, position);
+            }
 
-            match phase {
-                UITouchPhase::Began => {
-                    active.insert(touch_id, position);
-                    if active.len() >= 2 {
-                        self.touch_state.set(TouchState::Idle);
-                        if let Some((first_id, second_id)) = first_two_touch_ids(&active)
-                            && let Some((center, distance, angle)) =
-                                touch_geometry(&active, first_id, second_id)
-                        {
+            match self.multi_touch_state.get() {
+                MultiTouchState::Idle => {
+                    if active.len() >= 2
+                        && let Some((first_id, second_id)) = first_two_touch_ids(&active)
+                        && let Some((center, distance)) =
+                            pinch_geometry(&active, first_id, second_id)
+                    {
+                        self.multi_touch_state.set(MultiTouchState::Active {
+                            first_id,
+                            second_id,
+                            prev_distance: distance,
+                        });
+                        for id in self.forwarded_touches.borrow_mut().drain() {
+                            let position = active.get(&id).copied().unwrap_or(position);
+                            inputs.push(touch_input(id, TouchPhase::Cancelled, position));
+                        }
+                        inputs.push(PlatformInput::Pinch(gpui::PinchEvent {
+                            position: center,
+                            delta: 0.0,
+                            modifiers,
+                            phase: TouchPhase::Started,
+                        }));
+                    } else {
+                        let mut forwarded = self.forwarded_touches.borrow_mut();
+                        let forward = match phase {
+                            TouchPhase::Started => forwarded.insert(touch_id),
+                            TouchPhase::Moved => forwarded.contains(&touch_id),
+                            TouchPhase::Ended | TouchPhase::Cancelled => {
+                                forwarded.remove(&touch_id)
+                            }
+                        };
+                        if forward {
+                            inputs.push(touch_input(touch_id, phase, position));
+                        }
+                    }
+                }
+                MultiTouchState::Active {
+                    first_id,
+                    second_id,
+                    prev_distance,
+                } => {
+                    let pinch_finger = touch_id == first_id || touch_id == second_id;
+                    if pinch_finger
+                        && let Some((center, distance)) =
+                            pinch_geometry(&active, first_id, second_id)
+                    {
+                        if lifted {
+                            self.multi_touch_state.set(MultiTouchState::Idle);
+                            inputs.push(PlatformInput::Pinch(gpui::PinchEvent {
+                                position: center,
+                                delta: 0.0,
+                                modifiers,
+                                phase: TouchPhase::Ended,
+                            }));
+                        } else if phase == TouchPhase::Moved {
                             self.multi_touch_state.set(MultiTouchState::Active {
                                 first_id,
                                 second_id,
                                 prev_distance: distance,
-                                prev_angle: angle,
                             });
-                            emit(PlatformInput::Pinch(gpui::PinchEvent {
+                            inputs.push(PlatformInput::Pinch(gpui::PinchEvent {
                                 position: center,
-                                delta: 0.0,
+                                delta: distance / prev_distance - 1.0,
                                 modifiers,
-                                phase: gpui::TouchPhase::Started,
-                            }));
-                            emit(PlatformInput::Rotate(gpui::RotateEvent {
-                                position: center,
-                                delta_degrees: 0.0,
-                                modifiers,
-                                phase: gpui::TouchPhase::Started,
+                                phase: TouchPhase::Moved,
                             }));
                         }
-                        return;
                     }
                 }
-                UITouchPhase::Moved => {
-                    if let Some(contact) = active.get_mut(&touch_id) {
-                        *contact = position;
-                    }
-
-                    match self.multi_touch_state.get() {
-                        MultiTouchState::Idle if active.len() >= 2 => {
-                            if let Some((first_id, second_id)) = first_two_touch_ids(&active)
-                                && let Some((center, distance, angle)) =
-                                    touch_geometry(&active, first_id, second_id)
-                            {
-                                self.touch_state.set(TouchState::Idle);
-                                self.multi_touch_state.set(MultiTouchState::Active {
-                                    first_id,
-                                    second_id,
-                                    prev_distance: distance,
-                                    prev_angle: angle,
-                                });
-                                emit(PlatformInput::Pinch(gpui::PinchEvent {
-                                    position: center,
-                                    delta: 0.0,
-                                    modifiers,
-                                    phase: gpui::TouchPhase::Started,
-                                }));
-                                emit(PlatformInput::Rotate(gpui::RotateEvent {
-                                    position: center,
-                                    delta_degrees: 0.0,
-                                    modifiers,
-                                    phase: gpui::TouchPhase::Started,
-                                }));
-                            }
-                            return;
-                        }
-                        MultiTouchState::Active {
-                            first_id,
-                            second_id,
-                            prev_distance,
-                            prev_angle,
-                        } => {
-                            if let Some((center, distance, angle)) =
-                                touch_geometry(&active, first_id, second_id)
-                            {
-                                let pinch_delta = (distance / prev_distance) - 1.0;
-                                let rotate_delta =
-                                    normalize_angle_delta_degrees(angle - prev_angle);
-                                self.multi_touch_state.set(MultiTouchState::Active {
-                                    first_id,
-                                    second_id,
-                                    prev_distance: distance,
-                                    prev_angle: angle,
-                                });
-                                emit(PlatformInput::Pinch(gpui::PinchEvent {
-                                    position: center,
-                                    delta: pinch_delta,
-                                    modifiers,
-                                    phase: gpui::TouchPhase::Moved,
-                                }));
-                                emit(PlatformInput::Rotate(gpui::RotateEvent {
-                                    position: center,
-                                    delta_degrees: rotate_delta,
-                                    modifiers,
-                                    phase: gpui::TouchPhase::Moved,
-                                }));
-                            } else {
-                                self.multi_touch_state.set(MultiTouchState::Idle);
-                            }
-                            return;
-                        }
-                        MultiTouchState::Idle => {}
-                    }
-                }
-                UITouchPhase::Ended | UITouchPhase::Cancelled => {
-                    if let MultiTouchState::Active {
-                        first_id,
-                        second_id,
-                        ..
-                    } = self.multi_touch_state.get()
-                    {
-                        if let Some((center, _, _)) = touch_geometry(&active, first_id, second_id) {
-                            emit(PlatformInput::Pinch(gpui::PinchEvent {
-                                position: center,
-                                delta: 0.0,
-                                modifiers,
-                                phase: gpui::TouchPhase::Ended,
-                            }));
-                            emit(PlatformInput::Rotate(gpui::RotateEvent {
-                                position: center,
-                                delta_degrees: 0.0,
-                                modifiers,
-                                phase: gpui::TouchPhase::Ended,
-                            }));
-                        }
-                        self.multi_touch_state.set(MultiTouchState::Idle);
-                        active.remove(&touch_id);
-                        if self.primary_touch.get() == Some(touch_id) {
-                            self.primary_touch.set(None);
-                        }
-                        self.touch_state.set(TouchState::Idle);
-                        return;
-                    }
-
-                    active.remove(&touch_id);
-                    if self.primary_touch.get() == Some(touch_id) {
-                        self.primary_touch.set(None);
-                    }
-                }
-                UITouchPhase::Stationary => {}
             }
+
+            if lifted {
+                active.remove(&touch_id);
+            }
+            self.touch_pressed.set(!active.is_empty());
         }
 
-        match phase {
-            UITouchPhase::Began => {
-                self.touch_pressed.set(true);
-                ts = TouchState::Pending {
-                    start_x: logical_x,
-                    start_y: logical_y,
-                };
-                // Do NOT emit MouseDown here — wait until we know whether
-                // this is a tap or a scroll.  Emitting MouseDown immediately
-                // causes accidental navigation when the user starts scrolling
-                // near a button/tab.
-                //
-                // - Tap (finger lifts within slop) → emit MouseDown + MouseUp
-                //   together in Ended phase.
-                // - Scroll (finger exceeds slop) → emit only MouseMove +
-                //   ScrollWheel, no MouseDown.
-            }
-
-            UITouchPhase::Moved => {
-                match ts {
-                    TouchState::Pending { start_x, start_y } => {
-                        let dx = logical_x - start_x;
-                        let dy = logical_y - start_y;
-                        let distance = (dx * dx + dy * dy).sqrt();
-
-                        if distance > SCROLL_SLOP {
-                            // Promote to scrolling — emit the first scroll
-                            // delta from the start position.
-                            ts = TouchState::Scrolling {
-                                prev_x: logical_x,
-                                prev_y: logical_y,
-                                prev_time: gpui::Instant::now(),
-                                velocity_x: 0.0,
-                                velocity_y: 0.0,
-                            };
-                            emit(PlatformInput::ScrollWheel(gpui::ScrollWheelEvent {
-                                position,
-                                delta: gpui::ScrollDelta::Pixels(gpui::point(
-                                    gpui::px(dx),
-                                    gpui::px(dy),
-                                )),
-                                modifiers,
-                                touch_phase: gpui::TouchPhase::Started,
-                                scroll_source: gpui::ScrollWheelSource::Touch,
-                                scroll_phase: gpui::ScrollWheelPhase::Started,
-                                precise_delta: true,
-                                native_momentum_phase: None,
-                                release_velocity: None,
-                                timestamp: Some(gpui::Instant::now()),
-                            }));
-                        }
-                    }
-                    TouchState::Scrolling {
-                        prev_x,
-                        prev_y,
-                        prev_time,
-                        velocity_x,
-                        velocity_y,
-                    } => {
-                        let dx = logical_x - prev_x;
-                        let dy = logical_y - prev_y;
-                        let now = gpui::Instant::now();
-                        let elapsed = now.duration_since(prev_time).as_secs_f32();
-                        let next_velocity = if elapsed > f32::EPSILON {
-                            (dx / elapsed, dy / elapsed)
-                        } else {
-                            (velocity_x, velocity_y)
-                        };
-                        ts = TouchState::Scrolling {
-                            prev_x: logical_x,
-                            prev_y: logical_y,
-                            prev_time: now,
-                            velocity_x: next_velocity.0,
-                            velocity_y: next_velocity.1,
-                        };
-                        // Scroll event for scrollable containers.
-                        emit(PlatformInput::ScrollWheel(gpui::ScrollWheelEvent {
-                            position,
-                            delta: gpui::ScrollDelta::Pixels(gpui::point(
-                                gpui::px(dx),
-                                gpui::px(dy),
-                            )),
-                            modifiers,
-                            touch_phase: gpui::TouchPhase::Moved,
-                            scroll_source: gpui::ScrollWheelSource::Touch,
-                            scroll_phase: gpui::ScrollWheelPhase::Moved,
-                            precise_delta: true,
-                            native_momentum_phase: None,
-                            release_velocity: None,
-                            timestamp: Some(gpui::Instant::now()),
-                        }));
-                    }
-                    TouchState::Idle => {
-                        // Spurious move without a preceding down — ignore.
-                    }
-                }
-            }
-
-            UITouchPhase::Ended | UITouchPhase::Cancelled => {
-                self.touch_pressed.set(false);
-                match ts {
-                    TouchState::Pending { .. } => {}
-                    TouchState::Scrolling {
-                        prev_x,
-                        prev_y,
-                        prev_time,
-                        velocity_x,
-                        velocity_y,
-                    } => {
-                        // End the active touch-scroll gesture.
-                        let dx = logical_x - prev_x;
-                        let dy = logical_y - prev_y;
-                        let now = gpui::Instant::now();
-                        let elapsed = now.duration_since(prev_time).as_secs_f32();
-                        let release_velocity = if elapsed > f32::EPSILON {
-                            gpui::point(gpui::px(dx / elapsed), gpui::px(dy / elapsed))
-                        } else {
-                            gpui::point(gpui::px(velocity_x), gpui::px(velocity_y))
-                        };
-                        emit(PlatformInput::ScrollWheel(gpui::ScrollWheelEvent {
-                            position,
-                            delta: gpui::ScrollDelta::Pixels(gpui::point(
-                                gpui::px(dx),
-                                gpui::px(dy),
-                            )),
-                            modifiers,
-                            touch_phase: gpui::TouchPhase::Ended,
-                            scroll_source: gpui::ScrollWheelSource::Touch,
-                            scroll_phase: gpui::ScrollWheelPhase::Ended,
-                            precise_delta: true,
-                            native_momentum_phase: None,
-                            release_velocity: Some(release_velocity),
-                            timestamp: Some(now),
-                        }));
-                    }
-                    TouchState::Idle => {}
-                }
-                ts = TouchState::Idle;
-            }
-
-            UITouchPhase::Stationary => {
-                // No change — ignore.
-                return;
+        for input in inputs {
+            if let Some(callback) = self.input_callback.borrow_mut().as_mut() {
+                callback(input);
             }
         }
-
-        self.touch_state.set(ts);
     }
 
     /// Query the safe area insets from the UIView.
@@ -1554,6 +1299,20 @@ impl IosWindow {
 
         if let Some(callback) = self.active_status_callback.borrow_mut().as_mut() {
             callback(is_active);
+        }
+    }
+
+    /// Notify the window that the app entered the foreground or background.
+    pub fn notify_visibility_change(&self, visibility: WindowVisibility) {
+        let visible = visibility == WindowVisibility::Visible;
+        if self.visible.replace(visible) == visible {
+            return;
+        }
+        if visible {
+            self.mark_force_next_frame_render();
+        }
+        if let Some(callback) = self.visibility_callback.borrow_mut().as_mut() {
+            callback(visibility);
         }
     }
 
@@ -1850,6 +1609,18 @@ impl PlatformWindow for IosWindow {
         *self.input_callback.borrow_mut() = Some(callback);
     }
 
+    fn visibility(&self) -> WindowVisibility {
+        if self.visible.get() {
+            WindowVisibility::Visible
+        } else {
+            WindowVisibility::Hidden
+        }
+    }
+
+    fn on_visibility_change(&self, callback: Box<dyn FnMut(WindowVisibility)>) {
+        *self.visibility_callback.borrow_mut() = Some(callback);
+    }
+
     fn on_active_status_change(&self, callback: Box<dyn FnMut(bool)>) {
         *self.active_status_callback.borrow_mut() = Some(callback);
     }
@@ -1956,15 +1727,15 @@ impl FallbackAtlas {
 impl PlatformAtlas for FallbackAtlas {
     fn get_or_insert_with<'a>(
         &self,
-        key: &AtlasKey,
+        key: AtlasKey,
         build: &mut dyn FnMut() -> anyhow::Result<
             Option<(Size<DevicePixels>, std::borrow::Cow<'a, [u8]>)>,
         >,
     ) -> anyhow::Result<Option<AtlasTile>> {
         let mut state = self.state.lock();
 
-        if let Some(tile) = state.tiles.get(key) {
-            return Ok(Some(tile.clone()));
+        if let Some(tile) = state.tiles.get(&key) {
+            return Ok(Some(*tile));
         }
 
         let data = build()?;
@@ -1985,7 +1756,7 @@ impl PlatformAtlas for FallbackAtlas {
                 },
             };
 
-            state.tiles.insert(key.clone(), tile.clone());
+            state.tiles.insert(key, tile);
             Ok(Some(tile))
         } else {
             Ok(None)

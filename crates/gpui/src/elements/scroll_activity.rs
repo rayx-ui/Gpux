@@ -1,15 +1,11 @@
 use super::ScrollBehavior;
-use crate::{Axis, Instant, Pixels, Point, Size, point, px};
+use crate::{Axis, Instant, Pixels, Point, Size, point};
 
 /// The origin of an accepted scroll mutation.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum ScrollMutationSource {
-    /// Mouse wheel or precision trackpad input.
+    /// Mouse wheel, precision trackpad, or recognized touch scroll input.
     Wheel,
-    /// Direct touch input.
-    Touch,
-    /// Ballistic motion after direct touch ends.
-    Momentum,
     /// A scrollbar thumb or track interaction.
     Scrollbar,
     /// An explicit application request.
@@ -36,13 +32,11 @@ pub enum ScrollDirection {
 /// The single activity currently represented by a scroll handle.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum ScrollActivityKind {
-    /// No direct, ballistic, or programmatic activity is active.
+    /// No direct or programmatic activity is active.
     #[default]
     Idle,
-    /// Direct touch is active.
+    /// A direct scrollbar-thumb drag is active.
     Direct,
-    /// Ballistic momentum is active.
-    Ballistic,
     /// A programmatic request supplied the latest offset.
     Programmatic,
 }
@@ -123,11 +117,10 @@ pub(crate) fn direction_for_delta(delta: Pixels) -> ScrollDirection {
     }
 }
 
-/// The transient deceleration state for a direct touch scroll.
+/// The transient direct or programmatic activity of one scroll owner.
 #[derive(Debug, Default)]
 pub(crate) struct ScrollActivity {
-    velocity: Option<Point<Pixels>>,
-    last_timestamp: Option<Instant>,
+    direct: bool,
     programmatic: Option<ProgrammaticDriver>,
     generation: u64,
 }
@@ -153,35 +146,18 @@ pub(crate) struct ProgrammaticScrollFrame {
 }
 
 impl ScrollActivity {
-    const REFERENCE_FRAME_SECONDS: f32 = 1.0 / 60.0;
-    const DECELERATION_PER_REFERENCE_FRAME: f32 = 0.88;
-    const STOP_VELOCITY: f32 = 8.0;
-    const MAX_ELAPSED_SECONDS: f32 = 0.05;
-
-    pub(crate) fn start_at(&mut self, velocity: Point<Pixels>, timestamp: Instant) {
-        self.cancel_programmatic();
-        self.velocity = Some(point(
-            velocity.x.clamp(px(-1200.0), px(1200.0)),
-            velocity.y.clamp(px(-1200.0), px(1200.0)),
-        ));
-        self.last_timestamp = Some(timestamp);
-    }
-
     pub(crate) fn stop(&mut self) {
-        self.velocity = None;
-        self.last_timestamp = None;
+        self.direct = false;
         self.cancel_programmatic();
     }
 
-    pub(crate) fn begin_direct_touch(&mut self, timestamp: Instant) {
+    pub(crate) fn begin_direct(&mut self) {
         self.cancel_programmatic();
-        self.velocity = None;
-        self.last_timestamp = Some(timestamp);
+        self.direct = true;
     }
 
     pub(crate) fn begin_programmatic(&mut self) {
-        self.velocity = None;
-        self.last_timestamp = None;
+        self.direct = false;
         self.advance_generation();
         self.programmatic = Some(ProgrammaticDriver::Marker);
     }
@@ -198,8 +174,7 @@ impl ScrollActivity {
         behavior: ScrollBehavior,
         timestamp: Instant,
     ) -> Option<ProgrammaticScrollFrame> {
-        self.velocity = None;
-        self.last_timestamp = None;
+        self.direct = false;
         self.advance_generation();
         let generation = self.generation;
 
@@ -307,53 +282,15 @@ impl ScrollActivity {
     pub(crate) fn kind(&self) -> ScrollActivityKind {
         if self.programmatic.is_some() {
             ScrollActivityKind::Programmatic
-        } else if self.velocity.is_some() {
-            ScrollActivityKind::Ballistic
-        } else if self.last_timestamp.is_some() {
+        } else if self.direct {
             ScrollActivityKind::Direct
         } else {
             ScrollActivityKind::Idle
         }
     }
 
-    pub(crate) fn has_direct_touch(&self) -> bool {
-        self.velocity.is_none() && self.last_timestamp.is_some()
-    }
-
-    pub(crate) fn velocity(&self) -> Option<Point<Pixels>> {
-        self.velocity
-    }
-
-    /// Advance using the frame's authoritative timestamp instead of assuming a refresh rate.
-    pub(crate) fn next_delta_at(&mut self, timestamp: Instant) -> Option<Point<Pixels>> {
-        let velocity = self.velocity?;
-        let previous = self.last_timestamp.replace(timestamp).unwrap_or(timestamp);
-        let elapsed_seconds = timestamp
-            .saturating_duration_since(previous)
-            .as_secs_f32()
-            .min(Self::MAX_ELAPSED_SECONDS);
-        if elapsed_seconds == 0.0 {
-            return Some(Point::default());
-        }
-
-        let delta = velocity.map(|value| value * elapsed_seconds);
-        let decay = Self::DECELERATION_PER_REFERENCE_FRAME
-            .powf(elapsed_seconds / Self::REFERENCE_FRAME_SECONDS);
-        let next_velocity = velocity.map(|value| value * decay);
-
-        if next_velocity.x.abs() < px(Self::STOP_VELOCITY)
-            && next_velocity.y.abs() < px(Self::STOP_VELOCITY)
-        {
-            self.stop();
-        } else {
-            self.velocity = Some(next_velocity);
-        }
-
-        if delta.x.abs() < px(0.01) && delta.y.abs() < px(0.01) {
-            Some(Point::default())
-        } else {
-            Some(delta)
-        }
+    pub(crate) fn is_direct(&self) -> bool {
+        self.direct
     }
 
     fn cancel_programmatic(&mut self) {
@@ -403,52 +340,22 @@ fn clamp_offset(offset: Point<Pixels>, maximum: Point<Pixels>) -> Point<Pixels> 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::px;
     use std::time::Duration;
 
     #[test]
-    fn scroll_activity_uses_elapsed_frame_time() {
-        let started_at = Instant::now();
-        let mut activity = ScrollActivity::default();
-        activity.start_at(point(px(600.), px(0.)), started_at);
-
-        let delta = activity
-            .next_delta_at(started_at + Duration::from_millis(10))
-            .unwrap();
-
-        assert!((f32::from(delta.x) - 6.).abs() < 0.01);
-    }
-
-    #[test]
-    fn scroll_activity_clamps_a_stalled_frame() {
-        let started_at = Instant::now();
-        let mut activity = ScrollActivity::default();
-        activity.start_at(point(px(600.), px(0.)), started_at);
-
-        let delta = activity
-            .next_delta_at(started_at + Duration::from_secs(1))
-            .unwrap();
-
-        assert!((f32::from(delta.x) - 30.).abs() < 0.01);
-    }
-
-    #[test]
-    fn programmatic_and_ballistic_activity_replace_each_other() {
-        let started_at = Instant::now();
+    fn programmatic_and_direct_activity_replace_each_other() {
         let mut activity = ScrollActivity::default();
 
         activity.begin_programmatic();
         assert_eq!(activity.kind(), ScrollActivityKind::Programmatic);
 
-        activity.start_at(point(px(0.0), px(-600.0)), started_at);
-        assert_eq!(activity.kind(), ScrollActivityKind::Ballistic);
+        activity.begin_direct();
+        assert_eq!(activity.kind(), ScrollActivityKind::Direct);
 
         activity.begin_programmatic();
         assert_eq!(activity.kind(), ScrollActivityKind::Programmatic);
-        assert_eq!(activity.velocity(), None);
-        assert_eq!(
-            activity.next_delta_at(started_at + Duration::from_millis(10)),
-            None
-        );
+        assert!(!activity.is_direct());
 
         activity.stop();
         assert_eq!(activity.kind(), ScrollActivityKind::Idle);
@@ -585,7 +492,7 @@ mod tests {
     }
 
     #[test]
-    fn programmatic_scroll_direct_and_ballistic_input_cancel_active_generation() {
+    fn programmatic_scroll_direct_input_cancels_active_generation() {
         let started_at = Instant::now();
         let mut activity = ScrollActivity::default();
         let smooth = activity
@@ -597,29 +504,9 @@ mod tests {
                 started_at,
             )
             .unwrap();
-        activity.begin_direct_touch(started_at + Duration::from_millis(10));
+        activity.begin_direct();
         assert_eq!(activity.kind(), ScrollActivityKind::Direct);
         assert_ne!(activity.programmatic_generation(), smooth.generation);
-        assert_eq!(
-            activity.next_programmatic_at(
-                smooth.generation,
-                started_at + Duration::from_millis(20),
-                point(px(200.0), px(200.0)),
-            ),
-            None
-        );
-
-        let smooth = activity
-            .start_programmatic_at(
-                Point::default(),
-                point(px(100.0), px(100.0)),
-                point(px(200.0), px(200.0)),
-                ScrollBehavior::Smooth(Duration::from_secs(1)),
-                started_at,
-            )
-            .unwrap();
-        activity.start_at(point(px(0.0), px(-600.0)), started_at);
-        assert_eq!(activity.kind(), ScrollActivityKind::Ballistic);
         assert_eq!(
             activity.next_programmatic_at(
                 smooth.generation,
@@ -678,17 +565,7 @@ mod tests {
 
     #[test]
     fn scroll_activity_allocation_contract() {
-        let started_at = Instant::now();
-        let mut activity = ScrollActivity::default();
-        activity.start_at(point(px(1200.), px(0.)), started_at);
-
-        for frame in 1..=60 {
-            std::hint::black_box(
-                activity.next_delta_at(started_at + Duration::from_millis(frame * 10)),
-            );
-        }
-
-        // The activity stores only scalar frame state. Its update path cannot
+        // The activity stores only scalar driver state. Its update path cannot
         // retain heap-owned work between refresh callbacks.
         assert!(std::mem::size_of::<ScrollActivity>() <= 96);
     }

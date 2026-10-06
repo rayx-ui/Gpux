@@ -10,7 +10,7 @@
 //! - **Icon** — a round button containing only an icon
 //!
 //! All button types follow a builder pattern and implement `IntoElement`.
-//! Click handlers use GPUI's `on_pointer_down` signature, fully compatible
+//! Click handlers use GPUI's `on_mouse_down` signature, fully compatible
 //! with `cx.listener(...)`.
 //!
 //! # Examples
@@ -35,7 +35,7 @@
 //!     .on_click(cx.listener(|this, _, _, cx| { /* ... */ }));
 //! ```
 
-use gpui::{MouseButton, PointerEvent, Stateful, Window, div, prelude::*, px, rgb};
+use gpui::{MouseButton, MouseDownEvent, Stateful, Window, div, prelude::*, px, rgb};
 
 use super::theme::MaterialTheme;
 
@@ -60,7 +60,7 @@ const ICON_BUTTON_SIZE: f32 = 40.0;
 const _ICON_BUTTON_RADIUS: f32 = 20.0;
 
 // A type alias for the click handler to reduce repetition.
-type ClickHandler = Box<dyn Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static>;
+type ClickHandler = Box<dyn Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static>;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  ElevatedButton
@@ -105,7 +105,7 @@ impl ElevatedButton {
     /// Set the click handler.
     pub fn on_click(
         mut self,
-        handler: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
+        handler: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.on_click = Some(Box::new(handler));
         self
@@ -192,7 +192,7 @@ impl IntoElement for ElevatedButton {
         // Click handler
         if let Some(handler) = self.on_click {
             if !self.disabled {
-                btn = btn.on_pointer_down(MouseButton::Left, handler);
+                btn = btn.on_mouse_down(MouseButton::Left, handler);
             }
         }
 
@@ -240,7 +240,7 @@ impl FilledButton {
     /// Set the click handler.
     pub fn on_click(
         mut self,
-        handler: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
+        handler: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.on_click = Some(Box::new(handler));
         self
@@ -317,7 +317,7 @@ impl IntoElement for FilledButton {
 
         if let Some(handler) = self.on_click {
             if !self.disabled {
-                btn = btn.on_pointer_down(MouseButton::Left, handler);
+                btn = btn.on_mouse_down(MouseButton::Left, handler);
             }
         }
 
@@ -365,7 +365,7 @@ impl FilledTonalButton {
     /// Set the click handler.
     pub fn on_click(
         mut self,
-        handler: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
+        handler: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.on_click = Some(Box::new(handler));
         self
@@ -442,7 +442,7 @@ impl IntoElement for FilledTonalButton {
 
         if let Some(handler) = self.on_click {
             if !self.disabled {
-                btn = btn.on_pointer_down(MouseButton::Left, handler);
+                btn = btn.on_mouse_down(MouseButton::Left, handler);
             }
         }
 
@@ -490,7 +490,7 @@ impl OutlinedButton {
     /// Set the click handler.
     pub fn on_click(
         mut self,
-        handler: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
+        handler: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.on_click = Some(Box::new(handler));
         self
@@ -568,7 +568,7 @@ impl IntoElement for OutlinedButton {
 
         if let Some(handler) = self.on_click {
             if !self.disabled {
-                btn = btn.on_pointer_down(MouseButton::Left, handler);
+                btn = btn.on_mouse_down(MouseButton::Left, handler);
             }
         }
 
@@ -616,7 +616,7 @@ impl TextButton {
     /// Set the click handler.
     pub fn on_click(
         mut self,
-        handler: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
+        handler: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.on_click = Some(Box::new(handler));
         self
@@ -685,7 +685,7 @@ impl IntoElement for TextButton {
 
         if let Some(handler) = self.on_click {
             if !self.disabled {
-                btn = btn.on_pointer_down(MouseButton::Left, handler);
+                btn = btn.on_mouse_down(MouseButton::Left, handler);
             }
         }
 
@@ -773,7 +773,7 @@ impl IconButton {
     /// Set the click handler.
     pub fn on_click(
         mut self,
-        handler: impl Fn(&PointerEvent, &mut Window, &mut gpui::App) + 'static,
+        handler: impl Fn(&MouseDownEvent, &mut Window, &mut gpui::App) + 'static,
     ) -> Self {
         self.on_click = Some(Box::new(handler));
         self
@@ -906,7 +906,7 @@ impl IntoElement for IconButton {
 
         if let Some(handler) = self.on_click {
             if !self.disabled {
-                btn = btn.on_pointer_down(MouseButton::Left, handler);
+                btn = btn.on_mouse_down(MouseButton::Left, handler);
             }
         }
 

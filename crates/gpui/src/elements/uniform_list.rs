@@ -12,7 +12,7 @@ use crate::{
     Styled, Window, point, px, size, sticky_push_offset,
 };
 use smallvec::SmallVec;
-use std::{cell::RefCell, cmp, ops::Range, rc::Rc, usize};
+use std::{cell::RefCell, cmp, ops::Range, rc::Rc};
 
 use super::{ListHorizontalSizingBehavior, StickyItems};
 
@@ -1217,7 +1217,7 @@ mod test {
 
         test_app
             .update_window(any_window, |_, window, cx| {
-                window.draw(cx).clear();
+                window.draw(cx).clear(cx);
             })
             .unwrap();
 
@@ -1303,7 +1303,7 @@ mod test {
 
         test_app
             .update_window(any_window, |_, window, cx| {
-                window.draw(cx).clear();
+                window.draw(cx).clear(cx);
             })
             .unwrap();
 
