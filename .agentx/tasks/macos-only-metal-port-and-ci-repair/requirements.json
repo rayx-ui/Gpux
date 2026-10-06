@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 6,
+  "epicId": "macos-only-metal-port-and-ci-repair",
+  "scopeMarkdown": "**macOS only.** This epic must be executed on a real Mac (Apple Silicon or Intel) with Xcode installed, so that `xcrun metal`, the iOS SDK and a Metal device are available. Nothing here can be closed from Windows or Linux.\n\nIt turns the four handoff notes in `ToFix/` (written 2026-10-06 after the macOS CI failure in run 37500248162) into verified, publishable work:\n\n1. `ToFix/01-macos-metal-renderer.md`: the Metal renderer port to the premultiplied `PaintColor` paint contract (branch `fix/metal-paint-contract`, commits `3ad5fca` and `5321a25`). Real macOS CI already compiled its shaders; it still needs macOS tests and runtime proof.\n2. `ToFix/02-macos-zed-util-process-reaping.md`: `gpux-zed-util` does not compile on macOS. `crates/util/src/command/darwin.rs` calls `Child::adopt_raw_pid`, which exists only in Zed's git fork of `async-process`. This is the next CI blocker. The note embeds a proposed, type-checked but never-run replacement.\n3. `ToFix/03-wgpu-dashed-borders.md`: the WGPU dashed-border fix (branch `fix/wgpu-dashed-border-gaps`, `c6b6512`/`e7149e7`) and its paired RayX Test Suite spec (RayX branch `test/dashed-border-gaps`, `f1a9be7b`). Both are done and runtime-proven on Windows; they still need to land.\n4. `ToFix/04-flaky-windows-process-test.md`: the upstream Windows test `test_drop_terminates_grandchildren` timed out once in CI. Verified during planning: the re-run of that job passed, and upstream Zed `main` still uses the same 5 second deadline (last change `c642b422de`).\n\nIn scope:\n- making CI's macOS step (`cargo check --workspace --all-targets`) pass;\n- proving the Metal paint contract with automated headless Metal pixel tests and a native RayX Test Suite run;\n- carrying the dashed-border fix and proving it on the Mac;\n- hardening the flaky Windows test;\n- recording the durable knowledge;\n- publishing one pull request with all CI jobs green.\n\nOut of scope:\n- merging to `main` (the user decides after review);\n- any change to the `gpux-wgpu` fork in `vendor/wgpu`;\n- Metal shader effects (they stay capability-false);\n- iOS device or simulator runs (only the iOS compile is checked);\n- new features;\n- RayX Lab.\n\nUnresolved product decisions, with recorded defaults:\n- **One pull request or several.** Default: one Gpux pull request from a single integration branch plus the paired RayX pull request. The user may ask to split them.\n- **Whether and when to merge after green CI.** The user decides.\n- **Hardening the Windows test or leaving it.** Default: harden it with a longer deadline, recorded as a gpux patch.",
+  "constraintsMarkdown": "- **One working branch per repository.** In Gpux, work on a single integration branch `macos-only/metal-port-and-ci`, created from `fix/metal-paint-contract`. In RayX, work on `test/dashed-border-gaps`. This epic directory and `ToFix/` were left uncommitted by the planning session; commit them to the integration branch first so they travel with the work. RayX builds against whatever branch the sibling `../Gpux` checkout has.\n- **Dependencies come from crates.io only.** No git dependencies and no `[patch]` sections (gpux `CLAUDE.md`, packaging rules). The `async-process` fork used upstream is therefore unavailable.\n- **Keep the vendored wgpu fork untouched.** Do not modify `vendor/wgpu`; the fork carries exactly one change.\n- **Keep crate boundaries and upstream reviewability.** Keep Zed's crate boundaries. Prefer gpux-owned additions in new files over large rewrites of imported upstream files, and record every replay rule in `.claude/skills/gpux/references/update-from-zed-gpui-closure.md`.\n- **Preserve packed Metal buffer ABIs.** Convert cbindgen-exported array fields to Metal vector types at their use sites in shader helpers (gpux skill rule).\n- **Runtime proof goes through RayX's Test Suite.** Use `../RayX`, `apps/test_suite`; never use `apps/lab` and never add fixtures there.\n- **Test only what changed.** The macOS workspace check is CI's own command, and the reason it is allowed is recorded on that check. Raw logs and screenshots go to ignored `artifacts-temp/agentx/macos-only-metal-port-and-ci-repair/`, never into `.agentx/` or commits.\n- **Commits.** Use Conventional Commits with meaningful scopes and no Claude co-author lines.\n- **Publication needs explicit approval.** Push, PR creation and merge require the user's explicit approval at the time they happen; this epic never merges.\n- **Environment prerequisites on the Mac:**\n  - Xcode (`xcrun metal`, iOS SDK);\n  - the checked-in Rust toolchain with `rustup target add aarch64-apple-ios`;\n  - nightly Rust for xtask's `-Z build-std`, and `wasm-bindgen-cli` 0.2.129;\n  - Node 20+, pnpm 10+ and Playwright Chromium in `../RayX/tools-node`;\n  - the RayX sibling repositories `RayX.Dtcg`, `RayX.Reactive` and `RayX.SignalR` checked out beside RayX;\n  - an authenticated `gh` CLI.",
+  "requirements": [
+    {
+      "id": "REQ-PROC",
+      "title": "gpux-zed-util spawns and reaps macOS child processes without async-process's git fork",
+      "descriptionMarkdown": "`crates/util/src/command/darwin.rs` (imported from Zed `c24358d`) spawns children with `posix_spawnp`. It keeps behavior the rest of gpux relies on:\n- `POSIX_SPAWN_CLOEXEC_DEFAULT` plus `FD_CLOEXEC` pipes, so a piped git child cannot deadlock on fds leaked into concurrent spawns;\n- reset exception ports;\n- `SIGPIPE` reset to `SIG_DFL`;\n- `chdir` through file actions;\n- PATH resolution against the child's environment.\n\nIt then calls `smol::process::Child::adopt_raw_pid(pid, true, kill_on_drop)`, an API that only Zed's git fork of `async-process` provides (upstream `Cargo.toml` `[patch.crates-io]`, rev `0b6d6713570af61806e1e5cb40e0f757cb93fd9d`). crates.io `async-process` 2.5.0 lacks it, so the crate has never compiled on macOS in gpux.",
+      "criteria": [
+        {
+          "id": "PROC-1",
+          "descriptionMarkdown": "No source under `crates/` calls `adopt_raw_pid(`. `Cargo.toml` and `Cargo.lock` contain no `[patch` section and no `source = \"git+` dependency. The macOS `Child` in `darwin.rs` is backed by a gpux-owned process handle, and `gpux-zed-util` compiles on macOS with all its test targets.",
+          "verification": "automated"
+        },
+        {
+          "id": "PROC-2",
+          "descriptionMarkdown": "A new, separately selectable test group for the process handle (the `command::darwin::process` tests) proves on macOS:\n\n**Status and output**\n- `status()` and `output()` return the child's real exit status.\n- Two concurrent `status()` futures and a later `try_status()` all observe the same exit status.\n\n**Kill**\n- `try_status()` returns `None` while the child runs.\n- `kill()` ends a running child with `SIGKILL` and is still a successful no-op after the child was reaped.\n\n**Reaping**\n- A dropped `Child` whose process has exited, or exits later, is reaped: `kill(pid, 0)` reports `ESRCH` within 10 s, so no zombie is left.\n- `kill_on_drop(true)` kills and reaps a running child.\n- A stress test spawns at least 50 short-lived children with distinct exit codes, mixing concurrent `status()` futures, `try_status()` polling and drops. Every child is reaped exactly once with its own exit code. No call may observe a reaped-twice `ECHILD` as an error while a status is cached.\n\nThe tests must fail, not skip, if spawning fails.",
+          "verification": "automated"
+        },
+        {
+          "id": "PROC-3",
+          "descriptionMarkdown": "The existing `command::darwin::tests` group, which has never compiled in gpux before, passes on macOS unchanged. It covers pipes not inherited by unrelated spawns, drop reaping, kill-on-drop, echo/cat/stderr/exit-code/current-dir/env/status spawns, env removal and clearing, null and piped stdio, and bare-program PATH resolution. The replacement must not weaken or delete any of these tests.",
+          "verification": "automated"
+        }
+      ],
+      "sourceRefs": [
+        {"repositoryId": "gpux", "path": "crates/util/src/command/darwin.rs"},
+        {"repositoryId": "gpux", "path": "ToFix/02-macos-zed-util-process-reaping.md"}
+      ]
+    },
+    {
+      "id": "REQ-BUILD",
+      "title": "The whole gpux workspace builds on macOS exactly as CI checks it",
+      "descriptionMarkdown": "CI's `check (macos-latest)` job runs `cargo check --workspace --all-targets`; it has never passed. After PR #1 the Metal shaders compile on real macOS (run 37520997553), and the job stopped at `gpux-zed-util` (REQ-PROC). The Windows cross-checks could not reach the crates that need a C toolchain:\n- `gpux-zed-util`;\n- `gpux-bench-metrics`;\n- `gpux-http-client-tls`;\n- `gpux-reqwest-client`;\n- the dev and bench targets of `gpux` and `gpux-platform`.\n\nMore macOS-only errors may be waiting there. `gpux-apple` is shared with iOS and has a `runtime_shaders` feature that stitches `scene.h` into `shaders.metal` for runtime compilation.",
+      "criteria": [
+        {
+          "id": "BUILD-1",
+          "descriptionMarkdown": "On macOS, `cargo check --workspace --all-targets` exits 0 at the Gpux root, matching CI's macOS step exactly. This includes the `gpux-apple` build script compiling `shaders.metal` with the real `xcrun metal` and `metallib`. It must not get there by excluding crates or targets, by cfg-gating code away from macOS without equivalent behavior, or by adding git dependencies or `[patch]` sections.",
+          "verification": "automated"
+        },
+        {
+          "id": "BUILD-2",
+          "descriptionMarkdown": "`cargo check -p gpux-apple --all-targets --features runtime_shaders` passes on macOS. This build embeds the stitched `scene.h` + `shaders.metal` source instead of a prebuilt metallib.",
+          "verification": "automated"
+        },
+        {
+          "id": "BUILD-3",
+          "descriptionMarkdown": "`cargo check -p gpux-apple --all-targets --target aarch64-apple-ios` passes on macOS, compiling the shaders against the iOS SDK through the build script's `iphoneos` branch. Prerequisite: `rustup target add aarch64-apple-ios` and Xcode's iOS SDK.",
+          "verification": "automated"
+        }
+      ],
+      "sourceRefs": [
+        {"repositoryId": "gpux", "path": "crates/gpui_apple/build.rs"},
+        {"repositoryId": "gpux", "path": ".github/workflows/ci.yml"},
+        {"repositoryId": "gpux", "path": "ToFix/01-macos-metal-renderer.md"}
+      ]
+    },
+    {
+      "id": "REQ-PAINT",
+      "title": "The Metal renderer's premultiplied paint contract is proven on macOS",
+      "descriptionMarkdown": "Branch `fix/metal-paint-contract` ports the Metal renderer to the `PaintColor` contract that WGPU adopted in cb4130b and d5823fe: premultiplied, gamma-encoded sRGB paint in and out, composited in encoded sRGB like Figma and CSS. The port includes:\n- cbindgen parses `gpux_color`'s `paint.rs`;\n- `MonochromeSpriteKind` becomes `#[repr(C)]`;\n- the shaders consume `PaintColor`;\n- premultiplied blending in the general pipelines;\n- premultiplied OKLab stops;\n- dashed borders fade the whole color;\n- inset shadows.\n\nNone of it has run on a Mac yet. `ToFix/01-macos-metal-renderer.md` lists the expected results and the hardware double-checks.",
+      "criteria": [
+        {
+          "id": "PAINT-1",
+          "descriptionMarkdown": "On macOS, `cargo test -p gpux-apple --lib paint_packing` passes. The existing `paint_packing_*` tests prove that a solid background packs its `PaintColor` unchanged and that prepared gradient stops are appended with their prepared colors, offsets and color space.",
+          "verification": "automated"
+        },
+        {
+          "id": "PAINT-2",
+          "descriptionMarkdown": "A new, separately selectable test group, `metal_paint_contract`, renders scenes through the headless Metal renderer (`MetalRenderer::new_headless` / `MetalHeadlessRenderer`) and asserts read-back pixels. Each case uses exact geometry and colors. The tests must fail, not skip, when no Metal device is available.\n\n- **Translucent fill.** White at 4.5% alpha over `#0a0a0a` reads `#151515` (±1 per channel), the encoded-sRGB composite.\n- **Dashed borders.** A 200×56 box with a 4 px dashed border, where gaps fall at x ≡ 8–12 mod 12 px. With no fill and a white border over `#0a0a0a`, gap centres read the backdrop (±1) and dash centres read white. With a `#404040` fill and a `#0e7490` border, gap centres read the fill and no top-border pixel is brighter than the brighter of fill and border.\n- **Premultiplied gradient interpolation.** An sRGB linear gradient from opaque red to fully transparent blue, over black, reads about (128, 0, 0) ±3 at its midpoint with blue ≤ 3.\n- **OKLab gradient.** An OKLab gradient from opaque red to opaque blue reads, at its midpoint, the encoded-sRGB value that `gpux_color` computes for the same OKLab interpolation (±3, allowing for dither).\n- **Inset versus drop shadow.** An inset shadow with blur 0 paints the band between its element bounds and its hole in the shadow color, leaves the hole and everything outside the element at the backdrop, and the same shadow as a drop shadow does the opposite.\n- **Alpha on a transparent target.** With the renderer set transparent (`update_transparency(true)`, clear alpha 0), two overlapping 50% black quads leave alpha 0.75 (±1/255) in their overlap: source-over, not saturating accumulation.",
+          "verification": "automated"
+        },
+        {
+          "id": "PAINT-3",
+          "descriptionMarkdown": "The `metal_paint_contract` group also passes with `--features runtime_shaders`. That proves the stitched source compiles at runtime through `new_library_with_source` and renders identically.",
+          "verification": "automated"
+        },
+        {
+          "id": "PAINT-4",
+          "descriptionMarkdown": "`cargo clippy -p gpux-apple --all-targets --no-deps -- -D warnings` passes on macOS. CI lints only on Windows, where this code is compiled out.",
+          "verification": "automated"
+        },
+        {
+          "id": "PAINT-5",
+          "descriptionMarkdown": "**Native visual proof in RayX's Test Suite.** From `../RayX`, run `cargo run -p xtask -- app apps/test_suite run macos --no-default-features --features rayx_diagnostics,devkit` and inspect it through the `rayx-devkit-mcp` sidecar (RayX `.claude/skills/rayx/references/diagnostics.md`). Each page must render like the same page on headed WebGPU on the same Mac.\n\n**Pages:**\n- `/rendering/srgb-compositing`: translucent colors equal the values `rayx-srgb-compositing.spec.ts` encodes.\n- `/rendering/border-antialiasing`: 1 px rounded rings do not bead and thick borders stay solid. This closes the memory rule that the Metal border-antialiasing port is not done until it passes on macOS.\n- `/rendering/dashed-borders`: gaps show the backdrop or fill.\n- Pages showing sRGB and OKLab gradients, drop and inset shadows, text, SVG icons, images and color emoji.\n\n**Hardware double-checks:**\n- Emoji and image edges show no dark or bright fringes. This validates the straight-alpha polychrome atlas assumption; if it fails, inspect what `gpui_macos` uploads.\n- Text weight and contrast match macOS expectations. Monochrome sprites ignore `MonochromeSpriteKind` and get no gamma correction on Metal.\n- A transparent window composites correctly, if Test Suite offers one; otherwise record that none exists.\n\n**Crash smoke:** opening every listed page produces no panic or Metal validation error in the logs.\n\nAny shader or renderer defect found here is repaired in `crates/gpui_apple` and re-proven by PAINT-2.",
+          "verification": "visual",
+          "visual": {
+            "referenceIds": [],
+            "states": [
+              "/rendering/srgb-compositing",
+              "/rendering/border-antialiasing",
+              "/rendering/dashed-borders",
+              "gradient, shadow, text, icon, image and emoji pages",
+              "transparent window (if available)"
+            ],
+            "viewport": "Native macOS Test Suite window on the Mac's built-in Retina display (DPR 2), compared with headed WebGPU Chromium on the same machine",
+            "descriptionMarkdown": "Compare each Metal-rendered page with its WebGPU rendering, using DevKit/MCP screenshots stored under `artifacts-temp/agentx/macos-only-metal-port-and-ci-repair/`. Colors and coverage must match within visual tolerance, and nothing may be missing, doubled, fringed or wrongly blended."
+          }
+        }
+      ],
+      "sourceRefs": [
+        {"repositoryId": "gpux", "path": "crates/gpui_apple/src/shaders.metal"},
+        {"repositoryId": "gpux", "path": "crates/gpui_apple/src/metal_renderer.rs"},
+        {"repositoryId": "gpux", "path": "ToFix/01-macos-metal-renderer.md"}
+      ]
+    },
+    {
+      "id": "REQ-DASH",
+      "title": "The WGPU dashed-border fix lands with its paired RayX proof",
+      "descriptionMarkdown": "Since cb4130b, `fs_quad` in `crates/gpui_wgpu/src/shaders.wgsl` faded dashed borders through alpha alone. Gaps therefore added the premultiplied border color onto the fill or backdrop, and dashed borders rendered nearly solid on every WGPU backend; RayX chart tooltips use them. Gpux `c6b6512` scales the whole premultiplied color and adds a shader-source regression test; `e7149e7` records the rule in memory. RayX `f1a9be7b` adds `/rendering/dashed-borders` and `rayx-dashed-borders.spec.ts`. On Windows the spec failed 4/4 before the fix and passed 4/4 after it.",
+      "criteria": [
+        {
+          "id": "DASH-1",
+          "descriptionMarkdown": "The integration branch contains `c6b6512` and `e7149e7`, brought in by merging `fix/wgpu-dashed-border-gaps` (merge, no rebase or cherry-pick rewrite). `cargo test -p gpux-wgpu-renderer --lib dashed_border` passes on macOS.",
+          "verification": "automated"
+        },
+        {
+          "id": "DASH-2",
+          "descriptionMarkdown": "On the Mac, with Gpux on the integration branch and RayX on `test/dashed-border-gaps`, `rayx-dashed-borders.spec.ts` passes all 4 runs: headed WebGPU and forced WebGL2, at DPR 1 and 2. This proves the fix on Chromium's macOS backends.",
+          "verification": "automated"
+        }
+      ],
+      "sourceRefs": [
+        {"repositoryId": "gpux", "path": "crates/gpui_wgpu/src/shaders.wgsl"},
+        {"repositoryId": "gpux", "path": "ToFix/03-wgpu-dashed-borders.md"}
+      ]
+    },
+    {
+      "id": "REQ-FLAKE",
+      "title": "The upstream Windows grandchild-process test stops timing out on loaded runners",
+      "descriptionMarkdown": "`crates/util/src/process.rs`, `windows_tests::spawn_process_tree`, comes from upstream Zed and is unchanged in gpux. It waits only 5 s for a cold `powershell.exe` to start `ping.exe` and write a pid file. On PR #2 (WGSL-only changes) it timed out once in `test (windows)`, and the re-run passed. Upstream `main` still uses 5 s.",
+      "criteria": [
+        {
+          "id": "FLAKE-1",
+          "descriptionMarkdown": "The pid-file deadline in `spawn_process_tree` is raised from 5 s to 30 s, keeping the 50 ms poll and the same process tree, so the behavior under test (job-object termination of grandchildren) is unchanged. The change is recorded as a gpux patch in the import guide (DOCS-2).\n\nVerification is manual: a reviewer confirms the diff, which touches only the test helper's deadline. CI's `test (windows)` job then passes on the published PR (PUB-1). The test is `#[cfg(all(test, windows))]` and cannot compile or run on macOS.",
+          "verification": "manual"
+        }
+      ],
+      "sourceRefs": [
+        {"repositoryId": "gpux", "path": "crates/util/src/process.rs"},
+        {"repositoryId": "gpux", "path": "ToFix/04-flaky-windows-process-test.md"}
+      ]
+    },
+    {
+      "id": "REQ-DOCS",
+      "title": "Durable knowledge reflects the proven macOS state",
+      "descriptionMarkdown": "gpux memory still records the Metal paint-contract and border-antialiasing ports as never compiled or run. It also places the Metal renderer in `gpui_macos`, although it now lives in `gpui_apple`. The import guide's patch-surface list has no Metal or macOS process entries, so the next Zed import could bring back upstream's `Hsla` shaders or the fork-only `adopt_raw_pid` call.",
+      "criteria": [
+        {
+          "id": "DOCS-1",
+          "descriptionMarkdown": "**gpux memory matches what this epic proved.**\n- `platform/desktop` state, knowledge, rules and hypotheses: the Metal renderer in `gpui_apple` consumes premultiplied encoded-sRGB `PaintColor` and blends premultiplied. Its border-antialiasing port is proven or not, per PAINT-5; settle the hypothesis and rule accordingly. macOS child processes are reaped by `darwin/process.rs`.\n- `renderer/state.md` names `gpui_apple`.\n- A knowledge item: Metal-exported enums must be `#[repr(C)]`, because cbindgen writes a sized enum as a separate C typedef that Metal's C++ rejects as a redefinition.\n- The trade-off text of `.agentx/memory/decisions/renderer/wgpu/2026-09-30-renderer-wgpu-srgb-compositing.md` no longer calls the Metal port unproven.\n- Epic-end promotion candidates are handled per the `context --epic` promotion packet.\n\n`python3 <installed agentx>/scripts/audit_agentx_memory.py` reports the memory structure consistent. No raw logs go into memory.",
+          "verification": "manual"
+        },
+        {
+          "id": "DOCS-2",
+          "descriptionMarkdown": "**`.claude/skills/gpux/references/update-from-zed-gpui-closure.md` records three replay rules**, each with why upstream's version must not be taken wholesale:\n- The Metal renderer consumes premultiplied `PaintColor`. cbindgen parses `gpux_color`'s `paint.rs`. Metal-exported enums stay `repr(C)`. Upstream's `shaders.metal` still uses `Hsla`.\n- Upstream `darwin.rs` calls the fork-only `adopt_raw_pid`; gpux replaces it with `darwin/process.rs`.\n- The Windows `spawn_process_tree` deadline is a gpux patch.\n\n`ToFix/` is removed once every note it holds is carried by commits, this epic or memory.",
+          "verification": "manual"
+        }
+      ],
+      "sourceRefs": [
+        {"repositoryId": "gpux", "path": ".claude/skills/gpux/references/update-from-zed-gpui-closure.md"},
+        {"repositoryId": "gpux", "path": "ToFix/README.md"}
+      ]
+    },
+    {
+      "id": "REQ-PUB",
+      "title": "The work is published for review with every CI job green",
+      "descriptionMarkdown": "The earlier pull requests (rayx-ui/Gpux#1, #2 and rayx-ui/RayX#1) were closed unmerged, and their branches were kept. CI runs on pull requests and on pushes to `main`.",
+      "criteria": [
+        {
+          "id": "PUB-1",
+          "descriptionMarkdown": "With the user's explicit approval at that moment:\n- The integration branch is pushed and a Gpux PR is opened against `main`. Its description covers all four notes and references the closed PRs, and it lists the exact validation and anything unverified.\n- All five CI jobs are green on that PR: `check (ubuntu-latest)`, `check (windows-latest)`, `check (macos-latest)`, `test (windows)` and `package`.\n- The paired RayX PR from `test/dashed-border-gaps` is opened or updated against `master`. It references the Gpux PR and must be merged together with it or after it, because the dashed-borders spec fails against a Gpux checkout without `c6b6512`.\n\nNo merge happens in this epic.",
+          "verification": "manual"
+        }
+      ]
+    }
+  ]
+}

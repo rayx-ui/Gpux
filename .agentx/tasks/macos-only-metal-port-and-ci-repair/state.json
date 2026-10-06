@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 6,
+  "epicId": "macos-only-metal-port-and-ci-repair",
+  "revision": 0,
+  "planRevision": 1,
+  "specHashes": {
+    "requirements": "a1d9c22865c4cc43849cd6eacebc975c8c2e442605787e13fb90ce247bf8b3e3",
+    "design": "23133e0635f645200d2e84ca12ee265376d9835e0bc858f9fbda31746f3eb4b5",
+    "plan": "53300e054d976418412d6370c6d8106fe49955bc0dace20ddcf54a9a2835bc7c"
+  },
+  "tasks": {
+    "t1-darwin-process-handle": {
+      "status": "pending"
+    },
+    "t2-close-macos-build": {
+      "status": "pending"
+    },
+    "t3-apple-variants": {
+      "status": "pending"
+    },
+    "t4-paint-packing-and-lint": {
+      "status": "pending"
+    },
+    "t5-metal-pixel-tests": {
+      "status": "pending"
+    },
+    "t6-native-visual-proof": {
+      "status": "pending"
+    },
+    "t7-merge-dashed-fix": {
+      "status": "pending"
+    },
+    "t8-dashed-spec-on-mac": {
+      "status": "pending"
+    },
+    "t9-raise-grandchild-deadline": {
+      "status": "pending"
+    },
+    "t10-memory-sync": {
+      "status": "pending"
+    },
+    "t11-import-guide-and-tofix": {
+      "status": "pending"
+    },
+    "t12-publish": {
+      "status": "pending"
+    }
+  },
+  "validationBatches": {},
+  "checkResults": {},
+  "reviews": {},
+  "checkpoints": {},
+  "findings": [],
+  "handoffMarkdown": "",
+  "protectedPaths": {
+    "gpux": {
+      "gpux:vendor/wgpu/**": "2fde7871db68af5a07e61281b2877fb308235a9df0b048f31f9cd3da0466c599",
+      "gpux:.agentx/experiments/**": "32805d33f7172446b7e9cec5989ba59bd78648a57efc98bd96bbcac8fcac16a6",
+      "gpux:.agentx/tasks/frame-effects-navigation-transitions/**": "b9d8d0f34d35f8efab37309cf3092cfe59934ae76b2665d09616032db699093f",
+      "gpux:.agentx/tasks/frame-family-component-transitions/**": "786cf5831d50db830d3d78fb97657cdf457ec9ea0fc9682794782bf69173a676",
+      "gpux:.agentx/tasks/gpux-fixed-sticky-positioning/**": "d7e287cbe0b1a6afb8166c063b31bfa9e09c420c651630d97ed855a6685409ba",
+      "gpux:.agentx/tasks/gpux-text-rendering-quality-performance/**": "3a93656394a1d894dfda413d47b680644cf0a8ad6094b4a4ec1ed10bffcbefc4",
+      "gpux:.agentx/tasks/gpux-wgpu-platform-renderers/**": "3efd7b2c2e35eeb71ac4a54c2a498a7e377665c1a1f59d8ca6d5bd0b13b576fa",
+      "gpux:.agentx/tasks/high-quality-wasm-text-rendering/**": "16acd26c781d2590eaa636e41209d0a2e57237decbded91279857ee8636b26eb",
+      "gpux:.agentx/tasks/html-element-dom-overlay/**": "8bc3eba1cd26e95004311080d07651348f9c19dff64d8f46521d7bc9c3cdd7f6",
+      "gpux:.agentx/tasks/html-island-wasm/**": "56a0864ccb5a02db863fa17b08cb47db9c378428c56302b46acf7b8da0cfe875",
+      "gpux:.agentx/tasks/keyed-sticky-stacking/**": "6103606d1f3d16eaaac1ae98bb24c5a1ae105ce2457a6aec0383b52489808be5",
+      "gpux:.agentx/tasks/shader-effects-and-screen-transitions/**": "ea29584d0a17dcea6547dd0dc05de74450b58982a44883b96d1b0cca70a86b00"
+    },
+    "rayx": {
+      "rayx:apps/lab/src/**": "09dd0c80d940155bbbb0a91c627a28a3c35dedbd4f7e2f3e595c62df89f42dcf"
+    }
+  }
+}

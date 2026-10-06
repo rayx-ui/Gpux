@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 6,
+  "epicId": "macos-only-metal-port-and-ci-repair",
+  "decisions": [
+    {
+      "id": "d-proc-handle",
+      "requirementIds": ["REQ-PROC"],
+      "descriptionMarkdown": "Keep `crates/util/src/command/darwin.rs` and its `posix_spawnp` spawner, and replace only the fork-only `Child::adopt_raw_pid` call. Add a gpux-owned process handle in a new submodule, `crates/util/src/command/darwin/process.rs`; `ToFix/02-macos-zed-util-process-reaping.md` embeds a type-checked draft. `darwin.rs` changes by three lines: `mod process; use process::Process;`, `inner: Process`, and `Process::new(pid, kill_on_drop)`.\n\nThe handle stores the pid, a shared `Mutex<Option<ExitStatus>>` and `kill_on_drop`:\n- `try_status()` reaps with `waitpid(WNOHANG)` under the lock.\n- `status()` returns a `Send + 'static` future that, on `smol::unblock`, waits with `waitid(P_PID, WEXITED | WNOWAIT)`, which does not reap, and then reaps under the lock.\n- `kill()` sends `SIGKILL` while holding the lock unless the child is already reaped.\n- `Drop` kills if `kill_on_drop` is set, then detaches a background waiter that reaps the child.",
+      "invariantsMarkdown": "- Every reap happens under one mutex. A pid is reaped exactly once, and is never signalled after it was reaped, so a recycled pid is never touched.\n- Waiting never reaps (`WNOWAIT`), and `ECHILD` after another waiter reaped returns the cached status.\n- `EINTR` is retried.\n- `Drop` never blocks the caller and never leaves a zombie, preserving the fork's `reap_on_drop = true` semantics.\n- No new dependencies: only `libc`, `smol` and `std`, all already dependencies of `gpux-zed-util`.\n- The upstream file diff stays minimal so future Zed imports remain reviewable; the replay rule is recorded in the import guide (d-records).",
+      "rationaleMarkdown": "Three alternatives were weighed.\n\n1. **Route macOS through the generic `smol::process` path.** This would compile, but it drops deliberate upstream behavior: `POSIX_SPAWN_CLOEXEC_DEFAULT` (without it, git children can deadlock on leaked pipe fds), reset exception ports, `SIGPIPE` reset, and child-environment PATH resolution. The 27 existing darwin tests pin these behaviors.\n2. **Publish Zed's `async-process` fork as a `gpux-*` crate.** The packaging rules allow shipping an essential unreleased patch as a published fork, and the `gpux-wgpu` precedent exists. But a whole fork for one adoption entry point contradicts the stronger rule to prefer crates.io releases over maintaining forks. The fork's `adopt_raw_pid` registers the pid with async-process's private `Reaper`, which cannot be reproduced from outside the crate anyway.\n3. **A gpux-owned handle (chosen).** About 120 lines of POSIX code, isolated in its own file and tested on macOS. It keeps crates.io `async-process`/`smol` untouched.\n\n`libc` 0.2.186 exposes `waitid`, `P_PID`, `WEXITED`, `WNOWAIT` and `id_t` for Apple targets.",
+      "sourceRefs": [
+        {"repositoryId": "gpux", "path": "crates/util/src/command/darwin.rs"},
+        {"repositoryId": "gpux", "path": "ToFix/02-macos-zed-util-process-reaping.md"}
+      ],
+      "memoryDecisionRefs": [
+        {"repositoryId": "gpux", "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-crates-io-packaging.md"}
+      ]
+    },
+    {
+      "id": "d-macos-build",
+      "requirementIds": ["REQ-BUILD"],
+      "descriptionMarkdown": "The acceptance bar for the macOS build is CI parity: the exact `cargo check --workspace --all-targets` that `check (macos-latest)` runs. Every remaining macOS-only error is fixed in its owning crate with behavior equivalent to the other platforms. `gpux-apple` additionally builds with `runtime_shaders` and for `aarch64-apple-ios`, because the crate is shared with iOS and that feature takes a different shader path.",
+      "invariantsMarkdown": "- Do not exclude crates or targets, skip CI, or cfg-gate code away from macOS to dodge an error.\n- Do not add git dependencies or `[patch]`.\n- Do not touch `vendor/wgpu`. An error inside the fork crates is reported as a blocker, because the fork carries exactly one change and is recreated per wgpu release.\n- A fix in an imported upstream file is recorded as a replay rule (d-records).",
+      "rationaleMarkdown": "The macOS job has never passed, and the Windows cross-checks could not reach crates that need a C toolchain for Apple targets: `gpux-zed-util`, `gpux-bench-metrics`, `gpux-http-client-tls`, `gpux-reqwest-client`, and the dev and bench targets of `gpux` and `gpux-platform`. Only the real command on a real Mac proves CI parity.",
+      "sourceRefs": [
+        {"repositoryId": "gpux", "path": ".github/workflows/ci.yml"},
+        {"repositoryId": "gpux", "path": "crates/gpui_apple/build.rs"}
+      ],
+      "memoryDecisionRefs": [
+        {"repositoryId": "gpux", "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-crates-io-packaging.md"},
+        {"repositoryId": "gpux", "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-gpux-wgpu-fork.md"}
+      ]
+    },
+    {
+      "id": "d-metal-contract",
+      "requirementIds": ["REQ-PAINT", "REQ-BUILD"],
+      "descriptionMarkdown": "The Metal renderer mirrors the WGPU paint contract. The commits already on `fix/metal-paint-contract` are the baseline; defects found by tests or the native run are repaired in `crates/gpui_apple`.\n\n- **Header generation.** cbindgen parses `gpux_color/src/color/paint.rs`, located through the hidden `gpux_color::GPUX_COLOR_MANIFEST_DIR` and an Apple-only build-dependency, and exports `PaintColor` instead of `Hsla`. Metal-exported enums are `#[repr(C)]`, as `MonochromeSpriteKind` now is, like `AtlasTextureKind`.\n- **Shaders.** Shaders read `paint_color_value(PaintColor)` and return premultiplied encoded sRGB. `over()` is premultiplied source-over; OKLab stops go through `premultiplied_oklab_to_srgb`; gradient dither scales with alpha. Pattern, checkerboard and dashed borders scale the whole color. Polychrome sprites premultiply the straight-alpha atlas sample. Shadows honor `inset`, `element_bounds` and `element_corner_radii`.\n- **Blending.** `build_pipeline_state` blends like WGPU's `PREMULTIPLIED_ALPHA_BLENDING`.",
+      "invariantsMarkdown": "- Packed Rust buffer ABIs stay unchanged, and cbindgen array fields are converted to Metal vectors at their use sites.\n- No per-fragment HSL conversion.\n- Premultiplied paint is faded only by scaling all four channels.\n- Metal keeps reporting shader effects unsupported.\n- Solid fills, text, images, borders and shadows stay mathematically identical to the pre-July Metal output.\n- Intended visible differences are limited to premultiplied gradient interpolation, rendered inset shadows, and source-over alpha on transparent targets.",
+      "rationaleMarkdown": "Before cb4130b, Metal composited straight-alpha `Hsla` with `SourceAlpha` blending. Premultiplying in the shader and blending with `One` produces the same result for opaque and uniformly translucent paint, so ordinary UI is unchanged. Premultiplied interpolation is what CSS Color 4 specifies, and what WGPU already does.\n\ncbindgen 0.28 emits a sized (`repr(u32)`) enum as `enum X {...}; typedef uint32_t X;` (`write_tag_enum`). That is legal C but a redefinition in Metal's C++. `repr(C)` enums become `typedef enum X {...} X;`, which `AtlasTextureKind` and `BorderStyle` already prove compiles.",
+      "sourceRefs": [
+        {"repositoryId": "gpux", "path": "crates/gpui_apple/src/shaders.metal"},
+        {"repositoryId": "gpux", "path": "crates/gpui_apple/src/metal_renderer.rs"},
+        {"repositoryId": "gpux", "path": "crates/gpui_apple/build.rs"},
+        {"repositoryId": "gpux", "path": "crates/gpux_color/src/color/paint.rs"},
+        {"repositoryId": "gpux", "path": "crates/gpui_wgpu/src/shaders.wgsl"}
+      ],
+      "memoryDecisionRefs": [
+        {"repositoryId": "gpux", "path": ".agentx/memory/decisions/renderer/wgpu/2026-09-30-renderer-wgpu-srgb-compositing.md"},
+        {"repositoryId": "gpux", "path": ".agentx/memory/decisions/renderer/wgpu/2026-07-04-renderer-wgpu-shader-effects-backend-capabilities.md"}
+      ]
+    },
+    {
+      "id": "d-metal-proof",
+      "requirementIds": ["REQ-PAINT"],
+      "descriptionMarkdown": "The Metal contract is proven in two layers.\n\n1. **Deterministic contract properties** are covered by a new headless pixel test group, `metal_paint_contract`, in `gpux-apple`. It builds a `Scene` with `insert_primitive`, `finish()`es it, and renders through `MetalRenderer::new_headless(...).render_scene_to_image(...)`, which returns RGBA read back from BGRA8Unorm. The covered properties are encoded-sRGB compositing, dashed gaps, premultiplied and OKLab gradient interpolation, inset versus drop shadows, and alpha on a transparent target (via `update_transparency(true)`). The same group runs again with `runtime_shaders`.\n2. **What headless scenes cannot cheaply cover** goes through a native RayX Test Suite run inspected with DevKit/MCP: text and glyph atlases, SVG icons, images, emoji, real windows, and the border-antialiasing page that a memory rule names.",
+      "invariantsMarkdown": "- Pixel tests fail, not skip, without a Metal device or on read-back errors, so a pass is never vacuous.\n- Expected values are derived from first principles: the encoded-sRGB composite formula, the dash geometry, `gpux_color`'s OKLab interpolation, and source-over alpha. They are not snapshots of current output.\n- Tests live beside the renderer (`cargo test -p gpux-apple <filter>`), selectable by the `metal_paint_contract` filter.",
+      "rationaleMarkdown": "CI runs only `cargo check` on macOS, and Metal has never executed this code. Without automated pixel tests every Metal property would rest on manual inspection. `MetalRenderer::new_headless` needs no window or AppKit main thread, so ordinary `cargo test` threads can use it; the gpux visual tests that need the main thread are `#[ignore]`d for that reason.",
+      "sourceRefs": [
+        {"repositoryId": "gpux", "path": "crates/gpui_apple/src/metal_renderer.rs"}
+      ]
+    },
+    {
+      "id": "d-dash-land",
+      "requirementIds": ["REQ-DASH"],
+      "descriptionMarkdown": "Bring Gpux `fix/wgpu-dashed-border-gaps` into the integration branch with a merge commit, so its commits keep their identity. Prove it on the Mac with the existing `dashed_border` regression test, and with RayX `rayx-dashed-borders.spec.ts` on headed WebGPU and forced WebGL2 with RayX on `test/dashed-border-gaps`. RayX lands paired: its PR must merge together with, or after, the Gpux PR.",
+      "invariantsMarkdown": "- `fs_quad` is shared by the storage-buffer, WebGL and subpixel shader variants, so one fix covers every WGPU backend. Proof runs on both the automatic WebGPU route and the forced WebGL2 route.\n- Merge, never rebase or force-push.",
+      "sourceRefs": [
+        {"repositoryId": "gpux", "path": "crates/gpui_wgpu/src/shaders.wgsl"},
+        {"repositoryId": "gpux", "path": "ToFix/03-wgpu-dashed-borders.md"}
+      ],
+      "memoryDecisionRefs": [
+        {"repositoryId": "gpux", "path": ".agentx/memory/decisions/renderer/wgpu/2026-08-07-renderer-wgpu-browser-backend-fallback.md"}
+      ]
+    },
+    {
+      "id": "d-flake-patch",
+      "requirementIds": ["REQ-FLAKE"],
+      "descriptionMarkdown": "Raise the pid-file deadline in `crates/util/src/process.rs`, `windows_tests::spawn_process_tree`, from 5 s to 30 s. Keep the 50 ms poll and the `powershell -> ping` tree, and record it as a gpux patch to replay over future Zed imports. Verification relies on CI's `test (windows)` job, because the test only compiles on Windows.",
+      "invariantsMarkdown": "- Only the test helper's wait budget changes. The job-object termination behavior under test, and the 2 s termination assertion, stay as upstream wrote them.",
+      "rationaleMarkdown": "A cold PowerShell start plus `Start-Process` on a loaded `windows-latest` runner, with `--test-threads=1` after a long build, can exceed 5 s. The re-run of the failed job passed, and upstream `main` (last change `c642b422de`, 2026-06-15) still uses 5 s, so there is no upstream fix to import.",
+      "sourceRefs": [
+        {"repositoryId": "gpux", "path": "crates/util/src/process.rs"}
+      ],
+      "memoryDecisionRefs": [
+        {"repositoryId": "gpux", "path": ".agentx/memory/decisions/repository/upstream-sync/2026-08-07-repository-upstream-sync-self-contained-upstream-provenance.md"}
+      ]
+    },
+    {
+      "id": "d-records",
+      "requirementIds": ["REQ-DOCS"],
+      "descriptionMarkdown": "Durable knowledge goes where gpux's taxonomy puts it:\n- **macOS platform behavior** (the Metal renderer in `gpui_apple`, Metal border antialiasing, macOS process reaping) goes in `.agentx/memory/knowledge/platform/desktop/`.\n- **Renderer-wide facts** go in `.agentx/memory/knowledge/renderer/`: `state.md` names `gpui_apple`, and the knowledge file gets the cbindgen `repr(C)` item.\n- **The stale trade-off text** in the 2026-09-30 sRGB-compositing decision is corrected.\n- **Replay rules** for imports go in the import guide's 'RayX Patch Surface To Preserve' list.\n- **`ToFix/`** is deleted once it is fully carried.",
+      "invariantsMarkdown": "- Memory records proven behavior and rationale only. No execution narration and no raw logs.\n- The AgentX memory audit passes.\n- Promotion candidates from this design are handled per the `context --epic` promotion packet.",
+      "sourceRefs": [
+        {"repositoryId": "gpux", "path": ".claude/skills/gpux/references/update-from-zed-gpui-closure.md"},
+        {"repositoryId": "gpux", "path": "ToFix/README.md"}
+      ],
+      "memoryDecisionRefs": [
+        {"repositoryId": "gpux", "path": ".agentx/memory/decisions/repository/upstream-sync/2026-08-07-repository-upstream-sync-self-contained-upstream-provenance.md"}
+      ]
+    },
+    {
+      "id": "d-publish",
+      "requirementIds": ["REQ-PUB"],
+      "descriptionMarkdown": "Publish one Gpux pull request from the integration branch `macos-only/metal-port-and-ci`, plus the paired RayX pull request from `test/dashed-border-gaps`, only after the user approves at that moment. CI on the Gpux PR is the cross-platform gate: Linux and Windows checks, Windows clippy and tests, macOS check, and packaging. Stop at green CI: merging is the user's decision. The closed PRs (rayx-ui/Gpux#1 and #2, rayx-ui/RayX#1) are referenced as superseded.",
+      "invariantsMarkdown": "- Never force-push.\n- Never merge in this epic.\n- Report any red job with its log excerpt rather than re-running it blindly; re-running is acceptable only for a demonstrated flake.",
+      "sourceRefs": [
+        {"repositoryId": "gpux", "path": ".github/workflows/ci.yml"}
+      ]
+    }
+  ],
+  "memoryDecisionsConsidered": [
+    {"repositoryId": "gpux", "path": ".agentx/memory/decisions/platform/desktop/2026-07-08-platform-desktop-windows-wgpu-dx12-policy.md"},
+    {"repositoryId": "gpux", "path": ".agentx/memory/decisions/platform/desktop/2026-07-08-platform-desktop-windows-wgpu-dxgi-scaling.md"},
+    {"repositoryId": "gpux", "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-drop-z-crates.md"}
+  ]
+}

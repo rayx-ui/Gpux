@@ -1,0 +1,407 @@
+{
+  "schemaVersion": 6,
+  "epicId": "macos-only-metal-port-and-ci-repair",
+  "revision": 1,
+  "title": "[macOS only] Finish the Metal paint-contract port and make gpux green on macOS",
+  "validationMode": "sprint",
+  "repositories": [
+    {"id": "gpux", "path": ".", "role": "execution"},
+    {"id": "rayx", "path": "../RayX", "role": "execution"}
+  ],
+  "boundaries": {
+    "repositoryIds": ["gpux", "rayx"],
+    "forbiddenPaths": [
+      "gpux:vendor/wgpu/**",
+      "gpux:.agentx/experiments/**",
+      "gpux:.agentx/tasks/frame-effects-navigation-transitions/**",
+      "gpux:.agentx/tasks/frame-family-component-transitions/**",
+      "gpux:.agentx/tasks/gpux-fixed-sticky-positioning/**",
+      "gpux:.agentx/tasks/gpux-text-rendering-quality-performance/**",
+      "gpux:.agentx/tasks/gpux-wgpu-platform-renderers/**",
+      "gpux:.agentx/tasks/high-quality-wasm-text-rendering/**",
+      "gpux:.agentx/tasks/html-element-dom-overlay/**",
+      "gpux:.agentx/tasks/html-island-wasm/**",
+      "gpux:.agentx/tasks/keyed-sticky-stacking/**",
+      "gpux:.agentx/tasks/shader-effects-and-screen-transitions/**",
+      "rayx:apps/lab/src/**"
+    ]
+  },
+  "checks": [
+    {
+      "id": "check-util-no-fork-api",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": ["PROC-1"],
+      "descriptionMarkdown": "Fails if any source calls the fork-only `adopt_raw_pid(`, or if `Cargo.toml`/`Cargo.lock` gain a `[patch` section or a git source. `git grep` exits 1 when nothing matches.",
+      "argv": ["git", "grep", "-nE", "adopt_raw_pid\\(|^\\[patch|source = \"git\\+", "--", "crates", "Cargo.toml", "Cargo.lock"],
+      "expected": {"exitCode": 1},
+      "inputs": ["crates/**", "Cargo.toml", "Cargo.lock"]
+    },
+    {
+      "id": "check-util-darwin-tests",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": ["PROC-1", "PROC-2", "PROC-3"],
+      "descriptionMarkdown": "Runs the darwin command module's tests on macOS: the new `command::darwin::process` group and the 27 existing `command::darwin::tests`. The existing tests are selected on purpose, not as a confidence bundle: they have never compiled in gpux, and they are the primary proof that the replacement preserves `darwin.rs` behavior (PROC-3). The red baseline is the current E0599 compile failure on the fork-only API.",
+      "argv": ["cargo", "test", "-p", "gpux-zed-util", "--lib", "command::darwin"],
+      "expected": {"exitCode": 0, "minimumTests": 30},
+      "baselineRequired": true,
+      "baselineExpected": {"exitCode": "nonzero", "failurePattern": "adopt_raw_pid"},
+      "inputs": ["crates/util/**", "Cargo.toml", "Cargo.lock"]
+    },
+    {
+      "id": "check-macos-workspace",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": ["BUILD-1"],
+      "descriptionMarkdown": "CI's own macOS command, `cargo check --workspace --all-targets`. A whole-workspace check is justified here: the acceptance criterion is CI parity for `check (macos-latest)`, which runs exactly this command, and per-crate checks cannot prove workspace feature unification or reach every target. It also includes the real `xcrun metal` compile in `gpux-apple`'s build script. No `inputs`, so any product change makes it stale and the final validation re-runs it.",
+      "argv": ["cargo", "check", "--workspace", "--all-targets"],
+      "expected": {"exitCode": 0},
+      "timeoutSeconds": 7200
+    },
+    {
+      "id": "check-apple-runtime-shaders",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": ["BUILD-2"],
+      "descriptionMarkdown": "Compiles `gpux-apple` with the `runtime_shaders` feature, which embeds the stitched `scene.h` + `shaders.metal` source.",
+      "argv": ["cargo", "check", "-p", "gpux-apple", "--all-targets", "--features", "runtime_shaders"],
+      "expected": {"exitCode": 0},
+      "inputs": ["crates/gpui_apple/**", "crates/gpui/src/**", "crates/gpux_color/src/**", "Cargo.toml", "Cargo.lock"]
+    },
+    {
+      "id": "check-apple-ios",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": ["BUILD-3"],
+      "descriptionMarkdown": "Compiles `gpux-apple` for iOS. The build script compiles the shaders against the `iphoneos` SDK. Needs `rustup target add aarch64-apple-ios` and Xcode's iOS SDK.",
+      "argv": ["cargo", "check", "-p", "gpux-apple", "--all-targets", "--target", "aarch64-apple-ios"],
+      "expected": {"exitCode": 0},
+      "inputs": ["crates/gpui_apple/**", "crates/gpui/src/**", "crates/gpux_color/src/**", "Cargo.toml", "Cargo.lock"]
+    },
+    {
+      "id": "check-apple-paint-packing",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": ["PAINT-1"],
+      "descriptionMarkdown": "Runs the `paint_packing_*` tests that came with the Metal port; they have never run before.",
+      "argv": ["cargo", "test", "-p", "gpux-apple", "--lib", "paint_packing"],
+      "expected": {"exitCode": 0, "minimumTests": 2},
+      "inputs": ["crates/gpui_apple/**", "crates/gpui/src/**", "crates/gpux_color/src/**", "Cargo.toml", "Cargo.lock"]
+    },
+    {
+      "id": "check-apple-clippy",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": ["PAINT-4"],
+      "descriptionMarkdown": "macOS lint coverage for `gpux-apple`. CI lints only on Windows, where this crate is compiled out.",
+      "argv": ["cargo", "clippy", "-p", "gpux-apple", "--all-targets", "--no-deps", "--", "-D", "warnings"],
+      "expected": {"exitCode": 0},
+      "inputs": ["crates/gpui_apple/**", "crates/gpui/src/**", "crates/gpux_color/src/**", "Cargo.toml", "Cargo.lock"]
+    },
+    {
+      "id": "check-apple-pixels",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": ["PAINT-2"],
+      "descriptionMarkdown": "The new headless Metal pixel test group `metal_paint_contract`, using the precompiled metallib.",
+      "argv": ["cargo", "test", "-p", "gpux-apple", "--lib", "metal_paint_contract"],
+      "expected": {"exitCode": 0, "minimumTests": 6},
+      "inputs": ["crates/gpui_apple/**", "crates/gpui/src/**", "crates/gpux_color/src/**", "Cargo.toml", "Cargo.lock"]
+    },
+    {
+      "id": "check-apple-pixels-runtime",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": ["PAINT-3"],
+      "descriptionMarkdown": "The same pixel group compiled with `runtime_shaders`, so Metal compiles the stitched shader source at runtime.",
+      "argv": ["cargo", "test", "-p", "gpux-apple", "--lib", "--features", "runtime_shaders", "metal_paint_contract"],
+      "expected": {"exitCode": 0, "minimumTests": 6},
+      "inputs": ["crates/gpui_apple/**", "crates/gpui/src/**", "crates/gpux_color/src/**", "Cargo.toml", "Cargo.lock"]
+    },
+    {
+      "id": "check-wgpu-dashed",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": ["DASH-1"],
+      "descriptionMarkdown": "The WGPU dashed-border regression test brought in by the merge of `fix/wgpu-dashed-border-gaps`. It fails when the merge is missing.",
+      "argv": ["cargo", "test", "-p", "gpux-wgpu-renderer", "--lib", "dashed_border"],
+      "expected": {"exitCode": 0, "minimumTests": 1},
+      "inputs": ["crates/gpui_wgpu/**", "Cargo.toml", "Cargo.lock"]
+    },
+    {
+      "id": "check-rayx-dashed-spec",
+      "repositoryId": "rayx",
+      "kind": "runtime",
+      "criterionIds": ["DASH-2"],
+      "descriptionMarkdown": "Headed Playwright on the Mac: `rayx-dashed-borders.spec.ts` with automatic WebGPU and forced WebGL2, at DPR 1 and 2 (4 tests). RayX must be on `test/dashed-border-gaps` and the sibling `../Gpux` on the integration branch. Not reused, because it depends on a browser, external toolchains and the sibling checkout.",
+      "argv": ["cargo", "run", "-p", "xtask", "--", "app", "apps/test_suite", "test", "wasm", "--headed", "--webgpu", "--no-default-features", "--features", "rayx_diagnostics", "--playwright-test", "test_suite/rayx-dashed-borders.spec.ts"],
+      "expected": {"exitCode": 0, "minimumTests": 4, "testCountPattern": "(\\d+) passed \\("},
+      "timeoutSeconds": 5400,
+      "reuse": false,
+      "inputs": ["apps/test_suite/**", "tools-node/test_suite/rayx-dashed-borders.spec.ts", "gpux:crates/gpui_wgpu/**"]
+    },
+    {
+      "id": "check-util-fmt",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": ["FLAKE-1"],
+      "descriptionMarkdown": "rustfmt check for `gpux-zed-util`. rustfmt formats `cfg(windows)` code too, so this covers the edited Windows test helper even though it cannot compile on macOS.",
+      "argv": ["cargo", "fmt", "--check", "-p", "gpux-zed-util"],
+      "expected": {"exitCode": 0},
+      "inputs": ["crates/util/**"]
+    },
+    {
+      "id": "final-fmt",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": ["BUILD-1"],
+      "descriptionMarkdown": "Workspace formatting at epic completion.",
+      "argv": ["cargo", "fmt", "--check"],
+      "expected": {"exitCode": 0}
+    },
+    {
+      "id": "final-clippy",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": ["PROC-1", "PAINT-4"],
+      "descriptionMarkdown": "macOS clippy for the packages whose code this epic changed: `gpux-apple`, `gpux-zed-util` and `gpux-color`. `gpux` and `gpux-wgpu-renderer` changed by one repr line and a test respectively; Windows CI clippy already lints them.",
+      "argv": ["cargo", "clippy", "-p", "gpux-apple", "-p", "gpux-zed-util", "-p", "gpux-color", "--all-targets", "--no-deps", "--", "-D", "warnings"],
+      "expected": {"exitCode": 0}
+    },
+    {
+      "id": "final-tests",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": ["PROC-3", "PAINT-2", "DASH-1"],
+      "descriptionMarkdown": "Library tests of the touched packages on macOS. Single-threaded, like CI, because the WGPU tests create GPU devices.",
+      "argv": ["cargo", "test", "-p", "gpux-apple", "-p", "gpux-zed-util", "-p", "gpux-wgpu-renderer", "--lib", "--", "--test-threads=1"],
+      "expected": {"exitCode": 0, "minimumTests": 150}
+    },
+    {
+      "id": "final-package",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": ["BUILD-1"],
+      "descriptionMarkdown": "Packaging gate for the manifest change: `gpux-apple` gained a `gpux_color` build-dependency. On macOS this is the only place the packaged `gpux-apple` build script actually runs, so it proves that `GPUX_COLOR_MANIFEST_DIR` finds `src/color/paint.rs` in the packaged `gpux-color` layout.",
+      "argv": ["cargo", "package", "--workspace"],
+      "expected": {"exitCode": 0},
+      "timeoutSeconds": 7200
+    },
+    {
+      "id": "final-rayx-related",
+      "repositoryId": "rayx",
+      "kind": "runtime",
+      "criterionIds": ["DASH-2"],
+      "descriptionMarkdown": "Existing headed specs that exercise the touched `fs_quad` border, compositing and backend paths, run on the Mac: `rayx-border-antialiasing`, `rayx-srgb-compositing` and `rayx-webgl-fallback` (8 tests across DPR 1 and 2).",
+      "argv": ["cargo", "run", "-p", "xtask", "--", "app", "apps/test_suite", "test", "wasm", "--headed", "--webgpu", "--no-default-features", "--features", "rayx_diagnostics", "--playwright-test", "test_suite/rayx-border-antialiasing.spec.ts", "test_suite/rayx-srgb-compositing.spec.ts", "test_suite/rayx-webgl-fallback.spec.ts"],
+      "expected": {"exitCode": 0, "minimumTests": 8, "testCountPattern": "(\\d+) passed \\("},
+      "timeoutSeconds": 5400,
+      "reuse": false
+    }
+  ],
+  "finalCheckIds": ["final-fmt", "final-clippy", "final-tests", "final-package", "final-rayx-related"],
+  "sprints": [
+    {
+      "id": "s1-util-process-reaping",
+      "title": "Reap macOS child processes without async-process's git fork",
+      "dependsOn": [],
+      "memoryScopes": ["platform/desktop", "repository/packaging"],
+      "tasks": [
+        {
+          "id": "t1-darwin-process-handle",
+          "title": "Replace adopt_raw_pid with a gpux-owned process handle",
+          "descriptionMarkdown": "**Setup (once).**\n1. Check out Gpux `fix/metal-paint-contract`.\n2. Create the integration branch `macos-only/metal-port-and-ci` from it.\n3. Commit `ToFix/` and this epic directory there, unless that was already done when the files were brought to the Mac.\n4. Keep RayX on `test/dashed-border-gaps`.\n5. Run the red baseline (`check --sprint s1-util-process-reaping --phase baseline`). It must fail on `adopt_raw_pid`.\n\n**Work.**\n- Apply the replacement embedded in `ToFix/02-macos-zed-util-process-reaping.md`, or something better that honors d-proc-handle's invariants: the three-line `darwin.rs` diff plus the new `crates/util/src/command/darwin/process.rs`.\n- Extend the module's tests into the PROC-2 group. Keep `process_status_waiters_share_one_reaped_status` and `process_kill_ends_a_running_process`, and add:\n  - drop-reaps-exited and drop-reaps-later-exit cases;\n  - a `kill_on_drop` case;\n  - a stress test with at least 50 short-lived children and distinct exit codes, mixing concurrent `status()`, `try_status()` and drops.\n- Do not edit or weaken the 27 existing darwin tests.\n- Commit, for example as `fix(util): reap posix_spawn children without async-process's git fork`, with a body explaining the crates.io-only rule.",
+          "criterionIds": ["PROC-1", "PROC-2", "PROC-3"],
+          "designIds": ["d-proc-handle"],
+          "dependsOn": [],
+          "checkIds": ["check-util-no-fork-api", "check-util-darwin-tests"],
+          "sourceRefs": [
+            {"repositoryId": "gpux", "path": "crates/util/src/command/darwin.rs"},
+            {"repositoryId": "gpux", "path": "ToFix/02-macos-zed-util-process-reaping.md"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s2-macos-workspace-build",
+      "title": "Make CI's macOS check pass for the whole workspace",
+      "dependsOn": ["s1-util-process-reaping"],
+      "memoryScopes": ["platform/desktop", "repository/packaging"],
+      "tasks": [
+        {
+          "id": "t2-close-macos-build",
+          "title": "Fix every remaining macOS-only build error",
+          "descriptionMarkdown": "Run `cargo check --workspace --all-targets` at the Gpux root and fix each macOS-only error in its owning crate, per d-macos-build: no exclusions, no cfg dodges, no git dependencies.\n\nThe crates the Windows cross-check could not reach are the likely suspects: `gpux-bench-metrics`, `gpux-http-client-tls`, `gpux-reqwest-client`, and the dev and bench targets of `gpux` and `gpux-platform`.\n\nAn error inside `vendor/wgpu` is a blocker to report, not to patch. Commit each fix as its own Conventional Commit; note in the body any fix to an imported upstream file, for d-records. If the check is already green after S1, record that and move on.",
+          "criterionIds": ["BUILD-1"],
+          "designIds": ["d-macos-build"],
+          "dependsOn": [],
+          "checkIds": ["check-macos-workspace"],
+          "sourceRefs": [
+            {"repositoryId": "gpux", "path": ".github/workflows/ci.yml"},
+            {"repositoryId": "gpux", "path": "ToFix/01-macos-metal-renderer.md"}
+          ]
+        },
+        {
+          "id": "t3-apple-variants",
+          "title": "Build gpux-apple with runtime_shaders and for iOS",
+          "descriptionMarkdown": "Check `gpux-apple` with `--features runtime_shaders`, which embeds `stitched_shaders.metal`, and with `--target aarch64-apple-ios`, which takes the build script's `iphoneos` branch and the `-mios-version-min=15.0` Metal flags. Fix what fails in `crates/gpui_apple`.\n\nPrerequisites: `rustup target add aarch64-apple-ios` and Xcode's iOS SDK. If either is missing, install it; do not drop the check.",
+          "criterionIds": ["BUILD-2", "BUILD-3"],
+          "designIds": ["d-macos-build", "d-metal-contract"],
+          "dependsOn": ["t2-close-macos-build"],
+          "checkIds": ["check-apple-runtime-shaders", "check-apple-ios"],
+          "sourceRefs": [
+            {"repositoryId": "gpux", "path": "crates/gpui_apple/build.rs"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s3-metal-paint-proof",
+      "title": "Prove the Metal paint contract on macOS",
+      "dependsOn": ["s2-macos-workspace-build"],
+      "memoryScopes": ["platform/desktop"],
+      "tasks": [
+        {
+          "id": "t4-paint-packing-and-lint",
+          "title": "Run the packing tests and macOS clippy for gpux-apple",
+          "descriptionMarkdown": "Run the existing `paint_packing_*` tests and `gpux-apple` clippy with `-D warnings` on macOS, and fix what fails. These tests and lints have never run: the crate is compiled out on Windows and Linux.",
+          "criterionIds": ["PAINT-1", "PAINT-4"],
+          "designIds": ["d-metal-contract"],
+          "dependsOn": [],
+          "checkIds": ["check-apple-paint-packing", "check-apple-clippy"],
+          "sourceRefs": [
+            {"repositoryId": "gpux", "path": "crates/gpui_apple/src/metal_renderer.rs"}
+          ]
+        },
+        {
+          "id": "t5-metal-pixel-tests",
+          "title": "Add the metal_paint_contract headless pixel test group",
+          "descriptionMarkdown": "Add a test module, selectable by `metal_paint_contract`, beside the Metal renderer. For example, `#[cfg(test)] mod metal_paint_contract;` in `metal_renderer.rs`, with the tests in `crates/gpui_apple/src/metal_renderer/metal_paint_contract.rs`.\n\n**How the tests render.** Build each scene with public `gpux` APIs: `Scene::default()`, `insert_primitive` of `Quad`/`Shadow` with fields from `Background::prepare()` and `Color::paint_color()`, then `finish()`. Render it with `MetalRenderer::new_headless(...).render_scene_to_image(&scene, size)`, which returns RGBA read back from BGRA8Unorm, and sample pixels.\n\n**Cases.** Implement every PAINT-2 case with expected values derived from first principles:\n- the encoded-sRGB composite formula, with the white 4.5% over `#0a0a0a` = `#151515` example;\n- the 12 px dash period of a 4 px border, with gaps at x ≡ 8–12 mod 12;\n- `gpux_color`'s OKLab interpolation for the OKLab midpoint;\n- source-over alpha after `update_transparency(true)`.\n\nFail, do not skip, when no Metal device is available.\n\n**Repairs.** Any mismatch is a renderer defect: fix `shaders.metal` or `metal_renderer.rs` per d-metal-contract, never the expectation. Then run the group again with `--features runtime_shaders`.",
+          "criterionIds": ["PAINT-2", "PAINT-3"],
+          "designIds": ["d-metal-contract", "d-metal-proof"],
+          "dependsOn": ["t4-paint-packing-and-lint"],
+          "checkIds": ["check-apple-pixels", "check-apple-pixels-runtime"],
+          "sourceRefs": [
+            {"repositoryId": "gpux", "path": "crates/gpui_apple/src/metal_renderer.rs"},
+            {"repositoryId": "gpux", "path": "crates/gpui_apple/src/shaders.metal"},
+            {"repositoryId": "gpux", "path": "crates/gpux_color/src/color/paint.rs"}
+          ]
+        },
+        {
+          "id": "t6-native-visual-proof",
+          "title": "Prove Metal rendering natively in RayX's Test Suite",
+          "descriptionMarkdown": "**Setup.** Keep RayX on `test/dashed-border-gaps`, so `/rendering/dashed-borders` exists, and the sibling `../Gpux` on the integration branch.\n\n**Run.** From `../RayX`, run the Test Suite natively: `cargo run -p xtask -- app apps/test_suite run macos --no-default-features --features rayx_diagnostics,devkit`, with `RAYX_DEVKIT_REGISTRY_DIR` set. Inspect it through `cargo run -p rayx_devkit_mcp -- --connect auto --registry-dir <dir>`, as RayX's `.claude/skills/rayx/references/diagnostics.md` describes.\n\n**Compare.** Walk every PAINT-5 page and hardware double-check, comparing each against headed WebGPU on the same Mac. Store screenshots under `artifacts-temp/agentx/macos-only-metal-port-and-ci-repair/`. Include a crash smoke over every page.\n\n**Repairs.**\n- A RayX macOS build error that blocks the run is in scope as a blocker repair in RayX, never in `apps/lab`.\n- A rendering defect is fixed in `crates/gpui_apple` and then re-proven by `check-apple-pixels`.\n\nThe result decides whether the memory rule on Metal border antialiasing can be closed (DOCS-1).",
+          "criterionIds": ["PAINT-5"],
+          "designIds": ["d-metal-proof", "d-metal-contract"],
+          "dependsOn": ["t5-metal-pixel-tests"],
+          "checkIds": [],
+          "sourceRefs": [
+            {"repositoryId": "gpux", "path": "crates/gpui_apple/src/shaders.metal"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s4-dashed-borders",
+      "title": "Carry the WGPU dashed-border fix and prove it on the Mac",
+      "dependsOn": ["s3-metal-paint-proof"],
+      "tasks": [
+        {
+          "id": "t7-merge-dashed-fix",
+          "title": "Merge fix/wgpu-dashed-border-gaps into the integration branch",
+          "descriptionMarkdown": "Run `git merge fix/wgpu-dashed-border-gaps`, with a merge commit and no rebase. Both branches start at `main` `29702e4` and touch disjoint files, so expect no conflicts; the S6 memory work later builds on `e7149e7`'s WGPU memory edits. Then run the `dashed_border` regression test on macOS.",
+          "criterionIds": ["DASH-1"],
+          "designIds": ["d-dash-land"],
+          "dependsOn": [],
+          "checkIds": ["check-wgpu-dashed"],
+          "sourceRefs": [
+            {"repositoryId": "gpux", "path": "crates/gpui_wgpu/src/shaders.wgsl"},
+            {"repositoryId": "gpux", "path": "ToFix/03-wgpu-dashed-borders.md"}
+          ]
+        },
+        {
+          "id": "t8-dashed-spec-on-mac",
+          "title": "Run the dashed-border spec on macOS Chromium",
+          "descriptionMarkdown": "With RayX on `test/dashed-border-gaps` and `../Gpux` on the integration branch, run `rayx-dashed-borders.spec.ts` through xtask on headed WebGPU. It covers the forced-WebGL2 route at DPR 1 and 2 by itself.\n\nPrerequisites: nightly Rust for `-Z build-std`, `wasm-bindgen-cli` 0.2.129, and `pnpm install` plus Playwright Chromium in `tools-node`. If the setup is partial, recover it with `cargo run -p xtask -- setup-wasm`.\n\nA failure here, with S3 green, points at Chromium-on-macOS differences: investigate before touching the shader.",
+          "criterionIds": ["DASH-2"],
+          "designIds": ["d-dash-land"],
+          "dependsOn": ["t7-merge-dashed-fix"],
+          "checkIds": ["check-rayx-dashed-spec"],
+          "sourceRefs": [
+            {"repositoryId": "gpux", "path": "ToFix/03-wgpu-dashed-borders.md"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s5-windows-test-deadline",
+      "title": "Harden the flaky upstream Windows process test",
+      "dependsOn": ["s4-dashed-borders"],
+      "tasks": [
+        {
+          "id": "t9-raise-grandchild-deadline",
+          "title": "Raise spawn_process_tree's pid-file deadline to 30 s",
+          "descriptionMarkdown": "In `crates/util/src/process.rs`, change `windows_tests::spawn_process_tree`'s `Duration::from_secs(5)` pid-file deadline to 30 s. Add a one-line comment saying a cold PowerShell start on loaded CI runners can exceed 5 s.\n\nLeave the 50 ms poll, the `powershell -> ping` tree and the 2 s termination check untouched, because they are the behavior under test.\n\nThis code is `#[cfg(all(test, windows))]`, so it cannot be compiled here. The focused check is rustfmt; the behavioral proof is CI's `test (windows)` job in S7.\n\nCommit, for example as `test(util): give the grandchild pid file a CI-sized deadline`.",
+          "criterionIds": ["FLAKE-1"],
+          "designIds": ["d-flake-patch"],
+          "dependsOn": [],
+          "checkIds": ["check-util-fmt"],
+          "sourceRefs": [
+            {"repositoryId": "gpux", "path": "crates/util/src/process.rs"},
+            {"repositoryId": "gpux", "path": "ToFix/04-flaky-windows-process-test.md"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s6-durable-records",
+      "title": "Record the proven macOS state in memory and the import guide",
+      "dependsOn": ["s5-windows-test-deadline"],
+      "memoryScopes": ["platform/desktop", "renderer", "repository/upstream-sync"],
+      "tasks": [
+        {
+          "id": "t10-memory-sync",
+          "title": "Sync gpux memory with the proven Metal and macOS behavior",
+          "descriptionMarkdown": "Update gpux memory per DOCS-1 and d-records, using only what S1–S5 proved:\n- `platform/desktop`: `state.md`, `knowledge.md`, `hypotheses.md` and `rules.md`. Settle the Metal border-antialiasing hypothesis and rule from the PAINT-5 result.\n- `renderer/state.md`: the Metal renderer lives in `gpui_apple`.\n- A renderer or platform knowledge item: Metal-exported enums must be `repr(C)`.\n- The stale \"Metal port is not yet compiled or proven\" text in the 2026-09-30 sRGB-compositing decision.\n\nUpdate the `updated` timestamps, then run the installed AgentX `audit_agentx_memory.py` from the Gpux root.\n\nCommit as `docs(memory): ...`.",
+          "criterionIds": ["DOCS-1"],
+          "designIds": ["d-records"],
+          "dependsOn": [],
+          "checkIds": []
+        },
+        {
+          "id": "t11-import-guide-and-tofix",
+          "title": "Record the replay rules and retire ToFix",
+          "descriptionMarkdown": "In `.claude/skills/gpux/references/update-from-zed-gpui-closure.md`, under 'RayX Patch Surface To Preserve', add three bullets:\n- the Metal paint contract (`PaintColor`, cbindgen parsing `gpux_color`'s `paint.rs`, `repr(C)` Metal enums; upstream `shaders.metal` still uses `Hsla`);\n- the `darwin/process.rs` replacement for the fork-only `adopt_raw_pid`;\n- the Windows `spawn_process_tree` deadline patch.\n\nCheck the links and wording. Then delete `ToFix/`, whose notes are now carried by commits, this epic and memory, and commit as `docs(skill): ...` and `chore: ...` (or one `docs` commit).",
+          "criterionIds": ["DOCS-2"],
+          "designIds": ["d-records"],
+          "dependsOn": ["t10-memory-sync"],
+          "checkIds": [],
+          "sourceRefs": [
+            {"repositoryId": "gpux", "path": ".claude/skills/gpux/references/update-from-zed-gpui-closure.md"},
+            {"repositoryId": "gpux", "path": "ToFix/README.md"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s7-publish-for-review",
+      "title": "Publish for review with every CI job green",
+      "dependsOn": ["s6-durable-records"],
+      "tasks": [
+        {
+          "id": "t12-publish",
+          "title": "Push, open the paired PRs and get CI green",
+          "descriptionMarkdown": "Ask the user for explicit approval first. Then:\n1. Push `macos-only/metal-port-and-ci`.\n2. Open a Gpux PR against `main` with `gh pr create --body-file`. The body covers all four ToFix topics, references the closed rayx-ui/Gpux#1 and #2 as superseded, and lists the exact validation, including what stayed manual.\n3. Open or update the RayX PR from `test/dashed-border-gaps` against `master`. Reference the Gpux PR and state that RayX must merge together with it or after it.\n4. Wait for all five Gpux CI jobs to go green.\n\nIf a job is red, read its log. Fix and push to the same branch: no force-push and no blind re-runs, except for a demonstrated flake.\n\nDo not merge; report the green PRs to the user.",
+          "criterionIds": ["PUB-1"],
+          "designIds": ["d-publish"],
+          "dependsOn": [],
+          "checkIds": [],
+          "sourceRefs": [
+            {"repositoryId": "gpux", "path": ".github/workflows/ci.yml"}
+          ]
+        }
+      ]
+    }
+  ]
+}
