@@ -4,11 +4,12 @@ agentx:
   scope: knowledge/renderer/wgpu
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-05T23:00:00+02:00
+  updated: 2026-10-06T21:22:44+02:00
   topics:
     - wgsl
     - abi
     - srgb-compositing
+    - premultiplied-alpha
     - shader-effects
     - resize
     - webgl-fallback
@@ -18,6 +19,7 @@ agentx:
 # WGPU Renderer Rules
 
 - Keep ordinary paint premultiplied encoded sRGB (`PaintColor`) through scene and shader stages and render to a non-sRGB surface format. Do linear-light math only inside effects that average light. Do not reintroduce per-fragment HSL conversion.
+- Fade or mask premultiplied paint by scaling all four channels. Scaling alpha alone leaves color that premultiplied source-over adds to whatever lies beneath.
 - Update Rust packed structs and WGSL together, assert sizes and offsets in Rust tests, and run headed WebGPU validation; compile checks do not exercise Dawn layout validation.
 - Match WGSL storage alignment to the Rust ABI, not merely byte size.
 - Do not use WGSL compound assignment on swizzles.
