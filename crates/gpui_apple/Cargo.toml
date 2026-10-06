@@ -50,6 +50,7 @@ parking_lot.workspace = true
 [target.'cfg(any(target_os = "macos", target_os = "ios"))'.build-dependencies]
 cbindgen.workspace = true
 gpux.workspace = true
+gpux_color.workspace = true
 
 [target.'cfg(any(target_os = "macos", target_os = "ios"))'.dev-dependencies]
 gpux = { workspace = true, features = ["test-support"] }

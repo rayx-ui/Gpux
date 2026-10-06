@@ -3,10 +3,10 @@ use anyhow::Result;
 use block2::RcBlock;
 use core_graphics::geometry::CGSize;
 use gpux::{
-    AtlasTextureId, Background, BackgroundKind, Bounds, ColorSpace, ContentMask, Corners,
-    DevicePixels, Edges, Hsla, MonochromeSprite, PaintSurface, Path, Point, PolychromeSprite,
-    PrimitiveBatch, Quad, ScaledPixels, Scene, Shadow, Size, TransformationMatrix, Underline,
-    point, prepare_gradient_stop_color, size,
+    AtlasTextureId, BackgroundKind, Bounds, ColorSpace, ContentMask, Corners, DevicePixels, Edges,
+    MonochromeSprite, PaintColor, PaintSurface, Path, Point, PolychromeSprite, PreparedBackground,
+    PreparedLinearColorStop, PrimitiveBatch, Quad, ScaledPixels, Scene, Shadow, Size,
+    TransformationMatrix, Underline, point, size,
 };
 use image::RgbaImage;
 
@@ -144,7 +144,7 @@ pub struct PackedGradientStop {
 pub struct PackedBackground {
     pub tag: u32,
     pub color_space: u32,
-    pub solid: Hsla,
+    pub solid: PaintColor,
     pub gradient_angle_or_pattern_height: f32,
     pub stop_offset: u32,
     pub stop_count: u32,
@@ -1607,13 +1607,15 @@ fn build_pipeline_state(
     descriptor.set_fragment_function(Some(fragment_fn.as_ref()));
     let color_attachment = descriptor.color_attachments().object_at(0).unwrap();
     color_attachment.set_pixel_format(pixel_format);
+    // Fragments return premultiplied encoded sRGB paint, blended like WGPU's
+    // `PREMULTIPLIED_ALPHA_BLENDING`.
     color_attachment.set_blending_enabled(true);
     color_attachment.set_rgb_blend_operation(metal::MTLBlendOperation::Add);
     color_attachment.set_alpha_blend_operation(metal::MTLBlendOperation::Add);
-    color_attachment.set_source_rgb_blend_factor(metal::MTLBlendFactor::SourceAlpha);
+    color_attachment.set_source_rgb_blend_factor(metal::MTLBlendFactor::One);
     color_attachment.set_source_alpha_blend_factor(metal::MTLBlendFactor::One);
     color_attachment.set_destination_rgb_blend_factor(metal::MTLBlendFactor::OneMinusSourceAlpha);
-    color_attachment.set_destination_alpha_blend_factor(metal::MTLBlendFactor::One);
+    color_attachment.set_destination_alpha_blend_factor(metal::MTLBlendFactor::OneMinusSourceAlpha);
 
     device
         .new_render_pipeline_state(&descriptor)
@@ -1714,19 +1716,13 @@ fn pack_quads(quads: &[Quad]) -> (Vec<PackedQuad>, Vec<PackedGradientStop>) {
 }
 
 fn pack_background(
-    background: &Background,
+    background: &PreparedBackground,
     gradient_stops: &mut Vec<PackedGradientStop>,
 ) -> PackedBackground {
     let (stop_offset, stop_count) = match background.kind() {
         BackgroundKind::LinearGradient => {
             let stop_offset = gradient_stops.len() as u32;
-            let color_space = background.interpolation_color_space();
-            gradient_stops.extend(
-                background
-                    .gradient_stops()
-                    .iter()
-                    .map(|stop| pack_gradient_stop(*stop, color_space)),
-            );
+            gradient_stops.extend(background.gradient_stops().iter().map(pack_gradient_stop));
             (stop_offset, background.gradient_stops().len() as u32)
         }
         BackgroundKind::Solid | BackgroundKind::PatternSlash | BackgroundKind::Checkerboard => {
@@ -1745,9 +1741,9 @@ fn pack_background(
     }
 }
 
-fn pack_gradient_stop(stop: gpux::LinearColorStop, color_space: ColorSpace) -> PackedGradientStop {
+fn pack_gradient_stop(stop: &PreparedLinearColorStop) -> PackedGradientStop {
     PackedGradientStop {
-        prepared_color: prepare_gradient_stop_color(stop.color, color_space),
+        prepared_color: stop.color,
         percentage: stop.percentage,
         pad: [0.0; 3],
     }
@@ -1867,5 +1863,48 @@ impl gpux::PlatformHeadlessRenderer for MetalHeadlessRenderer {
 
     fn sprite_atlas(&self) -> Arc<dyn gpux::PlatformAtlas> {
         self.renderer.sprite_atlas().clone()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use gpux::{Background, linear_color_stop, linear_gradient, rgb, rgba};
+
+    #[test]
+    fn paint_packing_passes_solid_paint_color_through() {
+        let background = Background::from(rgba(0x3366ff80)).prepare();
+        let mut gradient_stops = Vec::new();
+
+        let packed = pack_background(&background, &mut gradient_stops);
+
+        assert_eq!(packed.tag, 0);
+        assert_eq!(packed.solid, background.solid_color());
+        assert_eq!((packed.stop_offset, packed.stop_count), (0, 0));
+        assert!(gradient_stops.is_empty());
+    }
+
+    #[test]
+    fn paint_packing_appends_prepared_gradient_stops() {
+        let background = linear_gradient(
+            90.,
+            [
+                linear_color_stop(rgb(0xff0000), 0.),
+                linear_color_stop(rgba(0x0000ff80), 1.),
+            ],
+        )
+        .color_space(ColorSpace::Oklab)
+        .prepare();
+        let mut gradient_stops = vec![pack_gradient_stop(&background.gradient_stops()[0])];
+
+        let packed = pack_background(&background, &mut gradient_stops);
+
+        assert_eq!((packed.tag, packed.color_space), (1, 1));
+        assert_eq!((packed.stop_offset, packed.stop_count), (1, 2));
+        assert_eq!(gradient_stops.len(), 3);
+        for (packed_stop, stop) in gradient_stops[1..].iter().zip(background.gradient_stops()) {
+            assert_eq!(packed_stop.prepared_color, stop.color);
+            assert_eq!(packed_stop.percentage, stop.percentage);
+        }
     }
 }

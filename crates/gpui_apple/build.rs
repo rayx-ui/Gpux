@@ -27,6 +27,7 @@ mod apple_build {
         let output_path = PathBuf::from(env::var("OUT_DIR").unwrap()).join("scene.h");
 
         let gpux_dir = find_gpux_crate_dir();
+        let gpux_color_dir = find_gpux_color_crate_dir();
 
         let mut config = Config {
             include_guard: Some("SCENE_H".into()),
@@ -41,7 +42,7 @@ mod apple_build {
             "Size".into(),
             "Pixels".into(),
             "PointF".into(),
-            "Hsla".into(),
+            "PaintColor".into(),
             "ContentMask".into(),
             "Uniforms".into(),
             "AtlasTile".into(),
@@ -81,10 +82,17 @@ mod apple_build {
             gpux_dir.join("src/platform.rs"),
         ];
 
+        // The `PaintColor` paint contract that scene primitives carry
+        let color_src_paths = [gpux_color_dir.join("src/color/paint.rs")];
+
         // Source files from this crate
         let local_src_paths = [crate_dir.join("src/metal_renderer.rs")];
 
-        for src_path in gpui_src_paths.iter().chain(local_src_paths.iter()) {
+        for src_path in gpui_src_paths
+            .iter()
+            .chain(color_src_paths.iter())
+            .chain(local_src_paths.iter())
+        {
             println!("cargo:rerun-if-changed={}", src_path.display());
             builder = builder.with_src(src_path);
         }
@@ -101,6 +109,11 @@ mod apple_build {
     /// Locate the main framework crate directory relative to this crate.
     fn find_gpux_crate_dir() -> PathBuf {
         gpux::GPUX_MANIFEST_DIR.into()
+    }
+
+    /// Locate the color crate that defines `PaintColor`.
+    fn find_gpux_color_crate_dir() -> PathBuf {
+        gpux_color::GPUX_COLOR_MANIFEST_DIR.into()
     }
 
     /// To enable runtime compilation, we need to "stitch" the shaders file with the generated header

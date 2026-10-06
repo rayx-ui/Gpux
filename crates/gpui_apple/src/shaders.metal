@@ -9,11 +9,11 @@ typedef PackedQuad Quad;
 
 constant uint MAX_GRADIENT_SEARCH_STEPS = 8;
 
-float4 hsla_to_rgba(Hsla hsla);
+float4 paint_color_value(PaintColor color);
 float3 srgb_to_linear(float3 color);
 float3 linear_to_srgb(float3 color);
 float4 srgb_to_oklab(float4 color);
-float4 oklab_to_srgb(float4 color);
+float4 premultiplied_oklab_to_srgb(float4 color);
 float4 to_device_position(float2 unit_vertex, Bounds_ScaledPixels bounds,
                           constant Size_DevicePixels *viewport_size);
 float2 transform_position(float2 position, TransformationMatrix transformation);
@@ -41,7 +41,7 @@ float2 erf(float2 x);
 float blur_along_x(float x, float y, float sigma, float corner,
                    float2 half_size);
 float4 over(float4 below, float4 above);
-float border_edge_coverage(float coverage, float3 color);
+float border_edge_coverage(float coverage, float3 straight_color);
 float radians(float degrees);
 float4 resolve_gradient_color(
   Background background,
@@ -217,6 +217,7 @@ fragment float4 quad_fragment(QuadFragmentInput input [[stage_in]],
   if (border_sdf < antialias_threshold) {
     float4 border_color =
       fill_color(quad.border_color, input.local_position, quad.bounds, gradient_stops);
+    float3 border_straight_color = border_color.rgb / max(border_color.a, 0.000001);
 
     // Dashed border logic when border_style == 1
     if (quad.border_style == 1) {
@@ -372,12 +373,13 @@ fragment float4 quad_fragment(QuadFragmentInput input [[stage_in]],
       // Straight borders should start and end with a dash, so max_t is
       // reduced to cause this.
       max_t -= unrounded ? dash_length : 0.0;
+      // The border color is premultiplied, so dashes fade all of its channels.
       if (max_t >= 1.0) {
         // Adjust dash gap to evenly divide max_t
         float dash_count = floor(max_t);
         float dash_period = max_t / dash_count;
-        border_color.a *= dash_alpha(t, dash_period, dash_length, dash_velocity,
-                                     antialias_threshold);
+        border_color *= dash_alpha(t, dash_period, dash_length, dash_velocity,
+                                   antialias_threshold);
       } else if (unrounded) {
         // When there isn't enough space for the full gap between the
         // two start / end dashes of a straight border, reduce gap to
@@ -385,8 +387,8 @@ fragment float4 quad_fragment(QuadFragmentInput input [[stage_in]],
         float dash_gap = max_t - dash_length;
         if (dash_gap > 0.0) {
           float dash_period = dash_length + dash_gap;
-          border_color.a *= dash_alpha(t, dash_period, dash_length, dash_velocity,
-                                       antialias_threshold);
+          border_color *= dash_alpha(t, dash_period, dash_length, dash_velocity,
+                                     antialias_threshold);
         }
       }
     }
@@ -396,14 +398,14 @@ fragment float4 quad_fragment(QuadFragmentInput input [[stage_in]],
     float4 blended_border = over(background_color, border_color);
     float border_coverage = saturate(antialias_threshold - inner_sdf);
     color = mix(background_color, blended_border,
-                border_edge_coverage(border_coverage, border_color.rgb));
+                border_edge_coverage(border_coverage, border_straight_color));
     // Where the border covers the pixel, the outer edge is the border's edge.
     outer_coverage = mix(outer_coverage,
-                         border_edge_coverage(outer_coverage, border_color.rgb),
+                         border_edge_coverage(outer_coverage, border_straight_color),
                          border_coverage);
   }
 
-  return color * float4(1.0, 1.0, 1.0, outer_coverage);
+  return color * outer_coverage;
 }
 
 // Edge coverage composited in encoded sRGB dims partially covered pixels, so a
@@ -417,9 +419,9 @@ constant float4 BORDER_GAMMA_RATIOS =
     float4(0.14805442, -0.89459451, 1.47590801, -0.32466824);
 constant float BORDER_ENHANCED_CONTRAST = 1.0;
 
-float border_edge_coverage(float coverage, float3 color) {
+float border_edge_coverage(float coverage, float3 straight_color) {
   // REC. 601 luminance coefficients for perceived brightness
-  float brightness = dot(color, float3(0.30, 0.59, 0.11));
+  float brightness = dot(straight_color, float3(0.30, 0.59, 0.11));
   float k = BORDER_ENHANCED_CONTRAST * saturate(4.0 * (0.75 - brightness));
   float contrasted = coverage * (k + 1.0) / (coverage * k + 1.0);
   float correction =
@@ -502,14 +504,20 @@ vertex ShadowVertexOutput shadow_vertex(
   float2 unit_vertex = unit_vertices[unit_vertex_id];
   Shadow shadow = shadows[shadow_id];
 
-  float margin = 3. * shadow.blur_radius;
-  // Set the bounds of the shadow and adjust its size based on the shadow's
-  // spread radius to achieve the spreading effect
-  Bounds_ScaledPixels bounds = shadow.bounds;
-  bounds.origin.x -= margin;
-  bounds.origin.y -= margin;
-  bounds.size.width += 2. * margin;
-  bounds.size.height += 2. * margin;
+  Bounds_ScaledPixels bounds;
+  if (shadow.inset != 0) {
+    // An inset shadow only paints inside the element that owns it.
+    bounds = shadow.element_bounds;
+  } else {
+    float margin = 3. * shadow.blur_radius;
+    // Set the bounds of the shadow and adjust its size based on the shadow's
+    // spread radius to achieve the spreading effect
+    bounds = shadow.bounds;
+    bounds.origin.x -= margin;
+    bounds.origin.y -= margin;
+    bounds.size.width += 2. * margin;
+    bounds.size.height += 2. * margin;
+  }
   float2 local_position = unit_vertex * float2(bounds.size.width, bounds.size.height) +
                           float2(bounds.origin.x, bounds.origin.y);
 
@@ -517,7 +525,7 @@ vertex ShadowVertexOutput shadow_vertex(
       to_device_position_transformed(unit_vertex, bounds, shadow.transformation, viewport_size);
   float4 clip_distance =
       distance_from_clip_rect_transformed(unit_vertex, bounds, shadow.content_mask.bounds, shadow.transformation);
-  float4 color = hsla_to_rgba(shadow.color);
+  float4 color = paint_color_value(shadow.color);
 
   return ShadowVertexOutput{
       device_position,
@@ -578,7 +586,16 @@ fragment float4 shadow_fragment(ShadowFragmentInput input [[stage_in]],
     }
   }
 
-  return input.color * float4(1., 1., 1., alpha);
+  if (shadow.inset != 0) {
+    // An inset shadow is the complement of the blurred hole, clipped to the
+    // rounded element bounds.
+    alpha = 1. - alpha;
+    float element_distance = quad_sdf(input.local_position, shadow.element_bounds,
+                                      shadow.element_corner_radii);
+    alpha *= saturate(0.5 - element_distance);
+  }
+
+  return input.color * alpha;
 }
 
 struct UnderlineVertexOutput {
@@ -611,7 +628,7 @@ vertex UnderlineVertexOutput underline_vertex(
       to_device_position_transformed(unit_vertex, underline.bounds, underline.transformation, viewport_size);
   float4 clip_distance = distance_from_clip_rect_transformed(unit_vertex, underline.bounds,
                                                  underline.content_mask.bounds, underline.transformation);
-  float4 color = hsla_to_rgba(underline.color);
+  float4 color = paint_color_value(underline.color);
   return UnderlineVertexOutput{
       device_position,
       color,
@@ -649,7 +666,7 @@ fragment float4 underline_fragment(UnderlineFragmentInput input [[stage_in]],
     float distance_from_bottom_border = distance_in_pixels + half_thickness;
     float alpha = saturate(
         0.5 - max(-distance_from_bottom_border, distance_from_top_border));
-    return input.color * float4(1., 1., 1., alpha);
+    return input.color * alpha;
   } else {
     return input.color;
   }
@@ -690,7 +707,7 @@ vertex MonochromeSpriteVertexOutput monochrome_sprite_vertex(
   float4 clip_distance = distance_from_clip_rect_transformed(unit_vertex, sprite.bounds,
                                                  sprite.content_mask.bounds, sprite.transformation);
   float2 tile_position = to_tile_position(unit_vertex, sprite.tile, atlas_size);
-  float4 color = hsla_to_rgba(sprite.color);
+  float4 color = paint_color_value(sprite.color);
   return MonochromeSpriteVertexOutput{
       device_position,
       tile_position,
@@ -717,9 +734,7 @@ fragment float4 monochrome_sprite_fragment(
                                           min_filter::linear);
   float4 sample =
       atlas_texture.sample(atlas_texture_sampler, input.tile_position);
-  float4 color = input.color;
-  color.a *= sample.a;
-  return color;
+  return input.color * sample.a;
 }
 
 struct PolychromeSpriteVertexOutput {
@@ -779,15 +794,14 @@ fragment float4 polychrome_sprite_fragment(
   float distance =
       quad_sdf(input.local_position, sprite.bounds, sprite.corner_radii);
 
-  float4 color = sample;
+  // The atlas holds straight alpha; premultiply like the rest of the paint.
+  float3 straight_rgb = sample.rgb;
   if (sprite.grayscale) {
-    float grayscale = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
-    color.r = grayscale;
-    color.g = grayscale;
-    color.b = grayscale;
+    float grayscale = 0.2126 * straight_rgb.r + 0.7152 * straight_rgb.g + 0.0722 * straight_rgb.b;
+    straight_rgb = float3(grayscale);
   }
-  color.a *= sprite.opacity * saturate(0.5 - distance);
-  return color;
+  float4 color = float4(straight_rgb * sample.a, sample.a);
+  return color * (sprite.opacity * saturate(0.5 - distance));
 }
 
 struct PathRasterizationVertexOutput {
@@ -861,7 +875,7 @@ fragment float4 path_rasterization_fragment(
     path_bounds,
     gradient_stops
   );
-  return float4(color.rgb * color.a * alpha, alpha * color.a);
+  return color * alpha;
 }
 
 struct PathSpriteVertexOutput {
@@ -967,52 +981,10 @@ fragment float4 surface_fragment(SurfaceFragmentInput input [[stage_in]],
   return ycbcrToRGBTransform * ycbcr;
 }
 
-float4 hsla_to_rgba(Hsla hsla) {
-  float h = hsla.h * 6.0; // Now, it's an angle but scaled in [0, 6) range
-  float s = hsla.s;
-  float l = hsla.l;
-  float a = hsla.a;
-
-  float c = (1.0 - fabs(2.0 * l - 1.0)) * s;
-  float x = c * (1.0 - fabs(fmod(h, 2.0) - 1.0));
-  float m = l - c / 2.0;
-
-  float r = 0.0;
-  float g = 0.0;
-  float b = 0.0;
-
-  if (h >= 0.0 && h < 1.0) {
-    r = c;
-    g = x;
-    b = 0.0;
-  } else if (h >= 1.0 && h < 2.0) {
-    r = x;
-    g = c;
-    b = 0.0;
-  } else if (h >= 2.0 && h < 3.0) {
-    r = 0.0;
-    g = c;
-    b = x;
-  } else if (h >= 3.0 && h < 4.0) {
-    r = 0.0;
-    g = x;
-    b = c;
-  } else if (h >= 4.0 && h < 5.0) {
-    r = x;
-    g = 0.0;
-    b = c;
-  } else {
-    r = c;
-    g = 0.0;
-    b = x;
-  }
-
-  float4 rgba;
-  rgba.x = (r + m);
-  rgba.y = (g + m);
-  rgba.z = (b + m);
-  rgba.w = a;
-  return rgba;
+// `PaintColor` is premultiplied, gamma-encoded sRGB, the space the renderer
+// composites in.
+float4 paint_color_value(PaintColor color) {
+  return float4(color.r, color.g, color.b, color.a);
 }
 
 float3 srgb_to_linear(float3 color) {
@@ -1052,11 +1024,16 @@ float4 srgb_to_oklab(float4 color) {
   );
 }
 
-// Converts an Oklab color to the sRGB color space.
-float4 oklab_to_srgb(float4 color) {
-  float l_ = color.r + 0.3963377774 * color.g + 0.2158037573 * color.b;
-  float m_ = color.r - 0.1055613458 * color.g - 0.0638541728 * color.b;
-  float s_ = color.r - 0.0894841775 * color.g - 1.2914855480 * color.b;
+// Converts a premultiplied Oklab gradient sample to premultiplied, encoded sRGB.
+float4 premultiplied_oklab_to_srgb(float4 color) {
+  if (color.a <= 0.0) {
+    return float4(0.0);
+  }
+
+  float3 oklab = color.rgb / color.a;
+  float l_ = oklab.r + 0.3963377774 * oklab.g + 0.2158037573 * oklab.b;
+  float m_ = oklab.r - 0.1055613458 * oklab.g - 0.0638541728 * oklab.b;
+  float s_ = oklab.r - 0.0894841775 * oklab.g - 1.2914855480 * oklab.b;
 
   float l = l_ * l_ * l_;
   float m = m_ * m_ * m_;
@@ -1069,7 +1046,7 @@ float4 oklab_to_srgb(float4 color) {
   );
 
   // Convert linear sRGB to non-linear sRGB
-  return float4(linear_to_srgb(linear_rgb), color.a);
+  return float4(linear_to_srgb(saturate(linear_rgb)) * color.a, color.a);
 }
 
 float4 to_device_position(float2 unit_vertex, Bounds_ScaledPixels bounds,
@@ -1218,13 +1195,9 @@ float4 distance_from_clip_rect_transformed(float2 unit_vertex, Bounds_ScaledPixe
                 clip_bounds.origin.y + clip_bounds.size.height - transformed_position.y);
 }
 
+// Source-over for premultiplied colors.
 float4 over(float4 below, float4 above) {
-  float4 result;
-  float alpha = above.a + below.a * (1.0 - above.a);
-  result.rgb =
-      (above.rgb * above.a + below.rgb * below.a * (1.0 - above.a)) / alpha;
-  result.a = alpha;
-  return result;
+  return above + below * (1.0 - above.a);
 }
 
 float2x2 rotate2d(float angle) {
@@ -1248,7 +1221,7 @@ float4 resolve_gradient_color(
   constant GradientStop *gradient_stops
 ) {
   if (background.stop_count == 0) {
-    return hsla_to_rgba(background.solid);
+    return paint_color_value(background.solid);
   }
 
   GradientStop first_stop = gradient_stops[background.stop_offset];
@@ -1291,7 +1264,7 @@ float4 resolve_gradient_color(
     segment_t
   );
   if (background.color_space == 1) {
-    return oklab_to_srgb(color);
+    return premultiplied_oklab_to_srgb(color);
   }
 
   return color;
@@ -1304,7 +1277,7 @@ float4 fill_color(
   constant GradientStop *gradient_stops
 ) {
   float4 color;
-  float4 solid_color = hsla_to_rgba(background.solid);
+  float4 solid_color = paint_color_value(background.solid);
 
   switch (background.tag) {
     case 0:
@@ -1339,15 +1312,14 @@ float4 fill_color(
 
       // Dither to reduce banding in gradients (especially dark/alpha).
       // Triangular-distributed noise breaks up 8-bit quantization steps.
-      // ±2/255 for RGB (enough for dark-on-dark compositing),
-      // ±3/255 for alpha (needs more because alpha × dark color = tiny steps).
+      // ±2/255 of straight RGB (enough for dark-on-dark compositing), scaled by
+      // alpha so the premultiplied color stays valid.
       {
         float2 seed = position * 0.6180339887; // golden ratio spread
         float r1 = fract(sin(dot(seed, float2(12.9898, 78.233))) * 43758.5453);
         float r2 = fract(sin(dot(seed, float2(39.3460, 11.135))) * 24634.6345);
         float tri = r1 + r2 - 1.0; // triangular PDF, range [-1, +1]
-        color.rgb += tri * 2.0 / 255.0;
-        color.a   += tri * 3.0 / 255.0;
+        color.rgb += tri * 2.0 / 255.0 * color.a;
       }
 
       break;
@@ -1364,8 +1336,7 @@ float4 fill_color(
         float2 rotated_point = rotation * relative_position;
         float pattern = fmod(rotated_point.x, pattern_period);
         float distance = min(pattern, pattern_period - pattern) - pattern_period * (pattern_width / pattern_height) /  2.0f;
-        color = solid_color;
-        color.a *= saturate(0.5 - distance);
+        color = solid_color * saturate(0.5 - distance);
         break;
     }
     case 3: {
@@ -1377,9 +1348,8 @@ float4 fill_color(
         float y_index = floor(relative_position.y / size);
         float should_be_colored = fmod(x_index + y_index, 2.0);
         
-        color = solid_color;
-        color.a *= saturate(should_be_colored);
-        break; 
+        color = solid_color * saturate(should_be_colored);
+        break;
     }
   }
 

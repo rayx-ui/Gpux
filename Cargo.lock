@@ -2693,6 +2693,7 @@ dependencies = [
  "etagere",
  "foreign-types",
  "gpux",
+ "gpux-color",
  "gpux-util",
  "image",
  "libc",

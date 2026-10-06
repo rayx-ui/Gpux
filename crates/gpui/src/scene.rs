@@ -1284,8 +1284,10 @@ pub struct MonochromeSprite {
     pub transformation: TransformationMatrix,
 }
 
+// `repr(C)` like `AtlasTextureKind`: cbindgen gives a `repr(u32)` enum a separate C typedef,
+// which the Metal shading language (C++) rejects as a redefinition.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-#[repr(u32)]
+#[repr(C)]
 #[expect(missing_docs)]
 pub enum MonochromeSpriteKind {
     Glyph = 0,
