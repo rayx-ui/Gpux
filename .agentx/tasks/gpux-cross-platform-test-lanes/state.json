@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 6,
+  "epicId": "gpux-cross-platform-test-lanes",
+  "revision": 0,
+  "planRevision": 1,
+  "specHashes": {
+    "requirements": "79214e51fcfee1670d9c3f04177f99731e380a42065ac9d0d5191e093453d050",
+    "design": "c18175c81c75b5f39020d43f81765f461edafa18c805faa009701ee07edbb227",
+    "plan": "37dfc71bb05c02c3609d490dbd774e5a8d9a641f08bfbb60cf5f082a30b9100c"
+  },
+  "tasks": {
+    "t01-bundled-test-text": {
+      "status": "pending"
+    },
+    "t02-executor-clock": {
+      "status": "pending"
+    },
+    "t03-input-simulation": {
+      "status": "pending"
+    },
+    "t04-semantic-locators": {
+      "status": "pending"
+    },
+    "t05-headless-renderer-port": {
+      "status": "pending"
+    },
+    "t06-screenshot-test-contexts": {
+      "status": "pending"
+    },
+    "t07-port-provenance": {
+      "status": "pending"
+    },
+    "t08-conformance-crate-and-compare": {
+      "status": "pending"
+    },
+    "t09-scene-catalog": {
+      "status": "pending"
+    },
+    "t10-lane-a-suites": {
+      "status": "pending"
+    },
+    "t11-lane-c-suites": {
+      "status": "pending"
+    },
+    "t12-ci-lanes-a-c": {
+      "status": "pending"
+    },
+    "t13-testkit-cli": {
+      "status": "pending"
+    },
+    "t14-windowed-host-lane-d": {
+      "status": "pending"
+    },
+    "t15-ci-lane-d": {
+      "status": "pending"
+    },
+    "t16-web-build-serve": {
+      "status": "pending"
+    },
+    "t17-gpux-diagnostics-names": {
+      "status": "pending"
+    },
+    "t18-playwright-harness": {
+      "status": "pending"
+    },
+    "t19-browser-specs": {
+      "status": "pending"
+    },
+    "t20-ci-lane-b": {
+      "status": "pending"
+    },
+    "t21-android-host-build": {
+      "status": "pending"
+    },
+    "t22-android-run-collect": {
+      "status": "pending"
+    },
+    "t23-ci-lane-e": {
+      "status": "pending"
+    },
+    "t24-lane-g-local-gpu": {
+      "status": "pending"
+    },
+    "t25-docs-decouple-rayx": {
+      "status": "pending"
+    },
+    "t26-memory-sync": {
+      "status": "pending"
+    },
+    "t27-macos-desktop-lanes": {
+      "status": "pending"
+    },
+    "t28-ios-host-build": {
+      "status": "pending"
+    },
+    "t29-ios-run-and-ci": {
+      "status": "pending"
+    }
+  },
+  "validationBatches": {},
+  "checkResults": {},
+  "reviews": {},
+  "checkpoints": {},
+  "findings": [],
+  "handoffMarkdown": "",
+  "protectedPaths": {
+    "gpux": {
+      "gpux:vendor/wgpu/**": "2fde7871db68af5a07e61281b2877fb308235a9df0b048f31f9cd3da0466c599",
+      "gpux:.agentx/experiments/**": "32805d33f7172446b7e9cec5989ba59bd78648a57efc98bd96bbcac8fcac16a6",
+      "gpux:ToFix/**": "74a2498e4be348b890925d52f231a2ddbe65fb568dc9bb40073d87eabcc91121",
+      "gpux:.agentx/tasks/frame-effects-navigation-transitions/**": "b9d8d0f34d35f8efab37309cf3092cfe59934ae76b2665d09616032db699093f",
+      "gpux:.agentx/tasks/frame-family-component-transitions/**": "786cf5831d50db830d3d78fb97657cdf457ec9ea0fc9682794782bf69173a676",
+      "gpux:.agentx/tasks/gpux-fixed-sticky-positioning/**": "d7e287cbe0b1a6afb8166c063b31bfa9e09c420c651630d97ed855a6685409ba",
+      "gpux:.agentx/tasks/gpux-text-rendering-quality-performance/**": "3a93656394a1d894dfda413d47b680644cf0a8ad6094b4a4ec1ed10bffcbefc4",
+      "gpux:.agentx/tasks/gpux-wgpu-platform-renderers/**": "3efd7b2c2e35eeb71ac4a54c2a498a7e377665c1a1f59d8ca6d5bd0b13b576fa",
+      "gpux:.agentx/tasks/high-quality-wasm-text-rendering/**": "16acd26c781d2590eaa636e41209d0a2e57237decbded91279857ee8636b26eb",
+      "gpux:.agentx/tasks/html-element-dom-overlay/**": "8bc3eba1cd26e95004311080d07651348f9c19dff64d8f46521d7bc9c3cdd7f6",
+      "gpux:.agentx/tasks/html-island-wasm/**": "56a0864ccb5a02db863fa17b08cb47db9c378428c56302b46acf7b8da0cfe875",
+      "gpux:.agentx/tasks/keyed-sticky-stacking/**": "6103606d1f3d16eaaac1ae98bb24c5a1ae105ce2457a6aec0383b52489808be5",
+      "gpux:.agentx/tasks/macos-only-metal-port-and-ci-repair/**": "64ecc143e24a8468c3b4e5d28bbc0f65d4fbbddab867d46a44823b1725ff1e5d",
+      "gpux:.agentx/tasks/shader-effects-and-screen-transitions/**": "ea29584d0a17dcea6547dd0dc05de74450b58982a44883b96d1b0cca70a86b00"
+    }
+  }
+}

@@ -1,0 +1,445 @@
+{
+  "schemaVersion": 6,
+  "epicId": "gpux-cross-platform-test-lanes",
+  "scopeMarkdown": "Give **gpux** a comprehensive test system of its own that proves the gpux renderer and core UI framework on every supported platform, independent of RayX:\n\n- Windows (wgpu DX12)\n- Linux (wgpu Vulkan, X11/Wayland)\n- macOS (Metal)\n- web (multithreaded WASM, WebGPU with WebGL2 fallback)\n- Android and iOS (`gpui_mobile`, wgpu)\n\ngpux is a standalone library. It must not need RayX code, RayX Test Suite specs, the DevKit, RayX's xtask or RayX CI for its own tests or runtime proof.\n\n## Test lanes (where a test can run)\n\n| Lane | What it verifies | CI host | Local host |\n|---|---|---|---|\n| **A. Behaviour** | Input dispatch, focus, actions/keymaps, layout and text layout with real shaping, lists, scrolling and gestures on a deterministic clock, selection/editable text, overlays, semantics. Runs on `TestPlatform` with no GPU. | `ubuntu-24.04`, `windows-2025`, `macos-15`, every PR | any OS |\n| **B. Browser** | `gpui_web` in a real browser: WebGPU/WebGL2 selection, DOM input translation, DPR, IME, clipboard, HTML islands/elements, canvas text fallback, threads, Dawn validation, pixels. Uses a gpux web conformance app plus Playwright. | `ubuntu-24.04` headless Chromium on SwiftShader with a backend assertion. A subset per PR; the full set nightly, sharded. | headless or headed on the real GPU |\n| **C. Native offscreen pixels** | Renderer primitives, effects, sRGB compositing, anti-aliasing and text rasterization through a headless renderer. | lavapipe on `ubuntu-24.04`, WARP on `windows-2025`, Metal on `macos-15`; every PR | any GPU, or a software adapter forced locally |\n| **D. Native windowed platform** | Real windows and surfaces per desktop OS: open, present, resize, scale, `render_to_image`, OS input translation, clipboard. | X11 under Xvfb on `ubuntu-24.04`, `windows-2025`, `macos-15`; every PR | the developer desktop, including WSLg Wayland |\n| **E. Android** | `gpui_mobile` Android: startup, Vulkan→GL backend policy, surface lifecycle, touch, pixels. | KVM emulator on `ubuntu-24.04`; nightly and on path changes | USB device or emulator through adb |\n| **F. iOS** | `gpui_mobile` iOS: startup, Metal through wgpu, CoreText, touch, pixels. | iOS Simulator on `macos-15`; nightly and on path changes | an iPhone |\n| **G. Real GPU** | Performance and timing benchmarks, timing-threshold specs, headed browser, lanes B–D on hardware adapters. | never in CI (owner decision) | the developer machine |\n\n## Decisions recorded with the owner (2026-10-07)\n\n1. gpux must not depend on RayX for tests or runtime proof.\n2. Headless browser runs are acceptable in CI once every run asserts the active backend.\n3. The real-GPU lane runs locally only.\n4. IndexedDB/storage is RayX's, not gpux's.\n5. Android and iOS are first-class lanes.\n\n## Out of scope: a later RayX epic in the RayX repository\n\n1. **RayX CI.** Tokens for the private sibling checkouts, the missing `RayX.SignalR` checkout, nightly with `rust-src`, and pinning `ubuntu-24.04`.\n2. **RayX Playwright.**\n   - SwiftShader flags under CI, not only WSL.\n   - One `--enable-features` list that keeps `CDPScreenshotNewSurface`.\n   - A Windows headless profile (`channel: 'chromium'`).\n   - A backend assertion fixture; `RAYX_WEBGPU_REQUIRED` is currently unread.\n   - Running headless in CI.\n3. **RayX rules.** Allow headless WebGPU checks in CI with the backend assertion (`.claude/skills/rayx/references/diagnostics.md` DON'T, and the `CLAUDE.md` runtime-proof paragraph).\n4. **RayX memory.** Remove the outdated `RayXApp` wording, the old Lab name; Lab stays forbidden for testing. The wording lives in RayX memory, not in RayX `CLAUDE.md`: `decisions/runtime/app-hosting/*`, `decisions/runtime/services/*` and `knowledge/examples/*`.\n5. **RayX hosting and diagnostics.** Mounting Test Suite routes on `TestPlatform`, and making the `__rayx*` diagnostics cross-target. They are WASM-only today.\n6. **RayX naming migration.** Move RayX to the gpux-named diagnostics introduced here (`diagnostics` feature, `__gpux*` globals, `?gpux-html-island=1`). gpux drops the `rayx_*` aliases afterwards.\n7. **RayX tests.** Port RayX behaviour specs to GPUI tests (they may use `gpux-conformance` and the semantic locators), and move the RayX sections of `LINUX-WSL.md` into RayX.\n8. **Storage.** IndexedDB/storage tests stay in RayX.\n\n## Assumptions and prerequisites\n\n- **macOS jobs.** They are green only after the sibling epic `macos-only-metal-port-and-ci-repair` lands; the macOS workspace does not compile in CI today.\n- **Apple verification.** The macOS lanes and lane F are verified on a Mac or through the macOS CI jobs. Windows hosts can only prepare that work.\n- **Android emulator in CI.** This needs KVM on the hosted runner, so the Android sprint verifies feasibility first.\n- **iOS Simulator Metal in CI.** Metal inside the Simulator on hosted macOS VMs is unverified. If it is unavailable, CI lane F covers startup and behaviour only, and pixels come from a local device.\n- **Browser toolchain.** Lane B uses the verified flags from the 2026-10-06 experiments (Playwright 1.59.1, Chromium 147). Linux headless needs `--enable-unsafe-webgpu --enable-features=Vulkan --use-angle=swiftshader --use-vulkan=swiftshader`. Windows headless needs `channel: 'chromium'`, or the headless shell with `--use-angle=d3d11 --disable-dawn-features=use_dxc`.\n",
+  "constraintsMarkdown": "- **Repository and crate layout**\n  - Work only in the gpux repository. Change no RayX files.\n  - Keep Zed's crate boundaries; do not merge or split upstream crates.\n  - New Rust crates are publishable `gpux-*` packages: Rust name in `[lib] name`, workspace metadata, a `description`, no `publish = false`, and no files included from outside the crate.\n  - Fonts come only from `gpux_fonts`.\n- **Dependencies**\n  - Dependencies come from crates.io: no git dependencies and no `[patch]`.\n  - Node tooling for lane B lives outside the crates with a committed lockfile.\n  - Do not modify the `vendor/wgpu` fork.\n- **API compatibility**\n  - Public API changes are additive; test-support APIs are behind `test-support`.\n  - Existing feature names, JS globals and URL opt-ins keep working: `rayx_diagnostics`, `__rayx*` and `?rayx-html-island=1` become aliases of the gpux-named surface until the RayX follow-up.\n  - Production behaviour does not change except where a criterion requires it, such as reading time from the executor clock.\n- **Determinism**\n  - Conformance scenes use bundled fonts, fixed sizes, scale factors 1 and 2, the executor clock, and no network or system-font dependence.\n  - Pixel checks prefer relative probes; goldens are per-backend and small.\n  - Timing thresholds never run on software adapters or in CI.\n- **Browser runs**\n  - Every lane B run asserts the active backend.\n  - A silent WebGL2 fallback when WebGPU is required is a failure.\n  - `crossOriginIsolated` must be true for threaded runs.\n  - Console errors and panics fail a spec unless explicitly allow-listed.\n- **Diagnostics and artifacts**\n  - Raw logs, screenshots, traces and diff images go to ignored `artifacts-temp/`, never into `.agentx/` or commits.\n  - Diagnostics stay out of production builds.\n- **Validation (HARD RULE)**\n  - Sprint checks run only the new test group of the task.\n  - CI lane jobs and final checks are general runs.\n- **Commits.** Conventional Commits. The upstream port keeps the gpux skill's provenance lines. No Claude co-author lines.\n",
+  "requirements": [
+    {
+      "id": "LANES",
+      "title": "Lane taxonomy and a single entry point",
+      "descriptionMarkdown": "Tests are categorized by where they can run, and every lane is runnable with one gpux-owned command, without RayX.",
+      "criteria": [
+        {
+          "id": "LANES-1",
+          "descriptionMarkdown": "`docs/testing.md` documents lanes A–G: what each verifies, its CI host and runner image, its local host, its selection command, and its cadence (per PR, nightly or path-filtered, local only).\n\n- Android (E) and iOS (F) are included, and G is marked local-only.\n- The page also lists host prerequisites (toolchains, Mesa/WARP, Node/Playwright, Android SDK/NDK/emulator, Xcode), environment variables, and the golden update flow.\n- `CLAUDE.md`/`AGENTS.md` link to it from Validation.\n\nVerified by review.",
+          "verification": "manual"
+        },
+        {
+          "id": "LANES-2",
+          "descriptionMarkdown": "`gpux-testkit` (a binary of the publishable `tooling/testkit` crate) is the single entry point: `lane <a|b|c|d|e|f|g> [more lanes]` with `--list`, `--scene <id>` and `--grep <pattern>` selection.\n\n- Every command ends with one summary line, `gpux-testkit: <passed> passed, <failed> failed, <skipped> skipped`, and exits nonzero on any failure or on zero selected tests.\n- Artifacts are written under `artifacts-temp/testkit/<lane>/`.\n- `--list` prints the exact test selection for the lane without running it.\n- An unknown lane or a missing host prerequisite fails with an actionable message, not a panic.\n\nVerified by the testkit's own test group and a `--list` run.",
+          "verification": "automated"
+        },
+        {
+          "id": "LANES-3",
+          "descriptionMarkdown": "No gpux test, tool, workflow, document or skill step routes gpux runtime proof or validation through RayX.\n\n- A static check over `CLAUDE.md`, `AGENTS.md`, `README.md`, `docs/`, `.claude/skills/gpux/`, `.github/`, `tooling/` and `crates/` finds no RayX test or proof routing: `Runtime proof happens in RayX`, `RayX's Test Suite`, `RayX's xtask`, `apps/test_suite`, `xtask -- app`, `runtime-proof host`.\n- `LINUX-WSL.md` keeps its RayX consumer sections, marked consumer-only until the RayX follow-up moves them. It is excluded from the check.\n- The consumer API-pairing rule (a gpux change to an API RayX uses ships with the matching RayX change) is kept; it is a compatibility rule, not a test dependency.",
+          "verification": "automated"
+        }
+      ]
+    },
+    {
+      "id": "TEXT",
+      "title": "Real text shaping in test contexts",
+      "descriptionMarkdown": "Tests can measure and lay out text with a real shaper and the bundled fonts, deterministically across operating systems.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/platform/test/platform.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/cosmic_text_system.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_fonts/src/lib.rs"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "TEXT-1",
+          "descriptionMarkdown": "A public test-support API provides a deterministic real text system (Cosmic Text without system fonts, loaded with `gpux_fonts::ALL`, primary family IBM Plex Sans) on Windows, Linux and macOS. `#[gpux::test(text = \"bundled\")]` and an explicit `TestAppContext` constructor use it.\n\nA new test group asserts exact values for fixed inputs on every desktop OS:\n- glyph advances and line heights for ASCII strings in IBM Plex Sans and Lilex;\n- wrap points at a fixed width;\n- ellipsis truncation results;\n- multi-run styled text widths.\n\nNo system font is consulted (a missing family falls back to bundled fonts, not to system fonts).",
+          "verification": "automated"
+        },
+        {
+          "id": "TEXT-2",
+          "descriptionMarkdown": "`NoopTextSystem` remains the default for `#[gpux::test]` without the `text` argument, so existing tests are unaffected. The new group asserts that the default context still reports the no-op metrics and that the bundled option does not.",
+          "verification": "automated"
+        }
+      ]
+    },
+    {
+      "id": "CLOCK",
+      "title": "Deterministic time for gestures, scrolling and animation",
+      "descriptionMarkdown": "GPUI motion and timing state machines read time from the executor clock, so `advance_clock` drives them in tests while production keeps real time.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/gestures.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/scroll_activity.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/animation.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/executor.rs",
+          "symbol": "BackgroundExecutor::now"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "CLOCK-1",
+          "descriptionMarkdown": "These read time only from `BackgroundExecutor::now()` (the scheduler clock):\n- touch gesture recognition (tap, double tap, long press, pan, fling momentum) and wheel filtering;\n- `ScrollActivity` (programmatic smooth scroll, fling, retarget);\n- scrollbar timers and repeat;\n- `with_animation` and `animated_frame`;\n- list and div scroll momentum;\n- editable-text programmatic scroll;\n- image loading timers.\n\nA new test group proves, under `TestAppContext` and with `advance_clock` only (no sleeping):\n- a long press fires at its threshold and not before;\n- a fling decays to rest at a deterministic offset;\n- a smooth programmatic scroll reaches its target at its duration;\n- an animation reports exact progress at fixed times;\n- reduced motion still bypasses motion.\nTwo runs with the same seed produce identical offsets.",
+          "verification": "automated"
+        },
+        {
+          "id": "CLOCK-2",
+          "descriptionMarkdown": "No direct wall-clock reads remain in the listed modules: no `Instant::now()` in `gestures.rs`, `scroll_activity.rs`, `animation.rs`, `animated_frame.rs`, `list.rs`, `div.rs`, `img.rs` or `editable_text/`. Production platforms still observe real time through their executor clocks, and WASM uses the scheduler's web-time clock (never `std::time::Instant`).",
+          "verification": "automated"
+        }
+      ]
+    },
+    {
+      "id": "SIM",
+      "title": "Complete input simulation and safe test windows",
+      "descriptionMarkdown": "Test-support input covers what real platforms deliver. Test windows are configurable and never panic on ordinary platform calls.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/app/test_context.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/platform/test/window.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/platform/test/platform.rs"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "SIM-1",
+          "descriptionMarkdown": "Test-support APIs simulate the following, all delivered through the same `Window::dispatch_event`/input-handler path real platforms use:\n- IME composition: set marked text, update it, commit, cancel;\n- key-up events;\n- multi-click with an explicit click count (double and triple);\n- drags along a path with a held button and modifiers.\n\nA new test group asserts the resulting events, selection and composition state on an editable text element and on a drag target.",
+          "verification": "automated"
+        },
+        {
+          "id": "SIM-2",
+          "descriptionMarkdown": "`TestWindow` and `TestPlatform` no longer panic (`unimplemented!`) for minimize, zoom, show-window-menu, hide, reveal-path or run. These calls are recorded and observable by tests, and the group asserts the records.",
+          "verification": "automated"
+        },
+        {
+          "id": "SIM-3",
+          "descriptionMarkdown": "Tests can open test windows with an explicit logical size, scale factor (at least 1.0 and 2.0) and display size. The defaults stay unchanged for existing tests. The group asserts bounds and scale for both factors.",
+          "verification": "automated"
+        }
+      ]
+    },
+    {
+      "id": "LOCATE",
+      "title": "Semantic element locators",
+      "descriptionMarkdown": "Tests find and act on elements by semantics instead of coordinates.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "symbol": "Window::devtools_frame_snapshot"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "LOCATE-1",
+          "descriptionMarkdown": "A test-support locator API resolves queries against `Window::devtools_frame_snapshot()`.\n\n- **Queries:** role, accessible name (exact or contains), text, value, global element id suffix and element type, combined and scoped within a parent.\n- **Actions:** click at the element center, hover, drag to another locator or point, scroll by a delta, focus and type text, press keystrokes.\n- **Errors:** a query matching zero or more than one element fails with a message that lists the candidates, unless `.nth(n)` or `.all()` is used.\n\nThe locator works in release-mode tests (it does not depend on `debug_selector`). A new test group covers each query kind, each action, and both error cases.",
+          "verification": "automated"
+        }
+      ]
+    },
+    {
+      "id": "HEADLESS",
+      "title": "wgpu headless renderer for Linux and Windows",
+      "descriptionMarkdown": "The gpux wgpu renderer renders scenes offscreen and reads pixels back without a window, by porting Zed #64718 and #64842 onto gpux's renderer.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/wgpu_renderer.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/wgpu_context.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/src/gpui_platform.rs",
+          "symbol": "current_headless_renderer"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/platform.rs",
+          "symbol": "PlatformHeadlessRenderer"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "HEADLESS-1",
+          "descriptionMarkdown": "`gpui_wgpu` provides `WgpuHeadlessRenderer` (`PlatformHeadlessRenderer`) that renders a `Scene` into an offscreen texture and reads back an RGBA image, with no surface or window. It reuses gpux's scene encoding, effects, atlas and sRGB paint contract, and targets a non-sRGB opaque format.\n\n- `gpui_platform::current_headless_renderer()` returns it on Linux and Windows; Metal on macOS is unchanged.\n- One device is cached per process and never dropped during thread-local teardown.\n- A new test group renders reference scenes (solid quads, rounded and dashed borders, shadows, paths, monochrome text glyphs, polychrome sprites, clipping, opacity) and asserts pixel probes.\n- Invalid sizes, zero sizes and sizes above the device limit fail with errors, not panics.",
+          "verification": "automated"
+        },
+        {
+          "id": "HEADLESS-2",
+          "descriptionMarkdown": "Headless rendering works on software adapters (WARP on Windows DX12, lavapipe/llvmpipe on Linux Vulkan).\n\n- A test-only adapter override, `GPUX_WGPU_ADAPTER=<substring>|software|hardware`, selects the adapter. It applies to headless and test contexts only; production adapter selection is unchanged.\n- The selected adapter's name, backend, driver and device type are exposed so tests and artifacts can name the backend.\n- The group renders the reference scene on the software adapter that exists on the test host. WARP always exists on Windows hosts, so this runs locally without a GPU-less machine.",
+          "verification": "automated"
+        },
+        {
+          "id": "HEADLESS-3",
+          "descriptionMarkdown": "The headless renderer reports effect capabilities and GPU specs from the real device, and `TestWindow` forwards them. Effect frames and shader effects render in headless tests when supported, and take their documented fallback when unsupported. Capabilities are never claimed without rendering.",
+          "verification": "automated"
+        },
+        {
+          "id": "HEADLESS-4",
+          "descriptionMarkdown": "`TestAppContext`/`VisualTestContext` can be built with a real text system and a headless renderer through a public test-support constructor. `capture_screenshot()` returns the rendered window image with deterministic defaults: opaque background, fixed path sample count, explicit scale factor. A new test group captures a window at scale 1 and 2 through `current_headless_renderer()` and asserts probes.",
+          "verification": "automated"
+        },
+        {
+          "id": "HEADLESS-5",
+          "descriptionMarkdown": "The port follows the gpux skill's single-PR import procedure (`references/update-from-zed-pr.md`):\n- commit bodies carry the Zed source PRs and commits;\n- the import ledgers record #64718 and #64842 as ported with gpux adaptations;\n- the adaptation (gpux renderer differences, Windows support that upstream lacks) is described for future upstream imports.\n\nVerified by review.",
+          "verification": "manual"
+        }
+      ]
+    },
+    {
+      "id": "PIX",
+      "title": "Image comparison and goldens",
+      "descriptionMarkdown": "Pixel assertions are robust across renderers and cheap to maintain.",
+      "criteria": [
+        {
+          "id": "PIX-1",
+          "descriptionMarkdown": "`gpux-conformance` provides image comparison with these features:\n- relative probes: a color at a point within a tolerance, region uniformity, two regions equal or different, a before/after change inside a region;\n- golden comparison with a per-channel tolerance (default ±3) and a maximum differing-pixel ratio;\n- per-backend golden names `<scene>@<scale>x.<backend>.png`, with backend ids such as `lavapipe`, `warp`, `metal`, `swiftshader-webgpu`;\n- regeneration with `GPUX_UPDATE_SNAPSHOTS=1`;\n- on failure, actual, expected and diff images written under `artifacts-temp/`.\n\nA new test group covers pass, fail and update paths with synthetic images.",
+          "verification": "automated"
+        },
+        {
+          "id": "PIX-2",
+          "descriptionMarkdown": "Golden files live inside `crates/gpux_conformance/tests/goldens/` and are excluded from the published package. Each PNG is at most 32 KiB, with a recorded total budget. A policy test fails on oversize files, on names that break the convention, and on goldens no scene references. No Git LFS is used.",
+          "verification": "automated"
+        }
+      ]
+    },
+    {
+      "id": "SCENE",
+      "title": "Conformance scene catalog",
+      "descriptionMarkdown": "One gpux-owned catalog of deterministic scenes and interaction scripts exercises the core elements and renderer primitives, and every lane reuses it.",
+      "criteria": [
+        {
+          "id": "SCENE-1",
+          "descriptionMarkdown": "The `gpux-conformance` crate holds a catalog of at least 30 deterministic scenes. Each declares id, covered areas, logical size, scale factors, lanes, interaction script, semantic expectations and pixel probes.\n\nTogether the scenes cover:\n- **layout:** flex, grid, absolute, overflow, fixed, sticky (including stacking and push-out);\n- **text:** shaping, runs, decorations, wrapping, truncation, selection with interactive text;\n- **editing:** editable text and IME;\n- **lists:** `uniform_list` and `list` virtualization;\n- **scrolling:** wheel, nested wheel propagation, scrollbars, programmatic smooth scroll, touch pan and fling;\n- **focus and actions:** focus and tab order, actions and layered keymaps, hover and active styles;\n- **interaction:** drag and drop, tooltips, anchored and unclipped deferred overlays;\n- **media and paint:** raster images, SVG, canvas paths, borders (solid, dashed, radii), shadows, gradients, opacity and clipping;\n- **effects:** frame effects (effect, animated and transition frames) and shader effects where supported;\n- **color and semantics:** sRGB compositing swatches, the accessibility tree and devtools semantics.\n\nA coverage test fails when a required area has no scene or when scene ids collide.",
+          "verification": "automated"
+        },
+        {
+          "id": "SCENE-2",
+          "descriptionMarkdown": "The catalog and its host abstraction compile for the desktop hosts and for `wasm32-unknown-unknown` (proven by a stable `--no-default-features` check). Android and iOS compile is proven by their lanes. The same scene definitions, not copies, are used by all hosts.",
+          "verification": "automated"
+        }
+      ]
+    },
+    {
+      "id": "LANEA",
+      "title": "Lane A: behaviour on the test platform",
+      "descriptionMarkdown": "Catalog scenes are exercised on `TestPlatform` with real text, deterministic time and semantic locators.",
+      "criteria": [
+        {
+          "id": "A-1",
+          "descriptionMarkdown": "`cargo test -p gpux-conformance --test lane_a` runs every lane-A catalog scene.\n\n- **Geometry:** layout bounds measured with the bundled text system.\n- **Scripted interactions:** click, drag, wheel, touch, typing, IME and keystrokes, located semantically.\n- **State checks:** focus, selection, scroll offsets, and drag-and-drop results.\n- **Time:** gestures and animations driven by `advance_clock`.\n- **Semantics:** devtools semantics and the accessibility tree.\n\nThe suite runs without a GPU or display.",
+          "verification": "automated"
+        },
+        {
+          "id": "A-2",
+          "descriptionMarkdown": "CI runs lane A on `ubuntu-24.04`, `windows-2025` and `macos-15` for every pull request and push to `main`. The existing gpux test job also runs on Linux and macOS, not only Windows. macOS entries are enabled once the sibling macOS epic lands. Verified by a green workflow run.",
+          "verification": "manual"
+        }
+      ]
+    },
+    {
+      "id": "LANEC",
+      "title": "Lane C: native offscreen pixels",
+      "descriptionMarkdown": "Catalog scenes render through the real native renderer offscreen, and their pixels are asserted.",
+      "criteria": [
+        {
+          "id": "C-1",
+          "descriptionMarkdown": "`cargo test -p gpux-conformance --test lane_c` renders every lane-C catalog scene through the headless renderer at scale 1 and 2.\n\n- It asserts relative probes for every scene, and per-backend goldens for a curated subset.\n- Coverage includes dashed borders, sRGB compositing, anti-aliasing, clipping, opacity, text glyph rasterization and effects.\n- Run locally with `GPUX_WGPU_ADAPTER=software` on Windows (WARP), it passes against the committed `warp` goldens.",
+          "verification": "automated"
+        },
+        {
+          "id": "C-2",
+          "descriptionMarkdown": "CI runs lane C on:\n- `ubuntu-24.04` with Mesa lavapipe (`mesa-vulkan-drivers`, selected with `VK_DRIVER_FILES`);\n- `windows-2025` with WARP;\n- `macos-15` with Metal, once the sibling macOS epic lands.\n\nGoldens are committed for `lavapipe`, `warp` and `metal`, and failure artifacts are uploaded. Verified by a green workflow run.",
+          "verification": "manual"
+        }
+      ]
+    },
+    {
+      "id": "LANED",
+      "title": "Lane D: native windowed platform integration",
+      "descriptionMarkdown": "Real platform windows and surfaces are exercised per desktop OS.",
+      "criteria": [
+        {
+          "id": "D-1",
+          "descriptionMarkdown": "`gpux-testkit lane d` launches the conformance desktop host on the real platform (`gpui_platform::application()`) for the lane-D scenes.\n\nThe run checks that windows open and present, then asserts:\n- probes from `render_to_image` on the real surface;\n- resize and scale-factor changes;\n- a clipboard round trip;\n- closing without leaks or panics;\n- OS-level synthetic input where the OS permits it (XTest through `xdotool` on X11 under Xvfb, `SendInput` on Windows), translated into the expected GPUI events. Other scripts inject input in-app.\n\nThe summary line counts the results. The run passes locally on Windows.",
+          "verification": "automated"
+        },
+        {
+          "id": "D-2",
+          "descriptionMarkdown": "CI runs lane D on `ubuntu-24.04` (Xvfb, X11, lavapipe) and `windows-2025` every pull request, and on `macos-15` once the sibling macOS epic lands. A Wayland run under a headless compositor is attempted; if it cannot present, Wayland stays local-only (WSLg) and that is recorded in `docs/testing.md`. Verified by a green workflow run.",
+          "verification": "manual"
+        }
+      ]
+    },
+    {
+      "id": "LANEB",
+      "title": "Lane B: browser",
+      "descriptionMarkdown": "`gpui_web` is proven in a real browser through gpux-owned tooling, with headless CI on software WebGPU and local runs on the real GPU.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/platform.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/events.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/window.rs"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "B-1",
+          "descriptionMarkdown": "`gpux-testkit web build --verify` builds the conformance web host as a multithreaded WASM app (atomics, shared memory, nightly `-Z build-std`, `wasm-bindgen` matching `Cargo.lock`) and generates its page. It verifies the binary: shared memory, the `wasm_thread_entry_point` export, and the explicit constructor path through `gpui_platform::web_init`.\n\n`gpux-testkit web serve` serves the build with COOP/COEP/CORP headers so `crossOriginIsolated` is true. Neither command needs RayX.",
+          "verification": "automated"
+        },
+        {
+          "id": "B-2",
+          "descriptionMarkdown": "gpux has its own diagnostics surface:\n- a `diagnostics` feature on `gpux`, `gpux-wgpu-renderer` and `gpux-web`;\n- `__gpux*` JS globals;\n- the `?gpux-html-island=1` opt-in.\n\nThe old names stay as working aliases: `rayx_diagnostics` is an alias feature, `__rayx*` globals are still published under the alias, and `?rayx-html-island=1` is still honoured. Diagnostics stay content-free and out of production builds. A source-guard test group asserts the alias mapping.",
+          "verification": "automated"
+        },
+        {
+          "id": "B-3",
+          "descriptionMarkdown": "A Playwright harness in `tooling/web-e2e` (committed lockfile), started through `gpux-testkit web e2e`, defines launch profiles:\n- `ci-linux-swiftshader`: headless, with `--enable-unsafe-webgpu --enable-features=Vulkan,CDPScreenshotNewSurface,... --use-angle=swiftshader --use-vulkan=swiftshader`;\n- `local-gpu`: new headless (`channel: 'chromium'`) or `--headed`;\n- `windows-software`: optional, `--use-angle=d3d11-warp` or a WARP LUID.\n\nFixtures that every spec uses:\n- fail when the app reports a WebGL backend while WebGPU is required, and assert the forced-WebGL2 backend where requested;\n- assert `crossOriginIsolated`;\n- fail on console errors and panics.\n\n`@canary` specs prove startup on WebGPU, a non-flat canvas screenshot and a located click.",
+          "verification": "automated"
+        },
+        {
+          "id": "B-4",
+          "descriptionMarkdown": "`@pr`/`@nightly`/`@dpr2`-tagged specs cover each `gpui_web` area against conformance scenes, through trusted CDP input and screenshot probes:\n- backend selection with forced WebGL2 and stubbed `navigator.gpu`;\n- canvas sizing, DPR 1/2 and ResizeObserver;\n- the frame loop and window-close cleanup;\n- pointer and mouse events (buttons, capture, enter/leave), and wheel events across all three delta modes;\n- keyboard events (modifiers, repeat, AltGr), and touch (tap, pan, fling, cancel);\n- IME composition through `Input.imeSetComposition`;\n- clipboard copy/paste through trusted events and the fallback path;\n- `html_element` overlays and HTML islands (opt-in);\n- canvas text fallback, taking over `test_canvas_fallback.mjs`;\n- the dispatcher and worker queue, taking over `test_queue.mjs`;\n- SVG and asset loading, cursor styles, focus/blur/visibility, and viewport safe areas;\n- a Dawn-validation smoke that renders every pipeline with no validation errors.\n\nTiming-threshold specs carry `@timing` and run only in lane G.",
+          "verification": "automated"
+        },
+        {
+          "id": "B-5",
+          "descriptionMarkdown": "CI runs lane B on `ubuntu-24.04` in the `ci-linux-swiftshader` profile. One build job builds once; e2e jobs are sharded and upload a merged report. Pull requests run `@canary` and `@pr` at DPR 1; nightly runs everything except `@timing`, including `@dpr2`. Verified by green PR and nightly runs.",
+          "verification": "manual"
+        }
+      ]
+    },
+    {
+      "id": "LANEE",
+      "title": "Lane E: Android",
+      "descriptionMarkdown": "`gpui_mobile` Android is proven on an emulator in CI and on a USB device locally.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/window.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/jni.rs"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "E-1",
+          "descriptionMarkdown": "`gpux-testkit android build` builds the conformance Android host from gpux alone into an installable APK: a NativeActivity cdylib with `android-native-activity`, cargo-ndk, and a minimal Gradle project under `tooling/android`. The Android window implements `render_to_image` through the shared wgpu renderer. The build fails with an actionable message when the SDK, NDK or JDK is missing.",
+          "verification": "automated"
+        },
+        {
+          "id": "E-2",
+          "descriptionMarkdown": "`gpux-testkit android run` installs and launches the host on the first available device or emulator (or `--serial`), runs the lane-E scenes and collects the results. It asserts:\n- startup and the backend actually selected (Vulkan, or the GL fallback, recorded);\n- surface loss and recovery across pause/resume;\n- touch translation through `adb shell input tap/swipe`, including a pan and a fling;\n- `render_to_image` probes.\n\nLogcat result markers are parsed into the summary line, and PNGs are pulled into `artifacts-temp/`.",
+          "verification": "automated"
+        },
+        {
+          "id": "E-3",
+          "descriptionMarkdown": "CI runs lane E nightly, and on pull requests that change `crates/gpui_mobile/`, `crates/gpui_wgpu/`, `crates/gpux_conformance/` or `tooling/android/`. It uses an `ubuntu-24.04` KVM emulator (x86_64 image) and uploads logcat and PNG artifacts. If hosted KVM is unavailable for this repository, the blocker and the local-device fallback are recorded in `docs/testing.md`. Verified by a green run or the recorded blocker.",
+          "verification": "manual"
+        }
+      ]
+    },
+    {
+      "id": "LANEF",
+      "title": "Lane F: iOS",
+      "descriptionMarkdown": "`gpui_mobile` iOS is proven on the Simulator in CI and on an iPhone locally.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/ios/window.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/ios/ffi.rs"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "F-1",
+          "descriptionMarkdown": "`gpux-testkit ios build --simulator` builds the conformance iOS host from gpux alone, with no code signing for the Simulator: a staticlib example plus an XcodeGen spec under `tooling/ios`, built with `xcodebuild`. The iOS window implements `render_to_image` through the shared wgpu renderer. Verified on a Mac or in the macOS CI job.",
+          "verification": "manual"
+        },
+        {
+          "id": "F-2",
+          "descriptionMarkdown": "`gpux-testkit ios run --simulator` boots a pinned Simulator, installs and launches the host, and runs the lane-F scenes. It asserts:\n- startup;\n- Metal through wgpu;\n- CoreText text metrics within tolerance;\n- lifecycle (background/foreground);\n- `render_to_image` probes;\n- in-app touch injection.\n\nIt parses console markers (`simctl launch --console-pty`) into the summary line, and copies PNGs from the app container. If Metal is unavailable in the hosted Simulator, the run reports pixel checks as skipped with the reason, and local-device runs keep them. Verified on a Mac or in the macOS CI job.",
+          "verification": "manual"
+        },
+        {
+          "id": "F-3",
+          "descriptionMarkdown": "CI runs lane F nightly, and on pull requests that change `crates/gpui_mobile/`, `crates/gpui_wgpu/`, `crates/gpux_conformance/` or `tooling/ios/`, on `macos-15`. The local-device flow (signing team, `devicectl`) is documented in `docs/testing.md`. Verified by a green run.",
+          "verification": "manual"
+        }
+      ]
+    },
+    {
+      "id": "MACOS",
+      "title": "macOS desktop lanes",
+      "descriptionMarkdown": "Lanes A, C and D also prove the macOS platform (Metal, AppKit).",
+      "criteria": [
+        {
+          "id": "M-1",
+          "descriptionMarkdown": "On a Mac, `gpux-testkit lane a c d` passes:\n- lane A on the test platform;\n- lane C through `MetalHeadlessRenderer` with committed `metal` goldens;\n- lane D in real AppKit windows with in-app input injection.\n\nVerified on a Mac or in the macOS CI jobs.",
+          "verification": "manual"
+        },
+        {
+          "id": "M-2",
+          "descriptionMarkdown": "The macOS entries of the lane A, C and D CI jobs are enabled and green once the sibling epic `macos-only-metal-port-and-ci-repair` has landed. Verified by a green workflow run.",
+          "verification": "manual"
+        }
+      ]
+    },
+    {
+      "id": "LANEG",
+      "title": "Lane G: local real GPU",
+      "descriptionMarkdown": "Timing, performance and hardware-GPU proof run locally on the developer machine and never gate CI.",
+      "criteria": [
+        {
+          "id": "G-1",
+          "descriptionMarkdown": "`gpux-testkit lane g` runs on the developer's hardware GPU (Windows DX12 primary; Linux and macOS when run there):\n- lane B in the `local-gpu` profile (headed with `--headed`), including `@timing` and `@dpr2`;\n- lanes C and D on the hardware adapter, with relative probes only;\n- the gpux benchmarks (`gpux-platform`'s `randomized_element_tree` Criterion suite and `#[gpux::bench]` benches).\n\nIt writes a timing summary under `artifacts-temp/testkit/g/`. `lane g --list` shows the selection. Verified by a local run.",
+          "verification": "manual"
+        }
+      ]
+    },
+    {
+      "id": "DOCS",
+      "title": "Documentation, skill and memory decoupled from RayX",
+      "descriptionMarkdown": "gpux guidance routes validation and runtime proof through its own lanes.",
+      "criteria": [
+        {
+          "id": "DOCS-1",
+          "descriptionMarkdown": "The following describe the gpux lanes and `gpux-testkit` instead of RayX proof, and keep RayX only as a consumer:\n- `CLAUDE.md` and `AGENTS.md` (Validation, Consumers, AgentX note);\n- `.claude/skills/gpux/SKILL.md` (validation routing);\n- `.claude/skills/gpux/references/multithreaded-wasm-apps.md`, which builds threaded WASM with `gpux-testkit web build`;\n- `docs/installation-and-usage.md`, with its RayX/.NET-specific notes removed or marked consumer-only.\n\n`LINUX-WSL.md` gains the gpux lane commands for WSL, and its RayX sections are marked consumer-only. Verified by review.",
+          "verification": "manual"
+        },
+        {
+          "id": "DOCS-2",
+          "descriptionMarkdown": "gpux memory is synchronized with the proven behaviour:\n- **Validation:** `repository/validation` rules and state (lanes, headless CI with backend assertion, local real-GPU proof).\n- **Renderer:** `renderer` and `renderer/wgpu` rules (WebGPU and forced WebGL2 proof through lane B), and the `gpui` diagnostics rule (`diagnostics` feature).\n- **Platforms:** `platform/web` (lane B instead of headed counters), `platform/mobile` (lanes E/F instead of RayX's xtask) and `platform/desktop` (macOS proof through lanes C/D).\n- **AgentX:** the `repository/agentx-memory` rule naming RayX as the runtime-proof repository.\n\nThe epic's new decisions are promoted into `.agentx/memory/decisions/`. Verified by review.",
+          "verification": "manual"
+        }
+      ]
+    }
+  ]
+}

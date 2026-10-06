@@ -1,0 +1,1696 @@
+{
+  "schemaVersion": 6,
+  "epicId": "gpux-cross-platform-test-lanes",
+  "revision": 1,
+  "title": "Gpux-owned test lanes for every platform",
+  "validationMode": "sprint",
+  "repositories": [
+    {
+      "id": "gpux",
+      "path": ".",
+      "role": "execution"
+    }
+  ],
+  "boundaries": {
+    "repositoryIds": [
+      "gpux"
+    ],
+    "forbiddenPaths": [
+      "gpux:vendor/wgpu/**",
+      "gpux:.agentx/experiments/**",
+      "gpux:ToFix/**",
+      "gpux:.agentx/tasks/frame-effects-navigation-transitions/**",
+      "gpux:.agentx/tasks/frame-family-component-transitions/**",
+      "gpux:.agentx/tasks/gpux-fixed-sticky-positioning/**",
+      "gpux:.agentx/tasks/gpux-text-rendering-quality-performance/**",
+      "gpux:.agentx/tasks/gpux-wgpu-platform-renderers/**",
+      "gpux:.agentx/tasks/high-quality-wasm-text-rendering/**",
+      "gpux:.agentx/tasks/html-element-dom-overlay/**",
+      "gpux:.agentx/tasks/html-island-wasm/**",
+      "gpux:.agentx/tasks/keyed-sticky-stacking/**",
+      "gpux:.agentx/tasks/macos-only-metal-port-and-ci-repair/**",
+      "gpux:.agentx/tasks/shader-effects-and-screen-transitions/**"
+    ]
+  },
+  "checks": [
+    {
+      "id": "check-test-text",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "TEXT-1",
+        "TEXT-2"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/test_support_text.rs`. It covers bundled-font metrics, wrapping, truncation and multi-run widths through `#[gpux::test(text = \"bundled\")]` and the explicit constructor, and asserts that the default is still `NoopTextSystem`.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "test_support_text"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 5
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/gpui_platform/**",
+        "crates/gpui_wgpu/src/**",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-motion-clock",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "CLOCK-1"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/deterministic_motion_clock.rs`. Long press, fling decay, smooth programmatic scroll, scrollbar repeat, animation progress and seed reproducibility are driven only by `advance_clock`.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "deterministic_motion_clock"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 6
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/scheduler/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-motion-no-wall-clock",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [
+        "CLOCK-2"
+      ],
+      "descriptionMarkdown": "No direct wall-clock reads in the motion and timing modules. `git grep` exits 1 when nothing matches.",
+      "argv": [
+        "git",
+        "grep",
+        "-nE",
+        "Instant::now\\(\\)",
+        "--",
+        "crates/gpui/src/gestures.rs",
+        "crates/gpui/src/elements/scroll_activity.rs",
+        "crates/gpui/src/elements/animation.rs",
+        "crates/gpui/src/elements/animated_frame.rs",
+        "crates/gpui/src/elements/list.rs",
+        "crates/gpui/src/elements/div.rs",
+        "crates/gpui/src/elements/img.rs",
+        "crates/gpui/src/elements/editable_text"
+      ],
+      "expected": {
+        "exitCode": 1
+      },
+      "inputs": [
+        "crates/gpui/src/**"
+      ]
+    },
+    {
+      "id": "check-input-sim",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "SIM-1",
+        "SIM-2",
+        "SIM-3"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/input_simulation_completeness.rs`. It covers IME composition, key-up, click counts, held-button drags with modifiers, recorded window/platform calls instead of panics, and the window size/scale options.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "input_simulation_completeness"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 8
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-locators",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "LOCATE-1"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/semantic_locators.rs`. It covers each query kind, each action, the zero- and multi-match errors, and `nth`/`within`.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "semantic_locators"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 7
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-headless-renderer",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "HEADLESS-1",
+        "HEADLESS-2"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui_wgpu/tests/headless_renderer.rs`. It renders reference scenes on the default adapter and on the host's software adapter (WARP on Windows), covering the adapter override, adapter identity, the shared device and the error paths. Single-threaded because device creation on DX12 must not run concurrently.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-wgpu-renderer",
+        "--features",
+        "test-support",
+        "--test",
+        "headless_renderer",
+        "--",
+        "--test-threads=1"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 6
+      },
+      "inputs": [
+        "crates/gpui_wgpu/**",
+        "crates/gpui/src/platform.rs",
+        "crates/gpui/src/platform/**",
+        "crates/gpui/src/scene.rs",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-screenshot-context",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "HEADLESS-3",
+        "HEADLESS-4"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/headless_screenshot_context.rs`. It covers the public constructor with text system and renderer, `capture_screenshot` at scale 1 and 2, and forwarded effect capabilities and GPU specs.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "headless_screenshot_context",
+        "--",
+        "--test-threads=1"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_platform/**",
+        "crates/gpui_wgpu/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-image-compare",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "PIX-1"
+      ],
+      "descriptionMarkdown": "New group `crates/gpux_conformance/tests/image_compare.rs`. Relative probes, tolerance and differing-pixel ratio, backend-named goldens, and the update mode and failure artifacts, all checked with synthetic images.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-conformance",
+        "--test",
+        "image_compare"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 8
+      },
+      "inputs": [
+        "crates/gpux_conformance/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-golden-policy",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "PIX-2"
+      ],
+      "descriptionMarkdown": "New group `crates/gpux_conformance/tests/golden_policy.rs`. Size cap, naming convention, no orphan goldens, and goldens excluded from the package manifest.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-conformance",
+        "--test",
+        "golden_policy"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3
+      },
+      "inputs": [
+        "crates/gpux_conformance/**"
+      ]
+    },
+    {
+      "id": "check-catalog-coverage",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "SCENE-1"
+      ],
+      "descriptionMarkdown": "New group `crates/gpux_conformance/tests/catalog_coverage.rs`. At least 30 scenes, every required area covered, unique ids, and complete scene metadata.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-conformance",
+        "--test",
+        "catalog_coverage"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3
+      },
+      "inputs": [
+        "crates/gpux_conformance/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-catalog-wasm",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [
+        "SCENE-2"
+      ],
+      "descriptionMarkdown": "The catalog and host abstraction compile for the browser target on the stable toolchain (the threaded build is proven by lane B).",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-conformance",
+        "--target",
+        "wasm32-unknown-unknown",
+        "--no-default-features"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "inputs": [
+        "crates/gpux_conformance/**",
+        "crates/gpui/**",
+        "crates/gpui_platform/**",
+        "crates/gpui_web/**",
+        "crates/gpui_wgpu/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-lane-a",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "A-1"
+      ],
+      "descriptionMarkdown": "New group `crates/gpux_conformance/tests/lane_a.rs`. Every lane-A scene on `TestPlatform`, with bundled text, the deterministic clock and semantic locators.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-conformance",
+        "--test",
+        "lane_a"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 30
+      },
+      "inputs": [
+        "crates/gpux_conformance/**",
+        "crates/gpui/**",
+        "crates/gpui_platform/**",
+        "crates/gpui_wgpu/src/cosmic_text_system.rs",
+        "crates/gpux_fonts/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-lane-c-software",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "C-1"
+      ],
+      "descriptionMarkdown": "New group `crates/gpux_conformance/tests/lane_c.rs`, run on the host's software adapter (WARP on Windows), against the committed `warp` goldens and relative probes at scale 1 and 2.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-conformance",
+        "--test",
+        "lane_c",
+        "--",
+        "--test-threads=1"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 30
+      },
+      "inputs": [
+        "crates/gpux_conformance/**",
+        "crates/gpui/**",
+        "crates/gpui_wgpu/**",
+        "crates/gpui_platform/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ],
+      "environment": {
+        "GPUX_WGPU_ADAPTER": "software"
+      }
+    },
+    {
+      "id": "check-testkit-tests",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "LANES-2"
+      ],
+      "descriptionMarkdown": "New crate tests in `tooling/testkit`. They cover argument parsing, lane selection and `--list`, summary-line output and exit codes, parsing of result lines from stdout/logcat/Playwright fixtures, prerequisite errors, and Windows `.cmd` shim resolution.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-testkit"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 10
+      },
+      "inputs": [
+        "tooling/testkit/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-testkit-lane-list",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [
+        "LANES-2"
+      ],
+      "descriptionMarkdown": "`lane a --list` prints the lane-A selection without running it.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "a",
+        "--list"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "stdoutPattern": "lane_a"
+      },
+      "inputs": [
+        "tooling/testkit/**",
+        "crates/gpux_conformance/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-lane-d",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "D-1"
+      ],
+      "descriptionMarkdown": "Lane D on the implementer's desktop (Windows): real windows, surface `render_to_image` probes, resize and scale changes, `SendInput` translation, clipboard round trip, and clean close. Needs an interactive desktop session.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "d"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 10,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "timeoutSeconds": 3600
+    },
+    {
+      "id": "check-web-build",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [
+        "B-1"
+      ],
+      "descriptionMarkdown": "Threaded WASM build of `web_host` with nightly `-Z build-std` and the `Cargo.lock` wasm-bindgen version, plus binary verification (shared memory, `wasm_thread_entry_point`, `web_init` constructors). Depends on locally installed toolchains.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "web",
+        "build",
+        "--verify"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "stdoutPattern": "threaded wasm verified"
+      },
+      "reuse": false,
+      "timeoutSeconds": 3600
+    },
+    {
+      "id": "check-web-diagnostics-compile",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [
+        "B-2"
+      ],
+      "descriptionMarkdown": "The gpux-named `diagnostics` feature compiles for the browser target.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-web",
+        "--target",
+        "wasm32-unknown-unknown",
+        "--no-default-features",
+        "--features",
+        "diagnostics"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "inputs": [
+        "crates/gpui_web/**",
+        "crates/gpui_wgpu/**",
+        "crates/gpui/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-web-diagnostics-names",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "B-2"
+      ],
+      "descriptionMarkdown": "New source-guard group `crates/gpui_web/tests/diagnostics_names.rs`. Every published `__rayx*` global has a primary `__gpux*` counterpart, `rayx_diagnostics` aliases `diagnostics` in every manifest, and both island opt-ins are honoured.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-web",
+        "--test",
+        "diagnostics_names"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3
+      },
+      "inputs": [
+        "crates/gpui_web/**",
+        "crates/gpui_wgpu/**",
+        "crates/gpui/Cargo.toml"
+      ]
+    },
+    {
+      "id": "check-web-canary",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "B-3"
+      ],
+      "descriptionMarkdown": "Playwright `@canary` specs on the implementer's real GPU (new headless). Checks WebGPU startup, the backend and `crossOriginIsolated` fixtures, a non-flat canvas screenshot and a located click.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "web",
+        "e2e",
+        "--profile",
+        "local-gpu",
+        "--grep",
+        "@canary"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "timeoutSeconds": 3600
+    },
+    {
+      "id": "check-web-pr",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "B-4"
+      ],
+      "descriptionMarkdown": "Every `@pr` browser spec on the implementer's real GPU. The `ci-linux-swiftshader` profile is proven by the CI job (B-5).",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "web",
+        "e2e",
+        "--profile",
+        "local-gpu",
+        "--grep",
+        "@pr"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 30,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "timeoutSeconds": 7200
+    },
+    {
+      "id": "check-android-build",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [
+        "E-1"
+      ],
+      "descriptionMarkdown": "Builds the Android conformance host APK from gpux alone. Needs the Android SDK, NDK, JDK 17 and cargo-ndk on the implementer's machine.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "android",
+        "build"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "reuse": false,
+      "timeoutSeconds": 3600
+    },
+    {
+      "id": "check-android-run",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "E-2"
+      ],
+      "descriptionMarkdown": "Runs the lane-E scenes on the first available adb device or emulator, and parses logcat results.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "android",
+        "run"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 10,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "timeoutSeconds": 3600
+    },
+    {
+      "id": "check-lane-g-list",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [
+        "G-1"
+      ],
+      "descriptionMarkdown": "`lane g --list` shows the local real-GPU selection, including the benchmark suite. The run itself is verified manually on the developer machine.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "g",
+        "--list"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "stdoutPattern": "randomized_element_tree"
+      },
+      "inputs": [
+        "tooling/testkit/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-no-rayx-proof",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [
+        "LANES-3"
+      ],
+      "descriptionMarkdown": "No gpux guidance, workflow, tool or crate routes validation or runtime proof through RayX. Historical changelogs and `LINUX-WSL.md`'s consumer-only RayX sections are excluded. `git grep` exits 1 when nothing matches.",
+      "argv": [
+        "git",
+        "grep",
+        "-nE",
+        "Runtime proof happens in RayX|RayX's Test Suite|RayX's xtask|apps/test_suite|xtask -- app|runtime-proof host",
+        "--",
+        "CLAUDE.md",
+        "AGENTS.md",
+        "README.md",
+        "docs",
+        ".claude/skills/gpux",
+        ".github",
+        "tooling",
+        "crates",
+        ":(exclude)docs/changelog"
+      ],
+      "expected": {
+        "exitCode": 1
+      },
+      "inputs": [
+        "CLAUDE.md",
+        "AGENTS.md",
+        "README.md",
+        "docs/**",
+        ".claude/skills/gpux/**",
+        ".github/**",
+        "tooling/**",
+        "crates/**"
+      ]
+    },
+    {
+      "id": "final-fmt",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [],
+      "descriptionMarkdown": "Formatting for the whole workspace, as CI runs it.",
+      "argv": [
+        "cargo",
+        "fmt",
+        "--check"
+      ],
+      "expected": {
+        "exitCode": 0
+      }
+    },
+    {
+      "id": "final-clippy",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [],
+      "descriptionMarkdown": "Clippy on every package the epic touches.",
+      "argv": [
+        "cargo",
+        "clippy",
+        "-p",
+        "gpux",
+        "-p",
+        "gpux-macros",
+        "-p",
+        "gpux-platform",
+        "-p",
+        "gpux-wgpu-renderer",
+        "-p",
+        "gpux-web",
+        "-p",
+        "gpux-mobile",
+        "-p",
+        "gpux-conformance",
+        "-p",
+        "gpux-testkit",
+        "--all-targets",
+        "--no-deps",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "expected": {
+        "exitCode": 0
+      }
+    },
+    {
+      "id": "final-web-check",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [],
+      "descriptionMarkdown": "The existing stable web compile check, unchanged.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-web",
+        "--target",
+        "wasm32-unknown-unknown",
+        "--no-default-features"
+      ],
+      "expected": {
+        "exitCode": 0
+      }
+    },
+    {
+      "id": "final-tests",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [],
+      "descriptionMarkdown": "Full test suites of the touched packages. The whole `gpux` crate is included because the executor-clock change touches core runtime state machines (gestures, scrolling, animation, lists) that every component consumes. Single-threaded because GPU-backed tests must not create DX12 devices concurrently.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "-p",
+        "gpux-macros",
+        "-p",
+        "gpux-platform",
+        "-p",
+        "gpux-wgpu-renderer",
+        "-p",
+        "gpux-web",
+        "-p",
+        "gpux-conformance",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "--test-threads=1"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 700
+      },
+      "timeoutSeconds": 7200
+    },
+    {
+      "id": "final-package",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [],
+      "descriptionMarkdown": "Packaging gate for the two new publishable crates and the manifest changes.",
+      "argv": [
+        "cargo",
+        "package",
+        "--workspace"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "timeoutSeconds": 7200
+    }
+  ],
+  "finalCheckIds": [
+    "final-fmt",
+    "final-clippy",
+    "final-web-check",
+    "final-tests",
+    "final-package"
+  ],
+  "sprints": [
+    {
+      "id": "s1-test-platform-foundations",
+      "title": "Test-platform foundations: real text, deterministic time, complete input, semantic locators",
+      "dependsOn": [],
+      "memoryScopes": [
+        "gpui",
+        "gpui/input",
+        "gpui/text",
+        "gpui/positioning-scroll",
+        "platform"
+      ],
+      "tasks": [
+        {
+          "id": "t01-bundled-test-text",
+          "title": "Bundled-font text system for tests",
+          "descriptionMarkdown": "Add a `test-support` function in `gpui_platform` returning `CosmicTextSystem::new_without_system_fonts(\"IBM Plex Sans\")` loaded with `gpux_fonts::ALL`. Make `gpui_wgpu` available to it on every desktop OS, including macOS.\n\n- Add the `text = \"bundled\"` argument to `#[gpux::test]` in `crates/gpui_macros/src/test.rs`. It builds the context with `TestAppContext::build_with_text_system`. Keep the generated code resolvable for crates that depend on `gpux` and `gpux-platform`, as `bench.rs` already does.\n- Write the test group `crates/gpui/tests/test_support_text.rs`:\n  - exact advances and line heights for fixed ASCII strings in IBM Plex Sans and Lilex;\n  - wrap points at a fixed width;\n  - ellipsis truncation;\n  - widths of multi-run styled text;\n  - an unknown family falling back to a bundled font;\n  - the default context still on `NoopTextSystem`.\n- Record expected values on Windows. Lane A CI on Linux and macOS (A-2) proves they are OS-independent.",
+          "criterionIds": [
+            "TEXT-1",
+            "TEXT-2"
+          ],
+          "designIds": [
+            "d-test-text"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-test-text"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_macros/src/test.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_platform/src/gpui_platform.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_wgpu/src/cosmic_text_system.rs"
+            }
+          ]
+        },
+        {
+          "id": "t02-executor-clock",
+          "title": "Executor clock as the single motion time source",
+          "descriptionMarkdown": "Replace the wall-clock reads listed in `d-clock` with `BackgroundExecutor::now()` reached through the app or window context:\n\n- `gestures.rs` (`filter_at`, `handle_event_at` and `tick_momentum_at` callers, plus deadline checks);\n- `scroll_activity.rs`;\n- `animation.rs`, `animated_frame.rs`;\n- `list.rs`, `div.rs` (scroll momentum, scrollbars);\n- `editable_text/` (programmatic scroll);\n- `img.rs` (loading timers).\n\nKeep every production constant and behaviour.\n\nWrite the test group `crates/gpui/tests/deterministic_motion_clock.rs`. Using only `advance_clock`, `run_until_parked` and simulated frames, it asserts:\n- long press fires at its threshold and not before;\n- touch fling decays to a deterministic rest offset;\n- smooth programmatic scroll reaches its target at its duration, and a wheel cancels it;\n- scrollbar repeat cadence;\n- `with_animation` progress at fixed times;\n- reduced motion bypass;\n- identical results for the same seed.",
+          "criterionIds": [
+            "CLOCK-1",
+            "CLOCK-2"
+          ],
+          "designIds": [
+            "d-clock"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-motion-clock",
+            "check-motion-no-wall-clock"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/gestures.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/scroll_activity.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/animation.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/list.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/div.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/executor.rs"
+            }
+          ]
+        },
+        {
+          "id": "t03-input-simulation",
+          "title": "Complete input simulation, recorded platform calls, window options",
+          "descriptionMarkdown": "**Input simulation.** Add to `crates/gpui/src/app/test_context.rs`:\n- IME composition helpers through the focused input handler (marked-text replace and update, commit, cancel);\n- `simulate_key_up`;\n- click with an explicit click count;\n- `simulate_drag` along a path with a held button and modifiers.\n\nAll of them go through `Window::dispatch_event` or the input handler, exactly as platforms do.\n\n**Recorded platform calls.** In `TestWindow`/`TestPlatform`, replace `unimplemented!()` (minimize, zoom, show-window-menu, hide, reveal-path, run) with recorded calls readable from tests.\n\n**Window options.** Add test window options for logical size, scale factor and display size; the defaults are unchanged.\n\n**Test group:** `crates/gpui/tests/input_simulation_completeness.rs`.",
+          "criterionIds": [
+            "SIM-1",
+            "SIM-2",
+            "SIM-3"
+          ],
+          "designIds": [
+            "d-input-sim"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-input-sim"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/app/test_context.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/platform/test/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/platform/test/platform.rs"
+            }
+          ]
+        },
+        {
+          "id": "t04-semantic-locators",
+          "title": "Semantic locators over devtools snapshots",
+          "descriptionMarkdown": "Add `Query`/`Locator` to gpux test-support. Queries resolve against `Window::devtools_frame_snapshot()` after parking and a frame.\n\n- **Query fields:** role, name (exact/contains), text, value, global-id suffix, type name, `within`, `nth`, `all`.\n- **Actions** use the t03 simulation at bounds centres or along paths: click, hover, `drag_to`, scroll, type into focused input, press.\n- **Errors** for zero or multiple matches list the candidates.\n- **Text form:** `Query` has a serializable text form for later in-app and browser hosts.\n- Locators never depend on `debug_selector`.\n\n**Test group:** `crates/gpui/tests/semantic_locators.rs`.",
+          "criterionIds": [
+            "LOCATE-1"
+          ],
+          "designIds": [
+            "d-locators"
+          ],
+          "dependsOn": [
+            "t03-input-simulation"
+          ],
+          "checkIds": [
+            "check-locators"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window.rs",
+              "symbol": "Window::devtools_frame_snapshot"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s2-wgpu-headless-renderer",
+      "title": "Port Zed's wgpu headless renderer to gpux for Linux and Windows",
+      "dependsOn": [
+        "s1-test-platform-foundations"
+      ],
+      "memoryScopes": [
+        "renderer/wgpu",
+        "platform/desktop",
+        "repository/upstream-sync"
+      ],
+      "tasks": [
+        {
+          "id": "t05-headless-renderer-port",
+          "title": "WgpuRendererCore, WgpuHeadlessRenderer and platform wiring",
+          "descriptionMarkdown": "Follow `.claude/skills/gpux/references/update-from-zed-pr.md` for Zed #64718 and #64842. The upstream diffs can be fetched with `gh pr diff 64718 --repo zed-industries/zed`.\n\n**Renderer.**\n- Extract a surface-independent `WgpuRendererCore` from `wgpu_renderer.rs`: pipelines, atlas, effect resources, intermediate textures, `encode_scene_to_view`, readback. The surface renderer keeps its formats and recovery paths.\n- Add `WgpuContext::new_headless()`.\n- Add `WgpuHeadlessRenderer`, which implements `PlatformHeadlessRenderer` with a per-size COPY_SRC target, gpux's non-sRGB opaque target format and premultiplied encoded-sRGB paint.\n- Cache the headless device per process in a static that is never dropped.\n\n**Adapters.**\n- Add the `GPUX_WGPU_ADAPTER` override (`software`, `hardware` or a substring); only the headless context honours it.\n- Expose adapter identity.\n\n**Platform wiring.** `gpui_platform::current_headless_renderer()` returns the renderer on Linux and Windows (Windows stays DX12, so WARP when no GPU).\n\n**Test group** `crates/gpui_wgpu/tests/headless_renderer.rs`, run with `--features test-support`:\n- reference scenes with probes: solid quads, rounded and dashed borders, shadows, paths, text glyphs, polychrome sprites, clipping, opacity;\n- a software-adapter run (WARP on Windows; lavapipe on Linux when installed);\n- adapter identity;\n- device reuse across renderers;\n- error paths for invalid, zero and oversize targets.\n\nOptionally re-run the group in the WSL Ubuntu 24.04 clone on lavapipe.",
+          "criterionIds": [
+            "HEADLESS-1",
+            "HEADLESS-2"
+          ],
+          "designIds": [
+            "d-headless-renderer"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-headless-renderer"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_wgpu/src/wgpu_renderer.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_wgpu/src/wgpu_context.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_wgpu/src/wgpu_atlas.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_platform/src/gpui_platform.rs",
+              "symbol": "current_headless_renderer"
+            }
+          ]
+        },
+        {
+          "id": "t06-screenshot-test-contexts",
+          "title": "Screenshot-capable test contexts with real capabilities",
+          "descriptionMarkdown": "**Trait.** Add default `effect_capabilities()`/`gpu_specs()` methods to `PlatformHeadlessRenderer`. Implement them for the wgpu and Metal headless renderers, and forward them from `TestWindow`.\n\n**Constructors.** Add a public test-support constructor that builds a `TestAppContext` from a text system and a renderer factory, and `VisualTestContext::capture_screenshot()`. Screenshots use the explicit scale factor, an opaque background and a fixed path sample count.\n\n**Test group:** `crates/gpui/tests/headless_screenshot_context.rs`. It captures through `gpui_platform::current_headless_renderer()` at scale 1 and 2, asserts probes, and checks that effect frames render when capabilities say they are supported.",
+          "criterionIds": [
+            "HEADLESS-3",
+            "HEADLESS-4"
+          ],
+          "designIds": [
+            "d-screenshot-context"
+          ],
+          "dependsOn": [
+            "t05-headless-renderer-port"
+          ],
+          "checkIds": [
+            "check-screenshot-context"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/platform.rs",
+              "symbol": "PlatformHeadlessRenderer"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/platform/test/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/app/test_context.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/app/headless_app_context.rs"
+            }
+          ]
+        },
+        {
+          "id": "t07-port-provenance",
+          "title": "Record the upstream port provenance",
+          "descriptionMarkdown": "Record the port as the gpux skill requires:\n- commit bodies name Zed #64718 and #64842 with their merge commits and the gpux adaptations;\n- `docs/history/zed-imports.tsv` and `docs/history/upstream-provenance.md` record the port;\n- the `update-from-zed-gpui-closure.md` patch-surface checklist gains an entry: the headless renderer is gpux-adapted, supports Windows, and must be preserved on imports.",
+          "criterionIds": [
+            "HEADLESS-5"
+          ],
+          "designIds": [
+            "d-headless-renderer"
+          ],
+          "dependsOn": [
+            "t05-headless-renderer-port"
+          ],
+          "checkIds": [],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "docs/history/upstream-provenance.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": ".claude/skills/gpux/references/update-from-zed-pr.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s3-conformance-catalog-lanes-a-c",
+      "title": "Conformance catalog with lane A (behaviour) and lane C (offscreen pixels)",
+      "dependsOn": [
+        "s2-wgpu-headless-renderer"
+      ],
+      "memoryScopes": [
+        "repository/packaging",
+        "repository/validation",
+        "gpui",
+        "renderer/wgpu"
+      ],
+      "tasks": [
+        {
+          "id": "t08-conformance-crate-and-compare",
+          "title": "gpux-conformance crate with image comparison and golden policy",
+          "descriptionMarkdown": "Create `crates/gpux_conformance` in publishable shape:\n- package `gpux-conformance`, `[lib] name = \"gpux_conformance\"`, workspace metadata, a `description`, Apache-2.0;\n- a workspace member, plus a dependency key `gpux_conformance = { package = \"gpux-conformance\", ... }`;\n- a row in the README crate table;\n- `exclude` for `tests/goldens/**`.\n\nAdd the modules `probe`, `compare` and `report`, the latter defining the `gpux-conformance: PASS|FAIL|SKIP <scene> <detail>` line protocol.\n\n**Test groups:**\n- `tests/image_compare.rs`: relative probes, tolerance and differing-pixel ratio, backend-named goldens, `GPUX_UPDATE_SNAPSHOTS`, failure artifacts under `artifacts-temp/testkit/`.\n- `tests/golden_policy.rs`: 32 KiB cap, naming, orphans, package exclusion.",
+          "criterionIds": [
+            "PIX-1",
+            "PIX-2"
+          ],
+          "designIds": [
+            "d-catalog",
+            "d-compare"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-image-compare",
+            "check-golden-policy"
+          ]
+        },
+        {
+          "id": "t09-scene-catalog",
+          "title": "Scene catalog, scripts and the test-platform host",
+          "descriptionMarkdown": "Implement the following in `gpux_conformance`:\n- `SceneSpec`: id, areas, size, scales, lanes, build, script, expectations;\n- the `Script` steps from `d-catalog`;\n- the `Host` trait, with `TestHost` (test platform, bundled text, executor clock, optional headless renderer);\n- at least 30 deterministic scenes covering every area listed in SCENE-1.\n\nScenes use only bundled fonts and the executor clock. Their expectations encode current behaviour.\n\n**Test group:** `tests/catalog_coverage.rs`. It checks area coverage, unique ids and complete metadata, and keeps the catalog compiling for `wasm32-unknown-unknown` without default features.",
+          "criterionIds": [
+            "SCENE-1",
+            "SCENE-2"
+          ],
+          "designIds": [
+            "d-catalog"
+          ],
+          "dependsOn": [
+            "t08-conformance-crate-and-compare"
+          ],
+          "checkIds": [
+            "check-catalog-coverage",
+            "check-catalog-wasm"
+          ]
+        },
+        {
+          "id": "t10-lane-a-suites",
+          "title": "Lane A suites",
+          "descriptionMarkdown": "Write `tests/lane_a.rs`, which runs every lane-A scene through `TestHost`. For each scene it covers:\n- layout bounds with bundled text;\n- scripted interactions through semantic locators: click, drag, wheel, touch, type, IME, keys;\n- state assertions: focus, selection, scroll offsets, drag-and-drop results;\n- gestures and animations under `advance_clock`;\n- devtools semantics and the accessibility tree.\n\nThe suite must not need a GPU or display.",
+          "criterionIds": [
+            "A-1"
+          ],
+          "designIds": [
+            "d-catalog",
+            "d-test-text",
+            "d-clock",
+            "d-locators",
+            "d-input-sim"
+          ],
+          "dependsOn": [
+            "t09-scene-catalog"
+          ],
+          "checkIds": [
+            "check-lane-a"
+          ]
+        },
+        {
+          "id": "t11-lane-c-suites",
+          "title": "Lane C suites with software-adapter goldens",
+          "descriptionMarkdown": "Write `tests/lane_c.rs`. It renders every lane-C scene through `TestHost` with `current_headless_renderer()` at scale 1 and 2, asserting relative probes for all scenes and per-backend goldens for the curated subset.\n\n- **Coverage:** dashed borders, sRGB swatches, AA edges, clipping, opacity, text glyphs, effects.\n- **WARP goldens:** generate them locally with `GPUX_WGPU_ADAPTER=software GPUX_UPDATE_SNAPSHOTS=1`, then verify without the update flag.\n- **Lavapipe goldens:** these come from the CI job's artifacts in t12, because lavapipe output depends on the runner's Mesa version.",
+          "criterionIds": [
+            "C-1"
+          ],
+          "designIds": [
+            "d-catalog",
+            "d-compare",
+            "d-headless-renderer"
+          ],
+          "dependsOn": [
+            "t09-scene-catalog"
+          ],
+          "checkIds": [
+            "check-lane-c-software"
+          ]
+        },
+        {
+          "id": "t12-ci-lanes-a-c",
+          "title": "CI for lanes A and C, pinned images, Linux and macOS tests",
+          "descriptionMarkdown": "Update `.github/workflows`:\n- pin `ubuntu-24.04`, `windows-2025` and `macos-15`;\n- turn the existing `test` job into a matrix over the three OSes;\n- add `lane-a` on the three OSes;\n- add `lane-c`:\n  - on `ubuntu-24.04`: install `mesa-vulkan-drivers` and set `VK_DRIVER_FILES` to the lavapipe ICD found at runtime;\n  - on `windows-2025`: set `GPUX_WGPU_ADAPTER=software`;\n  - on `macos-15`;\n- upload `artifacts-temp/testkit/**` on failure.\n\nmacOS entries stay disabled until `macos-only-metal-port-and-ci-repair` lands (M-2 enables them).\n\nCommit the `lavapipe` goldens produced by the first CI run's artifacts. Pushing a branch for the CI run needs the owner's approval.",
+          "criterionIds": [
+            "A-2",
+            "C-2"
+          ],
+          "designIds": [
+            "d-ci"
+          ],
+          "dependsOn": [
+            "t10-lane-a-suites",
+            "t11-lane-c-suites"
+          ],
+          "checkIds": [],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": ".github/workflows/ci.yml"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s4-testkit-and-windowed-lane",
+      "title": "gpux-testkit entry point and lane D (native windows)",
+      "dependsOn": [
+        "s3-conformance-catalog-lanes-a-c"
+      ],
+      "memoryScopes": [
+        "repository/validation",
+        "repository/packaging",
+        "platform/desktop"
+      ],
+      "tasks": [
+        {
+          "id": "t13-testkit-cli",
+          "title": "gpux-testkit lane runner",
+          "descriptionMarkdown": "Create `tooling/testkit` in publishable shape: package `gpux-testkit`, bin `gpux-testkit`, workspace member, README row.\n\n**Commands.** `lane <ids…>` with `--list`, `--scene` and `--grep`:\n- lanes a and c delegate to the conformance test targets;\n- the other lanes are wired in later sprints and fail clearly until then.\n\n**Behaviour:**\n- prerequisite checks with actionable errors;\n- Windows `.cmd` shim resolution;\n- parsing of conformance result lines;\n- the final summary line and exit code;\n- artifacts under `artifacts-temp/testkit/<lane>/`.\n\n**Tests:** the crate's own tests, including fixture-based parsing of stdout, logcat and Playwright list-reporter output.",
+          "criterionIds": [
+            "LANES-2"
+          ],
+          "designIds": [
+            "d-testkit",
+            "d-lanes"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-testkit-tests",
+            "check-testkit-lane-list"
+          ]
+        },
+        {
+          "id": "t14-windowed-host-lane-d",
+          "title": "Desktop host and lane D",
+          "descriptionMarkdown": "Add the `desktop_host` example to `gpux_conformance`, running scenes through an `AppHost` on `gpui_platform::application()`. Then wire `gpux-testkit lane d` to launch it per scene batch and parse its results.\n\n**Coverage:**\n- window open and present;\n- `render_to_image` probes on the real surface;\n- resize and scale-factor changes;\n- clipboard round trip;\n- close without panics;\n- OS input:\n  - X11 (Xvfb) through XTest/`xdotool`;\n  - Windows through `SendInput`;\n  - macOS through in-app injection.\n\n**Local proof.** Prove it on Windows. Also run under the WSL clone with `xvfb-run` (X11) and WSLg (Wayland), and record what works.",
+          "criterionIds": [
+            "D-1"
+          ],
+          "designIds": [
+            "d-windowed-host",
+            "d-testkit",
+            "d-catalog"
+          ],
+          "dependsOn": [
+            "t13-testkit-cli"
+          ],
+          "checkIds": [
+            "check-lane-d"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_linux/src/linux/x11/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_windows/src/window.rs"
+            }
+          ]
+        },
+        {
+          "id": "t15-ci-lane-d",
+          "title": "CI for lane D",
+          "descriptionMarkdown": "Add the `lane-d` job.\n\n**`ubuntu-24.04`:**\n- Xvfb, xdotool and lavapipe, with the WAYLAND_DISPLAY variable unset;\n- a `weston --backend=headless` Wayland attempt, whose outcome is recorded in `docs/testing.md`.\n\n**`windows-2025`:** if `SendInput` is unavailable in the hosted session, fall back to in-app injection and record it.\n\n**`macos-15`:** disabled until the sibling epic lands.\n\nFailure artifacts are uploaded.",
+          "criterionIds": [
+            "D-2"
+          ],
+          "designIds": [
+            "d-ci"
+          ],
+          "dependsOn": [
+            "t14-windowed-host-lane-d"
+          ],
+          "checkIds": [],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": ".github/workflows/ci.yml"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s5-browser-lane",
+      "title": "Lane B: gpux-owned browser host, harness and specs",
+      "dependsOn": [
+        "s4-testkit-and-windowed-lane"
+      ],
+      "memoryScopes": [
+        "platform/web",
+        "renderer/wgpu",
+        "gpui"
+      ],
+      "tasks": [
+        {
+          "id": "t16-web-build-serve",
+          "title": "Threaded web host build and serve",
+          "descriptionMarkdown": "**The `web_host` example** (cdylib):\n- initializes through `gpui_platform::web_init`;\n- picks the scene and backend from the URL;\n- exposes `globalThis.__gpuxConformance`: `ready`, `backend`, `locate(query)` returning CSS-pixel bounds, and `probes`.\n\n**`gpux-testkit web build [--verify]`:**\n- nightly `-Z build-std=std,panic_abort` with atomics and shared-memory flags;\n- the wasm-bindgen CLI version taken from `Cargo.lock`;\n- generated `index.html`;\n- verification of shared memory, the `wasm_thread_entry_point` export and the explicit constructor path.\n\n**`gpux-testkit web serve`:** COOP/COEP/CORP headers and the SPA fallback.\n\nNeither command uses RayX.",
+          "criterionIds": [
+            "B-1"
+          ],
+          "designIds": [
+            "d-web-lane",
+            "d-testkit"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-web-build"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/src/platform.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_platform/src/gpui_platform.rs"
+            }
+          ]
+        },
+        {
+          "id": "t17-gpux-diagnostics-names",
+          "title": "gpux-named diagnostics with RayX aliases",
+          "descriptionMarkdown": "**Feature.** Add `diagnostics` to `gpux`, `gpux-wgpu-renderer` and `gpux-web`, with `rayx_diagnostics = [\"diagnostics\"]` aliases. Gate the existing collectors on `diagnostics`.\n\n**Globals.** Publish `__gpux*` globals as primary. Keep publishing the `__rayx*` names, which the alias feature enables until the RayX follow-up.\n\n**Opt-in.** Honour both `?gpux-html-island=1` and `?rayx-html-island=1`.\n\n**Test group:** source-guard `crates/gpui_web/tests/diagnostics_names.rs`.",
+          "criterionIds": [
+            "B-2"
+          ],
+          "designIds": [
+            "d-diagnostics-naming"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-web-diagnostics-compile",
+            "check-web-diagnostics-names"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/src/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/src/html_island.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/src/html_element.rs"
+            }
+          ]
+        },
+        {
+          "id": "t18-playwright-harness",
+          "title": "Playwright harness, profiles, fixtures and canary",
+          "descriptionMarkdown": "Create `tooling/web-e2e` with `package.json`, `pnpm-lock.yaml`, `playwright.config.ts` and `fixtures/`.\n\n**Profiles:**\n- `ci-linux-swiftshader`: headless, one `--enable-features=Vulkan,CDPScreenshotNewSurface`, `--enable-unsafe-webgpu --use-angle=swiftshader --use-vulkan=swiftshader`;\n- `local-gpu`: `channel: 'chromium'` new headless, or `--headed`;\n- `windows-software`: `--use-angle=d3d11-warp --enable-unsafe-webgpu`.\n\n**Fixtures:**\n- backend assertion (WebGPU unless forced WebGL2);\n- `crossOriginIsolated`;\n- console and panic failures with an explicit allow-list.\n\n**Specs:** `@canary` specs.\n\n**Testkit wiring.** `gpux-testkit web e2e --profile --grep` starts `web serve`, runs Playwright through pnpm and maps the results to the summary line.",
+          "criterionIds": [
+            "B-3"
+          ],
+          "designIds": [
+            "d-web-lane"
+          ],
+          "dependsOn": [
+            "t16-web-build-serve",
+            "t17-gpux-diagnostics-names"
+          ],
+          "checkIds": [
+            "check-web-canary"
+          ]
+        },
+        {
+          "id": "t19-browser-specs",
+          "title": "Browser specs for every gpui_web area",
+          "descriptionMarkdown": "Write tagged specs (`@pr`/`@nightly`/`@dpr2`, plus `@timing` for lane G) against conformance scenes, using trusted CDP input at located bounds and screenshot probes:\n- `backend` (forced WebGL2, stubbed `navigator.gpu`);\n- `viewport` (DPR 1/2, ResizeObserver);\n- `window` (frame loop, close cleanup);\n- `pointer`;\n- `wheel` (all delta modes);\n- `keyboard`;\n- `touch`;\n- `ime` (`Input.imeSetComposition`);\n- `clipboard`;\n- `html-element`;\n- `html-island` (opt-in);\n- `text-fallback`, which takes over `examples/hello_web/test_canvas_fallback.mjs`;\n- `threads`, which takes over `test_queue.mjs`;\n- `assets` (SVG through `Svg::external_path`);\n- `cursor`;\n- `lifecycle` (focus, blur, visibility);\n- `viewport-safe-area`;\n- a Dawn-validation smoke that renders every pipeline and fails on any WebGPU validation error.\n\nDelete the migrated `.mjs` scripts once their specs pass.",
+          "criterionIds": [
+            "B-4"
+          ],
+          "designIds": [
+            "d-web-lane"
+          ],
+          "dependsOn": [
+            "t18-playwright-harness"
+          ],
+          "checkIds": [
+            "check-web-pr"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/src/events.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/src/ime_mirror.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/examples/hello_web"
+            }
+          ]
+        },
+        {
+          "id": "t20-ci-lane-b",
+          "title": "CI for lane B",
+          "descriptionMarkdown": "Add a `lane-b` workflow on `ubuntu-24.04`:\n- **build job:** a pinned nightly with `rust-src` and wasm32, wasm-bindgen from `Cargo.lock`, then `gpux-testkit web build --verify`, uploading the dist;\n- **sharded e2e jobs:** Playwright `--with-deps` install and the `ci-linux-swiftshader` profile, uploading blob reports;\n- **report job:** merges the blob reports.\n\nPRs run `@canary` and `@pr` at DPR 1; a nightly schedule runs everything except `@timing`. Pushing a branch for the CI run needs the owner's approval.",
+          "criterionIds": [
+            "B-5"
+          ],
+          "designIds": [
+            "d-ci"
+          ],
+          "dependsOn": [
+            "t19-browser-specs"
+          ],
+          "checkIds": []
+        }
+      ]
+    },
+    {
+      "id": "s6-android-lane",
+      "title": "Lane E: Android host, emulator and device runs",
+      "dependsOn": [
+        "s5-browser-lane"
+      ],
+      "memoryScopes": [
+        "platform/mobile"
+      ],
+      "tasks": [
+        {
+          "id": "t21-android-host-build",
+          "title": "Android conformance host and build tooling",
+          "descriptionMarkdown": "**Feasibility first.** Confirm that hosted `ubuntu-24.04` runners provide KVM for this repository's plan, and record the result.\n\n**Host.** Add the `android_host` example: a NativeActivity cdylib with `android-native-activity` and `android_main` running `AppHost`.\n\n**Pixels.** Implement `render_to_image` for the Android window by delegating to the shared wgpu renderer.\n\n**Build tooling.** Create `tooling/android`: a minimal Gradle project, JDK 17, pinned SDK, NDK and `compileSdk`. Add `gpux-testkit android build`, which runs cargo-ndk for `x86_64` and `arm64-v8a` and assembles the APK, with actionable prerequisite errors.",
+          "criterionIds": [
+            "E-1"
+          ],
+          "designIds": [
+            "d-android-lane",
+            "d-testkit"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-android-build"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/android/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/android/jni.rs"
+            }
+          ]
+        },
+        {
+          "id": "t22-android-run-collect",
+          "title": "Android run, input and result collection",
+          "descriptionMarkdown": "Add `gpux-testkit android run [--serial]`:\n- `adb install` and `am start`;\n- parse logcat result lines;\n- drive touch with `adb shell input tap/swipe`, including a pan and a fling;\n- pause/resume through home/`am` to assert surface loss and recovery;\n- record the backend actually selected (Vulkan, or the GL fallback);\n- pull PNGs into `artifacts-temp/testkit/e/`.\n\nProve it on an available emulator or USB device.",
+          "criterionIds": [
+            "E-2"
+          ],
+          "designIds": [
+            "d-android-lane"
+          ],
+          "dependsOn": [
+            "t21-android-host-build"
+          ],
+          "checkIds": [
+            "check-android-run"
+          ]
+        },
+        {
+          "id": "t23-ci-lane-e",
+          "title": "CI for lane E",
+          "descriptionMarkdown": "Add a `lane-e` job on `ubuntu-24.04`:\n- KVM enabled through udev rules;\n- `reactivecircus/android-emulator-runner` with an x86_64 image;\n- `gpux-testkit android build` and `android run`;\n- logcat and PNG artifacts uploaded.\n\nIt runs nightly, and on PRs that change `crates/gpui_mobile/`, `crates/gpui_wgpu/`, `crates/gpux_conformance/` or `tooling/android/`. If KVM is unavailable, record the blocker and the local-device fallback in `docs/testing.md`.",
+          "criterionIds": [
+            "E-3"
+          ],
+          "designIds": [
+            "d-ci"
+          ],
+          "dependsOn": [
+            "t22-android-run-collect"
+          ],
+          "checkIds": []
+        }
+      ]
+    },
+    {
+      "id": "s7-local-gpu-lane-and-docs",
+      "title": "Lane G, documentation, skill and memory decoupled from RayX",
+      "dependsOn": [
+        "s6-android-lane"
+      ],
+      "memoryScopes": [
+        "repository/validation",
+        "repository/agentx-memory",
+        "platform/web",
+        "platform/mobile",
+        "platform/desktop",
+        "renderer",
+        "renderer/wgpu",
+        "gpui"
+      ],
+      "tasks": [
+        {
+          "id": "t24-lane-g-local-gpu",
+          "title": "Local real-GPU lane",
+          "descriptionMarkdown": "Add `gpux-testkit lane g`. It refuses to run under `CI` and runs:\n- lane B in the `local-gpu` profile (optionally `--headed`), including `@timing` and `@dpr2`;\n- lanes C and D on the hardware adapter with relative probes only;\n- `cargo bench -p gpux-platform --bench randomized_element_tree` and the `#[gpux::bench]` suites.\n\nIt writes a timing summary under `artifacts-temp/testkit/g/`. Prove it with a local run on the Windows DX12 machine.",
+          "criterionIds": [
+            "G-1"
+          ],
+          "designIds": [
+            "d-lane-g",
+            "d-testkit"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-lane-g-list"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_platform/benches/randomized_element_tree.rs"
+            }
+          ]
+        },
+        {
+          "id": "t25-docs-decouple-rayx",
+          "title": "docs/testing.md and RayX-free gpux guidance",
+          "descriptionMarkdown": "Write `docs/testing.md`, covering:\n- the lane table;\n- commands and prerequisites per host;\n- CI cadence;\n- the golden update flow;\n- `GPUX_WGPU_ADAPTER`, `GPUX_UPDATE_SNAPSHOTS` and `VK_DRIVER_FILES`;\n- the verified Chromium flags and troubleshooting.\n\nRewrite these to route validation through the lanes and `gpux-testkit`, keeping RayX only as a consumer with the API-pairing rule:\n- `CLAUDE.md` and `AGENTS.md`: Validation, Consumers and the AgentX note;\n- `.claude/skills/gpux/SKILL.md`;\n- the skill references `multithreaded-wasm-apps.md`, `installation-and-usage.md`, `macos-linux-wasm-prerequisites.md`, `windows-prerequisites.md`, `sticky-positioning.md`, `update-from-zed-pr.md`, `update-from-zed-gpui-closure.md`, `update-from-wgpu.md` and `update-from-gpui-mobile.md`;\n- `docs/installation-and-usage.md`: remove the RayX/.NET notes.\n\nIn `LINUX-WSL.md`, add the gpux lane commands for WSL and mark the RayX sections consumer-only.",
+          "criterionIds": [
+            "LANES-1",
+            "LANES-3",
+            "DOCS-1"
+          ],
+          "designIds": [
+            "d-no-rayx",
+            "d-lanes",
+            "d-docs-memory"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-no-rayx-proof"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "CLAUDE.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "AGENTS.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": ".claude/skills/gpux/SKILL.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": ".claude/skills/gpux/references/multithreaded-wasm-apps.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "docs/installation-and-usage.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "LINUX-WSL.md"
+            }
+          ]
+        },
+        {
+          "id": "t26-memory-sync",
+          "title": "Synchronize gpux memory with the proven lanes",
+          "descriptionMarkdown": "Update the rules and state of these memory domains:\n- `repository/validation`: lanes, headless CI with the backend assertion, local real-GPU proof, testkit commands;\n- `renderer` and `renderer/wgpu`: WebGPU and forced-WebGL2 proof through lane B, plus the headless renderer;\n- `gpui`: the `diagnostics` feature name;\n- `platform/web`: lane B instead of headed counters;\n- `platform/mobile`: lanes E/F instead of RayX's xtask;\n- `platform/desktop`: macOS proof through lanes C/D;\n- `repository/agentx-memory`: no RayX runtime-proof repository.\n\nPrepare the epic's decisions for promotion, and keep the indexes consistent.",
+          "criterionIds": [
+            "DOCS-2"
+          ],
+          "designIds": [
+            "d-docs-memory"
+          ],
+          "dependsOn": [
+            "t25-docs-decouple-rayx"
+          ],
+          "checkIds": []
+        }
+      ]
+    },
+    {
+      "id": "s8-apple-lanes",
+      "title": "Apple lanes: macOS desktop lanes and lane F (iOS), verified on a Mac or in macOS CI",
+      "dependsOn": [
+        "s7-local-gpu-lane-and-docs"
+      ],
+      "memoryScopes": [
+        "platform/desktop",
+        "platform/mobile"
+      ],
+      "tasks": [
+        {
+          "id": "t27-macos-desktop-lanes",
+          "title": "Lanes A, C and D on macOS",
+          "descriptionMarkdown": "This needs the sibling epic `macos-only-metal-port-and-ci-repair` to have landed. Then:\n- run `gpux-testkit lane a c d` on a Mac (lane C through `MetalHeadlessRenderer`, lane D in AppKit windows with in-app injection);\n- commit the `metal` goldens;\n- enable and green the macOS entries of the `test`, `lane-a`, `lane-c` and `lane-d` CI jobs.\n\nWithout a Mac, use the macOS CI jobs and their artifacts as the evidence.",
+          "criterionIds": [
+            "M-1",
+            "M-2"
+          ],
+          "designIds": [
+            "d-windowed-host",
+            "d-catalog",
+            "d-ci"
+          ],
+          "dependsOn": [],
+          "checkIds": []
+        },
+        {
+          "id": "t28-ios-host-build",
+          "title": "iOS conformance host and build tooling",
+          "descriptionMarkdown": "**Host.** Add the `ios_host` example (staticlib) running `AppHost`.\n\n**Pixels.** Implement `render_to_image` for the iOS window through the shared wgpu renderer, keeping the Metal-specific init and CoreText.\n\n**Build tooling.** Create `tooling/ios` (XcodeGen `project.yml`, minimal UIKit shell). Add `gpux-testkit ios build --simulator`, which runs `xcodebuild` without signing.\n\nVerify on a Mac or in macOS CI.",
+          "criterionIds": [
+            "F-1"
+          ],
+          "designIds": [
+            "d-ios-lane",
+            "d-testkit"
+          ],
+          "dependsOn": [],
+          "checkIds": [],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/ios/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/ios/ffi.rs"
+            }
+          ]
+        },
+        {
+          "id": "t29-ios-run-and-ci",
+          "title": "iOS Simulator runs, device flow and CI",
+          "descriptionMarkdown": "**`gpux-testkit ios run --simulator`:**\n- boots a pinned Simulator;\n- runs `simctl install` and `launch --console-pty`, and parses the result lines;\n- copies PNGs from `simctl get_app_container`;\n- asserts lifecycle, Metal-through-wgpu startup, CoreText metrics within tolerance, and in-app touch;\n- reports pixel steps as SKIP with the reason when the hosted Simulator lacks Metal.\n\n**CI.** Add a `lane-f` job on `macos-15`, running nightly and on path-filtered PRs.\n\n**Docs.** Document the local iPhone flow (signing team, `xcrun devicectl`) in `docs/testing.md`, and add the iOS facts to `platform/mobile` memory.",
+          "criterionIds": [
+            "F-2",
+            "F-3"
+          ],
+          "designIds": [
+            "d-ios-lane",
+            "d-ci"
+          ],
+          "dependsOn": [
+            "t28-ios-host-build"
+          ],
+          "checkIds": []
+        }
+      ]
+    }
+  ]
+}

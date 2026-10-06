@@ -1,0 +1,570 @@
+{
+  "schemaVersion": 6,
+  "epicId": "gpux-cross-platform-test-lanes",
+  "decisions": [
+    {
+      "id": "d-lanes",
+      "requirementIds": [
+        "LANES",
+        "LANEA",
+        "LANEB",
+        "LANEC",
+        "LANED",
+        "LANEE",
+        "LANEF",
+        "LANEG",
+        "MACOS"
+      ],
+      "descriptionMarkdown": "Tests are organized into seven lanes named by where they can run: A behaviour (test platform), B browser, C native offscreen pixels, D native windowed platform, E Android, F iOS, G local real GPU. The scope table is the contract.\n\n- Every gpux test belongs to exactly one lane through its location and selector:\n  - `crates/*/tests` and `crates/gpux_conformance/tests/lane_a.rs` for A;\n  - `lane_c.rs` for C;\n  - the desktop host for D;\n  - `tooling/web-e2e` for B;\n  - the Android and iOS hosts for E/F;\n  - `gpux-testkit lane g` for G.\n- Cadence: A, C and D run on every PR on all three desktop OSes. B runs a PR subset plus a nightly full set. E and F run nightly and on mobile/renderer/catalog path changes. G is local only.",
+      "invariantsMarkdown": "- A lane never silently degrades. A missing prerequisite or unavailable capability is reported as skipped with a reason, and counts as a failure when the lane is required to cover it.\n- Timing thresholds exist only in lane G.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/agentx-memory/2026-10-05-repository-agentx-memory-taxonomy-transplant.md"
+        }
+      ]
+    },
+    {
+      "id": "d-no-rayx",
+      "requirementIds": [
+        "LANES",
+        "DOCS"
+      ],
+      "descriptionMarkdown": "gpux owns its runtime proof. No gpux test, tool, workflow, document or skill step requires a RayX checkout, a RayX app, the RayX DevKit, RayX's xtask or RayX CI.\n\n- RayX remains a consumer. The rule that a gpux change to an API RayX uses ships with the matching RayX change stays as a compatibility rule.\n- RayX-specific follow-ups are recorded in the requirements' excluded scope and carried by a later RayX epic.\n- `LINUX-WSL.md` keeps its RayX consumer sections, marked consumer-only, until that epic moves them.",
+      "rationaleMarkdown": "The owner rejected an epic that relied on RayX tests (2026-10-07). A library published to crates.io must be verifiable from its own repository. RayX consumer coverage stays valuable but belongs to RayX."
+    },
+    {
+      "id": "d-test-text",
+      "requirementIds": [
+        "TEXT"
+      ],
+      "descriptionMarkdown": "A test-support function in `gpui_platform` (behind `test-support`) builds the deterministic test text system: `gpui_wgpu::CosmicTextSystem::new_without_system_fonts` loaded with `gpux_fonts::ALL`, falling back to IBM Plex Sans.\n\n- It is used on Windows, Linux and macOS alike, so lane A layout is identical on every desktop OS. macOS CoreText and iOS CoreText are covered by lanes D/F.\n- `#[gpux::test(text = \"bundled\")]` (gpui_macros) builds the `TestAppContext` through `TestAppContext::build_with_text_system`, and the same function is public for manual construction.\n- Without the argument nothing changes: `NoopTextSystem` stays the default.",
+      "invariantsMarkdown": "- The test text system never loads system fonts.\n- Adding fonts for tests means adding them to `gpux_fonts`, never including files from other crates.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_macros/src/test.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/src/gpui_platform.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/cosmic_text_system.rs",
+          "symbol": "CosmicTextSystem::new_without_system_fonts"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/platform/test/platform.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-clock",
+      "requirementIds": [
+        "CLOCK"
+      ],
+      "descriptionMarkdown": "The executor clock (`BackgroundExecutor::now()`, backed by the scheduler `Clock`) is the single time source for GPUI motion and timing state machines.\n\n- Call sites read `now` from the app's executor and pass it into the existing `*_at(now)` entry points. `TouchGestureRecognizer` already has `filter_at`, `handle_event_at` and `tick_momentum_at`; `ScrollActivity`, scrollbar repeat, animations, `animated_frame`, list/div momentum, editable-text programmatic scroll and image loading timers get equivalent `now` parameters or read the executor clock.\n- In production the clock is real time (`web_time::Instant` on WASM).\n- Under `TestDispatcher` it is the `TestClock`, so `advance_clock` drives motion deterministically.",
+      "invariantsMarkdown": "- No behaviour or timing constant changes in production.\n- Zed's touch recognizer stays the owner of tap, pan, fling, long press and touch drag; only its time source changes.\n- Scrollbar thumb publication stays in the input turn.",
+      "rationaleMarkdown": "Wall-clock reads (`Instant::now()` in gestures.rs, scroll_activity.rs, animation.rs, list.rs and others) make fling, long-press, smooth-scroll and animation tests either slow (real sleeps) or flaky. The scheduler already exposes a fake clock to tests.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/gestures.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/scroll_activity.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/animation.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/animated_frame.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/list.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/img.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/executor.rs",
+          "symbol": "BackgroundExecutor::now"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/input/2026-10-05-gpui-input-upstream-input-model.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-08-21-gpui-positioning-scroll-immediate-scrollbar-publication.md"
+        }
+      ]
+    },
+    {
+      "id": "d-input-sim",
+      "requirementIds": [
+        "SIM"
+      ],
+      "descriptionMarkdown": "Test-support input additions sit beside Zed's input model, never as a parallel layer, and reach the window through the same paths platforms use.\n\n- `VisualTestContext`/`TestAppContext` gain:\n  - IME composition through the window's input handler (marked-text replace, update, unmark/commit, cancel);\n  - `simulate_key_up`;\n  - `simulate_click_count(position, button, count)`;\n  - `simulate_drag(path, button, modifiers)`, which emits down, held-button moves and up.\n- `TestWindow`/`TestPlatform` replace `unimplemented!()` in minimize, zoom, show-window-menu, hide, reveal-path and run with recorded calls that tests can read.\n- A test window options struct sets logical size, scale factor and display size; the defaults stay unchanged.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/app/test_context.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/platform/test/window.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/platform/test/platform.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/input/2026-10-05-gpui-input-upstream-input-model.md"
+        }
+      ]
+    },
+    {
+      "id": "d-locators",
+      "requirementIds": [
+        "LOCATE"
+      ],
+      "descriptionMarkdown": "A `Locator` API in gpux test-support resolves `Query` values against the latest `Window::devtools_frame_snapshot()`.\n\n- **Query fields:** role, name (exact/contains), text, value, global-id suffix, type name, `within`, `nth`.\n- **Actions** drive the simulated input of `d-input-sim` at the element's bounds center or along paths: click, hover, `drag_to`, scroll, focus plus type, press.\n- **Resolution** happens after `run_until_parked` and a frame. Zero or multiple matches return an error listing candidates.\n- **Serialization:** `Query` serializes to a small text form, so the in-app hosts of lanes B/D/E/F and the browser bridge reuse the same vocabulary.",
+      "invariantsMarkdown": "- Locators never depend on `debug_selector`, which is recorded only in debug builds.\n- They read only public snapshot data.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "symbol": "Window::devtools_frame_snapshot"
+        }
+      ]
+    },
+    {
+      "id": "d-headless-renderer",
+      "requirementIds": [
+        "HEADLESS",
+        "LANEC"
+      ],
+      "descriptionMarkdown": "Port the shape of Zed #64718 and #64842 onto gpux's renderer:\n\n- `WgpuContext::new_headless()` (no compositor surface) selects an adapter and device.\n- A surface-independent `WgpuRendererCore` (pipelines, atlas, effects resources, scene encoding through gpux's `encode_scene_to_view` and intermediate textures, readback) is used by both the surface renderer and `WgpuHeadlessRenderer`.\n- `WgpuHeadlessRenderer` owns a COPY_SRC render target sized per request and implements `PlatformHeadlessRenderer`.\n- The headless device is created once per process in a static and never dropped (#64842). Tests on DX12 still run single-threaded.\n- **Windows** stays DX12-only (WARP when no GPU).\n- **Linux** uses the Vulkan|GL policy (lavapipe/llvmpipe when no GPU).\n- **Target format:** a non-sRGB format (BGRA8 or RGBA8 Unorm, matching the desktop surface preference), opaque, with ordinary paint in premultiplied encoded sRGB.\n- **Adapter override:** `GPUX_WGPU_ADAPTER` (`software`, `hardware` or a name substring) is honoured only by the headless context.\n- **Adapter identity:** name, backend, driver and device type are exposed.\n- **Wiring:** `gpui_platform::current_headless_renderer()` returns it on Linux and Windows. There is no WASM variant, because blocking readback is impossible in browsers.",
+      "invariantsMarkdown": "- The surface renderer's behaviour, formats and recovery paths are unchanged.\n- `vendor/wgpu` is untouched.\n- Capability answers come from the device actually created.\n- The upstream provenance ledgers record the port.",
+      "rationaleMarkdown": "Zed merged a Linux-only wgpu headless renderer on 2026-09-25. The 2026-10-05 import replaced it with an `Ok(None)` stub because gpux's renderer diverged (effects, intermediate textures, sRGB paint contract, DX12 on Windows). gpux renders Windows through wgpu too, so the port covers Windows/WARP as well, which upstream cannot.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/wgpu_renderer.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/wgpu_context.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/wgpu_atlas.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/src/gpui_platform.rs",
+          "symbol": "current_headless_renderer"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/platform.rs",
+          "symbol": "PlatformHeadlessRenderer"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/desktop/2026-07-08-platform-desktop-windows-wgpu-dx12-policy.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/renderer/wgpu/2026-09-30-renderer-wgpu-srgb-compositing.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/renderer/wgpu/2026-07-04-renderer-wgpu-shader-effects-backend-capabilities.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-gpux-wgpu-fork.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/upstream-sync/2026-08-07-repository-upstream-sync-self-contained-upstream-provenance.md"
+        }
+      ]
+    },
+    {
+      "id": "d-screenshot-context",
+      "requirementIds": [
+        "HEADLESS"
+      ],
+      "descriptionMarkdown": "`PlatformHeadlessRenderer` gains default methods for effect capabilities and GPU specs. `TestWindow` forwards them, so effect paths render in tests exactly as on a real device.\n\n- A public test-support constructor builds a `TestAppContext` from a text system and a renderer factory; `gpui_platform` provides the default factory `current_headless_renderer`.\n- `VisualTestContext::capture_screenshot()` renders the current frame through the window's headless renderer.\n- Screenshots use the explicit scale factor of the test window options (`d-input-sim`) and an opaque background. The path sample count is fixed, so images do not depend on adapter MSAA support.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/app/test_context.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/app/headless_app_context.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/platform/test/window.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/renderer/wgpu/2026-07-04-renderer-wgpu-shader-effects-backend-capabilities.md"
+        }
+      ]
+    },
+    {
+      "id": "d-catalog",
+      "requirementIds": [
+        "SCENE",
+        "LANEA",
+        "LANEC",
+        "PIX"
+      ],
+      "descriptionMarkdown": "A new publishable crate, `crates/gpux_conformance` (package `gpux-conformance`, lib `gpux_conformance`), owns the conformance suite.\n\n**Catalog (`scenes/`).** Each `SceneSpec` has:\n- id and covered areas;\n- logical size and scales;\n- lanes;\n- a build function returning the root view;\n- an interaction `Script`: steps such as Locate, Click, Drag, Wheel, Touch, Type, Ime, Key, Advance, ExpectSemantics, ExpectBounds, Probe, Snapshot;\n- expectations.\n\n**Hosts.** A `Host` trait runs scripts:\n- `TestHost` on `TestPlatform`, with real text, the deterministic clock and an optional headless renderer;\n- `AppHost` inside a real platform app, with in-app input injection, `render_to_image` and result lines.\n\n**Reporting.** A line protocol, `gpux-conformance: PASS|FAIL|SKIP <scene> <detail>`, which `gpux-testkit` parses from stdout, logcat or the browser console.\n\n**Image comparison** (`d-compare`).\n\n**Hosts as examples of the crate:**\n- `desktop_host` (bin, lane D);\n- `web_host` (cdylib, lane B);\n- `android_host` (cdylib with `android_main`, lane E);\n- `ios_host` (staticlib, lane F).\n\nLane A and C suites are integration tests `tests/lane_a.rs` and `tests/lane_c.rs`.",
+      "invariantsMarkdown": "- Scene definitions exist once and every host uses them.\n- Scenes use only bundled fonts, no network, and the executor clock.\n- The crate keeps the publishing shape. Goldens are excluded from the package.\n- Expectations encode current gpux behaviour, including fixed/sticky positioning, wheel propagation, unclipped deferred overlays and effect frames; they never change it.",
+      "rationaleMarkdown": "One catalog, many hosts, gives every platform the same coverage, avoids writing the same scenario per platform, and keeps behaviour and pixel expectations next to each other.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-crates-io-packaging.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-fixed-sticky-positioning.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-fixed-sticky-positioned-scene-order.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-06-gpui-positioning-scroll-fixed-containing-block.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-nested-scroll-wheel-propagation.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-universal-sticky-push-out.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-06-29-gpui-frame-pipeline-unclipped-deferred-overlays.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-effects/2026-07-06-gpui-frame-effects-frame-effects-elements.md"
+        }
+      ]
+    },
+    {
+      "id": "d-compare",
+      "requirementIds": [
+        "PIX",
+        "LANEC"
+      ],
+      "descriptionMarkdown": "Pixel assertions use relative probes by default: colour at a point within a tolerance, region uniformity, region equal or different, change after an action. Expected colours are written in encoded sRGB, matching the paint contract.\n\n- **Goldens** are a curated subset per backend id. The id is derived from the adapter identity: `lavapipe`, `llvmpipe`, `warp`, `metal`, `swiftshader-webgpu`; hardware adapters never get committed goldens.\n- **Tolerance:** per-channel ±3 by default and a maximum differing-pixel ratio, both overridable per scene with a reason.\n- **Storage:** small PNGs under `crates/gpux_conformance/tests/goldens/<backend>/`, regenerated with `GPUX_UPDATE_SNAPSHOTS=1`.\n- **Failures** write actual, expected and diff images under `artifacts-temp/testkit/<lane>/`.",
+      "invariantsMarkdown": "- No golden for hardware adapters.\n- No Git LFS.\n- A size cap of 32 KiB per PNG, enforced by a policy test.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/renderer/wgpu/2026-09-30-renderer-wgpu-srgb-compositing.md"
+        }
+      ]
+    },
+    {
+      "id": "d-testkit",
+      "requirementIds": [
+        "LANES",
+        "LANED",
+        "LANEB",
+        "LANEE",
+        "LANEF",
+        "LANEG"
+      ],
+      "descriptionMarkdown": "A new publishable crate, `tooling/testkit` (package `gpux-testkit`, bin `gpux-testkit`), is the single entry point.\n\n- **Commands:** `lane <ids…> [--list|--scene|--grep]`, `web build|serve|e2e`, `android build|run`, `ios build|run`.\n- **Behaviour:**\n  - it orchestrates cargo, wasm-bindgen, pnpm/Playwright, cargo-ndk/Gradle/adb and xcodegen/xcodebuild/simctl;\n  - it resolves Windows `.cmd` shims;\n  - it checks host prerequisites with actionable errors;\n  - it parses `gpux-conformance` result lines;\n  - it ends every command with `gpux-testkit: <p> passed, <f> failed, <s> skipped`, exiting nonzero on failure or zero selected tests;\n  - it writes artifacts under `artifacts-temp/testkit/<lane>/`.\n- **Windows-runner software adapters:** CI passes `GPUX_WGPU_ADAPTER=software` explicitly for lane C on runners without a GPU.",
+      "invariantsMarkdown": "- No network access beyond the package managers it invokes.\n- No RayX paths.\n- The crate keeps the publishing shape: no files from outside the crate; the Node project and mobile scaffolding live in non-crate folders under `tooling/`.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-crates-io-packaging.md"
+        }
+      ]
+    },
+    {
+      "id": "d-windowed-host",
+      "requirementIds": [
+        "LANED",
+        "MACOS"
+      ],
+      "descriptionMarkdown": "Lane D launches `desktop_host` through `gpui_platform::application()`, opening real windows per scene batch.\n\n- **Pixels:** `render_to_image` on the real surface (X11/Wayland/Windows wgpu, macOS Metal).\n- **Window behaviour:** resize and scale changes are driven by the platform where it allows them, otherwise through window APIs. A clipboard round trip goes through the platform clipboard.\n- **OS input:**\n  - X11 under Xvfb uses XTest through `xdotool`, so `gpui_linux` translates real X events;\n  - Windows uses `SendInput` on the host session;\n  - macOS uses in-app injection, because hosted macOS has no accessibility permission for CGEvent posting.\n- **Wayland:** a headless compositor (`weston --backend=headless`) is attempted in CI, and is otherwise local (WSLg).",
+      "invariantsMarkdown": "- Real windows keep non-stretch DXGI scaling on Windows.\n- The host never changes production platform behaviour; it only drives it.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_linux/src/linux/x11/window.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_windows/src/window.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/desktop/2026-07-08-platform-desktop-windows-wgpu-dxgi-scaling.md"
+        }
+      ]
+    },
+    {
+      "id": "d-web-lane",
+      "requirementIds": [
+        "LANEB"
+      ],
+      "descriptionMarkdown": "Lane B covers `gpui_web` in a real browser.\n\n**App and build.**\n- `web_host` is a multithreaded browser app that initializes through `gpui_platform::web_init` and selects its scene from the URL (`?scene=<id>&backend=webgpu|webgl`).\n- It exposes `globalThis.__gpuxConformance`: ready flag, active backend, semantic `locate(query)` returning CSS-pixel bounds, and in-app probe results.\n- `gpux-testkit web build` uses nightly `-Z build-std`, the wasm-bindgen CLI pinned to `Cargo.lock`, and binary verification. `web serve` sends COOP/COEP/CORP headers.\n\n**Harness.** Playwright in `tooling/web-e2e` (pnpm, committed lockfile). Specs drive trusted CDP input at located bounds and assert screenshot probes. Launch profiles:\n- `ci-linux-swiftshader`: headless shell, with `--enable-unsafe-webgpu --enable-features=Vulkan,CDPScreenshotNewSurface --use-angle=swiftshader --use-vulkan=swiftshader`;\n- `local-gpu`: new headless `channel: 'chromium'`, or `--headed`;\n- `windows-software`: `--use-angle=d3d11-warp`.\n\nOnly one `--enable-features` switch is ever passed, because Chromium keeps the last one.\n\n**Fixtures** every spec uses:\n- assert the backend (WebGPU unless the spec forces WebGL2);\n- assert `crossOriginIsolated`;\n- fail on console errors and panics.\n\n**Tags:** `@canary`, `@pr`, `@nightly`, `@dpr2`, `@timing` (lane G only). Assets are served from the origin through `Svg::external_path`.",
+      "invariantsMarkdown": "- A spec never passes on an unexpected backend.\n- Software profiles never assert timing.\n- No Node dependency is needed to build or test the Rust crates.",
+      "rationaleMarkdown": "Experiments on 2026-10-06 proved headless Chromium renders real WebGPU through SwiftShader on GPU-less Linux with exactly these flags, in both the headless shell and new headless. On Windows the headless shell has no WebGPU adapter unless ANGLE uses D3D11. Without a backend assertion, gpui_web's WebGL2 fallback lets WebGPU specs pass silently. The owner allowed headless CI runs on the condition of that assertion.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/platform.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/events.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/window.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/ime_mirror.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/examples/hello_web"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/web/2026-06-24-platform-web-multithreaded-wasm.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/web/2026-08-31-platform-web-explicit-wasm-constructors.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/renderer/wgpu/2026-08-07-renderer-wgpu-browser-backend-fallback.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/web/2026-06-29-platform-web-wasm-svg-asset-loading.md"
+        }
+      ]
+    },
+    {
+      "id": "d-diagnostics-naming",
+      "requirementIds": [
+        "LANEB"
+      ],
+      "descriptionMarkdown": "gpux-owned names become primary, with the old names as aliases:\n\n- **Feature:** `diagnostics` on `gpux`, `gpux-wgpu-renderer` and `gpux-web`; `rayx_diagnostics = [\"diagnostics\"]` stays as an alias feature.\n- **JS globals:** published as `__gpux*` (for example `__gpuxWgpuFrameDiagnostics`). Under the alias feature the existing `__rayx*` names are published too.\n- **HTML-island opt-in:** `?gpux-html-island=1`, with `?rayx-html-island=1` still honoured.\n\nRemoving the aliases is part of the RayX follow-up epic, after RayX migrates.",
+      "invariantsMarkdown": "- Diagnostics stay content-free and out of production builds.\n- No consumer-visible behaviour changes while the aliases exist.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/html_island.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/html_element.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/window.rs"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/web/2026-07-01-platform-web-html-island-url-opt-in.md"
+        }
+      ]
+    },
+    {
+      "id": "d-android-lane",
+      "requirementIds": [
+        "LANEE"
+      ],
+      "descriptionMarkdown": "`android_host` is a NativeActivity cdylib (`android-native-activity`) that runs the catalog through `AppHost`.\n\n- **Build:** `gpux-testkit android build` uses cargo-ndk for `x86_64` (emulator) and `arm64-v8a` (device), plus a minimal Gradle project under `tooling/android` (JDK 17, pinned SDK/NDK).\n- **Run:** `android run` runs `adb install`, `am start` and `logcat` parsing of the result lines, and pulls PNGs. It drives touch through `adb shell input tap/swipe` and lifecycle through `am`/home/back.\n- **Pixels:** the Android window gains `render_to_image` by delegating to the shared wgpu renderer.\n- **CI:** `reactivecircus/android-emulator-runner` on `ubuntu-24.04` with KVM and an x86_64 image; GL fallback is expected there.\n- **Feasibility first:** the sprint's first task verifies hosted KVM before building on it.",
+      "invariantsMarkdown": "- The Vulkan-preferred-with-GL-fallback policy is observed, not changed.\n- Foreground callbacks still drain without the platform state lock.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/window.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/jni.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-ios-lane",
+      "requirementIds": [
+        "LANEF"
+      ],
+      "descriptionMarkdown": "`ios_host` is a staticlib that runs the catalog through `AppHost` behind a minimal UIKit shell generated by XcodeGen (`tooling/ios/project.yml`).\n\n- **Build:** `gpux-testkit ios build --simulator` uses `xcodebuild` with no signing for the Simulator.\n- **Run:** `ios run --simulator` boots a pinned Simulator, runs `simctl install` and `simctl launch --console-pty` to parse the result lines, and copies PNGs from the app container.\n- **Pixels:** the iOS window gains `render_to_image` through the shared wgpu renderer.\n- **Hosted Simulator without Metal:** if Metal is unavailable there, pixel steps report SKIP with the reason, and local-device runs keep them.\n- **Device run:** the developer's signing team and `xcrun devicectl`.",
+      "invariantsMarkdown": "- iOS stays on the Metal-specific wgpu path and CoreText (`IosTextSystem`).\n- The `Application` is retained after `run()` returns.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/ios/window.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/ios/ffi.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-ci",
+      "requirementIds": [
+        "LANEA",
+        "LANEB",
+        "LANEC",
+        "LANED",
+        "LANEE",
+        "LANEF",
+        "MACOS"
+      ],
+      "descriptionMarkdown": "`.github/workflows` keeps the existing check, Clippy and package jobs, and adds lane jobs. Runner images are pinned: `ubuntu-24.04` (not `ubuntu-latest`, which moves to 26.04 on 2026-10-19), `windows-2025`, `macos-15`.\n\n| Job | Runners and setup | Trigger |\n|---|---|---|\n| test | the existing workspace tests, now a matrix over the three OSes | every PR |\n| lane-a | three OSes | every PR |\n| lane-c | `ubuntu-24.04` with `mesa-vulkan-drivers` and `VK_DRIVER_FILES` set to the lavapipe ICD; `windows-2025` with `GPUX_WGPU_ADAPTER=software`; `macos-15` | every PR |\n| lane-d | `ubuntu-24.04` with Xvfb, xdotool and lavapipe; `windows-2025`; `macos-15` | every PR |\n| lane-b | one build job, then sharded e2e jobs and a merged report on `ubuntu-24.04` | `@canary`/`@pr` at DPR 1 on PRs; everything except `@timing` nightly |\n| lane-e | `ubuntu-24.04` KVM emulator | nightly, and on path-filtered PRs |\n| lane-f | `macos-15` Simulator | nightly, and on path-filtered PRs |\n\n- Failure artifacts are uploaded from `artifacts-temp/testkit/`.\n- PR runs cancel superseded runs.\n- macOS entries stay disabled until the sibling macOS epic lands.\n- Lane G never runs in CI.",
+      "invariantsMarkdown": "- CI jobs are general runs of whole lanes. They never replace the focused sprint checks.\n- Pinned images change only deliberately, together with golden regeneration for that backend."
+    },
+    {
+      "id": "d-lane-g",
+      "requirementIds": [
+        "LANEG",
+        "LANEB"
+      ],
+      "descriptionMarkdown": "`gpux-testkit lane g` runs only on a developer machine. It runs:\n\n- lane B in the `local-gpu` profile (optionally headed), including `@timing` and `@dpr2`;\n- lanes C and D on the hardware adapter, with relative probes only, since hardware goldens are never committed;\n- `cargo bench -p gpux-platform --bench randomized_element_tree` and the `#[gpux::bench]` suites, with results summarized under `artifacts-temp/testkit/g/`.\n\nIt refuses to run when `CI` is set.",
+      "rationaleMarkdown": "The owner runs real-GPU proof locally (2026-10-07). Hosted GPU runners are too complex or expensive, and software adapters make timing meaningless.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/benches/randomized_element_tree.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-docs-memory",
+      "requirementIds": [
+        "DOCS",
+        "LANES"
+      ],
+      "descriptionMarkdown": "`docs/testing.md` is the human contract for the lanes:\n\n- lane table, commands and prerequisites per host;\n- CI cadence;\n- golden update flow;\n- environment variables (`GPUX_WGPU_ADAPTER`, `GPUX_UPDATE_SNAPSHOTS`, `VK_DRIVER_FILES`);\n- the verified Chromium flags and troubleshooting.\n\nThe following are rewritten to route validation through gpux lanes, keeping RayX only as a consumer:\n- `CLAUDE.md` and `AGENTS.md` (Validation, Consumers and AgentX sections);\n- the gpux skill (`SKILL.md` validation routing, `references/multithreaded-wasm-apps.md`);\n- `docs/installation-and-usage.md`.\n\nNew knowledge goes into existing domains: lanes and tooling into `repository/validation`, web into `platform/web`, mobile into `platform/mobile`, the renderer into `renderer/wgpu`. The epic's decisions are promoted after completion.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/agentx-memory/2026-10-05-repository-agentx-memory-taxonomy-transplant.md"
+        }
+      ]
+    }
+  ],
+  "memoryDecisionsConsidered": [
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-effects/2026-07-07-gpui-frame-effects-frame-family-naming.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-07-24-gpui-frame-pipeline-cached-thermal-frame-throttling.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-05-gpui-frame-pipeline-frame-demand-follow-up.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-30-gpui-layout-style-registry-taffy-0-14.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-conditional-prepaint-style-recompute.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-disable-taffy-content-size.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-frame-bounded-prepaint-style-handoff.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-measured-layout-invalidation.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-request-style-handoff.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-text-measurement-scope.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-opaque-scroll-capture-owner.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-sticky-hierarchy-traversal-order.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-07-02-platform-web-html-island-canonical-roots.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-07-03-platform-web-html-element-dom-overlay.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-07-03-platform-web-html-element-fit-styles-wheel.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-drop-z-crates.md"
+    }
+  ]
+}
