@@ -838,11 +838,12 @@ fn fs_quad(input: QuadVarying) -> @location(0) vec4<f32> {
             // Straight borders should start and end with a dash, so max_t is
             // reduced to cause this.
             max_t -= select(0.0, dash_length, unrounded);
+            // The border color is premultiplied, so dashes fade all of its channels.
             if (max_t >= 1.0) {
                 // Adjust dash gap to evenly divide max_t.
                 let dash_count = floor(max_t);
                 let dash_period = max_t / dash_count;
-                border_color.a *= dash_alpha(
+                border_color *= dash_alpha(
                     t,
                     dash_period,
                     dash_length,
@@ -855,7 +856,7 @@ fn fs_quad(input: QuadVarying) -> @location(0) vec4<f32> {
                 let dash_gap = max_t - dash_length;
                 if (dash_gap > 0.0) {
                     let dash_period = dash_length + dash_gap;
-                    border_color.a *= dash_alpha(
+                    border_color *= dash_alpha(
                         t,
                         dash_period,
                         dash_length,

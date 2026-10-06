@@ -5040,6 +5040,16 @@ mod tests {
     }
 
     #[test]
+    fn dashed_border_gaps_fade_the_whole_premultiplied_color() {
+        let shader = include_str!("shaders.wgsl");
+
+        // Fading only alpha leaves the premultiplied border color in every gap, where it adds
+        // over whatever lies beneath.
+        assert_eq!(shader.matches("border_color *= dash_alpha(").count(), 2);
+        assert!(!shader.contains("border_color.a *= dash_alpha("));
+    }
+
+    #[test]
     fn packed_screen_effect_layout_matches_wgsl_contract() {
         assert_eq!(size_of::<PackedScreenEffect>(), 96);
         assert_eq!(offset_of!(PackedScreenEffect, bounds), 16);
