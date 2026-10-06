@@ -2390,6 +2390,9 @@ pub struct Window {
     next_screen_effect_id: u64,
     next_screen_effect_snapshot_id: u64,
     next_hitbox_id: HitboxId,
+    /// How many fixed or sticky subtrees are prepainting. They paint in a
+    /// positioned layer, so their hitboxes hit-test in that layer too.
+    positioned_hitbox_depth: usize,
     pub(crate) next_tooltip_id: TooltipId,
     pub(crate) tooltip_bounds: Option<TooltipBounds>,
     pub(crate) next_frame_callbacks: Rc<RefCell<Vec<FrameCallback>>>,
@@ -3339,6 +3342,7 @@ impl Window {
             next_screen_effect_snapshot_id: 1,
             next_frame_callbacks,
             next_hitbox_id: HitboxId(0),
+            positioned_hitbox_depth: 0,
             next_tooltip_id: TooltipId::default(),
             tooltip_bounds: None,
             dirty_views: FxHashSet::default(),
@@ -8011,9 +8015,22 @@ impl Window {
     pub fn insert_hitbox(&mut self, bounds: Bounds<Pixels>, behavior: HitboxBehavior) -> Hitbox {
         self.invalidator.debug_assert_prepaint();
 
-        let id = self.next_hitbox_id;
+        let id = if self.positioned_hitbox_depth > 0 {
+            self.next_hitbox_id.positioned()
+        } else {
+            self.next_hitbox_id
+        };
         self.next_hitbox_id = self.next_hitbox_id.next();
         self.insert_hitbox_with_id(id, bounds, behavior)
+    }
+
+    /// Prepaints a fixed or sticky subtree. The subtree paints in a positioned
+    /// layer, so every hitbox it inserts hit-tests in that layer as well.
+    pub(crate) fn with_positioned_hitboxes<R>(&mut self, f: impl FnOnce(&mut Self) -> R) -> R {
+        self.positioned_hitbox_depth += 1;
+        let result = f(self);
+        self.positioned_hitbox_depth -= 1;
+        result
     }
 
     /// This method should only be called as part of the prepaint phase of element drawing.

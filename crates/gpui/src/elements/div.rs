@@ -2758,6 +2758,7 @@ impl Interactivity {
                     );
                 }
                 let bounds = positioned_bounds.visual_bounds;
+                let position = style.position;
                 let retain_style = !self.has_dynamic_paint_refinement();
 
                 if let Some(element_state) = element_state.as_mut() {
@@ -2791,7 +2792,7 @@ impl Interactivity {
                             style.overflow_mask(bounds, window.rem_size()),
                             |window| {
                                 let hitbox = if self.should_insert_hitbox(&style, window, cx) {
-                                    Some(match style.position {
+                                    Some(match position {
                                         Position::Fixed | Position::Sticky => window
                                             .insert_positioned_hitbox(bounds, self.hitbox_behavior),
                                         Position::Relative | Position::Absolute => {
@@ -2828,7 +2829,12 @@ impl Interactivity {
                     })
                 };
 
-                prepaint(window)
+                // A fixed or sticky subtree paints in the positioned layer
+                // (see `paint`), so its descendants hit-test there too.
+                match position {
+                    Position::Fixed | Position::Sticky => window.with_positioned_hitboxes(prepaint),
+                    Position::Relative | Position::Absolute => prepaint(window),
+                }
             },
         )
     }
@@ -6893,6 +6899,39 @@ mod tests {
         }
     }
 
+    /// A positioned element whose occluding descendant overlaps later normal
+    /// content that blocks the mouse.
+    struct PositionedDescendantOwner {
+        position: Position,
+    }
+
+    impl Render for PositionedDescendantOwner {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+            let positioned = div().top(px(0.)).left(px(0.)).w(px(100.)).h(px(20.));
+            let positioned = match self.position {
+                Position::Fixed => positioned.fixed(),
+                _ => positioned.sticky(),
+            };
+            div()
+                .id("positioned-descendant-scroll")
+                .relative()
+                .w(px(100.))
+                .h(px(60.))
+                .overflow_y_scroll()
+                .child(positioned.child(div().w(px(40.)).h(px(20.)).occlude()))
+                .child(
+                    div()
+                        .absolute()
+                        .top(px(0.))
+                        .left(px(0.))
+                        .w(px(100.))
+                        .h(px(20.))
+                        .block_mouse_except_scroll(),
+                )
+                .child(div().w(px(100.)).h(px(120.)))
+        }
+    }
+
     struct LaterStickyZOrderOwner {
         handle: ScrollHandle,
     }
@@ -7913,6 +7952,45 @@ mod tests {
                 );
             })
             .unwrap();
+    }
+
+    #[test]
+    fn positioned_hitboxes_order_sticky_and_fixed_descendants_above_later_normal_content() {
+        for position in [Position::Sticky, Position::Fixed] {
+            let mut test_app = TestAppContext::single();
+            let window = test_app.add_window(move |_, _| PositionedDescendantOwner { position });
+            let any_window = window.into();
+
+            test_app
+                .update_window(any_window, |_, window, cx| {
+                    window.draw(cx).clear(cx);
+                })
+                .unwrap();
+
+            test_app
+                .update_window(any_window, |_, window, _| {
+                    let descendant_bounds = Bounds::new(Point::default(), size(px(40.), px(20.)));
+                    let descendant = window
+                        .rendered_frame
+                        .hitboxes
+                        .iter()
+                        .find(|hitbox| hitbox.bounds == descendant_bounds)
+                        .expect("the positioned descendant should insert a hitbox");
+                    let top_hitbox = window
+                        .rendered_frame
+                        .hit_test(point(px(10.), px(10.)))
+                        .ids
+                        .first()
+                        .copied();
+
+                    assert_eq!(
+                        Some(descendant.id),
+                        top_hitbox,
+                        "a {position:?} descendant should hit-test where it paints, above later normal content"
+                    );
+                })
+                .unwrap();
+        }
     }
 
     #[test]
