@@ -213,6 +213,11 @@ those features first: without them gpux runs on its headless platform.
 
 ## 7. Cleanup
 
+Keeping the build output makes the next validation start warm instead of rebuilding everything,
+which takes about 45 minutes. To delete it, run `rm -rf ~/rayx/*/target ~/rayx/RayX/artifacts` (no
+sudo needed). Then run the `fstrim` and `diskpart` steps below to give the space back to Windows.
+Those two steps need the machine owner's password and an administrator PowerShell.
+
 Build output is the bulk of the disk use: about 105 GB after sections 5 and 6 (29 GB in
 `Gpux/target`, 76 GB in `RayX/target`). Delete it when you are done:
 
