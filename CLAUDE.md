@@ -42,6 +42,9 @@ cargo clippy -p <package> --all-targets --no-deps -- -D warnings
 Web crates also need `cargo check -p gpux-web --target wasm32-unknown-unknown --no-default-features` (the default multithreaded build needs nightly `-Z build-std`, which RayX's xtask provides). Before a release
 or a manifest change, run `cargo package --workspace`.
 
+Linux validation on a Windows machine runs in WSL; [LINUX-WSL.md](LINUX-WSL.md) is the setup and
+command procedure for gpux's checks, RayX's CI jobs, and the native Linux Test Suite.
+
 Runtime proof happens in RayX (`../RayX`): its Test Suite app exercises gpux on WASM/WebGPU
 (`cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu ...`) and natively
 (Windows DX12). Rendering, input, text, platform, or wgpu changes need that proof.

@@ -41,7 +41,7 @@ If Rust is older than 1.95, update with `rustup update` before running gpux or R
 sudo apt-get update
 sudo apt-get install -y \
     build-essential gcc g++ clang cmake make \
-    libxcb-dev libxkbcommon-x11-dev libwayland-dev \
+    libxcb1-dev libxkbcommon-x11-dev libwayland-dev \
     libfontconfig-dev libasound2-dev \
     libvulkan1 libssl-dev libzstd-dev \
     libsqlite3-dev libglib2.0-dev \
