@@ -113,6 +113,8 @@ The RayX memories identify these `gpui_mobile` behaviors as easy to lose during 
 
 - Preserve Android frame callback policy that requires presentation for scroll-input frames but uses one-shot force-render for text dirtiness and lifecycle/surface resume dirtiness.
 - Deliver Android touches as raw `PlatformInput::Touch` events; GPUI's touch recognizer owns taps, pans, fling momentum (`ScrollPhysics::android()` from `Platform::gestures`), long presses, and touch drags. Keep two-finger pinch synthesis, cancelling the forwarded touches when a pinch starts.
+- Preserve touch sample times: `TouchPoint::timestamp` carries `AMotionEvent_getEventTime` converted to `Instant` (`input_event_instant` in `jni.rs`; `System.nanoTime()` and `Instant` both read `CLOCK_MONOTONIC`), and the embedded host stamps touches on arrival.
+- Preserve `poll_main_looper` in `jni.rs`: the NativeActivity loop blocks in gpux's own `ALooper_pollOnce`, where AChoreographer frame callbacks and the dispatcher's main-thread tasks run, and calls `AndroidApp::poll_events` only for android-activity's own idents. android-activity 0.6.1 logs every callback that runs inside its poll as a spurious `ALOOPER_POLL_CALLBACK` error, once per frame.
 - Preserve deleted RayX-active mobile momentum helpers; do not reintroduce a `gpui_mobile` momentum pump into active RayX input paths.
 - Preserve Android safe-area APIs and content-rect derived physical/logical inset conversion.
 - Preserve Android keyboard/input, permissions, picker, media, and platform-view package helpers when importing upstream package changes.

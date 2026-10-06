@@ -170,6 +170,8 @@ The RayX memories identify these gpux-owned patches as especially easy to miss d
 - Preserve browser WebGPU renderer reentrancy and WGPU shader parity.
 - Preserve the gpux paste-shortcut exemption in `gpui_web` `register_key_down` (`is_paste_shortcut`): Ctrl+V, or Cmd+V on macOS, returns before GPUI dispatch so the browser fires the trusted `paste` event that `register_paste` delivers to the input handler. Zed's handler prevents the default of every handled keystroke, which would suppress that event.
 - Preserve the gpux cap in `gpui_web` `register_input` (`crates/gpui_web/src/events.rs`): the IME edit import keeps its prefix/suffix diff out of the stored element selection, because it always replaces the whole app selection. Upstream lacks it, so text inserted over a selection it shares a prefix with replaced the selection with only the differing tail. Drop the cap once upstream fixes the import.
+- Preserve additional top-level web windows (`PreparedWebWindow::additional` in `crates/gpui_web/src/platform.rs`): the first window takes the canvas the graphics context was created against, and each later window gets its own canvas and a surface from the shared WebGPU instance. WebGL contexts are bound to their canvas, so WebGL stays single-window. RayX's `rayx-multi-window-action-routing.spec.ts` drives two windows.
+- Preserve `event_instant` in `gpui_web` `events.rs`: touch pointer events carry `TouchEvent::timestamp` converted from `Event.timeStamp`.
 - Candidate, not confirmed current gpux behavior: browser WebGPU adapter retry with softer power-preference hints from RayX memory.
 
 ### HTML DOM Surfaces
@@ -184,13 +186,15 @@ The RayX memories identify these gpux-owned patches as especially easy to miss d
 
 - Preserve optional `id(...)` hooks on `Anchored`, `Deferred`, `ImageCacheElement`, and `Surface`.
 - Take Zed's input model unchanged (see the gpux skill's Input model rule). Keep gpux's input additions that sit beside it: `HitboxBehavior::Ignore` with `with_subtree_hitbox_behavior`, `with_pointer_semantics_suppressed`, `Window::pressed_mouse_button()`, `capture_scroll_wheel`, layered keymaps, action dispatch outcomes, and `dispatch_action_at`.
+- Preserve `TouchEvent::timestamp` and sample-time gesture timing in `crates/gpui/src/gestures.rs` (`event.timestamp.unwrap_or(now)` for velocity samples, the stopped-finger check, tap intervals, and long-press deadlines; momentum stays on processing time) until upstream ships sample times; see [the upstream tracking note](../../../../docs/upstream/gpui-touch-sample-timestamps.md). Test group: `touch_timestamps`.
+- Preserve half-open line bands in `TextLayout::index_for_position` (`position.y >= line_bottom`): a point exactly on a line boundary belongs to the line below. Upstream advances only past `line_bottom`, so the boundary point reaches the upper line's wrapped layout one row past its end and resolves to offset 0. Test group: `text_layout_hit_test`.
 - Preserve `Style.direction`, `StyleRefinement.direction`, `Styled::direction(...)`, and Taffy direction mapping.
 - Preserve `TextStyle.letter_spacing` through layout, wrapping, shaping, and platform text systems.
 - Preserve `CursorStyle::None` across platform cursor conversion.
 - Preserve multi-stop linear gradients, gradient-capable borders, Oklab shader parity, and bounded gradient stop lookup.
 - Preserve `Deferred::unclipped()` while keeping default `deferred(...)` content-mask-preserving.
 - Prepaint deferred draws in place so cached deferred ranges keep stable indices. Moving completed entries to the end invalidates reuse ranges even when the frame appears correct without caching.
-- Preserve fixed/sticky as first-class `Position` variants, generated `.fixed()`/`.sticky()` APIs, Taffy mapping, scroll-container context, content-mask containing blocks, positioned scene layers, positioned hitboxes, top-layer scrollbars, and sticky state callbacks/refinements.
+- Preserve fixed/sticky as first-class `Position` variants, generated `.fixed()`/`.sticky()` APIs, Taffy mapping, scroll-container context, content-mask containing blocks, positioned scene layers, positioned hitboxes, top-layer scrollbars, and sticky state callbacks/refinements. A fixed or sticky subtree paints in the positioned layer, so `Window::with_positioned_hitboxes` gives every hitbox inserted while it prepaints a positioned id (test group `positioned_hitboxes`); otherwise later normal content sorts above the stuck subtree's controls and takes their clicks.
 - Preserve nested scroll wheel routing that stops propagation only when the current scrollport's clamped offset changes.
 
 ### DevKit And Text Inspection
