@@ -950,7 +950,7 @@ impl MetalRenderer {
                 xy_position: v.xy_position,
                 st_position: v.st_position,
                 background,
-                content_mask: v.content_mask.clone(),
+                content_mask: v.content_mask,
             }));
         }
         let vertices_bytes_len = mem::size_of_val(vertices.as_slice());
@@ -1701,7 +1701,7 @@ fn pack_quads(quads: &[Quad]) -> (Vec<PackedQuad>, Vec<PackedGradientStop>) {
             order: quad.order,
             border_style: quad.border_style as u32,
             bounds: quad.bounds,
-            content_mask: quad.content_mask.clone(),
+            content_mask: quad.content_mask,
             background: pack_background(&quad.background, &mut gradient_stops),
             border_color: pack_background(&quad.border_color, &mut gradient_stops),
             corner_radii: quad.corner_radii,
