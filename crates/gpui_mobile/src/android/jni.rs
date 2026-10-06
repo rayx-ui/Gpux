@@ -625,6 +625,43 @@ unsafe extern "C" fn on_choreographer_frame(_frame_time_nanos: libc::c_long, dat
     }
 }
 
+/// Waits on the main looper for up to `timeout` (`None` waits indefinitely),
+/// then hands a ready `android-activity` event to its handler.
+///
+/// The main looper also runs callbacks: AChoreographer frames and the
+/// dispatcher's main-thread tasks. android-activity logs every callback that
+/// runs inside its own poll as a spurious `ALOOPER_POLL_CALLBACK` error, once
+/// per frame. Running them in this poll instead means android-activity polls
+/// only when one of its own events is ready.
+#[cfg(feature = "android-native-activity")]
+fn poll_main_looper(app: &AndroidApp, timeout: Option<Duration>) {
+    let timeout_millis = timeout.map_or(-1, |timeout| {
+        i32::try_from(timeout.as_millis()).unwrap_or(i32::MAX)
+    });
+    // SAFETY: this runs on the native activity thread, which owns the main
+    // looper; the out-parameters are optional and may be null.
+    let ident = unsafe {
+        ndk_sys::ALooper_pollOnce(
+            timeout_millis,
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+        )
+    };
+    if ident == ndk_sys::ALOOPER_POLL_ERROR {
+        panic!("ALooper_pollOnce returned POLL_ERROR");
+    }
+    // Callbacks carry no identifier, so a non-negative one is android-activity's
+    // own event. Its source is still ready, so android-activity's poll sees it.
+    if ident >= 0 {
+        app.poll_events(Some(Duration::ZERO), |event| {
+            if let PollEvent::Main(main_event) = event {
+                handle_main_event(app, main_event);
+            }
+        });
+    }
+}
+
 // ── main event loop ───────────────────────────────────────────────────────────
 
 /// The event loop that processes `android-activity` events and drives the
@@ -677,31 +714,19 @@ pub fn run_event_loop(app: &AndroidApp) {
         }
 
         // Block until the Android looper has real work. Rendering is driven by
-        // AChoreographer below, not by a polling/sleep loop.
-        app.poll_events(None, |event| match event {
-            PollEvent::Main(main_event) => {
-                handle_main_event(app, main_event);
-            }
-            PollEvent::Wake => {}
-            PollEvent::Timeout => {}
-            _ => {}
-        });
+        // AChoreographer callbacks, which run inside this poll, not by a
+        // polling/sleep loop.
+        poll_main_looper(app, None);
 
         // ── Deferred lifecycle processing ──
         //
-        // Between each handler, call poll_events again to drain any
-        // events the Java UI thread may have queued while we were
-        // processing.  This keeps the condvar wait short and prevents
-        // the InputDispatcher ANR (10s timeout on MotionEvent delivery).
+        // Between each handler, poll again to drain any events the Java UI
+        // thread may have queued while we were processing.  This keeps the
+        // condvar wait short and prevents the InputDispatcher ANR (10s
+        // timeout on MotionEvent delivery).
         //
         // Helper closure to drain events quickly:
-        let drain_events = |app: &AndroidApp| {
-            app.poll_events(Some(Duration::ZERO), |event| {
-                if let PollEvent::Main(main_event) = event {
-                    handle_main_event(app, main_event);
-                }
-            });
-        };
+        let drain_events = |app: &AndroidApp| poll_main_looper(app, Some(Duration::ZERO));
 
         // 1. TerminateWindow — unconfigure surface, release native window
         if TERM_WINDOW_PENDING.swap(false, Ordering::Relaxed) {
@@ -1055,13 +1080,7 @@ pub fn poll_events(timeout_ms: i32) -> bool {
         Some(Duration::from_millis(timeout_ms as u64))
     };
 
-    app.poll_events(timeout, |event| match event {
-        PollEvent::Main(main_event) => {
-            handle_main_event(app, main_event);
-        }
-        PollEvent::Wake => {}
-        _ => {}
-    });
+    poll_main_looper(app, timeout);
 
     process_input_events(app);
 
