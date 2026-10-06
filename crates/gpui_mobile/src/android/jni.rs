@@ -477,6 +477,7 @@ fn process_input_events(app: &AndroidApp) {
                                 return android_activity::InputStatus::Unhandled;
                             }
 
+                            let timestamp = input_event_instant(motion_event.event_time());
                             for i in 0..pointer_count {
                                 let pointer = motion_event.pointer_at_index(i);
 
@@ -507,6 +508,7 @@ fn process_input_events(app: &AndroidApp) {
                                     x: pointer.x(),
                                     y: pointer.y(),
                                     action: touch_action,
+                                    timestamp,
                                 };
 
                                 log::debug!(
@@ -570,6 +572,25 @@ fn process_input_events(app: &AndroidApp) {
             log::error!("Failed to get input events iterator: {err:?}");
         }
     }
+}
+
+/// The instant an input event stamped with `event_time_nanos` occurred.
+///
+/// Android stamps input on the `System.nanoTime()` timeline, which reads
+/// `CLOCK_MONOTONIC` like `Instant`, so a stamp converts by its age.
+#[cfg(feature = "android-native-activity")]
+fn input_event_instant(event_time_nanos: i64) -> Option<std::time::Instant> {
+    let mut now = libc::timespec {
+        tv_sec: 0,
+        tv_nsec: 0,
+    };
+    // SAFETY: `now` is a valid, writable timespec for the duration of the call.
+    if unsafe { libc::clock_gettime(libc::CLOCK_MONOTONIC, &mut now) } != 0 {
+        return None;
+    }
+    let now_nanos = i128::from(now.tv_sec) * 1_000_000_000 + i128::from(now.tv_nsec);
+    let age_nanos = u64::try_from(now_nanos - i128::from(event_time_nanos)).unwrap_or(0);
+    std::time::Instant::now().checked_sub(Duration::from_nanos(age_nanos))
 }
 
 /// Queue the next display-synchronised frame. The raw `Arc` is consumed by the

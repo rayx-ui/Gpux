@@ -594,6 +594,9 @@ impl TouchGestureRecognizer {
         now: Instant,
     ) -> SmallVec<[RecognizedTouchGesture; 2]> {
         let mut recognized = SmallVec::new();
+        // Recognition follows the finger's own timeline. Processing can lag
+        // behind it, for example when a slow frame delays queued events.
+        let sample_time = event.timestamp.unwrap_or(now);
         match event.phase {
             TouchPhase::Started => {
                 let caught_fling = if let Some(momentum) = self.momentum.take() {
@@ -608,7 +611,7 @@ impl TouchGestureRecognizer {
                 };
                 if matches!(self.state, TouchGestureState::Idle) {
                     let mut velocity_tracker = VelocityTracker::default();
-                    velocity_tracker.push(now, event.position);
+                    velocity_tracker.push(sample_time, event.position);
                     let touch = ActiveTouch {
                         id: event.id,
                         start_position: event.position,
@@ -632,7 +635,7 @@ impl TouchGestureRecognizer {
                     } else {
                         self.state = TouchGestureState::Pending {
                             touch,
-                            deadline: now + self.tuning.long_press_duration,
+                            deadline: sample_time + self.tuning.long_press_duration,
                             long_press_offered: false,
                             touch_drag_offered: false,
                         };
@@ -646,7 +649,7 @@ impl TouchGestureRecognizer {
                     long_press_offered,
                     touch_drag_offered,
                 } if touch.id == event.id => {
-                    touch.velocity_tracker.push(now, event.position);
+                    touch.velocity_tracker.push(sample_time, event.position);
                     touch.last_position = event.position;
                     let accumulated = event.position - touch.start_position;
                     if accumulated.magnitude() > f64::from(self.tuning.touch_slop) {
@@ -686,7 +689,7 @@ impl TouchGestureRecognizer {
                     if raw_delta != Point::default() {
                         touch.last_movement = raw_delta;
                     }
-                    touch.velocity_tracker.push(now, event.position);
+                    touch.velocity_tracker.push(sample_time, event.position);
                     touch.last_position = event.position;
                     let mut target = event.predicted_position.unwrap_or(event.position);
                     let mut delta = target - touch.emitted_position;
@@ -735,7 +738,8 @@ impl TouchGestureRecognizer {
                 TouchGestureState::Pending { touch, .. } if touch.id == event.id => {
                     let tap_count = match &self.last_tap {
                         Some(tap)
-                            if now.duration_since(tap.time) <= self.tuning.multi_tap_interval
+                            if sample_time.duration_since(tap.time)
+                                <= self.tuning.multi_tap_interval
                                 && (event.position - tap.position).magnitude()
                                     <= f64::from(self.tuning.multi_tap_slop) =>
                         {
@@ -745,7 +749,7 @@ impl TouchGestureRecognizer {
                     };
                     self.last_tap = Some(CompletedTap {
                         position: event.position,
-                        time: now,
+                        time: sample_time,
                         count: tap_count,
                     });
                     recognized.push(RecognizedTouchGesture::Tap {
@@ -776,7 +780,7 @@ impl TouchGestureRecognizer {
                             .velocity_tracker
                             .latest_sample_time()
                             .is_none_or(|latest| {
-                                now.duration_since(latest) > VELOCITY_ASSUME_STOPPED_GAP
+                                sample_time.duration_since(latest) > VELOCITY_ASSUME_STOPPED_GAP
                             });
                     let mut velocity = if finger_stopped {
                         Point::default()
@@ -2199,6 +2203,124 @@ mod tests {
         assert!(recognizer.offer_long_press(replacement_touch).is_some());
     }
 
+    #[test]
+    fn touch_timestamps_fling_when_a_slow_frame_delays_the_release() {
+        let mut recognizer = TouchGestureRecognizer::new(GestureTuning::default());
+        let start = Instant::now();
+        let touch = TouchId(1);
+
+        recognizer.handle_event_at(
+            &stamped(touch_event(touch, TouchPhase::Started, 100., 300.), start),
+            start,
+        );
+        for step in 1..=5 {
+            let sampled = start + Duration::from_millis(step * 16);
+            recognizer.handle_event_at(
+                &stamped(
+                    touch_event(touch, TouchPhase::Moved, 100., 300. - step as f32 * 20.),
+                    sampled,
+                ),
+                sampled,
+            );
+        }
+        // The finger lifts 16ms after its last movement, but a 120ms frame
+        // delays the release.
+        let lifted = start + Duration::from_millis(6 * 16);
+        recognizer.handle_event_at(
+            &stamped(touch_event(touch, TouchPhase::Ended, 100., 200.), lifted),
+            lifted + Duration::from_millis(120),
+        );
+
+        assert!(recognizer.has_momentum());
+    }
+
+    #[test]
+    fn touch_timestamps_measure_velocity_of_samples_processed_together() {
+        let mut recognizer = TouchGestureRecognizer::new(GestureTuning::default());
+        let start = Instant::now();
+        let touch = TouchId(1);
+        // A stalled frame queued the whole gesture; it is processed at once.
+        let processed = start + Duration::from_millis(200);
+
+        recognizer.handle_event_at(
+            &stamped(touch_event(touch, TouchPhase::Started, 100., 300.), start),
+            processed,
+        );
+        for step in 1..=5 {
+            recognizer.handle_event_at(
+                &stamped(
+                    touch_event(touch, TouchPhase::Moved, 100., 300. - step as f32 * 20.),
+                    start + Duration::from_millis(step * 16),
+                ),
+                processed,
+            );
+        }
+        recognizer.handle_event_at(
+            &stamped(
+                touch_event(touch, TouchPhase::Ended, 100., 200.),
+                start + Duration::from_millis(6 * 16),
+            ),
+            processed,
+        );
+
+        // 20px every 16ms is 1250 pixels per second.
+        let speed = recognizer.momentum.as_ref().map(|momentum| momentum.speed);
+        assert!(
+            speed.is_some_and(|speed| (speed - 1250.).abs() < 1.),
+            "expected the finger's 1250px/s release speed, got {speed:?}"
+        );
+    }
+
+    #[test]
+    fn touch_timestamps_time_taps_and_long_presses_by_their_samples() {
+        let tuning = GestureTuning::default();
+        let mut recognizer = TouchGestureRecognizer::new(tuning);
+        let start = Instant::now();
+        let touch = TouchId(1);
+
+        for (index, sampled_ms) in [0, 150].into_iter().enumerate() {
+            let sampled = start + Duration::from_millis(sampled_ms);
+            // The second tap is processed long after the double-tap interval.
+            let processed = sampled + Duration::from_millis(index as u64 * 900);
+            recognizer.handle_event_at(
+                &stamped(touch_event(touch, TouchPhase::Started, 10., 10.), sampled),
+                processed,
+            );
+            let recognized = recognizer.handle_event_at(
+                &stamped(
+                    touch_event(touch, TouchPhase::Ended, 10., 10.),
+                    sampled + Duration::from_millis(50),
+                ),
+                processed,
+            );
+            let [RecognizedTouchGesture::Tap { down, .. }] = recognized.as_slice() else {
+                panic!("expected a tap, got {recognized:?}");
+            };
+            assert_eq!(down.click_count, index + 1);
+        }
+
+        let mut recognizer = TouchGestureRecognizer::new(tuning);
+        let sampled = Instant::now() - Duration::from_millis(300);
+        recognizer.handle_event(&stamped(
+            touch_event(touch, TouchPhase::Started, 10., 10.),
+            sampled,
+        ));
+        let (_, remaining) = recognizer
+            .pending_long_press()
+            .expect("the touch should await a long press");
+        assert!(
+            remaining <= tuning.long_press_duration - Duration::from_millis(300),
+            "the long press should count from the touch's sample, {remaining:?} remain"
+        );
+    }
+
+    fn stamped(event: TouchEvent, timestamp: Instant) -> TouchEvent {
+        TouchEvent {
+            timestamp: Some(timestamp),
+            ..event
+        }
+    }
+
     fn touch_event(id: TouchId, phase: TouchPhase, x: f32, y: f32) -> TouchEvent {
         TouchEvent {
             id,
@@ -2206,6 +2328,7 @@ mod tests {
             position: point(px(x), px(y)),
             predicted_position: None,
             force: None,
+            timestamp: None,
         }
     }
 }

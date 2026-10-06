@@ -1,11 +1,11 @@
-use std::{collections::HashMap, rc::Rc};
+use std::{collections::HashMap, rc::Rc, time::Duration};
 
 use gpux::{
     Capslock, ClipboardEntry, ClipboardItem, ClipboardString, DispatchEventResult, GestureTuning,
-    HtmlElementInputMode, HtmlIslandInputMode, Image, ImageFormat, KeyDownEvent, KeyUpEvent,
-    Keystroke, Modifiers, ModifiersChangedEvent, MouseButton, MouseDownEvent, MouseExitEvent,
-    MouseMoveEvent, MouseUpEvent, NavigationDirection, Pixels, PlatformInput, Point, ScrollDelta,
-    ScrollWheelEvent, TouchEvent, TouchId, TouchPhase, point, px,
+    HtmlElementInputMode, HtmlIslandInputMode, Image, ImageFormat, Instant, KeyDownEvent,
+    KeyUpEvent, Keystroke, Modifiers, ModifiersChangedEvent, MouseButton, MouseDownEvent,
+    MouseExitEvent, MouseMoveEvent, MouseUpEvent, NavigationDirection, Pixels, PlatformInput,
+    Point, ScrollDelta, ScrollWheelEvent, TouchEvent, TouchId, TouchPhase, point, px,
 };
 use wasm_bindgen::prelude::*;
 
@@ -319,6 +319,7 @@ impl WebWindowInner {
                     position,
                     predicted_position: None,
                     force: None,
+                    timestamp: event_instant(&this.browser_window, &event),
                 }));
                 // Keyboard and IME focus intentionally do not change here:
                 // whether this touch is a tap or a pan is only known at
@@ -395,6 +396,7 @@ impl WebWindowInner {
                     position,
                     predicted_position: None,
                     force: None,
+                    timestamp: event_instant(&this.browser_window, &event),
                 }));
 
                 // A keyboard opening or closing mid-gesture reflows the
@@ -510,6 +512,7 @@ impl WebWindowInner {
                     position: pointer_position_in_canvas(&event, &this.canvas),
                     predicted_position: None,
                     force: None,
+                    timestamp: event_instant(&this.browser_window, &event),
                 }));
             } else {
                 this.pressed_button.set(None);
@@ -642,6 +645,7 @@ impl WebWindowInner {
                     position,
                     predicted_position: predicted_pointer_position(&event, position),
                     force: None,
+                    timestamp: event_instant(&this.browser_window, &event),
                 }));
                 return;
             }
@@ -1461,6 +1465,19 @@ fn compute_key_char(
     }
 
     None
+}
+
+/// When the browser received `event`, on GPUI's clock.
+///
+/// Event time stamps share the `performance.now()` timeline that `Instant`
+/// reads, so a stamp converts by its age. Handlers can run well after the
+/// input arrived, for example behind a slow frame.
+fn event_instant(browser_window: &web_sys::Window, event: &web_sys::Event) -> Option<Instant> {
+    let age_ms = browser_window.performance()?.now() - event.time_stamp();
+    if !age_ms.is_finite() {
+        return None;
+    }
+    Instant::now().checked_sub(Duration::from_secs_f64(age_ms.max(0.) / 1000.))
 }
 
 fn pointer_position_in_canvas(

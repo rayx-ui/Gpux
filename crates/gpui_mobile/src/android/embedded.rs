@@ -179,6 +179,8 @@ pub fn touch(pointer_id: i32, x: f32, y: f32, action: u32) {
         x,
         y,
         action,
+        // Stamped on arrival: the event loop drains the queue a frame later.
+        timestamp: Some(Instant::now()),
     }));
 }
 

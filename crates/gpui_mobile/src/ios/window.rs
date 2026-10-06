@@ -550,6 +550,7 @@ fn touch_input(id: usize, phase: TouchPhase, position: Point<Pixels>) -> Platfor
         position,
         predicted_position: None,
         force: None,
+        timestamp: None,
     })
 }
 

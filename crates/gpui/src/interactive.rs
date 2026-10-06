@@ -1,6 +1,6 @@
 use crate::{
-    Bounds, Capslock, Context, Empty, IntoElement, Keystroke, LongPressEvent, Modifiers, Pixels,
-    Point, Render, TouchDragEvent, Window, point, seal::Sealed,
+    Bounds, Capslock, Context, Empty, Instant, IntoElement, Keystroke, LongPressEvent, Modifiers,
+    Pixels, Point, Render, TouchDragEvent, Window, point, seal::Sealed,
 };
 use smallvec::SmallVec;
 use std::{any::Any, fmt::Debug, ops::Deref, path::PathBuf};
@@ -134,6 +134,12 @@ pub struct TouchEvent {
     pub predicted_position: Option<Point<Pixels>>,
     /// Normalized touch force in `0.0..=1.0`, if the hardware reports it.
     pub force: Option<f32>,
+    /// When the platform sampled this touch, if it reports sample times.
+    ///
+    /// Gesture recognition times velocity, taps, and long presses by these
+    /// samples, so input that waited behind a slow frame still flings at the
+    /// speed the finger moved. Events without one are timed when processed.
+    pub timestamp: Option<Instant>,
 }
 
 impl Sealed for TouchEvent {}

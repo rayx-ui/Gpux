@@ -1456,6 +1456,7 @@ impl PlatformWindow for AndroidPlatformWindow {
                 id: i32,
                 phase: gpui::TouchPhase,
                 position: gpui::Point<gpui::Pixels>,
+                timestamp: Option<Instant>,
             ) -> gpui::PlatformInput {
                 gpui::PlatformInput::Touch(gpui::TouchEvent {
                     id: gpui::TouchId(id.max(0) as u64),
@@ -1463,6 +1464,7 @@ impl PlatformWindow for AndroidPlatformWindow {
                     position,
                     predicted_position: None,
                     force: None,
+                    timestamp,
                 })
             }
 
@@ -1523,7 +1525,12 @@ impl PlatformWindow for AndroidPlatformWindow {
                         let position = active
                             .get(&id)
                             .map_or(position, |c| gpui::point(gpui::px(c.x), gpui::px(c.y)));
-                        let _ = guard(touch_input(id, gpui::TouchPhase::Cancelled, position));
+                        let _ = guard(touch_input(
+                            id,
+                            gpui::TouchPhase::Cancelled,
+                            position,
+                            touch.timestamp,
+                        ));
                     }
                     let _ = guard(gpui::PlatformInput::Pinch(gpui::PinchEvent {
                         position: center,
@@ -1597,7 +1604,7 @@ impl PlatformWindow for AndroidPlatformWindow {
                     }
                 };
                 if forward {
-                    let _ = cb.lock()(touch_input(touch.id, phase, position));
+                    let _ = cb.lock()(touch_input(touch.id, phase, position, touch.timestamp));
                 }
             });
         }
@@ -2111,6 +2118,7 @@ mod tests {
             x: 100.0,
             y: 200.0,
             action: 0,
+            timestamp: None,
         });
 
         let pts = received.lock();
