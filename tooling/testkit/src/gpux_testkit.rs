@@ -6,6 +6,7 @@
 //! `gpux-testkit: <passed> passed, <failed> failed, <skipped> skipped`. It exits nonzero on any
 //! failure and when nothing was selected. Raw output goes to `artifacts-temp/testkit/<lane>/`.
 
+pub mod android;
 pub mod cli;
 pub mod lanes;
 pub mod prereq;
@@ -17,7 +18,7 @@ pub mod summary;
 pub mod wasm_verify;
 pub mod web;
 
-use cli::{Command, LaneArgs, WebCommand};
+use cli::{AndroidCommand, Command, LaneArgs, WebCommand};
 use lanes::{LaneId, LanePlan, OutputKind};
 use results::Tally;
 use run::Runner;
@@ -122,7 +123,42 @@ pub fn execute(
         }
         Command::Lane(args) => lane(&args, environment, runner, out),
         Command::Web(command) => web_command(&command, environment, runner, out),
+        Command::Android(command) => android_command(&command, environment, runner, out),
     }
+}
+
+fn android_command(
+    command: &AndroidCommand,
+    environment: &dyn Environment,
+    runner: &mut dyn Runner,
+    out: &mut dyn Write,
+) -> i32 {
+    let tally = match environment.workspace_root() {
+        None => Tally::failure(
+            "gpux-testkit runs inside a gpux checkout: run it from the repository (the folder \
+             with `crates/gpux_conformance`) or a subfolder",
+        ),
+        Some(root) => match command {
+            AndroidCommand::Build { abis } => {
+                match android::build(&root, environment, runner, abis, out) {
+                    Ok(_) => Tally {
+                        passed: 1,
+                        ..Tally::default()
+                    },
+                    Err(error) => Tally::failure(format!("android build: {error}")),
+                }
+            }
+            AndroidCommand::Run { serial, selection } => android::run(
+                &root,
+                environment,
+                runner,
+                serial.as_deref(),
+                selection,
+                out,
+            ),
+        },
+    };
+    finish(&tally, 0, out)
 }
 
 fn web_command(
@@ -210,6 +246,35 @@ fn lane(
     let mut listed = 0;
     let root = environment.workspace_root();
     for &lane in &args.lanes {
+        if lane == LaneId::E {
+            // The Android lane runs on a device through adb instead of cargo targets.
+            let Some(root) = root.as_deref() else {
+                let message = "gpux-testkit runs inside a gpux checkout: run it from the \
+                               repository (the folder with `crates/gpux_conformance`) or a subfolder";
+                writeln!(out, "lane e: {message}").ok();
+                tally.add(Tally::failure(format!("lane e: {message}")));
+                continue;
+            };
+            if args.list {
+                for id in android::expected_results(&args.selection) {
+                    writeln!(out, "  {id}").ok();
+                    listed += 1;
+                }
+            } else {
+                let serial = environment
+                    .var("ANDROID_SERIAL")
+                    .filter(|serial| !serial.is_empty());
+                tally.add(android::run(
+                    root,
+                    environment,
+                    runner,
+                    serial.as_deref(),
+                    &args.selection,
+                    out,
+                ));
+            }
+            continue;
+        }
         if lane == LaneId::B {
             // The browser lane runs Playwright specs instead of cargo targets.
             let Some(root) = root.as_deref() else {

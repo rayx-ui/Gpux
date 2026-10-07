@@ -294,10 +294,12 @@ fn lanes_not_wired_yet_fail_clearly() {
             LaneId::A | LaneId::C | LaneId::D => assert!(result.is_ok(), "lane {lane}"),
             // Lane B runs Playwright specs through `web e2e`, not a cargo plan.
             LaneId::B => assert!(result.unwrap_err().to_string().contains("web e2e")),
+            // Lane E runs on a device through `android run`.
+            LaneId::E => assert!(result.unwrap_err().to_string().contains("android run")),
             _ => {
                 let error = result.unwrap_err().to_string();
                 assert!(
-                    error.contains("is not available yet") && error.contains("run lanes a, c or d"),
+                    error.contains("is not available yet") && error.contains("run lanes a to e"),
                     "{error}"
                 );
             }

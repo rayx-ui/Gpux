@@ -9,13 +9,15 @@ usage: gpux-testkit lane <lane>... [--list] [--scene <id>] [--grep <pattern>]
        gpux-testkit web build [--verify]
        gpux-testkit web serve [--port <port>]
        gpux-testkit web e2e [--profile <profile>] [--grep <pattern>] [--headed]
+       gpux-testkit android build [--abi x86_64|arm64-v8a]...
+       gpux-testkit android run [--serial <serial>] [--scene <id>] [--grep <pattern>]
 
 lanes:
   a  behaviour on the test platform (no GPU or display)
   b  a real browser through Playwright (GPUX_WEB_PROFILE picks the profile)
   c  offscreen pixels through the headless renderer
   d  real desktop windows
-  e  Android (wired in a later sprint)
+  e  Android on a device or emulator through adb (ANDROID_SERIAL picks the device)
   f  iOS (wired in a later sprint)
   g  the local real GPU (wired in a later sprint)
 
@@ -29,7 +31,12 @@ web (lane b's browser host):
            --verify checks shared memory, the thread entry point and constructors
   serve    serve the build with cross-origin isolation headers (default port 8000)
   e2e      build, serve and run the Playwright specs in tools-node; profiles are
-           local-gpu (default), ci-linux-swiftshader and windows-software";
+           local-gpu (default), ci-linux-swiftshader and windows-software
+
+android (lane e's conformance host):
+  build    build the android_host APK (both ABIs unless --abi narrows them)
+  run      build for the device's ABI, install, run and follow the host on the first
+           attached device or emulator (or --serial)";
 
 /// A parsed command.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -40,6 +47,25 @@ pub enum Command {
     Lane(LaneArgs),
     /// Builds, serves or tests lane B's browser host.
     Web(WebCommand),
+    /// Builds or runs lane E's Android host.
+    Android(AndroidCommand),
+}
+
+/// The `android` subcommands.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum AndroidCommand {
+    /// Builds the APK for these ABIs.
+    Build {
+        /// The ABIs, every one when none is named.
+        abis: Vec<crate::android::Abi>,
+    },
+    /// Runs the host on a device.
+    Run {
+        /// The device's serial; the first attached device otherwise.
+        serial: Option<String>,
+        /// The checks and scenes to run.
+        selection: Selection,
+    },
 }
 
 /// The `web` subcommands.
@@ -119,8 +145,9 @@ pub fn parse(args: impl IntoIterator<Item = String>) -> Result<Command, UsageErr
         None | Some("help" | "--help" | "-h") => Ok(Command::Help),
         Some("lane") => parse_lane(args).map(Command::Lane),
         Some("web") => parse_web(args).map(Command::Web),
+        Some("android") => parse_android(args).map(Command::Android),
         Some(other) => Err(UsageError(format!(
-            "unknown command `{other}`; the commands are `lane` and `web`"
+            "unknown command `{other}`; the commands are `lane`, `web` and `android`"
         ))),
     }
 }
@@ -129,6 +156,58 @@ fn value(arg: &str, args: &mut impl Iterator<Item = String>) -> Result<String, U
     args.next()
         .filter(|value| !value.starts_with("--") && !value.is_empty())
         .ok_or_else(|| UsageError(format!("`{arg}` needs a value")))
+}
+
+fn parse_android(mut args: impl Iterator<Item = String>) -> Result<AndroidCommand, UsageError> {
+    let subcommand = args
+        .next()
+        .ok_or_else(|| UsageError("name an android command: `build` or `run`".into()))?;
+    let mut abis = Vec::new();
+    let mut serial = None;
+    let mut selection = Selection::default();
+    while let Some(arg) = args.next() {
+        match (subcommand.as_str(), arg.as_str()) {
+            ("build", "--abi") => {
+                let name = value(&arg, &mut args)?;
+                let abi = crate::android::abi(&name).ok_or_else(|| {
+                    UsageError(format!(
+                        "unknown ABI `{name}`; the ABIs are x86_64 and arm64-v8a"
+                    ))
+                })?;
+                if !abis.contains(&abi) {
+                    abis.push(abi);
+                }
+            }
+            ("run", "--serial" | "--scene" | "--grep") => {
+                let slot = match arg.as_str() {
+                    "--serial" => &mut serial,
+                    "--scene" => &mut selection.scene,
+                    _ => &mut selection.grep,
+                };
+                if slot.replace(value(&arg, &mut args)?).is_some() {
+                    return Err(UsageError(format!("`{arg}` is given twice")));
+                }
+            }
+            _ => {
+                return Err(UsageError(format!(
+                    "unknown option `{arg}` for `android {subcommand}`"
+                )));
+            }
+        }
+    }
+    match subcommand.as_str() {
+        "build" => Ok(AndroidCommand::Build {
+            abis: if abis.is_empty() {
+                crate::android::ABIS.to_vec()
+            } else {
+                abis
+            },
+        }),
+        "run" => Ok(AndroidCommand::Run { serial, selection }),
+        other => Err(UsageError(format!(
+            "unknown android command `{other}`; the android commands are `build` and `run`"
+        ))),
+    }
 }
 
 fn parse_web(mut args: impl Iterator<Item = String>) -> Result<WebCommand, UsageError> {

@@ -194,7 +194,11 @@ pub fn plan(lane: LaneId, selection: &Selection) -> Result<LanePlan, PlanError> 
              through `web e2e`"
                 .into(),
         )),
-        LaneId::E => Err(not_wired(lane, "the Android lane", "s6-android-lane")),
+        LaneId::E => Err(PlanError(
+            "lane e runs on an Android device, not through cargo targets: `gpux-testkit lane e` \
+             runs it through `android run`"
+                .into(),
+        )),
         LaneId::F => Err(not_wired(lane, "the iOS lane", "s8-apple-lanes")),
         LaneId::G => Err(not_wired(
             lane,
@@ -207,7 +211,7 @@ pub fn plan(lane: LaneId, selection: &Selection) -> Result<LanePlan, PlanError> 
 fn not_wired(lane: LaneId, what: &str, sprint: &str) -> PlanError {
     PlanError(format!(
         "lane {lane} is not available yet: {what} arrives with sprint `{sprint}` of the \
-         gpux-cross-platform-test-lanes epic; run lanes a, c or d meanwhile"
+         gpux-cross-platform-test-lanes epic; run lanes a to e meanwhile"
     ))
 }
 
