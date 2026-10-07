@@ -288,3 +288,18 @@ fn a_selection_narrows_the_run_on_the_device() {
     };
     assert!(android::selection_properties(&quoted).is_err());
 }
+
+#[test]
+fn a_host_signed_with_another_key_is_replaced() {
+    // Each checkout signs with its own debug key; adb then refuses the update.
+    assert!(android::signed_with_another_key(
+        "Performing Streamed Install\nadb.exe: failed to install gpux-conformance.apk: Failure \
+         [INSTALL_FAILED_UPDATE_INCOMPATIBLE: Existing package dev.gpux.conformance signatures do \
+         not match newer version; ignoring!]"
+    ));
+    // Other failures stay failures.
+    assert!(!android::signed_with_another_key(
+        "adb.exe: failed to install gpux-conformance.apk: Failure [INSTALL_FAILED_INSUFFICIENT_STORAGE]"
+    ));
+    assert!(!android::signed_with_another_key("Success"));
+}

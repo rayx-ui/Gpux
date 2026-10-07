@@ -487,6 +487,12 @@ pub fn shell_commands(request: &Request) -> Vec<Vec<String>> {
     }
 }
 
+/// Whether `adb install` failed because the device holds the host signed with another key. Each
+/// checkout signs with its own debug key, so the test app is then replaced rather than updated.
+pub fn signed_with_another_key(install_output: &str) -> bool {
+    install_output.contains("INSTALL_FAILED_UPDATE_INCOMPATIBLE")
+}
+
 /// The ids of the Android platform checks the host reports, in order.
 pub const PLATFORM_CHECKS: [&str; 5] = [
     "android-startup",
@@ -663,11 +669,28 @@ fn run_on_device(
     writeln!(out, "lane e: device {serial} ({})", device_abi.name).ok();
 
     let apk = build(root, environment, runner, &[device_abi], out)?;
-    adb_run(
-        "adb-install",
-        on_device(&["install", "-r", "-t", &apk.display().to_string()]),
-        runner,
-    )?;
+    let install = on_device(&["install", "-r", "-t", &apk.display().to_string()]);
+    let invocation = tool_invocation("adb-install", &adb, install.clone());
+    let installed = runner
+        .run(&invocation, &adb, root, &logs.join("adb-install.log"))
+        .map_err(|error| format!("{error:#}"))?;
+    if !installed.success {
+        if !signed_with_another_key(&installed.output) {
+            return Err(format!(
+                "`{}` failed; see {}",
+                invocation.command_line(),
+                logs.join("adb-install.log").display()
+            ));
+        }
+        writeln!(
+            out,
+            "lane e: the device has the host signed with another debug key (another checkout's, \
+             or one from before `target/` was cleaned); replacing it"
+        )
+        .ok();
+        adb_run("adb-uninstall", on_device(&["uninstall", PACKAGE]), runner)?;
+        adb_run("adb-install", install, runner)?;
+    }
     adb_run("adb-logcat-clear", on_device(&["logcat", "-c"]), runner)?;
     for property in properties {
         let mut args = on_device(&["shell"]);
