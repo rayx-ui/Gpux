@@ -162,7 +162,28 @@ impl ScrollActivity {
         self.programmatic = Some(ProgrammaticDriver::Marker);
     }
 
-    /// Start or replace the single programmatic driver.
+    /// Apply a programmatic request that completes in one update: `ScrollBehavior::Instant` or
+    /// a zero smooth duration. It replaces the driver like [`Self::start_programmatic_at`] but
+    /// needs no timestamp, so callers without an executor clock can use it.
+    pub(crate) fn apply_immediate_programmatic(
+        &mut self,
+        current: Point<Pixels>,
+        target: Point<Pixels>,
+        max_offset: Point<Pixels>,
+    ) -> Option<ProgrammaticScrollFrame> {
+        self.direct = false;
+        self.advance_generation();
+        self.programmatic = None;
+        let (_, target) = valid_clamped_offsets(current, target, max_offset)?;
+        Some(ProgrammaticScrollFrame {
+            offset: target,
+            generation: self.generation,
+            request_next_frame: false,
+        })
+    }
+
+    /// Start or replace the single programmatic driver. `timestamp` comes from the executor
+    /// clock ([`BackgroundExecutor::now`](crate::BackgroundExecutor::now)).
     ///
     /// Offsets use positive logical coordinates. The caller remains responsible
     /// for mapping them to its physical storage convention.
@@ -343,6 +364,10 @@ mod tests {
     use crate::px;
     use std::time::Duration;
 
+    fn test_now() -> Instant {
+        scheduler::Clock::now(&scheduler::TestClock::new())
+    }
+
     #[test]
     fn programmatic_and_direct_activity_replace_each_other() {
         let mut activity = ScrollActivity::default();
@@ -363,7 +388,7 @@ mod tests {
 
     #[test]
     fn programmatic_scroll_samples_both_axes_with_cubic_ease_out_and_exact_endpoints() {
-        let started_at = Instant::now();
+        let started_at = test_now();
         let mut activity = ScrollActivity::default();
         let initial = activity
             .start_programmatic_at(
@@ -411,7 +436,7 @@ mod tests {
 
     #[test]
     fn programmatic_scroll_instant_and_zero_duration_apply_one_clamped_offset() {
-        let started_at = Instant::now();
+        let started_at = test_now();
         for behavior in [
             ScrollBehavior::Instant,
             ScrollBehavior::Smooth(Duration::ZERO),
@@ -435,7 +460,7 @@ mod tests {
 
     #[test]
     fn programmatic_scroll_retarget_starts_at_rendered_offset_and_rejects_stale_generation() {
-        let started_at = Instant::now();
+        let started_at = test_now();
         let mut activity = ScrollActivity::default();
         let first = activity
             .start_programmatic_at(
@@ -493,7 +518,7 @@ mod tests {
 
     #[test]
     fn programmatic_scroll_direct_input_cancels_active_generation() {
-        let started_at = Instant::now();
+        let started_at = test_now();
         let mut activity = ScrollActivity::default();
         let smooth = activity
             .start_programmatic_at(
@@ -519,7 +544,7 @@ mod tests {
 
     #[test]
     fn programmatic_scroll_geometry_changes_clamp_or_complete_without_stale_frames() {
-        let started_at = Instant::now();
+        let started_at = test_now();
         let mut activity = ScrollActivity::default();
         let smooth = activity
             .start_programmatic_at(

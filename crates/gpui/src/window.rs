@@ -2991,7 +2991,9 @@ impl Window {
                     None
                 };
 
-                let now = Instant::now();
+                // The executor clock is real time in production; tests step it with
+                // `advance_clock`, so frame throttling stays deterministic there.
+                let now = cx.background_executor().now();
                 #[cfg_attr(not(feature = "profiler"), expect(unused_variables))]
                 if let Some((min_interval, limit)) = min_frame_interval {
                     if let Some(last_frame) = last_frame_time.get()
@@ -4074,7 +4076,7 @@ impl Window {
         canceled
     }
 
-    fn play_screen_effect_at(
+    pub(crate) fn play_screen_effect_at(
         &mut self,
         effect: impl Into<ScreenEffect>,
         started_at: Instant,
@@ -8618,14 +8620,15 @@ impl Window {
         if !self.touch_prediction_enabled {
             event.predicted_position = None;
         }
-        let recognized_gestures = self.touch_gestures.handle_event(&event);
+        let now = cx.background_executor().now();
+        let recognized_gestures = self.touch_gestures.handle_event_at(&event, now);
         if event.phase == crate::TouchPhase::Started
             && let Some(touch_drag) = self.touch_gestures.offer_touch_drag(event.id)
         {
             self.dispatch_recognized_touch_gesture(touch_drag, cx);
         }
         if event.phase == crate::TouchPhase::Started
-            && self.touch_gestures.pending_long_press().is_some()
+            && self.touch_gestures.pending_long_press(now).is_some()
         {
             self.long_press_capture = None;
         }
@@ -8636,7 +8639,7 @@ impl Window {
         }
         if event.phase == crate::TouchPhase::Started {
             self.schedule_long_press_timer(cx);
-        } else if self.touch_gestures.pending_long_press().is_none() {
+        } else if self.touch_gestures.pending_long_press(now).is_none() {
             self.long_press_timer.take();
         }
         // The platform's touch-release handler may inspect the input handler
@@ -8707,7 +8710,8 @@ impl Window {
 
     fn schedule_long_press_timer(&mut self, cx: &mut App) {
         self.long_press_timer.take();
-        let Some((touch_id, duration)) = self.touch_gestures.pending_long_press() else {
+        let now = cx.background_executor().now();
+        let Some((touch_id, duration)) = self.touch_gestures.pending_long_press(now) else {
             return;
         };
         self.long_press_timer = Some(self.spawn(cx, async move |cx| {
@@ -8724,7 +8728,8 @@ impl Window {
 
     fn schedule_touch_momentum_tick(&mut self) {
         self.on_next_frame(|window, cx| {
-            if let Some(gesture) = window.touch_gestures.tick_momentum() {
+            let now = cx.background_executor().now();
+            if let Some(gesture) = window.touch_gestures.tick_momentum_at(now) {
                 window.dispatch_recognized_touch_gesture(gesture, cx);
             }
             if window.touch_gestures.has_momentum() {

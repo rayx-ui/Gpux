@@ -65,9 +65,10 @@ impl TransitionFrameState {
         target_key: Option<SharedString>,
         region_id: ScreenEffectRegionId,
         transition: &FrameTransition,
+        now: Instant,
         window: &mut Window,
     ) -> Option<crate::ScreenEffectSnapshotId> {
-        self.release_expired_snapshots(window);
+        self.release_expired_snapshots(now, window);
 
         if !self.replace_target_key(target_key) {
             return None;
@@ -81,7 +82,7 @@ impl TransitionFrameState {
             window.capture_screen_effect_snapshot(ScreenEffectTarget::region(region_id));
         self.retained_snapshots.push(RetainedTransitionSnapshot {
             id: snapshot_id,
-            captured_at: Instant::now(),
+            captured_at: now,
             release_after: Duration::from_millis(transition.duration_ms_value())
                 + SNAPSHOT_RELEASE_SAFETY_MARGIN,
         });
@@ -104,9 +105,10 @@ impl TransitionFrameState {
         true
     }
 
-    fn release_expired_snapshots(&mut self, window: &mut Window) {
+    /// Releases snapshots whose transitions ended by `now` (the executor clock).
+    fn release_expired_snapshots(&mut self, now: Instant, window: &mut Window) {
         self.retained_snapshots.retain(|snapshot| {
-            if snapshot.captured_at.elapsed() >= snapshot.release_after {
+            if now.saturating_duration_since(snapshot.captured_at) >= snapshot.release_after {
                 let _ = window.release_screen_effect_snapshot(snapshot.id);
                 false
             } else {
@@ -364,6 +366,7 @@ impl Element for TransitionFrame {
         cx: &mut App,
     ) -> (LayoutId, Self::RequestLayoutState) {
         let region_id = self.screen_effect_region.clone();
+        let now = cx.background_executor().now();
         let pending_snapshot = window.with_element_state(
             id.unwrap(),
             |state: Option<TransitionFrameState>, window| {
@@ -372,6 +375,7 @@ impl Element for TransitionFrame {
                     self.target_key.clone(),
                     region_id.clone(),
                     &self.transition,
+                    now,
                     window,
                 );
 
@@ -448,7 +452,7 @@ impl Element for TransitionFrame {
                         ScreenEffectTarget::region(request_layout.region_id.clone()),
                         bounds.center(),
                     );
-                    window.play_screen_effect(effect);
+                    window.play_screen_effect_at(effect, cx.background_executor().now());
                 }
 
                 window.with_content_mask(

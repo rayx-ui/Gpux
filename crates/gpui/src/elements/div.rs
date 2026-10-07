@@ -2920,7 +2920,7 @@ impl Interactivity {
                             logical(target),
                             scroll_max,
                             behavior,
-                            crate::Instant::now(),
+                            cx.background_executor().now(),
                         )
                     };
                     if let Some(frame) = frame {
@@ -3915,9 +3915,11 @@ impl Interactivity {
                         && event.delta.precise()
                         && let Some(ongoing_scroll) = &ongoing_scroll
                     {
-                        ongoing_scroll
-                            .borrow_mut()
-                            .filter(&mut delta, event.touch_phase);
+                        ongoing_scroll.borrow_mut().filter_at(
+                            &mut delta,
+                            event.touch_phase,
+                            cx.background_executor().now(),
+                        );
                     }
 
                     let mut delta_x = Pixels::ZERO;
@@ -5436,7 +5438,7 @@ fn schedule_programmatic_scroll(
         let Some(frame) = apply_programmatic_scroll_frame(
             &scroll_handle,
             generation,
-            crate::Instant::now(),
+            cx.background_executor().now(),
             current_view,
             cx,
         ) else {

@@ -543,7 +543,8 @@ fn schedule_editable_programmatic_scroll(
     window.on_next_frame(move |window, cx| {
         let Some(request_next_frame) = state
             .update(cx, |state, cx| {
-                state.advance_programmatic_scroll_at(generation, crate::Instant::now(), cx)
+                let now = cx.background_executor().now();
+                state.advance_programmatic_scroll_at(generation, now, cx)
             })
             .ok()
             .flatten()
