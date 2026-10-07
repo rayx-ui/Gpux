@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-cross-platform-test-lanes",
-  "revision": 134,
+  "revision": 138,
   "planRevision": 13,
   "specHashes": {
     "requirements": "61a7b069f4c72c3eb9c5c54519ab4243f3d9d95297148656103f229e0356d5ec",
@@ -166,7 +166,11 @@
       ]
     },
     "t27-macos-desktop-lanes": {
-      "status": "pending"
+      "status": "blocked",
+      "workerIds": [
+        "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
+      ],
+      "blockerMarkdown": "Needs a Mac: M-1 and M-3 are runs of gpux-testkit lane a c d and of the CI check/test commands on macOS, and the gpux-apple build script compiles Metal shaders only on a macOS host, so Windows cannot type-check the macOS workspace. Hosted macos-15 CI is blocked by GitHub Actions billing (runs 37643950115, 37647356794, 37662580569 never started). The source the runs need is in place: dcb7bc5 (font-kit for macOS lane D text), the gpux-zed-util process reaping (MACCI-1) and the committed metal goldens. t28 and t29 (lane F) are written in source and pass what Windows can run: cargo test -p gpux-testkit --test ios 7/7, cargo test -p gpux-mobile --test ios_window_teardown 3/3, and clippy -D warnings for the ios_host example on aarch64-apple-ios. They still need xcodebuild and the Simulator. HANDOFF.md section 1 lists the commands; on the Mac, next resumes t27."
     },
     "t28-ios-host-build": {
       "status": "pending"
