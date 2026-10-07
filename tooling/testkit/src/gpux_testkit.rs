@@ -9,6 +9,7 @@
 
 pub mod android;
 pub mod cli;
+pub mod ios;
 pub mod lanes;
 pub mod local_gpu;
 pub mod prereq;
@@ -20,7 +21,7 @@ pub mod summary;
 pub mod wasm_verify;
 pub mod web;
 
-use cli::{AndroidCommand, Command, LaneArgs, WebCommand};
+use cli::{AndroidCommand, Command, IosCommand, LaneArgs, WebCommand};
 use lanes::{LaneId, LanePlan, OutputKind};
 use results::Tally;
 use run::Runner;
@@ -131,7 +132,30 @@ pub fn execute(
         Command::Lane(args) => lane(&args, environment, runner, out),
         Command::Web(command) => web_command(&command, environment, runner, out),
         Command::Android(command) => android_command(&command, environment, runner, out),
+        Command::Ios(command) => ios_command(&command, environment, runner, out),
     }
+}
+
+fn ios_command(
+    command: &IosCommand,
+    environment: &dyn Environment,
+    runner: &mut dyn Runner,
+    out: &mut dyn Write,
+) -> i32 {
+    let tally = match environment.workspace_root() {
+        None => Tally::failure(OUTSIDE_CHECKOUT),
+        Some(root) => match command {
+            IosCommand::Build => match ios::build(&root, environment, runner, out) {
+                Ok(_) => Tally {
+                    passed: 1,
+                    ..Tally::default()
+                },
+                Err(error) => Tally::failure(format!("ios build: {error}")),
+            },
+            IosCommand::Run { selection } => ios::run(&root, environment, runner, selection, out),
+        },
+    };
+    finish(&tally, 0, out)
 }
 
 fn android_command(
@@ -261,6 +285,23 @@ fn lane(
                 tally.add(failures);
             } else {
                 tally.add(local_gpu::run(root, args, environment, runner, out));
+            }
+            continue;
+        }
+        if lane == LaneId::F {
+            // The iOS lane runs on a Simulator through simctl instead of cargo targets.
+            let Some(root) = root.as_deref() else {
+                writeln!(out, "lane f: {OUTSIDE_CHECKOUT}").ok();
+                tally.add(Tally::failure(format!("lane f: {OUTSIDE_CHECKOUT}")));
+                continue;
+            };
+            if args.list {
+                for id in ios::expected_results(&args.selection) {
+                    writeln!(out, "  {id}").ok();
+                    listed += 1;
+                }
+            } else {
+                tally.add(ios::run(root, environment, runner, &args.selection, out));
             }
             continue;
         }

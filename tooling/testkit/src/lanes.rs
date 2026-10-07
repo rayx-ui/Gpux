@@ -201,20 +201,17 @@ pub fn plan(lane: LaneId, selection: &Selection) -> Result<LanePlan, PlanError> 
              runs it through `android run`"
                 .into(),
         )),
-        LaneId::F => Err(not_wired(lane, "the iOS lane", "s8-apple-lanes")),
+        LaneId::F => Err(PlanError(
+            "lane f runs on the iOS Simulator, not through cargo targets: `gpux-testkit lane f` \
+             runs it through `ios run --simulator`"
+                .into(),
+        )),
         LaneId::G => Err(PlanError(
             "lane g runs lanes b, c and d and the benchmarks on the local GPU, not one cargo \
              plan: `gpux-testkit lane g` runs them"
                 .into(),
         )),
     }
-}
-
-fn not_wired(lane: LaneId, what: &str, sprint: &str) -> PlanError {
-    PlanError(format!(
-        "lane {lane} is not available yet: {what} arrives with sprint `{sprint}` of the \
-         gpux-cross-platform-test-lanes epic; run lanes a to e, or g on a GPU, meanwhile"
-    ))
 }
 
 /// The catalog scenes of `lane` that the selection keeps.

@@ -202,7 +202,7 @@ pub fn built_library(root: &Path, abi: Abi) -> PathBuf {
         .join(format!("lib{LIBRARY}.so"))
 }
 
-fn tool_invocation(label: &str, program: &Path, args: Vec<String>) -> Invocation {
+pub(crate) fn tool_invocation(label: &str, program: &Path, args: Vec<String>) -> Invocation {
     Invocation {
         label: label.into(),
         program: program.display().to_string(),
@@ -212,7 +212,7 @@ fn tool_invocation(label: &str, program: &Path, args: Vec<String>) -> Invocation
     }
 }
 
-fn run_tool(
+pub(crate) fn run_tool(
     invocation: &Invocation,
     program: &Path,
     workdir: &Path,

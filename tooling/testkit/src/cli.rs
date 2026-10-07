@@ -11,6 +11,8 @@ usage: gpux-testkit lane <lane>... [--list] [--scene <id>] [--grep <pattern>] [-
        gpux-testkit web e2e [--profile <profile>] [--grep <pattern>] [--headed]
        gpux-testkit android build [--abi x86_64|arm64-v8a]...
        gpux-testkit android run [--serial <serial>] [--scene <id>] [--grep <pattern>]
+       gpux-testkit ios build --simulator
+       gpux-testkit ios run --simulator [--scene <id>] [--grep <pattern>]
 
 lanes:
   a  behaviour on the test platform (no GPU or display)
@@ -18,7 +20,7 @@ lanes:
   c  offscreen pixels through the headless renderer
   d  real desktop windows
   e  Android on a device or emulator through adb (ANDROID_SERIAL picks the device)
-  f  iOS (wired in a later sprint)
+  f  iOS on a Simulator (macOS with Xcode and XcodeGen)
   g  the local real GPU: lane b's every spec, lanes c and d with probes only, and the
      benchmarks, on the hardware adapter; refuses to run under CI
 
@@ -38,7 +40,11 @@ web (lane b's browser host):
 android (lane e's conformance host):
   build    build the android_host APK (both ABIs unless --abi narrows them)
   run      build for the device's ABI, install, run and follow the host on the first
-           attached device or emulator (or --serial)";
+           attached device or emulator (or --serial)
+
+ios (lane f's conformance host; devices are signed and run by hand, see docs/testing.md):
+  build    build the ios_host app for the Simulator, unsigned
+  run      build, boot the pinned Simulator, install, run and follow the host";
 
 /// A parsed command.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -51,6 +57,20 @@ pub enum Command {
     Web(WebCommand),
     /// Builds or runs lane E's Android host.
     Android(AndroidCommand),
+    /// Builds or runs lane F's iOS host.
+    Ios(IosCommand),
+}
+
+/// The `ios` subcommands, all on the Simulator.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum IosCommand {
+    /// Builds the app.
+    Build,
+    /// Runs the host.
+    Run {
+        /// The checks and scenes to run.
+        selection: Selection,
+    },
 }
 
 /// The `android` subcommands.
@@ -150,8 +170,9 @@ pub fn parse(args: impl IntoIterator<Item = String>) -> Result<Command, UsageErr
         Some("lane") => parse_lane(args).map(Command::Lane),
         Some("web") => parse_web(args).map(Command::Web),
         Some("android") => parse_android(args).map(Command::Android),
+        Some("ios") => parse_ios(args).map(Command::Ios),
         Some(other) => Err(UsageError(format!(
-            "unknown command `{other}`; the commands are `lane`, `web` and `android`"
+            "unknown command `{other}`; the commands are `lane`, `web`, `android` and `ios`"
         ))),
     }
 }
@@ -212,6 +233,49 @@ fn parse_android(mut args: impl Iterator<Item = String>) -> Result<AndroidComman
             "unknown android command `{other}`; the android commands are `build` and `run`"
         ))),
     }
+}
+
+fn parse_ios(mut args: impl Iterator<Item = String>) -> Result<IosCommand, UsageError> {
+    let subcommand = args
+        .next()
+        .ok_or_else(|| UsageError("name an ios command: `build` or `run`".into()))?;
+    if !matches!(subcommand.as_str(), "build" | "run") {
+        return Err(UsageError(format!(
+            "unknown ios command `{subcommand}`; the ios commands are `build` and `run`"
+        )));
+    }
+    let mut simulator = false;
+    let mut selection = Selection::default();
+    while let Some(arg) = args.next() {
+        match (subcommand.as_str(), arg.as_str()) {
+            (_, "--simulator") => simulator = true,
+            ("run", "--scene" | "--grep") => {
+                let slot = if arg == "--scene" {
+                    &mut selection.scene
+                } else {
+                    &mut selection.grep
+                };
+                if slot.replace(value(&arg, &mut args)?).is_some() {
+                    return Err(UsageError(format!("`{arg}` is given twice")));
+                }
+            }
+            _ => {
+                return Err(UsageError(format!(
+                    "unknown option `{arg}` for `ios {subcommand}`"
+                )));
+            }
+        }
+    }
+    if !simulator {
+        return Err(UsageError(format!(
+            "`ios {subcommand}` needs `--simulator`: devices need your signing team, so they \
+             are built and run by hand (docs/testing.md)"
+        )));
+    }
+    Ok(match subcommand.as_str() {
+        "build" => IosCommand::Build,
+        _ => IosCommand::Run { selection },
+    })
 }
 
 fn parse_web(mut args: impl Iterator<Item = String>) -> Result<WebCommand, UsageError> {

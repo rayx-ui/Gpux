@@ -289,29 +289,24 @@ fn lane_d_plans_exactly_what_the_desktop_host_selects() {
 }
 
 #[test]
-fn lanes_not_wired_yet_fail_clearly() {
+fn lanes_without_a_cargo_plan_name_their_runner() {
     for lane in LANES {
         let result = plan(lane, &Selection::default());
-        match lane {
-            LaneId::A | LaneId::C | LaneId::D => assert!(result.is_ok(), "lane {lane}"),
-            // Lane B runs Playwright specs through `web e2e`, not a cargo plan.
-            LaneId::B => assert!(result.unwrap_err().to_string().contains("web e2e")),
-            // Lane E runs on a device through `android run`.
-            LaneId::E => assert!(result.unwrap_err().to_string().contains("android run")),
-            // Lane G runs lanes B, C and D and the benchmarks through `gpux-testkit lane g`.
-            LaneId::G => assert!(
-                result
-                    .unwrap_err()
-                    .to_string()
-                    .contains("`gpux-testkit lane g` runs them")
-            ),
-            _ => {
-                let error = result.unwrap_err().to_string();
-                assert!(
-                    error.contains("is not available yet") && error.contains("run lanes a to e"),
-                    "{error}"
-                );
+        let runner = match lane {
+            LaneId::A | LaneId::C | LaneId::D => {
+                assert!(result.is_ok(), "lane {lane}");
+                continue;
             }
-        }
+            // Lane B runs Playwright specs through `web e2e`.
+            LaneId::B => "web e2e",
+            // Lane E runs on a device through `android run`.
+            LaneId::E => "android run",
+            // Lane F runs on the iOS Simulator through `ios run --simulator`.
+            LaneId::F => "ios run --simulator",
+            // Lane G runs lanes B, C and D and the benchmarks through `gpux-testkit lane g`.
+            LaneId::G => "`gpux-testkit lane g` runs them",
+        };
+        let error = result.unwrap_err().to_string();
+        assert!(error.contains(runner), "lane {lane}: {error}");
     }
 }
