@@ -16,8 +16,9 @@ extern "C" {
     ) -> Result<(), JsValue>;
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum HtmlIslandUploadPath {
+    #[default]
     CopyElementImageToTexture,
 }
 
@@ -29,23 +30,12 @@ impl HtmlIslandUploadPath {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct HtmlIslandUploadResult {
     #[cfg(feature = "rayx_diagnostics")]
     pub path: HtmlIslandUploadPath,
     #[cfg(feature = "rayx_diagnostics")]
     pub texture_reallocated: bool,
-}
-
-impl Default for HtmlIslandUploadResult {
-    fn default() -> Self {
-        Self {
-            #[cfg(feature = "rayx_diagnostics")]
-            path: HtmlIslandUploadPath::CopyElementImageToTexture,
-            #[cfg(feature = "rayx_diagnostics")]
-            texture_reallocated: false,
-        }
-    }
 }
 
 pub fn upload_html_island_element_to_texture(

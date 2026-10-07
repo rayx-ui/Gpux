@@ -441,6 +441,7 @@ impl WgpuContext {
     }
 
     #[cfg(target_family = "wasm")]
+    #[allow(clippy::arc_with_non_send_sync)]
     pub async fn new_web(
         canvas: &web_sys::HtmlCanvasElement,
         preference: WebBackendPreference,
