@@ -12,7 +12,7 @@ use crate::{
     compare::{GoldenName, GoldenOutcome, Goldens},
     host::{Host, StepOutcome},
     probe::{self, PixelRect},
-    scene::{Expect, Lane, LogicalRect, SceneSpec, Step},
+    scene::{Capability, Expect, Lane, LogicalRect, SceneSpec, Step},
 };
 use anyhow::{Context as _, anyhow, bail};
 use gpux::{
@@ -418,6 +418,7 @@ impl Host for TestHost {
                 let after = open.frame()?;
                 probe::changed(&before, after, region, probe::DEFAULT_TOLERANCE)?;
             }
+            Step::When(..) => bail!("`run_scene` resolves `When` steps"),
             Step::Golden | Step::GoldenWithin(_) => {
                 if !scene.golden {
                     return Ok(StepOutcome::Skipped("not in the golden subset".into()));
@@ -444,6 +445,22 @@ impl Host for TestHost {
             }
         }
         Ok(StepOutcome::Done)
+    }
+
+    fn supports(&mut self, capability: Capability) -> bool {
+        if !self.lane.has_pixels() {
+            return false;
+        }
+        let Some(open) = self.open.as_ref() else {
+            return false;
+        };
+        let capabilities = open.vcx().update(|window, _| window.effect_capabilities());
+        match capability {
+            Capability::ElementEffects => {
+                capabilities.element.backdrop_blur && capabilities.element.glow
+            }
+            Capability::SnapshotTransitions => capabilities.screen.snapshot_transitions,
+        }
     }
 
     fn close(&mut self) {

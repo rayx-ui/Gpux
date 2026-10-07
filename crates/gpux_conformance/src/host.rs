@@ -3,7 +3,7 @@
 
 use crate::{
     report::{Outcome, ResultLine},
-    scene::{Lane, SceneSpec, Step},
+    scene::{Capability, Lane, SceneSpec, Step, flatten},
 };
 
 /// What a host did with one step.
@@ -23,8 +23,12 @@ pub trait Host {
     /// Opens `scene` at `scale` in a fresh window.
     fn open(&mut self, scene: &SceneSpec, scale: f32) -> anyhow::Result<()>;
 
-    /// Runs one step, failing with an explanation when it does not hold.
+    /// Runs one step, failing with an explanation when it does not hold. [`Step::When`] never
+    /// reaches a host: [`run_scene`] asks [`Host::supports`] and runs or skips its steps.
     fn step(&mut self, scene: &SceneSpec, step: &Step) -> anyhow::Result<StepOutcome>;
+
+    /// Whether the open scene's renderer has `capability`. Hosts without pixels have none.
+    fn supports(&mut self, capability: Capability) -> bool;
 
     /// Closes the scene's window.
     fn close(&mut self);
@@ -44,34 +48,58 @@ pub fn run_scene(host: &mut dyn Host, scene: &SceneSpec, scale: f32) -> ResultLi
         return ResultLine::new(Outcome::Fail, id, format!("could not open: {error:#}"));
     }
     let script = (scene.script)();
+    let total = flatten(&script).len();
     let mut skipped = Vec::new();
-    for (index, step) in script.iter().enumerate() {
+    let mut number = 0;
+    let result = run_steps(host, scene, &script, &mut number, &mut skipped);
+    host.close();
+    if let Err(detail) = result {
+        return ResultLine::new(Outcome::Fail, id, detail);
+    }
+    let ran = total - skipped.len();
+    let mut detail = format!("{ran} steps");
+    if !skipped.is_empty() {
+        let count = skipped.len();
+        skipped.sort();
+        skipped.dedup();
+        detail.push_str(&format!(", {count} skipped ({})", skipped.join("; ")));
+    }
+    ResultLine::new(Outcome::Pass, id, detail)
+}
+
+/// Runs `steps` in order, numbering them as the flattened script does. Returns the failure
+/// detail of the first step that does not hold.
+fn run_steps(
+    host: &mut dyn Host,
+    scene: &SceneSpec,
+    steps: &[Step],
+    number: &mut usize,
+    skipped: &mut Vec<String>,
+) -> Result<(), String> {
+    for step in steps {
+        if let Step::When(capability, inner) = step {
+            if host.supports(*capability) {
+                run_steps(host, scene, inner, number, skipped)?;
+            } else {
+                let count = flatten(inner).len();
+                *number += count;
+                skipped.extend(std::iter::repeat_n(
+                    format!("the renderer has no {}", capability.describe()),
+                    count,
+                ));
+            }
+            continue;
+        }
+        *number += 1;
         match host.step(scene, step) {
             Ok(StepOutcome::Done) => {}
             Ok(StepOutcome::Skipped(reason)) => skipped.push(reason),
             Err(error) => {
-                host.close();
-                return ResultLine::new(
-                    Outcome::Fail,
-                    id,
-                    format!("step {} {}: {error:#}", index + 1, describe(step)),
-                );
+                return Err(format!("step {} {}: {error:#}", number, describe(step)));
             }
         }
     }
-    host.close();
-    let ran = script.len() - skipped.len();
-    let mut detail = format!("{ran} steps");
-    if !skipped.is_empty() {
-        skipped.sort();
-        skipped.dedup();
-        detail.push_str(&format!(
-            ", {} skipped ({})",
-            script.len() - ran,
-            skipped.join("; ")
-        ));
-    }
-    ResultLine::new(Outcome::Pass, id, detail)
+    Ok(())
 }
 
 /// A short description of a step for failure details.
@@ -106,6 +134,11 @@ pub fn describe(step: &Step) -> String {
         Step::Capture(name) => format!("capture {name:?}"),
         Step::ChangedSince(name, rect) => format!("{rect:?} changed since {name:?}"),
         Step::Golden => "golden".to_string(),
+        Step::When(capability, steps) => format!(
+            "when the renderer has {}: {} steps",
+            capability.describe(),
+            steps.len()
+        ),
         Step::GoldenWithin(tolerance) => format!(
             "golden within ±{} and {}% ({})",
             tolerance.channel_tolerance,

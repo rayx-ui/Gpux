@@ -155,6 +155,25 @@ impl Area {
     ];
 }
 
+/// A renderer capability that some pixel expectations depend on.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum Capability {
+    /// Element effects: layer and backdrop blur and glow (`EffectCapabilities::element`).
+    ElementEffects,
+    /// Snapshot transitions such as crossfades (`EffectCapabilities::screen`).
+    SnapshotTransitions,
+}
+
+impl Capability {
+    /// What the capability is, for skip reasons.
+    pub fn describe(self) -> &'static str {
+        match self {
+            Capability::ElementEffects => "element effects",
+            Capability::SnapshotTransitions => "snapshot transitions",
+        }
+    }
+}
+
 /// A rectangle in logical pixels: `(x, y, width, height)`.
 pub type LogicalRect = (f32, f32, f32, f32);
 
@@ -219,6 +238,9 @@ pub enum Step {
     Golden,
     /// Like [`Step::Golden`], under the scene's own tolerance instead of the defaults.
     GoldenWithin(GoldenTolerance),
+    /// Runs the steps only where the renderer has the capability; elsewhere they are reported
+    /// skipped, because the renderer draws the content without the effect.
+    When(Capability, Vec<Step>),
 }
 
 impl Step {
@@ -238,13 +260,25 @@ impl Step {
                 | Step::ChangedSince(..)
                 | Step::Golden
                 | Step::GoldenWithin(_)
-        )
+        ) || matches!(self, Step::When(_, steps) if steps.iter().any(Step::needs_pixels))
     }
 
     /// Whether the step compares with the scene's golden.
     pub fn is_golden(&self) -> bool {
         matches!(self, Step::Golden | Step::GoldenWithin(_))
     }
+}
+
+/// Every step of `script`, with the steps inside [`Step::When`] in place.
+pub fn flatten(script: &[Step]) -> Vec<&Step> {
+    let mut steps = Vec::new();
+    for step in script {
+        match step {
+            Step::When(_, inner) => steps.extend(flatten(inner)),
+            step => steps.push(step),
+        }
+    }
+    steps
 }
 
 /// An assertion about the rendered element tree, checked through semantic queries.

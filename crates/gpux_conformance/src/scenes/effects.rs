@@ -1,7 +1,7 @@
 //! Frame effects: effect frames with shader effects, animated frames and transition frames.
 
 use super::common::*;
-use crate::scene::{Area, Expect, Lane, SceneSpec, Step};
+use crate::scene::{Area, Capability, Expect, Lane, SceneSpec, Step};
 use gpux::prelude::*;
 use gpux::{
     AnyElement, Context, FrameTransition, IntoElement, Render, Window, animated_frame, div,
@@ -46,11 +46,16 @@ pub const SHADER_EFFECTS: SceneSpec = SceneSpec {
             Step::Expect(Expect::Bounds(id("blurred"), (90., 20., 40., 40.), 0.01)),
             Step::Expect(Expect::Bounds(id("glowing"), (160., 20., 40., 40.), 0.01)),
             Step::probe(40., 40., RED),
-            // Next to the plain block the backdrop is untouched; the blurred and glowing ones
-            // reach past their edges.
+            // Next to the plain block the backdrop is untouched; where the renderer draws
+            // element effects, the blurred and glowing ones reach past their edges.
             Step::ProbeUniform((14., 20., 4., 40.), BLACK, 0),
-            Step::ProbeDiffer((84., 36., 4., 8.), (14., 36., 4., 8.), 2),
-            Step::ProbeDiffer((154., 36., 4., 8.), (14., 36., 4., 8.), 2),
+            Step::When(
+                Capability::ElementEffects,
+                vec![
+                    Step::ProbeDiffer((84., 36., 4., 8.), (14., 36., 4., 8.), 2),
+                    Step::ProbeDiffer((154., 36., 4., 8.), (14., 36., 4., 8.), 2),
+                ],
+            ),
         ]
     },
 };
@@ -179,12 +184,16 @@ pub const TRANSITION_FRAME: SceneSpec = SceneSpec {
             // Halfway through the 200 ms crossfade the frame is neither the old page...
             Step::Advance(Duration::from_millis(100)),
             Step::ChangedSince("old", (60., 40., 20., 20.)),
-            Step::Capture("mid"),
+            Step::When(Capability::SnapshotTransitions, vec![Step::Capture("mid")]),
             // ...nor the new one: once the transition has finished, only the new page shows.
+            // Renderers without snapshot transitions swap the pages at once.
             Step::Advance(Duration::from_millis(150)),
             Step::Advance(Duration::from_millis(50)),
             Step::probe(70., 50., BLUE),
-            Step::ChangedSince("mid", (60., 40., 20., 20.)),
+            Step::When(
+                Capability::SnapshotTransitions,
+                vec![Step::ChangedSince("mid", (60., 40., 20., 20.))],
+            ),
         ]
     },
 };
