@@ -1,12 +1,12 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-cross-platform-test-lanes",
-  "revision": 89,
-  "planRevision": 10,
+  "revision": 94,
+  "planRevision": 11,
   "specHashes": {
-    "requirements": "9551e4f8e69bda2f78f8574dc9fcdc11cdf8ecb6c190384fb9ba0687e07e0a6b",
-    "design": "192179721f6f7f7829a398e5fc9998b355a7357a88d464c45cfdbaf14d11d17e",
-    "plan": "f997dcc7377643c1371c8fec652595a7aed50a794cc85c833efc4f26c320c9fc"
+    "requirements": "61a7b069f4c72c3eb9c5c54519ab4243f3d9d95297148656103f229e0356d5ec",
+    "design": "3b61734790078b53d15f8b4653b768501ade4decc0e7b76f997273ac0fd4693d",
+    "plan": "fc9dff71cb27cb3feb0a66341bc33ef0adc11c5fe737358ae4e7b9536d506cf4"
   },
   "tasks": {
     "t01-bundled-test-text": {
@@ -82,19 +82,19 @@
       ]
     },
     "t13-testkit-cli": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
       ]
     },
     "t14-windowed-host-lane-d": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
       ]
     },
     "t15-ci-lane-d": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
       ]
@@ -148,7 +148,7 @@
       ]
     },
     "t31-macos-build-and-ci": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
       ]
@@ -191,14 +191,14 @@
       },
       "recordedAt": "2026-10-07T01:46:38Z"
     },
-    "b356e44277cccfdab61cf70c32a5baacab5c800dd3cdffdb5f3fbe578d3f055c": {
+    "aadc254de5f3e45b8f63151196d71ea21de15952424e21e08889103b3527f6ad": {
       "snapshot": {
-        "specHash": "c15d4fdace8901166ae5d0e4bf110b7a3d27227c4d2c7f397b577e348178ef1f",
+        "specHash": "bcde740d83d234bc585c80ffd1f9886afc1e4db24f19ff9a99e7787022b123a1",
         "repositories": {
-          "gpux": "04f8805f84d28fe39f1cc3cdcd5a07dd3ce9c10b8bbfd8eebc1bd6d4d25f0499"
+          "gpux": "4774d2598f6a8e31ccc3108fad22a4426f8b81c92ffb29243736b645fb777d12"
         }
       },
-      "recordedAt": "2026-10-07T10:11:30Z"
+      "recordedAt": "2026-10-07T18:17:39Z"
     }
   },
   "checkResults": {
@@ -444,102 +444,102 @@
       "checkId": "check-testkit-tests",
       "boundaryId": "s4-testkit-and-windowed-lane",
       "phase": "final",
-      "batchId": "b356e44277cccfdab61cf70c32a5baacab5c800dd3cdffdb5f3fbe578d3f055c",
+      "batchId": "aadc254de5f3e45b8f63151196d71ea21de15952424e21e08889103b3527f6ad",
       "definitionHash": "c20eae6a96e181e208949f90d5a3a7b42af48551148f04bd4d5914b48eb76970",
-      "basisHash": "885472a62537f6bfdf22b522857d123c3491bba327d0f5150438d77e93543ef1",
+      "basisHash": "6381277d88fcf09db674bfe73e96611c2dbfe7f57bf06ba5e52c1f1f1f164caa",
       "status": "passed",
       "exitCode": 0,
-      "testCount": 24,
-      "durationSeconds": 4.4243,
-      "recordedAt": "2026-10-07T10:10:39Z",
+      "testCount": 58,
+      "durationSeconds": 1.3383,
+      "recordedAt": "2026-10-07T18:16:59Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s4-testkit-and-windowed-lane-final-4cfeac3b944f.log",
-      "logSha256": "00b583c8149e24887be91751d6aa24727dca909c6a705cf7a92c7055d94c8c27",
-      "inputsHash": "f9cc9fc3900543ba15b7eeea73a33af3b701255d68a6c42092749eac2f3bcb7c"
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s4-testkit-and-windowed-lane-final-834e1521a05b.log",
+      "logSha256": "12dc634ffa1e7fff80104163069b2386f9bacd4d8540fe12ddac2104fd0ef6b7",
+      "inputsHash": "348869975730b11be9f661dbc893d216ea4edb0fba7914fef7f60ad9f56221e8"
     },
     "s4-testkit-and-windowed-lane/check-testkit-lane-list/final": {
       "checkId": "check-testkit-lane-list",
       "boundaryId": "s4-testkit-and-windowed-lane",
       "phase": "final",
-      "batchId": "b356e44277cccfdab61cf70c32a5baacab5c800dd3cdffdb5f3fbe578d3f055c",
+      "batchId": "aadc254de5f3e45b8f63151196d71ea21de15952424e21e08889103b3527f6ad",
       "definitionHash": "3f93d735c0a3b9ba890c4ef0e19acc0474e0c3d5a390fb13b42178ac024432c2",
-      "basisHash": "93119d79b3a78d0b7a69e0ae798fe7b2ad55637968222f79e951994b86fd063a",
+      "basisHash": "a33ca3e575a8ebbdcbcc1410b95f31f96285d036048db76e90d2c2310c106f4a",
       "status": "passed",
       "exitCode": 0,
       "testCount": 0,
-      "durationSeconds": 16.9324,
-      "recordedAt": "2026-10-07T10:10:56Z",
+      "durationSeconds": 6.4155,
+      "recordedAt": "2026-10-07T18:17:06Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s4-testkit-and-windowed-lane-final-ced8837a2b2a.log",
-      "logSha256": "e516c8e8697cfc9aec720c3d25c89744f768607a492680f023a6f7fad4b821d7",
-      "inputsHash": "6e5bb9b4f09238efe708499b221afc09e4e224fb00ea28de3f5770751b6b98fa"
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s4-testkit-and-windowed-lane-final-aa9c5e7ad4e3.log",
+      "logSha256": "2dd8c40e7397a3c8a09ce2131c4d27f1f52979e42cdcc08e3d09f14461fd3969",
+      "inputsHash": "8794872831f0e4efe3cb0ac34b586c3e13c3baf1b8c712525b65401ee62ac619"
     },
     "s4-testkit-and-windowed-lane/check-lane-d/final": {
       "checkId": "check-lane-d",
       "boundaryId": "s4-testkit-and-windowed-lane",
       "phase": "final",
-      "batchId": "b356e44277cccfdab61cf70c32a5baacab5c800dd3cdffdb5f3fbe578d3f055c",
+      "batchId": "aadc254de5f3e45b8f63151196d71ea21de15952424e21e08889103b3527f6ad",
       "definitionHash": "960663a020d4fde84ade3a47fbaffe0102952fd714d98c397ea28f310b32d163",
-      "basisHash": "1c1e9204aba29292ef94dea65108e9eae30340d986979f5aa59389644518cee6",
+      "basisHash": "037030a76e1f70b486f1fb002e005f095e370a91b5657658f0bee511eced417a",
       "status": "passed",
       "exitCode": 0,
       "testCount": 40,
-      "durationSeconds": 29.3637,
-      "recordedAt": "2026-10-07T10:11:25Z",
+      "durationSeconds": 27.8132,
+      "recordedAt": "2026-10-07T18:17:34Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s4-testkit-and-windowed-lane-final-f981fe304781.log",
-      "logSha256": "f8dd9a15372703adfd9cac82f8d9e8f7227d0ca3656bfd35321d5bdd03de7ae8"
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s4-testkit-and-windowed-lane-final-59f35d232627.log",
+      "logSha256": "83e824b0af5cd2f64a6c1f3d66a829f128956b2c1692d5afc783da9c0e4c6afa"
     },
     "s4-testkit-and-windowed-lane/check-macos-no-fork-api/final": {
       "checkId": "check-macos-no-fork-api",
       "boundaryId": "s4-testkit-and-windowed-lane",
       "phase": "final",
-      "batchId": "b356e44277cccfdab61cf70c32a5baacab5c800dd3cdffdb5f3fbe578d3f055c",
+      "batchId": "aadc254de5f3e45b8f63151196d71ea21de15952424e21e08889103b3527f6ad",
       "definitionHash": "79e236b8af49167d32b3873d320fa242fba808a797189b522b5d3941fd96dbc2",
-      "basisHash": "6eca5dee8a9ecc7e93944a16e8228e53a17f0870353ee0fd51b4337742ad6986",
+      "basisHash": "d1124a59688505cd62d3790fe8c20d11bb5868240079ff0728997a2e737514c2",
       "status": "passed",
       "exitCode": 1,
       "testCount": 0,
-      "durationSeconds": 0.047,
-      "recordedAt": "2026-10-07T10:11:25Z",
+      "durationSeconds": 0.0954,
+      "recordedAt": "2026-10-07T18:17:34Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s4-testkit-and-windowed-lane-final-d217413bde1d.log",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s4-testkit-and-windowed-lane-final-649e0e7067a3.log",
       "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "inputsHash": "88580c4f2ad36404a997b5ec69b2a0e0a0c8d5e59601032b4b30098341206cff"
+      "inputsHash": "9962f15a11323253c21425665c11492f05bd24a5cb875780edbb7e7325cdeea0"
     },
     "s4-testkit-and-windowed-lane/check-test-platform-pointer/final": {
       "checkId": "check-test-platform-pointer",
       "boundaryId": "s4-testkit-and-windowed-lane",
       "phase": "final",
-      "batchId": "b356e44277cccfdab61cf70c32a5baacab5c800dd3cdffdb5f3fbe578d3f055c",
+      "batchId": "aadc254de5f3e45b8f63151196d71ea21de15952424e21e08889103b3527f6ad",
       "definitionHash": "59991c07485b07095d3539ad75367bbaa4ca8f6945adad083d3f98fb6e5d7051",
-      "basisHash": "1ad8dc2fd8c9b434bf0801b47b3ff9462b7f65aad6237467bef01ddd04e667fb",
+      "basisHash": "4b2dfec574cd66524e9d3894d4bee611f55999cbc2cc3d0b0456201834fd0793",
       "status": "passed",
       "exitCode": 0,
       "testCount": 2,
-      "durationSeconds": 0.8697,
-      "recordedAt": "2026-10-07T10:11:26Z",
+      "durationSeconds": 1.6995,
+      "recordedAt": "2026-10-07T18:17:36Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s4-testkit-and-windowed-lane-final-dae78fab9fc5.log",
-      "logSha256": "337a343b8a9734d7329f156966233432f8abfdc016209d1f29d9d84691be0be4",
-      "inputsHash": "f8cf992b8662f8ff8bdb6a3fdd82ade20414834b3e3d1c6e0ceb2da468347f8e"
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s4-testkit-and-windowed-lane-final-f4f36f10972f.log",
+      "logSha256": "f3812d37eeec5bcc023eed6afa02e55a1617f7d5c7a6d6814c426cfdaf1f0b2a",
+      "inputsHash": "efd53cc809fcbfcf412e4426a594d2518dec63e8d237a9e87046a810abc1ed8f"
     },
     "s4-testkit-and-windowed-lane/check-host-capabilities/final": {
       "checkId": "check-host-capabilities",
       "boundaryId": "s4-testkit-and-windowed-lane",
       "phase": "final",
-      "batchId": "b356e44277cccfdab61cf70c32a5baacab5c800dd3cdffdb5f3fbe578d3f055c",
+      "batchId": "aadc254de5f3e45b8f63151196d71ea21de15952424e21e08889103b3527f6ad",
       "definitionHash": "0f38035d1cbedac17b58a3fff2646be5805d1c5a1d2728ee1d535581f719dd44",
-      "basisHash": "3c373e4f2e00e708786aa195a3b693630ce751b110b7eafe9735045672efa253",
+      "basisHash": "e6baf3e04665e0222431b6af98dc0d1a726c049cd38544e335de3a4378efa281",
       "status": "passed",
       "exitCode": 0,
       "testCount": 3,
-      "durationSeconds": 3.2293,
-      "recordedAt": "2026-10-07T10:11:30Z",
+      "durationSeconds": 1.3943,
+      "recordedAt": "2026-10-07T18:17:38Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s4-testkit-and-windowed-lane-final-a48c53f3b373.log",
-      "logSha256": "ed4cc2c46caf9e6da1438fb04ba9ec112da72706949bfd44b1280fe3fe8f14b6",
-      "inputsHash": "2c83a7b9bcf6f36b7c05c9d42e6475f1167c3b2ace1461f5aff53e114eb2a156"
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s4-testkit-and-windowed-lane-final-841a208150d4.log",
+      "logSha256": "31de0afcb2f0f2b2bb759e888c751c719d5b49f287cff4bcddffba1c731ce317",
+      "inputsHash": "4cde110ac8aabb156a8eed781a6bf380f826445e479df5415e0b64b214c5cf48"
     }
   },
   "reviews": {
@@ -1329,6 +1329,417 @@
         "S3-F6"
       ],
       "recordedAt": "2026-10-07T08:26:06Z"
+    },
+    "s4-testkit-and-windowed-lane": {
+      "reviewerId": "reviewer-s4-independent",
+      "snapshotId": "aadc254de5f3e45b8f63151196d71ea21de15952424e21e08889103b3527f6ad",
+      "criterionIds": [
+        "LANES-2",
+        "D-1",
+        "D-2",
+        "MACCI-1",
+        "MACCI-2",
+        "MACCI-3",
+        "MACCI-4",
+        "M-2"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "LANES-2"
+          ],
+          "sha256": "a297847aaf233411dae82a8b552d6cb0e8c2a1b10f85f2e581f9c78ba26de2c7"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/gpux_testkit.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LANES-2",
+            "D-1"
+          ],
+          "sha256": "9ae0f1757955d3937060140c7b6332fe45101dba55d38ec38d24655f153303f1"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/cli.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LANES-2"
+          ],
+          "sha256": "2d946da8b1898922f17d4a0e9f1febc0442090b0530038d56f68a16c8fb752e1"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/lanes.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LANES-2",
+            "D-1"
+          ],
+          "sha256": "60c22d754a72e266fe98afebfefe1ce0388fe3281ff1008cdf10a796a4d252e7"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/summary.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LANES-2"
+          ],
+          "sha256": "e18410059dda5d884501b388e72657ad9b86b7984a5fde97971ad90617679a45"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/prereq.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LANES-2",
+            "D-1"
+          ],
+          "sha256": "0c7d9f73791f38edccce39f87dc3c05a51e0cb31c20f4a2cdc61a317fb19c11a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/programs.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LANES-2"
+          ],
+          "sha256": "819d9cb55276028d5437cc10fb8ff2fc59d34b918456f8598bad90b9a257806a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/results.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LANES-2"
+          ],
+          "sha256": "92a8314ad31faba39bf04475f6d89495c2ecbe607028306b95b608fdcbef27ac"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/run.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LANES-2"
+          ],
+          "sha256": "eecbd1e0cb96c02d7cc4c5587223cf531234f5c7572bec6b735c363f5eb04cfb"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/tests/cli.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LANES-2"
+          ],
+          "sha256": "eff4b321af490c46a1ed4d7b1845e9e19e973efb7231a778bc478b2ab4b7aa05"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/tests/execute.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LANES-2",
+            "D-1"
+          ],
+          "sha256": "2228fda825195204333f67b248bc26e983b5f0ffad1d8018126c158aa4f1b577"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/tests/results.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LANES-2"
+          ],
+          "sha256": "c2026f7c6f32009546c8690e3ab874cb12728c38ebc60d2e69bbec087e9398d3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/tests/programs.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LANES-2"
+          ],
+          "sha256": "ebb112e4cba0b80f7a22ea0ce231f054d29387cf0737e231b498e05a36be39bf"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/platform_checks.rs",
+          "kind": "source",
+          "criterionIds": [
+            "D-1",
+            "LANES-2"
+          ],
+          "sha256": "3b0e56324ed4db8f501b54397a1302df11a69fa38410ea5e2740de81f77a3ea8"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/app_host.rs",
+          "kind": "source",
+          "criterionIds": [
+            "D-1",
+            "MACCI-4"
+          ],
+          "sha256": "2324e90431795eb40758ea9085ff5e9490d644270d206b84a1e8f1ff4de7b51d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/evaluate.rs",
+          "kind": "source",
+          "criterionIds": [
+            "D-1",
+            "MACCI-4"
+          ],
+          "sha256": "5f10bd8584613e9bd8f493cedf7a615d1739d666e8af787baefd3798b2cac41d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/desktop_host/main.rs",
+          "kind": "source",
+          "criterionIds": [
+            "D-1"
+          ],
+          "sha256": "5e37cf721231a4ceb092a1daa081e6c0db2209b08a4484e66d39d705c4435394"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/desktop_host/checks.rs",
+          "kind": "runtime",
+          "criterionIds": [
+            "D-1"
+          ],
+          "sha256": "70497d8f3524598be1c1d78c9094e6a0cc6fba7450276eae42274f97f3c0433f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/desktop_host/os.rs",
+          "kind": "source",
+          "criterionIds": [
+            "D-1"
+          ],
+          "sha256": "041421a11f7437d8d24e0cdaf5f5cced3f2aabb8619b8963f3abcc3f0af89ba6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/wgpu_renderer.rs",
+          "kind": "source",
+          "criterionIds": [
+            "D-1"
+          ],
+          "sha256": "ef84443ad72fc9570c9a20ca52e33dba11836bc71f78046106f577cec58aef78"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "D-1",
+            "M-2"
+          ],
+          "sha256": "ad4bddcea53f7fc21559c7d100813bdadf89bed95d66b061ed9f0d143d7ee346"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/ci.yml",
+          "kind": "source",
+          "criterionIds": [
+            "D-2",
+            "M-2",
+            "MACCI-2"
+          ],
+          "sha256": "9a536100b7e5f9587452ea68adead8edd6ece1f4988ce1d9ca915866fb718908"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/testing.md",
+          "kind": "source",
+          "criterionIds": [
+            "D-2"
+          ],
+          "sha256": "87a7caa81adc74cee3f977509d56f91cf73d4119fe4667450243b330338b7687"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/goldens/metal/text-shaping@2x.metal.png",
+          "kind": "source",
+          "criterionIds": [
+            "M-2"
+          ],
+          "sha256": "e43f1630fd1e201f4eec13bc2c3afae43ba3bc9e0e56e76b96d081ab228bc0c8"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/editable_text.rs",
+          "kind": "test",
+          "criterionIds": [
+            "M-2"
+          ],
+          "sha256": "60aef147398f79a9dcaaaa046aeaa1203f91f1ce34354c42bce897bae56f2efe"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/util/src/command/darwin.rs",
+          "kind": "source",
+          "criterionIds": [
+            "MACCI-1",
+            "MACCI-2"
+          ],
+          "sha256": "626c369551c05033f69dda2a792d19ab5ba873198d0b6a718520db38747c1286"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/util/src/command/darwin/process.rs",
+          "kind": "source",
+          "criterionIds": [
+            "MACCI-1"
+          ],
+          "sha256": "63a82472d4afbe8deb13032433491f08459ebb9aef18a3e7def97bc8804de49b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/util/src/command/darwin/process.rs",
+          "kind": "test",
+          "criterionIds": [
+            "MACCI-1"
+          ],
+          "sha256": "63a82472d4afbe8deb13032433491f08459ebb9aef18a3e7def97bc8804de49b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/references/update-from-zed-gpui-closure.md",
+          "kind": "source",
+          "criterionIds": [
+            "MACCI-1"
+          ],
+          "sha256": "b97de6b6aff7e5be25df32faecb7976c2c5240492b0dee144408cb984008070d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "MACCI-1",
+            "MACCI-2",
+            "LANES-2"
+          ],
+          "sha256": "30d719a9be9068351701a90549afd2f3aec53f4ebc6f993a0fcc9d13f2e95a93"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "MACCI-2"
+          ],
+          "sha256": "fc993cecc26174368ba648ad9c73fd3ac9bd4b6b075b68d8d5f4eb7388b79ad0"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/wgpu_context.rs",
+          "kind": "source",
+          "criterionIds": [
+            "MACCI-2"
+          ],
+          "sha256": "c97fb71c9fa6e45cef15d79243618d660f88346fa08cb5837fac45b1d701bc18"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/platform/test/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "MACCI-3"
+          ],
+          "sha256": "0ce835007c7222f34ef15e4a7eb44b140f487291caa0b59fa0319bab06087fd4"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/app/test_context.rs",
+          "kind": "source",
+          "criterionIds": [
+            "MACCI-3"
+          ],
+          "sha256": "a9b15c4116afe8d296c23a7dce6426d49ef11f1d75c3a3d27bd199405df1f56d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/test_platform_pointer.rs",
+          "kind": "test",
+          "criterionIds": [
+            "MACCI-3"
+          ],
+          "sha256": "dcaf1b419fb1977361610a5136a0034cc20bce4825e8e2360ff3b94148527e6d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scene.rs",
+          "kind": "source",
+          "criterionIds": [
+            "MACCI-4"
+          ],
+          "sha256": "4ab7cc759526983b9900dd5ead3a7ef874956957d6a977d84f2ff714bf745fbd"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/host.rs",
+          "kind": "source",
+          "criterionIds": [
+            "MACCI-4"
+          ],
+          "sha256": "3d115010e5c94c454229c08ffebedc93fcde0d29226d6fc14717d02fd2c3822a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/test_host.rs",
+          "kind": "source",
+          "criterionIds": [
+            "MACCI-4"
+          ],
+          "sha256": "3bd7c2e0bdb271cf3f7afe68dc66b90864b6e3e7db2940870fba18a54e08034f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scenes/effects.rs",
+          "kind": "source",
+          "criterionIds": [
+            "MACCI-4"
+          ],
+          "sha256": "d9b53413354a7b9cf0025e92fbc4f72fc989e7fe4cebbcc9b672cfe07a2558bc"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/host_capabilities.rs",
+          "kind": "test",
+          "criterionIds": [
+            "MACCI-4"
+          ],
+          "sha256": "17ac6f814efa55f98bcc9da34708117dd069b287ac8285d38e66c40dfa2e9f63"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/gpux_conformance.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LANES-2",
+            "D-1"
+          ],
+          "sha256": "eb3bdde95f9b00feeff07d17651d9da7fa409d5ccf91602077c199b1e4628d81"
+        }
+      ],
+      "summaryMarkdown": "**Passed.** All S4 criteria are met under the spec as amended at revision 91. S4-F1 through S4-F7 are resolved.\n\n- **Checks:** all 6 sprint checks passed at snapshot `aadc254d`: 58 testkit tests, the `--list` check, lane D 40/40 on Windows with SendInput and root-view release on close, the fork-API grep, the pointer group, and the capability group.\n- **D-2 local proof:** I reproduced the `ubuntu-24.04` lane D command myself in WSL under `xvfb-run` with lavapipe: 39 passed, 0 failed, 1 skipped. The Wayland attempt is recorded as local-only.\n- **M-2:** the workflow review holds; every macOS job entry is enabled.\n- **Hardened tests:** they pass in focused runs on Windows and in WSL.\n- **Later merges:** the merged sprint 5–8 work (`dfd64b9`, `75c2b39`) keeps every S4 behaviour: `selects`, the `--list` listings, the capture `present`, and the summary and exit codes. Constraints still hold: no `[patch]` or git source, no `vendor/wgpu` or RayX change.\n\n**Caveats:**\n- The owner decision reached me through the coordinator, and the spec amendment is uncommitted in the working tree. Commit it with the sprint seal.\n- Every macOS runtime proof is deferred to M-3 (s8, on a Mac), and Metal/macOS runtime work must not be closed before then: lane D with `font-kit`, the macOS `test` run including the S4-F5 probe, and `check (macos-15)` at HEAD.\n- `AppHost` now skips pixel steps when a window reports \"not implemented\" or \"has no renderer\". Lane D's platform checks call `render_to_image` directly, so a desktop capture regression would still fail the lane.",
+      "findingIds": [
+        "S4-F1",
+        "S4-F2",
+        "S4-F3",
+        "S4-F4",
+        "S4-F5",
+        "S4-F6",
+        "S4-F7"
+      ],
+      "recordedAt": "2026-10-07T18:28:59Z"
     }
   },
   "checkpoints": {
@@ -1647,8 +2058,28 @@
         "M-2"
       ],
       "severity": "major",
-      "status": "open",
-      "descriptionMarkdown": "**No green workflow run exists for the sprint HEAD. The macOS lane D job has never passed.**\n\n- **Expected:** D-2 and M-2 are verified by a green workflow run on `refactor/gpux-cross-platform-test-lanes`. D-2 needs lane D green on `ubuntu-24.04`, `windows-2025` and `macos-15`. M-2 needs the macOS entries of `test`, lane A, lane C and lane D green. The repairs for the jobs that were red must be proven in CI, not only locally.\n- **Observed** (checked with `gh run view --json jobs`):\n  - Run 37599450308 on `1357ce7` was the last run that executed.\n    - Green: `check` on all three OSes, `test (macos-15)`, lane A on all three, lane C (lavapipe, warp, metal), lane D (ubuntu-24.04) with 39 passed and 1 skip, lane D (windows-2025) with 40/40 and SendInput passing, and `package`.\n    - Red: `lane D (macos-15)` with 28 passed, 10 failed and 2 skipped. Every failure is a blank-text probe (text-shaping, text-runs, text-decorations, text-wrapping, text-interactive, editable-text, list-uniform, list-variable, actions-keymaps, drag-drop).\n    - Also red: `test (windows-2025)`, where `test_drop_terminates_grandchildren` timed out waiting for the pid file, and `test (ubuntu-24.04)`, where `warm_cached_reads_allocate_zero_times` counted 2 blocks.\n  - The repairs are `dcb7bc5` (the `font-kit` dev feature, so macOS no longer gets `NoopTextSystem`; I confirmed this cause in `gpui_macos/src/platform.rs`), `dff77b4` and `6cfd50e`.\n  - Run 37603489487 on `02bbad5` never started. Every job carries the annotation \"The job was not started because recent account payments have failed or your spending limit needs to be increased\".\n  - So lane D on macOS has no green run, and neither do the two hardened `test` jobs.\n- **Repair:**\n  1. The owner resolves the GitHub billing or spending-limit block.\n  2. Re-run `ci.yml` with `workflow_dispatch` on the current branch HEAD (`02bbad5` or later).\n  3. Require every job green, in particular `lane D (macos-15)`, `test (windows-2025)` and `test (ubuntu-24.04)`. The Wayland step is `continue-on-error`.\n  4. Record the run id in the epic handoff.\n  5. If lane D on macOS still fails, fix it at its source and re-run.\n\nThe ubuntu and windows lane D results from `1357ce7` still hold. The later commits touch only macOS text features, failure-frame saving and tests."
+      "status": "resolved",
+      "descriptionMarkdown": "**No green workflow run exists for the sprint HEAD. The macOS lane D job has never passed.**\n\n- **Expected:** D-2 and M-2 are verified by a green workflow run on `refactor/gpux-cross-platform-test-lanes`. D-2 needs lane D green on `ubuntu-24.04`, `windows-2025` and `macos-15`. M-2 needs the macOS entries of `test`, lane A, lane C and lane D green. The repairs for the jobs that were red must be proven in CI, not only locally.\n- **Observed** (checked with `gh run view --json jobs`):\n  - Run 37599450308 on `1357ce7` was the last run that executed.\n    - Green: `check` on all three OSes, `test (macos-15)`, lane A on all three, lane C (lavapipe, warp, metal), lane D (ubuntu-24.04) with 39 passed and 1 skip, lane D (windows-2025) with 40/40 and SendInput passing, and `package`.\n    - Red: `lane D (macos-15)` with 28 passed, 10 failed and 2 skipped. Every failure is a blank-text probe (text-shaping, text-runs, text-decorations, text-wrapping, text-interactive, editable-text, list-uniform, list-variable, actions-keymaps, drag-drop).\n    - Also red: `test (windows-2025)`, where `test_drop_terminates_grandchildren` timed out waiting for the pid file, and `test (ubuntu-24.04)`, where `warm_cached_reads_allocate_zero_times` counted 2 blocks.\n  - The repairs are `dcb7bc5` (the `font-kit` dev feature, so macOS no longer gets `NoopTextSystem`; I confirmed this cause in `gpui_macos/src/platform.rs`), `dff77b4` and `6cfd50e`.\n  - Run 37603489487 on `02bbad5` never started. Every job carries the annotation \"The job was not started because recent account payments have failed or your spending limit needs to be increased\".\n  - Run 37605777290 on `6ce081e`, after the S4-F2 through S4-F7 repairs, has 16 jobs, none started, all carrying the same billing annotation (re-checked with `gh`).\n  - So lane D on macOS has no green run, and neither do the two hardened `test` jobs. The S4-F5 and S4-F7 test changes also wait on this rerun.\n- **Repair:**\n  1. The owner resolves the GitHub billing or spending-limit block.\n  2. Re-run `ci.yml` with `workflow_dispatch` on the current branch HEAD (`6ce081e` or later).\n  3. Require every job green, in particular `lane D (macos-15)`, `test (windows-2025)` and `test (ubuntu-24.04)`. The Wayland step is `continue-on-error`.\n  4. Record the run id in the epic handoff.\n  5. If lane D on macOS still fails, fix it at its source and re-run.\n\nThe ubuntu and windows lane D results from `1357ce7` still hold. The later commits touch only macOS text features, failure-frame saving and tests.\n\n**Resolved at snapshot `aadc254d`, revision 93, under the amended criteria.**\n\n*Amendment.* The coordinator relayed an owner decision of 2026-10-07: hosted CI stays blocked by billing. I confirmed with `gh` that runs 37643950115, 37647356794 and 37662580569 have 16 jobs each, none started, all with the billing annotation. The spec amendment (uncommitted in the working tree) changes three things:\n- D-2 may now be verified by local runs of the workflow's own lane D commands.\n- M-2 is verified by review of the workflow.\n- The macOS runs of `test`, lanes A, C and D, MACCI-1's tests and MACCI-2's check move to the new M-3 (t27, s8, on a Mac).\n\nNothing was dropped. M-3 lists each macOS command.\n\n*Verified evidence:*\n- `windows-2025` lane D: `check-lane-d` at this snapshot reports `gpux-testkit: 40 passed, 0 failed, 0 skipped`. That includes SendInput, `WM_DPICHANGED` scale changes, and `platform-close` releasing the root view.\n- `ubuntu-24.04` lane D: I re-ran it myself in WSL Ubuntu 24.04 (clone at `c756171`; nothing after it touches lane D, the testkit, the conformance host or the render path). The command was the workflow's own: `VK_DRIVER_FILES=/usr/share/vulkan/icd.d/lvp_icd.json env -u WAYLAND_DISPLAY xvfb-run -a -s \"-screen 0 1280x1024x24\" cargo run -p gpux-testkit -- lane d`. It printed `desktop_host: Linux X11, OS input through XTest (xdotool)`, then `gpux-testkit: 39 passed, 0 failed, 1 skipped`, exit 0. The skip is `platform-scale-change`, as documented.\n- The hardened tests pass in focused runs: `process::windows_tests` 2/2 on Windows; `warm_cached_reads_allocate_zero_times` on Windows and three times in WSL.\n- Workflow review: the `test`, lane A, lane C (`metal`, with the `update-goldens` dispatch) and lane D jobs all have `macos-15` entries; `check (macos-15)` runs `cargo check --workspace --all-targets` with no excludes. The Wayland attempt (run 37599450308) and its local-only outcome are recorded in `docs/testing.md`.\n\n*Still owed by M-3 (s8), not proven here:* lane D on macOS with the `font-kit` fix, the macOS `test` run including the S4-F5 probe, and `check (macos-15)` at HEAD.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/ci.yml",
+          "symbol": "lane-d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/desktop_host/checks.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/testing.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/tasks/gpux-cross-platform-test-lanes/requirements.json",
+          "symbol": "M-3"
+        }
+      ]
     },
     {
       "id": "S4-F2",
@@ -1657,8 +2088,20 @@
         "D-1"
       ],
       "severity": "major",
-      "status": "open",
-      "descriptionMarkdown": "**`platform-close` asserts only that the window left `cx.windows()`. Nothing checks for leaks.**\n\n- **Expected:** D-1 asserts \"closing without leaks or panics\". Panics are covered: a panic ends the host, and every unreported test then counts as failed. A leak needs its own assertion, for example that the closed window's root view and state are released.\n- **Observed:** in `crates/gpux_conformance/examples/desktop_host/checks.rs`, `close()` opens a `Blocks` window, waits two frames and calls `remove_window()`. It then only polls `cx.windows()` until the id is gone. A root view, or a platform window kept alive by a retained callback or an `Rc` cycle, would still pass. The check's description in `src/platform_checks.rs` was narrowed to \"removes it without panics\", and the result detail says only \"removed without panics\".\n- **Repair:**\n  1. Build the root view with `cx.new` and keep its `WeakEntity` before closing.\n  2. After `remove_window()`, poll until the window is gone **and** `weak.upgrade().is_none()`. Fail with a clear detail such as \"the closed window's root view is still alive\".\n  3. Optionally apply the same release check to every scene window in `AppHost::run_scene`.\n  4. Restore the check description to cover leaks.\n  5. Re-run `check-lane-d`."
+      "status": "resolved",
+      "descriptionMarkdown": "**`platform-close` asserts only that the window left `cx.windows()`. Nothing checks for leaks.**\n\n- **Expected:** D-1 asserts \"closing without leaks or panics\". Panics are covered: a panic ends the host, and every unreported test then counts as failed. A leak needs its own assertion, for example that the closed window's root view and state are released.\n- **Observed:** in `crates/gpux_conformance/examples/desktop_host/checks.rs`, `close()` opens a `Blocks` window, waits two frames and calls `remove_window()`. It then only polls `cx.windows()` until the id is gone. A root view, or a platform window kept alive by a retained callback or an `Rc` cycle, would still pass. The check's description in `src/platform_checks.rs` was narrowed to \"removes it without panics\", and the result detail says only \"removed without panics\".\n- **Repair:**\n  1. Build the root view with `cx.new` and keep its `WeakEntity` before closing.\n  2. After `remove_window()`, poll until the window is gone **and** `weak.upgrade().is_none()`. Fail with a clear detail such as \"the closed window's root view is still alive\".\n  3. Optionally apply the same release check to every scene window in `AppHost::run_scene`.\n  4. Restore the check description to cover leaks.\n  5. Re-run `check-lane-d`.\n\n**Resolved in b26a37b, verified.**\n\n- `close()` downgrades the root `AnyView` before `remove_window()`.\n- It passes only when the window has left `cx.windows()` **and** `upgrade()` is `None`. Otherwise it fails with \"still open\" or \"root view is still alive\".\n- The description in `platform_checks.rs` names the release again.\n- `check-lane-d` at snapshot `b356e442` passed 40/40 with `PASS platform-close removed, and its root view released, without panics`.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/desktop_host/checks.rs",
+          "symbol": "close"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/platform_checks.rs",
+          "symbol": "PLATFORM_CHECKS"
+        }
+      ]
     },
     {
       "id": "S4-F3",
@@ -1667,8 +2110,25 @@
         "LANES-2"
       ],
       "severity": "major",
-      "status": "open",
-      "descriptionMarkdown": "**Lane D `--grep` and `--scene` select different tests in the testkit plan (and `--list`) than in the desktop host, so a listed scene can fail with \"no result was reported\".**\n\n- **Expected:** `--list` prints the exact test selection, and running the same command runs exactly that selection.\n- **Observed, reproduced on this machine:**\n  - `gpux-testkit lane d --grep layout_flex --list` lists `desktop_host::layout-flex`.\n  - `gpux-testkit lane d --grep layout_flex` starts the host, which runs nothing. It ends with `desktop_host::layout-flex: no result was reported` and `gpux-testkit: 0 passed, 1 failed, 0 skipped`, exit 1.\n- **Cause:** `tooling/testkit/src/lanes.rs` `scenes()` matches the pattern against the scene id **or** its underscore test name, and ignores `--grep` when `--scene` is given. `examples/desktop_host/main.rs` `selected()` matches only `id.contains(pattern)` and requires the scene **and** the grep to match. `lane d --scene layout-flex --grep text` fails the same way.\n- **Coverage gap:** the testkit tests use a fake runner, so they never compare the plan with the host's own selection.\n- **Repair:**\n  1. Make the host run exactly the planned selection. Either pass the resolved ids (for example one `--scene <id>` or `--check <id>` per planned test), or move one selection function into `gpux_conformance` and use it from both the testkit and the host.\n  2. Add a test showing that underscore patterns and combined `--scene`/`--grep` select the same tests in the plan and in the host."
+      "status": "resolved",
+      "descriptionMarkdown": "**Lane D `--grep` and `--scene` select different tests in the testkit plan (and `--list`) than in the desktop host, so a listed scene can fail with \"no result was reported\".**\n\n- **Expected:** `--list` prints the exact test selection, and running the same command runs exactly that selection.\n- **Observed, reproduced on this machine:**\n  - `gpux-testkit lane d --grep layout_flex --list` lists `desktop_host::layout-flex`.\n  - `gpux-testkit lane d --grep layout_flex` starts the host, which runs nothing. It ends with `desktop_host::layout-flex: no result was reported` and `gpux-testkit: 0 passed, 1 failed, 0 skipped`, exit 1.\n- **Cause:** `tooling/testkit/src/lanes.rs` `scenes()` matches the pattern against the scene id **or** its underscore test name, and ignores `--grep` when `--scene` is given. `examples/desktop_host/main.rs` `selected()` matches only `id.contains(pattern)` and requires the scene **and** the grep to match. `lane d --scene layout-flex --grep text` fails the same way.\n- **Coverage gap:** the testkit tests use a fake runner, so they never compare the plan with the host's own selection.\n- **Repair:**\n  1. Make the host run exactly the planned selection. Either pass the resolved ids (for example one `--scene <id>` or `--check <id>` per planned test), or move one selection function into `gpux_conformance` and use it from both the testkit and the host.\n  2. Add a test showing that underscore patterns and combined `--scene`/`--grep` select the same tests in the plan and in the host.\n\n**Resolved in 4d749ff, verified.**\n\n- The testkit (`lanes.rs` `scenes()` and the platform-check filter in `plan_d`) and the desktop host's `selected()` now both call `gpux_conformance::selects(id, scene, grep)`. Scene matches exactly, grep matches the kebab id or the snake name, and both apply together.\n- The host no longer skips checks separately under `--scene`.\n- `cli.rs` `lane_d_plans_exactly_what_the_desktop_host_selects` compares seven scene/grep combinations.\n- Reproduced the fix here: `gpux-testkit lane d --grep layout_flex` now ends `PASS layout-flex ...` and `gpux-testkit: 1 passed, 0 failed, 0 skipped`, exit 0.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/gpux_conformance.rs",
+          "symbol": "selects"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/desktop_host/main.rs",
+          "symbol": "selected"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/tests/cli.rs",
+          "symbol": "lane_d_plans_exactly_what_the_desktop_host_selects"
+        }
+      ]
     },
     {
       "id": "S4-F4",
@@ -1677,8 +2137,30 @@
         "LANES-2"
       ],
       "severity": "minor",
-      "status": "open",
-      "descriptionMarkdown": "**`--list` is not the exact selection for lanes A and C.**\n\n- **Expected:** `--list` prints the exact test selection for the lane.\n- **Observed:**\n  - `gpux-testkit lane c --list` prints 76 tests. `lane c` runs 77: CI reports `77 passed` because `lane_c.rs` also runs the unlisted guard test `every_lane_c_scene_has_a_test_at_both_scales`.\n  - `lane a --list` prints three wildcards instead of tests: `catalog_coverage::*`, `image_compare::*` and `golden_policy::*`.\n- **Repair:** list every test that the run executes. Add the lane C guard test, and enumerate the lane A group tests, either statically or by building and reading `-- --list` output. Alternatively, restrict the run to exactly the listed names. Extend `tests/cli.rs` to cover both lanes."
+      "status": "resolved",
+      "descriptionMarkdown": "**`--list` is not the exact selection for lanes A and C.**\n\n- **Expected:** `--list` prints the exact test selection for the lane.\n- **Observed:**\n  - `gpux-testkit lane c --list` prints 76 tests. `lane c` runs 77: CI reports `77 passed` because `lane_c.rs` also runs the unlisted guard test `every_lane_c_scene_has_a_test_at_both_scales`.\n  - `lane a --list` prints three wildcards instead of tests: `catalog_coverage::*`, `image_compare::*` and `golden_policy::*`.\n- **Repair:** list every test that the run executes. Add the lane C guard test, and enumerate the lane A group tests, either statically or by building and reading `-- --list` output. Alternatively, restrict the run to exactly the listed names. Extend `tests/cli.rs` to cover both lanes.\n\n**Resolved in 4d749ff, verified.**\n\n- Libtest lanes now carry one `cargo test -p gpux-conformance --test <target> -- --list [--exact names]` listing per target. With `--list`, the testkit runs only those listings: they are not echoed, a build failure fails the command, and libtest's own names are printed.\n- Re-ran `gpux-testkit lane c --list` here: 77 tests, matching the 77 the lane runs, guard test included.\n- The `check-testkit-lane-list` log enumerates the `catalog_coverage`, `image_compare` and `golden_policy` tests by name.\n- Lane D lists its plan, which now equals the host's selection.\n- New tests: `libtest_lanes_list_every_target_they_run` and `listing_prints_libtests_exact_selection_without_running_tests`. `check-testkit-tests` passed with 24 tests.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/lanes.rs",
+          "symbol": "listing"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/gpux_testkit.rs",
+          "symbol": "list_exact"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/tests/cli.rs",
+          "symbol": "libtest_lanes_list_every_target_they_run"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/tests/execute.rs",
+          "symbol": "listing_prints_libtests_exact_selection_without_running_tests"
+        }
+      ]
     },
     {
       "id": "S4-F5",
@@ -1687,8 +2169,15 @@
         "MACCI-1"
       ],
       "severity": "minor",
-      "status": "open",
-      "descriptionMarkdown": "**The new `command::darwin::process` drop tests reap the pid themselves, so \"reaping on drop\" is not really tested.**\n\n- **Expected:** `process_drop_reaps_an_exited_child` fails if `Process::drop` does not reap.\n- **Observed:** the probe `reaped()` in `crates/util/src/command/darwin/process.rs` calls `waitpid(pid, WNOHANG)`. On an exited, unreaped child, that call reaps the child itself. The next poll then sees `ECHILD`, so the test passes even if `Drop` never reaped. The kill-on-drop test does prove the kill, but not the reap.\n- **Not affected:** the handle itself is correct.\n  - Every reap runs under the status mutex, using `waitid(WEXITED|WNOWAIT)` and then `waitpid(WNOHANG)`.\n  - `kill` never signals a reaped pid.\n  - The status is shared by concurrent waiters.\n  - The upstream `test_drop_reaps_child` (a `kill(pid, 0)`/`ESRCH` probe) covers the integrated path, and it passed in `test (macos-15)`.\n- **Repair:** probe without reaping, either with `kill(pid, 0) == -1 && errno == ESRCH` as in upstream's `wait_until_gone`, or with `waitid(P_PID, pid, WEXITED|WNOHANG|WNOWAIT)`. Use that probe in both drop tests."
+      "status": "resolved",
+      "descriptionMarkdown": "**The new `command::darwin::process` drop tests reap the pid themselves, so \"reaping on drop\" is not really tested.**\n\n- **Expected:** `process_drop_reaps_an_exited_child` fails if `Process::drop` does not reap.\n- **Observed:** the probe `reaped()` in `crates/util/src/command/darwin/process.rs` calls `waitpid(pid, WNOHANG)`. On an exited, unreaped child, that call reaps the child itself. The next poll then sees `ECHILD`, so the test passes even if `Drop` never reaped. The kill-on-drop test does prove the kill, but not the reap.\n- **Not affected:** the handle itself is correct.\n  - Every reap runs under the status mutex, using `waitid(WEXITED|WNOWAIT)` and then `waitpid(WNOHANG)`.\n  - `kill` never signals a reaped pid.\n  - The status is shared by concurrent waiters.\n  - The upstream `test_drop_reaps_child` (a `kill(pid, 0)`/`ESRCH` probe) covers the integrated path, and it passed in `test (macos-15)`.\n- **Repair:** probe without reaping, either with `kill(pid, 0) == -1 && errno == ESRCH` as in upstream's `wait_until_gone`, or with `waitid(P_PID, pid, WEXITED|WNOHANG|WNOWAIT)`. Use that probe in both drop tests.\n\n**Resolved in ec24941, verified.**\n\n- `reaped()` now uses `kill(pid, 0) == -1 && errno == ESRCH`, the same non-reaping probe as upstream's `wait_until_gone`. A zombie still answers `kill(pid, 0)`, so both drop tests now fail if `Drop` does not reap.\n- Only CI can execute these tests, in `test (macos-15)`; that rerun is tracked by S4-F1.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/util/src/command/darwin/process.rs",
+          "symbol": "reaped"
+        }
+      ]
     },
     {
       "id": "S4-F6",
@@ -1697,16 +2186,34 @@
         "D-2"
       ],
       "severity": "minor",
-      "status": "open",
-      "descriptionMarkdown": "**`docs/testing.md` does not record the real outcome of the CI Wayland attempt.**\n\n- **Expected:** D-2 says that if the headless-compositor Wayland run cannot present, Wayland stays local-only (WSLg), and that this is recorded in `docs/testing.md`.\n- **Observed:**\n  - In run 37599450308, job `lane D (ubuntu-24.04)`, step \"Lane D on Wayland (weston headless, informational)\": `desktop_host` panics at startup in `crates/gpui_linux/src/linux/platform.rs:356` with \"Wayland compositor does not provide wl_seat\", giving `0 passed, 40 failed`.\n  - The docs instead present CI Wayland as an informational run under `weston --backend=headless`, where only clipboard and hover cannot pass.\n- **Repair:** record in `docs/testing.md` that weston's headless backend exposes no `wl_seat`, so gpui_linux cannot start, and Wayland is therefore local-only (WSLg). Then either remove the CI step or label it as a known-failing attempt. Making weston expose a seat is the other option, if one exists."
+      "status": "resolved",
+      "descriptionMarkdown": "**`docs/testing.md` does not record the real outcome of the CI Wayland attempt.**\n\n- **Expected:** D-2 says that if the headless-compositor Wayland run cannot present, Wayland stays local-only (WSLg), and that this is recorded in `docs/testing.md`.\n- **Observed:**\n  - In run 37599450308, job `lane D (ubuntu-24.04)`, step \"Lane D on Wayland (weston headless, informational)\": `desktop_host` panics at startup in `crates/gpui_linux/src/linux/platform.rs:356` with \"Wayland compositor does not provide wl_seat\", giving `0 passed, 40 failed`.\n  - The docs instead present CI Wayland as an informational run under `weston --backend=headless`, where only clipboard and hover cannot pass.\n- **Repair:** record in `docs/testing.md` that weston's headless backend exposes no `wl_seat`, so gpui_linux cannot start, and Wayland is therefore local-only (WSLg). Then either remove the CI step or label it as a known-failing attempt. Making weston expose a seat is the other option, if one exists.\n\n**Resolved in d4128ae, verified.**\n\n- The weston step and the weston package are gone from `ci.yml`.\n- `docs/testing.md` now records Wayland as local-only. It cites the CI attempt in run 37599450308 and the startup stop (\"Wayland compositor does not provide wl_seat\": weston's headless backend has no seat), and keeps the WSLg clipboard and hover limits.\n- This meets D-2's \"attempted; if it cannot present, Wayland stays local-only and that is recorded\".",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/testing.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/ci.yml",
+          "symbol": "lane-d"
+        }
+      ]
     },
     {
       "id": "S4-F7",
       "boundaryId": "s4-testkit-and-windowed-lane",
       "criterionIds": [],
       "severity": "minor",
-      "status": "open",
-      "descriptionMarkdown": "**The gpux-color allocation hardening also lets real allocation regressions through.**\n\n- **Expected:** `warm_cached_reads_allocate_zero_times` still proves that warm reads do not allocate, while ignoring allocations made by the harness threads (CI saw 2 such blocks).\n- **Observed:** `crates/gpux_color/tests/color_allocations.rs` now accepts `total_blocks < 100` over 20,000 reads.\n  - That still catches a per-read allocation.\n  - It also passes amortized-growth regressions, such as a cache that pushes per read and reallocates about 15 times while doubling.\n  - The test name still claims zero allocations.\n- **Other hardenings, which I judged honest:**\n  - The Windows pid-file deadline (5 s to 30 s) bounds only setup; the assertions are unchanged.\n  - The `bench_context` margins (a 300 ms setup poll against a 250 ms bound) still separate setup from the measured 10 ms poll.\n  - `secondary-a` is the platform's real select-all.\n- **Repair:** count only the reading thread's allocations and keep the assertion at `== 0`, for example with a counting global allocator that a thread-local flag turns on around the loop. Otherwise, bound it to a small constant, at most 4, below the growth signature, and explain why."
+      "status": "resolved",
+      "descriptionMarkdown": "**The gpux-color allocation hardening also lets real allocation regressions through.**\n\n- **Expected:** `warm_cached_reads_allocate_zero_times` still proves that warm reads do not allocate, while ignoring allocations made by the harness threads (CI saw 2 such blocks).\n- **Observed:** `crates/gpux_color/tests/color_allocations.rs` now accepts `total_blocks < 100` over 20,000 reads.\n  - That still catches a per-read allocation.\n  - It also passes amortized-growth regressions, such as a cache that pushes per read and reallocates about 15 times while doubling.\n  - The test name still claims zero allocations.\n- **Other hardenings, which I judged honest:**\n  - The Windows pid-file deadline (5 s to 30 s) bounds only setup; the assertions are unchanged.\n  - The `bench_context` margins (a 300 ms setup poll against a 250 ms bound) still separate setup from the measured 10 ms poll.\n  - `secondary-a` is the platform's real select-all.\n- **Repair:** count only the reading thread's allocations and keep the assertion at `== 0`, for example with a counting global allocator that a thread-local flag turns on around the loop. Otherwise, bound it to a small constant, at most 4, below the growth signature, and explain why.\n\n**Resolved in 493add3, verified.**\n\n- The bound is now `total_blocks <= 4`, against 2 observed harness blocks.\n- A per-read allocation (20,000 blocks) still fails, and so does a growing cache, whose doubling growth reallocates about 13 to 15 times.\n- The CI confirmation on Linux is part of S4-F1's rerun.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_color/tests/color_allocations.rs",
+          "symbol": "warm_cached_reads_allocate_zero_times"
+        }
+      ]
     }
   ],
   "handoffMarkdown": "S4-F5: darwin drop tests probe with kill(pid, 0) == ESRCH, which never reaps. S4-F7: color allocation test allows at most 4 stray harness blocks.",

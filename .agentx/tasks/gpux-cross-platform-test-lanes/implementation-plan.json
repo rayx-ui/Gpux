@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-cross-platform-test-lanes",
-  "revision": 10,
+  "revision": 11,
   "title": "Gpux-owned test lanes for every platform",
   "validationMode": "sprint",
   "repositories": [
@@ -1543,7 +1543,7 @@
         {
           "id": "t18-playwright-harness",
           "title": "Playwright harness, profiles, fixtures and canary",
-          "descriptionMarkdown": "Create `tooling/web-e2e` with `package.json`, `pnpm-lock.yaml`, `playwright.config.ts` and `fixtures/`.\n\n**Profiles:**\n- `ci-linux-swiftshader`: headless, one `--enable-features=Vulkan,CDPScreenshotNewSurface`, `--enable-unsafe-webgpu --use-angle=swiftshader --use-vulkan=swiftshader`;\n- `local-gpu`: `channel: 'chromium'` new headless, or `--headed`;\n- `windows-software`: `--use-angle=d3d11-warp --enable-unsafe-webgpu`.\n\n**Fixtures:**\n- backend assertion (WebGPU unless forced WebGL2);\n- `crossOriginIsolated`;\n- console and panic failures with an explicit allow-list.\n\n**Specs:** `@canary` specs.\n\n**Testkit wiring.** `gpux-testkit web e2e --profile --grep` starts `web serve`, runs Playwright through pnpm and maps the results to the summary line.",
+          "descriptionMarkdown": "Create `tools-node/` with `package.json`, `pnpm-lock.yaml`, `playwright.config.ts` and `fixtures/`.\n\n**Profiles:**\n- `ci-linux-swiftshader`: headless, one `--enable-features=Vulkan,CDPScreenshotNewSurface`, `--enable-unsafe-webgpu --use-angle=swiftshader --use-vulkan=swiftshader`;\n- `local-gpu`: `channel: 'chromium'` new headless, or `--headed`;\n- `windows-software`: `--use-angle=d3d11-warp --enable-unsafe-webgpu`.\n\n**Fixtures:**\n- backend assertion (WebGPU unless forced WebGL2);\n- `crossOriginIsolated`;\n- console and panic failures with an explicit allow-list.\n\n**Specs:** `@canary` specs.\n\n**Testkit wiring.** `gpux-testkit web e2e --profile --grep` starts `web serve`, runs Playwright through pnpm and maps the results to the summary line.",
           "criterionIds": [
             "B-3"
           ],
@@ -1561,7 +1561,7 @@
         {
           "id": "t19-browser-specs",
           "title": "Browser specs for every gpui_web area",
-          "descriptionMarkdown": "Write tagged specs (`@pr`/`@nightly`/`@dpr2`, plus `@timing` for lane G) against conformance scenes, using trusted CDP input at located bounds and screenshot probes:\n- `backend` (forced WebGL2, stubbed `navigator.gpu`);\n- `viewport` (DPR 1/2, ResizeObserver);\n- `window` (frame loop, close cleanup);\n- `pointer`;\n- `wheel` (all delta modes);\n- `keyboard`;\n- `touch`;\n- `ime` (`Input.imeSetComposition`);\n- `clipboard`;\n- `html-element`;\n- `html-island` (opt-in);\n- `text-fallback`, which takes over `examples/hello_web/test_canvas_fallback.mjs`;\n- `threads`, which takes over `test_queue.mjs`;\n- `assets` (SVG through `Svg::external_path`);\n- `cursor`;\n- `lifecycle` (focus, blur, visibility);\n- `viewport-safe-area`;\n- a Dawn-validation smoke that renders every pipeline and fails on any WebGPU validation error.\n\nDelete the migrated `.mjs` scripts once their specs pass.",
+          "descriptionMarkdown": "Write tagged specs (`@pr`/`@dpr2`, plus `@timing` for lane G) against conformance scenes, using trusted CDP input at located bounds and screenshot probes:\n- `backend` (forced WebGL2, stubbed `navigator.gpu`);\n- `viewport` (DPR 1/2, ResizeObserver);\n- `window` (frame loop, close cleanup);\n- `pointer`;\n- `wheel` (all delta modes);\n- `keyboard`;\n- `touch`;\n- `ime` (`Input.imeSetComposition`);\n- `clipboard`;\n- `html-element`;\n- `html-island` (opt-in);\n- `text-fallback`, which takes over `examples/hello_web/test_canvas_fallback.mjs`;\n- `threads`, which takes over `test_queue.mjs`;\n- `assets` (SVG through `Svg::external_path`);\n- `cursor`;\n- `lifecycle` (focus, blur, visibility);\n- `viewport-safe-area`;\n- a Dawn-validation smoke that renders every pipeline and fails on any WebGPU validation error.\n\nDelete the migrated `.mjs` scripts once their specs pass.",
           "criterionIds": [
             "B-4"
           ],
@@ -1619,7 +1619,7 @@
         {
           "id": "t21-android-host-build",
           "title": "Android conformance host and build tooling",
-          "descriptionMarkdown": "**Feasibility first.** Confirm that hosted `ubuntu-24.04` runners provide KVM for this repository's plan, and record the result.\n\n**Host.** Add the `android_host` example: a NativeActivity cdylib with `android-native-activity` and `android_main` running `AppHost`.\n\n**Pixels.** Implement `render_to_image` for the Android window by delegating to the shared wgpu renderer.\n\n**Build tooling.** Create `tooling/android`: a minimal Gradle project, JDK 17, pinned SDK, NDK and `compileSdk`. Add `gpux-testkit android build`, which runs cargo-ndk for `x86_64` and `arm64-v8a` and assembles the APK, with actionable prerequisite errors.",
+          "descriptionMarkdown": "**Feasibility first.** Confirm that hosted `ubuntu-24.04` runners provide KVM for this repository's plan, and record the result.\n\n**Host.** Add the `android_host` example: a NativeActivity cdylib with `android-native-activity` and `android_main` running `AppHost`.\n\n**Pixels.** Implement `render_to_image` for the Android window by delegating to the shared wgpu renderer.\n\n**Build tooling.** Create `tooling/android` with the host's `AndroidManifest.xml` (JDK 17, pinned SDK, NDK and `compileSdk`). Add `gpux-testkit android build`, which runs cargo-ndk for `x86_64` and `arm64-v8a` and assembles the APK without Gradle (`aapt2`, stored 16 KB-aligned libraries, `apksigner`), with actionable prerequisite errors.",
           "criterionIds": [
             "E-1"
           ],
@@ -1791,9 +1791,10 @@
         {
           "id": "t27-macos-desktop-lanes",
           "title": "Lanes A, C and D on macOS",
-          "descriptionMarkdown": "Run `gpux-testkit lane a c d` on macOS (M-1): lane C through `MetalHeadlessRenderer` with the committed `metal` goldens, lane D in AppKit windows with in-app injection. Without a Mac, a macOS CI job that runs the testkit is the evidence.",
+          "descriptionMarkdown": "Run `gpux-testkit lane a c d` on macOS (M-1): lane C through `MetalHeadlessRenderer` with the committed `metal` goldens, lane D in AppKit windows with in-app injection. Without a Mac, a macOS CI job that runs the testkit is the evidence.\n\n**On a Mac** (owner decision 2026-10-07), also run the other macOS commands of the CI jobs and record their summaries (M-3): `cargo check --workspace --all-targets` with the real `xcrun metal` compile, and the `test` job's `cargo test --workspace` (fork exclusions, without `gpux-conformance`, `--test-threads=1`), including the `command::darwin` groups.",
           "criterionIds": [
-            "M-1"
+            "M-1",
+            "M-3"
           ],
           "designIds": [
             "d-windowed-host",

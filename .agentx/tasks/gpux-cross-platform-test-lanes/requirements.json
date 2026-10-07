@@ -285,7 +285,7 @@
         },
         {
           "id": "D-2",
-          "descriptionMarkdown": "CI runs lane D on `ubuntu-24.04` (Xvfb, X11, lavapipe) and `windows-2025` every pull request, and on `macos-15`. A Wayland run under a headless compositor is attempted; if it cannot present, Wayland stays local-only (WSLg) and that is recorded in `docs/testing.md`. Verified by a green workflow run.",
+          "descriptionMarkdown": "CI runs lane D on `ubuntu-24.04` (Xvfb, X11, lavapipe) and `windows-2025` every pull request, and on `macos-15`. A Wayland run under a headless compositor is attempted; if it cannot present, Wayland stays local-only (WSLg) and that is recorded in `docs/testing.md`. Verified by a green workflow run, or while hosted CI is unavailable (owner decision 2026-10-07: GitHub Actions billing blocks every job), by local runs of the workflow's own commands: `gpux-testkit lane d` locally on Windows and, for `ubuntu-24.04`, in WSL under `xvfb-run` with lavapipe. The `macos-15` job's proof is M-3's, on a Mac.",
           "verification": "manual"
         }
       ]
@@ -321,17 +321,17 @@
         },
         {
           "id": "B-3",
-          "descriptionMarkdown": "A Playwright harness in `tooling/web-e2e` (committed lockfile), started through `gpux-testkit web e2e`, defines launch profiles:\n- `ci-linux-swiftshader`: headless, with `--enable-unsafe-webgpu --enable-features=Vulkan,CDPScreenshotNewSurface,... --use-angle=swiftshader --use-vulkan=swiftshader`;\n- `local-gpu`: new headless (`channel: 'chromium'`) or `--headed`;\n- `windows-software`: optional, `--use-angle=d3d11-warp` or a WARP LUID.\n\nFixtures that every spec uses:\n- fail when the app reports a WebGL backend while WebGPU is required, and assert the forced-WebGL2 backend where requested;\n- assert `crossOriginIsolated`;\n- fail on console errors and panics.\n\n`@canary` specs prove startup on WebGPU, a non-flat canvas screenshot and a located click.",
+          "descriptionMarkdown": "A Playwright harness in `tools-node/` (committed lockfile; the owner chose the location during sprint 5), started through `gpux-testkit web e2e`, defines launch profiles:\n- `ci-linux-swiftshader`: headless, with `--enable-unsafe-webgpu --enable-features=Vulkan,CDPScreenshotNewSurface,... --use-angle=swiftshader --use-vulkan=swiftshader`;\n- `local-gpu`: new headless (`channel: 'chromium'`) or `--headed`;\n- `windows-software`: optional, `--use-angle=d3d11-warp` or a WARP LUID.\n\nFixtures that every spec uses:\n- fail when the app reports a WebGL backend while WebGPU is required, and assert the forced-WebGL2 backend where requested;\n- assert `crossOriginIsolated`;\n- fail on console errors and panics.\n\n`@canary` specs prove startup on WebGPU, a non-flat canvas screenshot and a located click.",
           "verification": "automated"
         },
         {
           "id": "B-4",
-          "descriptionMarkdown": "`@pr`/`@nightly`/`@dpr2`-tagged specs cover each `gpui_web` area against conformance scenes, through trusted CDP input and screenshot probes:\n- backend selection with forced WebGL2 and stubbed `navigator.gpu`;\n- canvas sizing, DPR 1/2 and ResizeObserver;\n- the frame loop and window-close cleanup;\n- pointer and mouse events (buttons, capture, enter/leave), and wheel events across all three delta modes;\n- keyboard events (modifiers, repeat, AltGr), and touch (tap, pan, fling, cancel);\n- IME composition through `Input.imeSetComposition`;\n- clipboard copy/paste through trusted events and the fallback path;\n- `html_element` overlays and HTML islands (opt-in);\n- canvas text fallback, taking over `test_canvas_fallback.mjs`;\n- the dispatcher and worker queue, taking over `test_queue.mjs`;\n- SVG and asset loading, cursor styles, focus/blur/visibility, and viewport safe areas;\n- a Dawn-validation smoke that renders every pipeline with no validation errors.\n\nTiming-threshold specs carry `@timing` and run only in lane G.",
+          "descriptionMarkdown": "`@pr`/`@dpr2`-tagged specs (the nightly selection runs every spec except `@timing`) cover each `gpui_web` area against conformance scenes, through trusted CDP input and screenshot probes:\n- backend selection with forced WebGL2 and stubbed `navigator.gpu`;\n- canvas sizing, DPR 1/2 and ResizeObserver;\n- the frame loop and window-close cleanup;\n- pointer and mouse events (buttons, capture, enter/leave), and wheel events across all three delta modes;\n- keyboard events (modifiers, repeat, AltGr), and touch (tap, pan, fling, cancel);\n- IME composition through `Input.imeSetComposition`;\n- clipboard copy/paste through trusted events and the fallback path;\n- `html_element` overlays and HTML islands (opt-in);\n- canvas text fallback, taking over `test_canvas_fallback.mjs`;\n- the dispatcher and worker queue, taking over `test_queue.mjs`;\n- SVG and asset loading, cursor styles, focus/blur/visibility, and viewport safe areas;\n- a Dawn-validation smoke that renders every pipeline with no validation errors.\n\nTiming-threshold specs carry `@timing` and run only in lane G.",
           "verification": "automated"
         },
         {
           "id": "B-5",
-          "descriptionMarkdown": "CI runs lane B on `ubuntu-24.04` in the `ci-linux-swiftshader` profile. One build job builds once; e2e jobs are sharded and upload a merged report. Pull requests run `@canary` and `@pr` at DPR 1; nightly runs everything except `@timing`, including `@dpr2`. Verified by green PR and nightly runs.",
+          "descriptionMarkdown": "CI runs lane B on `ubuntu-24.04` in the `ci-linux-swiftshader` profile. One build job builds once; e2e jobs are sharded and upload a merged report. Pull requests run `@canary` and `@pr` at DPR 1; nightly runs everything except `@timing`, including `@dpr2`. Verified by green PR and nightly runs, or while hosted CI is unavailable (owner decision 2026-10-07: GitHub Actions billing blocks every job), by local runs of the workflow's own commands: `web build --verify` and the `ci-linux-swiftshader` profile in WSL, for the PR selection (`@canary|@pr`) and the nightly one (every spec except `@timing`).",
           "verification": "manual"
         }
       ]
@@ -353,17 +353,17 @@
       "criteria": [
         {
           "id": "E-1",
-          "descriptionMarkdown": "`gpux-testkit android build` builds the conformance Android host from gpux alone into an installable APK: a NativeActivity cdylib with `android-native-activity`, cargo-ndk, and a minimal Gradle project under `tooling/android`. The Android window implements `render_to_image` through the shared wgpu renderer. The build fails with an actionable message when the SDK, NDK or JDK is missing.",
+          "descriptionMarkdown": "`gpux-testkit android build` builds the conformance Android host from gpux alone into an installable APK: a NativeActivity cdylib with `android-native-activity`, cargo-ndk, and a Gradle-free package step: `aapt2` links `tooling/android/AndroidManifest.xml`, the libraries go in uncompressed and 16 KB aligned, and `apksigner` signs with a local debug key (the host has no Java code, so Gradle adds nothing). The Android window implements `render_to_image` through the shared wgpu renderer. The build fails with an actionable message when the SDK, NDK or JDK is missing.",
           "verification": "automated"
         },
         {
           "id": "E-2",
-          "descriptionMarkdown": "`gpux-testkit android run` installs and launches the host on the first available device or emulator (or `--serial`), runs the lane-E scenes and collects the results. It asserts:\n- startup and the backend actually selected (Vulkan, or the GL fallback, recorded);\n- surface loss and recovery across pause/resume;\n- touch translation through `adb shell input tap/swipe`, including a pan and a fling;\n- `render_to_image` probes.\n\nLogcat result markers are parsed into the summary line, and PNGs are pulled into `artifacts-temp/`.",
+          "descriptionMarkdown": "`gpux-testkit android run` installs and launches the host on the first available device or emulator (or `--serial`), runs the lane-E scenes and collects the results. It asserts:\n- startup and the backend actually selected (Vulkan, or the GL fallback, recorded);\n- surface loss and recovery across pause/resume;\n- touch translation through `adb shell input tap/swipe`, including a pan and a fling;\n- pixel probes: `render_to_image` is implemented and its readback reported by the startup check; probes read `adb screencap` screenshots, because emulator GL drivers read rendered textures back as zeros, and allow RGB565 rounding on 16-bit screens.\n\nThe fling is asserted on hardware renderers and reported skipped with the reason on software ones, where `adb shell input` delivers a fast swipe only after slow frames.\n\nLogcat result markers are parsed into the summary line, and PNGs are pulled into `artifacts-temp/`.",
           "verification": "automated"
         },
         {
           "id": "E-3",
-          "descriptionMarkdown": "CI runs lane E nightly, and on pull requests that change `crates/gpui_mobile/`, `crates/gpui_wgpu/`, `crates/gpux_conformance/` or `tooling/android/`. It uses an `ubuntu-24.04` KVM emulator (x86_64 image) and uploads logcat and PNG artifacts. If hosted KVM is unavailable for this repository, the blocker and the local-device fallback are recorded in `docs/testing.md`. Verified by a green run or the recorded blocker.",
+          "descriptionMarkdown": "CI runs lane E nightly, and on pull requests that change `crates/gpui_mobile/`, `crates/gpui_wgpu/`, `crates/gpux_conformance/` or `tooling/android/`. It uses an `ubuntu-24.04` KVM emulator (x86_64 image) and uploads logcat and PNG artifacts. If hosted KVM is unavailable for this repository, the blocker and the local-device fallback are recorded in `docs/testing.md`. Verified by a green run or the recorded blocker, or while hosted CI is unavailable (owner decision 2026-10-07: GitHub Actions billing blocks every job), by local runs of the workflow's own commands: `gpux-testkit lane e` on a local x86_64 emulator.",
           "verification": "manual"
         }
       ]
@@ -412,7 +412,12 @@
         },
         {
           "id": "M-2",
-          "descriptionMarkdown": "The macOS entries of the `test`, lane A, lane C and lane D CI jobs are enabled and green on `macos-15`. Lane C renders through `MetalHeadlessRenderer` and compares the committed `metal` goldens, regenerated from the macOS CI job with the `update-goldens` dispatch. Verified by a green workflow run.",
+          "descriptionMarkdown": "The macOS entries of the `test`, lane A, lane C and lane D CI jobs are enabled on `macos-15`; their green runs are M-3's. Lane C renders through `MetalHeadlessRenderer` and compares the committed `metal` goldens, regenerated from the macOS CI job with the `update-goldens` dispatch. Verified by review of the workflow; the runs are verified with M-3 on a Mac.",
+          "verification": "manual"
+        },
+        {
+          "id": "M-3",
+          "descriptionMarkdown": "On a Mac (or in the `macos-15` CI jobs once hosted CI is available again), the macOS commands of the CI jobs pass:\n- `check`: `cargo check --workspace --all-targets`, with the `gpux-apple` build script's real `xcrun metal` compile (MACCI-2);\n- `test`: `cargo test --workspace --no-fail-fast` with the fork exclusions and without `gpux-conformance`, one test at a time, including the `command::darwin::process` and `command::darwin::tests` groups (MACCI-1);\n- lanes A, C and D through `gpux-testkit` (M-2, D-2's macOS job).\n\nThe owner moved this proof to a Mac on 2026-10-07, while GitHub Actions billing blocks every job. Verified on a Mac, with the runs' summary lines recorded in the epic handoff.",
           "verification": "manual"
         }
       ]
@@ -465,12 +470,12 @@
       "criteria": [
         {
           "id": "MACCI-1",
-          "descriptionMarkdown": "macOS children spawned by `gpux-zed-util` (`crates/util/src/command/darwin.rs`) are waited on and reaped by a gpux-owned process handle in `crates/util/src/command/darwin/process.rs`, not by `Child::adopt_raw_pid` from Zed's git fork of `async-process`.\n\n- No source under `crates/` calls `adopt_raw_pid(`; `Cargo.toml` and `Cargo.lock` have no `[patch` section and no `git+` source.\n- The upstream `darwin.rs` diff stays limited to the handle swap, and the import guide records the replay rule.\n- On macOS (the `test (macos-15)` CI job), the new `command::darwin::process` test group passes (shared status between concurrent waiters, `try_status` while running, `kill`, reaping on drop) together with the existing `command::darwin::tests`, which are not weakened or removed.",
+          "descriptionMarkdown": "macOS children spawned by `gpux-zed-util` (`crates/util/src/command/darwin.rs`) are waited on and reaped by a gpux-owned process handle in `crates/util/src/command/darwin/process.rs`, not by `Child::adopt_raw_pid` from Zed's git fork of `async-process`.\n\n- No source under `crates/` calls `adopt_raw_pid(`; `Cargo.toml` and `Cargo.lock` have no `[patch` section and no `git+` source.\n- The upstream `darwin.rs` diff stays limited to the handle swap, and the import guide records the replay rule.\n- On macOS (the `test` job's command, run on a Mac or in `macos-15` CI as M-3 requires), the new `command::darwin::process` test group passes (shared status between concurrent waiters, `try_status` while running, `kill`, reaping on drop) together with the existing `command::darwin::tests`, which are not weakened or removed.",
           "verification": "automated"
         },
         {
           "id": "MACCI-2",
-          "descriptionMarkdown": "The `check (macos-15)` CI job is green: `cargo check --workspace --all-targets` passes on macOS, including the `gpux-apple` build script's real `xcrun metal` compile. No crate or target is excluded, no behaviour is cfg-gated away from macOS, and no git dependency or `[patch]` is added. Verified by a green workflow run.",
+          "descriptionMarkdown": "The `check (macos-15)` CI job runs `cargo check --workspace --all-targets` on macOS, including the `gpux-apple` build script's real `xcrun metal` compile; that it passes is verified with M-3 on a Mac (or by a green `macos-15` run). No crate or target is excluded, no behaviour is cfg-gated away from macOS, and no git dependency or `[patch]` is added. Verified by review of the workflow and with M-3.",
           "verification": "manual"
         },
         {
