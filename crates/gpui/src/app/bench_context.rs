@@ -1496,9 +1496,10 @@ mod tests {
 
         // Fixture/setup work that must not be attributed to the measurement:
         // a long poll recorded before the trace scope (and its journal
-        // collector) is created.
+        // collector) is created. It is far longer than any oversleep of the
+        // measured 10ms poll on a loaded runner, so the two cannot be confused.
         let setup_task = foreground_executor.spawn(async move {
-            std::thread::sleep(Duration::from_millis(80));
+            std::thread::sleep(Duration::from_millis(300));
         });
         run_task_to_completion(&foreground_executor, setup_task);
 
@@ -1517,13 +1518,13 @@ mod tests {
             .foreground_work()
             .expect("the measured task's poll should be reported");
         assert!(
-            summary.max < Duration::from_millis(40),
-            "setup work's 80ms poll must not leak into the measured summary, got {:?}",
+            summary.max < Duration::from_millis(250),
+            "setup work's 300ms poll must not leak into the measured summary, got {:?}",
             summary.max
         );
         assert!(
-            summary.total < Duration::from_millis(40),
-            "setup work's 80ms poll must not leak into the measured total, got {:?}",
+            summary.total < Duration::from_millis(250),
+            "setup work's 300ms poll must not leak into the measured total, got {:?}",
             summary.total
         );
     }

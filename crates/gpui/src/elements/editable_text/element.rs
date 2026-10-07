@@ -766,7 +766,7 @@ mod tests {
         );
 
         for text in ["86420", "72"] {
-            window.simulate_keystroke("ctrl-a");
+            window.simulate_keystroke("secondary-a");
             let previous_renders = renders.get();
             assert!(window.update(|_, window, cx| window.dispatch_text_input(text, cx)));
             assert_eq!(app.read_entity(&state, |state, _| state.text()), text);
