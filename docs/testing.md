@@ -40,9 +40,10 @@ real clock, and a host cannot drive the platform's input method.
 
 ### Wayland
 
-Wayland runs are informational, locally under WSLg and in CI under `weston --backend=headless`
-(the `lane-d` job's last step, allowed to fail). Two checks cannot pass for reasons outside
-gpux:
+Wayland is local-only. CI tried `weston --backend=headless` (run 37599450308): the desktop host
+stopped at startup with "Wayland compositor does not provide wl_seat", because weston's headless
+backend has no seat and gpux's Wayland client requires one. Locally, WSLg's compositor runs
+lane D, and two checks cannot pass there for reasons outside gpux:
 
 - **Clipboard.** A Wayland client may set the selection only with the serial of a recent input
   event. In-app injection produces none, so the compositor keeps the previous selection.

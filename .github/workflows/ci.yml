@@ -174,7 +174,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y $LINUX_PACKAGES xvfb xdotool weston
+          sudo apt-get install -y $LINUX_PACKAGES xvfb xdotool
       - name: Select lavapipe
         if: runner.os == 'Linux'
         run: echo "VK_DRIVER_FILES=$(ls /usr/share/vulkan/icd.d/lvp_icd*.json | head -n 1)" >> "$GITHUB_ENV"
@@ -184,14 +184,6 @@ jobs:
       - name: Lane D
         if: runner.os != 'Linux'
         run: cargo run -p gpux-testkit -- lane d
-      - name: Lane D on Wayland (weston headless, informational)
-        if: runner.os == 'Linux'
-        continue-on-error: true
-        run: |
-          export XDG_RUNTIME_DIR=$(mktemp -d)
-          weston --backend=headless --socket=wayland-gpux --idle-time=0 &
-          sleep 3
-          WAYLAND_DISPLAY=wayland-gpux cargo run -p gpux-testkit -- lane d
       - name: Upload failure artifacts
         if: failure()
         uses: actions/upload-artifact@v7
