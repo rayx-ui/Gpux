@@ -60,6 +60,18 @@ wasm-bindgen.workspace = true
 wasm_thread.workspace = true
 web-sys = { workspace = true, features = ["console", "Location", "UrlSearchParams", "Window"] }
 
+[target.'cfg(target_os = "android")'.dev-dependencies]
+android-activity = { version = "0.6", default-features = false, features = ["native-activity"] }
+gpui_mobile = { workspace = true, features = ["android-native-activity"] }
+libc.workspace = true
+log.workspace = true
+
+[[example]]
+name = "android_host"
+path = "examples/android_host/lib.rs"
+crate-type = ["cdylib"]
+required-features = ["app-host"]
+
 [[example]]
 name = "web_host"
 path = "examples/web_host/lib.rs"

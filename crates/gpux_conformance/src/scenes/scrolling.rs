@@ -291,8 +291,8 @@ pub const PROGRAMMATIC: SceneSpec = SceneSpec {
     areas: &[Area::ProgrammaticScroll],
     size: (160., 160.),
     scales: &[1., 2.],
-    // Exact eased offsets need the executor clock; lanes B and D run on the real clock.
-    lanes: &[Lane::A, Lane::C, Lane::E, Lane::F],
+    // Exact eased offsets need the executor clock; lanes B, D, E and F run on the real clock.
+    lanes: &[Lane::A, Lane::C],
     golden: false,
     build: |_, cx| {
         cx.new(|_| Programmatic {
@@ -345,8 +345,9 @@ pub const TOUCH: SceneSpec = SceneSpec {
     areas: &[Area::TouchPan, Area::TouchFling],
     size: (160., 160.),
     scales: &[1., 2.],
-    // Exact fling offsets need the executor clock; lanes B and D run on the real clock.
-    lanes: &[Lane::A, Lane::C, Lane::E, Lane::F],
+    // Exact fling offsets need the executor clock; lanes B, D, E and F run on the real clock.
+    // Lane E flings through the operating system in its own check instead.
+    lanes: &[Lane::A, Lane::C],
     golden: false,
     build: |_, cx| {
         cx.new(|_| Touch {
