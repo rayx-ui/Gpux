@@ -2959,7 +2959,10 @@ impl WgpuRenderer {
         self.update_frame_telemetry(|telemetry| {
             telemetry.submission_count = telemetry.submission_count.saturating_add(1);
         });
-        drop(frame);
+        // Present rather than drop: Vulkan cannot return an acquired swapchain image without
+        // presenting it, so every dropped capture would keep one until acquiring times out.
+        // The frame holds the current scene, so presenting it changes nothing on screen.
+        self.resources().queue.present(frame);
 
         self.read_buffer_to_image(readback, width, height, padded_bytes_per_row)
     }
