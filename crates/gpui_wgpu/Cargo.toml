@@ -20,7 +20,9 @@ doctest = false
 default = []
 bench-support = ["gpux/bench-support"]
 font-kit = ["dep:font-kit"]
-rayx_diagnostics = ["gpux/rayx_diagnostics"]
+diagnostics = ["gpux/diagnostics"]
+# The former name of `diagnostics`; it also publishes the legacy `__rayx*` browser globals.
+rayx_diagnostics = ["diagnostics", "gpux/rayx_diagnostics"]
 test-support = ["gpux/test-support"]
 
 [dependencies]

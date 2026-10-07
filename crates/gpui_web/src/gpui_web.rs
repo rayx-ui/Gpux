@@ -30,7 +30,7 @@ mod ime_mirror;
 mod keyboard;
 #[cfg(target_family = "wasm")]
 mod logging;
-#[cfg(all(target_family = "wasm", feature = "rayx_diagnostics"))]
+#[cfg(all(target_family = "wasm", feature = "diagnostics"))]
 mod media_query_diagnostics;
 #[cfg(target_family = "wasm")]
 mod platform;
@@ -51,7 +51,7 @@ pub use dispatcher::WebDispatcher;
 pub use display::WebDisplay;
 #[cfg(target_family = "wasm")]
 pub use gpui_wgpu::WebBackendPreference;
-#[cfg(all(target_family = "wasm", feature = "rayx_diagnostics"))]
+#[cfg(all(target_family = "wasm", feature = "diagnostics"))]
 pub use html_in_canvas::{HtmlInCanvasDiagnostics, HtmlInCanvasProbes, HtmlInCanvasSupport};
 #[cfg(target_family = "wasm")]
 pub use http_client::{FetchCredentials, FetchHttpClient};

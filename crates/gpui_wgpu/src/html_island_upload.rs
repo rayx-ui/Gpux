@@ -31,18 +31,18 @@ impl HtmlIslandUploadPath {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct HtmlIslandUploadResult {
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub path: HtmlIslandUploadPath,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub texture_reallocated: bool,
 }
 
 impl Default for HtmlIslandUploadResult {
     fn default() -> Self {
         Self {
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             path: HtmlIslandUploadPath::CopyElementImageToTexture,
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             texture_reallocated: false,
         }
     }
@@ -54,7 +54,7 @@ pub fn upload_html_island_element_to_texture(
     texture: &wgpu::Texture,
     size: Size<DevicePixels>,
 ) -> anyhow::Result<HtmlIslandUploadResult> {
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     if consume_injected_upload_failure(element) {
         anyhow::bail!("Injected HTML island direct upload failure");
     }
@@ -85,9 +85,9 @@ pub fn upload_html_island_element_to_texture(
     })?;
 
     Ok(HtmlIslandUploadResult {
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         path: HtmlIslandUploadPath::CopyElementImageToTexture,
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         texture_reallocated: false,
     })
 }
@@ -148,16 +148,11 @@ fn js_error_message(value: &wasm_bindgen::JsValue) -> String {
     format!("{value:?}")
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 fn consume_injected_upload_failure(element: &web_sys::HtmlElement) -> bool {
-    let global = js_sys::global();
-    let Ok(value) = js_sys::Reflect::get(
-        &global,
-        &wasm_bindgen::JsValue::from_str("__rayxHtmlIslandInjectUploadFailureId"),
-    ) else {
-        return false;
-    };
-    let Some(requested_id) = value.as_string() else {
+    let Some(requested_id) = crate::web_globals::read("HtmlIslandInjectUploadFailureId")
+        .and_then(|value| value.as_string())
+    else {
         return false;
     };
     if requested_id.is_empty() {
@@ -176,11 +171,6 @@ fn consume_injected_upload_failure(element: &web_sys::HtmlElement) -> bool {
         return false;
     }
 
-    js_sys::Reflect::set(
-        &global,
-        &wasm_bindgen::JsValue::from_str("__rayxHtmlIslandInjectUploadFailureId"),
-        &wasm_bindgen::JsValue::NULL,
-    )
-    .ok();
+    crate::web_globals::clear("HtmlIslandInjectUploadFailureId");
     true
 }

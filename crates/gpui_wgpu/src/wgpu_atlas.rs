@@ -70,13 +70,13 @@ impl WgpuAtlas {
         )
     }
 
-    #[cfg(not(feature = "rayx_diagnostics"))]
+    #[cfg(not(feature = "diagnostics"))]
     pub fn before_frame(&self) {
         let mut lock = self.0.lock();
         lock.backend.flush_uploads();
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub fn before_frame(&self) -> (usize, usize) {
         let mut lock = self.0.lock();
         let upload_count = lock.backend.pending_uploads.len();

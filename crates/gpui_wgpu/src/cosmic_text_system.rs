@@ -876,13 +876,7 @@ impl CosmicTextSystemState {
 
     #[cfg(target_family = "wasm")]
     fn publish_font_fallback_diagnostics(&mut self, runs: &[ShapedRun], fallback_run_count: usize) {
-        let enabled = js_sys::Reflect::get(
-            &js_sys::global(),
-            &wasm_bindgen::JsValue::from_str("__rayxTextRenderingDiagnosticsEnabled"),
-        )
-        .ok()
-        .and_then(|value| value.as_bool())
-        .unwrap_or(false);
+        let enabled = crate::web_globals::flag("TextRenderingDiagnosticsEnabled");
         if !enabled {
             return;
         }
@@ -930,11 +924,8 @@ impl CosmicTextSystemState {
             (runs.iter().map(|run| run.glyphs.len()).sum::<usize>() as f64).into(),
         );
         set("publishedAtMs", js_sys::Date::now().into());
-        let _ = js_sys::Reflect::set(
-            &js_sys::global(),
-            &wasm_bindgen::JsValue::from_str("__rayxFontFallbackDiagnostics"),
-            target.as_ref(),
-        );
+        // Published whatever the features since before the gpux names existed.
+        crate::web_globals::publish_with_legacy("FontFallbackDiagnostics", target.as_ref());
     }
 
     fn missing_glyphs(

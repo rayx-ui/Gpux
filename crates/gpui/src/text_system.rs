@@ -23,7 +23,7 @@ use derive_more::{Add, Deref, FromStr, Sub};
 use itertools::Itertools;
 use parking_lot::{Mutex, RwLock, RwLockUpgradableReadGuard};
 use smallvec::{SmallVec, smallvec};
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 use std::cell::Cell;
 use std::cell::RefCell;
 use std::{
@@ -39,7 +39,7 @@ use std::{
     },
 };
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 thread_local! {
     static TEXT_SHAPE_DIAGNOSTICS: Cell<[u64; 10]> = const { Cell::new([0; 10]) };
 }
@@ -48,7 +48,7 @@ thread_local! {
     static FONT_RUNS_POOL: RefCell<Vec<Vec<FontRun>>> = const { RefCell::new(Vec::new()) };
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 fn record_text_shape_call() {
     TEXT_SHAPE_DIAGNOSTICS.with(|diagnostics| {
         let mut values = diagnostics.get();
@@ -57,7 +57,7 @@ fn record_text_shape_call() {
     });
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 fn record_text_shape_line(decoration_run_count: usize, decoration_run_capacity: usize) {
     TEXT_SHAPE_DIAGNOSTICS.with(|diagnostics| {
         let mut values = diagnostics.get();
@@ -71,7 +71,7 @@ fn record_text_shape_line(decoration_run_count: usize, decoration_run_capacity: 
     });
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 fn record_text_shape_font_run_pool_take(hit: bool) {
     TEXT_SHAPE_DIAGNOSTICS.with(|diagnostics| {
         let mut values = diagnostics.get();
@@ -81,7 +81,7 @@ fn record_text_shape_font_run_pool_take(hit: bool) {
     });
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 fn record_text_shape_font_run_pool_return() {
     TEXT_SHAPE_DIAGNOSTICS.with(|diagnostics| {
         let mut values = diagnostics.get();
@@ -90,14 +90,14 @@ fn record_text_shape_font_run_pool_return() {
     });
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 pub(crate) fn take_text_shape_diagnostics() -> [u64; 10] {
     TEXT_SHAPE_DIAGNOSTICS.with(|diagnostics| diagnostics.replace([0; 10]))
 }
 
 fn take_font_runs() -> Vec<FontRun> {
     let pooled = FONT_RUNS_POOL.with(|pool| pool.borrow_mut().pop());
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     record_text_shape_font_run_pool_take(pooled.is_some());
     let mut font_runs = pooled.unwrap_or_default();
     font_runs.clear();
@@ -106,11 +106,11 @@ fn take_font_runs() -> Vec<FontRun> {
 
 fn return_font_runs(font_runs: Vec<FontRun>) {
     FONT_RUNS_POOL.with(|pool| pool.borrow_mut().push(font_runs));
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     record_text_shape_font_run_pool_return();
 }
 
-#[cfg(all(test, feature = "rayx_diagnostics"))]
+#[cfg(all(test, feature = "diagnostics"))]
 mod text_shape_diagnostics_tests {
     use super::*;
 
@@ -878,7 +878,7 @@ impl WindowTextSystem {
         wrap_width: Option<Pixels>,
         line_clamp: Option<usize>,
     ) -> Result<SmallVec<[WrappedLine; 1]>> {
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         record_text_shape_call();
         let decoration_run_capacity = runs.len().min(32);
         let mut runs = runs.iter().filter(|run| run.len > 0).cloned().peekable();
@@ -951,7 +951,7 @@ impl WindowTextSystem {
             );
             wrapped_lines += layout.wrap_boundaries.len();
 
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             record_text_shape_line(decoration_runs.len(), decoration_runs.capacity());
 
             lines.push(WrappedLine {

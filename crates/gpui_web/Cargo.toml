@@ -15,7 +15,9 @@ workspace = true
 [features]
 default = ["multithreaded"]
 multithreaded = ["dep:wasm_thread", "scheduler/wasm-threads"]
-rayx_diagnostics = ["gpui_wgpu/rayx_diagnostics"]
+diagnostics = ["gpui_wgpu/diagnostics"]
+# The former name of `diagnostics`; it also publishes the legacy `__rayx*` browser globals.
+rayx_diagnostics = ["diagnostics", "gpui_wgpu/rayx_diagnostics"]
 
 [lib]
 name = "gpui_web"

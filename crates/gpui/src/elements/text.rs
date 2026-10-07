@@ -18,12 +18,12 @@ use std::{
     sync::Arc,
 };
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 thread_local! {
     static TEXT_MEASUREMENT_PATH_DIAGNOSTICS: Cell<[u64; 6]> = const { Cell::new([0; 6]) };
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 fn record_text_measurement_path(index: usize) {
     TEXT_MEASUREMENT_PATH_DIAGNOSTICS.with(|diagnostics| {
         let mut values = diagnostics.get();
@@ -32,7 +32,7 @@ fn record_text_measurement_path(index: usize) {
     });
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 pub(crate) fn take_text_measurement_path_diagnostics() -> [u64; 6] {
     TEXT_MEASUREMENT_PATH_DIAGNOSTICS.with(|diagnostics| diagnostics.replace([0; 6]))
 }
@@ -722,7 +722,7 @@ impl TextLayout {
                 // 4. the cached layout was not truncated (a truncated layout answers an
                 //    unconstrained probe with the truncated size, which poisons intrinsic
                 //    sizing with whatever width some earlier measure pass happened to use)
-                #[cfg(feature = "rayx_diagnostics")]
+                #[cfg(feature = "diagnostics")]
                 let full_layout_reason;
                 {
                     let cached_layout = element_state.0.borrow();
@@ -730,34 +730,34 @@ impl TextLayout {
                         && let Some(size) = text_layout.size
                     {
                         if wrap_width.is_some() && wrap_width != text_layout.wrap_width {
-                            #[cfg(feature = "rayx_diagnostics")]
+                            #[cfg(feature = "diagnostics")]
                             {
                                 full_layout_reason = 3;
                             }
                         } else if truncate_width.is_some() {
-                            #[cfg(feature = "rayx_diagnostics")]
+                            #[cfg(feature = "diagnostics")]
                             {
                                 full_layout_reason = 4;
                             }
                         } else if text_layout.truncate_width.is_some() {
-                            #[cfg(feature = "rayx_diagnostics")]
+                            #[cfg(feature = "diagnostics")]
                             {
                                 full_layout_reason = 5;
                             }
                         } else {
-                            #[cfg(feature = "rayx_diagnostics")]
+                            #[cfg(feature = "diagnostics")]
                             record_text_measurement_path(0);
                             return size;
                         }
                     } else {
-                        #[cfg(feature = "rayx_diagnostics")]
+                        #[cfg(feature = "diagnostics")]
                         {
                             full_layout_reason = 2;
                         }
                     }
                 }
 
-                #[cfg(feature = "rayx_diagnostics")]
+                #[cfg(feature = "diagnostics")]
                 {
                     record_text_measurement_path(1);
                     record_text_measurement_path(full_layout_reason);
@@ -1455,7 +1455,7 @@ mod tests {
         assert_eq!(index, second_line_start);
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     #[test]
     fn text_measurement_path_diagnostics_are_drained() {
         take_text_measurement_path_diagnostics();

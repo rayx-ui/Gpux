@@ -2,10 +2,10 @@ use crate::display::WebDisplay;
 use crate::events::{
     ClickState, EventListenerHandle, TouchIds, WebEventListeners, is_mac_platform,
 };
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 use crate::html_element::write_html_element_diagnostics_to_global;
 use crate::html_element::{WebHtmlElementRegistry, create_overlay_root};
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 use crate::html_in_canvas::write_html_in_canvas_diagnostics_to_global;
 use crate::html_in_canvas::{
     HtmlInCanvasCapabilities, HtmlInCanvasPaintObserver, detect_html_in_canvas,
@@ -13,7 +13,7 @@ use crate::html_in_canvas::{
 };
 use crate::html_island::WebHtmlIslandRegistry;
 use crate::ime_mirror::ImeMirror;
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 use crate::media_query_diagnostics::MediaQueryPipelineDiagnostics;
 use crate::viewport::WebViewport;
 use crate::web_viewport_scheduler::{WebViewportObservation, WebViewportScheduler};
@@ -63,7 +63,7 @@ pub(crate) struct WebWindowMutableState {
     pub(crate) capslock: Capslock,
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 struct WasmTextScaleDiagnostics {
     generation: Cell<u64>,
     published_generation: Cell<Option<u64>>,
@@ -74,7 +74,7 @@ struct WasmTextScaleDiagnostics {
     physical_height: Cell<u32>,
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 impl WasmTextScaleDiagnostics {
     fn new(
         logical_size: Size<Pixels>,
@@ -150,11 +150,7 @@ impl WasmTextScaleDiagnostics {
             JsValue::from_f64(self.physical_height.get() as f64),
         );
         set("closed", JsValue::from_bool(closed));
-        let _ = js_sys::Reflect::set(
-            &js_sys::global(),
-            &JsValue::from_str("__rayxWasmTextScaleDiagnostics"),
-            &target,
-        );
+        gpui_wgpu::web_globals::publish("WasmTextScaleDiagnostics", &target);
         self.published_generation.set(Some(generation));
     }
 }
@@ -202,9 +198,9 @@ pub(crate) struct WebWindowInner {
     pending_physical_size: Cell<Option<(u32, u32)>>,
     raf_id: Cell<Option<i32>>,
     raf_function: RefCell<Option<js_sys::Function>>,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     media_query_diagnostics: MediaQueryPipelineDiagnostics,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     wasm_text_scale_diagnostics: WasmTextScaleDiagnostics,
 }
 
@@ -323,7 +319,7 @@ impl WebWindow {
         let html_element_registry = Rc::new(RefCell::new(WebHtmlElementRegistry::new(
             html_element_overlay_root,
         )));
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         write_html_element_diagnostics_to_global(&html_element_registry.borrow().diagnostics());
         let html_in_canvas_paint_observer = HtmlInCanvasPaintObserver::start(
             &html_in_canvas_diagnostics,
@@ -331,7 +327,7 @@ impl WebWindow {
             layout_subtree_enabled,
             Some(Rc::clone(&html_island_registry)),
         );
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         write_html_in_canvas_diagnostics_to_global(
             &html_in_canvas_diagnostics.diagnostics(),
             &canvas,
@@ -393,9 +389,9 @@ impl WebWindow {
             pending_physical_size: Cell::new(None),
             raf_id: Cell::new(None),
             raf_function: RefCell::new(None),
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             media_query_diagnostics: MediaQueryPipelineDiagnostics::default(),
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             wasm_text_scale_diagnostics: WasmTextScaleDiagnostics::new(
                 initial_logical_size,
                 dpr,
@@ -473,7 +469,7 @@ impl WebWindow {
             if inner.closed.get() {
                 return;
             }
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             inner.media_query_diagnostics.raw_viewport_signal();
             let entry: web_sys::ResizeObserverEntry = match entries.get(0).dyn_into().ok() {
                 Some(entry) => entry,
@@ -607,7 +603,7 @@ impl WebWindowInner {
 
     fn flush_viewport_scheduler(&self) {
         if let Some(observation) = self.viewport_scheduler.flush() {
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             self.media_query_diagnostics.coalesced_flush();
             self.apply_logical_size(
                 observation.logical_size,
@@ -649,7 +645,7 @@ impl WebWindowInner {
         self.pending_physical_size
             .set(Some((physical_width, physical_height)));
 
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.wasm_text_scale_diagnostics.record_generation(
             logical_size,
             scale_factor,
@@ -667,7 +663,7 @@ impl WebWindowInner {
     }
 
     fn emit_resize(&self, new_size: Size<Pixels>, scale_factor: f32) {
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.media_query_diagnostics.gpui_resize_emission();
         let mut callback = {
             let mut callbacks = self.callbacks.borrow_mut();
@@ -711,7 +707,7 @@ impl WebWindowInner {
                 .map(|mut registry| registry.mark_dirty_from_dom_state())
                 .unwrap_or(false);
             let resize_frame_pending = this.pending_physical_size.get().is_some();
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             this.media_query_diagnostics.animation_frame_request();
             this.with_callback(
                 |callbacks| &mut callbacks.request_frame,
@@ -865,7 +861,7 @@ impl WebWindowInner {
 impl Drop for WebWindow {
     fn drop(&mut self) {
         self.inner.closed.set(true);
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.inner
             .wasm_text_scale_diagnostics
             .publish(&self.inner.canvas, true);
@@ -1314,7 +1310,7 @@ impl PlatformWindow for WebWindow {
         if let Some((width, height)) = self.inner.pending_physical_size.take() {
             self.inner.apply_physical_size(width, height);
         }
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.inner
             .wasm_text_scale_diagnostics
             .publish(&self.inner.canvas, false);
@@ -1324,7 +1320,7 @@ impl PlatformWindow for WebWindow {
             .html_element_registry
             .borrow_mut()
             .sync_roots(&scene.html_elements, &canvas_rect);
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         write_html_element_diagnostics_to_global(
             &self.inner.html_element_registry.borrow().diagnostics(),
         );
@@ -1378,13 +1374,13 @@ impl PlatformWindow for WebWindow {
                 Ok(_result) => {
                     let mut registry = self.inner.html_island_registry.borrow_mut();
                     let uploaded_dirty_root = registry.record_upload_success(&job.id);
-                    #[cfg(feature = "rayx_diagnostics")]
+                    #[cfg(feature = "diagnostics")]
                     registry.record_upload_diagnostics_success(
                         uploaded_dirty_root,
                         _result.path.as_str(),
                         _result.texture_reallocated,
                     );
-                    #[cfg(not(feature = "rayx_diagnostics"))]
+                    #[cfg(not(feature = "diagnostics"))]
                     let _ = uploaded_dirty_root;
                 }
                 Err(error) => {
@@ -1401,7 +1397,7 @@ impl PlatformWindow for WebWindow {
                             .discard_html_island_texture(&job.id);
                         let mut registry = self.inner.html_island_registry.borrow_mut();
                         registry.record_upload_failure(&job.id);
-                        #[cfg(feature = "rayx_diagnostics")]
+                        #[cfg(feature = "diagnostics")]
                         registry.record_upload_diagnostics_failure(error);
                     }
                 }
@@ -1412,22 +1408,22 @@ impl PlatformWindow for WebWindow {
             renderer.draw(scene);
             renderer.needs_redraw()
         };
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         write_wgpu_frame_telemetry_to_global(&self.inner.renderer.borrow());
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         write_text_renderer_diagnostics_to_global(&self.inner.renderer.borrow(), scene);
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         let (texture_count, texture_pruned_count, texture_draw_count) = self
             .inner
             .renderer
             .borrow()
             .html_island_texture_diagnostics();
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.inner
             .html_island_registry
             .borrow_mut()
             .record_texture_cache_state(texture_count, texture_pruned_count, texture_draw_count);
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         write_html_in_canvas_diagnostics_to_global(
             &self.html_in_canvas_capabilities.diagnostics(),
             &self.inner.canvas,
@@ -1481,7 +1477,7 @@ impl PlatformWindow for WebWindow {
     fn set_client_inset(&self, _inset: Pixels) {}
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 fn write_wgpu_frame_telemetry_to_global(renderer: &WgpuRenderer) {
     let telemetry = renderer.frame_telemetry();
     let target = js_sys::Object::new();
@@ -1890,25 +1886,15 @@ fn write_wgpu_frame_telemetry_to_global(renderer: &WgpuRenderer) {
     set_number("bufferRestartCount", telemetry.buffer_restart_count);
     set_number("submissionCount", telemetry.submission_count);
     set_number("publishedAtMs", js_sys::Date::now() as u64);
-    let _ = js_sys::Reflect::set(
-        &js_sys::global(),
-        &"__rayxWgpuFrameDiagnostics".into(),
-        &target,
-    );
+    gpui_wgpu::web_globals::publish("WgpuFrameDiagnostics", &target);
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 fn text_rendering_diagnostics_enabled() -> bool {
-    js_sys::Reflect::get(
-        &js_sys::global(),
-        &wasm_bindgen::JsValue::from_str("__rayxTextRenderingDiagnosticsEnabled"),
-    )
-    .ok()
-    .and_then(|value| value.as_bool())
-    .unwrap_or(false)
+    gpui_wgpu::web_globals::flag("TextRenderingDiagnosticsEnabled")
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 fn write_text_renderer_diagnostics_to_global(renderer: &WgpuRenderer, scene: &Scene) {
     if !text_rendering_diagnostics_enabled() {
         return;
@@ -1956,9 +1942,5 @@ fn write_text_renderer_diagnostics_to_global(renderer: &WgpuRenderer, scene: &Sc
     );
     set("surfaceFormat", diagnostics.surface_format.into());
     set("publishedAtMs", js_sys::Date::now().into());
-    let _ = js_sys::Reflect::set(
-        &js_sys::global(),
-        &wasm_bindgen::JsValue::from_str("__rayxTextRendererDiagnostics"),
-        target.as_ref(),
-    );
+    gpui_wgpu::web_globals::publish("TextRendererDiagnostics", target.as_ref());
 }

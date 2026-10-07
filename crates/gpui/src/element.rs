@@ -47,7 +47,7 @@ use std::{
     sync::Arc,
 };
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 #[derive(Default)]
 struct GlobalElementIdPathDiagnostics {
     values: [u64; 8],
@@ -55,13 +55,13 @@ struct GlobalElementIdPathDiagnostics {
     previous_hashes: std::collections::HashSet<u64>,
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 thread_local! {
     static GLOBAL_ELEMENT_ID_PATH_DIAGNOSTICS: std::cell::RefCell<GlobalElementIdPathDiagnostics> =
         std::cell::RefCell::default();
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 pub(crate) fn reset_global_element_id_path_diagnostics() {
     GLOBAL_ELEMENT_ID_PATH_DIAGNOSTICS.with_borrow_mut(|diagnostics| {
         let GlobalElementIdPathDiagnostics {
@@ -75,7 +75,7 @@ pub(crate) fn reset_global_element_id_path_diagnostics() {
     });
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 pub(crate) fn global_element_id_path_diagnostics() -> [u64; 8] {
     GLOBAL_ELEMENT_ID_PATH_DIAGNOSTICS.with_borrow(|diagnostics| diagnostics.values)
 }
@@ -450,7 +450,7 @@ impl GlobalElementId {
     pub(crate) fn with_hash(ids: &[ElementId], hash: u64) -> Self {
         debug_assert_eq!(hash, ids.iter().fold(EMPTY_PATH_HASH, extend_path_hash));
 
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         GLOBAL_ELEMENT_ID_PATH_DIAGNOSTICS.with_borrow_mut(|diagnostics| {
             let values = &mut diagnostics.values;
             let path_len = ids.len() as u64;
@@ -1136,7 +1136,7 @@ fn prepare_inspector_id(
     window.build_inspector_element_id(path)
 }
 
-#[cfg(all(test, feature = "rayx_diagnostics"))]
+#[cfg(all(test, feature = "diagnostics"))]
 mod global_element_id_diagnostics_tests {
     use super::*;
 

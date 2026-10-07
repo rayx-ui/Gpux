@@ -1,6 +1,6 @@
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 use crate::WgpuFrameTelemetry;
-#[cfg(all(target_family = "wasm", feature = "rayx_diagnostics"))]
+#[cfg(all(target_family = "wasm", feature = "diagnostics"))]
 use crate::html_island_texture::HtmlIslandTextureCacheStatus;
 #[cfg(target_family = "wasm")]
 use crate::html_island_texture::{HtmlIslandTextureCache, HtmlIslandTextureDescriptor};
@@ -1258,7 +1258,7 @@ pub struct WgpuRenderer {
     device_lost: std::sync::Arc<std::sync::atomic::AtomicBool>,
     surface_configured: bool,
     needs_redraw: bool,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     frame_telemetry: RefCell<WgpuFrameTelemetry>,
     #[cfg(target_family = "wasm")]
     html_island_textures: HtmlIslandTextureCache,
@@ -1302,7 +1302,7 @@ impl WgpuRenderer {
             .expect("GPU resources not available")
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     fn begin_frame_telemetry(&self, scene: &Scene, atlas_uploads: (usize, usize)) {
         let sprite_sort_disorder_counts = scene.sprite_sort_disorder_counts();
         let bounds_tree_diagnostics = scene.bounds_tree_diagnostics();
@@ -1432,12 +1432,12 @@ impl WgpuRenderer {
         };
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     fn update_frame_telemetry(&self, update: impl FnOnce(&mut WgpuFrameTelemetry)) {
         update(&mut self.frame_telemetry.borrow_mut());
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub fn frame_telemetry(&self) -> WgpuFrameTelemetry {
         *self.frame_telemetry.borrow()
     }
@@ -1889,7 +1889,7 @@ impl WgpuRenderer {
             device_lost: context.device_lost_flag(),
             surface_configured: true,
             needs_redraw: false,
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             frame_telemetry: RefCell::new(WgpuFrameTelemetry::default()),
             #[cfg(target_family = "wasm")]
             html_island_textures: HtmlIslandTextureCache::default(),
@@ -2817,18 +2817,18 @@ impl WgpuRenderer {
         #[cfg(target_family = "wasm")]
         self.prune_html_island_textures(scene);
 
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         {
             let atlas_uploads = self.atlas.before_frame();
             self.begin_frame_telemetry(scene, atlas_uploads);
         }
-        #[cfg(not(feature = "rayx_diagnostics"))]
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(not(feature = "diagnostics"))]
+        #[cfg(feature = "diagnostics")]
         {
             let atlas_uploads = self.atlas.before_frame();
             self.begin_frame_telemetry(scene, atlas_uploads);
         }
-        #[cfg(not(feature = "rayx_diagnostics"))]
+        #[cfg(not(feature = "diagnostics"))]
         self.atlas.before_frame();
 
         let Some(frame) = self.acquire_surface_frame() else {
@@ -2855,7 +2855,7 @@ impl WgpuRenderer {
         self.resources()
             .queue
             .submit(std::iter::once(encoder.finish()));
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.submission_count = telemetry.submission_count.saturating_add(1);
         });
@@ -2955,7 +2955,7 @@ impl WgpuRenderer {
         self.resources()
             .queue
             .submit(std::iter::once(encoder.finish()));
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.submission_count = telemetry.submission_count.saturating_add(1);
         });
@@ -2996,18 +2996,18 @@ impl WgpuRenderer {
         );
 
         let result = upload_html_island_element_to_texture(&queue, element, texture, size)?;
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         let result = {
             let mut result = result;
             result.texture_reallocated = cache_status != HtmlIslandTextureCacheStatus::Hit;
             result
         };
-        #[cfg(not(feature = "rayx_diagnostics"))]
+        #[cfg(not(feature = "diagnostics"))]
         let _ = cache_status;
         Ok(result)
     }
 
-    #[cfg(all(target_family = "wasm", feature = "rayx_diagnostics"))]
+    #[cfg(all(target_family = "wasm", feature = "diagnostics"))]
     pub fn html_island_texture_diagnostics(&self) -> (u32, u32, u32) {
         (
             self.html_island_textures.len() as u32,
@@ -3228,7 +3228,7 @@ impl WgpuRenderer {
             self.gamma_offset,
             bytemuck::bytes_of(&gamma_params),
         );
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.queue_buffer_write_count =
                 telemetry.queue_buffer_write_count.saturating_add(3);
@@ -3294,13 +3294,13 @@ impl WgpuRenderer {
                     depth_stencil_attachment: None,
                     ..Default::default()
                 });
-                #[cfg(feature = "rayx_diagnostics")]
+                #[cfg(feature = "diagnostics")]
                 self.update_frame_telemetry(|telemetry| {
                     telemetry.render_pass_count = telemetry.render_pass_count.saturating_add(1);
                 });
 
                 for batch in scene.batches() {
-                    #[cfg(feature = "rayx_diagnostics")]
+                    #[cfg(feature = "diagnostics")]
                     self.update_frame_telemetry(|telemetry| {
                         telemetry.batch_count = telemetry.batch_count.saturating_add(1);
                     });
@@ -3357,7 +3357,7 @@ impl WgpuRenderer {
                                     depth_stencil_attachment: None,
                                     ..Default::default()
                                 });
-                                #[cfg(feature = "rayx_diagnostics")]
+                                #[cfg(feature = "diagnostics")]
                                 self.update_frame_telemetry(|telemetry| {
                                     telemetry.render_pass_count =
                                         telemetry.render_pass_count.saturating_add(1);
@@ -3407,7 +3407,7 @@ impl WgpuRenderer {
                                 depth_stencil_attachment: None,
                                 ..Default::default()
                             });
-                            #[cfg(feature = "rayx_diagnostics")]
+                            #[cfg(feature = "diagnostics")]
                             self.update_frame_telemetry(|telemetry| {
                                 telemetry.render_pass_count =
                                     telemetry.render_pass_count.saturating_add(1);
@@ -3498,7 +3498,7 @@ impl WgpuRenderer {
             }
 
             if overflow {
-                #[cfg(feature = "rayx_diagnostics")]
+                #[cfg(feature = "diagnostics")]
                 self.update_frame_telemetry(|telemetry| {
                     telemetry.buffer_restart_count =
                         telemetry.buffer_restart_count.saturating_add(1);
@@ -3643,7 +3643,7 @@ impl WgpuRenderer {
                     },
                 ],
             });
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.bind_group_count = telemetry.bind_group_count.saturating_add(1);
         });
@@ -3841,7 +3841,7 @@ impl WgpuRenderer {
                     },
                 ],
             });
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.bind_group_count = telemetry.bind_group_count.saturating_add(1);
         });
@@ -3894,7 +3894,7 @@ impl WgpuRenderer {
                     },
                 ],
             });
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.bind_group_count = telemetry.bind_group_count.saturating_add(1);
         });
@@ -3928,7 +3928,7 @@ impl WgpuRenderer {
                     },
                 ],
             });
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.bind_group_count = telemetry.bind_group_count.saturating_add(1);
         });
@@ -3947,7 +3947,7 @@ impl WgpuRenderer {
             depth_stencil_attachment: None,
             ..Default::default()
         });
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.render_pass_count = telemetry.render_pass_count.saturating_add(1);
         });
@@ -3981,7 +3981,7 @@ impl WgpuRenderer {
                     },
                 ],
             });
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.bind_group_count = telemetry.bind_group_count.saturating_add(1);
         });
@@ -4000,7 +4000,7 @@ impl WgpuRenderer {
             depth_stencil_attachment: None,
             ..Default::default()
         });
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.render_pass_count = telemetry.render_pass_count.saturating_add(1);
         });
@@ -4097,7 +4097,7 @@ impl WgpuRenderer {
                     },
                 ],
             });
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.bind_group_count = telemetry.bind_group_count.saturating_add(1);
         });
@@ -4117,7 +4117,7 @@ impl WgpuRenderer {
                 depth_stencil_attachment: None,
                 ..Default::default()
             });
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             self.update_frame_telemetry(|telemetry| {
                 telemetry.render_pass_count = telemetry.render_pass_count.saturating_add(1);
             });
@@ -4142,7 +4142,7 @@ impl WgpuRenderer {
                 depth_stencil_attachment: None,
                 ..Default::default()
             });
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             self.update_frame_telemetry(|telemetry| {
                 telemetry.render_pass_count = telemetry.render_pass_count.saturating_add(1);
             });
@@ -4219,7 +4219,7 @@ impl WgpuRenderer {
                 layout: &resources.bind_group_layouts.screen_effects,
                 entries: &bind_group_entries,
             });
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.bind_group_count = telemetry.bind_group_count.saturating_add(1);
         });
@@ -4238,7 +4238,7 @@ impl WgpuRenderer {
             depth_stencil_attachment: None,
             ..Default::default()
         });
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.render_pass_count = telemetry.render_pass_count.saturating_add(1);
         });
@@ -4354,7 +4354,7 @@ impl WgpuRenderer {
                     },
                 ],
             });
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.bind_group_count = telemetry.bind_group_count.saturating_add(1);
         });
@@ -4384,7 +4384,7 @@ impl WgpuRenderer {
                 depth_stencil_attachment: None,
                 ..Default::default()
             });
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             self.update_frame_telemetry(|telemetry| {
                 telemetry.render_pass_count = telemetry.render_pass_count.saturating_add(1);
             });
@@ -4448,7 +4448,7 @@ impl WgpuRenderer {
             offset,
             data,
         );
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.instance_bytes_written = telemetry
                 .instance_bytes_written
@@ -4491,7 +4491,7 @@ impl WgpuRenderer {
             offset,
             data,
         );
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.auxiliary_bytes_written = telemetry
                 .auxiliary_bytes_written
