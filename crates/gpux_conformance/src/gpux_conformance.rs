@@ -13,9 +13,13 @@
 //! Scenes use only the bundled fonts, no network, and the executor clock, so every host sees the
 //! same layout and timing.
 
+#[cfg(feature = "app-host")]
+pub mod app_host;
 pub mod backend;
 pub mod compare;
+pub mod evaluate;
 pub mod host;
+pub mod platform_checks;
 pub mod probe;
 pub mod report;
 pub mod scene;

@@ -291,7 +291,8 @@ pub const PROGRAMMATIC: SceneSpec = SceneSpec {
     areas: &[Area::ProgrammaticScroll],
     size: (160., 160.),
     scales: &[1., 2.],
-    lanes: ALL_LANES,
+    // Exact eased offsets need the executor clock; lane D runs on the real clock.
+    lanes: &[Lane::A, Lane::B, Lane::C, Lane::E, Lane::F],
     golden: false,
     build: |_, cx| {
         cx.new(|_| Programmatic {

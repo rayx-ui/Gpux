@@ -23,6 +23,9 @@ doctest = false
 [features]
 default = ["test-host"]
 # The test-platform host: lane A behaviour and lane C offscreen pixels. Native only.
+# The in-app host: scenes in real windows of a running application (lane D, and the browser
+# and mobile hosts).
+app-host = ["dep:gpux_fonts"]
 test-host = [
     "dep:gpui_platform",
     "dep:gpui_wgpu",
@@ -33,6 +36,7 @@ test-host = [
 [dependencies]
 anyhow.workspace = true
 gpux.workspace = true
+gpux_fonts = { workspace = true, optional = true }
 gpui_platform = { workspace = true, optional = true }
 image.workspace = true
 
@@ -41,4 +45,14 @@ image.workspace = true
 gpui_wgpu = { workspace = true, optional = true }
 
 [dev-dependencies]
+gpui_platform = { workspace = true, features = ["x11", "wayland"] }
+raw-window-handle.workspace = true
 tempfile.workspace = true
+
+[target.'cfg(target_os = "windows")'.dev-dependencies]
+windows = { workspace = true, features = ["Win32_UI_Input_KeyboardAndMouse"] }
+
+[[example]]
+name = "desktop_host"
+path = "examples/desktop_host/main.rs"
+required-features = ["app-host"]

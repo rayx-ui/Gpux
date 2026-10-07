@@ -100,7 +100,8 @@ pub const IME: SceneSpec = SceneSpec {
     areas: &[Area::Ime, Area::EditableText],
     size: (280., 80.),
     scales: &[1., 2.],
-    lanes: ALL_LANES,
+    // Real windows compose through the platform's input method, which a host cannot drive.
+    lanes: &[Lane::A, Lane::B, Lane::C, Lane::E, Lane::F],
     golden: false,
     build: field,
     script: || {

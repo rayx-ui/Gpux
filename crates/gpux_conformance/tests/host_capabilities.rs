@@ -27,7 +27,7 @@ impl Host for FakeHost {
 
     fn step(&mut self, _: &SceneSpec, step: &Step) -> anyhow::Result<StepOutcome> {
         let description = gpux_conformance::host::describe(step);
-        self.ran.push(description.clone());
+        self.ran.push(description);
         match step {
             Step::Probe(x, _, _, _) if *x == 13. => anyhow::bail!("pixel is off"),
             _ => Ok(StepOutcome::Done),

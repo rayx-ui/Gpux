@@ -10,17 +10,16 @@
 use crate::{
     backend::BackendId,
     compare::{GoldenName, GoldenOutcome, Goldens},
+    evaluate::{self, center},
     host::{Host, StepOutcome},
-    probe::{self, PixelRect},
-    scene::{Capability, Expect, Lane, LogicalRect, SceneSpec, Step},
+    scene::{Capability, Expect, Lane, SceneSpec, Step},
 };
 use anyhow::{Context as _, anyhow, bail};
 use gpux::{
     AnyView, AnyWindowHandle, Context, DevtoolsElementSnapshot, IntoElement, Modifiers,
     MouseButton, Pixels, PlatformHeadlessRenderer, Point, Render, TestAppContext, TestDispatcher,
     TestWindowOptions, TouchEvent, TouchId, TouchPhase, VisualTestContext, Window, point, px,
-    semantic_query::{self, Query, center},
-    size,
+    semantic_query::Query, size,
 };
 use image::RgbaImage;
 use std::{collections::HashMap, time::Duration};
@@ -110,23 +109,6 @@ impl OpenScene {
         Ok(self.frame.as_ref().expect("captured above"))
     }
 
-    fn physical(&self, x: f32, y: f32) -> (u32, u32) {
-        (
-            (x * self.scale).floor().max(0.) as u32,
-            (y * self.scale).floor().max(0.) as u32,
-        )
-    }
-
-    fn physical_rect(&self, (x, y, width, height): LogicalRect) -> PixelRect {
-        let (left, top) = self.physical(x, y);
-        PixelRect::new(
-            left,
-            top,
-            ((width * self.scale).round() as u32).max(1),
-            ((height * self.scale).round() as u32).max(1),
-        )
-    }
-
     fn touch(&mut self, phase: TouchPhase, position: Point<Pixels>) {
         self.vcx().simulate_event(TouchEvent {
             id: TouchId(1),
@@ -141,63 +123,6 @@ impl OpenScene {
     fn expect(&mut self, expect: &Expect) -> anyhow::Result<()> {
         let mut vcx = self.vcx();
         match expect {
-            Expect::Exists(query) => {
-                vcx.locate(query.clone())?;
-            }
-            Expect::Missing(query) => {
-                let count = vcx.locator(query.clone()).count();
-                if count != 0 {
-                    bail!("{count} elements match `{query}`, expected none");
-                }
-            }
-            Expect::Count(query, expected) => {
-                let count = vcx.locator(query.clone()).count();
-                if count != *expected {
-                    bail!("{count} elements match `{query}`, expected {expected}");
-                }
-            }
-            Expect::AtLeast(query, expected) => {
-                let count = vcx.locator(query.clone()).count();
-                if count < *expected {
-                    bail!("{count} elements match `{query}`, expected at least {expected}");
-                }
-            }
-            Expect::Focused(query) => {
-                let snapshot = vcx.settled_frame_snapshot();
-                let element = query.resolve(&snapshot)?;
-                if !semantic_query::focus_is_within(&snapshot, element) {
-                    bail!(
-                        "`{query}` does not hold focus: {}",
-                        semantic_query::describe_element(element)
-                    );
-                }
-            }
-            Expect::Bounds(query, (x, y, width, height), tolerance) => {
-                let element = vcx.locate(query.clone())?;
-                let bounds = element.bounds;
-                let actual = [bounds.x, bounds.y, bounds.width, bounds.height];
-                let expected = [*x, *y, *width, *height];
-                if actual
-                    .iter()
-                    .zip(expected)
-                    .any(|(actual, expected)| (actual - expected).abs() > *tolerance)
-                {
-                    bail!("`{query}` has bounds {actual:?}, expected {expected:?} ±{tolerance}");
-                }
-            }
-            Expect::Size(query, width, height, tolerance) => {
-                let element = vcx.locate(query.clone())?;
-                let bounds = element.bounds;
-                if (bounds.width - width).abs() > *tolerance
-                    || (bounds.height - height).abs() > *tolerance
-                {
-                    bail!(
-                        "`{query}` is {}x{}, expected {width}x{height} ±{tolerance}",
-                        bounds.width,
-                        bounds.height
-                    );
-                }
-            }
             Expect::Accessible(label) => {
                 vcx.deactivate_accessibility(self.window);
                 vcx.take_accessibility_updates(self.window);
@@ -218,6 +143,7 @@ impl OpenScene {
                     bail!("no accessibility node is labelled {label:?}; labels: {labels:?}");
                 }
             }
+            expect => evaluate::expect(&vcx.settled_frame_snapshot(), expect, 0.)?,
         }
         Ok(())
     }
@@ -386,37 +312,13 @@ impl Host for TestHost {
             }
             Step::Advance(duration) => open.vcx().advance_frame(*duration),
             Step::Expect(expect) => open.expect(expect)?,
-            Step::Probe(x, y, color, tolerance) => {
-                let (px_x, px_y) = open.physical(*x, *y);
-                let frame = open.frame()?;
-                probe::color_at(frame, px_x, px_y, *color, *tolerance)?;
-            }
-            Step::ProbeUniform(rect, color, tolerance) => {
-                let region = open.physical_rect(*rect);
-                let frame = open.frame()?;
-                let actual = probe::region_uniform(frame, region, *tolerance)?;
-                if !probe::within(actual, *color, *tolerance) {
-                    bail!("region {region:?} is uniformly {actual:?}, expected {color:?}");
-                }
-            }
-            Step::ProbeDiffer(a, b, tolerance) => {
-                let (a, b) = (open.physical_rect(*a), open.physical_rect(*b));
-                let frame = open.frame()?;
-                probe::regions_differ(frame, a, b, *tolerance)?;
-            }
-            Step::Capture(name) => {
+            Step::Probe(..)
+            | Step::ProbeUniform(..)
+            | Step::ProbeDiffer(..)
+            | Step::Capture(_)
+            | Step::ChangedSince(..) => {
                 let frame = open.frame()?.clone();
-                open.captures.insert(name, frame);
-            }
-            Step::ChangedSince(name, rect) => {
-                let region = open.physical_rect(*rect);
-                let before = open
-                    .captures
-                    .get(name)
-                    .cloned()
-                    .with_context(|| format!("no capture named {name:?}"))?;
-                let after = open.frame()?;
-                probe::changed(&before, after, region, probe::DEFAULT_TOLERANCE)?;
+                evaluate::pixel_step(step, &frame, open.scale, &mut open.captures)?;
             }
             Step::When(..) => bail!("`run_scene` resolves `When` steps"),
             Step::Golden | Step::GoldenWithin(_) => {
