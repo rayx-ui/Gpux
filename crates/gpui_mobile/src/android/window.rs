@@ -706,6 +706,22 @@ impl AndroidWindow {
         state.renderer = Some(renderer);
     }
 
+    /// Renders `scene` into the surface and reads the frame back, for conformance probes.
+    ///
+    /// Like [`Self::draw`], the renderer is taken out of the state lock while it works, because
+    /// acquiring the surface texture can block on the driver.
+    pub fn render_to_image(&self, scene: &gpui::Scene) -> Result<image::RgbaImage> {
+        let mut renderer = self
+            .state
+            .lock()
+            .renderer
+            .take()
+            .context("the window has no surface to render into")?;
+        let image = renderer.render_to_image(scene);
+        self.state.lock().renderer = Some(renderer);
+        image
+    }
+
     /// Invoke the `request_frame_callback` if one is registered.
     ///
     /// Called by the event loop on every iteration (~60 fps).
@@ -1759,10 +1775,18 @@ impl PlatformWindow for AndroidPlatformWindow {
         self.window.draw(scene);
     }
 
+    fn render_to_image(&self, scene: &gpui::Scene) -> Result<image::RgbaImage> {
+        self.window.render_to_image(scene)
+    }
+
     fn sprite_atlas(&self) -> Arc<dyn PlatformAtlas> {
-        self.window
-            .sprite_atlas()
-            .unwrap_or_else(|| Arc::new(FallbackAtlas::new()))
+        self.window.sprite_atlas().unwrap_or_else(|| {
+            log::warn!(
+                "AndroidPlatformWindow::sprite_atlas — no renderer yet; sprites drawn through \
+                 this atlas will not render"
+            );
+            Arc::new(FallbackAtlas::new())
+        })
     }
 
     fn is_subpixel_rendering_supported(&self) -> bool {

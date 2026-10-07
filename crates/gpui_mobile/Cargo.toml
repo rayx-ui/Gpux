@@ -78,6 +78,7 @@ wgpu.workspace = true
 [target.'cfg(target_os = "android")'.dependencies]
 android-activity = { version = "0.6", optional = true, default-features = false }
 android_logger = "0.15"
+image.workspace = true
 jni = "0.22"
 jni-sys-03 = { package = "jni-sys", version = "0.3" }
 libc.workspace = true
