@@ -87,7 +87,7 @@ jobs:
         run: echo "VK_DRIVER_FILES=$(ls /usr/share/vulkan/icd.d/lvp_icd*.json | head -n 1)" >> "$GITHUB_ENV"
       # GPU-backed tests create devices; running them concurrently hangs on DX12. The
       # conformance lanes run in their own jobs.
-      - run: cargo test --workspace ${{ env.FORK_EXCLUDES }} --exclude gpux-conformance -- --test-threads=1
+      - run: cargo test --workspace --no-fail-fast ${{ env.FORK_EXCLUDES }} --exclude gpux-conformance -- --test-threads=1
         shell: bash
 
   lane-a:
@@ -155,6 +155,50 @@ jobs:
         with:
           name: lane-c-${{ matrix.backend }}-goldens
           path: crates/gpux_conformance/tests/goldens/${{ matrix.backend }}/
+
+  lane-d:
+    name: lane D (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025, macos-15]
+    runs-on: ${{ matrix.os }}
+    env:
+      # A hosted Windows session may not deliver SendInput; the OS-input check then reports
+      # itself skipped with the reason instead of failing.
+      GPUX_OS_INPUT: ${{ matrix.os == 'windows-2025' && 'optional' || '' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@1.95.0
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y $LINUX_PACKAGES xvfb xdotool weston
+      - name: Select lavapipe
+        if: runner.os == 'Linux'
+        run: echo "VK_DRIVER_FILES=$(ls /usr/share/vulkan/icd.d/lvp_icd*.json | head -n 1)" >> "$GITHUB_ENV"
+      - name: Lane D (X11 under Xvfb)
+        if: runner.os == 'Linux'
+        run: env -u WAYLAND_DISPLAY xvfb-run -a -s "-screen 0 1280x1024x24" cargo run -p gpux-testkit -- lane d
+      - name: Lane D
+        if: runner.os != 'Linux'
+        run: cargo run -p gpux-testkit -- lane d
+      - name: Lane D on Wayland (weston headless, informational)
+        if: runner.os == 'Linux'
+        continue-on-error: true
+        run: |
+          export XDG_RUNTIME_DIR=$(mktemp -d)
+          weston --backend=headless --socket=wayland-gpux --idle-time=0 &
+          sleep 3
+          WAYLAND_DISPLAY=wayland-gpux cargo run -p gpux-testkit -- lane d
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: lane-d-${{ matrix.os }}-failures
+          path: artifacts-temp/testkit/**
+          if-no-files-found: ignore
 
   package:
     name: package
