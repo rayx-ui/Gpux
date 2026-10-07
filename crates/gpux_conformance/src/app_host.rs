@@ -39,6 +39,13 @@ const TOUCH_FRAME: Duration = Duration::from_millis(16);
 /// Moves the OS cursor to a window-local logical position.
 pub type CursorSync = Rc<dyn Fn(&Window, Point<Pixels>)>;
 
+/// Where pixel steps read a window's frame from, when not from its renderer: for hosts whose
+/// devices cannot read rendered textures back (GL on Android emulators) and capture the screen
+/// through the operating system instead. The frame is in the window's physical pixels.
+pub type FrameSource = Rc<
+    dyn Fn(AsyncApp, AnyWindowHandle) -> Pin<Box<dyn Future<Output = anyhow::Result<RgbaImage>>>>,
+>;
+
 /// Registers the bundled fonts with the app's text system, so scenes shape the same text as on
 /// the test platform.
 pub fn register_bundled_fonts(cx: &mut App) -> anyhow::Result<()> {
@@ -105,6 +112,7 @@ pub struct AppHost {
     origin: Point<Pixels>,
     cursor_sync: Option<CursorSync>,
     failure_frames: Option<std::path::PathBuf>,
+    frame_source: Option<FrameSource>,
 }
 
 impl AppHost {
@@ -115,7 +123,14 @@ impl AppHost {
             origin,
             cursor_sync: None,
             failure_frames: None,
+            frame_source: None,
         }
+    }
+
+    /// Reads frames for pixel steps from `source` instead of the window's renderer.
+    pub fn with_frame_source(mut self, source: FrameSource) -> Self {
+        self.frame_source = Some(source);
+        self
     }
 
     /// Saves the frame a failing pixel step saw as `<dir>/<scene>.actual.png`.
@@ -152,6 +167,7 @@ impl AppHost {
         let mut run = SceneRun {
             host: self,
             scene_id: scene.id,
+            scene_size: scene.size,
             window,
             frame: None,
             captures: HashMap::new(),
@@ -244,6 +260,7 @@ pub async fn wait_frames(
 struct SceneRun<'a> {
     host: &'a AppHost,
     scene_id: &'static str,
+    scene_size: (f32, f32),
     window: AnyWindowHandle,
     frame: Option<RgbaImage>,
     captures: HashMap<&'static str, RgbaImage>,
@@ -420,7 +437,10 @@ impl SceneRun<'_> {
     async fn frame(&mut self, cx: &mut AsyncApp) -> anyhow::Result<RgbaImage> {
         if self.frame.is_none() {
             self.settle(cx).await?;
-            let image = render_to_image(cx, self.window).await?;
+            let image = match &self.host.frame_source {
+                Some(source) => source(cx.clone(), self.window).await?,
+                None => render_to_image(cx, self.window).await?,
+            };
             self.frame = Some(image);
         }
         Ok(self.frame.clone().expect("rendered above"))
@@ -554,9 +574,39 @@ impl SceneRun<'_> {
             | Step::ProbeDiffer(..)
             | Step::Capture(_)
             | Step::ChangedSince(..) => {
-                let frame = self.frame(cx).await?;
+                let frame = match self.frame(cx).await {
+                    Ok(frame) => frame,
+                    // Platforms without readback, and windows without a renderer (a Simulator
+                    // without Metal), leave pixels to other lanes.
+                    Err(error)
+                        if ["not implemented", "has no renderer"]
+                            .iter()
+                            .any(|reason| error.to_string().contains(reason)) =>
+                    {
+                        return Ok(StepOutcome::Skipped(format!(
+                            "the window cannot render its frame back here: {error:#}"
+                        )));
+                    }
+                    Err(error) => return Err(error),
+                };
                 let scale = self.scale(cx)?;
-                if let Err(error) = evaluate::pixel_step(step, &frame, scale, &mut self.captures) {
+                // A scene shown at 16-bit depth has its colors rounded; probes allow that. Only
+                // the scene's area counts: system bars drawn over a full-screen window keep
+                // their own depth.
+                let (width, height) = self.scene_size;
+                let area = evaluate::physical_rect(scale, (0., 0., width, height));
+                let color_tolerance = if evaluate::shows_rgb565(&frame, area) {
+                    evaluate::RGB565_ROUNDING
+                } else {
+                    0
+                };
+                if let Err(error) = evaluate::pixel_step_within(
+                    step,
+                    &frame,
+                    scale,
+                    &mut self.captures,
+                    color_tolerance,
+                ) {
                     let mut error = error.context(format!("at scale {scale}"));
                     if let Some(dir) = &self.host.failure_frames {
                         let path = dir.join(format!("{}.actual.png", self.scene_id));

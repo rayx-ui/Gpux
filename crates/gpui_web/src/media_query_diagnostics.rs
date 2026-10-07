@@ -70,13 +70,7 @@ impl MediaQueryPipelineDiagnostics {
     }
 
     fn enabled(&self) -> bool {
-        js_sys::Reflect::get(
-            &js_sys::global(),
-            &JsValue::from_str("__rayxMediaQueryDiagnosticsEnabled"),
-        )
-        .ok()
-        .and_then(|value| value.as_bool())
-        .unwrap_or(false)
+        gpui_wgpu::web_globals::flag("MediaQueryDiagnosticsEnabled")
     }
 
     fn record_animation_frame_interval(&self) {
@@ -116,15 +110,10 @@ impl MediaQueryPipelineDiagnostics {
         if !self.enabled() {
             return;
         }
-        let global = js_sys::global();
-        let requested_reset_epoch = js_sys::Reflect::get(
-            &global,
-            &JsValue::from_str("__rayxMediaQueryDiagnosticsResetEpoch"),
-        )
-        .ok()
-        .and_then(|value| value.as_f64())
-        .filter(|value| *value >= 0.0)
-        .map(|value| value as u64);
+        let requested_reset_epoch = gpui_wgpu::web_globals::read("MediaQueryDiagnosticsResetEpoch")
+            .and_then(|value| value.as_f64())
+            .filter(|value| *value >= 0.0)
+            .map(|value| value as u64);
         if let Some(epoch) = requested_reset_epoch.filter(|epoch| *epoch > self.reset_epoch.get()) {
             self.reset_epoch.set(epoch);
             self.raw_viewport_signals.set(0);
@@ -142,8 +131,7 @@ impl MediaQueryPipelineDiagnostics {
             self.heartbeat_gaps.set(0);
             self.long_tasks.set(0);
         }
-        let target = js_sys::Reflect::get(&global, &JsValue::from_str("__rayxMediaQueryPipeline"))
-            .ok()
+        let target = gpui_wgpu::web_globals::read("MediaQueryPipeline")
             .and_then(|value| value.dyn_into::<js_sys::Object>().ok())
             .unwrap_or_else(js_sys::Object::new);
         let set = |key: &str, value: JsValue| {
@@ -224,11 +212,7 @@ impl MediaQueryPipelineDiagnostics {
                 let _ = js_sys::Reflect::set(&target, &value, &JsValue::from_f64(0.0));
             }
         }
-        let _ = js_sys::Reflect::set(
-            &global,
-            &JsValue::from_str("__rayxMediaQueryPipeline"),
-            &target,
-        );
+        gpui_wgpu::web_globals::publish("MediaQueryPipeline", &target);
     }
 }
 

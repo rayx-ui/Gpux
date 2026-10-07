@@ -1274,33 +1274,29 @@ fn vs_mono_sprite(@builtin(vertex_index) vertex_id: u32, @builtin(instance_index
     return out;
 }
 
+// Sampling fragment shaders fold their clip and mask tests into the result instead of returning
+// early after the sample: some GL ES drivers (Android emulators') drop every fragment of a shader
+// that returns early after sampling a texture.
+fn visible_if(condition: bool) -> f32 {
+    return select(0.0, 1.0, condition);
+}
+
 @fragment
 fn fs_mono_sprite(input: MonoSpriteVarying) -> @location(0) vec4<f32> {
     let sprite = load_mono_sprite(input.sprite_id);
     let sample = textureSample(t_sprite, s_sprite, input.tile_position).r;
-    var coverage = 0.0;
-    switch sprite.kind {
-        case 0u: {
-            let straight_color = input.color.rgb / max(input.color.a, 0.000001);
-            coverage = apply_contrast_and_gamma_correction(sample, straight_color, gamma_params.grayscale_enhanced_contrast, gamma_params.gamma_ratios);
-        }
-        case 1u: {
-            coverage = sample;
-        }
-        default: {
-            return vec4<f32>(0.0);
-        }
+    var coverage = sample;
+    if (sprite.kind == 0u) {
+        let straight_color = input.color.rgb / max(input.color.a, 0.000001);
+        coverage = apply_contrast_and_gamma_correction(sample, straight_color, gamma_params.grayscale_enhanced_contrast, gamma_params.gamma_ratios);
     }
 
-    // Alpha clip after using the derivatives.
-    if (any(input.clip_distances < vec4<f32>(0.0))) {
-        return vec4<f32>(0.0);
-    }
-    if (content_mask_sdf(transform_position(input.local_position, sprite.transformation), sprite.content_mask) > 0.0) {
-        return vec4<f32>(0.0);
-    }
-
-    return blend_color(input.color, coverage);
+    let visible = visible_if(
+        sprite.kind <= 1u
+            && !any(input.clip_distances < vec4<f32>(0.0))
+            && content_mask_sdf(transform_position(input.local_position, sprite.transformation), sprite.content_mask) <= 0.0
+    );
+    return blend_color(input.color, coverage * visible);
 }
 
 // --- polychrome sprites --- //
@@ -1349,13 +1345,10 @@ fn vs_poly_sprite(@builtin(vertex_index) vertex_id: u32, @builtin(instance_index
 fn fs_poly_sprite(input: PolySpriteVarying) -> @location(0) vec4<f32> {
     let sprite = load_poly_sprite(input.sprite_id);
     let sample = textureSample(t_sprite, s_sprite, input.tile_position);
-    // Alpha clip after using the derivatives.
-    if (any(input.clip_distances < vec4<f32>(0.0))) {
-        return vec4<f32>(0.0);
-    }
-    if (content_mask_sdf(transform_position(input.local_position, sprite.transformation), sprite.content_mask) > 0.0) {
-        return vec4<f32>(0.0);
-    }
+    let visible = visible_if(
+        !any(input.clip_distances < vec4<f32>(0.0))
+            && content_mask_sdf(transform_position(input.local_position, sprite.transformation), sprite.content_mask) <= 0.0
+    );
 
     let distance = quad_sdf(input.local_position, sprite.bounds, sprite.corner_radii);
 
@@ -1365,7 +1358,7 @@ fn fs_poly_sprite(input: PolySpriteVarying) -> @location(0) vec4<f32> {
         straight_rgb = vec3<f32>(grayscale);
     }
     let color = vec4<f32>(straight_rgb * sample.a, sample.a);
-    return blend_color(color, sprite.opacity * saturate(0.5 - distance));
+    return blend_color(color, sprite.opacity * saturate(0.5 - distance) * visible);
 }
 
 // --- html islands --- //
@@ -1406,15 +1399,13 @@ fn vs_html_island(@builtin(vertex_index) vertex_id: u32, @builtin(instance_index
 fn fs_html_island(input: HtmlIslandVarying) -> @location(0) vec4<f32> {
     let sample = textureSample(t_sprite, s_sprite, input.texture_position);
     let island = load_html_island(input.island_id);
-    if (any(input.clip_distances < vec4<f32>(0.0))) {
-        return vec4<f32>(0.0);
-    }
-    if (content_mask_sdf(input.local_position, island.content_mask) > 0.0) {
-        return vec4<f32>(0.0);
-    }
+    let visible = visible_if(
+        !any(input.clip_distances < vec4<f32>(0.0))
+            && content_mask_sdf(input.local_position, island.content_mask) <= 0.0
+    );
 
     let premultiplied = vec4<f32>(sample.rgb * sample.a, sample.a);
-    return blend_color(premultiplied, island.opacity);
+    return blend_color(premultiplied, island.opacity * visible);
 }
 
 // --- post processing --- //

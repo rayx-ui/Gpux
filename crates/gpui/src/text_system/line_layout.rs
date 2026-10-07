@@ -2,7 +2,7 @@ use crate::{FontId, GlyphId, Pixels, PlatformTextSystem, Point, SharedString, Si
 use collections::{FxHashMap, FxHasher};
 use parking_lot::{Mutex, RwLock, RwLockUpgradableReadGuard};
 use smallvec::SmallVec;
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 use std::cell::Cell;
 use std::{
     borrow::Borrow,
@@ -14,12 +14,12 @@ use std::{
     },
 };
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 thread_local! {
     static LINE_LAYOUT_CACHE_DIAGNOSTICS: Cell<[u64; 12]> = const { Cell::new([0; 12]) };
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 fn record_line_layout_cache_path(index: usize) {
     LINE_LAYOUT_CACHE_DIAGNOSTICS.with(|diagnostics| {
         let mut values = diagnostics.get();
@@ -28,12 +28,12 @@ fn record_line_layout_cache_path(index: usize) {
     });
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 pub(crate) fn take_line_layout_cache_diagnostics() -> [u64; 12] {
     LINE_LAYOUT_CACHE_DIAGNOSTICS.with(|diagnostics| diagnostics.replace([0; 12]))
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 fn record_line_layout_cache_key_hash(text_len: usize, run_count: usize) {
     LINE_LAYOUT_CACHE_DIAGNOSTICS.with(|diagnostics| {
         let mut values = diagnostics.get();
@@ -44,7 +44,7 @@ fn record_line_layout_cache_key_hash(text_len: usize, run_count: usize) {
     });
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 fn record_line_layout_cache_key_equality() {
     record_line_layout_cache_path(11);
 }
@@ -654,7 +654,7 @@ impl LineLayoutCache {
         SharedString: From<Text>,
     {
         let _font_generation = self.clear_if_font_generation_changed();
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         record_line_layout_cache_path(0);
         let key_ref = CacheKeyRef::new(
             text.as_ref(),
@@ -669,14 +669,14 @@ impl LineLayoutCache {
 
         let current_frame = self.current_frame.upgradable_read();
         if let Some(layout) = current_frame.wrapped_lines.get(key) {
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             record_line_layout_cache_path(1);
             return layout.clone();
         }
 
         let previous_frame_entry = self.previous_frame.lock().wrapped_lines.remove_entry(key);
         if let Some((key, layout)) = previous_frame_entry {
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             record_line_layout_cache_path(2);
             let mut current_frame = RwLockUpgradableReadGuard::upgrade(current_frame);
             current_frame
@@ -685,7 +685,7 @@ impl LineLayoutCache {
             current_frame.used_wrapped_lines.push(key);
             layout
         } else {
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             record_line_layout_cache_path(3);
             drop(current_frame);
             let text = SharedString::from(text);
@@ -734,7 +734,7 @@ impl LineLayoutCache {
         SharedString: From<Text>,
     {
         let _font_generation = self.clear_if_font_generation_changed();
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         record_line_layout_cache_path(4);
         let key_ref = CacheKeyRef::new(
             text.as_ref(),
@@ -749,20 +749,20 @@ impl LineLayoutCache {
 
         let current_frame = self.current_frame.upgradable_read();
         if let Some(layout) = current_frame.lines.get(key) {
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             record_line_layout_cache_path(5);
             return layout.clone();
         }
 
         let mut current_frame = RwLockUpgradableReadGuard::upgrade(current_frame);
         if let Some((key, layout)) = self.previous_frame.lock().lines.remove_entry(key) {
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             record_line_layout_cache_path(6);
             current_frame.lines.insert(key.clone(), layout.clone());
             current_frame.used_lines.push(key);
             layout
         } else {
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             record_line_layout_cache_path(7);
             let text = SharedString::from(text);
             let mut layout = self
@@ -1087,7 +1087,7 @@ impl<'a> CacheKeyRef<'a> {
         wrap_width.hash(&mut hasher);
         force_width.hash(&mut hasher);
 
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         record_line_layout_cache_key_hash(text.len(), runs.len());
 
         Self {
@@ -1146,7 +1146,7 @@ struct HashedCacheKeyRef<'a> {
 
 impl PartialEq for dyn AsCacheKeyRef + '_ {
     fn eq(&self, other: &dyn AsCacheKeyRef) -> bool {
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         record_line_layout_cache_key_equality();
         self.as_cache_key_ref() == other.as_cache_key_ref()
     }
@@ -1228,7 +1228,7 @@ impl AsCacheKeyRef for CacheKey {
 
 impl PartialEq for CacheKey {
     fn eq(&self, other: &Self) -> bool {
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         record_line_layout_cache_key_equality();
         self.as_cache_key_ref().eq(&other.as_cache_key_ref())
     }
@@ -1256,7 +1256,7 @@ impl AsCacheKeyRef for CacheKeyRef<'_> {
 mod tests {
     use super::*;
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     #[test]
     fn line_layout_cache_diagnostics_are_drained() {
         take_line_layout_cache_diagnostics();
@@ -1272,7 +1272,7 @@ mod tests {
         assert_eq!(take_line_layout_cache_diagnostics(), [0; 12]);
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     #[test]
     fn line_layout_cache_key_diagnostics_count_key_volume() {
         take_line_layout_cache_diagnostics();

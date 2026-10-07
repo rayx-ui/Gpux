@@ -3,6 +3,11 @@
 
 use gpux::GpuSpecs;
 
+/// The environment variable naming the backend a run must render on (see [`BackendId::is`]), so
+/// a run cannot silently fall back to another adapter: lane C's CI jobs name their software
+/// rasterizer, and lane G names `hardware` for lanes C and D.
+pub const EXPECT_BACKEND_ENV_VAR: &str = "GPUX_EXPECT_BACKEND";
+
 /// The adapter family a capture came from.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum BackendId {
@@ -51,6 +56,15 @@ impl BackendId {
             Self::Metal => Some("metal"),
             Self::SwiftShaderWebGpu => Some("swiftshader-webgpu"),
             Self::Hardware(_) => None,
+        }
+    }
+
+    /// Whether this backend is the one `expected` names: a label such as `warp` or `metal`, or
+    /// `hardware` for any hardware adapter (lane G).
+    pub fn is(&self, expected: &str) -> bool {
+        match expected {
+            "hardware" => matches!(self, Self::Hardware(_)),
+            label => self.label() == label,
         }
     }
 

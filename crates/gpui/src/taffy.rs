@@ -27,27 +27,27 @@ type NodeMeasureFn = StackSafe<Box<MeasureFn>>;
 
 struct NodeContext {
     measure: Option<NodeMeasureFn>,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     kind: MeasuredLayoutKind,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     previous_measurements: Vec<MeasuredLayoutSample>,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     current_measurements: Vec<MeasuredLayoutSample>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum MeasuredLayoutKind {
     Custom,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     Text,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     List,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     UniformList,
 }
 
 impl MeasuredLayoutKind {
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub(crate) fn from_source_file(file: &str) -> Self {
         if file.ends_with("elements/text.rs") || file.ends_with("elements\\text.rs") {
             Self::Text
@@ -62,7 +62,7 @@ impl MeasuredLayoutKind {
         }
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     const fn diagnostic_index(self) -> usize {
         match self {
             Self::Custom => 25,
@@ -73,7 +73,7 @@ impl MeasuredLayoutKind {
     }
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct MeasuredLayoutSample {
     known_dimensions: TaffySize<Option<f32>>,
@@ -81,7 +81,7 @@ struct MeasuredLayoutSample {
     output: TaffySize<f32>,
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 impl NodeContext {
     fn begin_measurement_frame(&mut self) {
         std::mem::swap(
@@ -130,9 +130,9 @@ pub struct TaffyLayoutEngine {
     absolute_outer_origins: FxHashMap<LayoutId, Point<f32>>,
     computed_layouts: FxHashSet<LayoutId>,
     layout_bounds_scratch_space: Vec<LayoutId>,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     diagnostics: [u64; 31],
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     request_diagnostics: [u64; 11],
 }
 
@@ -152,9 +152,9 @@ impl TaffyLayoutEngine {
             absolute_outer_origins: FxHashMap::default(),
             computed_layouts: FxHashSet::default(),
             layout_bounds_scratch_space: Vec::new(),
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             diagnostics: [0; 31],
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             request_diagnostics: [0; 11],
         }
     }
@@ -163,7 +163,7 @@ impl TaffyLayoutEngine {
         for id in self.measured_layouts.drain(..) {
             let context = self.taffy.get_node_context_mut(id.0).expect(EXPECT_MESSAGE);
             context.measure = None;
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             context.begin_measurement_frame();
             self.taffy.mark_dirty(id.0).expect(EXPECT_MESSAGE);
         }
@@ -172,24 +172,24 @@ impl TaffyLayoutEngine {
         self.absolute_layout_bounds.clear();
         self.absolute_outer_origins.clear();
         self.computed_layouts.clear();
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         {
             self.diagnostics = [0; 31];
             self.request_diagnostics = [0; 11];
         }
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub(crate) fn diagnostics(&self) -> [u64; 31] {
         self.diagnostics
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub(crate) fn request_diagnostics(&self) -> [u64; 11] {
         self.request_diagnostics
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     fn record_node(&mut self, display: taffy::style::Display, child_count: usize, measured: bool) {
         let child_count = child_count as u64;
         self.diagnostics[0] += 1;
@@ -225,18 +225,18 @@ impl TaffyLayoutEngine {
         let is_measured = context.is_some();
         let pool_index = self.active_layout_count;
         self.active_layout_count += 1;
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         {
             self.request_diagnostics[0] += 1;
         }
 
         let id = if let Some(id) = self.layout_pool.get(pool_index).copied() {
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             {
                 self.request_diagnostics[1] += 1;
             }
             let style_matches = self.taffy.style(id.0).expect(EXPECT_MESSAGE) == &style;
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             {
                 self.request_diagnostics[if style_matches { 3 } else { 4 }] += 1;
             }
@@ -250,7 +250,7 @@ impl TaffyLayoutEngine {
                         .child_at_index(id.0, index)
                         .is_ok_and(|retained_child| retained_child == *child)
                 });
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             {
                 self.request_diagnostics[if topology_matches { 5 } else { 6 }] += 1;
             }
@@ -261,24 +261,24 @@ impl TaffyLayoutEngine {
             }
             if let Some(context) = context {
                 if let Some(retained_context) = self.taffy.get_node_context_mut(id.0) {
-                    #[cfg(feature = "rayx_diagnostics")]
+                    #[cfg(feature = "diagnostics")]
                     {
                         self.request_diagnostics[7] += 1;
                     }
                     retained_context.measure = context.measure;
-                    #[cfg(feature = "rayx_diagnostics")]
+                    #[cfg(feature = "diagnostics")]
                     {
                         retained_context.kind = context.kind;
                     }
                     if !self.taffy.dirty(id.0).expect(EXPECT_MESSAGE) {
-                        #[cfg(feature = "rayx_diagnostics")]
+                        #[cfg(feature = "diagnostics")]
                         {
                             self.request_diagnostics[9] += 1;
                         }
                         self.taffy.mark_dirty(id.0).expect(EXPECT_MESSAGE);
                     }
                 } else {
-                    #[cfg(feature = "rayx_diagnostics")]
+                    #[cfg(feature = "diagnostics")]
                     {
                         self.request_diagnostics[8] += 1;
                     }
@@ -287,14 +287,14 @@ impl TaffyLayoutEngine {
                         .expect(EXPECT_MESSAGE);
                 }
             } else {
-                #[cfg(feature = "rayx_diagnostics")]
+                #[cfg(feature = "diagnostics")]
                 if let Some(retained_context) = self.taffy.get_node_context_mut(id.0) {
                     retained_context.clear_measurement_history();
                 }
             }
             id
         } else {
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             {
                 self.request_diagnostics[2] += 1;
             }
@@ -321,12 +321,12 @@ impl TaffyLayoutEngine {
             self.measured_layouts.push(id);
         }
         for child in children {
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             {
                 let inserted = self.active_child_layouts.insert(*child);
                 self.request_diagnostics[10] += u64::from(inserted);
             }
-            #[cfg(not(feature = "rayx_diagnostics"))]
+            #[cfg(not(feature = "diagnostics"))]
             self.active_child_layouts.insert(*child);
         }
         id
@@ -350,7 +350,7 @@ impl TaffyLayoutEngine {
         children: &[LayoutId],
     ) -> LayoutId {
         let taffy_style = style.to_taffy(rem_size, scale_factor);
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.record_node(taffy_style.display, children.len(), false);
 
         self.request_taffy_node(taffy_style, children, None)
@@ -392,7 +392,7 @@ impl TaffyLayoutEngine {
         #[cfg(feature = "stacker")]
         let measure = StackSafe::new(measure);
 
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.record_node(taffy_style.display, 0, true);
 
         self.request_taffy_node(
@@ -400,17 +400,17 @@ impl TaffyLayoutEngine {
             &[],
             Some(NodeContext {
                 measure: Some(measure),
-                #[cfg(feature = "rayx_diagnostics")]
+                #[cfg(feature = "diagnostics")]
                 kind: _kind,
-                #[cfg(feature = "rayx_diagnostics")]
+                #[cfg(feature = "diagnostics")]
                 previous_measurements: Vec::new(),
-                #[cfg(feature = "rayx_diagnostics")]
+                #[cfg(feature = "diagnostics")]
                 current_measurements: Vec::new(),
             }),
         )
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub(crate) fn set_text_measurement_path_diagnostics(&mut self, diagnostics: [u64; 2]) {
         self.diagnostics[29..].copy_from_slice(&diagnostics);
     }
@@ -521,20 +521,20 @@ impl TaffyLayoutEngine {
         // }
         //
 
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         {
             self.diagnostics[13] += 1;
         }
         let already_computed = !self.computed_layouts.insert(id);
         if already_computed {
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             {
                 self.diagnostics[14] += 1;
             }
             let stack = &mut self.layout_bounds_scratch_space;
             stack.push(id);
             while let Some(id) = stack.pop() {
-                #[cfg(feature = "rayx_diagnostics")]
+                #[cfg(feature = "diagnostics")]
                 {
                     self.diagnostics[15] += 1;
                 }
@@ -565,7 +565,7 @@ impl TaffyLayoutEngine {
         );
 
         let taffy = &mut self.taffy;
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         let diagnostics = &mut self.diagnostics;
         taffy
             .compute_layout_with_measure(
@@ -584,7 +584,7 @@ impl TaffyLayoutEngine {
                                 return taffy::geometry::Size::default();
                             };
 
-                            #[cfg(feature = "rayx_diagnostics")]
+                            #[cfg(feature = "diagnostics")]
                             let measurement_inputs = (known_dimensions, available_space);
 
                             let known_dimensions = Size {
@@ -610,7 +610,7 @@ impl TaffyLayoutEngine {
                             let measured_size: TaffySize<f32> =
                                 snap_measured_size_to_device_pixels(measured_size, scale_factor)
                                     .into();
-                            #[cfg(feature = "rayx_diagnostics")]
+                            #[cfg(feature = "diagnostics")]
                             node_context.record_measurement(
                                 diagnostics,
                                 MeasuredLayoutSample {
@@ -712,12 +712,12 @@ impl TaffyLayoutEngine {
         scale_factor: f32,
         _parent_lookup: bool,
     ) -> Bounds<Pixels> {
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         {
             self.diagnostics[16] += 1;
         }
         if let Some(layout) = self.absolute_layout_bounds.get(&id).cloned() {
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             {
                 self.diagnostics[17] += 1;
                 if _parent_lookup {
@@ -727,7 +727,7 @@ impl TaffyLayoutEngine {
             return layout;
         }
 
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         if _parent_lookup {
             self.diagnostics[19] += 1;
         }
@@ -1276,7 +1276,7 @@ mod tests {
         );
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     #[test]
     fn records_taffy_tree_shape() {
         let mut engine = TaffyLayoutEngine::new();
@@ -1308,7 +1308,7 @@ mod tests {
         );
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     #[test]
     fn measured_layout_samples_compare_matching_call_ordinals() {
         let input = MeasuredLayoutSample {
@@ -1348,7 +1348,7 @@ mod tests {
         assert_eq!(&diagnostics[20..], &[5, 3, 3, 2, 1, 0, 5, 0, 0, 0, 0]);
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     #[test]
     fn measured_layout_kind_recognizes_internal_owners() {
         assert_eq!(

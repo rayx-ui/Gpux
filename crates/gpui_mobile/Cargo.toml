@@ -69,6 +69,7 @@ core-graphics = "0.24"
 core-text = "21"
 font-kit = { package = "zed-font-kit", version = "0.14.1-zed" }
 gpui_wgpu = { workspace = true, features = ["font-kit"] }
+image.workspace = true
 objc2 = "0.6"
 pathfinder_geometry = "0.5"
 smallvec.workspace = true
@@ -78,6 +79,7 @@ wgpu.workspace = true
 [target.'cfg(target_os = "android")'.dependencies]
 android-activity = { version = "0.6", optional = true, default-features = false }
 android_logger = "0.15"
+image.workspace = true
 jni = "0.22"
 jni-sys-03 = { package = "jni-sys", version = "0.3" }
 libc.workspace = true

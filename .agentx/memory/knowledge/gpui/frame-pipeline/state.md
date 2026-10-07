@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/gpui/frame-pipeline
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-05T23:30:00+02:00
+  updated: 2026-10-07T16:45:00+02:00
   topics:
     - window
     - frame
@@ -45,7 +45,7 @@ Renderer paint paths prepare the original immutable `Color` or `Background` when
 
 DevKit inspection: `Window::devtools_frame_snapshot()` is a read-only surface populated during the element lifecycle from rendered occurrence ids and parents, dispatch nodes, bounds, hitbox and listener counts, global ids, source locations, component semantics, and writable-property metadata. `InspectableElementExt` attaches semantics without adding hitboxes, focus, or listeners; `Window::register_devtools_property_setter(...)` registers live property callbacks for the current occurrence. The rendered occurrence stack is separate from the dispatch stack. Cached prepaint replay remaps occurrence ids, parents, dispatch ids, focus, and setters; prepaint rollback truncates inspection ranges. Frame nodes use direct id-to-index lookup and materialize owned snapshot strings only on request. `InspectableElement` also forwards the wrapped element's AccessKit surface.
 
-Under `rayx_diagnostics`, `gpui_wgpu` keeps a bounded latest-frame telemetry snapshot (primitive-family sizes, batches, buffer/atlas writes, bind groups, passes, restarts, submissions, sprite disorder, bounds-tree work, element-id depth, Taffy tree shape, style phases, text-cache tiers) that `gpui_web` publishes as numeric-only `__rayxWgpuFrameDiagnostics` for Test Suite proof. Completed probes (deferred-intersection prune, element-state finish) were retired once their decision landed.
+Under `diagnostics`, `gpui_wgpu` keeps a bounded latest-frame telemetry snapshot (primitive-family sizes, batches, buffer/atlas writes, bind groups, passes, restarts, submissions, sprite disorder, bounds-tree work, element-id depth, Taffy tree shape, style phases, text-cache tiers) that `gpui_web` publishes as numeric-only `__gpuxWgpuFrameDiagnostics` (and `__rayxWgpuFrameDiagnostics` under the `rayx_diagnostics` alias) for browser proof. Completed probes (deferred-intersection prune, element-state finish) were retired once their decision landed.
 
 ## Backlinks
 

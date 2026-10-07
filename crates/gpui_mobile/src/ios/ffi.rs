@@ -93,6 +93,19 @@ pub(crate) fn register_window(window: *const super::window::IosWindow) {
     }
 }
 
+/// Remove a window from the FFI layer before it is freed, so lifecycle calls and
+/// [`gpui_ios_get_window`] never reach it afterwards.
+///
+/// # Safety
+/// This must only be called from the main thread.
+pub(crate) fn unregister_window(window: *const super::window::IosWindow) {
+    if let Some(wrapper) = IOS_WINDOW_LIST.get() {
+        unsafe {
+            (*wrapper.0.get()).retain(|&registered| registered != window);
+        }
+    }
+}
+
 /// Get the most recently created window pointer.
 ///
 /// Returns the pointer to the IosWindow that was most recently registered,

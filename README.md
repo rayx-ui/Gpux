@@ -92,8 +92,10 @@ tracks the upstream change.
 ## Maintenance
 
 Upstream imports (Zed GPUI closure, gpui-mobile, wgpu), installation, platform prerequisites and
-validation are documented in the [gpux skill](.claude/skills/gpux/SKILL.md). Contributor rules
-are in [CLAUDE.md](CLAUDE.md).
+validation are documented in the [gpux skill](.claude/skills/gpux/SKILL.md). gpux tests itself in
+lanes run by `gpux-testkit`, from the test platform to browsers, desktop windows, Android and the
+local GPU; [docs/testing.md](docs/testing.md) describes them. Contributor rules are in
+[CLAUDE.md](CLAUDE.md).
 
 ## License
 

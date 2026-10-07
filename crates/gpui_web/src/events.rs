@@ -242,14 +242,19 @@ impl WebWindowInner {
         let position = mouse_position_in_canvas(mouse_event, &self.canvas);
         let modifiers = modifiers_from_wheel_event(mouse_event, self.is_mac);
 
-        let delta_mode = event.delta_mode();
-        let delta = if delta_mode == 1 {
-            ScrollDelta::Lines(point(-event.delta_x() as f32, -event.delta_y() as f32))
-        } else {
-            ScrollDelta::Pixels(point(
+        let delta = match event.delta_mode() {
+            web_sys::WheelEvent::DOM_DELTA_LINE => {
+                ScrollDelta::Lines(point(-event.delta_x() as f32, -event.delta_y() as f32))
+            }
+            // A page is the visible canvas, in CSS pixels.
+            web_sys::WheelEvent::DOM_DELTA_PAGE => ScrollDelta::Pixels(point(
+                px(-event.delta_x() as f32 * self.canvas.client_width() as f32),
+                px(-event.delta_y() as f32 * self.canvas.client_height() as f32),
+            )),
+            _ => ScrollDelta::Pixels(point(
                 px(-event.delta_x() as f32),
                 px(-event.delta_y() as f32),
-            ))
+            )),
         };
 
         {

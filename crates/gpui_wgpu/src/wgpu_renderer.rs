@@ -1,6 +1,6 @@
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 use crate::WgpuFrameTelemetry;
-#[cfg(all(target_family = "wasm", feature = "rayx_diagnostics"))]
+#[cfg(all(target_family = "wasm", feature = "diagnostics"))]
 use crate::html_island_texture::HtmlIslandTextureCacheStatus;
 #[cfg(target_family = "wasm")]
 use crate::html_island_texture::{HtmlIslandTextureCache, HtmlIslandTextureDescriptor};
@@ -1154,6 +1154,9 @@ struct WgpuResources {
     post_process_sampler: wgpu::Sampler,
     effect_sampler: wgpu::Sampler,
     globals_buffer: wgpu::Buffer,
+    /// The gamma parameters, in a buffer of their own: GL drivers that bind two ranges of one
+    /// buffer to two uniform blocks (Android emulators') give the second block the wrong range.
+    gamma_buffer: wgpu::Buffer,
     globals_bind_group: wgpu::BindGroup,
     path_globals_bind_group: wgpu::BindGroup,
     instance_buffer: Option<wgpu::Buffer>,
@@ -1240,7 +1243,6 @@ pub struct WgpuRenderer {
     render_target_format: wgpu::TextureFormat,
     atlas: Arc<WgpuAtlas>,
     path_globals_offset: u64,
-    gamma_offset: u64,
     instance_buffer_capacity: u64,
     gradient_stop_buffer_capacity: u64,
     max_buffer_size: u64,
@@ -1258,7 +1260,7 @@ pub struct WgpuRenderer {
     device_lost: std::sync::Arc<std::sync::atomic::AtomicBool>,
     surface_configured: bool,
     needs_redraw: bool,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     frame_telemetry: RefCell<WgpuFrameTelemetry>,
     #[cfg(target_family = "wasm")]
     html_island_textures: HtmlIslandTextureCache,
@@ -1302,7 +1304,7 @@ impl WgpuRenderer {
             .expect("GPU resources not available")
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     fn begin_frame_telemetry(&self, scene: &Scene, atlas_uploads: (usize, usize)) {
         let sprite_sort_disorder_counts = scene.sprite_sort_disorder_counts();
         let bounds_tree_diagnostics = scene.bounds_tree_diagnostics();
@@ -1432,12 +1434,12 @@ impl WgpuRenderer {
         };
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     fn update_frame_telemetry(&self, update: impl FnOnce(&mut WgpuFrameTelemetry)) {
         update(&mut self.frame_telemetry.borrow_mut());
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub fn frame_telemetry(&self) -> WgpuFrameTelemetry {
         *self.frame_telemetry.borrow()
     }
@@ -1748,11 +1750,16 @@ impl WgpuRenderer {
         let globals_size = std::mem::size_of::<GlobalParams>() as u64;
         let gamma_size = std::mem::size_of::<GammaParams>() as u64;
         let path_globals_offset = globals_size.next_multiple_of(uniform_alignment);
-        let gamma_offset = (path_globals_offset + globals_size).next_multiple_of(uniform_alignment);
 
         let globals_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("globals_buffer"),
-            size: gamma_offset + gamma_size,
+            size: path_globals_offset + globals_size,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+        let gamma_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("gamma_buffer"),
+            size: gamma_size,
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
@@ -1793,8 +1800,8 @@ impl WgpuRenderer {
                 wgpu::BindGroupEntry {
                     binding: 1,
                     resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                        buffer: &globals_buffer,
-                        offset: gamma_offset,
+                        buffer: &gamma_buffer,
+                        offset: 0,
                         size: Some(NonZeroU64::new(gamma_size).unwrap()),
                     }),
                 },
@@ -1816,8 +1823,8 @@ impl WgpuRenderer {
                 wgpu::BindGroupEntry {
                     binding: 1,
                     resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                        buffer: &globals_buffer,
-                        offset: gamma_offset,
+                        buffer: &gamma_buffer,
+                        offset: 0,
                         size: Some(NonZeroU64::new(gamma_size).unwrap()),
                     }),
                 },
@@ -1848,6 +1855,7 @@ impl WgpuRenderer {
             post_process_sampler,
             effect_sampler,
             globals_buffer,
+            gamma_buffer,
             globals_bind_group,
             path_globals_bind_group,
             instance_buffer,
@@ -1871,7 +1879,6 @@ impl WgpuRenderer {
             render_target_format,
             atlas,
             path_globals_offset,
-            gamma_offset,
             instance_buffer_capacity: initial_instance_buffer_capacity,
             gradient_stop_buffer_capacity: initial_gradient_stop_buffer_capacity,
             max_buffer_size,
@@ -1889,7 +1896,7 @@ impl WgpuRenderer {
             device_lost: context.device_lost_flag(),
             surface_configured: true,
             needs_redraw: false,
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             frame_telemetry: RefCell::new(WgpuFrameTelemetry::default()),
             #[cfg(target_family = "wasm")]
             html_island_textures: HtmlIslandTextureCache::default(),
@@ -2817,18 +2824,18 @@ impl WgpuRenderer {
         #[cfg(target_family = "wasm")]
         self.prune_html_island_textures(scene);
 
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         {
             let atlas_uploads = self.atlas.before_frame();
             self.begin_frame_telemetry(scene, atlas_uploads);
         }
-        #[cfg(not(feature = "rayx_diagnostics"))]
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(not(feature = "diagnostics"))]
+        #[cfg(feature = "diagnostics")]
         {
             let atlas_uploads = self.atlas.before_frame();
             self.begin_frame_telemetry(scene, atlas_uploads);
         }
-        #[cfg(not(feature = "rayx_diagnostics"))]
+        #[cfg(not(feature = "diagnostics"))]
         self.atlas.before_frame();
 
         let Some(frame) = self.acquire_surface_frame() else {
@@ -2855,7 +2862,7 @@ impl WgpuRenderer {
         self.resources()
             .queue
             .submit(std::iter::once(encoder.finish()));
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.submission_count = telemetry.submission_count.saturating_add(1);
         });
@@ -2877,7 +2884,9 @@ impl WgpuRenderer {
             .usage
             .contains(wgpu::TextureUsages::COPY_SRC)
         {
-            anyhow::bail!("Surface capture requires COPY_SRC surface support")
+            // Some surfaces (GLES on Android emulators) cannot be read back; render the same
+            // scene into a texture of the surface's size and format instead.
+            return self.render_to_offscreen_image(scene);
         }
 
         self.atlas.before_frame();
@@ -2955,7 +2964,7 @@ impl WgpuRenderer {
         self.resources()
             .queue
             .submit(std::iter::once(encoder.finish()));
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.submission_count = telemetry.submission_count.saturating_add(1);
         });
@@ -2964,6 +2973,101 @@ impl WgpuRenderer {
         // The frame holds the current scene, so presenting it changes nothing on screen.
         self.resources().queue.present(frame);
 
+        self.read_buffer_to_image(readback, width, height, padded_bytes_per_row)
+    }
+
+    /// Renders `scene` into a texture like the surface (same size and format) and reads it back:
+    /// [`Self::render_to_image`] for surfaces without `COPY_SRC`. The window keeps showing its
+    /// last presented frame.
+    fn render_to_offscreen_image(&mut self, scene: &Scene) -> anyhow::Result<RgbaImage> {
+        let width = self.surface_config.width;
+        let height = self.surface_config.height;
+        let format = self.surface_config.format;
+        let view_format = self.render_target_format;
+        // Report what the device rejects instead of reading back an empty texture. Browsers
+        // cannot wait for the scope, so there errors reach the device's error handler.
+        #[cfg(not(target_family = "wasm"))]
+        let error_scope = self
+            .resources()
+            .device
+            .push_error_scope(wgpu::ErrorFilter::Validation);
+        let target = self
+            .resources()
+            .device
+            .create_texture(&wgpu::TextureDescriptor {
+                label: Some("capture_target"),
+                size: wgpu::Extent3d {
+                    width,
+                    height,
+                    depth_or_array_layers: 1,
+                },
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: wgpu::TextureDimension::D2,
+                format,
+                // TEXTURE_BINDING keeps GL from making the target a renderbuffer.
+                usage: wgpu::TextureUsages::RENDER_ATTACHMENT
+                    | wgpu::TextureUsages::COPY_SRC
+                    | wgpu::TextureUsages::TEXTURE_BINDING,
+                view_formats: if view_format == format {
+                    &[]
+                } else {
+                    std::slice::from_ref(&view_format)
+                },
+            });
+        self.atlas.before_frame();
+        self.ensure_intermediate_textures();
+        self.write_globals();
+        let target_view = target.create_view(&wgpu::TextureViewDescriptor {
+            format: Some(view_format),
+            ..Default::default()
+        });
+        let mut encoder = match self.encode_scene_to_view(scene, &target_view) {
+            Ok(encoder) => encoder,
+            Err(error) => {
+                // Queue writes are staged before encoding; flush them even if the frame fails.
+                self.resources().queue.submit(std::iter::empty());
+                return Err(error);
+            }
+        };
+        let padded_bytes_per_row = (width * 4).next_multiple_of(wgpu::COPY_BYTES_PER_ROW_ALIGNMENT);
+        let readback = self
+            .resources()
+            .device
+            .create_buffer(&wgpu::BufferDescriptor {
+                label: Some("capture_readback"),
+                size: padded_bytes_per_row as u64 * height as u64,
+                usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+                mapped_at_creation: false,
+            });
+        encoder.copy_texture_to_buffer(
+            wgpu::TexelCopyTextureInfo {
+                texture: &target,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            wgpu::TexelCopyBufferInfo {
+                buffer: &readback,
+                layout: wgpu::TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(padded_bytes_per_row),
+                    rows_per_image: Some(height),
+                },
+            },
+            wgpu::Extent3d {
+                width,
+                height,
+                depth_or_array_layers: 1,
+            },
+        );
+        self.resources()
+            .queue
+            .submit(std::iter::once(encoder.finish()));
+        #[cfg(not(target_family = "wasm"))]
+        if let Some(error) = gpux::block_on(error_scope.pop()) {
+            anyhow::bail!("offscreen capture failed: {error}");
+        }
         self.read_buffer_to_image(readback, width, height, padded_bytes_per_row)
     }
 
@@ -2996,18 +3100,18 @@ impl WgpuRenderer {
         );
 
         let result = upload_html_island_element_to_texture(&queue, element, texture, size)?;
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         let result = {
             let mut result = result;
             result.texture_reallocated = cache_status != HtmlIslandTextureCacheStatus::Hit;
             result
         };
-        #[cfg(not(feature = "rayx_diagnostics"))]
+        #[cfg(not(feature = "diagnostics"))]
         let _ = cache_status;
         Ok(result)
     }
 
-    #[cfg(all(target_family = "wasm", feature = "rayx_diagnostics"))]
+    #[cfg(all(target_family = "wasm", feature = "diagnostics"))]
     pub fn html_island_texture_diagnostics(&self) -> (u32, u32, u32) {
         (
             self.html_island_textures.len() as u32,
@@ -3224,11 +3328,11 @@ impl WgpuRenderer {
             bytemuck::bytes_of(&path_globals),
         );
         resources.queue.write_buffer(
-            &resources.globals_buffer,
-            self.gamma_offset,
+            &resources.gamma_buffer,
+            0,
             bytemuck::bytes_of(&gamma_params),
         );
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.queue_buffer_write_count =
                 telemetry.queue_buffer_write_count.saturating_add(3);
@@ -3294,13 +3398,13 @@ impl WgpuRenderer {
                     depth_stencil_attachment: None,
                     ..Default::default()
                 });
-                #[cfg(feature = "rayx_diagnostics")]
+                #[cfg(feature = "diagnostics")]
                 self.update_frame_telemetry(|telemetry| {
                     telemetry.render_pass_count = telemetry.render_pass_count.saturating_add(1);
                 });
 
                 for batch in scene.batches() {
-                    #[cfg(feature = "rayx_diagnostics")]
+                    #[cfg(feature = "diagnostics")]
                     self.update_frame_telemetry(|telemetry| {
                         telemetry.batch_count = telemetry.batch_count.saturating_add(1);
                     });
@@ -3357,7 +3461,7 @@ impl WgpuRenderer {
                                     depth_stencil_attachment: None,
                                     ..Default::default()
                                 });
-                                #[cfg(feature = "rayx_diagnostics")]
+                                #[cfg(feature = "diagnostics")]
                                 self.update_frame_telemetry(|telemetry| {
                                     telemetry.render_pass_count =
                                         telemetry.render_pass_count.saturating_add(1);
@@ -3407,7 +3511,7 @@ impl WgpuRenderer {
                                 depth_stencil_attachment: None,
                                 ..Default::default()
                             });
-                            #[cfg(feature = "rayx_diagnostics")]
+                            #[cfg(feature = "diagnostics")]
                             self.update_frame_telemetry(|telemetry| {
                                 telemetry.render_pass_count =
                                     telemetry.render_pass_count.saturating_add(1);
@@ -3498,7 +3602,7 @@ impl WgpuRenderer {
             }
 
             if overflow {
-                #[cfg(feature = "rayx_diagnostics")]
+                #[cfg(feature = "diagnostics")]
                 self.update_frame_telemetry(|telemetry| {
                     telemetry.buffer_restart_count =
                         telemetry.buffer_restart_count.saturating_add(1);
@@ -3643,7 +3747,7 @@ impl WgpuRenderer {
                     },
                 ],
             });
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.bind_group_count = telemetry.bind_group_count.saturating_add(1);
         });
@@ -3841,7 +3945,7 @@ impl WgpuRenderer {
                     },
                 ],
             });
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.bind_group_count = telemetry.bind_group_count.saturating_add(1);
         });
@@ -3894,7 +3998,7 @@ impl WgpuRenderer {
                     },
                 ],
             });
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.bind_group_count = telemetry.bind_group_count.saturating_add(1);
         });
@@ -3928,7 +4032,7 @@ impl WgpuRenderer {
                     },
                 ],
             });
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.bind_group_count = telemetry.bind_group_count.saturating_add(1);
         });
@@ -3947,7 +4051,7 @@ impl WgpuRenderer {
             depth_stencil_attachment: None,
             ..Default::default()
         });
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.render_pass_count = telemetry.render_pass_count.saturating_add(1);
         });
@@ -3981,7 +4085,7 @@ impl WgpuRenderer {
                     },
                 ],
             });
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.bind_group_count = telemetry.bind_group_count.saturating_add(1);
         });
@@ -4000,7 +4104,7 @@ impl WgpuRenderer {
             depth_stencil_attachment: None,
             ..Default::default()
         });
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.render_pass_count = telemetry.render_pass_count.saturating_add(1);
         });
@@ -4097,7 +4201,7 @@ impl WgpuRenderer {
                     },
                 ],
             });
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.bind_group_count = telemetry.bind_group_count.saturating_add(1);
         });
@@ -4117,7 +4221,7 @@ impl WgpuRenderer {
                 depth_stencil_attachment: None,
                 ..Default::default()
             });
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             self.update_frame_telemetry(|telemetry| {
                 telemetry.render_pass_count = telemetry.render_pass_count.saturating_add(1);
             });
@@ -4142,7 +4246,7 @@ impl WgpuRenderer {
                 depth_stencil_attachment: None,
                 ..Default::default()
             });
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             self.update_frame_telemetry(|telemetry| {
                 telemetry.render_pass_count = telemetry.render_pass_count.saturating_add(1);
             });
@@ -4219,7 +4323,7 @@ impl WgpuRenderer {
                 layout: &resources.bind_group_layouts.screen_effects,
                 entries: &bind_group_entries,
             });
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.bind_group_count = telemetry.bind_group_count.saturating_add(1);
         });
@@ -4238,7 +4342,7 @@ impl WgpuRenderer {
             depth_stencil_attachment: None,
             ..Default::default()
         });
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.render_pass_count = telemetry.render_pass_count.saturating_add(1);
         });
@@ -4354,7 +4458,7 @@ impl WgpuRenderer {
                     },
                 ],
             });
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.bind_group_count = telemetry.bind_group_count.saturating_add(1);
         });
@@ -4384,7 +4488,7 @@ impl WgpuRenderer {
                 depth_stencil_attachment: None,
                 ..Default::default()
             });
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             self.update_frame_telemetry(|telemetry| {
                 telemetry.render_pass_count = telemetry.render_pass_count.saturating_add(1);
             });
@@ -4448,7 +4552,7 @@ impl WgpuRenderer {
             offset,
             data,
         );
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.instance_bytes_written = telemetry
                 .instance_bytes_written
@@ -4491,7 +4595,7 @@ impl WgpuRenderer {
             offset,
             data,
         );
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.auxiliary_bytes_written = telemetry
                 .auxiliary_bytes_written

@@ -7,20 +7,24 @@
 //!
 //! `gpux-testkit lane d` runs it and parses the result lines. OS-level input (`SendInput` on
 //! Windows, XTest through `xdotool` on X11) is required unless `GPUX_OS_INPUT=optional`, which
-//! reports the OS-input check skipped when the session cannot deliver synthetic input.
+//! reports the OS-input check skipped when the session cannot deliver synthetic input. When
+//! `GPUX_EXPECT_BACKEND` names a backend (lane G names `hardware`), the `desktop-backend` result
+//! checks that the windows render on it.
 
 mod checks;
 mod os;
 
 use gpux::{
-    AppContext as _, Bounds, Context, IntoElement, ParentElement as _, Render, Styled as _,
-    TitlebarOptions, Window, WindowBounds, WindowOptions, div, point, px, rgb, size,
+    AppContext as _, AsyncApp, Bounds, Context, IntoElement, ParentElement as _, Render,
+    Styled as _, TitlebarOptions, Window, WindowBounds, WindowHandle, WindowOptions, div, point,
+    px, rgb, size,
 };
 use gpux_conformance::{
     CATALOG, Lane,
     app_host::{self, AppHost},
+    backend::{BackendId, EXPECT_BACKEND_ENV_VAR},
     platform_checks::PLATFORM_CHECKS,
-    report::Outcome,
+    report::{Outcome, ResultLine},
 };
 use std::{cell::Cell, rc::Rc};
 
@@ -80,6 +84,40 @@ fn parse_args() -> Result<Args, String> {
     Ok(args)
 }
 
+/// Whether the windows render on the backend `expected` names: lane G's guard against a GPU
+/// that fails and leaves the windows on a software rasterizer.
+fn backend_check(anchor: WindowHandle<Anchor>, expected: &str, cx: &mut AsyncApp) -> ResultLine {
+    const ID: &str = "desktop-backend";
+    match anchor.update(cx, |_, window, _| window.gpu_specs()) {
+        Ok(Some(specs)) => {
+            let backend = BackendId::from_specs(&specs);
+            if backend.is(expected) {
+                ResultLine::new(
+                    Outcome::Pass,
+                    ID,
+                    format!("windows render on {}", backend.label()),
+                )
+            } else {
+                ResultLine::new(
+                    Outcome::Fail,
+                    ID,
+                    format!(
+                        "windows render on {}, but {EXPECT_BACKEND_ENV_VAR} expects {expected}",
+                        backend.label()
+                    ),
+                )
+            }
+        }
+        Ok(None) => ResultLine::new(
+            Outcome::Skip,
+            ID,
+            "the platform names no adapter for its windows (macOS renders through Metal on the \
+             system GPU)",
+        ),
+        Err(error) => ResultLine::new(Outcome::Fail, ID, format!("{error:#}")),
+    }
+}
+
 /// The selection `gpux-testkit` planned, through the same function.
 fn selected(id: &str, args: &Args) -> bool {
     gpux_conformance::selects(id, args.scene.as_deref(), args.grep.as_deref())
@@ -110,12 +148,18 @@ fn main() {
                 return;
             }
         };
-        let report = |line: gpux_conformance::report::ResultLine| {
+        let report = |line: ResultLine| {
             if line.outcome == Outcome::Fail {
                 any_failed.set(true);
             }
             println!("{line}");
         };
+        if let Some(expected) = std::env::var(EXPECT_BACKEND_ENV_VAR)
+            .ok()
+            .filter(|value| !value.is_empty())
+        {
+            report(backend_check(anchor, &expected, &mut cx));
+        }
         for check in PLATFORM_CHECKS
             .iter()
             .filter(|check| selected(check.id, &args))

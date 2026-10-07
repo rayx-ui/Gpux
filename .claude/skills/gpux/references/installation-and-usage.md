@@ -2,7 +2,7 @@
 
 Use this reference for gpux dependency setup, examples, local validation, and deciding which platform prerequisite reference to load. It is the agent workflow; the human-facing guide is [docs/installation-and-usage.md](../../../../docs/installation-and-usage.md), so keep setup facts in both consistent.
 
-Run commands from the Gpux repository root. RayX validation steps run from `../RayX`.
+Run commands from the Gpux repository root. Runtime proof runs in gpux's own test lanes through `gpux-testkit` ([docs/testing.md](../../../../docs/testing.md)).
 
 ## Workflow
 
@@ -15,7 +15,7 @@ Run commands from the Gpux repository root. RayX validation steps run from `../R
    - macOS, Linux, or browser/WASM: `references/macos-linux-wasm-prerequisites.md`.
    - Multithreaded gpux/RayX browser apps: `references/multithreaded-wasm-apps.md`.
 4. If the user explicitly asks you to install prerequisites, run check commands first, then run the smallest install command or helper script needed.
-5. Validate with the relevant Cargo checks after setup, from the Gpux repository root.
+5. Validate with the relevant Cargo checks after setup, from the Gpux repository root, and with the lanes that exercise the change (see Examples and Validation).
 
 ## Cargo Dependency Setup
 
@@ -107,19 +107,22 @@ cargo check -p gpux-web --target wasm32-unknown-unknown --no-default-features
 cargo ndk -t arm64-v8a check -p gpux-mobile
 ```
 
-Some package checks depend on host platform SDKs. The web check disables default features because the default multithreaded build needs nightly `-Z build-std`, which RayX's xtask provides. The Android check needs `cargo-ndk` and `ANDROID_NDK_HOME`. Run `cargo package --workspace` after manifest or dependency changes.
+Some package checks depend on host platform SDKs. The web check disables default features because the default multithreaded build needs nightly `-Z build-std`, which `gpux-testkit web build` provides. The Android check needs `cargo-ndk` and `ANDROID_NDK_HOME`. Run `cargo package --workspace` after manifest or dependency changes.
+
+Runtime proof runs in the lanes that exercise the change (`cargo run -p gpux-testkit -- lane <lane>... [--scene <id>] [--grep <pattern>]`, [docs/testing.md](../../../../docs/testing.md)): lane A for behaviour (plus the crate's focused `cargo test -p <package> <filter>`), lane B for the browser and WASM/WebGPU, lane C for pixels and the renderer, lane D for real desktop windows and OS input, lane E for Android, lane F for iOS (on a Mac or through the `lane-f` CI job), and lane G on a real GPU for renderer, platform, or performance changes before a release. `cargo check -p gpux-mobile --target aarch64-apple-ios` type-checks iOS code from any host with the target installed.
 
 ## Baseline Toolchain Prerequisites
 
-Rule: Check Rust, browser/WASM tools, and mobile platform tools before debugging gpux or RayX mobile validation failures.
+Rule: Check Rust, browser/WASM tools, and mobile platform tools before debugging gpux browser or mobile validation failures (lanes B and E).
 
 Required baseline:
 
 - Rust 1.95 or newer (the gpux workspace `rust-version`; `rust-toolchain.toml` pins 1.95.0, like RayX).
-- Nightly Rust plus `rust-src` for multithreaded WASM builds that use `wasm_thread`.
-- `wasm-bindgen-cli 0.2.126` for the current RayX browser build.
+- Nightly Rust plus `rust-src` for multithreaded WASM builds that use `wasm_thread` (`gpux-testkit web build`, lanes B and G).
+- `wasm-bindgen-cli` at the version `Cargo.lock` pins (`0.2.129`); `gpux-testkit web build` refuses any other.
+- Lane B: Node.js 22 or later with `pnpm`, and in `tools-node`: `pnpm install` and `pnpm exec playwright install chromium`.
 - iOS/macOS validation: macOS with Xcode 15 or newer and XcodeGen.
-- Android validation: Android SDK, Android NDK r25 or newer, Java/JDK discovery, and `cargo-ndk`.
+- Android validation: Android SDK, Android NDK r25 or newer, Java/JDK discovery, and `cargo-ndk`. Lane E pins its SDK packages and needs a JDK 17 or later and the Android Rust targets ([docs/testing.md](../../../../docs/testing.md#lane-e-android)).
 
 GOOD:
 
@@ -127,7 +130,7 @@ GOOD:
 rustc --version
 rustup toolchain list
 rustup component add rust-src --toolchain nightly
-cargo install wasm-bindgen-cli --version 0.2.126 --locked
+cargo install wasm-bindgen-cli --version 0.2.129 --locked
 xcodebuild -version
 xcodegen --version || brew install xcodegen
 cargo install cargo-ndk
@@ -141,7 +144,7 @@ Treat a mobile build failure as a gpux renderer regression before confirming Rus
 ```
 
 Check:
-For gpux-only native desktop work, do not require browser or mobile tools. For RayX browser validation that consumes gpux, verify nightly, `rust-src`, `wasm-bindgen 0.2.126`, and browser WebGPU/cross-origin isolation setup first, then run the target Cargo command here or the RayX validation command from `../RayX`.
+For gpux-only native desktop work, do not require browser or mobile tools. For browser validation (lane B), verify nightly, `rust-src`, the pinned `wasm-bindgen`, `tools-node`'s Playwright, and browser WebGPU/cross-origin isolation setup first, then run `cargo run -p gpux-testkit -- lane b --grep <pattern>`; each lane names a missing prerequisite with the command that installs it.
 
 ## GPUI Concepts
 
@@ -155,7 +158,7 @@ For gpux-only native desktop work, do not require browser or mobile tools. For R
 ## Troubleshooting Routing
 
 - `fxc.exe` missing, HLSL shader compilation failure, Visual Studio Build Tools, DirectX Shader Compiler, VC++ runtime DLLs, or Windows ARM64 Clang issues: read `windows-prerequisites.md`.
-- .NET Android or mobile validation failures such as `XA5300`, missing Java SDK/JDK, missing `javac`, or empty `JAVA_HOME`: read the Microsoft OpenJDK 21 section in `windows-prerequisites.md`.
+- Lane E reporting a missing JDK (`java`, `keytool`), or (RayX consumers only) a .NET Android build failing with `XA5300`, missing `javac`, or empty `JAVA_HOME`: read the Microsoft OpenJDK 21 section in `windows-prerequisites.md`.
 - Missing threaded WASM output, `SharedArrayBuffer`, `Atomics.waitAsync`, COOP/COEP headers, or `wasm_thread_entry_point`: read `multithreaded-wasm-apps.md`.
 - Outdated Rust, missing XcodeGen, missing Android SDK/NDK, or missing `cargo-ndk`: use the baseline prerequisites above, then read the matching platform prerequisite reference.
 - `Failed to request GPU adapter`, `No available adapters`, `wasm-bindgen` missing, or browser/WebGPU problems: read the WASM/browser sections in the platform references.

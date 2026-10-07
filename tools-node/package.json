@@ -1,0 +1,18 @@
+{
+  "name": "gpux-web-e2e",
+  "private": true,
+  "description": "Lane B: Playwright specs that drive gpux's conformance scenes in a real browser.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "packageManager": "pnpm@10.28.2",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.59.1",
+    "@types/node": "^24.0.0"
+  }
+}

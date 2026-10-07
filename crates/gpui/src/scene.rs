@@ -50,21 +50,21 @@ pub struct Scene {
     pub subpixel_sprites: Vec<SubpixelSprite>,
     pub polychrome_sprites: Vec<PolychromeSprite>,
     pub surfaces: Vec<PaintSurface>,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     sprite_sort_disorder_counts: [u64; 3],
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     global_element_id_path_diagnostics: [u64; 8],
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     taffy_layout_diagnostics: [u64; 31],
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     taffy_node_request_diagnostics: [u64; 11],
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     line_layout_cache_diagnostics: [u64; 12],
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     text_measurement_miss_diagnostics: [u64; 4],
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     text_shape_diagnostics: [u64; 10],
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     style_phase_diagnostics: [u64; 14],
 }
 
@@ -97,7 +97,7 @@ impl Scene {
         self.subpixel_sprites.clear();
         self.polychrome_sprites.clear();
         self.surfaces.clear();
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         {
             self.sprite_sort_disorder_counts = [0; 3];
             self.global_element_id_path_diagnostics = [0; 8];
@@ -258,7 +258,7 @@ impl Scene {
             .sort_by_key(|screen_effect_region| screen_effect_region.order);
         self.paths.sort_by_key(|path| path.order);
         self.underlines.sort_by_key(|underline| underline.order);
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         {
             self.sprite_sort_disorder_counts = [
                 self.monochrome_sprites
@@ -293,82 +293,82 @@ impl Scene {
         self.surfaces.sort_by_key(|surface| surface.order);
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub fn sprite_sort_disorder_counts(&self) -> [u64; 3] {
         self.sprite_sort_disorder_counts
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub(crate) fn set_global_element_id_path_diagnostics(&mut self, diagnostics: [u64; 8]) {
         self.global_element_id_path_diagnostics = diagnostics;
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub fn global_element_id_path_diagnostics(&self) -> [u64; 8] {
         self.global_element_id_path_diagnostics
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub(crate) fn set_taffy_layout_diagnostics(&mut self, diagnostics: [u64; 31]) {
         self.taffy_layout_diagnostics = diagnostics;
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub fn taffy_layout_diagnostics(&self) -> [u64; 31] {
         self.taffy_layout_diagnostics
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub(crate) fn set_taffy_node_request_diagnostics(&mut self, diagnostics: [u64; 11]) {
         self.taffy_node_request_diagnostics = diagnostics;
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub fn taffy_node_request_diagnostics(&self) -> [u64; 11] {
         self.taffy_node_request_diagnostics
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub(crate) fn set_line_layout_cache_diagnostics(&mut self, diagnostics: [u64; 12]) {
         self.line_layout_cache_diagnostics = diagnostics;
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub fn line_layout_cache_diagnostics(&self) -> [u64; 12] {
         self.line_layout_cache_diagnostics
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub(crate) fn set_text_measurement_miss_diagnostics(&mut self, diagnostics: [u64; 4]) {
         self.text_measurement_miss_diagnostics = diagnostics;
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub fn text_measurement_miss_diagnostics(&self) -> [u64; 4] {
         self.text_measurement_miss_diagnostics
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub(crate) fn set_text_shape_diagnostics(&mut self, diagnostics: [u64; 10]) {
         self.text_shape_diagnostics = diagnostics;
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub fn text_shape_diagnostics(&self) -> [u64; 10] {
         self.text_shape_diagnostics
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub(crate) fn set_style_phase_diagnostics(&mut self, diagnostics: [u64; 14]) {
         self.style_phase_diagnostics = diagnostics;
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub fn style_phase_diagnostics(&self) -> [u64; 14] {
         self.style_phase_diagnostics
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub fn bounds_tree_diagnostics(&self) -> [u64; 6] {
         let mut total = [0; 6];
         for diagnostics in [
@@ -1603,7 +1603,7 @@ mod tests {
         effect.into().prepare()
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     #[test]
     fn sprite_sort_diagnostics_count_pre_sort_disorder() {
         let mut scene = Scene::default();

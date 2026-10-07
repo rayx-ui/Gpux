@@ -100,8 +100,9 @@ pub const IME: SceneSpec = SceneSpec {
     areas: &[Area::Ime, Area::EditableText],
     size: (280., 80.),
     scales: &[1., 2.],
-    // Real windows compose through the platform's input method, which a host cannot drive.
-    lanes: &[Lane::A, Lane::B, Lane::C, Lane::E, Lane::F],
+    // Desktop and mobile windows compose through the platform's input method, which a host
+    // cannot drive; the browser's can be driven over CDP.
+    lanes: &[Lane::A, Lane::B, Lane::C],
     golden: false,
     build: field,
     script: || {

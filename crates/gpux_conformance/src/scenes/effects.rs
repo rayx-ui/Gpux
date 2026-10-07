@@ -105,8 +105,8 @@ pub const ANIMATED_FRAME: SceneSpec = SceneSpec {
     areas: &[Area::AnimatedFrame],
     size: (240., 70.),
     scales: &[1., 2.],
-    // Exact animation progress needs the executor clock; lane D runs on the real clock.
-    lanes: &[Lane::A, Lane::B, Lane::C],
+    // Exact animation progress needs the executor clock; lanes B and D run on the real clock.
+    lanes: &[Lane::A, Lane::C],
     golden: false,
     build: |_, cx| cx.new(|_| Animated { wide: false }).into(),
     script: || {
@@ -172,8 +172,8 @@ pub const TRANSITION_FRAME: SceneSpec = SceneSpec {
     areas: &[Area::TransitionFrame],
     size: (180., 80.),
     scales: &[1., 2.],
-    // Exact animation progress needs the executor clock; lane D runs on the real clock.
-    lanes: &[Lane::A, Lane::B, Lane::C],
+    // Exact animation progress needs the executor clock; lanes B and D run on the real clock.
+    lanes: &[Lane::A, Lane::C],
     golden: false,
     build: |_, cx| cx.new(|_| Transition { page: 0 }).into(),
     script: || {

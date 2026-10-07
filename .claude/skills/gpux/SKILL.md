@@ -9,7 +9,7 @@ description: Maintain, install, and use gpux, the RayX-maintained GPUI fork in t
 
 Use this skill for gpux maintenance, installation, and usage tasks that depend on the repository's GPUI-only workspace, crate naming, packaging shape, upstream provenance rules, and platform prerequisites.
 
-Run from the Gpux repository root; Cargo commands use the root workspace `Cargo.toml` directly, without `--manifest-path`, unless a referenced workflow explicitly changes directories. RayX (`../RayX`, checked out beside Gpux) is the main consumer and the runtime-proof host: Test Suite runs, xtask builds, and RayX memory updates happen from `../RayX`.
+Run from the Gpux repository root; Cargo commands use the root workspace `Cargo.toml` directly, without `--manifest-path`, unless a referenced workflow explicitly changes directories. gpux proves itself through its own test lanes (`gpux-testkit`, [docs/testing.md](../../../docs/testing.md)). RayX (`../RayX`, checked out beside Gpux) is the main consumer: a change to an API RayX uses ships with the matching RayX change, and RayX-side work and RayX memory updates happen from `../RayX`.
 
 Packages publish to crates.io under `gpux-*` names but keep their GPUI Rust names through `[lib] name`, so source code still writes `gpui_platform::`, `collections::`, and so on. `cargo -p` selectors take package names (`-p gpux-platform`, `-p gpux-wgpu-renderer`, `-p gpux-collections`); the [README crate table](../../../README.md#crates) is the authoritative directory/package/Rust-name mapping.
 
@@ -24,10 +24,11 @@ RayX memory records only RayX's consumer view. For RayX-side work, read the narr
 
 ## Task Routing
 
+- For running tests, choosing lanes, lane prerequisites, goldens, or CI cadence, read [docs/testing.md](../../../docs/testing.md).
 - For installing prerequisites, configuring a machine, adding `gpux` to a Rust project, running examples, or validating a local setup, read [references/installation-and-usage.md](references/installation-and-usage.md). It includes Rust, `wasm-bindgen`, WebGPU browser flags, XcodeGen, Android SDK/NDK, and cargo-ndk routing.
 - For Windows setup, including Windows ARM64, `fxc.exe`, Visual Studio Build Tools, Clang, VC++ redistributables, WebGPU browser flags, or automatic installs, also read [references/windows-prerequisites.md](references/windows-prerequisites.md). Use [scripts/install-windows-prereqs.ps1](scripts/install-windows-prereqs.ps1) for check-first or automatic Windows setup.
 - For macOS, Linux, or WASM/browser setup, also read [references/macos-linux-wasm-prerequisites.md](references/macos-linux-wasm-prerequisites.md).
-- For creating, fixing, or validating browser gpux apps, especially RayX WASM apps, read [references/multithreaded-wasm-apps.md](references/multithreaded-wasm-apps.md). RayX browser apps must use multithreaded `gpui_web` by default.
+- For creating, fixing, or validating browser gpux apps, read [references/multithreaded-wasm-apps.md](references/multithreaded-wasm-apps.md). Browser apps, RayX's included, use multithreaded `gpui_web` by default.
 - For fixed/sticky positioning, keyed sticky stacks, `StickyStacking`, ordinary `div()` candidates, or low-level List/UniformList candidates, read [references/sticky-positioning.md](references/sticky-positioning.md).
 - For `ScrollActivity`, `ScrollBehavior`, programmatic Div/List/UniformList scrolling, retargeting, or direct-input cancellation, read [references/programmatic-scroll.md](references/programmatic-scroll.md).
 - For upstream updates from `zed-industries/zed`, read [references/update-from-zed-gpui-closure.md](references/update-from-zed-gpui-closure.md).
@@ -51,7 +52,17 @@ cargo ndk -t arm64-v8a check -p gpux-mobile    # with ANDROID_NDK_HOME set
 cargo package --workspace                      # manifest, dependency, or included-file changes
 ```
 
-The web check disables default features only because the default multithreaded build needs nightly `-Z build-std`, which RayX's xtask provides; RayX browser apps stay multithreaded. Runtime proof (headed WASM/WebGPU, native Windows DX12, mobile) runs in RayX's Test Suite from `../RayX`, for example `cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/<spec>`, plus the native and mobile xtask routes (`app apps/test_suite run windows`, `app apps/test_suite build android --debug`). RayX forbids `apps/lab` as a testing or diagnostics target.
+The web check disables default features only because the default multithreaded build needs nightly `-Z build-std`, which `gpux-testkit web build` provides; browser apps stay multithreaded. Runtime proof runs in gpux's lanes through `cargo run -p gpux-testkit -- lane <lane>... [--scene <id>] [--grep <pattern>]` ([docs/testing.md](../../../docs/testing.md)):
+
+- behaviour (layout, input, focus, text, scrolling, semantics): lane A;
+- the browser and WASM/WebGPU: lane B, narrowed with `--grep` to the touched area's Playwright specs in `tools-node/specs/`; `gpux-testkit web build --verify`, `web serve` and `web e2e` build, serve and test the threaded host by hand;
+- pixels and the renderer: lane C, plus lane B for WebGPU;
+- real windows, OS input, clipboard and scale changes (Windows DX12 included): lane D;
+- Android: lane E (`gpux-testkit android build` / `android run`);
+- iOS: lane F (`gpux-testkit ios build --simulator` / `ios run --simulator`, on a Mac or the `lane-f` CI job);
+- renderer, platform or performance changes before a release: lane G on a real GPU, which also runs the `#[gpux::bench]` suites.
+
+New coverage belongs in gpux: a conformance scene in `crates/gpux_conformance/src/scenes/`, a Playwright spec in `tools-node/specs/`, or a focused test beside the crate.
 
 ## Core Rules
 
@@ -99,11 +110,11 @@ momentum in `ScrollActivity`, or extra `ScrollWheelEvent` metadata).
 - Preserve gpux's per-window Taffy layout-node pool and exact ordered child topology across frames. Compare retained child IDs during reuse and call `set_children` only on change; track current-frame child membership in a capacity-retaining set so computed roots detach stale prior parents after topology shrinkage. Bound both the node pool and child-membership set by the window's maximum observed tree and drop them with the window.
 - For pooled Taffy nodes, skip `set_style` only when the freshly converted current style exactly equals the retained Taffy style; do not infer equality from pool position or element identity.
 - Taffy node-request diagnostics show a completely warm wide DataTable at both DPRs: 1,123/1,123 pooled nodes, unchanged converted styles, and unchanged ordered topologies; 229 context refills need zero extra dirty marks; all 1,041 active-child inserts are unique. Do not target new-node allocation, duplicate child filtering, or redundant dirty calls for that workload. Investigate a sound style/layout generation before bypassing conversion or equality, and do not repeat the regressive parallel topology shadow.
-- Keep request-to-prepaint style reuse private to gpux-owned Div, Img, Svg, and UniformList implementations. Their borrowed layout adapters retain the already-computed request `Style` in the window-owned draw-local slot, consume it during prepaint, and replace the same slot with the final style for paint. Preserve the public consuming-callback path for external custom `Interactivity` users, plus every focus/hover/active/group gate, sticky/listener recomputation, inspector behavior, drag-time paint path, and draw-boundary clear. The warmed wide DataTable reuses exactly 761 gpux-owned request styles (each Test Suite sidebar navigation item adds three) while all 13 eligible external consumers still recompute; do not broaden this into a public or cross-frame cache.
+- Keep request-to-prepaint style reuse private to gpux-owned Div, Img, Svg, and UniformList implementations. Their borrowed layout adapters retain the already-computed request `Style` in the window-owned draw-local slot, consume it during prepaint, and replace the same slot with the final style for paint. Preserve the public consuming-callback path for external custom `Interactivity` users, plus every focus/hover/active/group gate, sticky/listener recomputation, inspector behavior, drag-time paint path, and draw-boundary clear. The warmed wide DataTable reuses exactly 761 gpux-owned request styles (each navigation item in that workload's sidebar adds three) while all 13 eligible external consumers still recompute; do not broaden this into a public or cross-frame cache.
 - In renderer paint paths, prepare the original `Color` or `Background` directly when inherited element opacity is exactly `1.0`. Preserve the established authored-opacity path for every non-identity factor; do not rebuild an immutable color and its lazy caches for an identity transform.
 - In GPUI arenas, register a type-erased drop record only when `std::mem::needs_drop::<T>()` is true. Trivial allocations still live in arena chunks and participate in generation invalidation, but clear must not traverse no-op destructor thunks.
 - Keep equal-key sprite order stable. For the hot, densely disordered 128-byte monochrome sprite family, use stable cached-key sorting on `(DrawOrder, TileId)` so sorting operates on compact keys before permuting records. Do not apply the extra allocation/code path to cold or empty sprite families without separate measurements.
-- Keep `GlobalElementId` on direct `Arc<[ElementId]>` path ownership and compute its cached identity with the existing deterministic `collections::FxHasher`; full path equality remains the collision-safe identity contract. Keep reuse diagnostics hash-only and behind `rayx_diagnostics`, and do not add retained production interning state without a separately measured design that improves both throughput and tail latency.
+- Keep `GlobalElementId` on direct `Arc<[ElementId]>` path ownership and compute its cached identity with the existing deterministic `collections::FxHasher`; full path equality remains the collision-safe identity contract. Keep reuse diagnostics hash-only and behind the `diagnostics` feature, and do not add retained production interning state without a separately measured design that improves both throughput and tail latency.
 - Keep upstream Zed commit provenance in import commit bodies and local gpux patch provenance in replay/preservation commit bodies.
 - Audit platform/rendering sibling crates and shader files during imports; RayX patches are not limited to `crates/gpui`.
 - On macOS Metal shader fixes, preserve packed Rust buffer ABIs and convert cbindgen-exported array fields to Metal vector types in shader helpers at use sites.
@@ -114,7 +125,7 @@ momentum in `ScrollActivity`, or extra `ScrollWheelEvent` metadata).
 - Bridge browser paste from the trusted DOM `paste` event into the active GPUI
   input handler and cache the same plain-text payload for platform clipboard
   reads; do not depend on an async browser clipboard read or keydown alone.
-- Build and validate multithreaded browser behavior through Test Suite orchestration from `../RayX`, such as `cargo run -p xtask -- app apps/test_suite build wasm` or `cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu`; do not route RayX WASM startup through obsolete .NET/browser bridge flows or automate Lab.
+- Build and validate multithreaded browser behavior through lane B: `gpux-testkit web build --verify` builds and checks the threaded host, and `gpux-testkit lane b --grep <pattern>` runs the matching specs; do not route WASM startup through obsolete .NET/browser bridge flows.
 - For gpux `div().fixed()`, resolve insets against the current content-mask containing block and preserve that mask through hitboxes, paint, and children. Use top-layer APIs or `Deferred::unclipped()` for intentional viewport/global overlays that must escape parent clipping.
 - Do not import unrelated RayX solution/browser bridge tooling into gpux setup docs or install flows.
 

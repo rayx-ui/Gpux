@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/platform/desktop
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-05T23:00:00+02:00
+  updated: 2026-10-07T16:45:00+02:00
   topics:
     - windows
     - dx12
@@ -35,6 +35,8 @@ macOS keeps GPUI's Metal renderer. `quad_fragment` applies the same border edge 
 
 Linux (`gpui_linux`) renders Wayland and X11 through `gpui_wgpu`. Wayland implements `WindowKind::AnchoredPopup` with explicit parent lookup, xdg/layer-shell parent attachment, positioner anchor/gravity/constraint/offset mapping, optional input-serial grabs, configure/ack, reposition tokens, non-blocking popup children, `popup_done` closure, and protocol-order teardown. The Wayland `client.rs`/`window.rs` and X11 `window.rs` were re-imported from Zed `c24358d` on 2026-10-05 (restoring default-feature builds, X11 `request_attention` urgency, AccessKit focus updates, and window-relative `mouse_position`). Wayland omits Zed's app-initiated external drag source because gpux has no drag-to-platform handoff or `FileDropEvent::Ended`. Without Zed's calloop fork, `gpui_linux` bounds idle work with its own budgeted `ForegroundTasks` queue.
 
+Lane D proves the desktop platforms in real windows through `gpux-conformance`'s `desktop_host`: OS input through `SendInput` on Windows and XTest on X11, in-app input on Wayland and macOS (hosted macOS grants no accessibility permission), and scale changes through `WM_DPICHANGED` on Windows. macOS proof runs through lanes C (Metal, with committed `metal` goldens) and D; macOS windows need `gpui_platform`'s `font-kit` feature for the CoreText text system; without it they get `NoopTextSystem` and render no text. Wayland's lane D is local only: weston's headless backend has no seat.
+
 AccessKit: Windows owns an `accesskit_windows::Adapter` and answers `WM_GETOBJECT` without holding a re-entrant borrow while returning results or raising UI Automation events; macOS owns a `SubclassingAdapter` and updates native view focus; Wayland and X11 own `accesskit_unix::Adapter`s, X11 publishes scaled root bounds, and Unix adapters forward deactivation. Adapters forward activation trees and actions back through GPUI's accessibility channels.
 
 Cosmic Text recognizes normalized `Noto Color Emoji`, `Apple Color Emoji`, and `Segoe UI Emoji` family names as color emoji and leaves `Segoe UI Symbol` outside that set.
@@ -44,6 +46,7 @@ Cosmic Text recognizes normalized `Noto Color Emoji`, `Apple Color Emoji`, and `
 - [Windows window](../../../../../crates/gpui_windows/src/window.rs)
 - [Windows events](../../../../../crates/gpui_windows/src/events.rs)
 - [macOS platform crate](../../../../../crates/gpui_macos)
+- [Desktop conformance host](../../../../../crates/gpux_conformance/examples/desktop_host)
 - [Wayland client](../../../../../crates/gpui_linux/src/linux/wayland/client.rs)
 - [Wayland popup](../../../../../crates/gpui_linux/src/linux/wayland/popup.rs)
 - [X11 window](../../../../../crates/gpui_linux/src/linux/x11/window.rs)

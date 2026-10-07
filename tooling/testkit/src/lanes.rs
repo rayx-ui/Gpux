@@ -85,6 +85,8 @@ pub enum OutputKind {
     ResultLines,
     /// libtest's `--list` output: test names, not results.
     Listing,
+    /// Criterion's benchmark report: one result per benchmark.
+    Criterion,
 }
 
 /// One process a lane runs.
@@ -189,22 +191,27 @@ pub fn plan(lane: LaneId, selection: &Selection) -> Result<LanePlan, PlanError> 
         LaneId::A => plan_a(selection),
         LaneId::C => plan_c(selection),
         LaneId::D => plan_d(selection),
-        LaneId::B => Err(not_wired(lane, "the browser lane", "s5-browser-lane")),
-        LaneId::E => Err(not_wired(lane, "the Android lane", "s6-android-lane")),
-        LaneId::F => Err(not_wired(lane, "the iOS lane", "s8-apple-lanes")),
-        LaneId::G => Err(not_wired(
-            lane,
-            "the local real-GPU lane",
-            "s7-local-gpu-lane-and-docs",
+        LaneId::B => Err(PlanError(
+            "lane b runs Playwright specs, not cargo targets: `gpux-testkit lane b` runs them \
+             through `web e2e`"
+                .into(),
+        )),
+        LaneId::E => Err(PlanError(
+            "lane e runs on an Android device, not through cargo targets: `gpux-testkit lane e` \
+             runs it through `android run`"
+                .into(),
+        )),
+        LaneId::F => Err(PlanError(
+            "lane f runs on the iOS Simulator, not through cargo targets: `gpux-testkit lane f` \
+             runs it through `ios run --simulator`"
+                .into(),
+        )),
+        LaneId::G => Err(PlanError(
+            "lane g runs lanes b, c and d and the benchmarks on the local GPU, not one cargo \
+             plan: `gpux-testkit lane g` runs them"
+                .into(),
         )),
     }
-}
-
-fn not_wired(lane: LaneId, what: &str, sprint: &str) -> PlanError {
-    PlanError(format!(
-        "lane {lane} is not available yet: {what} arrives with sprint `{sprint}` of the \
-         gpux-cross-platform-test-lanes epic; run lanes a, c or d meanwhile"
-    ))
 }
 
 /// The catalog scenes of `lane` that the selection keeps.

@@ -23,6 +23,10 @@ pub const UPDATE_ENV_VAR: &str = "GPUX_UPDATE_SNAPSHOTS";
 /// The environment variable that overrides where failure artifacts go.
 pub const ARTIFACTS_ENV_VAR: &str = "GPUX_ARTIFACTS_DIR";
 
+/// The environment variable that skips golden comparisons, leaving the relative probes (lane G,
+/// whose hardware renders differ from every committed golden).
+pub const PROBES_ONLY_ENV_VAR: &str = "GPUX_PROBES_ONLY";
+
 /// Backend ids that may have committed goldens.
 pub const GOLDEN_BACKENDS: &[&str] = &[
     "lavapipe",
@@ -40,6 +44,11 @@ pub const GOLDEN_BUDGET_BYTES: u64 = 2 * 1024 * 1024;
 
 /// Whether `value` (of [`UPDATE_ENV_VAR`]) asks for updates: `1`, `true` or `yes`.
 pub fn update_requested(value: Option<&str>) -> bool {
+    switched_on(value)
+}
+
+/// Whether a switch variable's `value` turns it on: `1`, `true` or `yes`.
+pub fn switched_on(value: Option<&str>) -> bool {
     matches!(
         value
             .map(|value| value.trim().to_ascii_lowercase())

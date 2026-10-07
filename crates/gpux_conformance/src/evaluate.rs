@@ -121,6 +121,33 @@ pub fn physical_rect(scale: f32, (x, y, width, height): LogicalRect) -> PixelRec
     )
 }
 
+/// How far 16-bit (RGB565) color moves a channel: rounding to 5 bits lands red and blue up to
+/// 4 levels away (green, with 6 bits, up to 2).
+pub const RGB565_ROUNDING: u8 = 4;
+
+/// Whether every pixel of `region` in `frame` is a 16-bit RGB565 color widened to 8 bits per
+/// channel, as on screens that render at 16-bit depth (the GL surfaces of Android emulators).
+/// Screens widen by repeating the high bits or by rounding to the nearest level; both count.
+/// Pixels outside the frame are ignored.
+pub fn shows_rgb565(frame: &RgbaImage, region: PixelRect) -> bool {
+    fn widened(value: u8, bits: u32) -> bool {
+        let max = (1 << bits) - 1;
+        let value = u32::from(value);
+        let narrow = (value * max + 127) / 255;
+        let repeated = (narrow << (8 - bits)) | (narrow >> (2 * bits - 8));
+        let rounded = (narrow * 255 + max / 2) / max;
+        value == repeated || value == rounded
+    }
+    let right = (region.x + region.width).min(frame.width());
+    let bottom = (region.y + region.height).min(frame.height());
+    (region.y..bottom).all(|y| {
+        (region.x..right).all(|x| {
+            let pixel = frame.get_pixel(x, y);
+            widened(pixel[0], 5) && widened(pixel[1], 6) && widened(pixel[2], 5)
+        })
+    })
+}
+
 /// Checks a pixel step against `frame`, rendered at `scale`. Captures go into `captures`.
 /// Golden steps are host-specific and not handled here.
 pub fn pixel_step(
@@ -129,15 +156,28 @@ pub fn pixel_step(
     scale: f32,
     captures: &mut HashMap<&'static str, RgbaImage>,
 ) -> anyhow::Result<()> {
+    pixel_step_within(step, frame, scale, captures, 0)
+}
+
+/// [`pixel_step`] with color comparisons allowing at least `color_tolerance` per channel: the
+/// rounding of a frame shown at a lower color depth ([`RGB565_ROUNDING`]).
+pub fn pixel_step_within(
+    step: &Step,
+    frame: &RgbaImage,
+    scale: f32,
+    captures: &mut HashMap<&'static str, RgbaImage>,
+    color_tolerance: u8,
+) -> anyhow::Result<()> {
     match step {
         Step::Probe(x, y, color, tolerance) => {
             let (x, y) = physical(scale, *x, *y);
-            probe::color_at(frame, x, y, *color, *tolerance)?;
+            probe::color_at(frame, x, y, *color, (*tolerance).max(color_tolerance))?;
         }
         Step::ProbeUniform(rect, color, tolerance) => {
             let region = physical_rect(scale, *rect);
-            let actual = probe::region_uniform(frame, region, *tolerance)?;
-            if !probe::within(actual, *color, *tolerance) {
+            let tolerance = (*tolerance).max(color_tolerance);
+            let actual = probe::region_uniform(frame, region, tolerance)?;
+            if !probe::within(actual, *color, tolerance) {
                 bail!("region {region:?} is uniformly {actual:?}, expected {color:?}");
             }
         }

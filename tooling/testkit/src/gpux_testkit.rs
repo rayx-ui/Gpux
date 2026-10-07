@@ -1,20 +1,27 @@
 //! `gpux-testkit`, the single entry point for gpux's test lanes.
 //!
-//! `gpux-testkit lane <lane>... [--list] [--scene <id>] [--grep <pattern>]` selects tests by
-//! lane, runs them through the lane's host (cargo test targets for lanes A and C, the desktop
-//! conformance host for lane D), parses their results, and ends with one summary line:
+//! `gpux-testkit lane <lane>... [--list] [--scene <id>] [--grep <pattern>] [--headed]` selects
+//! tests by lane, runs them through the lane's host (cargo test targets for lanes A and C, the
+//! desktop conformance host for lane D, Playwright for lane B, an Android device for lane E, and
+//! all of these on the local GPU for lane G), parses their results, and ends with one summary line:
 //! `gpux-testkit: <passed> passed, <failed> failed, <skipped> skipped`. It exits nonzero on any
 //! failure and when nothing was selected. Raw output goes to `artifacts-temp/testkit/<lane>/`.
 
+pub mod android;
 pub mod cli;
+pub mod ios;
 pub mod lanes;
+pub mod local_gpu;
 pub mod prereq;
 pub mod programs;
 pub mod results;
 pub mod run;
+pub mod serve;
 pub mod summary;
+pub mod wasm_verify;
+pub mod web;
 
-use cli::{Command, LaneArgs};
+use cli::{AndroidCommand, Command, IosCommand, LaneArgs, WebCommand};
 use lanes::{LaneId, LanePlan, OutputKind};
 use results::Tally;
 use run::Runner;
@@ -46,6 +53,11 @@ pub trait Environment {
     /// The gpux workspace root, where lanes run.
     fn workspace_root(&self) -> Option<PathBuf>;
 }
+
+/// Why a command needs the workspace and found none.
+const OUTSIDE_CHECKOUT: &str = "gpux-testkit runs inside a gpux checkout: run it from the \
+                                repository (the folder with `crates/gpux_conformance`) or a \
+                                subfolder";
 
 /// The real host.
 pub struct SystemEnvironment;
@@ -118,7 +130,136 @@ pub fn execute(
             0
         }
         Command::Lane(args) => lane(&args, environment, runner, out),
+        Command::Web(command) => web_command(&command, environment, runner, out),
+        Command::Android(command) => android_command(&command, environment, runner, out),
+        Command::Ios(command) => ios_command(&command, environment, runner, out),
     }
+}
+
+fn ios_command(
+    command: &IosCommand,
+    environment: &dyn Environment,
+    runner: &mut dyn Runner,
+    out: &mut dyn Write,
+) -> i32 {
+    let tally = match environment.workspace_root() {
+        None => Tally::failure(OUTSIDE_CHECKOUT),
+        Some(root) => match command {
+            IosCommand::Build => match ios::build(&root, environment, runner, out) {
+                Ok(_) => Tally {
+                    passed: 1,
+                    ..Tally::default()
+                },
+                Err(error) => Tally::failure(format!("ios build: {error}")),
+            },
+            IosCommand::Run { selection } => ios::run(&root, environment, runner, selection, out),
+        },
+    };
+    finish(&tally, 0, out)
+}
+
+fn android_command(
+    command: &AndroidCommand,
+    environment: &dyn Environment,
+    runner: &mut dyn Runner,
+    out: &mut dyn Write,
+) -> i32 {
+    let tally = match environment.workspace_root() {
+        None => Tally::failure(OUTSIDE_CHECKOUT),
+        Some(root) => match command {
+            AndroidCommand::Build { abis } => {
+                match android::build(&root, environment, runner, abis, out) {
+                    Ok(_) => Tally {
+                        passed: 1,
+                        ..Tally::default()
+                    },
+                    Err(error) => Tally::failure(format!("android build: {error}")),
+                }
+            }
+            AndroidCommand::Run { serial, selection } => android::run(
+                &root,
+                environment,
+                runner,
+                serial.as_deref(),
+                selection,
+                out,
+            ),
+        },
+    };
+    finish(&tally, 0, out)
+}
+
+fn web_command(
+    command: &WebCommand,
+    environment: &dyn Environment,
+    runner: &mut dyn Runner,
+    out: &mut dyn Write,
+) -> i32 {
+    let tally = match environment.workspace_root() {
+        None => Tally::failure(OUTSIDE_CHECKOUT),
+        Some(root) => match command {
+            WebCommand::Build { verify } => {
+                match web::build(&root, environment, runner, *verify, out) {
+                    Ok(_) => Tally {
+                        passed: 1,
+                        ..Tally::default()
+                    },
+                    Err(error) => Tally::failure(format!("web build: {error}")),
+                }
+            }
+            WebCommand::Serve { port } => serve_build(&root, *port, out),
+            WebCommand::E2e(args) => web::e2e(
+                &root,
+                environment,
+                runner,
+                &args.profile,
+                args.grep.as_deref(),
+                args.headed,
+                out,
+            ),
+        },
+    };
+    finish(&tally, 0, out)
+}
+
+/// Serves the existing build until the process is stopped.
+fn serve_build(root: &Path, port: u16, out: &mut dyn Write) -> Tally {
+    let dist = web::WebPaths::new(root).dist;
+    if !dist.join("index.html").is_file() {
+        return Tally::failure(format!(
+            "web serve: {} holds no build; run `gpux-testkit web build` first",
+            dist.display()
+        ));
+    }
+    match serve::start(dist.clone(), port) {
+        Ok((address, server)) => {
+            writeln!(out, "web: serving {} at http://{address}/", dist.display()).ok();
+            writeln!(
+                out,
+                "web: open http://{address}/?scene=<id>; press Ctrl+C to stop"
+            )
+            .ok();
+            out.flush().ok();
+            server.join().ok();
+            Tally::failure("web serve: the server stopped")
+        }
+        Err(error) => Tally::failure(format!(
+            "web serve: could not listen on port {port}: {error}"
+        )),
+    }
+}
+
+/// Prints the failures and the summary line, and returns the exit code.
+fn finish(tally: &Tally, listed: usize, out: &mut dyn Write) -> i32 {
+    let summary = Summary::of(tally);
+    if !tally.failures.is_empty() {
+        writeln!(out, "failures:").ok();
+        for failure in &tally.failures {
+            writeln!(out, "  {failure}").ok();
+        }
+    }
+    writeln!(out, "{summary}").ok();
+    summary.exit_code(listed)
 }
 
 fn lane(
@@ -131,6 +272,93 @@ fn lane(
     let mut listed = 0;
     let root = environment.workspace_root();
     for &lane in &args.lanes {
+        if lane == LaneId::G {
+            // The local-GPU lane runs lanes B, C and D and the benchmarks on the hardware GPU.
+            let Some(root) = root.as_deref() else {
+                writeln!(out, "lane g: {OUTSIDE_CHECKOUT}").ok();
+                tally.add(Tally::failure(format!("lane g: {OUTSIDE_CHECKOUT}")));
+                continue;
+            };
+            if args.list {
+                let (count, failures) = local_gpu::list(root, args, environment, runner, out);
+                listed += count;
+                tally.add(failures);
+            } else {
+                tally.add(local_gpu::run(root, args, environment, runner, out));
+            }
+            continue;
+        }
+        if lane == LaneId::F {
+            // The iOS lane runs on a Simulator through simctl instead of cargo targets.
+            let Some(root) = root.as_deref() else {
+                writeln!(out, "lane f: {OUTSIDE_CHECKOUT}").ok();
+                tally.add(Tally::failure(format!("lane f: {OUTSIDE_CHECKOUT}")));
+                continue;
+            };
+            if args.list {
+                for id in ios::expected_results(&args.selection) {
+                    writeln!(out, "  {id}").ok();
+                    listed += 1;
+                }
+            } else {
+                tally.add(ios::run(root, environment, runner, &args.selection, out));
+            }
+            continue;
+        }
+        if lane == LaneId::E {
+            // The Android lane runs on a device through adb instead of cargo targets.
+            let Some(root) = root.as_deref() else {
+                writeln!(out, "lane e: {OUTSIDE_CHECKOUT}").ok();
+                tally.add(Tally::failure(format!("lane e: {OUTSIDE_CHECKOUT}")));
+                continue;
+            };
+            if args.list {
+                for id in android::expected_results(&args.selection) {
+                    writeln!(out, "  {id}").ok();
+                    listed += 1;
+                }
+            } else {
+                let serial = environment
+                    .var("ANDROID_SERIAL")
+                    .filter(|serial| !serial.is_empty());
+                tally.add(android::run(
+                    root,
+                    environment,
+                    runner,
+                    serial.as_deref(),
+                    &args.selection,
+                    out,
+                ));
+            }
+            continue;
+        }
+        if lane == LaneId::B {
+            // The browser lane runs Playwright specs instead of cargo targets.
+            let Some(root) = root.as_deref() else {
+                writeln!(out, "lane b: {OUTSIDE_CHECKOUT}").ok();
+                tally.add(Tally::failure(format!("lane b: {OUTSIDE_CHECKOUT}")));
+                continue;
+            };
+            let profile = web::lane_profile(environment);
+            let grep = web::lane_grep(&args.selection);
+            if args.list {
+                match web::list(root, environment, runner, &profile, Some(&grep), out) {
+                    Ok(count) => listed += count,
+                    Err(failure) => tally.add(failure),
+                }
+            } else {
+                tally.add(web::e2e(
+                    root,
+                    environment,
+                    runner,
+                    &profile,
+                    Some(&grep),
+                    args.headed,
+                    out,
+                ));
+            }
+            continue;
+        }
         let plan = match lanes::plan(lane, &args.selection) {
             Ok(plan) => plan,
             Err(error) => {
@@ -144,10 +372,8 @@ fn lane(
             continue;
         }
         let Some(root) = root.as_deref() else {
-            let message = "gpux-testkit runs inside a gpux checkout: run it from the repository \
-                           (the folder with `crates/gpux_conformance`) or a subfolder";
-            writeln!(out, "lane {lane}: {message}").ok();
-            tally.add(Tally::failure(format!("lane {lane}: {message}")));
+            writeln!(out, "lane {lane}: {OUTSIDE_CHECKOUT}").ok();
+            tally.add(Tally::failure(format!("lane {lane}: {OUTSIDE_CHECKOUT}")));
             continue;
         };
         let problems = prereq::check(lane, environment);
@@ -167,15 +393,7 @@ fn lane(
         }
         tally.add(run_plan(&plan, root, environment, runner, out));
     }
-    let summary = Summary::of(&tally);
-    if !tally.failures.is_empty() {
-        writeln!(out, "failures:").ok();
-        for failure in &tally.failures {
-            writeln!(out, "  {failure}").ok();
-        }
-    }
-    writeln!(out, "{summary}").ok();
-    summary.exit_code(listed)
+    finish(&tally, listed, out)
 }
 
 /// Prints a lane's selection and returns how many tests it selects.
@@ -273,6 +491,17 @@ fn run_plan(
         let mut counted = match invocation.output {
             OutputKind::Libtest | OutputKind::Listing => results::tally_libtest(&result.output),
             OutputKind::ResultLines => results::tally_result_lines(&result.output),
+            OutputKind::Criterion => {
+                let mut benches = local_gpu::tally_benches(&result.output);
+                if result.success && benches.passed == 0 {
+                    benches.add(Tally::failure(format!(
+                        "lane {lane}: `{}` reported no benchmark results; see {}",
+                        invocation.command_line(),
+                        log.display()
+                    )));
+                }
+                benches
+            }
         };
         let reported_failure = counted.failed > 0;
         let mut missing = 0;

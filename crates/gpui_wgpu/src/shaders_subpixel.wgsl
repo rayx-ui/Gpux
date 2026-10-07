@@ -50,17 +50,14 @@ fn fs_subpixel_sprite(input: SubpixelSpriteOutput) -> SubpixelSpriteFragmentOutp
     let straight_color = input.color.rgb / max(input.color.a, 0.000001);
     let alpha_corrected = apply_contrast_and_gamma_correction3(sample, straight_color, gamma_params.subpixel_enhanced_contrast, gamma_params.gamma_ratios);
 
-    // Alpha clip after using the derivatives.
-    if (any(input.clip_distances < vec4<f32>(0.0))) {
-        return SubpixelSpriteFragmentOutput(vec4<f32>(0.0), vec4<f32>(0.0));
-    }
     let sprite = b_subpixel_sprites[input.sprite_id];
-    if (content_mask_sdf(transform_position(input.local_position, sprite.transformation), sprite.content_mask) > 0.0) {
-        return SubpixelSpriteFragmentOutput(vec4<f32>(0.0), vec4<f32>(0.0));
-    }
+    let visible = visible_if(
+        !any(input.clip_distances < vec4<f32>(0.0))
+            && content_mask_sdf(transform_position(input.local_position, sprite.transformation), sprite.content_mask) <= 0.0
+    );
 
     var out = SubpixelSpriteFragmentOutput();
-    out.foreground = vec4<f32>(straight_color, 1.0);
-    out.alpha = vec4<f32>(input.color.a * alpha_corrected, 1.0);
+    out.foreground = vec4<f32>(straight_color, visible);
+    out.alpha = vec4<f32>(input.color.a * alpha_corrected * visible, visible);
     return out;
 }

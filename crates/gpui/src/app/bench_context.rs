@@ -67,6 +67,24 @@ pub fn bench_platform(
     ) as Rc<dyn Platform>
 }
 
+/// The stack benchmarks run with. Linux and macOS give their main thread 8 MiB, Windows only
+/// 1 MiB, and GPUI recurses once per element through layout and paint, so [`crate::bench_main!`]
+/// runs every benchmark on a thread of this size: deep trees fit the same stack everywhere.
+pub const BENCH_STACK_BYTES: usize = 8 * 1024 * 1024;
+
+/// Runs `benchmarks` on a thread with [`BENCH_STACK_BYTES`] of stack and waits for them,
+/// re-raising a panic. [`crate::bench_main!`] calls it.
+pub fn run_with_bench_stack(benchmarks: impl FnOnce() + Send + 'static) {
+    let thread = std::thread::Builder::new()
+        .name("gpux-bench".into())
+        .stack_size(BENCH_STACK_BYTES)
+        .spawn(benchmarks)
+        .expect("spawning the benchmark thread");
+    if let Err(panic) = thread.join() {
+        std::panic::resume_unwind(panic);
+    }
+}
+
 /// Default target frame rate when a benchmark doesn't specify `fps = N`.
 const DEFAULT_FPS: u64 = 120;
 

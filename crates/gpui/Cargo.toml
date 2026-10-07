@@ -48,7 +48,10 @@ screen-capture = [
 windows-manifest = ["dep:embed-resource"]
 profiler = ["dep:hdrhistogram"]
 stacker = ["dep:stacksafe"]
-rayx_diagnostics = []
+# Diagnostics-only collectors and retained diagnostic state; absent from production builds.
+diagnostics = []
+# The former name of `diagnostics`, kept as an alias until consumers move.
+rayx_diagnostics = ["diagnostics"]
 
 [lib]
 path = "src/gpui.rs"

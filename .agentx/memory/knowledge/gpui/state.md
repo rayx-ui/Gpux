@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/gpui
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-07T18:00:00+02:00
+  updated: 2026-10-07T16:45:00+02:00
   topics:
     - gpui
     - framework-boundary
@@ -25,7 +25,7 @@ gpux is Zed's GPUI closure plus RayX-local framework patches. The core crate pub
 
 RayX is the main consumer. Application services, theming, components, virtualization, and DevKit live in RayX crates; gpux holds only framework-level behavior that RayX cannot build from public GPUI APIs. Framework contracts stay policy-neutral: gpux has no dependency on RayX application configuration or `PlatformInfoService`, and RayX resolves policy (motion, scrolling, theming) before calling GPUI.
 
-A frame runs request-layout, prepaint, and paint under `Window`; the [frame-pipeline](frame-pipeline/state.md) and [layout-style](layout-style/state.md) subdomains own that lifecycle. Diagnostics-only telemetry is compiled behind the `rayx_diagnostics` feature (forwarded by `gpui_wgpu` and `gpui_web`) and is absent from production builds.
+A frame runs request-layout, prepaint, and paint under `Window`; the [frame-pipeline](frame-pipeline/state.md) and [layout-style](layout-style/state.md) subdomains own that lifecycle. Diagnostics-only telemetry is compiled behind the `diagnostics` feature (forwarded by `gpui_wgpu` and `gpui_web`; `rayx_diagnostics` remains an alias that enables it) and is absent from production builds.
 
 Motion and timing state machines (gestures, programmatic scroll, `with_animation`, frame-family animations and snapshots, image loading timers, the window frame throttle) read time only from `BackgroundExecutor::now()`, which is real time in production and the `TestClock` under `TestDispatcher`. With `test-support`, tests shape real text with `#[gpux::test(text = "bundled")]` (only the `gpux_fonts` families), step frames with `simulate_frame`/`advance_frame` (inactive test windows throttle frames to about 30 per second), simulate IME, key-up, click counts and held-button drags, open windows with `TestWindowOptions`, read recorded platform and window requests instead of panics, take the AccessKit tree updates a test window sent (`take_accessibility_updates`), and find elements with `gpux::semantic_query` queries and `VisualTestContext::locator`. gpux's own conformance scenes live in [`gpux-conformance`](../../../../crates/gpux_conformance) (lanes under [validation](../repository/validation/state.md)).
 

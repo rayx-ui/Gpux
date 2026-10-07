@@ -10,7 +10,7 @@ use std::{
 /// Higher values = shorter tree = fewer cache misses, but more work per node.
 const MAX_CHILDREN: usize = 12;
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub(crate) struct BoundsTreeDiagnostics {
     pub insertions: u64,
@@ -43,7 +43,7 @@ where
     insert_path: Vec<usize>,
     /// Reusable stack for search operations.
     search_stack: Vec<NonNull<Node<U>>>,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     diagnostics: BoundsTreeDiagnostics,
 }
 
@@ -124,7 +124,7 @@ where
         self.max_leaf = None;
         self.insert_path.clear();
         self.search_stack.clear();
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         {
             self.diagnostics = BoundsTreeDiagnostics::default();
         }
@@ -135,7 +135,7 @@ where
     /// The ordering is one greater than the maximum ordering of any
     /// existing bounds that intersect with the new bounds.
     pub fn insert(&mut self, new_bounds: Bounds<U>) -> u32 {
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         {
             self.diagnostics.insertions += 1;
         }
@@ -166,7 +166,7 @@ where
         if let Some(max_idx) = self.max_leaf {
             let max_node = &self.nodes[max_idx];
             if query.intersects(&max_node.bounds) {
-                #[cfg(feature = "rayx_diagnostics")]
+                #[cfg(feature = "diagnostics")]
                 {
                     self.diagnostics.max_leaf_hits += 1;
                 }
@@ -175,7 +175,7 @@ where
         }
 
         // Slow path: search the tree
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         {
             self.diagnostics.slow_searches += 1;
         }
@@ -189,7 +189,7 @@ where
         let mut max_found = 0u32;
 
         while let Some(node) = self.search_stack.pop() {
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             {
                 self.diagnostics.search_node_visits += 1;
             }
@@ -277,7 +277,7 @@ where
                 unreachable!("Should only traverse internal nodes");
             };
 
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             {
                 self.diagnostics.insertion_child_evaluations += children.len() as u64;
             }
@@ -392,7 +392,7 @@ where
         new_leaf_idx
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub(crate) fn diagnostics(&self) -> BoundsTreeDiagnostics {
         BoundsTreeDiagnostics {
             retained_nodes: self.nodes.len() as u64,
@@ -412,7 +412,7 @@ where
             max_leaf: None,
             insert_path: Vec::new(),
             search_stack: Vec::new(),
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             diagnostics: BoundsTreeDiagnostics::default(),
         }
     }
@@ -481,7 +481,7 @@ mod tests {
         assert_eq!(tree.insert(bounds6), 2); // bounds6 overlaps with bounds4, so it should have a different order
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     #[test]
     fn diagnostics_track_fast_and_slow_insert_paths() {
         let mut tree = BoundsTree::<f32>::default();

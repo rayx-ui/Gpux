@@ -1,0 +1,62 @@
+# Lane F's iOS app: a minimal UIKit shell around the `ios_host` example of gpux-conformance.
+#
+# `gpux-testkit ios build --simulator` builds the static library, generates the Xcode project
+# from this spec with XcodeGen into target/gpux-ios, and builds it with xcodebuild, passing the
+# library's path as GPUX_IOS_HOST_LIB. Simulator builds are not signed (CODE_SIGNING_ALLOWED=NO);
+# device builds take the developer's team as DEVELOPMENT_TEAM (see docs/testing.md).
+name: GpuxConformance
+options:
+  bundleIdPrefix: dev.gpux
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+
+targets:
+  GpuxConformance:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.gpux.conformance
+        PRODUCT_NAME: GpuxConformance
+        INFOPLIST_FILE: Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        TARGETED_DEVICE_FAMILY: "1"
+        IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+        CODE_SIGN_STYLE: Automatic
+        CLANG_ENABLE_MODULES: YES
+        CLANG_ENABLE_OBJC_ARC: YES
+        # The Rust library is linked statically; Xcode's debug dylib launcher cannot load it.
+        ENABLE_DEBUG_DYLIB: NO
+        DEAD_CODE_STRIPPING: NO
+        ARCHS: arm64
+        ONLY_ACTIVE_ARCH: YES
+        HEADER_SEARCH_PATHS:
+          - "$(PROJECT_DIR)/Sources"
+        # gpui_mobile's platform services reference these frameworks.
+        OTHER_LDFLAGS:
+          - "-force_load"
+          - "$(GPUX_IOS_HOST_LIB)"
+          - "-lc++"
+          - "-framework UIKit"
+          - "-framework Metal"
+          - "-framework MetalKit"
+          - "-framework QuartzCore"
+          - "-framework CoreGraphics"
+          - "-framework CoreText"
+          - "-framework CoreFoundation"
+          - "-framework Foundation"
+          - "-framework Security"
+          - "-framework SystemConfiguration"
+          - "-framework AudioToolbox"
+          - "-framework WebKit"
+          - "-framework CoreMedia"
+          - "-framework AVFoundation"
+          - "-framework LocalAuthentication"
+          - "-framework Contacts"
+          - "-framework EventKit"
+          - "-framework StoreKit"
+          - "-framework CoreMotion"
+          - "-ObjC"

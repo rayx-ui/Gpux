@@ -14,6 +14,17 @@ extern "C" {
         destination: &JsValue,
         copy_size: &JsValue,
     ) -> Result<(), JsValue>;
+
+    /// The explainer's `copyElementImageToTexture(element, width, height, destination)`, which
+    /// shipping Chromium builds accept behind `CanvasDrawElement`.
+    #[wasm_bindgen(catch, method, structural, js_name = copyElementImageToTexture)]
+    fn copy_element_image_to_texture_sized(
+        this: &ElementCopyQueue,
+        element: &JsValue,
+        width: u32,
+        height: u32,
+        destination: &JsValue,
+    ) -> Result<(), JsValue>;
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -32,9 +43,9 @@ impl HtmlIslandUploadPath {
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct HtmlIslandUploadResult {
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub path: HtmlIslandUploadPath,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub texture_reallocated: bool,
 }
 
@@ -44,7 +55,7 @@ pub fn upload_html_island_element_to_texture(
     texture: &wgpu::Texture,
     size: Size<DevicePixels>,
 ) -> anyhow::Result<HtmlIslandUploadResult> {
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     if consume_injected_upload_failure(element) {
         anyhow::bail!("Injected HTML island direct upload failure");
     }
@@ -75,9 +86,9 @@ pub fn upload_html_island_element_to_texture(
     })?;
 
     Ok(HtmlIslandUploadResult {
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         path: HtmlIslandUploadPath::CopyElementImageToTexture,
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         texture_reallocated: false,
     })
 }
@@ -115,9 +126,23 @@ fn copy_element_image(
         ("height", &JsValue::from(height)),
         ("depthOrArrayLayers", &JsValue::from(1u32)),
     ])?;
-    queue
-        .unchecked_ref::<ElementCopyQueue>()
-        .copy_element_image_to_texture(&source, &destination, &size)
+    let queue = queue.unchecked_ref::<ElementCopyQueue>();
+    match queue.copy_element_image_to_texture(&source, &destination, &size) {
+        // The API is experimental and its shape differs between browser builds: fall back to
+        // the explainer's form when this build has no overload for the dictionary form.
+        Err(error) if js_error_message(&error).contains("Overload resolution failed") => {
+            let tagged = js_object(&[
+                ("texture", texture.as_ref()),
+                ("mipLevel", &zero),
+                ("origin", &origin),
+                ("aspect", &JsValue::from_str("all")),
+                ("colorSpace", &JsValue::from_str("srgb")),
+                ("premultipliedAlpha", &JsValue::FALSE),
+            ])?;
+            queue.copy_element_image_to_texture_sized(element.as_ref(), width, height, &tagged)
+        }
+        result => result,
+    }
 }
 
 fn js_object(fields: &[(&str, &JsValue)]) -> Result<JsValue, JsValue> {
@@ -138,16 +163,11 @@ fn js_error_message(value: &wasm_bindgen::JsValue) -> String {
     format!("{value:?}")
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 fn consume_injected_upload_failure(element: &web_sys::HtmlElement) -> bool {
-    let global = js_sys::global();
-    let Ok(value) = js_sys::Reflect::get(
-        &global,
-        &wasm_bindgen::JsValue::from_str("__rayxHtmlIslandInjectUploadFailureId"),
-    ) else {
-        return false;
-    };
-    let Some(requested_id) = value.as_string() else {
+    let Some(requested_id) = crate::web_globals::read("HtmlIslandInjectUploadFailureId")
+        .and_then(|value| value.as_string())
+    else {
         return false;
     };
     if requested_id.is_empty() {
@@ -166,11 +186,6 @@ fn consume_injected_upload_failure(element: &web_sys::HtmlElement) -> bool {
         return false;
     }
 
-    js_sys::Reflect::set(
-        &global,
-        &wasm_bindgen::JsValue::from_str("__rayxHtmlIslandInjectUploadFailureId"),
-        &wasm_bindgen::JsValue::NULL,
-    )
-    .ok();
+    crate::web_globals::clear("HtmlIslandInjectUploadFailureId");
     true
 }

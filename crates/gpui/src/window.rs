@@ -4897,10 +4897,9 @@ impl Window {
     }
 
     pub(crate) fn pop_devtools_node(&mut self, devtools_node_id: usize) {
-        debug_assert_eq!(
-            self.next_frame.devtools_node_stack.pop(),
-            Some(devtools_node_id)
-        );
+        // Pop outside the assertion: release builds do not evaluate `debug_assert` arguments.
+        let popped = self.next_frame.devtools_node_stack.pop();
+        debug_assert_eq!(popped, Some(devtools_node_id));
     }
 
     fn active_devtools_node_id(&self) -> Option<usize> {
@@ -5105,9 +5104,9 @@ impl Window {
         // Set up the per-App arena for element allocation during this draw.
         // This ensures that multiple test Apps have isolated arenas.
         let arena_scope = ElementArenaScope::enter(&cx.element_arena);
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         crate::reset_global_element_id_path_diagnostics();
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         crate::reset_style_phase_diagnostics();
         self.retained_styles.clear();
 
@@ -5150,11 +5149,11 @@ impl Window {
                 );
             }
         }
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.next_frame
             .scene
             .set_global_element_id_path_diagnostics(crate::global_element_id_path_diagnostics());
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         {
             let text_measurement_diagnostics = crate::take_text_measurement_path_diagnostics();
             self.layout_engine
@@ -7933,17 +7932,17 @@ impl Window {
     /// returns a `Size`.
     ///
     /// This method should only be called as part of the request_layout or prepaint phase of element drawing.
-    #[cfg_attr(feature = "rayx_diagnostics", track_caller)]
+    #[cfg_attr(feature = "diagnostics", track_caller)]
     pub fn request_measured_layout<F>(&mut self, style: Style, measure: F) -> LayoutId
     where
         F: Fn(Size<Option<Pixels>>, Size<AvailableSpace>, &mut Window, &mut App) -> Size<Pixels>
             + 'static,
     {
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         let kind = crate::taffy::MeasuredLayoutKind::from_source_file(
             std::panic::Location::caller().file(),
         );
-        #[cfg(not(feature = "rayx_diagnostics"))]
+        #[cfg(not(feature = "diagnostics"))]
         let kind = crate::taffy::MeasuredLayoutKind::Custom;
         self.invalidator.debug_assert_prepaint();
 
@@ -7955,17 +7954,17 @@ impl Window {
             .request_measured_layout(style, rem_size, scale_factor, kind, measure)
     }
 
-    #[cfg_attr(feature = "rayx_diagnostics", track_caller)]
+    #[cfg_attr(feature = "diagnostics", track_caller)]
     pub(crate) fn request_measured_layout_ref<F>(&mut self, style: &Style, measure: F) -> LayoutId
     where
         F: Fn(Size<Option<Pixels>>, Size<AvailableSpace>, &mut Window, &mut App) -> Size<Pixels>
             + 'static,
     {
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         let kind = crate::taffy::MeasuredLayoutKind::from_source_file(
             std::panic::Location::caller().file(),
         );
-        #[cfg(not(feature = "rayx_diagnostics"))]
+        #[cfg(not(feature = "diagnostics"))]
         let kind = crate::taffy::MeasuredLayoutKind::Custom;
         self.invalidator.debug_assert_prepaint();
 
