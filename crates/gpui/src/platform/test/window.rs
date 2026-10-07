@@ -18,6 +18,23 @@ use std::{
     sync::{self, Arc},
 };
 
+/// A window request the test window recorded instead of performing it.
+///
+/// Read them with [`VisualTestContext::window_calls`](crate::VisualTestContext::window_calls).
+#[derive(Clone, Debug, PartialEq)]
+pub enum TestWindowCall {
+    /// `PlatformWindow::show_character_palette`.
+    ShowCharacterPalette,
+    /// `PlatformWindow::minimize`.
+    Minimize,
+    /// `PlatformWindow::zoom`.
+    Zoom,
+    /// `PlatformWindow::show_window_menu` at a window position.
+    ShowWindowMenu(Point<Pixels>),
+    /// `PlatformWindow::start_window_move`.
+    StartWindowMove,
+}
+
 pub(crate) struct TestWindowState {
     pub(crate) bounds: Bounds<Pixels>,
     pub(crate) handle: AnyWindowHandle,
@@ -49,15 +66,16 @@ pub(crate) struct TestWindowState {
     frame_wake_count: Rc<Cell<usize>>,
     frame_scheduled: bool,
     frame_callback_pending: bool,
-    input_handler: Option<PlatformInputHandler>,
+    pub(crate) input_handler: Option<PlatformInputHandler>,
     text_input_configurations: Vec<TextInputConfiguration>,
     text_input_state_changes: Vec<TextInputStateChange>,
     is_fullscreen: bool,
-    scale_factor: f32,
+    pub(crate) scale_factor: f32,
     appearance: WindowAppearance,
     external_drag_files: Vec<(PathBuf, bool)>,
     start_external_drag_result: bool,
     a11y_callbacks: Option<A11yCallbacks>,
+    pub(crate) calls: Vec<TestWindowCall>,
 }
 
 #[derive(Clone)]
@@ -133,6 +151,7 @@ impl TestWindow {
             external_drag_files: Vec::new(),
             start_external_drag_result: false,
             a11y_callbacks: None,
+            calls: Vec::new(),
         })))
     }
     pub fn simulate_scheduled_frame(&self) -> bool {
@@ -468,15 +487,18 @@ impl PlatformWindow for TestWindow {
     }
 
     fn show_character_palette(&self) {
-        unimplemented!()
+        self.0
+            .lock()
+            .calls
+            .push(TestWindowCall::ShowCharacterPalette);
     }
 
     fn minimize(&self) {
-        unimplemented!()
+        self.0.lock().calls.push(TestWindowCall::Minimize);
     }
 
     fn zoom(&self) {
-        unimplemented!()
+        self.0.lock().calls.push(TestWindowCall::Zoom);
     }
 
     fn toggle_fullscreen(&self) {
@@ -588,12 +610,15 @@ impl PlatformWindow for TestWindow {
         unimplemented!()
     }
 
-    fn show_window_menu(&self, _position: Point<Pixels>) {
-        unimplemented!()
+    fn show_window_menu(&self, position: Point<Pixels>) {
+        self.0
+            .lock()
+            .calls
+            .push(TestWindowCall::ShowWindowMenu(position));
     }
 
     fn start_window_move(&self) {
-        unimplemented!()
+        self.0.lock().calls.push(TestWindowCall::StartWindowMove);
     }
 
     fn can_start_external_drag(&self) -> bool {

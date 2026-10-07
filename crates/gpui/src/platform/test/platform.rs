@@ -26,13 +26,36 @@ use std::{
     time::Duration,
 };
 
+/// A platform request the test platform recorded instead of performing it.
+///
+/// Read them with [`TestAppContext::platform_calls`](crate::TestAppContext::platform_calls).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum TestPlatformCall {
+    /// `Platform::run`; the test platform invokes the launch callback at once.
+    Run,
+    /// `Platform::hide`.
+    Hide,
+    /// `Platform::hide_other_apps`.
+    HideOtherApps,
+    /// `Platform::unhide_other_apps`.
+    UnhideOtherApps,
+    /// `Platform::reveal_path`.
+    RevealPath(PathBuf),
+    /// `Platform::open_with_system`.
+    OpenWithSystem(PathBuf),
+    /// `Platform::register_url_scheme`.
+    RegisterUrlScheme(String),
+}
+
 /// TestPlatform implements the Platform trait for use in tests.
 pub(crate) struct TestPlatform {
     background_executor: BackgroundExecutor,
     foreground_executor: ForegroundExecutor,
 
     pub(crate) active_window: RefCell<Option<TestWindow>>,
-    active_display: Rc<dyn PlatformDisplay>,
+    active_display: RefCell<Rc<dyn PlatformDisplay>>,
+    calls: RefCell<Vec<TestPlatformCall>>,
+    next_window_scale_factor: Cell<Option<f32>>,
     active_cursor: Mutex<CursorStyle>,
     current_clipboard_item: Mutex<Option<ClipboardItem>>,
     #[cfg(any(target_os = "linux", target_os = "freebsd"))]
@@ -155,7 +178,9 @@ impl TestPlatform {
             prompts: Default::default(),
             screen_capture_sources: Default::default(),
             active_cursor: Default::default(),
-            active_display: Rc::new(TestDisplay::new()),
+            active_display: RefCell::new(Rc::new(TestDisplay::new())),
+            calls: Default::default(),
+            next_window_scale_factor: Cell::new(None),
             active_window: Default::default(),
             expect_restart: Default::default(),
             current_clipboard_item: Mutex::new(None),
@@ -173,6 +198,28 @@ impl TestPlatform {
             headless_renderer_factory,
             menus: Default::default(),
         })
+    }
+
+    fn record(&self, call: TestPlatformCall) {
+        self.calls.borrow_mut().push(call);
+    }
+
+    /// The platform requests recorded so far, oldest first.
+    #[cfg(any(test, feature = "test-support"))]
+    pub(crate) fn calls(&self) -> Vec<TestPlatformCall> {
+        self.calls.borrow().clone()
+    }
+
+    /// Gives the next opened window this scale factor instead of the default 2.0.
+    #[cfg(any(test, feature = "test-support"))]
+    pub(crate) fn set_next_window_scale_factor(&self, scale_factor: f32) {
+        self.next_window_scale_factor.set(Some(scale_factor));
+    }
+
+    /// Replaces the test display (1920×1080 by default) for windows opened from now on.
+    #[cfg(any(test, feature = "test-support"))]
+    pub(crate) fn set_display_size(&self, size: crate::Size<crate::Pixels>) {
+        *self.active_display.borrow_mut() = Rc::new(TestDisplay::with_size(size));
     }
 
     #[cfg(any(test, feature = "test-support"))]
@@ -429,8 +476,9 @@ impl Platform for TestPlatform {
         }
     }
 
-    fn run(&self, _on_finish_launching: Box<dyn FnOnce()>) {
-        unimplemented!()
+    fn run(&self, on_finish_launching: Box<dyn FnOnce()>) {
+        self.record(TestPlatformCall::Run);
+        on_finish_launching();
     }
 
     fn quit(&self) {}
@@ -446,23 +494,23 @@ impl Platform for TestPlatform {
     }
 
     fn hide(&self) {
-        unimplemented!()
+        self.record(TestPlatformCall::Hide);
     }
 
     fn hide_other_apps(&self) {
-        unimplemented!()
+        self.record(TestPlatformCall::HideOtherApps);
     }
 
     fn unhide_other_apps(&self) {
-        unimplemented!()
+        self.record(TestPlatformCall::UnhideOtherApps);
     }
 
     fn displays(&self) -> Vec<std::rc::Rc<dyn crate::PlatformDisplay>> {
-        vec![self.active_display.clone()]
+        vec![self.active_display.borrow().clone()]
     }
 
     fn primary_display(&self) -> Option<std::rc::Rc<dyn crate::PlatformDisplay>> {
-        Some(self.active_display.clone())
+        Some(self.active_display.borrow().clone())
     }
 
     fn is_screen_capture_supported(&self) -> bool {
@@ -503,9 +551,12 @@ impl Platform for TestPlatform {
             handle,
             params,
             self.weak.clone(),
-            self.active_display.clone(),
+            self.active_display.borrow().clone(),
             renderer,
         );
+        if let Some(scale_factor) = self.next_window_scale_factor.take() {
+            window.0.lock().scale_factor = scale_factor;
+        }
         Ok(Box::new(window))
     }
 
@@ -517,9 +568,7 @@ impl Platform for TestPlatform {
         *self.opened_url.borrow_mut() = Some(url.to_string())
     }
 
-    fn on_open_urls(&self, _callback: Box<dyn FnMut(Vec<String>)>) {
-        unimplemented!()
-    }
+    fn on_open_urls(&self, _callback: Box<dyn FnMut(Vec<String>)>) {}
 
     /// Queues the prompt so a test can later answer it through
     /// [`Self::simulate_path_prompt_response`].
@@ -578,15 +627,13 @@ impl Platform for TestPlatform {
         true
     }
 
-    fn reveal_path(&self, _path: &std::path::Path) {
-        unimplemented!()
+    fn reveal_path(&self, path: &std::path::Path) {
+        self.record(TestPlatformCall::RevealPath(path.to_path_buf()));
     }
 
     fn on_quit(&self, _callback: Box<dyn FnMut() -> bool>) {}
 
-    fn on_reopen(&self, _callback: Box<dyn FnMut()>) {
-        unimplemented!()
-    }
+    fn on_reopen(&self, _callback: Box<dyn FnMut()>) {}
 
     fn on_system_sleep(&self, _callback: Box<dyn FnMut()>) {}
 
@@ -651,11 +698,15 @@ impl Platform for TestPlatform {
     fn on_validate_app_menu_command(&self, _callback: Box<dyn FnMut(&dyn crate::Action) -> bool>) {}
 
     fn app_path(&self) -> Result<std::path::PathBuf> {
-        unimplemented!()
+        Err(anyhow::anyhow!(
+            "the test platform has no application bundle"
+        ))
     }
 
-    fn path_for_auxiliary_executable(&self, _name: &str) -> Result<std::path::PathBuf> {
-        unimplemented!()
+    fn path_for_auxiliary_executable(&self, name: &str) -> Result<std::path::PathBuf> {
+        Err(anyhow::anyhow!(
+            "the test platform has no auxiliary executable {name:?}"
+        ))
     }
 
     fn set_cursor_style(&self, style: crate::CursorStyle) {
@@ -712,12 +763,13 @@ impl Platform for TestPlatform {
         Task::ready(Ok(()))
     }
 
-    fn register_url_scheme(&self, _: &str) -> Task<anyhow::Result<()>> {
-        unimplemented!()
+    fn register_url_scheme(&self, scheme: &str) -> Task<anyhow::Result<()>> {
+        self.record(TestPlatformCall::RegisterUrlScheme(scheme.to_string()));
+        Task::ready(Ok(()))
     }
 
-    fn open_with_system(&self, _path: &Path) {
-        unimplemented!()
+    fn open_with_system(&self, path: &Path) {
+        self.record(TestPlatformCall::OpenWithSystem(path.to_path_buf()));
     }
 }
 

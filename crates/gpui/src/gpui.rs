@@ -56,6 +56,8 @@ pub mod randomized_element_tree;
 mod scene;
 #[cfg(any(test, feature = "test-support", feature = "bench-support"))]
 mod seeds;
+/// Semantic element queries and, with `test-support`, locators that act on what they find.
+pub mod semantic_query;
 mod shared_uri;
 mod spring;
 mod style;

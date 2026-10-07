@@ -5,15 +5,62 @@ use crate::{
     Modifiers, ModifiersChangedEvent, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent,
     Pixels, Platform, PlatformTextSystem, Point, Render, Result, SharedString, Size,
     SystemNotification, SystemNotificationResponse, Task, TestDispatcher, TestPlatform,
-    TestScreenCaptureSource, TestWindow, TextSystem, VisualContext, Window, WindowBounds,
-    WindowHandle, WindowOptions, WindowVisibility, app::GpuiMode, window::ElementArenaScope,
+    TestPlatformCall, TestScreenCaptureSource, TestWindow, TestWindowCall, TextSystem,
+    VisualContext, Window, WindowBounds, WindowHandle, WindowOptions, WindowVisibility,
+    app::GpuiMode, point, size, window::ElementArenaScope,
 };
 use anyhow::{anyhow, bail};
 use futures::{Stream, StreamExt, channel::oneshot};
 
 use std::{
-    cell::RefCell, future::Future, ops::Deref, path::PathBuf, rc::Rc, sync::Arc, time::Duration,
+    cell::RefCell, future::Future, ops::Deref, ops::Range, path::PathBuf, rc::Rc, sync::Arc,
+    time::Duration,
 };
+
+/// The size, scale factor and display of a test window.
+///
+/// `TestAppContext::add_window` keeps the historical defaults: a window covering the
+/// 1920x1080 test display at scale factor 2. These options choose all three explicitly.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct TestWindowOptions {
+    /// The window's logical size.
+    pub size: Size<Pixels>,
+    /// The window's scale factor (device pixels per logical pixel).
+    pub scale_factor: f32,
+    /// The logical size of the test display, when it should differ from 1920x1080. It applies
+    /// to every window opened afterwards.
+    pub display_size: Option<Size<Pixels>>,
+}
+
+impl TestWindowOptions {
+    /// A window of `size` logical pixels at scale factor 1 on the default display.
+    pub fn new(size: Size<Pixels>) -> Self {
+        Self {
+            size,
+            scale_factor: 1.,
+            display_size: None,
+        }
+    }
+
+    /// Sets the window's scale factor.
+    pub fn scale_factor(mut self, scale_factor: f32) -> Self {
+        self.scale_factor = scale_factor;
+        self
+    }
+
+    /// Sets the logical size of the test display.
+    pub fn display_size(mut self, display_size: Size<Pixels>) -> Self {
+        self.display_size = Some(display_size);
+        self
+    }
+}
+
+impl Default for TestWindowOptions {
+    /// The window `add_window` opens: the whole default display at scale factor 2.
+    fn default() -> Self {
+        Self::new(size(Pixels::from(1920.), Pixels::from(1080.))).scale_factor(2.)
+    }
+}
 
 /// A TestAppContext is provided to tests created with `#[gpux::test]`, it provides
 /// an implementation of `Context` with additional methods that are useful in tests.
@@ -320,6 +367,64 @@ impl TestAppContext {
             |window, cx| cx.new(|cx| build_window(window, cx)),
         )
         .unwrap()
+    }
+
+    /// Opens a window with an explicit logical size, scale factor and display size, and returns
+    /// its root view with a `VisualTestContext` for it.
+    pub fn add_window_view_with_options<F, V>(
+        &mut self,
+        options: TestWindowOptions,
+        build_root_view: F,
+    ) -> (Entity<V>, &mut VisualTestContext)
+    where
+        F: FnOnce(&mut Window, &mut Context<V>) -> V,
+        V: 'static + Render,
+    {
+        let window = self.add_window_with_options(options, build_root_view);
+        let view = window.root(self).unwrap();
+        let cx = VisualTestContext::from_window(*window.deref(), self).into_mut();
+        cx.run_until_parked();
+        (view, cx)
+    }
+
+    /// Opens a window with an explicit logical size, scale factor and display size.
+    pub fn add_window_with_options<F, V>(
+        &mut self,
+        options: TestWindowOptions,
+        build_window: F,
+    ) -> WindowHandle<V>
+    where
+        F: FnOnce(&mut Window, &mut Context<V>) -> V,
+        V: 'static + Render,
+    {
+        if let Some(display_size) = options.display_size {
+            self.test_platform.set_display_size(display_size);
+        }
+        self.test_platform
+            .set_next_window_scale_factor(options.scale_factor);
+        let mut cx = self.app.borrow_mut();
+        cx.open_window(
+            WindowOptions {
+                window_bounds: Some(WindowBounds::Windowed(Bounds {
+                    origin: point(Pixels::ZERO, Pixels::ZERO),
+                    size: options.size,
+                })),
+                ..Default::default()
+            },
+            |window, cx| cx.new(|cx| build_window(window, cx)),
+        )
+        .unwrap()
+    }
+
+    /// The platform requests (hide, reveal-path, run, ...) the test platform recorded instead
+    /// of performing them, oldest first.
+    pub fn platform_calls(&self) -> Vec<TestPlatformCall> {
+        self.test_platform.calls()
+    }
+
+    /// The test platform behind this context, for calling platform entry points directly.
+    pub fn platform(&self) -> Rc<dyn Platform> {
+        self.test_platform.clone()
     }
 
     /// Adds a new window with no content.
@@ -959,6 +1064,157 @@ impl VisualTestContext {
         })
     }
 
+    /// Simulates pressing and releasing `button` with an explicit click count, as platforms
+    /// report the second and third press of a double or triple click.
+    pub fn simulate_click_count(
+        &mut self,
+        position: Point<Pixels>,
+        button: MouseButton,
+        click_count: usize,
+        modifiers: Modifiers,
+    ) {
+        self.simulate_event(MouseDownEvent {
+            position,
+            modifiers,
+            button,
+            click_count,
+            first_mouse: false,
+        });
+        self.simulate_event(MouseUpEvent {
+            position,
+            modifiers,
+            button,
+            click_count,
+        });
+    }
+
+    /// Simulates a drag along `path`: the button goes down at the first point, the mouse moves
+    /// through every later point with the button held, and the button comes up at the last one.
+    /// `modifiers` are held throughout.
+    pub fn simulate_drag(
+        &mut self,
+        path: &[Point<Pixels>],
+        button: MouseButton,
+        modifiers: Modifiers,
+    ) {
+        let (Some(&start), Some(&end)) = (path.first(), path.last()) else {
+            return;
+        };
+        self.simulate_mouse_down(start, button, modifiers);
+        for &position in &path[1..] {
+            self.simulate_event(MouseMoveEvent {
+                position,
+                modifiers,
+                pressed_button: Some(button),
+            });
+        }
+        self.simulate_mouse_up(end, button, modifiers);
+    }
+
+    /// Simulates releasing a key, such as `"a"` or `"shift-enter"`.
+    pub fn simulate_key_up(&mut self, keystroke: &str) {
+        self.simulate_event(crate::KeyUpEvent {
+            keystroke: Keystroke::parse(keystroke).unwrap(),
+        });
+    }
+
+    /// Runs `f` with the window's input handler, the way a platform IME reaches the focused
+    /// text element. Returns `None` when no element accepts text input.
+    fn with_input_handler<R>(
+        &mut self,
+        f: impl FnOnce(&mut crate::PlatformInputHandler) -> R,
+    ) -> Option<R> {
+        let test_window = self.test_window(self.window);
+        let mut handler = test_window.0.lock().input_handler.take()?;
+        let result = f(&mut handler);
+        // Dispatch may have drawn and registered a new handler; keep the newer one.
+        test_window.0.lock().input_handler.get_or_insert(handler);
+        self.background_executor.run_until_parked();
+        Some(result)
+    }
+
+    /// Simulates an IME composition step: the composing text replaces the current marked text
+    /// (or the selection when nothing is marked) and stays marked, with `selected_range`
+    /// (UTF-16, relative to `text`) as the caret or selection inside it. Call it again to update
+    /// the composition. Returns `false` when no element accepts text input.
+    pub fn simulate_ime_compose(
+        &mut self,
+        text: &str,
+        selected_range: Option<Range<usize>>,
+    ) -> bool {
+        self.with_input_handler(|handler| {
+            handler.replace_and_mark_text_in_range(None, text, selected_range)
+        })
+        .is_some()
+    }
+
+    /// Simulates committing a composition: `text` replaces the marked text and nothing stays
+    /// marked. Returns `false` when no element accepts text input.
+    pub fn simulate_ime_commit(&mut self, text: &str) -> bool {
+        self.with_input_handler(|handler| {
+            handler.replace_text_in_range(None, text);
+            handler.unmark_text();
+        })
+        .is_some()
+    }
+
+    /// Simulates cancelling a composition: the marked text is removed and nothing stays
+    /// marked. Returns `false` when no element accepts text input.
+    pub fn simulate_ime_cancel(&mut self) -> bool {
+        self.with_input_handler(|handler| {
+            handler.replace_and_mark_text_in_range(None, "", None);
+            handler.unmark_text();
+        })
+        .is_some()
+    }
+
+    /// The focused text element's marked (composing) range in UTF-16 code units, if any.
+    pub fn ime_marked_text_range(&mut self) -> Option<Range<usize>> {
+        self.with_input_handler(|handler| handler.marked_text_range())
+            .flatten()
+    }
+
+    /// The devtools snapshot of the latest frame, taken after the executor parks and any pending
+    /// invalidation draws.
+    pub fn settled_frame_snapshot(&mut self) -> crate::DevtoolsFrameSnapshot {
+        self.run_until_parked();
+        self.update(|window, cx| {
+            if window.invalidator.is_dirty() {
+                window.draw(cx).clear(cx);
+            }
+            window.devtools_frame_snapshot()
+        })
+    }
+
+    /// A [`Locator`](crate::semantic_query::Locator) for the elements `query` matches in this
+    /// window. `query` is a [`Query`](crate::semantic_query::Query) or its text form.
+    pub fn locator(
+        &mut self,
+        query: impl Into<crate::semantic_query::Query>,
+    ) -> crate::semantic_query::Locator<'_> {
+        crate::semantic_query::Locator::new(self, query.into())
+    }
+
+    /// The one element `query` identifies in the latest frame.
+    pub fn locate(
+        &mut self,
+        query: impl Into<crate::semantic_query::Query>,
+    ) -> std::result::Result<crate::DevtoolsElementSnapshot, crate::semantic_query::QueryError>
+    {
+        self.locator(query).resolve()
+    }
+
+    /// The window requests (minimize, zoom, window menu, ...) the test window recorded instead
+    /// of performing them, oldest first.
+    pub fn window_calls(&self) -> Vec<TestWindowCall> {
+        self.test_window(self.window).0.lock().calls.clone()
+    }
+
+    /// The window's current scale factor.
+    pub fn scale_factor(&mut self) -> f32 {
+        self.update(|window, _| window.scale_factor())
+    }
+
     /// Simulate a primary mouse click at the given point
     pub fn simulate_click(&mut self, position: Point<Pixels>, modifiers: Modifiers) {
         self.simulate_event(MouseDownEvent {
@@ -1044,6 +1300,33 @@ impl VisualTestContext {
 
             (request_layout_state, prepaint_state)
         })
+    }
+
+    /// Delivers one frame request to the window, as the platform's frame source would: it runs
+    /// the callbacks scheduled with [`Window::on_next_frame`] (animation frames, momentum and
+    /// programmatic-scroll steps) and draws when the window is dirty.
+    ///
+    /// Time-driven motion reads the executor clock, so step it frame by frame with
+    /// [`BackgroundExecutor::advance_clock`] followed by this call, or use
+    /// [`Self::advance_frame`].
+    ///
+    /// Windows throttle frames like real platforms do: while a window is inactive, a frame that
+    /// arrives less than its inactive frame interval (about 33 ms by default) after the previous
+    /// one, measured on the executor clock, is skipped and its callbacks stay pending. Test
+    /// windows open inactive, so activate the window (`Window::activate_window`) or step the
+    /// clock by at least that interval to deliver every frame.
+    pub fn simulate_frame(&mut self) {
+        self.test_window(self.window)
+            .simulate_frame_request(crate::RequestFrameOptions::default());
+        self.background_executor.run_until_parked();
+    }
+
+    /// Advances the executor clock by `duration` and then delivers one frame. The frame is
+    /// skipped when the window is inactive and `duration` is shorter than its inactive frame
+    /// interval; see [`Self::simulate_frame`].
+    pub fn advance_frame(&mut self, duration: Duration) {
+        self.background_executor.advance_clock(duration);
+        self.simulate_frame();
     }
 
     /// Simulate an event from the platform, e.g. a ScrollWheelEvent
