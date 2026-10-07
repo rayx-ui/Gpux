@@ -1154,6 +1154,9 @@ struct WgpuResources {
     post_process_sampler: wgpu::Sampler,
     effect_sampler: wgpu::Sampler,
     globals_buffer: wgpu::Buffer,
+    /// The gamma parameters, in a buffer of their own: GL drivers that bind two ranges of one
+    /// buffer to two uniform blocks (Android emulators') give the second block the wrong range.
+    gamma_buffer: wgpu::Buffer,
     globals_bind_group: wgpu::BindGroup,
     path_globals_bind_group: wgpu::BindGroup,
     instance_buffer: Option<wgpu::Buffer>,
@@ -1240,7 +1243,6 @@ pub struct WgpuRenderer {
     render_target_format: wgpu::TextureFormat,
     atlas: Arc<WgpuAtlas>,
     path_globals_offset: u64,
-    gamma_offset: u64,
     instance_buffer_capacity: u64,
     gradient_stop_buffer_capacity: u64,
     max_buffer_size: u64,
@@ -1748,11 +1750,16 @@ impl WgpuRenderer {
         let globals_size = std::mem::size_of::<GlobalParams>() as u64;
         let gamma_size = std::mem::size_of::<GammaParams>() as u64;
         let path_globals_offset = globals_size.next_multiple_of(uniform_alignment);
-        let gamma_offset = (path_globals_offset + globals_size).next_multiple_of(uniform_alignment);
 
         let globals_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("globals_buffer"),
-            size: gamma_offset + gamma_size,
+            size: path_globals_offset + globals_size,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+        let gamma_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("gamma_buffer"),
+            size: gamma_size,
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
@@ -1793,8 +1800,8 @@ impl WgpuRenderer {
                 wgpu::BindGroupEntry {
                     binding: 1,
                     resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                        buffer: &globals_buffer,
-                        offset: gamma_offset,
+                        buffer: &gamma_buffer,
+                        offset: 0,
                         size: Some(NonZeroU64::new(gamma_size).unwrap()),
                     }),
                 },
@@ -1816,8 +1823,8 @@ impl WgpuRenderer {
                 wgpu::BindGroupEntry {
                     binding: 1,
                     resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                        buffer: &globals_buffer,
-                        offset: gamma_offset,
+                        buffer: &gamma_buffer,
+                        offset: 0,
                         size: Some(NonZeroU64::new(gamma_size).unwrap()),
                     }),
                 },
@@ -1848,6 +1855,7 @@ impl WgpuRenderer {
             post_process_sampler,
             effect_sampler,
             globals_buffer,
+            gamma_buffer,
             globals_bind_group,
             path_globals_bind_group,
             instance_buffer,
@@ -1871,7 +1879,6 @@ impl WgpuRenderer {
             render_target_format,
             atlas,
             path_globals_offset,
-            gamma_offset,
             instance_buffer_capacity: initial_instance_buffer_capacity,
             gradient_stop_buffer_capacity: initial_gradient_stop_buffer_capacity,
             max_buffer_size,
@@ -3224,8 +3231,8 @@ impl WgpuRenderer {
             bytemuck::bytes_of(&path_globals),
         );
         resources.queue.write_buffer(
-            &resources.globals_buffer,
-            self.gamma_offset,
+            &resources.gamma_buffer,
+            0,
             bytemuck::bytes_of(&gamma_params),
         );
         #[cfg(feature = "diagnostics")]
