@@ -2739,13 +2739,17 @@ name = "gpux-conformance"
 version = "0.3.0"
 dependencies = [
  "anyhow",
+ "console_error_panic_hook",
  "gpux",
  "gpux-fonts",
  "gpux-platform",
  "gpux-wgpu-renderer",
  "image",
+ "js-sys",
  "raw-window-handle",
  "tempfile",
+ "wasm-bindgen",
+ "web-sys",
  "windows 0.62.2",
 ]
 
@@ -3033,6 +3037,8 @@ dependencies = [
  "anyhow",
  "gpux-conformance",
  "tempfile",
+ "wasm-encoder",
+ "wasmparser",
 ]
 
 [[package]]

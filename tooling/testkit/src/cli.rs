@@ -6,6 +6,9 @@ use std::fmt;
 /// The usage text printed by `--help` and after usage errors.
 pub const USAGE: &str = "\
 usage: gpux-testkit lane <lane>... [--list] [--scene <id>] [--grep <pattern>]
+       gpux-testkit web build [--verify]
+       gpux-testkit web serve [--port <port>]
+       gpux-testkit web e2e [--profile <profile>] [--grep <pattern>] [--headed]
 
 lanes:
   a  behaviour on the test platform (no GPU or display)
@@ -19,7 +22,14 @@ lanes:
 options:
   --list            print the exact test selection without running it
   --scene <id>      select one conformance scene
-  --grep <pattern>  select the tests whose names contain the pattern";
+  --grep <pattern>  select the tests whose names contain the pattern
+
+web (lane b's browser host):
+  build    build the threaded `web_host` WASM app into target/gpux-web/dist;
+           --verify checks shared memory, the thread entry point and constructors
+  serve    serve the build with cross-origin isolation headers (default port 8000)
+  e2e      build, serve and run the Playwright specs in tools-node; profiles are
+           local-gpu (default), ci-linux-swiftshader and windows-software";
 
 /// A parsed command.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -28,7 +38,40 @@ pub enum Command {
     Help,
     /// Runs or lists lanes.
     Lane(LaneArgs),
+    /// Builds, serves or tests lane B's browser host.
+    Web(WebCommand),
 }
+
+/// The `web` subcommands.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum WebCommand {
+    /// Builds the threaded browser host; `verify` checks the binary too.
+    Build {
+        /// Whether to verify the threaded binary.
+        verify: bool,
+    },
+    /// Serves the build.
+    Serve {
+        /// The port; `0` picks a free one.
+        port: u16,
+    },
+    /// Builds, serves and runs the Playwright specs.
+    E2e(E2eArgs),
+}
+
+/// The arguments of `web e2e`.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct E2eArgs {
+    /// The Playwright project.
+    pub profile: String,
+    /// A Playwright `--grep` pattern, for example `@canary`.
+    pub grep: Option<String>,
+    /// Runs the browser headed.
+    pub headed: bool,
+}
+
+/// The port `web serve` uses by default.
+pub const DEFAULT_PORT: u16 = 8000;
 
 /// The arguments of `lane`.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -75,8 +118,69 @@ pub fn parse(args: impl IntoIterator<Item = String>) -> Result<Command, UsageErr
     match args.next().as_deref() {
         None | Some("help" | "--help" | "-h") => Ok(Command::Help),
         Some("lane") => parse_lane(args).map(Command::Lane),
+        Some("web") => parse_web(args).map(Command::Web),
         Some(other) => Err(UsageError(format!(
-            "unknown command `{other}`; the command is `lane`"
+            "unknown command `{other}`; the commands are `lane` and `web`"
+        ))),
+    }
+}
+
+fn value(arg: &str, args: &mut impl Iterator<Item = String>) -> Result<String, UsageError> {
+    args.next()
+        .filter(|value| !value.starts_with("--") && !value.is_empty())
+        .ok_or_else(|| UsageError(format!("`{arg}` needs a value")))
+}
+
+fn parse_web(mut args: impl Iterator<Item = String>) -> Result<WebCommand, UsageError> {
+    let subcommand = args
+        .next()
+        .ok_or_else(|| UsageError("name a web command: `build`, `serve` or `e2e`".into()))?;
+    let mut verify = false;
+    let mut port = None;
+    let mut profile = None;
+    let mut grep = None;
+    let mut headed = false;
+    while let Some(arg) = args.next() {
+        let accepted = match (subcommand.as_str(), arg.as_str()) {
+            ("build", "--verify") => {
+                verify = true;
+                true
+            }
+            ("serve", "--port") => {
+                let text = value(&arg, &mut args)?;
+                let parsed = text
+                    .parse::<u16>()
+                    .map_err(|_| UsageError(format!("`--port {text}` is not a port number")))?;
+                port.replace(parsed).is_none()
+            }
+            ("e2e", "--profile") => profile.replace(value(&arg, &mut args)?).is_none(),
+            ("e2e", "--grep") => grep.replace(value(&arg, &mut args)?).is_none(),
+            ("e2e", "--headed") => {
+                headed = true;
+                true
+            }
+            _ => {
+                return Err(UsageError(format!(
+                    "unknown option `{arg}` for `web {subcommand}`"
+                )));
+            }
+        };
+        if !accepted {
+            return Err(UsageError(format!("`{arg}` is given twice")));
+        }
+    }
+    match subcommand.as_str() {
+        "build" => Ok(WebCommand::Build { verify }),
+        "serve" => Ok(WebCommand::Serve {
+            port: port.unwrap_or(DEFAULT_PORT),
+        }),
+        "e2e" => Ok(WebCommand::E2e(E2eArgs {
+            profile: profile.unwrap_or_else(|| "local-gpu".into()),
+            grep,
+            headed,
+        })),
+        other => Err(UsageError(format!(
+            "unknown web command `{other}`; the web commands are `build`, `serve` and `e2e`"
         ))),
     }
 }

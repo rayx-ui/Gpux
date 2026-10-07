@@ -25,6 +25,8 @@ path = "src/main.rs"
 [dependencies]
 anyhow.workspace = true
 gpux_conformance.workspace = true
+wasmparser.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
+wasm-encoder.workspace = true

@@ -200,7 +200,9 @@ uuid = { version = "1.1", features = ["serde"] }
 walkdir = "2.5"
 wasm-bindgen = "0.2.126"
 wasm-bindgen-futures = "0.4"
+wasm-encoder = "0.244"
 wasm_thread = { version = "0.3", features = ["es_modules"] }
+wasmparser = { version = "0.244", default-features = false, features = ["std"] }
 web-sys = "0.3"
 web-time = "1.1.0"
 webpki-roots = "1.0.8"

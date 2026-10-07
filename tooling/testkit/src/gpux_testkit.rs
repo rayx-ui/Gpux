@@ -12,9 +12,12 @@ pub mod prereq;
 pub mod programs;
 pub mod results;
 pub mod run;
+pub mod serve;
 pub mod summary;
+pub mod wasm_verify;
+pub mod web;
 
-use cli::{Command, LaneArgs};
+use cli::{Command, LaneArgs, WebCommand};
 use lanes::{LaneId, LanePlan, OutputKind};
 use results::Tally;
 use run::Runner;
@@ -118,7 +121,83 @@ pub fn execute(
             0
         }
         Command::Lane(args) => lane(&args, environment, runner, out),
+        Command::Web(command) => web_command(&command, environment, runner, out),
     }
+}
+
+fn web_command(
+    command: &WebCommand,
+    environment: &dyn Environment,
+    runner: &mut dyn Runner,
+    out: &mut dyn Write,
+) -> i32 {
+    let tally = match environment.workspace_root() {
+        None => Tally::failure(
+            "gpux-testkit runs inside a gpux checkout: run it from the repository (the folder              with `crates/gpux_conformance`) or a subfolder",
+        ),
+        Some(root) => match command {
+            WebCommand::Build { verify } => {
+                match web::build(&root, environment, runner, *verify, out) {
+                    Ok(_) => Tally {
+                        passed: 1,
+                        ..Tally::default()
+                    },
+                    Err(error) => Tally::failure(format!("web build: {error}")),
+                }
+            }
+            WebCommand::Serve { port } => serve_build(&root, *port, out),
+            WebCommand::E2e(args) => web::e2e(
+                &root,
+                environment,
+                runner,
+                &args.profile,
+                args.grep.as_deref(),
+                args.headed,
+                out,
+            ),
+        },
+    };
+    finish(&tally, 0, out)
+}
+
+/// Serves the existing build until the process is stopped.
+fn serve_build(root: &Path, port: u16, out: &mut dyn Write) -> Tally {
+    let dist = web::WebPaths::new(root).dist;
+    if !dist.join("index.html").is_file() {
+        return Tally::failure(format!(
+            "web serve: {} holds no build; run `gpux-testkit web build` first",
+            dist.display()
+        ));
+    }
+    match serve::start(dist.clone(), port) {
+        Ok((address, server)) => {
+            writeln!(out, "web: serving {} at http://{address}/", dist.display()).ok();
+            writeln!(
+                out,
+                "web: open http://{address}/?scene=<id>; press Ctrl+C to stop"
+            )
+            .ok();
+            out.flush().ok();
+            server.join().ok();
+            Tally::failure("web serve: the server stopped")
+        }
+        Err(error) => Tally::failure(format!(
+            "web serve: could not listen on port {port}: {error}"
+        )),
+    }
+}
+
+/// Prints the failures and the summary line, and returns the exit code.
+fn finish(tally: &Tally, listed: usize, out: &mut dyn Write) -> i32 {
+    let summary = Summary::of(tally);
+    if !tally.failures.is_empty() {
+        writeln!(out, "failures:").ok();
+        for failure in &tally.failures {
+            writeln!(out, "  {failure}").ok();
+        }
+    }
+    writeln!(out, "{summary}").ok();
+    summary.exit_code(listed)
 }
 
 fn lane(
@@ -167,15 +246,7 @@ fn lane(
         }
         tally.add(run_plan(&plan, root, environment, runner, out));
     }
-    let summary = Summary::of(&tally);
-    if !tally.failures.is_empty() {
-        writeln!(out, "failures:").ok();
-        for failure in &tally.failures {
-            writeln!(out, "  {failure}").ok();
-        }
-    }
-    writeln!(out, "{summary}").ok();
-    summary.exit_code(listed)
+    finish(&tally, listed, out)
 }
 
 /// Prints a lane's selection and returns how many tests it selects.
