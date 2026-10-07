@@ -2884,7 +2884,9 @@ impl WgpuRenderer {
             .usage
             .contains(wgpu::TextureUsages::COPY_SRC)
         {
-            anyhow::bail!("Surface capture requires COPY_SRC surface support")
+            // Some surfaces (GLES on Android emulators) cannot be read back; render the same
+            // scene into a texture of the surface's size and format instead.
+            return self.render_to_offscreen_image(scene);
         }
 
         self.atlas.before_frame();
@@ -2971,6 +2973,101 @@ impl WgpuRenderer {
         // The frame holds the current scene, so presenting it changes nothing on screen.
         self.resources().queue.present(frame);
 
+        self.read_buffer_to_image(readback, width, height, padded_bytes_per_row)
+    }
+
+    /// Renders `scene` into a texture like the surface (same size and format) and reads it back:
+    /// [`Self::render_to_image`] for surfaces without `COPY_SRC`. The window keeps showing its
+    /// last presented frame.
+    fn render_to_offscreen_image(&mut self, scene: &Scene) -> anyhow::Result<RgbaImage> {
+        let width = self.surface_config.width;
+        let height = self.surface_config.height;
+        let format = self.surface_config.format;
+        let view_format = self.render_target_format;
+        // Report what the device rejects instead of reading back an empty texture. Browsers
+        // cannot wait for the scope, so there errors reach the device's error handler.
+        #[cfg(not(target_family = "wasm"))]
+        let error_scope = self
+            .resources()
+            .device
+            .push_error_scope(wgpu::ErrorFilter::Validation);
+        let target = self
+            .resources()
+            .device
+            .create_texture(&wgpu::TextureDescriptor {
+                label: Some("capture_target"),
+                size: wgpu::Extent3d {
+                    width,
+                    height,
+                    depth_or_array_layers: 1,
+                },
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: wgpu::TextureDimension::D2,
+                format,
+                // TEXTURE_BINDING keeps GL from making the target a renderbuffer.
+                usage: wgpu::TextureUsages::RENDER_ATTACHMENT
+                    | wgpu::TextureUsages::COPY_SRC
+                    | wgpu::TextureUsages::TEXTURE_BINDING,
+                view_formats: if view_format == format {
+                    &[]
+                } else {
+                    std::slice::from_ref(&view_format)
+                },
+            });
+        self.atlas.before_frame();
+        self.ensure_intermediate_textures();
+        self.write_globals();
+        let target_view = target.create_view(&wgpu::TextureViewDescriptor {
+            format: Some(view_format),
+            ..Default::default()
+        });
+        let mut encoder = match self.encode_scene_to_view(scene, &target_view) {
+            Ok(encoder) => encoder,
+            Err(error) => {
+                // Queue writes are staged before encoding; flush them even if the frame fails.
+                self.resources().queue.submit(std::iter::empty());
+                return Err(error);
+            }
+        };
+        let padded_bytes_per_row = (width * 4).next_multiple_of(wgpu::COPY_BYTES_PER_ROW_ALIGNMENT);
+        let readback = self
+            .resources()
+            .device
+            .create_buffer(&wgpu::BufferDescriptor {
+                label: Some("capture_readback"),
+                size: padded_bytes_per_row as u64 * height as u64,
+                usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+                mapped_at_creation: false,
+            });
+        encoder.copy_texture_to_buffer(
+            wgpu::TexelCopyTextureInfo {
+                texture: &target,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            wgpu::TexelCopyBufferInfo {
+                buffer: &readback,
+                layout: wgpu::TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(padded_bytes_per_row),
+                    rows_per_image: Some(height),
+                },
+            },
+            wgpu::Extent3d {
+                width,
+                height,
+                depth_or_array_layers: 1,
+            },
+        );
+        self.resources()
+            .queue
+            .submit(std::iter::once(encoder.finish()));
+        #[cfg(not(target_family = "wasm"))]
+        if let Some(error) = gpux::block_on(error_scope.pop()) {
+            anyhow::bail!("offscreen capture failed: {error}");
+        }
         self.read_buffer_to_image(readback, width, height, padded_bytes_per_row)
     }
 
