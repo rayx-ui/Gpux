@@ -290,9 +290,9 @@ fn unavailable_lanes_and_bad_usage_still_end_with_the_summary() {
     let root = tempfile::tempdir().unwrap();
     let environment = FakeEnvironment::new(root.path());
     let mut runner = FakeRunner::default();
-    let (code, text) = run("lane g", &environment, &mut runner);
+    let (code, text) = run("lane f", &environment, &mut runner);
     assert_eq!(code, EXIT_FAILED);
-    assert!(text.contains("lane g is not available yet"), "{text}");
+    assert!(text.contains("lane f is not available yet"), "{text}");
     assert_eq!(
         last_line(&text),
         "gpux-testkit: 0 passed, 1 failed, 0 skipped"

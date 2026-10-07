@@ -1,14 +1,16 @@
 //! `gpux-testkit`, the single entry point for gpux's test lanes.
 //!
-//! `gpux-testkit lane <lane>... [--list] [--scene <id>] [--grep <pattern>]` selects tests by
-//! lane, runs them through the lane's host (cargo test targets for lanes A and C, the desktop
-//! conformance host for lane D), parses their results, and ends with one summary line:
+//! `gpux-testkit lane <lane>... [--list] [--scene <id>] [--grep <pattern>] [--headed]` selects
+//! tests by lane, runs them through the lane's host (cargo test targets for lanes A and C, the
+//! desktop conformance host for lane D, Playwright for lane B, an Android device for lane E, and
+//! all of these on the local GPU for lane G), parses their results, and ends with one summary line:
 //! `gpux-testkit: <passed> passed, <failed> failed, <skipped> skipped`. It exits nonzero on any
 //! failure and when nothing was selected. Raw output goes to `artifacts-temp/testkit/<lane>/`.
 
 pub mod android;
 pub mod cli;
 pub mod lanes;
+pub mod local_gpu;
 pub mod prereq;
 pub mod programs;
 pub mod results;
@@ -50,6 +52,11 @@ pub trait Environment {
     /// The gpux workspace root, where lanes run.
     fn workspace_root(&self) -> Option<PathBuf>;
 }
+
+/// Why a command needs the workspace and found none.
+const OUTSIDE_CHECKOUT: &str = "gpux-testkit runs inside a gpux checkout: run it from the \
+                                repository (the folder with `crates/gpux_conformance`) or a \
+                                subfolder";
 
 /// The real host.
 pub struct SystemEnvironment;
@@ -134,10 +141,7 @@ fn android_command(
     out: &mut dyn Write,
 ) -> i32 {
     let tally = match environment.workspace_root() {
-        None => Tally::failure(
-            "gpux-testkit runs inside a gpux checkout: run it from the repository (the folder \
-             with `crates/gpux_conformance`) or a subfolder",
-        ),
+        None => Tally::failure(OUTSIDE_CHECKOUT),
         Some(root) => match command {
             AndroidCommand::Build { abis } => {
                 match android::build(&root, environment, runner, abis, out) {
@@ -168,9 +172,7 @@ fn web_command(
     out: &mut dyn Write,
 ) -> i32 {
     let tally = match environment.workspace_root() {
-        None => Tally::failure(
-            "gpux-testkit runs inside a gpux checkout: run it from the repository (the folder              with `crates/gpux_conformance`) or a subfolder",
-        ),
+        None => Tally::failure(OUTSIDE_CHECKOUT),
         Some(root) => match command {
             WebCommand::Build { verify } => {
                 match web::build(&root, environment, runner, *verify, out) {
@@ -246,13 +248,27 @@ fn lane(
     let mut listed = 0;
     let root = environment.workspace_root();
     for &lane in &args.lanes {
+        if lane == LaneId::G {
+            // The local-GPU lane runs lanes B, C and D and the benchmarks on the hardware GPU.
+            let Some(root) = root.as_deref() else {
+                writeln!(out, "lane g: {OUTSIDE_CHECKOUT}").ok();
+                tally.add(Tally::failure(format!("lane g: {OUTSIDE_CHECKOUT}")));
+                continue;
+            };
+            if args.list {
+                let (count, failures) = local_gpu::list(root, args, environment, runner, out);
+                listed += count;
+                tally.add(failures);
+            } else {
+                tally.add(local_gpu::run(root, args, environment, runner, out));
+            }
+            continue;
+        }
         if lane == LaneId::E {
             // The Android lane runs on a device through adb instead of cargo targets.
             let Some(root) = root.as_deref() else {
-                let message = "gpux-testkit runs inside a gpux checkout: run it from the \
-                               repository (the folder with `crates/gpux_conformance`) or a subfolder";
-                writeln!(out, "lane e: {message}").ok();
-                tally.add(Tally::failure(format!("lane e: {message}")));
+                writeln!(out, "lane e: {OUTSIDE_CHECKOUT}").ok();
+                tally.add(Tally::failure(format!("lane e: {OUTSIDE_CHECKOUT}")));
                 continue;
             };
             if args.list {
@@ -278,16 +294,14 @@ fn lane(
         if lane == LaneId::B {
             // The browser lane runs Playwright specs instead of cargo targets.
             let Some(root) = root.as_deref() else {
-                let message = "gpux-testkit runs inside a gpux checkout: run it from the \
-                               repository (the folder with `crates/gpux_conformance`) or a subfolder";
-                writeln!(out, "lane b: {message}").ok();
-                tally.add(Tally::failure(format!("lane b: {message}")));
+                writeln!(out, "lane b: {OUTSIDE_CHECKOUT}").ok();
+                tally.add(Tally::failure(format!("lane b: {OUTSIDE_CHECKOUT}")));
                 continue;
             };
             let profile = web::lane_profile(environment);
             let grep = web::lane_grep(&args.selection);
             if args.list {
-                match web::list(root, environment, runner, &profile, &grep, out) {
+                match web::list(root, environment, runner, &profile, Some(&grep), out) {
                     Ok(count) => listed += count,
                     Err(failure) => tally.add(failure),
                 }
@@ -298,7 +312,7 @@ fn lane(
                     runner,
                     &profile,
                     Some(&grep),
-                    false,
+                    args.headed,
                     out,
                 ));
             }
@@ -317,10 +331,8 @@ fn lane(
             continue;
         }
         let Some(root) = root.as_deref() else {
-            let message = "gpux-testkit runs inside a gpux checkout: run it from the repository \
-                           (the folder with `crates/gpux_conformance`) or a subfolder";
-            writeln!(out, "lane {lane}: {message}").ok();
-            tally.add(Tally::failure(format!("lane {lane}: {message}")));
+            writeln!(out, "lane {lane}: {OUTSIDE_CHECKOUT}").ok();
+            tally.add(Tally::failure(format!("lane {lane}: {OUTSIDE_CHECKOUT}")));
             continue;
         };
         let problems = prereq::check(lane, environment);
@@ -438,6 +450,17 @@ fn run_plan(
         let mut counted = match invocation.output {
             OutputKind::Libtest | OutputKind::Listing => results::tally_libtest(&result.output),
             OutputKind::ResultLines => results::tally_result_lines(&result.output),
+            OutputKind::Criterion => {
+                let mut benches = local_gpu::tally_benches(&result.output);
+                if result.success && benches.passed == 0 {
+                    benches.add(Tally::failure(format!(
+                        "lane {lane}: `{}` reported no benchmark results; see {}",
+                        invocation.command_line(),
+                        log.display()
+                    )));
+                }
+                benches
+            }
         };
         let reported_failure = counted.failed > 0;
         let mut missing = 0;

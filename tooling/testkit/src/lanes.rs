@@ -85,6 +85,8 @@ pub enum OutputKind {
     ResultLines,
     /// libtest's `--list` output: test names, not results.
     Listing,
+    /// Criterion's benchmark report: one result per benchmark.
+    Criterion,
 }
 
 /// One process a lane runs.
@@ -200,10 +202,10 @@ pub fn plan(lane: LaneId, selection: &Selection) -> Result<LanePlan, PlanError> 
                 .into(),
         )),
         LaneId::F => Err(not_wired(lane, "the iOS lane", "s8-apple-lanes")),
-        LaneId::G => Err(not_wired(
-            lane,
-            "the local real-GPU lane",
-            "s7-local-gpu-lane-and-docs",
+        LaneId::G => Err(PlanError(
+            "lane g runs lanes b, c and d and the benchmarks on the local GPU, not one cargo \
+             plan: `gpux-testkit lane g` runs them"
+                .into(),
         )),
     }
 }
@@ -211,7 +213,7 @@ pub fn plan(lane: LaneId, selection: &Selection) -> Result<LanePlan, PlanError> 
 fn not_wired(lane: LaneId, what: &str, sprint: &str) -> PlanError {
     PlanError(format!(
         "lane {lane} is not available yet: {what} arrives with sprint `{sprint}` of the \
-         gpux-cross-platform-test-lanes epic; run lanes a to e meanwhile"
+         gpux-cross-platform-test-lanes epic; run lanes a to e, or g on a GPU, meanwhile"
     ))
 }
 

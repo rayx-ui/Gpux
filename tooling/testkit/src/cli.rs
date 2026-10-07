@@ -5,7 +5,7 @@ use std::fmt;
 
 /// The usage text printed by `--help` and after usage errors.
 pub const USAGE: &str = "\
-usage: gpux-testkit lane <lane>... [--list] [--scene <id>] [--grep <pattern>]
+usage: gpux-testkit lane <lane>... [--list] [--scene <id>] [--grep <pattern>] [--headed]
        gpux-testkit web build [--verify]
        gpux-testkit web serve [--port <port>]
        gpux-testkit web e2e [--profile <profile>] [--grep <pattern>] [--headed]
@@ -19,12 +19,14 @@ lanes:
   d  real desktop windows
   e  Android on a device or emulator through adb (ANDROID_SERIAL picks the device)
   f  iOS (wired in a later sprint)
-  g  the local real GPU (wired in a later sprint)
+  g  the local real GPU: lane b's every spec, lanes c and d with probes only, and the
+     benchmarks, on the hardware adapter; refuses to run under CI
 
 options:
   --list            print the exact test selection without running it
   --scene <id>      select one conformance scene
   --grep <pattern>  select the tests whose names contain the pattern
+  --headed          show the browser of lanes b and g
 
 web (lane b's browser host):
   build    build the threaded `web_host` WASM app into target/gpux-web/dist;
@@ -108,6 +110,8 @@ pub struct LaneArgs {
     pub list: bool,
     /// The selection within each lane.
     pub selection: Selection,
+    /// Runs the browser specs of lanes B and G headed.
+    pub headed: bool,
 }
 
 /// Which tests of a lane to run.
@@ -267,10 +271,12 @@ fn parse_web(mut args: impl Iterator<Item = String>) -> Result<WebCommand, Usage
 fn parse_lane(mut args: impl Iterator<Item = String>) -> Result<LaneArgs, UsageError> {
     let mut lanes = Vec::new();
     let mut list = false;
+    let mut headed = false;
     let mut selection = Selection::default();
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--list" => list = true,
+            "--headed" => headed = true,
             "--scene" | "--grep" => {
                 let value = args
                     .next()
@@ -305,5 +311,6 @@ fn parse_lane(mut args: impl Iterator<Item = String>) -> Result<LaneArgs, UsageE
         lanes,
         list,
         selection,
+        headed,
     })
 }

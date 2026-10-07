@@ -396,7 +396,7 @@ pub fn list(
     environment: &dyn Environment,
     runner: &mut dyn Runner,
     profile: &str,
-    grep: &str,
+    grep: Option<&str>,
     out: &mut dyn Write,
 ) -> Result<usize, Tally> {
     let (pnpm, tools_node) = playwright_prerequisites(root, environment, profile)?;
@@ -405,7 +405,7 @@ pub fn list(
     let listing = Invocation {
         label: "web-list".into(),
         program: "pnpm".into(),
-        args: playwright(profile, Some(grep), &["--list"]),
+        args: playwright(profile, grep, &["--list"]),
         env: vec![("GPUX_DIST".into(), paths.dist.display().to_string())],
         output: OutputKind::Listing,
     };

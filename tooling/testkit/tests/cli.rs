@@ -24,6 +24,7 @@ fn lane_commands_parse_lanes_and_selection() {
                 scene: Some("paint-borders".into()),
                 grep: None,
             },
+            headed: false,
         })
     );
     assert_eq!(
@@ -35,6 +36,7 @@ fn lane_commands_parse_lanes_and_selection() {
                 scene: None,
                 grep: Some("platform".into()),
             },
+            headed: false,
         })
     );
 }
@@ -296,6 +298,13 @@ fn lanes_not_wired_yet_fail_clearly() {
             LaneId::B => assert!(result.unwrap_err().to_string().contains("web e2e")),
             // Lane E runs on a device through `android run`.
             LaneId::E => assert!(result.unwrap_err().to_string().contains("android run")),
+            // Lane G runs lanes B, C and D and the benchmarks through `gpux-testkit lane g`.
+            LaneId::G => assert!(
+                result
+                    .unwrap_err()
+                    .to_string()
+                    .contains("`gpux-testkit lane g` runs them")
+            ),
             _ => {
                 let error = result.unwrap_err().to_string();
                 assert!(
