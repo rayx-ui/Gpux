@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-cross-platform-test-lanes",
-  "revision": 73,
+  "revision": 78,
   "planRevision": 10,
   "specHashes": {
     "requirements": "9551e4f8e69bda2f78f8574dc9fcdc11cdf8ecb6c190384fb9ba0687e07e0a6b",
@@ -190,6 +190,15 @@
         }
       },
       "recordedAt": "2026-10-07T01:46:38Z"
+    },
+    "63387f831b7cf6380b8e3037b9db4e62de296b65b3ace30cad926833e7852857": {
+      "snapshot": {
+        "specHash": "c15d4fdace8901166ae5d0e4bf110b7a3d27227c4d2c7f397b577e348178ef1f",
+        "repositories": {
+          "gpux": "d63849c5d826d86d3ad7ab50461b969d92512569ffe129c3f5bca245ee0396f8"
+        }
+      },
+      "recordedAt": "2026-10-07T09:17:05Z"
     }
   },
   "checkResults": {
@@ -430,6 +439,107 @@
       "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s3-conformance-catalog-lanes-a-c-final-b33531b23402.log",
       "logSha256": "8b149c5fea2e79502c78144a49286b1732d54caf6e2ebdebed4fc9756e0e7458",
       "inputsHash": "c70fa1b0028298fc97c0da2a78dfb78b480b138f3f7eb8c1fff1227dc8636ca3"
+    },
+    "s4-testkit-and-windowed-lane/check-testkit-tests/final": {
+      "checkId": "check-testkit-tests",
+      "boundaryId": "s4-testkit-and-windowed-lane",
+      "phase": "final",
+      "batchId": "63387f831b7cf6380b8e3037b9db4e62de296b65b3ace30cad926833e7852857",
+      "definitionHash": "c20eae6a96e181e208949f90d5a3a7b42af48551148f04bd4d5914b48eb76970",
+      "basisHash": "c1e4c739754094dc02759e93b001b8d8980631eae7a7b3a68003163af748e9d3",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 22,
+      "durationSeconds": 4.002,
+      "recordedAt": "2026-10-07T09:16:32Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s4-testkit-and-windowed-lane-final-d216f99ed6af.log",
+      "logSha256": "e324ef90683fd44f6351b660e7ec549992625bd6b8b543a24ce70c60891d83b6",
+      "inputsHash": "1b0bd32446a16a7223c9a5a2e34fcc3d7c16a9e517fc5278022b1a3981240ac0"
+    },
+    "s4-testkit-and-windowed-lane/check-testkit-lane-list/final": {
+      "checkId": "check-testkit-lane-list",
+      "boundaryId": "s4-testkit-and-windowed-lane",
+      "phase": "final",
+      "batchId": "63387f831b7cf6380b8e3037b9db4e62de296b65b3ace30cad926833e7852857",
+      "definitionHash": "3f93d735c0a3b9ba890c4ef0e19acc0474e0c3d5a390fb13b42178ac024432c2",
+      "basisHash": "14763d5b0497be9723719ba5e0f8acb86f36b19da33ba7068759dbe65057859e",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.5395,
+      "recordedAt": "2026-10-07T09:16:33Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s4-testkit-and-windowed-lane-final-33d6db6da1a5.log",
+      "logSha256": "c1003e2e3b7bfb60f1c4a5a70df60b92253052cdde35723b931099be5d2aab4d",
+      "inputsHash": "c8f7f3604bbdb7c0689f411786ce479cc1ac13c74286355a4bd09ea87888810f"
+    },
+    "s4-testkit-and-windowed-lane/check-lane-d/final": {
+      "checkId": "check-lane-d",
+      "boundaryId": "s4-testkit-and-windowed-lane",
+      "phase": "final",
+      "batchId": "63387f831b7cf6380b8e3037b9db4e62de296b65b3ace30cad926833e7852857",
+      "definitionHash": "960663a020d4fde84ade3a47fbaffe0102952fd714d98c397ea28f310b32d163",
+      "basisHash": "4ed2a6e63282e95fcac2cdb59ca14f623ee2c685281ca6ce3d770b94ab4954da",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 40,
+      "durationSeconds": 19.6325,
+      "recordedAt": "2026-10-07T09:16:53Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s4-testkit-and-windowed-lane-final-9792a4b9bcde.log",
+      "logSha256": "860a246291f01718dd97295fe25be583aeb274b5ecb458cd4af5da81d837423f"
+    },
+    "s4-testkit-and-windowed-lane/check-macos-no-fork-api/final": {
+      "checkId": "check-macos-no-fork-api",
+      "boundaryId": "s4-testkit-and-windowed-lane",
+      "phase": "final",
+      "batchId": "63387f831b7cf6380b8e3037b9db4e62de296b65b3ace30cad926833e7852857",
+      "definitionHash": "79e236b8af49167d32b3873d320fa242fba808a797189b522b5d3941fd96dbc2",
+      "basisHash": "03c6ed615e9ca23b689e44bf37680a69f46f2b042416a097bb5abdc968dbf283",
+      "status": "passed",
+      "exitCode": 1,
+      "testCount": 0,
+      "durationSeconds": 0.0477,
+      "recordedAt": "2026-10-07T09:16:53Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s4-testkit-and-windowed-lane-final-a68dc8eef7ed.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "inputsHash": "16fe60fa9332d1c3bfbf337db4073a81ca2d3ee6149ad1bedbef354f330bd704"
+    },
+    "s4-testkit-and-windowed-lane/check-test-platform-pointer/final": {
+      "checkId": "check-test-platform-pointer",
+      "boundaryId": "s4-testkit-and-windowed-lane",
+      "phase": "final",
+      "batchId": "63387f831b7cf6380b8e3037b9db4e62de296b65b3ace30cad926833e7852857",
+      "definitionHash": "59991c07485b07095d3539ad75367bbaa4ca8f6945adad083d3f98fb6e5d7051",
+      "basisHash": "1ad8dc2fd8c9b434bf0801b47b3ff9462b7f65aad6237467bef01ddd04e667fb",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 5.3961,
+      "recordedAt": "2026-10-07T09:16:58Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s4-testkit-and-windowed-lane-final-118142b52705.log",
+      "logSha256": "b3dbad4464c4dd4ebad267862c8f5b4eac6f52a1a34727bae0c8442f85096328",
+      "inputsHash": "f8cf992b8662f8ff8bdb6a3fdd82ade20414834b3e3d1c6e0ceb2da468347f8e"
+    },
+    "s4-testkit-and-windowed-lane/check-host-capabilities/final": {
+      "checkId": "check-host-capabilities",
+      "boundaryId": "s4-testkit-and-windowed-lane",
+      "phase": "final",
+      "batchId": "63387f831b7cf6380b8e3037b9db4e62de296b65b3ace30cad926833e7852857",
+      "definitionHash": "0f38035d1cbedac17b58a3fff2646be5805d1c5a1d2728ee1d535581f719dd44",
+      "basisHash": "371bf0664bcb57ac608fe5d378c99cd1a267527edaabbccb0f7f5113fa6553b5",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 6.2229,
+      "recordedAt": "2026-10-07T09:17:05Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s4-testkit-and-windowed-lane-final-bc891fe789ee.log",
+      "logSha256": "239c6719ce70b88e9318e40b79b702006b4b06b6b918414b37f799d951901cfc",
+      "inputsHash": "16a82404d25e245da74c4232b602cd1de4721bc3ed97c048be8fa4960f739e6f"
     }
   },
   "reviews": {
@@ -1530,7 +1640,7 @@
       ]
     }
   ],
-  "handoffMarkdown": "gpux-zed-util darwin/process.rs handle (no adopt_raw_pid), import-guide replay rule; macOS check green (run 37594997142); test platform reports the last simulated pointer (hover on macOS); Step::When capability gating (Metal lacks shader effects/transitions); editable-text tests use secondary-a; bench test 300 ms setup; metal goldens from run 37596447510; macOS entries of test, lane-a, lane-c, lane-d enabled; test job --no-fail-fast.",
+  "handoffMarkdown": "CI run 37599450308: macOS check, test, lane A and lane C (metal) green. Hardened two tests that kept the test job red: the Windows grandchild-process test's pid-file deadline is 30 s (recorded replay rule), and gpux-color's allocation test bounds allocations per read instead of counting harness-thread noise.",
   "protectedPaths": {
     "gpux": {
       "gpux:.agentx/experiments/**": "32805d33f7172446b7e9cec5989ba59bd78648a57efc98bd96bbcac8fcac16a6",
