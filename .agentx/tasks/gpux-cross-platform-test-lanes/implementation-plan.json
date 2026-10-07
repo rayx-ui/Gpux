@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-cross-platform-test-lanes",
-  "revision": 7,
+  "revision": 8,
   "title": "Gpux-owned test lanes for every platform",
   "validationMode": "sprint",
   "repositories": [
@@ -891,6 +891,60 @@
         "Cargo.toml",
         "Cargo.lock"
       ]
+    },
+    {
+      "id": "check-macos-no-fork-api",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [
+        "MACCI-1"
+      ],
+      "descriptionMarkdown": "No source calls the fork-only `adopt_raw_pid(`, and the manifests carry no `[patch` section or `git+` source. `git grep` exits 1 when nothing matches.",
+      "argv": [
+        "git",
+        "grep",
+        "-nE",
+        "adopt_raw_pid\\(|^\\[patch|source = \"git\\+",
+        "--",
+        "crates",
+        "Cargo.toml",
+        "Cargo.lock"
+      ],
+      "expected": {
+        "exitCode": 1,
+        "failurePattern": "\\A\\Z"
+      },
+      "inputs": [
+        "crates/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-macos-util-compiles",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [
+        "MACCI-1"
+      ],
+      "descriptionMarkdown": "`gpux-zed-util` and its test targets, including the new `command::darwin::process` group, type-check for macOS from any host.",
+      "argv": [
+        "cargo",
+        "check",
+        "--target",
+        "aarch64-apple-darwin",
+        "-p",
+        "gpux-zed-util",
+        "--all-targets"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "inputs": [
+        "crates/util/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
     }
   ],
   "finalCheckIds": [
@@ -1345,7 +1399,7 @@
         {
           "id": "t15-ci-lane-d",
           "title": "CI for lane D",
-          "descriptionMarkdown": "Add the `lane-d` job.\n\n**`ubuntu-24.04`:**\n- Xvfb, xdotool and lavapipe, with the WAYLAND_DISPLAY variable unset;\n- a `weston --backend=headless` Wayland attempt, whose outcome is recorded in `docs/testing.md`.\n\n**`windows-2025`:** if `SendInput` is unavailable in the hosted session, fall back to in-app injection and record it.\n\n**`macos-15`:** disabled until the sibling epic lands.\n\nFailure artifacts are uploaded.",
+          "descriptionMarkdown": "Add the `lane-d` job.\n\n**`ubuntu-24.04`:**\n- Xvfb, xdotool and lavapipe, with the WAYLAND_DISPLAY variable unset;\n- a `weston --backend=headless` Wayland attempt, whose outcome is recorded in `docs/testing.md`.\n\n**`windows-2025`:** if `SendInput` is unavailable in the hosted session, fall back to in-app injection and record it.\n\n**`macos-15`:** enabled, with in-app input injection (hosted macOS grants no accessibility permission for CGEvent posting).\n\nFailure artifacts are uploaded.",
           "criterionIds": [
             "D-2"
           ],
@@ -1361,6 +1415,27 @@
               "repositoryId": "gpux",
               "path": ".github/workflows/ci.yml"
             }
+          ]
+        },
+        {
+          "id": "t31-macos-build-and-ci",
+          "title": "Repair the macOS build and enable the macOS CI entries",
+          "descriptionMarkdown": "Owner decision 6: every lane works on macOS in this epic.\n\n- Replace `Child::adopt_raw_pid` in `crates/util/src/command/darwin.rs` with a gpux-owned handle in `darwin/process.rs` (from `ToFix/02`), with a new `command::darwin::process` test group, and record the replay rule in the Zed import guide.\n- Fix every further error the `check (macos-15)` job reports, at its source.\n- Enable the macOS entries of `test`, `lane-a`, `lane-c` (`metal`, goldens from the macOS `update-goldens` dispatch) and `lane-d`, and get them green.",
+          "criterionIds": [
+            "MACCI-1",
+            "MACCI-2",
+            "M-2"
+          ],
+          "designIds": [
+            "d-macos-build",
+            "d-ci"
+          ],
+          "dependsOn": [
+            "t15-ci-lane-d"
+          ],
+          "checkIds": [
+            "check-macos-no-fork-api",
+            "check-macos-util-compiles"
           ]
         }
       ]
@@ -1684,10 +1759,9 @@
         {
           "id": "t27-macos-desktop-lanes",
           "title": "Lanes A, C and D on macOS",
-          "descriptionMarkdown": "This needs the sibling epic `macos-only-metal-port-and-ci-repair` to have landed. Then:\n- run `gpux-testkit lane a c d` on a Mac (lane C through `MetalHeadlessRenderer`, lane D in AppKit windows with in-app injection);\n- commit the `metal` goldens;\n- enable and green the macOS entries of the `test`, `lane-a`, `lane-c` and `lane-d` CI jobs.\n\nWithout a Mac, use the macOS CI jobs and their artifacts as the evidence.",
+          "descriptionMarkdown": "Run `gpux-testkit lane a c d` on macOS (M-1): lane C through `MetalHeadlessRenderer` with the committed `metal` goldens, lane D in AppKit windows with in-app injection. Without a Mac, a macOS CI job that runs the testkit is the evidence.",
           "criterionIds": [
-            "M-1",
-            "M-2"
+            "M-1"
           ],
           "designIds": [
             "d-windowed-host",

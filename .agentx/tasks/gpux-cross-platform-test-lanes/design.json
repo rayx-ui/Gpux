@@ -539,6 +539,28 @@
           "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-06-gpui-positioning-scroll-fixed-containing-block.md"
         }
       ]
+    },
+    {
+      "id": "d-macos-build",
+      "requirementIds": [
+        "MACCI",
+        "MACOS"
+      ],
+      "descriptionMarkdown": "The macOS build is repaired inside this epic (owner decision 6), starting from the handoff in `ToFix/02-macos-zed-util-process-reaping.md`.\n\n- **Process reaping.** `darwin.rs` keeps upstream's `posix_spawnp` path (CLOEXEC defaults, exception-port and `SIGPIPE` resets, `chdir`, child-environment PATH resolution) and swaps only `smol::process::Child::adopt_raw_pid` for a gpux-owned `Process` handle in `darwin/process.rs`. The handle reaps each pid exactly once under one mutex: `waitid(..., WEXITED | WNOWAIT)` waits without reaping, then `waitpid(WNOHANG)` reaps under the lock, so `kill` never signals a recycled pid; dropping an unreaped child kills it when `kill_on_drop` is set and reaps it on a background thread.\n- **Further macOS errors** found by the CI `check (macos-15)` job (or a local `--target aarch64-apple-darwin` check) are fixed at their source, never by excluding crates or gating behaviour away.\n- **CI.** This replaces the wait for the sibling epic in `d-ci`: the macOS entries of `test`, `lane-a`, `lane-c` (`metal`) and `lane-d` are enabled. The `metal` goldens come from the macOS lane C job's `update-goldens` dispatch artifacts.",
+      "invariantsMarkdown": "- Dependencies stay on crates.io: no git dependencies and no `[patch]`.\n- The upstream `darwin.rs` diff stays minimal and is recorded as a replay rule for Zed imports.\n- Every pid is reaped exactly once; no zombie outlives its `Child`.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/util/src/command/darwin.rs",
+          "symbol": "spawn_posix_spawn"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-crates-io-packaging.md"
+        }
+      ]
     }
   ],
   "memoryDecisionsConsidered": [
