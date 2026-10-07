@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/renderer/wgpu
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-05T23:00:00+02:00
+  updated: 2026-10-07T04:30:00+02:00
   topics:
     - wgpu-renderer
     - wgsl
@@ -38,8 +38,11 @@ Browser backends: startup prefers WebGPU and retries with WebGL2. WebGPU moves p
 
 Ordinary presentation still renders through an intermediate retained-scene texture plus a pass-through pass, which snapshot transitions depend on.
 
+Headless rendering (with `test-support` or `bench-support`, native only) is gpux's port of Zed #64718/#64842: `WgpuResources.surface` is optional, and `WgpuHeadlessRenderer` wraps a surface-free `WgpuRenderer` that shares the windowed pipelines, effects and `encode_scene_to_view`, rendering into per-size `COPY_SRC` targets in `Bgra8Unorm` or `Rgba8Unorm`. Captures composite over opaque black with 4x path sampling on every adapter. `WgpuContext::new_headless` caches one device per `HeadlessAdapterSelection` (`GPUX_WGPU_ADAPTER=software|hardware|<name>`, honoured only by headless contexts) in a never-dropped static with one `DeviceErrorState`; each headless renderer observes errors from the generation it joined at, while windowed renderers keep their own uncaptured-error callback. `gpui_platform::current_headless_renderer()` returns it on Linux (Vulkan|GL, lavapipe without a GPU) and Windows (DX12, WARP without a GPU); macOS keeps Metal. `PlatformHeadlessRenderer::effect_capabilities()`/`gpu_specs()` reach test windows, and `TestAppContext::build_with_renderer` plus `VisualTestContext::capture_screenshot()` give tests real pixels.
+
 ## Backlinks
 
+- [Headless renderer tests](../../../../../crates/gpui_wgpu/tests/headless_renderer.rs)
 - [WGPU renderer](../../../../../crates/gpui_wgpu/src/wgpu_renderer.rs)
 - [WGPU context](../../../../../crates/gpui_wgpu/src/wgpu_context.rs)
 - [Shaders](../../../../../crates/gpui_wgpu/src/shaders.wgsl)

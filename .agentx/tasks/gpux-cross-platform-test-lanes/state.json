@@ -1,12 +1,12 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-cross-platform-test-lanes",
-  "revision": 16,
-  "planRevision": 4,
+  "revision": 32,
+  "planRevision": 5,
   "specHashes": {
     "requirements": "53861ccc5632389bd08c215f74dd4a5a1b2ff22db7eb169be37e01834bc1a02e",
-    "design": "c18175c81c75b5f39020d43f81765f461edafa18c805faa009701ee07edbb227",
-    "plan": "cc01f93c08a798cefe0fac027c9b9a5b6fad0b5b3bffd4ff6a6796e141b6945b"
+    "design": "dfe54110d358295ad8d880606a229c93291b2d51afb5eb442e0e087efccf3dc8",
+    "plan": "bc3e528734ca1f957bae374a25b13aac58a52002f20f0e40d095ec09bded55ab"
   },
   "tasks": {
     "t01-bundled-test-text": {
@@ -34,13 +34,22 @@
       ]
     },
     "t05-headless-renderer-port": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
+      ]
     },
     "t06-screenshot-test-contexts": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
+      ]
     },
     "t07-port-provenance": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
+      ]
     },
     "t08-conformance-crate-and-compare": {
       "status": "pending"
@@ -118,6 +127,15 @@
         }
       },
       "recordedAt": "2026-10-07T00:14:21Z"
+    },
+    "4424ba7c38d83386b4e5c6ec137a288e95e8e4f677569e53469395b787eff02c": {
+      "snapshot": {
+        "specHash": "f316308948b069903c47ab7fa2da79e4484be3d5322b5f401e5c61f244760cb2",
+        "repositories": {
+          "gpux": "2f7862daa4419176ada81e6a8de1bee1ff552e53d2e26bca85c8c1cbc84cc8cb"
+        }
+      },
+      "recordedAt": "2026-10-07T00:42:10Z"
     }
   },
   "checkResults": {
@@ -205,6 +223,40 @@
       "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s1-test-platform-foundations-final-02cea2de7f58.log",
       "logSha256": "1c556d3e807238979502807cfcf23caa25497936dab65d4e3fb5336ce2235393",
       "inputsHash": "865e30e14e18c92d5776ad99d1362767f28fc97d7560471a2642a7b0d6681b22"
+    },
+    "s2-wgpu-headless-renderer/check-headless-renderer/final": {
+      "checkId": "check-headless-renderer",
+      "boundaryId": "s2-wgpu-headless-renderer",
+      "phase": "final",
+      "batchId": "4424ba7c38d83386b4e5c6ec137a288e95e8e4f677569e53469395b787eff02c",
+      "definitionHash": "e1c3b8000f36d96e152630062073610458ecb84edc6fdbe5e92817900eab7739",
+      "basisHash": "f72034d224913478648a012f72e3b2cb6a9132dc61761232627e7fc5e9710a2b",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 9,
+      "durationSeconds": 6.2793,
+      "recordedAt": "2026-10-07T00:42:05Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s2-wgpu-headless-renderer-final-5c24731b0758.log",
+      "logSha256": "6b56399658b073f2e5128c58a12c675c83a0a4d17925c0d034f1da113919e86c",
+      "inputsHash": "e18f15d2a12235d8924cd247617d6aae747c58fdcc1c8ebd465ec6d1e2a05f49"
+    },
+    "s2-wgpu-headless-renderer/check-screenshot-context/final": {
+      "checkId": "check-screenshot-context",
+      "boundaryId": "s2-wgpu-headless-renderer",
+      "phase": "final",
+      "batchId": "4424ba7c38d83386b4e5c6ec137a288e95e8e4f677569e53469395b787eff02c",
+      "definitionHash": "873fecf579a33f5acbc28d375a0bdc53cc34f5dbd19aa3c3d24c2d1a41649c2d",
+      "basisHash": "8fe1a8ce6263ee9843b0770b9e7ab0d941073ee12e8a45ac25703df6a828b577",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 6,
+      "durationSeconds": 3.7597,
+      "recordedAt": "2026-10-07T00:42:09Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s2-wgpu-headless-renderer-final-c652108ace2f.log",
+      "logSha256": "27811aa8f7fcf44610567785d12e2cdc7b940bbc1f92fbdfbe36ce5c944644ee",
+      "inputsHash": "2bb228ced320e6344b99606ad24c24637aeebc390fcd4d09d6e683410d2a9ebe"
     }
   },
   "reviews": {
@@ -468,6 +520,171 @@
         "S1-F3"
       ],
       "recordedAt": "2026-10-07T00:15:12Z"
+    },
+    "s2-wgpu-headless-renderer": {
+      "reviewerId": "independent-reviewer-s2-c41e",
+      "snapshotId": "4424ba7c38d83386b4e5c6ec137a288e95e8e4f677569e53469395b787eff02c",
+      "criterionIds": [
+        "HEADLESS-1",
+        "HEADLESS-2",
+        "HEADLESS-3",
+        "HEADLESS-4",
+        "HEADLESS-5"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/wgpu_context.rs",
+          "kind": "source",
+          "criterionIds": [
+            "HEADLESS-1",
+            "HEADLESS-2"
+          ],
+          "sha256": "f3419e443ce591d3837ccd02fb6b35062512063e8556dd795db590c52acd5a10"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/wgpu_renderer.rs",
+          "kind": "source",
+          "criterionIds": [
+            "HEADLESS-1",
+            "HEADLESS-2",
+            "HEADLESS-3"
+          ],
+          "sha256": "6ddbd1de073b65c74e59808671ccbbf1e542c6c9d19d79d3ee1e7ec616b90186"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/gpui_wgpu.rs",
+          "kind": "source",
+          "criterionIds": [
+            "HEADLESS-1",
+            "HEADLESS-2"
+          ],
+          "sha256": "c782638c97c2b11873ef17022c5af6cdb96e2f615742355ffee803bd3a0bb61d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/src/gpui_platform.rs",
+          "kind": "source",
+          "criterionIds": [
+            "HEADLESS-1",
+            "HEADLESS-4"
+          ],
+          "sha256": "76aa12f2b6266b884877124164307e010933eceda4b2c9d47ea1a3841be1205a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/platform.rs",
+          "kind": "source",
+          "criterionIds": [
+            "HEADLESS-3"
+          ],
+          "sha256": "f63f79b647ccb8c89cccd8951ed4a84592b056857167530f9e0a4e1ea1e3c063"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/platform/test/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "HEADLESS-3",
+            "HEADLESS-4"
+          ],
+          "sha256": "06550db2cc3f3c7a19473f55e8bee4c9a43c3efbcb1981b13ca20bfd302947f3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/app/test_context.rs",
+          "kind": "source",
+          "criterionIds": [
+            "HEADLESS-4"
+          ],
+          "sha256": "15187df0ff389b0bb7eb3e7850d628ca08f21bc50fe60537212a941648e7db36"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_apple/src/metal_renderer.rs",
+          "kind": "source",
+          "criterionIds": [
+            "HEADLESS-3",
+            "HEADLESS-4"
+          ],
+          "sha256": "b0a45ff5db37d09c859995ca875ea33e9334c77bd7ab1c3f681ca88829897798"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/history/zed-imports.tsv",
+          "kind": "source",
+          "criterionIds": [
+            "HEADLESS-5"
+          ],
+          "sha256": "7519db9ddd35b794db9bd46f7b9578bf98688cfcd0209179be959eadb4cf9361"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/history/upstream-provenance.md",
+          "kind": "source",
+          "criterionIds": [
+            "HEADLESS-5"
+          ],
+          "sha256": "7c4a1bd19c2fc5c435c3c490f54ca8a98cdb2e8cb451bc4c622a2802366a2988"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/references/update-from-zed-gpui-closure.md",
+          "kind": "source",
+          "criterionIds": [
+            "HEADLESS-5"
+          ],
+          "sha256": "c70cfc6acdb57ae2d0026bfe0a8972f965eb8e044398628608595db7d1059064"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/tests/headless_renderer.rs",
+          "kind": "test",
+          "criterionIds": [
+            "HEADLESS-1",
+            "HEADLESS-2"
+          ],
+          "sha256": "ff3fb5c875ab51fd161aefd38be2883e6ced7e7caf759eeac23354e0712e6191"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/headless_screenshot_context.rs",
+          "kind": "test",
+          "criterionIds": [
+            "HEADLESS-3",
+            "HEADLESS-4"
+          ],
+          "sha256": "4ad83dc905d2a1a9bbd57d58c1c8c87fa06da5ed718a4e949fc85987bbdf20ca"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s2-wsl-lavapipe-2.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "HEADLESS-1",
+            "HEADLESS-2"
+          ],
+          "sha256": "34e5f2d348ed60f9d488f96585c43651873e6a96876788cb5da24e8fd6fd7846"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/references/update-from-zed-pr.md",
+          "kind": "source",
+          "criterionIds": [
+            "HEADLESS-5"
+          ],
+          "sha256": "4e3a1fdb1acb35489f4ae2c23be1691a8efa5e935f08b2930e778f4299257a16"
+        }
+      ],
+      "summaryMarkdown": "Passed. Both findings are resolved and verified against the repair delta (bab170e..5ef0c93).\n\n- **S2-F1:** one `DeviceErrorState` per cached headless device; each headless renderer observes errors from the point it joined, and windowed error handling is unchanged.\n- **S2-F2:** the fallback for a renderer without effects now runs on every host.\n- **Port note:** the `port:` ledger convention is now described in `update-from-zed-pr.md`, in step 3 of the closure guide and in the upstream-sync memory.\n\nEverything that held in the first review still holds: windowed surface, formats and recovery; `vendor/wgpu` untouched; DX12 on Windows and Vulkan|GL on Linux; non-sRGB opaque targets with 4x path sampling; the adapter override applies only to the headless context; the static device cache is never dropped; bad target sizes return errors; Metal keeps effects false; the provenance is complete. Checks: headless_renderer 9/9 (WARP and WSL lavapipe), headless_screenshot_context 6/6.",
+      "findingIds": [
+        "S2-F1",
+        "S2-F2"
+      ],
+      "recordedAt": "2026-10-07T00:43:31Z"
     }
   },
   "checkpoints": {
@@ -478,6 +695,14 @@
       },
       "reviewHash": "fc84d103c2015f67482a870091911004b0ee8160d95be8e01b31f017d2e2e8e4",
       "recordedAt": "2026-10-07T00:15:45Z"
+    },
+    "s2-wgpu-headless-renderer": {
+      "snapshotId": "4424ba7c38d83386b4e5c6ec137a288e95e8e4f677569e53469395b787eff02c",
+      "commits": {
+        "gpux": "5ef0c93c75f22752c6a03e85c8133b42a8c6cdca"
+      },
+      "reviewHash": "8fb22f127179a3406bc13688f9bcd6066ea45e59af3d0b1975fb9caf68cbb6b6",
+      "recordedAt": "2026-10-07T00:43:46Z"
     }
   },
   "findings": [
@@ -546,6 +771,54 @@
           "symbol": "t02-executor-clock"
         }
       ]
+    },
+    {
+      "id": "S2-F1",
+      "criterionIds": [
+        "HEADLESS-1"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Shared headless device routes GPU errors only to the newest renderer.**\n\n**Expected:** each renderer on the per-process cached headless device (#64842) sees the GPU errors its own work raises. Upstream does this: #64718 installs one `DeviceErrorState` per device (one lost callback, one uncaptured-error callback), and #64842 starts each new renderer at `current_generation()` because the device is shared.\n\n**Observed:** `WgpuRenderer::from_target` (`crates/gpui_wgpu/src/wgpu_renderer.rs` ~1829) calls `device.on_uncaptured_error` once for every renderer. wgpu keeps only one handler per device: `error_sink.uncaptured_handler = Some(handler)` in `vendor/wgpu/wgpu/src/backend/wgpu_core.rs:1840`. So on the device that `WgpuContext::new_headless` caches (`wgpu_context.rs:245`), only the most recently created `WgpuHeadlessRenderer` gets errors in its `last_error`. Two cases follow:\n- With two windows in one `build_with_renderer` context, window A's validation errors make window B's next render fail.\n- Once the newest renderer is dropped (a closed window or a finished test), errors from every remaining renderer go to a `last_error` that nothing reads. `render_scene_to_image` then returns `Ok` with a possibly corrupt image.\n\nThe commit body and provenance list the optional-surface adaptation but do not mention this dropped upstream behaviour.\n\n**Repair:**\n1. Install the uncaptured-error handler once per cached headless device in `create_headless`, and share it through the context the way `device_lost` is shared.\n2. Have each surface-free renderer read it with a generation counter that starts at the current generation, like Zed's `DeviceErrorState::observe_error` and `current_generation`.\n3. Skip the per-renderer `on_uncaptured_error` for surface-free renderers, so windowed behaviour stays unchanged. Extending this to windowed renderers would need a design amendment.\n4. Add a regression test, either in the `headless_renderer` group or as a `gpui_wgpu` unit test with device access. It must show that an error raised after a later renderer was created and dropped still fails the earlier renderer's next render, and that a renderer joining the device does not report errors raised before it joined.\n\n**Resolved (49e7de8):**\n- `create_headless` installs one `DeviceErrorState` per cached device (`WgpuContext::shared_errors`, `None` for windowed contexts).\n- `from_target` installs its own callback only when it has a surface, so windowed renderers are unchanged.\n- `WgpuHeadlessRenderer` starts from `current_generation()` before building its pipelines, and `check_gpu_errors` (device lost, then `observe_error`) runs before every render and after readback.\n- The new regression test covers all three cases: a later renderer created and dropped, a renderer joining after an error, and an error that reaches both renderers. It passes on WARP (9/9) and on WSL lavapipe (9/9).",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/wgpu_context.rs",
+          "symbol": "DeviceErrorState"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/wgpu_renderer.rs",
+          "symbol": "WgpuHeadlessRenderer::check_gpu_errors"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/tests/headless_renderer.rs",
+          "symbol": "every_renderer_on_a_shared_device_observes_its_gpu_errors"
+        }
+      ],
+      "boundaryId": "s2-wgpu-headless-renderer"
+    },
+    {
+      "id": "S2-F2",
+      "criterionIds": [
+        "HEADLESS-3"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**No test runs the unsupported-effect fallback on Windows or Linux.**\n\n**Expected:** HEADLESS-3 needs headless tests showing two things: effect frames render when the renderer reports support, and they take their documented fallback when it does not.\n\n**Observed:** `effect_frames_render_when_the_renderer_supports_them` (`crates/gpui/tests/headless_screenshot_context.rs:171`) branches on the reported capability. On Windows and Linux the wgpu renderer always reports support, so the fallback branch (line 202) runs only on macOS Metal. This sprint cannot run that host, and its CI lane is not green yet. The unsupported half of the criterion therefore has no test that has actually run.\n\n**Repair:** add a test to the same group that builds a context with `TestAppContext::build_with_renderer`. Its factory wraps `gpui_platform::current_headless_renderer()` in a test renderer that delegates `render_scene_to_image`, `render_scene` and `sprite_atlas` but keeps the default `effect_capabilities()`. Assert that the window reports no effect capabilities and that the `layer_blur` capture equals the sharp capture. The fallback then runs on every host.\n\n**Resolved (2de8686):** the new test wraps `current_headless_renderer()` in a renderer that keeps the default (empty) capabilities and skips effect batches. Metal does the same (`PrimitiveBatch::VisualEffects(_) => true`). Delegating alone would not be enough, because GPUI emits effect primitives whatever the capabilities say and the renderer decides whether to draw them.\n\nThe test asserts that the window reports no capabilities, that GPUI emitted exactly one effect primitive (zero without the blur), and that the blurred capture equals the sharp capture pixel for pixel. It runs on every host (6/6 on Windows).",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/headless_screenshot_context.rs",
+          "symbol": "effect_frames_take_their_fallback_when_the_renderer_lacks_effects"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_apple/src/metal_renderer.rs"
+        }
+      ],
+      "boundaryId": "s2-wgpu-headless-renderer"
     }
   ],
   "handoffMarkdown": "",
