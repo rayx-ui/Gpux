@@ -1,7 +1,7 @@
-//! What tests observe matches what the window paints: devtools snapshots (and the semantic
-//! locators reading them) report fixed and sticky elements at the bounds they paint and
-//! hit-test at, and test windows record the accessibility tree updates a platform adapter would
-//! receive.
+//! What tests and assistive technology observe matches what the window paints: devtools
+//! snapshots (and the semantic locators reading them) and accessibility nodes report fixed and
+//! sticky elements at the bounds they paint and hit-test at, and test windows record the
+//! accessibility tree updates a platform adapter would receive.
 
 use gpux::{
     AnyWindowHandle, Context, IntoElement, Render, Role, ScrollHandle, TestAppContext,
@@ -47,6 +47,8 @@ impl Render for Positioned {
                 .child(
                     div()
                         .id("badge")
+                        .role(Role::Button)
+                        .aria_label("Badge")
                         .fixed()
                         .top(px(10.))
                         .right(px(10.))
@@ -115,6 +117,46 @@ fn sticky_elements_report_their_stuck_bounds(cx: &mut TestAppContext) {
         .unwrap();
     assert_eq!(bounds(&mut vcx, "header-second"), [20., 45., 200., 30.]);
     assert_eq!(bounds(&mut vcx, "header-first"), [20., 15., 200., 30.]);
+}
+
+#[gpux::test]
+fn fixed_elements_expose_where_they_paint_to_accessibility(cx: &mut TestAppContext) {
+    let (mut vcx, clicks) = open_positioned(cx);
+    let window: AnyWindowHandle = vcx.window_handle();
+    vcx.locator(Query::id("scroller"))
+        .scroll(point(px(0.), px(-100.)))
+        .unwrap();
+
+    vcx.activate_accessibility(window)
+        .expect("the test window has an accessibility adapter");
+    vcx.update(|window, _| window.refresh());
+    vcx.run_until_parked();
+    let updates = vcx.take_accessibility_updates(window);
+    let (badge, node) = updates
+        .iter()
+        .rev()
+        .flat_map(|update| update.nodes.iter())
+        .find(|(_, node)| node.label() == Some("Badge"))
+        .expect("the badge has an accessibility node");
+    // The badge paints at (170, 40) whatever the scroll offset; at scale 1 its AccessKit
+    // bounds are the same physical pixels.
+    let bounds = node.bounds().expect("the badge node has bounds");
+    assert_eq!(
+        (bounds.x0, bounds.y0, bounds.x1, bounds.y1),
+        (170., 40., 210., 60.)
+    );
+
+    // An assistive-technology click lands where the badge paints.
+    vcx.dispatch_accessibility_action(
+        window,
+        accesskit::ActionRequest {
+            action: accesskit::Action::Click,
+            target_tree: accesskit::TreeId::ROOT,
+            target_node: *badge,
+            data: None,
+        },
+    );
+    assert_eq!(clicks.get(), 1);
 }
 
 struct Labelled;

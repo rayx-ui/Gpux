@@ -655,13 +655,7 @@ impl<E: Element> Drawable<E> {
                         if let Some(role) = self.element.a11y_role() {
                             let node_id = global_id.accesskit_node_id();
                             let mut node = accesskit::Node::new(role);
-                            let scale = window.scale_factor();
-                            node.set_bounds(accesskit::Rect {
-                                x0: (bounds.origin.x.0 * scale) as f64,
-                                y0: (bounds.origin.y.0 * scale) as f64,
-                                x1: ((bounds.origin.x.0 + bounds.size.width.0) * scale) as f64,
-                                y1: ((bounds.origin.y.0 + bounds.size.height.0) * scale) as f64,
-                            });
+                            node.set_bounds(a11y_rect(bounds, window.scale_factor()));
                             self.element.write_a11y_info(&mut node);
                             window.a11y.node_bounds.insert(node_id, bounds);
                             pushed_a11y_node = window.a11y.nodes.push(node_id, node);
@@ -699,6 +693,22 @@ impl<E: Element> Drawable<E> {
                     cx,
                 );
                 let hitbox_end = window.next_frame.hitboxes.len();
+                // Fixed and sticky divs paint and hit-test at visual bounds that differ from
+                // their layout bounds; devtools and accessibility report where they paint.
+                let visual_bounds = window.take_visual_bounds(devtools_node_id);
+                if let Some(visual_bounds) = visual_bounds
+                    && pushed_a11y_node
+                    && let Some(global_id) = global_id.as_ref()
+                {
+                    let scale = window.scale_factor();
+                    window
+                        .a11y
+                        .node_bounds
+                        .insert(global_id.accesskit_node_id(), visual_bounds);
+                    if let Some(node) = window.a11y.nodes.current_node_mut() {
+                        node.set_bounds(a11y_rect(visual_bounds, scale));
+                    }
+                }
                 window.record_devtools_element(
                     devtools_node_id,
                     parent_devtools_node_id,
@@ -706,7 +716,7 @@ impl<E: Element> Drawable<E> {
                     type_name::<E>(),
                     global_id.as_ref(),
                     source,
-                    bounds,
+                    visual_bounds.unwrap_or(bounds),
                     hitbox_start..hitbox_end,
                 );
                 window.next_frame.dispatch_tree.pop_node();
@@ -1098,6 +1108,16 @@ impl Element for Empty {
 }
 
 #[inline(never)]
+/// `bounds` in the physical pixels AccessKit expects.
+fn a11y_rect(bounds: Bounds<Pixels>, scale: f32) -> accesskit::Rect {
+    accesskit::Rect {
+        x0: (bounds.origin.x.0 * scale) as f64,
+        y0: (bounds.origin.y.0 * scale) as f64,
+        x1: ((bounds.origin.x.0 + bounds.size.width.0) * scale) as f64,
+        y1: ((bounds.origin.y.0 + bounds.size.height.0) * scale) as f64,
+    }
+}
+
 fn prepare_element_id(element_id: ElementId, window: &mut Window) -> GlobalElementId {
     window.element_id_stack.push(element_id);
     window.element_id_stack.global_id()
