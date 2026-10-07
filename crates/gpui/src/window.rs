@@ -1120,6 +1120,9 @@ pub(crate) struct WindowFrame {
     pub(crate) devtools_property_setters: FxHashMap<usize, Vec<DevtoolsPropertySetter>>,
     pub(crate) devtools_node_stack: Vec<usize>,
     pub(crate) next_devtools_node_id: usize,
+    /// Visual bounds that elements reported for their own devtools node while prepainting,
+    /// when they paint somewhere other than their layout bounds (fixed and sticky divs).
+    devtools_visual_bounds: Vec<(usize, Bounds<Pixels>)>,
     #[cfg(any(feature = "inspector", debug_assertions))]
     pub(crate) next_inspector_instance_ids: FxHashMap<Rc<crate::InspectorElementPath>, usize>,
     #[cfg(any(feature = "inspector", debug_assertions))]
@@ -1188,6 +1191,7 @@ impl WindowFrame {
             devtools_property_setters: FxHashMap::default(),
             devtools_node_stack: Vec::new(),
             next_devtools_node_id: 0,
+            devtools_visual_bounds: Vec::new(),
 
             #[cfg(any(feature = "inspector", debug_assertions))]
             next_inspector_instance_ids: FxHashMap::default(),
@@ -1226,6 +1230,7 @@ impl WindowFrame {
         self.devtools_property_setters.clear();
         self.devtools_node_stack.clear();
         self.next_devtools_node_id = 0;
+        self.devtools_visual_bounds.clear();
 
         #[cfg(any(feature = "inspector", debug_assertions))]
         {
@@ -4832,6 +4837,15 @@ impl Window {
             .dispatch_tree
             .parent_node_id(node_id)
             .map(DispatchNodeId::as_usize);
+        let bounds = match self
+            .next_frame
+            .devtools_visual_bounds
+            .iter()
+            .position(|(id, _)| *id == devtools_node_id)
+        {
+            Some(index) => self.next_frame.devtools_visual_bounds.swap_remove(index).1,
+            None => bounds,
+        };
         let dispatch_node = self.next_frame.dispatch_tree.node(node_id);
         self.next_frame.devtools_node_indices[devtools_node_id] =
             self.next_frame.devtools_nodes.len();
@@ -4851,6 +4865,17 @@ impl Window {
             focused: dispatch_node.focus_id.is_some()
                 && dispatch_node.focus_id == self.next_frame.focus,
         });
+    }
+
+    /// Reports where the element being prepainted paints and hit-tests when that differs from
+    /// its layout bounds (fixed and sticky divs), so its devtools snapshot node, and the
+    /// semantic locators that read it, use the visual bounds.
+    pub(crate) fn set_devtools_visual_bounds(&mut self, bounds: Bounds<Pixels>) {
+        if let Some(devtools_node_id) = self.active_devtools_node_id() {
+            self.next_frame
+                .devtools_visual_bounds
+                .push((devtools_node_id, bounds));
+        }
     }
 
     pub(crate) fn push_devtools_node(&mut self) -> (usize, Option<usize>) {

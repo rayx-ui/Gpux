@@ -75,6 +75,8 @@ pub(crate) struct TestWindowState {
     external_drag_files: Vec<(PathBuf, bool)>,
     start_external_drag_result: bool,
     a11y_callbacks: Option<A11yCallbacks>,
+    /// Accessibility tree updates sent to the platform adapter, oldest first.
+    pub(crate) a11y_updates: Vec<accesskit::TreeUpdate>,
     pub(crate) calls: Vec<TestWindowCall>,
 }
 
@@ -151,6 +153,7 @@ impl TestWindow {
             external_drag_files: Vec::new(),
             start_external_drag_result: false,
             a11y_callbacks: None,
+            a11y_updates: Vec::new(),
             calls: Vec::new(),
         })))
     }
@@ -406,6 +409,10 @@ impl PlatformWindow for TestWindow {
 
     fn set_input_handler(&mut self, input_handler: PlatformInputHandler) {
         self.0.lock().input_handler = Some(input_handler);
+    }
+
+    fn a11y_tree_update(&self, tree_update: accesskit::TreeUpdate) {
+        self.0.lock().a11y_updates.push(tree_update);
     }
 
     fn a11y_init(&self, callbacks: A11yCallbacks) {

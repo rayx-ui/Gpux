@@ -711,6 +711,15 @@ impl TestAppContext {
         self.test_window(window).simulate_a11y_activation()
     }
 
+    /// Takes the accessibility tree updates the window sent to its platform adapter since the
+    /// last call, oldest first. Activate accessibility and draw a frame to produce them.
+    pub fn take_accessibility_updates(
+        &self,
+        window: AnyWindowHandle,
+    ) -> Vec<accesskit::TreeUpdate> {
+        std::mem::take(&mut self.test_window(window).0.lock().a11y_updates)
+    }
+
     /// Dispatch an AccessKit action through the platform adapter used by a test window.
     pub fn dispatch_accessibility_action(
         &self,

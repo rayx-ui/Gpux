@@ -2759,6 +2759,9 @@ impl Interactivity {
                 }
                 let bounds = positioned_bounds.visual_bounds;
                 let position = style.position;
+                if matches!(position, Position::Fixed | Position::Sticky) {
+                    window.set_devtools_visual_bounds(bounds);
+                }
                 let retain_style = !self.has_dynamic_paint_refinement();
 
                 if let Some(element_state) = element_state.as_mut() {
