@@ -82,7 +82,7 @@ winget install --id Microsoft.VCRedist.2015+.x64   --exact --accept-package-agre
 
 ## Microsoft OpenJDK 21 for Android and Mobile Validation
 
-Lane E needs a JDK 17 or later (`java`, `keytool`), and RayX's Android builds that consume gpux need Java tooling too. Install **Microsoft Build of OpenJDK 21 LTS**. Verify Java/JDK discovery before debugging gpux renderer code.
+Lane E needs a JDK 21 (`java`, `keytool`), and RayX's Android builds that consume gpux need Java tooling too. Install **Microsoft Build of OpenJDK 21 LTS**. Verify Java/JDK discovery before debugging gpux renderer code.
 
 Download page:
 

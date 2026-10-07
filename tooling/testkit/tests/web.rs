@@ -492,7 +492,7 @@ fn web_build_runs_cargo_then_wasm_bindgen_and_writes_the_page() {
     assert_eq!(code, 0, "{text}");
     assert_eq!(runner.ran.len(), 3);
     assert!(runner.ran[0].ends_with("wasm-bindgen --version"));
-    assert!(runner.ran[1].contains("cargo +nightly build"));
+    assert!(runner.ran[1].contains("cargo +nightly-2026-06-23 build"));
     assert!(runner.ran[2].contains("--target web --out-dir"));
     let page = root.path().join("target/gpux-web/dist/index.html");
     assert_eq!(std::fs::read_to_string(page).unwrap(), web::index_html());
@@ -506,6 +506,53 @@ fn web_build_runs_cargo_then_wasm_bindgen_and_writes_the_page() {
         text.lines().last(),
         Some("gpux-testkit: 1 passed, 0 failed, 0 skipped")
     );
+}
+
+/// An environment that sets `GPUX_WEB_TOOLCHAIN`.
+struct ToolchainOverride(FakeEnvironment);
+
+impl Environment for ToolchainOverride {
+    fn var(&self, name: &str) -> Option<String> {
+        (name == web::TOOLCHAIN_ENV_VAR).then(|| "nightly-2030-01-01".to_string())
+    }
+
+    fn find_program(&self, name: &str) -> Option<PathBuf> {
+        self.0.find_program(name)
+    }
+
+    fn os(&self) -> Os {
+        self.0.os()
+    }
+
+    fn workspace_root(&self) -> Option<PathBuf> {
+        self.0.workspace_root()
+    }
+}
+
+#[test]
+fn web_build_defaults_to_the_pinned_nightly_and_honours_the_override() {
+    assert_eq!(web::DEFAULT_TOOLCHAIN, "nightly-2026-06-23");
+    let root = tempfile::tempdir().unwrap();
+    std::fs::write(
+        root.path().join("Cargo.lock"),
+        "[[package]]
+name = \"wasm-bindgen\"
+version = \"0.2.129\"
+",
+    )
+    .unwrap();
+    let environment = ToolchainOverride(FakeEnvironment {
+        root: root.path().to_path_buf(),
+        programs: vec!["cargo", "wasm-bindgen"],
+    });
+    let mut runner = FakeRunner {
+        outputs: vec![output("wasm-bindgen 0.2.129"), output(""), output("")],
+        ..FakeRunner::default()
+    };
+    let mut out = Vec::new();
+    let code = execute(args("web build"), &environment, &mut runner, &mut out);
+    assert_eq!(code, 0, "{}", String::from_utf8_lossy(&out));
+    assert!(runner.ran[1].contains("cargo +nightly-2030-01-01 build"));
 }
 
 #[test]

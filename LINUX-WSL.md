@@ -88,7 +88,7 @@ These need no sudo:
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 source "$HOME/.cargo/env"
-rustup toolchain install nightly --component rust-src --target wasm32-unknown-unknown
+rustup toolchain install nightly-2026-06-23 --component rust-src --target wasm32-unknown-unknown
 cargo install wasm-bindgen-cli --version 0.2.129 --locked
 mkdir -p ~/.local/bin
 corepack enable --install-directory ~/.local/bin pnpm
@@ -99,7 +99,7 @@ Notes:
 - The pinned 1.95.0 toolchain installs itself from each repository's `rust-toolchain.toml` on the
   first `cargo` command.
 - gpux's threaded WASM build (`gpux-testkit web build`, lane B) and RayX's WASM builds use
-  `cargo +nightly` with `-Z build-std`, hence the nightly toolchain with `rust-src`.
+  `cargo +nightly-2026-06-23` with `-Z build-std`, hence that nightly toolchain with `rust-src`.
 - `wasm-bindgen-cli` must match the version gpux's `Cargo.lock` pins (and RayX's generated
   manifests) exactly: 0.2.129.
 

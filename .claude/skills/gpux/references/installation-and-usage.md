@@ -122,14 +122,14 @@ Required baseline:
 - `wasm-bindgen-cli` at the version `Cargo.lock` pins (`0.2.129`); `gpux-testkit web build` refuses any other.
 - Lane B: Node.js 22 or later with `pnpm`, and in `tools-node`: `pnpm install` and `pnpm exec playwright install chromium`.
 - iOS/macOS validation: macOS with Xcode 15 or newer and XcodeGen.
-- Android validation: Android SDK, Android NDK r25 or newer, Java/JDK discovery, and `cargo-ndk`. Lane E pins its SDK packages and needs a JDK 17 or later and the Android Rust targets ([docs/testing.md](../../../../docs/testing.md#lane-e-android)).
+- Android validation: Android SDK, Android NDK r25 or newer, Java/JDK discovery, and `cargo-ndk`. Lane E pins its SDK packages and needs a JDK 21 and the Android Rust targets ([docs/testing.md](../../../../docs/testing.md#lane-e-android)).
 
 GOOD:
 
 ```bash
 rustc --version
 rustup toolchain list
-rustup component add rust-src --toolchain nightly
+rustup component add rust-src --toolchain nightly-2026-06-23
 cargo install wasm-bindgen-cli --version 0.2.129 --locked
 xcodebuild -version
 xcodegen --version || brew install xcodegen

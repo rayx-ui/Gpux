@@ -116,7 +116,7 @@ ndk-build --version
 
 Use `ANDROID_HOME`, `ANDROID_SDK_ROOT`, `ANDROID_NDK_HOME`, or `ANDROID_NDK_ROOT` when auto-discovery fails. With `ANDROID_NDK_HOME` set, `cargo ndk -t arm64-v8a check -p gpux-mobile` checks the gpux Android build from the Gpux repository root.
 
-Lane E (`cargo run -p gpux-testkit -- lane e`, or `android build [--abi x86_64|arm64-v8a]` and `android run`) also needs `ANDROID_HOME` with its pinned SDK packages, a JDK 17 or later, and the Android Rust targets; it reports each missing one with the command that installs it ([docs/testing.md](../../../../docs/testing.md#lane-e-android)).
+Lane E (`cargo run -p gpux-testkit -- lane e`, or `android build [--abi x86_64|arm64-v8a]` and `android run`) also needs `ANDROID_HOME` with its pinned SDK packages, a JDK 21, and the Android Rust targets; it reports each missing one with the command that installs it ([docs/testing.md](../../../../docs/testing.md#lane-e-android)).
 
 ## Browser WebGPU
 

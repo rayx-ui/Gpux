@@ -22,8 +22,11 @@ pub const WASM_RUSTFLAGS: &str = "-C target-feature=+atomics,+bulk-memory,+mutab
 /// C flags for dependencies that compile C for the threaded browser build.
 pub const WASM_CFLAGS: &str = "-matomics -mbulk-memory -mmutable-globals";
 
-/// The environment variable that overrides the nightly toolchain (`nightly` by default).
+/// The environment variable that overrides [`DEFAULT_TOOLCHAIN`].
 pub const TOOLCHAIN_ENV_VAR: &str = "GPUX_WEB_TOOLCHAIN";
+/// The nightly the threaded WASM build uses unless [`TOOLCHAIN_ENV_VAR`] names another. Move it
+/// together with `lane-b.yml`, RayX and RayX.CLI (RayX's `wasm-toolchain-update.md` lists them).
+pub const DEFAULT_TOOLCHAIN: &str = "nightly-2026-06-23";
 
 /// Where the browser build lives under the workspace root.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -226,7 +229,7 @@ pub fn build(
     let toolchain = environment
         .var(TOOLCHAIN_ENV_VAR)
         .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| "nightly".into());
+        .unwrap_or_else(|| DEFAULT_TOOLCHAIN.into());
 
     let lock = std::fs::read_to_string(root.join("Cargo.lock"))
         .map_err(|error| format!("could not read Cargo.lock: {error}"))?;

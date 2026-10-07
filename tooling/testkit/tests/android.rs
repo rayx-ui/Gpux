@@ -434,7 +434,7 @@ fn missing_build_tools_on_path_are_named() {
     };
     let error = build(&with(Vec::new()));
     assert!(
-        error.contains("`java` is not on PATH") && error.contains("JDK 17"),
+        error.contains("`java` is not on PATH") && error.contains("JDK 21"),
         "{error}"
     );
     let error = build(&with(vec!["java"]));

@@ -34,13 +34,15 @@ cargo install wasm-bindgen-cli --version 0.2.129 --locked
 wasm-bindgen --version
 ```
 
-Multithreaded `wasm_thread` currently needs nightly Rust for `stdarch_wasm_atomic_wait`. Use nightly for the browser build only, with `rust-src` installed (`GPUX_WEB_TOOLCHAIN` names another nightly for the testkit):
+Multithreaded `wasm_thread` currently needs nightly Rust for `stdarch_wasm_atomic_wait`. Use nightly for the browser build only, with `rust-src` installed (the testkit defaults to `nightly-2026-06-23`; `GPUX_WEB_TOOLCHAIN` names another):
 
 ```bash
-rustup toolchain install nightly
-rustup component add rust-src --toolchain nightly
-rustup target add wasm32-unknown-unknown --toolchain nightly
+rustup toolchain install nightly-2026-06-23
+rustup component add rust-src --toolchain nightly-2026-06-23
+rustup target add wasm32-unknown-unknown --toolchain nightly-2026-06-23
 ```
+
+To move the pinned nightly (RayX, Gpux and RayX.CLI together), follow RayX's `.claude/skills/rayx/references/wasm-toolchain-update.md`.
 
 ## Cargo Build Flags
 
@@ -57,7 +59,7 @@ RUSTFLAGS="-C target-feature=+atomics,+bulk-memory,+mutable-globals \
   -C link-arg=--export=__tls_align \
   -C link-arg=--export=__tls_base" \
 CFLAGS_wasm32_unknown_unknown="-matomics -mbulk-memory -mmutable-globals" \
-cargo +nightly build -p gpux-conformance \
+cargo +nightly-2026-06-23 build -p gpux-conformance \
   --no-default-features --features app-host \
   --example web_host \
   --target wasm32-unknown-unknown \

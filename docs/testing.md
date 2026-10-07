@@ -61,8 +61,8 @@ command that installs a missing one. Platform setup is in
 | Windows | A, C, D | nothing extra: WARP, the DX12 software adapter, ships with Windows. Visual Studio Build Tools as for any gpux build. |
 | Linux | A, C, D | `pkg-config libfreetype6-dev libfontconfig1-dev libxkbcommon-dev libxkbcommon-x11-dev libvulkan1 mesa-vulkan-drivers`; lavapipe through `VK_DRIVER_FILES` for C and D; a display (or `xvfb-run`) and `xdotool` for D. [LINUX-WSL.md](../LINUX-WSL.md) sets up WSL. |
 | macOS | A, C, D | the Xcode command-line tools; Metal is the GPU. |
-| any | B, G | a nightly toolchain with `rust-src` (`GPUX_WEB_TOOLCHAIN` overrides `nightly`); `wasm-bindgen-cli` at the version `Cargo.lock` pins; Node.js 22 or later with `pnpm`; in `tools-node`: `pnpm install` and `pnpm exec playwright install chromium`. |
-| any | E | `ANDROID_HOME` with the pinned SDK packages, a JDK 17 or later, `cargo-ndk`, the Android Rust targets, and a device or an emulator with hardware virtualization; see [Lane E](#lane-e-android). |
+| any | B, G | a nightly toolchain with `rust-src` (`nightly-2026-06-23` unless `GPUX_WEB_TOOLCHAIN` names another); `wasm-bindgen-cli` at the version `Cargo.lock` pins; Node.js 22 or later with `pnpm`; in `tools-node`: `pnpm install` and `pnpm exec playwright install chromium`. |
+| any | E | `ANDROID_HOME` with the pinned SDK packages, a JDK 21, `cargo-ndk`, the Android Rust targets, and a device or an emulator with hardware virtualization; see [Lane E](#lane-e-android). |
 | macOS | F | Xcode with an iOS Simulator runtime (`xcodebuild -downloadPlatform iOS`), XcodeGen (`brew install xcodegen`), and `rustup target add aarch64-apple-ios-sim`. |
 | any | G | a hardware GPU, plus everything lanes B, C and D need. |
 
@@ -79,7 +79,7 @@ command that installs a missing one. Platform setup is in
 | `GPUX_OS_INPUT` | lane D | `optional` reports the OS-input check skipped when the session delivers no synthetic input (hosted Windows runners). |
 | `ZED_DEVICE_ID` | windowed renderers | Pins a GPU by its PCI device id on machines with several. |
 | `GPUX_WEB_PROFILE` | lane B | The Playwright profile `lane b` runs (`local-gpu` by default). |
-| `GPUX_WEB_TOOLCHAIN` | lanes B and G | The nightly toolchain of the threaded WASM build. |
+| `GPUX_WEB_TOOLCHAIN` | lanes B and G | The nightly toolchain of the threaded WASM build (default `nightly-2026-06-23`). |
 | `ANDROID_HOME`, `ANDROID_SERIAL` | lane E | The SDK, and the device to run on. |
 | `CI` | lane G | Lane G refuses to run when it is set. |
 | `SEED`, `ITERATIONS`, `BENCH_MEASUREMENT` | `#[gpux::test]`, `#[gpux::bench]` | Seeds and iterations of randomized tests and benchmarks, and what benchmarks measure (`wall-time`, `instructions`, `allocations`, ...). |
@@ -128,8 +128,8 @@ cargo run -p gpux-testkit -- lane b [--list] [--scene <id>] [--grep <pattern>]
 (`local-gpu` by default); `web e2e` runs any selection. Both build first and fail with an
 actionable message when a prerequisite is missing:
 
-- a nightly toolchain with `rust-src` and the wasm32 target (`GPUX_WEB_TOOLCHAIN` overrides
-  `nightly`), because the threaded build rebuilds `std` with atomics;
+- a nightly toolchain with `rust-src` and the wasm32 target (`nightly-2026-06-23` unless
+  `GPUX_WEB_TOOLCHAIN` names another), because the threaded build rebuilds `std` with atomics;
 - the `wasm-bindgen` CLI at the version `Cargo.lock` pins
   (`cargo install wasm-bindgen-cli --version <version>`);
 - `pnpm`, and in `tools-node`: `pnpm install` and `pnpm exec playwright install chromium`.
@@ -255,7 +255,7 @@ reported with the command that installs it:
 
 - `ANDROID_HOME` with the pinned packages: `sdkmanager "ndk;28.0.12674087" "build-tools;36.0.0"
   "platforms;android-36" "platform-tools"`;
-- a JDK 17 or later (`java`, `keytool`) and `cargo install cargo-ndk`;
+- a JDK 21 (`java`, `keytool`) and `cargo install cargo-ndk`;
 - `rustup target add x86_64-linux-android aarch64-linux-android`.
 
 Without a device, create an emulator like CI's: API 34 with Google APIs and the small `Nexus 4`

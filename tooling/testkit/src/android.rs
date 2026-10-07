@@ -286,7 +286,7 @@ pub fn build(
     let windows = environment.os() == crate::Os::Windows;
     let java = environment
         .find_program("java")
-        .ok_or("`java` is not on PATH: install JDK 17 or later and put its `bin` on PATH")?;
+        .ok_or("`java` is not on PATH: install JDK 21 and put its `bin` on PATH")?;
     let keytool = environment
         .find_program("keytool")
         .ok_or("`keytool` is not on PATH: it comes with the JDK; put the JDK's `bin` on PATH")?;

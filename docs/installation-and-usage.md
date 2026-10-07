@@ -123,7 +123,7 @@ If you build gpux for WebAssembly or run browser-oriented `gpui_web` examples, i
 The threaded browser build (`gpux-testkit web build`, lanes B and G) also needs a nightly toolchain with `rust-src` and the wasm32 target, and its Playwright specs need Node.js 22 or later with `pnpm`:
 
 ```bash
-rustup toolchain install nightly --component rust-src --target wasm32-unknown-unknown
+rustup toolchain install nightly-2026-06-23 --component rust-src --target wasm32-unknown-unknown
 cd tools-node
 pnpm install
 pnpm exec playwright install chromium
@@ -264,7 +264,7 @@ Restart Windows after install or repair.
 
 ### 5. Microsoft OpenJDK 21 for Android
 
-Lane E builds the Android conformance host and needs a JDK 17 or later (`java`, `keytool`); its other prerequisites are in [testing.md](testing.md#lane-e-android). **Microsoft Build of OpenJDK 21 LTS** works.
+Lane E builds the Android conformance host and needs a JDK 21 (`java`, `keytool`); its other prerequisites are in [testing.md](testing.md#lane-e-android). **Microsoft Build of OpenJDK 21 LTS** works.
 
 Download page:
 
