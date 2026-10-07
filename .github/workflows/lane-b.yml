@@ -2,7 +2,8 @@ name: Gpux lane B
 
 # Lane B: the threaded WASM build in headless Chromium on SwiftShader WebGPU, driven by the
 # Playwright specs in tools-node. Pull requests and pushes run the @canary and @pr specs at
-# DPR 1; the nightly schedule runs every spec except lane G's @timing ones, DPR 2 included.
+# DPR 1; the nightly schedule (or a dispatch with all-specs) runs every spec except lane G's
+# @timing ones, DPR 2 included.
 
 on:
   pull_request:
@@ -11,6 +12,11 @@ on:
   schedule:
     - cron: '17 3 * * *'
   workflow_dispatch:
+    inputs:
+      all-specs:
+        description: Run the nightly selection (every spec except @timing) instead of @canary and @pr
+        type: boolean
+        default: false
 
 # A new push to a pull request cancels its superseded run; runs on main always finish.
 concurrency:
@@ -105,7 +111,7 @@ jobs:
           GPUX_BASE_URL: http://127.0.0.1:8000/
           GPUX_DIST: ${{ github.workspace }}/target/gpux-web/dist
         run: |
-          if [ "${{ github.event_name }}" = schedule ]; then
+          if [ "${{ github.event_name }}" = schedule ] || [ "${{ inputs.all-specs }}" = true ]; then
             selection=(--grep-invert @timing)
           else
             selection=(--grep "@canary|@pr")
