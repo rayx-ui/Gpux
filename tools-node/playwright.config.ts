@@ -44,6 +44,8 @@ export default defineConfig({
       // GitHub's ubuntu runners: no GPU and no display. Chromium keeps only the last
       // `--enable-features`, so Playwright's own screenshot feature is repeated here.
       name: 'ci-linux-swiftshader',
+      // Software rendering makes every frame and screenshot slow; WebGL2 on SwiftShader slowest.
+      timeout: 180_000,
       use: {
         launchOptions: {
           args: [
@@ -59,6 +61,7 @@ export default defineConfig({
     {
       // Windows without a usable GPU: WebGPU on the WARP software adapter.
       name: 'windows-software',
+      timeout: 180_000,
       use: {
         channel: 'chromium',
         launchOptions: { args: ['--use-angle=d3d11-warp', '--enable-unsafe-webgpu', htmlInCanvas] },
