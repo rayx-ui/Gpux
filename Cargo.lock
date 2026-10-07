@@ -2943,6 +2943,7 @@ dependencies = [
  "criterion 0.8.2",
  "gpux",
  "gpux-bench-metrics",
+ "gpux-fonts",
  "gpux-linux",
  "gpux-macos",
  "gpux-mobile",

@@ -21,7 +21,13 @@ default = []
 bench-support = ["gpux/bench-support", "gpui_macos/bench-support", "gpui_wgpu/bench-support"]
 font-kit = ["gpui_macos/font-kit"]
 inspector = ["gpux/inspector"]
-test-support = ["gpux/test-support", "gpui_macos/test-support", "gpui_windows/test-support", "gpui_wgpu/test-support"]
+test-support = [
+    "gpux/test-support",
+    "gpui_macos/test-support",
+    "gpui_windows/test-support",
+    "gpui_wgpu/test-support",
+    "dep:gpux_fonts",
+]
 screen-capture = ["gpux/screen-capture", "gpui_macos/screen-capture", "gpui_windows/screen-capture", "gpui_linux/screen-capture"]
 runtime_shaders = ["gpui_macos/runtime_shaders"]
 wayland = ["gpui_linux/wayland"]
@@ -40,6 +46,7 @@ required-features = ["bench-support"]
 [dependencies]
 anyhow.workspace = true
 gpux.workspace = true
+gpux_fonts = { workspace = true, optional = true }
 
 [dev-dependencies]
 bench_metrics.workspace = true
@@ -58,7 +65,9 @@ gpui_mobile.workspace = true
 [target.'cfg(any(target_os = "linux", target_os = "freebsd"))'.dependencies]
 gpui_linux.workspace = true
 
-[target.'cfg(target_os = "linux")'.dependencies]
+# The bundled-font test text system (`test-support`) uses the wgpu crate's Cosmic Text system on
+# every desktop OS, so layout under the test platform is identical everywhere.
+[target.'cfg(any(target_os = "linux", target_os = "freebsd", target_os = "windows", target_os = "macos"))'.dependencies]
 gpui_wgpu = { workspace = true, optional = true }
 
 [target.'cfg(target_family = "wasm")'.dependencies]

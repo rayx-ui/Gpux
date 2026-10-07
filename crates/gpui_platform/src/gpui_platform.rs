@@ -139,6 +139,34 @@ pub fn bench_text_system() -> std::sync::Arc<dyn gpux::PlatformTextSystem> {
     TEXT_SYSTEM.with(|text_system| text_system.clone())
 }
 
+/// Returns a new deterministic text system for tests: Cosmic Text loaded with only the fonts
+/// `gpux_fonts` bundles, falling back to IBM Plex Sans.
+///
+/// It never consults system fonts, so text measured with it is identical on every desktop OS.
+/// `#[gpux::test(text = "bundled")]` builds its contexts with it; pass it to
+/// [`gpux::TestAppContext::build_with_text_system`] to build one by hand.
+#[cfg(all(
+    feature = "test-support",
+    any(
+        target_os = "linux",
+        target_os = "freebsd",
+        target_os = "windows",
+        target_os = "macos"
+    )
+))]
+pub fn bundled_text_system() -> std::sync::Arc<dyn gpux::PlatformTextSystem> {
+    let text_system = gpui_wgpu::CosmicTextSystem::new_without_system_fonts("IBM Plex Sans");
+    gpux::PlatformTextSystem::add_fonts(
+        &text_system,
+        gpux_fonts::ALL
+            .iter()
+            .map(|font| std::borrow::Cow::Borrowed(*font))
+            .collect(),
+    )
+    .expect("the bundled gpux fonts are valid font files");
+    std::sync::Arc::new(text_system)
+}
+
 /// Returns a new [`HeadlessRenderer`] for the current platform, if available.
 #[cfg(any(feature = "bench-support", feature = "test-support"))]
 pub fn current_headless_renderer() -> anyhow::Result<Option<Box<dyn gpux::PlatformHeadlessRenderer>>>

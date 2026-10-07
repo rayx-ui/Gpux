@@ -15,6 +15,33 @@ struct Args {
     max_retries: usize,
     max_iterations: usize,
     on_failure_fn_name: proc_macro2::TokenStream,
+    text: TestText,
+}
+
+/// The text system a generated `TestAppContext` uses.
+#[derive(Clone, Copy)]
+enum TestText {
+    /// The test platform's `NoopTextSystem`.
+    Noop,
+    /// `gpui_platform::bundled_text_system()`: real shaping with only the bundled fonts.
+    Bundled,
+}
+
+impl TestText {
+    /// The expression that builds a `TestAppContext` with this text system.
+    fn build_context(self, fn_name: &Ident) -> proc_macro2::TokenStream {
+        match self {
+            TestText::Noop => quote!(gpux::TestAppContext::build(
+                dispatcher.clone(),
+                Some(stringify!(#fn_name)),
+            )),
+            TestText::Bundled => quote!(gpux::TestAppContext::build_with_text_system(
+                dispatcher.clone(),
+                Some(stringify!(#fn_name)),
+                gpui_platform::bundled_text_system(),
+            )),
+        }
+    }
 }
 
 impl Parse for Args {
@@ -23,6 +50,7 @@ impl Parse for Args {
         let mut max_retries = 0;
         let mut max_iterations = 1;
         let mut on_failure_fn_name = quote!(None);
+        let mut text = TestText::Noop;
 
         let metas = Punctuated::<Meta, Token![,]>::parse_terminated(input)?;
 
@@ -70,6 +98,28 @@ impl Parse for Args {
                     };
                     on_failure_fn_name = quote!(Some(#path));
                 }
+                (Meta::NameValue(meta), "text") => {
+                    let Expr::Lit(ExprLit {
+                        lit: Lit::Str(value),
+                        ..
+                    }) = &meta.value
+                    else {
+                        return Err(syn::Error::new(
+                            meta.value.span(),
+                            "text argument must be a string",
+                        ));
+                    };
+                    text = match value.value().as_str() {
+                        "noop" => TestText::Noop,
+                        "bundled" => TestText::Bundled,
+                        _ => {
+                            return Err(syn::Error::new(
+                                value.span(),
+                                "text argument must be \"bundled\" or \"noop\"",
+                            ));
+                        }
+                    };
+                }
                 (Meta::NameValue(meta), "seed") => {
                     seeds = vec![parse_usize_from_expr(&meta.value)? as u64]
                 }
@@ -88,6 +138,7 @@ impl Parse for Args {
             max_retries,
             max_iterations,
             on_failure_fn_name,
+            text,
         })
     }
 }
@@ -127,6 +178,7 @@ fn generate_test_function(
     let max_retries = args.max_retries;
     let num_iterations = args.max_iterations;
     let on_failure_fn_name = &args.on_failure_fn_name;
+    let build_context = args.text.build_context(&outer_fn_name);
     let seeds = quote!( #(#seeds),* );
 
     let mut outer_fn: ItemFn = if inner_fn.sig.asyncness.is_some() {
@@ -161,10 +213,7 @@ fn generate_test_function(
                     {
                         let cx_varname = format_ident!("cx_{}", ix);
                         cx_vars.extend(quote!(
-                            let mut #cx_varname = gpux::TestAppContext::build(
-                                dispatcher.clone(),
-                                Some(stringify!(#outer_fn_name)),
-                            );
+                            let mut #cx_varname = #build_context;
                             let _entity_refcounts = #cx_varname.app.borrow().ref_counts_drop_handle();
                         ));
                         cx_teardowns.extend(quote!(
@@ -232,10 +281,7 @@ fn generate_test_function(
                             let cx_varname = format_ident!("cx_{}", ix);
                             let cx_varname_lock = format_ident!("cx_{}_lock", ix);
                             cx_vars.extend(quote!(
-                                let mut #cx_varname = gpux::TestAppContext::build(
-                                   dispatcher.clone(),
-                                   Some(stringify!(#outer_fn_name))
-                                );
+                                let mut #cx_varname = #build_context;
                                 let mut #cx_varname_lock = #cx_varname.app.borrow_mut();
                                 let _entity_refcounts = #cx_varname_lock.ref_counts_drop_handle();
                             ));
@@ -252,10 +298,7 @@ fn generate_test_function(
                         Some("TestAppContext") => {
                             let cx_varname = format_ident!("cx_{}", ix);
                             cx_vars.extend(quote!(
-                                let mut #cx_varname = gpux::TestAppContext::build(
-                                    dispatcher.clone(),
-                                    Some(stringify!(#outer_fn_name))
-                                );
+                                let mut #cx_varname = #build_context;
                                 let _entity_refcounts = #cx_varname.app.borrow().ref_counts_drop_handle();
                             ));
                             cx_teardowns.extend(quote!(
