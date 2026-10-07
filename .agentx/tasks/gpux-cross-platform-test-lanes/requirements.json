@@ -465,13 +465,23 @@
       "criteria": [
         {
           "id": "MACCI-1",
-          "descriptionMarkdown": "macOS children spawned by `gpux-zed-util` (`crates/util/src/command/darwin.rs`) are waited on and reaped by a gpux-owned process handle in `crates/util/src/command/darwin/process.rs`, not by `Child::adopt_raw_pid` from Zed's git fork of `async-process`.\n\n- No source under `crates/` calls `adopt_raw_pid(`; `Cargo.toml` and `Cargo.lock` have no `[patch` section and no `git+` source.\n- The upstream `darwin.rs` diff stays limited to the handle swap, and the import guide records the replay rule.\n- `cargo check --target aarch64-apple-darwin -p gpux-zed-util --all-targets` compiles.\n- On macOS (the `test (macos-15)` CI job), the new `command::darwin::process` test group passes (shared status between concurrent waiters, `try_status` while running, `kill`, reaping on drop) together with the existing `command::darwin::tests`, which are not weakened or removed.",
+          "descriptionMarkdown": "macOS children spawned by `gpux-zed-util` (`crates/util/src/command/darwin.rs`) are waited on and reaped by a gpux-owned process handle in `crates/util/src/command/darwin/process.rs`, not by `Child::adopt_raw_pid` from Zed's git fork of `async-process`.\n\n- No source under `crates/` calls `adopt_raw_pid(`; `Cargo.toml` and `Cargo.lock` have no `[patch` section and no `git+` source.\n- The upstream `darwin.rs` diff stays limited to the handle swap, and the import guide records the replay rule.\n- On macOS (the `test (macos-15)` CI job), the new `command::darwin::process` test group passes (shared status between concurrent waiters, `try_status` while running, `kill`, reaping on drop) together with the existing `command::darwin::tests`, which are not weakened or removed.",
           "verification": "automated"
         },
         {
           "id": "MACCI-2",
           "descriptionMarkdown": "The `check (macos-15)` CI job is green: `cargo check --workspace --all-targets` passes on macOS, including the `gpux-apple` build script's real `xcrun metal` compile. No crate or target is excluded, no behaviour is cfg-gated away from macOS, and no git dependency or `[patch]` is added. Verified by a green workflow run.",
           "verification": "manual"
+        },
+        {
+          "id": "MACCI-3",
+          "verification": "automated",
+          "descriptionMarkdown": "Test windows report the cursor like a platform: `TestWindow::mouse_position()`/`modifiers()` return the position and modifiers of the last simulated pointer event (exposed to tests as `VisualTestContext::platform_pointer`). On macOS, where `Window::is_window_hovered` follows activation and every draw re-reads the platform cursor, hover therefore survives redraws of an active test window, so lane A's hover and tooltip scenes pass on macOS. A new test group covers the reported pointer for mouse, scroll and key events and hover across redraws of an active window."
+        },
+        {
+          "id": "MACCI-4",
+          "verification": "automated",
+          "descriptionMarkdown": "Scene pixel expectations that need a renderer capability (element effects, snapshot transitions) are wrapped in `Step::When(Capability, steps)`: hosts run them where `Window::effect_capabilities()` reports the capability and report them skipped with the reason elsewhere (the Metal renderer has no shader effects), so lane C passes on Metal without weakening WARP or lavapipe. A new test group covers running, skipping with the reason, nesting and step numbering."
         }
       ]
     }

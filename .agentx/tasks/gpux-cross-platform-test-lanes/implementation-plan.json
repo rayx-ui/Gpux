@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-cross-platform-test-lanes",
-  "revision": 8,
+  "revision": 9,
   "title": "Gpux-owned test lanes for every platform",
   "validationMode": "sprint",
   "repositories": [
@@ -921,27 +921,56 @@
       ]
     },
     {
-      "id": "check-macos-util-compiles",
+      "id": "check-test-platform-pointer",
       "repositoryId": "gpux",
-      "kind": "build",
+      "kind": "test",
       "criterionIds": [
-        "MACCI-1"
+        "MACCI-3"
       ],
-      "descriptionMarkdown": "`gpux-zed-util` and its test targets, including the new `command::darwin::process` group, type-check for macOS from any host.",
+      "descriptionMarkdown": "New group `crates/gpui/tests/test_platform_pointer.rs`. The reported platform pointer and hover across redraws of an active window.",
       "argv": [
         "cargo",
-        "check",
-        "--target",
-        "aarch64-apple-darwin",
+        "test",
         "-p",
-        "gpux-zed-util",
-        "--all-targets"
+        "gpux",
+        "--test",
+        "test_platform_pointer"
       ],
       "expected": {
-        "exitCode": 0
+        "exitCode": 0,
+        "minimumTests": 2
       },
       "inputs": [
-        "crates/util/**",
+        "crates/gpui/src/platform/test/**",
+        "crates/gpui/src/app/test_context.rs",
+        "crates/gpui/src/window.rs",
+        "crates/gpui/tests/test_platform_pointer.rs",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-host-capabilities",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "MACCI-4"
+      ],
+      "descriptionMarkdown": "New group `crates/gpux_conformance/tests/host_capabilities.rs`. Capability-gated steps run, skip with the reason, nest and keep flattened step numbers.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-conformance",
+        "--test",
+        "host_capabilities"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3
+      },
+      "inputs": [
+        "crates/gpux_conformance/**",
         "Cargo.toml",
         "Cargo.lock"
       ]
@@ -1420,10 +1449,12 @@
         {
           "id": "t31-macos-build-and-ci",
           "title": "Repair the macOS build and enable the macOS CI entries",
-          "descriptionMarkdown": "Owner decision 6: every lane works on macOS in this epic.\n\n- Replace `Child::adopt_raw_pid` in `crates/util/src/command/darwin.rs` with a gpux-owned handle in `darwin/process.rs` (from `ToFix/02`), with a new `command::darwin::process` test group, and record the replay rule in the Zed import guide.\n- Fix every further error the `check (macos-15)` job reports, at its source.\n- Enable the macOS entries of `test`, `lane-a`, `lane-c` (`metal`, goldens from the macOS `update-goldens` dispatch) and `lane-d`, and get them green.",
+          "descriptionMarkdown": "Owner decision 6: every lane works on macOS in this epic.\n\n- Replace `Child::adopt_raw_pid` in `crates/util/src/command/darwin.rs` with a gpux-owned handle in `darwin/process.rs` (from `ToFix/02`), with a new `command::darwin::process` test group, and record the replay rule in the Zed import guide.\n- Fix every further error the `check (macos-15)` job reports, at its source.\n- Enable the macOS entries of `test`, `lane-a`, `lane-c` (`metal`, goldens from the macOS `update-goldens` dispatch) and `lane-d`, and get them green.\n- macOS findings from the first macOS CI run: test windows report the last simulated pointer (hover on macOS follows activation and re-reads the platform cursor every draw); scene pixel steps that need renderer capabilities run under `Step::When` (Metal has no shader effects); two gpux unit tests stop assuming ctrl for select-all and a fast runner.",
           "criterionIds": [
             "MACCI-1",
             "MACCI-2",
+            "MACCI-3",
+            "MACCI-4",
             "M-2"
           ],
           "designIds": [
@@ -1435,7 +1466,8 @@
           ],
           "checkIds": [
             "check-macos-no-fork-api",
-            "check-macos-util-compiles"
+            "check-test-platform-pointer",
+            "check-host-capabilities"
           ]
         }
       ]
