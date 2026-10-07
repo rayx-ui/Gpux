@@ -55,6 +55,19 @@ imported `gpux-bench-metrics` and `gpui_apple`, dropped `media`, and kept
 gpux's cached thermal state by requesting Zed's follow-up frame from frame
 demand without re-entering the app on idle frames.
 
+The 2026-10-05 import replaced Zed's wgpu headless renderer (#64718 "gpui_wgpu: Add
+Linux headless rendering", merge `e91b82c106817f2419207ebf81f1da766698ac95`, and the
+shared headless device from #64842 "gpui: Add randomized element tree benchmarks and
+fix Linux benchmark leaks", merge `3135cdf8dc8e6800d2b7ad89d62ea4994d892fb6`) with an
+`Ok(None)` stub, because gpux's renderer had diverged (element and screen effects,
+gradient storage, HTML islands, the encoded-sRGB paint contract, DX12 on Windows). On
+2026-10-07 the gpux-cross-platform-test-lanes epic ported both onto gpux's renderer.
+The adaptation keeps one renderer type with an optional surface instead of Zed's
+`WgpuRendererCore` split, renders opaque non-sRGB targets with 4x path sampling, adds
+the `GPUX_WGPU_ADAPTER` adapter override, and extends the port to Windows (DX12, WARP
+without a GPU). `zed-imports.tsv` records the port with `port:` rows; they leave the
+represented upstream commit and the merge base unchanged.
+
 History mapping files:
 
 - [gpux-commit-map.tsv](gpux-commit-map.tsv) maps the original standalone gpux hashes to the filtered hashes used by the predecessor repository.
@@ -63,7 +76,7 @@ History mapping files:
 ## Update contract
 
 1. Read this file, `zed-imports.tsv`, the archived gpux history, this repository's history, and this repository's AgentX memory for the patch surfaces the import touches (start at `.agentx/memory/knowledge/repository/upstream-sync/`).
-2. Treat the latest `zed_commit` in `zed-imports.tsv` as the three-way merge base.
+2. Treat the latest closure-import `zed_commit` in `zed-imports.tsv` as the three-way merge base. Rows whose subject starts with `port:` record single upstream pull requests ported onto gpux after an import; they never move the merge base.
 3. Fetch the chosen target from `zed-industries/zed` and import only the mapped GPUI closure.
 4. Preserve or replay archived and current-repository gpux patches, including the reduced workspace and `gpux` crate rename.
 5. After validation, append the new import to `zed-imports.tsv`, update the represented commit above and AgentX state, and record import/replay provenance in commit bodies.
