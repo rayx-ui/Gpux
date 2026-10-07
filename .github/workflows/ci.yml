@@ -17,6 +17,9 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
+  # Full debug info makes the workspace's test and example binaries outgrow the Linux runner's
+  # disk; line tables keep backtraces readable.
+  CARGO_PROFILE_DEV_DEBUG: line-tables-only
   # The gpux-wgpu fork crates are upstream wgpu sources; gpux does not lint or test them.
   FORK_EXCLUDES: >-
     --exclude gpux-wgpu --exclude gpux-wgpu-core --exclude gpux-wgpu-hal
@@ -69,6 +72,10 @@ jobs:
         os: [ubuntu-24.04, windows-2025]
     runs-on: ${{ matrix.os }}
     steps:
+      - name: Free disk space
+        if: runner.os == 'Linux'
+        # Linking every workspace test and example needs more room than the runner leaves free.
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@1.95.0
       - name: Install Linux dependencies
