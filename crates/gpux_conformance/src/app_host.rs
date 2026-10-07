@@ -287,10 +287,7 @@ impl SceneRun<'_> {
                     } else {
                         let count = flatten(inner).len();
                         *number += count;
-                        skipped.extend(std::iter::repeat_n(
-                            format!("the renderer has no {}", capability.describe()),
-                            count,
-                        ));
+                        skipped.extend(std::iter::repeat_n(capability.missing(), count));
                     }
                     continue;
                 }
@@ -308,6 +305,10 @@ impl SceneRun<'_> {
     }
 
     fn supports(&self, cx: &mut AsyncApp, capability: Capability) -> bool {
+        // Real windows run on the real clock.
+        if capability == Capability::ExecutorClock {
+            return false;
+        }
         let Ok(capabilities) = self
             .window
             .update(cx, |_, window, _| window.effect_capabilities())
@@ -319,6 +320,7 @@ impl SceneRun<'_> {
                 capabilities.element.backdrop_blur && capabilities.element.glow
             }
             Capability::SnapshotTransitions => capabilities.screen.snapshot_transitions,
+            Capability::ExecutorClock => false,
         }
     }
 

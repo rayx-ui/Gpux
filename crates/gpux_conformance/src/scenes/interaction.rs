@@ -1,7 +1,7 @@
 //! Interaction: drag and drop, tooltips, anchored overlays, and unclipped deferred overlays.
 
 use super::common::*;
-use crate::scene::{Area, Expect, Lane, SceneSpec, Step};
+use crate::scene::{Area, Capability, Expect, Lane, SceneSpec, Step};
 use gpux::prelude::*;
 use gpux::{
     AnyElement, Context, Empty, IntoElement, Render, Window, anchored, deferred, div, point, px,
@@ -131,9 +131,15 @@ pub const TOOLTIP: SceneSpec = SceneSpec {
     script: || {
         vec![
             Step::probe(50., 32., GREEN),
-            Step::Hover(id("save")),
-            Step::Expect(Expect::Missing(Query::text("Saves the file"))),
+            // Captured before the hover: on the real clock a slow capture can outlast the show
+            // delay. The button ends above the compared region and has no hover style.
             Step::Capture("hidden"),
+            Step::Hover(id("save")),
+            // Only the executor clock can hold the show delay back for this check.
+            Step::When(
+                Capability::ExecutorClock,
+                vec![Step::Expect(Expect::Missing(Query::text("Saves the file")))],
+            ),
             // The tooltip appears after its show delay on the executor clock.
             Step::Advance(Duration::from_millis(600)),
             Step::Expect(Expect::Exists(Query::text("Saves the file"))),

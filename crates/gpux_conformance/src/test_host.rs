@@ -366,6 +366,10 @@ impl Host for TestHost {
     }
 
     fn supports(&mut self, capability: Capability) -> bool {
+        // The test platform advances its executor clock only through `Step::Advance`.
+        if capability == Capability::ExecutorClock {
+            return true;
+        }
         if !self.lane.has_pixels() {
             return false;
         }
@@ -378,6 +382,7 @@ impl Host for TestHost {
                 capabilities.element.backdrop_blur && capabilities.element.glow
             }
             Capability::SnapshotTransitions => capabilities.screen.snapshot_transitions,
+            Capability::ExecutorClock => true,
         }
     }
 

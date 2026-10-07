@@ -119,6 +119,10 @@ impl Bridge {
 }
 
 fn supports(cx: &mut AsyncApp, window: AnyWindowHandle, capability: Capability) -> bool {
+    // The browser runs on the real clock.
+    if capability == Capability::ExecutorClock {
+        return false;
+    }
     let Ok(capabilities) = window.update(cx, |_, window, _| window.effect_capabilities()) else {
         return false;
     };
@@ -127,6 +131,7 @@ fn supports(cx: &mut AsyncApp, window: AnyWindowHandle, capability: Capability) 
             capabilities.element.backdrop_blur && capabilities.element.glow
         }
         Capability::SnapshotTransitions => capabilities.screen.snapshot_transitions,
+        Capability::ExecutorClock => false,
     }
 }
 
@@ -137,7 +142,7 @@ fn resolve(cx: &mut AsyncApp, window: AnyWindowHandle, script: &[Step], out: &mu
                 if supports(cx, window, *capability) {
                     resolve(cx, window, inner, out);
                 } else {
-                    let reason = format!("the renderer has no {}", capability.describe());
+                    let reason = capability.missing();
                     out.extend(
                         flatten(inner)
                             .into_iter()

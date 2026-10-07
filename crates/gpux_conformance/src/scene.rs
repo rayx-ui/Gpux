@@ -162,14 +162,29 @@ pub enum Capability {
     ElementEffects,
     /// Snapshot transitions such as crossfades (`EffectCapabilities::screen`).
     SnapshotTransitions,
+    /// A clock that moves only through `Step::Advance` (the test platform's executor clock), so
+    /// a script can observe the state before a delay elapses. Hosts on the real clock cannot
+    /// hold a delay back.
+    ExecutorClock,
 }
 
 impl Capability {
-    /// What the capability is, for skip reasons.
+    /// What the capability is.
     pub fn describe(self) -> &'static str {
         match self {
             Capability::ElementEffects => "element effects",
             Capability::SnapshotTransitions => "snapshot transitions",
+            Capability::ExecutorClock => "the executor clock",
+        }
+    }
+
+    /// The skip reason of steps that need the capability, where the host lacks it.
+    pub fn missing(self) -> String {
+        match self {
+            Capability::ElementEffects | Capability::SnapshotTransitions => {
+                format!("the renderer has no {}", self.describe())
+            }
+            Capability::ExecutorClock => "the real clock cannot hold a delay back".to_string(),
         }
     }
 }

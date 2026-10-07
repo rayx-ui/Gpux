@@ -83,10 +83,7 @@ fn run_steps(
             } else {
                 let count = flatten(inner).len();
                 *number += count;
-                skipped.extend(std::iter::repeat_n(
-                    format!("the renderer has no {}", capability.describe()),
-                    count,
-                ));
+                skipped.extend(std::iter::repeat_n(capability.missing(), count));
             }
             continue;
         }
@@ -135,7 +132,7 @@ pub fn describe(step: &Step) -> String {
         Step::ChangedSince(name, rect) => format!("{rect:?} changed since {name:?}"),
         Step::Golden => "golden".to_string(),
         Step::When(capability, steps) => format!(
-            "when the renderer has {}: {} steps",
+            "when the host has {}: {} steps",
             capability.describe(),
             steps.len()
         ),
