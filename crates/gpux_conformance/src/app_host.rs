@@ -39,6 +39,13 @@ const TOUCH_FRAME: Duration = Duration::from_millis(16);
 /// Moves the OS cursor to a window-local logical position.
 pub type CursorSync = Rc<dyn Fn(&Window, Point<Pixels>)>;
 
+/// Where pixel steps read a window's frame from, when not from its renderer: for hosts whose
+/// devices cannot read rendered textures back (GL on Android emulators) and capture the screen
+/// through the operating system instead. The frame is in the window's physical pixels.
+pub type FrameSource = Rc<
+    dyn Fn(AsyncApp, AnyWindowHandle) -> Pin<Box<dyn Future<Output = anyhow::Result<RgbaImage>>>>,
+>;
+
 /// Registers the bundled fonts with the app's text system, so scenes shape the same text as on
 /// the test platform.
 pub fn register_bundled_fonts(cx: &mut App) -> anyhow::Result<()> {
@@ -105,6 +112,7 @@ pub struct AppHost {
     origin: Point<Pixels>,
     cursor_sync: Option<CursorSync>,
     failure_frames: Option<std::path::PathBuf>,
+    frame_source: Option<FrameSource>,
 }
 
 impl AppHost {
@@ -115,7 +123,14 @@ impl AppHost {
             origin,
             cursor_sync: None,
             failure_frames: None,
+            frame_source: None,
         }
+    }
+
+    /// Reads frames for pixel steps from `source` instead of the window's renderer.
+    pub fn with_frame_source(mut self, source: FrameSource) -> Self {
+        self.frame_source = Some(source);
+        self
     }
 
     /// Saves the frame a failing pixel step saw as `<dir>/<scene>.actual.png`.
@@ -420,7 +435,10 @@ impl SceneRun<'_> {
     async fn frame(&mut self, cx: &mut AsyncApp) -> anyhow::Result<RgbaImage> {
         if self.frame.is_none() {
             self.settle(cx).await?;
-            let image = render_to_image(cx, self.window).await?;
+            let image = match &self.host.frame_source {
+                Some(source) => source(cx.clone(), self.window).await?,
+                None => render_to_image(cx, self.window).await?,
+            };
             self.frame = Some(image);
         }
         Ok(self.frame.clone().expect("rendered above"))
