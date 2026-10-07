@@ -38,10 +38,16 @@ fn test_windows_report_the_last_simulated_pointer(cx: &mut TestAppContext) {
         },
     );
     let mut vcx = vcx.clone();
-    assert_eq!(vcx.platform_pointer(), (point(px(0.), px(0.)), Modifiers::none()));
+    assert_eq!(
+        vcx.platform_pointer(),
+        (point(px(0.), px(0.)), Modifiers::none())
+    );
 
     vcx.simulate_mouse_move(point(px(30.), px(40.)), None, Modifiers::shift());
-    assert_eq!(vcx.platform_pointer(), (point(px(30.), px(40.)), Modifiers::shift()));
+    assert_eq!(
+        vcx.platform_pointer(),
+        (point(px(30.), px(40.)), Modifiers::shift())
+    );
 
     vcx.simulate_click(point(px(120.), px(50.)), Modifiers::secondary_key());
     assert_eq!(
@@ -81,12 +87,19 @@ fn hover_survives_redraws_of_an_active_window(cx: &mut TestAppContext) {
         vcx.update(|window, _| window.refresh());
         vcx.run_until_parked();
     }
-    assert!(hovered.get(), "a redraw must not move the cursor off the target");
+    assert!(
+        hovered.get(),
+        "a redraw must not move the cursor off the target"
+    );
     assert_eq!(
         vcx.update(|window, _| window.mouse_position()),
         point(px(50.), px(40.))
     );
 
-    vcx.simulate_mouse_move(point(px(150.), px(90.)), Some(MouseButton::Left), Modifiers::none());
+    vcx.simulate_mouse_move(
+        point(px(150.), px(90.)),
+        Some(MouseButton::Left),
+        Modifiers::none(),
+    );
     assert!(!hovered.get());
 }
