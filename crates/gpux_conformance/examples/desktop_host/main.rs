@@ -128,7 +128,8 @@ fn main() {
                 report(checks::run(check.id, &mut cx).await);
             }
         }
-        let host = AppHost::new(Lane::D, point(px(WINDOW_ORIGIN.0), px(WINDOW_ORIGIN.1)));
+        let host = AppHost::new(Lane::D, point(px(WINDOW_ORIGIN.0), px(WINDOW_ORIGIN.1)))
+            .with_failure_frames(gpux_conformance::compare::artifacts_dir("d"));
         for scene in CATALOG
             .iter()
             .filter(|scene| scene.runs_in(Lane::D) && selected(scene.id, &args))

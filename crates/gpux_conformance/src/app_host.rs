@@ -13,7 +13,7 @@ use crate::{
     report::{Outcome, ResultLine},
     scene::{Capability, Expect, Lane, SceneSpec, Step, flatten},
 };
-use anyhow::{Context as _, anyhow, bail};
+use anyhow::{anyhow, bail};
 use gpux::{
     AnyView, AnyWindowHandle, App, AppContext as _, AsyncApp, Bounds, Context, IntoElement,
     KeyUpEvent, Keystroke, Modifiers, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent,
@@ -104,6 +104,7 @@ pub struct AppHost {
     lane: Lane,
     origin: Point<Pixels>,
     cursor_sync: Option<CursorSync>,
+    failure_frames: Option<std::path::PathBuf>,
 }
 
 impl AppHost {
@@ -113,7 +114,14 @@ impl AppHost {
             lane,
             origin,
             cursor_sync: None,
+            failure_frames: None,
         }
+    }
+
+    /// Saves the frame a failing pixel step saw as `<dir>/<scene>.actual.png`.
+    pub fn with_failure_frames(mut self, dir: std::path::PathBuf) -> Self {
+        self.failure_frames = Some(dir);
+        self
     }
 
     /// Moves the OS cursor to every injected pointer position, so platforms that re-read the
@@ -143,6 +151,7 @@ impl AppHost {
         };
         let mut run = SceneRun {
             host: self,
+            scene_id: scene.id,
             window,
             frame: None,
             captures: HashMap::new(),
@@ -234,6 +243,7 @@ pub async fn wait_frames(
 
 struct SceneRun<'a> {
     host: &'a AppHost,
+    scene_id: &'static str,
     window: AnyWindowHandle,
     frame: Option<RgbaImage>,
     captures: HashMap<&'static str, RgbaImage>,
@@ -546,8 +556,18 @@ impl SceneRun<'_> {
             | Step::ChangedSince(..) => {
                 let frame = self.frame(cx).await?;
                 let scale = self.scale(cx)?;
-                evaluate::pixel_step(step, &frame, scale, &mut self.captures)
-                    .with_context(|| format!("at scale {scale}"))?;
+                if let Err(error) = evaluate::pixel_step(step, &frame, scale, &mut self.captures) {
+                    let mut error = error.context(format!("at scale {scale}"));
+                    if let Some(dir) = &self.host.failure_frames {
+                        let path = dir.join(format!("{}.actual.png", self.scene_id));
+                        if std::fs::create_dir_all(dir).is_ok()
+                            && crate::compare::save_png(&frame, &path).is_ok()
+                        {
+                            error = error.context(format!("frame saved to {}", path.display()));
+                        }
+                    }
+                    return Err(error);
+                }
             }
             Step::Golden | Step::GoldenWithin(_) => {
                 return Ok(StepOutcome::Skipped(format!(

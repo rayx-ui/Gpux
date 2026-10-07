@@ -45,7 +45,8 @@ image.workspace = true
 gpui_wgpu = { workspace = true, optional = true }
 
 [dev-dependencies]
-gpui_platform = { workspace = true, features = ["x11", "wayland"] }
+# `font-kit` gives macOS its CoreText text system; without it macOS windows render no text.
+gpui_platform = { workspace = true, features = ["font-kit", "x11", "wayland"] }
 raw-window-handle.workspace = true
 tempfile.workspace = true
 
