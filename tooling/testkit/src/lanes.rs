@@ -182,8 +182,20 @@ pub fn test_name(scene: &SceneSpec) -> String {
     scene.id.replace('-', "_")
 }
 
-/// The lane-A groups that check the catalog and image comparison besides the scenes.
-const LANE_A_GROUPS: [&str; 3] = ["catalog_coverage", "image_compare", "golden_policy"];
+/// The lane-A groups besides the scenes: the catalog, image comparison and the host contract,
+/// none of which needs a renderer.
+const LANE_A_GROUPS: [&str; 7] = [
+    "catalog_coverage",
+    "image_compare",
+    "golden_policy",
+    "executor_clock",
+    "host_capabilities",
+    "rgb565_tolerance",
+    "screen_shows",
+];
+
+/// The lane-C groups besides the scenes, which need the renderer: lane G's probes-only mode.
+const LANE_C_GROUPS: [&str; 1] = ["lane_g"];
 
 /// Plans `lane` for `selection`.
 pub fn plan(lane: LaneId, selection: &Selection) -> Result<LanePlan, PlanError> {
@@ -312,27 +324,26 @@ fn plan_c(selection: &Selection) -> Result<LanePlan, PlanError> {
             [format!("at_1x::{name}"), format!("at_2x::{name}")]
         })
         .collect();
-    let mut invocation = cargo(
-        "lane-c",
-        &[
-            "test",
-            "-p",
-            "gpux-conformance",
-            "--test",
-            "lane_c",
-            "--",
-            // Scenes share one cached device; rendering one at a time keeps DX12 stable.
-            "--test-threads=1",
-        ],
-        OutputKind::Libtest,
-    );
-    let filters = if selection.is_everything() {
-        Vec::new()
-    } else {
+    let mut args = vec!["test", "-p", "gpux-conformance", "--test", "lane_c"];
+    let mut tests: Vec<String> = names.iter().map(|name| format!("lane_c::{name}")).collect();
+    let mut listings = Vec::new();
+    if selection.is_everything() {
+        for group in LANE_C_GROUPS {
+            args.extend(["--test", group]);
+            tests.push(format!("{group}::*"));
+        }
+        listings.push(listing("lane_c", &[]));
+        listings.extend(LANE_C_GROUPS.iter().map(|group| listing(group, &[])));
+    } else if !names.is_empty() {
+        listings.push(listing("lane_c", &names));
+    }
+    // Scenes share one cached device; rendering one at a time keeps DX12 stable.
+    args.extend(["--", "--test-threads=1"]);
+    let mut invocation = cargo("lane-c", &args, OutputKind::Libtest);
+    if !selection.is_everything() {
         invocation.args.push("--exact".into());
         invocation.args.extend(names.iter().cloned());
-        names.clone()
-    };
+    }
     Ok(LanePlan {
         lane: LaneId::C,
         invocations: if names.is_empty() {
@@ -340,12 +351,8 @@ fn plan_c(selection: &Selection) -> Result<LanePlan, PlanError> {
         } else {
             vec![invocation]
         },
-        tests: names.iter().map(|name| format!("lane_c::{name}")).collect(),
-        listings: if names.is_empty() {
-            Vec::new()
-        } else {
-            vec![listing("lane_c", &filters)]
-        },
+        tests,
+        listings,
     })
 }
 

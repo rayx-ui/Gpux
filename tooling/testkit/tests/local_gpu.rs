@@ -263,17 +263,28 @@ fn listing_lane_g_shows_the_benchmarks_and_the_hardware_runs() {
     let root = tempfile::tempdir().unwrap();
     let environment = FakeEnvironment::new(root.path());
     let mut runner = FakeRunner {
-        outputs: vec![RunOutput {
-            success: true,
-            code: Some(0),
-            output: "at_1x::paint_borders: test\nat_2x::paint_borders: test\n".into(),
-        }],
+        outputs: vec![
+            RunOutput {
+                success: true,
+                code: Some(0),
+                output: "at_1x::paint_borders: test\nat_2x::paint_borders: test\n".into(),
+            },
+            RunOutput {
+                success: true,
+                code: Some(0),
+                output: "probes_only_skips_goldens_and_keeps_the_probes: test\n".into(),
+            },
+        ],
         ..FakeRunner::default()
     };
     let (_, text) = run("lane g --list", &environment, &mut runner);
     // Without Playwright in tools-node, the browser part reports what to install.
     assert!(text.contains("Playwright is not installed"), "{text}");
     assert!(text.contains("  lane_c::at_1x::paint_borders"), "{text}");
+    assert!(
+        text.contains("  lane_g::probes_only_skips_goldens_and_keeps_the_probes"),
+        "{text}"
+    );
     assert!(text.contains("  desktop_host::desktop-backend"), "{text}");
     assert!(
         text.contains(
@@ -282,9 +293,12 @@ fn listing_lane_g_shows_the_benchmarks_and_the_hardware_runs() {
         "{text}"
     );
     assert!(text.contains("  bench::randomized_element_tree"), "{text}");
-    assert_eq!(runner.ran.len(), 1, "{:?}", runner.ran);
+    assert_eq!(runner.ran.len(), 2, "{:?}", runner.ran);
     assert!(
-        runner.ran[0].contains("GPUX_PROBES_ONLY=1"),
+        runner
+            .ran
+            .iter()
+            .all(|command| command.contains("GPUX_PROBES_ONLY=1")),
         "{:?}",
         runner.ran
     );

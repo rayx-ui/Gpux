@@ -87,15 +87,18 @@ fn lane_a_selects_every_lane_a_scene_and_the_catalog_groups() {
         .iter()
         .filter(|scene| scene.runs_in(Lane::A))
         .count();
-    assert_eq!(plan.tests.len(), scenes + 3);
+    assert_eq!(plan.tests.len(), scenes + 7);
     assert!(plan.tests.contains(&"lane_a::layout_flex".to_string()));
     assert!(plan.tests.contains(&"golden_policy::*".to_string()));
+    assert!(plan.tests.contains(&"executor_clock::*".to_string()));
     let invocation = &plan.invocations[0];
     assert_eq!(invocation.program, "cargo");
     assert_eq!(invocation.output, OutputKind::Libtest);
     assert_eq!(
         invocation.command_line(),
-        "cargo test -p gpux-conformance --test lane_a --test catalog_coverage --test image_compare --test golden_policy"
+        "cargo test -p gpux-conformance --test lane_a --test catalog_coverage --test image_compare \
+         --test golden_policy --test executor_clock --test host_capabilities --test rgb565_tolerance \
+         --test screen_shows"
     );
 }
 
@@ -212,7 +215,11 @@ fn libtest_lanes_list_every_target_they_run() {
             "lane_a",
             "catalog_coverage",
             "image_compare",
-            "golden_policy"
+            "golden_policy",
+            "executor_clock",
+            "host_capabilities",
+            "rgb565_tolerance",
+            "screen_shows"
         ]
     );
     for listing in &everything.listings {
@@ -226,13 +233,23 @@ fn libtest_lanes_list_every_target_they_run() {
         );
     }
     let lane_c = plan(LaneId::C, &Selection::default()).unwrap();
-    assert_eq!(lane_c.listings.len(), 1);
+    let targets: Vec<&str> = lane_c
+        .listings
+        .iter()
+        .map(|listing| listing.target.as_str())
+        .collect();
+    assert_eq!(targets, ["lane_c", "lane_g"]);
     assert!(
-        lane_c.listings[0]
+        lane_c.listings[1]
             .invocation
             .command_line()
-            .ends_with("--test lane_c -- --list")
+            .ends_with("--test lane_g -- --list")
     );
+    assert_eq!(
+        lane_c.invocations[0].command_line(),
+        "cargo test -p gpux-conformance --test lane_c --test lane_g -- --test-threads=1"
+    );
+    assert!(lane_c.tests.contains(&"lane_g::*".to_string()));
     assert!(
         plan(LaneId::D, &Selection::default())
             .unwrap()
