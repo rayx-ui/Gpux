@@ -125,7 +125,9 @@ pub fn find_sdk(environment: &dyn Environment) -> Result<Sdk, String> {
     // CI images and developer shells often set ANDROID_NDK_HOME to another NDK; building with
     // it would silently change the toolchain (r28 is the first to align ELF segments for 16 KB
     // pages by default).
-    if overridden.is_some() {
+    let is_pinned =
+        |path: &Path| std::fs::canonicalize(path).ok() == std::fs::canonicalize(&pinned).ok();
+    if overridden.is_some() && !is_pinned(&ndk) {
         let revision = ndk_revision(&ndk);
         if revision.as_deref() != Some(NDK_VERSION) {
             return Err(format!(
@@ -504,12 +506,20 @@ pub fn shell_commands(request: &Request) -> Vec<Vec<String>> {
     }
 }
 
-/// The `Pkg.Revision` an NDK's `source.properties` declares.
+/// The revision an NDK's `source.properties` declares, without a pre-release suffix: its
+/// `Pkg.BaseRevision`, or its `Pkg.Revision` up to the first `-` (r28-beta2 declares
+/// `28.0.12674087-beta2` and the base revision `28.0.12674087`).
 pub fn ndk_revision(ndk: &Path) -> Option<String> {
     let properties = std::fs::read_to_string(ndk.join("source.properties")).ok()?;
-    properties.lines().find_map(|line| {
-        let (key, value) = line.split_once('=')?;
-        (key.trim() == "Pkg.Revision").then(|| value.trim().to_string())
+    let value = |name: &str| {
+        properties.lines().find_map(|line| {
+            let (key, value) = line.split_once('=')?;
+            (key.trim() == name).then(|| value.trim().to_string())
+        })
+    };
+    value("Pkg.BaseRevision").or_else(|| {
+        value("Pkg.Revision")
+            .map(|revision| revision.split('-').next().unwrap_or_default().to_string())
     })
 }
 

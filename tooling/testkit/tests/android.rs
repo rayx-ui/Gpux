@@ -315,10 +315,12 @@ fn complete_sdk() -> tempfile::TempDir {
     let sdk = tempfile::tempdir().unwrap();
     let ndk = sdk.path().join("ndk").join(android::NDK_VERSION);
     std::fs::create_dir_all(&ndk).unwrap();
+    // The pinned package's own file: a beta, whose revision carries a suffix.
     std::fs::write(
         ndk.join("source.properties"),
         format!(
-            "Pkg.Desc = Android NDK\nPkg.Revision = {}\n",
+            "Pkg.Desc = Android NDK\nPkg.Revision = {0}-beta2\nPkg.BaseRevision = {0}\n\
+             Pkg.ReleaseName = r28-beta2\n",
             android::NDK_VERSION
         ),
     )
@@ -363,11 +365,32 @@ fn an_ndk_override_must_be_the_pinned_ndk() {
         error.contains("27.3.13750724") && error.contains(android::NDK_VERSION),
         "{error}"
     );
-    // An override pointing at the pinned NDK is used.
+    // An override pointing at the pinned NDK is used, as CI sets it.
     let pinned = sdk.path().join("ndk").join(android::NDK_VERSION);
     assert_eq!(android::find_sdk(&with(&pinned)).unwrap().ndk, pinned);
     assert_eq!(
         android::ndk_revision(&pinned).as_deref(),
+        Some(android::NDK_VERSION)
+    );
+    // A copy of the pinned NDK elsewhere is recognised by its base revision.
+    let copy = sdk.path().join("copy-of-ndk");
+    std::fs::create_dir_all(&copy).unwrap();
+    std::fs::copy(
+        pinned.join("source.properties"),
+        copy.join("source.properties"),
+    )
+    .unwrap();
+    assert_eq!(android::find_sdk(&with(&copy)).unwrap().ndk, copy);
+    // Without a base revision, the pre-release suffix is dropped.
+    let suffixed = sdk.path().join("suffixed");
+    std::fs::create_dir_all(&suffixed).unwrap();
+    std::fs::write(
+        suffixed.join("source.properties"),
+        format!("Pkg.Revision = {}-rc1\n", android::NDK_VERSION),
+    )
+    .unwrap();
+    assert_eq!(
+        android::ndk_revision(&suffixed).as_deref(),
         Some(android::NDK_VERSION)
     );
 }

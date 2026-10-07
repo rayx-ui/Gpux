@@ -47,8 +47,10 @@ fn the_apps_known_pixel_passes_at_full_or_16_bit_depth() {
     let gray = [128, 128, 128, 255];
     let rounded = with_block(screen([255, 255, 255, 255]), [132, 130, 132, 255]);
     screen_shows(&rounded, 2., 100., 80., gray).unwrap();
-    // The same rounding on a screen that is not 16-bit is a different color.
-    let mut not_rgb565 = rounded.clone();
-    not_rgb565.put_pixel(200, 160, Rgba([133, 130, 132, 255]));
+    // The same rounding on a screen that is not 16-bit is a different color: one full-depth
+    // neighbor in the probed area, and the 4-level difference exceeds the ordinary tolerance.
+    let mut not_rgb565 = rounded;
+    not_rgb565.put_pixel(201, 160, Rgba([133, 130, 132, 255]));
+    assert_eq!(not_rgb565.get_pixel(200, 160).0, [132, 130, 132, 255]);
     assert!(screen_shows(&not_rgb565, 2., 100., 80., gray).is_err());
 }
