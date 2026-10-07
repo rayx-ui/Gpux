@@ -220,7 +220,9 @@ mod windows_tests {
         let child = Child::spawn(command, Stdio::null(), Stdio::null(), Stdio::null())
             .expect("failed to spawn powershell");
 
-        let deadline = Instant::now() + Duration::from_secs(5);
+        // gpux: 30 s instead of upstream's 5 s. A cold PowerShell start plus `Start-Process`
+        // on a loaded CI runner can exceed 5 s; the process tree under test is unchanged.
+        let deadline = Instant::now() + Duration::from_secs(30);
         let grandchild_pid = loop {
             if let Ok(contents) = std::fs::read_to_string(&pid_file)
                 && let Ok(pid) = contents.trim().parse::<u32>()

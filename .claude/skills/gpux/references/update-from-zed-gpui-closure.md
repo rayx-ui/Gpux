@@ -142,6 +142,7 @@ The RayX memories identify these gpux-owned patches as especially easy to miss d
 - Preserve gpux-local metadata, local tooling, package docs, and upstream provenance markers; do not pull in unrelated Zed app crates or make the root workspace look like full Zed.
 - Keep the workspace `wgpu` dependency on the `gpux-wgpu` fork (`wgpu = { package = "gpux-wgpu", path = "vendor/wgpu/wgpu", version = "=<fork version>" }`); never bring back Zed's wgpu git dependency or add a `[patch]` section.
 - Preserve public examples and docs on `gpux::{...}` while keeping source provenance tied to the upstream Zed commit and local replay commits.
+- Keep the 30 s pid-file deadline in `crates/util/src/process.rs`'s Windows `spawn_process_tree` test helper; upstream's 5 s times out on loaded CI runners while PowerShell starts.
 - Keep macOS child processes in `crates/util/src/command/darwin.rs` on the gpux `darwin/process.rs` handle. Upstream calls `smol::process::Child::adopt_raw_pid`, which exists only in Zed's git fork of `async-process` (Zed's `[patch.crates-io]`), so taking upstream's file breaks the macOS build. Take upstream's `darwin.rs`, then replay only the handle swap (`mod process; use process::Process;`, `inner: Process`, `Process::new(pid, kill_on_drop)`), and keep `darwin/process.rs` with its `command::darwin::process` tests.
 
 ### Native Rendering And Windows
