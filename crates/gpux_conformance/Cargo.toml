@@ -53,6 +53,18 @@ tempfile.workspace = true
 [target.'cfg(target_os = "windows")'.dev-dependencies]
 windows = { workspace = true, features = ["Win32_UI_Input_KeyboardAndMouse"] }
 
+[target.'cfg(target_family = "wasm")'.dev-dependencies]
+console_error_panic_hook.workspace = true
+js-sys.workspace = true
+wasm-bindgen.workspace = true
+web-sys = { workspace = true, features = ["console", "Location", "UrlSearchParams", "Window"] }
+
+[[example]]
+name = "web_host"
+path = "examples/web_host/lib.rs"
+crate-type = ["cdylib"]
+required-features = ["app-host"]
+
 [[example]]
 name = "desktop_host"
 path = "examples/desktop_host/main.rs"

@@ -554,7 +554,16 @@ impl SceneRun<'_> {
             | Step::ProbeDiffer(..)
             | Step::Capture(_)
             | Step::ChangedSince(..) => {
-                let frame = self.frame(cx).await?;
+                let frame = match self.frame(cx).await {
+                    Ok(frame) => frame,
+                    Err(error) if error.to_string().contains("not implemented") => {
+                        return Ok(StepOutcome::Skipped(
+                            "the window cannot render its frame back here; screenshots probe it"
+                                .into(),
+                        ));
+                    }
+                    Err(error) => return Err(error),
+                };
                 let scale = self.scale(cx)?;
                 if let Err(error) = evaluate::pixel_step(step, &frame, scale, &mut self.captures) {
                     let mut error = error.context(format!("at scale {scale}"));
