@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/repository
   status: current
   created: 2026-10-05T23:00:00+02:00
-  updated: 2026-10-05T23:00:00+02:00
+  updated: 2026-10-07T23:55:00+02:00
   topics:
     - repository
     - upstream-sync
@@ -24,5 +24,5 @@ How gpux is maintained as a repository: upstream imports, publishing, validation
 
 - [upstream-sync](upstream-sync/INDEX.md): Zed GPUI closure, Zed PR, gpui-mobile, and wgpu imports with provenance.
 - [packaging](packaging/INDEX.md): `gpux-*` crates.io packaging, dependency policy, and the `gpux-wgpu` fork.
-- [validation](validation/INDEX.md): focused crate checks here and runtime proof in RayX's Test Suite.
+- [validation](validation/INDEX.md): focused crate checks and runtime proof in gpux's own lanes, run through `gpux-testkit`.
 - [agentx-memory](agentx-memory/INDEX.md): this memory tree's taxonomy and its transplant from RayX.
