@@ -1,0 +1,7 @@
+desktop_host: Windows, scale 1.5, input sendinput
+gpux-conformance: PASS platform-open-present 3 checks
+gpux-conformance: PASS platform-resize 2 checks
+gpux-conformance: SKIP platform-scale-change the platform does not let the host change its scale
+gpux-conformance: PASS layout-flex 8 steps, 1 skipped (lane d keeps no goldens)
+gpux-conformance: FAIL paint-borders step 6 probe (151, 11) is [255, 255, 255, 255]: pixel (226, 16) is [0, 0, 255, 255]
+gpux-conformance: PASS layout-flex 8 steps, 1 skipped (lane d keeps no goldens)

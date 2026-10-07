@@ -1,0 +1,35 @@
+   Compiling gpux-conformance v0.3.0 (D:\Work\projects\RayX\Gpux\crates\gpux_conformance)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 41.20s
+     Running tests\catalog_coverage.rs (target\debug\deps\catalog_coverage-77245c617de06668.exe)
+
+running 4 tests
+test every_required_area_has_a_scene ... ok
+test the_catalog_holds_at_least_thirty_scenes ... ok
+test scene_ids_are_unique_kebab_case_and_resolvable ... ok
+test every_scene_declares_complete_metadata ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\lane_a.rs (target\debug\deps\lane_a-f325eac627d56774.exe)
+
+running 3 tests
+test layout_flex ... ok
+test list_variable ... FAILED
+test tooltip ... ignored
+
+failures:
+
+---- list_variable stdout ----
+
+thread 'list_variable' (1234) panicked at crates\gpux_conformance\tests\lane_a.rs:20:5:
+assertion `left == right` failed: gpux-conformance: FAIL list-variable step 5 expect Exists(item("Item 30")): no element matches `role=listitem name="Item 30"`
+  left: Fail
+ right: Pass
+
+
+failures:
+    list_variable
+
+test result: FAILED. 1 passed; 1 failed; 1 ignored; 0 measured; 36 filtered out; finished in 0.43s
+
+error: test failed, to rerun pass `-p gpux-conformance --test lane_a`

@@ -75,6 +75,7 @@ fn main() {
 | `crates/util` | `gpux-zed-util` | `util` | Zed's general utilities |
 | `crates/util_macros` | `gpux-zed-util-macros` | `util_macros` | Zed's utility macros |
 | `tooling/perf` | `gpux-perf` | `perf` | Test performance measurement |
+| `tooling/testkit` | `gpux-testkit` | `gpux_testkit` | The `gpux-testkit` test-lane runner |
 | `vendor/wgpu/...` | `gpux-wgpu`, `gpux-wgpu-core`, `gpux-wgpu-hal`, `gpux-wgpu-core-deps-*` | `wgpu`, ... | Temporary wgpu fork, see below |
 
 ## The wgpu fork

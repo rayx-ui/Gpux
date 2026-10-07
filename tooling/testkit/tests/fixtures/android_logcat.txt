@@ -1,0 +1,7 @@
+--------- beginning of main
+10-07 12:00:00.981  4242  4242 I ActivityManager: Start proc 4242:dev.gpux.conformance/android.app.NativeActivity
+10-07 12:00:01.123  4242  4260 I gpux    : gpux-conformance: PASS layout-flex 8 steps
+10-07 12:00:01.456  4242  4260 I gpux    : gpux-conformance: PASS text-shaping 5 steps
+10-07 12:00:01.789  4242  4260 W gpux    : gpux-conformance: SKIP media-svg pixel steps need render_to_image
+10-07 12:00:02.012  4242  4260 E gpux    : gpux-conformance: FAIL scroll-touch step 3 expect Exists(status "offset 80"): no element matches
+10-07 12:00:02.013  4242  4260 I chatty  : uid=10123(dev.gpux.conformance) identical 1 line

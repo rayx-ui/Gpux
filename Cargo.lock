@@ -2740,10 +2740,13 @@ version = "0.3.0"
 dependencies = [
  "anyhow",
  "gpux",
+ "gpux-fonts",
  "gpux-platform",
  "gpux-wgpu-renderer",
  "image",
+ "raw-window-handle",
  "tempfile",
+ "windows 0.62.2",
 ]
 
 [[package]]
@@ -3021,6 +3024,15 @@ dependencies = [
  "rand 0.9.4",
  "rayon",
  "tracing",
+]
+
+[[package]]
+name = "gpux-testkit"
+version = "0.3.0"
+dependencies = [
+ "anyhow",
+ "gpux-conformance",
+ "tempfile",
 ]
 
 [[package]]

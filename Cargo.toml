@@ -29,6 +29,7 @@ members = [
     "crates/util",
     "crates/util_macros",
     "tooling/perf",
+    "tooling/testkit",
     "vendor/wgpu/wgpu",
     "vendor/wgpu/wgpu-core",
     "vendor/wgpu/wgpu-hal",
@@ -53,7 +54,7 @@ collections = { package = "gpux-collections", path = "crates/collections", versi
 derive_refineable = { package = "gpux-derive-refineable", path = "crates/refineable/derive_refineable", version = "0.3.0" }
 gpux = { path = "crates/gpui", version = "0.3.0", default-features = false }
 gpux_color = { package = "gpux-color", path = "crates/gpux_color", version = "0.3.0" }
-gpux_conformance = { package = "gpux-conformance", path = "crates/gpux_conformance", version = "0.3.0" }
+gpux_conformance = { package = "gpux-conformance", path = "crates/gpux_conformance", version = "0.3.0", default-features = false }
 gpux_fonts = { package = "gpux-fonts", path = "crates/gpux_fonts", version = "0.3.0" }
 gpui_shared_string = { package = "gpux-shared-string", path = "crates/gpui_shared_string", version = "0.3.0" }
 gpui_apple = { package = "gpux-apple", path = "crates/gpui_apple", version = "0.3.0" }
