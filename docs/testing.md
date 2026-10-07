@@ -4,21 +4,111 @@ gpux proves itself in lanes: groups of tests named by where they can run. `gpux-
 single entry point:
 
 ```text
-cargo run -p gpux-testkit -- lane <lane>... [--list] [--scene <id>] [--grep <pattern>]
+cargo run -p gpux-testkit -- lane <lane>... [--list] [--scene <id>] [--grep <pattern>] [--headed]
 ```
 
 Every run ends with `gpux-testkit: <passed> passed, <failed> failed, <skipped> skipped` and
-exits nonzero on any failure or when nothing was selected. Raw output goes to
-`artifacts-temp/testkit/<lane>/`. The conformance scenes the lanes share live in
-[`crates/gpux_conformance`](../crates/gpux_conformance).
+exits nonzero on any failure or when nothing was selected. `--list` prints the exact selection
+without running it. Raw output goes to `artifacts-temp/testkit/<lane>/`. The conformance scenes the
+lanes share live in [`crates/gpux_conformance`](../crates/gpux_conformance); each scene names the
+lanes it runs in.
 
-| Lane | What it proves | Command |
+gpux needs nothing outside this repository to prove itself. RayX consumes gpux, and a change to
+an API RayX uses ships with the matching RayX change, but RayX's tests are not gpux's proof.
+
+## Lanes
+
+| Lane | What it proves | Command | Local host |
+|---|---|---|---|
+| A | Behaviour on the test platform: layout, input, focus, text, scrolling, semantics; no GPU or display | `gpux-testkit lane a` | any |
+| B | A real browser: the threaded WASM build on WebGPU (and forced WebGL2), driven by Playwright with trusted input | `gpux-testkit lane b` | Chromium on the machine's GPU |
+| C | Offscreen pixels through the headless renderer, with per-backend goldens | `gpux-testkit lane c` | any: renders on the software adapter |
+| D | Real desktop windows: presenting, resizing, scale changes, clipboard, OS input | `gpux-testkit lane d` | a desktop session |
+| E | Android on a device or emulator: startup, the lane-E scenes, OS touch, background and resume | `gpux-testkit lane e` | an attached device or emulator |
+| F | iOS: the Simulator or a device | not available yet (sprint `s8-apple-lanes`) | a Mac with Xcode |
+| G | The developer's real GPU: lane B's every spec, `@timing` and `@dpr2` included; lanes C and D on the hardware adapter with probes only; the benchmarks | `gpux-testkit lane g [--headed]` | a machine with a GPU; refuses to run under CI |
+
+### CI and cadence
+
+| Lane | Workflow job | Runner | Cadence |
+|---|---|---|---|
+| A | `ci.yml` lane A | `ubuntu-24.04`, `windows-2025`, `macos-15` | every pull request and push to `main` |
+| B | `lane-b.yml` | `ubuntu-24.04`: headless Chromium, WebGPU on SwiftShader (profile `ci-linux-swiftshader`), 4 shards | pull requests and pushes: `@canary` and `@pr` at DPR 1; nightly at 03:17 UTC (or a dispatch with `all-specs`): every spec except `@timing`, DPR 2 included |
+| C | `ci.yml` lane C | `ubuntu-24.04` (lavapipe), `windows-2025` (WARP), `macos-15` (Metal) | every pull request and push to `main` |
+| D | `ci.yml` lane D | `ubuntu-24.04` (X11 under Xvfb, lavapipe), `windows-2025` (WARP), `macos-15` | every pull request and push to `main` |
+| E | `lane-e.yml` | `ubuntu-24.04`: KVM-accelerated API 34 x86_64 emulator, SwiftShader GL | nightly at 03:47 UTC, pushes to `main`, and pull requests that touch `gpui_mobile`, `gpui_wgpu`, `gpux_conformance`, `tooling/android` or `tooling/testkit` |
+| F | none yet | `macos-15` Simulator (planned) | nightly and path-filtered pull requests (planned) |
+| G | none: local only | the developer's GPU | before releases, and for renderer, platform or performance changes |
+
+`ci.yml` also runs `check` (format, `cargo check --workspace --all-targets`, Clippy, the web
+checks), `test` (`cargo test --workspace` without the conformance crate, one test at a time,
+because GPU-backed tests hang DX12 when they create devices concurrently) and `package`
+(`cargo package --workspace`) on every pull request.
+
+Timing thresholds live only in lane G: hosted runners have no GPU, and software rasterizers make
+frame times meaningless. Scenes and specs that assert real-clock timing are skipped on the
+software profiles with the reason.
+
+## Prerequisites
+
+Every host needs the toolchain [`rust-toolchain.toml`](../rust-toolchain.toml) pins (Rust 1.95.0
+with Clippy, rustfmt and the wasm32 target). Each lane checks its own prerequisites and names the
+command that installs a missing one. Platform setup is in
+[`installation-and-usage.md`](installation-and-usage.md).
+
+| Host | Lanes | Needs |
 |---|---|---|
-| A | Behaviour on the test platform: no GPU or display | `gpux-testkit lane a` |
-| B | A real browser: the threaded WASM build on WebGPU, driven by Playwright with trusted input | `gpux-testkit lane b` |
-| C | Offscreen pixels through the headless renderer, with per-backend goldens | `gpux-testkit lane c` |
-| D | Real desktop windows: presenting, resizing, scale changes, clipboard, OS input | `gpux-testkit lane d` |
-| E | Android on a device or emulator: startup, the lane-E scenes, OS touch, background and resume | `gpux-testkit lane e` |
+| Windows | A, C, D | nothing extra: WARP, the DX12 software adapter, ships with Windows. Visual Studio Build Tools as for any gpux build. |
+| Linux | A, C, D | `pkg-config libfreetype6-dev libfontconfig1-dev libxkbcommon-dev libxkbcommon-x11-dev libvulkan1 mesa-vulkan-drivers`; lavapipe through `VK_DRIVER_FILES` for C and D; a display (or `xvfb-run`) and `xdotool` for D. [LINUX-WSL.md](../LINUX-WSL.md) sets up WSL. |
+| macOS | A, C, D | the Xcode command-line tools; Metal is the GPU. |
+| any | B, G | a nightly toolchain with `rust-src` (`GPUX_WEB_TOOLCHAIN` overrides `nightly`); `wasm-bindgen-cli` at the version `Cargo.lock` pins; Node.js 22 or later with `pnpm`; in `tools-node`: `pnpm install` and `pnpm exec playwright install chromium`. |
+| any | E | `ANDROID_HOME` with the pinned SDK packages, a JDK 17 or later, `cargo-ndk`, and the Android Rust targets; see [Lane E](#lane-e-android). |
+| macOS | F | Xcode and XcodeGen (planned with lane F). |
+| any | G | a hardware GPU, plus everything lanes B, C and D need. |
+
+## Environment variables
+
+| Variable | Read by | Meaning |
+|---|---|---|
+| `GPUX_WGPU_ADAPTER` | lane C, the benchmarks, headless rendering | `software` (lane C's default), `hardware`, or a substring of an adapter's name; empty picks the best adapter. Windowed renderers keep their own choice. |
+| `GPUX_EXPECT_BACKEND` | lanes C and D | The backend every scene must render on: `warp`, `lavapipe`, `metal`, ..., or `hardware` for any GPU. CI and lane G set it, so a missing driver cannot silently move a run to another adapter. |
+| `GPUX_UPDATE_SNAPSHOTS` | lane C | `1` writes the active backend's goldens instead of comparing. |
+| `GPUX_PROBES_ONLY` | lane C | `1` skips golden comparisons and keeps the relative probes (lane G). |
+| `GPUX_ARTIFACTS_DIR` | lanes C and D | Where failure images go instead of `artifacts-temp/testkit/<lane>/`. |
+| `VK_DRIVER_FILES` | Linux | Points Vulkan at one driver, for example lavapipe: `/usr/share/vulkan/icd.d/lvp_icd.x86_64.json`. |
+| `GPUX_OS_INPUT` | lane D | `optional` reports the OS-input check skipped when the session delivers no synthetic input (hosted Windows runners). |
+| `ZED_DEVICE_ID` | windowed renderers | Pins a GPU by its PCI device id on machines with several. |
+| `GPUX_WEB_PROFILE` | lane B | The Playwright profile `lane b` runs (`local-gpu` by default). |
+| `GPUX_WEB_TOOLCHAIN` | lanes B and G | The nightly toolchain of the threaded WASM build. |
+| `ANDROID_HOME`, `ANDROID_SERIAL` | lane E | The SDK, and the device to run on. |
+| `CI` | lane G | Lane G refuses to run when it is set. |
+| `SEED`, `ITERATIONS`, `BENCH_MEASUREMENT` | `#[gpux::test]`, `#[gpux::bench]` | Seeds and iterations of randomized tests and benchmarks, and what benchmarks measure (`wall-time`, `instructions`, `allocations`, ...). |
+
+## Goldens
+
+Lane C compares a curated subset of scenes (those with `golden: true`) with committed PNGs per
+software backend, in `crates/gpux_conformance/tests/goldens/<backend>/`: `lavapipe`, `warp` and
+`metal`. A golden is at most 32 KiB, all of them together at most 2 MiB, and the published package
+leaves them out (`cargo test -p gpux-conformance --test golden_policy` checks this). Hardware GPUs
+never get goldens: lane C skips golden steps on them, and lane G switches goldens off everywhere.
+
+To update goldens after an intended rendering change:
+
+1. Run lane C on your platform's backend with `GPUX_UPDATE_SNAPSHOTS=1`
+   (`GPUX_UPDATE_SNAPSHOTS=1 cargo run -p gpux-testkit -- lane c`): WARP on Windows, lavapipe on
+   Linux with `VK_DRIVER_FILES` set (WSL works), Metal on macOS.
+2. For the backends you cannot run, dispatch the `Gpux` workflow with `update-goldens` checked.
+   Each lane C job uploads its backend's regenerated goldens as `lane-c-<backend>-goldens`;
+   download them into `crates/gpux_conformance/tests/goldens/<backend>/`.
+3. Review every changed PNG before committing. A failing comparison writes the actual, expected
+   and diff images under `artifacts-temp/testkit/c/`.
+
+## Lane A: behaviour
+
+`gpux-testkit lane a` runs the lane-A conformance scenes on `TestPlatform` with the bundled
+fonts and the deterministic executor clock, plus the catalog, image-comparison and golden-policy
+groups. No GPU or display is involved, so lane A runs identically everywhere. The crates' own
+focused tests (`cargo test -p <package> <filter>`) are lane A too.
 
 ## Lane B: a real browser
 
@@ -67,8 +157,44 @@ The specs:
 | `windows-software` | Windows without a usable GPU | WebGPU on WARP |
 
 Scenes asserting exact animation timing or fling distances stay out of lane B, which runs on the
-real clock like lane D. Raw output, traces and failure screenshots go to
-`artifacts-temp/testkit/b/`.
+real clock like lane D. Specs tagged `@timing` assert frame budgets; only lane G runs them. Raw
+output, traces and failure screenshots go to `artifacts-temp/testkit/b/`.
+
+### Chromium flags and troubleshooting
+
+Every profile passes `--enable-blink-features=CanvasDrawElement`, which the HTML-island specs
+need. Beyond that:
+
+- `local-gpu` uses new headless Chromium (`channel: 'chromium'`) with `--enable-unsafe-webgpu`.
+  On Windows the old headless shell gets no WebGPU adapter (its ANGLE runs on SwiftShader), so
+  apps fall back to WebGL2; the specs' backend check catches that.
+- `ci-linux-swiftshader` needs `--enable-features=Vulkan --use-angle=swiftshader
+  --use-vulkan=swiftshader`; without either SwiftShader flag the canvas stays blank ("device
+  lost: Destroyed"). Chromium keeps only the last `--enable-features`, so the profile repeats
+  Playwright's own `CDPScreenshotNewSurface` there.
+- `windows-software` uses `--use-angle=d3d11-warp`.
+
+When a spec fails before it runs anything:
+
+- *the page must be cross-origin isolated*: the build was served without the COOP, COEP and
+  CORP headers that `SharedArrayBuffer` needs; serve it with `web serve` or run `web e2e`.
+- *the scene must render through webgpu*: Chromium found no WebGPU adapter and the app fell back
+  to WebGL2. Check the profile's flags and the GPU blocklist; `?backend=webgpu` forces WebGPU
+  (no fallback) and `?backend=webgl` forces WebGL2 when opening a scene by hand.
+- *no catalog.json*: the specs enumerate scenes from the build; run `web build` first.
+- `net::ERR_NO_BUFFER_SPACE` on Windows: the system ran out of socket buffers during many
+  parallel page loads. Rerun the spec.
+- A headed browser whose window is hidden pauses `requestAnimationFrame`, and with it gpux's frame
+  loop; keep it visible or run headless.
+
+## Lane C: offscreen pixels
+
+`gpux-testkit lane c` renders every lane-C scene at scale 1 and 2 through the platform's headless
+renderer: wgpu on the software adapter on Windows (WARP) and Linux (lavapipe, or llvmpipe on GL),
+Metal on macOS. Scenes check relative probes (a color at a point, a uniform region, two regions
+that differ, a region that changed since a capture), and the golden subset is compared with the
+committed goldens of the backend. Scenes render one at a time: they share one cached device,
+which keeps DX12 stable.
 
 ## Lane D: real desktop windows
 
@@ -139,3 +265,37 @@ keep their tolerance. Shrinking the emulator's screen (`adb shell wm size 720x12
 Scenes that need exact animation timing or an input method stay out of lane E: the device runs on
 the real clock, and adb cannot drive the input method. The fling check is skipped on software
 renderers, where `adb shell input` delivers a fast swipe only after slow frames, as a tap.
+
+## Lane F: iOS
+
+Lane F arrives with sprint `s8-apple-lanes`: an `ios_host` conformance app built with XcodeGen
+and `xcodebuild` (`gpux-testkit ios build --simulator`), run in a pinned Simulator
+(`gpux-testkit ios run --simulator`), and a `macos-15` CI job. Until then, `gpux-testkit lane f`
+reports that it is not available.
+
+## Lane G: the local real GPU
+
+`gpux-testkit lane g` is the only lane that measures time and the only one that needs a GPU. It
+runs on the developer's machine and refuses to run when `CI` is set:
+
+1. **Lane B in the `local-gpu` profile**, every spec: `@canary`, `@pr`, `@dpr2` and the `@timing`
+   specs no other profile runs. `--headed` shows the browser. `timing.spec.ts` scrolls a
+   virtualized list and requires the 95th percentile of gpux's frame work (layout, paint and
+   submission in its animation-frame callback) to stay inside the 60 Hz frame budget.
+2. **Lane C on the hardware adapter** (`GPUX_WGPU_ADAPTER=hardware`, Metal on macOS) with
+   `GPUX_PROBES_ONLY=1` and `GPUX_EXPECT_BACKEND=hardware`: every probe runs, no golden is
+   compared, and a scene that lands on a software rasterizer fails.
+3. **Lane D on the GPU**: windows already prefer the hardware adapter; the desktop host's
+   `desktop-backend` result fails when they render on a software rasterizer instead (macOS
+   windows name no adapter and report it skipped).
+4. **The benchmarks**: `cargo bench -p gpux-platform --features bench-support` runs the
+   `#[gpux::bench]` Criterion suites `randomized_element_tree` and `inspector_render` on the GPU.
+   Benchmarks run on a thread with an 8 MiB stack on every platform, so deep trees fit on
+   Windows too. They run only for the whole selection, not with `--scene` or `--grep`.
+
+Lane G writes `artifacts-temp/testkit/g/timing.md`: each part's results and duration, the GPU
+the windows rendered on, the `@timing` specs' measurements (the `gpux-timing:` lines they print),
+and every benchmark's estimate with its confidence interval. Raw logs stay in
+`artifacts-temp/testkit/g/` (lanes C and D, the benchmarks) and `artifacts-temp/testkit/b/` (the
+browser specs). Lane G is the proof for renderer, platform and performance changes before a
+release; compare `timing.md` with a run of the base commit to judge a performance change.
