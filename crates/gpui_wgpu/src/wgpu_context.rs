@@ -16,6 +16,54 @@ pub struct WgpuContext {
     dual_source_blending: bool,
     color_texture_format: wgpu::TextureFormat,
     device_lost: Arc<AtomicBool>,
+    /// The device-wide error state of a headless context, whose cached device several
+    /// renderers share. Windowed contexts leave errors to their renderers.
+    #[cfg(not(target_family = "wasm"))]
+    shared_errors: Option<Arc<DeviceErrorState>>,
+}
+
+/// GPU errors reported by a device's single uncaptured-error callback, shared by every
+/// renderer on it (Zed #64718/#64842). wgpu keeps one callback per device, so the state is
+/// installed once and each renderer observes it from the point it joined.
+#[cfg(not(target_family = "wasm"))]
+#[derive(Default)]
+pub struct DeviceErrorState {
+    last_error: parking_lot::Mutex<(u64, Option<String>)>,
+}
+
+#[cfg(not(target_family = "wasm"))]
+impl DeviceErrorState {
+    fn install(device: &wgpu::Device) -> Arc<Self> {
+        let errors = Arc::new(Self::default());
+        device.on_uncaptured_error(Arc::new({
+            let errors = Arc::clone(&errors);
+            move |error| errors.record(error.to_string())
+        }));
+        errors
+    }
+
+    fn record(&self, error: String) {
+        let mut last_error = self.last_error.lock();
+        last_error.0 = last_error.0.wrapping_add(1);
+        last_error.1 = Some(error);
+    }
+
+    /// The generation a renderer joining the device starts from, so it observes only
+    /// errors raised after it joined, including any while it builds its pipelines.
+    pub fn current_generation(&self) -> u64 {
+        self.last_error.lock().0
+    }
+
+    /// The latest error raised since `generation`, once per observer; it advances
+    /// `generation`. Several errors between observations coalesce into the latest one.
+    pub fn observe_error(&self, generation: &mut u64) -> Option<String> {
+        let last_error = self.last_error.lock();
+        if *generation == last_error.0 {
+            return None;
+        }
+        *generation = last_error.0;
+        last_error.1.clone()
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -228,6 +276,7 @@ impl WgpuContext {
             dual_source_blending,
             color_texture_format,
             device_lost,
+            shared_errors: None,
         })
     }
 
@@ -339,6 +388,7 @@ impl WgpuContext {
             })?;
 
         let device_lost = install_device_lost_callback(&device);
+        let shared_errors = Some(DeviceErrorState::install(&device));
         let info = adapter.get_info();
         log::info!(
             "Selected headless GPU adapter: {:?} ({:?}, {:?})",
@@ -357,6 +407,7 @@ impl WgpuContext {
                 dual_source_blending,
                 color_texture_format,
                 device_lost,
+                shared_errors,
             },
             target_format,
         ))
@@ -750,6 +801,13 @@ impl WgpuContext {
     /// When this returns true, the context should be recreated.
     pub fn device_lost(&self) -> bool {
         self.device_lost.load(Ordering::Relaxed)
+    }
+
+    /// The device-wide error state of a headless context; `None` for windowed contexts,
+    /// whose renderers each install their own error callback.
+    #[cfg(not(target_family = "wasm"))]
+    pub fn shared_errors(&self) -> Option<&Arc<DeviceErrorState>> {
+        self.shared_errors.as_ref()
     }
 
     /// Returns a clone of the device_lost flag for sharing with renderers.

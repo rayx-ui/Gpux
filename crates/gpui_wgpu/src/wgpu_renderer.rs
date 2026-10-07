@@ -1827,11 +1827,16 @@ impl WgpuRenderer {
         let adapter_info = context.adapter.get_info();
 
         let last_error: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
-        let last_error_clone = Arc::clone(&last_error);
-        device.on_uncaptured_error(Arc::new(move |error| {
-            let mut guard = last_error_clone.lock().unwrap();
-            *guard = Some(error.to_string());
-        }));
+        // wgpu keeps one uncaptured-error callback per device. A windowed renderer owns its
+        // callback as before; a surface-free renderer shares a headless device whose context
+        // installed one callback for every renderer on it.
+        if surface.is_some() {
+            let last_error_clone = Arc::clone(&last_error);
+            device.on_uncaptured_error(Arc::new(move |error| {
+                let mut guard = last_error_clone.lock().unwrap();
+                *guard = Some(error.to_string());
+            }));
+        }
 
         let resources = WgpuResources {
             device,
@@ -3077,13 +3082,6 @@ impl WgpuRenderer {
         target_view: &wgpu::TextureView,
         size: Size<DevicePixels>,
     ) -> anyhow::Result<wgpu::SubmissionIndex> {
-        if let Some(error) = self.last_error.lock().unwrap().take() {
-            anyhow::bail!("GPU error during headless rendering: {error}");
-        }
-        anyhow::ensure!(
-            !self.device_lost(),
-            "GPU device was lost during headless rendering"
-        );
         let width = size.width.0 as u32;
         let height = size.height.0 as u32;
         if width != self.surface_config.width || height != self.surface_config.height {
@@ -4900,6 +4898,8 @@ pub struct WgpuHeadlessRenderer {
     context: WgpuContext,
     renderer: WgpuRenderer,
     target: Option<HeadlessRenderTarget>,
+    errors: Arc<crate::DeviceErrorState>,
+    observed_error_generation: u64,
 }
 
 #[cfg(all(
@@ -4916,6 +4916,13 @@ impl WgpuHeadlessRenderer {
     /// A renderer on the adapter `selection` names, ignoring `GPUX_WGPU_ADAPTER`.
     pub fn with_adapter(selection: &crate::HeadlessAdapterSelection) -> anyhow::Result<Self> {
         let (context, target_format) = WgpuContext::new_headless(selection)?;
+        let errors = context
+            .shared_errors()
+            .cloned()
+            .ok_or_else(|| anyhow::anyhow!("headless context without a device error state"))?;
+        // The device may be shared with earlier renderers: observe only errors raised from
+        // here on, including any while this renderer builds its pipelines.
+        let observed_error_generation = errors.current_generation();
         let renderer = WgpuRenderer::new_surfaceless(
             &context,
             target_format,
@@ -4925,7 +4932,29 @@ impl WgpuHeadlessRenderer {
             context,
             renderer,
             target: None,
+            errors,
+            observed_error_generation,
         })
+    }
+
+    /// The device this renderer draws with, for tests and tools that need raw GPU access.
+    pub fn device(&self) -> &wgpu::Device {
+        &self.context.device
+    }
+
+    /// Fails when the device was lost or raised an error since this renderer last looked.
+    fn check_gpu_errors(&mut self) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            !self.context.device_lost(),
+            "GPU device was lost during headless rendering"
+        );
+        if let Some(error) = self
+            .errors
+            .observe_error(&mut self.observed_error_generation)
+        {
+            anyhow::bail!("GPU error during headless rendering: {error}");
+        }
+        Ok(())
     }
 
     /// The adapter this renderer draws with: its name, backend, driver and device type.
@@ -5003,6 +5032,7 @@ impl WgpuHeadlessRenderer {
     }
 
     fn render(&mut self, scene: &Scene, size: Size<DevicePixels>) -> anyhow::Result<()> {
+        self.check_gpu_errors()?;
         self.ensure_target(size)?;
         let view = self
             .target
@@ -5063,9 +5093,7 @@ impl WgpuHeadlessRenderer {
         let mut image =
             self.renderer
                 .read_buffer_to_image(readback, width, height, padded_bytes_per_row)?;
-        if let Some(error) = self.renderer.last_error.lock().unwrap().take() {
-            anyhow::bail!("GPU error during headless rendering: {error}");
-        }
+        self.check_gpu_errors()?;
         // Premultiplied paint over an opaque black background.
         for pixel in image.pixels_mut() {
             pixel.0[3] = 255;
