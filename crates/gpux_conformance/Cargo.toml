@@ -66,10 +66,19 @@ gpui_mobile = { workspace = true, features = ["android-native-activity"] }
 libc.workspace = true
 log.workspace = true
 
+[target.'cfg(target_os = "ios")'.dev-dependencies]
+gpui_mobile.workspace = true
+
 [[example]]
 name = "android_host"
 path = "examples/android_host/lib.rs"
 crate-type = ["cdylib"]
+required-features = ["app-host"]
+
+[[example]]
+name = "ios_host"
+path = "examples/ios_host/lib.rs"
+crate-type = ["staticlib"]
 required-features = ["app-host"]
 
 [[example]]
