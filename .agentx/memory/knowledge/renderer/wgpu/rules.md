@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/renderer/wgpu
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-07T16:45:00+02:00
+  updated: 2026-10-07T20:15:00+02:00
   topics:
     - wgsl
     - abi
@@ -31,3 +31,4 @@ agentx:
 - Never return early from a fragment shader after `textureSample`: some GL ES drivers (Android emulators') drop every fragment of such a shader. Fold clip, mask, and kind tests into the result through `visible_if`; `tests/shader_sampling.rs` guards it.
 - Choose GL behavior by capability: GL devices request WebGL2 limits on every platform, devices without `VERTEX_STORAGE` read instance records from textures, and GL prefers `Rgba8Unorm` color atlases because BGRA comes from an ES extension some drivers report but cannot sample.
 - Bind each uniform block to its own buffer; GL drivers that bind two ranges of one buffer to two blocks give the second the wrong range.
+- Raise GPU errors on a cached headless device only in `tests/headless_renderer_gpu_errors.rs`, one test per adapter selection: every renderer on that device observes them, so they fail concurrent tests that share it.

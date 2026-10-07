@@ -45,6 +45,7 @@ Headless rendering (with `test-support` or `bench-support`, native only) is gpux
 ## Backlinks
 
 - [Headless renderer tests](../../../../../crates/gpui_wgpu/tests/headless_renderer.rs)
+- [Headless renderer GPU-error tests](../../../../../crates/gpui_wgpu/tests/headless_renderer_gpu_errors.rs)
 - [WGPU renderer](../../../../../crates/gpui_wgpu/src/wgpu_renderer.rs)
 - [WGPU context](../../../../../crates/gpui_wgpu/src/wgpu_context.rs)
 - [Shaders](../../../../../crates/gpui_wgpu/src/shaders.wgsl)

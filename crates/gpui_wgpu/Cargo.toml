@@ -75,6 +75,10 @@ naga = { version = "30.0.1", features = ["wgsl-in"] }
 name = "headless_renderer"
 required-features = ["test-support"]
 
+[[test]]
+name = "headless_renderer_gpu_errors"
+required-features = ["test-support"]
+
 [[bench]]
 name = "layout_line"
 harness = false
