@@ -18,9 +18,20 @@
 //!
 //! A shown scene also publishes its script for trusted-input driving (see [`bridge`]): `steps`,
 //! `check(index)`, `pixels(index, png)` and `focusPoint(query)`.
+//!
+//! Browser-only scenes ([`web_scenes`]) cover gpui_web areas the shared catalog cannot, and
+//! [`fixtures`] exports the queue and glyph fixtures the thread and text-fallback specs call.
+//! `close()` closes the shown scene's window.
+
+// The atomic-wait negative control needs the nightly intrinsic; browser builds use nightly.
+#![cfg_attr(target_family = "wasm", feature(stdarch_wasm_atomic_wait))]
 
 #[cfg(target_family = "wasm")]
 mod bridge;
+#[cfg(target_family = "wasm")]
+mod fixtures;
+#[cfg(target_family = "wasm")]
+mod web_scenes;
 
 #[cfg(target_family = "wasm")]
 mod web {
@@ -232,6 +243,21 @@ mod web {
         })
     }
 
+    /// `close()`: closes the shown scene's window; `true` when one was open.
+    fn close() -> JsValue {
+        SHOWN.with(|shown| {
+            let Some(mut shown) = shown.borrow_mut().take() else {
+                return JsValue::FALSE;
+            };
+            let window = shown.window;
+            JsValue::from_bool(
+                window
+                    .update(&mut shown.cx, |_, window, _| window.remove_window())
+                    .is_ok(),
+            )
+        })
+    }
+
     fn backend_name(cx: &mut AsyncApp, window: AnyWindowHandle) -> String {
         let backend = window
             .update(cx, |_, window, _| window.gpu_specs())
@@ -307,6 +333,9 @@ mod web {
         let pixels = Closure::<dyn Fn(u32, js_sys::Uint8Array) -> JsValue>::new(pixels);
         set("pixels", pixels.as_ref().clone());
         pixels.forget();
+        let close = Closure::<dyn Fn() -> JsValue>::new(close);
+        set("close", close.as_ref().clone());
+        close.forget();
         let focus_point = Closure::<dyn Fn(String) -> Result<JsValue, JsValue>>::new(focus_point);
         set("focusPoint", focus_point.as_ref().clone());
         focus_point.forget();
@@ -324,6 +353,7 @@ mod web {
                 CATALOG
                     .iter()
                     .find(|scene| scene.id == id)
+                    .or_else(|| crate::web_scenes::scene(id))
                     .ok_or_else(|| format!("no conformance scene `{id}`"))
             });
             match (params.run.as_deref(), scene) {

@@ -2749,6 +2749,7 @@ dependencies = [
  "raw-window-handle",
  "tempfile",
  "wasm-bindgen",
+ "wasm_thread",
  "web-sys",
  "windows 0.62.2",
 ]

@@ -1,6 +1,6 @@
 //! The scene catalog. Each module groups scenes by area; [`CATALOG`] lists every scene once.
 
-mod common;
+pub mod common;
 pub mod editing;
 pub mod effects;
 pub mod focus;
