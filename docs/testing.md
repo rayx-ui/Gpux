@@ -75,7 +75,7 @@ command that installs a missing one. Platform setup is in
 | `GPUX_UPDATE_SNAPSHOTS` | lane C | `1` writes the active backend's goldens instead of comparing. |
 | `GPUX_PROBES_ONLY` | lane C | `1` skips golden comparisons and keeps the relative probes (lane G). |
 | `GPUX_ARTIFACTS_DIR` | lanes C and D | Where failure images go instead of `artifacts-temp/testkit/<lane>/`. |
-| `VK_DRIVER_FILES` | Linux | Points Vulkan at one driver, for example lavapipe: `/usr/share/vulkan/icd.d/lvp_icd.x86_64.json`. |
+| `VK_DRIVER_FILES` | Linux | Points Vulkan at one driver, for example lavapipe: `/usr/share/vulkan/icd.d/lvp_icd.json` (`lvp_icd.x86_64.json` before Mesa 25.2). A path that does not exist leaves no Vulkan adapter, and rendering falls back to llvmpipe over GL. |
 | `GPUX_OS_INPUT` | lane D | `optional` reports the OS-input check skipped when the session delivers no synthetic input (hosted Windows runners). |
 | `ZED_DEVICE_ID` | windowed renderers | Pins a GPU by its PCI device id on machines with several. |
 | `GPUX_WEB_PROFILE` | lane B | The Playwright profile `lane b` runs (`local-gpu` by default). |

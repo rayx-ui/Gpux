@@ -177,7 +177,7 @@ Lane A (behaviour, no GPU or display) and lane C (offscreen pixels against the c
 goldens):
 
 ```bash
-export VK_DRIVER_FILES=/usr/share/vulkan/icd.d/lvp_icd.x86_64.json
+export VK_DRIVER_FILES=$(ls /usr/share/vulkan/icd.d/lvp_icd*.json | head -n 1)
 cargo run -p gpux-testkit -- lane a
 GPUX_EXPECT_BACKEND=lavapipe cargo run -p gpux-testkit -- lane c
 ```
