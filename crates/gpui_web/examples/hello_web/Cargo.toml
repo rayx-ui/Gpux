@@ -31,14 +31,6 @@ name = "input"
 path = "../../../gpui/examples/input.rs"
 
 [[bin]]
-name = "font_fallback_test"
-path = "font_fallback_test.rs"
-
-[[bin]]
-name = "queue_test"
-path = "queue_test.rs"
-
-[[bin]]
 name = "dynamic_fonts"
 path = "dynamic_fonts.rs"
 
