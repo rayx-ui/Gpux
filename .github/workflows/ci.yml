@@ -105,10 +105,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y $LINUX_PACKAGES
+      # The testkit runs lane A with the catalog, image-comparison and golden-policy groups.
       - name: Lane A and the conformance catalog
-        run: >-
-          cargo test -p gpux-conformance --test lane_a --test catalog_coverage
-          --test image_compare --test golden_policy
+        run: cargo run -p gpux-testkit -- lane a
 
   lane-c:
     name: lane C (${{ matrix.backend }})
@@ -140,7 +139,7 @@ jobs:
         if: runner.os == 'Linux'
         run: echo "VK_DRIVER_FILES=$(ls /usr/share/vulkan/icd.d/lvp_icd*.json | head -n 1)" >> "$GITHUB_ENV"
       - name: Lane C
-        run: cargo test -p gpux-conformance --test lane_c -- --test-threads=1
+        run: cargo run -p gpux-testkit -- lane c
       - name: Upload failure artifacts
         if: failure()
         uses: actions/upload-artifact@v7
