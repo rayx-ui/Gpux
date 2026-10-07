@@ -576,11 +576,16 @@ impl SceneRun<'_> {
             | Step::ChangedSince(..) => {
                 let frame = match self.frame(cx).await {
                     Ok(frame) => frame,
-                    Err(error) if error.to_string().contains("not implemented") => {
-                        return Ok(StepOutcome::Skipped(
-                            "the window cannot render its frame back here; screenshots probe it"
-                                .into(),
-                        ));
+                    // Platforms without readback, and windows without a renderer (a Simulator
+                    // without Metal), leave pixels to other lanes.
+                    Err(error)
+                        if ["not implemented", "has no renderer"]
+                            .iter()
+                            .any(|reason| error.to_string().contains(reason)) =>
+                    {
+                        return Ok(StepOutcome::Skipped(format!(
+                            "the window cannot render its frame back here: {error:#}"
+                        )));
                     }
                     Err(error) => return Err(error),
                 };
