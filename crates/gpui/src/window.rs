@@ -4897,10 +4897,9 @@ impl Window {
     }
 
     pub(crate) fn pop_devtools_node(&mut self, devtools_node_id: usize) {
-        debug_assert_eq!(
-            self.next_frame.devtools_node_stack.pop(),
-            Some(devtools_node_id)
-        );
+        // Pop outside the assertion: release builds do not evaluate `debug_assert` arguments.
+        let popped = self.next_frame.devtools_node_stack.pop();
+        debug_assert_eq!(popped, Some(devtools_node_id));
     }
 
     fn active_devtools_node_id(&self) -> Option<usize> {
