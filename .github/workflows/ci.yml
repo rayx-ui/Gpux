@@ -11,6 +11,11 @@ on:
         type: boolean
         default: false
 
+# A new push to a pull request cancels its superseded run; runs on main always finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   # The gpux-wgpu fork crates are upstream wgpu sources; gpux does not lint or test them.
   FORK_EXCLUDES: >-
