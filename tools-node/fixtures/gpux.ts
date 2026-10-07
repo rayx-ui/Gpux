@@ -140,26 +140,6 @@ export class Gpux {
     await this.expectBackend(options.expectBackend ?? options.backend ?? 'webgpu');
   }
 
-  /** Runs scenes' scripts in-app (`?run=<scene>` or `?run=all`) and returns their result lines. */
-  async runScripts(scene: string | 'all', options: OpenOptions = {}): Promise<string[]> {
-    const params = new URLSearchParams(
-      scene === 'all' ? { run: 'all', ...options.params } : { scene, run: '1', ...options.params },
-    );
-    if (options.backend) params.set('backend', options.backend);
-    await this.page.goto(`/?${params}`);
-    await this.page.waitForFunction(
-      () => globalThis.__gpuxConformance?.done === true || !!globalThis.__gpuxConformance?.lastError,
-      undefined,
-      { timeout: 120_000 },
-    );
-    const state = await this.page.evaluate(() => ({
-      error: globalThis.__gpuxConformance?.lastError,
-      results: globalThis.__gpuxConformance?.results ?? [],
-    }));
-    if (state.error) throw new Error(`${scene}: ${state.error}`);
-    return state.results;
-  }
-
   /** The page is cross-origin isolated, so WASM threads share memory. */
   async expectIsolated(): Promise<void> {
     const isolation = await this.page.evaluate(() => ({
