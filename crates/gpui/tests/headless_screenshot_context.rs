@@ -203,3 +203,93 @@ fn effect_frames_render_when_the_renderer_supports_them() {
         assert_eq!(blurred, sharp);
     }
 }
+
+/// A renderer without shader effects, modelled on the platform renderer: it keeps the
+/// trait's default capabilities (none) and, like a backend without effect pipelines, skips the
+/// effect batches of every scene it draws.
+struct WithoutEffects {
+    inner: Box<dyn gpux::PlatformHeadlessRenderer>,
+    /// The most effect primitives GPUI emitted in one scene.
+    effects_emitted: std::rc::Rc<std::cell::Cell<usize>>,
+}
+
+impl WithoutEffects {
+    fn without_effects(scene: &gpux::Scene) -> gpux::Scene {
+        let mut stripped = gpux::Scene::default();
+        stripped.scale_factor = scene.scale_factor;
+        stripped.shadows = scene.shadows.clone();
+        stripped.quads = scene.quads.clone();
+        stripped.paths = scene.paths.clone();
+        stripped.underlines = scene.underlines.clone();
+        stripped.monochrome_sprites = scene.monochrome_sprites.clone();
+        stripped.subpixel_sprites = scene.subpixel_sprites.clone();
+        stripped.polychrome_sprites = scene.polychrome_sprites.clone();
+        stripped
+    }
+}
+
+impl gpux::PlatformHeadlessRenderer for WithoutEffects {
+    fn render_scene_to_image(
+        &mut self,
+        scene: &gpux::Scene,
+        size: gpux::Size<gpux::DevicePixels>,
+    ) -> anyhow::Result<RgbaImage> {
+        self.effects_emitted
+            .set(self.effects_emitted.get().max(scene.visual_effects.len()));
+        self.inner
+            .render_scene_to_image(&Self::without_effects(scene), size)
+    }
+
+    fn render_scene(
+        &mut self,
+        scene: &gpux::Scene,
+        size: gpux::Size<gpux::DevicePixels>,
+    ) -> anyhow::Result<()> {
+        self.inner.render_scene(&Self::without_effects(scene), size)
+    }
+
+    fn sprite_atlas(&self) -> std::sync::Arc<dyn gpux::PlatformAtlas> {
+        self.inner.sprite_atlas()
+    }
+}
+
+#[test]
+fn effect_frames_take_their_fallback_when_the_renderer_lacks_effects() {
+    let capture = |blur: bool| {
+        let effects_emitted = std::rc::Rc::new(std::cell::Cell::new(0));
+        let mut cx = TestAppContext::build_with_renderer(
+            TestDispatcher::new(0),
+            None,
+            gpui_platform::bundled_text_system(),
+            {
+                let effects_emitted = effects_emitted.clone();
+                move || {
+                    Ok(gpui_platform::current_headless_renderer()?.map(|inner| {
+                        Box::new(WithoutEffects {
+                            inner,
+                            effects_emitted: effects_emitted.clone(),
+                        }) as Box<dyn gpux::PlatformHeadlessRenderer>
+                    }))
+                }
+            },
+        );
+        let (_, window) = cx.add_window_view_with_options(
+            TestWindowOptions::new(size(px(120.), px(80.))),
+            move |_, _| Blurred { blur },
+        );
+        let capabilities = window.update(|window, _| window.effect_capabilities());
+        let image = window.capture_screenshot().unwrap();
+        cx.quit();
+        (capabilities, image, effects_emitted.get())
+    };
+    let (capabilities, blurred, emitted_with_blur) = capture(true);
+    let (_, sharp, emitted_without_blur) = capture(false);
+    assert_eq!(capabilities, Default::default(), "no effect is claimed");
+    // GPUI still emits the effect for the renderer to draw or skip.
+    assert_eq!((emitted_with_blur, emitted_without_blur), (1, 0));
+    // A renderer without the blur skips it: the frame's child renders exactly as without the
+    // effect, with the same layout.
+    assert_eq!(blurred, sharp);
+    assert_pixel(&blurred, 39, 40, [255, 255, 255, 255]);
+    assert_pixel(&blurred, 40, 40, [255, 0, 0, 255]);
+}
