@@ -29,7 +29,7 @@ AgentX state (sprints in `.agentx/tasks/gpux-cross-platform-test-lanes/implement
 | s5 browser lane | sealed, checkpoint `21e02f8` |
 | s6 Android lane | sealed, checkpoint `9c14137` |
 | s7 lane G, docs, memory | sealed, checkpoint `0376af4` |
-| s8 Apple lanes | implemented in source, **not started in AgentX and not verified: needs a Mac** |
+| s8 Apple lanes | lane F implemented in source; **t27 blocked on a Mac, t28/t29 pending, nothing verified** |
 
 ### AgentX progress
 
@@ -43,8 +43,16 @@ python ~/.claude/skills/agentx/scripts/agentx_task.py status --task-dir .agentx/
 - **s1–s7 are sealed** with local evidence under the owner decision below. Each passed its sprint
   checks and an independent review, and was checkpointed: s4 `b39e504`, s5 `21e02f8`,
   s6 `9c14137`, s7 `0376af4`.
-- **s8 is next, on a Mac.** `t27`–`t29` are still `pending` in AgentX: start them with `next`
-  (section 1 below). 43 of 48 criteria are implemented; M-1, M-3 and F-1 to F-3 remain.
+- **s8 is next, on a Mac.** In AgentX the epic is `blocked`:
+  - `t27-macos-desktop-lanes` is blocked because it needs a Mac. Its blocker note lists what is
+    already in place.
+  - `t28` and `t29` are `pending`. Their lane F source is written and passes everything Windows
+    can run:
+    - `cargo test -p gpux-testkit --test ios`: 7/7;
+    - `cargo test -p gpux-mobile --test ios_window_teardown`: 3/3;
+    - clippy `-D warnings` for `ios_host` on `aarch64-apple-ios`.
+  - On the Mac, `next` resumes t27; `advance` then moves to t28 and t29 (section 1 below).
+  - 43 of 48 criteria are implemented; M-1, M-3 and F-1 to F-3 remain.
 - **Hosted CI is still blocked by billing.** Runs 37643950115, 37647356794 and 37662580569 never
   started.
 - Local evidence on this Windows machine and in WSL Ubuntu 24.04 (Mesa 25.2.8):
@@ -136,7 +144,7 @@ Unit tests that run anywhere: `cargo test -p gpux-testkit --test ios`,
 ```bash
 T=.agentx/tasks/gpux-cross-platform-test-lanes
 A=~/.claude/skills/agentx/scripts/agentx_task.py
-python $A next --task-dir $T --worker <session-id>            # starts t27
+python $A next --task-dir $T --worker <session-id>            # resumes the blocked t27
 python $A advance --task-dir $T --task t27-macos-desktop-lanes --worker <session-id>   # then t28, t29
 python $A check --task-dir $T --sprint s8-apple-lanes
 # independent review (references/auditor.md), then:
