@@ -1400,11 +1400,47 @@ impl IosWindow {
 
 impl Drop for IosWindow {
     fn drop(&mut self) {
+        // UIKit callbacks and the FFI lifecycle calls reach this window through raw pointers;
+        // none of them may reach it once it is freed.
+        super::ffi::unregister_window(self as *const Self);
         unsafe {
             let display_link = self.display_link.get();
             if !display_link.is_null() {
                 let _: () = msg_send![display_link, invalidate];
                 self.display_link.set(ptr::null_mut());
+            }
+            for object in [
+                self.view,
+                self.text_input_view,
+                self.display_link_target.get(),
+            ] {
+                if !object.is_null() {
+                    #[allow(deprecated)]
+                    {
+                        *(*object).get_mut_ivar::<*mut c_void>(GPUI_WINDOW_IVAR) = ptr::null_mut();
+                    }
+                }
+            }
+        }
+        // The renderer's surface draws into the view's layer: drop it before the view goes.
+        self.renderer.lock().take();
+        unsafe {
+            if !self.window.is_null() {
+                let _: () = msg_send![self.window, setHidden: true];
+                let _: () =
+                    msg_send![self.window, setRootViewController: ptr::null_mut::<AnyObject>()];
+            }
+            // The window created these (alloc/init); hand them back to UIKit's autorelease pool
+            // rather than freeing them under a UIKit call still on the stack.
+            for object in [
+                self.text_input_view,
+                self.view,
+                self.view_controller,
+                self.window,
+            ] {
+                if !object.is_null() {
+                    let _: *mut AnyObject = msg_send![object, autorelease];
+                }
             }
         }
     }
