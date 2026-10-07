@@ -53,6 +53,7 @@ Always check whether the PR touches or overwrites these RayX-owned gpux patch su
 - When importing from an unmerged PR head, include a note that the source was a PR head rather than upstream `main`.
 - Keep replayed or preserved RayX/gpux patches as separate commits when practical, with `Preserved gpux patch commit:` trailers as described in the closure update reference.
 - Update gpux upstream-sync memory (`.agentx/memory/knowledge/repository/upstream-sync/`) if the latest imported upstream source, patch replay rule, or closure boundary changes.
+- A PR that the represented closure import already contains but gpux stubbed or replaced (for example Zed #64718/#64842, the wgpu headless renderer) is a port, not an import. Commit it with `Zed PR:`, `Zed merge commit:` and `Zed subject:` lines plus its gpux adaptations, then append one `port:` row per PR to `docs/history/zed-imports.tsv` (gpux commit, date, Zed merge commit, `-`, `port: <subject>`) and explain it in `upstream-provenance.md`. `port:` rows never move the represented upstream commit or the merge base: the base is the latest row that is not a `port:` row.
 
 ## Validation
 

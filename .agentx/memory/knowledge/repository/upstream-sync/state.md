@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/repository/upstream-sync
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-05T23:30:00+02:00
+  updated: 2026-10-07T04:00:00+02:00
   topics:
     - upstream-sync
     - zed
@@ -22,7 +22,7 @@ Read before any upstream import. The step-by-step workflows are the gpux skill r
 
 ## Current Technical Shape
 
-`docs/history/` is the complete local source of truth: `upstream-provenance.md` names the represented Zed commit (`d544470d1d3770f0024651dbf121525564a2657c` as of the last validated import), `zed-imports.tsv` records every recovered closure import, and the commit maps connect predecessor hashes to the filtered gpux-only archive. The annotated tag `gpux-pre-migration-2026-06-17` (and RayX's `archive/gpux-pre-migration` branch) preserves 72 gpux-only commits through `acdeadd279bc67334cb625e233b85c264391d8bc`. RayX history from `9aff311f` carried every later change under `crates/gpux` until the 2026-10-05 `git filter-repo --subdirectory-filter crates/gpux` extraction; Gpux root commit `e2f8568` corresponds to RayX `9aff311f`.
+`docs/history/` is the complete local source of truth: `upstream-provenance.md` names the represented Zed commit (`d544470d1d3770f0024651dbf121525564a2657c` as of the last validated import), `zed-imports.tsv` records every recovered closure import plus `port:` rows for single upstream PRs ported onto gpux after an import (they never move the represented commit or the merge base; the 2026-10-07 port of Zed #64718/#64842, the wgpu headless renderer, is the first), and the commit maps connect predecessor hashes to the filtered gpux-only archive. The annotated tag `gpux-pre-migration-2026-06-17` (and RayX's `archive/gpux-pre-migration` branch) preserves 72 gpux-only commits through `acdeadd279bc67334cb625e233b85c264391d8bc`. RayX history from `9aff311f` carried every later change under `crates/gpux` until the 2026-10-05 `git filter-repo --subdirectory-filter crates/gpux` extraction; Gpux root commit `e2f8568` corresponds to RayX `9aff311f`.
 
 Imports are semantic three-way reconciliations from the prior represented commit, so upstream changes and gpux-local patches stay independently auditable. The skill's [Zed closure guide](../../../../../.claude/skills/gpux/references/update-from-zed-gpui-closure.md) and [gpui-mobile guide](../../../../../.claude/skills/gpux/references/update-from-gpui-mobile.md) carry the accumulated patch-surface audit lists (browser/WASM DOM, DevKit semantics, fixed/sticky, frame and shader effects, Windows WGPU/DX12, mobile JNI/lifecycle/backend policy, iOS Metal/text). Single Zed PRs use the [Zed PR guide](../../../../../.claude/skills/gpux/references/update-from-zed-pr.md); wgpu releases use the [wgpu guide](../../../../../.claude/skills/gpux/references/update-from-wgpu.md) with `scripts/fork_wgpu.py`.
 
