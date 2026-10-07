@@ -529,20 +529,7 @@ impl WgpuContext {
 
         let color_atlas_texture_format = Self::select_color_texture_format(adapter)?;
 
-        #[cfg(target_family = "wasm")]
-        let required_limits = if adapter.get_info().backend == wgpu::Backend::Gl {
-            wgpu::Limits::downlevel_webgl2_defaults()
-                .using_resolution(adapter.limits())
-                .using_alignment(adapter.limits())
-        } else {
-            wgpu::Limits::downlevel_defaults()
-                .using_resolution(adapter.limits())
-                .using_alignment(adapter.limits())
-        };
-        #[cfg(not(target_family = "wasm"))]
-        let required_limits = wgpu::Limits::downlevel_defaults()
-            .using_resolution(adapter.limits())
-            .using_alignment(adapter.limits());
+        let required_limits = required_limits(adapter.get_info().backend, adapter.limits());
 
         let (device, queue) = adapter
             .request_device(&wgpu::DeviceDescriptor {
@@ -752,10 +739,16 @@ impl WgpuContext {
 
     fn select_color_texture_format(adapter: &wgpu::Adapter) -> anyhow::Result<wgpu::TextureFormat> {
         let required_usages = wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST;
-        let bgra_features = adapter.get_texture_format_features(wgpu::TextureFormat::Bgra8Unorm);
-        if bgra_features.allowed_usages.contains(required_usages) {
-            return Ok(wgpu::TextureFormat::Bgra8Unorm);
+        let usable = |format| {
+            adapter
+                .get_texture_format_features(format)
+                .allowed_usages
+                .contains(required_usages)
+        };
+        if let Some(format) = preferred_color_atlas_format(adapter.get_info().backend, usable) {
+            return Ok(format);
         }
+        let bgra_features = adapter.get_texture_format_features(wgpu::TextureFormat::Bgra8Unorm);
 
         let rgba_features = adapter.get_texture_format_features(wgpu::TextureFormat::Rgba8Unorm);
         if rgba_features.allowed_usages.contains(required_usages) {
@@ -791,8 +784,14 @@ impl WgpuContext {
         self.backend
     }
 
+    /// Whether instance data goes through textures instead of storage buffers: on WebGL2, and on
+    /// native devices whose vertex shaders cannot read storage buffers (GLES devices such as
+    /// Android emulators).
     pub fn uses_webgl_instance_data(&self) -> bool {
-        cfg!(target_family = "wasm") && self.backend == WgpuBackend::Gl
+        texture_instance_data(
+            self.backend,
+            self.adapter.get_downlevel_capabilities().flags,
+        )
     }
 
     pub fn color_texture_format(&self) -> wgpu::TextureFormat {
@@ -954,6 +953,124 @@ mod tests {
         assert_eq!(
             parse_pci_id(&format!("{:#x}", 0x1234)).unwrap(),
             parse_pci_id(&format!("{:#X}", 0x1234)).unwrap(),
+        );
+    }
+}
+
+/// The limits to request from an adapter. GL adapters (WebGL2, and GLES devices without Vulkan,
+/// such as Android emulators) may have no compute stage, so they get the WebGL2 baseline, which
+/// asks for none; other backends get the downlevel baseline. Both take the adapter's own
+/// resolution and alignment limits.
+pub(crate) fn required_limits(backend: wgpu::Backend, adapter: wgpu::Limits) -> wgpu::Limits {
+    let baseline = if backend == wgpu::Backend::Gl {
+        wgpu::Limits::downlevel_webgl2_defaults()
+    } else {
+        wgpu::Limits::downlevel_defaults()
+    };
+    baseline
+        .using_resolution(adapter.clone())
+        .using_alignment(adapter)
+}
+
+#[cfg(test)]
+mod required_limits_tests {
+    use super::required_limits;
+
+    #[test]
+    fn gl_adapters_without_compute_get_limits_they_can_meet() {
+        // A GLES adapter without compute reports zero compute limits.
+        let adapter = wgpu::Limits {
+            max_compute_workgroups_per_dimension: 0,
+            max_compute_invocations_per_workgroup: 0,
+            ..wgpu::Limits::downlevel_webgl2_defaults()
+        };
+        let limits = required_limits(wgpu::Backend::Gl, adapter.clone());
+        assert!(limits.check_limits(&adapter), "{limits:?}");
+        assert_eq!(limits.max_compute_workgroups_per_dimension, 0);
+    }
+
+    #[test]
+    fn other_backends_get_the_downlevel_baseline() {
+        let adapter = wgpu::Limits::default();
+        let limits = required_limits(wgpu::Backend::Vulkan, adapter);
+        assert_eq!(
+            limits.max_compute_workgroups_per_dimension,
+            wgpu::Limits::downlevel_defaults().max_compute_workgroups_per_dimension
+        );
+    }
+}
+
+/// Whether a backend reads instance data from textures instead of storage buffers: WebGL2
+/// always, and native devices whose vertex shaders cannot read storage buffers (GLES devices such
+/// as Android emulators).
+pub(crate) fn texture_instance_data(backend: WgpuBackend, flags: wgpu::DownlevelFlags) -> bool {
+    match backend {
+        WgpuBackend::Gl => true,
+        WgpuBackend::BrowserWebGpu | WgpuBackend::Native(_) => {
+            !flags.contains(wgpu::DownlevelFlags::VERTEX_STORAGE)
+        }
+    }
+}
+
+/// The color atlas format a backend prefers among the `usable` ones, or `None` when only the
+/// logged Rgba8Unorm fallback is left. On GL, BGRA textures come from an ES extension that some drivers report but
+/// cannot sample (Android emulators'); RGBA is core, so GL uses it, as WebGL must. Elsewhere BGRA
+/// matches the platforms' native image layout.
+pub(crate) fn preferred_color_atlas_format(
+    backend: wgpu::Backend,
+    usable: impl Fn(wgpu::TextureFormat) -> bool,
+) -> Option<wgpu::TextureFormat> {
+    if backend == wgpu::Backend::Gl && usable(wgpu::TextureFormat::Rgba8Unorm) {
+        return Some(wgpu::TextureFormat::Rgba8Unorm);
+    }
+    usable(wgpu::TextureFormat::Bgra8Unorm).then_some(wgpu::TextureFormat::Bgra8Unorm)
+}
+
+#[cfg(test)]
+mod backend_choice_tests {
+    use super::{WgpuBackend, preferred_color_atlas_format, texture_instance_data};
+    use wgpu::{Backend, DownlevelFlags, TextureFormat};
+
+    #[test]
+    fn devices_without_vertex_storage_read_instances_from_textures() {
+        let without = DownlevelFlags::empty();
+        let with = DownlevelFlags::VERTEX_STORAGE;
+        assert!(texture_instance_data(WgpuBackend::Gl, with));
+        assert!(texture_instance_data(
+            WgpuBackend::Native(Backend::Gl),
+            without
+        ));
+        assert!(!texture_instance_data(
+            WgpuBackend::Native(Backend::Gl),
+            with
+        ));
+        assert!(!texture_instance_data(
+            WgpuBackend::Native(Backend::Vulkan),
+            with
+        ));
+        assert!(!texture_instance_data(WgpuBackend::BrowserWebGpu, with));
+    }
+
+    #[test]
+    fn gl_prefers_rgba_atlases_and_other_backends_bgra() {
+        let both = |_| true;
+        assert_eq!(
+            preferred_color_atlas_format(Backend::Gl, both),
+            Some(TextureFormat::Rgba8Unorm)
+        );
+        assert_eq!(
+            preferred_color_atlas_format(Backend::Vulkan, both),
+            Some(TextureFormat::Bgra8Unorm)
+        );
+        let only_bgra = |format| format == TextureFormat::Bgra8Unorm;
+        assert_eq!(
+            preferred_color_atlas_format(Backend::Gl, only_bgra),
+            Some(TextureFormat::Bgra8Unorm)
+        );
+        let only_rgba = |format| format == TextureFormat::Rgba8Unorm;
+        assert_eq!(
+            preferred_color_atlas_format(Backend::Metal, only_rgba),
+            None
         );
     }
 }
