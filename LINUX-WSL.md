@@ -152,7 +152,8 @@ pnpm exec playwright install chromium
 ## 5. gpux validation
 
 From `~/rayx/Gpux`, mirroring `.github/workflows/ci.yml`. The excluded crates are the vendored wgpu
-fork, which gpux does not lint or test.
+fork, which gpux does not lint or test; the test job also leaves `gpux-conformance` to lanes A and
+C (section 6).
 
 ```bash
 EXCLUDES="--exclude gpux-wgpu --exclude gpux-wgpu-core --exclude gpux-wgpu-hal \
@@ -162,7 +163,7 @@ cargo fmt --check
 cargo check --workspace --all-targets
 cargo check -p gpux-web --target wasm32-unknown-unknown --no-default-features
 cargo clippy --workspace --all-targets --no-deps $EXCLUDES -- -D warnings
-cargo test --workspace --no-fail-fast $EXCLUDES -- --test-threads=1
+cargo test --workspace --no-fail-fast $EXCLUDES --exclude gpux-conformance -- --test-threads=1
 cargo package --workspace
 ```
 

@@ -62,7 +62,7 @@ command that installs a missing one. Platform setup is in
 | Linux | A, C, D | `pkg-config libfreetype6-dev libfontconfig1-dev libxkbcommon-dev libxkbcommon-x11-dev libvulkan1 mesa-vulkan-drivers`; lavapipe through `VK_DRIVER_FILES` for C and D; a display (or `xvfb-run`) and `xdotool` for D. [LINUX-WSL.md](../LINUX-WSL.md) sets up WSL. |
 | macOS | A, C, D | the Xcode command-line tools; Metal is the GPU. |
 | any | B, G | a nightly toolchain with `rust-src` (`GPUX_WEB_TOOLCHAIN` overrides `nightly`); `wasm-bindgen-cli` at the version `Cargo.lock` pins; Node.js 22 or later with `pnpm`; in `tools-node`: `pnpm install` and `pnpm exec playwright install chromium`. |
-| any | E | `ANDROID_HOME` with the pinned SDK packages, a JDK 17 or later, `cargo-ndk`, and the Android Rust targets; see [Lane E](#lane-e-android). |
+| any | E | `ANDROID_HOME` with the pinned SDK packages, a JDK 17 or later, `cargo-ndk`, the Android Rust targets, and a device or an emulator with hardware virtualization; see [Lane E](#lane-e-android). |
 | macOS | F | Xcode with an iOS Simulator runtime (`xcodebuild -downloadPlatform iOS`), XcodeGen (`brew install xcodegen`), and `rustup target add aarch64-apple-ios-sim`. |
 | any | G | a hardware GPU, plus everything lanes B, C and D need. |
 
@@ -252,6 +252,21 @@ reported with the command that installs it:
   "platforms;android-36" "platform-tools"`;
 - a JDK 17 or later (`java`, `keytool`) and `cargo install cargo-ndk`;
 - `rustup target add x86_64-linux-android aarch64-linux-android`.
+
+Without a device, create an emulator like CI's: API 34 with Google APIs and the small `Nexus 4`
+screen, rendering through SwiftShader. The host is built for whatever ABI the emulator reports.
+
+```bash
+sdkmanager "emulator" "system-images;android-34;google_apis;x86_64"
+avdmanager create avd --name gpux-api34 --device "Nexus 4" \
+  --package "system-images;android-34;google_apis;x86_64"
+emulator -avd gpux-api34 -gpu swiftshader_indirect -no-snapshot -no-boot-anim
+```
+
+The emulator needs hardware virtualization: KVM on Linux (`/dev/kvm`), the Windows Hypervisor
+Platform or the Android Emulator hypervisor driver on Windows, and the Hypervisor framework on
+macOS. On Apple silicon, use the `arm64-v8a` system image instead of `x86_64`. `-gpu host`
+renders faster on a machine with a GPU, but CI proves the SwiftShader path.
 
 Pixel steps read the screen: the host asks for `adb screencap`, which reaches it through
 `/data/local/tmp` and `run-as`. The emulators' GL drivers read rendered textures back empty, so

@@ -100,8 +100,8 @@ cargo run -p gpux-testkit -- lane <lane>... [--list] [--scene <id>] [--grep <pat
 ```
 
 Lane A covers behaviour on the test platform, B a real browser (WASM on WebGPU and WebGL2), C
-offscreen pixels, D real desktop windows, E Android, and G the local GPU with timing and
-benchmarks; lane F (iOS) is planned. [testing.md](testing.md) describes each lane, its
+offscreen pixels, D real desktop windows, E Android, F iOS on the Simulator (macOS only), and G
+the local GPU with timing and benchmarks. [testing.md](testing.md) describes each lane, its
 prerequisites, its environment variables and its CI cadence, and
 [LINUX-WSL.md](../LINUX-WSL.md) runs the Linux lanes under WSL.
 
