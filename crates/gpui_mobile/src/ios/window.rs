@@ -1698,6 +1698,14 @@ impl PlatformWindow for IosWindow {
         }
     }
 
+    fn render_to_image(&self, scene: &Scene) -> anyhow::Result<image::RgbaImage> {
+        let mut guard = self.renderer.lock();
+        let Some(renderer) = guard.as_mut() else {
+            anyhow::bail!("the window has no renderer: Metal is unavailable here");
+        };
+        renderer.render_to_image(scene)
+    }
+
     fn sprite_atlas(&self) -> Arc<dyn PlatformAtlas> {
         let guard = self.renderer.lock();
         if let Some(renderer) = guard.as_ref() {

@@ -69,6 +69,7 @@ core-graphics = "0.24"
 core-text = "21"
 font-kit = { package = "zed-font-kit", version = "0.14.1-zed" }
 gpui_wgpu = { workspace = true, features = ["font-kit"] }
+image.workspace = true
 objc2 = "0.6"
 pathfinder_geometry = "0.5"
 smallvec.workspace = true
