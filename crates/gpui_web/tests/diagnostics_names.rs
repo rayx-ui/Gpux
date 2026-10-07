@@ -109,15 +109,9 @@ fn every_former_global_goes_through_the_gpux_names() {
         }
     }
     for name in GLOBALS {
-        let through_helper = [
-            "publish(",
-            "publish_with_legacy(",
-            "flag(",
-            "read(",
-            "clear(",
-        ]
-        .iter()
-        .any(|call| used.contains(&format!("{call}\"{name}\"")));
+        let through_helper = ["publish(", "flag(", "read(", "clear("]
+            .iter()
+            .any(|call| used.contains(&format!("{call}\"{name}\"")));
         assert!(
             through_helper,
             "the former `__rayx{name}` global is not read or published through `web_globals`"
@@ -136,4 +130,21 @@ fn both_html_island_opt_ins_are_honoured() {
         );
     }
     assert!(source.contains("web_globals::flag(\"HtmlIslandEnabled\")"));
+}
+
+#[test]
+fn only_diagnostics_publish_browser_globals() {
+    let source =
+        std::fs::read_to_string(crates_dir().join("gpui_wgpu/src/web_globals.rs")).unwrap();
+    let source = source.replace("\r\n", "\n");
+    // Ungated, a publisher compiles into production builds; gating `publish` makes every caller
+    // that is not itself behind `diagnostics` fail to build without the feature.
+    assert!(
+        source.contains("#[cfg(feature = \"diagnostics\")]\npub fn publish("),
+        "`web_globals::publish` must exist only with the `diagnostics` feature"
+    );
+    assert!(
+        !source.contains("publish_with_legacy"),
+        "no global may be published whatever the features"
+    );
 }

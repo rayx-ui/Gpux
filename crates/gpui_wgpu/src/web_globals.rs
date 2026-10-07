@@ -41,7 +41,8 @@ fn set(prefix: &str, name: &str, value: &JsValue) {
 }
 
 /// Publishes `value` as `__gpux<name>`, and under the `rayx_diagnostics` alias feature also as
-/// the legacy `__rayx<name>`.
+/// the legacy `__rayx<name>`. Only diagnostics publish globals, so production builds cannot.
+#[cfg(feature = "diagnostics")]
 pub fn publish(name: &str, value: &JsValue) {
     set(PREFIX, name, value);
     #[cfg(feature = "rayx_diagnostics")]
@@ -52,11 +53,4 @@ pub fn publish(name: &str, value: &JsValue) {
 pub fn clear(name: &str) {
     set(PREFIX, name, &JsValue::NULL);
     set(LEGACY_PREFIX, name, &JsValue::NULL);
-}
-
-/// Publishes `value` under both names whatever the features: for publications that predate the
-/// gpux names and were never gated on a diagnostics feature.
-pub fn publish_with_legacy(name: &str, value: &JsValue) {
-    set(PREFIX, name, value);
-    set(LEGACY_PREFIX, name, value);
 }
