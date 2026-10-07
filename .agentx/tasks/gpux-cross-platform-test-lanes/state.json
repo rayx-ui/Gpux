@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-cross-platform-test-lanes",
-  "revision": 108,
+  "revision": 120,
   "planRevision": 12,
   "specHashes": {
     "requirements": "61a7b069f4c72c3eb9c5c54519ab4243f3d9d95297148656103f229e0356d5ec",
@@ -130,13 +130,22 @@
       ]
     },
     "t21-android-host-build": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
+      ]
     },
     "t22-android-run-collect": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
+      ]
     },
     "t23-ci-lane-e": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
+      ]
     },
     "t24-lane-g-local-gpu": {
       "status": "pending"
@@ -222,7 +231,16 @@
           "gpux": "72937c7cd7f2c9ec7913e8c2a728b9e1bdcc72fc72f686c2b7be422b56e819d2"
         }
       },
-      "recordedAt": "2026-10-07T19:18:33Z"
+      "recordedAt": "2026-10-07T19:26:04Z"
+    },
+    "e1f1f7493f68036208eb487ac0fd4d39389f0e1c1308ca6ad293c8aa602767a5": {
+      "snapshot": {
+        "specHash": "1c75f748cd123f9c9c85b0bea95b3cf0d3301858c5b8f84e88118146f01afec7",
+        "repositories": {
+          "gpux": "c6bd12f85f10a17eaefbc620b6861967129c517e7b7071658380d8b729a424f9"
+        }
+      },
+      "recordedAt": "2026-10-07T19:53:09Z"
     }
   },
   "checkResults": {
@@ -663,6 +681,38 @@
       "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s5-browser-lane-final-988e1359106b.log",
       "logSha256": "06cd0736e35ad27d0510e859bac1eff78cf1a0be225d0eea07ce59b3f8c3acf6",
       "inputsHash": "3fe20499a73287c790c801612271e33dd7c3d11d97e108cd2d5eb0fbcb884eff"
+    },
+    "s6-android-lane/check-android-build/final": {
+      "checkId": "check-android-build",
+      "boundaryId": "s6-android-lane",
+      "phase": "final",
+      "batchId": "e1f1f7493f68036208eb487ac0fd4d39389f0e1c1308ca6ad293c8aa602767a5",
+      "definitionHash": "d17c6a973b64aeddd7abae03e436ead4d287f54f195386c7e1ebf8cbc81644fb",
+      "basisHash": "c79edd8941ae0084f465c1f476b1c66e4c0d3fdbc2c109091b31355c9db58515",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 3.7648,
+      "recordedAt": "2026-10-07T19:50:37Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s6-android-lane-final-62216b1bc472.log",
+      "logSha256": "cbdbc483c6b6c42dabf605b5cb8c473c3f5edf021c59c8eeb552792f7965d12b"
+    },
+    "s6-android-lane/check-android-run/final": {
+      "checkId": "check-android-run",
+      "boundaryId": "s6-android-lane",
+      "phase": "final",
+      "batchId": "e1f1f7493f68036208eb487ac0fd4d39389f0e1c1308ca6ad293c8aa602767a5",
+      "definitionHash": "7ad924d7dd574ecaaf6faf266a8d08e6756284993b125c827825d9ab8aba11d2",
+      "basisHash": "9066cf91a46625cd8af755baa6cd55e380d5a693e7f223301556b728a5d364fa",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 29,
+      "durationSeconds": 151.5838,
+      "recordedAt": "2026-10-07T19:53:08Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s6-android-lane-final-5f3455dfc308.log",
+      "logSha256": "8f1c395d2fd406e920d9a05219c252513034269a6a279a14d064a04713af4a52"
     }
   },
   "reviews": {
@@ -2419,6 +2469,234 @@
         "S5-F5"
       ],
       "recordedAt": "2026-10-07T19:21:40Z"
+    },
+    "s6-android-lane": {
+      "reviewerId": "s6-independent-reviewer-claude-opus-5-5",
+      "snapshotId": "e1f1f7493f68036208eb487ac0fd4d39389f0e1c1308ca6ad293c8aa602767a5",
+      "criterionIds": [
+        "E-1",
+        "E-2",
+        "E-3"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/android.rs",
+          "kind": "source",
+          "criterionIds": [
+            "E-1",
+            "E-2",
+            "E-3"
+          ],
+          "sha256": "363cab329dafc98538a1d63d64989bf55d8292027b2b9e9aafe52e25d3919eb5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/gpux_testkit.rs",
+          "kind": "source",
+          "criterionIds": [
+            "E-2",
+            "E-3"
+          ],
+          "sha256": "9ae0f1757955d3937060140c7b6332fe45101dba55d38ec38d24655f153303f1"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/android/AndroidManifest.xml",
+          "kind": "source",
+          "criterionIds": [
+            "E-1"
+          ],
+          "sha256": "8b27d5d2e9dc60787135ae3c7440f6f6d21a4ca8f67f98b45a24476e78eb6a37"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "E-1",
+            "E-2"
+          ],
+          "sha256": "d24cde868a7d487481f187c8f822d802942f70806870f25fb26737a56d81a483"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/jni.rs",
+          "kind": "source",
+          "criterionIds": [
+            "E-2"
+          ],
+          "sha256": "7a724325eebc4f722d92f9abcc2954a7893164d1e9751f91383178bc68db83c3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/android_host/lib.rs",
+          "kind": "source",
+          "criterionIds": [
+            "E-1",
+            "E-2"
+          ],
+          "sha256": "9bf1247b4eb4a32040ad92be3ada8c38e06e5a3ffa14c3823cbe6b036709f096"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/android_host/checks.rs",
+          "kind": "source",
+          "criterionIds": [
+            "E-2"
+          ],
+          "sha256": "ddded6ecc4b09f5eae2fe37e219c73e30ec56d566c64124da722c6b0fa014a2d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/app_host.rs",
+          "kind": "source",
+          "criterionIds": [
+            "E-2"
+          ],
+          "sha256": "f4c991ba1975a8ab1e4041d0d2c5d72e75169d7e957e1764c35a016e2cc18ccf"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/evaluate.rs",
+          "kind": "source",
+          "criterionIds": [
+            "E-2"
+          ],
+          "sha256": "9def1a8f1174b3afd0bed75d176b489db8d6fb8279063ff3d5909180a13a364d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/wgpu_renderer.rs",
+          "kind": "source",
+          "criterionIds": [
+            "E-1",
+            "E-2"
+          ],
+          "sha256": "ef84443ad72fc9570c9a20ca52e33dba11836bc71f78046106f577cec58aef78"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/wgpu_context.rs",
+          "kind": "source",
+          "criterionIds": [
+            "E-2"
+          ],
+          "sha256": "c97fb71c9fa6e45cef15d79243618d660f88346fa08cb5837fac45b1d701bc18"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/shaders.wgsl",
+          "kind": "source",
+          "criterionIds": [
+            "E-2"
+          ],
+          "sha256": "e541c6f68b7b139d7cd229e84ac819f5d404ce26509bb1d3b9e0d6eb0df013e2"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/shaders_subpixel.wgsl",
+          "kind": "source",
+          "criterionIds": [
+            "E-2"
+          ],
+          "sha256": "38464d22dc7136256a53f66c817aebac0640a449a9732067a10b3c98c5554154"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/lane-e.yml",
+          "kind": "source",
+          "criterionIds": [
+            "E-3"
+          ],
+          "sha256": "afe6b2a41400075326b0e4651cd233c3634073c46d43cdda3e6c3d7bd086fcf2"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/testing.md",
+          "kind": "source",
+          "criterionIds": [
+            "E-3"
+          ],
+          "sha256": "87a7caa81adc74cee3f977509d56f91cf73d4119fe4667450243b330338b7687"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/tests/android.rs",
+          "kind": "test",
+          "criterionIds": [
+            "E-1",
+            "E-2",
+            "E-3"
+          ],
+          "sha256": "7e4b32b304cd1f58ee8816d680f3900e6aaa9d4daf5fe1bd6c50f47d1ea05e70"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/rgb565_tolerance.rs",
+          "kind": "test",
+          "criterionIds": [
+            "E-2"
+          ],
+          "sha256": "a0d3e8ed8822d6296a196744bb0169fc609d39fc60f89ae477180fdb580d6e57"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/screen_shows.rs",
+          "kind": "test",
+          "criterionIds": [
+            "E-2"
+          ],
+          "sha256": "5a886168d2d85dbb2b46b3d286e0c2c8ce7019b0eeaf6d32415ac9ef216d6de5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/tests/shader_sampling.rs",
+          "kind": "test",
+          "criterionIds": [
+            "E-2"
+          ],
+          "sha256": "d1092c477f971e0c19f142f2096e1deca9779970ccfecbac3e0ed964c742ba38"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s6-android-lane-final-62216b1bc472.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "E-1"
+          ],
+          "sha256": "cbdbc483c6b6c42dabf605b5cb8c473c3f5edf021c59c8eeb552792f7965d12b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s6-android-lane-final-5f3455dfc308.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "E-2",
+            "E-3"
+          ],
+          "sha256": "8f1c395d2fd406e920d9a05219c252513034269a6a279a14d064a04713af4a52"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/testkit/e/logcat.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "E-2",
+            "E-3"
+          ],
+          "sha256": "ae8857d3d11bbb5999fe3c3c43b6d3982f01d107cf6c709d61389e2e4ce5e854"
+        }
+      ],
+      "summaryMarkdown": "**Verdict: passed** at snapshot e1f1f749 (HEAD c5a8ef6). All four findings are resolved, with regression references.\n\n**E-1 (build).** `android build` builds both ABIs with cargo-ndk, links the manifest with aapt2, adds the libraries stored, aligns them at 16 KB (`zipalign -c -P 16` verified) and signs with apksigner (`apksigner verify` verified). It builds with the pinned NDK only, even when `ANDROID_NDK_HOME` is set. Missing SDK, NDK, JDK, keytool and cargo-ndk all fail with tested, actionable messages. The Android window implements `render_to_image` through the shared wgpu renderer.\n\n**E-2 (run).** `android run` covers:\n- install and launch;\n- scene selection;\n- logcat parsing, failing every result that was never reported;\n- screenshot and failure-frame pulls.\n\nOn the emulator, the startup check records the GL fallback on SwiftShader, reports the empty readback and finds the scene's border on screen. Tap and pan pass through `adb shell input`, and the fling is skipped with its reason on the software renderer. The lifecycle check asserts surface loss, reactivation, surface recovery and a known pixel on screen. The RGB565 tolerance and the screen probes have meaningful unit tests.\n\n**E-3 (CI).** `lane-e.yml` matches the design and `docs/testing.md`. Under the owner's billing decision, I ran the workflow's command at this snapshot with the workflow's `ANDROID_NDK_HOME`: `gpux-testkit lane e` gave 29 passed, 0 failed, 1 skipped, exit 0. Test groups run here: `gpux-testkit --test android` 12/12 and `gpux-conformance --test screen_shows` 2/2.\n\n**Not verified:**\n- the fling on a hardware renderer;\n- the offscreen readback's pixels on a device whose GL reads textures back;\n- real arm64 devices;\n- a hosted CI run, which billing blocks.",
+      "findingIds": [
+        "S6-F1",
+        "S6-F2",
+        "S6-F3",
+        "S6-F4"
+      ],
+      "recordedAt": "2026-10-07T19:56:43Z"
     }
   },
   "checkpoints": {
@@ -2453,6 +2731,14 @@
       },
       "reviewHash": "f9126a683d560d39fee4ac1dd0e926079184b3d0a2a7e182865c5bb37a339ae4",
       "recordedAt": "2026-10-07T18:29:44Z"
+    },
+    "s5-browser-lane": {
+      "snapshotId": "7f9ec74982ff920ea0c3df2188876be771dce3544e364e2a266a96d7d2153dc4",
+      "commits": {
+        "gpux": "21e02f8e85e5904d7c46459b793db8894d204f50"
+      },
+      "reviewHash": "4ae47427cf78366b09864f8af8b78eda667a22ba2838dd5ea4f3c145b0b1cf27",
+      "recordedAt": "2026-10-07T19:21:59Z"
     }
   },
   "findings": [
@@ -3001,9 +3287,106 @@
           "symbol": "Gpux"
         }
       ]
+    },
+    {
+      "id": "S6-F1",
+      "boundaryId": "s6-android-lane",
+      "criterionIds": [
+        "E-2"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved in 3be8e85. `android-lifecycle` now:\n1. polls a single-attempt `Window::render_to_image` until it reports the unconfigured surface (loss);\n2. waits for the activation changes `[.., false, true]`;\n3. polls until capture works again (the surface is configured; in logcat, `replaced surface` at line 166 comes after `set_active(true)` at line 159);\n4. checks with `evaluate::screen_shows` that the screenshot shows the red block's center (100, 80) in red.\n\nEach stage fails with its own message.\n\n`android-startup` looks for the first `ProbeUniform` region of `paint-borders`, the blue border at logical (40, 12), on the screen. `tests/screen_shows.rs` shows that a screen with only the navigation pill, a black screen, and the wrong color all fail. At the new snapshot, `screens/33.png` shows the block, and both checks pass. A residual, non-blocking caveat: the block is the same before and after backgrounding, so the screenshot does not by itself rule out a stale task-snapshot frame. Together with the surface-reconfigured gate and the two frames waited before the capture, recovery is asserted.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/android_host/checks.rs",
+          "symbol": "lifecycle"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/android_host/checks.rs",
+          "symbol": "startup"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/evaluate.rs",
+          "symbol": "screen_shows"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/screen_shows.rs",
+          "symbol": "system_bars_alone_or_an_empty_screen_do_not_pass"
+        }
+      ]
+    },
+    {
+      "id": "S6-F2",
+      "boundaryId": "s6-android-lane",
+      "criterionIds": [
+        "E-3"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved in c5a8ef6 (after 133f090 had reopened it).\n\n`find_sdk` handles an `ANDROID_NDK_HOME` override in two ways:\n- An override that canonicalizes to the pinned `$ANDROID_HOME/ndk/28.0.12674087` is accepted as is.\n- Any other override is compared through `ndk_revision`, which returns `Pkg.BaseRevision`, or `Pkg.Revision` without its pre-release suffix.\n\n`lane-e.yml` points `ANDROID_NDK_HOME` at the pinned NDK, replacing the runner image's NDK 27.3.13750724.\n\nVerified at this snapshot:\n- with `ANDROID_NDK_HOME` set to the real r28-beta2 package (`Pkg.Revision = 28.0.12674087-beta2`), `android build --abi x86_64` gives `gpux-testkit: 1 passed`;\n- with the same override, `gpux-testkit lane e` gives 29 passed, 1 skipped, exit 0.\n\n`an_ndk_override_must_be_the_pinned_ndk` uses the package's real lines. It asserts that 27.3.13750724 is refused, the pinned directory is accepted, a copy is recognised by its base revision, and a `-rc1` suffix is stripped.\n\nPinning a beta NDK (r28 stable is 28.0.13004108) is a recorded follow-up, not a defect of this sprint.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/android.rs",
+          "symbol": "find_sdk"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/android.rs",
+          "symbol": "ndk_revision"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/tests/android.rs",
+          "symbol": "an_ndk_override_must_be_the_pinned_ndk"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/lane-e.yml"
+        }
+      ]
+    },
+    {
+      "id": "S6-F3",
+      "boundaryId": "s6-android-lane",
+      "criterionIds": [
+        "E-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved in 133f090. `missing_build_tools_on_path_are_named` calls `android::build` with a complete temporary SDK, a fake environment and a runner that panics if anything runs. It asserts the JDK 17 (`java` is not on PATH), `keytool` and `cargo install cargo-ndk` messages in turn. `cargo test -p gpux-testkit --test android` passes 12 of 12 here.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/tests/android.rs",
+          "symbol": "missing_build_tools_on_path_are_named"
+        }
+      ]
+    },
+    {
+      "id": "S6-F4",
+      "boundaryId": "s6-android-lane",
+      "criterionIds": [
+        "E-2"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved in c5a8ef6. `the_apps_known_pixel_passes_at_full_or_16_bit_depth` keeps the probed pixel (200, 160) at `[132, 130, 132]`, which it asserts. It makes the neighbour (201, 160) a full-depth `[133, 130, 132]` inside the 9x9 area, so the probe fails only because the area is no longer 16-bit: 4 levels against tolerance 3. With 16-bit detection removed (tolerance 4 everywhere), the assertion would fail. 2/2 pass.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/screen_shows.rs",
+          "symbol": "the_apps_known_pixel_passes_at_full_or_16_bit_depth"
+        }
+      ]
     }
   ],
-  "handoffMarkdown": "Implemented in a1b83df and 7b9667e: .github/workflows/lane-b.yml (one build job with the pinned nightly, 4 sharded e2e jobs in ci-linux-swiftshader, merged report; PRs @canary|@pr, nightly/all-specs dispatch every spec except @timing); docs in cfca035. Hosted CI is blocked by billing; per amendment rev 91, B-5 is verified by the workflow's commands run locally in WSL (PR selection 120 passed/2 skipped/0 failed at c756171; nightly selection run with CI's worker count pending at the time of writing).",
+  "handoffMarkdown": "Implemented in 1e1d41a (.github/workflows/lane-e.yml: KVM udev rule, pinned SDK pieces, x86_64 build, reactivecircus emulator runner API 34 with swiftshader, gpux-testkit lane e, artifacts) and 35029a1 (docs/testing.md lane E). Hosted CI is blocked by billing; per amendment rev 91, E-3 is verified by  on a local x86_64 emulator.",
   "protectedPaths": {
     "gpux": {
       "gpux:.agentx/experiments/**": "32805d33f7172446b7e9cec5989ba59bd78648a57efc98bd96bbcac8fcac16a6",
