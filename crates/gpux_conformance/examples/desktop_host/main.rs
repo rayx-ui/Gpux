@@ -80,12 +80,9 @@ fn parse_args() -> Result<Args, String> {
     Ok(args)
 }
 
+/// The selection `gpux-testkit` planned, through the same function.
 fn selected(id: &str, args: &Args) -> bool {
-    args.scene.as_deref().is_none_or(|scene| scene == id)
-        && args
-            .grep
-            .as_deref()
-            .is_none_or(|pattern| id.contains(pattern))
+    gpux_conformance::selects(id, args.scene.as_deref(), args.grep.as_deref())
 }
 
 fn main() {
@@ -119,14 +116,12 @@ fn main() {
             }
             println!("{line}");
         };
-        if args.scene.is_none() {
-            for check in PLATFORM_CHECKS
-                .iter()
-                .filter(|check| selected(check.id, &args))
-            {
-                os::park_cursor();
-                report(checks::run(check.id, &mut cx).await);
-            }
+        for check in PLATFORM_CHECKS
+            .iter()
+            .filter(|check| selected(check.id, &args))
+        {
+            os::park_cursor();
+            report(checks::run(check.id, &mut cx).await);
         }
         let host = AppHost::new(Lane::D, point(px(WINDOW_ORIGIN.0), px(WINDOW_ORIGIN.1)))
             .with_failure_frames(gpux_conformance::compare::artifacts_dir("d"));

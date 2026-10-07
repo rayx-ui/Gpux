@@ -139,7 +139,7 @@ fn lane(
                 continue;
             }
         };
-        if args.list {
+        if args.list && plan.listings.is_empty() {
             listed += list(&plan, out);
             continue;
         }
@@ -155,6 +155,13 @@ fn lane(
             for problem in &problems {
                 writeln!(out, "lane {lane}: {problem}").ok();
                 tally.add(Tally::failure(format!("lane {lane}: {problem}")));
+            }
+            continue;
+        }
+        if args.list {
+            match list_exact(&plan, root, environment, runner, out) {
+                Ok(count) => listed += count,
+                Err(failure) => tally.add(failure),
             }
             continue;
         }
@@ -183,6 +190,52 @@ fn list(plan: &LanePlan, out: &mut dyn Write) -> usize {
         writeln!(out, "  {test}").ok();
     }
     plan.tests.len()
+}
+
+/// Prints the exact tests libtest would run for each of the lane's targets, without running
+/// them, and returns how many there are.
+fn list_exact(
+    plan: &LanePlan,
+    root: &Path,
+    environment: &dyn Environment,
+    runner: &mut dyn Runner,
+    out: &mut dyn Write,
+) -> Result<usize, Tally> {
+    let lane = plan.lane;
+    let artifacts = run::artifacts_dir(root, lane.as_str());
+    let mut count = 0;
+    for listing in &plan.listings {
+        let invocation = &listing.invocation;
+        let program = environment
+            .find_program(&invocation.program)
+            .ok_or_else(|| {
+                Tally::failure(format!(
+                    "lane {lane}: `{}` is not on PATH",
+                    invocation.program
+                ))
+            })?;
+        writeln!(out, "lane {lane}: {}", invocation.command_line()).ok();
+        out.flush().ok();
+        let log = artifacts.join(format!("{}.log", invocation.label));
+        let result = runner
+            .run(invocation, &program, root, &log)
+            .map_err(|error| Tally::failure(format!("lane {lane}: {error:#}")))?;
+        if !result.success {
+            return Err(Tally::failure(format!(
+                "lane {lane}: listing `{}` failed; see {}",
+                invocation.command_line(),
+                log.display()
+            )));
+        }
+        for name in results::libtest_list(&result.output) {
+            writeln!(out, "  {}::{name}", listing.target).ok();
+            count += 1;
+        }
+    }
+    if count == 0 {
+        writeln!(out, "lane {lane}: nothing matches the selection").ok();
+    }
+    Ok(count)
 }
 
 fn run_plan(
@@ -218,7 +271,7 @@ fn run_plan(
             }
         };
         let mut counted = match invocation.output {
-            OutputKind::Libtest => results::tally_libtest(&result.output),
+            OutputKind::Libtest | OutputKind::Listing => results::tally_libtest(&result.output),
             OutputKind::ResultLines => results::tally_result_lines(&result.output),
         };
         let reported_failure = counted.failed > 0;

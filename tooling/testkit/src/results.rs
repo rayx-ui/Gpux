@@ -108,6 +108,15 @@ pub fn tally_libtest(output: &str) -> Tally {
     tally
 }
 
+/// The test names libtest's `--list` printed (`name: test` lines), in order.
+pub fn libtest_list(output: &str) -> Vec<String> {
+    output
+        .lines()
+        .filter_map(|line| line.trim().strip_suffix(": test"))
+        .map(str::to_string)
+        .collect()
+}
+
 /// Counts Playwright list-reporter output. The closing counts (`3 passed`, `1 failed`,
 /// `1 skipped`, `1 flaky`) win when present; otherwise each test's final status line counts.
 pub fn tally_playwright_list(output: &str) -> Tally {

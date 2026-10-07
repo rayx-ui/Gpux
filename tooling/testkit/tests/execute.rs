@@ -209,23 +209,58 @@ fn zero_selected_tests_fail() {
 }
 
 #[test]
-fn listing_prints_the_selection_without_running_it() {
+fn listing_prints_libtests_exact_selection_without_running_tests() {
     let root = tempfile::tempdir().unwrap();
     let environment = FakeEnvironment::new(root.path());
-    let mut runner = FakeRunner::default();
+    let mut runner = FakeRunner {
+        outputs: vec![
+            output(true, "paint_borders: test\n\n1 test, 0 benchmarks\n"),
+            output(
+                true,
+                "at_1x::paint_borders: test\nat_2x::paint_borders: test\n\n2 tests, 0 benchmarks\n",
+            ),
+        ],
+        ..FakeRunner::default()
+    };
     let (code, text) = run(
         "lane a c --scene paint-borders --list",
         &environment,
         &mut runner,
     );
     assert_eq!(code, 0, "{text}");
-    assert!(runner.ran.is_empty());
+    // Only libtest listings ran, never the tests.
+    assert_eq!(runner.ran.len(), 2);
+    assert!(
+        runner
+            .ran
+            .iter()
+            .all(|(command, _)| command.contains(" -- --list --exact ")),
+        "{:?}",
+        runner.ran
+    );
     assert!(text.contains("  lane_a::paint_borders"), "{text}");
+    assert!(text.contains("  lane_c::at_1x::paint_borders"), "{text}");
     assert!(text.contains("  lane_c::at_2x::paint_borders"), "{text}");
     assert_eq!(
         last_line(&text),
         "gpux-testkit: 0 passed, 0 failed, 0 skipped"
     );
+
+    // Lane d lists its plan: the desktop host selects with the same function.
+    let mut idle = FakeRunner::default();
+    let (code, text) = run("lane d --scene layout-flex --list", &environment, &mut idle);
+    assert_eq!(code, 0, "{text}");
+    assert!(idle.ran.is_empty());
+    assert!(text.contains("  desktop_host::layout-flex"), "{text}");
+
+    // A listing that fails to build fails the command.
+    let mut broken = FakeRunner {
+        outputs: vec![output(false, "error[E0425]: cannot find value")],
+        ..FakeRunner::default()
+    };
+    let (code, text) = run("lane c --list", &environment, &mut broken);
+    assert_eq!(code, EXIT_FAILED);
+    assert!(text.contains("listing `cargo test"), "{text}");
 }
 
 #[test]

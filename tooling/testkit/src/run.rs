@@ -1,6 +1,6 @@
 //! Running lane invocations: output is echoed live and kept in the lane's artifacts folder.
 
-use crate::lanes::Invocation;
+use crate::lanes::{Invocation, OutputKind};
 use std::io::{BufRead as _, BufReader, Write as _};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -60,13 +60,16 @@ impl Runner for ProcessRunner {
             .spawn()
             .map_err(|error| anyhow::anyhow!("could not start `{}`: {error}", program.display()))?;
         let collected = Arc::new(Mutex::new(String::new()));
+        let echo = invocation.output != OutputKind::Listing;
         let pump = |stream: Box<dyn std::io::Read + Send>, to_stderr: bool| {
             let collected = collected.clone();
             let log_file = log_file.clone();
             std::thread::spawn(move || {
                 for line in BufReader::new(stream).lines() {
                     let Ok(line) = line else { break };
-                    if to_stderr {
+                    if !echo {
+                        // A listing is parsed and printed by the caller.
+                    } else if to_stderr {
                         eprintln!("{line}");
                     } else {
                         println!("{line}");

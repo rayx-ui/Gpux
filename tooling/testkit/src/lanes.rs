@@ -83,6 +83,8 @@ pub enum OutputKind {
     Libtest,
     /// `gpux-conformance:` result lines from a conformance host.
     ResultLines,
+    /// libtest's `--list` output: test names, not results.
+    Listing,
 }
 
 /// One process a lane runs.
@@ -121,8 +123,44 @@ pub struct LanePlan {
     pub lane: LaneId,
     /// The processes to run, in order.
     pub invocations: Vec<Invocation>,
-    /// The exact test selection, one name per test.
+    /// The test selection as planned, one name per test.
     pub tests: Vec<String>,
+    /// For libtest lanes, one `--list` invocation per test target: `--list` asks libtest for the
+    /// exact tests the run executes rather than trusting the plan.
+    pub listings: Vec<Listing>,
+}
+
+/// Lists the tests of one libtest target without running them.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Listing {
+    /// The test target, prefixed to every listed name.
+    pub target: String,
+    /// `cargo test ... -- --list` with the run's filters.
+    pub invocation: Invocation,
+}
+
+fn listing(target: &str, filters: &[String]) -> Listing {
+    let mut invocation = cargo(
+        &format!("list-{target}"),
+        &[
+            "test",
+            "-p",
+            "gpux-conformance",
+            "--test",
+            target,
+            "--",
+            "--list",
+        ],
+        OutputKind::Listing,
+    );
+    if !filters.is_empty() {
+        invocation.args.push("--exact".into());
+        invocation.args.extend(filters.iter().cloned());
+    }
+    Listing {
+        target: target.to_string(),
+        invocation,
+    }
 }
 
 /// A lane that cannot run the selection.
@@ -198,15 +236,16 @@ fn scenes(lane: Lane, selection: &Selection) -> Result<Vec<&'static SceneSpec>, 
                 lane.as_str()
             )));
         }
-        return Ok(vec![scene]);
     }
     Ok(CATALOG
         .iter()
         .filter(|scene| scene.runs_in(lane))
         .filter(|scene| {
-            selection.grep.as_deref().is_none_or(|pattern| {
-                scene.id.contains(pattern) || test_name(scene).contains(pattern)
-            })
+            gpux_conformance::selects(
+                scene.id,
+                selection.scene.as_deref(),
+                selection.grep.as_deref(),
+            )
         })
         .collect())
 }
@@ -236,19 +275,24 @@ fn plan_a(selection: &Selection) -> Result<LanePlan, PlanError> {
     }
     let names: Vec<String> = scenes.iter().map(|scene| test_name(scene)).collect();
     let mut invocation = cargo("lane-a", &args, OutputKind::Libtest);
-    if !selection.is_everything() {
+    let mut listings = Vec::new();
+    if selection.is_everything() {
+        listings.push(listing("lane_a", &[]));
+        listings.extend(LANE_A_GROUPS.iter().map(|group| listing(group, &[])));
+    } else {
         invocation.args.push("--".into());
         invocation.args.push("--exact".into());
-        invocation.args.extend(names);
+        invocation.args.extend(names.iter().cloned());
+        if !names.is_empty() {
+            listings.push(listing("lane_a", &names));
+        }
     }
+    let empty = tests.is_empty();
     Ok(LanePlan {
         lane: LaneId::A,
-        invocations: if tests.is_empty() {
-            Vec::new()
-        } else {
-            vec![invocation]
-        },
+        invocations: if empty { Vec::new() } else { vec![invocation] },
         tests,
+        listings,
     })
 }
 
@@ -275,10 +319,13 @@ fn plan_c(selection: &Selection) -> Result<LanePlan, PlanError> {
         ],
         OutputKind::Libtest,
     );
-    if !selection.is_everything() {
+    let filters = if selection.is_everything() {
+        Vec::new()
+    } else {
         invocation.args.push("--exact".into());
         invocation.args.extend(names.iter().cloned());
-    }
+        names.clone()
+    };
     Ok(LanePlan {
         lane: LaneId::C,
         invocations: if names.is_empty() {
@@ -287,24 +334,23 @@ fn plan_c(selection: &Selection) -> Result<LanePlan, PlanError> {
             vec![invocation]
         },
         tests: names.iter().map(|name| format!("lane_c::{name}")).collect(),
+        listings: if names.is_empty() {
+            Vec::new()
+        } else {
+            vec![listing("lane_c", &filters)]
+        },
     })
 }
 
 fn plan_d(selection: &Selection) -> Result<LanePlan, PlanError> {
-    let checks: Vec<&str> = if selection.scene.is_some() {
-        Vec::new()
-    } else {
-        PLATFORM_CHECKS
-            .iter()
-            .map(|check| check.id)
-            .filter(|id| {
-                selection
-                    .grep
-                    .as_deref()
-                    .is_none_or(|pattern| id.contains(pattern))
-            })
-            .collect()
-    };
+    // The desktop host selects with the same function, so this is exactly what it runs.
+    let checks: Vec<&str> = PLATFORM_CHECKS
+        .iter()
+        .map(|check| check.id)
+        .filter(|id| {
+            gpux_conformance::selects(id, selection.scene.as_deref(), selection.grep.as_deref())
+        })
+        .collect();
     let scenes = scenes(Lane::D, selection)?;
     let mut tests: Vec<String> = checks
         .iter()
@@ -344,5 +390,6 @@ fn plan_d(selection: &Selection) -> Result<LanePlan, PlanError> {
             vec![invocation]
         },
         tests,
+        listings: Vec::new(),
     })
 }

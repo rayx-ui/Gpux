@@ -197,6 +197,96 @@ fn plan_scene(lane: LaneId, scene: &str) -> gpux_testkit::lanes::LanePlan {
 }
 
 #[test]
+fn libtest_lanes_list_every_target_they_run() {
+    let everything = plan(LaneId::A, &Selection::default()).unwrap();
+    let targets: Vec<&str> = everything
+        .listings
+        .iter()
+        .map(|listing| listing.target.as_str())
+        .collect();
+    assert_eq!(
+        targets,
+        [
+            "lane_a",
+            "catalog_coverage",
+            "image_compare",
+            "golden_policy"
+        ]
+    );
+    for listing in &everything.listings {
+        assert!(
+            listing
+                .invocation
+                .command_line()
+                .ends_with(&format!("--test {} -- --list", listing.target)),
+            "{}",
+            listing.invocation.command_line()
+        );
+    }
+    let lane_c = plan(LaneId::C, &Selection::default()).unwrap();
+    assert_eq!(lane_c.listings.len(), 1);
+    assert!(
+        lane_c.listings[0]
+            .invocation
+            .command_line()
+            .ends_with("--test lane_c -- --list")
+    );
+    assert!(
+        plan(LaneId::D, &Selection::default())
+            .unwrap()
+            .listings
+            .is_empty()
+    );
+}
+
+#[test]
+fn lane_d_plans_exactly_what_the_desktop_host_selects() {
+    let selections = [
+        (None, None),
+        (None, Some("layout_flex")),
+        (None, Some("layout-flex")),
+        (None, Some("platform")),
+        (Some("layout-flex"), None),
+        (Some("layout-flex"), Some("text")),
+        (Some("layout-flex"), Some("flex")),
+    ];
+    for (scene, grep) in selections {
+        let selection = Selection {
+            scene: scene.map(str::to_string),
+            grep: grep.map(str::to_string),
+        };
+        let planned = plan(LaneId::D, &selection).unwrap().tests;
+        // The desktop host runs the platform checks, then the lane-D scenes, that
+        // `gpux_conformance::selects` keeps.
+        let host: Vec<String> = PLATFORM_CHECKS
+            .iter()
+            .map(|check| check.id)
+            .chain(
+                CATALOG
+                    .iter()
+                    .filter(|scene| scene.runs_in(Lane::D))
+                    .map(|scene| scene.id),
+            )
+            .filter(|id| gpux_conformance::selects(id, scene, grep))
+            .map(|id| format!("desktop_host::{id}"))
+            .collect();
+        assert_eq!(planned, host, "scene {scene:?}, grep {grep:?}");
+    }
+    assert!(
+        plan(
+            LaneId::D,
+            &Selection {
+                scene: None,
+                grep: Some("layout_flex".into()),
+            }
+        )
+        .unwrap()
+        .tests
+        .contains(&"desktop_host::layout-flex".to_string())
+    );
+}
+
+#[test]
 fn lanes_not_wired_yet_fail_clearly() {
     for lane in LANES {
         let result = plan(lane, &Selection::default());

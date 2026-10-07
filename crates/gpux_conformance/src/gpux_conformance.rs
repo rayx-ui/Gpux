@@ -35,6 +35,15 @@ pub fn scene(id: &str) -> Option<&'static SceneSpec> {
     CATALOG.iter().find(|scene| scene.id == id)
 }
 
+/// Whether the test `id` (a scene or platform check id) is in a selection. `scene` names one
+/// id exactly; `grep` keeps ids that contain it, as written (`layout-flex`) or as the snake_case
+/// test name (`layout_flex`); both apply when both are given. `gpux-testkit` plans lanes with it
+/// and every host selects with it, so a listing and its run agree.
+pub fn selects(id: &str, scene: Option<&str>, grep: Option<&str>) -> bool {
+    scene.is_none_or(|scene| scene == id)
+        && grep.is_none_or(|pattern| id.contains(pattern) || id.replace('-', "_").contains(pattern))
+}
+
 /// The scenes `lane` runs, in catalog order.
 pub fn lane_scenes(lane: Lane) -> impl Iterator<Item = &'static SceneSpec> {
     CATALOG.iter().filter(move |scene| scene.runs_in(lane))
