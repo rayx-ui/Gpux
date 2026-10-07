@@ -292,6 +292,8 @@ fn lanes_not_wired_yet_fail_clearly() {
         let result = plan(lane, &Selection::default());
         match lane {
             LaneId::A | LaneId::C | LaneId::D => assert!(result.is_ok(), "lane {lane}"),
+            // Lane B runs Playwright specs through `web e2e`, not a cargo plan.
+            LaneId::B => assert!(result.unwrap_err().to_string().contains("web e2e")),
             _ => {
                 let error = result.unwrap_err().to_string();
                 assert!(

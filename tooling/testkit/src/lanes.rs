@@ -189,7 +189,11 @@ pub fn plan(lane: LaneId, selection: &Selection) -> Result<LanePlan, PlanError> 
         LaneId::A => plan_a(selection),
         LaneId::C => plan_c(selection),
         LaneId::D => plan_d(selection),
-        LaneId::B => Err(not_wired(lane, "the browser lane", "s5-browser-lane")),
+        LaneId::B => Err(PlanError(
+            "lane b runs Playwright specs, not cargo targets: `gpux-testkit lane b` runs them \
+             through `web e2e`"
+                .into(),
+        )),
         LaneId::E => Err(not_wired(lane, "the Android lane", "s6-android-lane")),
         LaneId::F => Err(not_wired(lane, "the iOS lane", "s8-apple-lanes")),
         LaneId::G => Err(not_wired(

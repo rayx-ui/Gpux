@@ -210,6 +210,35 @@ fn lane(
     let mut listed = 0;
     let root = environment.workspace_root();
     for &lane in &args.lanes {
+        if lane == LaneId::B {
+            // The browser lane runs Playwright specs instead of cargo targets.
+            let Some(root) = root.as_deref() else {
+                let message = "gpux-testkit runs inside a gpux checkout: run it from the \
+                               repository (the folder with `crates/gpux_conformance`) or a subfolder";
+                writeln!(out, "lane b: {message}").ok();
+                tally.add(Tally::failure(format!("lane b: {message}")));
+                continue;
+            };
+            let profile = web::lane_profile(environment);
+            let grep = web::lane_grep(&args.selection);
+            if args.list {
+                match web::list(root, environment, runner, &profile, &grep, out) {
+                    Ok(count) => listed += count,
+                    Err(failure) => tally.add(failure),
+                }
+            } else {
+                tally.add(web::e2e(
+                    root,
+                    environment,
+                    runner,
+                    &profile,
+                    Some(&grep),
+                    false,
+                    out,
+                ));
+            }
+            continue;
+        }
         let plan = match lanes::plan(lane, &args.selection) {
             Ok(plan) => plan,
             Err(error) => {

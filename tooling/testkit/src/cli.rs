@@ -12,7 +12,7 @@ usage: gpux-testkit lane <lane>... [--list] [--scene <id>] [--grep <pattern>]
 
 lanes:
   a  behaviour on the test platform (no GPU or display)
-  b  a real browser (wired in a later sprint)
+  b  a real browser through Playwright (GPUX_WEB_PROFILE picks the profile)
   c  offscreen pixels through the headless renderer
   d  real desktop windows
   e  Android (wired in a later sprint)

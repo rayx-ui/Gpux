@@ -493,6 +493,12 @@ fn web_build_runs_cargo_then_wasm_bindgen_and_writes_the_page() {
     assert!(runner.ran[2].contains("--target web --out-dir"));
     let page = root.path().join("target/gpux-web/dist/index.html");
     assert_eq!(std::fs::read_to_string(page).unwrap(), web::index_html());
+    let dist = root.path().join("target/gpux-web/dist");
+    assert!(dist.join("catalog.json").is_file());
+    assert_eq!(
+        std::fs::read_to_string(dist.join("assets/conformance.svg")).unwrap(),
+        web::CONFORMANCE_SVG
+    );
     assert_eq!(
         text.lines().last(),
         Some("gpux-testkit: 1 passed, 0 failed, 0 skipped")
@@ -550,4 +556,120 @@ fn web_commands_report_missing_prerequisites() {
 
     let (code, _) = run("web", &environment, &mut FakeRunner::default());
     assert_eq!(code, EXIT_USAGE);
+}
+
+#[test]
+fn lane_b_selection_maps_to_a_playwright_grep() {
+    use gpux_testkit::cli::Selection;
+    let selection = |scene: Option<&str>, grep: Option<&str>| Selection {
+        scene: scene.map(str::to_string),
+        grep: grep.map(str::to_string),
+    };
+    assert_eq!(web::lane_grep(&selection(None, None)), "@canary|@pr");
+    assert_eq!(web::lane_grep(&selection(None, Some("@dpr2"))), "@dpr2");
+    assert_eq!(
+        web::lane_grep(&selection(Some("layout-flex"), None)),
+        "layout-flex passes"
+    );
+    let environment = FakeEnvironment {
+        root: PathBuf::new(),
+        programs: Vec::new(),
+    };
+    assert_eq!(web::lane_profile(&environment), "local-gpu");
+    assert_eq!(
+        web::playwright_list(
+            "Listing tests:\n  [local-gpu] › specs/canary.spec.ts:6:1 › WebGPU starts @canary\n\
+             Total: 1 test in 1 file\n"
+        ),
+        ["[local-gpu] › specs/canary.spec.ts:6:1 › WebGPU starts @canary"]
+    );
+}
+
+/// A checkout with the locked wasm-bindgen, Playwright installed, and a verified build in place.
+fn browser_checkout() -> tempfile::TempDir {
+    let root = tempfile::tempdir().unwrap();
+    std::fs::write(
+        root.path().join("Cargo.lock"),
+        "[[package]]\nname = \"wasm-bindgen\"\nversion = \"0.2.129\"\n",
+    )
+    .unwrap();
+    std::fs::create_dir_all(root.path().join("tools-node/node_modules/@playwright/test")).unwrap();
+    let dist = root.path().join("target/gpux-web/dist");
+    std::fs::create_dir_all(&dist).unwrap();
+    std::fs::write(
+        dist.join("web_host_bg.wasm"),
+        module(&ModuleSpec::default()),
+    )
+    .unwrap();
+    root
+}
+
+fn build_outputs() -> Vec<RunOutput> {
+    vec![output("wasm-bindgen 0.2.129"), output(""), output("")]
+}
+
+#[test]
+fn lane_b_lists_its_specs_without_running_them() {
+    let root = browser_checkout();
+    let environment = FakeEnvironment {
+        root: root.path().to_path_buf(),
+        programs: vec!["cargo", "wasm-bindgen", "pnpm"],
+    };
+    let mut outputs = build_outputs();
+    outputs.push(output(
+        "Listing tests:\n  [local-gpu] › specs/canary.spec.ts:6:1 › WebGPU starts @canary\n  \
+         [local-gpu] › specs/scenes.spec.ts:13:3 › layout-flex passes its script @pr\n\
+         Total: 2 tests in 2 files\n",
+    ));
+    let mut runner = FakeRunner {
+        outputs,
+        ..FakeRunner::default()
+    };
+    let (code, text) = run("lane b --list", &environment, &mut runner);
+    assert_eq!(code, 0, "{text}");
+    assert!(
+        runner.ran[3]
+            .contains("pnpm exec playwright test --project local-gpu --grep @canary|@pr --list"),
+        "{}",
+        runner.ran[3]
+    );
+    assert!(text.contains("layout-flex passes its script @pr"), "{text}");
+    assert_eq!(
+        text.lines().last(),
+        Some("gpux-testkit: 0 passed, 0 failed, 0 skipped")
+    );
+}
+
+#[test]
+fn lane_b_runs_a_scenes_specs_and_counts_their_results() {
+    let root = browser_checkout();
+    let environment = FakeEnvironment {
+        root: root.path().to_path_buf(),
+        programs: vec!["cargo", "wasm-bindgen", "pnpm"],
+    };
+    let mut outputs = build_outputs();
+    outputs.push(output(
+        "Running 2 tests using 2 workers\n  ok 1 [local-gpu] › specs/scenes.spec.ts:13:3 › \
+         layout-flex passes its script @pr (3s)\n  ok 2 [local-gpu] › specs/scenes.spec.ts:27:5 › \
+         layout-flex passes its script at DPR 2 @dpr2 (3s)\n  2 passed (4s)\n",
+    ));
+    let mut runner = FakeRunner {
+        outputs,
+        ..FakeRunner::default()
+    };
+    let (code, text) = run("lane b --scene layout-flex", &environment, &mut runner);
+    assert_eq!(code, 0, "{text}");
+    assert!(text.contains("threaded wasm verified"), "{text}");
+    assert!(
+        runner.ran[3].starts_with("GPUX_BASE_URL=http://127.0.0.1:")
+            && runner.ran[3].ends_with(
+                "pnpm exec playwright test --project local-gpu --grep layout-flex passes"
+            ),
+        "{}",
+        runner.ran[3]
+    );
+    assert_eq!(
+        text.lines().last(),
+        Some("gpux-testkit: 2 passed, 0 failed, 0 skipped")
+    );
 }

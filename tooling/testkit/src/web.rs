@@ -3,6 +3,7 @@
 
 use crate::{
     Environment,
+    cli::Selection,
     lanes::{Invocation, OutputKind},
     results::{self, Tally},
     run::{self, Runner},
@@ -129,7 +130,7 @@ pub fn index_html() -> String {
 <head>
   <meta charset="utf-8" />
   <base href="/" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <link rel="icon" href="data:," />
   <title>gpux conformance</title>
   <style>html, body { margin: 0; height: 100%; overflow: hidden; background: #ffffff; }</style>
@@ -155,6 +156,10 @@ pub fn index_html() -> String {
 "#
     .to_string()
 }
+
+/// The SVG the `web-svg-asset` scene fetches through `Svg::external_path`: a full square, so
+/// its tint fills the element.
+pub const CONFORMANCE_SVG: &str = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\"><rect width=\"24\" height=\"24\"/></svg>\n";
 
 /// The lane-B scenes, for specs that enumerate them: `[{"id": "...", "scales": [1, 2],
 /// "areas": ["LayoutFlex"]}, ...]`.
@@ -280,6 +285,10 @@ pub fn build(
         .map_err(|error| format!("could not write index.html: {error}"))?;
     std::fs::write(paths.dist.join("catalog.json"), catalog_json())
         .map_err(|error| format!("could not write catalog.json: {error}"))?;
+    let assets = paths.dist.join("assets");
+    std::fs::create_dir_all(&assets)
+        .and_then(|()| std::fs::write(assets.join("conformance.svg"), CONFORMANCE_SVG))
+        .map_err(|error| format!("could not write the scene assets: {error}"))?;
 
     if verify {
         let module = paths.dist.join("web_host_bg.wasm");
@@ -295,6 +304,128 @@ pub fn build(
 /// The Playwright projects `tools-node/playwright.config.ts` defines.
 pub const PROFILES: [&str; 3] = ["local-gpu", "ci-linux-swiftshader", "windows-software"];
 
+/// The environment variable that picks the profile `gpux-testkit lane b` runs
+/// (`local-gpu` by default).
+pub const PROFILE_ENV_VAR: &str = "GPUX_WEB_PROFILE";
+
+/// The specs `gpux-testkit lane b` runs unless the selection narrows them.
+pub const LANE_GREP: &str = "@canary|@pr";
+
+/// The profile `gpux-testkit lane b` runs.
+pub fn lane_profile(environment: &dyn Environment) -> String {
+    environment
+        .var(PROFILE_ENV_VAR)
+        .filter(|profile| !profile.is_empty())
+        .unwrap_or_else(|| "local-gpu".into())
+}
+
+/// The Playwright `--grep` of a lane-B selection: a scene's own specs, the pattern given, or
+/// the lane's `@canary` and `@pr` specs.
+pub fn lane_grep(selection: &Selection) -> String {
+    match (&selection.scene, &selection.grep) {
+        // Scene specs are titled `<scene> passes its script ...`; scene ids need no escaping.
+        (Some(scene), _) => format!("{scene} passes"),
+        (None, Some(grep)) => grep.clone(),
+        (None, None) => LANE_GREP.into(),
+    }
+}
+
+/// The spec titles Playwright's `--list` printed (`[project] › file:line › title` lines).
+pub fn playwright_list(output: &str) -> Vec<String> {
+    output
+        .lines()
+        .map(str::trim)
+        .filter(|line| line.starts_with('[') && line.contains(" › "))
+        .map(str::to_string)
+        .collect()
+}
+
+fn playwright(profile: &str, grep: Option<&str>, extra: &[&str]) -> Vec<String> {
+    let mut args: Vec<String> = ["exec", "playwright", "test", "--project", profile]
+        .iter()
+        .map(|arg| arg.to_string())
+        .collect();
+    if let Some(grep) = grep {
+        args.extend(["--grep".into(), grep.to_string()]);
+    }
+    args.extend(extra.iter().map(|arg| arg.to_string()));
+    args
+}
+
+/// Checks what every Playwright run needs and returns `pnpm` and the project folder.
+fn playwright_prerequisites(
+    root: &Path,
+    environment: &dyn Environment,
+    profile: &str,
+) -> Result<(PathBuf, PathBuf), Tally> {
+    if !PROFILES.contains(&profile) {
+        return Err(Tally::failure(format!(
+            "unknown profile `{profile}`; profiles are {}",
+            PROFILES.join(", ")
+        )));
+    }
+    let tools_node = WebPaths::new(root).tools_node;
+    if !tools_node
+        .join("node_modules")
+        .join("@playwright")
+        .join("test")
+        .is_dir()
+    {
+        return Err(Tally::failure(format!(
+            "Playwright is not installed in {}: run `pnpm install` and `pnpm exec playwright install chromium` there",
+            tools_node.display()
+        )));
+    }
+    let Some(pnpm) = environment.find_program("pnpm") else {
+        return Err(Tally::failure(
+            "`pnpm` is not on PATH: install it (for example `npm install -g pnpm`)",
+        ));
+    };
+    Ok((pnpm, tools_node))
+}
+
+/// Prints the specs a profile and pattern select without running them, and returns how many
+/// there are. The specs enumerate scenes from the build, so this builds first.
+pub fn list(
+    root: &Path,
+    environment: &dyn Environment,
+    runner: &mut dyn Runner,
+    profile: &str,
+    grep: &str,
+    out: &mut dyn Write,
+) -> Result<usize, Tally> {
+    let (pnpm, tools_node) = playwright_prerequisites(root, environment, profile)?;
+    let paths = build(root, environment, runner, false, out)
+        .map_err(|error| Tally::failure(format!("lane b build: {error}")))?;
+    let listing = Invocation {
+        label: "web-list".into(),
+        program: "pnpm".into(),
+        args: playwright(profile, Some(grep), &["--list"]),
+        env: vec![("GPUX_DIST".into(), paths.dist.display().to_string())],
+        output: OutputKind::Listing,
+    };
+    writeln!(out, "lane b: {}", listing.command_line()).ok();
+    let log = run::artifacts_dir(root, "b").join("web-list.log");
+    let result = runner
+        .run(&listing, &pnpm, &tools_node, &log)
+        .map_err(|error| Tally::failure(format!("could not run Playwright: {error:#}")))?;
+    if !result.success {
+        return Err(Tally::failure(format!(
+            "listing `{}` failed; see {}",
+            listing.command_line(),
+            log.display()
+        )));
+    }
+    let specs = playwright_list(&result.output);
+    for spec in &specs {
+        writeln!(out, "  {spec}").ok();
+    }
+    if specs.is_empty() {
+        writeln!(out, "lane b: nothing matches the selection").ok();
+    }
+    Ok(specs.len())
+}
+
 /// Builds, serves and runs the Playwright specs of `profile`, filtered by `grep`.
 pub fn e2e(
     root: &Path,
@@ -305,28 +436,9 @@ pub fn e2e(
     headed: bool,
     out: &mut dyn Write,
 ) -> Tally {
-    if !PROFILES.contains(&profile) {
-        return Tally::failure(format!(
-            "unknown profile `{profile}`; profiles are {}",
-            PROFILES.join(", ")
-        ));
-    }
-    let tools_node = WebPaths::new(root).tools_node;
-    if !tools_node
-        .join("node_modules")
-        .join("@playwright")
-        .join("test")
-        .is_dir()
-    {
-        return Tally::failure(format!(
-            "Playwright is not installed in {}: run `pnpm install` and `pnpm exec playwright install chromium` there",
-            tools_node.display()
-        ));
-    }
-    let Some(program) = environment.find_program("pnpm") else {
-        return Tally::failure(
-            "`pnpm` is not on PATH: install it (for example `npm install -g pnpm`)",
-        );
+    let (program, tools_node) = match playwright_prerequisites(root, environment, profile) {
+        Ok(found) => found,
+        Err(failure) => return failure,
     };
     let paths = match build(root, environment, runner, true, out) {
         Ok(paths) => paths,
@@ -338,17 +450,7 @@ pub fn e2e(
             return Tally::failure(format!("could not serve {}: {error}", paths.dist.display()));
         }
     };
-    let mut args: Vec<String> = ["exec", "playwright", "test", "--project"]
-        .iter()
-        .map(|arg| arg.to_string())
-        .collect();
-    args.push(profile.to_string());
-    if let Some(grep) = grep {
-        args.extend(["--grep".into(), grep.to_string()]);
-    }
-    if headed {
-        args.push("--headed".into());
-    }
+    let args = playwright(profile, grep, if headed { &["--headed"] } else { &[] });
     let playwright = Invocation {
         label: "web-e2e".into(),
         program: "pnpm".into(),
