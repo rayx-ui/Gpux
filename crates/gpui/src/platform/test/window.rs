@@ -638,6 +638,19 @@ impl PlatformWindow for TestWindow {
     fn update_ime_position(&self, _bounds: Bounds<Pixels>) {}
 
     fn gpu_specs(&self) -> Option<GpuSpecs> {
-        None
+        self.0
+            .lock()
+            .renderer
+            .as_ref()
+            .and_then(|renderer| renderer.gpu_specs())
+    }
+
+    fn effect_capabilities(&self) -> crate::EffectCapabilities {
+        self.0
+            .lock()
+            .renderer
+            .as_ref()
+            .map(|renderer| renderer.effect_capabilities())
+            .unwrap_or_default()
     }
 }

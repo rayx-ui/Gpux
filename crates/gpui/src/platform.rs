@@ -1370,6 +1370,17 @@ pub trait PlatformHeadlessRenderer {
 
     /// Returns the sprite atlas used by this renderer.
     fn sprite_atlas(&self) -> Arc<dyn PlatformAtlas>;
+
+    /// The shader effects this renderer draws. A renderer reports an effect only when its
+    /// native path renders it; the default reports none.
+    fn effect_capabilities(&self) -> EffectCapabilities {
+        EffectCapabilities::default()
+    }
+
+    /// The GPU this renderer draws with, when it knows.
+    fn gpu_specs(&self) -> Option<GpuSpecs> {
+        None
+    }
 }
 
 /// Type alias for runnables with metadata.

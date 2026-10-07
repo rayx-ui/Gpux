@@ -208,6 +208,38 @@ impl TestAppContext {
         )
     }
 
+    /// Creates a test context whose windows render through a headless renderer, so
+    /// [`VisualTestContext::capture_screenshot`] returns real pixels.
+    ///
+    /// `renderer_factory` runs once per opened window; `gpui_platform::current_headless_renderer`
+    /// is the default for the current OS (wgpu on Linux and Windows, Metal on macOS). Pair it
+    /// with a real text system such as `gpui_platform::bundled_text_system()` so text renders.
+    /// Effect capabilities and GPU specs of the windows come from the renderer.
+    pub fn build_with_renderer(
+        dispatcher: TestDispatcher,
+        fn_name: Option<&'static str>,
+        platform_text_system: Arc<dyn PlatformTextSystem>,
+        renderer_factory: impl Fn() -> anyhow::Result<Option<Box<dyn crate::PlatformHeadlessRenderer>>>
+        + 'static,
+    ) -> Self {
+        let arc_dispatcher = Arc::new(dispatcher.clone());
+        let background_executor = BackgroundExecutor::new(arc_dispatcher.clone());
+        let foreground_executor = ForegroundExecutor::new(arc_dispatcher);
+        let platform = TestPlatform::with_platform(
+            background_executor.clone(),
+            foreground_executor.clone(),
+            platform_text_system,
+            Some(Box::new(renderer_factory)),
+        );
+        Self::build_with_platform(
+            dispatcher,
+            fn_name,
+            background_executor,
+            foreground_executor,
+            platform,
+        )
+    }
+
     fn build_with_platform(
         dispatcher: TestDispatcher,
         fn_name: Option<&'static str>,
@@ -1183,6 +1215,22 @@ impl VisualTestContext {
                 window.draw(cx).clear(cx);
             }
             window.devtools_frame_snapshot()
+        })
+    }
+
+    /// Renders the window's latest frame through its headless renderer and returns the image,
+    /// after the executor parks and any pending invalidation draws.
+    ///
+    /// The image is `size × scale factor` device pixels (see [`TestWindowOptions`]) and opaque.
+    /// It fails when the context has no headless renderer; build one with
+    /// [`TestAppContext::build_with_renderer`].
+    pub fn capture_screenshot(&mut self) -> anyhow::Result<image::RgbaImage> {
+        self.run_until_parked();
+        self.update(|window, cx| {
+            if window.invalidator.is_dirty() {
+                window.draw(cx).clear(cx);
+            }
+            window.render_to_image()
         })
     }
 
