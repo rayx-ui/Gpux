@@ -18,6 +18,7 @@ exits nonzero on any failure or when nothing was selected. Raw output goes to
 | B | A real browser: the threaded WASM build on WebGPU, driven by Playwright with trusted input | `gpux-testkit lane b` |
 | C | Offscreen pixels through the headless renderer, with per-backend goldens | `gpux-testkit lane c` |
 | D | Real desktop windows: presenting, resizing, scale changes, clipboard, OS input | `gpux-testkit lane d` |
+| E | Android on a device or emulator: startup, the lane-E scenes, OS touch, background and resume | `gpux-testkit lane e` |
 
 ## Lane B: a real browser
 
@@ -103,3 +104,38 @@ lane D, and two checks cannot pass there for reasons outside gpux:
 
 Everything else, including surface capture, resizing and in-app scene input, passes on
 WSLg's compositor.
+
+## Lane E: Android
+
+`gpux-testkit lane e` (or `android run [--serial <serial>] [--scene <id>] [--grep <pattern>]`)
+builds the `android_host` example of `gpux-conformance` for the device's ABI, installs it on the
+first attached device or emulator (`ANDROID_SERIAL` or `--serial` picks one), launches it and
+follows logcat. The host runs the startup check, every lane-E scene, and the checks that need the
+operating system, which it asks the testkit to perform: taps and swipes through
+`adb shell input`, and the home key followed by `am start` for going to the background and coming
+back. Results, screenshots, logcat and the frames failing probes saved land in
+`artifacts-temp/testkit/e/`.
+
+`gpux-testkit android build [--abi x86_64|arm64-v8a]...` builds the APK on its own. It needs no
+Gradle: the host is a NativeActivity without Java code, so `aapt2` links
+[`tooling/android/AndroidManifest.xml`](../tooling/android/AndroidManifest.xml), the libraries go in
+uncompressed and 16 KB aligned, and `apksigner` signs with a local debug key. Prerequisites, each
+reported with the command that installs it:
+
+- `ANDROID_HOME` with the pinned packages: `sdkmanager "ndk;28.0.12674087" "build-tools;36.0.0"
+  "platforms;android-36" "platform-tools"`;
+- a JDK 17 or later (`java`, `keytool`) and `cargo install cargo-ndk`;
+- `rustup target add x86_64-linux-android aarch64-linux-android`.
+
+Pixel steps read the screen: the host asks for `adb screencap`, which reaches it through
+`/data/local/tmp` and `run-as`. The emulators' GL drivers read rendered textures back empty, so
+the renderer's own `render_to_image` (which the Android window implements) cannot serve them
+there; the startup check reports whether it works on the device. Emulators render through
+SwiftShader and run on the GL fallback, whose surface has 16-bit color (RGB565): on frames that
+show it, color probes allow its rounding of up to 4 levels per channel, while difference checks
+keep their tolerance. Shrinking the emulator's screen (`adb shell wm size 720x1280`,
+`adb shell wm density 320`) keeps software frames fast.
+
+Scenes that need exact animation timing or an input method stay out of lane E: the device runs on
+the real clock, and adb cannot drive the input method. The fling check is skipped on software
+renderers, where `adb shell input` delivers a fast swipe only after slow frames, as a tap.
