@@ -11,16 +11,20 @@
 //!
 //! That is WARP on Windows and lavapipe on Linux (select it with `VK_DRIVER_FILES`), and Metal
 //! on macOS. `GPUX_WGPU_ADAPTER=hardware` renders on a GPU instead (lane G): the probes run and
-//! goldens are skipped. `GPUX_UPDATE_SNAPSHOTS=1` rewrites the goldens of
-//! the active backend; failures write actual, expected and diff images under
-//! `artifacts-temp/testkit/c/`. When `GPUX_EXPECT_BACKEND` names a backend (`warp`,
-//! `lavapipe`, `metal`, ...), every scene must render on it, so CI cannot silently fall back
-//! to another adapter and skip its goldens.
+//! goldens are skipped. `GPUX_PROBES_ONLY=1` skips the goldens on any backend.
+//! `GPUX_UPDATE_SNAPSHOTS=1` rewrites the goldens of the active backend; failures write actual,
+//! expected and diff images under `artifacts-temp/testkit/c/`. When `GPUX_EXPECT_BACKEND` names a
+//! backend (`warp`, `lavapipe`, `metal`, ..., or `hardware` for any GPU), every scene must
+//! render on it, so a run cannot silently fall back to another adapter and skip its goldens.
 
-use gpux_conformance::{CATALOG, Lane, host::run_scene, report::Outcome, test_host::TestHost};
-
-/// The environment variable naming the backend every scene must render on.
-const EXPECT_BACKEND_ENV_VAR: &str = "GPUX_EXPECT_BACKEND";
+use gpux_conformance::{
+    CATALOG, Lane,
+    backend::EXPECT_BACKEND_ENV_VAR,
+    compare::{PROBES_ONLY_ENV_VAR, switched_on},
+    host::run_scene,
+    report::Outcome,
+    test_host::TestHost,
+};
 
 fn run(id: &str, scale: f32) {
     let scene = gpux_conformance::scene(id).unwrap_or_else(|| panic!("no scene {id}"));
@@ -30,20 +34,23 @@ fn run(id: &str, scale: f32) {
         "{id} does not render at {scale}x"
     );
     let mut host = TestHost::pixels();
+    if switched_on(std::env::var(PROBES_ONLY_ENV_VAR).ok().as_deref()) {
+        host = host.probes_only();
+    }
     let result = run_scene(&mut host, scene, scale);
-    let backend = host
+    let label = host
         .backend()
         .map(|backend| backend.label())
         .unwrap_or_else(|| "no renderer".to_string());
-    println!("{result} [{backend}]");
-    assert_eq!(result.outcome, Outcome::Pass, "{result} [{backend}]");
+    println!("{result} [{label}]");
+    assert_eq!(result.outcome, Outcome::Pass, "{result} [{label}]");
     if let Some(expected) = std::env::var(EXPECT_BACKEND_ENV_VAR)
         .ok()
         .filter(|value| !value.is_empty())
     {
-        assert_eq!(
-            backend, expected,
-            "{id} rendered on {backend}, but {EXPECT_BACKEND_ENV_VAR} expects {expected}"
+        assert!(
+            host.backend().is_some_and(|backend| backend.is(&expected)),
+            "{id} rendered on {label}, but {EXPECT_BACKEND_ENV_VAR} expects {expected}"
         );
     }
 }

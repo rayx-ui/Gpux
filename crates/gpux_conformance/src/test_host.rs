@@ -5,7 +5,8 @@
 //! Lane C renders on the software adapter by default (WARP on Windows, lavapipe or llvmpipe on
 //! Linux), so its output is deterministic and compared with goldens wherever it runs.
 //! `GPUX_WGPU_ADAPTER=hardware` (or an adapter name) renders on a GPU instead, as lane G does;
-//! hardware adapters skip goldens. macOS renders through Metal.
+//! hardware adapters skip goldens. macOS renders through Metal. [`TestHost::probes_only`] skips
+//! goldens on any backend.
 
 use crate::{
     backend::BackendId,
@@ -49,6 +50,7 @@ pub struct TestHost {
     lane: Lane,
     seed: u64,
     goldens: Goldens,
+    probes_only: bool,
     open: Option<OpenScene>,
     backend: Option<BackendId>,
 }
@@ -70,9 +72,17 @@ impl TestHost {
             lane,
             seed: 0,
             goldens: Goldens::for_lane(lane.as_str()),
+            probes_only: false,
             open: None,
             backend: None,
         }
+    }
+
+    /// Skips golden steps, leaving the relative probes: lane G renders on the developer's GPU,
+    /// which no committed golden matches (Metal goldens come from CI's virtual Macs).
+    pub fn probes_only(mut self) -> Self {
+        self.probes_only = true;
+        self
     }
 
     /// Uses `goldens` instead of the committed ones (for tests of the host itself).
@@ -209,6 +219,7 @@ impl Host for TestHost {
             )));
         }
         let goldens = self.goldens.clone();
+        let probes_only = self.probes_only;
         let open = self.scene()?;
         if !step.needs_pixels() && !matches!(step, Step::Expect(_)) {
             open.frame = None;
@@ -324,6 +335,11 @@ impl Host for TestHost {
             Step::Golden | Step::GoldenWithin(_) => {
                 if !scene.golden {
                     return Ok(StepOutcome::Skipped("not in the golden subset".into()));
+                }
+                if probes_only {
+                    return Ok(StepOutcome::Skipped(
+                        "goldens are off: this run checks relative probes only".into(),
+                    ));
                 }
                 let backend = open.backend.clone().context("no backend")?;
                 let Some(backend_id) = backend.golden_id() else {
