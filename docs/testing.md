@@ -106,9 +106,11 @@ To update goldens after an intended rendering change:
 ## Lane A: behaviour
 
 `gpux-testkit lane a` runs the lane-A conformance scenes on `TestPlatform` with the bundled
-fonts and the deterministic executor clock, plus the catalog, image-comparison and golden-policy
-groups. No GPU or display is involved, so lane A runs identically everywhere. The crates' own
-focused tests (`cargo test -p <package> <filter>`) are lane A too.
+fonts and the deterministic executor clock, plus every `gpux-conformance` test group that needs
+no renderer: the catalog, image comparison, golden policy, the executor clock, host capabilities,
+RGB565 tolerance and screen probes (`LANE_A_GROUPS` in `tooling/testkit/src/lanes.rs`). No GPU or
+display is involved, so lane A runs identically everywhere. The crates' own focused tests
+(`cargo test -p <package> <filter>`) are lane A too.
 
 ## Lane B: a real browser
 
@@ -190,11 +192,14 @@ When a spec fails before it runs anything:
 ## Lane C: offscreen pixels
 
 `gpux-testkit lane c` renders every lane-C scene at scale 1 and 2 through the platform's headless
-renderer: wgpu on the software adapter on Windows (WARP) and Linux (lavapipe, or llvmpipe on GL),
-Metal on macOS. Scenes check relative probes (a color at a point, a uniform region, two regions
-that differ, a region that changed since a capture), and the golden subset is compared with the
-committed goldens of the backend. Scenes render one at a time: they share one cached device,
-which keeps DX12 stable.
+renderer: wgpu on the software adapter on Windows (WARP) and Linux (lavapipe), Metal on macOS.
+Scenes check relative probes (a color at a point, a uniform region, two regions that differ, a
+region that changed since a capture), and the golden subset is compared with the committed
+goldens of the backend. Scenes render one at a time: they share one cached device, which keeps
+DX12 stable. The full run also runs the `lane_g` group, which checks lane G's probes-only mode
+on the same renderer. Without a Vulkan adapter, Linux falls back to llvmpipe over GL, where the
+renderer's effects pipeline does not validate yet, so lane C fails there: select lavapipe with
+`VK_DRIVER_FILES`.
 
 ## Lane D: real desktop windows
 

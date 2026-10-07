@@ -105,7 +105,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y $LINUX_PACKAGES
-      # The testkit runs lane A with the catalog, image-comparison and golden-policy groups.
+      # The testkit runs lane A with every conformance group that needs no renderer.
       - name: Lane A and the conformance catalog
         run: cargo run -p gpux-testkit -- lane a
 
