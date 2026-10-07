@@ -1,25 +1,37 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-cross-platform-test-lanes",
-  "revision": 0,
-  "planRevision": 1,
+  "revision": 16,
+  "planRevision": 4,
   "specHashes": {
-    "requirements": "79214e51fcfee1670d9c3f04177f99731e380a42065ac9d0d5191e093453d050",
+    "requirements": "53861ccc5632389bd08c215f74dd4a5a1b2ff22db7eb169be37e01834bc1a02e",
     "design": "c18175c81c75b5f39020d43f81765f461edafa18c805faa009701ee07edbb227",
-    "plan": "37dfc71bb05c02c3609d490dbd774e5a8d9a641f08bfbb60cf5f082a30b9100c"
+    "plan": "cc01f93c08a798cefe0fac027c9b9a5b6fad0b5b3bffd4ff6a6796e141b6945b"
   },
   "tasks": {
     "t01-bundled-test-text": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
+      ]
     },
     "t02-executor-clock": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
+      ]
     },
     "t03-input-simulation": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
+      ]
     },
     "t04-semantic-locators": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
+      ]
     },
     "t05-headless-renderer-port": {
       "status": "pending"
@@ -97,17 +109,449 @@
       "status": "pending"
     }
   },
-  "validationBatches": {},
-  "checkResults": {},
-  "reviews": {},
-  "checkpoints": {},
-  "findings": [],
+  "validationBatches": {
+    "0317965d14c45c47debf703dd824f2aefbcfe0438a67e0834e09c88ed175aa99": {
+      "snapshot": {
+        "specHash": "cf29779826544f1c3f46ed25099e6feb75ce27cb00ebc969b6e59bcdf4eb968e",
+        "repositories": {
+          "gpux": "714413401cb3cec3b24c628a5d4f11f27e83a765c00bddec9a54f2ab18470210"
+        }
+      },
+      "recordedAt": "2026-10-07T00:14:21Z"
+    }
+  },
+  "checkResults": {
+    "s1-test-platform-foundations/check-test-text/final": {
+      "checkId": "check-test-text",
+      "boundaryId": "s1-test-platform-foundations",
+      "phase": "final",
+      "batchId": "0317965d14c45c47debf703dd824f2aefbcfe0438a67e0834e09c88ed175aa99",
+      "definitionHash": "abb2ad92559e84d7667ab41c4b27a04e577760d9df62795706a2b799314a96be",
+      "basisHash": "d5ec3a1861d2d6b98ef8d72d796947b872c6980474c42b0c87648438e8f44fe3",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 12,
+      "durationSeconds": 5.2519,
+      "recordedAt": "2026-10-07T00:14:11Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s1-test-platform-foundations-final-79f68ddfba44.log",
+      "logSha256": "e2f0e3890e423840ecff94f0a44b4d1293ae10a18a0195f67f6ff9a2312fb71e",
+      "inputsHash": "d67fefa58d5ef51a6300184abdb96a17160708d144489a124ba44cecff3fe497"
+    },
+    "s1-test-platform-foundations/check-motion-clock/final": {
+      "checkId": "check-motion-clock",
+      "boundaryId": "s1-test-platform-foundations",
+      "phase": "final",
+      "batchId": "0317965d14c45c47debf703dd824f2aefbcfe0438a67e0834e09c88ed175aa99",
+      "definitionHash": "b94202a002b7054eea2f4955dba0c530cbdf1066d733da64ea07ff2c7ea1843f",
+      "basisHash": "67346aa423a1576a1fbd8dcc0f43ff2d9c1a131f56341f81170e253b0458d453",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 9,
+      "durationSeconds": 3.3802,
+      "recordedAt": "2026-10-07T00:14:14Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s1-test-platform-foundations-final-1fc201a75494.log",
+      "logSha256": "597cb972250f58368122332e2bd5e7906576d188ef4b468478b5ababdef560f5",
+      "inputsHash": "d0d13ffc329315830410f27df8b3b83cf1cf3a3ac1e9d9d065316aaae1aa85f8"
+    },
+    "s1-test-platform-foundations/check-motion-no-wall-clock/final": {
+      "checkId": "check-motion-no-wall-clock",
+      "boundaryId": "s1-test-platform-foundations",
+      "phase": "final",
+      "batchId": "0317965d14c45c47debf703dd824f2aefbcfe0438a67e0834e09c88ed175aa99",
+      "definitionHash": "5fff91b58cd12fd5a906156bd5df7fee38d9402eec78d058d3b852854ad9266e",
+      "basisHash": "abceea0b7d99f645a3827b0c37db4b2918c0af96b648494d6dd163ae3dae9c53",
+      "status": "passed",
+      "exitCode": 1,
+      "testCount": 0,
+      "durationSeconds": 0.0347,
+      "recordedAt": "2026-10-07T00:14:14Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s1-test-platform-foundations-final-dd3a7913c57d.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "inputsHash": "0531897946c7a73be3062adbe5bb8fcb804de7f311c1562600443feb9a33391e"
+    },
+    "s1-test-platform-foundations/check-input-sim/final": {
+      "checkId": "check-input-sim",
+      "boundaryId": "s1-test-platform-foundations",
+      "phase": "final",
+      "batchId": "0317965d14c45c47debf703dd824f2aefbcfe0438a67e0834e09c88ed175aa99",
+      "definitionHash": "aa88d764c576066da8d2d2f3b2cf1e6b6c28ec48f16c2a04a167208b5b5a4d19",
+      "basisHash": "4e8c53fbff453975bcc07cc24d0cde67dfaf9cfb76950c797bc1d63981428e0d",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 11,
+      "durationSeconds": 2.9839,
+      "recordedAt": "2026-10-07T00:14:17Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s1-test-platform-foundations-final-37d5c967f849.log",
+      "logSha256": "899fdd4bea3418d595ad1d8b789d373f26eaf4eb136aab0713348404592828b9",
+      "inputsHash": "865e30e14e18c92d5776ad99d1362767f28fc97d7560471a2642a7b0d6681b22"
+    },
+    "s1-test-platform-foundations/check-locators/final": {
+      "checkId": "check-locators",
+      "boundaryId": "s1-test-platform-foundations",
+      "phase": "final",
+      "batchId": "0317965d14c45c47debf703dd824f2aefbcfe0438a67e0834e09c88ed175aa99",
+      "definitionHash": "9253659527d56bf706bd98574aebd3131f553ed713cabd3bd02e372052a4e15d",
+      "basisHash": "c73b0415f0a0ab043305d8fe152746fee25bd76fa4216fd0b99209a987b77bb0",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 13,
+      "durationSeconds": 2.9492,
+      "recordedAt": "2026-10-07T00:14:20Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s1-test-platform-foundations-final-02cea2de7f58.log",
+      "logSha256": "1c556d3e807238979502807cfcf23caa25497936dab65d4e3fb5336ce2235393",
+      "inputsHash": "865e30e14e18c92d5776ad99d1362767f28fc97d7560471a2642a7b0d6681b22"
+    }
+  },
+  "reviews": {
+    "s1-test-platform-foundations": {
+      "reviewerId": "independent-reviewer-s1-a7f3",
+      "snapshotId": "0317965d14c45c47debf703dd824f2aefbcfe0438a67e0834e09c88ed175aa99",
+      "criterionIds": [
+        "TEXT-1",
+        "TEXT-2",
+        "CLOCK-1",
+        "CLOCK-2",
+        "SIM-1",
+        "SIM-2",
+        "SIM-3",
+        "LOCATE-1"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/src/gpui_platform.rs",
+          "kind": "source",
+          "criterionIds": [
+            "TEXT-1"
+          ],
+          "sha256": "fffe90b7f31ab93336a55368a650cbcb6a2ee29dc6436c94a973afd39b5d4452"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "TEXT-1"
+          ],
+          "sha256": "c6d1bed9a5fe06037da267c2aa02512f5a1e71f9d01b836638d080275eef4f42"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_macros/src/test.rs",
+          "kind": "source",
+          "criterionIds": [
+            "TEXT-1",
+            "TEXT-2"
+          ],
+          "sha256": "f40a645f5ce6d831cdbc1bf4ae7872700082343817f65cca28a5d36ed646ebcb"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/platform/test/platform.rs",
+          "kind": "source",
+          "criterionIds": [
+            "TEXT-2",
+            "SIM-2",
+            "SIM-3"
+          ],
+          "sha256": "aaae799f665d3c21f3af1523be4119b6621c8e9dcd21681af39e0f024d0283ca"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/gestures.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CLOCK-1",
+            "CLOCK-2"
+          ],
+          "sha256": "d186f4c5161e766d58372e9e25608fb3465f1cfe57c19acfb4cd39717414953b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CLOCK-1",
+            "CLOCK-2"
+          ],
+          "sha256": "d9ca48893c8f443955b038b80bef7db98f33dde5f26f12c50dbbddace2111f5f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/scroll_activity.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CLOCK-1",
+            "CLOCK-2"
+          ],
+          "sha256": "163b74a110412b0c1cd499d32e59dafc327954e3a104615501023e46d50963f9"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/animation.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CLOCK-1",
+            "CLOCK-2"
+          ],
+          "sha256": "09b02689b28fd806b3314cd54bef6242cffcfea58838f6af254b3aebd0d76d21"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/animated_frame.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CLOCK-1",
+            "CLOCK-2"
+          ],
+          "sha256": "e96bbd0df1252d09cded7aa6fb61ed5a0bf7d35817a739d2e69034d7e63b39a0"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/list.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CLOCK-1",
+            "CLOCK-2"
+          ],
+          "sha256": "4ac7d4b3be3610c7095b7d0dceeb490ba4651e40a786c0e6a1bd389fb96b2f69"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CLOCK-1",
+            "CLOCK-2"
+          ],
+          "sha256": "abaa4ef09d058a117b7fd4ebd5463591e19e4eab715ff991a078614a35b93d00"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/img.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CLOCK-1",
+            "CLOCK-2"
+          ],
+          "sha256": "d3b0c15474d68d8e706f0c5494d65c5a0a74d466196a23b9af5e1ab42d7beeed"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/state.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CLOCK-1",
+            "CLOCK-2"
+          ],
+          "sha256": "dc4a6504e0bdb8e03eada0a7167ec45a23b7c8d5f99598ab55d932da14de2901"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/editable_text/element.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CLOCK-1",
+            "CLOCK-2"
+          ],
+          "sha256": "0960d7064bb4f1206c9445dee81c75c2c0ad8038f1abcaabd4ad9bfc6a5d5225"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/app/test_context.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CLOCK-1",
+            "SIM-1",
+            "SIM-2",
+            "SIM-3",
+            "LOCATE-1"
+          ],
+          "sha256": "70ee41678e8122fb47d6b51a48e375df24ec6ca0dd1273e5124dc971ea6c8cca"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/platform/test/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SIM-2"
+          ],
+          "sha256": "e57a39a3b91ea472915e354580013cb88be47d98ebbff9ccd3b62018eb04a911"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/platform/test/display.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SIM-3"
+          ],
+          "sha256": "a7fedef4209d395825ccc79978635ad985a3adfaa4398b195460133d24595a10"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/semantic_query.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LOCATE-1"
+          ],
+          "sha256": "9831e1a101509abdb0957bd464aeda22798c76fc6fab568218cf99cc6402d88c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/semantic_query/locator.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LOCATE-1"
+          ],
+          "sha256": "be3c07ff50cb4df628476d3b3ce0456055e3574a36de5dd4ad2e1abcb67d9e12"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/test_support_text.rs",
+          "kind": "test",
+          "criterionIds": [
+            "TEXT-1",
+            "TEXT-2"
+          ],
+          "sha256": "2a740d9b2cdf235178acecac4be8d1b10bd4763f137f0326f65b7be71740a211"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/deterministic_motion_clock.rs",
+          "kind": "test",
+          "criterionIds": [
+            "CLOCK-1",
+            "CLOCK-2"
+          ],
+          "sha256": "5576551a2786287e9b150a97c2c98f151f4c64a0e358bebd9245224fbfd4a8ab"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/input_simulation_completeness.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SIM-1",
+            "SIM-2",
+            "SIM-3"
+          ],
+          "sha256": "f145646ca144503baed15a51d9d13c37c331404218040de5ac4a8064cb06f7b7"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/semantic_locators.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LOCATE-1"
+          ],
+          "sha256": "638e3ff2a8825b3686d3e7cf2f4e508b98ce81d64e0f82aa54ae1bfb4ab246d5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s1-locators-release.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "LOCATE-1"
+          ],
+          "sha256": "f5928d894d1f692d1934d12181c9da80161966fc90a08df78fbcb99a53fcc75d"
+        }
+      ],
+      "summaryMarkdown": "All eight criteria hold:\n\n- **Bundled text:** a deterministic Cosmic Text system with no system fonts, behind `test-support`; `NoopTextSystem` stays the default.\n- **Executor clock:** every listed motion module reads `BackgroundExecutor::now()`. Production clocks are unchanged, and Zed's recognizer changed only its time source.\n- **Input simulation:** goes through `dispatch_event` and the input handler, with recorded platform/window calls and window options.\n- **Locators:** read only public snapshot data and pass in release mode.\n\nThe three minor findings from the first pass are repaired and verified in the delta: a tolerance for the libm-dependent fling offset, documented and tested inactive-window frame throttling, and a spec that records that gpui has no scrollbar timer.",
+      "findingIds": [
+        "S1-F1",
+        "S1-F2",
+        "S1-F3"
+      ],
+      "recordedAt": "2026-10-07T00:15:12Z"
+    }
+  },
+  "checkpoints": {
+    "s1-test-platform-foundations": {
+      "snapshotId": "0317965d14c45c47debf703dd824f2aefbcfe0438a67e0834e09c88ed175aa99",
+      "commits": {
+        "gpux": "dc444a891f3a3d66038f5efbf202e3e90b80677b"
+      },
+      "reviewHash": "fc84d103c2015f67482a870091911004b0ee8160d95be8e01b31f017d2e2e8e4",
+      "recordedAt": "2026-10-07T00:15:45Z"
+    }
+  },
+  "findings": [
+    {
+      "id": "S1-F1",
+      "boundaryId": "s1-test-platform-foundations",
+      "criterionIds": [
+        "CLOCK-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Fling rest offset is asserted bit-exactly on a libm-dependent value.**\n\n- **Expected:** lane A runs `deterministic_motion_clock` on Windows, Linux and macOS, so its cross-OS assertions hold on all three.\n- **Observed:** `touch_fling_decays_to_a_deterministic_rest_offset` asserts `resting == -699.387_76` with exact `f32` equality. That value was recorded on Windows. The default `GestureTuning` uses `ScrollPhysics::ios()` (`Exponential`), whose `fling_duration`/`fling_distance` call `f32::ln` and `f32::powf`. Rust documents both as platform-dependent in precision, so UCRT, glibc and Apple libm can differ by an ULP. At about 700 px one f32 ULP is about 6e-5, which breaks the exact literal. The text group in the same sprint already avoids this with a 1e-3 tolerance (`assert_px`).\n- **Repair:** assert the absolute rest offset within a small tolerance, for example `(resting - (-699.38776)).abs() < 1e-3`. Keep exact equality for `released == -80` (pure arithmetic) and for the same-seed comparison in `identical_steps_with_the_same_seed_give_identical_fling_offsets` (same binary, same machine).\n\n**Resolved:** the rest offset is now compared to -699.387_76 within 1e-3 px, with a comment on platform-dependent `ln`/`powf` precision. `released == -80` and the same-seed comparison stay exact.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/deterministic_motion_clock.rs",
+          "symbol": "touch_fling_decays_to_a_deterministic_rest_offset"
+        }
+      ]
+    },
+    {
+      "id": "S1-F2",
+      "boundaryId": "s1-test-platform-foundations",
+      "criterionIds": [
+        "CLOCK-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**The new frame-stepping helpers' docs omit inactive-window throttling.**\n\n- **Expected:** `VisualTestContext::simulate_frame`/`advance_frame` and `TestAppWindow::simulate_frame`/`advance_frame` are the advertised way to step clock-driven motion. Their contract should say when a frame does not run.\n- **Observed:** the docs say each call \"runs the callbacks scheduled with `Window::on_next_frame` and draws when the window is dirty\". But:\n  - `TestWindow::is_active()` is false, so test windows open inactive.\n  - The frame throttle in `window.rs` now reads the executor clock and caps inactive windows with pending frame callbacks to `inactive_frame_interval` (33 ms).\n  - So `advance_frame(16ms)` on a default test window silently skips every other frame.\n  \n  The new motion group works around this with a private `activate()` helper; the API docs never say so.\n- **Repair:** document the behaviour in all four helpers: test windows open inactive, and inactive windows throttle frame callbacks to `WindowOptions::inactive_frame_interval` on the executor clock. Tell callers to activate the window (`window.activate_window()`) or to step at least that interval. Optionally add one test that pins this contract: an inactive window skips a 16 ms frame, an active one does not.\n\n**Resolved:** all four helpers now document the inactive-window throttle and the two ways around it (activate the window, or step at least the interval). The new test `inactive_windows_skip_frames_inside_their_inactive_interval` pins the contract: a 16 ms frame is skipped while inactive, the pending frame arrives after the interval, and every frame is delivered once active.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/app/test_context.rs",
+          "symbol": "VisualTestContext::simulate_frame"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/app/test_app.rs",
+          "symbol": "TestAppWindow::simulate_frame"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/deterministic_motion_clock.rs",
+          "symbol": "inactive_windows_skip_frames_inside_their_inactive_interval"
+        }
+      ]
+    },
+    {
+      "id": "S1-F3",
+      "boundaryId": "s1-test-platform-foundations",
+      "criterionIds": [
+        "CLOCK-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**The epic spec claims scrollbar-repeat coverage that does not exist.**\n\n- **Expected:** the recorded task and check descriptions match what the test group asserts.\n- **Observed:** the t02 description lists \"scrollbar repeat cadence\" among the asserted behaviours, and the `check-motion-clock` description says \"scrollbar repeat\" is driven by `advance_clock`. `deterministic_motion_clock.rs` has no scrollbar test, and correctly so: gpui owns no scrollbar timer or repeat state machine.\n  - Scrollbar chrome is consumer-owned.\n  - gpui only publishes `ScrollHandle` thumb offsets in the input turn (`ScrollMutationSource::Scrollbar`, `begin/end_scrollbar_drag`), which reads no time.\n  - No timer or repeat logic exists in `div.rs`, `list.rs` or `uniform_list.rs`.\n  \n  The CLOCK-1 item \"scrollbar timers and repeat\" is therefore legitimately vacuous. The spec still overstates what is covered.\n- **Repair:** spec only. Amend the t02 and `check-motion-clock` descriptions, and the CLOCK-1 bullet, to record that gpui has no scrollbar timer or repeat state machine (consumer-owned chrome, time-free thumb publication). Remove \"scrollbar repeat\" from the claimed coverage. No code change.\n\n**Resolved:** plan revision 4 amends the CLOCK-1 bullet and the t02 and `check-motion-clock` descriptions to state that gpui has no scrollbar timer or repeat of its own. No coverage obligation changed.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/tasks/gpux-cross-platform-test-lanes/requirements.json",
+          "symbol": "CLOCK-1"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/tasks/gpux-cross-platform-test-lanes/implementation-plan.json",
+          "symbol": "t02-executor-clock"
+        }
+      ]
+    }
+  ],
   "handoffMarkdown": "",
   "protectedPaths": {
     "gpux": {
-      "gpux:vendor/wgpu/**": "2fde7871db68af5a07e61281b2877fb308235a9df0b048f31f9cd3da0466c599",
       "gpux:.agentx/experiments/**": "32805d33f7172446b7e9cec5989ba59bd78648a57efc98bd96bbcac8fcac16a6",
-      "gpux:ToFix/**": "74a2498e4be348b890925d52f231a2ddbe65fb568dc9bb40073d87eabcc91121",
       "gpux:.agentx/tasks/frame-effects-navigation-transitions/**": "b9d8d0f34d35f8efab37309cf3092cfe59934ae76b2665d09616032db699093f",
       "gpux:.agentx/tasks/frame-family-component-transitions/**": "786cf5831d50db830d3d78fb97657cdf457ec9ea0fc9682794782bf69173a676",
       "gpux:.agentx/tasks/gpux-fixed-sticky-positioning/**": "d7e287cbe0b1a6afb8166c063b31bfa9e09c420c651630d97ed855a6685409ba",
@@ -117,8 +561,10 @@
       "gpux:.agentx/tasks/html-element-dom-overlay/**": "8bc3eba1cd26e95004311080d07651348f9c19dff64d8f46521d7bc9c3cdd7f6",
       "gpux:.agentx/tasks/html-island-wasm/**": "56a0864ccb5a02db863fa17b08cb47db9c378428c56302b46acf7b8da0cfe875",
       "gpux:.agentx/tasks/keyed-sticky-stacking/**": "6103606d1f3d16eaaac1ae98bb24c5a1ae105ce2457a6aec0383b52489808be5",
-      "gpux:.agentx/tasks/macos-only-metal-port-and-ci-repair/**": "64ecc143e24a8468c3b4e5d28bbc0f65d4fbbddab867d46a44823b1725ff1e5d",
-      "gpux:.agentx/tasks/shader-effects-and-screen-transitions/**": "ea29584d0a17dcea6547dd0dc05de74450b58982a44883b96d1b0cca70a86b00"
+      "gpux:.agentx/tasks/macos-only-metal-port-and-ci-repair/**": "17c1e0f61eb40430c921d4499934ac91e5269e066ccfba3b4f7748a2625d33b6",
+      "gpux:.agentx/tasks/shader-effects-and-screen-transitions/**": "ea29584d0a17dcea6547dd0dc05de74450b58982a44883b96d1b0cca70a86b00",
+      "gpux:ToFix/**": "f9a48f74d364268576207fc93972f434cd98b7998791acbd6341534536b966cf",
+      "gpux:vendor/wgpu/**": "2fde7871db68af5a07e61281b2877fb308235a9df0b048f31f9cd3da0466c599"
     }
   }
 }

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-cross-platform-test-lanes",
-  "revision": 1,
+  "revision": 4,
   "title": "Gpux-owned test lanes for every platform",
   "validationMode": "sprint",
   "repositories": [
@@ -16,9 +16,7 @@
       "gpux"
     ],
     "forbiddenPaths": [
-      "gpux:vendor/wgpu/**",
       "gpux:.agentx/experiments/**",
-      "gpux:ToFix/**",
       "gpux:.agentx/tasks/frame-effects-navigation-transitions/**",
       "gpux:.agentx/tasks/frame-family-component-transitions/**",
       "gpux:.agentx/tasks/gpux-fixed-sticky-positioning/**",
@@ -29,7 +27,9 @@
       "gpux:.agentx/tasks/html-island-wasm/**",
       "gpux:.agentx/tasks/keyed-sticky-stacking/**",
       "gpux:.agentx/tasks/macos-only-metal-port-and-ci-repair/**",
-      "gpux:.agentx/tasks/shader-effects-and-screen-transitions/**"
+      "gpux:.agentx/tasks/shader-effects-and-screen-transitions/**",
+      "gpux:ToFix/**",
+      "gpux:vendor/wgpu/**"
     ]
   },
   "checks": [
@@ -71,7 +71,7 @@
       "criterionIds": [
         "CLOCK-1"
       ],
-      "descriptionMarkdown": "New group `crates/gpui/tests/deterministic_motion_clock.rs`. Long press, fling decay, smooth programmatic scroll, scrollbar repeat, animation progress and seed reproducibility are driven only by `advance_clock`.",
+      "descriptionMarkdown": "New group `crates/gpui/tests/deterministic_motion_clock.rs`. Long press, fling decay, smooth programmatic scroll and its wheel cancellation, `with_animation` and `animated_frame` progress, reduced motion, the inactive-window frame throttle and seed reproducibility are driven only by `advance_clock` and simulated frames. gpui has no scrollbar timer or repeat to cover.",
       "argv": [
         "cargo",
         "test",
@@ -115,7 +115,8 @@
         "crates/gpui/src/elements/editable_text"
       ],
       "expected": {
-        "exitCode": 1
+        "exitCode": 1,
+        "failurePattern": "\\A\\Z"
       },
       "inputs": [
         "crates/gpui/src/**"
@@ -729,7 +730,8 @@
         ":(exclude)docs/changelog"
       ],
       "expected": {
-        "exitCode": 1
+        "exitCode": 1,
+        "failurePattern": "\\A\\Z"
       },
       "inputs": [
         "CLAUDE.md",
@@ -913,7 +915,7 @@
         {
           "id": "t02-executor-clock",
           "title": "Executor clock as the single motion time source",
-          "descriptionMarkdown": "Replace the wall-clock reads listed in `d-clock` with `BackgroundExecutor::now()` reached through the app or window context:\n\n- `gestures.rs` (`filter_at`, `handle_event_at` and `tick_momentum_at` callers, plus deadline checks);\n- `scroll_activity.rs`;\n- `animation.rs`, `animated_frame.rs`;\n- `list.rs`, `div.rs` (scroll momentum, scrollbars);\n- `editable_text/` (programmatic scroll);\n- `img.rs` (loading timers).\n\nKeep every production constant and behaviour.\n\nWrite the test group `crates/gpui/tests/deterministic_motion_clock.rs`. Using only `advance_clock`, `run_until_parked` and simulated frames, it asserts:\n- long press fires at its threshold and not before;\n- touch fling decays to a deterministic rest offset;\n- smooth programmatic scroll reaches its target at its duration, and a wheel cancels it;\n- scrollbar repeat cadence;\n- `with_animation` progress at fixed times;\n- reduced motion bypass;\n- identical results for the same seed.",
+          "descriptionMarkdown": "Replace the wall-clock reads listed in `d-clock` with `BackgroundExecutor::now()` reached through the app or window context:\n\n- `gestures.rs` (`filter_at`, `handle_event_at` and `tick_momentum_at` callers, plus deadline checks);\n- `scroll_activity.rs`;\n- `animation.rs`, `animated_frame.rs`;\n- `list.rs`, `div.rs` (scroll momentum, scrollbars);\n- `editable_text/` (programmatic scroll);\n- `img.rs` (loading timers).\n\nKeep every production constant and behaviour.\n\nWrite the test group `crates/gpui/tests/deterministic_motion_clock.rs`. Using only `advance_clock`, `run_until_parked` and simulated frames, it asserts:\n- long press fires at its threshold and not before;\n- touch fling decays to a deterministic rest offset;\n- smooth programmatic scroll reaches its target at its duration, and a wheel cancels it;\n- `with_animation` progress at fixed times;\n- reduced motion bypass;\n- identical results for the same seed.\n\ngpui has no scrollbar timer or repeat state machine of its own (it publishes thumb offsets in the input turn; scrollbar chrome is consumer-owned), so there is no scrollbar-repeat case to cover.",
           "criterionIds": [
             "CLOCK-1",
             "CLOCK-2"
