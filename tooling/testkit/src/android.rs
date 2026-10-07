@@ -109,17 +109,34 @@ pub fn find_sdk(environment: &dyn Environment) -> Result<Sdk, String> {
             root.display()
         )
     };
-    let ndk = environment
+    let pinned = root.join("ndk").join(NDK_VERSION);
+    let overridden = environment
         .var("ANDROID_NDK_HOME")
         .filter(|value| !value.is_empty())
-        .map(PathBuf::from)
-        .unwrap_or_else(|| root.join("ndk").join(NDK_VERSION));
+        .map(PathBuf::from);
+    let ndk = overridden.clone().unwrap_or_else(|| pinned.clone());
     if !ndk.is_dir() {
         return Err(format!(
             "the NDK {NDK_VERSION} is missing at {}: {}",
             ndk.display(),
             install(&format!("ndk;{NDK_VERSION}"))
         ));
+    }
+    // CI images and developer shells often set ANDROID_NDK_HOME to another NDK; building with
+    // it would silently change the toolchain (r28 is the first to align ELF segments for 16 KB
+    // pages by default).
+    if overridden.is_some() {
+        let revision = ndk_revision(&ndk);
+        if revision.as_deref() != Some(NDK_VERSION) {
+            return Err(format!(
+                "ANDROID_NDK_HOME points at NDK {} ({}), but lane E pins {NDK_VERSION}: point it \
+                 at {} ({}) or unset it",
+                revision.as_deref().unwrap_or("of unknown version"),
+                ndk.display(),
+                pinned.display(),
+                install(&format!("ndk;{NDK_VERSION}"))
+            ));
+        }
     }
     let build_tools = root.join("build-tools").join(BUILD_TOOLS_VERSION);
     if !build_tools.is_dir() {
@@ -485,6 +502,15 @@ pub fn shell_commands(request: &Request) -> Vec<Vec<String>> {
         ],
         Request::Screenshot(_) | Request::Done => Vec::new(),
     }
+}
+
+/// The `Pkg.Revision` an NDK's `source.properties` declares.
+pub fn ndk_revision(ndk: &Path) -> Option<String> {
+    let properties = std::fs::read_to_string(ndk.join("source.properties")).ok()?;
+    properties.lines().find_map(|line| {
+        let (key, value) = line.split_once('=')?;
+        (key.trim() == "Pkg.Revision").then(|| value.trim().to_string())
+    })
 }
 
 /// Whether `adb install` failed because the device holds the host signed with another key. Each

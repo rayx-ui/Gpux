@@ -5,6 +5,8 @@ use gpux_testkit::{
     Environment, Os,
     android::{self, ABIS, Request},
     cli::{AndroidCommand, Command, Selection, parse},
+    lanes::Invocation,
+    run::{RunOutput, Runner},
 };
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -134,14 +136,17 @@ fn every_check_and_lane_e_scene_must_report() {
 
 struct FakeEnvironment {
     vars: HashMap<&'static str, String>,
+    programs: Vec<&'static str>,
 }
 
 impl Environment for FakeEnvironment {
     fn var(&self, name: &str) -> Option<String> {
         self.vars.get(name).cloned()
     }
-    fn find_program(&self, _name: &str) -> Option<PathBuf> {
-        None
+    fn find_program(&self, name: &str) -> Option<PathBuf> {
+        self.programs
+            .contains(&name)
+            .then(|| PathBuf::from(format!("/bin/{name}")))
     }
     fn os(&self) -> Os {
         Os::Linux
@@ -159,6 +164,7 @@ fn missing_sdk_pieces_name_the_sdkmanager_package() {
             .iter()
             .map(|(name, path)| (*name, path.display().to_string()))
             .collect(),
+        programs: Vec::new(),
     };
     let error = android::find_sdk(&environment(&[])).unwrap_err();
     assert!(error.contains("ANDROID_HOME"), "{error}");
@@ -302,4 +308,117 @@ fn a_host_signed_with_another_key_is_replaced() {
         "adb.exe: failed to install gpux-conformance.apk: Failure [INSTALL_FAILED_INSUFFICIENT_STORAGE]"
     ));
     assert!(!android::signed_with_another_key("Success"));
+}
+
+/// An SDK with every pinned piece, in a temporary folder.
+fn complete_sdk() -> tempfile::TempDir {
+    let sdk = tempfile::tempdir().unwrap();
+    let ndk = sdk.path().join("ndk").join(android::NDK_VERSION);
+    std::fs::create_dir_all(&ndk).unwrap();
+    std::fs::write(
+        ndk.join("source.properties"),
+        format!(
+            "Pkg.Desc = Android NDK\nPkg.Revision = {}\n",
+            android::NDK_VERSION
+        ),
+    )
+    .unwrap();
+    std::fs::create_dir_all(
+        sdk.path()
+            .join("build-tools")
+            .join(android::BUILD_TOOLS_VERSION),
+    )
+    .unwrap();
+    let platform = sdk
+        .path()
+        .join("platforms")
+        .join(format!("android-{}", android::COMPILE_SDK));
+    std::fs::create_dir_all(&platform).unwrap();
+    std::fs::write(platform.join("android.jar"), b"").unwrap();
+    sdk
+}
+
+#[test]
+fn an_ndk_override_must_be_the_pinned_ndk() {
+    let sdk = complete_sdk();
+    let other = sdk.path().join("ndk").join("27.3.13750724");
+    std::fs::create_dir_all(&other).unwrap();
+    std::fs::write(
+        other.join("source.properties"),
+        "Pkg.Revision = 27.3.13750724\n",
+    )
+    .unwrap();
+    let with = |ndk: &Path| FakeEnvironment {
+        vars: [
+            ("ANDROID_HOME", sdk.path().display().to_string()),
+            ("ANDROID_NDK_HOME", ndk.display().to_string()),
+        ]
+        .into_iter()
+        .collect(),
+        programs: Vec::new(),
+    };
+    // A runner image's own NDK is refused, naming the pinned one.
+    let error = android::find_sdk(&with(&other)).unwrap_err();
+    assert!(
+        error.contains("27.3.13750724") && error.contains(android::NDK_VERSION),
+        "{error}"
+    );
+    // An override pointing at the pinned NDK is used.
+    let pinned = sdk.path().join("ndk").join(android::NDK_VERSION);
+    assert_eq!(android::find_sdk(&with(&pinned)).unwrap().ndk, pinned);
+    assert_eq!(
+        android::ndk_revision(&pinned).as_deref(),
+        Some(android::NDK_VERSION)
+    );
+}
+
+struct NoRunner;
+
+impl Runner for NoRunner {
+    fn run(
+        &mut self,
+        invocation: &Invocation,
+        _: &Path,
+        _: &Path,
+        _: &Path,
+    ) -> anyhow::Result<RunOutput> {
+        panic!(
+            "nothing may run without the build prerequisites: {}",
+            invocation.command_line()
+        );
+    }
+}
+
+#[test]
+fn missing_build_tools_on_path_are_named() {
+    let sdk = complete_sdk();
+    let root = tempfile::tempdir().unwrap();
+    let with = |programs: Vec<&'static str>| FakeEnvironment {
+        vars: [("ANDROID_HOME", sdk.path().display().to_string())]
+            .into_iter()
+            .collect(),
+        programs,
+    };
+    let build = |environment: &FakeEnvironment| {
+        android::build(
+            root.path(),
+            environment,
+            &mut NoRunner,
+            &[android::abi("x86_64").unwrap()],
+            &mut Vec::new(),
+        )
+        .unwrap_err()
+    };
+    let error = build(&with(Vec::new()));
+    assert!(
+        error.contains("`java` is not on PATH") && error.contains("JDK 17"),
+        "{error}"
+    );
+    let error = build(&with(vec!["java"]));
+    assert!(error.contains("`keytool` is not on PATH"), "{error}");
+    let error = build(&with(vec!["java", "keytool", "cargo"]));
+    assert_eq!(
+        error,
+        "cargo-ndk is missing: install it with `cargo install cargo-ndk`"
+    );
 }

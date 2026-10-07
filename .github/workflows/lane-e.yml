@@ -62,6 +62,8 @@ jobs:
         run: |
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" $ANDROID_PACKAGES
+          # The runner image points ANDROID_NDK_HOME at its own NDK; build with the pinned one.
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/28.0.12674087" >> "$GITHUB_ENV"
       - name: Build the host
         run: cargo run -p gpux-testkit -- android build --abi x86_64
       - name: Lane E
