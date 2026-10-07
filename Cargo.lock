@@ -2735,6 +2735,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "gpux-conformance"
+version = "0.3.0"
+dependencies = [
+ "anyhow",
+ "gpux",
+ "gpux-platform",
+ "gpux-wgpu-renderer",
+ "image",
+ "tempfile",
+]
+
+[[package]]
 name = "gpux-derive-refineable"
 version = "0.3.0"
 dependencies = [

@@ -1,0 +1,44 @@
+[package]
+name = "gpux-conformance"
+description = "The gpux conformance scene catalog, its test hosts and image comparison: gpux's own proof on every platform."
+version.workspace = true
+edition.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+license.workspace = true
+keywords = ["gpux", "testing", "conformance"]
+categories = ["gui", "development-tools::testing"]
+# Goldens are per-backend test data; consumers of the published crate do not need them.
+exclude = ["tests/goldens/**"]
+
+[lints]
+workspace = true
+
+[lib]
+name = "gpux_conformance"
+path = "src/gpux_conformance.rs"
+doctest = false
+
+[features]
+default = ["test-host"]
+# The test-platform host: lane A behaviour and lane C offscreen pixels. Native only.
+test-host = [
+    "dep:gpui_platform",
+    "dep:gpui_wgpu",
+    "gpux/test-support",
+    "gpui_platform/test-support",
+]
+
+[dependencies]
+anyhow.workspace = true
+gpux.workspace = true
+gpui_platform = { workspace = true, optional = true }
+image.workspace = true
+
+# Lane C picks the wgpu headless adapter itself on the platforms that render through wgpu.
+[target.'cfg(any(target_os = "linux", target_os = "windows"))'.dependencies]
+gpui_wgpu = { workspace = true, optional = true }
+
+[dev-dependencies]
+tempfile.workspace = true
