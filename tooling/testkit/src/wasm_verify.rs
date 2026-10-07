@@ -57,7 +57,8 @@ pub fn verify_threaded(bytes: &[u8]) -> Result<Verification, String> {
     };
     if !module.command_export_wrappers.is_empty() {
         return Err(format!(
-            "wasm-ld wrapped the exports in constructor calls ({}): call `gpui_platform::web_init`              first, whose explicit `__wasm_call_ctors` call makes the module a reactor",
+            "wasm-ld wrapped the exports in constructor calls ({}): call `gpui_platform::web_init` \
+             first, whose explicit `__wasm_call_ctors` call makes the module a reactor",
             module.command_export_wrappers.join(", ")
         ));
     }
@@ -71,7 +72,8 @@ pub fn verify_threaded(bytes: &[u8]) -> Result<Verification, String> {
         }
         callers => {
             return Err(format!(
-                "`__wasm_call_ctors` must have one call site, `gpui_platform::web_init`; it is                  called from {}",
+                "`__wasm_call_ctors` must have one call site, `gpui_platform::web_init`; it is \
+                 called from {}",
                 callers.join(", ")
             ));
         }

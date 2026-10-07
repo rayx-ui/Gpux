@@ -254,9 +254,11 @@ fn verification_rejects_implicit_constructor_paths() {
         ..ModuleSpec::default()
     }))
     .unwrap_err();
-    assert!(
-        error.contains("wrapped the exports") && error.contains("run.command_export"),
-        "{error}"
+    assert_eq!(
+        error,
+        "wasm-ld wrapped the exports in constructor calls (run.command_export): call \
+         `gpui_platform::web_init` first, whose explicit `__wasm_call_ctors` call makes the module \
+         a reactor"
     );
 
     // Two call sites run the constructors twice.
@@ -265,9 +267,10 @@ fn verification_rejects_implicit_constructor_paths() {
         ..ModuleSpec::default()
     }))
     .unwrap_err();
-    assert!(
-        error.contains("one call site") && error.contains("run, start"),
-        "{error}"
+    assert_eq!(
+        error,
+        "`__wasm_call_ctors` must have one call site, `gpui_platform::web_init`; it is called \
+         from run, start"
     );
 }
 
