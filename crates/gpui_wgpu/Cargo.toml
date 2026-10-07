@@ -69,6 +69,10 @@ gpux = { workspace = true, features = ["bench-support"] }
 gpux_fonts.workspace = true
 naga = { version = "30.0.1", features = ["wgsl-in"] }
 
+[[test]]
+name = "headless_renderer"
+required-features = ["test-support"]
+
 [[bench]]
 name = "layout_line"
 harness = false

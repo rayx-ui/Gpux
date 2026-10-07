@@ -33,6 +33,7 @@ pub struct DeviceErrorState {
 
 #[cfg(not(target_family = "wasm"))]
 impl DeviceErrorState {
+    #[cfg(any(test, feature = "bench-support", feature = "test-support"))]
     fn install(device: &wgpu::Device) -> Arc<Self> {
         let errors = Arc::new(Self::default());
         device.on_uncaptured_error(Arc::new({
@@ -42,6 +43,7 @@ impl DeviceErrorState {
         errors
     }
 
+    #[cfg(any(test, feature = "bench-support", feature = "test-support"))]
     fn record(&self, error: String) {
         let mut last_error = self.last_error.lock();
         last_error.0 = last_error.0.wrapping_add(1);
