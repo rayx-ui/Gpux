@@ -1,12 +1,12 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-cross-platform-test-lanes",
-  "revision": 120,
-  "planRevision": 12,
+  "revision": 133,
+  "planRevision": 13,
   "specHashes": {
     "requirements": "61a7b069f4c72c3eb9c5c54519ab4243f3d9d95297148656103f229e0356d5ec",
     "design": "3b61734790078b53d15f8b4653b768501ade4decc0e7b76f997273ac0fd4693d",
-    "plan": "1a9d6dda00b85cdf151bd0b0ee9f1f72bda4c6fd348902bc346a43ef41e265ed"
+    "plan": "c84c6a88b7180575414cee75890829b5d0c998df06206d8729f8b68e4334c5db"
   },
   "tasks": {
     "t01-bundled-test-text": {
@@ -148,13 +148,22 @@
       ]
     },
     "t24-lane-g-local-gpu": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
+      ]
     },
     "t25-docs-decouple-rayx": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
+      ]
     },
     "t26-memory-sync": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
+      ]
     },
     "t27-macos-desktop-lanes": {
       "status": "pending"
@@ -240,7 +249,16 @@
           "gpux": "c6bd12f85f10a17eaefbc620b6861967129c517e7b7071658380d8b729a424f9"
         }
       },
-      "recordedAt": "2026-10-07T19:53:09Z"
+      "recordedAt": "2026-10-07T19:59:23Z"
+    },
+    "2f8bd5a63188bacaec84d0a9f1ea8098430904fadb2265f0dcd4e0e5bc947a8d": {
+      "snapshot": {
+        "specHash": "35acea7c394a3013c0be2f7a61591bbbf838bc5e20c39ea7b8633b2bc5513fb8",
+        "repositories": {
+          "gpux": "3f698cd7032a333b26b53586f0a11540e05a08fb476c5a904d0ff59bc7a94fa1"
+        }
+      },
+      "recordedAt": "2026-10-07T20:38:21Z"
     }
   },
   "checkResults": {
@@ -713,6 +731,57 @@
       "messageMarkdown": "Expectation matched",
       "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s6-android-lane-final-5f3455dfc308.log",
       "logSha256": "8f1c395d2fd406e920d9a05219c252513034269a6a279a14d064a04713af4a52"
+    },
+    "s7-local-gpu-lane-and-docs/check-lane-g-list/final": {
+      "checkId": "check-lane-g-list",
+      "boundaryId": "s7-local-gpu-lane-and-docs",
+      "phase": "final",
+      "batchId": "2f8bd5a63188bacaec84d0a9f1ea8098430904fadb2265f0dcd4e0e5bc947a8d",
+      "definitionHash": "0ac7ea0e14c9389a94e2e5ef53d57e56413ecab0d97d07e1fe604662255cf209",
+      "basisHash": "922aa09687bc2c39a1d122de774de93e9321bde181cf0a7537e433888d5bb3be",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 6.211,
+      "recordedAt": "2026-10-07T20:38:19Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s7-local-gpu-lane-and-docs-final-eb7a91fa9464.log",
+      "logSha256": "c5734f79bcfa7f3291ebf4f204cb5a4724a8b968c18ede6d5147c050eaa55740",
+      "inputsHash": "1c0800c2942bfe59986167ac5d29365283998377fb2daeda1007797c2be50fb7"
+    },
+    "s7-local-gpu-lane-and-docs/check-no-rayx-proof/final": {
+      "checkId": "check-no-rayx-proof",
+      "boundaryId": "s7-local-gpu-lane-and-docs",
+      "phase": "final",
+      "batchId": "2f8bd5a63188bacaec84d0a9f1ea8098430904fadb2265f0dcd4e0e5bc947a8d",
+      "definitionHash": "f3e4c5f60434f16fb5c03b508b74e6a1cd2a5142468a2e4284c26b71f3f0b75e",
+      "basisHash": "1913d0705c6be1890424ac48858b35711334f57a475d711ce8462879f4b3082a",
+      "status": "passed",
+      "exitCode": 1,
+      "testCount": 0,
+      "durationSeconds": 0.0494,
+      "recordedAt": "2026-10-07T20:38:20Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s7-local-gpu-lane-and-docs-final-41d1de23077c.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "inputsHash": "030b66ed6183b60dc67bee0d769511852097e9521cfe33d4806296b879921d73"
+    },
+    "s7-local-gpu-lane-and-docs/check-lane-coverage/final": {
+      "checkId": "check-lane-coverage",
+      "boundaryId": "s7-local-gpu-lane-and-docs",
+      "phase": "final",
+      "batchId": "2f8bd5a63188bacaec84d0a9f1ea8098430904fadb2265f0dcd4e0e5bc947a8d",
+      "definitionHash": "971838f3782a11cbe388bd5ab26d7616ce69f224be30501cf792f43c5c752783",
+      "basisHash": "92b12023d6e0f98dde3b3b7fd38451d312efc2dbc1d33d9408167a7eb91a1795",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 15,
+      "durationSeconds": 0.5619,
+      "recordedAt": "2026-10-07T20:38:20Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s7-local-gpu-lane-and-docs-final-687b2e2a7960.log",
+      "logSha256": "c062f3a677f75f59f3d8acce510ffde64a696a23cceaadd20a88b54307a47d9b",
+      "inputsHash": "d6f279f97a74fbd31347c86876ce75f1586ecc74c777b71a9a10e6d26024949a"
     }
   },
   "reviews": {
@@ -2697,6 +2766,507 @@
         "S6-F4"
       ],
       "recordedAt": "2026-10-07T19:56:43Z"
+    },
+    "s7-local-gpu-lane-and-docs": {
+      "reviewerId": "s7-independent-reviewer-claude-opus-5-5",
+      "snapshotId": "2f8bd5a63188bacaec84d0a9f1ea8098430904fadb2265f0dcd4e0e5bc947a8d",
+      "criterionIds": [
+        "G-1",
+        "LANES-1",
+        "LANES-3",
+        "DOCS-1",
+        "DOCS-2"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/local_gpu.rs",
+          "kind": "source",
+          "criterionIds": [
+            "G-1"
+          ],
+          "sha256": "d35e66037c470230ae12e9490abc46d4e8b06ba2ffb42e2e97336aa0e6f0a947"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/gpux_testkit.rs",
+          "kind": "source",
+          "criterionIds": [
+            "G-1"
+          ],
+          "sha256": "9ae0f1757955d3937060140c7b6332fe45101dba55d38ec38d24655f153303f1"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/cli.rs",
+          "kind": "source",
+          "criterionIds": [
+            "G-1"
+          ],
+          "sha256": "2d946da8b1898922f17d4a0e9f1febc0442090b0530038d56f68a16c8fb752e1"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/lanes.rs",
+          "kind": "source",
+          "criterionIds": [
+            "G-1"
+          ],
+          "sha256": "1b8d10d95a69d04a3002747b941e3832a5e8aca18871de20da8fcbbd05be8069"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/backend.rs",
+          "kind": "source",
+          "criterionIds": [
+            "G-1"
+          ],
+          "sha256": "a6b8d30872e626d3b63668367dc003c44eea695add94f79e56268e053b2e214e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/compare.rs",
+          "kind": "source",
+          "criterionIds": [
+            "G-1"
+          ],
+          "sha256": "f4323a75c91976a1493baad700800dadb0febfc07bb302cef182caa05e342bac"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/test_host.rs",
+          "kind": "source",
+          "criterionIds": [
+            "G-1"
+          ],
+          "sha256": "a2ea449bc76bd679205ed1eb473a95375b93ca432b4bc05b2e5137cbbd7fa0ec"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/desktop_host/main.rs",
+          "kind": "source",
+          "criterionIds": [
+            "G-1"
+          ],
+          "sha256": "5e37cf721231a4ceb092a1daa081e6c0db2209b08a4484e66d39d705c4435394"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/app/bench_context.rs",
+          "kind": "source",
+          "criterionIds": [
+            "G-1"
+          ],
+          "sha256": "8ba6a6876fc98f4d915e1ee96739fd0996e5abe9a7973a24e28730c7973f4812"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/gpui.rs",
+          "kind": "source",
+          "criterionIds": [
+            "G-1"
+          ],
+          "sha256": "0e458278c46242812dd0275b941571242a0bb878244e913451aeb60a5f72d2ce"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/testing.md",
+          "kind": "source",
+          "criterionIds": [
+            "LANES-1",
+            "LANES-3",
+            "DOCS-1"
+          ],
+          "sha256": "3be1172b38caf9f92859e6a86d72a9c3f392bf76328beb8f3225405854b6c18c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "CLAUDE.md",
+          "kind": "source",
+          "criterionIds": [
+            "LANES-1",
+            "LANES-3",
+            "DOCS-1"
+          ],
+          "sha256": "adc6927fa3cdda3f9ef39880e2f63844f1f8c041d1deb92952b90067736de299"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "AGENTS.md",
+          "kind": "source",
+          "criterionIds": [
+            "LANES-1",
+            "LANES-3",
+            "DOCS-1"
+          ],
+          "sha256": "adc6927fa3cdda3f9ef39880e2f63844f1f8c041d1deb92952b90067736de299"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "README.md",
+          "kind": "source",
+          "criterionIds": [
+            "LANES-3",
+            "DOCS-1"
+          ],
+          "sha256": "f09b4e516ab1370ebbaaf0b16457de6fe03c5baf298eb2e616db37a3e36aa8d8"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/SKILL.md",
+          "kind": "source",
+          "criterionIds": [
+            "LANES-3",
+            "DOCS-1"
+          ],
+          "sha256": "371613a587f0859b48ec9887b562beebaadcb4ed6f9d247b7116743e5828c943"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/references/multithreaded-wasm-apps.md",
+          "kind": "source",
+          "criterionIds": [
+            "LANES-3",
+            "DOCS-1"
+          ],
+          "sha256": "f4b53d6181ceb38564c76606e7f827c6c1b36bbc4256dd347ab23e89ac92f5fa"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/installation-and-usage.md",
+          "kind": "source",
+          "criterionIds": [
+            "LANES-3",
+            "DOCS-1"
+          ],
+          "sha256": "663ce367b870719c396a4fd25cd570cc88f66be20dd139d11eaab10a07691f05"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "LINUX-WSL.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-1"
+          ],
+          "sha256": "ed31329dbaa63140cc12e927123a1e4b518501d8470b23f5c939faaa42cf33cd"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/ci.yml",
+          "kind": "source",
+          "criterionIds": [
+            "LANES-1"
+          ],
+          "sha256": "cf5e0a7983f45bce3e3f7a74394fbbdf62a5ec27f5521e5309fb37f457c3d47a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/lane-b.yml",
+          "kind": "source",
+          "criterionIds": [
+            "LANES-1"
+          ],
+          "sha256": "8c4f8987ae12e6dd8835925bfd9448736ac2d89f04a3c7660f00a57f79bc9e3b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/repository/validation/rules.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-2"
+          ],
+          "sha256": "79a496585baf76faf09c2b7d65108c58e9c8fe9bb2dec17cd3d09c3381066872"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/repository/validation/state.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-2"
+          ],
+          "sha256": "5e11ea4039f9c1964e6ba488b6547761106787c2551f2777bf69812753c70463"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/repository/validation/INDEX.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-2"
+          ],
+          "sha256": "3faf0bee67abea8ae7487c6dcb48fa3449b20217845ae22172538245108b083b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/repository/INDEX.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-2"
+          ],
+          "sha256": "8067bc1aef2ec20423c2650bd9a323ce1fc9c43e1a644c810a5ad9890eb418c9"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/repository/state.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-2"
+          ],
+          "sha256": "52ebe4faab2f02f74f5eaa5567efd59b759373bf78d917cd870baf05fab95a86"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/repository/agentx-memory/rules.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-2"
+          ],
+          "sha256": "2931cf40d19ea8294e5cd60c66ad3da50e4eff12ce8b0d29d44fe08a377f8ffd"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/renderer/rules.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-2"
+          ],
+          "sha256": "ce2703535329e35900ad734c61d77a5cbdd6ecdafe1d96fcb5c9b8007f242be9"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/renderer/wgpu/rules.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-2"
+          ],
+          "sha256": "11a4997bdb2ff2a5136a58173381f6daa9f3d9f76decd2c1a37dc9fe6e0eb95f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/gpui/rules.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-2"
+          ],
+          "sha256": "e5b5c8d68b0b40affcc28cd2f69715b06cb48cdbaafaec896d080e92103c53fb"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/gpui/layout-style/rules.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-2"
+          ],
+          "sha256": "0d588d87ed477547c908aa46c57919220377aeb600df66ec27c0969901aadeee"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/platform/web/rules.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-2"
+          ],
+          "sha256": "cd0431582954365a03c78a3f24622d162829194a9cbaf9297068d1e368ae965d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/platform/web/knowledge.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-2"
+          ],
+          "sha256": "a4f625838d61cf515f929369a9032d299d4e485acd64569964958b0e9eb5dd36"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/platform/mobile/rules.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-2"
+          ],
+          "sha256": "f1a04b087315c9a5ae53bc6ec0b831cfdfee7ec707fc62ae8f8f566141aa7767"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/platform/desktop/rules.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-2"
+          ],
+          "sha256": "7d1931bab58960bc53dfdbf5e69e95e22017fdd5ea272393e9534f82d46b0b80"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/tests/local_gpu.rs",
+          "kind": "test",
+          "criterionIds": [
+            "G-1"
+          ],
+          "sha256": "058d19996a2b43721e3d3de532c953236e608a6e71baf632f54588b487119d2a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_g.rs",
+          "kind": "test",
+          "criterionIds": [
+            "G-1"
+          ],
+          "sha256": "1b3c8ca90c812deb97155824a45c786e707414a50399a7bf93dbe8b89c3db9fb"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/bench_stack.rs",
+          "kind": "test",
+          "criterionIds": [
+            "G-1"
+          ],
+          "sha256": "ca1f1cbdfda5efd90466f722ce19c87770d4386f5de6362178f15b7cc504794c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/timing.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "G-1"
+          ],
+          "sha256": "78aa2425d28cdab8081f7d25bf86566c82e111e3941fabd667c578b38c72b447"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/testkit/g/timing.md",
+          "kind": "runtime",
+          "criterionIds": [
+            "G-1"
+          ],
+          "sha256": "1801aeec933d175743651711fc49bd072fd613d86c5b30335118f908043d014a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/testkit/g/hardware-lane-d.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "G-1"
+          ],
+          "sha256": "45ea856b0f20c7c9fc8f0799da2fb25bfa85113f9faabf32af2295bf5edb95ae"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/testkit/b/web-e2e.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "G-1"
+          ],
+          "sha256": "32135a7df4f40429fcf051253f17546184d2cf09dfd4d7dd29e31c7c62547bfb"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/tests/lane_coverage.rs",
+          "kind": "test",
+          "criterionIds": [
+            "G-1"
+          ],
+          "sha256": "80f790f8b7f961a08622f9b6024aac637ca3faedfe3b8a00ad88cbaa66967cd9"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/tests/cli.rs",
+          "kind": "test",
+          "criterionIds": [
+            "G-1"
+          ],
+          "sha256": "6e5f66f83faa9e024cea6485f9e7d15222a29f35202ab9c1c26b9fe168465870"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/repository/validation/knowledge.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-2"
+          ],
+          "sha256": "5d3043a55902c2e245b3a6480a476201f4665b70129a8e116d30fcdb0c24bf7f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/gpui/knowledge.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-2"
+          ],
+          "sha256": "5c93e93e925ef52e08e309c2f53ef1198a77a75187e1bc5669fd9df63b117c36"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/references/macos-linux-wasm-prerequisites.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-1"
+          ],
+          "sha256": "049ee573b2d1b2979998987da5f675eb05c00c6a0c2cff4d1d227865ed8ce47f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/renderer/wgpu/knowledge.md",
+          "kind": "source",
+          "criterionIds": [
+            "DOCS-2"
+          ],
+          "sha256": "d6804cdd30665b97943dde0529cb8c0a4d27c04d7e056e5b4eccf765923f690a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s7-local-gpu-lane-and-docs-final-eb7a91fa9464.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "G-1"
+          ],
+          "sha256": "c5734f79bcfa7f3291ebf4f204cb5a4724a8b968c18ede6d5147c050eaa55740"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s7-local-gpu-lane-and-docs-final-687b2e2a7960.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "G-1"
+          ],
+          "sha256": "c062f3a677f75f59f3d8acce510ffde64a696a23cceaadd20a88b54307a47d9b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s7-local-gpu-lane-and-docs-final-41d1de23077c.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "LANES-3"
+          ],
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/review-s7/rereview2.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "G-1"
+          ],
+          "sha256": "c31235da8081678558930a0a7022bb2241138bc6f4b3273920aa390feec01661"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/review-s7/focused-tests.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "G-1"
+          ],
+          "sha256": "41f02952cb99df50f47ab840a2cc426ac4a548dc40d8a41d577d554126660684"
+        }
+      ],
+      "summaryMarkdown": "**Verdict: passed** at snapshot 2f8bd5a6 (HEAD d613fd7). S7-F1 to S7-F5 are all resolved, each with regression references.\n\n**G-1.**\n- `gpux-testkit lane g` refuses `CI`. It runs:\n  - lane B in `local-gpu` with every spec (`@timing`, `@dpr2`, `--headed` passed through);\n  - lanes C and D on the hardware adapter, with probes only and a hardware-backend check;\n  - the `#[gpux::bench]` suites on an 8 MiB stack.\n- It writes `artifacts-temp/testkit/g/timing.md`.\n- Evidence: the RTX 4080 SUPER run (388/0/0). `lane g --list` now includes `lane_g`.\n\n**Coverage.** Every conformance test target now belongs to lane A or C (`lane_coverage`). Full multi-target runs use `--no-fail-fast`. I reran here: lane A 72/0 and lane C 79/0.\n\n**LANES-3.** The no-RayX grep exits 1.\n\n**LANES-1 and DOCS-1.**\n- `docs/testing.md` documents lanes A to G: runners, cadence, prerequisites (including the Android emulator and Xcode), environment variables, goldens, flags, and the groups each lane runs.\n- The other guidance files route through `gpux-testkit` and keep RayX only as a consumer: CLAUDE.md, AGENTS.md, README, the skill, the WASM reference, installation-and-usage and LINUX-WSL.\n\n**DOCS-2.** Memory names gpux's lanes everywhere; RayX remains only in historical measurements. The audit reports OK.\n\n**Not verified here:**\n- a headed lane G run;\n- lane G on Linux or macOS (moved to sprint 8);\n- the coordinator's WSL runs (no raw logs kept);\n- decision promotion, which happens at epic completion.\n\nThe llvmpipe-over-GL validation failure is pre-existing and documented, and is tracked as a follow-up.",
+      "findingIds": [
+        "S7-F1",
+        "S7-F2",
+        "S7-F3",
+        "S7-F4",
+        "S7-F5"
+      ],
+      "recordedAt": "2026-10-07T20:39:59Z"
     }
   },
   "checkpoints": {
@@ -2739,6 +3309,14 @@
       },
       "reviewHash": "4ae47427cf78366b09864f8af8b78eda667a22ba2838dd5ea4f3c145b0b1cf27",
       "recordedAt": "2026-10-07T19:21:59Z"
+    },
+    "s6-android-lane": {
+      "snapshotId": "e1f1f7493f68036208eb487ac0fd4d39389f0e1c1308ca6ad293c8aa602767a5",
+      "commits": {
+        "gpux": "9c14137f2b2a48bdd8704a66f2dcb9a7c125c9c4"
+      },
+      "reviewHash": "f8bd6507c24ea2648692404f7983505b1d804e1195181ef5cfc2a0d5d2d92bc3",
+      "recordedAt": "2026-10-07T19:57:01Z"
     }
   },
   "findings": [
@@ -3384,9 +3962,129 @@
           "symbol": "the_apps_known_pixel_passes_at_full_or_16_bit_depth"
         }
       ]
+    },
+    {
+      "id": "S7-F1",
+      "boundaryId": "s7-local-gpu-lane-and-docs",
+      "criterionIds": [
+        "DOCS-2"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Memory still routes gpux runtime proof through RayX.**\n\n**Expected (DOCS-2, t26 \"keep the indexes consistent\", d-no-rayx).** After the sync, gpux memory describes proof through gpux's own lanes. RayX appears only as a consumer.\n\n**Observed.** 8bfc3c1, ff718fb and a7439d7 updated the rules and state files. These files were not updated and still contradict the new `repository/validation` rule \"Never route gpux proof through RayX\":\n\n- `.agentx/memory/knowledge/repository/state.md:23`: \"... and RayX hosts all runtime proof.\" This is the repository domain state, which the file itself says to read for validation routing. It is unchanged since the 10eb754 transplant.\n- `.agentx/memory/knowledge/repository/INDEX.md:27`: \"validation: focused crate checks here and runtime proof in RayX's Test Suite.\" This is the entry point agents follow from `knowledge/INDEX.md`.\n- `.agentx/memory/knowledge/repository/validation/INDEX.md:19`: \"runtime proof hosted by RayX's Test Suite\". Its topics still list `test-suite`, while the state and rules files now list `lanes` and `testkit`.\n- `.agentx/memory/knowledge/gpui/layout-style/rules.md:19`: a current rule that requires \"fresh native plus headed Test Suite layout proof\" before Taffy features change.\n- `.agentx/memory/knowledge/platform/web/knowledge.md:20`: \"RayX's xtask provides that build and the COOP/COEP/CORP headers.\" `gpux-testkit web build` and `web serve` now provide them.\n- `.agentx/memory/knowledge/repository/validation/knowledge.md:18`: \"WGSL and packed-record changes need a headed WebGPU run\". The new rules prove these changes with lane B (`dawn.spec.ts`, headless).\n\n**Repair.**\n- Rewrite these lines to name gpux's lanes:\n  - repository state: RayX consumes and pairs API changes; gpux proves itself through `gpux-testkit`.\n  - both INDEX summaries: lanes and `gpux-testkit`, with the `test-suite` topic replaced.\n  - layout-style rule: lane A plus lanes C/D or B layout proof.\n  - web knowledge: `gpux-testkit web build`/`web serve`.\n  - validation knowledge: lane B on WebGPU.\n- Bump their `updated` stamps and rerun `audit_agentx_memory.py`.\n- Historical measurement facts that cite RayX's Test Suite as their source (for example `gpui/knowledge.md:18` and `renderer/wgpu/knowledge.md:26`) can stay as evidence.\n- Optionally guard the sync with a grep over `.agentx/memory/knowledge` for `RayX hosts|runtime proof in RayX|hosted by RayX|RayX's xtask provides|headed Test Suite`.\n\n**Resolution.** Resolved in 7e4546a. The six cited lines now name gpux's lanes and `gpux-testkit`:\n- repository state: gpux proves itself through the `gpux-testkit` lanes, and RayX checks prove only the consumer;\n- both INDEX summaries, with the `test-suite` topic now `test-lanes`;\n- the layout-style rule: lanes A and C plus lane B WebGPU;\n- web knowledge: `gpux-testkit web build`/`web serve`;\n- validation knowledge: lane B, where Dawn validates.\n\n`gpui/knowledge.md:18` marks the RayX DataTable workload as historical. Re-verified:\n- `git grep` over `.agentx/memory/knowledge` for the routing phrases (`hosts all runtime proof`, `hosted by RayX`, `runtime proof in RayX`, `headed Test Suite`, `headed WebGPU run`, `RayX's xtask`, ...) exits 1;\n- the only remaining `Test Suite` mentions are historical measurement facts (`gpui/layout-style/knowledge.md:26-27`, `renderer/wgpu/knowledge.md:26`);\n- `audit_agentx_memory.py` reports OK.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/repository/state.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/repository/INDEX.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/repository/validation/INDEX.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/gpui/layout-style/rules.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/platform/web/knowledge.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/repository/validation/knowledge.md"
+        }
+      ]
+    },
+    {
+      "id": "S7-F2",
+      "boundaryId": "s7-local-gpu-lane-and-docs",
+      "criterionIds": [
+        "DOCS-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Lane docs are stale about lane F.**\n\n**Expected (DOCS-1).**\n- `docs/installation-and-usage.md` routes validation through the current lanes.\n- The other entry docs describe the lanes as they exist.\n\n**Observed.**\n- `docs/installation-and-usage.md:104` still says \"lane F (iOS) is planned\". Lane F is wired (66f1c92 `ios build/run`, 25189c6 `lane-f.yml`) and documented in `docs/testing.md` (8d4645e). 8d4645e updated the skill copy of installation-and-usage but not this file.\n- `README.md:95-97` lists the lanes \"from the test platform to browsers, desktop windows, Android and the local GPU\" and leaves out iOS.\n- Adjacent: `LINUX-WSL.md` section 5 says its commands mirror `.github/workflows/ci.yml`. Its `cargo test --workspace ... $EXCLUDES` omits CI's `--exclude gpux-conformance`.\n\n**Repair.**\n- Replace \"lane F (iOS) is planned\" with lane F: iOS on a Simulator, on a Mac with Xcode and XcodeGen, or through `lane-f.yml`.\n- Add iOS to the README sentence.\n- Either add `--exclude gpux-conformance` in LINUX-WSL section 5 or drop the claim that it mirrors CI.\n\n**Resolution.** Resolved in 09a9a81:\n- `docs/installation-and-usage.md` describes lane F (iOS on the Simulator, macOS only);\n- the README lists iOS;\n- `LINUX-WSL.md` section 5 adds `--exclude gpux-conformance` and says lanes A and C run that crate, which matches `ci.yml`.\n\nIn 37a4907, the lavapipe ICD path in `LINUX-WSL.md`, `docs/testing.md` and the skill now follows CI's `lvp_icd*.json` glob, so it also works with Mesa 25.2's `lvp_icd.json`.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/installation-and-usage.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "README.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "LINUX-WSL.md"
+        }
+      ]
+    },
+    {
+      "id": "S7-F3",
+      "boundaryId": "s7-local-gpu-lane-and-docs",
+      "criterionIds": [
+        "LANES-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**`docs/testing.md` lists no Android emulator prerequisite.**\n\n**Expected (LANES-1).** The page lists host prerequisites, including \"Android SDK/NDK/emulator\". Lane E's local host is \"an attached device or emulator\".\n\n**Observed.**\n- The prerequisite table row for E and the Lane E section give the pinned SDK packages (`ndk;28.0.12674087`, `build-tools;36.0.0`, `platforms;android-36`, `platform-tools`), a JDK, `cargo-ndk` and the Rust targets.\n- Nothing explains how to get a local emulator: no `emulator` package, no system image, no `avdmanager create avd`, and no hardware acceleration (KVM on Linux, WHPX/AEHD on Windows).\n- `lane-e.yml` uses an API 34 x86_64 `google_apis` image with `-gpu swiftshader_indirect`, which a developer could reproduce locally from these steps.\n- `docs/installation-and-usage.md` and the skill references only say \"a device or emulator\".\n\n**Repair.** Add the emulator prerequisite to the table and the Lane E section, mirroring the CI configuration, for example:\n\n```text\nsdkmanager \"emulator\" \"system-images;android-34;google_apis;x86_64\"\navdmanager create avd -n gpux -k \"system-images;android-34;google_apis;x86_64\"\nemulator -avd gpux -gpu swiftshader_indirect\n```\n\nAlso name the acceleration each OS needs.\n\n**Resolution.** Resolved in 09a9a81.\n- The `docs/testing.md` prerequisite row for E names a device or an emulator with hardware virtualization.\n- The Lane E section adds an emulator setup that mirrors `lane-e.yml`: `sdkmanager \"emulator\" \"system-images;android-34;google_apis;x86_64\"`, `avdmanager create avd ... --device \"Nexus 4\"`, and `emulator -gpu swiftshader_indirect`.\n- It covers acceleration per OS (KVM; Windows Hypervisor Platform or AEHD; Hypervisor framework) and `arm64-v8a` images on Apple silicon.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/testing.md"
+        }
+      ]
+    },
+    {
+      "id": "S7-F4",
+      "boundaryId": "s7-local-gpu-lane-and-docs",
+      "criterionIds": [
+        "G-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**The sprint's new conformance test group runs in no lane and no CI job.**\n\n**Expected (d-lanes).**\n- \"Every gpux test belongs to exactly one lane through its location and selector.\"\n- The new `crates/gpux_conformance/tests/lane_g.rs` group guards `TestHost::probes_only` and `BackendId::is(\"hardware\")`, which lane G's lane C and lane D runs rely on. It should run somewhere automatically.\n\n**Observed.**\n- `gpux-testkit lane a` runs only `--test lane_a` plus `LANE_A_GROUPS` (`catalog_coverage`, `image_compare`, `golden_policy`; `tooling/testkit/src/lanes.rs`).\n- `lane c` and `lane g` run only `--test lane_c`.\n- `ci.yml`'s `test` job passes `--exclude gpux-conformance`.\n- So `lane_g.rs` runs only when someone invokes `cargo test -p gpux-conformance --test lane_g` by hand. It passes: this review ran it, 2 passed on WARP.\n- The same gap affects earlier sprints' groups `executor_clock`, `host_capabilities`, `rgb565_tolerance` and `screen_shows`.\n\n**Repair.**\n- Add `lane_g` to lane C's whole-selection plan. It needs an adapter, and the CI lane C jobs have WARP, lavapipe or Metal.\n- Add the GPU-less groups to `LANE_A_GROUPS`, or run them explicitly in `ci.yml`.\n- Add a `catalog_coverage`-style test that fails when a `crates/gpux_conformance/tests/*.rs` target belongs to no lane plan.\n\n**Resolution.** Resolved in 9c77ae1.\n- `LANE_A_GROUPS` adds `executor_clock`, `host_capabilities`, `rgb565_tolerance` and `screen_shows`, none of which uses a renderer.\n- `LANE_C_GROUPS = [\"lane_g\"]` joins lane C's full run and its listing. Lane G's probes-only lane C run inherits it, with the hardware environment on the listing too.\n- The new `tooling/testkit/tests/lane_coverage.rs` fails when a `crates/gpux_conformance/tests/*.rs` target is in no lane's full plan, is in both lanes, or is listed but missing from the lane's command.\n- `check-lane-coverage` passes.\n\nRe-verified on Windows at 37a4907:\n- `gpux-testkit lane a`: 72 passed, 0 failed.\n- `gpux-testkit lane c`: 79 passed, 0 failed, including `lane_g` 2/2 on WARP.\n- `lane c --list` lists both `lane_g` tests.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/lanes.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/tests/lane_coverage.rs"
+        }
+      ]
+    },
+    {
+      "id": "S7-F5",
+      "boundaryId": "s7-local-gpu-lane-and-docs",
+      "criterionIds": [
+        "LANES-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**After the S7-F4 repair, the lane contract no longer says what lanes A and C run.**\n\n**Expected (LANES-1, d-docs-memory: `docs/testing.md` is the human contract for what each lane verifies).** The lane sections list what `gpux-testkit lane a` and `lane c` run.\n\n**Observed.** 9c77ae1 changed both full runs:\n- Lane A now adds `executor_clock`, `host_capabilities`, `rgb565_tolerance` and `screen_shows`.\n- Lane C now adds `lane_g`.\n\nThe docs still describe the old plans:\n- `docs/testing.md:108-110` says lane A runs the scenes \"plus the catalog, image-comparison and golden-policy groups\". That enumeration is now incomplete.\n- The Lane C section (`docs/testing.md:191-197`) does not mention the `lane_g` group, which checks probes-only mode and the hardware-backend expectation.\n- The step comment at `.github/workflows/ci.yml:108` repeats the old three-group list.\n\n**Repair.**\n- Name the lane A groups in `docs/testing.md`: catalog, image comparison, golden policy, executor clock, host capabilities, RGB565 tolerance and screen checks. Alternatively, describe them as \"the crate's renderer-free groups\" and point to `LANE_A_GROUPS`.\n- Add one sentence to the Lane C section: lane C also runs the `lane_g` group, the probes-only and hardware-expectation checks that lane G relies on.\n- Update the `ci.yml` comment to match.\n\n**Resolution.** Resolved in 4934121.\n- The `docs/testing.md` Lane A section names every renderer-free group (catalog, image comparison, golden policy, executor clock, host capabilities, RGB565 tolerance, screen probes) and points to `LANE_A_GROUPS`.\n- The Lane C section says the full run also runs `lane_g`, and that llvmpipe over GL does not validate, so lavapipe must be selected.\n- The `ci.yml:108` comment reads \"every conformance group that needs no renderer\".\n\nAdjacent fix d95a406: the multi-target full runs of lanes A and C pass `--no-fail-fast`, so a failing `lane_c` no longer hides the `lane_g` results. `cli.rs` pins both command lines, and `lane_coverage` asserts the flag. Re-verified at d613fd7 on Windows:\n- `lane a`: 72/0, with the command line ending `--no-fail-fast`.\n- `lane c`: 79/0, and both `lane_c.rs` and `lane_g.rs` ran.\n- The `lane_coverage`, `cli`, `local_gpu` and `execute` groups pass: 22 tests.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/testing.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/ci.yml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/tests/lane_coverage.rs"
+        }
+      ]
     }
   ],
-  "handoffMarkdown": "Implemented in 1e1d41a (.github/workflows/lane-e.yml: KVM udev rule, pinned SDK pieces, x86_64 build, reactivecircus emulator runner API 34 with swiftshader, gpux-testkit lane e, artifacts) and 35029a1 (docs/testing.md lane E). Hosted CI is blocked by billing; per amendment rev 91, E-3 is verified by  on a local x86_64 emulator.",
+  "handoffMarkdown": "Implemented in 8bfc3c1 (repository/validation rules+state: lanes, testkit, CI, local real-GPU proof; renderer and renderer/wgpu: lane B WebGPU and forced WebGL2 proof, GL capability rules; gpui and frame-pipeline: the diagnostics feature; platform/web: lane B; platform/mobile: lane E; platform/desktop: lanes C/D and macOS; repository/agentx-memory: no RayX runtime-proof repository), ff718fb (lane F and iOS window teardown) and a7439d7 (rules from the sprint 5 and 6 reviews: ExecutorClock, checks must be able to fail, diagnostics-only publishing, NDK pin, Android surface lifecycle). audit_agentx_memory.py: OK. Decisions for promotion at epic end: d-lanes, d-no-rayx, d-lane-g, d-ios-lane, d-web-lane, d-android-lane, d-testkit (via context --epic memory.promotion).",
   "protectedPaths": {
     "gpux": {
       "gpux:.agentx/experiments/**": "32805d33f7172446b7e9cec5989ba59bd78648a57efc98bd96bbcac8fcac16a6",

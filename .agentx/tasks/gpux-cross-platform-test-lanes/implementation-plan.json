@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-cross-platform-test-lanes",
-  "revision": 12,
+  "revision": 13,
   "title": "Gpux-owned test lanes for every platform",
   "validationMode": "sprint",
   "repositories": [
@@ -1002,6 +1002,37 @@
         "Cargo.toml",
         "Cargo.lock"
       ]
+    },
+    {
+      "id": "check-lane-coverage",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "LANES-2"
+      ],
+      "descriptionMarkdown": "New group `tooling/testkit/tests/lane_coverage.rs`: every `crates/gpux_conformance/tests/*.rs` target runs in exactly one of lane A's or lane C's full runs, and each target a lane lists is one its command builds. The `cli` and `local_gpu` groups pin the lane A and C plans (including lane G's probes-only lane C run) that changed with it.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-testkit",
+        "--test",
+        "lane_coverage",
+        "--test",
+        "cli",
+        "--test",
+        "local_gpu"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 10
+      },
+      "inputs": [
+        "tooling/testkit/**",
+        "crates/gpux_conformance/tests/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
     }
   ],
   "finalCheckIds": [
@@ -1735,7 +1766,8 @@
           ],
           "dependsOn": [],
           "checkIds": [
-            "check-lane-g-list"
+            "check-lane-g-list",
+            "check-lane-coverage"
           ],
           "sourceRefs": [
             {
