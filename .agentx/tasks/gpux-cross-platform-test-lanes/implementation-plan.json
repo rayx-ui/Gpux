@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-cross-platform-test-lanes",
-  "revision": 11,
+  "revision": 12,
   "title": "Gpux-owned test lanes for every platform",
   "validationMode": "sprint",
   "repositories": [
@@ -974,6 +974,34 @@
         "Cargo.toml",
         "Cargo.lock"
       ]
+    },
+    {
+      "id": "check-devtools-snapshot-release",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "B-4"
+      ],
+      "descriptionMarkdown": "The devtools snapshot tree in a release build (`crates/gpui/tests/devtools_snapshot_tree.rs` with `--release`): the bug fixed in `a00072e` (the node stack popped inside `debug_assert_eq!`) exists only without debug assertions, which is how lane B's web host is built.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--release",
+        "--test",
+        "devtools_snapshot_tree"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1
+      },
+      "inputs": [
+        "crates/gpui/src/window.rs",
+        "crates/gpui/tests/devtools_snapshot_tree.rs",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
     }
   ],
   "finalCheckIds": [
@@ -1572,7 +1600,8 @@
             "t18-playwright-harness"
           ],
           "checkIds": [
-            "check-web-pr"
+            "check-web-pr",
+            "check-devtools-snapshot-release"
           ],
           "sourceRefs": [
             {

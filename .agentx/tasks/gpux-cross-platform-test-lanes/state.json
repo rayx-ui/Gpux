@@ -1,12 +1,12 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-cross-platform-test-lanes",
-  "revision": 94,
-  "planRevision": 11,
+  "revision": 108,
+  "planRevision": 12,
   "specHashes": {
     "requirements": "61a7b069f4c72c3eb9c5c54519ab4243f3d9d95297148656103f229e0356d5ec",
     "design": "3b61734790078b53d15f8b4653b768501ade4decc0e7b76f997273ac0fd4693d",
-    "plan": "fc9dff71cb27cb3feb0a66341bc33ef0adc11c5fe737358ae4e7b9536d506cf4"
+    "plan": "1a9d6dda00b85cdf151bd0b0ee9f1f72bda4c6fd348902bc346a43ef41e265ed"
   },
   "tasks": {
     "t01-bundled-test-text": {
@@ -100,19 +100,34 @@
       ]
     },
     "t16-web-build-serve": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
+      ]
     },
     "t17-gpux-diagnostics-names": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
+      ]
     },
     "t18-playwright-harness": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
+      ]
     },
     "t19-browser-specs": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
+      ]
     },
     "t20-ci-lane-b": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
+      ]
     },
     "t21-android-host-build": {
       "status": "pending"
@@ -198,7 +213,16 @@
           "gpux": "4774d2598f6a8e31ccc3108fad22a4426f8b81c92ffb29243736b645fb777d12"
         }
       },
-      "recordedAt": "2026-10-07T18:17:39Z"
+      "recordedAt": "2026-10-07T18:39:34Z"
+    },
+    "7f9ec74982ff920ea0c3df2188876be771dce3544e364e2a266a96d7d2153dc4": {
+      "snapshot": {
+        "specHash": "1c75f748cd123f9c9c85b0bea95b3cf0d3301858c5b8f84e88118146f01afec7",
+        "repositories": {
+          "gpux": "72937c7cd7f2c9ec7913e8c2a728b9e1bdcc72fc72f686c2b7be422b56e819d2"
+        }
+      },
+      "recordedAt": "2026-10-07T19:18:33Z"
     }
   },
   "checkResults": {
@@ -540,6 +564,105 @@
       "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s4-testkit-and-windowed-lane-final-841a208150d4.log",
       "logSha256": "31de0afcb2f0f2b2bb759e888c751c719d5b49f287cff4bcddffba1c731ce317",
       "inputsHash": "4cde110ac8aabb156a8eed781a6bf380f826445e479df5415e0b64b214c5cf48"
+    },
+    "s5-browser-lane/check-web-build/final": {
+      "checkId": "check-web-build",
+      "boundaryId": "s5-browser-lane",
+      "phase": "final",
+      "batchId": "7f9ec74982ff920ea0c3df2188876be771dce3544e364e2a266a96d7d2153dc4",
+      "definitionHash": "dc42501a6af89c8b8e0d0442eeb354fd683fa3a3eb1384b64c88e72243aadca5",
+      "basisHash": "f0f73b09eccfc47b2d036419274024af67f6c41caea9d860fba0861e6c09d5de",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 149.5181,
+      "recordedAt": "2026-10-07T19:17:20Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s5-browser-lane-final-5b7484dd2bdf.log",
+      "logSha256": "d87b2585355860b942c24b0a2079a40a5975523b59fd8c7df1ec524467f8766e"
+    },
+    "s5-browser-lane/check-web-diagnostics-compile/final": {
+      "checkId": "check-web-diagnostics-compile",
+      "boundaryId": "s5-browser-lane",
+      "phase": "final",
+      "batchId": "7f9ec74982ff920ea0c3df2188876be771dce3544e364e2a266a96d7d2153dc4",
+      "definitionHash": "822a0518423ca9c2dc0874d8f1af51c5a50b0fdce1285eec0fe34d35b3d69685",
+      "basisHash": "a1c15e7a2b98414632aec636b5cc109166b454606833d847145ecdd1f7538e9a",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 5.888,
+      "recordedAt": "2026-10-07T19:17:26Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s5-browser-lane-final-3d63066786e5.log",
+      "logSha256": "da2a429ae96cd129a0c531c5b4e7064e020e3b7f0b4776ddbe0d94128db30f2d",
+      "inputsHash": "a589793f52a4647f7ddf2395bca319e2dd3aa9e252c33887b1189701966537dd"
+    },
+    "s5-browser-lane/check-web-diagnostics-names/final": {
+      "checkId": "check-web-diagnostics-names",
+      "boundaryId": "s5-browser-lane",
+      "phase": "final",
+      "batchId": "7f9ec74982ff920ea0c3df2188876be771dce3544e364e2a266a96d7d2153dc4",
+      "definitionHash": "63e9c153f953ca11fd148b1b61bfb32b388aa9354a7a5d7a1ecaac4befc47654",
+      "basisHash": "d73a513c72490cff520ce5417d13d9aeda43c453dc0f2c873386116534fdebc7",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 6.0504,
+      "recordedAt": "2026-10-07T19:17:32Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s5-browser-lane-final-038996b77f28.log",
+      "logSha256": "f81911420e1166c2b13bfba6b89066a06e0781fe7a3cebe978d44d09589f222a",
+      "inputsHash": "33275e139fb0908dd55418339463c742bfed8ac4aca11a674891916b2b2d64fc"
+    },
+    "s5-browser-lane/check-web-canary/final": {
+      "checkId": "check-web-canary",
+      "boundaryId": "s5-browser-lane",
+      "phase": "final",
+      "batchId": "7f9ec74982ff920ea0c3df2188876be771dce3544e364e2a266a96d7d2153dc4",
+      "definitionHash": "7a5b94b6c8e726e23118ce7efa79a71b08b178dd1d6a503c9d20bfed7ae4950e",
+      "basisHash": "2ec7e2ae9c96a2df6b3db6fc97dfeca510ded01e42eaeea491f62bfd685b70a4",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 8.4772,
+      "recordedAt": "2026-10-07T19:17:40Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s5-browser-lane-final-5a686c8e0f33.log",
+      "logSha256": "eba41ab1305f246da7dc9575d40656c654dfdf060ddbc6514ed0a3ad1ab7435b"
+    },
+    "s5-browser-lane/check-web-pr/final": {
+      "checkId": "check-web-pr",
+      "boundaryId": "s5-browser-lane",
+      "phase": "final",
+      "batchId": "7f9ec74982ff920ea0c3df2188876be771dce3544e364e2a266a96d7d2153dc4",
+      "definitionHash": "ea8a68034561bba9325e18c6df1a3d139e201c0bcd07dd4bd0cc1c3ee647f9e9",
+      "basisHash": "2c550179c523609e973bf66761b17538d8625e18207ba5e90a49771c106b11f7",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 120,
+      "durationSeconds": 51.0656,
+      "recordedAt": "2026-10-07T19:18:31Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s5-browser-lane-final-ffe315e18730.log",
+      "logSha256": "dc238a9924110a98cff8e2507294cd04d5e21f8fe07038d55fba02c9fadca0b5"
+    },
+    "s5-browser-lane/check-devtools-snapshot-release/final": {
+      "checkId": "check-devtools-snapshot-release",
+      "boundaryId": "s5-browser-lane",
+      "phase": "final",
+      "batchId": "7f9ec74982ff920ea0c3df2188876be771dce3544e364e2a266a96d7d2153dc4",
+      "definitionHash": "44eb85c7fc0692a8640f23a7960281c78e2d4e086e42d9a129532123f75ff273",
+      "basisHash": "791cf62db30a0b4707068622061ce43b20e5b432a2e3df51195f63ebac21415a",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 0.8924,
+      "recordedAt": "2026-10-07T19:18:32Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s5-browser-lane-final-988e1359106b.log",
+      "logSha256": "06cd0736e35ad27d0510e859bac1eff78cf1a0be225d0eea07ce59b3f8c3acf6",
+      "inputsHash": "3fe20499a73287c790c801612271e33dd7c3d11d97e108cd2d5eb0fbcb884eff"
     }
   },
   "reviews": {
@@ -1740,6 +1863,562 @@
         "S4-F7"
       ],
       "recordedAt": "2026-10-07T18:28:59Z"
+    },
+    "s5-browser-lane": {
+      "reviewerId": "independent-reviewer-s5-9d41",
+      "snapshotId": "7f9ec74982ff920ea0c3df2188876be771dce3544e364e2a266a96d7d2153dc4",
+      "criterionIds": [
+        "B-1",
+        "B-2",
+        "B-3",
+        "B-4",
+        "B-5"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/web.rs",
+          "kind": "source",
+          "criterionIds": [
+            "B-1",
+            "B-3",
+            "B-5"
+          ],
+          "sha256": "beec6f2823533cec77222216b770bf8763dc3561a83e73eba96683af8b003791"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/serve.rs",
+          "kind": "source",
+          "criterionIds": [
+            "B-1",
+            "B-5"
+          ],
+          "sha256": "29af2ccb78222d6c2fb4304f46a1ead6218c368ef27426e49c34faaa94cfec1a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/wasm_verify.rs",
+          "kind": "source",
+          "criterionIds": [
+            "B-1"
+          ],
+          "sha256": "f23d3d5e75252707e50a92f1dc00b373f943c04d80e738c3a459f82745a65315"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/gpux_testkit.rs",
+          "kind": "source",
+          "criterionIds": [
+            "B-1",
+            "B-3"
+          ],
+          "sha256": "9ae0f1757955d3937060140c7b6332fe45101dba55d38ec38d24655f153303f1"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/src/gpui_platform.rs",
+          "kind": "source",
+          "criterionIds": [
+            "B-1"
+          ],
+          "sha256": "76aa12f2b6266b884877124164307e010933eceda4b2c9d47ea1a3841be1205a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/web_host/lib.rs",
+          "kind": "source",
+          "criterionIds": [
+            "B-1",
+            "B-3",
+            "B-4"
+          ],
+          "sha256": "512cf6cd5bcc7e267774a0979b9e3773355904b6b178ff357008d4926f044e2e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/tests/web.rs",
+          "kind": "test",
+          "criterionIds": [
+            "B-1",
+            "B-3"
+          ],
+          "sha256": "741a5ba3b29d9a7c387b609db82a4df53d64adab215614aa893ba2737202c3d5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s5-browser-lane-final-5b7484dd2bdf.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "B-1"
+          ],
+          "sha256": "d87b2585355860b942c24b0a2079a40a5975523b59fd8c7df1ec524467f8766e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/web_globals.rs",
+          "kind": "source",
+          "criterionIds": [
+            "B-2"
+          ],
+          "sha256": "bc5325b03a4bf7d13f4aa703ff2a25129ad991dc0de142a6c2b87b4a17ab6987"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/html_in_canvas.rs",
+          "kind": "source",
+          "criterionIds": [
+            "B-2"
+          ],
+          "sha256": "d6210d6fd4e78ef211721dbd3245cce9c64a8f3e27a2cce1ed03c1b63e9d64e4"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "B-2"
+          ],
+          "sha256": "c02776be996bb1f0c7bdcf54715c1e92b4c2ba1f1f1c82970b2c568e4572d0da"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "B-2"
+          ],
+          "sha256": "fc993cecc26174368ba648ad9c73fd3ac9bd4b6b075b68d8d5f4eb7388b79ad0"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "B-2"
+          ],
+          "sha256": "ef7bde2362c0093f35bfab478f8032371ffc35d58971ad7d19ac91cf079f1bc2"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "B-2"
+          ],
+          "sha256": "392c51f8296631ebb545bfcb74bef7ee874a1d8d4dd3fefbd49b0972fff4bf11"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/cosmic_text_system.rs",
+          "kind": "source",
+          "criterionIds": [
+            "B-2"
+          ],
+          "sha256": "c0b01d8935d0de52a57f3354d5baa17daf22c507d92a7a87a7fc8d0479b4cbe5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/tests/diagnostics_names.rs",
+          "kind": "test",
+          "criterionIds": [
+            "B-2"
+          ],
+          "sha256": "0e360f8843055cd0afb827e3e568697c2723ad0c06f3d2b73e2fb92d603b4ff7"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s5-browser-lane-final-038996b77f28.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "B-2"
+          ],
+          "sha256": "f81911420e1166c2b13bfba6b89066a06e0781fe7a3cebe978d44d09589f222a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/playwright.config.ts",
+          "kind": "source",
+          "criterionIds": [
+            "B-3",
+            "B-5"
+          ],
+          "sha256": "07d330d620d645084e7db8a31a90317d570b4586e80d3fdbf6b65943dbf64794"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/package.json",
+          "kind": "source",
+          "criterionIds": [
+            "B-3"
+          ],
+          "sha256": "4422e5ff4439a4365004e4e98c3978822632ccbf6cedfdde7a506ea16f19b03f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/pnpm-lock.yaml",
+          "kind": "source",
+          "criterionIds": [
+            "B-3"
+          ],
+          "sha256": "326dd8c11c4a5ac633c4513dd8c1e7720e4714e4cdfb125c5ad6996c9c1b61a4"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/fixtures/gpux.ts",
+          "kind": "source",
+          "criterionIds": [
+            "B-3",
+            "B-4"
+          ],
+          "sha256": "31c03e5e31aeb4a7d6ada89f11f10d65fa9d8240e2bd389927132b66f76e4b9e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/fixtures/catalog.ts",
+          "kind": "source",
+          "criterionIds": [
+            "B-3",
+            "B-4"
+          ],
+          "sha256": "b324001c236178da3fc6c0daa4f0fdf8fea3dcef5a8d989b57a148ce3c254c53"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/canary.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "B-3"
+          ],
+          "sha256": "73cf803a46979cff6bfcaa223b3d044562a2a0d3a5ec868dfe2431ce650721b9"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s5-browser-lane-final-5a686c8e0f33.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "B-3"
+          ],
+          "sha256": "eba41ab1305f246da7dc9575d40656c654dfdf060ddbc6514ed0a3ad1ab7435b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/fixtures/driver.ts",
+          "kind": "source",
+          "criterionIds": [
+            "B-4"
+          ],
+          "sha256": "f8e7297e982f8fa97daf7c1d478d122195c0fcbf17dcb09192f8f211f5c12db3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/web_host/bridge.rs",
+          "kind": "source",
+          "criterionIds": [
+            "B-4"
+          ],
+          "sha256": "a618e9d6b16413f65b34ec62d242deaa3345be50107483c2578428cade76bfd2"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/web_host/web_scenes.rs",
+          "kind": "source",
+          "criterionIds": [
+            "B-4"
+          ],
+          "sha256": "c85e6f6241fcdd8fe7029171bcccf16da74cff2b81c409d086ed4567c741ab68"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/web_host/fixtures.rs",
+          "kind": "source",
+          "criterionIds": [
+            "B-4"
+          ],
+          "sha256": "b8be47efd6f25dc3b0148d8f3d348a880f7251362311204c09070c15807381d6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/events.rs",
+          "kind": "source",
+          "criterionIds": [
+            "B-4"
+          ],
+          "sha256": "afa817fb4552b060fb69e0c81604bd21dc92ac7fcb15fd1456069a49b3cf8c72"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/html_island_upload.rs",
+          "kind": "source",
+          "criterionIds": [
+            "B-4"
+          ],
+          "sha256": "d50ee90dad4797ffae76081782e118e399b9d63ad34fe23a166aa1c5e6b537ae"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "B-4"
+          ],
+          "sha256": "eeaf6afbebdcf091040ed9a2e93f8df21fdbc8ad41dad5cea61fd51b64193563"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/scenes.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "B-4"
+          ],
+          "sha256": "3c6b14da6ced1e84d09b7a049792c1505dd0f7958d13fef640e9a2e5e9ad0f12"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/backend.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "B-4"
+          ],
+          "sha256": "0ead949496d5fbd4fd85d3494ea44914d386d624a9143949a82562d25b6e30c6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/viewport.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "B-4"
+          ],
+          "sha256": "72904e652e93d230d62bcb9076d907a7bfd4ff38ae8e659ed464b6ae17e96c45"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/window.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "B-4"
+          ],
+          "sha256": "45c6fca34351524faa2f38f560897ba2e5d3b85d55b1167c0d95d04ce847c06a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/pointer.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "B-4"
+          ],
+          "sha256": "9d7c3d871e6267dc0580084da3dfd2faeefccee5647eee229b57145f5c53cea6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/wheel.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "B-4"
+          ],
+          "sha256": "f6225c9b5a7643385a47a3b1c76089774b88a7304a9a8c059cc94e73e0b35b39"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/keyboard.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "B-4"
+          ],
+          "sha256": "252e14fb316069487de5d0f0b11cb94df85ee5402ba9f20984268bf5aff72abc"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/touch.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "B-4"
+          ],
+          "sha256": "e9d97a2a34e264829266099176074fa5e220cfd86216cf58e210a6d4ac0a6c10"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/ime.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "B-4"
+          ],
+          "sha256": "5a4ae4952d0808a1e9871a151c2882431b5389d6a42b51de890e795f18459c3e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/clipboard.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "B-4"
+          ],
+          "sha256": "5f689080b5d4dc1fb74ec841c7b93210d573f87dd563a39ae8375755d3c58e97"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/html-element.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "B-4"
+          ],
+          "sha256": "aae48977c104d766b543308ada51b40cdaeeab1b850b48e2f17c6b9cc8d24c35"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/html-island.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "B-2",
+            "B-4"
+          ],
+          "sha256": "fa1935f77ce5fafefd127484177e01afb0ff8b3c6cd557a4df213803928455c4"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/text-fallback.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "B-4"
+          ],
+          "sha256": "868dd6882ea1f5004f11f036e3267ce97e870a045a3c27589f87370e3d31c407"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/threads.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "B-4"
+          ],
+          "sha256": "073920ddf23735e6018420ba08a63f3a9a0abc18e56688daed6c683cf4383309"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/assets.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "B-4"
+          ],
+          "sha256": "500eec6a069a4266981e728261556294d1fdea99254bde5840f3cf411e7ebb29"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/cursor.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "B-4"
+          ],
+          "sha256": "8cb7fe406e8475a1b57546f3d7827ad8cb78ca4fcdf7e75e007b64c99908a394"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/lifecycle.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "B-4"
+          ],
+          "sha256": "daf8ec3a300ab5adb557a175d55c5ebb559c9f4020b2011607d9ce5618ae502a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/safe-area.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "B-4"
+          ],
+          "sha256": "5d796bb243e278c57644ad4da5004155d7328551fb98b3969093db37e8eb7bc4"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/dawn.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "B-4"
+          ],
+          "sha256": "52b2419a185181356c9a41e9fcacf2b10fd804eadec90bef321ca40fc312c98f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/timing.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "B-4"
+          ],
+          "sha256": "78aa2425d28cdab8081f7d25bf86566c82e111e3941fabd667c578b38c72b447"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/devtools_snapshot_tree.rs",
+          "kind": "test",
+          "criterionIds": [
+            "B-4"
+          ],
+          "sha256": "96b1bfac49ab5f2ab4a8f8329b8dc5354e1e3a3e52d8701f8053910cfa454b20"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s5-browser-lane-final-ffe315e18730.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "B-4"
+          ],
+          "sha256": "dc238a9924110a98cff8e2507294cd04d5e21f8fe07038d55fba02c9fadca0b5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/lane-b.yml",
+          "kind": "source",
+          "criterionIds": [
+            "B-5"
+          ],
+          "sha256": "8c4f8987ae12e6dd8835925bfd9448736ac2d89f04a3c7660f00a57f79bc9e3b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/testing.md",
+          "kind": "source",
+          "criterionIds": [
+            "B-5"
+          ],
+          "sha256": "87a7caa81adc74cee3f977509d56f91cf73d4119fe4667450243b330338b7687"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s5-browser-lane-final-988e1359106b.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "B-4"
+          ],
+          "sha256": "06cd0736e35ad27d0510e859bac1eff78cf1a0be225d0eea07ce59b3f8c3acf6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s5-browser-lane-final-3d63066786e5.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "B-2"
+          ],
+          "sha256": "da2a429ae96cd129a0c531c5b4e7064e020e3b7f0b4776ddbe0d94128db30f2d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/tasks/gpux-cross-platform-test-lanes/implementation-plan.json",
+          "kind": "source",
+          "criterionIds": [
+            "B-4"
+          ],
+          "sha256": "767741ede4d0a08dbf6cc26be1328bb1fa4889b484bd858f9093e96794ca4b98"
+        }
+      ],
+      "summaryMarkdown": "Lane B meets B-1 to B-5 at snapshot 7f9ec749. The re-review checked the repair delta (cef4894, 670e5f7, 3469940, 1c5173e and the revision-106 plan amendment) against source and tests, and all five findings are resolved.\n\n- `web build --verify` builds and verifies the threaded `web_host`, and `web serve` isolates the page.\n- Diagnostics publish only from `diagnostics` builds: the web crates compile on wasm without the feature, and `diagnostics_names` passes 5/5.\n- Every harness entry point asserts isolation and the backend; `@canary` passes 3/3.\n- The `@pr` specs, now including a pointer-capture spec that can fail, pass 120/120 on the local GPU; the release devtools check passes.\n- `lane-b.yml` matches B-5. Its own selections list 158 (nightly) and 122 (PR) tests and shard completely. These match the owner-accepted WSL SwiftShader evidence at c756171; the only lane-B change since then is the new pointer spec, which the reviewer reran on SwiftShader at HEAD.",
+      "findingIds": [
+        "S5-F1",
+        "S5-F2",
+        "S5-F3",
+        "S5-F4",
+        "S5-F5"
+      ],
+      "recordedAt": "2026-10-07T19:21:40Z"
     }
   },
   "checkpoints": {
@@ -1766,6 +2445,14 @@
       },
       "reviewHash": "aeca9b89e2a0bde236c057648d7a0a27c11874ab79481d43ceebe750736c0d01",
       "recordedAt": "2026-10-07T08:26:22Z"
+    },
+    "s4-testkit-and-windowed-lane": {
+      "snapshotId": "aadc254de5f3e45b8f63151196d71ea21de15952424e21e08889103b3527f6ad",
+      "commits": {
+        "gpux": "b39e5042a863d388988b91f365a9361672556179"
+      },
+      "reviewHash": "f9126a683d560d39fee4ac1dd0e926079184b3d0a2a7e182865c5bb37a339ae4",
+      "recordedAt": "2026-10-07T18:29:44Z"
     }
   },
   "findings": [
@@ -2214,9 +2901,109 @@
           "symbol": "warm_cached_reads_allocate_zero_times"
         }
       ]
+    },
+    {
+      "id": "S5-F1",
+      "boundaryId": "s5-browser-lane",
+      "criterionIds": [
+        "B-2"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Expected** (B-2, t17, `knowledge/gpui/rules.md`): every diagnostics collector and its retained state is gated on the `diagnostics` feature and absent from production builds.\n\n**Observed:** `crates/gpui_wgpu/src/cosmic_text_system.rs` still compiles `publish_font_fallback_diagnostics` (called from every wasm `layout_line`) and its retained `diagnostic_layout_count`, `diagnostic_fallback_run_count` and `diagnostic_observed_face_names` fields into every browser build. It publishes through the ungated `web_globals::publish_with_legacy`, so production builds now also gain a new `__gpuxFontFallbackDiagnostics` global. Each production `layout_line` also pays for the `web_globals::flag` probe: two `format!` allocations and two `Reflect.get` calls when neither global is set, where there was one lookup before. The `diagnostics_names` guard only rejects `rayx_diagnostics` gates, so it cannot catch an ungated collector. RayX's tracked sources never read these globals (only historical `.agentx` artifacts mention them), and its diagnostic builds enable `rayx_diagnostics`, which implies `diagnostics`. Gating the collector is therefore not consumer-visible.\n\n**Repair:**\n- Gate the function, its call site and the three fields on `feature = \"diagnostics\"`.\n- Publish through `web_globals::publish` and delete `publish_with_legacy`.\n- Extend `crates/gpui_web/tests/diagnostics_names.rs` to fail on an ungated publisher. For example, assert that no `publish_with_legacy` exists and that every function calling `web_globals::publish` carries `cfg(feature = \"diagnostics\")`.\n\nIf the owner wants this publication kept in production, amend B-2 and `d-diagnostics-naming` to record the exception instead.\n\n**Resolved (cef4894):** `publish_font_fallback_diagnostics`, its call site, the three counters and the `BTreeSet` import are gated on `all(target_family = \"wasm\", feature = \"diagnostics\")` and publish through `web_globals::publish`. `publish_with_legacy` is gone, and `web_globals::publish` is itself `#[cfg(feature = \"diagnostics\")]`, so an ungated publisher no longer compiles without the feature. Reviewer verified: `cargo check -p gpux-web -p gpux-wgpu-renderer --target wasm32-unknown-unknown --no-default-features` is clean; the new guard `only_diagnostics_publish_browser_globals` passes (5/5); the diagnostics compile check passes.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/tests/diagnostics_names.rs",
+          "symbol": "only_diagnostics_publish_browser_globals"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/web_globals.rs",
+          "symbol": "publish"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/cosmic_text_system.rs",
+          "symbol": "publish_font_fallback_diagnostics"
+        }
+      ]
+    },
+    {
+      "id": "S5-F2",
+      "boundaryId": "s5-browser-lane",
+      "criterionIds": [
+        "B-4"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Expected** (B-4): the specs cover pointer capture. `gpui_web` captures the pointer on `pointerdown` (`crates/gpui_web/src/events.rs` around line 302, `canvas.set_pointer_capture`) so that a press released outside the canvas still reaches GPUI and `pressed_button` cannot stick.\n\n**Observed:** the spec meant to cover this, `tools-node/specs/pointer.spec.ts` \"a held press keeps reaching the scene while the pointer moves\", stays inside the canvas. It moves from the `hover-active` target centre (60, 50) to (260, 250) and back within the 1280x720 canvas, then releases on the target. It passes with or without capture, and no other spec releases a press outside the canvas or over a DOM node above it.\n\n**Repair:** add a discriminating spec. Press on a GPUI element, move onto a DOM node above the canvas (for example the `web-html-element` overlay, or a small browser-only scene combining a pressable GPUI element with a DOM overlay) or beyond the viewport, and release there. Assert that GPUI observed the release, for example a status that shows the press ended, or no stuck pressed button on the next move. Assert also that the DOM node received no `pointerup` or click. Confirm the spec fails with the `set_pointer_capture` call removed.\n\n**Resolved (670e5f7):** the new `@pr` spec presses on the `hover-active` target, asserts the active colour, moves onto a fixed DOM element above the canvas and releases there. It then asserts that the element recorded no `pointerup`, `mouseup` or click, and that moving back shows `hovered true clicks 0` with the hover colour, not the pressed one. Without capture the `pointerup` targets the overlay, so the first assertion fails; the coordinator confirmed this by temporarily removing `set_pointer_capture`, which made the overlay record `[\"pointerup\"]`. The spec passes in the local-gpu `@pr` run (120/120); the reviewer reran it on SwiftShader as well (see summary).",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/pointer.spec.ts",
+          "symbol": "a press released over DOM content above the canvas still ends in gpui @pr"
+        }
+      ]
+    },
+    {
+      "id": "S5-F3",
+      "boundaryId": "s5-browser-lane",
+      "criterionIds": [
+        "B-4"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Expected:** the new test group for the release-build devtools fix (a00072e, `crates/gpui/tests/devtools_snapshot_tree.rs`) fails on the pre-fix code. Lane B's `locate`, `focusPoint` and `within` checks depend on that fix.\n\n**Observed:** the bug only occurred with debug assertions off, because the pop sat inside `debug_assert_eq!`. The workspace's dev and test profiles keep debug assertions on, and no check, CI job or doc runs this group with `--release`. So `cargo test -p gpux --test devtools_snapshot_tree` also passes on the pre-fix code, and the group guards nothing in the profile it runs in. Lane B's release WASM build covers the fix only indirectly.\n\n**Repair:** run the group without debug assertions. Either add a check, and the matching CI or doc step, running `cargo test -p gpux --release --test devtools_snapshot_tree`, or mark the test `#[cfg_attr(debug_assertions, ignore = \"the regression shows only without debug assertions; run with --release\")]` and record the release command. Either way, confirm it fails with the old `debug_assert_eq!(stack.pop(), ...)` form.\n\n**Resolved (plan amendment, revision 106):** the new check `check-devtools-snapshot-release` (`cargo test -p gpux --release --test devtools_snapshot_tree`), owned by t19, runs the group without debug assertions, where the pre-fix pop-inside-`debug_assert_eq!` form fails (coordinator-verified mutation). Its log shows the release test binary passing at the new snapshot.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/devtools_snapshot_tree.rs",
+          "symbol": "elements_are_children_of_the_element_they_paint_inside"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/tasks/gpux-cross-platform-test-lanes/implementation-plan.json",
+          "symbol": "check-devtools-snapshot-release"
+        }
+      ]
+    },
+    {
+      "id": "S5-F4",
+      "boundaryId": "s5-browser-lane",
+      "criterionIds": [
+        "B-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Expected** (B-1 and `d-testkit`'s actionable errors): `web build --verify` reports a failed constructor-path check in readable text.\n\n**Observed:** in `tooling/testkit/src/wasm_verify.rs`, the two constructor-path messages contain runs of literal spaces left from manual wrapping inside the string literals:\n- line 60: \"call `gpui_platform::web_init` (14 spaces) first, ...\"\n- line 74: \"it is (18 spaces) called from ...\"\n\nThe errors print garbled, and `verification_rejects_implicit_constructor_paths` only checks substrings, so it misses this.\n\n**Repair:** join the literals with `\\` line continuations or `concat!`, and assert the exact message text in `tooling/testkit/tests/web.rs`.\n\n**Resolved (3469940):** both messages use `\\` continuations, and `verification_rejects_implicit_constructor_paths` asserts their exact text with `assert_eq!`. Reviewer reran `cargo test -p gpux-testkit --test web` (12/12).",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/tests/web.rs",
+          "symbol": "verification_rejects_implicit_constructor_paths"
+        }
+      ]
+    },
+    {
+      "id": "S5-F5",
+      "boundaryId": "s5-browser-lane",
+      "criterionIds": [
+        "B-3"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Expected** (B-3, the `d-web-lane` invariant \"a spec never passes on an unexpected backend\", and the constraint that every lane B run asserts the active backend): every page entry point in the harness asserts `crossOriginIsolated` and the backend.\n\n**Observed:** `tools-node/fixtures/gpux.ts` exports `Gpux.runScripts` (`?run=<scene>` / `?run=all`). It returns in-app result lines without calling `expectIsolated` or `expectBackend`, and it cannot assert the backend at all, because `web_host` publishes `backend` only from `show()`, not in run mode. No spec uses it today, so it is an unused entry point that bypasses both fixtures.\n\n**Repair:** delete `runScripts`, and keep `?run=` as a documented manual or debug mode of `web_host`. Alternatively, have `web_host` publish the backend in run mode, make `runScripts` call `expectIsolated()` and `expectBackend(...)` like `open()`, and cover it with a spec.\n\n**Resolved (1c5173e):** `Gpux.runScripts` is removed, so every harness entry point (`open`) asserts isolation and the backend. `web_host`'s `?run=` mode remains a manual debugging aid that no spec uses.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/fixtures/gpux.ts",
+          "symbol": "Gpux"
+        }
+      ]
     }
   ],
-  "handoffMarkdown": "S4-F5: darwin drop tests probe with kill(pid, 0) == ESRCH, which never reaps. S4-F7: color allocation test allows at most 4 stray harness blocks.",
+  "handoffMarkdown": "Implemented in a1b83df and 7b9667e: .github/workflows/lane-b.yml (one build job with the pinned nightly, 4 sharded e2e jobs in ci-linux-swiftshader, merged report; PRs @canary|@pr, nightly/all-specs dispatch every spec except @timing); docs in cfca035. Hosted CI is blocked by billing; per amendment rev 91, B-5 is verified by the workflow's commands run locally in WSL (PR selection 120 passed/2 skipped/0 failed at c756171; nightly selection run with CI's worker count pending at the time of writing).",
   "protectedPaths": {
     "gpux": {
       "gpux:.agentx/experiments/**": "32805d33f7172446b7e9cec5989ba59bd78648a57efc98bd96bbcac8fcac16a6",
