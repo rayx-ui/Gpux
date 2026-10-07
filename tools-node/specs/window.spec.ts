@@ -18,10 +18,33 @@ async function framesRequested(page: import('@playwright/test').Page, ms: number
   }, ms);
 }
 
+/** Counts the animation frames the page requests from now on, in `__gpuxFramesRequested`. */
+async function countFrames(page: import('@playwright/test').Page): Promise<void> {
+  await page.evaluate(() => {
+    const counter = globalThis as unknown as { __gpuxFramesRequested: number };
+    counter.__gpuxFramesRequested = 0;
+    const original = window.requestAnimationFrame;
+    window.requestAnimationFrame = (callback) => {
+      counter.__gpuxFramesRequested += 1;
+      return original.call(window, callback);
+    };
+  });
+}
+
 test('an open window keeps its frame loop running @pr', async ({ gpux, page }) => {
   await gpux.open('paint-borders');
-  // Idle, the loop still requests frame after frame; software renderers need a while for a few.
-  expect(await framesRequested(page, 2_000)).toBeGreaterThanOrEqual(3);
+  await countFrames(page);
+  // Idle, the loop still requests frame after frame, however slowly a software renderer draws
+  // them: the check waits for frames rather than counting them over a fixed time.
+  await expect
+    .poll(
+      () =>
+        page.evaluate(
+          () => (globalThis as unknown as { __gpuxFramesRequested: number }).__gpuxFramesRequested,
+        ),
+      { timeout: 60_000 },
+    )
+    .toBeGreaterThanOrEqual(3);
 });
 
 test('closing the window removes its canvas and stops its frame loop @pr', async ({ gpux, page }) => {
