@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-cross-platform-test-lanes",
-  "revision": 133,
+  "revision": 134,
   "planRevision": 13,
   "specHashes": {
     "requirements": "61a7b069f4c72c3eb9c5c54519ab4243f3d9d95297148656103f229e0356d5ec",
@@ -3317,6 +3317,14 @@
       },
       "reviewHash": "f8bd6507c24ea2648692404f7983505b1d804e1195181ef5cfc2a0d5d2d92bc3",
       "recordedAt": "2026-10-07T19:57:01Z"
+    },
+    "s7-local-gpu-lane-and-docs": {
+      "snapshotId": "2f8bd5a63188bacaec84d0a9f1ea8098430904fadb2265f0dcd4e0e5bc947a8d",
+      "commits": {
+        "gpux": "0376af425d64e507d630be3337d89691da05d356"
+      },
+      "reviewHash": "0fc059da0f5f76fb951fae013fe567167a6509eb8b0052e4445bc3a5fe4d2e18",
+      "recordedAt": "2026-10-07T20:40:13Z"
     }
   },
   "findings": [
