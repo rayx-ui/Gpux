@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/platform/mobile
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-07T16:45:00+02:00
+  updated: 2026-10-07T19:30:00+02:00
   topics:
     - gpui-mobile
     - android
@@ -31,6 +31,8 @@ Lane E proves Android through the `android_host` conformance example: a NativeAc
 
 The NativeActivity loop polls the main looper through `poll_main_looper`: AChoreographer frame callbacks and the dispatcher's main-thread tasks run in gpux's own `ALooper_pollOnce`, and `AndroidApp::poll_events` runs only for android-activity's own idents. android-activity 0.6.1 logs every callback that runs inside its own poll as a spurious `ALOOPER_POLL_CALLBACK` error, which flooded the log once per frame.
 
+Lane F proves iOS through the `ios_host` conformance example: a static library behind the minimal UIKit shell of `tooling/ios` (XcodeGen spec, Objective-C app delegate that registers the host, starts gpui_mobile, and forwards the lifecycle), built unsigned for the Simulator and run with `simctl launch --console-pty`. Its checks cover startup, wgpu on Metal with readback, CoreText metrics of the bundled IBM Plex Sans, in-app touch, and background/foreground through another app and the host's `gpux-conformance://` URL scheme. `IosWindow` renders to images through the shared wgpu renderer and reports a missing renderer (no Metal device) as an error that pixel steps turn into skips. Closing an `IosWindow` unregisters it from the FFI window list, clears the UIKit back-pointers, drops the renderer, hides the UIWindow, and autoreleases the UIKit objects it created.
+
 iOS keeps a Metal-specific WGPU path: `GPUIMetalView` exposes `CAMetalLayer`, the window creates a `wgpu::Instance` with `Backends::METAL`, pre-populates `WgpuContext`, and builds `WgpuRenderer` from it. Effect capabilities delegate to the active renderer. Text uses the independent `IosTextSystem` on CoreText and font-kit CoreText loaders. `gpui_mobile` retains a cloned `gpux::Application` in FFI-owned state after `Application::run()` returns, because UIKit owns the event loop and later callbacks need GPUI state.
 
 ## Backlinks
@@ -39,6 +41,9 @@ iOS keeps a Metal-specific WGPU path: `GPUIMetalView` exposes `CAMetalLayer`, th
 - [Android lane tooling](../../../../../tooling/testkit/src/android.rs)
 - [Android platform](../../../../../crates/gpui_mobile/src/android/platform.rs)
 - [Android window](../../../../../crates/gpui_mobile/src/android/window.rs)
+- [iOS conformance host](../../../../../crates/gpux_conformance/examples/ios_host)
+- [iOS app shell](../../../../../tooling/ios)
+- [iOS lane tooling](../../../../../tooling/testkit/src/ios.rs)
 - [iOS FFI](../../../../../crates/gpui_mobile/src/ios/ffi.rs)
 - [iOS window](../../../../../crates/gpui_mobile/src/ios/window.rs)
 - [iOS text system](../../../../../crates/gpui_mobile/src/ios/text_system.rs)

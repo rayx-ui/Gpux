@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/repository/validation
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-07T16:45:00+02:00
+  updated: 2026-10-07T19:30:00+02:00
   topics:
     - validation
     - focused-checks
@@ -34,10 +34,10 @@ Runtime proof is gpux's own: `gpux-testkit` ([`tooling/testkit`](../../../../../
 - **C** renders scenes offscreen through the headless renderer on the software adapter (WARP, lavapipe, Metal on macOS) and compares a golden subset per backend; `GPUX_EXPECT_BACKEND` asserts the backend and `GPUX_PROBES_ONLY` skips goldens.
 - **D** runs platform checks and scenes in real windows (`desktop_host`): presenting, resize, scale change, clipboard, OS input (`SendInput`, XTest), close.
 - **E** builds a Gradle-free NativeActivity APK (`android_host`) and runs it over adb; the host asks the testkit for taps, swipes, background and resume, and screenshots, which pixel steps read. Emulators render through SwiftShader on the GL fallback: rendered-texture readback returns zeros there, and the surface is 16-bit, so color probes allow RGB565 rounding on frames that show it.
-- **F** (iOS) is not wired yet.
+- **F** builds the `ios_host` static library and the XcodeGen shell of `tooling/ios` unsigned for the Simulator, boots a pinned Simulator (`gpux-conformance`, an iPhone 16 on the newest iOS runtime), and follows the host's console; it needs macOS with Xcode and XcodeGen. Devices are run by hand with a signing team and `devicectl`.
 - **G** runs only on a developer machine with a GPU and refuses under `CI`: lane B's every spec (including `@timing` frame-budget specs and DPR 2), lanes C and D on the hardware adapter with probes only, and the `#[gpux::bench]` suites, summarized in `artifacts-temp/testkit/g/timing.md`.
 
-CI (`ci.yml`) runs check, test, package, and lanes A, C and D on `ubuntu-24.04`, `windows-2025` and `macos-15` for every pull request; `lane-b.yml` runs `@canary`/`@pr` specs on SwiftShader per pull request and every spec but `@timing` nightly; `lane-e.yml` runs an API 34 x86_64 emulator under KVM nightly and on path-filtered pull requests. A manual `update-goldens` dispatch regenerates each backend's goldens.
+CI (`ci.yml`) runs check, test, package, and lanes A, C and D on `ubuntu-24.04`, `windows-2025` and `macos-15` for every pull request; `lane-b.yml` runs `@canary`/`@pr` specs on SwiftShader per pull request and every spec but `@timing` nightly; `lane-e.yml` runs an API 34 x86_64 emulator under KVM, and `lane-f.yml` a `macos-15` Simulator, nightly and on path-filtered pull requests. CI's lane A, C and D jobs run through `gpux-testkit`. A manual `update-goldens` dispatch regenerates each backend's goldens.
 
 Performance work measures on a real GPU through lane G: the `gpux-platform` benchmarks (`randomized_element_tree`, `inspector_render`, run on an 8 MiB stack thread on every platform) and lane B's `@timing` specs. Earlier measurements on RayX's warmed wide-DataTable workload remain evidence in the decisions that cite them. A change is kept only when output and every established counter stay exact; transient evidence goes to ignored `artifacts-temp/`.
 
@@ -49,5 +49,5 @@ Performance work measures on a real GPU through lane G: the `gpux-platform` benc
 - [gpux-testkit](../../../../../tooling/testkit)
 - [Conformance lanes](../../../../../crates/gpux_conformance/tests)
 - [Playwright specs](../../../../../tools-node/specs)
-- [CI workflow](../../../../../.github/workflows/ci.yml), [lane B workflow](../../../../../.github/workflows/lane-b.yml), [lane E workflow](../../../../../.github/workflows/lane-e.yml)
+- [CI workflow](../../../../../.github/workflows/ci.yml), [lane B workflow](../../../../../.github/workflows/lane-b.yml), [lane E workflow](../../../../../.github/workflows/lane-e.yml), [lane F workflow](../../../../../.github/workflows/lane-f.yml)
 - 2026-10-05 current [RayX consumer validation memory](../../../../../../RayX/.agentx/memory/knowledge/tooling/validation/state.md)
