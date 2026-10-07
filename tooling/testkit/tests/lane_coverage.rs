@@ -23,6 +23,11 @@ fn conformance_targets() -> BTreeSet<String> {
 fn planned(lane: LaneId) -> Vec<String> {
     let plan = plan(lane, &Selection::default()).unwrap();
     let command = format!("{} ", plan.invocations[0].command_line());
+    // With several targets, a failing one must not keep the later ones from reporting.
+    assert!(
+        plan.listings.len() < 2 || command.contains(" --no-fail-fast "),
+        "lane {lane}: {command}"
+    );
     plan.listings
         .iter()
         .map(|listing| {

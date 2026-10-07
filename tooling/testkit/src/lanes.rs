@@ -291,6 +291,8 @@ fn plan_a(selection: &Selection) -> Result<LanePlan, PlanError> {
             args.extend(["--test", group]);
             tests.push(format!("{group}::*"));
         }
+        // A failing target must not keep the later ones from reporting.
+        args.push("--no-fail-fast");
     }
     let names: Vec<String> = scenes.iter().map(|scene| test_name(scene)).collect();
     let mut invocation = cargo("lane-a", &args, OutputKind::Libtest);
@@ -332,6 +334,8 @@ fn plan_c(selection: &Selection) -> Result<LanePlan, PlanError> {
             args.extend(["--test", group]);
             tests.push(format!("{group}::*"));
         }
+        // A failing target must not keep the later ones from reporting.
+        args.push("--no-fail-fast");
         listings.push(listing("lane_c", &[]));
         listings.extend(LANE_C_GROUPS.iter().map(|group| listing(group, &[])));
     } else if !names.is_empty() {

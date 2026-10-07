@@ -98,7 +98,7 @@ fn lane_a_selects_every_lane_a_scene_and_the_catalog_groups() {
         invocation.command_line(),
         "cargo test -p gpux-conformance --test lane_a --test catalog_coverage --test image_compare \
          --test golden_policy --test executor_clock --test host_capabilities --test rgb565_tolerance \
-         --test screen_shows"
+         --test screen_shows --no-fail-fast"
     );
 }
 
@@ -247,7 +247,7 @@ fn libtest_lanes_list_every_target_they_run() {
     );
     assert_eq!(
         lane_c.invocations[0].command_line(),
-        "cargo test -p gpux-conformance --test lane_c --test lane_g -- --test-threads=1"
+        "cargo test -p gpux-conformance --test lane_c --test lane_g --no-fail-fast -- --test-threads=1"
     );
     assert!(lane_c.tests.contains(&"lane_g::*".to_string()));
     assert!(
