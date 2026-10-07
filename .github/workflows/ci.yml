@@ -68,8 +68,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # macos-15 joins once the macos-only-metal-port-and-ci-repair epic lands.
-        os: [ubuntu-24.04, windows-2025]
+        os: [ubuntu-24.04, windows-2025, macos-15]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Free disk space
@@ -96,8 +95,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # macos-15 joins once the macos-only-metal-port-and-ci-repair epic lands.
-        os: [ubuntu-24.04, windows-2025]
+        os: [ubuntu-24.04, windows-2025, macos-15]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
@@ -122,7 +120,8 @@ jobs:
             backend: lavapipe
           - os: windows-2025
             backend: warp
-          # macos-15 with metal joins once the macos-only-metal-port-and-ci-repair epic lands.
+          - os: macos-15
+            backend: metal
     runs-on: ${{ matrix.os }}
     env:
       GPUX_WGPU_ADAPTER: software
