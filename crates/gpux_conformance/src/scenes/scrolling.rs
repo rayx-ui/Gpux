@@ -233,7 +233,8 @@ pub const SCROLLBAR: SceneSpec = SceneSpec {
         vec![
             Step::probe(120., 35., GRAY),
             Step::Capture("start"),
-            // Drag the thumb 30 px down: the published offset follows in the same turn.
+            // Drag the thumb from its center to the viewport's, 45 px down: the published
+            // offset (10 per thumb pixel) follows in the same turn.
             Step::Drag(id("thumb"), id("viewport")),
             Step::Expect(Expect::Exists(status_is("offset 450"))),
             Step::Expect(Expect::Bounds(id("thumb"), (115., 75., 10., 10.), 0.01)),

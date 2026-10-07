@@ -6,7 +6,8 @@ use gpux::GpuSpecs;
 use gpux_conformance::{
     backend::BackendId,
     compare::{
-        self, CompareOptions, GoldenName, GoldenOutcome, Goldens, compare_images, update_requested,
+        self, CompareOptions, GoldenName, GoldenOutcome, GoldenTolerance, Goldens, compare_images,
+        update_requested,
     },
     probe::{self, DEFAULT_TOLERANCE, PixelRect},
     report::{Outcome, ResultLine},
@@ -270,6 +271,55 @@ fn failed_comparisons_write_actual_expected_and_diff() {
     let diff = image::open(&expected_artifacts[2]).unwrap().to_rgba8();
     assert_eq!(diff.get_pixel(15, 5).0, RED);
     assert_ne!(diff.get_pixel(5, 5).0, RED);
+}
+
+#[test]
+fn scenes_override_the_golden_tolerance_with_a_reason() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().join("goldens");
+    let artifacts = dir.path().join("artifacts");
+    let name = GoldenName::new("paint-shadows-gradients", 1, "warp");
+    goldens(&root, &artifacts, true)
+        .check(&name, &filled(10, 10, [100, 100, 100, 255]))
+        .unwrap();
+    let blurred = filled(10, 10, [106, 100, 100, 255]);
+
+    // The defaults (±3) reject a 6-level difference everywhere...
+    assert!(
+        goldens(&root, &artifacts, false)
+            .check(&name, &blurred)
+            .is_err()
+    );
+    // ...a scene's override with a reason accepts it.
+    let tolerance = GoldenTolerance {
+        channel_tolerance: 6,
+        max_differing_ratio: 0.001,
+        reason: "blur radii round differently per rasterizer",
+    };
+    tolerance.validate().unwrap();
+    assert_eq!(
+        tolerance.options(),
+        CompareOptions {
+            channel_tolerance: 6,
+            max_differing_ratio: 0.001,
+        }
+    );
+    let outcome = goldens(&root, &artifacts, false)
+        .check_with(&name, &blurred, tolerance.options())
+        .unwrap();
+    assert_eq!(outcome, GoldenOutcome::Matched);
+
+    // An override needs a reason and a ratio between 0 and 1.
+    let unexplained = GoldenTolerance {
+        reason: "  ",
+        ..tolerance
+    };
+    assert!(unexplained.validate().unwrap_err().contains("reason"));
+    let impossible = GoldenTolerance {
+        max_differing_ratio: 1.5,
+        ..tolerance
+    };
+    assert!(impossible.validate().is_err());
 }
 
 #[test]

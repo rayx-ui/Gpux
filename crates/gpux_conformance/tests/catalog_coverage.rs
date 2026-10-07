@@ -104,7 +104,7 @@ fn every_scene_declares_complete_metadata() {
             probes || !scene.lanes.iter().any(|lane| lane.has_pixels()),
             format!("{id} runs in a pixel lane but declares no pixel probe"),
         );
-        let golden_step = script.iter().any(|step| matches!(step, Step::Golden));
+        let golden_step = script.iter().any(Step::is_golden);
         check(
             scene.golden == golden_step,
             format!("{id}: `golden` and its script's Golden step disagree"),
@@ -114,6 +114,12 @@ fn every_scene_declares_complete_metadata() {
             format!("{id} keeps goldens outside lane C"),
         );
         for step in &script {
+            if let Step::GoldenWithin(tolerance) = step {
+                check(
+                    tolerance.validate().is_ok(),
+                    format!("{id}: golden tolerance override {tolerance:?} is invalid"),
+                );
+            }
             if let Step::ChangedSince(name, _) = step {
                 check(
                     script

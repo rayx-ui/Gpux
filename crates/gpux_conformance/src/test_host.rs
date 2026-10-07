@@ -307,6 +307,24 @@ impl Host for TestHost {
                 open.vcx()
                     .simulate_click(point(px(*x), px(*y)), Modifiers::none());
             }
+            Step::ClickCountAt(x, y, count) => {
+                open.vcx().simulate_click_count(
+                    point(px(*x), px(*y)),
+                    MouseButton::Left,
+                    *count,
+                    Modifiers::none(),
+                );
+            }
+            Step::Press(query) => {
+                let at = center(&open.locate(query)?);
+                open.vcx()
+                    .simulate_mouse_down(at, MouseButton::Left, Modifiers::none());
+            }
+            Step::Release(query) => {
+                let at = center(&open.locate(query)?);
+                open.vcx()
+                    .simulate_mouse_up(at, MouseButton::Left, Modifiers::none());
+            }
             Step::MoveTo(x, y) => {
                 open.vcx()
                     .simulate_mouse_move(point(px(*x), px(*y)), None, Modifiers::none());
@@ -400,7 +418,7 @@ impl Host for TestHost {
                 let after = open.frame()?;
                 probe::changed(&before, after, region, probe::DEFAULT_TOLERANCE)?;
             }
-            Step::Golden => {
+            Step::Golden | Step::GoldenWithin(_) => {
                 if !scene.golden {
                     return Ok(StepOutcome::Skipped("not in the golden subset".into()));
                 }
@@ -412,8 +430,15 @@ impl Host for TestHost {
                     )));
                 };
                 let name = GoldenName::new(scene.id, open.scale as u32, backend_id);
+                let options = match step {
+                    Step::GoldenWithin(tolerance) => {
+                        tolerance.validate().map_err(|error| anyhow!(error))?;
+                        tolerance.options()
+                    }
+                    _ => goldens.options,
+                };
                 let frame = open.frame()?.clone();
-                match goldens.check(&name, &frame)? {
+                match goldens.check_with(&name, &frame, options)? {
                     GoldenOutcome::Matched | GoldenOutcome::Updated(_) => {}
                 }
             }

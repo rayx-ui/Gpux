@@ -1,7 +1,10 @@
 //! Scene specifications: what a conformance scene renders, which lanes run it, and the script of
 //! interactions and expectations every host executes the same way.
 
-use crate::probe::{DEFAULT_TOLERANCE, Rgba};
+use crate::{
+    compare::GoldenTolerance,
+    probe::{DEFAULT_TOLERANCE, Rgba},
+};
 use gpux::{AnyView, App, Window, semantic_query::Query};
 use std::{fmt, time::Duration};
 
@@ -168,6 +171,13 @@ pub enum Step {
     MoveTo(f32, f32),
     /// Clicks the primary button at a window position.
     ClickAt(f32, f32),
+    /// Presses and releases at a window position with an explicit click count (2 for a double
+    /// click, 3 for a triple click).
+    ClickCountAt(f32, f32, usize),
+    /// Presses the primary button at the element's center and keeps it held.
+    Press(Query),
+    /// Releases the primary button at the element's center.
+    Release(Query),
     /// Drags with the primary button from one element's center to another's.
     Drag(Query, Query),
     /// Scrolls the wheel by `(dx, dy)` pixels over the element.
@@ -207,6 +217,8 @@ pub enum Step {
     ChangedSince(&'static str, LogicalRect),
     /// Pixel lanes: compares the frame with the scene's golden on backends that keep goldens.
     Golden,
+    /// Like [`Step::Golden`], under the scene's own tolerance instead of the defaults.
+    GoldenWithin(GoldenTolerance),
 }
 
 impl Step {
@@ -225,7 +237,13 @@ impl Step {
                 | Step::Capture(_)
                 | Step::ChangedSince(..)
                 | Step::Golden
+                | Step::GoldenWithin(_)
         )
+    }
+
+    /// Whether the step compares with the scene's golden.
+    pub fn is_golden(&self) -> bool {
+        matches!(self, Step::Golden | Step::GoldenWithin(_))
     }
 }
 

@@ -82,6 +82,9 @@ pub fn describe(step: &Step) -> String {
         Step::Hover(query) => format!("hover `{query}`"),
         Step::MoveTo(x, y) => format!("move to ({x}, {y})"),
         Step::ClickAt(x, y) => format!("click at ({x}, {y})"),
+        Step::ClickCountAt(x, y, count) => format!("click x{count} at ({x}, {y})"),
+        Step::Press(query) => format!("press `{query}`"),
+        Step::Release(query) => format!("release `{query}`"),
         Step::Drag(from, to) => format!("drag `{from}` to `{to}`"),
         Step::Wheel(query, dx, dy) => format!("wheel ({dx}, {dy}) over `{query}`"),
         Step::TouchPan(query, dx, dy, steps) => {
@@ -103,5 +106,11 @@ pub fn describe(step: &Step) -> String {
         Step::Capture(name) => format!("capture {name:?}"),
         Step::ChangedSince(name, rect) => format!("{rect:?} changed since {name:?}"),
         Step::Golden => "golden".to_string(),
+        Step::GoldenWithin(tolerance) => format!(
+            "golden within ±{} and {}% ({})",
+            tolerance.channel_tolerance,
+            tolerance.max_differing_ratio * 100.,
+            tolerance.reason
+        ),
     }
 }

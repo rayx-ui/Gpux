@@ -121,6 +121,42 @@ impl Default for CompareOptions {
     }
 }
 
+/// A scene's own golden tolerance, replacing the defaults for that scene. Every override
+/// records why the scene needs it.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct GoldenTolerance {
+    /// The largest per-channel difference a pixel may have and still match.
+    pub channel_tolerance: u8,
+    /// The largest share of pixels (0–1) that may differ beyond the tolerance.
+    pub max_differing_ratio: f64,
+    /// Why the defaults do not fit this scene.
+    pub reason: &'static str,
+}
+
+impl GoldenTolerance {
+    /// The comparison options this override sets.
+    pub fn options(&self) -> CompareOptions {
+        CompareOptions {
+            channel_tolerance: self.channel_tolerance,
+            max_differing_ratio: self.max_differing_ratio,
+        }
+    }
+
+    /// Checks that the override gives a reason and a ratio between 0 and 1.
+    pub fn validate(&self) -> Result<(), String> {
+        if self.reason.trim().is_empty() {
+            return Err("a golden tolerance override needs a reason".into());
+        }
+        if !(0.0..=1.0).contains(&self.max_differing_ratio) {
+            return Err(format!(
+                "the differing-pixel ratio {} is outside 0..=1",
+                self.max_differing_ratio
+            ));
+        }
+        Ok(())
+    }
+}
+
 /// The result of comparing two images.
 #[derive(Clone, Debug)]
 pub struct Comparison {
@@ -266,11 +302,23 @@ impl Goldens {
         self.root.join(name.relative_path())
     }
 
-    /// Compares `actual` with the golden `name`, or writes it in update mode.
+    /// Compares `actual` with the golden `name` under the default options, or writes it in
+    /// update mode.
     pub fn check(
         &self,
         name: &GoldenName,
         actual: &RgbaImage,
+    ) -> Result<GoldenOutcome, GoldenError> {
+        self.check_with(name, actual, self.options)
+    }
+
+    /// Compares `actual` with the golden `name` under `options` (a scene's override), or
+    /// writes it in update mode.
+    pub fn check_with(
+        &self,
+        name: &GoldenName,
+        actual: &RgbaImage,
+        options: CompareOptions,
     ) -> Result<GoldenOutcome, GoldenError> {
         let path = self.path(name);
         if self.update {
@@ -298,7 +346,7 @@ impl Goldens {
                 });
             }
         };
-        let comparison = compare_images(actual, &expected, self.options);
+        let comparison = compare_images(actual, &expected, options);
         if comparison.matches {
             return Ok(GoldenOutcome::Matched);
         }
@@ -310,7 +358,7 @@ impl Goldens {
                 comparison.differing_pixels,
                 comparison.total_pixels,
                 comparison.differing_ratio() * 100.,
-                self.options.channel_tolerance,
+                options.channel_tolerance,
                 comparison.max_channel_difference
             ),
             artifacts,

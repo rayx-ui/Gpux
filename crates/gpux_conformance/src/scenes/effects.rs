@@ -173,12 +173,18 @@ pub const TRANSITION_FRAME: SceneSpec = SceneSpec {
         vec![
             Step::Expect(Expect::Exists(status_is("page 0"))),
             Step::probe(70., 50., RED),
+            Step::Capture("old"),
             Step::Click(id("next")),
             Step::Expect(Expect::Exists(status_is("page 1"))),
-            // Once the transition has finished, only the new page shows.
-            Step::Advance(Duration::from_millis(250)),
+            // Halfway through the 200 ms crossfade the frame is neither the old page...
+            Step::Advance(Duration::from_millis(100)),
+            Step::ChangedSince("old", (60., 40., 20., 20.)),
+            Step::Capture("mid"),
+            // ...nor the new one: once the transition has finished, only the new page shows.
+            Step::Advance(Duration::from_millis(150)),
             Step::Advance(Duration::from_millis(50)),
             Step::probe(70., 50., BLUE),
+            Step::ChangedSince("mid", (60., 40., 20., 20.)),
         ]
     },
 };

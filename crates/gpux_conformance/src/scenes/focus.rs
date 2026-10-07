@@ -224,11 +224,20 @@ pub const HOVER_ACTIVE: SceneSpec = SceneSpec {
             Step::Hover(id("target")),
             Step::Expect(Expect::Exists(status_is("hovered true clicks 0"))),
             Step::probe(60., 50., GREEN),
-            Step::Click(id("target")),
+            // While the button is held the active style wins; the click lands on release.
+            Step::Press(id("target")),
+            Step::Expect(Expect::Exists(status_is("hovered true clicks 0"))),
+            Step::probe(60., 50., BLUE),
+            Step::Release(id("target")),
             Step::Expect(Expect::Exists(status_is("hovered true clicks 1"))),
+            Step::probe(60., 50., GREEN),
             Step::MoveTo(150., 90.),
             Step::Expect(Expect::Exists(status_is("hovered false clicks 1"))),
             Step::probe(60., 50., GRAY),
+            // A touch tap is delivered as a press and release at the touch point, so it clicks
+            // and moves the pointer onto the target.
+            Step::TouchTap(id("target")),
+            Step::Expect(Expect::Exists(status_is("hovered true clicks 2"))),
         ]
     },
 };

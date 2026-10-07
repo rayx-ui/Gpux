@@ -78,13 +78,19 @@ pub const EDITABLE: SceneSpec = SceneSpec {
             Step::Expect(Expect::Focused(textbox())),
             Step::Keys("backspace backspace".into()),
             value_is("Ada Lovela"),
-            // A double click selects a word; typing replaces it.
-            Step::ClickCount(textbox(), 1),
-            Step::Keys("home".into()),
-            Step::Keys("shift-right shift-right shift-right".into()),
+            // A double click on "Ada" (x 10..38 in 16 px IBM Plex Sans) selects the word;
+            // typing replaces it.
+            Step::ClickCountAt(20., 49., 2),
             Step::Expect(Expect::Exists(status_is("selection 0..3 marked none"))),
             Step::Type(textbox(), "Eve".into()),
             value_is("Eve Lovela"),
+            // A triple click selects the line.
+            Step::ClickCountAt(20., 49., 3),
+            Step::Expect(Expect::Exists(status_is("selection 0..10 marked none"))),
+            // Shift-arrows extend a selection from the caret.
+            Step::ClickCount(textbox(), 1),
+            Step::Keys("home shift-right shift-right shift-right".into()),
+            Step::Expect(Expect::Exists(status_is("selection 0..3 marked none"))),
         ]
     },
 };
