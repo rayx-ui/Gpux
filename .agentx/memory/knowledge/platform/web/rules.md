@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/platform/web
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-07T16:45:00+02:00
+  updated: 2026-10-07T23:30:00+02:00
   topics:
     - wasm
     - multithreading
@@ -29,7 +29,7 @@ agentx:
 - Keep WASM asset futures local and foreground-spawned; do not add `Send` back to the WASM `Asset::load` signature. Use `Svg::external_path(...)` for browser-served SVG and `Svg::path(...)` for native asset paths.
 - Keep HTML island roots as direct children of the real canvas when layout subtree is enabled; never create scratch canvases, cloned DOM, proxy roots, staging surfaces, or fallback upload paths.
 - Gate island uploads on browser paint readiness and treat "No cached paint record for element" as a retry deferral, not a failure. Without layout subtree support, create no island roots or uploads.
-- Keep island and element diagnostics behind `diagnostics`; diagnostics must never retain content-derived samples. Publish browser globals as `__gpux<Name>` through `gpui_wgpu::web_globals`, which still reads the legacy `__rayx<Name>` names and publishes them under the `rayx_diagnostics` alias.
+- Keep island and element diagnostics behind `diagnostics`; diagnostics must never retain content-derived samples. Publish browser globals as `__gpux<Name>` through `gpui_wgpu::web_globals`, which still reads the legacy `__rayx<Name>` names and publishes them under the `rayx_diagnostics` alias. `web_globals::publish` exists only with `diagnostics`, so production builds cannot publish globals.
 - Use `html_element(...)`, not `html_island(...)`, for provider-owned iframes that must stay interactive DOM. Give elements stable semantic ids and use `keep_alive(true)` only for provider sessions that must survive temporary absence.
 - Size `html_element(...)` with ordinary `Styled` APIs and use `extra_styles(...)` only for trusted root decoration, never for runtime geometry, transform, visibility, opacity, or pointer behavior.
 - Add `credentialless` to third-party iframe markup in threaded pages unless the provider already satisfies the page's cross-origin isolation policy.
