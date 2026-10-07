@@ -280,7 +280,7 @@
       "criteria": [
         {
           "id": "D-1",
-          "descriptionMarkdown": "`gpux-testkit lane d` launches the conformance desktop host on the real platform (`gpui_platform::application()`) for the lane-D scenes.\n\nThe run checks that windows open and present, then asserts:\n- probes from `render_to_image` on the real surface;\n- resize and scale-factor changes;\n- a clipboard round trip;\n- closing without leaks or panics;\n- OS-level synthetic input where the OS permits it (XTest through `xdotool` on X11 under Xvfb, `SendInput` on Windows), translated into the expected GPUI events. Other scripts inject input in-app.\n\nThe summary line counts the results. The run passes locally on Windows.",
+          "descriptionMarkdown": "`gpux-testkit lane d` launches the conformance desktop host on the real platform (`gpui_platform::application()`) for the lane-D scenes.\n\nThe run checks that windows open and present, then asserts:\n- probes from `render_to_image` on the real surface, including repeated captures of one window: a surface capture presents the texture it acquired, so Vulkan swapchains (Linux, Android) are not starved after a few captures;\n- resize and scale-factor changes;\n- a clipboard round trip;\n- closing without leaks or panics;\n- OS-level synthetic input where the OS permits it (XTest through `xdotool` on X11 under Xvfb, `SendInput` on Windows), translated into the expected GPUI events. Other scripts inject input in-app.\n\nThe summary line counts the results. The run passes locally on Windows.",
           "verification": "automated"
         },
         {

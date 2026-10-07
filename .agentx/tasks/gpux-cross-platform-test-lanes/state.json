@@ -1,12 +1,12 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-cross-platform-test-lanes",
-  "revision": 68,
-  "planRevision": 9,
+  "revision": 73,
+  "planRevision": 10,
   "specHashes": {
-    "requirements": "253f2d3fc94d09635aa904e321e92b64b5489d6bc09d5d2eb56ad718003bf079",
+    "requirements": "9551e4f8e69bda2f78f8574dc9fcdc11cdf8ecb6c190384fb9ba0687e07e0a6b",
     "design": "192179721f6f7f7829a398e5fc9998b355a7357a88d464c45cfdbaf14d11d17e",
-    "plan": "76e2798d4d02f922f608095e7d907042b5a3623444d2c0ed1b0de952c89c8305"
+    "plan": "f997dcc7377643c1371c8fec652595a7aed50a794cc85c833efc4f26c320c9fc"
   },
   "tasks": {
     "t01-bundled-test-text": {
@@ -82,16 +82,22 @@
       ]
     },
     "t13-testkit-cli": {
-      "status": "in_progress",
+      "status": "implemented",
       "workerIds": [
         "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
       ]
     },
     "t14-windowed-host-lane-d": {
-      "status": "pending"
+      "status": "implemented",
+      "workerIds": [
+        "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
+      ]
     },
     "t15-ci-lane-d": {
-      "status": "pending"
+      "status": "implemented",
+      "workerIds": [
+        "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
+      ]
     },
     "t16-web-build-serve": {
       "status": "pending"
@@ -142,7 +148,10 @@
       ]
     },
     "t31-macos-build-and-ci": {
-      "status": "pending"
+      "status": "implemented",
+      "workerIds": [
+        "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
+      ]
     }
   },
   "validationBatches": {
@@ -1521,7 +1530,7 @@
       ]
     }
   ],
-  "handoffMarkdown": "Run 37587678696: lane A/C (lavapipe, warp), test (windows), package, check (ubuntu, windows) green; test (ubuntu) ran out of disk linking workspace tests. Fix: CARGO_PROFILE_DEV_DEBUG=line-tables-only and a Linux free-disk step.",
+  "handoffMarkdown": "gpux-zed-util darwin/process.rs handle (no adopt_raw_pid), import-guide replay rule; macOS check green (run 37594997142); test platform reports the last simulated pointer (hover on macOS); Step::When capability gating (Metal lacks shader effects/transitions); editable-text tests use secondary-a; bench test 300 ms setup; metal goldens from run 37596447510; macOS entries of test, lane-a, lane-c, lane-d enabled; test job --no-fail-fast.",
   "protectedPaths": {
     "gpux": {
       "gpux:.agentx/experiments/**": "32805d33f7172446b7e9cec5989ba59bd78648a57efc98bd96bbcac8fcac16a6",
