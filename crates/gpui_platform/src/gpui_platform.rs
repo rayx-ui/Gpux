@@ -178,8 +178,15 @@ pub fn current_headless_renderer() -> anyhow::Result<Option<Box<dyn gpux::Platfo
         )))
     }
 
-    // The gpux WGPU renderer is surface-backed; it has no headless variant.
-    #[cfg(not(target_os = "macos"))]
+    // Linux and Windows render through wgpu (Vulkan|GL, or DX12 with WARP when there is no
+    // GPU). `GPUX_WGPU_ADAPTER` picks the adapter: `software`, `hardware` or a name substring.
+    #[cfg(any(target_os = "linux", target_os = "windows"))]
+    {
+        gpui_wgpu::WgpuHeadlessRenderer::new()
+            .map(|renderer| Some(Box::new(renderer) as Box<dyn gpux::PlatformHeadlessRenderer>))
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
     {
         Ok(None)
     }
