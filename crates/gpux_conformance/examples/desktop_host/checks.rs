@@ -460,14 +460,23 @@ async fn close(cx: &mut AsyncApp) -> anyhow::Result<Check> {
     let window = open(cx, "close", (360., 240.), |_, _| Blocks)?;
     wait_frames(cx, window, 2).await?;
     let id = window.window_id();
+    // The root view lives only as long as the window holds it; a weak handle sees it go.
+    let root = window.update(cx, |root, _, _| root.downgrade())?;
     window.update(cx, |_, window, _| window.remove_window())?;
     let executor = cx.background_executor().clone();
-    for _ in 0..50 {
+    let is_open = |cx: &mut AsyncApp| {
+        cx.update(|cx: &mut App| cx.windows().iter().any(|w| w.window_id() == id))
+    };
+    for _ in 0..100 {
         executor.timer(Duration::from_millis(20)).await;
-        let open = cx.update(|cx: &mut App| cx.windows().iter().any(|w| w.window_id() == id));
-        if !open {
-            return Ok(Check::Passed("removed without panics".into()));
+        if !is_open(cx) && root.upgrade().is_none() {
+            return Ok(Check::Passed(
+                "removed, and its root view released, without panics".into(),
+            ));
         }
     }
-    bail!("the closed window is still open")
+    if is_open(cx) {
+        bail!("the closed window is still open");
+    }
+    bail!("the closed window's root view is still alive: something leaks it")
 }

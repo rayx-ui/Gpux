@@ -38,7 +38,7 @@ pub const PLATFORM_CHECKS: &[PlatformCheck] = &[
     },
     PlatformCheck {
         id: "platform-close",
-        description: "closing a window removes it without panics",
+        description: "closing a window removes it and releases its views, without panics",
     },
 ];
 
