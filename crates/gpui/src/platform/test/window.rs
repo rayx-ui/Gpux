@@ -49,6 +49,10 @@ pub(crate) struct TestWindowState {
     pub(crate) should_close_handler: Option<Box<dyn FnMut() -> bool>>,
     hit_test_window_control_callback: Option<Box<dyn FnMut() -> Option<WindowControlArea>>>,
     input_callback: Option<Box<dyn FnMut(PlatformInput) -> DispatchEventResult>>,
+    /// Where the last simulated pointer event happened and the modifiers it carried, reported
+    /// as the platform cursor. Windows whose hover follows activation (macOS) read the cursor
+    /// from the platform on every draw.
+    pub(crate) pointer: (Point<Pixels>, crate::Modifiers),
     active_status_change_callback: Option<Box<dyn FnMut(bool)>>,
     visibility: WindowVisibility,
     visibility_callback: Option<Box<dyn FnMut(WindowVisibility)>>,
@@ -126,6 +130,7 @@ impl TestWindow {
             should_close_handler: None,
             hit_test_window_control_callback: None,
             input_callback: None,
+            pointer: (Point::default(), crate::Modifiers::default()),
             active_status_change_callback: None,
             visibility: WindowVisibility::Visible,
             visibility_callback: None,
@@ -316,6 +321,16 @@ impl TestWindow {
 
     pub fn simulate_input(&mut self, event: PlatformInput) -> bool {
         let mut lock = self.0.lock();
+        match &event {
+            PlatformInput::MouseDown(event) => lock.pointer = (event.position, event.modifiers),
+            PlatformInput::MouseUp(event) => lock.pointer = (event.position, event.modifiers),
+            PlatformInput::MouseMove(event) => lock.pointer = (event.position, event.modifiers),
+            PlatformInput::MouseExited(event) => lock.pointer = (event.position, event.modifiers),
+            PlatformInput::ScrollWheel(event) => lock.pointer = (event.position, event.modifiers),
+            PlatformInput::ModifiersChanged(event) => lock.pointer.1 = event.modifiers,
+            PlatformInput::Touch(event) => lock.pointer.0 = event.position,
+            _ => {}
+        }
         let Some(mut callback) = lock.input_callback.take() else {
             return false;
         };
@@ -396,11 +411,11 @@ impl PlatformWindow for TestWindow {
     }
 
     fn mouse_position(&self) -> Point<Pixels> {
-        Point::default()
+        self.0.lock().pointer.0
     }
 
     fn modifiers(&self) -> crate::Modifiers {
-        crate::Modifiers::default()
+        self.0.lock().pointer.1
     }
 
     fn capslock(&self) -> crate::Capslock {

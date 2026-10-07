@@ -1261,6 +1261,12 @@ impl VisualTestContext {
         self.locator(query).resolve()
     }
 
+    /// The cursor position and modifiers the test window reports as its platform state: those
+    /// of the last simulated pointer event, as a real platform reports where the cursor is.
+    pub fn platform_pointer(&self) -> (Point<Pixels>, Modifiers) {
+        self.test_window(self.window).0.lock().pointer
+    }
+
     /// The window requests (minimize, zoom, window menu, ...) the test window recorded instead
     /// of performing them, oldest first.
     pub fn window_calls(&self) -> Vec<TestWindowCall> {
