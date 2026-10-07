@@ -149,7 +149,8 @@ jobs:
           path: artifacts-temp/testkit/**
           if-no-files-found: ignore
       - name: Upload regenerated goldens
-        if: inputs.update-goldens
+        # Probe failures elsewhere must not hold back the goldens this run wrote.
+        if: ${{ !cancelled() && inputs.update-goldens }}
         uses: actions/upload-artifact@v7
         with:
           name: lane-c-${{ matrix.backend }}-goldens
