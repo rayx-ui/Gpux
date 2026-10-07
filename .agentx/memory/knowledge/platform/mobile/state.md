@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/platform/mobile
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-06T03:20:00+02:00
+  updated: 2026-10-07T16:45:00+02:00
   topics:
     - gpui-mobile
     - android
@@ -25,12 +25,18 @@ Read before changing `gpui_mobile` or importing upstream `gpui-mobile` (use the 
 
 `gpui_mobile` is Rust 2024 and distributed under its Apache-2.0 option. Android routes `AndroidBackend` preference into WGPU backend policy: `Vulkan` means `VULKAN | GL`, because emulator images can fail Vulkan surface creation while supporting GL/EGL; `Gles` is strict GL. Diagnostics can therefore show `backend_policy=VULKAN|GL` with `backend=gl`. Apps using the native activity JNI helper enable the `android-native-activity` feature. Foreground task draining clones the dispatcher under the platform state mutex, releases it, then runs queued callbacks. Android and iOS deliver touches as raw `PlatformInput::Touch` events for Zed's touch recognizer, supply fling physics through `Platform::gestures` (`ScrollPhysics::android()`/`ios()`), and synthesize two-finger `Pinch` input, cancelling the forwarded touches when a pinch starts. Android stamps touches with their sample time: NativeActivity converts `AMotionEvent_getEventTime` (`System.nanoTime()`, `CLOCK_MONOTONIC` like `Instant`), and the embedded host stamps on arrival.
 
+`AndroidWindow` implements `render_to_image` by taking the renderer out of the state lock while it renders, as `draw` does, and warns when sprites are drawn through the fallback atlas before a renderer exists. Touch input replays each motion event's history samples (`pointer.history()`) as moves with their own timestamps before the current sample.
+
+Lane E proves Android through the `android_host` conformance example: a NativeActivity cdylib packaged without Gradle (`aapt2` link, stored 16 KB aligned libraries, `apksigner` with a debug key) that runs a startup check, the lane-E scenes, and touch, swipe, and lifecycle checks the testkit performs through adb. The x86_64 emulator renders through SwiftShader on the GL fallback with an RGB565 EGL config, because wgpu-hal requests 8-bit alpha only where sRGB framebuffers exist.
+
 The NativeActivity loop polls the main looper through `poll_main_looper`: AChoreographer frame callbacks and the dispatcher's main-thread tasks run in gpux's own `ALooper_pollOnce`, and `AndroidApp::poll_events` runs only for android-activity's own idents. android-activity 0.6.1 logs every callback that runs inside its own poll as a spurious `ALOOPER_POLL_CALLBACK` error, which flooded the log once per frame.
 
 iOS keeps a Metal-specific WGPU path: `GPUIMetalView` exposes `CAMetalLayer`, the window creates a `wgpu::Instance` with `Backends::METAL`, pre-populates `WgpuContext`, and builds `WgpuRenderer` from it. Effect capabilities delegate to the active renderer. Text uses the independent `IosTextSystem` on CoreText and font-kit CoreText loaders. `gpui_mobile` retains a cloned `gpux::Application` in FFI-owned state after `Application::run()` returns, because UIKit owns the event loop and later callbacks need GPUI state.
 
 ## Backlinks
 
+- [Android conformance host](../../../../../crates/gpux_conformance/examples/android_host)
+- [Android lane tooling](../../../../../tooling/testkit/src/android.rs)
 - [Android platform](../../../../../crates/gpui_mobile/src/android/platform.rs)
 - [Android window](../../../../../crates/gpui_mobile/src/android/window.rs)
 - [iOS FFI](../../../../../crates/gpui_mobile/src/ios/ffi.rs)
