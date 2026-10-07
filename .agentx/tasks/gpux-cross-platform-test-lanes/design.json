@@ -499,6 +499,46 @@
           "path": ".agentx/memory/decisions/repository/agentx-memory/2026-10-05-repository-agentx-memory-taxonomy-transplant.md"
         }
       ]
+    },
+    {
+      "id": "d-observation-fidelity",
+      "requirementIds": [
+        "LOCATE"
+      ],
+      "descriptionMarkdown": "Lane A and its review exposed places where observation diverged from what gpux paints.\n\n- **Positioned bounds.** `Div::prepaint` resolves fixed and sticky elements to visual bounds (`positioned_bounds.visual_bounds`), but their devtools node and AccessKit node kept the layout bounds, which move with scrolling, so locators and assistive-technology clicks missed them. A fixed or sticky div now reports its visual bounds through `Window::report_visual_bounds` (frame-local, keyed by devtools node id); after the element prepaints, `Drawable::prepaint` takes them and uses them for the devtools node, the AccessKit node bounds and `a11y.node_bounds` (the target of the AccessKit Click fallback). Every other element keeps its layout bounds.\n- **Accessibility updates on the test platform.** `TestWindow` dropped `a11y_tree_update` calls, so tests could only see the initial tree from activation. It now records them, and the test-support `take_accessibility_updates` drains the record.",
+      "invariantsMarkdown": "- Devtools and accessibility bounds of fixed and sticky divs equal the bounds they paint and hit-test at; positioned paint order and hit testing are unchanged.\n- Recording accessibility updates is test-platform only; real platform adapters are untouched.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs",
+          "symbol": "Interactivity::prepaint"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/element.rs",
+          "symbol": "Drawable::prepaint"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "symbol": "Window::report_visual_bounds"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/platform/test/window.rs",
+          "symbol": "TestWindow::a11y_tree_update"
+        }
+      ],
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-fixed-sticky-positioned-scene-order.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-06-gpui-positioning-scroll-fixed-containing-block.md"
+        }
+      ]
     }
   ],
   "memoryDecisionsConsidered": [

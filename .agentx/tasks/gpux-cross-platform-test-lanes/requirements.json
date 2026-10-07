@@ -145,6 +145,11 @@
           "id": "LOCATE-1",
           "descriptionMarkdown": "A test-support locator API resolves queries against `Window::devtools_frame_snapshot()`.\n\n- **Queries:** role, accessible name (exact or contains), text, value, global element id suffix and element type, combined and scoped within a parent.\n- **Actions:** click at the element center, hover, drag to another locator or point, scroll by a delta, focus and type text, press keystrokes.\n- **Errors:** a query matching zero or more than one element fails with a message that lists the candidates, unless `.nth(n)` or `.all()` is used.\n\nThe locator works in release-mode tests (it does not depend on `debug_selector`). A new test group covers each query kind, each action, and both error cases.",
           "verification": "automated"
+        },
+        {
+          "id": "LOCATE-2",
+          "descriptionMarkdown": "What tests and assistive technology observe matches what the window paints and hit-tests.\n\n- **Positioned bounds:** devtools frame snapshots (and the semantic locators reading them) and AccessKit nodes report fixed and sticky divs at their visual bounds: fixed elements resolved against their containing block and unmoved by scrolling, sticky elements at their stuck or pushed-out position. A locator click and an AccessKit Click on a scrolled fixed element both reach it.\n- **Accessibility updates:** `TestPlatform` windows record the AccessKit tree updates sent to their adapter while accessibility is active; `VisualTestContext::take_accessibility_updates` drains them, and nothing is recorded while it is inactive.\n\nA new test group covers fixed bounds before and after a scroll with a locator click, the AccessKit bounds and Click of a scrolled fixed element, sticky stuck and pushed-out bounds, and recorded, drained and inactive accessibility updates.",
+          "verification": "automated"
         }
       ]
     },

@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/repository/packaging
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-05T23:00:00+02:00
+  updated: 2026-10-07T18:00:00+02:00
   topics:
     - crates-io
     - packaging
@@ -24,6 +24,8 @@ Read before changing a manifest, dependency, license, included file, or the wgpu
 ## Current Technical Shape
 
 Every crate publishes as `gpux` or `gpux-*` and keeps its GPUI Rust name through `[lib] name`; workspace dependency keys use the Rust name with `package = "gpux-..."`, so source never changes when a package is renamed. The [README crate table](../../../../../README.md#crates) is the authoritative mapping. All crates share the workspace version and Apache-2.0 (gpui_mobile under its Apache-2.0 option); `gpux_fonts` ships the bundled fonts under OFL-1.1, and every packaged file lives inside its crate directory.
+
+`gpux-conformance` excludes `tests/goldens/**` from its package; a policy test caps each golden PNG at 32 KiB (written as compact RGB) and all goldens at 2 MiB, and rejects misnamed or orphaned goldens. Its `test-host` feature (default) pulls `gpui_platform` and, on Linux and Windows, `gpui_wgpu`; without it the catalog compiles for `wasm32-unknown-unknown` on stable, because `gpui_platform` always enables the threaded `gpux-web`.
 
 Dependencies come only from crates.io: no git dependencies and no `[patch]` tables. Zed's own forks come from their published `zed-*` crates (`zed-reqwest`, `zed-scap`, `zed-font-kit`, `zed-xim`). Taffy is the registry `=0.14.0` with a minimal feature set. `zlog`, `ztracing`, and `ztracing_macro` are not carried. Dev-dependencies on the `gpui_macros` → `gpux` and `gpux` → `gpui_platform`/`gpui_web` cycle edges are path-only.
 

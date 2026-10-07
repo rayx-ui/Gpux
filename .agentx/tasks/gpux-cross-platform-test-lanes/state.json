@@ -1,12 +1,12 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-cross-platform-test-lanes",
-  "revision": 32,
-  "planRevision": 5,
+  "revision": 65,
+  "planRevision": 7,
   "specHashes": {
-    "requirements": "53861ccc5632389bd08c215f74dd4a5a1b2ff22db7eb169be37e01834bc1a02e",
-    "design": "dfe54110d358295ad8d880606a229c93291b2d51afb5eb442e0e087efccf3dc8",
-    "plan": "bc3e528734ca1f957bae374a25b13aac58a52002f20f0e40d095ec09bded55ab"
+    "requirements": "f81553b6a161808bb0c80a4e4cc7cac5955bd12151939b0f1bb04d0b4c2ffceb",
+    "design": "2fe2746e0575b99fa98b3f2bbb4fcd38a1a88dada52dea6d935e7332e35a22af",
+    "plan": "989e9829032437c51eb47969245868d07b6ab75d598919ac09b7e500f56f359c"
   },
   "tasks": {
     "t01-bundled-test-text": {
@@ -52,19 +52,34 @@
       ]
     },
     "t08-conformance-crate-and-compare": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
+      ]
     },
     "t09-scene-catalog": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
+      ]
     },
     "t10-lane-a-suites": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
+      ]
     },
     "t11-lane-c-suites": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
+      ]
     },
     "t12-ci-lanes-a-c": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
+      ]
     },
     "t13-testkit-cli": {
       "status": "pending"
@@ -116,6 +131,12 @@
     },
     "t29-ios-run-and-ci": {
       "status": "pending"
+    },
+    "t30-observation-fidelity": {
+      "status": "done",
+      "workerIds": [
+        "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
+      ]
     }
   },
   "validationBatches": {
@@ -136,6 +157,24 @@
         }
       },
       "recordedAt": "2026-10-07T00:42:10Z"
+    },
+    "7c3da7586680525b1ad23030b284819f778be5bffef2a10d9019b6380687fd4d": {
+      "snapshot": {
+        "specHash": "7006efc1aba8d87288fb54c3858c1517ec2785ba0e42bf3a078d71d73c75e7d1",
+        "repositories": {
+          "gpux": "b7147bf5926ff7a6d3add2bcfa3fc0703b409c939ef6c2edcb090513391a11be"
+        }
+      },
+      "recordedAt": "2026-10-07T01:42:40Z"
+    },
+    "b76bfe39177e47a68a0158896771990df9b2957be1b9e5e22247e4dea030ab13": {
+      "snapshot": {
+        "specHash": "7006efc1aba8d87288fb54c3858c1517ec2785ba0e42bf3a078d71d73c75e7d1",
+        "repositories": {
+          "gpux": "ff40869ce44b9ca28cfd2c2e0697d0b482c781014708eed6f94c7a751e2ebd9b"
+        }
+      },
+      "recordedAt": "2026-10-07T01:46:38Z"
     }
   },
   "checkResults": {
@@ -257,6 +296,125 @@
       "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s2-wgpu-headless-renderer-final-c652108ace2f.log",
       "logSha256": "27811aa8f7fcf44610567785d12e2cdc7b940bbc1f92fbdfbe36ce5c944644ee",
       "inputsHash": "2bb228ced320e6344b99606ad24c24637aeebc390fcd4d09d6e683410d2a9ebe"
+    },
+    "s3-conformance-catalog-lanes-a-c/check-image-compare/final": {
+      "checkId": "check-image-compare",
+      "boundaryId": "s3-conformance-catalog-lanes-a-c",
+      "phase": "final",
+      "batchId": "7c3da7586680525b1ad23030b284819f778be5bffef2a10d9019b6380687fd4d",
+      "definitionHash": "e02eb5bd0a2916f6303c015d35d54aaf58c74322f557123f61e5c4302ed79003",
+      "basisHash": "cd5b41318cb8914bd44837d3b85bf985c77a8ed714c7c45da1eb7437f0db0c77",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 13,
+      "durationSeconds": 3.9948,
+      "recordedAt": "2026-10-07T01:41:44Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s3-conformance-catalog-lanes-a-c-final-8391b7387d0f.log",
+      "logSha256": "b7d37e4920c2d10a0e6ce3fb94f0684597030159bc2caae94568d8adcd102eda",
+      "inputsHash": "2abbc2d5a4e97260b3284a9afe37fa95f8433a616061193978e81493f4753192"
+    },
+    "s3-conformance-catalog-lanes-a-c/check-golden-policy/final": {
+      "checkId": "check-golden-policy",
+      "boundaryId": "s3-conformance-catalog-lanes-a-c",
+      "phase": "final",
+      "batchId": "7c3da7586680525b1ad23030b284819f778be5bffef2a10d9019b6380687fd4d",
+      "definitionHash": "ba57512d5cef880c76bb0433d9f0336c1ffcb64ee6e70ff265d44ef253fb27e3",
+      "basisHash": "9868c25afb8d9a201873e8525bf42450517e22970e6f3dcb489df42427b0ee2e",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 4.0431,
+      "recordedAt": "2026-10-07T01:41:48Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s3-conformance-catalog-lanes-a-c-final-32dbc6542e31.log",
+      "logSha256": "f003716628fa87ac66927faba289742209aa0fe671bc5d773333a7d9db4c6fd0",
+      "inputsHash": "c0ca57be8d20833e76da8665f445b9959497849165e6e1f7299ec432139a108a"
+    },
+    "s3-conformance-catalog-lanes-a-c/check-catalog-coverage/final": {
+      "checkId": "check-catalog-coverage",
+      "boundaryId": "s3-conformance-catalog-lanes-a-c",
+      "phase": "final",
+      "batchId": "7c3da7586680525b1ad23030b284819f778be5bffef2a10d9019b6380687fd4d",
+      "definitionHash": "23d18e0c34db14d67799f11629c79d1935764a4b8059823f8f0c5121af926506",
+      "basisHash": "0f6a80fd076dcd048b2b59d183382b4f8bb0c2039ab4a3ca2867a32a5f3cedb5",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 3.8393,
+      "recordedAt": "2026-10-07T01:41:52Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s3-conformance-catalog-lanes-a-c-final-c0f52188898f.log",
+      "logSha256": "9dfe58d0ec2649a002b02c56c9a11584c94f9b6d5f96d4fb6906b7c02f038054",
+      "inputsHash": "2abbc2d5a4e97260b3284a9afe37fa95f8433a616061193978e81493f4753192"
+    },
+    "s3-conformance-catalog-lanes-a-c/check-catalog-wasm/final": {
+      "checkId": "check-catalog-wasm",
+      "boundaryId": "s3-conformance-catalog-lanes-a-c",
+      "phase": "final",
+      "batchId": "b76bfe39177e47a68a0158896771990df9b2957be1b9e5e22247e4dea030ab13",
+      "definitionHash": "89b6d0c917bda4bd602cebc03ab0d5a984045b4954f5b52d30b54dfc5c447dea",
+      "basisHash": "b788267789886ca53e431febb0c3c9136589f517715ae8b85a504569925a88bd",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 4.7382,
+      "recordedAt": "2026-10-07T01:45:47Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s3-conformance-catalog-lanes-a-c-final-7b596611f3bf.log",
+      "logSha256": "262fb76bf564d02341304204d154d8f107ba010f87d8e634fd4768829e88608a",
+      "inputsHash": "3577da4b209650f191fe2d5f0ea939c6a29f2ef7457c2e2a4ebd3cbafec25f07"
+    },
+    "s3-conformance-catalog-lanes-a-c/check-lane-a/final": {
+      "checkId": "check-lane-a",
+      "boundaryId": "s3-conformance-catalog-lanes-a-c",
+      "phase": "final",
+      "batchId": "b76bfe39177e47a68a0158896771990df9b2957be1b9e5e22247e4dea030ab13",
+      "definitionHash": "e5eccff1f7c10c901203c41fdba9df6199626d3368e6541983b8389c953176fa",
+      "basisHash": "5d63dde34c5fb499d9b272e07e7ea43d7aec8ec8eeb97783736770b909fb3780",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 39,
+      "durationSeconds": 12.2488,
+      "recordedAt": "2026-10-07T01:45:59Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s3-conformance-catalog-lanes-a-c-final-01e6639809db.log",
+      "logSha256": "07df832bc070d9ac6167cbd0ecc38ca16a79f6df69585d5921f47750583dc864",
+      "inputsHash": "1b60fc4f8a8e82e6dbe0f111484d7c8f1488c1d1b74610b35e5030de4a2e554e"
+    },
+    "s3-conformance-catalog-lanes-a-c/check-lane-c-software/final": {
+      "checkId": "check-lane-c-software",
+      "boundaryId": "s3-conformance-catalog-lanes-a-c",
+      "phase": "final",
+      "batchId": "b76bfe39177e47a68a0158896771990df9b2957be1b9e5e22247e4dea030ab13",
+      "definitionHash": "698cee1a2dcebfd219b5cd351bf6f036c7e106989449953e9440ec1e608522a0",
+      "basisHash": "43b75bd0dd97bb94c0ce0a70c0bb6aa70f96520c2902f4c0bb334e8f010b4ed9",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 77,
+      "durationSeconds": 28.3391,
+      "recordedAt": "2026-10-07T01:46:27Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s3-conformance-catalog-lanes-a-c-final-171d6cdd47d9.log",
+      "logSha256": "108ae557afc86eadd593600d8437e19c4eb18f8ed04cc98a8618e577c94ebba3",
+      "inputsHash": "02cea228d1995c27599948254fab11e14dcfe90f437db3bd54d00d69f3671648"
+    },
+    "s3-conformance-catalog-lanes-a-c/check-observation-fidelity/final": {
+      "checkId": "check-observation-fidelity",
+      "boundaryId": "s3-conformance-catalog-lanes-a-c",
+      "phase": "final",
+      "batchId": "b76bfe39177e47a68a0158896771990df9b2957be1b9e5e22247e4dea030ab13",
+      "definitionHash": "bd9c6511c9a31d00e9dceb4b3069a0c6648c991b8f8e8fd622833c53cdb8931d",
+      "basisHash": "456d4d4d44f32b530489c637170f59cbcf4a7cb47663263c0a27db1656d0b15a",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 9.7047,
+      "recordedAt": "2026-10-07T01:46:37Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s3-conformance-catalog-lanes-a-c-final-b33531b23402.log",
+      "logSha256": "8b149c5fea2e79502c78144a49286b1732d54caf6e2ebdebed4fc9756e0e7458",
+      "inputsHash": "c70fa1b0028298fc97c0da2a78dfb78b480b138f3f7eb8c1fff1227dc8636ca3"
     }
   },
   "reviews": {
@@ -685,6 +843,367 @@
         "S2-F2"
       ],
       "recordedAt": "2026-10-07T00:43:31Z"
+    },
+    "s3-conformance-catalog-lanes-a-c": {
+      "reviewerId": "reviewer-s3-independent",
+      "snapshotId": "955af6be77b324cf7bc999b4f5985d599d504baecd7fdb909321f93b544fc505",
+      "criterionIds": [
+        "PIX-1",
+        "PIX-2",
+        "SCENE-1",
+        "SCENE-2",
+        "A-1",
+        "A-2",
+        "C-1",
+        "C-2",
+        "LOCATE-2"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LOCATE-2"
+          ],
+          "sha256": "096d3dcfd16cbe341dd82d39dc706c7504d9f1abea8bd3a7eabba455cd96805b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LOCATE-2"
+          ],
+          "sha256": "526c76efae756372ff8134682ebaf0c8d9ecd049ca8f45cdb3af1ae5f44b7d51"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/element.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LOCATE-2"
+          ],
+          "sha256": "5f9ee29e01e6f9b6aa027b4b662ae8fdb4e5a952559a4dfbad9fad2cf1c55392"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/platform/test/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LOCATE-2"
+          ],
+          "sha256": "83d7b9bca7c01dfc0d59c0dfa1ab40961824c1b1a94475125927fc2114c487fe"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/app/test_context.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LOCATE-2"
+          ],
+          "sha256": "3c069acce9f5389fb611f27381e73a1a7afd83c71c640d51cc49a5c73171379d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/test_platform_semantics_fidelity.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LOCATE-2"
+          ],
+          "sha256": "d592d8e7e7f19e2d544cfa5d246ead286fe33155e08e8b87377f8d563a3c7be7"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/probe.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PIX-1",
+            "C-1"
+          ],
+          "sha256": "a1d08c86e70a2c782a59c3ea7fe4d049c79b8b018a7edbfb12b5b0d41a9e4ea5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/compare.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PIX-1",
+            "PIX-2",
+            "C-1"
+          ],
+          "sha256": "f843074a7dcff9ea9f6b3b311a4502ba3ad07c59fbca3f86747fb9d07ee413b9"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/backend.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PIX-1",
+            "C-1",
+            "C-2"
+          ],
+          "sha256": "a6a888ba1eeca169bed21d0f83cfe4ebef5c18a26c25eb60fdac825d3cd5069a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/report.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PIX-1"
+          ],
+          "sha256": "fcc804b68b25d09302ab5497d18258cf40db1da39fc4a76f6688ba268382fba3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "PIX-2",
+            "SCENE-2"
+          ],
+          "sha256": "c3233a3a86fa5ff5f52a0281df445ea3438b3b3d8f3914c273eae5e43547dad6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "PIX-2",
+            "SCENE-2"
+          ],
+          "sha256": "0421b88ec1002a30581f6104302dd04f0655ad3af29382b0cd78955b29d7b725"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/gpux_conformance.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SCENE-1",
+            "SCENE-2"
+          ],
+          "sha256": "2816feb32a760abc7a04258d7ed83e0f6f32d3abded110ba77c2835add08e230"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scene.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SCENE-1",
+            "SCENE-2",
+            "A-1",
+            "C-1"
+          ],
+          "sha256": "bbb050e186f0e21c0d1cf1b13d8b4f562fefbcc5b45a57e08edbc3dbf30c9dc2"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scenes/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SCENE-1",
+            "SCENE-2"
+          ],
+          "sha256": "b61d95a1dc09c45e452fc97ee59eba74dd5a6271dae5972f550a93543ebe8790"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scenes/layout.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SCENE-1",
+            "A-1",
+            "C-1"
+          ],
+          "sha256": "8caaff9cd76b9e2c78d58d088dcb4728c96586d337eaa946b10148dc9f7408c2"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scenes/text.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SCENE-1",
+            "A-1",
+            "C-1"
+          ],
+          "sha256": "f47894d0d1a93810bc018f9049d2f2a31e8d8a0b326efecdab4206d4ff7cb6df"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scenes/editing.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SCENE-1",
+            "A-1"
+          ],
+          "sha256": "d63516fc588cb8ba484c391382558e517edfe887dbe348218156a87fcd70d9fd"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scenes/lists.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SCENE-1",
+            "A-1"
+          ],
+          "sha256": "e9ded139148e17d45616f6777bb5c60a17e7ad9c2a662aaefe48a9ca0f207a24"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scenes/scrolling.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SCENE-1",
+            "A-1"
+          ],
+          "sha256": "250ba24f06df27e97a9abf2d127ae3ac6095e097fbb692cad82a837cfbeeb1ef"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scenes/focus.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SCENE-1",
+            "A-1"
+          ],
+          "sha256": "ebc23073c668298fc054afb846b55bd93a83188c2c5ba1eddddf674d2facc968"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scenes/interaction.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SCENE-1",
+            "A-1",
+            "C-1"
+          ],
+          "sha256": "03325111fa9d5b6ae546b9bb8a8ca3c82df42c1debc68c54d7e6b6aabdb52a7d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scenes/paint.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SCENE-1",
+            "C-1"
+          ],
+          "sha256": "260985f9e077ad9309dcbb5845257c371145ccc96784ce48b96453b2ef063002"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scenes/effects.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SCENE-1",
+            "A-1",
+            "C-1"
+          ],
+          "sha256": "87f0a8be26369b2a4914177a0b61fd6d26f47a6d1b743b91c6443ecbf8f9c91a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scenes/semantics.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SCENE-1",
+            "A-1"
+          ],
+          "sha256": "3abb1292d14aeeb6ec79bbfc85e6cfc67fdc1524b0bcf3923f67836b156e6579"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/host.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SCENE-2",
+            "A-1",
+            "C-1"
+          ],
+          "sha256": "78bf790fe71664add6ce7847302880f8bcaa047cb4d3985fcbfcf6b2b2cd4440"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/test_host.rs",
+          "kind": "source",
+          "criterionIds": [
+            "A-1",
+            "C-1"
+          ],
+          "sha256": "a287465b1b7015cff9e93834ad8f0d109b6ad6626b3db4dbb39d94d046d1c3d4"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/ci.yml",
+          "kind": "source",
+          "criterionIds": [
+            "SCENE-2",
+            "A-2",
+            "C-2"
+          ],
+          "sha256": "4aa3a1e3ed136be9a1671d058059c5badfc37369cc96274f152af6e41c611bf0"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/image_compare.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PIX-1"
+          ],
+          "sha256": "8e4b9eb4a3e4f88fb4f0997ecf92c3b20c54e108cebe71c0f485e515d8e4bc10"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/golden_policy.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PIX-2"
+          ],
+          "sha256": "c298cfff99d73f0aff6c9f9a5a682bcb8e1a51f0ef2001e0663be2ffbbe58e58"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/catalog_coverage.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SCENE-1",
+            "SCENE-2"
+          ],
+          "sha256": "63f7ccc8b75c2349b6c9abeeb05c403aff6b4a24eebca9190798bfe82cc1c4c2"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_a.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SCENE-2",
+            "A-1",
+            "A-2"
+          ],
+          "sha256": "1762d97646a036e3c3813f58fc595ff0ba871286449a54f6d5106f3a02ee3c37"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SCENE-2",
+            "C-1",
+            "C-2"
+          ],
+          "sha256": "40eff4cb0c4b79e29eaa9537b3e9c59e2ab63a376eb8a77ec5bce6a21e3e371b"
+        }
+      ],
+      "summaryMarkdown": "Passed at snapshot 955af6be, after the repairs 714fb48..7a86fcc. All automated criteria hold on inspection and their checks pass. Repairs since the first pass:\n\n- **S3-F2:** concurrency cancellation for PR runs.\n- **S3-F3:** fixed and sticky visual bounds reach AccessKit, with a Click test.\n- **S3-F4:** a per-scene golden tolerance override with a required reason.\n- **S3-F5:** the crossfade, the active style, and double and triple clicks are observed.\n- **S3-F6:** Zed's `#[inline(never)]` is back on `prepare_element_id`.\n\n**S3-F1 (A-2, C-2)** is resolved by run https://github.com/rayx-ui/Gpux/actions/runs/37590783697 at HEAD 7a86fcc. On ubuntu-24.04 and windows-2025, the `test`, `lane A`, `lane C (lavapipe)` and `lane C (warp)` jobs are green, with backend assertions, no golden updates and the committed lavapipe goldens unchanged. macOS (`check (macos-15)`, also failing on main) and the metal goldens remain deferred to the sibling epic, as the criteria state.",
+      "findingIds": [
+        "S3-F1",
+        "S3-F2",
+        "S3-F3",
+        "S3-F4",
+        "S3-F5",
+        "S3-F6"
+      ],
+      "recordedAt": "2026-10-07T08:26:06Z"
     }
   },
   "checkpoints": {
@@ -703,6 +1222,14 @@
       },
       "reviewHash": "8fb22f127179a3406bc13688f9bcd6066ea45e59af3d0b1975fb9caf68cbb6b6",
       "recordedAt": "2026-10-07T00:43:46Z"
+    },
+    "s3-conformance-catalog-lanes-a-c": {
+      "snapshotId": "955af6be77b324cf7bc999b4f5985d599d504baecd7fdb909321f93b544fc505",
+      "commits": {
+        "gpux": "7a86fccb7623ce6792a5744a7e73b0424979cd19"
+      },
+      "reviewHash": "aeca9b89e2a0bde236c057648d7a0a27c11874ab79481d43ceebe750736c0d01",
+      "recordedAt": "2026-10-07T08:26:22Z"
     }
   },
   "findings": [
@@ -819,9 +1346,176 @@
         }
       ],
       "boundaryId": "s2-wgpu-headless-renderer"
+    },
+    {
+      "id": "S3-F1",
+      "boundaryId": "s3-conformance-catalog-lanes-a-c",
+      "criterionIds": [
+        "A-2",
+        "C-2"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**A-2 and C-2 are unproved: no workflow run exists.**\n\n- **Expected:** both manual criteria are \"verified by a green workflow run\". t12 also says the `lavapipe` goldens come from the first CI run's artifacts.\n- **Observed:** the branch has not been pushed, so no run exists. The `.github/workflows/ci.yml` shape looks right:\n  - pinned `ubuntu-24.04`, `windows-2025` and `macos-15`;\n  - a `test` matrix on Linux and Windows;\n  - `lane-a` on Linux and Windows;\n  - `lane-c` on lavapipe (through `VK_DRIVER_FILES`) and on WARP (`GPUX_WGPU_ADAPTER=software`), with `GPUX_EXPECT_BACKEND`, a `failure()` upload of `artifacts-temp/testkit/**`, and a `workflow_dispatch` golden regeneration;\n  - macOS entries left as comments until the sibling epic lands.\n\n  The only Linux evidence is a local WSL Ubuntu 24.04 rehearsal (Mesa 25.2.8-0ubuntu0.24.04.4). It covers lane A (39), `catalog_coverage`, `image_compare`, `golden_policy`, and lane C (77 with `GPUX_EXPECT_BACKEND=lavapipe`). The committed lavapipe goldens were written by that same run's update pass and then verified against themselves. That proves they are deterministic on that machine, not that they match the hosted runner, whose CPU and llvmpipe code generation differ. The new `test (ubuntu-24.04)` job, which runs the workspace tests on Linux for the first time, was not rehearsed at all.\n- **Repair:**\n  1. Get the owner's approval to push the branch or open a PR.\n  2. Obtain a run in which `test (ubuntu-24.04)`, `test (windows-2025)`, `lane A (ubuntu-24.04)`, `lane A (windows-2025)`, `lane C (lavapipe)` and `lane C (warp)` are green.\n  3. If `lane C (lavapipe)` fails on golden diffs, dispatch the workflow with `update-goldens`. Commit the uploaded `lane-c-lavapipe-goldens` artifact, which satisfies t12's \"goldens from CI artifacts\", and rerun until green.\n  4. Record the run URL as the A-2 and C-2 evidence.\n\n  Two items stay out of scope and are not defects of this sprint:\n  - the `check (macos-15)` job was already red before this sprint, because the macOS workspace does not compile;\n  - the macOS entries and the `metal` goldens wait for `macos-only-metal-port-and-ci-repair` (M-2).\n\n*Re-review (snapshot 7c3da758):* the finding is unchanged. The branch is still unpushed. The repaired `hover-active` and `effects-transition-frame` scenes now have held-button and mid-crossfade probes. Lane C has run them on WARP only, so the lavapipe CI run must also prove them.\n\n*Verified (snapshot 955af6be):* I checked both runs with `gh run view`.\n\n**Run https://github.com/rayx-ui/Gpux/actions/runs/37590783697** is a `workflow_dispatch` on `refactor/gpux-cross-platform-test-lanes` at 7a86fcc, which is the current HEAD. These jobs succeeded:\n\n- `test (ubuntu-24.04)`: 679 tests in the main binary.\n- `test (windows-2025)`: 665 tests in the main binary.\n- `lane A (ubuntu-24.04)` and `lane A (windows-2025)`: lane_a 39, image_compare 13, golden_policy 4 and catalog_coverage 4 on each.\n- `lane C (lavapipe)`: 77 tests, with Mesa `mesa-vulkan-drivers 25.2.8-0ubuntu0.24.04.4`, `VK_DRIVER_FILES=/usr/share/vulkan/icd.d/lvp_icd.json`, `GPUX_EXPECT_BACKEND=lavapipe` and `GPUX_WGPU_ADAPTER=software`.\n- `lane C (warp)`: 77 tests, with `GPUX_EXPECT_BACKEND=warp`.\n- `check` (ubuntu-24.04, windows-2025) and `package`.\n\nIn both lane C jobs `GPUX_UPDATE_SNAPSHOTS` was empty and the `Upload regenerated goldens` step was skipped. So the jobs compared against the committed goldens rather than rewriting them.\n\n**Run https://github.com/rayx-ui/Gpux/actions/runs/37587678696** at 673c646 already passed both lane C jobs. The committed lavapipe goldens, from the WSL rehearsal on the same Mesa build, match the hosted runner without regeneration, which meets t12's intent.\n\n**Workflow fix:** the earlier `test (ubuntu-24.04)` disk exhaustion is fixed by `CARGO_PROFILE_DEV_DEBUG: line-tables-only` and a Linux disk-cleanup step (7a86fcc). Both are workflow-only.\n\n**Out of scope:** the run's overall conclusion is failure only because of `check (macos-15)` (`adopt_raw_pid` E0599 in the macOS platform crate). It fails identically on main (runs 37547137261, 37500248162 and 37487767802, as `check (macos-latest)`). The macOS entries of A-2/C-2 and the `metal` goldens are deferred to `macos-only-metal-port-and-ci-repair` (M-2), as the criteria and t12 state.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/ci.yml",
+          "symbol": "https://github.com/rayx-ui/Gpux/actions/runs/37590783697"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_a.rs",
+          "symbol": "https://github.com/rayx-ui/Gpux/actions/runs/37590783697"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c.rs",
+          "symbol": "https://github.com/rayx-ui/Gpux/actions/runs/37590783697"
+        }
+      ]
+    },
+    {
+      "id": "S3-F2",
+      "boundaryId": "s3-conformance-catalog-lanes-a-c",
+      "criterionIds": [
+        "A-2",
+        "C-2"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**PR runs do not cancel superseded runs.**\n\n- **Expected:** `d-ci` says \"PR runs cancel superseded runs\". This sprint adds two three-OS job families plus a 77-test software-rasterizer lane, so overlapping PR pushes queue redundant runner time.\n- **Observed:** `.github/workflows/ci.yml` has no `concurrency` block.\n- **Repair:** add a top-level `concurrency:` with `group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}` and `cancel-in-progress: ${{ github.event_name == 'pull_request' }}`. Pushes to `main` and manual golden dispatches then still run to completion.\n\n*Verified (733ce90):* `ci.yml` now has a top-level `concurrency` block.\n- The group is `${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}`.\n- `cancel-in-progress` is `${{ github.event_name == 'pull_request' }}`, so runs on `main` and manual dispatches always finish.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/ci.yml",
+          "symbol": "concurrency"
+        }
+      ]
+    },
+    {
+      "id": "S3-F3",
+      "boundaryId": "s3-conformance-catalog-lanes-a-c",
+      "criterionIds": [
+        "LOCATE-2",
+        "A-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Accessibility bounds of fixed and sticky divs still diverge from paint and hit testing (scope expansion).**\n\n- **Expected:** the intent of `d-observation-fidelity` is that what tests observe matches what the window paints and hit-tests. Lane A claims to observe the accessibility tree (A-1), so it should also report fixed and sticky elements at their visual bounds.\n- **Observed:** the LOCATE-2 fix only corrects devtools nodes (`Window::set_devtools_visual_bounds`, consumed in `record_devtools_element`). The `Drawable::prepaint` code in `crates/gpui/src/element.rs` takes `window.layout_bounds(layout_id)` before the element prepaints. It writes those bounds to the AccessKit node (`node.set_bounds`) and to `window.a11y.node_bounds`, and nothing corrects them for `Position::Fixed | Position::Sticky`. The AccessKit `Click` fallback in `window.rs` dispatches at `node_bounds.center()`. A scrolled fixed or stuck sticky control is therefore reported to assistive technology at its moved layout position, and an AT click misses it. This is the same defect LOCATE-2 fixed for locators, still present in the accessibility path.\n- **Repair:**\n  1. Apply the positioned visual bounds to the AccessKit node bounds and `a11y.node_bounds` of fixed and sticky elements, for example by having the same `Interactivity::prepaint` hook update the pushed a11y node.\n  2. Add a case to `crates/gpui/tests/test_platform_semantics_fidelity.rs`. After a scroll, the recorded tree update must carry the fixed badge's visual bounds, and `dispatch_accessibility_action(Click)` on the scrolled fixed badge must reach it.\n  3. Amend LOCATE-2 or add a criterion for this behaviour.\n\n*Verified (982ad86):* `Interactivity::prepaint` reports the visual bounds through `Window::report_visual_bounds`.\n- Right after the element's own prepaint, `Drawable::prepaint` takes them with `take_visual_bounds`. They are still consumed within the same element, so nothing leaks across a `transact` rollback.\n- When the element pushed an a11y node, they overwrite `a11y.node_bounds` and the still-current AccessKit node's bounds through `current_node_mut`. That node is popped later in the same function.\n- They also go to the devtools node; paint and hit testing are unchanged.\n- The new test asserts the scrolled fixed badge's AccessKit bounds (170,40)-(210,60) and that an AccessKit `Click` reaches it.\n- LOCATE-2, `d-observation-fidelity`, t30 and `check-observation-fidelity` were amended (4 tests), and the check passes at this snapshot.\n\nThe repair moved an upstream attribute in `element.rs`; that regression is tracked separately as S3-F6.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/element.rs",
+          "symbol": "Drawable::prepaint"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "symbol": "Window::take_visual_bounds"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/test_platform_semantics_fidelity.rs",
+          "symbol": "fixed_elements_expose_where_they_paint_to_accessibility"
+        }
+      ]
+    },
+    {
+      "id": "S3-F4",
+      "boundaryId": "s3-conformance-catalog-lanes-a-c",
+      "criterionIds": [
+        "PIX-1",
+        "C-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Golden tolerances cannot be overridden per scene.**\n\n- **Expected:** `d-compare` says the per-channel tolerance and the maximum differing-pixel ratio are \"both overridable per scene with a reason\".\n- **Observed:** `SceneSpec` has no compare override. The `Step::Golden` step in `test_host.rs` always uses the host-wide `Goldens::options` (±3, 0.1%). Only probes carry per-step tolerances. When a hosted-runner rasterizer differs slightly on one scene (for example the blurred shadow in `paint-shadows-gradients`), the only remedy is loosening every golden.\n- **Repair:**\n  1. Add an optional per-scene override carrying `CompareOptions` and a mandatory reason, either as a `SceneSpec` field or as a `Step::GoldenWith(CompareOptions, &'static str)`, and honour it in `TestHost`.\n  2. Have `catalog_coverage` reject an override without a reason.\n  3. Cover the override path in `image_compare`.\n\n*Verified (a61f8d2):* the per-scene override exists.\n- `GoldenTolerance` holds the channel tolerance, the ratio and a required reason. `validate()` rejects a blank reason and a ratio outside 0..=1, NaN included.\n- `Goldens::check_with` compares under the given options.\n- `Step::GoldenWithin` is validated and applied by `TestHost`, and `is_golden` keeps the catalog's golden-flag check consistent.\n- `catalog_coverage` rejects invalid overrides, and `image_compare` covers both the default rejection and the overridden match.\n\nNo scene uses an override yet, which is fine.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/compare.rs",
+          "symbol": "GoldenTolerance"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/test_host.rs",
+          "symbol": "TestHost::step"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/image_compare.rs",
+          "symbol": "scenes_override_the_golden_tolerance_with_a_reason"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/catalog_coverage.rs",
+          "symbol": "every_scene_declares_complete_metadata"
+        }
+      ]
+    },
+    {
+      "id": "S3-F5",
+      "boundaryId": "s3-conformance-catalog-lanes-a-c",
+      "criterionIds": [
+        "SCENE-1",
+        "A-1",
+        "C-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Some claimed scene coverage is never observed, and some comments contradict their scripts.**\n\n- **Expected:** each scene observes the behaviour of the areas it declares, and its comments describe its script.\n- **Observed:**\n  - `effects-transition-frame` checks only the end state. The `page 1` status appears immediately, and the probe runs after 300 ms. An instant swap with no crossfade would pass, so `Area::TransitionFrame` is not proven to transition.\n  - `hover-active` declares `Area::HoverActive`, but `Click` sends down and up together, so the `.active(...)` style (blue) is never observed.\n  - In `editable-text`, the comment says \"A double click selects a word; typing replaces it\", but the script does `ClickCount(textbox, 1)` followed by home and shift-right. No scene uses `ClickCount` with a count of 2 or 3, `KeyUp` or `TouchTap`, so the multi-click and key-up simulation of `d-input-sim` and the double- and triple-click selection in `EditableTextState::pointer_down` go unexercised.\n  - In `scroll-scrollbar`, the comment says the thumb is dragged \"30 px down\", but the drag is 45 px: from the thumb center at y 35 to the viewport center at y 80. The expected offset 450 confirms 45 px.\n- **Repair:**\n  - Probe mid-crossfade in pixel lanes, for example at 100 ms the region is a red-blue blend, neither pure color.\n  - Add press and release steps, or a held-button variant, and probe the active color while pressed.\n  - Make the editing step a real double click on a word that asserts `selection 0..3`, and add a key-up or tap use if those steps stay in `Step`.\n  - Correct both comments.\n\n*Verified (a61f8d2):*\n- **Crossfade:** `effects-transition-frame` captures the old page, asserts a change at 100 ms and captures `mid`, then requires blue at the end and a change since `mid`. An instant swap leaves `mid` equal to the end state and now fails.\n- **Active style:** `hover-active` uses `Press` and `Release`. The status reads `clicks 0` with the blue active colour while the button is held, then `clicks 1` and green after release. A `TouchTap` follows (`clicks 2`).\n- **Multi-click:** `editable-text` does real double (`selection 0..3`, then `Eve` replaces the word) and triple (`selection 0..10`) clicks through `ClickCountAt`, and keeps the shift-arrow selection.\n- **Comment:** the `scroll-scrollbar` comment now matches the 45 px drag.\n\nLane A (39) and lane C on WARP (77) pass at this snapshot. `Step::KeyUp` is still unused by any scene; that is acceptable, because the repair asked for a key-up or a tap and the tap was added.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scenes/effects.rs",
+          "symbol": "TRANSITION_FRAME"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scenes/focus.rs",
+          "symbol": "HOVER_ACTIVE"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scenes/editing.rs",
+          "symbol": "EDITABLE"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scenes/scrolling.rs",
+          "symbol": "SCROLLBAR"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/test_host.rs",
+          "symbol": "TestHost::step"
+        }
+      ]
+    },
+    {
+      "id": "S3-F6",
+      "boundaryId": "s3-conformance-catalog-lanes-a-c",
+      "criterionIds": [
+        "LOCATE-2"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**The S3-F3 repair moved Zed's `#[inline(never)]` attribute from `prepare_element_id` to the new `a11y_rect`.**\n\n- **Expected:** upstream Zed code keeps its attributes, so imports stay diffable and codegen is unchanged. The new helper is a trivial conversion that should stay inlinable.\n- **Observed:** in `crates/gpui/src/element.rs`, the new `fn a11y_rect` and its doc comment were inserted between the existing `#[inline(never)]` and `fn prepare_element_id`. This is the Zed import of 25dbe34; at 714fb48 the attribute sat directly on `prepare_element_id`. It now applies to `a11y_rect`, which is never inlined, while `prepare_element_id` lost it. A later upstream import will show a spurious diff there, and the hot per-element path's codegen changes silently.\n- **Repair:** move `a11y_rect` (with its doc comment) after `prepare_element_id`, or above the attribute, so that `#[inline(never)]` again directly precedes `fn prepare_element_id`. No test change is needed; rerun `check-observation-fidelity`.\n\n*Verified (673c646):* `a11y_rect` and its doc comment now sit above the attribute, and `#[inline(never)]` again directly precedes `fn prepare_element_id`. The diff of `element.rs` against 714fb48 shows the attribute only as unchanged context. `check-observation-fidelity` reran at snapshot b76bfe39 (batch b76bfe39, 4 tests, passed).",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/element.rs",
+          "symbol": "prepare_element_id"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/test_platform_semantics_fidelity.rs"
+        }
+      ]
     }
   ],
-  "handoffMarkdown": "",
+  "handoffMarkdown": "Run 37587678696: lane A/C (lavapipe, warp), test (windows), package, check (ubuntu, windows) green; test (ubuntu) ran out of disk linking workspace tests. Fix: CARGO_PROFILE_DEV_DEBUG=line-tables-only and a Linux free-disk step.",
   "protectedPaths": {
     "gpux": {
       "gpux:.agentx/experiments/**": "32805d33f7172446b7e9cec5989ba59bd78648a57efc98bd96bbcac8fcac16a6",

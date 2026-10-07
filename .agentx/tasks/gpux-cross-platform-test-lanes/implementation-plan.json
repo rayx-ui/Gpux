@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-cross-platform-test-lanes",
-  "revision": 5,
+  "revision": 7,
   "title": "Gpux-owned test lanes for every platform",
   "validationMode": "sprint",
   "repositories": [
@@ -860,6 +860,37 @@
         "exitCode": 0
       },
       "timeoutSeconds": 7200
+    },
+    {
+      "id": "check-observation-fidelity",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "LOCATE-2"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/test_platform_semantics_fidelity.rs`. Fixed and sticky snapshot bounds with a locator click, AccessKit bounds and Click of a scrolled fixed element, and recorded accessibility tree updates.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "test_platform_semantics_fidelity"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "crates/gpui/src/window.rs",
+        "crates/gpui/src/element.rs",
+        "crates/gpui/src/elements/div.rs",
+        "crates/gpui/src/platform/test/**",
+        "crates/gpui/src/app/test_context.rs",
+        "crates/gpui/tests/test_platform_semantics_fidelity.rs",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
     }
   ],
   "finalCheckIds": [
@@ -1234,6 +1265,21 @@
               "repositoryId": "gpux",
               "path": ".github/workflows/ci.yml"
             }
+          ]
+        },
+        {
+          "id": "t30-observation-fidelity",
+          "title": "Devtools bounds of positioned divs and recorded accessibility updates",
+          "descriptionMarkdown": "Finding-driven repair from the lane A suite and its review (LOCATE-2):\n- fixed and sticky divs report their visual bounds to devtools snapshots and AccessKit nodes, so locators and assistive-technology clicks reach them where they paint;\n- `TestWindow` records AccessKit tree updates, drained by `take_accessibility_updates`.\n\n**Test group:** `crates/gpui/tests/test_platform_semantics_fidelity.rs`.",
+          "criterionIds": [
+            "LOCATE-2"
+          ],
+          "designIds": [
+            "d-observation-fidelity"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-observation-fidelity"
           ]
         }
       ]
