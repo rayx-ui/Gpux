@@ -142,11 +142,11 @@ mod tests {
         Process::new(child.id() as libc::pid_t, kill_on_drop)
     }
 
-    /// Whether `pid` is gone and reaped: `waitpid` no longer knows it as our child.
+    /// Whether `pid` is gone and reaped. A zombie still answers `kill(pid, 0)`; only a reaped
+    /// pid fails with `ESRCH`. Unlike `waitpid`, the probe never reaps the child itself.
     fn reaped(pid: libc::pid_t) -> bool {
-        let mut raw = 0;
-        let result = unsafe { libc::waitpid(pid, &mut raw, libc::WNOHANG) };
-        result == -1 && io::Error::last_os_error().raw_os_error() == Some(libc::ECHILD)
+        let result = unsafe { libc::kill(pid, 0) };
+        result == -1 && io::Error::last_os_error().raw_os_error() == Some(libc::ESRCH)
     }
 
     fn eventually(mut condition: impl FnMut() -> bool) -> bool {
