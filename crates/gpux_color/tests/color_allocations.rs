@@ -19,11 +19,11 @@ fn warm_cached_reads_allocate_zero_times() {
         }
         let stats = dhat::HeapStats::get();
 
-        // The global allocator also counts the test harness's own threads, which allocate a
-        // handful of blocks now and then. A read that allocated would allocate at least once
-        // per call, `2 * READS` times in all.
+        // The global allocator also counts the test harness's own threads, which have been
+        // seen allocating two blocks while this loop runs. A read that allocated would do so at
+        // least once per call, and a cache that grew would reallocate a dozen times or more.
         assert!(
-            stats.total_blocks < READS / 100,
+            stats.total_blocks <= 4,
             "warm conversion cache reads must not allocate, but {} blocks ({} bytes) were \
              allocated over {} reads",
             stats.total_blocks,
