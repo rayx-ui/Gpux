@@ -6,6 +6,9 @@ const baseURL = process.env.GPUX_BASE_URL ?? 'http://127.0.0.1:8000/';
 // Raw output stays in the repository's ignored artifacts folder.
 const artifacts = '../artifacts-temp/testkit/b';
 const ci = !!process.env.CI;
+// gpui_web drives the experimental HTML-in-canvas API only on pages that opt into HTML islands;
+// enabling it lets the island specs exercise that path.
+const htmlInCanvas = '--enable-blink-features=CanvasDrawElement';
 
 export default defineConfig({
   testDir: './specs',
@@ -34,7 +37,7 @@ export default defineConfig({
       name: 'local-gpu',
       use: {
         channel: 'chromium',
-        launchOptions: { args: ['--enable-unsafe-webgpu'] },
+        launchOptions: { args: ['--enable-unsafe-webgpu', htmlInCanvas] },
       },
     },
     {
@@ -48,6 +51,7 @@ export default defineConfig({
             '--enable-features=Vulkan,CDPScreenshotNewSurface',
             '--use-angle=swiftshader',
             '--use-vulkan=swiftshader',
+            htmlInCanvas,
           ],
         },
       },
@@ -57,7 +61,7 @@ export default defineConfig({
       name: 'windows-software',
       use: {
         channel: 'chromium',
-        launchOptions: { args: ['--use-angle=d3d11-warp', '--enable-unsafe-webgpu'] },
+        launchOptions: { args: ['--use-angle=d3d11-warp', '--enable-unsafe-webgpu', htmlInCanvas] },
       },
     },
   ],

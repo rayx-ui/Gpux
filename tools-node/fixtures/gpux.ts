@@ -31,11 +31,37 @@ export interface Probe {
 export const CONSOLE_ALLOW_LIST: RegExp[] = [];
 
 export interface OpenOptions {
-  /** Forces a backend; specs expect WebGPU otherwise. */
+  /** Forces a backend (`?backend=`). */
   backend?: Backend;
+  /** The backend the scene must report: the forced one, WebGPU otherwise. */
+  expectBackend?: Backend;
   /** Extra URL parameters, such as `gpux-html-island`. */
   params?: Record<string, string>;
 }
+
+/**
+ * Dawn reports validation problems as console warnings; any of these fails the spec, as does an
+ * uncaptured WebGPU error (see [`WEBGPU_ERROR_HOOK`]).
+ */
+const WEBGPU_VALIDATION = /While (calling|validating|encoding|finishing)|\[Invalid \w+|GPUValidationError|WebGPU uncaptured error/;
+
+/** Records every uncaptured error of every WebGPU device the page creates. */
+const WEBGPU_ERROR_HOOK = () => {
+  const errors: string[] = [];
+  (globalThis as unknown as { __gpuxWebGpuErrors: string[] }).__gpuxWebGpuErrors = errors;
+  const adapter = (globalThis as unknown as { GPUAdapter?: { prototype: { requestDevice: Function } } })
+    .GPUAdapter;
+  if (!adapter) return;
+  const requestDevice = adapter.prototype.requestDevice;
+  adapter.prototype.requestDevice = async function (this: unknown, ...args: unknown[]) {
+    const device = await requestDevice.apply(this, args);
+    device.addEventListener('uncapturederror', (event: { error: { message: string } }) => {
+      errors.push(event.error.message);
+      console.error(`WebGPU uncaptured error: ${event.error.message}`);
+    });
+    return device;
+  };
+};
 
 declare global {
   // eslint-disable-next-line no-var
@@ -66,14 +92,31 @@ export class Gpux {
 
   constructor(readonly page: Page) {
     page.on('console', (message) => {
-      if (message.type() !== 'error') return;
       const text = message.text();
-      if (!this.allowed.some((pattern) => pattern.test(text))) {
-        this.problems.push(`console error: ${text}`);
+      const failing =
+        message.type() === 'error' || (message.type() === 'warning' && WEBGPU_VALIDATION.test(text));
+      if (failing && !this.allowed.some((pattern) => pattern.test(text))) {
+        this.problems.push(`console ${message.type()}: ${text}`);
       }
     });
     page.on('pageerror', (error) => this.problems.push(`uncaught exception: ${error.message}`));
     page.on('crash', () => this.problems.push('the page crashed'));
+  }
+
+  /** Installs the page hooks every spec runs with. */
+  async install(): Promise<void> {
+    await this.page.addInitScript(WEBGPU_ERROR_HOOK);
+  }
+
+  /** Calls an export of the loaded `web_host` module (its fixtures). */
+  async callExport<T>(name: string, ...args: unknown[]): Promise<T> {
+    return this.page.evaluate(
+      async ({ name, args }) => {
+        const module = (await import('/web_host.js')) as Record<string, (...args: unknown[]) => T>;
+        return module[name](...args);
+      },
+      { name, args },
+    );
   }
 
   /** Tolerates console errors matching `pattern` for the rest of the spec. */
@@ -94,7 +137,7 @@ export class Gpux {
     const error = await this.page.evaluate(() => globalThis.__gpuxConformance?.lastError);
     if (error) throw new Error(`${scene} did not start: ${error}`);
     await this.expectIsolated();
-    await this.expectBackend(options.backend ?? 'webgpu');
+    await this.expectBackend(options.expectBackend ?? options.backend ?? 'webgpu');
   }
 
   /** Runs scenes' scripts in-app (`?run=<scene>` or `?run=all`) and returns their result lines. */
@@ -243,6 +286,7 @@ export class Gpux {
 export const test = base.extend<{ gpux: Gpux }>({
   gpux: async ({ page }, use) => {
     const gpux = new Gpux(page);
+    await gpux.install();
     await use(gpux);
     expect(gpux.problems, 'the page reported problems').toEqual([]);
   },
