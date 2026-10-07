@@ -162,7 +162,9 @@ pub fn index_html() -> String {
 pub const CONFORMANCE_SVG: &str = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\"><rect width=\"24\" height=\"24\"/></svg>\n";
 
 /// The lane-B scenes, for specs that enumerate them: `[{"id": "...", "scales": [1, 2],
-/// "areas": ["LayoutFlex"]}, ...]`.
+/// "areas": ["LayoutFlex"], "clock": false}, ...]`. `clock` marks scenes whose scripts advance
+/// time: on the browser's real clock their assertions depend on how fast frames render, so
+/// software profiles skip them.
 pub fn catalog_json() -> String {
     let scenes: Vec<String> = gpux_conformance::CATALOG
         .iter()
@@ -174,8 +176,11 @@ pub fn catalog_json() -> String {
                 .iter()
                 .map(|area| format!("\"{area:?}\""))
                 .collect();
+            let clock = gpux_conformance::scene::flatten(&(scene.script)())
+                .iter()
+                .any(|step| matches!(step, gpux_conformance::Step::Advance(_)));
             format!(
-                "  {{\"id\": \"{}\", \"scales\": [{}], \"areas\": [{}]}}",
+                "  {{\"id\": \"{}\", \"scales\": [{}], \"areas\": [{}], \"clock\": {clock}}}",
                 scene.id,
                 scales.join(", "),
                 areas.join(", ")

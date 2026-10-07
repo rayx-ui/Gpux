@@ -73,11 +73,10 @@ test('a fast pan flings on after the finger lifts @pr', async ({ gpux, page }) =
   const { x, y } = await gpux.center('id=scroller');
   // 60 pixels in 64 milliseconds: well above the fling threshold.
   await pan(session, x, y, -60, 4);
+  await page.waitForTimeout(1_000);
   await gpux.frames();
-  const lifted = (await offset(page))!;
-  await page.waitForTimeout(500);
-  await gpux.frames();
-  expect(await offset(page)).toBeGreaterThan(lifted);
+  // Momentum carries the content beyond where the finger left it.
+  expect(await offset(page)).toBeGreaterThan(60);
 });
 
 test('a pan scrolls the element under it @pr', async ({ gpux, page }) => {

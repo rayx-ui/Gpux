@@ -387,7 +387,7 @@ fn the_build_uses_the_locked_wasm_bindgen_and_threaded_flags() {
     );
     assert!(
         catalog.contains(
-            "{\"id\": \"overlay-anchored\", \"scales\": [1, 2], \"areas\": [\"AnchoredOverlay\"]}"
+            "{\"id\": \"overlay-anchored\", \"scales\": [1, 2], \"areas\": [\"AnchoredOverlay\"], \"clock\": false}"
         ),
         "{catalog}"
     );

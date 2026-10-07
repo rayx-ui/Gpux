@@ -7,7 +7,12 @@ export interface CatalogScene {
   id: string;
   scales: number[];
   areas: string[];
+  /** The script advances time, so on the real clock it depends on frame rate. */
+  clock: boolean;
 }
+
+/** Profiles that render in software, where specs never assert timing. */
+export const SOFTWARE_PROFILES = ['ci-linux-swiftshader', 'windows-software'];
 
 /** The served build: `GPUX_DIST` from the testkit, or the default build folder. */
 export const dist =

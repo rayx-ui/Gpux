@@ -253,17 +253,15 @@ export class Gpux {
 
   /** Asserts the color at a position, within `tolerance` per channel. */
   async expectColor(x: number, y: number, color: Rgba, tolerance = 3): Promise<void> {
-    await expect
-      .poll(
-        async () => {
-          const actual = await this.probe(x, y);
-          return actual.every((channel, index) => Math.abs(channel - color[index]) <= tolerance)
-            ? 'match'
-            : `rgba(${actual.join(', ')})`;
-        },
-        { message: `the pixel at (${x}, ${y}) should be rgba(${color.join(', ')})`, timeout: 10_000 },
-      )
-      .toBe('match');
+    const deadline = Date.now() + 10_000;
+    let actual: Rgba;
+    do {
+      actual = await this.probe(x, y);
+      if (actual.every((channel, index) => Math.abs(channel - color[index]) <= tolerance)) return;
+    } while (Date.now() < deadline);
+    throw new Error(
+      `the pixel at (${x}, ${y}) is rgba(${actual.join(', ')}), expected rgba(${color.join(', ')}) within ${tolerance}`,
+    );
   }
 
   /** Asserts the scene's own first-frame probes. */

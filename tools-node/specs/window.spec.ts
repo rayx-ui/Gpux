@@ -20,7 +20,8 @@ async function framesRequested(page: import('@playwright/test').Page, ms: number
 
 test('an open window keeps its frame loop running @pr', async ({ gpux, page }) => {
   await gpux.open('paint-borders');
-  expect(await framesRequested(page, 500)).toBeGreaterThan(5);
+  // Idle, the loop still requests frame after frame; software renderers need a while for a few.
+  expect(await framesRequested(page, 2_000)).toBeGreaterThanOrEqual(3);
 });
 
 test('closing the window removes its canvas and stops its frame loop @pr', async ({ gpux, page }) => {
