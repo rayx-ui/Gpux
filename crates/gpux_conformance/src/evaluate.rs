@@ -159,6 +159,28 @@ pub fn pixel_step(
     pixel_step_within(step, frame, scale, captures, 0)
 }
 
+/// Checks that a screenshot of a whole screen shows `color` at the logical point (`x`, `y`) of a
+/// window at the screen's origin rendered at `scale`: a known pixel of the app, which system bars
+/// or an empty screen cannot pass for. Where the screen shows 16-bit color around the point, the
+/// probe allows its rounding ([`RGB565_ROUNDING`]).
+pub fn screen_shows(
+    frame: &RgbaImage,
+    scale: f32,
+    x: f32,
+    y: f32,
+    color: probe::Rgba,
+) -> anyhow::Result<()> {
+    let (px, py) = physical(scale, x, y);
+    let around = PixelRect::new(px.saturating_sub(4), py.saturating_sub(4), 9, 9);
+    let tolerance = if shows_rgb565(frame, around) {
+        RGB565_ROUNDING.max(DEFAULT_TOLERANCE)
+    } else {
+        DEFAULT_TOLERANCE
+    };
+    probe::color_at(frame, px, py, color, tolerance)?;
+    Ok(())
+}
+
 /// [`pixel_step`] with color comparisons allowing at least `color_tolerance` per channel: the
 /// rounding of a frame shown at a lower color depth ([`RGB565_ROUNDING`]).
 pub fn pixel_step_within(

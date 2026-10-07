@@ -6,11 +6,12 @@ use crate::android::{Screens, request, selected};
 use gpux::semantic_query::Query;
 use gpux::{
     AnyWindowHandle, AppContext as _, AsyncApp, Context, IntoElement, ParentElement as _, Render,
-    Styled as _, Subscription, Window, WindowOptions, div, rgb,
+    Styled as _, Subscription, Window, WindowOptions, div, px, rgb,
 };
 use gpux_conformance::{
-    SceneSpec,
+    SceneSpec, Step,
     app_host::{self, SceneFrame},
+    evaluate::screen_shows,
     report::{Outcome, ResultLine},
     scene,
 };
@@ -125,6 +126,38 @@ fn drew(frame: &image::RgbaImage) -> bool {
     frame.pixels().any(|pixel| pixel.0 != [0, 0, 0, 0])
 }
 
+/// The center and color of the first uniform region `scene`'s script probes: a known pixel of the
+/// scene to look for on the screen.
+fn known_pixel(scene: &SceneSpec) -> Option<(f32, f32, [u8; 4])> {
+    (scene.script)().into_iter().find_map(|step| match step {
+        Step::ProbeUniform((x, y, width, height), color, _) => {
+            Some((x + width / 2., y + height / 2., color))
+        }
+        _ => None,
+    })
+}
+
+fn scale_factor(cx: &mut AsyncApp, window: AnyWindowHandle) -> f32 {
+    window
+        .update(cx, |_, window, _| window.scale_factor())
+        .unwrap_or(1.)
+}
+
+/// Whether a capture failed because the window's surface is gone (the app is in the background).
+fn surface_lost(error: &anyhow::Error) -> bool {
+    format!("{error:#}").contains("unconfigured")
+}
+
+/// Captures the window's frame once, without retrying: whether its surface is there.
+fn capture_state(
+    cx: &mut AsyncApp,
+    window: AnyWindowHandle,
+) -> Option<anyhow::Result<image::RgbaImage>> {
+    window
+        .update(cx, |_, window, _| window.render_to_image())
+        .ok()
+}
+
 /// Startup: a window opens and shows its scene through the backend the device gave (Vulkan, or
 /// the GL fallback). The renderer's own readback is reported too: emulators' GL drivers read
 /// rendered textures back empty, which is why pixel steps read the screen.
@@ -150,21 +183,29 @@ pub async fn startup(cx: &mut AsyncApp, screens: &Screens) -> ResultLine {
         Ok(_) => "renderer readback empty on this device".into(),
         Err(error) => format!("no renderer readback: {error:#}"),
     };
+    let scale = scale_factor(cx, window);
     let screen = screens.capture(cx, window).await;
     close(cx, window);
+    let Some((x, y, color)) = known_pixel(scene) else {
+        return fail(ID, "paint-borders probes no uniform region to look for");
+    };
     match screen {
-        Ok(screen) if drew(&screen) && screen.pixels().any(|pixel| pixel.0 != [255; 4]) => pass(
-            ID,
-            format!(
-                "backend {backend}, showing the scene on a {}x{} screen; {readback}",
-                screen.width(),
-                screen.height()
+        Ok(screen) => match screen_shows(&screen, scale, x, y, color) {
+            Ok(()) => pass(
+                ID,
+                format!(
+                    "backend {backend}, showing the scene's border on a {}x{} screen; {readback}",
+                    screen.width(),
+                    screen.height()
+                ),
             ),
-        ),
-        Ok(_) => fail(
-            ID,
-            format!("backend {backend}, but the screen shows no scene; {readback}"),
-        ),
+            Err(error) => fail(
+                ID,
+                format!(
+                    "backend {backend}, but the screen does not show the scene ({error:#}); {readback}"
+                ),
+            ),
+        },
         Err(error) => fail(
             ID,
             format!("backend {backend}, but no screenshot arrived: {error:#}"),
@@ -272,7 +313,8 @@ async fn touch_swipe(
     result
 }
 
-/// Records the window's activation changes.
+/// Records the window's activation changes, over a white screen with a red block from logical
+/// (40, 40) to (160, 120): a known pixel to find on the screen after coming back.
 struct Lifecycle {
     changes: Vec<bool>,
     _activation: Subscription,
@@ -280,12 +322,24 @@ struct Lifecycle {
 
 impl Render for Lifecycle {
     fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-        div().size_full().bg(rgb(0xffffff)).child("lifecycle")
+        div().size_full().bg(rgb(0xffffff)).child(
+            div()
+                .absolute()
+                .top(px(40.))
+                .left(px(40.))
+                .w(px(120.))
+                .h(px(80.))
+                .bg(rgb(0xff0000)),
+        )
     }
 }
 
-/// Going to the background and coming back: the window deactivates and reactivates, and shows
-/// its scene again on the surface the system recreated.
+/// The center of the lifecycle window's red block, and its color.
+const BLOCK: (f32, f32, [u8; 4]) = (100., 80., [255, 0, 0, 255]);
+
+/// Going to the background and coming back: the system takes the window's surface away, the
+/// window deactivates and reactivates, the surface comes back, and the screen shows the window's
+/// block again.
 async fn lifecycle(cx: &mut AsyncApp, screens: &Screens) -> ResultLine {
     const ID: &str = "android-lifecycle";
     let window = match cx.open_window(WindowOptions::default(), |window, cx| {
@@ -309,6 +363,18 @@ async fn lifecycle(cx: &mut AsyncApp, screens: &Screens) -> ResultLine {
         return fail(ID, format!("the window never drew: {error:#}"));
     }
     request("background");
+    // In the background the system takes the surface away; capture then reports it unconfigured.
+    let start = Instant::now();
+    let mut lost = false;
+    while start.elapsed() < ACTION_TIMEOUT {
+        if let Some(Err(error)) = capture_state(cx, handle)
+            && surface_lost(&error)
+        {
+            lost = true;
+            break;
+        }
+        sleep(cx, Duration::from_millis(50)).await;
+    }
     let changes = |cx: &mut AsyncApp| {
         window
             .update(cx, |view, _, _| view.changes.clone())
@@ -319,22 +385,44 @@ async fn lifecycle(cx: &mut AsyncApp, screens: &Screens) -> ResultLine {
         sleep(cx, Duration::from_millis(50)).await;
     }
     let seen = changes(cx);
-    let result = if !seen.ends_with(&[false, true]) {
+    // Back in front, the surface comes back: capture works again.
+    let start = Instant::now();
+    let mut recovered = false;
+    while start.elapsed() < ACTION_TIMEOUT {
+        if let Some(Ok(_)) = capture_state(cx, handle) {
+            recovered = true;
+            break;
+        }
+        sleep(cx, Duration::from_millis(50)).await;
+    }
+    let result = if !lost {
+        fail(ID, "the surface was never taken away in the background")
+    } else if !seen.ends_with(&[false, true]) {
         fail(
             ID,
             format!("the window's activation went {seen:?}, not inactive then active"),
         )
+    } else if !recovered {
+        fail(ID, "the surface never came back after the app returned")
     } else {
+        let scale = scale_factor(cx, handle);
+        let (x, y, color) = BLOCK;
         match screens.capture(cx, handle).await {
-            Ok(screen) if screen.pixels().any(|pixel| pixel.0 != [255; 4]) => pass(
-                ID,
-                format!(
-                    "deactivated and reactivated, then showed its scene on a {}x{} screen",
-                    screen.width(),
-                    screen.height()
+            Ok(screen) => match screen_shows(&screen, scale, x, y, color) {
+                Ok(()) => pass(
+                    ID,
+                    format!(
+                        "lost and recovered the surface, deactivated and reactivated, then showed \
+                         the window's block on a {}x{} screen",
+                        screen.width(),
+                        screen.height()
+                    ),
                 ),
-            ),
-            Ok(_) => fail(ID, "came back, but the screen shows no scene"),
+                Err(error) => fail(
+                    ID,
+                    format!("came back, but the screen does not show the window ({error:#})"),
+                ),
+            },
             Err(error) => fail(
                 ID,
                 format!("came back, but no screenshot arrived: {error:#}"),
