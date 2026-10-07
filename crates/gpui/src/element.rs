@@ -1107,7 +1107,6 @@ impl Element for Empty {
     }
 }
 
-#[inline(never)]
 /// `bounds` in the physical pixels AccessKit expects.
 fn a11y_rect(bounds: Bounds<Pixels>, scale: f32) -> accesskit::Rect {
     accesskit::Rect {
@@ -1118,6 +1117,7 @@ fn a11y_rect(bounds: Bounds<Pixels>, scale: f32) -> accesskit::Rect {
     }
 }
 
+#[inline(never)]
 fn prepare_element_id(element_id: ElementId, window: &mut Window) -> GlobalElementId {
     window.element_id_stack.push(element_id);
     window.element_id_stack.global_id()
