@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-cross-platform-test-lanes",
-  "revision": 78,
+  "revision": 89,
   "planRevision": 10,
   "specHashes": {
     "requirements": "9551e4f8e69bda2f78f8574dc9fcdc11cdf8ecb6c190384fb9ba0687e07e0a6b",
@@ -191,14 +191,14 @@
       },
       "recordedAt": "2026-10-07T01:46:38Z"
     },
-    "63387f831b7cf6380b8e3037b9db4e62de296b65b3ace30cad926833e7852857": {
+    "b356e44277cccfdab61cf70c32a5baacab5c800dd3cdffdb5f3fbe578d3f055c": {
       "snapshot": {
         "specHash": "c15d4fdace8901166ae5d0e4bf110b7a3d27227c4d2c7f397b577e348178ef1f",
         "repositories": {
-          "gpux": "d63849c5d826d86d3ad7ab50461b969d92512569ffe129c3f5bca245ee0396f8"
+          "gpux": "04f8805f84d28fe39f1cc3cdcd5a07dd3ce9c10b8bbfd8eebc1bd6d4d25f0499"
         }
       },
-      "recordedAt": "2026-10-07T09:17:05Z"
+      "recordedAt": "2026-10-07T10:11:30Z"
     }
   },
   "checkResults": {
@@ -444,102 +444,102 @@
       "checkId": "check-testkit-tests",
       "boundaryId": "s4-testkit-and-windowed-lane",
       "phase": "final",
-      "batchId": "63387f831b7cf6380b8e3037b9db4e62de296b65b3ace30cad926833e7852857",
+      "batchId": "b356e44277cccfdab61cf70c32a5baacab5c800dd3cdffdb5f3fbe578d3f055c",
       "definitionHash": "c20eae6a96e181e208949f90d5a3a7b42af48551148f04bd4d5914b48eb76970",
-      "basisHash": "c1e4c739754094dc02759e93b001b8d8980631eae7a7b3a68003163af748e9d3",
+      "basisHash": "885472a62537f6bfdf22b522857d123c3491bba327d0f5150438d77e93543ef1",
       "status": "passed",
       "exitCode": 0,
-      "testCount": 22,
-      "durationSeconds": 4.002,
-      "recordedAt": "2026-10-07T09:16:32Z",
+      "testCount": 24,
+      "durationSeconds": 4.4243,
+      "recordedAt": "2026-10-07T10:10:39Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s4-testkit-and-windowed-lane-final-d216f99ed6af.log",
-      "logSha256": "e324ef90683fd44f6351b660e7ec549992625bd6b8b543a24ce70c60891d83b6",
-      "inputsHash": "1b0bd32446a16a7223c9a5a2e34fcc3d7c16a9e517fc5278022b1a3981240ac0"
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s4-testkit-and-windowed-lane-final-4cfeac3b944f.log",
+      "logSha256": "00b583c8149e24887be91751d6aa24727dca909c6a705cf7a92c7055d94c8c27",
+      "inputsHash": "f9cc9fc3900543ba15b7eeea73a33af3b701255d68a6c42092749eac2f3bcb7c"
     },
     "s4-testkit-and-windowed-lane/check-testkit-lane-list/final": {
       "checkId": "check-testkit-lane-list",
       "boundaryId": "s4-testkit-and-windowed-lane",
       "phase": "final",
-      "batchId": "63387f831b7cf6380b8e3037b9db4e62de296b65b3ace30cad926833e7852857",
+      "batchId": "b356e44277cccfdab61cf70c32a5baacab5c800dd3cdffdb5f3fbe578d3f055c",
       "definitionHash": "3f93d735c0a3b9ba890c4ef0e19acc0474e0c3d5a390fb13b42178ac024432c2",
-      "basisHash": "14763d5b0497be9723719ba5e0f8acb86f36b19da33ba7068759dbe65057859e",
+      "basisHash": "93119d79b3a78d0b7a69e0ae798fe7b2ad55637968222f79e951994b86fd063a",
       "status": "passed",
       "exitCode": 0,
       "testCount": 0,
-      "durationSeconds": 0.5395,
-      "recordedAt": "2026-10-07T09:16:33Z",
+      "durationSeconds": 16.9324,
+      "recordedAt": "2026-10-07T10:10:56Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s4-testkit-and-windowed-lane-final-33d6db6da1a5.log",
-      "logSha256": "c1003e2e3b7bfb60f1c4a5a70df60b92253052cdde35723b931099be5d2aab4d",
-      "inputsHash": "c8f7f3604bbdb7c0689f411786ce479cc1ac13c74286355a4bd09ea87888810f"
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s4-testkit-and-windowed-lane-final-ced8837a2b2a.log",
+      "logSha256": "e516c8e8697cfc9aec720c3d25c89744f768607a492680f023a6f7fad4b821d7",
+      "inputsHash": "6e5bb9b4f09238efe708499b221afc09e4e224fb00ea28de3f5770751b6b98fa"
     },
     "s4-testkit-and-windowed-lane/check-lane-d/final": {
       "checkId": "check-lane-d",
       "boundaryId": "s4-testkit-and-windowed-lane",
       "phase": "final",
-      "batchId": "63387f831b7cf6380b8e3037b9db4e62de296b65b3ace30cad926833e7852857",
+      "batchId": "b356e44277cccfdab61cf70c32a5baacab5c800dd3cdffdb5f3fbe578d3f055c",
       "definitionHash": "960663a020d4fde84ade3a47fbaffe0102952fd714d98c397ea28f310b32d163",
-      "basisHash": "4ed2a6e63282e95fcac2cdb59ca14f623ee2c685281ca6ce3d770b94ab4954da",
+      "basisHash": "1c1e9204aba29292ef94dea65108e9eae30340d986979f5aa59389644518cee6",
       "status": "passed",
       "exitCode": 0,
       "testCount": 40,
-      "durationSeconds": 19.6325,
-      "recordedAt": "2026-10-07T09:16:53Z",
+      "durationSeconds": 29.3637,
+      "recordedAt": "2026-10-07T10:11:25Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s4-testkit-and-windowed-lane-final-9792a4b9bcde.log",
-      "logSha256": "860a246291f01718dd97295fe25be583aeb274b5ecb458cd4af5da81d837423f"
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s4-testkit-and-windowed-lane-final-f981fe304781.log",
+      "logSha256": "f8dd9a15372703adfd9cac82f8d9e8f7227d0ca3656bfd35321d5bdd03de7ae8"
     },
     "s4-testkit-and-windowed-lane/check-macos-no-fork-api/final": {
       "checkId": "check-macos-no-fork-api",
       "boundaryId": "s4-testkit-and-windowed-lane",
       "phase": "final",
-      "batchId": "63387f831b7cf6380b8e3037b9db4e62de296b65b3ace30cad926833e7852857",
+      "batchId": "b356e44277cccfdab61cf70c32a5baacab5c800dd3cdffdb5f3fbe578d3f055c",
       "definitionHash": "79e236b8af49167d32b3873d320fa242fba808a797189b522b5d3941fd96dbc2",
-      "basisHash": "03c6ed615e9ca23b689e44bf37680a69f46f2b042416a097bb5abdc968dbf283",
+      "basisHash": "6eca5dee8a9ecc7e93944a16e8228e53a17f0870353ee0fd51b4337742ad6986",
       "status": "passed",
       "exitCode": 1,
       "testCount": 0,
-      "durationSeconds": 0.0477,
-      "recordedAt": "2026-10-07T09:16:53Z",
+      "durationSeconds": 0.047,
+      "recordedAt": "2026-10-07T10:11:25Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s4-testkit-and-windowed-lane-final-a68dc8eef7ed.log",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s4-testkit-and-windowed-lane-final-d217413bde1d.log",
       "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "inputsHash": "16fe60fa9332d1c3bfbf337db4073a81ca2d3ee6149ad1bedbef354f330bd704"
+      "inputsHash": "88580c4f2ad36404a997b5ec69b2a0e0a0c8d5e59601032b4b30098341206cff"
     },
     "s4-testkit-and-windowed-lane/check-test-platform-pointer/final": {
       "checkId": "check-test-platform-pointer",
       "boundaryId": "s4-testkit-and-windowed-lane",
       "phase": "final",
-      "batchId": "63387f831b7cf6380b8e3037b9db4e62de296b65b3ace30cad926833e7852857",
+      "batchId": "b356e44277cccfdab61cf70c32a5baacab5c800dd3cdffdb5f3fbe578d3f055c",
       "definitionHash": "59991c07485b07095d3539ad75367bbaa4ca8f6945adad083d3f98fb6e5d7051",
       "basisHash": "1ad8dc2fd8c9b434bf0801b47b3ff9462b7f65aad6237467bef01ddd04e667fb",
       "status": "passed",
       "exitCode": 0,
       "testCount": 2,
-      "durationSeconds": 5.3961,
-      "recordedAt": "2026-10-07T09:16:58Z",
+      "durationSeconds": 0.8697,
+      "recordedAt": "2026-10-07T10:11:26Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s4-testkit-and-windowed-lane-final-118142b52705.log",
-      "logSha256": "b3dbad4464c4dd4ebad267862c8f5b4eac6f52a1a34727bae0c8442f85096328",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s4-testkit-and-windowed-lane-final-dae78fab9fc5.log",
+      "logSha256": "337a343b8a9734d7329f156966233432f8abfdc016209d1f29d9d84691be0be4",
       "inputsHash": "f8cf992b8662f8ff8bdb6a3fdd82ade20414834b3e3d1c6e0ceb2da468347f8e"
     },
     "s4-testkit-and-windowed-lane/check-host-capabilities/final": {
       "checkId": "check-host-capabilities",
       "boundaryId": "s4-testkit-and-windowed-lane",
       "phase": "final",
-      "batchId": "63387f831b7cf6380b8e3037b9db4e62de296b65b3ace30cad926833e7852857",
+      "batchId": "b356e44277cccfdab61cf70c32a5baacab5c800dd3cdffdb5f3fbe578d3f055c",
       "definitionHash": "0f38035d1cbedac17b58a3fff2646be5805d1c5a1d2728ee1d535581f719dd44",
-      "basisHash": "371bf0664bcb57ac608fe5d378c99cd1a267527edaabbccb0f7f5113fa6553b5",
+      "basisHash": "3c373e4f2e00e708786aa195a3b693630ce751b110b7eafe9735045672efa253",
       "status": "passed",
       "exitCode": 0,
       "testCount": 3,
-      "durationSeconds": 6.2229,
-      "recordedAt": "2026-10-07T09:17:05Z",
+      "durationSeconds": 3.2293,
+      "recordedAt": "2026-10-07T10:11:30Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s4-testkit-and-windowed-lane-final-bc891fe789ee.log",
-      "logSha256": "239c6719ce70b88e9318e40b79b702006b4b06b6b918414b37f799d951901cfc",
-      "inputsHash": "16a82404d25e245da74c4232b602cd1de4721bc3ed97c048be8fa4960f739e6f"
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s4-testkit-and-windowed-lane-final-a48c53f3b373.log",
+      "logSha256": "ed4cc2c46caf9e6da1438fb04ba9ec112da72706949bfd44b1280fe3fe8f14b6",
+      "inputsHash": "2c83a7b9bcf6f36b7c05c9d42e6475f1167c3b2ace1461f5aff53e114eb2a156"
     }
   },
   "reviews": {
@@ -1638,9 +1638,78 @@
           "path": "crates/gpui/tests/test_platform_semantics_fidelity.rs"
         }
       ]
+    },
+    {
+      "id": "S4-F1",
+      "boundaryId": "s4-testkit-and-windowed-lane",
+      "criterionIds": [
+        "D-2",
+        "M-2"
+      ],
+      "severity": "major",
+      "status": "open",
+      "descriptionMarkdown": "**No green workflow run exists for the sprint HEAD. The macOS lane D job has never passed.**\n\n- **Expected:** D-2 and M-2 are verified by a green workflow run on `refactor/gpux-cross-platform-test-lanes`. D-2 needs lane D green on `ubuntu-24.04`, `windows-2025` and `macos-15`. M-2 needs the macOS entries of `test`, lane A, lane C and lane D green. The repairs for the jobs that were red must be proven in CI, not only locally.\n- **Observed** (checked with `gh run view --json jobs`):\n  - Run 37599450308 on `1357ce7` was the last run that executed.\n    - Green: `check` on all three OSes, `test (macos-15)`, lane A on all three, lane C (lavapipe, warp, metal), lane D (ubuntu-24.04) with 39 passed and 1 skip, lane D (windows-2025) with 40/40 and SendInput passing, and `package`.\n    - Red: `lane D (macos-15)` with 28 passed, 10 failed and 2 skipped. Every failure is a blank-text probe (text-shaping, text-runs, text-decorations, text-wrapping, text-interactive, editable-text, list-uniform, list-variable, actions-keymaps, drag-drop).\n    - Also red: `test (windows-2025)`, where `test_drop_terminates_grandchildren` timed out waiting for the pid file, and `test (ubuntu-24.04)`, where `warm_cached_reads_allocate_zero_times` counted 2 blocks.\n  - The repairs are `dcb7bc5` (the `font-kit` dev feature, so macOS no longer gets `NoopTextSystem`; I confirmed this cause in `gpui_macos/src/platform.rs`), `dff77b4` and `6cfd50e`.\n  - Run 37603489487 on `02bbad5` never started. Every job carries the annotation \"The job was not started because recent account payments have failed or your spending limit needs to be increased\".\n  - So lane D on macOS has no green run, and neither do the two hardened `test` jobs.\n- **Repair:**\n  1. The owner resolves the GitHub billing or spending-limit block.\n  2. Re-run `ci.yml` with `workflow_dispatch` on the current branch HEAD (`02bbad5` or later).\n  3. Require every job green, in particular `lane D (macos-15)`, `test (windows-2025)` and `test (ubuntu-24.04)`. The Wayland step is `continue-on-error`.\n  4. Record the run id in the epic handoff.\n  5. If lane D on macOS still fails, fix it at its source and re-run.\n\nThe ubuntu and windows lane D results from `1357ce7` still hold. The later commits touch only macOS text features, failure-frame saving and tests."
+    },
+    {
+      "id": "S4-F2",
+      "boundaryId": "s4-testkit-and-windowed-lane",
+      "criterionIds": [
+        "D-1"
+      ],
+      "severity": "major",
+      "status": "open",
+      "descriptionMarkdown": "**`platform-close` asserts only that the window left `cx.windows()`. Nothing checks for leaks.**\n\n- **Expected:** D-1 asserts \"closing without leaks or panics\". Panics are covered: a panic ends the host, and every unreported test then counts as failed. A leak needs its own assertion, for example that the closed window's root view and state are released.\n- **Observed:** in `crates/gpux_conformance/examples/desktop_host/checks.rs`, `close()` opens a `Blocks` window, waits two frames and calls `remove_window()`. It then only polls `cx.windows()` until the id is gone. A root view, or a platform window kept alive by a retained callback or an `Rc` cycle, would still pass. The check's description in `src/platform_checks.rs` was narrowed to \"removes it without panics\", and the result detail says only \"removed without panics\".\n- **Repair:**\n  1. Build the root view with `cx.new` and keep its `WeakEntity` before closing.\n  2. After `remove_window()`, poll until the window is gone **and** `weak.upgrade().is_none()`. Fail with a clear detail such as \"the closed window's root view is still alive\".\n  3. Optionally apply the same release check to every scene window in `AppHost::run_scene`.\n  4. Restore the check description to cover leaks.\n  5. Re-run `check-lane-d`."
+    },
+    {
+      "id": "S4-F3",
+      "boundaryId": "s4-testkit-and-windowed-lane",
+      "criterionIds": [
+        "LANES-2"
+      ],
+      "severity": "major",
+      "status": "open",
+      "descriptionMarkdown": "**Lane D `--grep` and `--scene` select different tests in the testkit plan (and `--list`) than in the desktop host, so a listed scene can fail with \"no result was reported\".**\n\n- **Expected:** `--list` prints the exact test selection, and running the same command runs exactly that selection.\n- **Observed, reproduced on this machine:**\n  - `gpux-testkit lane d --grep layout_flex --list` lists `desktop_host::layout-flex`.\n  - `gpux-testkit lane d --grep layout_flex` starts the host, which runs nothing. It ends with `desktop_host::layout-flex: no result was reported` and `gpux-testkit: 0 passed, 1 failed, 0 skipped`, exit 1.\n- **Cause:** `tooling/testkit/src/lanes.rs` `scenes()` matches the pattern against the scene id **or** its underscore test name, and ignores `--grep` when `--scene` is given. `examples/desktop_host/main.rs` `selected()` matches only `id.contains(pattern)` and requires the scene **and** the grep to match. `lane d --scene layout-flex --grep text` fails the same way.\n- **Coverage gap:** the testkit tests use a fake runner, so they never compare the plan with the host's own selection.\n- **Repair:**\n  1. Make the host run exactly the planned selection. Either pass the resolved ids (for example one `--scene <id>` or `--check <id>` per planned test), or move one selection function into `gpux_conformance` and use it from both the testkit and the host.\n  2. Add a test showing that underscore patterns and combined `--scene`/`--grep` select the same tests in the plan and in the host."
+    },
+    {
+      "id": "S4-F4",
+      "boundaryId": "s4-testkit-and-windowed-lane",
+      "criterionIds": [
+        "LANES-2"
+      ],
+      "severity": "minor",
+      "status": "open",
+      "descriptionMarkdown": "**`--list` is not the exact selection for lanes A and C.**\n\n- **Expected:** `--list` prints the exact test selection for the lane.\n- **Observed:**\n  - `gpux-testkit lane c --list` prints 76 tests. `lane c` runs 77: CI reports `77 passed` because `lane_c.rs` also runs the unlisted guard test `every_lane_c_scene_has_a_test_at_both_scales`.\n  - `lane a --list` prints three wildcards instead of tests: `catalog_coverage::*`, `image_compare::*` and `golden_policy::*`.\n- **Repair:** list every test that the run executes. Add the lane C guard test, and enumerate the lane A group tests, either statically or by building and reading `-- --list` output. Alternatively, restrict the run to exactly the listed names. Extend `tests/cli.rs` to cover both lanes."
+    },
+    {
+      "id": "S4-F5",
+      "boundaryId": "s4-testkit-and-windowed-lane",
+      "criterionIds": [
+        "MACCI-1"
+      ],
+      "severity": "minor",
+      "status": "open",
+      "descriptionMarkdown": "**The new `command::darwin::process` drop tests reap the pid themselves, so \"reaping on drop\" is not really tested.**\n\n- **Expected:** `process_drop_reaps_an_exited_child` fails if `Process::drop` does not reap.\n- **Observed:** the probe `reaped()` in `crates/util/src/command/darwin/process.rs` calls `waitpid(pid, WNOHANG)`. On an exited, unreaped child, that call reaps the child itself. The next poll then sees `ECHILD`, so the test passes even if `Drop` never reaped. The kill-on-drop test does prove the kill, but not the reap.\n- **Not affected:** the handle itself is correct.\n  - Every reap runs under the status mutex, using `waitid(WEXITED|WNOWAIT)` and then `waitpid(WNOHANG)`.\n  - `kill` never signals a reaped pid.\n  - The status is shared by concurrent waiters.\n  - The upstream `test_drop_reaps_child` (a `kill(pid, 0)`/`ESRCH` probe) covers the integrated path, and it passed in `test (macos-15)`.\n- **Repair:** probe without reaping, either with `kill(pid, 0) == -1 && errno == ESRCH` as in upstream's `wait_until_gone`, or with `waitid(P_PID, pid, WEXITED|WNOHANG|WNOWAIT)`. Use that probe in both drop tests."
+    },
+    {
+      "id": "S4-F6",
+      "boundaryId": "s4-testkit-and-windowed-lane",
+      "criterionIds": [
+        "D-2"
+      ],
+      "severity": "minor",
+      "status": "open",
+      "descriptionMarkdown": "**`docs/testing.md` does not record the real outcome of the CI Wayland attempt.**\n\n- **Expected:** D-2 says that if the headless-compositor Wayland run cannot present, Wayland stays local-only (WSLg), and that this is recorded in `docs/testing.md`.\n- **Observed:**\n  - In run 37599450308, job `lane D (ubuntu-24.04)`, step \"Lane D on Wayland (weston headless, informational)\": `desktop_host` panics at startup in `crates/gpui_linux/src/linux/platform.rs:356` with \"Wayland compositor does not provide wl_seat\", giving `0 passed, 40 failed`.\n  - The docs instead present CI Wayland as an informational run under `weston --backend=headless`, where only clipboard and hover cannot pass.\n- **Repair:** record in `docs/testing.md` that weston's headless backend exposes no `wl_seat`, so gpui_linux cannot start, and Wayland is therefore local-only (WSLg). Then either remove the CI step or label it as a known-failing attempt. Making weston expose a seat is the other option, if one exists."
+    },
+    {
+      "id": "S4-F7",
+      "boundaryId": "s4-testkit-and-windowed-lane",
+      "criterionIds": [],
+      "severity": "minor",
+      "status": "open",
+      "descriptionMarkdown": "**The gpux-color allocation hardening also lets real allocation regressions through.**\n\n- **Expected:** `warm_cached_reads_allocate_zero_times` still proves that warm reads do not allocate, while ignoring allocations made by the harness threads (CI saw 2 such blocks).\n- **Observed:** `crates/gpux_color/tests/color_allocations.rs` now accepts `total_blocks < 100` over 20,000 reads.\n  - That still catches a per-read allocation.\n  - It also passes amortized-growth regressions, such as a cache that pushes per read and reallocates about 15 times while doubling.\n  - The test name still claims zero allocations.\n- **Other hardenings, which I judged honest:**\n  - The Windows pid-file deadline (5 s to 30 s) bounds only setup; the assertions are unchanged.\n  - The `bench_context` margins (a 300 ms setup poll against a 250 ms bound) still separate setup from the measured 10 ms poll.\n  - `secondary-a` is the platform's real select-all.\n- **Repair:** count only the reading thread's allocations and keep the assertion at `== 0`, for example with a counting global allocator that a thread-local flag turns on around the loop. Otherwise, bound it to a small constant, at most 4, below the growth signature, and explain why."
     }
   ],
-  "handoffMarkdown": "CI run 37599450308: macOS check, test, lane A and lane C (metal) green. Hardened two tests that kept the test job red: the Windows grandchild-process test's pid-file deadline is 30 s (recorded replay rule), and gpux-color's allocation test bounds allocations per read instead of counting harness-thread noise.",
+  "handoffMarkdown": "S4-F5: darwin drop tests probe with kill(pid, 0) == ESRCH, which never reaps. S4-F7: color allocation test allows at most 4 stray harness blocks.",
   "protectedPaths": {
     "gpux": {
       "gpux:.agentx/experiments/**": "32805d33f7172446b7e9cec5989ba59bd78648a57efc98bd96bbcac8fcac16a6",
