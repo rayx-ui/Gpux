@@ -81,12 +81,21 @@ export async function runScript(gpux: Gpux): Promise<ScriptResult> {
   };
   const click = async (x: number, y: number, count: number) => {
     await move(x, y);
-    for (let clickCount = 1; clickCount <= count; clickCount++) {
-      await page.mouse.down({ clickCount });
+    if (count === 1) {
+      await page.mouse.down();
       // Elements that record the press while painting (interactive text) need the frame.
       await gpux.frames(1);
+      await page.mouse.up();
+      return;
+    }
+    // A double or triple click presses in quick succession, as a person does: gpui_web counts
+    // presses within 400 ms, and waiting for frames between them would outlast that on a
+    // software renderer.
+    for (let clickCount = 1; clickCount <= count; clickCount++) {
+      await page.mouse.down({ clickCount });
       await page.mouse.up({ clickCount });
     }
+    await gpux.frames(1);
   };
   const touchEvent = async (type: string, x?: number, y?: number) => {
     const session = await touchSession();
