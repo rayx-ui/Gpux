@@ -167,6 +167,7 @@ impl AppHost {
         let mut run = SceneRun {
             host: self,
             scene_id: scene.id,
+            scene_size: scene.size,
             window,
             frame: None,
             captures: HashMap::new(),
@@ -259,6 +260,7 @@ pub async fn wait_frames(
 struct SceneRun<'a> {
     host: &'a AppHost,
     scene_id: &'static str,
+    scene_size: (f32, f32),
     window: AnyWindowHandle,
     frame: Option<RgbaImage>,
     captures: HashMap<&'static str, RgbaImage>,
@@ -583,7 +585,23 @@ impl SceneRun<'_> {
                     Err(error) => return Err(error),
                 };
                 let scale = self.scale(cx)?;
-                if let Err(error) = evaluate::pixel_step(step, &frame, scale, &mut self.captures) {
+                // A scene shown at 16-bit depth has its colors rounded; probes allow that. Only
+                // the scene's area counts: system bars drawn over a full-screen window keep
+                // their own depth.
+                let (width, height) = self.scene_size;
+                let area = evaluate::physical_rect(scale, (0., 0., width, height));
+                let color_tolerance = if evaluate::shows_rgb565(&frame, area) {
+                    evaluate::RGB565_ROUNDING
+                } else {
+                    0
+                };
+                if let Err(error) = evaluate::pixel_step_within(
+                    step,
+                    &frame,
+                    scale,
+                    &mut self.captures,
+                    color_tolerance,
+                ) {
                     let mut error = error.context(format!("at scale {scale}"));
                     if let Some(dir) = &self.host.failure_frames {
                         let path = dir.join(format!("{}.actual.png", self.scene_id));
