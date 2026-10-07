@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/renderer/wgpu
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-05T23:00:00+02:00
+  updated: 2026-10-08T00:30:00+02:00
   topics:
     - wgsl
     - abi
@@ -21,6 +21,7 @@ agentx:
 - Dawn rejects WGSL compound assignment into a swizzle (`glass_color.rgb += delta`); rebuild the vector instead.
 - An sRGB render view blends in linear light and makes translucent white over dark surfaces far brighter than the design: white at 4.5% over `#0a0a0a` is `#151515` in Figma but `#3e3e3e` in linear blending.
 - A nearest-sampled half-size blur source turns high-contrast backdrops into mosaic blocks.
+- Headless rendering on llvmpipe over GL (Linux with no Vulkan adapter, for example a `VK_DRIVER_FILES` path that does not exist) fails validation: `screen_effects_layout` is invalid, so captures report a GPU error. On Mesa 25.2.8, 76 of 77 lane C tests failed that way; lavapipe passes them all.
 - Expanded glow quads can overlap neighboring effects; returning sampled source color from them in the normal replacement pass overwrites glass/blur content with stale pixels.
 - Resize artifacts came from presenting a surface size from one live-resize message with scene geometry from another.
 - Border antialiasing proof: Test Suite `rayx-border-antialiasing.spec.ts` measured 1x beading drop from 0.23 to 0.11 (white), 0.20 to 0.14 (accent), and 0.16 to 0.10 (white 15%).
