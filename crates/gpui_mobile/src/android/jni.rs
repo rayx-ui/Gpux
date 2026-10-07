@@ -503,6 +503,21 @@ fn process_input_events(app: &AndroidApp) {
                                     _ => continue,
                                 };
 
+                                // Android batches the samples of a fast gesture into the
+                                // event's history; replay them as moves, each at its own time,
+                                // so pans and flings see the whole motion.
+                                if touch_action != AMOTION_EVENT_ACTION_DOWN {
+                                    for sample in pointer.history() {
+                                        win.handle_touch(crate::android::TouchPoint {
+                                            id: pointer.pointer_id(),
+                                            x: sample.x(),
+                                            y: sample.y(),
+                                            action: AMOTION_EVENT_ACTION_MOVE,
+                                            timestamp: input_event_instant(sample.event_time()),
+                                        });
+                                    }
+                                }
+
                                 let touch = crate::android::TouchPoint {
                                     id: pointer.pointer_id(),
                                     x: pointer.x(),
