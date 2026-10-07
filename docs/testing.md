@@ -15,8 +15,59 @@ exits nonzero on any failure or when nothing was selected. Raw output goes to
 | Lane | What it proves | Command |
 |---|---|---|
 | A | Behaviour on the test platform: no GPU or display | `gpux-testkit lane a` |
+| B | A real browser: the threaded WASM build on WebGPU, driven by Playwright with trusted input | `gpux-testkit lane b` |
 | C | Offscreen pixels through the headless renderer, with per-backend goldens | `gpux-testkit lane c` |
 | D | Real desktop windows: presenting, resizing, scale changes, clipboard, OS input | `gpux-testkit lane d` |
+
+## Lane B: a real browser
+
+Lane B builds the `web_host` example of `gpux-conformance` as a threaded WASM app and drives it
+in Chromium with Playwright, from [`tools-node`](../tools-node):
+
+```text
+cargo run -p gpux-testkit -- web build [--verify]   # target/gpux-web/dist
+cargo run -p gpux-testkit -- web serve [--port 8000] # cross-origin isolated; open /?scene=<id>
+cargo run -p gpux-testkit -- web e2e [--profile local-gpu] [--grep <pattern>] [--headed]
+cargo run -p gpux-testkit -- lane b [--list] [--scene <id>] [--grep <pattern>]
+```
+
+`lane b` runs the `@canary` and `@pr` specs in the profile `GPUX_WEB_PROFILE` names
+(`local-gpu` by default); `web e2e` runs any selection. Both build first and fail with an
+actionable message when a prerequisite is missing:
+
+- a nightly toolchain with `rust-src` and the wasm32 target (`GPUX_WEB_TOOLCHAIN` overrides
+  `nightly`), because the threaded build rebuilds `std` with atomics;
+- the `wasm-bindgen` CLI at the version `Cargo.lock` pins
+  (`cargo install wasm-bindgen-cli --version <version>`);
+- `pnpm`, and in `tools-node`: `pnpm install` and `pnpm exec playwright install chromium`.
+
+`web build --verify` checks the binary: shared memory, the `wasm_thread_entry_point` export, and
+a single explicit constructor call (`gpui_platform::web_init`), so wasm-ld added no
+`.command_export` wrappers that rerun constructors on every worker.
+
+The specs:
+
+- `scenes.spec.ts` runs every lane-B scene's own script with trusted CDP input (mouse, wheel,
+  keyboard, touch, IME). The app checks the script's expectations, and its pixel steps against a
+  screenshot of the page (`@pr` at DPR 1, `@dpr2` at DPR 2).
+- One spec per `gpui_web` area covers the rest: backend fallback, viewport and resize, window
+  close, pointer buttons and hover, wheel delta modes, keyboard repeat and AltGr, touch, IME,
+  clipboard and its fallback, HTML elements and islands, canvas text fallback, worker threads,
+  fetched assets, cursors, page lifecycle and safe areas. Browser-only scenes for these live in
+  `web_host`, because the shared catalog runs every scene in lane A.
+- `dawn.spec.ts` renders every scene and fails on any WebGPU validation error. Every spec also
+  fails on console errors, uncaught exceptions and crashes, and checks that the page is
+  cross-origin isolated and renders through WebGPU unless a spec forces WebGL2.
+
+| Profile | Where | Chromium |
+|---|---|---|
+| `local-gpu` | A developer machine with a GPU | new headless (`channel: 'chromium'`) on the real GPU |
+| `ci-linux-swiftshader` | GitHub's ubuntu runners: no GPU, no display | WebGPU and ANGLE on SwiftShader |
+| `windows-software` | Windows without a usable GPU | WebGPU on WARP |
+
+Scenes asserting exact animation timing or fling distances stay out of lane B, which runs on the
+real clock like lane D. Raw output, traces and failure screenshots go to
+`artifacts-temp/testkit/b/`.
 
 ## Lane D: real desktop windows
 
