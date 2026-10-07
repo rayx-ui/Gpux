@@ -2,8 +2,9 @@
 //! the deterministic executor clock; lane C adds the platform's headless renderer and checks
 //! pixels and goldens.
 //!
-//! Lane C renders on the software adapter by default (WARP on Windows, lavapipe or llvmpipe on
-//! Linux), so its output is deterministic and compared with goldens wherever it runs.
+//! Lane C renders on the software adapter by default (WARP on Windows, lavapipe on Linux; without
+//! a Vulkan adapter Linux falls back to llvmpipe over GL, where the effects pipeline does not yet
+//! validate), so its output is deterministic and compared with goldens wherever it runs.
 //! `GPUX_WGPU_ADAPTER=hardware` (or an adapter name) renders on a GPU instead, as lane G does;
 //! hardware adapters skip goldens. macOS renders through Metal. [`TestHost::probes_only`] skips
 //! goldens on any backend.
