@@ -109,7 +109,7 @@ cargo ndk -t arm64-v8a check -p gpux-mobile
 
 Some package checks depend on host platform SDKs. The web check disables default features because the default multithreaded build needs nightly `-Z build-std`, which `gpux-testkit web build` provides. The Android check needs `cargo-ndk` and `ANDROID_NDK_HOME`. Run `cargo package --workspace` after manifest or dependency changes.
 
-Runtime proof runs in the lanes that exercise the change (`cargo run -p gpux-testkit -- lane <lane>... [--scene <id>] [--grep <pattern>]`, [docs/testing.md](../../../../docs/testing.md)): lane A for behaviour (plus the crate's focused `cargo test -p <package> <filter>`), lane B for the browser and WASM/WebGPU, lane C for pixels and the renderer, lane D for real desktop windows and OS input, lane E for Android, and lane G on a real GPU for renderer, platform, or performance changes before a release. Lane F (iOS) is not available yet; check iOS changes with `cargo check` builds on macOS until it lands.
+Runtime proof runs in the lanes that exercise the change (`cargo run -p gpux-testkit -- lane <lane>... [--scene <id>] [--grep <pattern>]`, [docs/testing.md](../../../../docs/testing.md)): lane A for behaviour (plus the crate's focused `cargo test -p <package> <filter>`), lane B for the browser and WASM/WebGPU, lane C for pixels and the renderer, lane D for real desktop windows and OS input, lane E for Android, lane F for iOS (on a Mac or through the `lane-f` CI job), and lane G on a real GPU for renderer, platform, or performance changes before a release. `cargo check -p gpux-mobile --target aarch64-apple-ios` type-checks iOS code from any host with the target installed.
 
 ## Baseline Toolchain Prerequisites
 

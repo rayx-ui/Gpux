@@ -56,6 +56,7 @@ Rendering, input, text, platform, or wgpu changes need the lanes that exercise t
 - pixels and the renderer: lane C, plus lane B for WebGPU;
 - real windows, OS input, clipboard and scale changes: lane D;
 - Android: lane E;
+- iOS: lane F, on a Mac or through the `lane-f` CI job;
 - renderer, platform or performance changes before a release: lane G on a real GPU.
 
 ## Consumers

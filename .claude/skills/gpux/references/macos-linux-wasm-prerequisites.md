@@ -22,7 +22,7 @@ clang --version
 cargo check -p gpux --all-targets
 ```
 
-iOS validation requires macOS plus Apple's `xcrun`/Xcode toolchain. Do not treat iOS target failures from Windows or Linux hosts as gpux code failures. Lane F (iOS) is not available yet (planned: `gpux-testkit ios build --simulator` and `ios run --simulator`); until it lands, check iOS changes with `cargo check` builds on macOS.
+iOS validation requires macOS plus Apple's `xcrun`/Xcode toolchain. Do not treat iOS target failures from Windows or Linux hosts as gpux code failures. Lane F runs iOS on a Simulator: `gpux-testkit ios build --simulator` and `ios run --simulator` (or `lane f`) need Xcode with an iOS Simulator runtime, XcodeGen (`brew install xcodegen`), and `rustup target add aarch64-apple-ios-sim`; devices are built and run by hand with a signing team ([docs/testing.md](../../../../docs/testing.md#lane-f-ios)).
 
 ## Rust
 

@@ -25,7 +25,7 @@ an API RayX uses ships with the matching RayX change, but RayX's tests are not g
 | C | Offscreen pixels through the headless renderer, with per-backend goldens | `gpux-testkit lane c` | any: renders on the software adapter |
 | D | Real desktop windows: presenting, resizing, scale changes, clipboard, OS input | `gpux-testkit lane d` | a desktop session |
 | E | Android on a device or emulator: startup, the lane-E scenes, OS touch, background and resume | `gpux-testkit lane e` | an attached device or emulator |
-| F | iOS: the Simulator or a device | not available yet (sprint `s8-apple-lanes`) | a Mac with Xcode |
+| F | iOS: startup, wgpu on Metal, CoreText metrics, touch, background and resume, and the lane-F scenes | `gpux-testkit lane f` | a Mac with Xcode: a Simulator, or a device by hand |
 | G | The developer's real GPU: lane B's every spec, `@timing` and `@dpr2` included; lanes C and D on the hardware adapter with probes only; the benchmarks | `gpux-testkit lane g [--headed]` | a machine with a GPU; refuses to run under CI |
 
 ### CI and cadence
@@ -37,7 +37,7 @@ an API RayX uses ships with the matching RayX change, but RayX's tests are not g
 | C | `ci.yml` lane C | `ubuntu-24.04` (lavapipe), `windows-2025` (WARP), `macos-15` (Metal) | every pull request and push to `main` |
 | D | `ci.yml` lane D | `ubuntu-24.04` (X11 under Xvfb, lavapipe), `windows-2025` (WARP), `macos-15` | every pull request and push to `main` |
 | E | `lane-e.yml` | `ubuntu-24.04`: KVM-accelerated API 34 x86_64 emulator, SwiftShader GL | nightly at 03:47 UTC, pushes to `main`, and pull requests that touch `gpui_mobile`, `gpui_wgpu`, `gpux_conformance`, `tooling/android` or `tooling/testkit` |
-| F | none yet | `macos-15` Simulator (planned) | nightly and path-filtered pull requests (planned) |
+| F | `lane-f.yml` | `macos-15`: an iPhone 16 Simulator on the newest installed iOS runtime | nightly at 04:07 UTC, pushes to `main`, and pull requests that touch `gpui_mobile`, `gpui_wgpu`, `gpux_conformance`, `tooling/ios` or `tooling/testkit` |
 | G | none: local only | the developer's GPU | before releases, and for renderer, platform or performance changes |
 
 `ci.yml` also runs `check` (format, `cargo check --workspace --all-targets`, Clippy, the web
@@ -63,7 +63,7 @@ command that installs a missing one. Platform setup is in
 | macOS | A, C, D | the Xcode command-line tools; Metal is the GPU. |
 | any | B, G | a nightly toolchain with `rust-src` (`GPUX_WEB_TOOLCHAIN` overrides `nightly`); `wasm-bindgen-cli` at the version `Cargo.lock` pins; Node.js 22 or later with `pnpm`; in `tools-node`: `pnpm install` and `pnpm exec playwright install chromium`. |
 | any | E | `ANDROID_HOME` with the pinned SDK packages, a JDK 17 or later, `cargo-ndk`, and the Android Rust targets; see [Lane E](#lane-e-android). |
-| macOS | F | Xcode and XcodeGen (planned with lane F). |
+| macOS | F | Xcode with an iOS Simulator runtime (`xcodebuild -downloadPlatform iOS`), XcodeGen (`brew install xcodegen`), and `rustup target add aarch64-apple-ios-sim`. |
 | any | G | a hardware GPU, plus everything lanes B, C and D need. |
 
 ## Environment variables
@@ -268,10 +268,44 @@ renderers, where `adb shell input` delivers a fast swipe only after slow frames,
 
 ## Lane F: iOS
 
-Lane F arrives with sprint `s8-apple-lanes`: an `ios_host` conformance app built with XcodeGen
-and `xcodebuild` (`gpux-testkit ios build --simulator`), run in a pinned Simulator
-(`gpux-testkit ios run --simulator`), and a `macos-15` CI job. Until then, `gpux-testkit lane f`
-reports that it is not available.
+`gpux-testkit lane f` (or `ios run --simulator [--scene <id>] [--grep <pattern>]`) builds the
+`ios_host` example of `gpux-conformance` as a static library for the Simulator, generates the
+Xcode project of [`tooling/ios`](../tooling/ios) with XcodeGen, and builds the app with
+`xcodebuild`, unsigned; `ios build --simulator` stops there. It then boots its own Simulator,
+`gpux-conformance`, created on first use as an iPhone 16 on the newest installed iOS runtime,
+installs the app, and launches it with `simctl launch --console-pty`, reading the result lines from
+its console. The host runs five platform checks and every lane-F scene:
+
+- `ios-startup`: a window opens and draws;
+- `ios-metal`: wgpu renders through Metal and reads its frames back;
+- `ios-text-metrics`: CoreText measures the bundled IBM Plex Sans as its font file declares
+  (ascent, descent and advances at 16 px), and shapes a line to its advances within kerning;
+- `ios-touch-tap`: a touch injected into the window taps the element under it;
+- `ios-lifecycle`: the testkit brings Settings to the front and reopens the host through its
+  `gpux-conformance://` URL; the window deactivates, reactivates and draws again.
+
+Pixel steps read frames back through the window's wgpu renderer. A Simulator without a Metal
+device leaves the window without a renderer: `ios-metal` and the pixel steps then report themselves
+skipped with that reason, and everything else still runs. The console log and the frames failing
+pixel steps saved (in the app's `Documents/frames/`) land in `artifacts-temp/testkit/f/`.
+
+### On a device
+
+Devices need a signing team, so the testkit leaves them to you:
+
+1. `cargo build -p gpux-conformance --no-default-features --features app-host --example ios_host
+   --target aarch64-apple-ios` (after `rustup target add aarch64-apple-ios`).
+2. `xcodegen generate --spec tooling/ios/project.yml`.
+3. `xcodebuild -project tooling/ios/GpuxConformance.xcodeproj -target GpuxConformance
+   -configuration Debug -sdk iphoneos -allowProvisioningUpdates DEVELOPMENT_TEAM=<team id>
+   GPUX_IOS_HOST_LIB=$PWD/target/aarch64-apple-ios/debug/examples/libios_host.a
+   SYMROOT=$PWD/target/gpux-ios/products build`.
+4. `xcrun devicectl list devices`, then `xcrun devicectl device install app --device <device>
+   target/gpux-ios/products/Debug-iphoneos/GpuxConformance.app`.
+5. `xcrun devicectl device process launch --console --device <device> dev.gpux.conformance`
+   prints the result lines; `--scene <id>` or `--grep <pattern>` after the bundle id narrows the
+   run. When the host prints `gpux-conformance-host: background`, go to the home screen and open
+   the app again.
 
 ## Lane G: the local real GPU
 
