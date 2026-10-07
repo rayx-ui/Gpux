@@ -1,4 +1,5 @@
 import type { CDPSession } from '@playwright/test';
+import { SOFTWARE_PROFILES } from '../fixtures/catalog';
 import { expect, test } from '../fixtures/gpux';
 
 // Trusted touch input through CDP: a tap clicks, a cancelled touch does not, a pan scrolls, and a
@@ -67,7 +68,11 @@ test('a cancelled touch does not click @pr', async ({ gpux, page }) => {
   await gpux.expectMissing('id=popover');
 });
 
-test('a fast pan flings on after the finger lifts @pr', async ({ gpux, page }) => {
+test('a fast pan flings on after the finger lifts @pr', async ({ gpux, page }, testInfo) => {
+  test.skip(
+    SOFTWARE_PROFILES.includes(testInfo.project.name),
+    'a fling depends on input timing, which a loaded software renderer cannot keep',
+  );
   await gpux.open('scroll-wheel');
   const session = await page.context().newCDPSession(page);
   const { x, y } = await gpux.center('id=scroller');
