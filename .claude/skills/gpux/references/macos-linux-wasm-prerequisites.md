@@ -2,7 +2,7 @@
 
 Use this reference for non-Windows setup and browser/WASM tooling.
 
-Run gpux validation commands from the Gpux repository root and RayX Test Suite commands from `../RayX`.
+Run commands from the Gpux repository root. Each test lane's prerequisites are in [docs/testing.md](../../../../docs/testing.md#prerequisites).
 
 ## macOS
 
@@ -22,7 +22,7 @@ clang --version
 cargo check -p gpux --all-targets
 ```
 
-iOS validation requires macOS plus Apple's `xcrun`/Xcode toolchain. Do not treat iOS target failures from Windows or Linux hosts as gpux code failures.
+iOS validation requires macOS plus Apple's `xcrun`/Xcode toolchain. Do not treat iOS target failures from Windows or Linux hosts as gpux code failures. Lane F (iOS) is not available yet (planned: `gpux-testkit ios build --simulator` and `ios run --simulator`); until it lands, check iOS changes with `cargo check` builds on macOS.
 
 ## Rust
 
@@ -72,12 +72,16 @@ sudo pacman -S \
     curl git jq
 ```
 
+## Linux Test Lanes
+
+Lanes C and D render on lavapipe (`mesa-vulkan-drivers`), selected with `VK_DRIVER_FILES=/usr/share/vulkan/icd.d/lvp_icd.x86_64.json`. Lane D also needs a display, or `xvfb-run -a -s "-screen 0 1280x1024x24"` with `WAYLAND_DISPLAY` unset, plus `xdotool` for OS input. [LINUX-WSL.md](../../../../LINUX-WSL.md) runs the lanes under WSL.
+
 ## WASM Tooling
 
-Install `wasm-bindgen-cli` for gpux WebAssembly builds or `gpui_web` examples. gpux and RayX currently use `0.2.126`:
+Install `wasm-bindgen-cli` for gpux WebAssembly builds or `gpui_web` examples, at the version `Cargo.lock` pins (`0.2.129`; `gpux-testkit web build` refuses any other):
 
 ```bash
-cargo install wasm-bindgen-cli --version 0.2.126 --locked
+cargo install wasm-bindgen-cli --version 0.2.129 --locked
 ```
 
 Make sure Cargo's bin directory is on PATH:
@@ -92,11 +96,11 @@ Persist that line in the user's shell profile when they want a permanent setup. 
 wasm-bindgen --version
 ```
 
-For multithreaded gpux/RayX browser apps, also read `multithreaded-wasm-apps.md`. They require nightly Rust, `rust-src`, atomics/shared-memory linker flags, `wasm-bindgen`, and cross-origin isolation headers.
+For multithreaded gpux/RayX browser apps, also read `multithreaded-wasm-apps.md`. They require nightly Rust, `rust-src`, atomics/shared-memory linker flags, `wasm-bindgen`, and cross-origin isolation headers. Lane B also needs Node.js 22 or later with `pnpm`, and in `tools-node`: `pnpm install` and `pnpm exec playwright install chromium`.
 
 ## Android Tooling
 
-For Android or RayX mobile validation that consumes gpux, install the Android SDK, Android NDK r25 or newer, and `cargo-ndk`:
+For Android validation (lane E), or a RayX mobile build that consumes gpux, install the Android SDK, Android NDK r25 or newer, and `cargo-ndk`:
 
 ```bash
 cargo install cargo-ndk
@@ -112,6 +116,8 @@ ndk-build --version
 
 Use `ANDROID_HOME`, `ANDROID_SDK_ROOT`, `ANDROID_NDK_HOME`, or `ANDROID_NDK_ROOT` when auto-discovery fails. With `ANDROID_NDK_HOME` set, `cargo ndk -t arm64-v8a check -p gpux-mobile` checks the gpux Android build from the Gpux repository root.
 
+Lane E (`cargo run -p gpux-testkit -- lane e`, or `android build [--abi x86_64|arm64-v8a]` and `android run`) also needs `ANDROID_HOME` with its pinned SDK packages, a JDK 17 or later, and the Android Rust targets; it reports each missing one with the command that installs it ([docs/testing.md](../../../../docs/testing.md#lane-e-android)).
+
 ## Browser WebGPU
 
 If a browser build fails with `Failed to request GPU adapter` or `No available adapters`, check browser WebGPU support and flags. On Windows ARM64 Chromium, Unsafe WebGPU may need to be enabled:
@@ -125,6 +131,7 @@ If a browser build fails with `Failed to request GPU adapter` or `No available a
 cargo metadata --no-deps
 cargo fmt --check
 cargo check -p gpux --all-targets
-# From ../RayX:
-cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu
+# Browser/WASM setup (lane B prerequisites):
+cargo run -p gpux-testkit -- web build --verify
+cargo run -p gpux-testkit -- lane b --list
 ```

@@ -17,7 +17,7 @@ param(
     [switch]$AddCargoBinToPath,
     [switch]$AddFxcToPath,
     [switch]$All,
-    [string]$WasmBindgenVersion = "0.2.126"
+    [string]$WasmBindgenVersion = "0.2.129"
 )
 
 Set-StrictMode -Version Latest

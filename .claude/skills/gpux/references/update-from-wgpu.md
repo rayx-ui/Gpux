@@ -88,9 +88,11 @@ Fork version: <version>-gpux.<N>
    - Run `cargo check -p gpux-wgpu-renderer --all-targets`.
    - Run targeted checks for affected packages such as `gpux-windows`, `gpux-platform`, and `gpux`, plus `cargo check -p gpux-web --target wasm32-unknown-unknown --no-default-features`.
    - Run `cargo package --workspace`, because the fork crates publish with gpux.
-   - For WebGPU API changes, run the headed WASM/WebGPU specs that exercise them from `../RayX`: `cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/<spec>`.
-   - For DX12 or surface changes, run the native Windows Test Suite app from `../RayX` and verify the renderer/backend diagnostics report DX12; manually test fast height-only live resizing when the change touches surface scaling or resize behavior.
-   - For Android/iOS platform-dependency changes, run `cargo ndk -t arm64-v8a check -p gpux-mobile` with `ANDROID_NDK_HOME` set, and the target-specific xtask mobile build/check path from `../RayX` when the toolchain is available.
+   - Run the `gpux-testkit` lanes that exercise the renderer ([docs/testing.md](../../../../docs/testing.md)): `cargo run -p gpux-testkit -- lane c` for offscreen pixels on the software adapter (WARP on Windows, lavapipe on Linux) or Metal on macOS, against the committed goldens.
+   - For WebGPU API changes, run the WASM/WebGPU specs that exercise them in lane B: `cargo run -p gpux-testkit -- lane b --grep <pattern>` (`dawn.spec.ts` fails on any WebGPU validation error, `html-island.spec.ts` covers the element upload, `backend.spec.ts` the WebGL2 fallback).
+   - For DX12 or surface changes, run lane D on Windows (`cargo run -p gpux-testkit -- lane d`), whose real windows present through DX12 (`GPUX_EXPECT_BACKEND=warp` or `hardware` makes its `desktop-backend` result check the adapter); manually test fast height-only live resizing when the change touches surface scaling or resize behavior.
+   - For Android/iOS platform-dependency changes, run `cargo ndk -t arm64-v8a check -p gpux-mobile` with `ANDROID_NDK_HOME` set, and lane E (`cargo run -p gpux-testkit -- lane e`) when the toolchain and a device or emulator are available. Lane F (iOS) is not available yet; check iOS with `cargo check` builds on macOS.
+   - Before releasing the move, run lane G on a machine with a GPU (`cargo run -p gpux-testkit -- lane g`) and compare `artifacts-temp/testkit/g/timing.md` with a run of the base commit.
 
 ## gpux Surface To Preserve
 
@@ -123,7 +125,7 @@ Check:
 - `rg -n "^\[patch|git = " -g Cargo.toml` finds nothing.
 - `cargo metadata --no-deps`
 - `cargo package --workspace`
-- Target-specific WASM WebGPU, Windows DX12, and mobile checks when the touched paths affect those targets.
+- Target-specific WASM WebGPU (lane B), Windows DX12 (lane D), and mobile (lane E) checks when the touched paths affect those targets.
 
 ## Retiring The Fork
 
@@ -148,7 +150,7 @@ After a completed fork refresh, port, or retirement:
 - The fork came from the published crates.io wgpu release and was recreated with `scripts/fork_wgpu.py`.
 - `vendor/wgpu/` holds exactly the seven fork crates with the manifest transformation, and the DX12 `WndHandle` scaling change is the only code change.
 - The root `wgpu` dependency and every fork-internal dependency pin `=<fork version>`; no `[patch]` or git source exists.
-- HTML island direct element-to-texture upload still builds and validates on headed WASM/WebGPU.
+- HTML island direct element-to-texture upload still builds and validates on WASM/WebGPU (lane B, `html-island.spec.ts`).
 - Windows WGPU uses DX12 and preserves non-stretch HWND scaling unless a new decision supersedes that rule.
 - `cargo package --workspace` passes.
 - Commit bodies record the forked release and fork version.

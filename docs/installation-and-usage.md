@@ -87,7 +87,23 @@ cargo check -p gpux-windows --all-targets
 cargo check -p gpux-web --target wasm32-unknown-unknown --no-default-features
 ```
 
-Some package checks depend on the host platform and installed native SDKs.
+Some package checks depend on the host platform and installed native SDKs. The web check disables
+default features because the default multithreaded build needs nightly `-Z build-std`, which
+`gpux-testkit web build` provides.
+
+## Testing
+
+gpux proves itself in its own test lanes, run by `gpux-testkit` from the repository root:
+
+```bash
+cargo run -p gpux-testkit -- lane <lane>... [--list] [--scene <id>] [--grep <pattern>] [--headed]
+```
+
+Lane A covers behaviour on the test platform, B a real browser (WASM on WebGPU and WebGL2), C
+offscreen pixels, D real desktop windows, E Android, and G the local GPU with timing and
+benchmarks; lane F (iOS) is planned. [testing.md](testing.md) describes each lane, its
+prerequisites, its environment variables and its CI cadence, and
+[LINUX-WSL.md](../LINUX-WSL.md) runs the Linux lanes under WSL.
 
 ## GPUI concepts
 
@@ -104,6 +120,15 @@ GPUI combines retained application state with immediate-style view rendering:
 
 If you build gpux for WebAssembly or run browser-oriented `gpui_web` examples, install `wasm-bindgen-cli` and make sure Cargo's bin directory is on `PATH`.
 
+The threaded browser build (`gpux-testkit web build`, lanes B and G) also needs a nightly toolchain with `rust-src` and the wasm32 target, and its Playwright specs need Node.js 22 or later with `pnpm`:
+
+```bash
+rustup toolchain install nightly --component rust-src --target wasm32-unknown-unknown
+cd tools-node
+pnpm install
+pnpm exec playwright install chromium
+```
+
 ### Windows ARM64 Chromium browsers
 
 On current Windows ARM64 Qualcomm/Adreno devices, Chromium-based browsers can report WebGPU as hardware accelerated but still return no adapters unless the browser's Unsafe WebGPU flag is enabled.
@@ -116,6 +141,8 @@ If a gpux browser build fails with messages such as `Failed to request GPU adapt
 Set **Unsafe WebGPU** to **Enabled**, then fully restart the browser and try again.
 
 ### Install `wasm-bindgen-cli`
+
+Install the version `Cargo.lock` pins; `gpux-testkit web build` refuses any other:
 
 ```bash
 cargo install wasm-bindgen-cli --version 0.2.129 --locked
@@ -235,9 +262,9 @@ Start-Process "$env:TEMP\vc_redist.x64.exe"   -ArgumentList "/repair /quiet /nor
 
 Restart Windows after install or repair.
 
-### 5. Microsoft OpenJDK 21 for .NET Android and mobile validation
+### 5. Microsoft OpenJDK 21 for Android
 
-If a RayX or gpux-adjacent Android build fails before C# compilation with .NET for Android error `XA5300`, the Android SDK or Java SDK could not be located. For `net10.0-android` builds, install **Microsoft Build of OpenJDK 21 LTS**. The .NET for Android dependency documentation recommends Microsoft OpenJDK 21, and the XA5300 documentation also points to the Android/Java SDK dependency setup flow.
+Lane E builds the Android conformance host and needs a JDK 17 or later (`java`, `keytool`); its other prerequisites are in [testing.md](testing.md#lane-e-android). **Microsoft Build of OpenJDK 21 LTS** works.
 
 Download page:
 
@@ -268,16 +295,12 @@ If `JAVA_HOME` is still empty, set it to the installed JDK folder. Adjust the fo
 [Environment]::SetEnvironmentVariable("JAVA_HOME", "C:\Program Files\Microsoft\jdk-21.0.11.10-hotspot", "User")
 ```
 
-Reopen the terminal after setting `JAVA_HOME`. If .NET still cannot discover the JDK, pass it explicitly:
+Reopen the terminal after setting `JAVA_HOME`.
 
-```powershell
-dotnet build -f net10.0-android -p:JavaSdkDirectory="$env:JAVA_HOME"
-```
+RayX consumers only: RayX's .NET for Android builds fail with `XA5300` when they cannot locate the Android or Java SDK. The same JDK fixes it; if .NET still cannot discover it, pass it explicitly with `dotnet build -f net10.0-android -p:JavaSdkDirectory="$env:JAVA_HOME"` (see [.NET for Android dependency installation](https://learn.microsoft.com/en-us/dotnet/android/getting-started/installation/dependencies) and [XA5300](https://learn.microsoft.com/en-us/dotnet/android/messages/xa5300)).
 
 Reference docs:
 
-- [.NET for Android dependency installation](https://learn.microsoft.com/en-us/dotnet/android/getting-started/installation/dependencies)
-- [.NET for Android XA5300](https://learn.microsoft.com/en-us/dotnet/android/messages/xa5300)
 - [Install Microsoft Build of OpenJDK](https://learn.microsoft.com/en-us/java/openjdk/install)
 
 ## macOS

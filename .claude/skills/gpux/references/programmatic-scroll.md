@@ -16,4 +16,4 @@ Preserve these properties during upstream updates:
 - At most one programmatic frame chain is active; completion, cancellation, and reduced-motion settlement schedule no further frames.
 - `SliverHeader` is a RayX policy consumer of this same driver. It resolves app behavior before calling `ScrollHandle::scroll_to`; never accept a header-local timer, duration, easing function, or second activity state machine in gpux or RayX.
 
-Validate with the focused gpux programmatic-scroll tests (`cargo test -p gpux <filter>`), then, from `../RayX`, the affected RayX owner tests and headed WASM/WebGPU Test Suite proof when behavior is visible.
+Validate with the focused gpux programmatic-scroll tests (`cargo test -p gpux <filter>`) and the `scroll-programmatic` conformance scene (`cargo run -p gpux-testkit -- lane a c --scene scroll-programmatic`); its exact eased offsets need the executor clock, so it runs only in lanes A and C. When visible thumb or wheel behavior changes, also run `scroll-scrollbar` and `scroll-wheel` in lanes B and D (`lane b d --scene <id>`). A change to an API RayX's owners use ships with the matching RayX change and its owner tests in `../RayX`.

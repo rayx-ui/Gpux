@@ -23,7 +23,7 @@ Treat this mapping as the whole upstream `gpui_mobile` import surface:
 
 - `<gpui-mobile repository root>` -> `crates/gpui_mobile/`
 
-Re-check `crates/gpui_mobile/Cargo.toml`, the root `Cargo.toml`, and `crates/gpui_platform/Cargo.toml` before each update because dependency wiring or feature gates can change. Also inspect RayX app platform mirrors such as `../RayX/apps/lab/platform/android`, `../RayX/apps/examples_mobile/platform/android`, and iOS project files when an upstream import changes Java/JNI class names, package-helper names, native activity wiring, bundle metadata, or generated headers.
+Re-check `crates/gpui_mobile/Cargo.toml`, the root `Cargo.toml`, and `crates/gpui_platform/Cargo.toml` before each update because dependency wiring or feature gates can change. Also inspect gpux's lane E host (`crates/gpux_conformance/examples/android_host` and `tooling/android/AndroidManifest.xml`) and, on the consumer side, RayX app platform mirrors such as `../RayX/apps/lab/platform/android`, `../RayX/apps/examples_mobile/platform/android`, and iOS project files when an upstream import changes Java/JNI class names, package-helper names, native activity wiring, bundle metadata, or generated headers; a change RayX's mirrors depend on ships with the matching RayX change.
 
 ## Workflow
 
@@ -77,10 +77,10 @@ Original subject: <original local subject>
    - Run `cargo ndk -t arm64-v8a check -p gpux-mobile` with `ANDROID_NDK_HOME` set.
    - Run `cargo ndk -t arm64-v8a check -p gpux-platform` when Android tooling is available because platform selection depends on `gpui_mobile`.
    - Run `cargo package --workspace` when the import changed the `gpux-mobile` manifest or dependencies.
-   - From `../RayX`, run `cargo run -p xtask -- app apps/test_suite build android --debug` when Android app packaging, JNI class names, package helpers, native activity wiring, or manifest metadata changes.
-   - From `../RayX`, run Android device/emulator validation with app-scoped `adb logcat` and DevKit/runtime diagnostics when lifecycle, surface, backend selection, frame scheduling, input, safe-area, or shader/effect capability behavior changed.
+   - Run `cargo run -p gpux-testkit -- android build [--abi x86_64|arm64-v8a]` (the Gradle-free `android_host` APK) when Android app packaging, JNI class names, package helpers, native activity wiring, or manifest metadata changes. The host is a NativeActivity without Java code, so JNI class-name or package-helper changes also need the matching change in RayX's Java mirrors (see Current Path Mapping).
+   - Run lane E on a device or emulator (`cargo run -p gpux-testkit -- lane e`, or `android run [--serial <serial>] [--scene <id>] [--grep <pattern>]`) when lifecycle, surface, backend selection, frame scheduling, input, safe-area, or shader/effect capability behavior changed. It follows logcat and saves results, screenshots, and logcat in `artifacts-temp/testkit/e/` ([docs/testing.md](../../../../docs/testing.md#lane-e-android)).
    - On macOS with iOS tooling, run the equivalent iOS-target check for `gpux-mobile`.
-   - On macOS with Xcode/XcodeGen/xcrun, run RayX's iOS path from `../RayX` when iOS lifecycle, surface, Metal/WGPU, text, safe-area, package helper, or shader/effect capability behavior changed.
+   - Lane F (iOS) is not available yet (planned: `gpux-testkit ios build --simulator` and `ios run --simulator`). Until it lands, check iOS lifecycle, surface, Metal/WGPU, text, safe-area, package helper, or shader/effect capability changes with `cargo check` builds on macOS with Xcode/XcodeGen/xcrun; run them in lane F once it exists.
    - From Windows, iOS source/configuration checks are useful but are not runtime proof; do not close iOS renderer or shader-output work from Windows checks alone.
 
 ## RayX Patch Surface To Preserve
@@ -144,7 +144,7 @@ Check:
 
 - `git diff -- crates/gpui_mobile`
 - `cargo metadata --no-deps`
-- Targeted Android/iOS `gpux-mobile` and `gpux-platform` checks when toolchains are available.
+- Targeted Android/iOS `gpux-mobile` and `gpux-platform` checks, and lane E on a device or emulator, when toolchains are available.
 
 ## Durable Memory
 
@@ -153,7 +153,7 @@ After a completed import:
 - Update `.agentx/memory/knowledge/platform/mobile/state.md` with any changed current mobile behavior and `.agentx/memory/knowledge/repository/upstream-sync/state.md` with the latest represented upstream `gpui_mobile` commit.
 - Update the mobile `knowledge.md` only for durable facts that are not obvious from state, and `rules.md` only if the import/replay rule changed.
 - Add a decision in gpux memory if the source repository, path mapping, provenance policy, or mobile patch ownership changes.
-- Run the AgentX audit script from `../RayX` after memory changes.
+- Run the AgentX audit script from the Gpux root after memory changes.
 
 ## Review Checklist
 

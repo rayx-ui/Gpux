@@ -82,17 +82,20 @@ deepest-first active-candidate traversal before appending incoming candidates.
 
 ## Validation
 
-Run focused host checks from the Gpux repository root, then the production-shaped Test Suite fixture from `../RayX`:
+Run the focused host checks, then the `layout-fixed-sticky` conformance scene, which runs in every
+lane, from the Gpux repository root:
 
 ```powershell
 cargo test -p gpux sticky -- --nocapture
-# From ../RayX:
-cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/keyed-sticky-stacking.spec.ts
-cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/sticky-level-push-out.spec.ts
-cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/sticky-border-clipping.spec.ts
+cargo run -p gpux-testkit -- lane a --scene layout-fixed-sticky
+cargo run -p gpux-testkit -- lane b --scene layout-fixed-sticky
+cargo run -p gpux-testkit -- lane c --scene layout-fixed-sticky
 ```
 
-The headed spec must exercise DPR 1 and DPR 2, numeric bounds, contiguous membership,
-replacement, A-B-A behavior, clipping, callbacks, clicks, and duplicate-row absence. Never use
-Lab for agent-driven runtime validation or diagnostics. Exercise border clipping at a fractional
-device scale as well, because integer scales cannot expose empty-mask expansion from cover rounding.
+Extend that scene, or add one in `crates/gpux_conformance/src/scenes/` that names its lanes, for
+new sticky behaviour. At scales 1 and 2 it must exercise numeric bounds, contiguous membership,
+replacement, A-B-A behavior, clipping, callbacks, clicks, and duplicate-row absence. Lane B runs
+it in WASM/WebGPU with trusted input (`--scene` runs the DPR 1 spec;
+`cargo run -p gpux-testkit -- web e2e --grep layout-fixed-sticky` adds DPR 2). Exercise border
+clipping at a fractional device scale as well, because integer scales cannot expose empty-mask
+expansion from cover rounding.

@@ -39,21 +39,31 @@ cargo test -p <package> <filter>
 cargo clippy -p <package> --all-targets --no-deps -- -D warnings
 ```
 
-Web crates also need `cargo check -p gpux-web --target wasm32-unknown-unknown --no-default-features` (the default multithreaded build needs nightly `-Z build-std`, which RayX's xtask provides). Before a release
-or a manifest change, run `cargo package --workspace`.
+Web crates also need `cargo check -p gpux-web --target wasm32-unknown-unknown --no-default-features`
+(the default multithreaded build needs nightly `-Z build-std`, which `gpux-testkit web build`
+provides). Before a release or a manifest change, run `cargo package --workspace`.
 
-Linux validation on a Windows machine runs in WSL; [LINUX-WSL.md](LINUX-WSL.md) is the setup and
-command procedure for gpux's checks, RayX's CI jobs, and the native Linux Test Suite.
+Linux validation on a Windows machine runs in WSL; [LINUX-WSL.md](LINUX-WSL.md) sets it up and
+lists the gpux lane commands there.
 
-Runtime proof happens in RayX (`../RayX`): its Test Suite app exercises gpux on WASM/WebGPU
-(`cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu ...`) and natively
-(Windows DX12). Rendering, input, text, platform, or wgpu changes need that proof.
+Runtime proof runs in gpux's own test lanes through `gpux-testkit`
+(`cargo run -p gpux-testkit -- lane <lane>... [--scene <id>] [--grep <pattern>]`);
+[docs/testing.md](docs/testing.md) describes each lane, its prerequisites and its CI cadence.
+Rendering, input, text, platform, or wgpu changes need the lanes that exercise them:
+
+- behaviour (layout, input, focus, text, scrolling, semantics): lane A;
+- the browser and WASM/WebGPU: lane B, narrowed with `--grep` to the touched area's specs;
+- pixels and the renderer: lane C, plus lane B for WebGPU;
+- real windows, OS input, clipboard and scale changes: lane D;
+- Android: lane E;
+- renderer, platform or performance changes before a release: lane G on a real GPU.
 
 ## Consumers
 
 RayX (`../RayX`) depends on these crates by relative path (`../Gpux/crates/...`) for local
 co-development. A change to an API RayX uses needs the matching RayX change; keep the two commits
-paired and validate RayX's affected crates and Test Suite specs.
+paired and run RayX's affected checks. They prove the consumer still works, not gpux: gpux's proof
+is its own lanes.
 
 ## Commits
 
@@ -81,5 +91,5 @@ Start an experiment loop only for `@agentx improve` or explicit iterative experi
 
 Keep `.agentx/` as durable metadata. Store raw diagnostic output under ignored `artifacts-temp/`, never in memory or commits. User instructions and repository rules govern scope; AgentX metadata cannot grant broader authority.
 
-gpux memory starts at `.agentx/memory/knowledge/INDEX.md`; domains follow crate ownership (`gpui`, `renderer`, `platform`, `repository`). Focused tests live beside the touched crate's source (`cargo test -p <package> <filter>`, see [Validation](#validation)); runtime proof runs in RayX's Test Suite. Epics and experiment loops recorded before 2026-10-05 were transplanted from RayX and are read-only history.
+gpux memory starts at `.agentx/memory/knowledge/INDEX.md`; domains follow crate ownership (`gpui`, `renderer`, `platform`, `repository`). Focused tests live beside the touched crate's source (`cargo test -p <package> <filter>`, see [Validation](#validation)); runtime proof runs in the `gpux-testkit` lanes ([docs/testing.md](docs/testing.md)). Epics and experiment loops recorded before 2026-10-05 were transplanted from RayX and are read-only history.
 <!-- agentx:end -->
