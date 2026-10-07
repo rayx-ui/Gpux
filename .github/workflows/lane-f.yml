@@ -1,0 +1,51 @@
+name: Gpux lane F
+
+# Lane F: the iOS conformance host on a Simulator of the macOS runner. `gpux-testkit lane f`
+# builds the host for the Simulator, generates and builds the Xcode project of tooling/ios
+# unsigned, boots the pinned Simulator, and follows the host's console. Where the hosted
+# Simulator offers no Metal device, pixel steps report themselves skipped with the reason.
+
+on:
+  pull_request:
+    paths:
+      - crates/gpui_mobile/**
+      - crates/gpui_wgpu/**
+      - crates/gpux_conformance/**
+      - tooling/ios/**
+      - tooling/testkit/**
+      - .github/workflows/lane-f.yml
+  push:
+    branches: [main]
+  schedule:
+    - cron: '7 4 * * *'
+  workflow_dispatch:
+
+# A new push to a pull request cancels its superseded run; runs on main always finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_PROFILE_DEV_DEBUG: line-tables-only
+
+jobs:
+  lane-f:
+    name: lane F (Simulator)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@1.95.0
+        with:
+          targets: aarch64-apple-ios-sim
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Lane F
+        run: cargo run -p gpux-testkit -- lane f
+      - name: Upload the console and failure frames
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: lane-f
+          path: artifacts-temp/testkit/f
+          if-no-files-found: ignore
+          retention-days: 14
