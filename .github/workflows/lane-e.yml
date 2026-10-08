@@ -14,13 +14,11 @@ on:
       - tooling/android/**
       - tooling/testkit/**
       - .github/workflows/lane-e.yml
-  push:
-    branches: [main]
   schedule:
     - cron: '47 3 * * *'
   workflow_dispatch:
 
-# A new push to a pull request cancels its superseded run; runs on main always finish.
+# A new push to a pull request cancels its superseded run; scheduled and manual runs always finish.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}

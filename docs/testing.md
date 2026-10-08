@@ -32,12 +32,12 @@ an API RayX uses ships with the matching RayX change, but RayX's tests are not g
 
 | Lane | Workflow job | Runner | Cadence |
 |---|---|---|---|
-| A | `ci.yml` lane A | `ubuntu-24.04`, `windows-2025`, `macos-15` | every pull request and push to `main` |
-| B | `lane-b.yml` | `ubuntu-24.04`: headless Chromium, WebGPU on SwiftShader (profile `ci-linux-swiftshader`), 4 shards | pull requests and pushes: `@canary` and `@pr` at DPR 1; nightly at 03:17 UTC (or a dispatch with `all-specs`): every spec except `@timing`, DPR 2 included |
-| C | `ci.yml` lane C | `ubuntu-24.04` (lavapipe), `windows-2025` (WARP), `macos-15` (Metal) | every pull request and push to `main` |
-| D | `ci.yml` lane D | `ubuntu-24.04` (X11 under Xvfb, lavapipe), `windows-2025` (WARP), `macos-15` | every pull request and push to `main` |
-| E | `lane-e.yml` | `ubuntu-24.04`: KVM-accelerated API 34 x86_64 emulator, SwiftShader GL | nightly at 03:47 UTC, pushes to `main`, and pull requests that touch `gpui_mobile`, `gpui_wgpu`, `gpux_conformance`, `tooling/android` or `tooling/testkit` |
-| F | `lane-f.yml` | `macos-15`: an iPhone 16 Simulator on the newest installed iOS runtime | nightly at 04:07 UTC, pushes to `main`, and pull requests that touch `gpui_mobile`, `gpui_wgpu`, `gpux_conformance`, `tooling/ios` or `tooling/testkit` |
+| A | `ci.yml` lane A | `ubuntu-24.04`, `windows-2025`, `macos-15` | every pull request |
+| B | `lane-b.yml` | `ubuntu-24.04`: headless Chromium, WebGPU on SwiftShader (profile `ci-linux-swiftshader`), 4 shards | pull requests: `@canary` and `@pr` at DPR 1; nightly at 03:17 UTC (or a dispatch with `all-specs`): every spec except `@timing`, DPR 2 included |
+| C | `ci.yml` lane C | `ubuntu-24.04` (lavapipe), `windows-2025` (WARP), `macos-15` (Metal) | every pull request |
+| D | `ci.yml` lane D | `ubuntu-24.04` (X11 under Xvfb, lavapipe), `windows-2025` (WARP), `macos-15` | every pull request |
+| E | `lane-e.yml` | `ubuntu-24.04`: KVM-accelerated API 34 x86_64 emulator, SwiftShader GL | nightly at 03:47 UTC, and pull requests that touch `gpui_mobile`, `gpui_wgpu`, `gpux_conformance`, `tooling/android` or `tooling/testkit` |
+| F | `lane-f.yml` | `macos-15`: an iPhone 16 Simulator on the newest installed iOS runtime | nightly at 04:07 UTC, and pull requests that touch `gpui_mobile`, `gpui_wgpu`, `gpux_conformance`, `tooling/ios` or `tooling/testkit` |
 | G | none: local only | the developer's GPU | before releases, and for renderer, platform or performance changes |
 
 `ci.yml` also runs `check` (format, `cargo check --workspace --all-targets`, Clippy, the web

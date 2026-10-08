@@ -1,14 +1,12 @@
 name: Gpux lane B
 
 # Lane B: the threaded WASM build in headless Chromium on SwiftShader WebGPU, driven by the
-# Playwright specs in tools-node. Pull requests and pushes run the @canary and @pr specs at
+# Playwright specs in tools-node. Pull requests run the @canary and @pr specs at
 # DPR 1; the nightly schedule (or a dispatch with all-specs) runs every spec except lane G's
 # @timing ones, DPR 2 included.
 
 on:
   pull_request:
-  push:
-    branches: [main]
   schedule:
     - cron: '17 3 * * *'
   workflow_dispatch:
@@ -18,7 +16,7 @@ on:
         type: boolean
         default: false
 
-# A new push to a pull request cancels its superseded run; runs on main always finish.
+# A new push to a pull request cancels its superseded run; scheduled and manual runs always finish.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}

@@ -2,8 +2,6 @@ name: Gpux
 
 on:
   pull_request:
-  push:
-    branches: [main]
   workflow_dispatch:
     inputs:
       update-goldens:
@@ -11,7 +9,7 @@ on:
         type: boolean
         default: false
 
-# A new push to a pull request cancels its superseded run; runs on main always finish.
+# A new push to a pull request cancels its superseded run; scheduled and manual runs always finish.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
