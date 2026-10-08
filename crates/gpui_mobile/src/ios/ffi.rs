@@ -502,6 +502,38 @@ pub extern "C" fn gpui_ios_run_demo() {
     run_app();
 }
 
+/// Writes `log` records to stderr, which `xcrun simctl launch --console` and Xcode show; iOS has
+/// no other sink for Rust logging.
+struct StderrLogger;
+
+impl log::Log for StderrLogger {
+    fn enabled(&self, _metadata: &log::Metadata) -> bool {
+        true
+    }
+
+    fn log(&self, record: &log::Record) {
+        eprintln!("[{} {}] {}", record.level(), record.target(), record.args());
+    }
+
+    fn flush(&self) {}
+}
+
+/// Installs the stderr logger unless the host app already set one. The level comes from the
+/// `GPUI_IOS_LOG` environment variable (`error`, `warn`, `info`, `debug`, `trace`; `warn` when
+/// unset); with `xcrun simctl launch` pass it as `SIMCTL_CHILD_GPUI_IOS_LOG=debug`.
+pub fn init_logging() {
+    static LOGGER: StderrLogger = StderrLogger;
+    let level = std::env::var("GPUI_IOS_LOG")
+        .ok()
+        .and_then(|value| value.parse::<log::LevelFilter>().ok())
+        .unwrap_or(log::LevelFilter::Warn);
+    let installed = log::set_logger(&LOGGER).is_ok();
+    if installed {
+        log::set_max_level(level);
+    }
+    eprintln!("GPUI iOS: logging at {level} (stderr logger installed: {installed})");
+}
+
 /// Run the GPUI iOS application.
 ///
 /// This initialises the platform, creates the `Application`, and enters the
@@ -509,6 +541,7 @@ pub extern "C" fn gpui_ios_run_demo() {
 /// registered via [`set_app_callback`].  If no callback was registered a
 /// default empty window is opened so the app doesn't crash.
 pub fn run_app() {
+    init_logging();
     log::info!("GPUI iOS: Starting application");
 
     // Initialise the FFI layer if not already done.
