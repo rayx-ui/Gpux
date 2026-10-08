@@ -449,6 +449,35 @@ unsafe impl Sync for AppCallbackCell {}
 
 static APP_CALLBACK: OnceLock<AppCallbackCell> = OnceLock::new();
 
+/// Applies a host's asset source to the GPUI application `run_app` builds.
+type AppAssets = Box<dyn FnOnce(Application) -> Application>;
+
+struct AppAssetsCell(std::cell::UnsafeCell<Option<AppAssets>>);
+
+// Safety: only accessed from the iOS main thread.
+unsafe impl Send for AppAssetsCell {}
+unsafe impl Sync for AppAssetsCell {}
+
+static APP_ASSETS: OnceLock<AppAssetsCell> = OnceLock::new();
+
+/// Registers the asset source that images and SVGs load through.
+///
+/// `run_app` creates the GPUI `Application` itself, so without this an iOS host has no way to give
+/// it assets (the Android host passes them to `Application::with_assets`). Call it before
+/// `gpui_ios_run_demo`, from the registration entry point.
+pub fn set_app_assets(source: impl gpui::AssetSource) {
+    let cell = APP_ASSETS.get_or_init(|| AppAssetsCell(std::cell::UnsafeCell::new(None)));
+    unsafe {
+        *cell.0.get() = Some(Box::new(move |app| app.with_assets(source)));
+    }
+}
+
+fn take_app_assets() -> Option<AppAssets> {
+    APP_ASSETS
+        .get()
+        .and_then(|cell| unsafe { (*cell.0.get()).take() })
+}
+
 /// Retains the GPUI application after `Application::run` returns.
 ///
 /// On iOS, UIKit owns the outer application loop and GPUI startup is completed
@@ -555,6 +584,10 @@ pub fn run_app() {
 
     let platform = Rc::new(super::IosPlatform::new());
     let app = Application::with_platform(platform);
+    let app = match take_app_assets() {
+        Some(apply) => apply(app),
+        None => app,
+    };
     retain_application(app.clone());
     app.run(|cx| async move {
         if let Some(cb) = take_app_callback() {
