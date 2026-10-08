@@ -4,34 +4,34 @@ use objc2::{class, msg_send};
 use std::sync::mpsc;
 
 #[link(name = "AVFoundation", kind = "framework")]
-extern "C" {}
+unsafe extern "C" {}
 
 #[link(name = "CoreLocation", kind = "framework")]
-extern "C" {}
+unsafe extern "C" {}
 
 #[link(name = "Photos", kind = "framework")]
-extern "C" {}
+unsafe extern "C" {}
 
 #[link(name = "Contacts", kind = "framework")]
-extern "C" {}
+unsafe extern "C" {}
 
 #[link(name = "EventKit", kind = "framework")]
-extern "C" {}
+unsafe extern "C" {}
 
 #[link(name = "UserNotifications", kind = "framework")]
-extern "C" {}
+unsafe extern "C" {}
 
 #[link(name = "CoreBluetooth", kind = "framework")]
-extern "C" {}
+unsafe extern "C" {}
 
 #[link(name = "CoreMotion", kind = "framework")]
-extern "C" {}
+unsafe extern "C" {}
 
 #[link(name = "Speech", kind = "framework")]
-extern "C" {}
+unsafe extern "C" {}
 
 #[link(name = "AppTrackingTransparency", kind = "framework")]
-extern "C" {}
+unsafe extern "C" {}
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 

@@ -1,7 +1,7 @@
 use super::WebViewHandle;
 
 #[link(name = "WebKit", kind = "framework")]
-extern "C" {}
+unsafe extern "C" {}
 
 pub fn evaluate_javascript(handle: &WebViewHandle, script: &str) -> Result<(), String> {
     // The platform view system handles the WKWebView lifecycle.

@@ -8,10 +8,10 @@ use std::collections::HashMap;
 use std::sync::{Mutex, Once, mpsc};
 
 #[link(name = "AVFoundation", kind = "framework")]
-extern "C" {}
+unsafe extern "C" {}
 
 #[link(name = "CoreMedia", kind = "framework")]
-extern "C" {}
+unsafe extern "C" {}
 
 // ── Session state ───────────────────────────────────────────────────────────
 
@@ -150,7 +150,7 @@ extern "C" fn photo_did_finish(
     }
 }
 
-extern "C" {
+unsafe extern "C" {
     fn CGImageGetWidth(image: *mut AnyObject) -> usize;
     fn CGImageGetHeight(image: *mut AnyObject) -> usize;
 }

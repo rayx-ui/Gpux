@@ -4,10 +4,10 @@ use objc2::{class, msg_send, sel};
 use std::sync::{Mutex, Once, mpsc};
 
 #[link(name = "UIKit", kind = "framework")]
-extern "C" {}
+unsafe extern "C" {}
 
 #[link(name = "UniformTypeIdentifiers", kind = "framework")]
-extern "C" {}
+unsafe extern "C" {}
 
 // ── Result channel ──────────────────────────────────────────────────────────
 

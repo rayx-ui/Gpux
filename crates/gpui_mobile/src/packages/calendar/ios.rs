@@ -320,7 +320,7 @@ unsafe fn cgcolor_to_argb(cg_color: *mut AnyObject) -> u32 {
 
     // Get the number of components
     let num_components: usize = {
-        extern "C" {
+        unsafe extern "C" {
             fn CGColorGetNumberOfComponents(color: *const AnyObject) -> usize;
         }
         CGColorGetNumberOfComponents(cg_color)
@@ -328,7 +328,7 @@ unsafe fn cgcolor_to_argb(cg_color: *mut AnyObject) -> u32 {
 
     // Get the component array
     let components: *const f64 = {
-        extern "C" {
+        unsafe extern "C" {
             fn CGColorGetComponents(color: *const AnyObject) -> *const f64;
         }
         CGColorGetComponents(cg_color)
