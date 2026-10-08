@@ -116,12 +116,32 @@ pub fn native_backend_policy_label() -> &'static str {
     "DX12"
 }
 
-#[cfg(all(not(target_family = "wasm"), not(target_os = "windows")))]
+/// Metal is the only GPU backend on Apple platforms (an iOS device or Simulator has no Vulkan or
+/// GL driver, so the Vulkan/GL policy finds no adapter and the window stays black).
+#[cfg(all(not(target_family = "wasm"), target_vendor = "apple"))]
+pub fn native_backend_policy() -> wgpu::Backends {
+    wgpu::Backends::METAL
+}
+
+#[cfg(all(not(target_family = "wasm"), target_vendor = "apple"))]
+pub fn native_backend_policy_label() -> &'static str {
+    "METAL"
+}
+
+#[cfg(all(
+    not(target_family = "wasm"),
+    not(target_os = "windows"),
+    not(target_vendor = "apple")
+))]
 pub fn native_backend_policy() -> wgpu::Backends {
     wgpu::Backends::VULKAN | wgpu::Backends::GL
 }
 
-#[cfg(all(not(target_family = "wasm"), not(target_os = "windows")))]
+#[cfg(all(
+    not(target_family = "wasm"),
+    not(target_os = "windows"),
+    not(target_vendor = "apple")
+))]
 pub fn native_backend_policy_label() -> &'static str {
     "VULKAN|GL"
 }
