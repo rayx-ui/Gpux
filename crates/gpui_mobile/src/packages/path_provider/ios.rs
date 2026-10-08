@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 pub fn temporary_directory() -> Result<PathBuf, String> {
     unsafe {
-        extern "C" {
+        unsafe extern "C" {
             fn NSTemporaryDirectory() -> *mut AnyObject;
         }
         let path = NSTemporaryDirectory();
@@ -28,7 +28,7 @@ pub fn support_directory() -> Result<PathBuf, String> {
 /// Calls NSSearchPathForDirectoriesInDomains(directory, NSUserDomainMask, YES)
 fn search_path_directory(directory: u64) -> Result<PathBuf, String> {
     unsafe {
-        extern "C" {
+        unsafe extern "C" {
             fn NSSearchPathForDirectoriesInDomains(
                 directory: u64,
                 domain_mask: u64,

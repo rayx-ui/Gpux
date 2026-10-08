@@ -3,13 +3,13 @@ use objc2::runtime::AnyObject;
 use objc2::{class, msg_send};
 
 #[link(name = "AudioToolbox", kind = "framework")]
-extern "C" {}
+unsafe extern "C" {}
 
 pub fn vibrate(_duration_ms: u32) -> Result<(), String> {
     // On iOS, custom duration vibration isn't supported via public API.
     // Use AudioServicesPlaySystemSound(kSystemSoundID_Vibrate) for a standard vibration.
     unsafe {
-        extern "C" {
+        unsafe extern "C" {
             fn AudioServicesPlaySystemSound(sound_id: u32);
         }
         AudioServicesPlaySystemSound(4095); // kSystemSoundID_Vibrate

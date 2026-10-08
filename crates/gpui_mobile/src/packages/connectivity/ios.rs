@@ -1,7 +1,7 @@
 use super::ConnectivityStatus;
 
 #[link(name = "SystemConfiguration", kind = "framework")]
-extern "C" {}
+unsafe extern "C" {}
 
 /// Check connectivity using SCNetworkReachability (available without extra frameworks).
 pub fn check_connectivity() -> ConnectivityStatus {
@@ -66,7 +66,7 @@ struct sockaddr_in {
 // SCNetworkReachability is an opaque type
 type SCNetworkReachabilityRef = *const std::ffi::c_void;
 
-extern "C" {
+unsafe extern "C" {
     fn SCNetworkReachabilityCreateWithAddress(
         allocator: *const std::ffi::c_void,
         address: *const sockaddr,

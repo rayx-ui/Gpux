@@ -74,7 +74,7 @@ mod libc {
         pub machine: [i8; 256],
     }
 
-    extern "C" {
+    unsafe extern "C" {
         pub fn uname(buf: *mut utsname) -> i32;
     }
 }

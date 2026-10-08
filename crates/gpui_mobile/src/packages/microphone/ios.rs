@@ -4,7 +4,7 @@ use objc2::{class, msg_send};
 use std::sync::Mutex;
 
 #[link(name = "AVFoundation", kind = "framework")]
-extern "C" {}
+unsafe extern "C" {}
 
 struct RecorderState {
     recorder: *mut AnyObject, // AVAudioRecorder

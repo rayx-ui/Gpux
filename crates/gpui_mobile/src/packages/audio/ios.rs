@@ -347,7 +347,7 @@ unsafe impl RefEncode for CMTime {
 /// CMTimeMake(value, timescale) — construct a CMTime.
 fn cmtime_make(value: i64, timescale: i32) -> CMTime {
     // Call the CoreMedia C function directly.
-    extern "C" {
+    unsafe extern "C" {
         fn CMTimeMake(value: i64, timescale: i32) -> CMTime;
     }
     unsafe { CMTimeMake(value, timescale) }
