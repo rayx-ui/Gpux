@@ -20,7 +20,7 @@ The epic adds seven test lanes, run by `cargo run -p gpux-testkit -- lane <a..g>
 | D | real desktop windows, OS input | yes | Windows (40/40), X11 under Xvfb (WSL); **macOS unproven since its fix** |
 | E | Android host over adb | yes | local x86_64 emulator |
 | F | iOS host on a Simulator | yes, **never built on a Mac** | **nothing yet**: unit tests and `aarch64-apple-ios` clippy pass on Windows |
-| G | the developer's real GPU (timing, benchmarks) | yes | RTX 4080 SUPER (see the preflight below) |
+| G | the developer's real GPU (timing, benchmarks) | yes | RTX 4080 SUPER: 390/390 at `9dd50e0` |
 
 AgentX state (`python <agentx>/agentx_task.py status --task-dir .agentx/tasks/gpux-cross-platform-test-lanes`):
 
@@ -37,6 +37,32 @@ AgentX state (`python <agentx>/agentx_task.py status --task-dir .agentx/tasks/gp
 **F-2, F-3** (t29). All five are `manual` criteria proven by runs on macOS.
 
 <!-- preflight -->
+**Windows preflight at `9dd50e0` (2026-10-08, after the nightly and JDK pins).** The epic's five
+final checks were run by hand, outside AgentX, which only runs `check --epic` once every sprint
+is sealed. All passed:
+
+| Check | Result |
+|---|---|
+| `final-fmt` | exit 0 |
+| `final-clippy` (eight packages, `-D warnings`) | exit 0 |
+| `final-web-check` | exit 0 |
+| `final-tests` (seven packages) | 1,096 passed, 0 failed, 4 ignored |
+| `final-package` (`cargo package --workspace`) | exit 0 |
+
+Lane G on the RTX 4080 SUPER passed 390 of 390. It rebuilt lane B with the pinned nightly:
+
+| Part | Passed | Failed | Skipped |
+|---|---|---|---|
+| lane B `local-gpu` | 160 | 0 | 0 |
+| lane C on the GPU, probes only | 79 | 0 | 0 |
+| lane D on the GPU | 41 | 0 | 0 |
+| `gpux-platform` benchmarks | 110 | 0 | 0 |
+
+`list-uniform` scroll frame work: p95 1.94 ms. Raw logs are in
+`artifacts-temp/agentx/gpux-cross-platform-test-lanes/preflight/` on that machine.
+
+Nothing else is left to run off a Mac. If no product code changes on the Mac, `check --epic` there
+should only repeat these results.
 <!-- /preflight -->
 
 ## Owner decisions (2026-10-07)
