@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-cross-platform-test-lanes",
-  "revision": 16,
+  "revision": 17,
   "title": "Gpux-owned test lanes for every platform",
   "validationMode": "sprint",
   "repositories": [
@@ -1033,6 +1033,32 @@
         "Cargo.toml",
         "Cargo.lock"
       ]
+    },
+    {
+      "id": "check-ci-pr-only",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [
+        "A-3"
+      ],
+      "descriptionMarkdown": "No workflow declares a `push` trigger and `docs/testing.md` names no push-to-`main` cadence. `git grep` exits 1 when nothing matches; the workflows before `4f3394e` match (`ci.yml` line 5).",
+      "argv": [
+        "git",
+        "grep",
+        "-nE",
+        "^\\s+push:|push(es)? to .main",
+        "--",
+        ".github/workflows",
+        "docs/testing.md"
+      ],
+      "expected": {
+        "exitCode": 1,
+        "failurePattern": "\\A\\Z"
+      },
+      "inputs": [
+        ".github/workflows/**",
+        "docs/testing.md"
+      ]
     }
   ],
   "finalCheckIds": [
@@ -1905,6 +1931,36 @@
             "t28-ios-host-build"
           ],
           "checkIds": []
+        }
+      ]
+    },
+    {
+      "id": "s9-ci-cadence",
+      "title": "CI cadence: pull requests only (owner decision 2026-10-09)",
+      "dependsOn": [
+        "s8-apple-lanes"
+      ],
+      "memoryScopes": [
+        "repository/validation"
+      ],
+      "tasks": [
+        {
+          "id": "t32-ci-pull-request-cadence",
+          "title": "Record pull-request-only CI cadence",
+          "descriptionMarkdown": "Final review finding `FINAL-F1-a2-push-trigger`: commit `4f3394e` dropped the push-to-`main` trigger from `ci.yml` and lanes B, E and F, and updated the cadence table in `docs/testing.md`, while A-2 still asked for a push run. The owner confirmed on 2026-10-09 that CI runs on pull requests only, to avoid paying twice for a merged pull request's tests. A-3 records that cadence and `check-ci-pr-only` guards it; the source change is `4f3394e` itself.",
+          "criterionIds": [
+            "A-3"
+          ],
+          "supportingCriterionIds": [
+            "A-2"
+          ],
+          "designIds": [
+            "d-ci"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-ci-pr-only"
+          ]
         }
       ]
     }

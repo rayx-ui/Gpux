@@ -253,6 +253,11 @@
           "id": "A-2",
           "descriptionMarkdown": "CI runs lane A on `ubuntu-24.04`, `windows-2025` and `macos-15` for every pull request and push to `main`. The existing gpux test job also runs on Linux and macOS, not only Windows. macOS entries are enabled once the sibling macOS epic lands. Verified by a green workflow run.",
           "verification": "manual"
+        },
+        {
+          "id": "A-3",
+          "descriptionMarkdown": "CI workflows (`ci.yml`, `lane-b.yml`, `lane-e.yml`, `lane-f.yml`) run on pull requests, their nightly schedules and manual dispatches, never on pushes to `main`, and the cadence table in `docs/testing.md` says so. This replaces A-2's \"push to `main`\" trigger: owner decision 2026-10-09 (commit `4f3394e`), because a merged pull request's tests already ran on the pull request and running them again on `main` paid for them twice. Verified by a static check that no workflow declares a `push` trigger and the docs name no push-to-`main` cadence.",
+          "verification": "automated"
         }
       ]
     },
