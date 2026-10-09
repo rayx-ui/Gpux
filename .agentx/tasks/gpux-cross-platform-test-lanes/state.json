@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-cross-platform-test-lanes",
-  "revision": 151,
+  "revision": 152,
   "planRevision": 16,
   "specHashes": {
     "requirements": "3f8965b93cec48532001be23870a27d3d32f943ab0b25051b05770ba82acedef",
@@ -3490,6 +3490,14 @@
       },
       "reviewHash": "0fc059da0f5f76fb951fae013fe567167a6509eb8b0052e4445bc3a5fe4d2e18",
       "recordedAt": "2026-10-07T20:40:13Z"
+    },
+    "s8-apple-lanes": {
+      "snapshotId": "71a6fb5686ebe5fb6df9f43c4d082ddaef287e9017bbb6ed7ffb125a0f23b9d1",
+      "commits": {
+        "gpux": "b985dbe623d39e46485b968e51f02fe99206edb0"
+      },
+      "reviewHash": "4254858d4387359a25ff45a03ac2f8c63f4a8ba62b0d3cb23359a1d418eb4010",
+      "recordedAt": "2026-10-09T00:38:08Z"
     }
   },
   "findings": [
