@@ -300,9 +300,9 @@ struct ViewElementState {
     /// The hovers the view was drawn by, nested views included: it is
     /// replayed only while each is as it was.
     hover_reads: Vec<(crate::HitboxId, bool)>,
-    /// Where the view's hitboxes can be hit: a view with hovers is not
+    /// Where the view's hovers can change: a view with hovers is not
     /// replayed while the pointer is there.
-    hover_area: Option<Bounds<Pixels>>,
+    hover_area: crate::fast::dependencies::HoverArea,
 }
 
 struct ViewElementCacheKey {
@@ -529,10 +529,13 @@ fn prepaint_view(
                     element
                 });
                 let hover_reads = crate::fast::dependencies::finish_recording(window, hovers_start);
-                let hover_area =
-                    crate::fast::dependencies::hitbox_area(window, prepaint_start.hitboxes_index);
 
                 let prepaint_end = window.prepaint_index();
+                let hover_area = crate::fast::dependencies::hover_area(
+                    window,
+                    &hover_reads,
+                    prepaint_start.hitboxes_index..prepaint_end.hitboxes_index,
+                );
                 window.refreshing = refreshing;
 
                 (
@@ -595,7 +598,15 @@ fn paint_view(
                         element.paint(window, cx);
                         let painted_hovers =
                             crate::fast::dependencies::finish_recording(window, hovers_start);
-                        element_state.hover_reads.extend(painted_hovers);
+                        if !painted_hovers.is_empty() {
+                            element_state.hover_reads.extend(painted_hovers);
+                            let prepaint = &element_state.prepaint_range;
+                            element_state.hover_area = crate::fast::dependencies::hover_area(
+                                window,
+                                &element_state.hover_reads,
+                                prepaint.start.hitboxes_index..prepaint.end.hitboxes_index,
+                            );
+                        }
                         window.refreshing = refreshing;
                         // An ancestor that applies opacity or a transform only while
                         // painting hides it from prepaint. Keying on the painted context

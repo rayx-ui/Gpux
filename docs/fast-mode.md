@@ -38,7 +38,10 @@ One piece of fast mode's groundwork is gpux behaviour in every mode: cached view
 Fast mode's oracle found that a cached view painted with a hover style kept it after a wheel
 event, or an overlay appearing under a still pointer, moved the hover elsewhere. A cached view
 that read hovers is also built again, rather than replayed, while the pointer is over its
-hitboxes: only there can hitboxes the frame adds later (an overlay) change its hovers.
+hitboxes: only there can hitboxes the frame adds later (an overlay) change its hovers. A cached
+view that read the hover of a hitbox it does not insert, such as the group around it
+(`group_hover`), is built again every frame: that hitbox belongs to whoever inserts it, under a
+new id each frame its owner draws.
 
 ## Measuring
 

@@ -202,3 +202,168 @@ fn list_rows_keep_their_element_state_when_an_overlay_covers_a_hovered_cell() {
     let run = run_lockstep(31, 30, FastMode::OFF);
     assert!(run.incremental.cached_views_replayed > 0);
 }
+
+/// A cached cell styled by the hover of a group around it, which it does not
+/// insert.
+struct GroupCell;
+
+impl Render for GroupCell {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        div()
+            .id("group cell")
+            .size_full()
+            .bg(PALETTE[0])
+            .group_hover("row", |style| style.bg(PALETTE[1]))
+    }
+}
+
+/// A 200×50 group holding the 50×50 cached cell at its left, and an
+/// optional overlay over the group's right half.
+struct GroupRoot {
+    cell: crate::Entity<GroupCell>,
+    covered: bool,
+}
+
+impl Render for GroupRoot {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        div()
+            .size_full()
+            .child(
+                div().id("row").group("row").w(px(200.)).h(px(50.)).child(
+                    self.cell
+                        .clone()
+                        .cached(crate::StyleRefinement::default().w(px(50.)).h(px(50.))),
+                ),
+            )
+            .when(self.covered, |this| {
+                this.child(
+                    div()
+                        .id("cover")
+                        .absolute()
+                        .left(px(100.))
+                        .top(px(0.))
+                        .w(px(100.))
+                        .h(px(50.))
+                        .occlude(),
+                )
+            })
+    }
+}
+
+fn group_window() -> (crate::TestAppContext, crate::WindowHandle<GroupRoot>) {
+    open(|_, cx| GroupRoot {
+        cell: cx.new(|_| GroupCell),
+        covered: false,
+    })
+}
+
+/// Moves the pointer to `position`, then has `update` change the root and
+/// draws, in one update so the frame drawn is the one the change shows in.
+/// Returns the cell's background and the frame's work.
+fn group_frame(
+    cx: &mut crate::TestAppContext,
+    window: crate::WindowHandle<GroupRoot>,
+    position: crate::Point<crate::Pixels>,
+    update: impl FnOnce(&mut GroupRoot),
+) -> (crate::PreparedBackground, crate::FastStats) {
+    use crate::InputEvent as _;
+    cx.update_window(window.into(), |root, window, cx| {
+        window.dispatch_event(
+            crate::MouseMoveEvent {
+                position,
+                pressed_button: None,
+                modifiers: Default::default(),
+            }
+            .to_platform_input(),
+            cx,
+        );
+        let root = root.downcast::<GroupRoot>().unwrap();
+        root.update(cx, |root, cx| {
+            update(root);
+            cx.notify();
+        });
+        window.draw(cx).clear(cx);
+        (
+            window.rendered_frame.scene.quads[0].background.clone(),
+            window.fast_frame_stats(),
+        )
+    })
+    .unwrap()
+}
+
+/// Found by review: a cached cell reads the hover of the group around it,
+/// a hitbox it does not insert. With the pointer over the group beside the
+/// cell, away from the cell's own hitboxes, an overlay appearing over the
+/// pointer unhovers the group only once the frame's hitboxes are known,
+/// after prepaint would have replayed the cell group-hovered.
+#[test]
+fn cached_view_reading_a_group_hover_drops_it_when_an_overlay_covers_the_group() {
+    let (mut cx, window) = group_window();
+    let (unhovered, _) = group_frame(&mut cx, window, point(px(400.), px(400.)), |_| {});
+    let beside_the_cell = point(px(150.), px(10.));
+    let (hovered, _) = group_frame(&mut cx, window, beside_the_cell, |_| {});
+    let (hovered_again, _) = group_frame(&mut cx, window, beside_the_cell, |_| {});
+    assert_ne!(hovered, unhovered);
+    assert_eq!(hovered_again, hovered);
+    let (covered, stats) = group_frame(&mut cx, window, beside_the_cell, |root| {
+        root.covered = true;
+    });
+    assert_eq!(
+        covered, unhovered,
+        "the frame the overlay appeared in showed the cell group-hovered"
+    );
+    assert_eq!(stats.cached_views_replayed, 0, "{stats:?}");
+}
+
+/// Found by review: the group around a cached cell is inserted under a new
+/// hitbox id each frame its owner is drawn, so after one replay the hover the
+/// cell recorded named a hitbox no longer hit tested, read as unhovered
+/// forever. A cell that read a hover it does not own is never replayed, so
+/// the pointer entering the group beside it shows it group-hovered.
+#[test]
+fn cached_view_reading_a_group_hover_follows_the_group_its_owner_redraws() {
+    let (mut cx, window) = group_window();
+    let away = point(px(400.), px(400.));
+    let (unhovered, _) = group_frame(&mut cx, window, away, |_| {});
+    for _ in 0..3 {
+        assert_eq!(group_frame(&mut cx, window, away, |_| {}).0, unhovered);
+    }
+    let (background, stats) = group_frame(&mut cx, window, point(px(150.), px(10.)), |_| {});
+    assert_ne!(
+        background, unhovered,
+        "the cell kept its group unhovered after the pointer entered the group"
+    );
+    assert_eq!(stats.cached_views_replayed, 0, "{stats:?}");
+}
+
+/// A cached cell whose hovers are all its own is still replayed with the
+/// pointer away from it.
+#[test]
+fn cached_view_reading_only_its_own_hovers_is_replayed_away_from_the_pointer() {
+    use crate::InputEvent as _;
+    let (mut cx, window) = open(|_, cx| HoverRoot {
+        cell: cx.new(|_| HoverCell),
+    });
+    let replayed = (0..3)
+        .map(|_| {
+            cx.update_window(window.into(), |root, window, cx| {
+                window.dispatch_event(
+                    crate::MouseMoveEvent {
+                        position: point(px(400.), px(400.)),
+                        pressed_button: None,
+                        modifiers: Default::default(),
+                    }
+                    .to_platform_input(),
+                    cx,
+                );
+                root.downcast::<HoverRoot>()
+                    .unwrap()
+                    .update(cx, |_, cx| cx.notify());
+                window.draw(cx).clear(cx);
+                window.fast_frame_stats().cached_views_replayed
+            })
+            .unwrap()
+        })
+        .last();
+    assert_eq!(replayed, Some(1));
+}

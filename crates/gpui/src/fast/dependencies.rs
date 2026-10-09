@@ -7,9 +7,14 @@
 //! hover styles: a cached view painted while hovered must not be replayed
 //! once the pointer has left it, whether a mouse move, a wheel event, or a
 //! press moved the pointer, nor while an overlay this frame adds may cover
-//! it.
+//! it, nor at all once it read the hover of a hitbox it did not insert.
 
-use std::cell::{Cell, RefCell};
+use std::{
+    cell::{Cell, RefCell},
+    ops::Range,
+};
+
+use collections::FxHashSet;
 
 use crate::{Bounds, HitboxId, Pixels, Window};
 
@@ -71,18 +76,44 @@ pub(crate) fn hovers_unchanged(window: &Window, reads: &[(HitboxId, bool)]) -> b
         .all(|(hitbox, hovered)| hitbox.hovered_unrecorded(window) == *hovered)
 }
 
-/// Where the hitboxes inserted since `start` in the frame being drawn can be
-/// hit: the union of their masked bounds.
-pub(crate) fn hitbox_area(window: &Window, start: usize) -> Option<Bounds<Pixels>> {
-    window.next_frame.hitboxes[start..]
-        .iter()
-        .map(|hitbox| hitbox.bounds.intersect(&hitbox.content_mask.bounds))
-        .filter(|bounds| !bounds.is_empty())
-        .reduce(|area, bounds| area.union(&bounds))
+/// Where a cached view's hovers can change, worked out when it is built.
+#[derive(Clone, Copy, Debug, Default)]
+pub(crate) enum HoverArea {
+    /// Every hover it read is of a hitbox it inserted itself, and those can
+    /// be hit only within these bounds: the union of their masked bounds.
+    Own(Option<Bounds<Pixels>>),
+    /// It read the hover of a hitbox it did not insert, such as an
+    /// ancestor's group (`group_hover`). That hitbox is inserted again, under
+    /// a new id and perhaps at new bounds, whenever its owner is drawn, so
+    /// nothing the view recorded says where its hovers can change.
+    #[default]
+    Foreign,
 }
 
-/// Whether a cached view drawn by `reads`, whose hitboxes lie in `area`, may
-/// be replayed as far as its hovers go.
+/// Where the hovers in `reads` can change, for a view that inserted the
+/// hitboxes at `hitboxes` in the frame being drawn.
+pub(crate) fn hover_area(
+    window: &Window,
+    reads: &[(HitboxId, bool)],
+    hitboxes: Range<usize>,
+) -> HoverArea {
+    let own = &window.next_frame.hitboxes[hitboxes];
+    if !reads.is_empty() {
+        let ids: FxHashSet<HitboxId> = own.iter().map(|hitbox| hitbox.id).collect();
+        if reads.iter().any(|(hitbox, _)| !ids.contains(hitbox)) {
+            return HoverArea::Foreign;
+        }
+    }
+    HoverArea::Own(
+        own.iter()
+            .map(|hitbox| hitbox.bounds.intersect(&hitbox.content_mask.bounds))
+            .filter(|bounds| !bounds.is_empty())
+            .reduce(|area, bounds| area.union(&bounds)),
+    )
+}
+
+/// Whether a cached view drawn by `reads`, whose hovers can change in
+/// `area`, may be replayed as far as its hovers go.
 ///
 /// Its hovers must be as they were against the hit test prepaint sees, which
 /// is last frame's hitboxes. This frame's hitboxes, known only after
@@ -91,14 +122,19 @@ pub(crate) fn hitbox_area(window: &Window, start: usize) -> Option<Bounds<Pixels
 /// captured, every hover it read is false whatever this frame adds. So a view
 /// that read hovers is drawn again while the pointer is over its hitboxes,
 /// and its replays always show the hovers a frame drawn from scratch shows.
+/// A view that read the hover of a hitbox it did not insert is never
+/// replayed: that hitbox's id and bounds belong to whoever inserted it.
 pub(crate) fn may_replay_hovers(
     window: &Window,
     reads: &[(HitboxId, bool)],
-    area: Option<Bounds<Pixels>>,
+    area: HoverArea,
 ) -> bool {
     if reads.is_empty() {
         return true;
     }
+    let HoverArea::Own(area) = area else {
+        return false;
+    };
     let pointer_over = area.is_some_and(|area| area.contains(&window.mouse_position));
     let captured = window
         .captured_hitbox

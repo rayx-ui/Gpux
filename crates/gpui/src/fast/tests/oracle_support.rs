@@ -286,6 +286,9 @@ struct CellState {
     word: usize,
     color: usize,
     hover: bool,
+    /// Styled by the hover of the row of cells around it, a hitbox the
+    /// cell's cached view does not insert.
+    group_hover: bool,
 }
 
 pub(crate) struct GridCell(CellState);
@@ -305,6 +308,9 @@ impl Render for GridCell {
             .bg(PALETTE[cell.color])
             .when(cell.hover, |this| {
                 this.hover(|style| style.bg(PALETTE[4]).text_color(PALETTE[0]))
+            })
+            .when(cell.group_hover, |this| {
+                this.group_hover("cells", |style| style.text_color(PALETTE[3]))
             })
             .child(WORDS[cell.word])
     }
@@ -515,6 +521,7 @@ impl OracleView {
                 word: ix % WORDS.len(),
                 color: ix % PALETTE.len(),
                 hover: ix.is_multiple_of(3),
+                group_hover: ix % 3 == 1,
             })
             .collect();
         let text = cx.new(|cx| EditableTextState::with_text("edit me", cx));
@@ -763,12 +770,18 @@ impl Render for OracleView {
                     .flex()
                     .flex_col()
                     .gap_1()
-                    .child(div().flex().flex_row().flex_wrap().gap_1().children(
-                        self.cell_views.iter().map(|view| {
-                            view.clone()
-                                .cached(StyleRefinement::default().w(px(100.)).h(px(18.)))
-                        }),
-                    ))
+                    .child(
+                        div()
+                            .group("cells")
+                            .flex()
+                            .flex_row()
+                            .flex_wrap()
+                            .gap_1()
+                            .children(self.cell_views.iter().map(|view| {
+                                view.clone()
+                                    .cached(StyleRefinement::default().w(px(100.)).h(px(18.)))
+                            })),
+                    )
                     .child(
                         self.badge
                             .clone()
