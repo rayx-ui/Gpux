@@ -4,7 +4,7 @@ Where the `gpux-cross-platform-test-lanes` epic stands and exactly what is left.
 then [docs/testing.md](docs/testing.md) (the lane contract) and the epic's AgentX specs in
 [.agentx/tasks/gpux-cross-platform-test-lanes/](.agentx/tasks/gpux-cross-platform-test-lanes).
 
-Last updated: 2026-10-08, branch `refactor/gpux-cross-platform-test-lanes` (pushed to `origin`).
+Last updated: 2026-10-09, branch `refactor/gpux-cross-platform-test-lanes` (pushed to `origin`).
 
 **If you are the agent on the Mac, follow [Part 1](#part-1-the-mac-session-sprint-8) step by step.**
 
@@ -17,9 +17,9 @@ The epic adds seven test lanes, run by `cargo run -p gpux-testkit -- lane <a..g>
 | A | behaviour on the test platform | yes | Windows (72/72), Linux (WSL), earlier macOS CI |
 | B | the threaded WASM build in Chromium (Playwright, `tools-node/`) | yes | local GPU (Windows); SwiftShader CI profile in WSL |
 | C | offscreen pixels, per-backend goldens | yes | WARP (Windows, 79/79), lavapipe (WSL, 79/79), earlier Metal CI |
-| D | real desktop windows, OS input | yes | Windows (40/40), X11 under Xvfb (WSL); **macOS unproven since its fix** |
+| D | real desktop windows, OS input | yes | Windows (40/40), X11 under Xvfb (WSL), macOS on an M5 (38 passed, 2 skipped) |
 | E | Android host over adb | yes | local x86_64 emulator |
-| F | iOS host on a Simulator | yes, **never built on a Mac** | **nothing yet**: unit tests and `aarch64-apple-ios` clippy pass on Windows |
+| F | iOS host on a Simulator | yes | iPhone 16 Simulator, iOS 26.5, M5: 30/30 |
 | G | the developer's real GPU (timing, benchmarks) | yes | RTX 4080 SUPER: 390/390 at `9dd50e0` |
 
 AgentX state (`python <agentx>/agentx_task.py status --task-dir .agentx/tasks/gpux-cross-platform-test-lanes`):
@@ -31,10 +31,13 @@ AgentX state (`python <agentx>/agentx_task.py status --task-dir .agentx/tasks/gp
 | s5 browser lane | sealed, checkpoint `21e02f8` |
 | s6 Android lane | sealed, checkpoint `9c14137` |
 | s7 lane G, docs, memory | sealed, checkpoint `0376af4` |
-| s8 Apple lanes | epic `blocked`: `t27-macos-desktop-lanes` blocked (needs a Mac), `t28-ios-host-build` and `t29-ios-run-and-ci` pending; lane F source written |
+| s8 Apple lanes | t27, t28, t29 implemented on the Mac (2026-10-09); review and checkpoint per 1.7 |
 
-43 of 48 criteria are implemented and verified. Left: **M-1, M-3** (t27), **F-1** (t28),
-**F-2, F-3** (t29). All five are `manual` criteria proven by runs on macOS.
+All 48 criteria are implemented. The Mac runs (2026-10-09, macOS 26.6.2, Xcode 26.4.1, Apple M5) are in
+the t27–t29 handoffs: `cargo check` exit 0; the CI test job 1263 passed; lanes A 72/72, C 79/79
+(Metal), D 38 passed and 2 skipped, F 30/30. The owner ruled on 2026-10-09 that the local lane F
+run is F-3's evidence while CI billing is blocked. Fixes on the Mac: `73c3abf` (bench-metrics page
+faults), `3cccd62` and `049fc0c` (macOS lane D), `ea3cc6d` and `adce23d` (lane F link and hang).
 
 <!-- preflight -->
 **Windows preflight at `9dd50e0` (2026-10-08, after the nightly and JDK pins).** The epic's five
