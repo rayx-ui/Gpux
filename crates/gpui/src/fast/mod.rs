@@ -17,6 +17,7 @@ pub(crate) mod bounds_tree;
 pub(crate) mod dependencies;
 pub(crate) mod layers;
 pub(crate) mod mode;
+pub(crate) mod number_shaping;
 #[cfg(any(test, feature = "test-support", feature = "bench-support"))]
 pub mod scenarios;
 pub(crate) mod scene;
