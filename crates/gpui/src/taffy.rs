@@ -243,14 +243,10 @@ impl TaffyLayoutEngine {
 
     fn request_taffy_node(
         &mut self,
-        key: Option<u64>,
         style: taffy::style::Style,
         children: &[LayoutId],
         context: Option<NodeContext>,
     ) -> LayoutId {
-        if self.retention.active {
-            return crate::fast::layout::request_node(self, key, style, children, context);
-        }
         let is_measured = context.is_some();
         let pool_index = self.active_layout_count;
         self.active_layout_count += 1;
@@ -293,17 +289,15 @@ impl TaffyLayoutEngine {
         id
     }
 
-    /// Brings a node kept from an earlier frame, pooled or kept by key, up to
-    /// date with this frame's request, writing its style and children only
-    /// where they differ.
-    pub(crate) fn update_pooled_node(
+    /// Brings a pooled node up to date with this frame's request, writing its
+    /// style and children only where they differ.
+    fn update_pooled_node(
         &mut self,
         id: LayoutId,
         style: taffy::style::Style,
         children: &[LayoutId],
         context: Option<NodeContext>,
     ) {
-        let is_measured = context.is_some();
         let style_matches = self.taffy.style(id.0).expect(EXPECT_MESSAGE) == &style;
         #[cfg(feature = "diagnostics")]
         {
@@ -313,6 +307,19 @@ impl TaffyLayoutEngine {
             crate::fast::fast_stat!(self.fast_stats, style_writes += 1);
             self.taffy.set_style(id.0, style).expect(EXPECT_MESSAGE);
         }
+        self.update_node_topology(id, children, context);
+    }
+
+    /// Brings a node kept from an earlier frame, pooled or kept by key, up to
+    /// date with this frame's children, written only where they differ, and
+    /// its measurement, given its new closure.
+    pub(crate) fn update_node_topology(
+        &mut self,
+        id: LayoutId,
+        children: &[LayoutId],
+        context: Option<NodeContext>,
+    ) {
+        let is_measured = context.is_some();
         let taffy_children = LayoutId::to_taffy_slice(children);
         let topology_matches = self.taffy.child_count(id.0) == children.len()
             && taffy_children.iter().enumerate().all(|(index, child)| {
@@ -411,11 +418,29 @@ impl TaffyLayoutEngine {
         scale_factor: f32,
         children: &[LayoutId],
     ) -> LayoutId {
+        if self.retention.active {
+            let id = crate::fast::layout::request_node(
+                self,
+                key,
+                style,
+                rem_size,
+                scale_factor,
+                children,
+                None,
+            );
+            #[cfg(feature = "diagnostics")]
+            self.record_node(
+                self.taffy.style(id.0).expect(EXPECT_MESSAGE).display,
+                children.len(),
+                false,
+            );
+            return id;
+        }
         let taffy_style = style.to_taffy(rem_size, scale_factor);
         #[cfg(feature = "diagnostics")]
         self.record_node(taffy_style.display, children.len(), false);
 
-        self.request_taffy_node(key, taffy_style, children, None)
+        self.request_taffy_node(taffy_style, children, None)
     }
 
     /// An unkeyed request, for this module's tests: the window requests
@@ -456,28 +481,42 @@ impl TaffyLayoutEngine {
         ) -> Size<Pixels>
         + 'static,
     ) -> LayoutId {
-        let taffy_style = style.to_taffy(rem_size, scale_factor);
         let measure = Box::new(measure) as Box<MeasureFn>;
         #[cfg(feature = "stacker")]
         let measure = StackSafe::new(measure);
+        let context = NodeContext {
+            measure: Some(measure),
+            #[cfg(feature = "diagnostics")]
+            kind: _kind,
+            #[cfg(feature = "diagnostics")]
+            previous_measurements: Vec::new(),
+            #[cfg(feature = "diagnostics")]
+            current_measurements: Vec::new(),
+        };
+        if self.retention.active {
+            let id = crate::fast::layout::request_node(
+                self,
+                key,
+                style,
+                rem_size,
+                scale_factor,
+                &[],
+                Some(context),
+            );
+            #[cfg(feature = "diagnostics")]
+            self.record_node(
+                self.taffy.style(id.0).expect(EXPECT_MESSAGE).display,
+                0,
+                true,
+            );
+            return id;
+        }
+        let taffy_style = style.to_taffy(rem_size, scale_factor);
 
         #[cfg(feature = "diagnostics")]
         self.record_node(taffy_style.display, 0, true);
 
-        self.request_taffy_node(
-            key,
-            taffy_style,
-            &[],
-            Some(NodeContext {
-                measure: Some(measure),
-                #[cfg(feature = "diagnostics")]
-                kind: _kind,
-                #[cfg(feature = "diagnostics")]
-                previous_measurements: Vec::new(),
-                #[cfg(feature = "diagnostics")]
-                current_measurements: Vec::new(),
-            }),
-        )
+        self.request_taffy_node(taffy_style, &[], Some(context))
     }
 
     #[cfg(feature = "diagnostics")]
@@ -505,6 +544,10 @@ impl TaffyLayoutEngine {
         size: Size<Pixels>,
         scale_factor: f32,
     ) {
+        if self.retention.active {
+            crate::fast::layout::stretch_auto_size_to_fill(self, id, size, scale_factor);
+            return;
+        }
         let style = self.taffy.style(id.0).expect(EXPECT_MESSAGE);
         let stretch_width = style.size.width.is_auto();
         let stretch_height = style.size.height.is_auto();
@@ -888,7 +931,7 @@ fn border_widths_to_taffy(
     }
 }
 
-trait ToTaffy<Output> {
+pub(crate) trait ToTaffy<Output> {
     fn to_taffy(&self, rem_size: Pixels, scale_factor: f32) -> Output;
 }
 
