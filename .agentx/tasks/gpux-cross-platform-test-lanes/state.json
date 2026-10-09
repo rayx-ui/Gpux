@@ -1,12 +1,12 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-cross-platform-test-lanes",
-  "revision": 138,
-  "planRevision": 13,
+  "revision": 145,
+  "planRevision": 16,
   "specHashes": {
-    "requirements": "61a7b069f4c72c3eb9c5c54519ab4243f3d9d95297148656103f229e0356d5ec",
+    "requirements": "3f8965b93cec48532001be23870a27d3d32f943ab0b25051b05770ba82acedef",
     "design": "3b61734790078b53d15f8b4653b768501ade4decc0e7b76f997273ac0fd4693d",
-    "plan": "c84c6a88b7180575414cee75890829b5d0c998df06206d8729f8b68e4334c5db"
+    "plan": "d2ff5ace519cc43b5fb4c2f49bdbc08ad34177f1f6fd5b48b85aafcd49bffc34"
   },
   "tasks": {
     "t01-bundled-test-text": {
@@ -166,17 +166,23 @@
       ]
     },
     "t27-macos-desktop-lanes": {
-      "status": "blocked",
+      "status": "implemented",
       "workerIds": [
-        "082cbae1-8a3f-4e78-bee2-ea43a9debb0e"
-      ],
-      "blockerMarkdown": "Needs a Mac: M-1 and M-3 are runs of gpux-testkit lane a c d and of the CI check/test commands on macOS, and the gpux-apple build script compiles Metal shaders only on a macOS host, so Windows cannot type-check the macOS workspace. Hosted macos-15 CI is blocked by GitHub Actions billing (runs 37643950115, 37647356794, 37662580569 never started). The source the runs need is in place: dcb7bc5 (font-kit for macOS lane D text), the gpux-zed-util process reaping (MACCI-1) and the committed metal goldens. t28 and t29 (lane F) are written in source and pass what Windows can run: cargo test -p gpux-testkit --test ios 7/7, cargo test -p gpux-mobile --test ios_window_teardown 3/3, and clippy -D warnings for the ios_host example on aarch64-apple-ios. They still need xcodebuild and the Simulator. HANDOFF.md section 1 lists the commands; on the Mac, next resumes t27."
+        "082cbae1-8a3f-4e78-bee2-ea43a9debb0e",
+        "df822115-0dad-451a-b1f1-06ccc2d3cada"
+      ]
     },
     "t28-ios-host-build": {
-      "status": "pending"
+      "status": "implemented",
+      "workerIds": [
+        "df822115-0dad-451a-b1f1-06ccc2d3cada"
+      ]
     },
     "t29-ios-run-and-ci": {
-      "status": "pending"
+      "status": "implemented",
+      "workerIds": [
+        "df822115-0dad-451a-b1f1-06ccc2d3cada"
+      ]
     },
     "t30-observation-fidelity": {
       "status": "done",
@@ -4096,23 +4102,23 @@
       ]
     }
   ],
-  "handoffMarkdown": "Implemented in 8bfc3c1 (repository/validation rules+state: lanes, testkit, CI, local real-GPU proof; renderer and renderer/wgpu: lane B WebGPU and forced WebGL2 proof, GL capability rules; gpui and frame-pipeline: the diagnostics feature; platform/web: lane B; platform/mobile: lane E; platform/desktop: lanes C/D and macOS; repository/agentx-memory: no RayX runtime-proof repository), ff718fb (lane F and iOS window teardown) and a7439d7 (rules from the sprint 5 and 6 reviews: ExecutorClock, checks must be able to fail, diagnostics-only publishing, NDK pin, Android surface lifecycle). audit_agentx_memory.py: OK. Decisions for promotion at epic end: d-lanes, d-no-rayx, d-lane-g, d-ios-lane, d-web-lane, d-android-lane, d-testkit (via context --epic memory.promotion).",
+  "handoffMarkdown": "cargo run -p gpux-testkit -- lane f on macOS 26.6.2, Xcode 26.4.1, Apple M5; Simulator gpux-conformance (290AE108-2F98-46CE-A12B-B2BE840B1DE4), iPhone 16, iOS 26.5 (23F77): gpux-testkit: 30 passed, 0 failed, 0 skipped. Platform checks: ios-startup PASS (drew through metal on Apple iOS simulator GPU); ios-metal PASS (wgpu on Metal, read back 1179x2556; the Simulator offers Metal on Apple silicon); ios-text-metrics PASS (ascent 16.4, descent 4.4, \"Conformance\" 96.27201 px); ios-touch-tap PASS; ios-lifecycle PASS (deactivated, reactivated, drew 1179x2556). All 25 lane-F scenes PASS. Fixes on the way: the first run hung 20 minutes because dyld could not bind the -Wl,-U CGL symbols of t28 (ea443f0) at launch (\"symbol not found in flat namespace _CGLErrorString\") and simctl launch --console-pty kept waiting; ea3cc6d replaces the -U flags with aborting CGL stubs (tooling/ios/Sources/macos_gl_stubs.c; the t28 build still passes with it) and docs/testing.md records it; adce23d adds ios::fatal so a dyld load failure or panic ends the run (new test a_host_that_panics_or_fails_to_load_ends_the_run; cargo test -p gpux-testkit --test ios: 8 passed). fmt and clippy -D warnings for gpux-testkit: clean. F-3: hosted CI is still blocked by billing (run 37790934619 never started a job); the owner ruled on 2026-10-09 that the local lane f run counts (plan revision 16 amendment); a green lane-f.yml run stays a follow-up. Device flow is documented in docs/testing.md (not run).",
   "protectedPaths": {
     "gpux": {
-      "gpux:.agentx/experiments/**": "32805d33f7172446b7e9cec5989ba59bd78648a57efc98bd96bbcac8fcac16a6",
-      "gpux:.agentx/tasks/frame-effects-navigation-transitions/**": "b9d8d0f34d35f8efab37309cf3092cfe59934ae76b2665d09616032db699093f",
-      "gpux:.agentx/tasks/frame-family-component-transitions/**": "786cf5831d50db830d3d78fb97657cdf457ec9ea0fc9682794782bf69173a676",
-      "gpux:.agentx/tasks/gpux-fixed-sticky-positioning/**": "d7e287cbe0b1a6afb8166c063b31bfa9e09c420c651630d97ed855a6685409ba",
-      "gpux:.agentx/tasks/gpux-text-rendering-quality-performance/**": "3a93656394a1d894dfda413d47b680644cf0a8ad6094b4a4ec1ed10bffcbefc4",
-      "gpux:.agentx/tasks/gpux-wgpu-platform-renderers/**": "3efd7b2c2e35eeb71ac4a54c2a498a7e377665c1a1f59d8ca6d5bd0b13b576fa",
-      "gpux:.agentx/tasks/high-quality-wasm-text-rendering/**": "16acd26c781d2590eaa636e41209d0a2e57237decbded91279857ee8636b26eb",
-      "gpux:.agentx/tasks/html-element-dom-overlay/**": "8bc3eba1cd26e95004311080d07651348f9c19dff64d8f46521d7bc9c3cdd7f6",
-      "gpux:.agentx/tasks/html-island-wasm/**": "56a0864ccb5a02db863fa17b08cb47db9c378428c56302b46acf7b8da0cfe875",
-      "gpux:.agentx/tasks/keyed-sticky-stacking/**": "6103606d1f3d16eaaac1ae98bb24c5a1ae105ce2457a6aec0383b52489808be5",
-      "gpux:.agentx/tasks/macos-only-metal-port-and-ci-repair/**": "17c1e0f61eb40430c921d4499934ac91e5269e066ccfba3b4f7748a2625d33b6",
-      "gpux:.agentx/tasks/shader-effects-and-screen-transitions/**": "ea29584d0a17dcea6547dd0dc05de74450b58982a44883b96d1b0cca70a86b00",
-      "gpux:ToFix/**": "f9a48f74d364268576207fc93972f434cd98b7998791acbd6341534536b966cf",
-      "gpux:vendor/wgpu/**": "2fde7871db68af5a07e61281b2877fb308235a9df0b048f31f9cd3da0466c599"
+      "gpux:.agentx/experiments/**": "4d6e9d6f34b51c6bb0257e4f2f777eb83f05617ce9649c225e686ef2c3ea997a",
+      "gpux:.agentx/tasks/frame-effects-navigation-transitions/**": "97cc9f821c990f4d3560b1c4726ede795e7d91f4329839215674e7649efd8747",
+      "gpux:.agentx/tasks/frame-family-component-transitions/**": "3987d07e830ea8dadd35abe56c1d8ccc36b8fb2f8feb189a1d6727c14f114ab1",
+      "gpux:.agentx/tasks/gpux-fixed-sticky-positioning/**": "0e971f9ad2c8147d6f56981b495a94b8f5cc7cce5eef6f391b7894b3223959b7",
+      "gpux:.agentx/tasks/gpux-text-rendering-quality-performance/**": "213eb24a25a50d0ccbc7d468e8bedc96a10bdf38f76a4e9130109b9142a0a3e5",
+      "gpux:.agentx/tasks/gpux-wgpu-platform-renderers/**": "585529d42deceb4ae2639c37596347714777579ccca3b5b5e74b007eaf7d2f81",
+      "gpux:.agentx/tasks/high-quality-wasm-text-rendering/**": "81eee19badcd190b59dae1d9fb52bcdf0f53273ab9f00df9cb617c79213a0061",
+      "gpux:.agentx/tasks/html-element-dom-overlay/**": "eb0c49ccecf4bfea51485d81c60e272f47d1cf1e582701f1791f9c5a77ee6be7",
+      "gpux:.agentx/tasks/html-island-wasm/**": "8db76e0d9f0706ea6e4b34b9f7741317d47ee734673bd83cb97352d82d6520b8",
+      "gpux:.agentx/tasks/keyed-sticky-stacking/**": "7f924a57495dfb6d3a2ca3be75e5fdb04cb012ecfc41554bdb278a84987e82ef",
+      "gpux:.agentx/tasks/macos-only-metal-port-and-ci-repair/**": "64ecc143e24a8468c3b4e5d28bbc0f65d4fbbddab867d46a44823b1725ff1e5d",
+      "gpux:.agentx/tasks/shader-effects-and-screen-transitions/**": "f3f66695ebf53686a0437e18bf587955317994e21eac47d7908641e0281996ce",
+      "gpux:ToFix/**": "e72e6c15df92515c9a96c1ef2a6db675ce345e0eb600212658582f156b1beb64",
+      "gpux:vendor/wgpu/**": "a4c4ab1992f6a0aeeca032fedb82b953741f6d547ac517ef15467c67dffa69e5"
     }
   }
 }

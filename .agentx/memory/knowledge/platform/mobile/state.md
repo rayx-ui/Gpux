@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/platform/mobile
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-07T23:30:00+02:00
+  updated: 2026-10-09T04:00:00+02:00
   topics:
     - gpui-mobile
     - android
@@ -33,7 +33,7 @@ Lane E proves Android through the `android_host` conformance example: a NativeAc
 
 The NativeActivity loop polls the main looper through `poll_main_looper`: AChoreographer frame callbacks and the dispatcher's main-thread tasks run in gpux's own `ALooper_pollOnce`, and `AndroidApp::poll_events` runs only for android-activity's own idents. android-activity 0.6.1 logs every callback that runs inside its own poll as a spurious `ALOOPER_POLL_CALLBACK` error, which flooded the log once per frame.
 
-Lane F proves iOS through the `ios_host` conformance example: a static library behind the minimal UIKit shell of `tooling/ios` (XcodeGen spec, Objective-C app delegate that registers the host, starts gpui_mobile, and forwards the lifecycle), built unsigned for the Simulator and run with `simctl launch --console-pty`. Its checks cover startup, wgpu on Metal with readback, CoreText metrics of the bundled IBM Plex Sans, in-app touch, and background/foreground through another app and the host's `gpux-conformance://` URL scheme. `IosWindow` renders to images through the shared wgpu renderer and reports a missing renderer (no Metal device) as an error that pixel steps turn into skips. Closing an `IosWindow` unregisters it from the FFI window list, clears the UIKit back-pointers, drops the renderer, hides the UIWindow, and autoreleases the UIKit objects it created.
+Lane F proves iOS through the `ios_host` conformance example: a static library behind the minimal UIKit shell of `tooling/ios` (XcodeGen spec, Objective-C app delegate that registers the host, starts gpui_mobile, and forwards the lifecycle), built unsigned for the Simulator and run with `simctl launch --console-pty`. Its checks cover startup, wgpu on Metal with readback, CoreText metrics of the bundled IBM Plex Sans, in-app touch, and background/foreground through another app and the host's `gpux-conformance://` URL scheme. `IosWindow` renders to images through the shared wgpu renderer and reports a missing renderer (no Metal device) as an error that pixel steps turn into skips. Closing an `IosWindow` unregisters it from the FFI window list, clears the UIKit back-pointers, drops the renderer, hides the UIWindow, and autoreleases the UIKit objects it created. The shell force-loads the Rust library, which pulls in io-surface's macOS-only CGL calls (through gpux's core-video), so it defines them as aborting stubs (`tooling/ios/Sources/macos_gl_stubs.c`): `-Wl,-U` links but dyld fails at launch, and dead-code stripping keeps force-loaded code. The Simulator on Apple silicon offers Metal: lane F passed 30/30 (five platform checks, 25 scenes) on an iPhone 16 Simulator with iOS 26.5 on an M5 (2026-10-09).
 
 iOS keeps a Metal-specific WGPU path: `GPUIMetalView` exposes `CAMetalLayer`, the window creates a `wgpu::Instance` with `Backends::METAL`, pre-populates `WgpuContext`, and builds `WgpuRenderer` from it. Effect capabilities delegate to the active renderer. Text uses the independent `IosTextSystem` on CoreText and font-kit CoreText loaders. `gpui_mobile` retains a cloned `gpux::Application` in FFI-owned state after `Application::run()` returns, because UIKit owns the event loop and later callbacks need GPUI state.
 

@@ -395,7 +395,7 @@
         },
         {
           "id": "F-3",
-          "descriptionMarkdown": "CI runs lane F nightly, and on pull requests that change `crates/gpui_mobile/`, `crates/gpui_wgpu/`, `crates/gpux_conformance/` or `tooling/ios/`, on `macos-15`. The local-device flow (signing team, `devicectl`) is documented in `docs/testing.md`. Verified by a green run.",
+          "descriptionMarkdown": "CI runs lane F nightly, and on pull requests that change `crates/gpui_mobile/`, `crates/gpui_wgpu/`, `crates/gpux_conformance/` or `tooling/ios/`, on `macos-15`. The local-device flow (signing team, `devicectl`) is documented in `docs/testing.md`. Verified by a green run, or while hosted CI is unavailable (owner decision 2026-10-09: GitHub Actions billing still blocks every job), by a local run of the workflow's own command on a Mac: `gpux-testkit lane f` on the pinned iPhone 16 Simulator.",
           "verification": "manual"
         }
       ]
