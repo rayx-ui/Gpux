@@ -74,3 +74,51 @@ The final comparison runs on the same machine:
 ```bash
 cargo run -p gpux-testkit -- perf fast-mode --name final --compare artifacts-temp/testkit/perf/baseline-s01
 ```
+
+## Measurements
+
+### Standalone scene and text optimizations
+
+Each optimization was committed on its own and measured on the baseline machine with
+`perf fast-mode --compare artifacts-temp/testkit/perf/baseline-s01`, one run per commit. Each run
+contains the commits before it. One is kept only if it makes at least one scenario faster without
+making another slower beyond noise.
+
+Each cell is instructions / median time against the run before, as the geometric mean over the
+five modes (no mechanism is on yet, so the modes measure the same work). Run to run, the median
+time on this machine drifted by up to ±6% across every scenario at once, including scenarios a
+commit cannot touch (number shaping's +4–6% everywhere with instructions unchanged, then −3–6%
+back). The instruction counts do not drift, so keep or revert was decided on instructions, with
+the times checked against them.
+
+| Scenario | Off at baseline | Grid bounds tree | Draw-order sort | Number shaping | Path cache | Glyph runs | All five, vs baseline |
+|---|---|---|---|---|---|---|---|
+| still-frame | 26.39 ms | −10.0% / −8.8% | −0.5% / −2.5% | +0.1% / +4.1% | −0.0% / +0.3% | −0.6% / −5.9% | −10.9% / −12.7% |
+| one-panel | 26.51 ms | −8.6% / −7.1% | −0.4% / −2.8% | +0.0% / +4.0% | +0.0% / +0.6% | −0.6% / −5.7% | −9.5% / −11.0% |
+| six-panels | 26.87 ms | −9.0% / −7.8% | −0.5% / −3.0% | +0.1% / +4.5% | +0.1% / +0.6% | −0.6% / −6.2% | −9.9% / −11.8% |
+| all-panels | 27.98 ms | −8.9% / −7.7% | −0.5% / −2.9% | +0.1% / +4.4% | +0.0% / +0.8% | −0.7% / −6.6% | −10.0% / −11.9% |
+| table-stream | 10.43 ms | −1.4% / −0.0% | −0.3% / −1.1% | +0.0% / +6.0% | +0.0% / −0.2% | −0.5% / −4.9% | −2.1% / −0.5% |
+| settings-toggle | 8.38 ms | −0.1% / +0.3% | −0.1% / −0.7% | +0.0% / +5.4% | +0.0% / −1.4% | −0.2% / −1.5% | −0.4% / +2.0% |
+| tree-expand | 8.72 ms | −0.0% / +0.9% | −0.1% / −1.1% | +0.1% / +4.7% | −0.0% / −0.4% | −0.2% / −3.1% | −0.3% / +0.9% |
+| form-typing | 8.18 ms | −0.1% / +0.8% | −0.0% / −0.3% | +0.1% / +4.1% | −0.0% / +0.1% | −0.1% / −2.4% | −0.2% / +2.1% |
+| hover-sweep | 9.31 ms | −0.3% / −0.3% | −0.0% / −1.0% | +0.1% / +5.9% | −0.0% / −1.8% | −0.1% / −2.4% | −0.4% / +0.2% |
+| scroll-child-view | 9.80 ms | +0.0% / +0.4% | −0.1% / −1.4% | +0.1% / +6.6% | −0.1% / −5.8% | +0.1% / +1.3% | +0.0% / +0.7% |
+| scroll-same-view | 9.81 ms | +0.0% / −0.9% | −0.1% / −0.7% | +0.1% / +4.4% | −0.1% / −4.4% | +0.0% / +0.7% | −0.0% / −1.2% |
+| scroll-uniform-list | 8.24 ms | −0.0% / −0.3% | −0.0% / −0.8% | +0.1% / +4.7% | −0.1% / −3.8% | −0.0% / +0.6% | −0.1% / +0.2% |
+| scroll-list | 8.15 ms | −0.0% / +0.1% | −0.0% / −0.8% | +0.1% / +4.8% | −0.1% / −3.0% | −0.0% / +0.3% | −0.1% / +1.1% |
+| chat-scroll | 8.30 ms | −0.0% / +0.9% | −0.0% / +0.2% | +0.0% / +2.3% | −0.1% / −1.8% | −0.2% / −0.6% | −0.3% / +1.0% |
+| sticky-scroll | 9.88 ms | −0.0% / +1.2% | +0.1% / +3.6% | +0.0% / +0.0% | −0.1% / −4.1% | +0.1% / +0.2% | +0.0% / +0.9% |
+| effect-scroll | 9.61 ms | +0.0% / +0.0% | +0.0% / +4.3% | +0.0% / +0.6% | −0.1% / −4.0% | +0.0% / −0.0% | −0.0% / +0.7% |
+| animated-frame | 8.13 ms | −0.2% / +0.4% | −0.0% / +3.1% | +0.1% / +1.0% | −0.1% / −3.4% | −0.2% / −0.3% | −0.4% / +0.7% |
+
+| Optimization | Commit | Run | Decision |
+|---|---|---|---|
+| Grid bounds tree with ordering replay | `04052f5` | `sc1-grid` | **Kept.** About 9% fewer instructions on the panel scenarios, nothing slower. |
+| Counting draw-order sort, packed sprite keys | `c10896a` | `sc2-sort` | **Kept.** About 0.5% fewer instructions on the panel scenarios. Its three time rises over 3% (sticky-scroll, effect-scroll, animated-frame) come with unchanged instructions and are gone in the next run, so they are drift. |
+| Number shaping | `9bb306d` | `sc3-numbers` | **Reverted** (`be88272`). Nothing faster: the scenarios repeat their numbers, so the line layout cache already keeps them, and number shaping saves at most a shaped line a frame (animated-frame). |
+| Path tessellation cache | `04db2b2` | `sc3-paths` | **Reverted** (`20bdd1a`). Nothing faster: no scenario paints paths. |
+| Glyph work once a run | `c854990` | `sc3-glyphs` | **Kept.** 0.5–0.7% fewer instructions on the panel and table scenarios, nothing slower. |
+
+The last column is run `sc3-glyphs` against the baseline. That run still contains the two
+reverted commits, whose instructions are within ±0.1% everywhere. The runs are in
+`artifacts-temp/testkit/perf/sc1-grid/` to `sc3-glyphs/`; each `run.txt` names its commit.
