@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 55,
+  "revision": 57,
   "planRevision": 11,
   "specHashes": {
     "requirements": "382ceb5caa924483b8b3c0cce0998a6a80fdce218c77ed0a4d6bc8e0c04be058",
@@ -106,13 +106,13 @@
       ]
     },
     "t17-dependency-recording": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "claude-240e1cb7"
       ]
     },
     "t18-dependency-nesting": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "claude-240e1cb7"
       ]
@@ -223,7 +223,7 @@
       ]
     },
     "t17b-hover-read-scope": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "claude-240e1cb7"
       ]
@@ -266,14 +266,14 @@
       },
       "recordedAt": "2026-10-09T22:10:10Z"
     },
-    "29825affa17ecdf02eaf2a4d16ff51e68d21e7a961ae6177dc8833e726c48027": {
+    "8f671d27291d99467a9e0ab415a23bc743889977c170a07c4040cdf27e520473": {
       "snapshot": {
-        "specHash": "c8a582900d9cc67b09c7eddcae70be8fa2e8c646440abad647eba597d481c552",
+        "specHash": "27c6ca8ec7aaa99dfd3b6be899d16231f3a891bb514f7fcb71f84315df8c56a2",
         "repositories": {
-          "gpux": "ab1edacde46e8e0a77758da0280711628c08822a430a83ed262740aee925ffeb"
+          "gpux": "f690161f77647845f41405531e55fee1f289600fb32b1b533e5693b34b8829dd"
         }
       },
-      "recordedAt": "2026-10-09T22:39:35Z"
+      "recordedAt": "2026-10-09T22:46:11Z"
     }
   },
   "checkResults": {
@@ -604,52 +604,52 @@
       "checkId": "check-dependencies",
       "boundaryId": "s04-dependencies",
       "phase": "final",
-      "batchId": "29825affa17ecdf02eaf2a4d16ff51e68d21e7a961ae6177dc8833e726c48027",
-      "definitionHash": "469b4309ac69ed70efdb175004406e91bf6306a53eadbbe51599b873a94cc52c",
-      "basisHash": "2338b54e2fd771f6ba060abd0da9eb68de7f26ed11408f43663d55126c687bf4",
+      "batchId": "8f671d27291d99467a9e0ab415a23bc743889977c170a07c4040cdf27e520473",
+      "definitionHash": "72c4e5bead8233d79bd231daa73739bf10f2bd92b19d492faf1ec9e384f71937",
+      "basisHash": "e3df42fdcc66fb331a3b2517beafc3cd14eb3a0a7f52053cc2b25c58fcbfc8fa",
       "status": "passed",
       "exitCode": 0,
-      "testCount": 12,
-      "durationSeconds": 0.2406,
-      "recordedAt": "2026-10-09T22:39:35Z",
+      "testCount": 14,
+      "durationSeconds": 0.3474,
+      "recordedAt": "2026-10-09T22:46:10Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s04-dependencies-final-6131c95d6ee1.log",
-      "logSha256": "dc71d54a4bb13309b57de5d014fff45805b3d04e30f71cf2969359df8f64e682",
-      "inputsHash": "33f5610a4145139e8dc5a0cfcd7549395e7374c42c924dbe38457c3a2924aaf7"
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s04-dependencies-final-1858939b1557.log",
+      "logSha256": "36905da9a8717472f4c3d46324c45010c1c80c9417474e81d3b2b865d476c078",
+      "inputsHash": "14a7caeab82f3183da041a5440df14d029c20f1f7d2426a2131317a225a859da"
     },
     "s04-dependencies/check-dependency-nesting/final": {
       "checkId": "check-dependency-nesting",
       "boundaryId": "s04-dependencies",
       "phase": "final",
-      "batchId": "29825affa17ecdf02eaf2a4d16ff51e68d21e7a961ae6177dc8833e726c48027",
+      "batchId": "8f671d27291d99467a9e0ab415a23bc743889977c170a07c4040cdf27e520473",
       "definitionHash": "8de48771fc9d7ad2fbf78f740c8435c9df2ce895b856515e29fb6e40bb896a8c",
-      "basisHash": "525d2e917fca0ce0fe451e910d4370b67922bae133bdf0a2c34e133fb6f941e3",
+      "basisHash": "fc4f8263c5f0b9cce69f4c6b9a68197657559c9e9a71a847b82b21cc0898e9af",
       "status": "passed",
       "exitCode": 0,
       "testCount": 4,
-      "durationSeconds": 0.2376,
-      "recordedAt": "2026-10-09T22:39:35Z",
+      "durationSeconds": 0.2412,
+      "recordedAt": "2026-10-09T22:46:11Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s04-dependencies-final-8202fc73fc9d.log",
-      "logSha256": "99147d7db86aad8a6b0ef8f0b1f18cb82713faaa3c24df590778414ee2d6729d",
-      "inputsHash": "33f5610a4145139e8dc5a0cfcd7549395e7374c42c924dbe38457c3a2924aaf7"
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s04-dependencies-final-c4003a470d91.log",
+      "logSha256": "c0aa5a125a37cee8a52d6cd3431423f0e3c943852ff9dc025cc50387edd71865",
+      "inputsHash": "14a7caeab82f3183da041a5440df14d029c20f1f7d2426a2131317a225a859da"
     },
     "s04-dependencies/check-hover-read-scope/final": {
       "checkId": "check-hover-read-scope",
       "boundaryId": "s04-dependencies",
       "phase": "final",
-      "batchId": "29825affa17ecdf02eaf2a4d16ff51e68d21e7a961ae6177dc8833e726c48027",
+      "batchId": "8f671d27291d99467a9e0ab415a23bc743889977c170a07c4040cdf27e520473",
       "definitionHash": "7719c1fe9521876935ffab12e41049ad22c5acc62796650f3792b5bf227fb913",
-      "basisHash": "be34b2233bc29688fe30fd8031cd91e6806e3fd73403242c182da6af46dea33e",
+      "basisHash": "0818c517d4fb02f5ba01bb92db78408f28343ac1663e1d6d7f12c30568fb74ec",
       "status": "passed",
       "exitCode": 0,
       "testCount": 1,
-      "durationSeconds": 0.2345,
-      "recordedAt": "2026-10-09T22:39:35Z",
+      "durationSeconds": 0.2379,
+      "recordedAt": "2026-10-09T22:46:11Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s04-dependencies-final-f38003daeb6f.log",
-      "logSha256": "1afb2afbef5f8bd31a972f6898bfa0772978eca9f57f42b37e23984ba3c3b104",
-      "inputsHash": "33f5610a4145139e8dc5a0cfcd7549395e7374c42c924dbe38457c3a2924aaf7"
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s04-dependencies-final-cecfbf789d0b.log",
+      "logSha256": "597110b25eed8d47ba3536ef7263c69d113774e3cbe1035b22772b3645fd9356",
+      "inputsHash": "14a7caeab82f3183da041a5440df14d029c20f1f7d2426a2131317a225a859da"
     }
   },
   "reviews": {
@@ -1491,6 +1491,136 @@
         "s03-hook-discipline-text-measure-copy"
       ],
       "recordedAt": "2026-10-09T22:11:03Z"
+    },
+    "s04-dependencies": {
+      "reviewerId": "claude-reviewer-s04-7f3c91a2",
+      "snapshotId": "8f671d27291d99467a9e0ab415a23bc743889977c170a07c4040cdf27e520473",
+      "criterionIds": [
+        "DEP-1",
+        "DEP-2",
+        "FM-6"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/dependencies.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DEP-1",
+            "DEP-2",
+            "FM-6"
+          ],
+          "sha256": "5b2b91685365d75d505327f8a920a1c42244ee3549708b665f8fdc78f57d06ab"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/app.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DEP-1"
+          ],
+          "sha256": "38a20a181891d5cc74257961059b029eec8c7f58a524f019014e286b2f10027c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/app/entity_map.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DEP-1"
+          ],
+          "sha256": "f6a390cd9667a8043680543859d813057013eea4e12f1e70b25d9196e7463a26"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DEP-1"
+          ],
+          "sha256": "8e625393c0f05a03e90d883b98fd207c6a21cb9a8a9afb489d360202750da0b0"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/input.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DEP-1"
+          ],
+          "sha256": "8023c7a2b29c4f8f1b5aa3a7d07e8ef160e1b70317474ecd9dc080ebd16c1f60"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/view.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DEP-1"
+          ],
+          "sha256": "2c7690f913109d804e8a381a1a3762aac7bb940f807b90ebbe3fefbdf70d4322"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DEP-1",
+            "FM-6"
+          ],
+          "sha256": "c56f90a9561b414b95ca42dbb782fdbaaad9d07d2be175b83636f177d6876075"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/list.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DEP-1"
+          ],
+          "sha256": "a75966db2e64da5b1eb03da507100ccda49870f12bdb5da2890de37026d2efcc"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/uniform_list.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DEP-1"
+          ],
+          "sha256": "c13570e9bedef67e209c8e1e15539301e0cadc3753d1904bf81437bf0d86214a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/dependencies.rs",
+          "kind": "test",
+          "criterionIds": [
+            "DEP-1"
+          ],
+          "sha256": "a6df996339efef1a67cfd6f8cc93edaa8bbdde93513909213b4c151a87571619"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/dependency_nesting.rs",
+          "kind": "test",
+          "criterionIds": [
+            "DEP-2"
+          ],
+          "sha256": "87253ee131ee06f2bef67796cb81418c4dc60c7aa57d201b6a8c52e183c36aa9"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/hover_dependencies.rs",
+          "kind": "test",
+          "criterionIds": [
+            "FM-6"
+          ],
+          "sha256": "077fbfd46e26a6e3add433f83a5c6d965df4f7b135e605575df73f60f836602c"
+        }
+      ],
+      "summaryMarkdown": "I verified `8b0b0eb` and the spec amendment `dddb29f` against source and tests. The three checks passed again; I reused that evidence. All three findings are resolved.\n\n- Ambient input that gpux reloads outside events (the draw-time platform refresh and the activation reload) is now stamped.\n- Change stamping starts only with the first recording, so an app with view retention off pays a branch on its hooks.\n- `Interactivity::hovered` documents that painting by hover must use `Hitbox::is_hovered`.\n\nEverything the first review found sound still holds: the gpui-fast change rules, nesting, idempotent state versions with gpux's single scrollbar invalidation, and the FM-6 hover narrowing keeping FM-5 exact.",
+      "findingIds": [
+        "s04-ambient-change-outside-dispatch",
+        "s04-off-path-entity-stamping",
+        "s04-published-hover-untracked"
+      ],
+      "recordedAt": "2026-10-09T22:46:52Z"
     }
   },
   "checkpoints": {
@@ -1875,8 +2005,20 @@
         "DEP-1"
       ],
       "severity": "major",
-      "status": "open",
-      "descriptionMarkdown": "**Expected (DEP-1, d-dependencies).** A recorded ambient read (`mouse_position`, `modifiers`, `capslock`, `pressed_mouse_button`) is stamped changed whenever the window's value changes, so a retained subtree that read it is not replayed with the old value.\n\n**Observed.** Stamping happens only in `Window::dispatch_event` (`window.rs:8565`), which compares an `AmbientInput` snapshot taken before the event with the values after it. gpux also changes these values outside event dispatch, and none of those changes is stamped:\n- **`draw_roots` (`window.rs:5494`).** At the start of every draw while the window is hovered, a drag is active or a hitbox has the pointer captured, it reloads `mouse_position`, `modifiers` and `capslock` from the platform. This is gpux's own addition for Windows, which coalesces `WM_MOUSEMOVE` during hover and drag; that is exactly the case where the platform position differs from the last dispatched one.\n- **Activation change (`window.rs:3217`).** It reloads `modifiers` and `capslock`. A whole-window refresh follows there, so this one is masked.\n\n**Failure scenario.** A view retained under view retention, the next sprint and the first consumer of these stamps, reads `window.mouse_position()` or `pressed_mouse_button()` while it paints. The gpux input rule tells drags that cross nested controls to poll exactly these. On Windows the pointer moves with coalesced moves, and `draw_roots` updates `mouse_position` with no event dispatched. `dependencies_changed` still reports nothing changed, so the view is replayed showing the old pointer position. `fast::tests::dependencies` only stamps through `dispatch_event`, so it cannot see this.\n\n**Repair.**\n- Take an `AmbientInput` snapshot around the platform refresh in `draw_roots` and call `stamp_changes` (and around the activation reload, for consistency).\n- Add a `dependencies` test that changes the window's pointer outside `dispatch_event` (through the draw-time refresh path) and expects a recording that read `mouse_position()` to be changed."
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved (8b0b0eb).** `draw_roots` wraps its platform reload of `mouse_position`, `modifiers` and `capslock` in `AmbientInput::of` / `stamp_changes`. The reload happens while the window is hovered, dragging or has the pointer captured, and the stamp lands before prepaint, so the frame's replay decisions see it. The activation handler's `modifiers`/`capslock` reload is wrapped the same way.\n\n`dependencies::ambient_input_changed_outside_dispatch_is_stamped` moves the platform pointer, forces the reload through `captured_hitbox`, and requires a recording that read `mouse_position()` to report a change. DEP-1 is amended to name the platform reloads.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "symbol": "Window::draw_roots"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/dependencies.rs",
+          "symbol": "ambient_input_changed_outside_dispatch_is_stamped"
+        }
+      ]
     },
     {
       "id": "s04-off-path-entity-stamping",
@@ -1885,8 +2027,25 @@
         "DEP-1"
       ],
       "severity": "minor",
-      "status": "open",
-      "descriptionMarkdown": "**Expected (FM-2, d-switches invariant).** With every switch off, hooks cost a branch on a `bool` and make no `fast::` allocation. The only declared exception is the cached-view hover dependency.\n\n**Observed.** The App-level change stamps run in every mode, production included, though nothing consumes them until view retention is on:\n- `note_update` (`fast/dependencies.rs:541`) does an `FxHashMap` insert into `updated_at` and an `FxHashSet` insert into `updated_unnotified` on every `Entity::update` outside drawing.\n- `note_notify` (`:524`) does a set removal on every notify.\n- `global_changed` (`:272`) does a map insert on every global write.\n\nThese are allocating hash operations on GPUI's hottest mutation paths, in a build where no window has view retention on (every default is off until the final sprint). The rules match gpui-fast, which runs view retention on by default. Reads (`note_access`) correctly cost only a branch.\n\n**Repair.** Either:\n- gate the stamping on an App-level count of windows with view retention on (a window that switches it on refreshes, so stamps from before are not needed), or\n- amend FM-2 and d-switches to declare App-level change stamping as running in every mode, with a measurement in lane G showing its cost on an update-heavy scenario."
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved (8b0b0eb).** `EntityAccessLog.stamping` turns on at the first `begin_recording_dependencies`. Before it does, `note_update`, `note_notify`, `global_changed`, `note_global_inserted`, `note_global_removed` and `AmbientInput::stamp_changes` return after a branch. `note_update` still clears a pending `render_next` mark.\n\nThis is sound: a stamp only tells a recording what changed after it began. An update made before stamping started was already seen by any later read, and by the notify rule a later bare notify is not a change.\n\n`an_app_that_never_records_stamps_nothing` asserts that no stamps are held. The spec (DEP-1) records the gate.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/dependencies.rs",
+          "symbol": "note_update"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/dependencies.rs",
+          "symbol": "note_notify"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/dependencies.rs",
+          "symbol": "an_app_that_never_records_stamps_nothing"
+        }
+      ]
     },
     {
       "id": "s04-published-hover-untracked",
@@ -1895,8 +2054,15 @@
         "FM-6"
       ],
       "severity": "minor",
-      "status": "open",
-      "descriptionMarkdown": "**Expected (FM-6).** Publishing `Interactivity::hovered` reads the hover unrecorded because nothing paints by it, and every hover a cached view's painted output depends on is recorded (d-hover-read-scope).\n\n**Observed.** The premise holds inside gpux: no gpux element reads the published value. The FM-6 narrowing (`hover_area` limited to the read hitboxes) is sound: with the pointer outside every read hitbox's masked bounds, and none captured, each read is false whatever the frame adds.\n\nBut `Interactivity::hovered` (`elements/div.rs:2412`) is a `pub` field documented as \"Whether the element was hovered … present after paint\". It is part of the API external custom elements use, and the request-style-handoff decision counts 13 such `Interactivity` consumers. A consumer that paints a highlight from `interactivity.hovered` after `Interactivity::paint` used to have that hover recorded (s02, s03). Now it is not, so a cached view containing such an element replays a stale highlight when the pointer enters or leaves it. Nothing documents this contract change.\n\n**Repair.** Document on the field that its value is not a cached-view dependency, and that painting by hover must use `Hitbox::is_hovered` / `HitboxId::is_hovered`. Alternatively, expose a recorded accessor and keep the field for event-time callers."
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved (8b0b0eb).** `Interactivity::hovered` now documents that it is published, not painted from. It is not a cached-view dependency, and an element that paints by hover must ask `Hitbox::is_hovered`. External `Interactivity` users are told the contract, and FM-6's premise is now stated on the public field.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs",
+          "symbol": "Interactivity::hovered"
+        }
+      ]
     }
   ],
   "handoffMarkdown": "",
