@@ -388,7 +388,7 @@ impl EditableTextState {
             target_logical,
             maximum,
             behavior,
-            Instant::now(),
+            cx.background_executor().now(),
         ) else {
             return false;
         };

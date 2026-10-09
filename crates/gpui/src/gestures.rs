@@ -55,12 +55,10 @@ impl OngoingScroll {
     /// Filters the given delta to the dominant axis of the current scroll gesture.
     ///
     /// Gestures are delimited by their touch phase when available, with a timeout
-    /// fallback for platforms that only emit [`TouchPhase::Moved`].
-    pub fn filter(&mut self, delta: &mut Point<Pixels>, touch_phase: TouchPhase) {
-        self.filter_at(delta, touch_phase, Instant::now())
-    }
-
-    fn filter_at(&mut self, delta: &mut Point<Pixels>, touch_phase: TouchPhase, now: Instant) {
+    /// fallback for platforms that only emit [`TouchPhase::Moved`]. `now` comes from the
+    /// executor clock ([`BackgroundExecutor::now`](crate::BackgroundExecutor::now)), so tests
+    /// drive the timeout with `advance_clock`.
+    pub fn filter_at(&mut self, delta: &mut Point<Pixels>, touch_phase: TouchPhase, now: Instant) {
         const UNLOCK_PERCENT: f32 = 1.9;
         const UNLOCK_LOWER_BOUND: Pixels = px(6.);
 
@@ -479,7 +477,7 @@ const VELOCITY_MAX_SAMPLES: usize = 20;
 /// [`TouchEvent`] stream for one touch at a time and resolves it into either
 /// a tap or a pan, following the competition model described in the module
 /// docs. Pans continue into post-release momentum when the touch lifts at
-/// speed; the window drives that phase through [`Self::tick_momentum`].
+/// speed; the window drives that phase through [`Self::tick_momentum_at`].
 ///
 /// Taps are currently surfaced as synthesized mouse presses rather than
 /// [`ClickEvent::Touch`](crate::ClickEvent), which keeps every existing
@@ -581,14 +579,9 @@ impl TouchGestureRecognizer {
         }
     }
 
-    pub(crate) fn handle_event(
-        &mut self,
-        event: &TouchEvent,
-    ) -> SmallVec<[RecognizedTouchGesture; 2]> {
-        self.handle_event_at(event, Instant::now())
-    }
-
-    fn handle_event_at(
+    /// Recognizes gestures from a raw touch event. `now` comes from the executor clock and
+    /// stands in for events that carry no platform timestamp.
+    pub(crate) fn handle_event_at(
         &mut self,
         event: &TouchEvent,
         now: Instant,
@@ -879,7 +872,8 @@ impl TouchGestureRecognizer {
         recognized
     }
 
-    pub(crate) fn pending_long_press(&self) -> Option<(TouchId, Duration)> {
+    /// The touch awaiting a long press and the time left until its deadline at `now`.
+    pub(crate) fn pending_long_press(&self, now: Instant) -> Option<(TouchId, Duration)> {
         let TouchGestureState::Pending {
             touch,
             deadline,
@@ -889,7 +883,7 @@ impl TouchGestureRecognizer {
         else {
             return None;
         };
-        Some((touch.id, deadline.saturating_duration_since(Instant::now())))
+        Some((touch.id, deadline.saturating_duration_since(now)))
     }
 
     pub(crate) fn offer_long_press(&mut self, id: TouchId) -> Option<RecognizedTouchGesture> {
@@ -966,14 +960,10 @@ impl TouchGestureRecognizer {
         self.momentum.is_some()
     }
 
-    /// Advances post-fling momentum by one frame, returning the scroll step
+    /// Advances post-fling momentum to `now` (the executor clock), returning the scroll step
     /// to dispatch, or `None` when no momentum is in progress. The final step
     /// carries [`TouchPhase::Ended`] to close the synthetic scroll stream.
-    pub(crate) fn tick_momentum(&mut self) -> Option<RecognizedTouchGesture> {
-        self.tick_momentum_at(Instant::now())
-    }
-
-    fn tick_momentum_at(&mut self, now: Instant) -> Option<RecognizedTouchGesture> {
+    pub(crate) fn tick_momentum_at(&mut self, now: Instant) -> Option<RecognizedTouchGesture> {
         let momentum = self.momentum.as_mut()?;
         let elapsed = now.duration_since(momentum.started_at);
         let distance = self
@@ -1125,9 +1115,15 @@ mod tests {
     use super::*;
     use crate::point;
 
+    /// A fresh base instant from the test clock: every reading starts a new timeline, like the
+    /// wall clock these tests sampled before motion moved onto the executor clock.
+    fn test_now() -> Instant {
+        scheduler::Clock::now(&scheduler::TestClock::new())
+    }
+
     #[test]
     fn ongoing_scroll_locks_to_dominant_axis() {
-        let now = Instant::now();
+        let now = test_now();
         let mut ongoing_scroll = OngoingScroll::default();
         let mut horizontal_delta = point(px(10.), px(2.));
         ongoing_scroll.filter_at(&mut horizontal_delta, TouchPhase::Started, now);
@@ -1146,7 +1142,7 @@ mod tests {
 
     #[test]
     fn ongoing_scroll_unlocks_when_direction_changes() {
-        let now = Instant::now();
+        let now = test_now();
         let mut ongoing_scroll = OngoingScroll::default();
         let mut horizontal_delta = point(px(10.), px(2.));
         ongoing_scroll.filter_at(&mut horizontal_delta, TouchPhase::Started, now);
@@ -1163,7 +1159,7 @@ mod tests {
 
     #[test]
     fn ongoing_scroll_starts_new_gesture_at_timeout_boundary() {
-        let now = Instant::now();
+        let now = test_now();
         let mut ongoing_scroll = OngoingScroll::default();
         let mut horizontal_delta = point(px(10.), px(2.));
         ongoing_scroll.filter_at(&mut horizontal_delta, TouchPhase::Moved, now);
@@ -1180,7 +1176,7 @@ mod tests {
 
     #[test]
     fn ongoing_scroll_ignores_zero_delta_and_resets_when_ended() {
-        let now = Instant::now();
+        let now = test_now();
         let mut ongoing_scroll = OngoingScroll::default();
         let mut horizontal_delta = point(px(10.), px(2.));
         ongoing_scroll.filter_at(&mut horizontal_delta, TouchPhase::Started, now);
@@ -1205,7 +1201,7 @@ mod tests {
 
     #[test]
     fn ongoing_scroll_ignores_zero_delta_movement() {
-        let now = Instant::now();
+        let now = test_now();
         let mut ongoing_scroll = OngoingScroll::default();
         let mut horizontal_delta = point(px(10.), px(2.));
         ongoing_scroll.filter_at(&mut horizontal_delta, TouchPhase::Started, now);
@@ -1229,7 +1225,7 @@ mod tests {
 
     #[test]
     fn ongoing_scroll_supports_moved_only_platforms() {
-        let now = Instant::now();
+        let now = test_now();
         let mut ongoing_scroll = OngoingScroll::default();
         let mut horizontal_delta = point(px(10.), px(2.));
         ongoing_scroll.filter_at(&mut horizontal_delta, TouchPhase::Moved, now);
@@ -1240,7 +1236,7 @@ mod tests {
     #[test]
     fn touch_within_slop_resolves_to_tap() {
         let mut recognizer = TouchGestureRecognizer::new(GestureTuning::default());
-        let now = Instant::now();
+        let now = test_now();
         let touch = TouchId(1);
 
         let recognized =
@@ -1267,7 +1263,7 @@ mod tests {
     #[test]
     fn consecutive_taps_accumulate_tap_count() {
         let mut recognizer = TouchGestureRecognizer::new(GestureTuning::default());
-        let now = Instant::now();
+        let now = test_now();
 
         recognizer.handle_event_at(&touch_event(TouchId(1), TouchPhase::Started, 10., 10.), now);
         recognizer.handle_event_at(
@@ -1307,7 +1303,7 @@ mod tests {
     #[test]
     fn touch_beyond_slop_resolves_to_pan() {
         let mut recognizer = TouchGestureRecognizer::new(GestureTuning::default());
-        let now = Instant::now();
+        let now = test_now();
         let touch = TouchId(1);
 
         recognizer.handle_event_at(&touch_event(touch, TouchPhase::Started, 100., 100.), now);
@@ -1347,7 +1343,7 @@ mod tests {
     #[test]
     fn touch_pan_stays_locked_to_its_initial_dominant_axis() {
         let mut recognizer = TouchGestureRecognizer::new(GestureTuning::default());
-        let now = Instant::now();
+        let now = test_now();
         let touch = TouchId(1);
 
         recognizer.handle_event_at(&touch_event(touch, TouchPhase::Started, 100., 100.), now);
@@ -1374,7 +1370,7 @@ mod tests {
     #[test]
     fn touch_pan_locks_to_horizontal_axis() {
         let mut recognizer = TouchGestureRecognizer::new(GestureTuning::default());
-        let now = Instant::now();
+        let now = test_now();
         let touch = TouchId(1);
 
         recognizer.handle_event_at(&touch_event(touch, TouchPhase::Started, 100., 100.), now);
@@ -1392,7 +1388,7 @@ mod tests {
     #[test]
     fn predicted_positions_lead_the_pan_but_totals_converge_on_release() {
         let mut recognizer = TouchGestureRecognizer::new(GestureTuning::default());
-        let now = Instant::now();
+        let now = test_now();
         let touch = TouchId(1);
 
         recognizer.handle_event_at(&touch_event(touch, TouchPhase::Started, 100., 100.), now);
@@ -1434,7 +1430,7 @@ mod tests {
     #[test]
     fn predicted_positions_do_not_emit_false_reversals() {
         let mut recognizer = TouchGestureRecognizer::new(GestureTuning::default());
-        let now = Instant::now();
+        let now = test_now();
         let touch = TouchId(1);
 
         recognizer.handle_event_at(&touch_event(touch, TouchPhase::Started, 100., 100.), now);
@@ -1488,7 +1484,7 @@ mod tests {
 
     #[test]
     fn predicted_overshoot_folds_into_the_fling_without_scrolling_backwards() {
-        let now = Instant::now();
+        let now = test_now();
         let mut total_with_prediction = 0f32;
         let mut total_without_prediction = 0f32;
         for use_prediction in [true, false] {
@@ -1557,7 +1553,7 @@ mod tests {
     #[test]
     fn fast_release_starts_momentum_that_decays_to_a_stop() {
         let mut recognizer = TouchGestureRecognizer::new(GestureTuning::default());
-        let now = Instant::now();
+        let now = test_now();
         let touch = TouchId(1);
 
         recognizer.handle_event_at(&touch_event(touch, TouchPhase::Started, 100., 300.), now);
@@ -1610,7 +1606,7 @@ mod tests {
     #[test]
     fn diagonal_release_flings_only_on_locked_axis() {
         let mut recognizer = TouchGestureRecognizer::new(GestureTuning::default());
-        let now = Instant::now();
+        let now = test_now();
         let touch = TouchId(1);
 
         recognizer.handle_event_at(&touch_event(touch, TouchPhase::Started, 100., 300.), now);
@@ -1650,7 +1646,7 @@ mod tests {
     #[test]
     fn slow_release_does_not_start_momentum() {
         let mut recognizer = TouchGestureRecognizer::new(GestureTuning::default());
-        let now = Instant::now();
+        let now = test_now();
         let touch = TouchId(1);
 
         recognizer.handle_event_at(&touch_event(touch, TouchPhase::Started, 100., 300.), now);
@@ -1672,7 +1668,7 @@ mod tests {
     #[test]
     fn new_touch_interrupts_momentum() {
         let mut recognizer = TouchGestureRecognizer::new(GestureTuning::default());
-        let now = Instant::now();
+        let now = test_now();
 
         recognizer.handle_event_at(
             &touch_event(TouchId(1), TouchPhase::Started, 100., 300.),
@@ -1716,7 +1712,7 @@ mod tests {
     #[test]
     fn catching_a_fling_pans_immediately_and_never_taps() {
         let mut recognizer = TouchGestureRecognizer::new(GestureTuning::default());
-        let now = Instant::now();
+        let now = test_now();
 
         recognizer.handle_event_at(
             &touch_event(TouchId(1), TouchPhase::Started, 100., 300.),
@@ -1769,7 +1765,7 @@ mod tests {
     #[test]
     fn cancelled_pan_emits_cancelled_scroll_and_no_tap() {
         let mut recognizer = TouchGestureRecognizer::new(GestureTuning::default());
-        let now = Instant::now();
+        let now = test_now();
         let touch = TouchId(1);
 
         recognizer.handle_event_at(&touch_event(touch, TouchPhase::Started, 100., 100.), now);
@@ -1799,7 +1795,7 @@ mod tests {
     #[test]
     fn concurrent_touches_are_ignored_while_one_is_active() {
         let mut recognizer = TouchGestureRecognizer::new(GestureTuning::default());
-        let now = Instant::now();
+        let now = test_now();
 
         recognizer.handle_event_at(
             &touch_event(TouchId(1), TouchPhase::Started, 100., 100.),
@@ -1900,7 +1896,7 @@ mod tests {
                 scroll_physics: ScrollPhysics::android(),
                 ..GestureTuning::default()
             });
-            let now = Instant::now();
+            let now = test_now();
             recognizer.handle_event_at(
                 &touch_event(TouchId(1), TouchPhase::Started, 100., 500.),
                 now,
@@ -1952,7 +1948,7 @@ mod tests {
         // the speed at the newest sample (2·k·t) is twice the window
         // average (k·t). The estimator must report the former.
         let mut velocity_tracker = VelocityTracker::default();
-        let start = Instant::now();
+        let start = test_now();
         for step in 0..=6 {
             let t = step as f32 * 0.016;
             velocity_tracker.push(
@@ -1976,7 +1972,7 @@ mod tests {
         // a slow nudge: only the motion after the pause describes the
         // release.
         let mut velocity_tracker = VelocityTracker::default();
-        let start = Instant::now();
+        let start = test_now();
         velocity_tracker.push(start, point(px(0.), px(0.)));
         velocity_tracker.push(start + Duration::from_millis(16), point(px(0.), px(50.)));
         velocity_tracker.push(start + Duration::from_millis(80), point(px(0.), px(52.)));
@@ -1993,7 +1989,7 @@ mod tests {
     fn claimed_touch_drag_emits_phased_stream_without_pan_or_tap() {
         let mut recognizer = TouchGestureRecognizer::new(GestureTuning::default());
         let touch = TouchId(1);
-        let now = Instant::now();
+        let now = test_now();
         recognizer.handle_event_at(&touch_event(touch, TouchPhase::Started, 10., 20.), now);
         let Some(RecognizedTouchGesture::TouchDrag(started)) = recognizer.offer_touch_drag(touch)
         else {
@@ -2028,7 +2024,7 @@ mod tests {
     fn unclaimed_touch_drag_remains_a_pan_candidate() {
         let mut recognizer = TouchGestureRecognizer::new(GestureTuning::default());
         let touch = TouchId(1);
-        let now = Instant::now();
+        let now = test_now();
         recognizer.handle_event_at(&touch_event(touch, TouchPhase::Started, 0., 0.), now);
         assert!(recognizer.offer_touch_drag(touch).is_some());
         recognizer.resolve_touch_drag(false);
@@ -2050,7 +2046,7 @@ mod tests {
     fn claimed_long_press_emits_phased_stream_without_tap() {
         let mut recognizer = TouchGestureRecognizer::new(GestureTuning::default());
         let touch = TouchId(1);
-        let now = Instant::now();
+        let now = test_now();
         recognizer.handle_event_at(&touch_event(touch, TouchPhase::Started, 10., 20.), now);
         let Some(RecognizedTouchGesture::LongPress(started)) = recognizer.offer_long_press(touch)
         else {
@@ -2083,7 +2079,7 @@ mod tests {
     fn unclaimed_long_press_remains_a_tap_candidate() {
         let mut recognizer = TouchGestureRecognizer::new(GestureTuning::default());
         let touch = TouchId(1);
-        let now = Instant::now();
+        let now = test_now();
         recognizer.handle_event_at(&touch_event(touch, TouchPhase::Started, 10., 20.), now);
         assert!(recognizer.offer_long_press(touch).is_some());
         recognizer.resolve_long_press(false);
@@ -2102,7 +2098,7 @@ mod tests {
     fn unclaimed_long_press_can_still_become_a_pan() {
         let mut recognizer = TouchGestureRecognizer::new(GestureTuning::default());
         let touch = TouchId(1);
-        let now = Instant::now();
+        let now = test_now();
         recognizer.handle_event_at(&touch_event(touch, TouchPhase::Started, 0., 0.), now);
         assert!(recognizer.offer_long_press(touch).is_some());
         recognizer.resolve_long_press(false);
@@ -2124,11 +2120,14 @@ mod tests {
     fn long_press_offer_is_one_shot_and_specific_to_pending_touch() {
         let mut recognizer = TouchGestureRecognizer::new(GestureTuning::default());
         let touch = TouchId(1);
-        recognizer.handle_event(&touch_event(touch, TouchPhase::Started, 0., 0.));
+        recognizer.handle_event_at(&touch_event(touch, TouchPhase::Started, 0., 0.), test_now());
 
         assert!(
             recognizer
-                .handle_event(&touch_event(TouchId(2), TouchPhase::Moved, 20., 0.))
+                .handle_event_at(
+                    &touch_event(TouchId(2), TouchPhase::Moved, 20., 0.),
+                    test_now()
+                )
                 .is_empty()
         );
         assert!(recognizer.offer_long_press(TouchId(2)).is_none());
@@ -2141,7 +2140,7 @@ mod tests {
         for phase in [TouchPhase::Ended, TouchPhase::Cancelled, TouchPhase::Moved] {
             let mut recognizer = TouchGestureRecognizer::new(GestureTuning::default());
             let touch = TouchId(1);
-            let now = Instant::now();
+            let now = test_now();
             recognizer.handle_event_at(&touch_event(touch, TouchPhase::Started, 0., 0.), now);
             let position = if phase == TouchPhase::Moved { 20. } else { 0. };
             recognizer.handle_event_at(
@@ -2156,16 +2155,22 @@ mod tests {
     fn claimed_long_press_emits_cancelled_for_its_touch_only() {
         let mut recognizer = TouchGestureRecognizer::new(GestureTuning::default());
         let touch = TouchId(1);
-        recognizer.handle_event(&touch_event(touch, TouchPhase::Started, 4., 5.));
+        recognizer.handle_event_at(&touch_event(touch, TouchPhase::Started, 4., 5.), test_now());
         assert!(recognizer.offer_long_press(touch).is_some());
         recognizer.resolve_long_press(true);
 
         assert!(
             recognizer
-                .handle_event(&touch_event(TouchId(2), TouchPhase::Cancelled, 9., 9.))
+                .handle_event_at(
+                    &touch_event(TouchId(2), TouchPhase::Cancelled, 9., 9.),
+                    test_now()
+                )
                 .is_empty()
         );
-        let cancelled = recognizer.handle_event(&touch_event(touch, TouchPhase::Cancelled, 6., 7.));
+        let cancelled = recognizer.handle_event_at(
+            &touch_event(touch, TouchPhase::Cancelled, 6., 7.),
+            test_now(),
+        );
         let [RecognizedTouchGesture::LongPress(cancelled)] = cancelled.as_slice() else {
             panic!("expected cancelled long press, got {cancelled:?}");
         };
@@ -2179,11 +2184,12 @@ mod tests {
         for phase in [TouchPhase::Ended, TouchPhase::Cancelled] {
             let mut recognizer = TouchGestureRecognizer::new(GestureTuning::default());
             let touch = TouchId(1);
-            recognizer.handle_event(&touch_event(touch, TouchPhase::Started, 4., 5.));
+            recognizer
+                .handle_event_at(&touch_event(touch, TouchPhase::Started, 4., 5.), test_now());
 
             assert!(
                 recognizer
-                    .handle_event(&touch_event(TouchId(2), phase, 9., 9.))
+                    .handle_event_at(&touch_event(TouchId(2), phase, 9., 9.), test_now())
                     .is_empty()
             );
             assert!(recognizer.offer_long_press(touch).is_some());
@@ -2195,9 +2201,18 @@ mod tests {
         let mut recognizer = TouchGestureRecognizer::new(GestureTuning::default());
         let completed_touch = TouchId(1);
         let replacement_touch = TouchId(2);
-        recognizer.handle_event(&touch_event(completed_touch, TouchPhase::Started, 0., 0.));
-        recognizer.handle_event(&touch_event(completed_touch, TouchPhase::Cancelled, 0., 0.));
-        recognizer.handle_event(&touch_event(replacement_touch, TouchPhase::Started, 5., 5.));
+        recognizer.handle_event_at(
+            &touch_event(completed_touch, TouchPhase::Started, 0., 0.),
+            test_now(),
+        );
+        recognizer.handle_event_at(
+            &touch_event(completed_touch, TouchPhase::Cancelled, 0., 0.),
+            test_now(),
+        );
+        recognizer.handle_event_at(
+            &touch_event(replacement_touch, TouchPhase::Started, 5., 5.),
+            test_now(),
+        );
 
         assert!(recognizer.offer_long_press(completed_touch).is_none());
         assert!(recognizer.offer_long_press(replacement_touch).is_some());
@@ -2206,7 +2221,7 @@ mod tests {
     #[test]
     fn touch_timestamps_fling_when_a_slow_frame_delays_the_release() {
         let mut recognizer = TouchGestureRecognizer::new(GestureTuning::default());
-        let start = Instant::now();
+        let start = test_now();
         let touch = TouchId(1);
 
         recognizer.handle_event_at(
@@ -2237,7 +2252,7 @@ mod tests {
     #[test]
     fn touch_timestamps_measure_velocity_of_samples_processed_together() {
         let mut recognizer = TouchGestureRecognizer::new(GestureTuning::default());
-        let start = Instant::now();
+        let start = test_now();
         let touch = TouchId(1);
         // A stalled frame queued the whole gesture; it is processed at once.
         let processed = start + Duration::from_millis(200);
@@ -2275,7 +2290,7 @@ mod tests {
     fn touch_timestamps_time_taps_and_long_presses_by_their_samples() {
         let tuning = GestureTuning::default();
         let mut recognizer = TouchGestureRecognizer::new(tuning);
-        let start = Instant::now();
+        let start = test_now();
         let touch = TouchId(1);
 
         for (index, sampled_ms) in [0, 150].into_iter().enumerate() {
@@ -2300,13 +2315,13 @@ mod tests {
         }
 
         let mut recognizer = TouchGestureRecognizer::new(tuning);
-        let sampled = Instant::now() - Duration::from_millis(300);
-        recognizer.handle_event(&stamped(
-            touch_event(touch, TouchPhase::Started, 10., 10.),
-            sampled,
-        ));
+        let sampled = test_now() - Duration::from_millis(300);
+        recognizer.handle_event_at(
+            &stamped(touch_event(touch, TouchPhase::Started, 10., 10.), sampled),
+            test_now(),
+        );
         let (_, remaining) = recognizer
-            .pending_long_press()
+            .pending_long_press(test_now())
             .expect("the touch should await a long press");
         assert!(
             remaining <= tuning.long_press_duration - Duration::from_millis(300),

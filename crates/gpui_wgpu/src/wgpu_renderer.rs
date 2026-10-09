@@ -1,6 +1,6 @@
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 use crate::WgpuFrameTelemetry;
-#[cfg(all(target_family = "wasm", feature = "rayx_diagnostics"))]
+#[cfg(all(target_family = "wasm", feature = "diagnostics"))]
 use crate::html_island_texture::HtmlIslandTextureCacheStatus;
 #[cfg(target_family = "wasm")]
 use crate::html_island_texture::{HtmlIslandTextureCache, HtmlIslandTextureDescriptor};
@@ -1146,13 +1146,17 @@ fn copy_effect_texture(
 struct WgpuResources {
     device: Arc<wgpu::Device>,
     queue: Arc<wgpu::Queue>,
-    surface: wgpu::Surface<'static>,
+    /// The window surface. Headless renderers have none and render into their own targets.
+    surface: Option<wgpu::Surface<'static>>,
     pipelines: WgpuPipelines,
     bind_group_layouts: WgpuBindGroupLayouts,
     atlas_sampler: wgpu::Sampler,
     post_process_sampler: wgpu::Sampler,
     effect_sampler: wgpu::Sampler,
     globals_buffer: wgpu::Buffer,
+    /// The gamma parameters, in a buffer of their own: GL drivers that bind two ranges of one
+    /// buffer to two uniform blocks (Android emulators') give the second block the wrong range.
+    gamma_buffer: wgpu::Buffer,
     globals_bind_group: wgpu::BindGroup,
     path_globals_bind_group: wgpu::BindGroup,
     instance_buffer: Option<wgpu::Buffer>,
@@ -1239,7 +1243,6 @@ pub struct WgpuRenderer {
     render_target_format: wgpu::TextureFormat,
     atlas: Arc<WgpuAtlas>,
     path_globals_offset: u64,
-    gamma_offset: u64,
     instance_buffer_capacity: u64,
     gradient_stop_buffer_capacity: u64,
     max_buffer_size: u64,
@@ -1257,7 +1260,7 @@ pub struct WgpuRenderer {
     device_lost: std::sync::Arc<std::sync::atomic::AtomicBool>,
     surface_configured: bool,
     needs_redraw: bool,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     frame_telemetry: RefCell<WgpuFrameTelemetry>,
     #[cfg(target_family = "wasm")]
     html_island_textures: HtmlIslandTextureCache,
@@ -1301,7 +1304,7 @@ impl WgpuRenderer {
             .expect("GPU resources not available")
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     fn begin_frame_telemetry(&self, scene: &Scene, atlas_uploads: (usize, usize)) {
         let sprite_sort_disorder_counts = scene.sprite_sort_disorder_counts();
         let bounds_tree_diagnostics = scene.bounds_tree_diagnostics();
@@ -1431,12 +1434,12 @@ impl WgpuRenderer {
         };
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     fn update_frame_telemetry(&self, update: impl FnOnce(&mut WgpuFrameTelemetry)) {
         update(&mut self.frame_telemetry.borrow_mut());
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub fn frame_telemetry(&self) -> WgpuFrameTelemetry {
         *self.frame_telemetry.borrow()
     }
@@ -1656,12 +1659,55 @@ impl WgpuRenderer {
         // that this adapter can successfully configure this surface.
         surface.configure(&context.device, &surface_config);
 
+        Ok(Self::from_target(
+            gpu_context,
+            context,
+            Some(surface),
+            surface_config,
+            render_target_format,
+            (transparent_alpha_mode, opaque_alpha_mode),
+            compositor_gpu,
+            atlas,
+            backend_policy,
+            None,
+        ))
+    }
+
+    /// Builds the pipelines, buffers and samplers shared by every target: the window surface
+    /// when `surface` is present, and a headless renderer's own textures when it is not.
+    /// `path_sample_count` overrides the adapter's best path multisample count.
+    #[allow(clippy::too_many_arguments)]
+    fn from_target(
+        gpu_context: Option<GpuContext>,
+        context: &WgpuContext,
+        surface: Option<wgpu::Surface<'static>>,
+        surface_config: wgpu::SurfaceConfiguration,
+        render_target_format: wgpu::TextureFormat,
+        (transparent_alpha_mode, opaque_alpha_mode): (
+            wgpu::CompositeAlphaMode,
+            wgpu::CompositeAlphaMode,
+        ),
+        compositor_gpu: Option<CompositorGpuHint>,
+        atlas: Arc<WgpuAtlas>,
+        backend_policy: wgpu::Backends,
+        path_sample_count: Option<u32>,
+    ) -> Self {
+        #[cfg(target_family = "wasm")]
+        let _ = backend_policy;
+        let device = Arc::clone(&context.device);
+        let max_texture_size = device.limits().max_texture_dimension_2d;
+        let surface_format = surface_config.format;
+        let alpha_mode = surface_config.alpha_mode;
+
         let queue = Arc::clone(&context.queue);
         let uses_webgl_instance_data = context.uses_webgl_instance_data();
         let dual_source_blending =
             context.supports_dual_source_blending() && !uses_webgl_instance_data;
 
-        let rendering_params = RenderingParameters::new(&context.adapter, surface_format);
+        let mut rendering_params = RenderingParameters::new(&context.adapter, surface_format);
+        if let Some(path_sample_count) = path_sample_count {
+            rendering_params.path_sample_count = path_sample_count;
+        }
         let bind_group_layouts = Self::create_bind_group_layouts(&device, uses_webgl_instance_data);
         let pipelines = Self::create_pipelines(
             &device,
@@ -1704,11 +1750,16 @@ impl WgpuRenderer {
         let globals_size = std::mem::size_of::<GlobalParams>() as u64;
         let gamma_size = std::mem::size_of::<GammaParams>() as u64;
         let path_globals_offset = globals_size.next_multiple_of(uniform_alignment);
-        let gamma_offset = (path_globals_offset + globals_size).next_multiple_of(uniform_alignment);
 
         let globals_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("globals_buffer"),
-            size: gamma_offset + gamma_size,
+            size: path_globals_offset + globals_size,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+        let gamma_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("gamma_buffer"),
+            size: gamma_size,
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
@@ -1749,8 +1800,8 @@ impl WgpuRenderer {
                 wgpu::BindGroupEntry {
                     binding: 1,
                     resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                        buffer: &globals_buffer,
-                        offset: gamma_offset,
+                        buffer: &gamma_buffer,
+                        offset: 0,
                         size: Some(NonZeroU64::new(gamma_size).unwrap()),
                     }),
                 },
@@ -1772,8 +1823,8 @@ impl WgpuRenderer {
                 wgpu::BindGroupEntry {
                     binding: 1,
                     resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                        buffer: &globals_buffer,
-                        offset: gamma_offset,
+                        buffer: &gamma_buffer,
+                        offset: 0,
                         size: Some(NonZeroU64::new(gamma_size).unwrap()),
                     }),
                 },
@@ -1783,11 +1834,16 @@ impl WgpuRenderer {
         let adapter_info = context.adapter.get_info();
 
         let last_error: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
-        let last_error_clone = Arc::clone(&last_error);
-        device.on_uncaptured_error(Arc::new(move |error| {
-            let mut guard = last_error_clone.lock().unwrap();
-            *guard = Some(error.to_string());
-        }));
+        // wgpu keeps one uncaptured-error callback per device. A windowed renderer owns its
+        // callback as before; a surface-free renderer shares a headless device whose context
+        // installed one callback for every renderer on it.
+        if surface.is_some() {
+            let last_error_clone = Arc::clone(&last_error);
+            device.on_uncaptured_error(Arc::new(move |error| {
+                let mut guard = last_error_clone.lock().unwrap();
+                *guard = Some(error.to_string());
+            }));
+        }
 
         let resources = WgpuResources {
             device,
@@ -1799,6 +1855,7 @@ impl WgpuRenderer {
             post_process_sampler,
             effect_sampler,
             globals_buffer,
+            gamma_buffer,
             globals_bind_group,
             path_globals_bind_group,
             instance_buffer,
@@ -1812,7 +1869,7 @@ impl WgpuRenderer {
             effect_targets: None,
         };
 
-        Ok(Self {
+        Self {
             context: gpu_context,
             compositor_gpu,
             #[cfg(not(target_family = "wasm"))]
@@ -1822,7 +1879,6 @@ impl WgpuRenderer {
             render_target_format,
             atlas,
             path_globals_offset,
-            gamma_offset,
             instance_buffer_capacity: initial_instance_buffer_capacity,
             gradient_stop_buffer_capacity: initial_gradient_stop_buffer_capacity,
             max_buffer_size,
@@ -1840,7 +1896,7 @@ impl WgpuRenderer {
             device_lost: context.device_lost_flag(),
             surface_configured: true,
             needs_redraw: false,
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             frame_telemetry: RefCell::new(WgpuFrameTelemetry::default()),
             #[cfg(target_family = "wasm")]
             html_island_textures: HtmlIslandTextureCache::default(),
@@ -1856,7 +1912,7 @@ impl WgpuRenderer {
             diagnostic_max_subpixel_sprite_count: 0,
             #[cfg(target_family = "wasm")]
             diagnostic_max_polychrome_sprite_count: 0,
-        })
+        }
     }
 
     fn create_bind_group_layouts(
@@ -2581,9 +2637,9 @@ impl WgpuRenderer {
                     texture.destroy();
                 }
 
-                resources
-                    .surface
-                    .configure(&resources.device, &surface_config);
+                if let Some(surface) = &resources.surface {
+                    surface.configure(&resources.device, &surface_config);
+                }
 
                 // Invalidate intermediate textures - they will be lazily recreated
                 // in draw() after we confirm the surface is healthy. This avoids
@@ -2642,9 +2698,9 @@ impl WgpuRenderer {
             let uses_webgl_instance_data = self.uses_webgl_instance_data;
             let render_target_format = self.render_target_format;
             let resources = self.resources_mut();
-            resources
-                .surface
-                .configure(&resources.device, &surface_config);
+            if let Some(surface) = &resources.surface {
+                surface.configure(&resources.device, &surface_config);
+            }
             resources.pipelines = Self::create_pipelines(
                 &resources.device,
                 &resources.bind_group_layouts,
@@ -2768,18 +2824,18 @@ impl WgpuRenderer {
         #[cfg(target_family = "wasm")]
         self.prune_html_island_textures(scene);
 
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         {
             let atlas_uploads = self.atlas.before_frame();
             self.begin_frame_telemetry(scene, atlas_uploads);
         }
-        #[cfg(not(feature = "rayx_diagnostics"))]
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(not(feature = "diagnostics"))]
+        #[cfg(feature = "diagnostics")]
         {
             let atlas_uploads = self.atlas.before_frame();
             self.begin_frame_telemetry(scene, atlas_uploads);
         }
-        #[cfg(not(feature = "rayx_diagnostics"))]
+        #[cfg(not(feature = "diagnostics"))]
         self.atlas.before_frame();
 
         let Some(frame) = self.acquire_surface_frame() else {
@@ -2806,7 +2862,7 @@ impl WgpuRenderer {
         self.resources()
             .queue
             .submit(std::iter::once(encoder.finish()));
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.submission_count = telemetry.submission_count.saturating_add(1);
         });
@@ -2828,12 +2884,17 @@ impl WgpuRenderer {
             .usage
             .contains(wgpu::TextureUsages::COPY_SRC)
         {
-            anyhow::bail!("Surface capture requires COPY_SRC surface support")
+            // Some surfaces (GLES on Android emulators) cannot be read back; render the same
+            // scene into a texture of the surface's size and format instead.
+            return self.render_to_offscreen_image(scene);
         }
 
         self.atlas.before_frame();
 
-        let frame = match self.resources().surface.get_current_texture() {
+        let Some(surface) = self.resources().surface.as_ref() else {
+            anyhow::bail!("Surface capture requires a window surface")
+        };
+        let frame = match surface.get_current_texture() {
             wgpu::CurrentSurfaceTexture::Success(frame) => frame,
             wgpu::CurrentSurfaceTexture::Suboptimal(frame) => {
                 drop(frame);
@@ -2903,12 +2964,110 @@ impl WgpuRenderer {
         self.resources()
             .queue
             .submit(std::iter::once(encoder.finish()));
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.submission_count = telemetry.submission_count.saturating_add(1);
         });
-        drop(frame);
+        // Present rather than drop: Vulkan cannot return an acquired swapchain image without
+        // presenting it, so every dropped capture would keep one until acquiring times out.
+        // The frame holds the current scene, so presenting it changes nothing on screen.
+        self.resources().queue.present(frame);
 
+        self.read_buffer_to_image(readback, width, height, padded_bytes_per_row)
+    }
+
+    /// Renders `scene` into a texture like the surface (same size and format) and reads it back:
+    /// [`Self::render_to_image`] for surfaces without `COPY_SRC`. The window keeps showing its
+    /// last presented frame.
+    fn render_to_offscreen_image(&mut self, scene: &Scene) -> anyhow::Result<RgbaImage> {
+        let width = self.surface_config.width;
+        let height = self.surface_config.height;
+        let format = self.surface_config.format;
+        let view_format = self.render_target_format;
+        // Report what the device rejects instead of reading back an empty texture. Browsers
+        // cannot wait for the scope, so there errors reach the device's error handler.
+        #[cfg(not(target_family = "wasm"))]
+        let error_scope = self
+            .resources()
+            .device
+            .push_error_scope(wgpu::ErrorFilter::Validation);
+        let target = self
+            .resources()
+            .device
+            .create_texture(&wgpu::TextureDescriptor {
+                label: Some("capture_target"),
+                size: wgpu::Extent3d {
+                    width,
+                    height,
+                    depth_or_array_layers: 1,
+                },
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: wgpu::TextureDimension::D2,
+                format,
+                // TEXTURE_BINDING keeps GL from making the target a renderbuffer.
+                usage: wgpu::TextureUsages::RENDER_ATTACHMENT
+                    | wgpu::TextureUsages::COPY_SRC
+                    | wgpu::TextureUsages::TEXTURE_BINDING,
+                view_formats: if view_format == format {
+                    &[]
+                } else {
+                    std::slice::from_ref(&view_format)
+                },
+            });
+        self.atlas.before_frame();
+        self.ensure_intermediate_textures();
+        self.write_globals();
+        let target_view = target.create_view(&wgpu::TextureViewDescriptor {
+            format: Some(view_format),
+            ..Default::default()
+        });
+        let mut encoder = match self.encode_scene_to_view(scene, &target_view) {
+            Ok(encoder) => encoder,
+            Err(error) => {
+                // Queue writes are staged before encoding; flush them even if the frame fails.
+                self.resources().queue.submit(std::iter::empty());
+                return Err(error);
+            }
+        };
+        let padded_bytes_per_row = (width * 4).next_multiple_of(wgpu::COPY_BYTES_PER_ROW_ALIGNMENT);
+        let readback = self
+            .resources()
+            .device
+            .create_buffer(&wgpu::BufferDescriptor {
+                label: Some("capture_readback"),
+                size: padded_bytes_per_row as u64 * height as u64,
+                usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+                mapped_at_creation: false,
+            });
+        encoder.copy_texture_to_buffer(
+            wgpu::TexelCopyTextureInfo {
+                texture: &target,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            wgpu::TexelCopyBufferInfo {
+                buffer: &readback,
+                layout: wgpu::TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(padded_bytes_per_row),
+                    rows_per_image: Some(height),
+                },
+            },
+            wgpu::Extent3d {
+                width,
+                height,
+                depth_or_array_layers: 1,
+            },
+        );
+        self.resources()
+            .queue
+            .submit(std::iter::once(encoder.finish()));
+        #[cfg(not(target_family = "wasm"))]
+        if let Some(error) = gpux::block_on(error_scope.pop()) {
+            anyhow::bail!("offscreen capture failed: {error}");
+        }
         self.read_buffer_to_image(readback, width, height, padded_bytes_per_row)
     }
 
@@ -2941,18 +3100,18 @@ impl WgpuRenderer {
         );
 
         let result = upload_html_island_element_to_texture(&queue, element, texture, size)?;
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         let result = {
             let mut result = result;
             result.texture_reallocated = cache_status != HtmlIslandTextureCacheStatus::Hit;
             result
         };
-        #[cfg(not(feature = "rayx_diagnostics"))]
+        #[cfg(not(feature = "diagnostics"))]
         let _ = cache_status;
         Ok(result)
     }
 
-    #[cfg(all(target_family = "wasm", feature = "rayx_diagnostics"))]
+    #[cfg(all(target_family = "wasm", feature = "diagnostics"))]
     pub fn html_island_texture_diagnostics(&self) -> (u32, u32, u32) {
         (
             self.html_island_textures.len() as u32,
@@ -2975,6 +3134,85 @@ impl WgpuRenderer {
             .collect::<Vec<_>>();
         self.html_island_textures
             .prune_except(live_ids.iter().map(String::as_str));
+    }
+
+    /// A renderer with no surface that draws into caller-provided targets of
+    /// `target_format`, sharing the windowed renderer's pipelines, effects and encoding.
+    #[cfg(all(
+        not(target_family = "wasm"),
+        any(test, feature = "bench-support", feature = "test-support")
+    ))]
+    fn new_surfaceless(
+        context: &WgpuContext,
+        target_format: wgpu::TextureFormat,
+        path_sample_count: u32,
+    ) -> Self {
+        let atlas = Arc::new(WgpuAtlas::from_context(context));
+        let surface_config = wgpu::SurfaceConfiguration {
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
+            format: target_format,
+            width: 1,
+            height: 1,
+            present_mode: wgpu::PresentMode::Fifo,
+            desired_maximum_frame_latency: SURFACE_FRAME_LATENCY,
+            alpha_mode: wgpu::CompositeAlphaMode::Opaque,
+            view_formats: Vec::new(),
+            color_space: wgpu::SurfaceColorSpace::Auto,
+        };
+        Self::from_target(
+            None,
+            context,
+            None,
+            surface_config,
+            target_format,
+            (
+                wgpu::CompositeAlphaMode::Opaque,
+                wgpu::CompositeAlphaMode::Opaque,
+            ),
+            None,
+            atlas,
+            native_backend_policy(),
+            Some(path_sample_count),
+        )
+    }
+
+    /// Encodes `scene` into `target_view`, a texture of `size` in the renderer's target
+    /// format, and submits it. Size changes rebuild the intermediate textures, as a window
+    /// resize does.
+    #[cfg(all(
+        not(target_family = "wasm"),
+        any(test, feature = "bench-support", feature = "test-support")
+    ))]
+    fn render_offscreen(
+        &mut self,
+        scene: &Scene,
+        target_view: &wgpu::TextureView,
+        size: Size<DevicePixels>,
+    ) -> anyhow::Result<wgpu::SubmissionIndex> {
+        let width = size.width.0 as u32;
+        let height = size.height.0 as u32;
+        if width != self.surface_config.width || height != self.surface_config.height {
+            self.surface_config.width = width;
+            self.surface_config.height = height;
+            self.resources_mut().invalidate_intermediate_textures();
+        }
+
+        self.atlas.before_frame();
+        self.ensure_intermediate_textures();
+        self.write_globals();
+        let encoder = self.encode_scene_to_view(scene, target_view);
+        let encoder = match encoder {
+            Ok(encoder) => encoder,
+            Err(error) => {
+                // Queue writes are staged before encoding; flush them even if the frame fails.
+                self.resources().queue.submit(std::iter::empty());
+                return Err(error);
+            }
+        };
+        Ok(self
+            .resources()
+            .queue
+            .submit(std::iter::once(encoder.finish())))
     }
 
     fn prepare_frame(&mut self) -> bool {
@@ -3008,15 +3246,16 @@ impl WgpuRenderer {
     fn reconfigure_surface(&mut self) {
         let surface_config = self.surface_config.clone();
         let resources = self.resources_mut();
-        resources
-            .surface
-            .configure(&resources.device, &surface_config);
+        if let Some(surface) = &resources.surface {
+            surface.configure(&resources.device, &surface_config);
+        }
     }
 
     fn acquire_surface_frame(&mut self) -> Option<wgpu::SurfaceTexture> {
         let mut reconfigured = false;
         loop {
-            match self.resources().surface.get_current_texture() {
+            let current = self.resources().surface.as_ref()?.get_current_texture();
+            match current {
                 wgpu::CurrentSurfaceTexture::Success(frame) => return Some(frame),
                 wgpu::CurrentSurfaceTexture::Suboptimal(frame) if reconfigured => {
                     self.needs_redraw = true;
@@ -3089,11 +3328,11 @@ impl WgpuRenderer {
             bytemuck::bytes_of(&path_globals),
         );
         resources.queue.write_buffer(
-            &resources.globals_buffer,
-            self.gamma_offset,
+            &resources.gamma_buffer,
+            0,
             bytemuck::bytes_of(&gamma_params),
         );
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.queue_buffer_write_count =
                 telemetry.queue_buffer_write_count.saturating_add(3);
@@ -3159,13 +3398,13 @@ impl WgpuRenderer {
                     depth_stencil_attachment: None,
                     ..Default::default()
                 });
-                #[cfg(feature = "rayx_diagnostics")]
+                #[cfg(feature = "diagnostics")]
                 self.update_frame_telemetry(|telemetry| {
                     telemetry.render_pass_count = telemetry.render_pass_count.saturating_add(1);
                 });
 
                 for batch in scene.batches() {
-                    #[cfg(feature = "rayx_diagnostics")]
+                    #[cfg(feature = "diagnostics")]
                     self.update_frame_telemetry(|telemetry| {
                         telemetry.batch_count = telemetry.batch_count.saturating_add(1);
                     });
@@ -3222,7 +3461,7 @@ impl WgpuRenderer {
                                     depth_stencil_attachment: None,
                                     ..Default::default()
                                 });
-                                #[cfg(feature = "rayx_diagnostics")]
+                                #[cfg(feature = "diagnostics")]
                                 self.update_frame_telemetry(|telemetry| {
                                     telemetry.render_pass_count =
                                         telemetry.render_pass_count.saturating_add(1);
@@ -3272,7 +3511,7 @@ impl WgpuRenderer {
                                 depth_stencil_attachment: None,
                                 ..Default::default()
                             });
-                            #[cfg(feature = "rayx_diagnostics")]
+                            #[cfg(feature = "diagnostics")]
                             self.update_frame_telemetry(|telemetry| {
                                 telemetry.render_pass_count =
                                     telemetry.render_pass_count.saturating_add(1);
@@ -3363,7 +3602,7 @@ impl WgpuRenderer {
             }
 
             if overflow {
-                #[cfg(feature = "rayx_diagnostics")]
+                #[cfg(feature = "diagnostics")]
                 self.update_frame_telemetry(|telemetry| {
                     telemetry.buffer_restart_count =
                         telemetry.buffer_restart_count.saturating_add(1);
@@ -3508,7 +3747,7 @@ impl WgpuRenderer {
                     },
                 ],
             });
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.bind_group_count = telemetry.bind_group_count.saturating_add(1);
         });
@@ -3706,7 +3945,7 @@ impl WgpuRenderer {
                     },
                 ],
             });
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.bind_group_count = telemetry.bind_group_count.saturating_add(1);
         });
@@ -3759,7 +3998,7 @@ impl WgpuRenderer {
                     },
                 ],
             });
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.bind_group_count = telemetry.bind_group_count.saturating_add(1);
         });
@@ -3793,7 +4032,7 @@ impl WgpuRenderer {
                     },
                 ],
             });
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.bind_group_count = telemetry.bind_group_count.saturating_add(1);
         });
@@ -3812,7 +4051,7 @@ impl WgpuRenderer {
             depth_stencil_attachment: None,
             ..Default::default()
         });
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.render_pass_count = telemetry.render_pass_count.saturating_add(1);
         });
@@ -3846,7 +4085,7 @@ impl WgpuRenderer {
                     },
                 ],
             });
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.bind_group_count = telemetry.bind_group_count.saturating_add(1);
         });
@@ -3865,7 +4104,7 @@ impl WgpuRenderer {
             depth_stencil_attachment: None,
             ..Default::default()
         });
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.render_pass_count = telemetry.render_pass_count.saturating_add(1);
         });
@@ -3962,7 +4201,7 @@ impl WgpuRenderer {
                     },
                 ],
             });
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.bind_group_count = telemetry.bind_group_count.saturating_add(1);
         });
@@ -3982,7 +4221,7 @@ impl WgpuRenderer {
                 depth_stencil_attachment: None,
                 ..Default::default()
             });
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             self.update_frame_telemetry(|telemetry| {
                 telemetry.render_pass_count = telemetry.render_pass_count.saturating_add(1);
             });
@@ -4007,7 +4246,7 @@ impl WgpuRenderer {
                 depth_stencil_attachment: None,
                 ..Default::default()
             });
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             self.update_frame_telemetry(|telemetry| {
                 telemetry.render_pass_count = telemetry.render_pass_count.saturating_add(1);
             });
@@ -4084,7 +4323,7 @@ impl WgpuRenderer {
                 layout: &resources.bind_group_layouts.screen_effects,
                 entries: &bind_group_entries,
             });
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.bind_group_count = telemetry.bind_group_count.saturating_add(1);
         });
@@ -4103,7 +4342,7 @@ impl WgpuRenderer {
             depth_stencil_attachment: None,
             ..Default::default()
         });
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.render_pass_count = telemetry.render_pass_count.saturating_add(1);
         });
@@ -4219,7 +4458,7 @@ impl WgpuRenderer {
                     },
                 ],
             });
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.bind_group_count = telemetry.bind_group_count.saturating_add(1);
         });
@@ -4249,7 +4488,7 @@ impl WgpuRenderer {
                 depth_stencil_attachment: None,
                 ..Default::default()
             });
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             self.update_frame_telemetry(|telemetry| {
                 telemetry.render_pass_count = telemetry.render_pass_count.saturating_add(1);
             });
@@ -4313,7 +4552,7 @@ impl WgpuRenderer {
             offset,
             data,
         );
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.instance_bytes_written = telemetry
                 .instance_bytes_written
@@ -4356,7 +4595,7 @@ impl WgpuRenderer {
             offset,
             data,
         );
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.update_frame_telemetry(|telemetry| {
             telemetry.auxiliary_bytes_written = telemetry
                 .auxiliary_bytes_written
@@ -4628,7 +4867,7 @@ impl WgpuRenderer {
                 .as_mut()
                 .expect("GPU resources not available");
             surface.configure(&res.device, &self.surface_config);
-            res.surface = surface;
+            res.surface = Some(surface);
 
             // Invalidate intermediate textures — they'll be recreated lazily.
             res.invalidate_intermediate_textures();
@@ -4739,6 +4978,265 @@ impl WgpuRenderer {
 
         log::info!("GPU recovery complete");
         Ok(())
+    }
+}
+
+#[cfg(all(
+    not(target_family = "wasm"),
+    any(test, feature = "bench-support", feature = "test-support")
+))]
+struct HeadlessRenderTarget {
+    texture: wgpu::Texture,
+    view: wgpu::TextureView,
+}
+
+/// Renders scenes into offscreen textures and reads them back, with no window or surface.
+///
+/// gpux port of Zed's Linux headless renderer (#64718, #64842), extended to Windows (DX12,
+/// WARP when there is no GPU). It shares the windowed renderer's pipelines, effects, atlas
+/// and paint contract: ordinary paint is premultiplied encoded sRGB rendered to a non-sRGB
+/// target. Images are opaque (transparent pixels composite over black) and paths always use
+/// 4x multisampling, so captures do not depend on the window or the adapter's options.
+#[cfg(all(
+    not(target_family = "wasm"),
+    any(test, feature = "bench-support", feature = "test-support")
+))]
+pub struct WgpuHeadlessRenderer {
+    context: WgpuContext,
+    renderer: WgpuRenderer,
+    target: Option<HeadlessRenderTarget>,
+    errors: Arc<crate::DeviceErrorState>,
+    observed_error_generation: u64,
+}
+
+#[cfg(all(
+    not(target_family = "wasm"),
+    any(test, feature = "bench-support", feature = "test-support")
+))]
+impl WgpuHeadlessRenderer {
+    /// A renderer on the adapter that `GPUX_WGPU_ADAPTER` selects (`software`, `hardware`,
+    /// or a name substring); the best adapter of the native backend policy when it is unset.
+    pub fn new() -> anyhow::Result<Self> {
+        Self::with_adapter(&crate::HeadlessAdapterSelection::from_env())
+    }
+
+    /// A renderer on the adapter `selection` names, ignoring `GPUX_WGPU_ADAPTER`.
+    pub fn with_adapter(selection: &crate::HeadlessAdapterSelection) -> anyhow::Result<Self> {
+        let (context, target_format) = WgpuContext::new_headless(selection)?;
+        let errors = context
+            .shared_errors()
+            .cloned()
+            .ok_or_else(|| anyhow::anyhow!("headless context without a device error state"))?;
+        // The device may be shared with earlier renderers: observe only errors raised from
+        // here on, including any while this renderer builds its pipelines.
+        let observed_error_generation = errors.current_generation();
+        let renderer = WgpuRenderer::new_surfaceless(
+            &context,
+            target_format,
+            crate::wgpu_context::HEADLESS_PATH_SAMPLE_COUNT,
+        );
+        Ok(Self {
+            context,
+            renderer,
+            target: None,
+            errors,
+            observed_error_generation,
+        })
+    }
+
+    /// The device this renderer draws with, for tests and tools that need raw GPU access.
+    pub fn device(&self) -> &wgpu::Device {
+        &self.context.device
+    }
+
+    /// Fails when the device was lost or raised an error since this renderer last looked.
+    fn check_gpu_errors(&mut self) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            !self.context.device_lost(),
+            "GPU device was lost during headless rendering"
+        );
+        if let Some(error) = self
+            .errors
+            .observe_error(&mut self.observed_error_generation)
+        {
+            anyhow::bail!("GPU error during headless rendering: {error}");
+        }
+        Ok(())
+    }
+
+    /// The adapter this renderer draws with: its name, backend, driver and device type.
+    pub fn adapter_info(&self) -> wgpu::AdapterInfo {
+        self.context.adapter.get_info()
+    }
+
+    /// GPU specs of the adapter, as windows report them.
+    pub fn gpu_specs(&self) -> GpuSpecs {
+        self.renderer.gpu_specs()
+    }
+
+    /// The shader effects this renderer draws.
+    pub fn effect_capabilities(&self) -> EffectCapabilities {
+        self.renderer.effect_capabilities()
+    }
+
+    /// The format of the render targets, `Bgra8Unorm` or `Rgba8Unorm`.
+    pub fn target_format(&self) -> wgpu::TextureFormat {
+        self.renderer.render_target_format
+    }
+
+    /// The path multisample count, fixed for every adapter.
+    pub fn path_sample_count(&self) -> u32 {
+        self.renderer.rendering_params.path_sample_count
+    }
+
+    /// The largest width or height a render target may have.
+    pub fn max_texture_size(&self) -> u32 {
+        self.renderer.max_texture_size()
+    }
+
+    /// Whether this renderer and `other` draw on the same device.
+    pub fn shares_device_with(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.context.device, &other.context.device)
+    }
+
+    fn ensure_target(&mut self, size: Size<DevicePixels>) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            size.width.0 > 0 && size.height.0 > 0,
+            "invalid headless render target size: {size:?}"
+        );
+        let max_texture_size = self.max_texture_size();
+        anyhow::ensure!(
+            size.width.0 as u32 <= max_texture_size && size.height.0 as u32 <= max_texture_size,
+            "headless render target size {size:?} exceeds the maximum texture dimension \
+             {max_texture_size}"
+        );
+        let (width, height) = (size.width.0 as u32, size.height.0 as u32);
+        if self.target.as_ref().is_some_and(|target| {
+            target.texture.width() == width && target.texture.height() == height
+        }) {
+            return Ok(());
+        }
+        let texture = self
+            .context
+            .device
+            .create_texture(&wgpu::TextureDescriptor {
+                label: Some("headless_render_target"),
+                size: wgpu::Extent3d {
+                    width,
+                    height,
+                    depth_or_array_layers: 1,
+                },
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: wgpu::TextureDimension::D2,
+                format: self.target_format(),
+                usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
+                view_formats: &[],
+            });
+        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        self.target = Some(HeadlessRenderTarget { texture, view });
+        Ok(())
+    }
+
+    fn render(&mut self, scene: &Scene, size: Size<DevicePixels>) -> anyhow::Result<()> {
+        self.check_gpu_errors()?;
+        self.ensure_target(size)?;
+        let view = self
+            .target
+            .as_ref()
+            .map(|target| target.view.clone())
+            .ok_or_else(|| anyhow::anyhow!("headless render target was not created"))?;
+        self.renderer.render_offscreen(scene, &view, size)?;
+        Ok(())
+    }
+
+    /// Copies the render target back to the CPU. The dimensions come from the target itself,
+    /// so the copy cannot disagree with what was rendered.
+    fn read_image(&mut self) -> anyhow::Result<RgbaImage> {
+        let target = self
+            .target
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("headless render target was not created"))?;
+        let (width, height) = (target.texture.width(), target.texture.height());
+        let padded_bytes_per_row = (width * 4).next_multiple_of(wgpu::COPY_BYTES_PER_ROW_ALIGNMENT);
+        let readback_size = u64::from(padded_bytes_per_row) * u64::from(height);
+        let device = &self.context.device;
+        anyhow::ensure!(
+            readback_size <= device.limits().max_buffer_size,
+            "headless readback of {readback_size} bytes exceeds the maximum buffer size {}",
+            device.limits().max_buffer_size
+        );
+        let readback = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("headless_readback"),
+            size: readback_size,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+            mapped_at_creation: false,
+        });
+        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("headless_readback_encoder"),
+        });
+        encoder.copy_texture_to_buffer(
+            wgpu::TexelCopyTextureInfo {
+                texture: &target.texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            wgpu::TexelCopyBufferInfo {
+                buffer: &readback,
+                layout: wgpu::TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(padded_bytes_per_row),
+                    rows_per_image: Some(height),
+                },
+            },
+            wgpu::Extent3d {
+                width,
+                height,
+                depth_or_array_layers: 1,
+            },
+        );
+        self.context.queue.submit(std::iter::once(encoder.finish()));
+        let mut image =
+            self.renderer
+                .read_buffer_to_image(readback, width, height, padded_bytes_per_row)?;
+        self.check_gpu_errors()?;
+        // Premultiplied paint over an opaque black background.
+        for pixel in image.pixels_mut() {
+            pixel.0[3] = 255;
+        }
+        Ok(image)
+    }
+}
+
+#[cfg(all(
+    not(target_family = "wasm"),
+    any(test, feature = "bench-support", feature = "test-support")
+))]
+impl gpux::PlatformHeadlessRenderer for WgpuHeadlessRenderer {
+    fn render_scene_to_image(
+        &mut self,
+        scene: &Scene,
+        size: Size<DevicePixels>,
+    ) -> anyhow::Result<RgbaImage> {
+        self.render(scene, size)?;
+        self.read_image()
+    }
+
+    fn render_scene(&mut self, scene: &Scene, size: Size<DevicePixels>) -> anyhow::Result<()> {
+        self.render(scene, size)
+    }
+
+    fn sprite_atlas(&self) -> Arc<dyn gpux::PlatformAtlas> {
+        self.renderer.sprite_atlas().clone()
+    }
+
+    fn effect_capabilities(&self) -> EffectCapabilities {
+        self.renderer.effect_capabilities()
+    }
+
+    fn gpu_specs(&self) -> Option<GpuSpecs> {
+        Some(self.renderer.gpu_specs())
     }
 }
 

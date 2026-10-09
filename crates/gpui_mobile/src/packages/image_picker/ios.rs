@@ -4,13 +4,13 @@ use objc2::{class, msg_send, sel};
 use std::sync::{Mutex, Once, mpsc};
 
 #[link(name = "PhotosUI", kind = "framework")]
-extern "C" {}
+unsafe extern "C" {}
 
 #[link(name = "Photos", kind = "framework")]
-extern "C" {}
+unsafe extern "C" {}
 
 #[link(name = "UIKit", kind = "framework")]
-extern "C" {}
+unsafe extern "C" {}
 
 // ── Result channel ──────────────────────────────────────────────────────────
 
@@ -215,7 +215,7 @@ unsafe extern "C" fn uipicker_did_cancel(
 }
 
 // UIImageJPEGRepresentation is a C function, not an ObjC method
-extern "C" {
+unsafe extern "C" {
     fn UIImageJPEGRepresentation(image: *mut AnyObject, quality: f64) -> *mut AnyObject;
 }
 

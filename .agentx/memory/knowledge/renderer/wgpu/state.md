@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/renderer/wgpu
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-05T23:00:00+02:00
+  updated: 2026-10-09T16:00:00+02:00
   topics:
     - wgpu-renderer
     - wgsl
@@ -32,14 +32,20 @@ Quad border edges pass inner and outer coverage through `border_edge_coverage`, 
 
 Live resize coalesces drawable-size changes into scheduled frames; a frame with a pending drawable or canvas backing-store change must present and force a fresh GPUI draw, so surface size and scene geometry come from the same sample. Native surface reconfiguration waits for prior submitted work before `Surface::configure`; WASM polls without blocking. `WgpuRenderer::gpu_specs()` uses target-specific helpers so WASM never reads native-only backend policy fields. Dual-source blending is reported only when negotiated and not on the WebGL instance-data path.
 
-Effects: element effects render through offscreen effect targets; backdrop blur samples a full-resolution source with a normalized multi-tap kernel (glass-blur/fast-Gaussian look); `glass(...)` is Liquid Glass refraction from an OverShifted-style squircle SDF (`sdSquircle(..., 3.0, 1.0)`, sample scale `pow(liquid_glass_refract(dist), 1.779)`, then noise/glow/tint); glow composites in a separate additive color pass that preserves destination alpha. Screen ripples and snapshot transitions (`crossfade`, `blur_crossfade`, `radial_reveal`, `ripple_reveal`) share one packed storage struct with a `kind` tag. The renderer retains a previous-frame color texture and copies it into per-snapshot textures when `Scene.active_screen_effect_snapshots` requests new ids; if an encoder overflows and is discarded, newly copied ids are marked uncaptured before retry.
+Effects: element effects render through offscreen effect targets; backdrop blur samples a full-resolution source with a normalized multi-tap kernel (glass-blur/fast-Gaussian look); `glass(...)` is Liquid Glass refraction from an OverShifted-style squircle SDF (`sdSquircle(..., 3.0, 1.0)`, sample scale `pow(liquid_glass_refract(dist), 1.779)`, then noise/glow/tint); glow composites in a separate additive color pass that preserves destination alpha, so a glow over white saturates away and shows only on darker backdrops. Screen ripples and snapshot transitions (`crossfade`, `blur_crossfade`, `radial_reveal`, `ripple_reveal`) share one packed storage struct with a `kind` tag. The renderer retains a previous-frame color texture and copies it into per-snapshot textures when `Scene.active_screen_effect_snapshots` requests new ids; if an encoder overflows and is discarded, newly copied ids are marked uncaptured before retry.
+
+Native GL (Android emulators, Linux GL) uses the WebGL2 limits, the texture instance path when the adapter lacks `VERTEX_STORAGE` or the device limits allow fewer than two storage buffers per stage (always under the WebGL2 limits), and `Rgba8Unorm` atlases; gamma parameters live in their own uniform buffer. Sampling fragment shaders fold clip and mask tests into their result instead of returning early. `render_to_image` reads the surface back when it supports `COPY_SRC` and otherwise renders the scene into a surface-sized texture and reads that back, reporting validation errors (native builds wait on an error scope).
 
 Browser backends: startup prefers WebGPU and retries with WebGL2. WebGPU moves packed scene instances through storage buffers; WebGL2 carries the same complete record ABI (effects, HTML islands, paths, sprites, auxiliary families) through exact word-addressable `Rgba32Uint` textures. Adapter selection is surface-compatible, a failed WebGPU canvas is removed before the WebGL surface is created, and `?backend=webgl` / `?backend=webgpu` force one backend for diagnostics. HTML islands composite through a dedicated `html_islands` pipeline (upload path under [platform/web](../../platform/web/state.md)).
 
 Ordinary presentation still renders through an intermediate retained-scene texture plus a pass-through pass, which snapshot transitions depend on.
 
+Headless rendering (with `test-support` or `bench-support`, native only) is gpux's port of Zed #64718/#64842: `WgpuResources.surface` is optional, and `WgpuHeadlessRenderer` wraps a surface-free `WgpuRenderer` that shares the windowed pipelines, effects and `encode_scene_to_view`, rendering into per-size `COPY_SRC` targets in `Bgra8Unorm` or `Rgba8Unorm`. Captures composite over opaque black with 4x path sampling on every adapter. `WgpuContext::new_headless` caches one device per `HeadlessAdapterSelection` (`GPUX_WGPU_ADAPTER=software|hardware|<name>`, honoured only by headless contexts) in a never-dropped static with one `DeviceErrorState`; each headless renderer observes errors from the generation it joined at, while windowed renderers keep their own uncaptured-error callback. `gpui_platform::current_headless_renderer()` returns it on Linux (Vulkan|GL, lavapipe without a GPU) and Windows (DX12, WARP without a GPU); macOS keeps Metal. The software selection prefers Vulkan, so on Linux it lands on lavapipe only when the Vulkan loader enumerates it (Mesa 25.2 ships `/usr/share/vulkan/icd.d/lvp_icd.json`; CI and WSL point `VK_DRIVER_FILES` at it) and otherwise falls back to llvmpipe over GL. `PlatformHeadlessRenderer::effect_capabilities()`/`gpu_specs()` reach test windows, and `TestAppContext::build_with_renderer` plus `VisualTestContext::capture_screenshot()` give tests real pixels.
+
 ## Backlinks
 
+- [Headless renderer tests](../../../../../crates/gpui_wgpu/tests/headless_renderer.rs)
+- [Headless renderer GPU-error tests](../../../../../crates/gpui_wgpu/tests/headless_renderer_gpu_errors.rs)
 - [WGPU renderer](../../../../../crates/gpui_wgpu/src/wgpu_renderer.rs)
 - [WGPU context](../../../../../crates/gpui_wgpu/src/wgpu_context.rs)
 - [Shaders](../../../../../crates/gpui_wgpu/src/shaders.wgsl)

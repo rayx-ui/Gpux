@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-cross-platform-test-lanes",
-  "revision": 1,
+  "revision": 17,
   "title": "Gpux-owned test lanes for every platform",
   "validationMode": "sprint",
   "repositories": [
@@ -16,9 +16,7 @@
       "gpux"
     ],
     "forbiddenPaths": [
-      "gpux:vendor/wgpu/**",
       "gpux:.agentx/experiments/**",
-      "gpux:ToFix/**",
       "gpux:.agentx/tasks/frame-effects-navigation-transitions/**",
       "gpux:.agentx/tasks/frame-family-component-transitions/**",
       "gpux:.agentx/tasks/gpux-fixed-sticky-positioning/**",
@@ -29,7 +27,9 @@
       "gpux:.agentx/tasks/html-island-wasm/**",
       "gpux:.agentx/tasks/keyed-sticky-stacking/**",
       "gpux:.agentx/tasks/macos-only-metal-port-and-ci-repair/**",
-      "gpux:.agentx/tasks/shader-effects-and-screen-transitions/**"
+      "gpux:.agentx/tasks/shader-effects-and-screen-transitions/**",
+      "gpux:ToFix/**",
+      "gpux:vendor/wgpu/**"
     ]
   },
   "checks": [
@@ -71,7 +71,7 @@
       "criterionIds": [
         "CLOCK-1"
       ],
-      "descriptionMarkdown": "New group `crates/gpui/tests/deterministic_motion_clock.rs`. Long press, fling decay, smooth programmatic scroll, scrollbar repeat, animation progress and seed reproducibility are driven only by `advance_clock`.",
+      "descriptionMarkdown": "New group `crates/gpui/tests/deterministic_motion_clock.rs`. Long press, fling decay, smooth programmatic scroll and its wheel cancellation, `with_animation` and `animated_frame` progress, reduced motion, the inactive-window frame throttle and seed reproducibility are driven only by `advance_clock` and simulated frames. gpui has no scrollbar timer or repeat to cover.",
       "argv": [
         "cargo",
         "test",
@@ -115,7 +115,8 @@
         "crates/gpui/src/elements/editable_text"
       ],
       "expected": {
-        "exitCode": 1
+        "exitCode": 1,
+        "failurePattern": "\\A\\Z"
       },
       "inputs": [
         "crates/gpui/src/**"
@@ -729,7 +730,8 @@
         ":(exclude)docs/changelog"
       ],
       "expected": {
-        "exitCode": 1
+        "exitCode": 1,
+        "failurePattern": "\\A\\Z"
       },
       "inputs": [
         "CLAUDE.md",
@@ -858,6 +860,205 @@
         "exitCode": 0
       },
       "timeoutSeconds": 7200
+    },
+    {
+      "id": "check-observation-fidelity",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "LOCATE-2"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/test_platform_semantics_fidelity.rs`. Fixed and sticky snapshot bounds with a locator click, AccessKit bounds and Click of a scrolled fixed element, and recorded accessibility tree updates.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "test_platform_semantics_fidelity"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "crates/gpui/src/window.rs",
+        "crates/gpui/src/element.rs",
+        "crates/gpui/src/elements/div.rs",
+        "crates/gpui/src/platform/test/**",
+        "crates/gpui/src/app/test_context.rs",
+        "crates/gpui/tests/test_platform_semantics_fidelity.rs",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-macos-no-fork-api",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [
+        "MACCI-1"
+      ],
+      "descriptionMarkdown": "No source calls the fork-only `adopt_raw_pid(`, and the manifests carry no `[patch` section or `git+` source. `git grep` exits 1 when nothing matches.",
+      "argv": [
+        "git",
+        "grep",
+        "-nE",
+        "adopt_raw_pid\\(|^\\[patch|source = \"git\\+",
+        "--",
+        "crates",
+        "Cargo.toml",
+        "Cargo.lock"
+      ],
+      "expected": {
+        "exitCode": 1,
+        "failurePattern": "\\A\\Z"
+      },
+      "inputs": [
+        "crates/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-test-platform-pointer",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "MACCI-3"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/test_platform_pointer.rs`. The reported platform pointer and hover across redraws of an active window.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "test_platform_pointer"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2
+      },
+      "inputs": [
+        "crates/gpui/src/platform/test/**",
+        "crates/gpui/src/app/test_context.rs",
+        "crates/gpui/src/window.rs",
+        "crates/gpui/tests/test_platform_pointer.rs",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-host-capabilities",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "MACCI-4"
+      ],
+      "descriptionMarkdown": "New group `crates/gpux_conformance/tests/host_capabilities.rs`. Capability-gated steps run, skip with the reason, nest and keep flattened step numbers.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-conformance",
+        "--test",
+        "host_capabilities"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3
+      },
+      "inputs": [
+        "crates/gpux_conformance/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-devtools-snapshot-release",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "B-4"
+      ],
+      "descriptionMarkdown": "The devtools snapshot tree in a release build (`crates/gpui/tests/devtools_snapshot_tree.rs` with `--release`): the bug fixed in `a00072e` (the node stack popped inside `debug_assert_eq!`) exists only without debug assertions, which is how lane B's web host is built.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--release",
+        "--test",
+        "devtools_snapshot_tree"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1
+      },
+      "inputs": [
+        "crates/gpui/src/window.rs",
+        "crates/gpui/tests/devtools_snapshot_tree.rs",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-lane-coverage",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "LANES-2"
+      ],
+      "descriptionMarkdown": "New group `tooling/testkit/tests/lane_coverage.rs`: every `crates/gpux_conformance/tests/*.rs` target runs in exactly one of lane A's or lane C's full runs, and each target a lane lists is one its command builds. The `cli` and `local_gpu` groups pin the lane A and C plans (including lane G's probes-only lane C run) that changed with it.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-testkit",
+        "--test",
+        "lane_coverage",
+        "--test",
+        "cli",
+        "--test",
+        "local_gpu"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 10
+      },
+      "inputs": [
+        "tooling/testkit/**",
+        "crates/gpux_conformance/tests/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-ci-pr-only",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [
+        "A-3"
+      ],
+      "descriptionMarkdown": "No workflow declares a `push` trigger and `docs/testing.md` names no push-to-`main` cadence. `git grep` exits 1 when nothing matches; the workflows before `4f3394e` match (`ci.yml` line 5).",
+      "argv": [
+        "git",
+        "grep",
+        "-nE",
+        "^\\s+push:|push(es)? to .main",
+        "--",
+        ".github/workflows",
+        "docs/testing.md"
+      ],
+      "expected": {
+        "exitCode": 1,
+        "failurePattern": "\\A\\Z"
+      },
+      "inputs": [
+        ".github/workflows/**",
+        "docs/testing.md"
+      ]
     }
   ],
   "finalCheckIds": [
@@ -913,7 +1114,7 @@
         {
           "id": "t02-executor-clock",
           "title": "Executor clock as the single motion time source",
-          "descriptionMarkdown": "Replace the wall-clock reads listed in `d-clock` with `BackgroundExecutor::now()` reached through the app or window context:\n\n- `gestures.rs` (`filter_at`, `handle_event_at` and `tick_momentum_at` callers, plus deadline checks);\n- `scroll_activity.rs`;\n- `animation.rs`, `animated_frame.rs`;\n- `list.rs`, `div.rs` (scroll momentum, scrollbars);\n- `editable_text/` (programmatic scroll);\n- `img.rs` (loading timers).\n\nKeep every production constant and behaviour.\n\nWrite the test group `crates/gpui/tests/deterministic_motion_clock.rs`. Using only `advance_clock`, `run_until_parked` and simulated frames, it asserts:\n- long press fires at its threshold and not before;\n- touch fling decays to a deterministic rest offset;\n- smooth programmatic scroll reaches its target at its duration, and a wheel cancels it;\n- scrollbar repeat cadence;\n- `with_animation` progress at fixed times;\n- reduced motion bypass;\n- identical results for the same seed.",
+          "descriptionMarkdown": "Replace the wall-clock reads listed in `d-clock` with `BackgroundExecutor::now()` reached through the app or window context:\n\n- `gestures.rs` (`filter_at`, `handle_event_at` and `tick_momentum_at` callers, plus deadline checks);\n- `scroll_activity.rs`;\n- `animation.rs`, `animated_frame.rs`;\n- `list.rs`, `div.rs` (scroll momentum, scrollbars);\n- `editable_text/` (programmatic scroll);\n- `img.rs` (loading timers).\n\nKeep every production constant and behaviour.\n\nWrite the test group `crates/gpui/tests/deterministic_motion_clock.rs`. Using only `advance_clock`, `run_until_parked` and simulated frames, it asserts:\n- long press fires at its threshold and not before;\n- touch fling decays to a deterministic rest offset;\n- smooth programmatic scroll reaches its target at its duration, and a wheel cancels it;\n- `with_animation` progress at fixed times;\n- reduced motion bypass;\n- identical results for the same seed.\n\ngpui has no scrollbar timer or repeat state machine of its own (it publishes thumb offsets in the input turn; scrollbar chrome is consumer-owned), so there is no scrollbar-repeat case to cover.",
           "criterionIds": [
             "CLOCK-1",
             "CLOCK-2"
@@ -1233,6 +1434,21 @@
               "path": ".github/workflows/ci.yml"
             }
           ]
+        },
+        {
+          "id": "t30-observation-fidelity",
+          "title": "Devtools bounds of positioned divs and recorded accessibility updates",
+          "descriptionMarkdown": "Finding-driven repair from the lane A suite and its review (LOCATE-2):\n- fixed and sticky divs report their visual bounds to devtools snapshots and AccessKit nodes, so locators and assistive-technology clicks reach them where they paint;\n- `TestWindow` records AccessKit tree updates, drained by `take_accessibility_updates`.\n\n**Test group:** `crates/gpui/tests/test_platform_semantics_fidelity.rs`.",
+          "criterionIds": [
+            "LOCATE-2"
+          ],
+          "designIds": [
+            "d-observation-fidelity"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-observation-fidelity"
+          ]
         }
       ]
     },
@@ -1297,7 +1513,7 @@
         {
           "id": "t15-ci-lane-d",
           "title": "CI for lane D",
-          "descriptionMarkdown": "Add the `lane-d` job.\n\n**`ubuntu-24.04`:**\n- Xvfb, xdotool and lavapipe, with the WAYLAND_DISPLAY variable unset;\n- a `weston --backend=headless` Wayland attempt, whose outcome is recorded in `docs/testing.md`.\n\n**`windows-2025`:** if `SendInput` is unavailable in the hosted session, fall back to in-app injection and record it.\n\n**`macos-15`:** disabled until the sibling epic lands.\n\nFailure artifacts are uploaded.",
+          "descriptionMarkdown": "Add the `lane-d` job.\n\n**`ubuntu-24.04`:**\n- Xvfb, xdotool and lavapipe, with the WAYLAND_DISPLAY variable unset;\n- a `weston --backend=headless` Wayland attempt, whose outcome is recorded in `docs/testing.md`.\n\n**`windows-2025`:** if `SendInput` is unavailable in the hosted session, fall back to in-app injection and record it.\n\n**`macos-15`:** enabled, with in-app input injection (hosted macOS grants no accessibility permission for CGEvent posting).\n\nFailure artifacts are uploaded.",
           "criterionIds": [
             "D-2"
           ],
@@ -1313,6 +1529,30 @@
               "repositoryId": "gpux",
               "path": ".github/workflows/ci.yml"
             }
+          ]
+        },
+        {
+          "id": "t31-macos-build-and-ci",
+          "title": "Repair the macOS build and enable the macOS CI entries",
+          "descriptionMarkdown": "Owner decision 6: every lane works on macOS in this epic.\n\n- Replace `Child::adopt_raw_pid` in `crates/util/src/command/darwin.rs` with a gpux-owned handle in `darwin/process.rs` (from `ToFix/02`), with a new `command::darwin::process` test group, and record the replay rule in the Zed import guide.\n- Fix every further error the `check (macos-15)` job reports, at its source.\n- Enable the macOS entries of `test`, `lane-a`, `lane-c` (`metal`, goldens from the macOS `update-goldens` dispatch) and `lane-d`, and get them green.\n- macOS findings from the first macOS CI run: test windows report the last simulated pointer (hover on macOS follows activation and re-reads the platform cursor every draw); scene pixel steps that need renderer capabilities run under `Step::When` (Metal has no shader effects); two gpux unit tests stop assuming ctrl for select-all and a fast runner.",
+          "criterionIds": [
+            "MACCI-1",
+            "MACCI-2",
+            "MACCI-3",
+            "MACCI-4",
+            "M-2"
+          ],
+          "designIds": [
+            "d-macos-build",
+            "d-ci"
+          ],
+          "dependsOn": [
+            "t15-ci-lane-d"
+          ],
+          "checkIds": [
+            "check-macos-no-fork-api",
+            "check-test-platform-pointer",
+            "check-host-capabilities"
           ]
         }
       ]
@@ -1388,7 +1628,7 @@
         {
           "id": "t18-playwright-harness",
           "title": "Playwright harness, profiles, fixtures and canary",
-          "descriptionMarkdown": "Create `tooling/web-e2e` with `package.json`, `pnpm-lock.yaml`, `playwright.config.ts` and `fixtures/`.\n\n**Profiles:**\n- `ci-linux-swiftshader`: headless, one `--enable-features=Vulkan,CDPScreenshotNewSurface`, `--enable-unsafe-webgpu --use-angle=swiftshader --use-vulkan=swiftshader`;\n- `local-gpu`: `channel: 'chromium'` new headless, or `--headed`;\n- `windows-software`: `--use-angle=d3d11-warp --enable-unsafe-webgpu`.\n\n**Fixtures:**\n- backend assertion (WebGPU unless forced WebGL2);\n- `crossOriginIsolated`;\n- console and panic failures with an explicit allow-list.\n\n**Specs:** `@canary` specs.\n\n**Testkit wiring.** `gpux-testkit web e2e --profile --grep` starts `web serve`, runs Playwright through pnpm and maps the results to the summary line.",
+          "descriptionMarkdown": "Create `tools-node/` with `package.json`, `pnpm-lock.yaml`, `playwright.config.ts` and `fixtures/`.\n\n**Profiles:**\n- `ci-linux-swiftshader`: headless, one `--enable-features=Vulkan,CDPScreenshotNewSurface`, `--enable-unsafe-webgpu --use-angle=swiftshader --use-vulkan=swiftshader`;\n- `local-gpu`: `channel: 'chromium'` new headless, or `--headed`;\n- `windows-software`: `--use-angle=d3d11-warp --enable-unsafe-webgpu`.\n\n**Fixtures:**\n- backend assertion (WebGPU unless forced WebGL2);\n- `crossOriginIsolated`;\n- console and panic failures with an explicit allow-list.\n\n**Specs:** `@canary` specs.\n\n**Testkit wiring.** `gpux-testkit web e2e --profile --grep` starts `web serve`, runs Playwright through pnpm and maps the results to the summary line.",
           "criterionIds": [
             "B-3"
           ],
@@ -1406,7 +1646,7 @@
         {
           "id": "t19-browser-specs",
           "title": "Browser specs for every gpui_web area",
-          "descriptionMarkdown": "Write tagged specs (`@pr`/`@nightly`/`@dpr2`, plus `@timing` for lane G) against conformance scenes, using trusted CDP input at located bounds and screenshot probes:\n- `backend` (forced WebGL2, stubbed `navigator.gpu`);\n- `viewport` (DPR 1/2, ResizeObserver);\n- `window` (frame loop, close cleanup);\n- `pointer`;\n- `wheel` (all delta modes);\n- `keyboard`;\n- `touch`;\n- `ime` (`Input.imeSetComposition`);\n- `clipboard`;\n- `html-element`;\n- `html-island` (opt-in);\n- `text-fallback`, which takes over `examples/hello_web/test_canvas_fallback.mjs`;\n- `threads`, which takes over `test_queue.mjs`;\n- `assets` (SVG through `Svg::external_path`);\n- `cursor`;\n- `lifecycle` (focus, blur, visibility);\n- `viewport-safe-area`;\n- a Dawn-validation smoke that renders every pipeline and fails on any WebGPU validation error.\n\nDelete the migrated `.mjs` scripts once their specs pass.",
+          "descriptionMarkdown": "Write tagged specs (`@pr`/`@dpr2`, plus `@timing` for lane G) against conformance scenes, using trusted CDP input at located bounds and screenshot probes:\n- `backend` (forced WebGL2, stubbed `navigator.gpu`);\n- `viewport` (DPR 1/2, ResizeObserver);\n- `window` (frame loop, close cleanup);\n- `pointer`;\n- `wheel` (all delta modes);\n- `keyboard`;\n- `touch`;\n- `ime` (`Input.imeSetComposition`);\n- `clipboard`;\n- `html-element`;\n- `html-island` (opt-in);\n- `text-fallback`, which takes over `examples/hello_web/test_canvas_fallback.mjs`;\n- `threads`, which takes over `test_queue.mjs`;\n- `assets` (SVG through `Svg::external_path`);\n- `cursor`;\n- `lifecycle` (focus, blur, visibility);\n- `viewport-safe-area`;\n- a Dawn-validation smoke that renders every pipeline and fails on any WebGPU validation error.\n\nDelete the migrated `.mjs` scripts once their specs pass.",
           "criterionIds": [
             "B-4"
           ],
@@ -1417,7 +1657,8 @@
             "t18-playwright-harness"
           ],
           "checkIds": [
-            "check-web-pr"
+            "check-web-pr",
+            "check-devtools-snapshot-release"
           ],
           "sourceRefs": [
             {
@@ -1464,7 +1705,7 @@
         {
           "id": "t21-android-host-build",
           "title": "Android conformance host and build tooling",
-          "descriptionMarkdown": "**Feasibility first.** Confirm that hosted `ubuntu-24.04` runners provide KVM for this repository's plan, and record the result.\n\n**Host.** Add the `android_host` example: a NativeActivity cdylib with `android-native-activity` and `android_main` running `AppHost`.\n\n**Pixels.** Implement `render_to_image` for the Android window by delegating to the shared wgpu renderer.\n\n**Build tooling.** Create `tooling/android`: a minimal Gradle project, JDK 17, pinned SDK, NDK and `compileSdk`. Add `gpux-testkit android build`, which runs cargo-ndk for `x86_64` and `arm64-v8a` and assembles the APK, with actionable prerequisite errors.",
+          "descriptionMarkdown": "**Feasibility first.** Confirm that hosted `ubuntu-24.04` runners provide KVM for this repository's plan, and record the result.\n\n**Host.** Add the `android_host` example: a NativeActivity cdylib with `android-native-activity` and `android_main` running `AppHost`.\n\n**Pixels.** Implement `render_to_image` for the Android window by delegating to the shared wgpu renderer.\n\n**Build tooling.** Create `tooling/android` with the host's `AndroidManifest.xml` (JDK 17, pinned SDK, NDK and `compileSdk`). Add `gpux-testkit android build`, which runs cargo-ndk for `x86_64` and `arm64-v8a` and assembles the APK without Gradle (`aapt2`, stored 16 KB-aligned libraries, `apksigner`), with actionable prerequisite errors.",
           "criterionIds": [
             "E-1"
           ],
@@ -1551,7 +1792,8 @@
           ],
           "dependsOn": [],
           "checkIds": [
-            "check-lane-g-list"
+            "check-lane-g-list",
+            "check-lane-coverage"
           ],
           "sourceRefs": [
             {
@@ -1636,10 +1878,10 @@
         {
           "id": "t27-macos-desktop-lanes",
           "title": "Lanes A, C and D on macOS",
-          "descriptionMarkdown": "This needs the sibling epic `macos-only-metal-port-and-ci-repair` to have landed. Then:\n- run `gpux-testkit lane a c d` on a Mac (lane C through `MetalHeadlessRenderer`, lane D in AppKit windows with in-app injection);\n- commit the `metal` goldens;\n- enable and green the macOS entries of the `test`, `lane-a`, `lane-c` and `lane-d` CI jobs.\n\nWithout a Mac, use the macOS CI jobs and their artifacts as the evidence.",
+          "descriptionMarkdown": "Run `gpux-testkit lane a c d` on macOS (M-1): lane C through `MetalHeadlessRenderer` with the committed `metal` goldens, lane D in AppKit windows with in-app injection. Without a Mac, a macOS CI job that runs the testkit is the evidence.\n\n**On a Mac** (owner decision 2026-10-07), also run the other macOS commands of the CI jobs and record their summaries (M-3): `cargo check --workspace --all-targets` with the real `xcrun metal` compile, and the `test` job's `cargo test --workspace` (fork exclusions, without `gpux-conformance`, `--test-threads=1`), including the `command::darwin` groups.",
           "criterionIds": [
             "M-1",
-            "M-2"
+            "M-3"
           ],
           "designIds": [
             "d-windowed-host",
@@ -1689,6 +1931,36 @@
             "t28-ios-host-build"
           ],
           "checkIds": []
+        }
+      ]
+    },
+    {
+      "id": "s9-ci-cadence",
+      "title": "CI cadence: pull requests only (owner decision 2026-10-09)",
+      "dependsOn": [
+        "s8-apple-lanes"
+      ],
+      "memoryScopes": [
+        "repository/validation"
+      ],
+      "tasks": [
+        {
+          "id": "t32-ci-pull-request-cadence",
+          "title": "Record pull-request-only CI cadence",
+          "descriptionMarkdown": "Final review finding `FINAL-F1-a2-push-trigger`: commit `4f3394e` dropped the push-to-`main` trigger from `ci.yml` and lanes B, E and F, and updated the cadence table in `docs/testing.md`, while A-2 still asked for a push run. The owner confirmed on 2026-10-09 that CI runs on pull requests only, to avoid paying twice for a merged pull request's tests. A-3 records that cadence and `check-ci-pr-only` guards it; the source change is `4f3394e` itself.",
+          "criterionIds": [
+            "A-3"
+          ],
+          "supportingCriterionIds": [
+            "A-2"
+          ],
+          "designIds": [
+            "d-ci"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-ci-pr-only"
+          ]
         }
       ]
     }

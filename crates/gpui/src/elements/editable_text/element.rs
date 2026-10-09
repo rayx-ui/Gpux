@@ -543,7 +543,8 @@ fn schedule_editable_programmatic_scroll(
     window.on_next_frame(move |window, cx| {
         let Some(request_next_frame) = state
             .update(cx, |state, cx| {
-                state.advance_programmatic_scroll_at(generation, crate::Instant::now(), cx)
+                let now = cx.background_executor().now();
+                state.advance_programmatic_scroll_at(generation, now, cx)
             })
             .ok()
             .flatten()
@@ -765,7 +766,7 @@ mod tests {
         );
 
         for text in ["86420", "72"] {
-            window.simulate_keystroke("ctrl-a");
+            window.simulate_keystroke("secondary-a");
             let previous_renders = renders.get();
             assert!(window.update(|_, window, cx| window.dispatch_text_input(text, cx)));
             assert_eq!(app.read_entity(&state, |state, _| state.text()), text);

@@ -1,0 +1,164 @@
+name: Gpux lane B
+
+# Lane B: the threaded WASM build in headless Chromium on SwiftShader WebGPU, driven by the
+# Playwright specs in tools-node. Pull requests run the @canary and @pr specs at
+# DPR 1; the nightly schedule (or a dispatch with all-specs) runs every spec except lane G's
+# @timing ones, DPR 2 included.
+
+on:
+  pull_request:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+    inputs:
+      all-specs:
+        description: Run the nightly selection (every spec except @timing) instead of @canary and @pr
+        type: boolean
+        default: false
+
+# A new push to a pull request cancels its superseded run; scheduled and manual runs always finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_PROFILE_DEV_DEBUG: line-tables-only
+  # The threaded build rebuilds std with atomics (-Z build-std), which needs a nightly; pin it so
+  # a nightly regression cannot break the lane unannounced.
+  GPUX_WEB_TOOLCHAIN: nightly-2026-06-23
+  LINUX_PACKAGES: >-
+    pkg-config libfreetype6-dev libfontconfig1-dev libxkbcommon-dev libxkbcommon-x11-dev
+  SHARDS: 4
+
+jobs:
+  build:
+    name: lane B build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@1.95.0
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y $LINUX_PACKAGES
+      - name: Install the web toolchain
+        run: >-
+          rustup toolchain install "$GPUX_WEB_TOOLCHAIN" --profile minimal
+          --component rust-src --target wasm32-unknown-unknown
+      - name: Read the locked wasm-bindgen version
+        id: bindgen
+        run: >-
+          echo "version=$(awk '/^name = "wasm-bindgen"$/ { getline; gsub(/version = |"/, ""); print; exit }' Cargo.lock)"
+          >> "$GITHUB_OUTPUT"
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-bindgen@${{ steps.bindgen.outputs.version }}
+      - name: Build and verify the threaded web host
+        run: cargo run -p gpux-testkit -- web build --verify
+      # The e2e shards serve the build with the testkit's own server, which sets the
+      # cross-origin isolation headers threads need.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: lane-b-build
+          path: |
+            target/gpux-web/dist
+            target/debug/gpux-testkit
+          if-no-files-found: error
+          retention-days: 3
+
+  e2e:
+    name: lane B e2e (shard ${{ matrix.shard }})
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: tools-node/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: tools-node/pnpm-lock.yaml
+      - name: Install Playwright
+        working-directory: tools-node
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps chromium
+      - uses: actions/download-artifact@v8
+        with:
+          name: lane-b-build
+          path: target
+      - name: Serve the build
+        run: |
+          chmod +x target/debug/gpux-testkit
+          target/debug/gpux-testkit web serve --port 8000 > serve.log 2>&1 &
+          for attempt in $(seq 50); do
+            curl -sf -o /dev/null http://127.0.0.1:8000/ && exit 0
+            sleep 0.2
+          done
+          cat serve.log
+          exit 1
+      - name: Run the specs
+        working-directory: tools-node
+        env:
+          GPUX_BASE_URL: http://127.0.0.1:8000/
+          GPUX_DIST: ${{ github.workspace }}/target/gpux-web/dist
+        run: |
+          if [ "${{ github.event_name }}" = schedule ] || [ "${{ inputs.all-specs }}" = true ]; then
+            selection=(--grep-invert @timing)
+          else
+            selection=(--grep "@canary|@pr")
+          fi
+          pnpm exec playwright test --project ci-linux-swiftshader \
+            --shard ${{ matrix.shard }}/$SHARDS "${selection[@]}"
+      - name: Upload the blob report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: lane-b-blob-report-${{ matrix.shard }}
+          path: artifacts-temp/testkit/b/blob-report
+          if-no-files-found: ignore
+          retention-days: 3
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: lane-b-failures-${{ matrix.shard }}
+          path: artifacts-temp/testkit/b/test-results
+          if-no-files-found: ignore
+
+  report:
+    name: lane B report
+    needs: e2e
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: tools-node/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: tools-node/pnpm-lock.yaml
+      - working-directory: tools-node
+        run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: lane-b-blob-report-*
+          merge-multiple: true
+          path: blob-reports
+      - name: Merge the shard reports
+        working-directory: tools-node
+        run: pnpm exec playwright merge-reports --reporter html,list ../blob-reports
+      - uses: actions/upload-artifact@v7
+        with:
+          name: lane-b-report
+          path: tools-node/playwright-report
+          retention-days: 14

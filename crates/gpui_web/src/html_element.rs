@@ -1,6 +1,6 @@
 use std::{collections::HashMap, rc::Weak};
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 use std::{cell::Cell, rc::Rc};
 
 use gpux::{
@@ -56,29 +56,29 @@ pub(crate) struct WebHtmlElementRegistry {
     overlay_root: web_sys::HtmlElement,
     roots: HashMap<String, WebHtmlElementRoot>,
     window: Option<Weak<WebWindowInner>>,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     forwarded_wheel_count: Rc<Cell<u32>>,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     created_root_count: u32,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pruned_root_count: u32,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     content_update_count: u32,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     geometry_update_count: u32,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     geometry_skip_count: u32,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     restored_root_count: u32,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     extra_style_update_count: u32,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     last_geometry_sample: Option<HtmlElementGeometrySample>,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     last_error: Option<String>,
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 #[derive(Clone, Debug)]
 pub(crate) struct WebHtmlElementDiagnostics {
     pub(crate) source: &'static str,
@@ -103,7 +103,7 @@ pub(crate) struct WebHtmlElementDiagnostics {
     pub(crate) last_error: Option<String>,
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct HtmlElementGeometrySample {
     pub(crate) id: String,
@@ -157,25 +157,25 @@ impl WebHtmlElementRegistry {
             overlay_root,
             roots: HashMap::default(),
             window: None,
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             forwarded_wheel_count: Rc::new(Cell::new(0)),
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             created_root_count: 0,
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             pruned_root_count: 0,
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             content_update_count: 0,
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             geometry_update_count: 0,
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             geometry_skip_count: 0,
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             restored_root_count: 0,
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             extra_style_update_count: 0,
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             last_geometry_sample: None,
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             last_error: None,
         }
     }
@@ -184,7 +184,7 @@ impl WebHtmlElementRegistry {
         self.window = Some(window);
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub(crate) fn diagnostics(&self) -> WebHtmlElementDiagnostics {
         let active_root_count = self.roots.values().filter(|root| !root.parked).count() as u32;
         let parked_root_count = self.roots.values().filter(|root| root.parked).count() as u32;
@@ -259,29 +259,29 @@ impl WebHtmlElementRegistry {
             let key = registry_key(&element.id);
             let is_new_root = !self.roots.contains_key(&key);
             if is_new_root {
-                #[cfg(feature = "rayx_diagnostics")]
+                #[cfg(feature = "diagnostics")]
                 let root_result = create_root(
                     &self.overlay_root,
                     &key,
                     self.window.clone(),
                     Rc::clone(&self.forwarded_wheel_count),
                 );
-                #[cfg(not(feature = "rayx_diagnostics"))]
+                #[cfg(not(feature = "diagnostics"))]
                 let root_result = create_root(&self.overlay_root, &key, self.window.clone());
                 match root_result {
                     Ok(root) => {
                         self.roots.insert(key.clone(), root);
-                        #[cfg(feature = "rayx_diagnostics")]
+                        #[cfg(feature = "diagnostics")]
                         {
                             self.created_root_count = self.created_root_count.saturating_add(1);
                         }
                     }
                     Err(error) => {
-                        #[cfg(feature = "rayx_diagnostics")]
+                        #[cfg(feature = "diagnostics")]
                         {
                             self.last_error = Some(error.to_string());
                         }
-                        #[cfg(not(feature = "rayx_diagnostics"))]
+                        #[cfg(not(feature = "diagnostics"))]
                         let _ = error;
                         continue;
                     }
@@ -293,18 +293,18 @@ impl WebHtmlElementRegistry {
             };
 
             root.seen_this_frame = true;
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             if root.sync_properties(element) {
                 self.extra_style_update_count = self.extra_style_update_count.saturating_add(1);
             }
-            #[cfg(not(feature = "rayx_diagnostics"))]
+            #[cfg(not(feature = "diagnostics"))]
             let _ = root.sync_properties(element);
 
             if is_new_root || root.content_revision != element.content_revision {
                 root.content_element.set_inner_html(&element.trusted_html);
                 root.content_revision = element.content_revision;
                 root.sync_revision_attribute();
-                #[cfg(feature = "rayx_diagnostics")]
+                #[cfg(feature = "diagnostics")]
                 {
                     self.content_update_count = self.content_update_count.saturating_add(1);
                 }
@@ -315,23 +315,23 @@ impl WebHtmlElementRegistry {
                 root.last_nonzero_size = geometry.element.size;
             }
 
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             let restored = root.parked && geometry.visible;
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             if root.sync_geometry(&geometry) {
                 self.geometry_update_count = self.geometry_update_count.saturating_add(1);
             } else {
                 self.geometry_skip_count = self.geometry_skip_count.saturating_add(1);
             }
-            #[cfg(not(feature = "rayx_diagnostics"))]
+            #[cfg(not(feature = "diagnostics"))]
             let _ = root.sync_geometry(&geometry);
 
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             if restored && !root.parked {
                 self.restored_root_count = self.restored_root_count.saturating_add(1);
             }
 
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             {
                 self.last_geometry_sample =
                     Some(HtmlElementGeometrySample::from_geometry(key, &geometry));
@@ -351,7 +351,7 @@ impl WebHtmlElementRegistry {
                 let _ = root.park();
             } else if let Some(root) = self.roots.remove(&id) {
                 root.clip_element.remove();
-                #[cfg(feature = "rayx_diagnostics")]
+                #[cfg(feature = "diagnostics")]
                 {
                     self.pruned_root_count = self.pruned_root_count.saturating_add(1);
                 }
@@ -449,7 +449,7 @@ fn set_px(element: &web_sys::HtmlElement, property: &str, value: Pixels) -> Resu
     element.style().set_property(property, &css_px(value))
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 fn set_property(owner: &js_sys::Object, name: &str, value: JsValue) {
     js_sys::Reflect::set(owner, &JsValue::from_str(name), &value).ok();
 }
@@ -514,7 +514,7 @@ impl HtmlElementGeometry {
     }
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 impl HtmlElementGeometrySample {
     fn from_geometry(id: String, geometry: &HtmlElementGeometry) -> Self {
         Self {
@@ -718,7 +718,7 @@ impl WebHtmlElementRoot {
     }
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 pub(crate) fn write_html_element_diagnostics_to_global(diagnostics: &WebHtmlElementDiagnostics) {
     let object = js_sys::Object::new();
     set_property(&object, "version", JsValue::from_f64(1.0));
@@ -827,14 +827,10 @@ pub(crate) fn write_html_element_diagnostics_to_global(diagnostics: &WebHtmlElem
             .unwrap_or(JsValue::NULL),
     );
 
-    set_property(
-        &js_sys::global().unchecked_into::<js_sys::Object>(),
-        "__rayxHtmlElementDiagnostics",
-        object.into(),
-    );
+    gpui_wgpu::web_globals::publish("HtmlElementDiagnostics", &object.into());
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 impl HtmlElementGeometrySample {
     fn to_js_object(&self) -> JsValue {
         let object = js_sys::Object::new();
@@ -888,7 +884,7 @@ fn create_wheel_forward_listener(
     window: Option<Weak<WebWindowInner>>,
     root_element: web_sys::HtmlElement,
     expected_behavior: HtmlElementWheelBehavior,
-    #[cfg(feature = "rayx_diagnostics")] forwarded_wheel_count: Rc<Cell<u32>>,
+    #[cfg(feature = "diagnostics")] forwarded_wheel_count: Rc<Cell<u32>>,
 ) -> Closure<dyn FnMut(JsValue)> {
     Closure::<dyn FnMut(JsValue)>::new(move |event: JsValue| {
         if root_element
@@ -908,7 +904,7 @@ fn create_wheel_forward_listener(
         };
 
         window.dispatch_wheel_event_from_dom(&event);
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         forwarded_wheel_count.set(forwarded_wheel_count.get().saturating_add(1));
     })
 }
@@ -917,7 +913,7 @@ fn create_root(
     overlay_root: &web_sys::HtmlElement,
     id: &str,
     window: Option<Weak<WebWindowInner>>,
-    #[cfg(feature = "rayx_diagnostics")] forwarded_wheel_count: Rc<Cell<u32>>,
+    #[cfg(feature = "diagnostics")] forwarded_wheel_count: Rc<Cell<u32>>,
 ) -> anyhow::Result<WebHtmlElementRoot> {
     let document = overlay_root
         .owner_document()
@@ -976,14 +972,14 @@ fn create_root(
         .set_attribute("class", "rayx-html-element-wheel-capture")
         .ok();
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     let observable_wheel_listener = create_wheel_forward_listener(
         window.clone(),
         clip_element.clone(),
         HtmlElementWheelBehavior::ForwardIfObservable,
         Rc::clone(&forwarded_wheel_count),
     );
-    #[cfg(not(feature = "rayx_diagnostics"))]
+    #[cfg(not(feature = "diagnostics"))]
     let observable_wheel_listener = create_wheel_forward_listener(
         window.clone(),
         clip_element.clone(),
@@ -995,14 +991,14 @@ fn create_root(
         observable_wheel_listener.as_ref().unchecked_ref(),
     );
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     let capture_wheel_listener = create_wheel_forward_listener(
         window,
         clip_element.clone(),
         HtmlElementWheelBehavior::CaptureForward,
         forwarded_wheel_count,
     );
-    #[cfg(not(feature = "rayx_diagnostics"))]
+    #[cfg(not(feature = "diagnostics"))]
     let capture_wheel_listener = create_wheel_forward_listener(
         window,
         clip_element.clone(),
@@ -1056,7 +1052,7 @@ mod tests {
     use super::*;
     use wasm_bindgen::JsCast;
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     #[test]
     fn registry_diagnostics_start_at_zero() {
         let overlay_root: web_sys::HtmlElement = wasm_bindgen::JsValue::NULL.unchecked_into();
@@ -1096,7 +1092,7 @@ mod tests {
         assert_eq!(geometry.clip.size.height, px(30.));
         assert!(geometry.visible);
 
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         {
             let sample =
                 HtmlElementGeometrySample::from_geometry("provider".to_string(), &geometry);
@@ -1108,7 +1104,7 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     #[test]
     fn diagnostics_writer_accepts_zero_counts() {
         write_html_element_diagnostics_to_global(&WebHtmlElementDiagnostics {

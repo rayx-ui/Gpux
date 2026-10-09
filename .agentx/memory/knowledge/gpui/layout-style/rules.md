@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/gpui/layout-style
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-05T23:00:00+02:00
+  updated: 2026-10-07T23:55:00+02:00
   topics:
     - taffy
     - layout
@@ -16,7 +16,7 @@ agentx:
 ---
 # Layout And Style Rules
 
-- Keep Taffy defaults disabled and declare only `std`, `taffy_tree`, `flexbox`, `grid`, and `block_layout`. Do not enable `content_size`, `flexbox_balance`, `float_layout`, `calc`, or `detailed_layout_info` without a concrete gpux consumer and fresh native plus headed Test Suite layout proof.
+- Keep Taffy defaults disabled and declare only `std`, `taffy_tree`, `flexbox`, `grid`, and `block_layout`. Do not enable `content_size`, `flexbox_balance`, `float_layout`, `calc`, or `detailed_layout_info` without a concrete gpux consumer and fresh layout proof in lanes A and C plus a lane B WebGPU run.
 - Keep pooled Taffy context slots empty between frames: take every tracked measurement closure during clear, mark that node dirty, and refill an existing slot on measured reuse. Never retain frame-local closures or captured application state.
 - Do not reuse a prior measured-leaf output from Taffy's numeric inputs alone; require an explicit caller-owned invalidation key or generation before skipping closure execution.
 - Scope measured-layout optimization to the proven owner. The reference workload's measurement is all text; do not add generic list, uniform-list, or custom measurement caching without a workload that exercises those owners.

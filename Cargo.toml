@@ -6,6 +6,7 @@ members = [
     "crates/gpui",
     "crates/gpui_apple",
     "crates/gpux_color",
+    "crates/gpux_conformance",
     "crates/gpux_fonts",
     "crates/gpui_linux",
     "crates/gpui_macos",
@@ -28,6 +29,7 @@ members = [
     "crates/util",
     "crates/util_macros",
     "tooling/perf",
+    "tooling/testkit",
     "vendor/wgpu/wgpu",
     "vendor/wgpu/wgpu-core",
     "vendor/wgpu/wgpu-hal",
@@ -52,6 +54,7 @@ collections = { package = "gpux-collections", path = "crates/collections", versi
 derive_refineable = { package = "gpux-derive-refineable", path = "crates/refineable/derive_refineable", version = "0.3.0" }
 gpux = { path = "crates/gpui", version = "0.3.0", default-features = false }
 gpux_color = { package = "gpux-color", path = "crates/gpux_color", version = "0.3.0" }
+gpux_conformance = { package = "gpux-conformance", path = "crates/gpux_conformance", version = "0.3.0", default-features = false }
 gpux_fonts = { package = "gpux-fonts", path = "crates/gpux_fonts", version = "0.3.0" }
 gpui_shared_string = { package = "gpux-shared-string", path = "crates/gpui_shared_string", version = "0.3.0" }
 gpui_apple = { package = "gpux-apple", path = "crates/gpui_apple", version = "0.3.0" }
@@ -197,7 +200,9 @@ uuid = { version = "1.1", features = ["serde"] }
 walkdir = "2.5"
 wasm-bindgen = "0.2.126"
 wasm-bindgen-futures = "0.4"
+wasm-encoder = "0.244"
 wasm_thread = { version = "0.3", features = ["es_modules"] }
+wasmparser = { version = "0.244", default-features = false, features = ["std"] }
 web-sys = "0.3"
 web-time = "1.1.0"
 webpki-roots = "1.0.8"
@@ -207,6 +212,7 @@ windows = { version = "0.62", features = ["Win32_Foundation", "Win32_Graphics_Gd
 windows-core = "0.62"
 windows-registry = "0.6.0"
 xkbcommon = { version = "0.8", default-features = false }
+zip = { version = "8.6", default-features = false }
 
 [profile.dev]
 split-debuginfo = "unpacked"

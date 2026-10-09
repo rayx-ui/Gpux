@@ -14,7 +14,7 @@ use gpux::{
 use itertools::Itertools;
 use parking_lot::RwLock;
 use smallvec::SmallVec;
-#[cfg(target_family = "wasm")]
+#[cfg(all(target_family = "wasm", feature = "diagnostics"))]
 use std::collections::BTreeSet;
 use std::{borrow::Cow, ops::Range, sync::Arc};
 use swash::{
@@ -61,11 +61,11 @@ struct CosmicTextSystemState {
     font_ids_by_family_cache: HashMap<FontKey, SmallVec<[FontId; 4]>>,
     system_font_fallback: String,
     missing_glyph_sink: Option<Arc<dyn MissingGlyphSink>>,
-    #[cfg(target_family = "wasm")]
+    #[cfg(all(target_family = "wasm", feature = "diagnostics"))]
     diagnostic_layout_count: usize,
-    #[cfg(target_family = "wasm")]
+    #[cfg(all(target_family = "wasm", feature = "diagnostics"))]
     diagnostic_fallback_run_count: usize,
-    #[cfg(target_family = "wasm")]
+    #[cfg(all(target_family = "wasm", feature = "diagnostics"))]
     diagnostic_observed_face_names: BTreeSet<String>,
 }
 
@@ -149,11 +149,11 @@ impl CosmicTextSystem {
             font_ids_by_family_cache: HashMap::default(),
             system_font_fallback: system_font_fallback.to_string(),
             missing_glyph_sink: None,
-            #[cfg(target_family = "wasm")]
+            #[cfg(all(target_family = "wasm", feature = "diagnostics"))]
             diagnostic_layout_count: 0,
-            #[cfg(target_family = "wasm")]
+            #[cfg(all(target_family = "wasm", feature = "diagnostics"))]
             diagnostic_fallback_run_count: 0,
-            #[cfg(target_family = "wasm")]
+            #[cfg(all(target_family = "wasm", feature = "diagnostics"))]
             diagnostic_observed_face_names: BTreeSet::new(),
         }))
     }
@@ -174,11 +174,11 @@ impl CosmicTextSystem {
             font_ids_by_family_cache: HashMap::default(),
             system_font_fallback: system_font_fallback.to_string(),
             missing_glyph_sink: None,
-            #[cfg(target_family = "wasm")]
+            #[cfg(all(target_family = "wasm", feature = "diagnostics"))]
             diagnostic_layout_count: 0,
-            #[cfg(target_family = "wasm")]
+            #[cfg(all(target_family = "wasm", feature = "diagnostics"))]
             diagnostic_fallback_run_count: 0,
-            #[cfg(target_family = "wasm")]
+            #[cfg(all(target_family = "wasm", feature = "diagnostics"))]
             diagnostic_observed_face_names: BTreeSet::new(),
         }))
     }
@@ -805,13 +805,13 @@ impl CosmicTextSystemState {
         });
 
         let mut runs: Vec<ShapedRun> = Vec::new();
-        #[cfg(target_family = "wasm")]
+        #[cfg(all(target_family = "wasm", feature = "diagnostics"))]
         let mut fallback_run_count = 0;
         for glyph in &layout.glyphs {
             let mut font_id = FontId(glyph.metadata);
             let mut loaded_font = self.loaded_font(font_id);
             if loaded_font.font.id() != glyph.font_id {
-                #[cfg(target_family = "wasm")]
+                #[cfg(all(target_family = "wasm", feature = "diagnostics"))]
                 {
                     fallback_run_count += 1;
                 }
@@ -860,7 +860,7 @@ impl CosmicTextSystemState {
             sink.report(missing_glyphs);
         }
 
-        #[cfg(target_family = "wasm")]
+        #[cfg(all(target_family = "wasm", feature = "diagnostics"))]
         self.publish_font_fallback_diagnostics(&runs, fallback_run_count);
 
         LineLayout {
@@ -874,15 +874,9 @@ impl CosmicTextSystemState {
         }
     }
 
-    #[cfg(target_family = "wasm")]
+    #[cfg(all(target_family = "wasm", feature = "diagnostics"))]
     fn publish_font_fallback_diagnostics(&mut self, runs: &[ShapedRun], fallback_run_count: usize) {
-        let enabled = js_sys::Reflect::get(
-            &js_sys::global(),
-            &wasm_bindgen::JsValue::from_str("__rayxTextRenderingDiagnosticsEnabled"),
-        )
-        .ok()
-        .and_then(|value| value.as_bool())
-        .unwrap_or(false);
+        let enabled = crate::web_globals::flag("TextRenderingDiagnosticsEnabled");
         if !enabled {
             return;
         }
@@ -930,11 +924,7 @@ impl CosmicTextSystemState {
             (runs.iter().map(|run| run.glyphs.len()).sum::<usize>() as f64).into(),
         );
         set("publishedAtMs", js_sys::Date::now().into());
-        let _ = js_sys::Reflect::set(
-            &js_sys::global(),
-            &wasm_bindgen::JsValue::from_str("__rayxFontFallbackDiagnostics"),
-            target.as_ref(),
-        );
+        crate::web_globals::publish("FontFallbackDiagnostics", target.as_ref());
     }
 
     fn missing_glyphs(

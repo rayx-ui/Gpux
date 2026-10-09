@@ -3,7 +3,7 @@ use objc2::{class, msg_send};
 use std::ffi::CString;
 
 #[link(name = "StoreKit", kind = "framework")]
-extern "C" {}
+unsafe extern "C" {}
 
 pub fn is_available() -> Result<bool, String> {
     // SKStoreReviewController is available on all supported iOS versions (10.3+).

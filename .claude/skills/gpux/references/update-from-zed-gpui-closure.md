@@ -10,7 +10,7 @@ Run from the Gpux repository root. Upstream paths are from `zed-industries/zed`;
 - Use `https://github.com/zed-industries/zed` as the source of truth for upstream GPUI closure imports.
 - Fetch or shallow-clone upstream Zed into a temporary/cache location. A local checkout such as `../.forks/zed` is optional cache only, not a required source.
 - Do not import the full Zed application tree.
-- Preserve gpux-local files (`crates/gpux_color`, `crates/gpux_fonts`, `crates/gpui_mobile`, `tooling/perf`, `vendor/wgpu`, `docs/`, `.claude/`, and root metadata) unless the update explicitly requires changing them.
+- Preserve gpux-local files (`crates/gpux_color`, `crates/gpux_fonts`, `crates/gpui_mobile`, `tooling/perf`, `vendor/wgpu`, `docs/`, `.claude/`, and root metadata) and the test lanes (`crates/gpux_conformance`, `tooling/testkit`, `tooling/android`, `tools-node`) unless the update explicitly requires changing them.
 - Preserve the local main package/import crate name `gpux` (even though the upstream source path remains `crates/gpui`) and the `gpux-*` package names of the other crates.
 - Preserve or replay RayX/gpux patches from gpux's own history after importing upstream Zed closure state.
 - Reconcile with a semantic three-way merge from the last represented Zed commit. Audit both the upstream delta and the local delta from that base; never treat either current tree as a safe wholesale winner.
@@ -73,7 +73,7 @@ Every gpux crate publishes to crates.io, so imported manifests and sources must 
    - `.agentx/memory/knowledge/repository/upstream-sync/state.md`
    - `.agentx/memory/decisions/INDEX.md`
    - The `gpui`, `renderer`, and `platform` state, rules, and decisions for the patch surfaces the import touches (HTML DOM, fixed/sticky, shader/frame effects, input, Windows WGPU, asset loading).
-   - `../RayX/.agentx/memory/knowledge/tooling/validation/state.md`
+   - `docs/testing.md` for the lanes that validate the import
    - `git log --format='%h%n%B' --grep='Source Zed'`
    - latest import commits with subjects like `chore(gpux): import zed gpui closure ...`
 
@@ -83,7 +83,7 @@ Every gpux crate publishes to crates.io, so imported manifests and sources must 
    - If reusing an existing local checkout, verify its `origin` or selected remote points at `https://github.com/zed-industries/zed` and fetch before selecting the commit.
 
 3. Identify the source range:
-   - Find the last upstream Zed commit already represented in `docs/history/zed-imports.tsv`; confirm it against `Source Zed commit:`, `Source Zed merge commit:`, or older `Imported source parent:` provenance in the archived and current histories.
+   - Find the last upstream Zed commit already represented in `docs/history/zed-imports.tsv`, skipping `port:` rows (single ported PRs that never move the base); confirm it against `Source Zed commit:`, `Source Zed merge commit:`, or older `Imported source parent:` provenance in the archived and current histories.
    - Identify newer upstream Zed commits that touch closure paths.
    - Use upstream Zed commits as closure import points.
    - Audit the touched upstream paths for the whole closure, including `crates/gpui/src/window.rs`, `crates/gpui/src/scene.rs`, `crates/gpui/src/style.rs`, `crates/gpui/src/taffy.rs`, `crates/gpui/src/elements`, `crates/gpui/src/shader_effects`, `crates/gpui_windows`, `crates/gpui_web`, `crates/gpui_wgpu`, `crates/gpui_macos`, shader files, helper crates, and assets.
@@ -128,9 +128,11 @@ Original subject: <original local subject>
    - Prefer `cargo check --workspace --all-targets` when time and platform dependencies allow.
    - Run `cargo package --workspace`, because imports change manifests, dependencies, and included files.
    - Run targeted tests/examples for changed framework or backend behavior.
-   - When browser or shared renderer behavior changes, run the specs that exercise it from `../RayX`: `cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/<spec>`.
-   - When Windows platform, WGPU surface, resize, text, or shader-effect capability behavior changes, run the Test Suite app on the Windows host from `../RayX` and verify DevKit/runtime evidence for the DX12 WGPU path.
-   - When shader/frame/screen-effect behavior changes, add or reuse a Test Suite page in `../RayX/apps/test_suite` that exercises `effect_frame()`, `animated_frame(id)`, `transition_frame(id)`, and active screen effects on every affected target that can run locally.
+   - Run the `gpux-testkit` lanes that exercise the changed behavior ([docs/testing.md](../../../../docs/testing.md)): `cargo run -p gpux-testkit -- lane a` for behaviour (layout, input, focus, text, scrolling, semantics), narrowed with `--scene <id>` or `--grep <pattern>` while iterating.
+   - When browser or shared renderer behavior changes, run the lane B specs that exercise it: `cargo run -p gpux-testkit -- lane b --grep <pattern>`, plus `lane c` for offscreen pixels (`GPUX_UPDATE_SNAPSHOTS=1` only for an intended rendering change, after reviewing the diff images).
+   - When Windows platform, WGPU surface, resize, text, or shader-effect capability behavior changes, run lane D on the Windows host (`cargo run -p gpux-testkit -- lane d`): real windows presenting through DX12, resizing, OS input, clipboard, and scale changes.
+   - When shader/frame/screen-effect behavior changes, add or reuse a conformance scene in `crates/gpux_conformance/src/scenes/` that exercises `effect_frame()`, `animated_frame(id)`, `transition_frame(id)`, and active screen effects in every lane that can show them, and run those lanes on every affected target that can run locally.
+   - Before a release, or for renderer, platform, or performance changes, run lane G on a machine with a GPU (`cargo run -p gpux-testkit -- lane g`) and compare `artifacts-temp/testkit/g/timing.md` with a run of the base commit.
 
 ## RayX Patch Surface To Preserve
 
@@ -142,10 +144,13 @@ The RayX memories identify these gpux-owned patches as especially easy to miss d
 - Preserve gpux-local metadata, local tooling, package docs, and upstream provenance markers; do not pull in unrelated Zed app crates or make the root workspace look like full Zed.
 - Keep the workspace `wgpu` dependency on the `gpux-wgpu` fork (`wgpu = { package = "gpux-wgpu", path = "vendor/wgpu/wgpu", version = "=<fork version>" }`); never bring back Zed's wgpu git dependency or add a `[patch]` section.
 - Preserve public examples and docs on `gpux::{...}` while keeping source provenance tied to the upstream Zed commit and local replay commits.
+- Keep the 30 s pid-file deadline in `crates/util/src/process.rs`'s Windows `spawn_process_tree` test helper; upstream's 5 s times out on loaded CI runners while PowerShell starts.
+- Keep macOS child processes in `crates/util/src/command/darwin.rs` on the gpux `darwin/process.rs` handle. Upstream calls `smol::process::Child::adopt_raw_pid`, which exists only in Zed's git fork of `async-process` (Zed's `[patch.crates-io]`), so taking upstream's file breaks the macOS build. Take upstream's `darwin.rs`, then replay only the handle swap (`mod process; use process::Process;`, `inner: Process`, `Process::new(pid, kill_on_drop)`), and keep `darwin/process.rs` with its `command::darwin::process` tests.
 
 ### Native Rendering And Windows
 
 - Preserve `Window::render_to_image()` and backend renderer readback paths.
+- Preserve the gpux port of Zed's wgpu headless renderer (#64718, #64842): `WgpuHeadlessRenderer` with `HeadlessAdapterSelection` and the `GPUX_WGPU_ADAPTER` override, `WgpuContext::new_headless` with its per-selection static device cache and one `DeviceErrorState` per cached device (each headless renderer observes errors from the generation it joined at, as upstream does), and `gpui_platform::current_headless_renderer()` returning it on Linux and Windows. gpux adapted the port: instead of Zed's `WgpuRendererCore` split, `WgpuResources.surface` is optional and a surface-free `WgpuRenderer` shares the windowed pipelines, effects and `encode_scene_to_view`; headless targets are non-sRGB, opaque over black, with 4x path sampling; and Windows (DX12, WARP without a GPU) is supported, which upstream lacks. `PlatformHeadlessRenderer::effect_capabilities()`/`gpu_specs()` feed `TestWindow`. Do not take upstream's renderer split or its Linux-only `current_headless_renderer` over this. Test groups: `headless_renderer` and `headless_renderer_gpu_errors` (gpui_wgpu, `--features test-support`; tests that raise GPU errors run in their own process because every renderer on the shared device observes them) and `headless_screenshot_context` (gpux).
 - Preserve the Windows `gpui_wgpu::WgpuRenderer` path, shared `GpuContext`, Win32 WGPU surface wrapper, `CosmicTextSystem::new("Segoe UI")`, renderer-reported GPU specs, and shader-effect capabilities.
 - Preserve the Windows native backend policy as WGPU on DX12. Do not reintroduce the removed DirectX renderer/device/text stack or Vulkan/GL fallback for normal Windows rendering.
 - Preserve Windows interactive redraw priority, mouse-move coalescing, and live-resize coalescing into scheduled frames. Pending resize frames must present and force a fresh GPUI draw so scene geometry and surface size come from the same resize sample.
@@ -161,16 +166,16 @@ The RayX memories identify these gpux-owned patches as especially easy to miss d
 
 ### Browser And WASM
 
-- Preserve multithreaded `gpui_web` as the default RayX browser path, including the `gpui_platform::application()` mapping, shared-memory build flags, COOP/COEP/CORP serving assumptions, and headed WebGPU validation route.
+- Preserve multithreaded `gpui_web` as the default browser path (RayX's included), including the `gpui_platform::application()` mapping, shared-memory build flags, COOP/COEP/CORP serving assumptions, and the lane B WebGPU validation route (`gpux-testkit web build --verify`, `lane b`).
 - Preserve automatic browser backend selection: WebGPU is attempted first and WebGL2 is the fallback. The WebGL transport must cover RayX's complete renderer ABI—including effects, HTML islands, paths, sprites, and every auxiliary instance family—through exact word-addressable `Rgba32Uint` textures; never import a narrower upstream transport that silently drops local scene fields.
-- Keep the focused headed Test Suite backend proof at `../RayX/tools-node/test_suite/rayx-webgl-fallback.spec.ts`. It must force `?backend=webgl`, assert a visible nonzero canvas without page errors, and separately prove that automatic selection still prefers Browser WebGPU on a capable browser.
+- Keep the focused backend proof in lane B's `tools-node/specs/backend.spec.ts` (`cargo run -p gpux-testkit -- lane b --grep backend`). It must force `?backend=webgl`, assert a visible nonzero canvas without page errors, and separately prove that automatic selection still prefers Browser WebGPU on a capable browser.
 - Construct `FetchHttpClient` from the owning `WebPlatform` dispatcher and attach it while building the web `Application`; it is not a standalone `Default` client.
 - Preserve `gpui_web` ownership of visible viewport bounds, `devicePixelRatio`-backed canvas/backing-store sizing, `ResizeObserver` resize coalescing, and pending physical-size redraw/present behavior.
 - Preserve browser asset behavior: WASM `Asset::load` futures are local, `App::fetch_asset` foreground-spawns browser asset futures, and `Svg::external_path(...)` fetches browser-served SVG bytes.
 - Preserve browser WebGPU renderer reentrancy and WGPU shader parity.
 - Preserve the gpux paste-shortcut exemption in `gpui_web` `register_key_down` (`is_paste_shortcut`): Ctrl+V, or Cmd+V on macOS, returns before GPUI dispatch so the browser fires the trusted `paste` event that `register_paste` delivers to the input handler. Zed's handler prevents the default of every handled keystroke, which would suppress that event.
 - Preserve the gpux cap in `gpui_web` `register_input` (`crates/gpui_web/src/events.rs`): the IME edit import keeps its prefix/suffix diff out of the stored element selection, because it always replaces the whole app selection. Upstream lacks it, so text inserted over a selection it shares a prefix with replaced the selection with only the differing tail. Drop the cap once upstream fixes the import.
-- Preserve additional top-level web windows (`PreparedWebWindow::additional` in `crates/gpui_web/src/platform.rs`): the first window takes the canvas the graphics context was created against, and each later window gets its own canvas and a surface from the shared WebGPU instance. WebGL contexts are bound to their canvas, so WebGL stays single-window. RayX's `rayx-multi-window-action-routing.spec.ts` drives two windows.
+- Preserve additional top-level web windows (`PreparedWebWindow::additional` in `crates/gpui_web/src/platform.rs`): the first window takes the canvas the graphics context was created against, and each later window gets its own canvas and a surface from the shared WebGPU instance. WebGL contexts are bound to their canvas, so WebGL stays single-window. Lane B has no two-window spec yet (RayX's consumer tests drive two windows); add one to `tools-node/specs/window.spec.ts` when this path changes.
 - Preserve `event_instant` in `gpui_web` `events.rs`: touch pointer events carry `TouchEvent::timestamp` converted from `Event.timeStamp`.
 - Candidate, not confirmed current gpux behavior: browser WebGPU adapter retry with softer power-preference hints from RayX memory.
 
@@ -187,6 +192,7 @@ The RayX memories identify these gpux-owned patches as especially easy to miss d
 - Preserve optional `id(...)` hooks on `Anchored`, `Deferred`, `ImageCacheElement`, and `Surface`.
 - Take Zed's input model unchanged (see the gpux skill's Input model rule). Keep gpux's input additions that sit beside it: `HitboxBehavior::Ignore` with `with_subtree_hitbox_behavior`, `with_pointer_semantics_suppressed`, `Window::pressed_mouse_button()`, `capture_scroll_wheel`, layered keymaps, action dispatch outcomes, and `dispatch_action_at`.
 - Preserve `TouchEvent::timestamp` and sample-time gesture timing in `crates/gpui/src/gestures.rs` (`event.timestamp.unwrap_or(now)` for velocity samples, the stopped-finger check, tap intervals, and long-press deadlines; momentum stays on processing time) until upstream ships sample times; see [the upstream tracking note](../../../../docs/upstream/gpui-touch-sample-timestamps.md). Test group: `touch_timestamps`.
+- Preserve the executor clock as the single motion time source. `OngoingScroll::filter_at`, `TouchGestureRecognizer::handle_event_at`, `pending_long_press(now)` and `tick_momentum_at`, `ScrollActivity` programmatic starts and frames, `with_animation` and springs, `animated_frame`, `transition_frame` snapshot release and screen-effect starts, list/div/editable programmatic scroll, image loading timers, and the window's frame throttle all take `now` from `BackgroundExecutor::now()`. Upstream reads `Instant::now()` in these places; gpux removed every such read from the motion modules so `advance_clock` drives them in tests (`OngoingScroll::filter` became `filter_at`). Test group: `deterministic_motion_clock`.
 - Preserve half-open line bands in `TextLayout::index_for_position` (`position.y >= line_bottom`): a point exactly on a line boundary belongs to the line below. Upstream advances only past `line_bottom`, so the boundary point reaches the upper line's wrapped layout one row past its end and resolves to offset 0. Test group: `text_layout_hit_test`.
 - Preserve `Style.direction`, `StyleRefinement.direction`, `Styled::direction(...)`, and Taffy direction mapping.
 - Preserve `TextStyle.letter_spacing` through layout, wrapping, shaping, and platform text systems.

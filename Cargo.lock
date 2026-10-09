@@ -2735,6 +2735,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "gpux-conformance"
+version = "0.3.0"
+dependencies = [
+ "android-activity",
+ "anyhow",
+ "console_error_panic_hook",
+ "core-graphics 0.24.0",
+ "gpux",
+ "gpux-fonts",
+ "gpux-mobile",
+ "gpux-platform",
+ "gpux-wgpu-renderer",
+ "image",
+ "js-sys",
+ "libc",
+ "log",
+ "objc2-app-kit 0.3.2",
+ "raw-window-handle",
+ "tempfile",
+ "wasm-bindgen",
+ "wasm_thread",
+ "web-sys",
+ "windows 0.62.2",
+]
+
+[[package]]
 name = "gpux-derive-refineable"
 version = "0.3.0"
 dependencies = [
@@ -2896,6 +2922,7 @@ dependencies = [
  "gpux",
  "gpux-wgpu",
  "gpux-wgpu-renderer",
+ "image",
  "jni",
  "jni-sys 0.3.0",
  "libc",
@@ -2943,6 +2970,7 @@ dependencies = [
  "criterion 0.8.2",
  "gpux",
  "gpux-bench-metrics",
+ "gpux-fonts",
  "gpux-linux",
  "gpux-macos",
  "gpux-mobile",
@@ -3008,6 +3036,18 @@ dependencies = [
  "rand 0.9.4",
  "rayon",
  "tracing",
+]
+
+[[package]]
+name = "gpux-testkit"
+version = "0.3.0"
+dependencies = [
+ "anyhow",
+ "gpux-conformance",
+ "tempfile",
+ "wasm-encoder",
+ "wasmparser",
+ "zip",
 ]
 
 [[package]]
@@ -7448,6 +7488,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "typed-path"
+version = "0.12.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8e28f89b80c87b8fb0cf04ab448d5dd0dd0ade2f8891bae878de66a75a28600e"
+
+[[package]]
 name = "typeid"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9246,6 +9292,18 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.117",
+]
+
+[[package]]
+name = "zip"
+version = "8.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2d04a6b5381502aa6087c94c669499eb1602eb9c5e8198e534de571f7154809b"
+dependencies = [
+ "crc32fast",
+ "indexmap",
+ "memchr",
+ "typed-path",
 ]
 
 [[package]]

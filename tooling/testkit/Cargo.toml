@@ -1,0 +1,33 @@
+[package]
+name = "gpux-testkit"
+description = "The single entry point for gpux's test lanes: selects, runs and summarizes conformance lanes on every platform."
+version.workspace = true
+edition.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+license.workspace = true
+keywords = ["gpux", "testing", "conformance"]
+categories = ["development-tools::testing", "command-line-utilities"]
+
+[lints]
+workspace = true
+
+[lib]
+name = "gpux_testkit"
+path = "src/gpux_testkit.rs"
+doctest = false
+
+[[bin]]
+name = "gpux-testkit"
+path = "src/main.rs"
+
+[dependencies]
+anyhow.workspace = true
+gpux_conformance.workspace = true
+wasmparser.workspace = true
+zip.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+wasm-encoder.workspace = true

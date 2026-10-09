@@ -1,0 +1,5 @@
+Running 3 tests using 1 worker
+
+  ok 1 [chromium-webgpu] › specs/canary.spec.ts:4:1 › @canary starts on WebGPU (2.1s)
+  x  2 [chromium-webgpu] › specs/input.spec.ts:8:1 › @pr types into a field (5.0s)
+  ok 3 [chromium-webgpu] › specs/input.spec.ts:8:1 › @pr types into a field (retry #1) (4.8s)

@@ -939,12 +939,10 @@ impl ListState {
         {
             if let Some((target, maximum)) = state.resolve_programmatic_offset(scroll_top) {
                 let current = state.scroll_top(&state.logical_scroll_top());
-                state.activity.start_programmatic_at(
+                state.activity.apply_immediate_programmatic(
                     Point::new(px(0.), current),
                     Point::new(px(0.), target),
                     Point::new(px(0.), maximum),
-                    behavior,
-                    crate::Instant::now(),
                 );
                 state.pending_programmatic_scroll = None;
                 state.logical_scroll_top = Some(scroll_top);
@@ -980,12 +978,10 @@ impl ListState {
         {
             if let Some((target, maximum)) = state.resolve_programmatic_offset(scroll_top) {
                 let current = state.scroll_top(&state.logical_scroll_top());
-                state.activity.start_programmatic_at(
+                state.activity.apply_immediate_programmatic(
                     Point::new(px(0.), current),
                     Point::new(px(0.), target),
                     Point::new(px(0.), maximum),
-                    behavior,
-                    crate::Instant::now(),
                 );
                 state.pending_programmatic_scroll = None;
                 state.logical_scroll_top = Some(scroll_top);
@@ -1158,12 +1154,10 @@ impl ListState {
         {
             if let Some((target, maximum)) = state.resolve_scrollbar_programmatic_offset(point) {
                 let current = state.scroll_top(&state.logical_scroll_top());
-                state.activity.start_programmatic_at(
+                state.activity.apply_immediate_programmatic(
                     Point::new(px(0.), current),
                     Point::new(px(0.), target),
                     Point::new(px(0.), maximum),
-                    behavior,
-                    crate::Instant::now(),
                 );
                 state.pending_programmatic_scroll = None;
                 state.request_offset_from_scrollbar(Point::new(px(0.), -target));
@@ -1189,12 +1183,10 @@ impl ListState {
         {
             if let Some((target, maximum)) = state.resolve_scrollbar_programmatic_offset(point) {
                 let current = state.scroll_top(&state.logical_scroll_top());
-                state.activity.start_programmatic_at(
+                state.activity.apply_immediate_programmatic(
                     Point::new(px(0.), current),
                     Point::new(px(0.), target),
                     Point::new(px(0.), maximum),
-                    behavior,
-                    crate::Instant::now(),
                 );
                 state.pending_programmatic_scroll = None;
                 state.request_offset_from_scrollbar(Point::new(px(0.), -target));
@@ -2322,7 +2314,7 @@ impl Element for List {
                 point(px(0.), target),
                 point(px(0.), maximum),
                 behavior,
-                crate::Instant::now(),
+                cx.background_executor().now(),
             )
         });
         drop(state);
@@ -2412,7 +2404,7 @@ fn schedule_list_programmatic_scroll(
             apply_list_programmatic_frame(
                 &list_state,
                 generation,
-                crate::Instant::now(),
+                cx.background_executor().now(),
                 current_view,
                 window,
                 cx,

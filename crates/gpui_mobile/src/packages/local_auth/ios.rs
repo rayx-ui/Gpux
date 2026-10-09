@@ -194,7 +194,7 @@ pub fn authenticate(reason: &str) -> Result<AuthResult, String> {
 // Grand Central Dispatch C functions
 const DISPATCH_TIME_FOREVER: u64 = !0;
 
-extern "C" {
+unsafe extern "C" {
     fn dispatch_semaphore_create(value: i64) -> *mut AnyObject;
     fn dispatch_semaphore_signal(dsema: *mut AnyObject) -> i64;
     fn dispatch_semaphore_wait(dsema: *mut AnyObject, timeout: u64) -> i64;

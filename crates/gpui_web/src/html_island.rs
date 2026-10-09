@@ -7,29 +7,29 @@ pub(crate) struct WebHtmlIslandRegistry {
     canvas: web_sys::HtmlCanvasElement,
     roots: HashMap<String, WebHtmlIslandRoot>,
     dirty_roots: HashSet<String>,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     created_root_count: u32,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pruned_root_count: u32,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     content_update_count: u32,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     dirty_mark_count: u32,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     upload_count: u32,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     upload_failure_count: u32,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     texture_reallocation_count: u32,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     texture_count: u32,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     texture_pruned_count: u32,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     texture_draw_count: u32,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     renderer_path: &'static str,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     renderer_last_error: Option<String>,
 }
 
@@ -42,7 +42,7 @@ pub(crate) struct WebHtmlIslandSyncSummary {
     pub(crate) request_paint: bool,
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 #[derive(Clone, Debug)]
 pub(crate) struct WebHtmlIslandDiagnostics {
     pub(crate) count: u32,
@@ -61,7 +61,7 @@ pub(crate) struct WebHtmlIslandDiagnostics {
     pub(crate) renderer_last_error: Option<String>,
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 impl Default for WebHtmlIslandDiagnostics {
     fn default() -> Self {
         Self {
@@ -121,29 +121,29 @@ impl WebHtmlIslandRegistry {
             canvas,
             roots: HashMap::default(),
             dirty_roots: HashSet::default(),
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             created_root_count: 0,
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             pruned_root_count: 0,
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             content_update_count: 0,
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             dirty_mark_count: 0,
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             upload_count: 0,
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             upload_failure_count: 0,
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             texture_reallocation_count: 0,
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             texture_count: 0,
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             texture_pruned_count: 0,
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             texture_draw_count: 0,
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             renderer_path: "unsupported",
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             renderer_last_error: None,
         }
     }
@@ -163,7 +163,7 @@ impl WebHtmlIslandRegistry {
         self.dirty_roots.len()
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub(crate) fn diagnostics(&self) -> WebHtmlIslandDiagnostics {
         WebHtmlIslandDiagnostics {
             count: self.roots.len() as u32,
@@ -226,7 +226,7 @@ impl WebHtmlIslandRegistry {
         self.dirty_roots.remove(id)
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub(crate) fn record_upload_diagnostics_success(
         &mut self,
         uploaded_dirty_root: bool,
@@ -249,7 +249,7 @@ impl WebHtmlIslandRegistry {
         self.dirty_roots.remove(id);
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub(crate) fn record_upload_diagnostics_failure(&mut self, error: String) {
         self.upload_failure_count = self.upload_failure_count.saturating_add(1);
         self.renderer_path = "copyElementImageToTexture";
@@ -262,7 +262,7 @@ impl WebHtmlIslandRegistry {
         };
         root.paint_ready = false;
         if self.dirty_roots.insert(id.to_string()) {
-            #[cfg(feature = "rayx_diagnostics")]
+            #[cfg(feature = "diagnostics")]
             {
                 self.dirty_mark_count = self.dirty_mark_count.saturating_add(1);
             }
@@ -270,7 +270,7 @@ impl WebHtmlIslandRegistry {
         request_paint(&self.canvas);
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub(crate) fn record_texture_cache_state(
         &mut self,
         texture_count: u32,
@@ -297,7 +297,7 @@ impl WebHtmlIslandRegistry {
             } else {
                 let root = create_root(&self.canvas, &key);
                 summary.created_roots = summary.created_roots.saturating_add(1);
-                #[cfg(feature = "rayx_diagnostics")]
+                #[cfg(feature = "diagnostics")]
                 {
                     self.created_root_count = self.created_root_count.saturating_add(1);
                 }
@@ -311,13 +311,13 @@ impl WebHtmlIslandRegistry {
                 root.content_revision = island.content_revision;
                 root.paint_ready = false;
                 summary.content_updates = summary.content_updates.saturating_add(1);
-                #[cfg(feature = "rayx_diagnostics")]
+                #[cfg(feature = "diagnostics")]
                 {
                     self.content_update_count = self.content_update_count.saturating_add(1);
                 }
                 if self.dirty_roots.insert(key) {
                     summary.dirty_marks = summary.dirty_marks.saturating_add(1);
-                    #[cfg(feature = "rayx_diagnostics")]
+                    #[cfg(feature = "diagnostics")]
                     {
                         self.dirty_mark_count = self.dirty_mark_count.saturating_add(1);
                     }
@@ -327,7 +327,7 @@ impl WebHtmlIslandRegistry {
         }
 
         summary.pruned_roots = self.prune_except(&live_ids);
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         {
             self.pruned_root_count = self.pruned_root_count.saturating_add(summary.pruned_roots);
         }
@@ -351,7 +351,7 @@ impl WebHtmlIslandRegistry {
                 if let Some(root) = self.roots.get_mut(&id) {
                     root.paint_ready = true;
                     if self.dirty_roots.insert(id) {
-                        #[cfg(feature = "rayx_diagnostics")]
+                        #[cfg(feature = "diagnostics")]
                         {
                             self.dirty_mark_count = self.dirty_mark_count.saturating_add(1);
                         }
@@ -398,7 +398,7 @@ impl WebHtmlIslandRegistry {
                 root.paint_ready = false;
                 request_paint_needed = true;
                 if self.dirty_roots.insert(id.clone()) {
-                    #[cfg(feature = "rayx_diagnostics")]
+                    #[cfg(feature = "diagnostics")]
                     {
                         self.dirty_mark_count = self.dirty_mark_count.saturating_add(1);
                     }
@@ -783,7 +783,7 @@ mod tests {
         assert!(summary.request_paint);
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     #[test]
     fn registry_diagnostics_report_lifecycle_counters() {
         let canvas: web_sys::HtmlCanvasElement = wasm_bindgen::JsValue::NULL.unchecked_into();
@@ -818,7 +818,7 @@ mod tests {
         let _jobs = registry.dirty_upload_jobs_for_testing();
     }
 
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     #[test]
     fn registry_records_renderer_upload_diagnostics() {
         let canvas: web_sys::HtmlCanvasElement = wasm_bindgen::JsValue::NULL.unchecked_into();

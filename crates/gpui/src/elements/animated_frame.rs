@@ -59,10 +59,12 @@ struct AnimatedFrameState {
 }
 
 impl AnimatedFrameState {
+    /// A completed frame at `target`. `now` comes from the executor clock.
     fn new(
         target: FrameStyle,
         target_key: Option<SharedString>,
         animation: FrameAnimation,
+        now: Instant,
     ) -> Self {
         Self {
             from: target.clone(),
@@ -70,7 +72,7 @@ impl AnimatedFrameState {
             target_key,
             current: target,
             progress: 1.0,
-            started_at: Instant::now(),
+            started_at: now,
             animation,
             done: true,
         }
@@ -81,8 +83,10 @@ impl AnimatedFrameState {
         target: FrameStyle,
         target_key: Option<SharedString>,
         animation: FrameAnimation,
+        now: Instant,
     ) {
-        self.update_target_at(target, target_key, animation, self.started_at.elapsed());
+        let elapsed = now.saturating_duration_since(self.started_at);
+        self.update_target_at(target, target_key, animation, elapsed, now);
     }
 
     fn update_target_at(
@@ -91,6 +95,7 @@ impl AnimatedFrameState {
         target_key: Option<SharedString>,
         animation: FrameAnimation,
         elapsed: Duration,
+        now: Instant,
     ) {
         if self.target == target && self.target_key == target_key {
             self.animation = animation;
@@ -103,13 +108,13 @@ impl AnimatedFrameState {
         self.target_key = target_key;
         self.current = self.from.clone();
         self.progress = 0.0;
-        self.started_at = Instant::now();
+        self.started_at = now;
         self.animation = animation;
         self.done = false;
     }
 
-    fn tick(&mut self) {
-        self.tick_at_elapsed(self.started_at.elapsed());
+    fn tick(&mut self, now: Instant) {
+        self.tick_at_elapsed(now.saturating_duration_since(self.started_at));
     }
 
     fn tick_at_elapsed(&mut self, elapsed: Duration) {
@@ -405,6 +410,7 @@ impl Element for AnimatedFrame {
         window: &mut Window,
         cx: &mut App,
     ) -> (LayoutId, Self::RequestLayoutState) {
+        let now = cx.background_executor().now();
         let frame =
             window.with_element_state(id.unwrap(), |state: Option<AnimatedFrameState>, window| {
                 let mut state = state.unwrap_or_else(|| {
@@ -412,14 +418,16 @@ impl Element for AnimatedFrame {
                         self.style.clone(),
                         self.target_key.clone(),
                         self.animation.clone(),
+                        now,
                     )
                 });
                 state.update_target(
                     self.style.clone(),
                     self.target_key.clone(),
                     self.animation.clone(),
+                    now,
                 );
-                state.tick();
+                state.tick(now);
 
                 if !state.done {
                     window.request_animation_frame();
@@ -522,6 +530,10 @@ mod tests {
 
     use super::*;
 
+    fn test_now() -> Instant {
+        scheduler::Clock::now(&scheduler::TestClock::new())
+    }
+
     fn width(style: &FrameStyle) -> Length {
         style.size.width
     }
@@ -533,6 +545,7 @@ mod tests {
             target.clone(),
             None,
             FrameAnimation::new(Duration::from_millis(200)),
+            test_now(),
         );
 
         assert!(state.done);
@@ -543,14 +556,20 @@ mod tests {
     #[test]
     fn animated_frame_state_retargets_from_current_interpolated_style() {
         let animation = FrameAnimation::new(Duration::from_millis(200));
-        let mut state =
-            AnimatedFrameState::new(FrameStyle::default().w(px(100.0)), None, animation.clone());
+        let now = test_now();
+        let mut state = AnimatedFrameState::new(
+            FrameStyle::default().w(px(100.0)),
+            None,
+            animation.clone(),
+            now,
+        );
 
         state.update_target_at(
             FrameStyle::default().w(px(300.0)),
             None,
             animation.clone(),
             Duration::ZERO,
+            now,
         );
         state.tick_at_elapsed(Duration::from_millis(100));
         assert_eq!(width(&state.current), Length::from(px(200.0)));
@@ -560,6 +579,7 @@ mod tests {
             None,
             animation,
             Duration::from_millis(100),
+            now,
         );
         assert_eq!(width(&state.from), Length::from(px(200.0)));
 
@@ -570,10 +590,12 @@ mod tests {
     #[test]
     fn animated_frame_state_restarts_when_target_key_changes() {
         let animation = FrameAnimation::new(Duration::from_millis(200));
+        let now = test_now();
         let mut state = AnimatedFrameState::new(
             FrameStyle::default().w(px(100.0)),
             Some(SharedString::from("collapsed")),
             animation.clone(),
+            now,
         );
 
         state.update_target_at(
@@ -581,6 +603,7 @@ mod tests {
             Some(SharedString::from("expanded")),
             animation,
             Duration::ZERO,
+            now,
         );
 
         assert!(!state.done);

@@ -81,6 +81,7 @@ fn shared_memory_support() -> SharedMemorySupport {
     }
 }
 
+#[cfg_attr(not(feature = "multithreaded"), allow(dead_code))]
 enum MainThreadItem {
     Runnable(RunnableVariant),
     Delayed {
@@ -94,6 +95,7 @@ enum MainThreadItem {
 
 struct MainThreadMailbox {
     sender: PriorityQueueSender<MainThreadItem>,
+    #[cfg_attr(not(feature = "multithreaded"), allow(dead_code))]
     receiver: std::sync::Mutex<PriorityQueueReceiver<MainThreadItem>>,
     signal: AtomicI32,
 }
@@ -119,6 +121,7 @@ impl MainThreadMailbox {
         js_sys::Atomics::notify(&view, 0).ok();
     }
 
+    #[cfg_attr(not(feature = "multithreaded"), allow(dead_code))]
     fn drain(&self, window: &web_sys::Window) {
         // Only the main thread accesses this receiver; never park if that changes.
         let mut receiver = self
@@ -394,6 +397,7 @@ impl PlatformDispatcher for WebDispatcher {
     }
 }
 
+#[cfg_attr(not(feature = "multithreaded"), allow(dead_code))]
 fn execute_on_main_thread(window: &web_sys::Window, item: MainThreadItem) {
     match item {
         MainThreadItem::Runnable(runnable) => {

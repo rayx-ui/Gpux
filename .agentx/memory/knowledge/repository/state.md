@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/repository
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-05T23:00:00+02:00
+  updated: 2026-10-07T23:55:00+02:00
   topics:
     - repository
     - sibling-repositories
@@ -20,7 +20,7 @@ Read before repository-level work: imports, manifests, publishing, validation ro
 
 ## Current Technical Shape
 
-gpux lives in its own repository, checked out beside RayX (`../RayX`). Its history was extracted from RayX `crates/gpux` on 2026-10-05; Zed's crate boundaries and directory names are kept so upstream imports stay reviewable. RayX consumes the crates by relative path (`../Gpux/crates/...`) for co-development, so an API change RayX uses needs a paired RayX commit, and RayX hosts all runtime proof. Repository instructions live in [AGENTS.md](../../../../AGENTS.md) and [CLAUDE.md](../../../../CLAUDE.md); recurring workflows live in the [gpux skill](../../../../.claude/skills/gpux/SKILL.md).
+gpux lives in its own repository, checked out beside RayX (`../RayX`). Its history was extracted from RayX `crates/gpux` on 2026-10-05; Zed's crate boundaries and directory names are kept so upstream imports stay reviewable. RayX consumes the crates by relative path (`../Gpux/crates/...`) for co-development, so an API change RayX uses needs a paired RayX commit. gpux proves its own runtime behavior in the lanes `gpux-testkit` runs ([docs/testing.md](../../../../docs/testing.md)); RayX checks prove only the consumer. Repository instructions live in [AGENTS.md](../../../../AGENTS.md) and [CLAUDE.md](../../../../CLAUDE.md); recurring workflows live in the [gpux skill](../../../../.claude/skills/gpux/SKILL.md).
 
 ## Backlinks
 

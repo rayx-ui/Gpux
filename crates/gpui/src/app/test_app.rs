@@ -499,6 +499,41 @@ impl<V: 'static + Render> TestAppWindow<V> {
         self.background_executor.run_until_parked();
     }
 
+    /// Delivers one frame request to the window, as the platform's frame source would: it runs
+    /// the callbacks scheduled with [`Window::on_next_frame`] and draws when the window is dirty.
+    /// Step time-driven motion with [`TestApp::advance_clock`] followed by this call, or use
+    /// [`Self::advance_frame`].
+    ///
+    /// Windows throttle frames like real platforms do: while a window is inactive, a frame that
+    /// arrives less than its inactive frame interval (about 33 ms by default) after the previous
+    /// one, measured on the executor clock, is skipped and its callbacks stay pending. Test
+    /// windows open inactive, so activate the window (`Window::activate_window`) or step the
+    /// clock by at least that interval to deliver every frame.
+    pub fn simulate_frame(&mut self) {
+        let window_id = self.handle.window_id();
+        let test_window = {
+            let mut app = self.app.borrow_mut();
+            app.windows
+                .get_mut(window_id)
+                .and_then(|window| window.as_mut())
+                .and_then(|window| window.platform_window.as_test())
+                .cloned()
+        };
+        // The frame callback borrows the app itself.
+        if let Some(test_window) = test_window {
+            test_window.simulate_frame_request(crate::RequestFrameOptions::default());
+        }
+        self.background_executor.run_until_parked();
+    }
+
+    /// Advances the executor clock by `duration` and then delivers one frame. The frame is
+    /// skipped when the window is inactive and `duration` is shorter than its inactive frame
+    /// interval; see [`Self::simulate_frame`].
+    pub fn advance_frame(&mut self, duration: Duration) {
+        self.background_executor.advance_clock(duration);
+        self.simulate_frame();
+    }
+
     /// Force a redraw of the window.
     pub fn draw(&mut self) {
         let mut app = self.app.borrow_mut();

@@ -1,16 +1,18 @@
 mod cosmic_text_system;
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 mod frame_telemetry;
 #[cfg(target_family = "wasm")]
 mod html_island_texture;
 #[cfg(target_family = "wasm")]
 mod html_island_upload;
+#[cfg(target_family = "wasm")]
+pub mod web_globals;
 mod wgpu_atlas;
 mod wgpu_context;
 mod wgpu_renderer;
 
 pub use cosmic_text_system::*;
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 pub use frame_telemetry::*;
 #[cfg(target_family = "wasm")]
 pub use html_island_texture::*;
@@ -19,6 +21,11 @@ pub use html_island_upload::*;
 pub use wgpu;
 pub use wgpu_atlas::*;
 pub use wgpu_context::*;
+#[cfg(all(
+    not(target_family = "wasm"),
+    any(test, feature = "bench-support", feature = "test-support")
+))]
+pub use wgpu_renderer::WgpuHeadlessRenderer;
 pub use wgpu_renderer::{GpuContext, WgpuRenderer, WgpuSurfaceConfig};
 
 #[cfg(all(test, target_family = "wasm"))]

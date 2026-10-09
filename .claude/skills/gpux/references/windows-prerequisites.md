@@ -1,6 +1,6 @@
 # Windows Prerequisites
 
-Use this reference for Windows x64 and Windows ARM64 setup, including automatic installation.
+Use this reference for Windows x64 and Windows ARM64 setup, including automatic installation. Lanes A, C, and D need nothing beyond a normal gpux build on Windows (WARP, the DX12 software adapter, ships with Windows); each lane's prerequisites are in [docs/testing.md](../../../../docs/testing.md#prerequisites).
 
 ## Check First
 
@@ -82,7 +82,7 @@ winget install --id Microsoft.VCRedist.2015+.x64   --exact --accept-package-agre
 
 ## Microsoft OpenJDK 21 for Android and Mobile Validation
 
-If a RayX Android build that consumes gpux needs Java tooling, install **Microsoft Build of OpenJDK 21 LTS**. Verify Java/JDK discovery before debugging gpux renderer code.
+Lane E needs a JDK 21 (`java`, `keytool`), and RayX's Android builds that consume gpux need Java tooling too. Install **Microsoft Build of OpenJDK 21 LTS**. Verify Java/JDK discovery before debugging gpux renderer code.
 
 Download page:
 
@@ -119,9 +119,9 @@ Reference docs:
 
 - [Install Microsoft Build of OpenJDK](https://learn.microsoft.com/en-us/java/openjdk/install)
 
-## RayX Android NDK Tools
+## Android NDK Tools
 
-When gpux setup is being prepared for RayX mobile validation, verify Android native tooling as part of setup:
+When gpux setup is being prepared for Android validation (lane E, or a RayX mobile build that consumes gpux), verify Android native tooling as part of setup:
 
 ```powershell
 adb version
@@ -130,18 +130,18 @@ cargo install cargo-ndk
 cargo ndk --version
 ```
 
-Android validation needs the Android SDK, Android NDK r25 or newer, Java/JDK discovery, and `cargo-ndk`. Use `ANDROID_HOME`, `ANDROID_SDK_ROOT`, `ANDROID_NDK_HOME`, or `ANDROID_NDK_ROOT` when auto-discovery fails. With `ANDROID_NDK_HOME` set, `cargo ndk -t arm64-v8a check -p gpux-mobile` checks the gpux Android build from the Gpux repository root.
+Android validation needs the Android SDK, Android NDK r25 or newer, Java/JDK discovery, and `cargo-ndk`. Use `ANDROID_HOME`, `ANDROID_SDK_ROOT`, `ANDROID_NDK_HOME`, or `ANDROID_NDK_ROOT` when auto-discovery fails. With `ANDROID_NDK_HOME` set, `cargo ndk -t arm64-v8a check -p gpux-mobile` checks the gpux Android build from the Gpux repository root. Lane E (`cargo run -p gpux-testkit -- lane e`, or `android build` and `android run`) also needs `ANDROID_HOME` with its pinned SDK packages and the Android Rust targets, and reports each missing one with the command that installs it ([docs/testing.md](../../../../docs/testing.md#lane-e-android)).
 
 ## Browser and WASM
 
-Install `wasm-bindgen-cli` when building gpux for WebAssembly or running browser-oriented `gpui_web` examples:
+Install `wasm-bindgen-cli` when building gpux for WebAssembly or running browser-oriented `gpui_web` examples, at the version `Cargo.lock` pins (`0.2.129`; `gpux-testkit web build` refuses any other):
 
 ```powershell
-cargo install wasm-bindgen-cli --version 0.2.126 --locked
+cargo install wasm-bindgen-cli --version 0.2.129 --locked
 [Environment]::SetEnvironmentVariable("PATH", "$HOME\.cargo\bin;" + [Environment]::GetEnvironmentVariable("PATH", "User"), "User")
 ```
 
-For multithreaded gpux/RayX browser apps, also read `multithreaded-wasm-apps.md`. They require nightly Rust, `rust-src`, atomics/shared-memory linker flags, `wasm-bindgen`, and cross-origin isolation headers.
+For multithreaded gpux/RayX browser apps, also read `multithreaded-wasm-apps.md`. They require nightly Rust, `rust-src`, atomics/shared-memory linker flags, `wasm-bindgen`, and cross-origin isolation headers. Lane B also needs Node.js 22 or later with `pnpm`, and in `tools-node`: `pnpm install` and `pnpm exec playwright install chromium`. On a Windows machine without a usable GPU, run lane B in the `windows-software` profile (`$env:GPUX_WEB_PROFILE = "windows-software"`), which renders WebGPU on WARP.
 
 On current Windows ARM64 Qualcomm/Adreno devices, Chromium browsers can report WebGPU as hardware accelerated but return no adapters unless Unsafe WebGPU is enabled:
 
@@ -162,6 +162,7 @@ javac -version
 echo $env:JAVA_HOME
 wasm-bindgen --version
 cargo check -p gpux --all-targets
-# From ../RayX:
-cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu
+# Browser/WASM setup (lane B prerequisites):
+cargo run -p gpux-testkit -- web build --verify
+cargo run -p gpux-testkit -- lane b --list
 ```

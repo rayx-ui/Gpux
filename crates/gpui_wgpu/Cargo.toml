@@ -20,7 +20,9 @@ doctest = false
 default = []
 bench-support = ["gpux/bench-support"]
 font-kit = ["dep:font-kit"]
-rayx_diagnostics = ["gpux/rayx_diagnostics"]
+diagnostics = ["gpux/diagnostics"]
+# The former name of `diagnostics`; it also publishes the legacy `__rayx*` browser globals.
+rayx_diagnostics = ["diagnostics", "gpux/rayx_diagnostics"]
 test-support = ["gpux/test-support"]
 
 [dependencies]
@@ -68,6 +70,14 @@ criterion.workspace = true
 gpux = { workspace = true, features = ["bench-support"] }
 gpux_fonts.workspace = true
 naga = { version = "30.0.1", features = ["wgsl-in"] }
+
+[[test]]
+name = "headless_renderer"
+required-features = ["test-support"]
+
+[[test]]
+name = "headless_renderer_gpu_errors"
+required-features = ["test-support"]
 
 [[bench]]
 name = "layout_line"

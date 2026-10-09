@@ -59,27 +59,27 @@ const DRAG_THRESHOLD: f64 = 2.;
 const DEFAULT_TOOLTIP_SHOW_DELAY: Duration = Duration::from_millis(500);
 const HOVERABLE_TOOLTIP_HIDE_DELAY: Duration = Duration::from_millis(500);
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 thread_local! {
     static STYLE_PHASE_DIAGNOSTICS: RefCell<[u64; 14]> = const { RefCell::new([0; 14]) };
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 pub(crate) fn reset_style_phase_diagnostics() {
     STYLE_PHASE_DIAGNOSTICS.with_borrow_mut(|diagnostics| *diagnostics = [0; 14]);
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 pub(crate) fn style_phase_diagnostics() -> [u64; 14] {
     STYLE_PHASE_DIAGNOSTICS.with_borrow(|diagnostics| *diagnostics)
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 fn record_style_phase(index: usize) {
     STYLE_PHASE_DIAGNOSTICS.with_borrow_mut(|diagnostics| diagnostics[index] += 1);
 }
 
-#[cfg(feature = "rayx_diagnostics")]
+#[cfg(feature = "diagnostics")]
 fn gpux_owns_request_style(file: &str) -> bool {
     file.contains("crates/gpui/src/elements/") || file.contains("crates\\gpui\\src\\elements\\")
 }
@@ -2481,15 +2481,15 @@ pub struct Interactivity {
     pub(crate) current_sticky_state: Option<StickyState>,
     pub(crate) sticky_occurrence: Option<usize>,
     pub(crate) style_handoff_index: Option<usize>,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub(crate) request_prepaint_style_candidate: bool,
-    #[cfg(feature = "rayx_diagnostics")]
+    #[cfg(feature = "diagnostics")]
     pub(crate) request_style_is_gpux_owned: bool,
 }
 
 impl Interactivity {
     /// Layout this element according to this interactivity state's configured styles
-    #[cfg_attr(feature = "rayx_diagnostics", track_caller)]
+    #[cfg_attr(feature = "diagnostics", track_caller)]
     pub fn request_layout(
         &mut self,
         global_id: Option<&GlobalElementId>,
@@ -2498,10 +2498,10 @@ impl Interactivity {
         cx: &mut App,
         f: impl FnOnce(Style, &mut Window, &mut App) -> LayoutId,
     ) -> LayoutId {
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         let request_style_is_gpux_owned =
             gpux_owns_request_style(std::panic::Location::caller().file());
-        #[cfg(not(feature = "rayx_diagnostics"))]
+        #[cfg(not(feature = "diagnostics"))]
         let request_style_is_gpux_owned = false;
 
         self.request_layout_inner(
@@ -2538,7 +2538,7 @@ impl Interactivity {
     ) -> LayoutId {
         debug_assert!(!retain_request_style || request_style_is_gpux_owned);
         self.style_handoff_index = None;
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         record_style_phase(0);
 
         #[cfg(any(feature = "inspector", debug_assertions))]
@@ -2621,7 +2621,7 @@ impl Interactivity {
                     );
                 }
 
-                #[cfg(feature = "rayx_diagnostics")]
+                #[cfg(feature = "diagnostics")]
                 if self.base_style.as_ref() == &StyleRefinement::default() {
                     record_style_phase(13);
                 }
@@ -2629,7 +2629,7 @@ impl Interactivity {
                 let mut style =
                     self.compute_style_internal(None, element_state.as_mut(), None, window, cx);
                 let request_prepaint_style_candidate = !self.has_dynamic_paint_refinement();
-                #[cfg(feature = "rayx_diagnostics")]
+                #[cfg(feature = "diagnostics")]
                 {
                     self.request_prepaint_style_candidate = request_prepaint_style_candidate;
                     self.request_style_is_gpux_owned = request_style_is_gpux_owned;
@@ -2666,7 +2666,7 @@ impl Interactivity {
             &mut App,
         ) -> R,
     ) -> R {
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         {
             record_style_phase(1);
             let request_style_is_gpux_owned = self.request_style_is_gpux_owned;
@@ -2726,7 +2726,7 @@ impl Interactivity {
                     element_state.map(|element_state| element_state.unwrap_or_default());
                 let can_reuse_request_style =
                     request_style.is_some() && !self.has_dynamic_paint_refinement();
-                #[cfg(feature = "rayx_diagnostics")]
+                #[cfg(feature = "diagnostics")]
                 if can_reuse_request_style {
                     record_style_phase(12);
                 }
@@ -2747,7 +2747,7 @@ impl Interactivity {
                     || sticky_state
                         .is_some_and(|state| state.is_stuck() && self.stuck_style.is_some());
                 if should_recompute_style {
-                    #[cfg(feature = "rayx_diagnostics")]
+                    #[cfg(feature = "diagnostics")]
                     record_style_phase(2);
                     style = self.compute_style_internal(
                         None,
@@ -2759,6 +2759,9 @@ impl Interactivity {
                 }
                 let bounds = positioned_bounds.visual_bounds;
                 let position = style.position;
+                if matches!(position, Position::Fixed | Position::Sticky) {
+                    window.report_visual_bounds(bounds);
+                }
                 let retain_style = !self.has_dynamic_paint_refinement();
 
                 if let Some(element_state) = element_state.as_mut() {
@@ -2920,7 +2923,7 @@ impl Interactivity {
                             logical(target),
                             scroll_max,
                             behavior,
-                            crate::Instant::now(),
+                            cx.background_executor().now(),
                         )
                     };
                     if let Some(frame) = frame {
@@ -3026,7 +3029,7 @@ impl Interactivity {
         let can_reuse_prepaint_style = prepaint_style.is_some()
             && !self.has_dynamic_paint_refinement()
             && (hitbox.is_none() || !cx.has_active_drag());
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         {
             record_style_phase(3);
             if !self.has_dynamic_paint_refinement() {
@@ -3915,9 +3918,11 @@ impl Interactivity {
                         && event.delta.precise()
                         && let Some(ongoing_scroll) = &ongoing_scroll
                     {
-                        ongoing_scroll
-                            .borrow_mut()
-                            .filter(&mut delta, event.touch_phase);
+                        ongoing_scroll.borrow_mut().filter_at(
+                            &mut delta,
+                            event.touch_phase,
+                            cx.background_executor().now(),
+                        );
                     }
 
                     let mut delta_x = Pixels::ZERO;
@@ -5436,7 +5441,7 @@ fn schedule_programmatic_scroll(
         let Some(frame) = apply_programmatic_scroll_frame(
             &scroll_handle,
             generation,
-            crate::Instant::now(),
+            cx.background_executor().now(),
             current_view,
             cx,
         ) else {

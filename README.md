@@ -59,6 +59,7 @@ fn main() {
 | `crates/gpui_macros` | `gpux-macros` | `gpui_macros` | Derive and attribute macros |
 | `crates/gpux_color` | `gpux-color` | `gpux_color` | Standards color engine behind `gpux::Color` |
 | `crates/gpux_fonts` | `gpux-fonts` | `gpux_fonts` | Bundled IBM Plex Sans and Lilex fonts |
+| `crates/gpux_conformance` | `gpux-conformance` | `gpux_conformance` | Conformance scenes, test hosts and image comparison |
 | `crates/gpui_shared_string` | `gpux-shared-string` | `gpui_shared_string` | `SharedString` |
 | `crates/gpui_util` | `gpux-util` | `gpui_util` | GPUI utilities |
 | `crates/collections` | `gpux-collections` | `collections` | Hash maps and sets |
@@ -74,6 +75,7 @@ fn main() {
 | `crates/util` | `gpux-zed-util` | `util` | Zed's general utilities |
 | `crates/util_macros` | `gpux-zed-util-macros` | `util_macros` | Zed's utility macros |
 | `tooling/perf` | `gpux-perf` | `perf` | Test performance measurement |
+| `tooling/testkit` | `gpux-testkit` | `gpux_testkit` | The `gpux-testkit` test-lane runner |
 | `vendor/wgpu/...` | `gpux-wgpu`, `gpux-wgpu-core`, `gpux-wgpu-hal`, `gpux-wgpu-core-deps-*` | `wgpu`, ... | Temporary wgpu fork, see below |
 
 ## The wgpu fork
@@ -90,8 +92,10 @@ tracks the upstream change.
 ## Maintenance
 
 Upstream imports (Zed GPUI closure, gpui-mobile, wgpu), installation, platform prerequisites and
-validation are documented in the [gpux skill](.claude/skills/gpux/SKILL.md). Contributor rules
-are in [CLAUDE.md](CLAUDE.md).
+validation are documented in the [gpux skill](.claude/skills/gpux/SKILL.md). gpux tests itself in
+lanes run by `gpux-testkit`, from the test platform to browsers, desktop windows, Android, iOS
+and the local GPU; [docs/testing.md](docs/testing.md) describes them. Contributor rules are in
+[CLAUDE.md](CLAUDE.md).
 
 ## License
 

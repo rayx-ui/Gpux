@@ -67,6 +67,24 @@ pub fn bench_platform(
     ) as Rc<dyn Platform>
 }
 
+/// The stack benchmarks run with. Linux and macOS give their main thread 8 MiB, Windows only
+/// 1 MiB, and GPUI recurses once per element through layout and paint, so [`crate::bench_main!`]
+/// runs every benchmark on a thread of this size: deep trees fit the same stack everywhere.
+pub const BENCH_STACK_BYTES: usize = 8 * 1024 * 1024;
+
+/// Runs `benchmarks` on a thread with [`BENCH_STACK_BYTES`] of stack and waits for them,
+/// re-raising a panic. [`crate::bench_main!`] calls it.
+pub fn run_with_bench_stack(benchmarks: impl FnOnce() + Send + 'static) {
+    let thread = std::thread::Builder::new()
+        .name("gpux-bench".into())
+        .stack_size(BENCH_STACK_BYTES)
+        .spawn(benchmarks)
+        .expect("spawning the benchmark thread");
+    if let Err(panic) = thread.join() {
+        std::panic::resume_unwind(panic);
+    }
+}
+
 /// Default target frame rate when a benchmark doesn't specify `fps = N`.
 const DEFAULT_FPS: u64 = 120;
 
@@ -1496,9 +1514,10 @@ mod tests {
 
         // Fixture/setup work that must not be attributed to the measurement:
         // a long poll recorded before the trace scope (and its journal
-        // collector) is created.
+        // collector) is created. It is far longer than any oversleep of the
+        // measured 10ms poll on a loaded runner, so the two cannot be confused.
         let setup_task = foreground_executor.spawn(async move {
-            std::thread::sleep(Duration::from_millis(80));
+            std::thread::sleep(Duration::from_millis(300));
         });
         run_task_to_completion(&foreground_executor, setup_task);
 
@@ -1517,13 +1536,13 @@ mod tests {
             .foreground_work()
             .expect("the measured task's poll should be reported");
         assert!(
-            summary.max < Duration::from_millis(40),
-            "setup work's 80ms poll must not leak into the measured summary, got {:?}",
+            summary.max < Duration::from_millis(250),
+            "setup work's 300ms poll must not leak into the measured summary, got {:?}",
             summary.max
         );
         assert!(
-            summary.total < Duration::from_millis(40),
-            "setup work's 80ms poll must not leak into the measured total, got {:?}",
+            summary.total < Duration::from_millis(250),
+            "setup work's 300ms poll must not leak into the measured total, got {:?}",
             summary.total
         );
     }

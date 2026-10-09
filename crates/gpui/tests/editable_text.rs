@@ -50,7 +50,7 @@ fn editable_text_pointer_down_focuses_before_platform_input() {
     assert!(window.update(|_, window, cx| window.dispatch_text_input("focused", cx)));
     assert_eq!(app.read_entity(&state, |state, _| state.text()), "focused");
 
-    window.simulate_keystroke("ctrl-a");
+    window.simulate_keystroke("secondary-a");
     assert!(window.update(|_, window, cx| window.dispatch_text_input("replaced", cx)));
     assert_eq!(app.read_entity(&state, |state, _| state.text()), "replaced");
 }

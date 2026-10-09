@@ -242,14 +242,19 @@ impl WebWindowInner {
         let position = mouse_position_in_canvas(mouse_event, &self.canvas);
         let modifiers = modifiers_from_wheel_event(mouse_event, self.is_mac);
 
-        let delta_mode = event.delta_mode();
-        let delta = if delta_mode == 1 {
-            ScrollDelta::Lines(point(-event.delta_x() as f32, -event.delta_y() as f32))
-        } else {
-            ScrollDelta::Pixels(point(
+        let delta = match event.delta_mode() {
+            web_sys::WheelEvent::DOM_DELTA_LINE => {
+                ScrollDelta::Lines(point(-event.delta_x() as f32, -event.delta_y() as f32))
+            }
+            // A page is the visible canvas, in CSS pixels.
+            web_sys::WheelEvent::DOM_DELTA_PAGE => ScrollDelta::Pixels(point(
+                px(-event.delta_x() as f32 * self.canvas.client_width() as f32),
+                px(-event.delta_y() as f32 * self.canvas.client_height() as f32),
+            )),
+            _ => ScrollDelta::Pixels(point(
                 px(-event.delta_x() as f32),
                 px(-event.delta_y() as f32),
-            ))
+            )),
         };
 
         {
@@ -1401,21 +1406,7 @@ fn capslock_from_keyboard_event(event: &web_sys::KeyboardEvent) -> Capslock {
 }
 
 pub(crate) fn is_mac_platform(browser_window: &web_sys::Window) -> bool {
-    let navigator = browser_window.navigator();
-
-    #[allow(deprecated)]
-    // navigator.platform() is deprecated but navigator.userAgentData is not widely available yet
-    if let Ok(platform) = navigator.platform() {
-        if platform.contains("Mac") {
-            return true;
-        }
-    }
-
-    if let Ok(user_agent) = navigator.user_agent() {
-        return user_agent.contains("Mac");
-    }
-
-    false
+    crate::browser_os::keyboard_os_of(browser_window).is_mac()
 }
 
 fn is_modifier_only_key(key: &str) -> bool {

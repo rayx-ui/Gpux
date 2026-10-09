@@ -1864,6 +1864,20 @@ impl gpux::PlatformHeadlessRenderer for MetalHeadlessRenderer {
     fn sprite_atlas(&self) -> Arc<dyn gpux::PlatformAtlas> {
         self.renderer.sprite_atlas().clone()
     }
+
+    // gpux's Metal renderer has no shader-effect pipelines yet, so it keeps the default
+    // `effect_capabilities()` (no effects) rather than claiming support it cannot render.
+
+    fn gpu_specs(&self) -> Option<gpux::GpuSpecs> {
+        Some(gpux::GpuSpecs {
+            is_software_emulated: false,
+            backend: "metal".to_string(),
+            backend_policy: "METAL".to_string(),
+            device_name: self.renderer.device.name().to_string(),
+            driver_name: "Metal".to_string(),
+            driver_info: String::new(),
+        })
+    }
 }
 
 #[cfg(test)]

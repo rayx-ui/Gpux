@@ -2,15 +2,30 @@ name: Gpux
 
 on:
   pull_request:
-  push:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      update-goldens:
+        description: Regenerate the lane C goldens of each backend and upload them as artifacts
+        type: boolean
+        default: false
+
+# A new push to a pull request cancels its superseded run; scheduled and manual runs always finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
+  # Full debug info makes the workspace's test and example binaries outgrow the Linux runner's
+  # disk; line tables keep backtraces readable.
+  CARGO_PROFILE_DEV_DEBUG: line-tables-only
   # The gpux-wgpu fork crates are upstream wgpu sources; gpux does not lint or test them.
   FORK_EXCLUDES: >-
     --exclude gpux-wgpu --exclude gpux-wgpu-core --exclude gpux-wgpu-hal
     --exclude gpux-wgpu-core-deps-apple --exclude gpux-wgpu-core-deps-emscripten
     --exclude gpux-wgpu-core-deps-wasm --exclude gpux-wgpu-core-deps-windows-linux-android
+  LINUX_PACKAGES: >-
+    pkg-config libfreetype6-dev libfontconfig1-dev libxkbcommon-dev libxkbcommon-x11-dev
+    libvulkan1 mesa-vulkan-drivers
 
 jobs:
   check:
@@ -18,7 +33,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-24.04, windows-2025, macos-15]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
@@ -30,7 +45,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y pkg-config libfreetype6-dev libfontconfig1-dev libxkbcommon-dev libxkbcommon-x11-dev
+          sudo apt-get install -y $LINUX_PACKAGES
       - name: Format
         if: runner.os == 'Linux'
         run: cargo fmt --check
@@ -42,26 +57,146 @@ jobs:
         shell: bash
       - name: Check the web platform
         if: runner.os == 'Linux'
-        run: cargo check -p gpux-web --target wasm32-unknown-unknown --no-default-features
+        run: |
+          cargo check -p gpux-web --target wasm32-unknown-unknown --no-default-features
+          cargo check -p gpux-conformance --target wasm32-unknown-unknown --no-default-features
 
   test:
-    name: test (windows)
-    runs-on: windows-latest
+    name: test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025, macos-15]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Free disk space
+        if: runner.os == 'Linux'
+        # Linking every workspace test and example needs more room than the runner leaves free.
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@1.95.0
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y $LINUX_PACKAGES
+      - name: Select lavapipe
+        if: runner.os == 'Linux'
+        run: echo "VK_DRIVER_FILES=$(ls /usr/share/vulkan/icd.d/lvp_icd*.json | head -n 1)" >> "$GITHUB_ENV"
+      # GPU-backed tests create devices; running them concurrently hangs on DX12. The
+      # conformance lanes run in their own jobs.
+      - run: cargo test --workspace --no-fail-fast ${{ env.FORK_EXCLUDES }} --exclude gpux-conformance -- --test-threads=1
+        shell: bash
+
+  lane-a:
+    name: lane A (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025, macos-15]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@1.95.0
-      # GPU-backed tests create devices; running them concurrently hangs on DX12.
-      - run: cargo test --workspace ${{ env.FORK_EXCLUDES }} -- --test-threads=1
-        shell: bash
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y $LINUX_PACKAGES
+      # The testkit runs lane A with every conformance group that needs no renderer.
+      - name: Lane A and the conformance catalog
+        run: cargo run -p gpux-testkit -- lane a
+
+  lane-c:
+    name: lane C (${{ matrix.backend }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            backend: lavapipe
+          - os: windows-2025
+            backend: warp
+          - os: macos-15
+            backend: metal
+    runs-on: ${{ matrix.os }}
+    env:
+      GPUX_WGPU_ADAPTER: software
+      # Every scene must render on this backend, so a missing driver cannot skip the goldens.
+      GPUX_EXPECT_BACKEND: ${{ matrix.backend }}
+      GPUX_UPDATE_SNAPSHOTS: ${{ inputs.update-goldens && '1' || '' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@1.95.0
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y $LINUX_PACKAGES
+      - name: Select lavapipe
+        if: runner.os == 'Linux'
+        run: echo "VK_DRIVER_FILES=$(ls /usr/share/vulkan/icd.d/lvp_icd*.json | head -n 1)" >> "$GITHUB_ENV"
+      - name: Lane C
+        run: cargo run -p gpux-testkit -- lane c
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: lane-c-${{ matrix.backend }}-failures
+          path: artifacts-temp/testkit/**
+          if-no-files-found: ignore
+      - name: Upload regenerated goldens
+        # Probe failures elsewhere must not hold back the goldens this run wrote.
+        if: ${{ !cancelled() && inputs.update-goldens }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: lane-c-${{ matrix.backend }}-goldens
+          path: crates/gpux_conformance/tests/goldens/${{ matrix.backend }}/
+
+  lane-d:
+    name: lane D (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025, macos-15]
+    runs-on: ${{ matrix.os }}
+    env:
+      # A hosted Windows session may not deliver SendInput; the OS-input check then reports
+      # itself skipped with the reason instead of failing.
+      GPUX_OS_INPUT: ${{ matrix.os == 'windows-2025' && 'optional' || '' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@1.95.0
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y $LINUX_PACKAGES xvfb xdotool
+      - name: Select lavapipe
+        if: runner.os == 'Linux'
+        run: echo "VK_DRIVER_FILES=$(ls /usr/share/vulkan/icd.d/lvp_icd*.json | head -n 1)" >> "$GITHUB_ENV"
+      - name: Lane D (X11 under Xvfb)
+        if: runner.os == 'Linux'
+        run: env -u WAYLAND_DISPLAY xvfb-run -a -s "-screen 0 1280x1024x24" cargo run -p gpux-testkit -- lane d
+      - name: Lane D
+        if: runner.os != 'Linux'
+        run: cargo run -p gpux-testkit -- lane d
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: lane-d-${{ matrix.os }}-failures
+          path: artifacts-temp/testkit/**
+          if-no-files-found: ignore
 
   package:
     name: package
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@1.95.0
       - name: Install Linux dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pkg-config libfreetype6-dev libfontconfig1-dev libxkbcommon-dev libxkbcommon-x11-dev
+          sudo apt-get install -y $LINUX_PACKAGES
       - run: cargo package --workspace

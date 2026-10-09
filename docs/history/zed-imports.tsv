@@ -9,3 +9,5 @@ abcbcd5518dda3e79604be0aacbb26ff8be18b58	2026-05-14	54a95e717d4ed1589c9b0e38648f
 5b8e96f6ba8b0781a1737475946e12f4519274bf	2026-05-14	481854f7541636c63f79abec9785697ed74f4005	8e411ca065cf41ae76654b79e4bcb15d8dadaa90	chore(gpui): merge upstream zed main
 7e08f063b2c60d91a7f0e1398537d8f8233b9b19	2026-08-07	c24358d96cdb4ce14ecbc088462295353b0103f0	-	deps: Bump pathfinder_simd & fix upcoming rustc warnings (#62170)
 25dbe347a6103019cce7fbe6ec722d9055bc9531	2026-10-05	d544470d1d3770f0024651dbf121525564a2657c	-	Reduce the dependency footprint (#65176)
+5a5154f51f2900a393716169af127eef9638e40c	2026-10-07	e91b82c106817f2419207ebf81f1da766698ac95	-	port: gpui_wgpu: Add Linux headless rendering (#64718), with gpux adaptations and Windows support
+5a5154f51f2900a393716169af127eef9638e40c	2026-10-07	3135cdf8dc8e6800d2b7ad89d62ea4994d892fb6	-	port: shared headless device from gpui: Add randomized element tree benchmarks and fix Linux benchmark leaks (#64842)

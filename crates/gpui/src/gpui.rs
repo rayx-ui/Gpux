@@ -56,6 +56,8 @@ pub mod randomized_element_tree;
 mod scene;
 #[cfg(any(test, feature = "test-support", feature = "bench-support"))]
 mod seeds;
+/// Semantic element queries and, with `test-support`, locators that act on what they find.
+pub mod semantic_query;
 mod shared_uri;
 mod spring;
 mod style;
@@ -159,7 +161,9 @@ macro_rules! bench_group {
 /// Defines the entry point for GPUI Criterion benchmark groups.
 ///
 /// This mirrors `criterion::criterion_main!` so GPUI benchmark files can keep the
-/// same shape as ordinary Criterion benchmarks. It also installs
+/// same shape as ordinary Criterion benchmarks, but runs the groups on a thread
+/// with [`BENCH_STACK_BYTES`] of stack ([`run_with_bench_stack`]), so deep
+/// element trees fit the same stack on every platform. It also installs
 /// [`CountingAllocator`] as the binary's global allocator, so reports include
 /// heap allocations per iteration. It wraps the system allocator by default;
 /// `allocator = Path;` wraps another unit-struct allocator instead, e.g. to
@@ -173,18 +177,25 @@ macro_rules! bench_group {
 /// dropping the allocation metrics from reports.
 #[macro_export]
 macro_rules! bench_main {
-    (allocator = none; $($groups:tt)*) => {
-        criterion::criterion_main!($($groups)*);
+    (allocator = none; $($group:path),+ $(,)?) => {
+        fn main() {
+            $crate::run_with_bench_stack(|| {
+                $($group();)+
+                criterion::Criterion::default()
+                    .configure_from_args()
+                    .final_summary();
+            });
+        }
     };
-    (allocator = $allocator:path; $($groups:tt)*) => {
+    (allocator = $allocator:path; $($group:path),+ $(,)?) => {
         #[global_allocator]
         static GPUI_BENCH_ALLOCATOR: $crate::CountingAllocator<$allocator> =
             $crate::CountingAllocator::new($allocator);
 
-        criterion::criterion_main!($($groups)*);
+        $crate::bench_main!(allocator = none; $($group),+);
     };
-    ($($groups:tt)*) => {
-        $crate::bench_main!(allocator = ::std::alloc::System; $($groups)*);
+    ($($group:path),+ $(,)?) => {
+        $crate::bench_main!(allocator = ::std::alloc::System; $($group),+);
     };
 }
 pub use gpui_shared_string::*;

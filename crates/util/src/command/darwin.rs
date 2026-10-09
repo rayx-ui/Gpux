@@ -14,6 +14,10 @@ use std::path::{Path, PathBuf};
 use std::process::{ExitStatus, Output};
 use std::ptr;
 
+mod process;
+
+use process::Process;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Stdio {
     /// A new pipe should be arranged to connect the parent and child processes.
@@ -229,7 +233,7 @@ impl Command {
 
 #[derive(Debug)]
 pub struct Child {
-    inner: smol::process::Child,
+    inner: Process,
     pub stdin: Option<Async<std::fs::File>>,
     pub stdout: Option<Async<std::fs::File>>,
     pub stderr: Option<Async<std::fs::File>>,
@@ -494,7 +498,7 @@ fn spawn_posix_spawn(
 
         cvt_nz(spawn_result)?;
 
-        let inner = smol::process::Child::adopt_raw_pid(pid as u32, true, kill_on_drop)?;
+        let inner = Process::new(pid, kill_on_drop);
 
         Ok(Child {
             inner,

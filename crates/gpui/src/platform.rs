@@ -1,5 +1,6 @@
 mod app_menu;
 mod keyboard;
+mod keyboard_os;
 mod keystroke;
 
 #[cfg(all(target_os = "linux", feature = "wayland"))]
@@ -79,6 +80,7 @@ use uuid::Uuid;
 
 pub use app_menu::*;
 pub use keyboard::*;
+pub use keyboard_os::*;
 pub use keystroke::*;
 
 /// Whether the platform is presenting a window's frames.
@@ -137,7 +139,10 @@ pub enum ActivationPolicy {
 pub(crate) use test::*;
 
 #[cfg(any(test, feature = "test-support"))]
-pub use test::{TestDispatcher, TestScreenCaptureSource, TestScreenCaptureStream};
+pub use test::{
+    TestDispatcher, TestPlatformCall, TestScreenCaptureSource, TestScreenCaptureStream,
+    TestWindowCall,
+};
 
 #[cfg(any(test, feature = "test-support", feature = "bench-support"))]
 pub use threaded_dispatcher::ThreadedDispatcher;
@@ -1367,6 +1372,17 @@ pub trait PlatformHeadlessRenderer {
 
     /// Returns the sprite atlas used by this renderer.
     fn sprite_atlas(&self) -> Arc<dyn PlatformAtlas>;
+
+    /// The shader effects this renderer draws. A renderer reports an effect only when its
+    /// native path renders it; the default reports none.
+    fn effect_capabilities(&self) -> EffectCapabilities {
+        EffectCapabilities::default()
+    }
+
+    /// The GPU this renderer draws with, when it knows.
+    fn gpu_specs(&self) -> Option<GpuSpecs> {
+        None
+    }
 }
 
 /// Type alias for runnables with metadata.

@@ -175,6 +175,10 @@ pub fn box_shadow_style_methods(input: TokenStream) -> TokenStream {
 /// - `#[gpux::test(retries = 3)]` runs up to four times if it fails to try and make it pass.
 /// - `#[gpux::test(on_failure = "crate::test::report_failure")]` will call the specified function after the
 ///   tests fail so that you can write out more detail about the failure.
+/// - `#[gpux::test(text = "bundled")]` gives every `TestAppContext` the deterministic text system
+///   from `gpui_platform::bundled_text_system()`: real shaping with only the fonts `gpux_fonts`
+///   bundles. The crate must depend on `gpux-platform` with its `test-support` feature. Without
+///   the argument (or with `text = "noop"`), contexts use the test platform's `NoopTextSystem`.
 ///
 /// You can combine `iterations = ...` with `seeds(...)`:
 /// - `#[gpux::test(iterations = 5, seed = 10)]` is equivalent to `#[gpux::test(seeds(0, 1, 2, 3, 4, 10))]`.

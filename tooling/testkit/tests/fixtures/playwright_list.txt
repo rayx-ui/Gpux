@@ -1,0 +1,17 @@
+
+Running 5 tests using 1 worker
+
+  ✓  1 [chromium-webgpu] › specs/canary.spec.ts:4:1 › @canary starts on WebGPU (2.1s)
+  ✓  2 [chromium-webgpu] › specs/canary.spec.ts:12:1 › @canary renders a non-flat canvas (1.4s)
+  ✘  3 [chromium-webgpu] › specs/input.spec.ts:8:1 › @pr clicks a located button (5.0s)
+  ✘  4 [chromium-webgpu] › specs/input.spec.ts:8:1 › @pr clicks a located button (retry #1) (4.8s)
+  -  5 [chromium-webgpu] › specs/timing.spec.ts:3:1 › @timing frame budget
+
+  1) [chromium-webgpu] › specs/input.spec.ts:8:1 › @pr clicks a located button ─────────────────
+
+    Error: expect(locator).toHaveText(expected) failed
+
+  1 failed
+    [chromium-webgpu] › specs/input.spec.ts:8:1 › @pr clicks a located button ──────────────────
+  1 skipped
+  2 passed (14.3s)

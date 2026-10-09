@@ -1120,6 +1120,9 @@ pub(crate) struct WindowFrame {
     pub(crate) devtools_property_setters: FxHashMap<usize, Vec<DevtoolsPropertySetter>>,
     pub(crate) devtools_node_stack: Vec<usize>,
     pub(crate) next_devtools_node_id: usize,
+    /// Visual bounds that elements reported for their own devtools node while prepainting,
+    /// when they paint somewhere other than their layout bounds (fixed and sticky divs).
+    visual_bounds: Vec<(usize, Bounds<Pixels>)>,
     #[cfg(any(feature = "inspector", debug_assertions))]
     pub(crate) next_inspector_instance_ids: FxHashMap<Rc<crate::InspectorElementPath>, usize>,
     #[cfg(any(feature = "inspector", debug_assertions))]
@@ -1188,6 +1191,7 @@ impl WindowFrame {
             devtools_property_setters: FxHashMap::default(),
             devtools_node_stack: Vec::new(),
             next_devtools_node_id: 0,
+            visual_bounds: Vec::new(),
 
             #[cfg(any(feature = "inspector", debug_assertions))]
             next_inspector_instance_ids: FxHashMap::default(),
@@ -1226,6 +1230,7 @@ impl WindowFrame {
         self.devtools_property_setters.clear();
         self.devtools_node_stack.clear();
         self.next_devtools_node_id = 0;
+        self.visual_bounds.clear();
 
         #[cfg(any(feature = "inspector", debug_assertions))]
         {
@@ -2991,7 +2996,9 @@ impl Window {
                     None
                 };
 
-                let now = Instant::now();
+                // The executor clock is real time in production; tests step it with
+                // `advance_clock`, so frame throttling stays deterministic there.
+                let now = cx.background_executor().now();
                 #[cfg_attr(not(feature = "profiler"), expect(unused_variables))]
                 if let Some((min_interval, limit)) = min_frame_interval {
                     if let Some(last_frame) = last_frame_time.get()
@@ -4074,7 +4081,7 @@ impl Window {
         canceled
     }
 
-    fn play_screen_effect_at(
+    pub(crate) fn play_screen_effect_at(
         &mut self,
         effect: impl Into<ScreenEffect>,
         started_at: Instant,
@@ -4851,6 +4858,27 @@ impl Window {
         });
     }
 
+    /// Reports where the element being prepainted paints and hit-tests when that differs from
+    /// its layout bounds (fixed and sticky divs). Its devtools snapshot node (read by the
+    /// semantic locators) and its accessibility node then use the visual bounds.
+    pub(crate) fn report_visual_bounds(&mut self, bounds: Bounds<Pixels>) {
+        if let Some(devtools_node_id) = self.active_devtools_node_id() {
+            self.next_frame
+                .visual_bounds
+                .push((devtools_node_id, bounds));
+        }
+    }
+
+    /// Takes the visual bounds the element of `devtools_node_id` reported while prepainting.
+    pub(crate) fn take_visual_bounds(&mut self, devtools_node_id: usize) -> Option<Bounds<Pixels>> {
+        let index = self
+            .next_frame
+            .visual_bounds
+            .iter()
+            .position(|(id, _)| *id == devtools_node_id)?;
+        Some(self.next_frame.visual_bounds.swap_remove(index).1)
+    }
+
     pub(crate) fn push_devtools_node(&mut self) -> (usize, Option<usize>) {
         let devtools_node_id = self.next_frame.next_devtools_node_id;
         self.next_frame.next_devtools_node_id += 1;
@@ -4869,10 +4897,9 @@ impl Window {
     }
 
     pub(crate) fn pop_devtools_node(&mut self, devtools_node_id: usize) {
-        debug_assert_eq!(
-            self.next_frame.devtools_node_stack.pop(),
-            Some(devtools_node_id)
-        );
+        // Pop outside the assertion: release builds do not evaluate `debug_assert` arguments.
+        let popped = self.next_frame.devtools_node_stack.pop();
+        debug_assert_eq!(popped, Some(devtools_node_id));
     }
 
     fn active_devtools_node_id(&self) -> Option<usize> {
@@ -5077,9 +5104,9 @@ impl Window {
         // Set up the per-App arena for element allocation during this draw.
         // This ensures that multiple test Apps have isolated arenas.
         let arena_scope = ElementArenaScope::enter(&cx.element_arena);
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         crate::reset_global_element_id_path_diagnostics();
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         crate::reset_style_phase_diagnostics();
         self.retained_styles.clear();
 
@@ -5122,11 +5149,11 @@ impl Window {
                 );
             }
         }
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         self.next_frame
             .scene
             .set_global_element_id_path_diagnostics(crate::global_element_id_path_diagnostics());
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         {
             let text_measurement_diagnostics = crate::take_text_measurement_path_diagnostics();
             self.layout_engine
@@ -7905,17 +7932,17 @@ impl Window {
     /// returns a `Size`.
     ///
     /// This method should only be called as part of the request_layout or prepaint phase of element drawing.
-    #[cfg_attr(feature = "rayx_diagnostics", track_caller)]
+    #[cfg_attr(feature = "diagnostics", track_caller)]
     pub fn request_measured_layout<F>(&mut self, style: Style, measure: F) -> LayoutId
     where
         F: Fn(Size<Option<Pixels>>, Size<AvailableSpace>, &mut Window, &mut App) -> Size<Pixels>
             + 'static,
     {
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         let kind = crate::taffy::MeasuredLayoutKind::from_source_file(
             std::panic::Location::caller().file(),
         );
-        #[cfg(not(feature = "rayx_diagnostics"))]
+        #[cfg(not(feature = "diagnostics"))]
         let kind = crate::taffy::MeasuredLayoutKind::Custom;
         self.invalidator.debug_assert_prepaint();
 
@@ -7927,17 +7954,17 @@ impl Window {
             .request_measured_layout(style, rem_size, scale_factor, kind, measure)
     }
 
-    #[cfg_attr(feature = "rayx_diagnostics", track_caller)]
+    #[cfg_attr(feature = "diagnostics", track_caller)]
     pub(crate) fn request_measured_layout_ref<F>(&mut self, style: &Style, measure: F) -> LayoutId
     where
         F: Fn(Size<Option<Pixels>>, Size<AvailableSpace>, &mut Window, &mut App) -> Size<Pixels>
             + 'static,
     {
-        #[cfg(feature = "rayx_diagnostics")]
+        #[cfg(feature = "diagnostics")]
         let kind = crate::taffy::MeasuredLayoutKind::from_source_file(
             std::panic::Location::caller().file(),
         );
-        #[cfg(not(feature = "rayx_diagnostics"))]
+        #[cfg(not(feature = "diagnostics"))]
         let kind = crate::taffy::MeasuredLayoutKind::Custom;
         self.invalidator.debug_assert_prepaint();
 
@@ -8618,14 +8645,15 @@ impl Window {
         if !self.touch_prediction_enabled {
             event.predicted_position = None;
         }
-        let recognized_gestures = self.touch_gestures.handle_event(&event);
+        let now = cx.background_executor().now();
+        let recognized_gestures = self.touch_gestures.handle_event_at(&event, now);
         if event.phase == crate::TouchPhase::Started
             && let Some(touch_drag) = self.touch_gestures.offer_touch_drag(event.id)
         {
             self.dispatch_recognized_touch_gesture(touch_drag, cx);
         }
         if event.phase == crate::TouchPhase::Started
-            && self.touch_gestures.pending_long_press().is_some()
+            && self.touch_gestures.pending_long_press(now).is_some()
         {
             self.long_press_capture = None;
         }
@@ -8636,7 +8664,7 @@ impl Window {
         }
         if event.phase == crate::TouchPhase::Started {
             self.schedule_long_press_timer(cx);
-        } else if self.touch_gestures.pending_long_press().is_none() {
+        } else if self.touch_gestures.pending_long_press(now).is_none() {
             self.long_press_timer.take();
         }
         // The platform's touch-release handler may inspect the input handler
@@ -8707,7 +8735,8 @@ impl Window {
 
     fn schedule_long_press_timer(&mut self, cx: &mut App) {
         self.long_press_timer.take();
-        let Some((touch_id, duration)) = self.touch_gestures.pending_long_press() else {
+        let now = cx.background_executor().now();
+        let Some((touch_id, duration)) = self.touch_gestures.pending_long_press(now) else {
             return;
         };
         self.long_press_timer = Some(self.spawn(cx, async move |cx| {
@@ -8724,7 +8753,8 @@ impl Window {
 
     fn schedule_touch_momentum_tick(&mut self) {
         self.on_next_frame(|window, cx| {
-            if let Some(gesture) = window.touch_gestures.tick_momentum() {
+            let now = cx.background_executor().now();
+            if let Some(gesture) = window.touch_gestures.tick_momentum_at(now) {
                 window.dispatch_recognized_touch_gesture(gesture, cx);
             }
             if window.touch_gestures.has_momentum() {

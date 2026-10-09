@@ -2,7 +2,7 @@ use super::NetworkInfo;
 use std::ffi::CStr;
 
 #[link(name = "SystemConfiguration", kind = "framework")]
-extern "C" {}
+unsafe extern "C" {}
 
 pub fn get_network_info() -> Result<NetworkInfo, String> {
     let mut info = NetworkInfo::default();
@@ -95,7 +95,7 @@ type CFDictionaryRef = *const std::ffi::c_void;
 type CFStringRef = *const std::ffi::c_void;
 type CFIndex = isize;
 
-extern "C" {
+unsafe extern "C" {
     fn CNCopySupportedInterfaces() -> CFArrayRef;
     fn CNCopyCurrentNetworkInfo(interface_name: CFStringRef) -> CFDictionaryRef;
     fn CFArrayGetCount(array: CFArrayRef) -> CFIndex;
@@ -179,7 +179,7 @@ struct ifaddrs {
     ifa_data: *mut std::ffi::c_void,
 }
 
-extern "C" {
+unsafe extern "C" {
     fn getifaddrs(ifap: *mut *mut ifaddrs) -> i32;
     fn freeifaddrs(ifa: *mut ifaddrs);
 }

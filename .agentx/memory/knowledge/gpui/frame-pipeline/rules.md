@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/gpui/frame-pipeline
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-05T23:00:00+02:00
+  updated: 2026-10-07T16:45:00+02:00
   topics:
     - scene
     - arena
@@ -20,7 +20,7 @@ agentx:
 
 - Preserve equal-key scene order for sprites. Use cached-key stable sorting only for the hot monochrome family; keep direct stable sorting for cold or empty families unless separate measurements justify the extra allocation path.
 - Register arena drop records only when `std::mem::needs_drop::<T>()` is true.
-- Keep `GlobalElementId` on direct `Arc<[ElementId]>` ownership with a cached `collections::FxHasher` hash and full-path equality. Keep reuse diagnostics hash-only behind `rayx_diagnostics`; do not add production interning without a measured design that improves throughput and tail latency.
+- Keep `GlobalElementId` on direct `Arc<[ElementId]>` ownership with a cached `collections::FxHasher` hash and full-path equality. Keep reuse diagnostics hash-only behind `diagnostics`; do not add production interning without a measured design that improves throughput and tail latency.
 - Keep the full accessed-state history for replay ranges and rollback; restrict finish-time removal to separately tracked replay keys.
 - Keep deferred prepaint entries at stable arena indices; process them in place rather than moving completed entries behind cached ranges.
 - Keep `gpux::deferred(...)` content-mask-preserving by default; use `Deferred::unclipped()` only for intentional top-level overlays.

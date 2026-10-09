@@ -18,6 +18,23 @@ use std::{
     sync::{self, Arc},
 };
 
+/// A window request the test window recorded instead of performing it.
+///
+/// Read them with [`VisualTestContext::window_calls`](crate::VisualTestContext::window_calls).
+#[derive(Clone, Debug, PartialEq)]
+pub enum TestWindowCall {
+    /// `PlatformWindow::show_character_palette`.
+    ShowCharacterPalette,
+    /// `PlatformWindow::minimize`.
+    Minimize,
+    /// `PlatformWindow::zoom`.
+    Zoom,
+    /// `PlatformWindow::show_window_menu` at a window position.
+    ShowWindowMenu(Point<Pixels>),
+    /// `PlatformWindow::start_window_move`.
+    StartWindowMove,
+}
+
 pub(crate) struct TestWindowState {
     pub(crate) bounds: Bounds<Pixels>,
     pub(crate) handle: AnyWindowHandle,
@@ -32,6 +49,10 @@ pub(crate) struct TestWindowState {
     pub(crate) should_close_handler: Option<Box<dyn FnMut() -> bool>>,
     hit_test_window_control_callback: Option<Box<dyn FnMut() -> Option<WindowControlArea>>>,
     input_callback: Option<Box<dyn FnMut(PlatformInput) -> DispatchEventResult>>,
+    /// Where the last simulated pointer event happened and the modifiers it carried, reported
+    /// as the platform cursor. Windows whose hover follows activation (macOS) read the cursor
+    /// from the platform on every draw.
+    pub(crate) pointer: (Point<Pixels>, crate::Modifiers),
     active_status_change_callback: Option<Box<dyn FnMut(bool)>>,
     visibility: WindowVisibility,
     visibility_callback: Option<Box<dyn FnMut(WindowVisibility)>>,
@@ -49,15 +70,18 @@ pub(crate) struct TestWindowState {
     frame_wake_count: Rc<Cell<usize>>,
     frame_scheduled: bool,
     frame_callback_pending: bool,
-    input_handler: Option<PlatformInputHandler>,
+    pub(crate) input_handler: Option<PlatformInputHandler>,
     text_input_configurations: Vec<TextInputConfiguration>,
     text_input_state_changes: Vec<TextInputStateChange>,
     is_fullscreen: bool,
-    scale_factor: f32,
+    pub(crate) scale_factor: f32,
     appearance: WindowAppearance,
     external_drag_files: Vec<(PathBuf, bool)>,
     start_external_drag_result: bool,
     a11y_callbacks: Option<A11yCallbacks>,
+    /// Accessibility tree updates sent to the platform adapter, oldest first.
+    pub(crate) a11y_updates: Vec<accesskit::TreeUpdate>,
+    pub(crate) calls: Vec<TestWindowCall>,
 }
 
 #[derive(Clone)]
@@ -106,6 +130,7 @@ impl TestWindow {
             should_close_handler: None,
             hit_test_window_control_callback: None,
             input_callback: None,
+            pointer: (Point::default(), crate::Modifiers::default()),
             active_status_change_callback: None,
             visibility: WindowVisibility::Visible,
             visibility_callback: None,
@@ -133,6 +158,8 @@ impl TestWindow {
             external_drag_files: Vec::new(),
             start_external_drag_result: false,
             a11y_callbacks: None,
+            a11y_updates: Vec::new(),
+            calls: Vec::new(),
         })))
     }
     pub fn simulate_scheduled_frame(&self) -> bool {
@@ -294,6 +321,16 @@ impl TestWindow {
 
     pub fn simulate_input(&mut self, event: PlatformInput) -> bool {
         let mut lock = self.0.lock();
+        match &event {
+            PlatformInput::MouseDown(event) => lock.pointer = (event.position, event.modifiers),
+            PlatformInput::MouseUp(event) => lock.pointer = (event.position, event.modifiers),
+            PlatformInput::MouseMove(event) => lock.pointer = (event.position, event.modifiers),
+            PlatformInput::MouseExited(event) => lock.pointer = (event.position, event.modifiers),
+            PlatformInput::ScrollWheel(event) => lock.pointer = (event.position, event.modifiers),
+            PlatformInput::ModifiersChanged(event) => lock.pointer.1 = event.modifiers,
+            PlatformInput::Touch(event) => lock.pointer.0 = event.position,
+            _ => {}
+        }
         let Some(mut callback) = lock.input_callback.take() else {
             return false;
         };
@@ -374,11 +411,11 @@ impl PlatformWindow for TestWindow {
     }
 
     fn mouse_position(&self) -> Point<Pixels> {
-        Point::default()
+        self.0.lock().pointer.0
     }
 
     fn modifiers(&self) -> crate::Modifiers {
-        crate::Modifiers::default()
+        self.0.lock().pointer.1
     }
 
     fn capslock(&self) -> crate::Capslock {
@@ -387,6 +424,10 @@ impl PlatformWindow for TestWindow {
 
     fn set_input_handler(&mut self, input_handler: PlatformInputHandler) {
         self.0.lock().input_handler = Some(input_handler);
+    }
+
+    fn a11y_tree_update(&self, tree_update: accesskit::TreeUpdate) {
+        self.0.lock().a11y_updates.push(tree_update);
     }
 
     fn a11y_init(&self, callbacks: A11yCallbacks) {
@@ -468,15 +509,18 @@ impl PlatformWindow for TestWindow {
     }
 
     fn show_character_palette(&self) {
-        unimplemented!()
+        self.0
+            .lock()
+            .calls
+            .push(TestWindowCall::ShowCharacterPalette);
     }
 
     fn minimize(&self) {
-        unimplemented!()
+        self.0.lock().calls.push(TestWindowCall::Minimize);
     }
 
     fn zoom(&self) {
-        unimplemented!()
+        self.0.lock().calls.push(TestWindowCall::Zoom);
     }
 
     fn toggle_fullscreen(&self) {
@@ -588,12 +632,15 @@ impl PlatformWindow for TestWindow {
         unimplemented!()
     }
 
-    fn show_window_menu(&self, _position: Point<Pixels>) {
-        unimplemented!()
+    fn show_window_menu(&self, position: Point<Pixels>) {
+        self.0
+            .lock()
+            .calls
+            .push(TestWindowCall::ShowWindowMenu(position));
     }
 
     fn start_window_move(&self) {
-        unimplemented!()
+        self.0.lock().calls.push(TestWindowCall::StartWindowMove);
     }
 
     fn can_start_external_drag(&self) -> bool {
@@ -613,6 +660,19 @@ impl PlatformWindow for TestWindow {
     fn update_ime_position(&self, _bounds: Bounds<Pixels>) {}
 
     fn gpu_specs(&self) -> Option<GpuSpecs> {
-        None
+        self.0
+            .lock()
+            .renderer
+            .as_ref()
+            .and_then(|renderer| renderer.gpu_specs())
+    }
+
+    fn effect_capabilities(&self) -> crate::EffectCapabilities {
+        self.0
+            .lock()
+            .renderer
+            .as_ref()
+            .map(|renderer| renderer.effect_capabilities())
+            .unwrap_or_default()
     }
 }

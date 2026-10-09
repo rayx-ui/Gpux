@@ -13,7 +13,7 @@ Treat the PR as an upstream GPUI-closure import, not as an unfiltered patch copy
 3. Port or cherry-pick those changes into the gpux topology, preserving local crate naming, the `gpux-*` manifest publishing shape, and RayX-specific patches.
 4. Resolve conflicts against existing fork patches, especially renderer/readback, layout direction, `CursorStyle::None`, element identity hooks, gradient rendering, mobile/platform changes, and related patch surfaces.
 5. Record upstream provenance so future imports know where the change came from.
-6. Validate gpux here, then rebuild RayX from `../RayX` and run the Test Suite app to catch runtime crashes.
+6. Validate gpux here, including the `gpux-testkit` lanes that exercise the change, and pair any API change RayX uses with the matching RayX change.
 
 ## Source Selection
 
@@ -53,6 +53,7 @@ Always check whether the PR touches or overwrites these RayX-owned gpux patch su
 - When importing from an unmerged PR head, include a note that the source was a PR head rather than upstream `main`.
 - Keep replayed or preserved RayX/gpux patches as separate commits when practical, with `Preserved gpux patch commit:` trailers as described in the closure update reference.
 - Update gpux upstream-sync memory (`.agentx/memory/knowledge/repository/upstream-sync/`) if the latest imported upstream source, patch replay rule, or closure boundary changes.
+- A PR that the represented closure import already contains but gpux stubbed or replaced (for example Zed #64718/#64842, the wgpu headless renderer) is a port, not an import. Commit it with `Zed PR:`, `Zed merge commit:` and `Zed subject:` lines plus its gpux adaptations, then append one `port:` row per PR to `docs/history/zed-imports.tsv` (gpux commit, date, Zed merge commit, `-`, `port: <subject>`) and explain it in `upstream-provenance.md`. `port:` rows never move the represented upstream commit or the merge base: the base is the latest row that is not a `port:` row.
 
 ## Validation
 
@@ -63,7 +64,7 @@ At minimum, after a PR import:
 - Run `cargo check -p gpux --all-targets`.
 - Add targeted package checks (`-p gpux-<...>`, see the README crate table) for every touched backend/support crate.
 - Run `cargo package --workspace` when the PR changes manifests, dependencies, or included files.
-- From `../RayX`, rebuild and validate RayX through its affected crate checks and `cargo run -p xtask -- app apps/test_suite test wasm --headed --webgpu --no-default-features --features rayx_diagnostics --playwright-test test_suite/<spec>` when browser behavior changed.
-- Add or reuse the matching Test Suite surface in `../RayX/apps/test_suite` and its spec under `../RayX/tools-node/test_suite/`, and prefer the focused headed WASM/WebGPU run above when browser behavior changed.
+- Run the lanes that exercise the change ([docs/testing.md](../../../../docs/testing.md)): `cargo run -p gpux-testkit -- lane a [--scene <id>] [--grep <pattern>]` plus the touched crate's `cargo test -p <package> <filter>` for behaviour; `lane b --grep <pattern>` for browser/WASM/WebGPU behavior; `lane c` for pixels and the renderer; `lane d` for real windows and OS input; `lane e` for Android.
+- If the PR changes an API RayX uses, ship the matching RayX change and run RayX's affected checks from `../RayX`; they prove the consumer, not gpux.
 
-If the PR changes browser, WebGPU, mobile, capture, input, layout, or renderer behavior, add the matching RayX validation surface before calling the import complete.
+If the PR changes browser, WebGPU, mobile, capture, input, layout, or renderer behavior, add the matching gpux coverage before calling the import complete: a conformance scene in `crates/gpux_conformance/src/scenes/` (it names its lanes), a Playwright spec in `tools-node/specs/`, or a focused test in the crate's `tests/`.
