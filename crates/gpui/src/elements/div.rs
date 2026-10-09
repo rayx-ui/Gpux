@@ -3050,7 +3050,9 @@ impl Interactivity {
             }
         }
 
-        self.hovered = hitbox.map(|hitbox| hitbox.is_hovered(window));
+        // Published for callers, not painted from: a hover nothing paints by
+        // is not a dependency of a cached view (`fast::dependencies`).
+        self.hovered = hitbox.map(|hitbox| hitbox.id.hovered_unrecorded(window));
         window.with_optional_element_state::<InteractiveElementState, _>(
             global_id,
             |element_state, window| {

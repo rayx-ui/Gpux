@@ -367,3 +367,89 @@ fn cached_view_reading_only_its_own_hovers_is_replayed_away_from_the_pointer() {
         .last();
     assert_eq!(replayed, Some(1));
 }
+
+/// A cached view of interactive boxes without hover styles, and one box with
+/// a hover style in a corner.
+struct Panel {
+    styled_corner: bool,
+}
+
+impl Render for Panel {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        div()
+            .id("panel")
+            .size_full()
+            .on_click(|_, _, _| {})
+            .child(div().id("plain").size(px(30.)).on_click(|_, _, _| {}))
+            .when(self.styled_corner, |this| {
+                this.child(
+                    div()
+                        .id("corner")
+                        .size(px(10.))
+                        .bg(PALETTE[0])
+                        .hover(|style| style.bg(PALETTE[1])),
+                )
+            })
+    }
+}
+
+struct PanelRoot {
+    panel: crate::Entity<Panel>,
+}
+
+impl Render for PanelRoot {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        div().size_full().child(
+            self.panel
+                .clone()
+                .cached(crate::StyleRefinement::default().w(px(100.)).h(px(100.))),
+        )
+    }
+}
+
+/// Draws `frames` frames with the pointer at `position`, each with the root
+/// notified, and returns how many replayed the panel.
+fn replays_under(styled_corner: bool, position: crate::Point<crate::Pixels>, frames: usize) -> u64 {
+    use crate::InputEvent as _;
+    let (mut cx, window) = open(move |_, cx| PanelRoot {
+        panel: cx.new(|_| Panel { styled_corner }),
+    });
+    (0..frames)
+        .map(|_| {
+            cx.update_window(window.into(), |root, window, cx| {
+                window.dispatch_event(
+                    crate::MouseMoveEvent {
+                        position,
+                        pressed_button: None,
+                        modifiers: Default::default(),
+                    }
+                    .to_platform_input(),
+                    cx,
+                );
+                root.downcast::<PanelRoot>()
+                    .unwrap()
+                    .update(cx, |_, cx| cx.notify());
+                window.draw(cx).clear(cx);
+                window.fast_frame_stats().cached_views_replayed
+            })
+            .unwrap()
+        })
+        .sum()
+}
+
+/// Found by gpux's cached-view tests: every interactive box published its
+/// hover by reading it, so a cached view under the pointer always counted as
+/// reading a hover and was built every frame. Only hovers something paints
+/// by are recorded, and only where those hitboxes are does the pointer keep a
+/// view from being replayed.
+#[test]
+fn a_cached_view_is_replayed_under_the_pointer_unless_it_paints_that_hover() {
+    let over_plain = point(px(15.), px(15.));
+    // No hover style: replayed with the pointer over it.
+    assert_eq!(replays_under(false, over_plain, 4), 4);
+    // A hover style elsewhere in the view: still replayed over the rest.
+    assert_eq!(replays_under(true, point(px(60.), px(60.)), 4), 4);
+    // Over the styled box, below the plain one: built every frame, so its
+    // hover is never stale.
+    assert_eq!(replays_under(true, point(px(5.), px(35.)), 4), 0);
+}

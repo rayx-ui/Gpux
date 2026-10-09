@@ -92,7 +92,8 @@ pub(crate) fn hovers_unchanged(window: &Window, reads: &[(HitboxId, bool)]) -> b
 #[derive(Clone, Copy, Debug, Default)]
 pub(crate) enum HoverArea {
     /// Every hover it read is of a hitbox it inserted itself, and those can
-    /// be hit only within these bounds: the union of their masked bounds.
+    /// be hit only within these bounds: the union of the masked bounds of
+    /// the hitboxes it read.
     Own(Option<Bounds<Pixels>>),
     /// It read the hover of a hitbox it did not insert, such as an
     /// ancestor's group (`group_hover`). That hitbox is inserted again, under
@@ -109,15 +110,20 @@ pub(crate) fn hover_area(
     reads: &[(HitboxId, bool)],
     hitboxes: Range<usize>,
 ) -> HoverArea {
-    let own = &window.next_frame.hitboxes[hitboxes];
-    if !reads.is_empty() {
-        let ids: FxHashSet<HitboxId> = own.iter().map(|hitbox| hitbox.id).collect();
-        if reads.iter().any(|(hitbox, _)| !ids.contains(hitbox)) {
-            return HoverArea::Foreign;
-        }
+    if reads.is_empty() {
+        return HoverArea::Own(None);
     }
+    let own = &window.next_frame.hitboxes[hitboxes];
+    let ids: FxHashSet<HitboxId> = own.iter().map(|hitbox| hitbox.id).collect();
+    if reads.iter().any(|(hitbox, _)| !ids.contains(hitbox)) {
+        return HoverArea::Foreign;
+    }
+    // Only where a hitbox whose hover was read can be hit can that hover
+    // change.
+    let read: FxHashSet<HitboxId> = reads.iter().map(|(hitbox, _)| *hitbox).collect();
     HoverArea::Own(
         own.iter()
+            .filter(|hitbox| read.contains(&hitbox.id))
             .map(|hitbox| hitbox.bounds.intersect(&hitbox.content_mask.bounds))
             .filter(|bounds| !bounds.is_empty())
             .reduce(|area, bounds| area.union(&bounds)),
