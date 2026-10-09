@@ -1,12 +1,12 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 37,
-  "planRevision": 8,
+  "revision": 43,
+  "planRevision": 9,
   "specHashes": {
-    "requirements": "c0daa9e1ff938fb4db82ab2200a1c3f0c6fd80fcfbd35ec9c3e64970a3071061",
+    "requirements": "a3d85273180c9636a2d584c84c8d9047bd68188e7aba11b042babf84f9494ccf",
     "design": "ced53cba4d43459ebedd8030744af071bd95badf06ef61c6b509a91be3972a6e",
-    "plan": "cc426704b15ae6baad6763e870533e99b02e8829196c22662f1e658983740740"
+    "plan": "d9bdb4cacd5961087a6ede89ae9302f0dacdb7dbb566d3b64b53f01fa4645abb"
   },
   "tasks": {
     "t01-fast-switches": {
@@ -94,13 +94,16 @@
       ]
     },
     "t15-text-carry-replay": {
-      "status": "in_progress",
+      "status": "implemented",
       "workerIds": [
         "claude-240e1cb7"
       ]
     },
     "t16-oracle-layout": {
-      "status": "pending"
+      "status": "implemented",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t17-dependency-recording": {
       "status": "pending"
@@ -241,6 +244,15 @@
         }
       },
       "recordedAt": "2026-10-09T20:57:25Z"
+    },
+    "b04ba962e30c32b84110718d1cf75865f6d7bda8229893fb01e8d545ddf735f7": {
+      "snapshot": {
+        "specHash": "13c2ded08729468d34ca228b09fdb793351a45907a5ffd165aac8b9d0161206b",
+        "repositories": {
+          "gpux": "5381a5c502903e732760a51fd3c0e1edb61a8abedd07d7f57934494843424bfe"
+        }
+      },
+      "recordedAt": "2026-10-09T21:50:57Z"
     }
   },
   "checkResults": {
@@ -481,6 +493,91 @@
       "logPath": "artifacts-temp/agentx/gpux-fast-mode/s02-hygiene-standalone-final-9c6b107987d7.log",
       "logSha256": "1d84f8c4deabbfb774482f8493cd8051ac3127d4590c3b327a0fc2b843bf344b",
       "inputsHash": "0ab7a93e5a7921128006f6c9eea5b354a84dc8be76d445596845157b52101d85"
+    },
+    "s03-layout-retention/check-attribution/final": {
+      "checkId": "check-attribution",
+      "boundaryId": "s03-layout-retention",
+      "phase": "final",
+      "batchId": "b04ba962e30c32b84110718d1cf75865f6d7bda8229893fb01e8d545ddf735f7",
+      "definitionHash": "b82e7feef64210ed76175fef9ab5b0339af24962e55e46b6ea32da027de45969",
+      "basisHash": "652b68398b78ba1a6d8b5cb1068b4c8d8b1b2cb6c8f4b028cb3786679ad77dd5",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 19,
+      "durationSeconds": 18.2309,
+      "recordedAt": "2026-10-09T21:50:48Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s03-layout-retention-final-8b83e589ca57.log",
+      "logSha256": "e800731f45a4d1a4a8c531e973b39092bf6be1bd29da7ca028ded4c3354914f1",
+      "inputsHash": "c9fc2431d3d5cc71b11c1223632bcf181f1e3f37fb2ec4b4104b080758240deb"
+    },
+    "s03-layout-retention/check-layout-keys/final": {
+      "checkId": "check-layout-keys",
+      "boundaryId": "s03-layout-retention",
+      "phase": "final",
+      "batchId": "b04ba962e30c32b84110718d1cf75865f6d7bda8229893fb01e8d545ddf735f7",
+      "definitionHash": "f5e7767de580e5164c56b0c36d2ac11fef3c54ffab13b405eef8fa339ef6de6f",
+      "basisHash": "82144c635417d23820731c5509b86c6ac87040d758f5564fefc01f008443a5fe",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 9,
+      "durationSeconds": 0.4296,
+      "recordedAt": "2026-10-09T21:50:49Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s03-layout-retention-final-2fffe164e8a8.log",
+      "logSha256": "6262b930689ddc9794e0a5bc5dfcd78bd4a089cd562de925b9dc26004e5ab50f",
+      "inputsHash": "c9fc2431d3d5cc71b11c1223632bcf181f1e3f37fb2ec4b4104b080758240deb"
+    },
+    "s03-layout-retention/check-write-elision/final": {
+      "checkId": "check-write-elision",
+      "boundaryId": "s03-layout-retention",
+      "phase": "final",
+      "batchId": "b04ba962e30c32b84110718d1cf75865f6d7bda8229893fb01e8d545ddf735f7",
+      "definitionHash": "28d7f105a3fd319591575a03e0e691cf4b2f7b1342f3484d3dbdf02835c99bdc",
+      "basisHash": "a5a41b49faefe34a480c268698a8083bc9191fe9cc1c88f1d71f9914256103a4",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 0.256,
+      "recordedAt": "2026-10-09T21:50:49Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s03-layout-retention-final-60d911a3fc9c.log",
+      "logSha256": "424f8e201a85625f9183933e2b20b639558a3d9be1b683014f1b6b520ca34b85",
+      "inputsHash": "c9fc2431d3d5cc71b11c1223632bcf181f1e3f37fb2ec4b4104b080758240deb"
+    },
+    "s03-layout-retention/check-text-carry/final": {
+      "checkId": "check-text-carry",
+      "boundaryId": "s03-layout-retention",
+      "phase": "final",
+      "batchId": "b04ba962e30c32b84110718d1cf75865f6d7bda8229893fb01e8d545ddf735f7",
+      "definitionHash": "fd0fb447b709c043a4fd4d0de0018d915108b6f4f5bd9b009a7b9e0d88b22654",
+      "basisHash": "214e4b310420117aa7543aa959d2ad16cce71276b468b3ba1eef156b3c05ec89",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 10,
+      "durationSeconds": 0.2563,
+      "recordedAt": "2026-10-09T21:50:49Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s03-layout-retention-final-e1c5d8a6ade9.log",
+      "logSha256": "bc8f9d2226043d309f34701981f81e6ebfa20e624b538d1d7ba1a52a9e5a424d",
+      "inputsHash": "c9fc2431d3d5cc71b11c1223632bcf181f1e3f37fb2ec4b4104b080758240deb"
+    },
+    "s03-layout-retention/check-oracle-layout/final": {
+      "checkId": "check-oracle-layout",
+      "boundaryId": "s03-layout-retention",
+      "phase": "final",
+      "batchId": "b04ba962e30c32b84110718d1cf75865f6d7bda8229893fb01e8d545ddf735f7",
+      "definitionHash": "1c359dc2ed7c4c3fe66a8dacce2434b6f07cd41263bfcd335c316511acd7e1a7",
+      "basisHash": "29b05b3da24efd73cb0ad16cd3681c256f3107bb4480c600eeedf64614680277",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 8.1251,
+      "recordedAt": "2026-10-09T21:50:57Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s03-layout-retention-final-b7d6104f97bd.log",
+      "logSha256": "df389701253ac0e0a573b687494baea25b23fafb7e7260bf734bb602dd25bd93",
+      "inputsHash": "c9fc2431d3d5cc71b11c1223632bcf181f1e3f37fb2ec4b4104b080758240deb"
     }
   },
   "reviews": {
@@ -1391,6 +1488,48 @@
           "symbol": "active_and_hover_styles_redraw_their_view"
         }
       ]
+    },
+    {
+      "id": "s03-reused-text-node-not-dirtied",
+      "boundaryId": "s03-layout-retention",
+      "criterionIds": [
+        "LAY-1",
+        "LAY-3",
+        "LAY-5"
+      ],
+      "severity": "major",
+      "status": "open",
+      "descriptionMarkdown": "**Expected.** Under layout retention every frame equals the from-scratch frame. A kept node is written (and so dirtied) wherever its request changed.\n\n**Observed.** A text leaf is deliberately left clean at clear (`taffy.rs` `clear`, `is_text_leaf`), relying on the next text request at its key to carry, replay or dirty it. But a key is a position or id path; it does not say which element type asked. When the next frame requests a non-text node at the same key, `request_node`'s `Claim::Reused` branch (`crates/gpui/src/fast/layout.rs:278`) runs `apply_requested_style` and `update_node_topology(id, children, None)`. It then sets `node.text = None` and returns. For a childless leaf whose style equals the text leaf's `Style::default()` (an empty `div()`), nothing is written and nothing dirties the node. Taffy keeps returning the old text's cached size.\n\n**Failure scenario (reproduced with a probe test in a scratch worktree at `526bf67`).** A `flex_row` renders `.child(if text { \"hello wide world\".into_any_element() } else { div().into_any_element() })` followed by a 10x10 box. Frame 3 switches to the empty div. The from-scratch frame puts the box at x=0. The layout-retention frame puts it at x=154px (308 scaled), the old text's width, and keeps it there. The ordinal pool off path is correct, because it dirties every measured node at clear.\n\nThe oracle does not catch this because no change kind swaps a text child for another element at one position.\n\n**Repair.**\n- When a claimed node that was a text leaf (`node.text.is_some()` before it is reset) is requested as anything but a text leaf, dirty it: `mark_dirty`, or clear its context with `set_node_context(None)`, which dirties.\n- Add a `layout_keys` or `text_carry` test for text to empty element at one key.\n- Add a change kind to the layout oracle that swaps an unidentified text child for another element."
+    },
+    {
+      "id": "s03-carry-ignores-font-installation",
+      "boundaryId": "s03-layout-retention",
+      "criterionIds": [
+        "LAY-3"
+      ],
+      "severity": "major",
+      "status": "open",
+      "descriptionMarkdown": "**Expected (LAY-3, measured-layout-invalidation decision).** Measurement reuse is sound: a carried measurement stands only when nothing that shapes the text changed.\n\n**Observed.** `adopt_measurement` (`crates/gpui/src/fast/text.rs:188`) and `TextMeasureInputs::shapes_as` compare the text, sizes, spacing, wrapping and font descriptors. They never compare the text system's font generation. `TextSystem::add_fonts` bumps `font_generation`, clears font resolution and invalidates the line-layout caches, so the off path reshapes everything. Under layout retention, any text whose inputs are unchanged carries last frame's lines and size, shaped against the old font set (for example fallback glyphs before a web or app font finished loading), and keeps them until its text changes.\n\nThe scale-factor case is handled (`layout.rs:433`); font installation is not. Font installation is one of PRE-1's whole-window refresh triggers, but a refresh does not stop a carry.\n\n**Failure scenario (reproduced with a probe test).** A test text system doubles line widths after `add_fonts`. The from-scratch frame after `cx.text_system().add_fonts(..)` and `refresh()` moves the box after the text from x=308 to x=616 (scaled). The layout-retention frame keeps x=308.\n\n**Repair.**\n- Record the text system's font generation in `TextLeaf`, as `scale_factor` is. Treat a change as `Remeasured` (forget the carried measurement and dirty the leaf).\n- Add a `text_carry` test with a text system whose shaping changes on `add_fonts`."
+    },
+    {
+      "id": "s03-attribution-layout-shape",
+      "boundaryId": "s03-layout-retention",
+      "criterionIds": [
+        "PERF-2"
+      ],
+      "severity": "minor",
+      "status": "open",
+      "descriptionMarkdown": "**Expected (PERF-2).** The attribution group asserts the counter shape that attributes the benefit, with exact counts or exact bounds. For the `layout` mode this includes `table-stream`: equal-width ticks replay and leave the row clean.\n\n**Observed.** The only `layout`-specific exact expectation is `still-frame`/panels: zero style, children and release writes. `modes_differ_only_by_landed_mechanisms` (`crates/gpui/tests/fast_mode_attribution.rs:83`) bounds `layout` with `leaves_measured <= off` and `lines_shaped <= off`. `expect_frames` only requires `nodes_claimed > 0`. `table.rs` adds nothing for `layout`.\n\nA regression that stopped every carry and replay (`leaves_carried = leaves_replayed = 0`, `leaves_measured == off`) would pass the whole group. The `table-stream` replay example is not asserted at all.\n\n**Repair.**\n- Give `table-stream` exact `layout` expectations: replays per frame equal the equal-width ticking cells, and no remeasure or style write for those rows.\n- Pin `leaves_carried` (or `leaves_measured` against `off`) for the panel and other text scenarios, so the attribution shows the carry and replay benefit."
+    },
+    {
+      "id": "s03-hook-discipline-text-measure-copy",
+      "boundaryId": "s03-layout-retention",
+      "criterionIds": [
+        "LAY-3"
+      ],
+      "severity": "minor",
+      "status": "open",
+      "descriptionMarkdown": "**Expected (d-architecture).** Existing files get hooks only. Text carry runs inside `TextLayout`'s measure path, so with nothing carried it measures exactly as gpux does without fast mode.\n\n**Observed.** `fast::text::measure_text` (`crates/gpui/src/fast/text.rs:215`) is a hand copy of the closure in `TextLayout::layout` (`elements/text.rs`): wrap width, truncation width, the cached-size guard, the shaped-fits-skips-truncation rule, and shaping. It is not a call into that closure. The copy already drops the closure's `diagnostics` measurement-path recording (`record_text_measurement_path`). Any future fix to the gpux closure must be mirrored by hand, or retained text silently measures differently.\n\nSeparately, `taffy.rs` gained new logic methods (`set_measure_keeping_clean` at `:421`, `measure_node` at `:448`, `note_requested_node`) next to the pool refactor. They could live in `fast/layout.rs` now that `taffy` is `pub(crate)`.\n\n**Repair.**\n- Extract the measurement body of `TextLayout::layout` into one function that both the off path closure and `fast::text` call. Keep the diagnostics recording in it.\n- Move the new retention-only engine helpers into `fast/layout.rs`, leaving `taffy.rs` with the extracted pool helpers and the `retention` field and calls."
     }
   ],
   "handoffMarkdown": "",

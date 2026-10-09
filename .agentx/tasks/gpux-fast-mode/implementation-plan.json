@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 8,
+  "revision": 9,
   "title": "gpux fast mode: retained layout and views, splice, scroll layers and window composition from gpui-fast",
   "validationMode": "sprint",
   "repositories": [
@@ -554,7 +554,7 @@
       "criterionIds": [
         "LAY-3"
       ],
-      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/text_carry.rs`: carry, colour-only carry, equal-size replay, size-change re-measure, probe settling, truncation and wrapping, non-text leaves still dirtied, and no retained closures.",
+      "descriptionMarkdown": "Group `crates/gpui/src/fast/tests/text_carry.rs`: carry, colour-only carry, equal-size replay, size-change re-measure, probe settling, truncation and wrapping, non-text leaves still dirtied, no retained closures, kept line layouts, a text leaf replaced by another element, and fonts installed under carried text.",
       "argv": [
         "cargo",
         "test",
@@ -567,7 +567,7 @@
       ],
       "expected": {
         "exitCode": 0,
-        "minimumTests": 8
+        "minimumTests": 12
       },
       "inputs": [
         "crates/gpui/**",
