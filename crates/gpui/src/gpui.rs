@@ -23,6 +23,7 @@ mod debug_overlay;
 mod element;
 mod elements;
 mod executor;
+mod fast;
 mod platform_scheduler;
 /// Shader-backed visual effect contracts for elements and screens.
 pub mod shader_effects;
@@ -116,6 +117,20 @@ pub use debug_overlay::*;
 pub use element::*;
 pub use elements::*;
 pub use executor::*;
+pub use fast::mode::FastMode;
+#[cfg(any(test, feature = "test-support"))]
+pub use fast::mode::FastOwnedState;
+#[cfg(any(test, feature = "test-support", feature = "bench-support"))]
+pub use fast::scenarios as fast_scenarios;
+#[cfg(any(
+    test,
+    feature = "test-support",
+    feature = "bench-support",
+    feature = "diagnostics"
+))]
+pub use fast::stats::{FastStats, LAYER_BYPASS_REASONS, LayerBypassReason};
+#[cfg(any(test, feature = "test-support"))]
+pub use fast::verify::first_frame_difference;
 pub use geometry::*;
 pub use gestures::*;
 pub use global::*;

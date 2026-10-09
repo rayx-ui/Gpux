@@ -721,7 +721,7 @@ impl TextSystem {
 /// The GPUI text layout subsystem.
 #[derive(Deref)]
 pub struct WindowTextSystem {
-    line_layout_cache: LineLayoutCache,
+    pub(crate) line_layout_cache: LineLayoutCache,
     #[deref]
     text_system: Arc<TextSystem>,
 }

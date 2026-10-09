@@ -721,6 +721,9 @@ pub(crate) enum GpuiMode {
     #[cfg(any(test, feature = "test-support"))]
     Test {
         skip_drawing: bool,
+        /// Whether flushing effects draws every dirty window, as test
+        /// contexts do by default.
+        draw_on_flush: bool,
     },
     Production,
 }
@@ -730,6 +733,7 @@ impl GpuiMode {
     pub fn test() -> Self {
         GpuiMode::Test {
             skip_drawing: false,
+            draw_on_flush: true,
         }
     }
 
@@ -737,9 +741,21 @@ impl GpuiMode {
     pub(crate) fn skip_drawing(&self) -> bool {
         match self {
             #[cfg(any(test, feature = "test-support"))]
-            GpuiMode::Test { skip_drawing } => *skip_drawing,
+            GpuiMode::Test { skip_drawing, .. } => *skip_drawing,
             GpuiMode::Production => false,
         }
+    }
+
+    /// Whether flushing effects draws every dirty window.
+    #[cfg(any(test, feature = "test-support"))]
+    pub(crate) fn draws_on_flush(&self) -> bool {
+        matches!(
+            self,
+            GpuiMode::Test {
+                draw_on_flush: true,
+                ..
+            }
+        )
     }
 }
 
@@ -1899,7 +1915,7 @@ impl App {
                 }
             } else {
                 #[cfg(any(test, feature = "test-support"))]
-                if matches!(self.mode, GpuiMode::Test { .. }) {
+                if self.mode.draws_on_flush() {
                     for window in self
                         .windows
                         .values()

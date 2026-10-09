@@ -86,7 +86,7 @@ pub(crate) struct DispatchTree {
     node_stack: Vec<DispatchNodeId>,
     pub(crate) context_stack: Vec<KeyContext>,
     view_stack: Vec<EntityId>,
-    nodes: Vec<DispatchNode>,
+    pub(crate) nodes: Vec<DispatchNode>,
     focusable_node_ids: FxHashMap<FocusId, DispatchNodeId>,
     view_node_ids: FxHashMap<EntityId, DispatchNodeId>,
     keymap: Rc<RefCell<Keymap>>,
@@ -100,8 +100,8 @@ pub(crate) struct DispatchNode {
     pub modifiers_changed_listeners: Vec<ModifiersChangedListener>,
     pub context: Option<KeyContext>,
     pub focus_id: Option<FocusId>,
-    view_id: Option<EntityId>,
-    parent: Option<DispatchNodeId>,
+    pub(crate) view_id: Option<EntityId>,
+    pub(crate) parent: Option<DispatchNodeId>,
 }
 
 pub(crate) struct ReusedSubtree {

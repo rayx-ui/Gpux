@@ -134,6 +134,13 @@ pub struct TaffyLayoutEngine {
     diagnostics: [u64; 31],
     #[cfg(feature = "diagnostics")]
     request_diagnostics: [u64; 11],
+    #[cfg(any(
+        test,
+        feature = "test-support",
+        feature = "bench-support",
+        feature = "diagnostics"
+    ))]
+    pub(crate) fast_stats: crate::fast::stats::FastStats,
 }
 
 const EXPECT_MESSAGE: &str = "we should avoid taffy layout errors by construction if possible";
@@ -156,6 +163,13 @@ impl TaffyLayoutEngine {
             diagnostics: [0; 31],
             #[cfg(feature = "diagnostics")]
             request_diagnostics: [0; 11],
+            #[cfg(any(
+                test,
+                feature = "test-support",
+                feature = "bench-support",
+                feature = "diagnostics"
+            ))]
+            fast_stats: crate::fast::stats::FastStats::default(),
         }
     }
 
@@ -177,6 +191,12 @@ impl TaffyLayoutEngine {
             self.diagnostics = [0; 31];
             self.request_diagnostics = [0; 11];
         }
+    }
+
+    /// Every node the tree holds, in use or pooled.
+    #[cfg(any(test, feature = "test-support"))]
+    pub(crate) fn node_count(&self) -> usize {
+        self.taffy.total_node_count()
     }
 
     #[cfg(feature = "diagnostics")]
@@ -241,6 +261,7 @@ impl TaffyLayoutEngine {
                 self.request_diagnostics[if style_matches { 3 } else { 4 }] += 1;
             }
             if !style_matches {
+                crate::fast::fast_stat!(self.fast_stats, style_writes += 1);
                 self.taffy.set_style(id.0, style).expect(EXPECT_MESSAGE);
             }
             let taffy_children = LayoutId::to_taffy_slice(children);
@@ -255,6 +276,7 @@ impl TaffyLayoutEngine {
                 self.request_diagnostics[if topology_matches { 5 } else { 6 }] += 1;
             }
             if !topology_matches {
+                crate::fast::fast_stat!(self.fast_stats, children_writes += 1);
                 self.taffy
                     .set_children(id.0, taffy_children)
                     .expect(EXPECT_MESSAGE);
@@ -299,6 +321,8 @@ impl TaffyLayoutEngine {
                 self.request_diagnostics[2] += 1;
             }
             debug_assert_eq!(pool_index, self.layout_pool.len());
+            crate::fast::fast_stat!(self.fast_stats, style_writes += 1);
+            crate::fast::fast_stat!(self.fast_stats, children_writes += !children.is_empty());
             let id = match context {
                 Some(context) => {
                     debug_assert!(children.is_empty());
@@ -607,6 +631,7 @@ impl TaffyLayoutEngine {
 
                             let measured_size: Size<Pixels> =
                                 (measure)(known_dimensions, available_space, window, cx);
+                            crate::fast::fast_stat!(window.fast_stats.frame, leaves_measured += 1);
                             let measured_size: TaffySize<f32> =
                                 snap_measured_size_to_device_pixels(measured_size, scale_factor)
                                     .into();

@@ -504,6 +504,15 @@ pub(crate) struct LineLayoutCache {
     font_generation: Arc<AtomicUsize>,
     /// Records the generation represented by both frame caches.
     cached_font_generation: AtomicUsize,
+    /// Lines handed to the platform to be shaped since the window last took
+    /// the count for its fast-mode counters.
+    #[cfg(any(
+        test,
+        feature = "test-support",
+        feature = "bench-support",
+        feature = "diagnostics"
+    ))]
+    pub(crate) fast_lines_shaped: std::sync::atomic::AtomicU64,
 }
 
 #[derive(Default)]
@@ -546,6 +555,13 @@ impl LineLayoutCache {
             platform_text_system,
             font_generation,
             cached_font_generation: AtomicUsize::new(cached_font_generation),
+            #[cfg(any(
+                test,
+                feature = "test-support",
+                feature = "bench-support",
+                feature = "diagnostics"
+            ))]
+            fast_lines_shaped: std::sync::atomic::AtomicU64::new(0),
         }
     }
 
@@ -768,6 +784,7 @@ impl LineLayoutCache {
             let mut layout = self
                 .platform_text_system
                 .layout_line(&text, font_size, runs);
+            crate::fast::fast_stat!(atomic self.fast_lines_shaped, += 1);
 
             apply_letter_spacing_to_layout(&mut layout, letter_spacing);
 
@@ -931,6 +948,7 @@ impl LineLayoutCache {
         let mut layout = self
             .platform_text_system
             .layout_line(&text, font_size, runs);
+        crate::fast::fast_stat!(atomic self.fast_lines_shaped, += 1);
 
         apply_letter_spacing_to_layout(&mut layout, letter_spacing);
 

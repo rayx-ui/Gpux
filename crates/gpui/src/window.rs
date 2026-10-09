@@ -838,6 +838,14 @@ impl HitboxId {
     ///
     /// See [`Hitbox::is_hovered`] for details.
     pub fn is_hovered(self, window: &Window) -> bool {
+        let hovered = self.hovered_unrecorded(window);
+        crate::fast::dependencies::note_hover_read(window, self, hovered);
+        hovered
+    }
+
+    /// [`Self::is_hovered`] without noting the read for the cached view
+    /// being drawn.
+    pub(crate) fn hovered_unrecorded(self, window: &Window) -> bool {
         // If this hitbox has captured the pointer, it's always considered hovered
         if window.captured_hitbox == Some(self) {
             return true;
@@ -891,7 +899,7 @@ impl HitboxId {
     }
 
     /// The hit-test layer: normal, positioned, then top layer.
-    fn layer(self) -> u64 {
+    pub(crate) fn layer(self) -> u64 {
         self.0 / POSITIONED_HITBOX_ID_BASE
     }
 }
@@ -1111,9 +1119,12 @@ pub(crate) struct WindowFrame {
     pub(crate) focus: Option<FocusId>,
     pub(crate) window_active: bool,
     pub(crate) element_states: FxHashMap<(GlobalElementId, TypeId), ElementStateBox>,
-    accessed_element_states: Vec<(GlobalElementId, TypeId)>,
+    pub(crate) accessed_element_states: Vec<(GlobalElementId, TypeId)>,
     pending_element_state_transfers: Vec<(GlobalElementId, TypeId)>,
     pub(crate) mouse_listeners: Vec<Option<AnyMouseListener>>,
+    /// The event type of each mouse listener, for the fast-mode frame description.
+    #[cfg(any(test, feature = "test-support"))]
+    pub(crate) fast_mouse_listener_events: Vec<&'static str>,
     pub(crate) dispatch_tree: DispatchTree,
     pub(crate) scene: Scene,
     pub(crate) hitboxes: Vec<Hitbox>,
@@ -1127,7 +1138,7 @@ pub(crate) struct WindowFrame {
     pub(crate) debug_bounds: FxHashMap<String, Bounds<Pixels>>,
     #[cfg(any(test, feature = "test-support"))]
     debug_bounds_records: Vec<(String, Bounds<Pixels>)>,
-    devtools_nodes: Vec<DevtoolsFrameNode>,
+    pub(crate) devtools_nodes: Vec<DevtoolsFrameNode>,
     devtools_node_indices: Vec<usize>,
     pub(crate) devtools_property_setters: FxHashMap<usize, Vec<DevtoolsPropertySetter>>,
     pub(crate) devtools_node_stack: Vec<usize>,
@@ -1183,6 +1194,8 @@ impl WindowFrame {
             accessed_element_states: Vec::new(),
             pending_element_state_transfers: Vec::new(),
             mouse_listeners: Vec::new(),
+            #[cfg(any(test, feature = "test-support"))]
+            fast_mouse_listener_events: Vec::new(),
             dispatch_tree,
             scene: Scene::default(),
             hitboxes: Vec::new(),
@@ -1219,6 +1232,8 @@ impl WindowFrame {
         self.accessed_element_states.clear();
         self.pending_element_state_transfers.clear();
         self.mouse_listeners.clear();
+        #[cfg(any(test, feature = "test-support"))]
+        self.fast_mouse_listener_events.clear();
         self.dispatch_tree.clear();
         self.scene.clear();
         self.input_handlers.clear();
@@ -1391,7 +1406,7 @@ pub struct DevtoolsElementSnapshot {
     pub focused: bool,
 }
 
-struct DevtoolsFrameNode {
+pub(crate) struct DevtoolsFrameNode {
     devtools_node_id: usize,
     parent_devtools_node_id: Option<usize>,
     dispatch_node_id: usize,
@@ -2379,7 +2394,16 @@ pub struct Window {
     /// a given rem size.
     rem_size_override_stack: SmallVec<[Pixels; 8]>,
     pub(crate) viewport_size: Size<Pixels>,
-    layout_engine: Option<TaffyLayoutEngine>,
+    pub(crate) layout_engine: Option<TaffyLayoutEngine>,
+    pub(crate) fast_mode: crate::fast::mode::WindowFastMode,
+    pub(crate) fast_hover_reads: crate::fast::dependencies::HoverReads,
+    #[cfg(any(
+        test,
+        feature = "test-support",
+        feature = "bench-support",
+        feature = "diagnostics"
+    ))]
+    pub(crate) fast_stats: crate::fast::stats::WindowFastStats,
     pub(crate) root: Option<AnyView>,
     pub(crate) element_id_stack: ElementIdStack,
     pub(crate) text_style_stack: Vec<TextStyleRefinement>,
@@ -3334,6 +3358,15 @@ impl Window {
             rem_size_override_stack: SmallVec::new(),
             viewport_size: content_size,
             layout_engine: Some(TaffyLayoutEngine::new()),
+            fast_mode: crate::fast::mode::WindowFastMode::from_process_environment(),
+            fast_hover_reads: crate::fast::dependencies::HoverReads::default(),
+            #[cfg(any(
+                test,
+                feature = "test-support",
+                feature = "bench-support",
+                feature = "diagnostics"
+            ))]
+            fast_stats: crate::fast::stats::WindowFastStats::default(),
             root: None,
             element_id_stack: ElementIdStack::default(),
             text_style_stack: Vec::new(),
@@ -5108,8 +5141,19 @@ impl Window {
 
     /// Produces a new frame and assigns it to `rendered_frame`. To actually show
     /// the contents of the new [`Scene`], use [`Self::present`].
-    #[profiling::function]
     pub fn draw(&mut self, cx: &mut App) -> ArenaClearNeeded {
+        let arena_clear_needed = self.draw_frame(cx);
+        // A cached view replayed with hovers this frame's hitboxes changed is
+        // built again before the frame is shown.
+        if crate::fast::dependencies::redraw_stale_replays(self, cx) {
+            arena_clear_needed.clear(cx);
+            return self.draw_frame(cx);
+        }
+        arena_clear_needed
+    }
+
+    #[profiling::function]
+    fn draw_frame(&mut self, cx: &mut App) -> ArenaClearNeeded {
         // Drain every draw in profiler builds so a previous frame's
         // first-invalidation timestamp can't be attributed to this one.
         #[cfg(feature = "profiler")]
@@ -5152,6 +5196,13 @@ impl Window {
                 self.rendered_frame.input_handlers.push(Some(input_handler));
             }
         }
+        #[cfg(any(
+            test,
+            feature = "test-support",
+            feature = "bench-support",
+            feature = "diagnostics"
+        ))]
+        crate::fast::stats::begin_frame(self);
         if !cx.mode.skip_drawing() {
             self.draw_roots(cx);
             #[cfg(feature = "profiler")]
@@ -5235,6 +5286,13 @@ impl Window {
                 });
         }
 
+        #[cfg(any(
+            test,
+            feature = "test-support",
+            feature = "bench-support",
+            feature = "diagnostics"
+        ))]
+        crate::fast::stats::finish_frame(self);
         self.layout_engine.as_mut().unwrap().clear();
         self.text_system().finish_frame();
         let screen_effect_now = cx.background_executor().now();
@@ -5904,6 +5962,13 @@ impl Window {
                 .iter_mut()
                 .map(|handler| handler.take()),
         );
+        #[cfg(any(test, feature = "test-support"))]
+        self.next_frame
+            .fast_mouse_listener_events
+            .extend_from_slice(
+                &self.rendered_frame.fast_mouse_listener_events
+                    [range.start.mouse_listeners_index..range.end.mouse_listeners_index],
+            );
         self.next_frame.mouse_listeners.extend(
             self.rendered_frame.mouse_listeners
                 [range.start.mouse_listeners_index..range.end.mouse_listeners_index]
@@ -5927,6 +5992,13 @@ impl Window {
                 [range.start.tab_handle_index..range.end.tab_handle_index],
         );
 
+        crate::fast::fast_stat!(
+            self.fast_stats.frame,
+            primitives_copied += self
+                .rendered_frame
+                .scene
+                .primitive_count_in(range.start.scene_index..range.end.scene_index)
+        );
         self.text_system
             .reuse_layouts(range.start.line_layout_index..range.end.line_layout_index);
         self.next_frame.scene.replay(
@@ -8282,6 +8354,10 @@ impl Window {
     ) {
         self.invalidator.debug_assert_paint();
 
+        #[cfg(any(test, feature = "test-support"))]
+        self.next_frame
+            .fast_mouse_listener_events
+            .push(std::any::type_name::<Event>());
         self.next_frame.mouse_listeners.push(Some(Box::new(
             move |event: &dyn Any, phase: DispatchPhase, window: &mut Window, cx: &mut App| {
                 if let Some(event) = event.downcast_ref() {

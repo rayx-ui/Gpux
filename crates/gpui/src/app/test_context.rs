@@ -273,7 +273,24 @@ impl TestAppContext {
 
     /// Skip all drawing operations for the duration of this test.
     pub fn skip_drawing(&mut self) {
-        self.app.borrow_mut().mode = GpuiMode::Test { skip_drawing: true };
+        self.app.borrow_mut().mode = GpuiMode::Test {
+            skip_drawing: true,
+            draw_on_flush: true,
+        };
+    }
+
+    /// Whether flushing effects draws every dirty window, which it does by
+    /// default. Tests that compare one frame per step, such as fast mode's
+    /// oracle, turn it off and draw each frame themselves, so the frame they
+    /// compare is the first one after the step's changes.
+    pub fn set_draw_on_flush(&mut self, draw_on_flush: bool) {
+        if let GpuiMode::Test {
+            draw_on_flush: flag,
+            ..
+        } = &mut self.app.borrow_mut().mode
+        {
+            *flag = draw_on_flush;
+        }
     }
 
     /// Create a single TestAppContext, for non-multi-client tests

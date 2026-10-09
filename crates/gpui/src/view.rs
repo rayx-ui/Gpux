@@ -297,6 +297,9 @@ struct ViewElementState {
     paint_range: Range<PaintIndex>,
     cache_key: ViewElementCacheKey,
     accessed_entities: FxHashSet<EntityId>,
+    /// The hovers the view was drawn by, nested views included: it is
+    /// replayed only while each is as it was.
+    hover_reads: Vec<(crate::HitboxId, bool)>,
 }
 
 struct ViewElementCacheKey {
@@ -438,6 +441,7 @@ fn request_layout_view(
                 (layout_id, None)
             }
             _ => {
+                crate::fast::fast_stat!(window.fast_stats.frame, views_built += 1);
                 let mut element = render(window, cx);
                 let layout_id = element.request_layout(window, cx);
                 (layout_id, Some(element))
@@ -489,6 +493,7 @@ fn prepaint_view(
                     && element_state.cache_key.content_mask == content_mask
                     && element_state.cache_key.text_style == text_style
                     && element_state.cache_key.paint_context == paint_context
+                    && crate::fast::dependencies::hovers_unchanged(window, &element_state.hover_reads)
                     && !window.dirty_views.contains(&entity_id)
                     && !window.refreshing
                     // Accessibility nodes and action listeners are rebuilt
@@ -496,6 +501,7 @@ fn prepaint_view(
                     && !window.is_a11y_active()
                 {
                     let prepaint_start = window.prepaint_index();
+                    crate::fast::fast_stat!(window.fast_stats.frame, cached_views_replayed += 1);
                     window.reuse_prepaint(element_state.prepaint_range.clone());
                     cx.entities
                         .extend_accessed(&element_state.accessed_entities);
@@ -507,12 +513,15 @@ fn prepaint_view(
 
                 let refreshing = mem::replace(&mut window.refreshing, true);
                 let prepaint_start = window.prepaint_index();
+                crate::fast::fast_stat!(window.fast_stats.frame, views_built += 1);
+                let hovers_start = crate::fast::dependencies::begin_recording(window);
                 let (element, accessed_entities) = cx.detect_accessed_entities(|cx| {
                     let mut element = render(window, cx);
                     element.layout_as_root(Size::<AvailableSpace>::from(bounds.size), window, cx);
                     element.prepaint_at(bounds.origin, window, cx);
                     element
                 });
+                let hover_reads = crate::fast::dependencies::finish_recording(window, hovers_start);
 
                 let prepaint_end = window.prepaint_index();
                 window.refreshing = refreshing;
@@ -521,6 +530,7 @@ fn prepaint_view(
                     Some(element),
                     ViewElementState {
                         accessed_entities,
+                        hover_reads,
                         prepaint_range: prepaint_start..prepaint_end,
                         paint_range: PaintIndex::default()..PaintIndex::default(),
                         cache_key: ViewElementCacheKey {
@@ -571,7 +581,11 @@ fn paint_view(
 
                     if let Some(element) = element {
                         let refreshing = mem::replace(&mut window.refreshing, true);
+                        let hovers_start = crate::fast::dependencies::begin_recording(window);
                         element.paint(window, cx);
+                        let painted_hovers =
+                            crate::fast::dependencies::finish_recording(window, hovers_start);
+                        element_state.hover_reads.extend(painted_hovers);
                         window.refreshing = refreshing;
                         // An ancestor that applies opacity or a transform only while
                         // painting hides it from prepaint. Keying on the painted context
@@ -579,9 +593,22 @@ fn paint_view(
                         element_state.cache_key.paint_context = paint_context;
                     } else {
                         window.reuse_paint(element_state.paint_range.clone());
+                        crate::fast::dependencies::note_replayed_hovers(
+                            window,
+                            &element_state.hover_reads,
+                        );
+                        // Its hovers were checked against last frame's hitboxes, which
+                        // this frame's can cover: the window draws the frame again.
+                        if !crate::fast::dependencies::hovers_unchanged(
+                            window,
+                            &element_state.hover_reads,
+                        ) {
+                            crate::fast::dependencies::note_stale_replay(window, entity_id);
+                        }
+                        // An ancestor that applies opacity or a transform only while
+                        // painting can change after prepaint replayed this view, so
+                        // this frame shows stale primitives: render it next frame.
                         if element_state.cache_key.paint_context != paint_context {
-                            // Such an ancestor changed after prepaint replayed this view,
-                            // so this frame shows stale primitives: render it next frame.
                             window.on_next_frame(move |_, cx| cx.notify(entity_id));
                         }
                     }
