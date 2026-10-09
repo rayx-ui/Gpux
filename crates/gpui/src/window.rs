@@ -785,6 +785,13 @@ fn resolve_cursor_style(
         .find_map(|hitbox_id| style_for_hitbox(*hitbox_id))
 }
 
+/// The opacity and transform that painting applies to primitives at some point of the tree.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct ElementPaintContext {
+    opacity: f32,
+    transformation: TransformationMatrix,
+}
+
 #[derive(Default, Eq, PartialEq)]
 pub(crate) struct HitTest {
     pub(crate) ids: SmallVec<[HitboxId; 8]>,
@@ -6494,13 +6501,16 @@ impl Window {
 
     /// Applies a cumulative paint-time transform to all painting performed in the given closure.
     ///
-    /// This affects painting only and does not change layout or hit testing.
+    /// This affects painting only and does not change layout or hit testing. An element that
+    /// paints its children under a transform should also prepaint them under it: cached views
+    /// compare the transform while prepainting, and one that is only applied while painting makes
+    /// a cached view below it render again instead of replaying.
     pub fn with_element_transform<R>(
         &mut self,
         transformation: Option<TransformationMatrix>,
         f: impl FnOnce(&mut Self) -> R,
     ) -> R {
-        self.invalidator.debug_assert_paint();
+        self.invalidator.debug_assert_paint_or_prepaint();
 
         let Some(transformation) =
             transformation.filter(|transformation| *transformation != TransformationMatrix::unit())
@@ -6514,6 +6524,19 @@ impl Window {
         let result = f(self);
         self.element_transform_stack.pop();
         result
+    }
+
+    /// Applies an element's opacity and transform while its children prepaint, as painting
+    /// applies them, so cached views below can tell whether either changed.
+    pub(crate) fn with_element_paint_context<R>(
+        &mut self,
+        opacity: Option<f32>,
+        transformation: Option<TransformationMatrix>,
+        f: impl FnOnce(&mut Self) -> R,
+    ) -> R {
+        self.with_element_opacity(opacity, |window| {
+            window.with_element_transform(transformation, f)
+        })
     }
 
     /// Perform prepaint on child elements in a "retryable" manner, so that any side effects
@@ -6607,6 +6630,15 @@ impl Window {
     pub(crate) fn element_opacity(&self) -> f32 {
         self.invalidator.debug_assert_paint_or_prepaint();
         self.element_opacity
+    }
+
+    /// The opacity and transform that primitives painted now would carry.
+    pub(crate) fn element_paint_context(&self) -> ElementPaintContext {
+        self.invalidator.debug_assert_paint_or_prepaint();
+        ElementPaintContext {
+            opacity: self.element_opacity,
+            transformation: self.current_element_transform(),
+        }
     }
 
     /// Obtain the current content mask. This method should only be called during element drawing.

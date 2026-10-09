@@ -1,7 +1,7 @@
 use crate::{
     AnyElement, AnyEntity, AnyWeakEntity, App, AvailableSpace, Bounds, ContentMask, Context,
-    Element, ElementId, Entity, EntityId, GlobalElementId, InspectorElementId, IntoElement,
-    LayoutId, PaintIndex, Pixels, PrepaintStateIndex, Render, RenderOnce, Size, Style,
+    Element, ElementId, ElementPaintContext, Entity, EntityId, GlobalElementId, InspectorElementId,
+    IntoElement, LayoutId, PaintIndex, Pixels, PrepaintStateIndex, Render, RenderOnce, Size, Style,
     StyleRefinement, TextStyle, WeakEntity,
 };
 use crate::{Empty, Window};
@@ -303,6 +303,8 @@ struct ViewElementCacheKey {
     bounds: Bounds<Pixels>,
     content_mask: ContentMask<Pixels>,
     text_style: TextStyle,
+    /// The opacity and transform the cached primitives were painted with.
+    paint_context: ElementPaintContext,
 }
 
 impl<V: View> Element for ViewElement<V> {
@@ -480,11 +482,13 @@ fn prepaint_view(
             |element_state, window| {
                 let content_mask = window.content_mask();
                 let text_style = window.text_style();
+                let paint_context = window.element_paint_context();
 
                 if let Some(mut element_state) = element_state
                     && element_state.cache_key.bounds == bounds
                     && element_state.cache_key.content_mask == content_mask
                     && element_state.cache_key.text_style == text_style
+                    && element_state.cache_key.paint_context == paint_context
                     && !window.dirty_views.contains(&entity_id)
                     && !window.refreshing
                     // Accessibility nodes and action listeners are rebuilt
@@ -523,6 +527,7 @@ fn prepaint_view(
                             bounds,
                             content_mask,
                             text_style,
+                            paint_context,
                         },
                     },
                 )
@@ -562,13 +567,23 @@ fn paint_view(
                     let mut element_state = element_state.unwrap();
 
                     let paint_start = window.paint_index();
+                    let paint_context = window.element_paint_context();
 
                     if let Some(element) = element {
                         let refreshing = mem::replace(&mut window.refreshing, true);
                         element.paint(window, cx);
                         window.refreshing = refreshing;
+                        // An ancestor that applies opacity or a transform only while
+                        // painting hides it from prepaint. Keying on the painted context
+                        // makes the view render again under such an ancestor.
+                        element_state.cache_key.paint_context = paint_context;
                     } else {
                         window.reuse_paint(element_state.paint_range.clone());
+                        if element_state.cache_key.paint_context != paint_context {
+                            // Such an ancestor changed after prepaint replayed this view,
+                            // so this frame shows stale primitives: render it next frame.
+                            window.on_next_frame(move |_, cx| cx.notify(entity_id));
+                        }
                     }
 
                     let paint_end = window.paint_index();
@@ -598,8 +613,9 @@ fn paint_component(
 #[cfg(test)]
 mod cached_view_replay_tests {
     use crate::{
-        Context, Entity, Modifiers, StyleRefinement, TestAppContext, Window, div, point,
-        prelude::*, px,
+        AnyElement, App, Bounds, Context, Element, Entity, GlobalElementId, InspectorElementId,
+        LayoutId, Modifiers, Pixels, Quad, Style, StyleRefinement, TestAppContext,
+        TransformationMatrix, VisualTestContext, Window, div, point, prelude::*, px, red, size,
     };
     use std::{cell::Cell, rc::Rc};
 
@@ -675,5 +691,241 @@ mod cached_view_replay_tests {
 
         cx.simulate_click(position, Modifiers::none());
         assert_eq!((top_clicks.get(), below_clicks.get()), (2, 0));
+    }
+
+    struct PaintContextChild {
+        renders: Rc<Cell<usize>>,
+    }
+
+    impl Render for PaintContextChild {
+        fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+            self.renders.set(self.renders.get() + 1);
+            div().size_full().bg(red())
+        }
+    }
+
+    struct PaintContextRoot {
+        child: Entity<PaintContextChild>,
+        opacity: f32,
+        scale: f32,
+    }
+
+    impl Render for PaintContextRoot {
+        fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+            div()
+                .size_full()
+                .opacity(self.opacity)
+                .scale(self.scale)
+                .child(
+                    self.child
+                        .clone()
+                        .cached(StyleRefinement::default().size_full()),
+                )
+        }
+    }
+
+    fn open_paint_context_window(
+        cx: &mut TestAppContext,
+    ) -> (
+        Entity<PaintContextRoot>,
+        Rc<Cell<usize>>,
+        &mut VisualTestContext,
+    ) {
+        let renders = Rc::new(Cell::new(0));
+        let (root, cx) = cx.add_window_view(|_, cx| PaintContextRoot {
+            child: cx.new(|_| PaintContextChild {
+                renders: renders.clone(),
+            }),
+            opacity: 1.,
+            scale: 1.,
+        });
+        (root, renders, cx)
+    }
+
+    fn painted_child_quad(cx: &mut VisualTestContext) -> Quad {
+        cx.update(|window, _| {
+            let quads = window.painted_quads();
+            assert_eq!(quads.len(), 1, "only the cached child paints a quad");
+            quads[0].clone()
+        })
+    }
+
+    /// Paints the current frame again from scratch and returns its child quad.
+    fn refreshed_child_quad(cx: &mut VisualTestContext) -> Quad {
+        cx.update(|window, cx| {
+            window.refresh();
+            window.draw(cx).clear(cx);
+        });
+        painted_child_quad(cx)
+    }
+
+    fn assert_same_paint_context(replayed: &Quad, refreshed: &Quad) {
+        assert_eq!(
+            format!("{:?}", replayed.background),
+            format!("{:?}", refreshed.background),
+            "replayed opacity must match a refreshed frame"
+        );
+        assert_eq!(
+            replayed.transformation, refreshed.transformation,
+            "replayed transform must match a refreshed frame"
+        );
+    }
+
+    #[gpux::test]
+    fn cached_view_replays_while_ancestor_paint_context_is_unchanged(cx: &mut TestAppContext) {
+        let (root, renders, cx) = open_paint_context_window(cx);
+        root.update(cx, |root, cx| {
+            root.opacity = 0.5;
+            root.scale = 2.;
+            cx.notify();
+        });
+        cx.run_until_parked();
+        let rendered = renders.get();
+
+        root.update(cx, |_, cx| cx.notify());
+        cx.run_until_parked();
+        assert_eq!(renders.get(), rendered, "an unchanged context replays");
+        let replayed = painted_child_quad(cx);
+        assert_same_paint_context(&replayed, &refreshed_child_quad(cx));
+    }
+
+    #[gpux::test]
+    fn cached_view_follows_ancestor_opacity(cx: &mut TestAppContext) {
+        let (root, _, cx) = open_paint_context_window(cx);
+        root.update(cx, |root, cx| {
+            root.opacity = 0.5;
+            cx.notify();
+        });
+        cx.run_until_parked();
+        let replayed = painted_child_quad(cx);
+        assert_same_paint_context(&replayed, &refreshed_child_quad(cx));
+    }
+
+    #[gpux::test]
+    fn cached_view_follows_ancestor_transform(cx: &mut TestAppContext) {
+        let (root, _, cx) = open_paint_context_window(cx);
+        root.update(cx, |root, cx| {
+            root.scale = 2.;
+            cx.notify();
+        });
+        cx.run_until_parked();
+        let replayed = painted_child_quad(cx);
+        assert_same_paint_context(&replayed, &refreshed_child_quad(cx));
+    }
+
+    /// Transforms its child only while painting, like a zoomable viewer that
+    /// leaves layout and hit testing alone.
+    struct PaintOnlyTransform {
+        transformation: Option<TransformationMatrix>,
+        child: AnyElement,
+    }
+
+    impl IntoElement for PaintOnlyTransform {
+        type Element = Self;
+
+        fn into_element(self) -> Self {
+            self
+        }
+    }
+
+    impl Element for PaintOnlyTransform {
+        type RequestLayoutState = ();
+        type PrepaintState = ();
+
+        fn id(&self) -> Option<crate::ElementId> {
+            None
+        }
+
+        fn source_location(&self) -> Option<&'static core::panic::Location<'static>> {
+            None
+        }
+
+        fn request_layout(
+            &mut self,
+            _: Option<&GlobalElementId>,
+            _: Option<&InspectorElementId>,
+            window: &mut Window,
+            cx: &mut App,
+        ) -> (LayoutId, ()) {
+            let child = self.child.request_layout(window, cx);
+            let mut style = Style::default();
+            style.size = size(px(100.).into(), px(100.).into());
+            (window.request_layout(style, [child], cx), ())
+        }
+
+        fn prepaint(
+            &mut self,
+            _: Option<&GlobalElementId>,
+            _: Option<&InspectorElementId>,
+            _: Bounds<Pixels>,
+            _: &mut (),
+            window: &mut Window,
+            cx: &mut App,
+        ) {
+            self.child.prepaint(window, cx);
+        }
+
+        fn paint(
+            &mut self,
+            _: Option<&GlobalElementId>,
+            _: Option<&InspectorElementId>,
+            _: Bounds<Pixels>,
+            _: &mut (),
+            _: &mut (),
+            window: &mut Window,
+            cx: &mut App,
+        ) {
+            window
+                .with_element_transform(self.transformation, |window| self.child.paint(window, cx));
+        }
+    }
+
+    struct PaintOnlyTransformRoot {
+        child: Entity<PaintContextChild>,
+        transformation: Option<TransformationMatrix>,
+    }
+
+    impl Render for PaintOnlyTransformRoot {
+        fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+            PaintOnlyTransform {
+                transformation: self.transformation,
+                child: self
+                    .child
+                    .clone()
+                    .cached(StyleRefinement::default().size_full())
+                    .into_any_element(),
+            }
+        }
+    }
+
+    /// A transform applied only while painting is invisible to prepaint, so the
+    /// frame that first applies it replays stale primitives; the cached view must
+    /// then render on the next frame and never replay under that transform.
+    #[gpux::test]
+    fn cached_view_follows_paint_only_ancestor_transform(cx: &mut TestAppContext) {
+        let renders = Rc::new(Cell::new(0));
+        let (root, cx) = cx.add_window_view(|_, cx| PaintOnlyTransformRoot {
+            child: cx.new(|_| PaintContextChild {
+                renders: renders.clone(),
+            }),
+            transformation: None,
+        });
+        root.update(cx, |root, cx| {
+            root.transformation = Some(TransformationMatrix::unit().scale(size(2., 2.)));
+            cx.notify();
+        });
+        cx.run_until_parked();
+        let scheduled = cx.update(|window, cx| window.simulate_next_frame(cx));
+        assert!(scheduled > 0, "a stale replay schedules a render");
+        cx.run_until_parked();
+        let rendered = painted_child_quad(cx);
+        assert_same_paint_context(&rendered, &refreshed_child_quad(cx));
+
+        let rendered = renders.get();
+        root.update(cx, |_, cx| cx.notify());
+        cx.run_until_parked();
+        assert_eq!(renders.get(), rendered + 1, "no replay under the transform");
+        let rendered = painted_child_quad(cx);
+        assert_same_paint_context(&rendered, &refreshed_child_quad(cx));
     }
 }

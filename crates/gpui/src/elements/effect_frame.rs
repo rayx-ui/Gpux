@@ -294,10 +294,15 @@ impl Element for EffectFrame {
         cx: &mut App,
     ) {
         let style = self.style.layout_style();
-        window.with_content_mask(style.overflow_mask(bounds, window.rem_size()), |window| {
-            if let Some(child) = self.child.as_mut() {
-                child.prepaint(window, cx);
-            }
+        // Painting applies the opacity and transform to the child, so cached
+        // views below must see them while prepainting.
+        let transformation = style.transformation(bounds, window.scale_factor());
+        window.with_element_paint_context(style.opacity, transformation, |window| {
+            window.with_content_mask(style.overflow_mask(bounds, window.rem_size()), |window| {
+                if let Some(child) = self.child.as_mut() {
+                    child.prepaint(window, cx);
+                }
+            });
         });
     }
 

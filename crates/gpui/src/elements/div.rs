@@ -2789,6 +2789,8 @@ impl Interactivity {
                     }
                 }
 
+                let opacity = style.opacity;
+                let transformation = style.transformation(bounds, window.scale_factor());
                 let prepaint = |window: &mut Window| {
                     window.with_text_style(style.text_style().cloned(), |window| {
                         window.with_content_mask(
@@ -2830,6 +2832,12 @@ impl Interactivity {
                             },
                         )
                     })
+                };
+
+                // Painting applies the style's opacity and transform to the
+                // children, so cached views below must see them while prepainting.
+                let prepaint = |window: &mut Window| {
+                    window.with_element_paint_context(opacity, transformation, prepaint)
                 };
 
                 // A fixed or sticky subtree paints in the positioned layer

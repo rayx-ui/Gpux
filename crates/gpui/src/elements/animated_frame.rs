@@ -471,18 +471,23 @@ impl Element for AnimatedFrame {
         cx: &mut App,
     ) {
         let style = &request_layout.style;
-        window.with_content_mask(style.overflow_mask(bounds, window.rem_size()), |window| {
-            match &mut self.child {
-                AnimatedFrameChild::Static(child) => {
-                    child.prepaint(window, cx);
-                }
-                AnimatedFrameChild::Progress(_) => {
-                    if let Some(child) = request_layout.progress_child.as_mut() {
+        // Painting applies the opacity and transform to the child, so cached
+        // views below must see them while prepainting.
+        let transformation = style.transformation(bounds, window.scale_factor());
+        window.with_element_paint_context(style.opacity, transformation, |window| {
+            window.with_content_mask(style.overflow_mask(bounds, window.rem_size()), |window| {
+                match &mut self.child {
+                    AnimatedFrameChild::Static(child) => {
                         child.prepaint(window, cx);
                     }
+                    AnimatedFrameChild::Progress(_) => {
+                        if let Some(child) = request_layout.progress_child.as_mut() {
+                            child.prepaint(window, cx);
+                        }
+                    }
+                    AnimatedFrameChild::None => {}
                 }
-                AnimatedFrameChild::None => {}
-            }
+            });
         });
     }
 

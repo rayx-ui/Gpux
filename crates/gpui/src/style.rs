@@ -658,7 +658,7 @@ impl Style {
         )
     }
 
-    fn transformation(
+    pub(crate) fn transformation(
         &self,
         bounds: Bounds<Pixels>,
         scale_factor: f32,
