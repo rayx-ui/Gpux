@@ -882,6 +882,11 @@ impl HitboxId {
     fn top_layer(self) -> HitboxId {
         HitboxId(TOP_LAYER_HITBOX_ID_BASE + self.0)
     }
+
+    /// The hit-test layer: normal, positioned, then top layer.
+    fn layer(self) -> u64 {
+        self.0 / POSITIONED_HITBOX_ID_BASE
+    }
 }
 
 /// A rectangular region that potentially blocks hitboxes inserted prior.
@@ -1253,6 +1258,7 @@ impl WindowFrame {
         let mut hitboxes = self
             .hitboxes
             .iter()
+            .rev()
             .filter(|hitbox| {
                 hitbox.behavior != HitboxBehavior::Ignore
                     && hitbox
@@ -1261,7 +1267,10 @@ impl WindowFrame {
                         .contains(&position)
             })
             .collect::<SmallVec<[_; 16]>>();
-        hitboxes.sort_by_key(|hitbox| std::cmp::Reverse(hitbox.id.0));
+        // Within a layer, later hitboxes are on top. Ids order only the layers:
+        // cached views replay their hitboxes with the previous frame's ids, which
+        // can be smaller than those of siblings inserted before them this frame.
+        hitboxes.sort_by_key(|hitbox| std::cmp::Reverse(hitbox.id.layer()));
 
         for hitbox in hitboxes {
             hit_test.ids.push(hitbox.id);

@@ -594,3 +594,86 @@ fn paint_component(
         element.as_mut().unwrap().paint(window, cx);
     });
 }
+
+#[cfg(test)]
+mod cached_view_replay_tests {
+    use crate::{
+        Context, Entity, Modifiers, StyleRefinement, TestAppContext, Window, div, point,
+        prelude::*, px,
+    };
+    use std::{cell::Cell, rc::Rc};
+
+    struct HitTestTop {
+        clicks: Rc<Cell<usize>>,
+        renders: Rc<Cell<usize>>,
+    }
+
+    impl Render for HitTestTop {
+        fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+            self.renders.set(self.renders.get() + 1);
+            let clicks = self.clicks.clone();
+            div()
+                .id("top")
+                .size_full()
+                .occlude()
+                .on_click(move |_, _, _| clicks.set(clicks.get() + 1))
+        }
+    }
+
+    struct HitTestRoot {
+        top: Entity<HitTestTop>,
+        below_clicks: Rc<Cell<usize>>,
+    }
+
+    impl Render for HitTestRoot {
+        fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+            let below_clicks = self.below_clicks.clone();
+            div()
+                .relative()
+                .size_full()
+                .child(
+                    div()
+                        .id("below")
+                        .absolute()
+                        .size_full()
+                        .occlude()
+                        .on_click(move |_, _, _| below_clicks.set(below_clicks.get() + 1)),
+                )
+                .child(
+                    self.top
+                        .clone()
+                        .cached(StyleRefinement::default().absolute().size_full()),
+                )
+        }
+    }
+
+    /// A cached view replayed above a sibling that re-rendered this frame keeps
+    /// its hitboxes from the previous frame, so it must still win the hit test.
+    #[gpux::test]
+    fn reused_cached_view_stays_above_earlier_rerendered_sibling(cx: &mut TestAppContext) {
+        let top_clicks = Rc::new(Cell::new(0));
+        let top_renders = Rc::new(Cell::new(0));
+        let below_clicks = Rc::new(Cell::new(0));
+        let (root, cx) = cx.add_window_view(|_, cx| HitTestRoot {
+            top: cx.new(|_| HitTestTop {
+                clicks: top_clicks.clone(),
+                renders: top_renders.clone(),
+            }),
+            below_clicks: below_clicks.clone(),
+        });
+        let position = point(px(50.), px(50.));
+
+        cx.simulate_click(position, Modifiers::none());
+        assert_eq!((top_clicks.get(), below_clicks.get()), (1, 0));
+
+        // Re-render only the root: the sibling below gets fresh hitboxes while
+        // the cached view on top is replayed.
+        let rendered = top_renders.get();
+        root.update(cx, |_, cx| cx.notify());
+        cx.run_until_parked();
+        assert_eq!(top_renders.get(), rendered, "the top view must be replayed");
+
+        cx.simulate_click(position, Modifiers::none());
+        assert_eq!((top_clicks.get(), below_clicks.get()), (2, 0));
+    }
+}
