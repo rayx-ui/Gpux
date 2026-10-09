@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/gpui/frame-pipeline
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-07T16:45:00+02:00
+  updated: 2026-10-09T19:29:00+02:00
   topics:
     - window
     - frame
@@ -13,6 +13,8 @@ agentx:
     - arena
     - element-id
     - element-state
+    - cached-view
+    - hit-test
     - deferred
     - content-mask
     - devtools
@@ -37,6 +39,8 @@ Read before changing `Window::draw`, prepaint/paint bookkeeping, `Scene`, `Bound
 
 `WindowFrame` keeps the complete accessed-state history (needed for replay ranges and rollback) and separately owns only pending replay transfers. Direct `with_element_state` access moves state immediately; prepaint/paint replay copies keys into both lists; prepaint rollback truncates both; finish scans only pending replay keys. Deferred draws keep stable arena indices across cached prepaint reuse and are processed in place.
 
+Cached views (`Entity::cached` / `AnyView::cached`) replay prepaint and paint ranges under a key of bounds, content mask, text style, and paint context (inherited element opacity and transform). Opacity and transforms are baked into primitives at paint, so `div` and the frame elements apply them around their children's prepaint as well as paint (`Window::with_element_paint_context`), and the key stores the context actually painted with: under an ancestor that applies either only while painting, the view renders instead of replaying, and a replay whose painted context changed after prepaint renders again on the next frame. Replayed hitboxes keep the previous frame's ids, so `WindowFrame::hit_test` orders candidates by id layer (normal, positioned, top layer) and then by reverse insertion, never by raw id.
+
 `gpux::deferred(...)` inherits the current content mask; `Deferred::unclipped()` paints with no mask for top-level overlays that must escape a clipped parent. `ContentMask` carries bounds and corner radii (`rectangular`/`rounded`), and intersection and scaling preserve radii. `Window` keeps empty logical mask bounds empty before cover-rounding non-empty masks to device pixels, so a zero-width or zero-height mask cannot become a one-device-pixel strip at fractional scales.
 
 Renderer paint paths prepare the original immutable `Color` or `Background` when inherited opacity is exactly `1.0`, reusing its lazy paint cache; other factors keep the authored-opacity transformation.
@@ -50,6 +54,7 @@ Under `diagnostics`, `gpui_wgpu` keeps a bounded latest-frame telemetry snapshot
 ## Backlinks
 
 - [Window](../../../../../crates/gpui/src/window.rs)
+- [Cached views](../../../../../crates/gpui/src/view.rs)
 - [Scene](../../../../../crates/gpui/src/scene.rs)
 - [Bounds tree](../../../../../crates/gpui/src/bounds_tree.rs)
 - [Arena](../../../../../crates/gpui/src/arena.rs)
