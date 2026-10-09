@@ -1,0 +1,716 @@
+{
+  "schemaVersion": 6,
+  "epicId": "gpux-fast-mode",
+  "decisions": [
+    {
+      "id": "d-architecture",
+      "requirementIds": [
+        "FM",
+        "FIN"
+      ],
+      "descriptionMarkdown": "Fast mode lives in `fast/` modules of the crates it touches:\n\n- `crates/gpui/src/fast/`:\n  - `mod.rs`, `mode.rs`, `stats.rs`, `verify.rs`;\n  - `bounds_tree.rs`, `scene.rs`, `glyphs.rs`, `number_shaping.rs`, `path_cache.rs`;\n  - `layout.rs`, `layout_key.rs`, `text.rs`;\n  - `dependencies.rs`, `retained.rs`, `splice.rs`, `dispatch.rs`;\n  - `composition.rs`, `layers/`, `scenarios/` and `tests/`;\n- `fast/layers` and `fast/composition` in `gpui_wgpu`, `gpui_apple`, `gpui_macos`, `gpui_linux`, `gpui_windows` and `gpui_web`.\n\nFile names follow gpui-fast, so a later gpui-fast fix can be read beside the gpux file it concerns. Existing gpux files get hooks only: a field typed by a `fast/` struct, a call into `crate::fast::...` written by full path, or a visibility change. Logic and bookkeeping stay in `fast/`. gpui-fast is a read-only reference cloned outside the repository; its code is adapted, never vendored.",
+      "invariantsMarkdown": "- No `use crate::fast::*` glob or re-export.\n- Public items come from `fast/` through explicit `pub use` lines in `gpui.rs`: `FastMode`, the composition API, `native_surface`.\n- Measurement-only items (`FastStats`, scenarios, forced decisions, verify mode) are compiled only under `test-support`, `bench-support` or `diagnostics`.",
+      "rationaleMarkdown": "gpux has rewritten the files gpui-fast hooks into (for example `window.rs` +10000/−5670 against Zed), so gpui-fast's patches cannot be replayed. Keeping its module split and its hook discipline still confines conflicts with gpux's own changes and with later Zed imports to hook lines, and keeps each mechanism reviewable on its own.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/upstream-sync/2026-08-07-repository-upstream-sync-self-contained-upstream-provenance.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-crates-io-packaging.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/agentx-memory/2026-10-05-repository-agentx-memory-taxonomy-transplant.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/gpui.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "LICENSE-APACHE"
+        }
+      ]
+    },
+    {
+      "id": "d-switches",
+      "requirementIds": [
+        "FM"
+      ],
+      "descriptionMarkdown": "`FastMode` is a per-window value held in `fast::mode::WindowFastMode`, with fields `layout_retention`, `view_retention`, `splice` and `scroll_layers`. Implications are normalized on every set: layout off implies views off, views off implies splice and layers off, and layers are false where not compiled.\n\nThe initial value is computed once per window from the compiled default and the environment:\n- `GPUX_FAST_MODE=0` turns everything off.\n- Per-mechanism `GPUX_*` variables apply next.\n- gpui-fast's `GPUI_*` variables are aliases, consulted only when the `GPUX_*` name is unset.\n\n`Window::set_fast_mode` normalizes the value. If anything changed, it releases what disabled mechanisms own (records, kept nodes, layer state, renderer tiles through `Scene.layers` going empty) and calls `refresh()`, so the next frame is drawn from scratch.\n\nThe compiled default is one constant per mechanism in `mode.rs`. It is `false` until the final sprint flips it to gpui-fast's defaults. The scroll-layers switch also gates offset snapping, glyph quantization and path snapping.",
+      "invariantsMarkdown": "- With every switch off, hooks cost a branch on a `bool` and make no `fast::` allocation.\n- The off path's output is byte-identical to the pre-epic path.",
+      "rationaleMarkdown": "The user asked for gpui-fast's on/off semantics. Process-wide environment switches read at window creation are gpui-fast's model. A per-window setter is the additive API that RayX needs to opt out a window and that the benchmarks need to attribute benefits. Landing dark protects RayX, which follows gpux by path, until the oracle and the comparison prove each mechanism.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "symbol": "Window::new"
+        }
+      ]
+    },
+    {
+      "id": "d-stats",
+      "requirementIds": [
+        "FM",
+        "PERF"
+      ],
+      "descriptionMarkdown": "`FastStats` is a plain counter struct in `fast/stats.rs`, owned by `Window` and reset at frame start. It is accumulated into a run total that `Window::fast_stats()` returns under `test-support`, `bench-support` or `diagnostics`. Counters are incremented at the decision points of each mechanism. Bypass reasons are an enum indexed into a fixed array.",
+      "invariantsMarkdown": "Counters are written only in `cfg`-gated code, so production builds carry no fields and no increments.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-05-gpui-frame-pipeline-frame-demand-follow-up.md"
+        }
+      ]
+    },
+    {
+      "id": "d-oracle",
+      "requirementIds": [
+        "OR",
+        "LAY",
+        "VIEW",
+        "SPL",
+        "LYR"
+      ],
+      "descriptionMarkdown": "`fast/verify.rs` turns a rendered frame into an ordered list of canonical lines:\n\n- Primitives are sorted by draw order, then kind, then index. Atlas tile ids are zeroed.\n- Layer tile sprites are expanded into their translated, clipped content.\n- Hitboxes are listed in point-local hit-test order.\n- Listener, cursor, tooltip, tab-stop, dispatch, element-state and DevKit summaries follow.\n\nThe oracle (`fast/tests/oracle_support.rs`) builds an `OracleView` covering every gpux feature named in OR-2. It drives two windows through a shared seeded `Change` history and compares their descriptions after every step. The reference window runs `forget_retained_state` (fresh layout engine, forgotten orderings, cleared records) and `refresh()` before each frame. Text uses a glyph-box text system, so glyph positions are compared exactly.\n\nEach mode has its own oracle group, which lands with that mode:\n- `oracle` (cached views)\n- `oracle_layout`\n- `oracle_views`\n- `oracle_splice`\n- `oracle_layers`\n- the list oracle inside `list_layers`\n\nEvery group asserts non-vacuity through `FastStats`.\n\nThe conformance parity groups run the existing lane-A and lane-C catalogs with fast mode on and off through a `FastMode` parameter on `TestHost`.",
+      "invariantsMarkdown": "- The reference window never retains anything.\n- A difference is reported with the seed, step and history.\n- No tolerance is applied except the documented layer-snapping reference mode.",
+      "rationaleMarkdown": "gpui-fast's correctness model is that the frame drawn from scratch is the specification. gpux has more per-frame outputs than gpui-fast (DevKit nodes, pending transfers, the hitbox-dispatch map, visual bounds, effects), so the description must be wider than gpui-fast's to make the oracle meaningful.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-test-lanes.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-gpux-owns-runtime-proof.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-gpux-testkit.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/test_host.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_a.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-perf",
+      "requirementIds": [
+        "PERF"
+      ],
+      "descriptionMarkdown": "Scenarios are `fast::scenarios::*` fixtures in `gpux`, compiled under `bench-support` or `test-support` like `randomized_element_tree`. Each fixture exposes `build`, `step(frame)` and `expect(mode, stats)`, so the bench and the lane-A attribution test share it.\n\n**The bench.** `crates/gpui_platform/benches/fast_mode.rs` runs each fixture per mode through `#[gpux::bench]` and `bench_metrics`. It prints one `gpux-fast-stats: <id> <counter>=<n> ...` line per id.\n\n**The report.** `gpux-testkit` (`tooling/testkit/src/fast_mode.rs`) runs the suite, parses Criterion estimates and stats lines, and renders `fast-mode.md`:\n- per-scenario tables;\n- deltas against `off` and against the previous mode;\n- a per-mechanism ranking;\n- `--compare` against an earlier run directory.\n\nLane G's bench plan adds `fast_mode` to `BENCHES`. The pre-optimization baseline is a saved run directory.",
+      "invariantsMarkdown": "- No timing assertion exists outside lane G.\n- Committed tests assert counters only.\n- Reports and raw output stay under `artifacts-temp/`.",
+      "rationaleMarkdown": "Measuring each cumulative mode on the same fixtures attributes every benefit to one mechanism, and shows the negative controls that no mechanism should help (animation, effects in scroll areas). Deterministic counters prove where the work went on every CI host; timing is meaningful only on a real GPU.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-local-gpu-lane-g.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/benches/randomized_element_tree.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/bench_metrics/src/bench_metrics.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/local_gpu.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-scoped-invalidation",
+      "requirementIds": [
+        "PRE"
+      ],
+      "descriptionMarkdown": "Hot-path redraws notify the owning view instead of calling `Window::refresh()`:\n\n- programmatic scroll and `ScrollActivity` steps notify the scroll owner and its unique dependents through the existing publication path;\n- hover, active and group-hover changes notify the innermost view, and `fast::retained` marks that subtree dirty;\n- editable-text, text-selection and key-dispatch redraws notify their view.\n\n`refresh()` remains for whole-window changes, each annotated.",
+      "invariantsMarkdown": "- A single `ScrollActivity` driver keeps one generation; retargeting is unchanged.\n- Direct input still cancels programmatic scrolling.",
+      "rationaleMarkdown": "Upstream and gpui-fast disable every cache while a window refreshes. gpux's scroll drivers refresh on every animation step, so retention would be off for the whole animation.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-08-21-gpui-positioning-scroll-immediate-scrollbar-publication.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/input/2026-10-05-gpui-input-upstream-input-model.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/list.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/uniform_list.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/scroll_activity.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-scene",
+      "requirementIds": [
+        "SC"
+      ],
+      "descriptionMarkdown": "`fast/bounds_tree.rs` (a uniform grid with ordering replay) replaces `crate::bounds_tree::BoundsTree` behind the same interface. It is used for all three draw-order bands; the `1<<30` and `1<<31` band bases are unchanged.\n\n`fast/scene.rs` provides the counting draw-order sort and the packed sprite sort, called from `Scene::finish`. Number shaping, the path tessellation cache and per-run glyph parameters are hooked into `text_system` and `path_builder`.\n\nEach optimization is a separate commit, so SC-4 can revert one alone.",
+      "invariantsMarkdown": "- Draw orders and equal-key order are identical to today's.\n- The text-cache contracts (prehashed keys, two-generation rollover, decoration sizing, shared font-run pool) are untouched.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-fixed-sticky-positioned-scene-order.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/bounds_tree.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/scene.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/text_system/line_layout.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/path_builder.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-layout-retention",
+      "requirementIds": [
+        "LAY"
+      ],
+      "descriptionMarkdown": "`TaffyLayoutEngine` gains a keyed claim path in `fast/layout.rs` that is used when layout retention is on.\n\n- **Keys.** `fast/layout_key.rs` keeps a key stack pushed and popped around `request_layout` in `element.rs`, with a prepaint-scope salt and list-item keys.\n- **Claims.** `claim(key)` returns the kept node or a new one.\n  - A kept node remembers its style fingerprint, its exact layout-relevant `Style` fields, its ordered children, and, for a text leaf, the carried measurement and a replay log.\n  - `set_style`, `set_children` and `set_node_context` run only on a difference.\n- **Text.** `fast/text.rs` implements carry and replay inside `TextLayout`'s measure path. Settling after layout re-measures probe-width leaves.\n- **Clear** releases unclaimed nodes, keeps lingering list rows, frees transient nodes, and still takes every tracked closure. Non-text closures still dirty their node.\n- **With retention off,** the existing ordinal pool path runs unchanged.",
+      "invariantsMarkdown": "- Style skipping uses exact equality of converted inputs; the fingerprint only short-circuits inequality.\n- No closure or captured application state outlives its frame.\n- Measurement reuse is text-owned and keyed by text, runs and style (carry), or re-executes the closure (replay).\n- The Taffy feature set is unchanged.",
+      "rationaleMarkdown": "Today's pool matches nodes by request ordinal and dirties every measured leaf each frame, so every ancestor of text is laid out again every frame. gpui-fast measured 8.32 → 1.86 ms on a 200-row frame from keyed nodes plus text carry. Carry keyed by text content is the explicit, caller-owned invalidation key that the measured-layout decision requires. Replay still runs the closure, so it does not reuse output from numeric inputs alone.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-measured-layout-invalidation.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-text-measurement-scope.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-30-gpui-layout-style-registry-taffy-0-14.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-disable-taffy-content-size.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-request-style-handoff.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-frame-bounded-prepaint-style-handoff.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-conditional-prepaint-style-recompute.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/taffy.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/element.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/text.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-dependencies",
+      "requirementIds": [
+        "DEP"
+      ],
+      "descriptionMarkdown": "`fast/dependencies.rs` owns the recording log and the change stamps.\n\n- **Entity hooks** (`app/entity_map.rs`): read, insert, update lease and release.\n- **App hooks:** `global`, `try_global`, `has_global`, global writes in `push_effect`, global insert and remove, and `notify`.\n- **State versions:** a `StateVersion(Rc<Cell<u64>>)` is attached to `ScrollHandle` state (`ScrollMetrics`) and `ListState`. It is bumped only on a real change; programmatic scrolls bump only if they moved.\n- **Ambient input:** `mouse_position`, `modifiers`, `capslock` and `pressed_mouse_button` record pseudo-globals. `dispatch_event` stamps those that changed.\n- **Hovers:** recorded in `HitboxId::is_hovered`.\n- **`ElementInputHandler`:** its methods wrap their calls in `dependencies::query`.\n\nRecording is a nestable range log. A record's own reads are its range minus its nested ranges.",
+      "invariantsMarkdown": "- Replaying a record re-pushes its entities into `accessed_entities`.\n- gpux's scroll dependents and thumb publication keep their single invalidation.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/input/2026-10-05-gpui-input-upstream-input-model.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-08-21-gpui-positioning-scroll-immediate-scrollbar-publication.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/app.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/app/entity_map.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/input.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs",
+          "symbol": "ScrollHandle"
+        }
+      ]
+    },
+    {
+      "id": "d-view-retention",
+      "requirementIds": [
+        "VIEW"
+      ],
+      "descriptionMarkdown": "`fast/retained.rs` keeps one `RetainedSubtree` record per view in `WindowFrame`.\n\n- **Contents:** prepaint and paint ranges, nested count, context, dependencies, hovers, layout keys and the rebuild data.\n- **Context:** bounds, content mask, text style, and the painted context (opacity and transform) that `with_element_paint_context` already establishes for cached views.\n- **Ranges:** `PrepaintStateIndex` and `PaintIndex` gain `shifted()` and exhaustive destructuring equality. Every gpux per-frame array joins them, including the DevKit records, pending transfers, `hitbox_dispatch_nodes` (copied by key and re-pointed) and `visual_bounds`.\n- **View requests:** `ViewElement` dispatches to `fast::retained::request_view_layout`, which chooses Prebuilt, Retained, Spliced or Built.\n- **Prepaint** resolves Reused or BuiltAtRetainedLayout, which uses `relayout_in_place` or `layout_as_root`.\n- **Sticky candidates** of reused views are republished from the record.\n- **Deferred draws** carry their enclosing records.\n- **Verify mode** renders a from-scratch shadow frame into a scratch `WindowFrame` and diffs it with `fast::verify`.",
+      "invariantsMarkdown": "- A range is copied at most once per frame, because copies take listeners.\n- Nested records are shifted, never re-copied.\n- Rollback truncates the records and every DevKit array.\n- Reuse is disabled while refreshing, during drags, while the inspector is picking, while AccessKit is active, and for duplicated ids.",
+      "rationaleMarkdown": "gpux still has the cached-view replay mechanism that gpui-fast generalizes (`reuse_prepaint`, `reuse_paint`, index structs, `dirty_views`). It already remaps DevKit records and keys replay on the painted context, so retention extends the existing path rather than adding a second one.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-06-29-gpui-frame-pipeline-unclipped-deferred-overlays.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-fixed-sticky-positioning.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-06-gpui-positioning-scroll-fixed-containing-block.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-sticky-hierarchy-traversal-order.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-universal-sticky-push-out.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-effects/2026-07-06-gpui-frame-effects-frame-effects-elements.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-effects/2026-07-07-gpui-frame-effects-frame-family-naming.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-07-24-gpui-frame-pipeline-cached-thermal-frame-throttling.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/view.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "symbol": "reuse_prepaint"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "symbol": "WindowFrame"
+        }
+      ]
+    },
+    {
+      "id": "d-splice",
+      "requirementIds": [
+        "SPL"
+      ],
+      "descriptionMarkdown": "`fast/splice.rs` implements gpui-fast's splice:\n\n- **Layout:** kept keys minus the gaps, gap layout under `enter_gap`, and held-layout verification.\n- **Copying:** `copy_prepaint_segment` and `copy_paint_segment` share the range-copy helpers of `reuse_prepaint` and `reuse_paint` rather than duplicating them. The `OpenDispatchCopy` reattachment is ported.\n- **Inherited state:** `Inherited`/`Rebuild` capture every gpux inherited stack: element id, text style, content mask, paint content mask, element offset, rem size, opacity, transform, scroll-container and sticky stacks.",
+      "invariantsMarkdown": "A splice either produces the from-scratch frame or falls back to rebuilding the parent with prebuilt children; it never yields a third result.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "symbol": "element_transform_stack"
+        }
+      ]
+    },
+    {
+      "id": "d-composition-core",
+      "requirementIds": [
+        "CMP"
+      ],
+      "descriptionMarkdown": "`fast/composition.rs` implements the PR #62379 surface tree.\n\n- **Surface starts.** `WindowFrame` records surface starts with `begin_base` before root paint and `begin_overlay` before deferred draws, prompts, drag, tooltips and the inspector.\n- **Scenes per surface.** `composed_scene_layers` builds per-surface scenes:\n  - the overlay takes primitives in the top-layer band plus the overlay range;\n  - balanced clip replay is preserved;\n  - `reuse_starts` is hooked into the shared reuse path.\n- **Presenting.** `present` calls `draw_composed` only while composition is enabled.\n- **Native surfaces.** `ManagedPlatformSurface` pushes bounds only on change. The `native_surface` element applies bounds in prepaint and marks the enclosing scroll content non-layerable.",
+      "invariantsMarkdown": "- With composition disabled, the scene, the draw call and allocations are unchanged.\n- The base surface cannot be moved or removed.\n- Tree changes are transactional.",
+      "rationaleMarkdown": "gpux's top layer (scrollbars and global overlays) is the natural overlay boundary, together with deferred draws. Splitting only by paint phase, as gpui-fast does, would leave top-layer overlays below native content.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-06-29-gpui-frame-pipeline-unclipped-deferred-overlays.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/platform.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/scene.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-composition-renderers",
+      "requirementIds": [
+        "CMP"
+      ],
+      "descriptionMarkdown": "Extra GPUI surfaces are drawn by additional renderers that share GPU resources with the window's renderer.\n\n- **wgpu:** `WgpuRenderer::new_sharing(&self, target, transparent)` creates a surface on the shared `GpuContext`, shares the `WgpuAtlas` and shares compiled pipelines when the format matches. Overlays are configured premultiplied and cleared transparent. `replace_surface_sharing_context` moves a core to a new handle (X11).\n- **Metal:** `MetalRenderer::new_overlay` shares the device, instance buffer pool and atlas, with `opaque = NO`.\n- **Overlay text:** overlay renderers force grayscale glyphs.",
+      "invariantsMarkdown": "No DirectX renderer and no `vendor/wgpu` change. Metal keeps effect capabilities false.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/renderer/wgpu/2026-07-04-renderer-wgpu-shader-effects-backend-capabilities.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/renderer/wgpu/2026-09-30-renderer-wgpu-srgb-compositing.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/wgpu_renderer.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_apple/src/metal_renderer.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-composition-platforms",
+      "requirementIds": [
+        "CMP"
+      ],
+      "descriptionMarkdown": "The platform backends are ported from gpui-fast:\n\n- **macOS:** `gpui_macos/src/fast/composition.rs`, with the overlay `NSView`, `hitTest:` gating and diffed re-mounting.\n- **Wayland:** `gpui_linux/src/fast/composition/wayland.rs`, with subcompositor binding, sync and desync subsurfaces, the commit order and input regions.\n- **X11:** `.../x11.rs`, with child windows, shape cut-outs, compositor detection and the overlay window.\n- **Windows:** `gpui_windows/src/fast/composition.rs`. A DirectComposition device, target and visual tree, created through the `windows` crate, host native portals and overlay swap chains made by wgpu from `SurfaceTargetUnsafe::CompositionVisual`, with an explicit `Commit()`.\n  - The spike decides whether the base stays an HWND swap chain under a topmost target (preferred, because it keeps the `DXGI_SCALING_NONE` resize behaviour) or becomes a composition visual.\n- **Web:** `gpui_web/src/fast/composition.rs` adds an overlay canvas above the `html_element` overlay root on the shared WebGPU device. On WebGL2 it reports unsupported.\n\nLane D platform checks use solid-colour native test surfaces, never browser engines. The webview examples are manual.",
+      "invariantsMarkdown": "- WebGL2 keeps the single-canvas V1 behaviour.\n- The HWND base swap chain keeps `DXGI_SCALING_NONE`; only composition swap chains use stretch, as the DXGI decision anticipates.\n- Wayland popup semantics stay together.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/desktop/2026-07-08-platform-desktop-windows-wgpu-dx12-policy.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/desktop/2026-07-08-platform-desktop-windows-wgpu-dxgi-scaling.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-gpux-wgpu-fork.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/web/2026-07-03-platform-web-html-element-dom-overlay.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/web/2026-07-03-platform-web-html-element-fit-styles-wheel.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/renderer/wgpu/2026-08-07-renderer-wgpu-browser-backend-fallback.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/web/2026-06-24-platform-web-multithreaded-wasm.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/web/2026-10-07-platform-web-browser-lane-b.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_macos/src/window.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_linux/src/linux/wayland/window.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_linux/src/linux/x11/window.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_windows/src/window.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/html_element.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-layers-core",
+      "requirementIds": [
+        "LYR"
+      ],
+      "descriptionMarkdown": "`fast/layers/` ports gpui-fast's layers: `policy`, `invalidate`, `paint`, `tiles`, `scene`, `reuse`, `input`, `background`, `work`, `record` and `verify`.\n\n- **Scene contract.** `Scene` gains `layers: SceneLayers`. Tile sprites are polychrome sprites with reserved texture ids, inserted inside the viewport's layer.\n- **Content space.** Translation into content space also shifts every primitive's `TransformationMatrix`.\n- **Bypass.** gpux-only bypass reasons are detected while painting into the layer scene: visual effects, screen-effect regions, HTML islands and elements, composition surfaces, and positioned or top-layer bands.\n- **Scroll dependents.** gpux scroll dependents' notifications count as scroll notifications.\n- **Touch scrolling.** Pans and fling momentum applied through `TouchGestureRecognizer` note the scrolled container on the same path as the wheel listener and `ScrollHandle::set_offset`. Touch moves inside an active pan of that container count as scroll input; other touch input repaints moved content first. No gesture or momentum state is duplicated.",
+      "invariantsMarkdown": "- Layers never change output beyond the documented snapping.\n- Composite frames never skip a prepaint that a `native_surface` or a sticky element needs.\n- Wheel routing and capture ownership are unchanged.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-nested-scroll-wheel-propagation.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-opaque-scroll-capture-owner.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/web/2026-07-02-platform-web-html-island-canonical-roots.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/scene.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-layers-renderers",
+      "requirementIds": [
+        "LYR"
+      ],
+      "descriptionMarkdown": "**wgpu.** `gpui_wgpu/src/fast/layers/` adds a tile cache, raster and composite.\n\n- `encode_scene_to_view` is split so that a tile can be rasterized with its own size globals and its own clear (the baked background) into a cache texture, in the frame's encoder, before `main_pass`.\n- `draw_polychrome_sprites` resolves reserved ids to tile views.\n- The premultiplied-input flag uses `PolychromeSprite.pad`. That changes semantics, not size, so it is an ABI change asserted in Rust tests.\n- The gradient dither seed becomes position within the quad.\n\n**Metal.** `gpui_apple/src/fast/layers/` ports gpui-fast's Metal tiles.\n\n**Compiled scope.** `fast::layers::COMPILED` covers every gpux renderer: wgpu on Linux, Windows, the browser, Android and iOS, and Metal on macOS.\n\n**Budgets.** The tile budget is a per-target constant: 64 MB per window on desktop, 32 MB in the browser and on mobile.",
+      "invariantsMarkdown": "- Tiles use the non-sRGB render-target format and premultiplied encoded sRGB.\n- Effect passes run after compositing.\n- The cache clears on resize, scale, alpha mode, device loss and GPU recovery.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/renderer/wgpu/2026-09-30-renderer-wgpu-srgb-compositing.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/renderer/wgpu/2026-08-07-renderer-wgpu-browser-backend-fallback.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/renderer/wgpu/2026-07-04-renderer-wgpu-shader-effects-backend-capabilities.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/wgpu_renderer.rs",
+          "symbol": "encode_scene_to_view"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/shaders.wgsl"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_apple/src/shaders.metal"
+        }
+      ]
+    },
+    {
+      "id": "d-layers-web-mobile",
+      "requirementIds": [
+        "LYR",
+        "PERF"
+      ],
+      "descriptionMarkdown": "Browser and mobile enablement adds no second tile implementation; it adapts the shared wgpu tiles to each platform.\n\n- **Browser.** Tiles run unchanged over WebGPU and the full-record WebGL2 transport. HTML islands and elements bypass. Under `diagnostics`, counters are published as `__gpuxFastStats` through `gpui_wgpu::web_globals`. The lane B spec drives the web host with trusted wheel input and compares screenshots with a layers-off page load (a web-host URL switch that sets `FastMode`).\n- **Android.**\n  - Tiles follow the existing GL ES shader and binding rules.\n  - The platform releases the renderer's tile cache through a `PlatformWindow` memory-pressure hook, called from `onTrimMemory`, background and surface loss in both host modes.\n  - The conformance host reports counters through its result lines.\n- **iOS.** The same hook is called from `didReceiveMemoryWarning` and background.\n- **Mobile timing** comes from the hosts' frame-work percentiles, measured on devices.",
+      "invariantsMarkdown": "- No platform gets its own tile format or compositing path.\n- Every release path makes the next frame repaint, never composite stale tiles.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/mobile/2026-10-07-platform-mobile-android-lane-e.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/mobile/2026-10-07-platform-mobile-ios-lane-f.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/renderer/wgpu/2026-08-07-renderer-wgpu-browser-backend-fallback.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/web/2026-10-07-platform-web-browser-lane-b.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/window.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/embedded.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/ios/window.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/window.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/web_globals.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-composition-mobile",
+      "requirementIds": [
+        "CMP"
+      ],
+      "descriptionMarkdown": "Mobile composition reuses the core tree and the sharing wgpu renderer.\n\n**iOS** (`gpui_mobile/src/ios/fast/composition.rs`):\n- Native containers are `UIView`s in the view controller's view, above the base `GPUIMetalView`.\n- The overlay is a `GPUIOverlayView` class with a transparent `CAMetalLayer` on the Metal-specific wgpu path. Its `hitTest:withEvent:` is gated on overlay content, and its touches forward into the existing touch path.\n- Release order keeps the `IosWindow` alive until its views stop pointing at it.\n\n**Android** (`gpui_mobile/src/android/fast/composition.rs` plus Java under `crates/gpui_mobile/java/dev/gpux/mobile/`):\n- The spike picks attached panel windows or a managed hierarchy with a top-ordered translucent overlay `SurfaceView`, whichever serves both the NativeActivity and the embedded host.\n- Java receives touches only on the overlay while it has content, and forwards them through JNI as raw touches.\n- The overlay renders through a sharing `WgpuRenderer` on its own `ANativeWindow`, with its own surface per backend.\n- `gpux-testkit android build` gains a `javac`/`d8` step against the pinned `android.jar`; the build stays Gradle-free.\n\n**Platform views.** gpui-mobile's `PlatformView`s become content of composition native surfaces, placed by `native_surface`.",
+      "invariantsMarkdown": "- Touches still enter GPUI only as raw `PlatformInput::Touch`.\n- iOS stays on `Backends::METAL` and CoreText.\n- Each Android backend attempt gets its own surface.\n- Java sources live inside the `gpui_mobile` crate directory, so the crate stays publishable.",
+      "rationaleMarkdown": "The platform-view scaffold already creates native views but cannot layer GPUI above them: iOS inserts them below an opaque Metal view, and the Android Java class is missing. Composition gives one tested embedding mechanism on every platform instead of two half-mechanisms.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/mobile/2026-10-07-platform-mobile-android-lane-e.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/platform/mobile/2026-10-07-platform-mobile-ios-lane-f.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/gpui/input/2026-10-05-gpui-input-upstream-input-model.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-crates-io-packaging.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/platform_view.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/ios/platform_view.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/platform_view.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/components/platform_view_element.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/jni.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/android.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-list-layers",
+      "requirementIds": [
+        "LYR"
+      ],
+      "descriptionMarkdown": "`fast/layers/lists.rs` ports per-row records for `uniform_list` and `list`, adapted to gpux's list (sticky rows, `ScrollActivity`, programmatic scroll). Row layout nodes linger through `fast/layout.rs`. Rows with sticky or positioned content keep the layer in bypass.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/list.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/uniform_list.rs"
+        }
+      ]
+    },
+    {
+      "id": "d-defaults-docs",
+      "requirementIds": [
+        "FM",
+        "FIN",
+        "PERF"
+      ],
+      "descriptionMarkdown": "The final sprint flips the compiled defaults, documents fast mode, records provenance and runs the lane G comparison. `docs/fast-mode.md` records relative deltas and the machine as the epic's outcome. Lane G results are never committed as a regression baseline.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-local-gpu-lane-g.md"
+        }
+      ]
+    }
+  ],
+  "memoryDecisionsConsidered": [
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-06-29-platform-web-wasm-svg-asset-loading.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-07-01-platform-web-html-island-url-opt-in.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/platform/web/2026-08-31-platform-web-explicit-wasm-constructors.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-drop-z-crates.md"
+    }
+  ]
+}

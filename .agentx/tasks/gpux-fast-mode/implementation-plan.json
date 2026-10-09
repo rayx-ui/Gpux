@@ -1,0 +1,3653 @@
+{
+  "schemaVersion": 6,
+  "epicId": "gpux-fast-mode",
+  "revision": 2,
+  "title": "gpux fast mode: retained layout and views, splice, scroll layers and window composition from gpui-fast",
+  "validationMode": "sprint",
+  "repositories": [
+    {
+      "id": "gpux",
+      "path": ".",
+      "role": "execution"
+    }
+  ],
+  "boundaries": {
+    "repositoryIds": [
+      "gpux"
+    ],
+    "forbiddenPaths": [
+      "gpux:.agentx/experiments/**",
+      "gpux:.agentx/tasks/frame-effects-navigation-transitions/**",
+      "gpux:.agentx/tasks/frame-family-component-transitions/**",
+      "gpux:.agentx/tasks/gpux-cross-platform-test-lanes/**",
+      "gpux:.agentx/tasks/gpux-fixed-sticky-positioning/**",
+      "gpux:.agentx/tasks/gpux-text-rendering-quality-performance/**",
+      "gpux:.agentx/tasks/gpux-wgpu-platform-renderers/**",
+      "gpux:.agentx/tasks/high-quality-wasm-text-rendering/**",
+      "gpux:.agentx/tasks/html-element-dom-overlay/**",
+      "gpux:.agentx/tasks/html-island-wasm/**",
+      "gpux:.agentx/tasks/keyed-sticky-stacking/**",
+      "gpux:.agentx/tasks/macos-only-metal-port-and-ci-repair/**",
+      "gpux:.agentx/tasks/shader-effects-and-screen-transitions/**",
+      "gpux:ToFix/**",
+      "gpux:vendor/wgpu/**"
+    ]
+  },
+  "checks": [
+    {
+      "id": "check-switches",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "FM-1",
+        "FM-2"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/switches.rs`. It covers every environment variable and alias, precedence, implication normalization, the compiled-scope rule for layers, runtime toggling equal to a from-scratch frame, release of owned state over 1,000 toggles, and zero counters while off.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::switches::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 8
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-stats",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "FM-3"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/stats.rs`. It covers per-frame reset, run accumulation, bypass-reason indexing, and counters for one frame of each mechanism stub.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::stats::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-gpux-default-build",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [
+        "FM-3"
+      ],
+      "descriptionMarkdown": "A default-feature build of `gpux`. It fails if ungated code references `FastStats` or other measurement-only items.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-oracle",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "OR-1",
+        "OR-2"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/oracle.rs` with `oracle_support.rs`. Mutation tests prove the frame description detects each field kind. The randomized cached-view oracle runs 16 seeds × 60 steps, with a non-vacuity assertion on cached reuse.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::oracle::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-parity-a",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "OR-3"
+      ],
+      "descriptionMarkdown": "New group `crates/gpux_conformance/tests/lane_a_fast_parity.rs`: every lane-A catalog scene with fast mode all on and all off, with equal captures.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-conformance",
+        "--test",
+        "lane_a_fast_parity"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 20
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpux_conformance/**",
+        "crates/gpui_platform/**",
+        "crates/gpui_wgpu/**",
+        "crates/gpux_fonts/**"
+      ]
+    },
+    {
+      "id": "check-parity-c",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "OR-4"
+      ],
+      "descriptionMarkdown": "New group `crates/gpux_conformance/tests/lane_c_fast_parity.rs`: every lane-C scene rendered on the host's lane-C renderer with fast mode all on and all off, with byte-identical pixels.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-conformance",
+        "--test",
+        "lane_c_fast_parity"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 10
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpux_conformance/**",
+        "crates/gpui_platform/**",
+        "crates/gpui_wgpu/**",
+        "crates/gpui_apple/**",
+        "crates/gpux_fonts/**"
+      ]
+    },
+    {
+      "id": "check-bench-smoke",
+      "repositoryId": "gpux",
+      "kind": "benchmark",
+      "criterionIds": [
+        "PERF-1"
+      ],
+      "descriptionMarkdown": "The new `fast_mode` bench in Criterion test mode. Every `fast/<scenario>/<mode>` id runs once, with its counter assertions; no timing is involved.",
+      "argv": [
+        "cargo",
+        "bench",
+        "-p",
+        "gpux-platform",
+        "--features",
+        "bench-support",
+        "--bench",
+        "fast_mode",
+        "--",
+        "--test"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "stdoutPattern": "fast/still-frame/off"
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpui_platform/**",
+        "crates/gpui_wgpu/**",
+        "crates/gpui_apple/**",
+        "crates/gpui_macos/**",
+        "crates/bench_metrics/**"
+      ]
+    },
+    {
+      "id": "check-attribution",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "PERF-2"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/fast_mode_attribution.rs`: exact counter shapes per scenario and mode. Modes not yet implemented assert that they equal `off`. Later sprints amend the expectations as each mechanism lands; that is the same group, not a new suite.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support,bench-support",
+        "--test",
+        "fast_mode_attribution"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 15
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-report",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "PERF-3",
+        "PERF-5"
+      ],
+      "descriptionMarkdown": "New group `tooling/testkit/tests/fast_mode_report.rs`: parses recorded Criterion and `gpux-fast-stats` fixture output, renders the report tables, deltas and ranking, `--compare` between two fixture runs, and lane G's bench plan including `fast_mode`.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-testkit",
+        "--test",
+        "fast_mode_report"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "tooling/testkit/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-scoped-invalidation",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "PRE-1"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/scoped_invalidation.rs`: programmatic scroll and `ScrollActivity` steps, hover, active and group-hover changes, editable-text and selection redraws, and key-dispatch redraws. Each leaves `refreshing` false and matches the from-scratch frame.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::scoped_invalidation::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 5
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-bounds-grid",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "SC-1"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/bounds_grid.rs`: grid orders against the existing `BoundsTree` and a brute-force reference over random sequences, replay across frames with moved bounds, all three bands, degenerate and NaN bounds, and comparison-budget fallback.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::bounds_grid::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 6
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-draw-order",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "SC-2"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/draw_order.rs`: counting sort and packed fallback equal to a stable comparison sort, equal-key order for every family, sprite texture grouping, and the already-sorted fast path.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::draw_order::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 5
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-text-path",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "SC-3"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/text_path_caches.rs`: number-shaped glyph positions equal to full shaping, path-cache vertices equal across translations, and per-run glyph parameters equal to per-glyph parameters.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::text_path_caches::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 5
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-layout-keys",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "LAY-1",
+        "LAY-4"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/layout_keys.rs`: path, id and index keys, sibling insert, remove and reorder keeping other nodes clean, duplicate keys, prepaint-scope keys, release, lingering list rows, bounded growth under churn, and the off path unchanged.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::layout_keys::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 8
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-write-elision",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "LAY-2"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/write_elision.rs`: style and children writes only on change, a fingerprint change for each converted field, exact confirmation on equal fingerprints, and an unchanged stretched root.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::write_elision::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-text-carry",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "LAY-3"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/text_carry.rs`: carry, colour-only carry, equal-size replay, size-change re-measure, probe settling, truncation and wrapping, non-text leaves still dirtied, and no retained closures.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::text_carry::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 8
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-oracle-layout",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "LAY-5"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/oracle_layout.rs`: the randomized oracle in layout-only mode across all change kinds, plus targeted sticky, container-query and handoff cases, with a non-vacuity assertion on clean nodes.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::oracle_layout::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-dependencies",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "DEP-1"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/dependencies.rs`: one test per read kind and per change rule, idempotent state writes, and the `ElementInputHandler` exemption.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::dependencies::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 12
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-dependency-nesting",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "DEP-2"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/dependency_nesting.rs`: own versus subtree sets, and replay re-registering accessed entities.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::dependency_nesting::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-retained-records",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "VIEW-4"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/retained_records.rs`: one test per copied output (DevKit remap and rollback included), sticky republication, positioned and top-layer bands, deferred attribution, and window-owned effect requests.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::retained_records::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 12
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-reuse-paths",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "VIEW-1",
+        "VIEW-3"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/reuse_paths.rs`: still-frame reuse, built-at-retained-layout for each inherited-context change, prebuilt, dependency-aware `cached(style)`, and `RenderOnce` never retained.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::reuse_paths::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 6
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-view-invalidation",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "VIEW-2",
+        "VIEW-5"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/view_invalidation.rs`: exact reader invalidation per dependency kind, the notify and update rules, innermost-view interactions, and each disabling condition with its counter.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::view_invalidation::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 12
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-verify-mode",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "VIEW-6"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/verify_mode.rs`: the shadow frame names a view that reads untracked `Rc<RefCell<_>>` state, and presented output is unaffected.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support,diagnostics",
+        "--lib",
+        "fast::tests::verify_mode::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-oracle-views",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "VIEW-7"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/oracle_views.rs`: the randomized oracle in views mode, with a non-vacuity assertion on reused subtrees.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::oracle_views::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-splice",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "SPL-1"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/splice.rs`: a single nested rebuild, multiple gaps, gap layout fallback taking over prebuilt children, deferred draws, inherited gpux stacks, and dispatch depth stable over 1,000 frames.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::splice::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 6
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-own-dirty",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "SPL-2"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/own_dirty.rs`: an own-read change marks the view dirty and its ancestors are spliced.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::own_dirty::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-oracle-splice",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "SPL-3"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/oracle_splice.rs`: the randomized oracle in splice mode, with a non-vacuity assertion on spliced views.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::oracle_splice::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-composition-core",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "CMP-1",
+        "CMP-2"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/composition.rs` on a recording test platform: the API and transactions, unsupported defaults, a byte-identical disabled path, per-surface scenes (the top-layer band and the overlay range), balanced clips, `reuse_starts` under cached, retained and spliced reuse, and bounds pushed only on change.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::composition::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 10
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-composition-overlay",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "CMP-8"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/composition_overlay.rs`: grayscale glyph requests for overlay ranges under a subpixel-capable window, and backdrop effects on the overlay limited to GPUI content.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::composition_overlay::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-composition-macos",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "CMP-3"
+      ],
+      "descriptionMarkdown": "New lane D platform checks `composition-macos-*` (in `crates/gpux_conformance/src/platform_checks.rs` and the desktop host): view order and bounds, input routing, and the shadow pixels over a native view (skipped with the reason without screen capture). Runs on a Mac.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "d",
+        "--grep",
+        "composition-macos"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tooling/testkit/**",
+        "tools-node/specs/**",
+        "tools-node/package.json",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-composition-wayland",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "CMP-4"
+      ],
+      "descriptionMarkdown": "New lane D platform checks `composition-wayland-*`: subsurface order, positions and input regions. Runs in a Wayland session (a Linux desktop, or WSLg per `LINUX-WSL.md`); skipped with the reason otherwise.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "d",
+        "--grep",
+        "composition-wayland"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tooling/testkit/**",
+        "tools-node/specs/**",
+        "tools-node/package.json",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-composition-x11",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "CMP-5"
+      ],
+      "descriptionMarkdown": "New lane D platform checks `composition-x11-*`: cut-outs under Xvfb, and the overlay window where a compositor runs. Runs on Linux or WSL.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "d",
+        "--grep",
+        "composition-x11"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tooling/testkit/**",
+        "tools-node/specs/**",
+        "tools-node/package.json",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-composition-windows",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "CMP-6"
+      ],
+      "descriptionMarkdown": "New lane D platform checks `composition-windows-*`: visual tree order, portal bounds and clip, device-loss rebuild, and screenshot pixels. Runs on Windows (WARP or hardware).",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "d",
+        "--grep",
+        "composition-windows"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tooling/testkit/**",
+        "tools-node/specs/**",
+        "tools-node/package.json",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-composition-web",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "CMP-7"
+      ],
+      "descriptionMarkdown": "New Playwright spec `tools-node/specs/composition.spec.ts`: a popover drawn over a DOM element on WebGPU, pointer routing, and forced WebGL2 reporting unsupported with the V1 overlay intact.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "b",
+        "--grep",
+        "composition"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tooling/testkit/**",
+        "tools-node/specs/**",
+        "tools-node/package.json",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-layer-policy",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "LYR-1"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/layer_policy.rs`: promotion, the three decisions, change-rate and work-budget demotion, cooldown doubling and reset, idle eviction, resize drop, the compiled scope, and the switch gating snapping.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::layer_policy::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 10
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-layer-carry",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "LYR-2"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/layer_carry.rs`: scroll-only detection (scroll dependents included), carried and translated outputs, repaint before non-wheel input, and translated `ScrollHandle` bounds.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::layer_carry::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 8
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-layer-inputs",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "LYR-3"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/layer_inputs.rs`: tile hashing, including the transform matrix, background baking, glyph reach culling, path lifting, and one test per bypass reason.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::layer_inputs::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 12
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-oracle-layers",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "LYR-4"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/oracle_layers.rs`: the randomized layers oracle at scales 1 and 1.25, with expanded scenes, hit tests and listener positions, and coverage assertions.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::oracle_layers::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-wgpu-tiles",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "LYR-5"
+      ],
+      "descriptionMarkdown": "New renderer group `crates/gpui_wgpu/src/fast/layers/tests.rs` on the software adapter. Byte-equality of assembled tiles, negative coordinates, odd translations, paths excluded, a second frame from cache, the generation contract, LRU eviction, release on resize, and Rust size and offset assertions for the premultiplied flag.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-wgpu-renderer",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::layers::tests"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 8
+      },
+      "environment": {
+        "GPUX_WGPU_ADAPTER": "software"
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpui_wgpu/**"
+      ]
+    },
+    {
+      "id": "check-layers-lane-c",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "LYR-5"
+      ],
+      "descriptionMarkdown": "New group `crates/gpux_conformance/tests/lane_c_scroll_layers.rs`: scrolled scenes composited from tiles are pixel-identical to the layers-off, snapping-on reference on the lane-C renderer.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-conformance",
+        "--test",
+        "lane_c_scroll_layers"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpux_conformance/**",
+        "crates/gpui_platform/**",
+        "crates/gpui_wgpu/**",
+        "crates/gpui_apple/**",
+        "crates/gpux_fonts/**"
+      ]
+    },
+    {
+      "id": "check-wgpu-abi-lane-b",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "LYR-5"
+      ],
+      "descriptionMarkdown": "Lane B's Dawn-validation and backend specs on WebGPU and forced WebGL2, for the polychrome record flag and the WGSL dither change. Before the sprint starts, resolve the exact `--grep` pattern to the specs that cover forced WebGL2.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "b",
+        "--grep",
+        "dawn|backend"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tooling/testkit/**",
+        "tools-node/specs/**",
+        "tools-node/package.json",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-metal-tiles",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "LYR-6"
+      ],
+      "descriptionMarkdown": "New renderer group `crates/gpui_apple/src/fast/layers/tests.rs` on a headless Metal device: the same tile byte-equality cases as wgpu, plus the dither seed. Runs on a Mac.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-apple",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::layers"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 6
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpui_apple/**"
+      ]
+    },
+    {
+      "id": "check-list-layers",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "LYR-7"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/list_layers.rs`: row records, extend versus repaint, overscan growth and dropping, row reads, foretold hovers, `is_scrolled_to_end` and `scroll_to_end`, a changed item count, sticky-row bypass, lingering nodes, and the list oracle.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::list_layers::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 12
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-defaults",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "FM-4"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/defaults.rs`: gpui-fast defaults on a new window, each `GPUX_*=0`, `GPUX_FAST_MODE=0`, and the aliases.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::defaults::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-composition-ios",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "CMP-10"
+      ],
+      "descriptionMarkdown": "New lane F scenes `composition-ios-*`: view order and frames, tap pass-through and overlay capture, and shadow pixels over a native view (skipped with the reason without a Metal device). Runs on a Mac with Xcode.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "f",
+        "--grep",
+        "composition-ios"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tooling/testkit/**",
+        "tools-node/specs/**",
+        "tools-node/package.json",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-android-java-build",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "CMP-11"
+      ],
+      "descriptionMarkdown": "New group `tooling/testkit/tests/android_java.rs`: the Gradle-free build plan compiles `crates/gpui_mobile/java/**` with `javac` and `d8` against the pinned `android.jar`, places `classes.dex` in the APK, and reports a missing JDK or build-tools with the installing command.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-testkit",
+        "--test",
+        "android_java"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3
+      },
+      "inputs": [
+        "tooling/testkit/**",
+        "tooling/android/**",
+        "crates/gpui_mobile/java/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-composition-android",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "CMP-11"
+      ],
+      "descriptionMarkdown": "New lane E scenes `composition-android-*`: order, tap pass-through and overlay capture, and menu shadow pixels over a native `View`, read through `adb screencap` with the 16-bit tolerance. Runs with an emulator or device attached.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "e",
+        "--grep",
+        "composition-android"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tooling/testkit/**",
+        "tools-node/specs/**",
+        "tools-node/package.json",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-platform-views-e",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "CMP-12"
+      ],
+      "descriptionMarkdown": "New lane E scenes `platform-view-*`: a generic platform view between GPUI content and an open menu, with taps on each.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "e",
+        "--grep",
+        "platform-view"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tooling/testkit/**",
+        "tools-node/specs/**",
+        "tools-node/package.json",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-platform-views-f",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "CMP-12"
+      ],
+      "descriptionMarkdown": "New lane F scenes `platform-view-*`: the same on the iOS Simulator.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "f",
+        "--grep",
+        "platform-view"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tooling/testkit/**",
+        "tools-node/specs/**",
+        "tools-node/package.json",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-layer-touch",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "LYR-8"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/layer_touch.rs`: a touch pan, fling momentum, a tap after a fling and a long press over a layered container. Each composites or repaints as specified and matches the layers-off reference.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::layer_touch::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 4
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-layers-web",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "LYR-9"
+      ],
+      "descriptionMarkdown": "New Playwright spec `tools-node/specs/scroll-layers.spec.ts` (its non-`@timing` tests): composited frames through `__gpuxFastStats`, and screenshot equality with a layers-off load, on WebGPU and forced WebGL2.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "b",
+        "--grep",
+        "scroll-layers"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tooling/testkit/**",
+        "tools-node/specs/**",
+        "tools-node/package.json",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-layers-android",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "LYR-10"
+      ],
+      "descriptionMarkdown": "New lane E scenes `scroll-layers-*`: swiped div and list, composited counters, `adb screencap` equality with layers off, and tiles rebuilt after background and resume.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "e",
+        "--grep",
+        "scroll-layers"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tooling/testkit/**",
+        "tools-node/specs/**",
+        "tools-node/package.json",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-layers-ios",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "LYR-11"
+      ],
+      "descriptionMarkdown": "New lane F scenes `scroll-layers-*`: panned div and list, composited counters, pixel equality with layers off where a Metal device exists, and tiles rebuilt after background and resume.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "f",
+        "--grep",
+        "scroll-layers"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tooling/testkit/**",
+        "tools-node/specs/**",
+        "tools-node/package.json",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "final-fmt",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [],
+      "descriptionMarkdown": "Formatting of the whole workspace (a cheap, whole-tree tool).",
+      "argv": [
+        "cargo",
+        "fmt",
+        "--check"
+      ],
+      "expected": {
+        "exitCode": 0
+      }
+    },
+    {
+      "id": "final-clippy",
+      "repositoryId": "gpux",
+      "kind": "static",
+      "criterionIds": [],
+      "descriptionMarkdown": "Clippy on every package the epic touches.",
+      "argv": [
+        "cargo",
+        "clippy",
+        "-p",
+        "gpux",
+        "-p",
+        "gpux-platform",
+        "-p",
+        "gpux-wgpu-renderer",
+        "-p",
+        "gpux-apple",
+        "-p",
+        "gpux-macos",
+        "-p",
+        "gpux-linux",
+        "-p",
+        "gpux-windows",
+        "-p",
+        "gpux-web",
+        "-p",
+        "gpux-conformance",
+        "-p",
+        "gpux-testkit",
+        "--all-targets",
+        "--no-deps",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "expected": {
+        "exitCode": 0
+      }
+    },
+    {
+      "id": "final-web-check",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [],
+      "descriptionMarkdown": "The WASM build of `gpux-web`, which composition and the shared renderer changes touch.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-web",
+        "--target",
+        "wasm32-unknown-unknown",
+        "--no-default-features"
+      ],
+      "expected": {
+        "exitCode": 0
+      }
+    },
+    {
+      "id": "final-package",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [],
+      "descriptionMarkdown": "`cargo package --workspace`. The epic adds a bench target, features and platform dependencies (DirectComposition `windows` features, Wayland subcompositor, webview example dev-dependencies).",
+      "argv": [
+        "cargo",
+        "package",
+        "--workspace"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "timeoutSeconds": 3600
+    },
+    {
+      "id": "final-lane-a",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [],
+      "descriptionMarkdown": "All of lane A. **Whole-codebase reason:** the final sprint turns fast mode on by default, which changes how every element in every window is laid out and drawn (core rendering and runtime).",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "a"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 30,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false
+    },
+    {
+      "id": "final-lane-c",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [],
+      "descriptionMarkdown": "All of lane C. **Whole-codebase reason:** the same as `final-lane-a`, plus the renderer ABI and tile changes.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "c"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 10,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false
+    },
+    {
+      "id": "final-lane-d",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [],
+      "descriptionMarkdown": "All of lane D on the implementer's desktop OS. **Whole-codebase reason:** defaults-on fast mode and composition change presenting in real windows. Lane D on the other two desktop OSes comes from CI on the pull request.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "d"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 5,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false
+    },
+    {
+      "id": "final-lane-b",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [],
+      "descriptionMarkdown": "Lane B's per-PR selection (`@canary` and `@pr`) plus the composition spec. **Whole-codebase reason:** defaults-on fast mode changes every browser frame. Resolve the grep syntax to the testkit's tag selection before final validation.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "b",
+        "--grep",
+        "@canary|@pr|composition"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 5,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false
+    },
+    {
+      "id": "final-mobile-android-check",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [],
+      "descriptionMarkdown": "Android type check of `gpux-mobile` for arm64, needing `ANDROID_NDK_HOME` pointed at the pinned NDK.",
+      "argv": [
+        "cargo",
+        "ndk",
+        "-t",
+        "arm64-v8a",
+        "check",
+        "-p",
+        "gpux-mobile"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "reuse": false
+    },
+    {
+      "id": "final-mobile-ios-check",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [],
+      "descriptionMarkdown": "iOS type check of `gpux-mobile`.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-mobile",
+        "--target",
+        "aarch64-apple-ios"
+      ],
+      "expected": {
+        "exitCode": 0
+      }
+    },
+    {
+      "id": "final-lane-e",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [],
+      "descriptionMarkdown": "All of lane E. **Whole-codebase reason:** defaults-on fast mode changes every Android frame, and composition and tiles change the Android window.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "e"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 5,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false
+    },
+    {
+      "id": "final-lane-f",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [],
+      "descriptionMarkdown": "All of lane F on the iOS Simulator. **Whole-codebase reason:** the same as `final-lane-e`, for iOS.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "f"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 5,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false
+    }
+  ],
+  "finalCheckIds": [
+    "final-fmt",
+    "final-clippy",
+    "final-web-check",
+    "final-package",
+    "final-lane-a",
+    "final-lane-c",
+    "final-lane-d",
+    "final-lane-b",
+    "final-mobile-android-check",
+    "final-mobile-ios-check",
+    "final-lane-e",
+    "final-lane-f"
+  ],
+  "sprints": [
+    {
+      "id": "s01-foundation",
+      "title": "Foundation: switches, counters, oracle, comparison harness, provenance",
+      "dependsOn": [],
+      "memoryScopes": [
+        "gpui",
+        "gpui/frame-pipeline",
+        "repository/validation",
+        "repository/upstream-sync",
+        "repository/packaging"
+      ],
+      "tasks": [
+        {
+          "id": "t01-fast-switches",
+          "title": "Fast-mode module, switches and hook discipline",
+          "descriptionMarkdown": "Create `crates/gpui/src/fast/` (`mod.rs`, `mode.rs`).\n\n- Add `FastMode` and `WindowFastMode` with environment parsing, aliases and implications.\n- Add `Window::fast_mode` and `set_fast_mode`, with release-and-refresh on change.\n- Add `forget_retained_state` (test-support) for the oracle reference window.\n- Export `FastMode` from `gpui.rs`.\n- Compiled defaults are all `false`.\n- Mechanism flags stay unused until their sprints; a disabled mechanism is a no-op.\n\nWrite `fast/tests/switches.rs`. Reference: gpui-fast `crates/gpui/src/fast/retained.rs` (`view_retention`, `set_view_retention`) and `fast/layers/mod.rs` (`enabled`, `COMPILED`).",
+          "criterionIds": [
+            "FM-1",
+            "FM-2"
+          ],
+          "designIds": [
+            "d-architecture",
+            "d-switches"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-switches"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window.rs",
+              "symbol": "Window::new"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/gpui.rs"
+            }
+          ]
+        },
+        {
+          "id": "t02-fast-stats",
+          "title": "FastStats counters",
+          "descriptionMarkdown": "Add `fast/stats.rs`: per-frame and run counters for every mechanism, with bypass reasons as an enum array. Gate it under `test-support`, `bench-support` or `diagnostics`, and add `Window::fast_stats()`. Increment points are added by each later task. Write `fast/tests/stats.rs`. Reference: gpui-fast `crates/gpui/src/fast/stats.rs`.",
+          "criterionIds": [
+            "FM-3"
+          ],
+          "designIds": [
+            "d-stats"
+          ],
+          "dependsOn": [
+            "t01-fast-switches"
+          ],
+          "checkIds": [
+            "check-stats",
+            "check-gpux-default-build"
+          ]
+        },
+        {
+          "id": "t03-oracle-harness",
+          "title": "Frame description and randomized oracle",
+          "descriptionMarkdown": "Add `fast/verify.rs` (`describe_frame`, layer expansion hook) and `fast/tests/oracle_support.rs`:\n\n- `OracleView` covering the OR-2 feature list;\n- `Change` kinds;\n- two-window lockstep with a forgetful reference;\n- the glyph-box text system;\n- first-difference reporting.\n\nWrite `fast/tests/oracle.rs`: mutation tests for the description, plus the randomized cached-view oracle with non-vacuity. Fix any defect it exposes in the current cached-view replay with its own focused test in the same group. Reference: gpui-fast `crates/gpui/src/fast/tests/oracle.rs`, `fast/layers/verify.rs`.",
+          "criterionIds": [
+            "OR-1",
+            "OR-2"
+          ],
+          "designIds": [
+            "d-oracle"
+          ],
+          "dependsOn": [
+            "t01-fast-switches"
+          ],
+          "checkIds": [
+            "check-oracle"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/view.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window.rs",
+              "symbol": "WindowFrame"
+            }
+          ]
+        },
+        {
+          "id": "t04-conformance-parity",
+          "title": "Lane A and lane C fast-mode parity groups",
+          "descriptionMarkdown": "Add a `FastMode` parameter to `TestHost` and the lane-C host. Write `lane_a_fast_parity.rs` and `lane_c_fast_parity.rs`, generated from the catalog lists, so new scenes join automatically.",
+          "criterionIds": [
+            "OR-3",
+            "OR-4"
+          ],
+          "designIds": [
+            "d-oracle"
+          ],
+          "dependsOn": [
+            "t01-fast-switches"
+          ],
+          "checkIds": [
+            "check-parity-a",
+            "check-parity-c"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_conformance/src/test_host.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_conformance/tests/lane_a.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_conformance/tests/lane_c.rs"
+            }
+          ]
+        },
+        {
+          "id": "t05-perf-scenarios",
+          "title": "Comparison scenarios, fast_mode bench and attribution tests",
+          "descriptionMarkdown": "Add the `fast::scenarios` fixtures named in PERF-1, under `bench-support` and `test-support`. Each has `build`, `step` and `expect(mode, stats)`.\n\n- Wheel scenarios dispatch real `ScrollWheel` events with the pointer over the content.\n- Add `crates/gpui_platform/benches/fast_mode.rs` (`[[bench]]`, `bench-support`), which prints `gpux-fast-stats:` lines.\n- Write `crates/gpui/tests/fast_mode_attribution.rs`. Until later sprints, every non-`off` mode expects counters equal to `off`; each later task updates its scenarios' expectations in this group.\n\nReference: gpui-fast `crates/gpui_perf/src/scenarios/` and `crates/gpui/src/fast/tests/retained_bench.rs`.",
+          "criterionIds": [
+            "PERF-1",
+            "PERF-2"
+          ],
+          "designIds": [
+            "d-perf",
+            "d-stats"
+          ],
+          "dependsOn": [
+            "t02-fast-stats"
+          ],
+          "checkIds": [
+            "check-bench-smoke",
+            "check-attribution"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/randomized_element_tree.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_platform/benches/randomized_element_tree.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_platform/Cargo.toml"
+            }
+          ]
+        },
+        {
+          "id": "t06-perf-report",
+          "title": "Fast-mode report in gpux-testkit and the pre-optimization baseline",
+          "descriptionMarkdown": "Add `tooling/testkit/src/fast_mode.rs`:\n\n- parse Criterion and stats lines;\n- render `fast-mode.md`;\n- support `--compare`;\n- add the `perf fast-mode` subcommand;\n- add `fast_mode` to lane G's `BENCHES`.\n\nWrite `tooling/testkit/tests/fast_mode_report.rs` with recorded fixtures. Then run `gpux-testkit perf fast-mode` on the implementer's machine. Keep the run as `artifacts-temp/testkit/perf/baseline-s01/` and note the commit and machine for PERF-4.",
+          "criterionIds": [
+            "PERF-3",
+            "PERF-5"
+          ],
+          "designIds": [
+            "d-perf"
+          ],
+          "dependsOn": [
+            "t05-perf-scenarios"
+          ],
+          "checkIds": [
+            "check-report"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "tooling/testkit/src/local_gpu.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tooling/testkit/src/cli.rs"
+            }
+          ]
+        },
+        {
+          "id": "t07-provenance",
+          "title": "gpui-fast provenance and licence attribution",
+          "descriptionMarkdown": "Write `docs/upstream/gpui-fast.md`: source, commit, module mapping table (filled in as sprints land, with adopted, adapted and excluded marked) and how to compare later fixes. Add Longbridge's copyright line to `LICENSE-APACHE`. Link the page from `docs/history/upstream-provenance.md`.",
+          "criterionIds": [
+            "FIN-2"
+          ],
+          "designIds": [
+            "d-architecture"
+          ],
+          "dependsOn": [],
+          "checkIds": [],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "LICENSE-APACHE"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "docs/history/upstream-provenance.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s02-hygiene-standalone",
+      "title": "Scoped invalidation and standalone scene and text optimizations",
+      "dependsOn": [
+        "s01-foundation"
+      ],
+      "memoryScopes": [
+        "gpui/positioning-scroll",
+        "gpui/input",
+        "gpui/text",
+        "gpui/frame-pipeline"
+      ],
+      "tasks": [
+        {
+          "id": "t08-scoped-invalidation",
+          "title": "Replace hot-path window refreshes with scoped notifications",
+          "descriptionMarkdown": "Audit every `.refresh()` in gpux crates. Convert the PRE-1 hot paths to owner and dependent notifications through the existing publication path, and annotate each kept site. Write `fast/tests/scoped_invalidation.rs`, using the oracle support to compare against from-scratch frames. Reference: gpui-fast `div.rs` hooks around `dirty_subtrees`.",
+          "criterionIds": [
+            "PRE-1"
+          ],
+          "designIds": [
+            "d-scoped-invalidation"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-scoped-invalidation"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/div.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/list.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/uniform_list.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/editable_text/element.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/key_dispatch.rs"
+            }
+          ]
+        },
+        {
+          "id": "t09-bounds-grid",
+          "title": "Grid bounds tree with ordering replay",
+          "descriptionMarkdown": "Port gpui-fast's `fast/bounds_tree.rs` behind the `BoundsTree` interface for all three bands. Make `Scene::replay` use ordering replay. Write `fast/tests/bounds_grid.rs`. Commit it alone.",
+          "criterionIds": [
+            "SC-1"
+          ],
+          "designIds": [
+            "d-scene"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-bounds-grid"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/bounds_tree.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/scene.rs",
+              "symbol": "Scene::replay"
+            }
+          ]
+        },
+        {
+          "id": "t10-draw-order-sort",
+          "title": "Counting draw-order sort and texture-batched sprites",
+          "descriptionMarkdown": "Port `fast/scene.rs`'s sorts into `Scene::finish`, preserving equal-key order. Write `fast/tests/draw_order.rs`. Commit it alone.",
+          "criterionIds": [
+            "SC-2"
+          ],
+          "designIds": [
+            "d-scene"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-draw-order"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/scene.rs",
+              "symbol": "Scene::finish"
+            }
+          ]
+        },
+        {
+          "id": "t11-text-path-caches",
+          "title": "Number shaping, path tessellation cache and per-run glyph work",
+          "descriptionMarkdown": "Port `fast/number_shaping.rs`, `fast/path_cache.rs` and the per-run part of `fast/glyphs.rs`. The layer-only quantization lands in s10. Write `fast/tests/text_path_caches.rs`. Commit each separately.",
+          "criterionIds": [
+            "SC-3"
+          ],
+          "designIds": [
+            "d-scene"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-text-path"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/text_system.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/text_system/line.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/path_builder.rs"
+            }
+          ]
+        },
+        {
+          "id": "t12-standalone-keep-or-revert",
+          "title": "Measure each standalone optimization and keep or revert it",
+          "descriptionMarkdown": "Run `gpux-testkit perf fast-mode --compare artifacts-temp/testkit/perf/baseline-s01` once per optimization commit on the baseline machine. Revert any optimization that fails SC-4, and record its numbers in `docs/fast-mode.md` (create the page with a Measurements section).",
+          "criterionIds": [
+            "SC-4"
+          ],
+          "designIds": [
+            "d-scene",
+            "d-perf"
+          ],
+          "dependsOn": [
+            "t09-bounds-grid",
+            "t10-draw-order-sort",
+            "t11-text-path-caches"
+          ],
+          "checkIds": []
+        }
+      ]
+    },
+    {
+      "id": "s03-layout-retention",
+      "title": "Layout retention: keyed Taffy nodes and text carry/replay",
+      "dependsOn": [
+        "s02-hygiene-standalone"
+      ],
+      "memoryScopes": [
+        "gpui/layout-style",
+        "gpui/text"
+      ],
+      "tasks": [
+        {
+          "id": "t13-layout-keys",
+          "title": "Layout keys, keyed claims and node lifecycle",
+          "descriptionMarkdown": "Port `fast/layout_key.rs` and the claim and lifecycle half of `fast/layout.rs`. Hook the key stack in `element.rs` and claims in `taffy.rs`, gated on `layout_retention`, keeping the ordinal pool for off. Write `fast/tests/layout_keys.rs`. Update the attribution expectations for `layout`.",
+          "criterionIds": [
+            "LAY-1",
+            "LAY-4"
+          ],
+          "designIds": [
+            "d-layout-retention"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-layout-keys",
+            "check-attribution"
+          ],
+          "supportingCriterionIds": [
+            "PERF-2"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/taffy.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/element.rs"
+            }
+          ]
+        },
+        {
+          "id": "t14-write-elision",
+          "title": "Exact style and children write elision",
+          "descriptionMarkdown": "Add the layout fingerprint as an inequality pre-filter, the exact comparison of converted fields, and child-list comparison. Write `fast/tests/write_elision.rs`.",
+          "criterionIds": [
+            "LAY-2"
+          ],
+          "designIds": [
+            "d-layout-retention"
+          ],
+          "dependsOn": [
+            "t13-layout-keys"
+          ],
+          "checkIds": [
+            "check-write-elision"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/style.rs"
+            }
+          ]
+        },
+        {
+          "id": "t15-text-carry-replay",
+          "title": "Text measurement carry and replay",
+          "descriptionMarkdown": "Port `fast/text.rs` (carry, decoration rewrite, replay log, forget, probe settling) into `TextLayout`'s measure path and `taffy.rs`'s compute wrapper. Keep closure take-at-clear. Write `fast/tests/text_carry.rs`.",
+          "criterionIds": [
+            "LAY-3"
+          ],
+          "designIds": [
+            "d-layout-retention"
+          ],
+          "dependsOn": [
+            "t13-layout-keys"
+          ],
+          "checkIds": [
+            "check-text-carry"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/text.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/taffy.rs"
+            }
+          ]
+        },
+        {
+          "id": "t16-oracle-layout",
+          "title": "Layout retention against gpux layout features",
+          "descriptionMarkdown": "Make sticky discovery, fixed containing blocks, snapping, style handoff, container queries and the lists work under keyed layout. Write `fast/tests/oracle_layout.rs`.",
+          "criterionIds": [
+            "LAY-5"
+          ],
+          "designIds": [
+            "d-layout-retention",
+            "d-oracle"
+          ],
+          "dependsOn": [
+            "t14-write-elision",
+            "t15-text-carry-replay"
+          ],
+          "checkIds": [
+            "check-oracle-layout"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s04-dependencies",
+      "title": "Dependency tracking",
+      "dependsOn": [
+        "s03-layout-retention"
+      ],
+      "memoryScopes": [
+        "gpui",
+        "gpui/input",
+        "gpui/positioning-scroll"
+      ],
+      "tasks": [
+        {
+          "id": "t17-dependency-recording",
+          "title": "Read recording and change stamps",
+          "descriptionMarkdown": "Port `fast/dependencies.rs`. Add the hooks in `app.rs`, `entity_map.rs`, `input.rs`, `ScrollHandle`/`ScrollMetrics`, `ListState`, the ambient getters (`pressed_mouse_button` included), `dispatch_event` and `HitboxId::is_hovered`. Write `fast/tests/dependencies.rs`.",
+          "criterionIds": [
+            "DEP-1"
+          ],
+          "designIds": [
+            "d-dependencies"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-dependencies"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/app.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/app/entity_map.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/input.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/div.rs",
+              "symbol": "ScrollHandle"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/list.rs",
+              "symbol": "ListState"
+            }
+          ]
+        },
+        {
+          "id": "t18-dependency-nesting",
+          "title": "Nested recording and replay",
+          "descriptionMarkdown": "Add nested range logs, own and subtree sets, and replay into `accessed_entities`. Write `fast/tests/dependency_nesting.rs`.",
+          "criterionIds": [
+            "DEP-2"
+          ],
+          "designIds": [
+            "d-dependencies"
+          ],
+          "dependsOn": [
+            "t17-dependency-recording"
+          ],
+          "checkIds": [
+            "check-dependency-nesting"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s05-view-retention",
+      "title": "View retention",
+      "dependsOn": [
+        "s04-dependencies"
+      ],
+      "memoryScopes": [
+        "gpui/frame-pipeline",
+        "gpui/positioning-scroll",
+        "gpui/frame-effects"
+      ],
+      "tasks": [
+        {
+          "id": "t19-retained-records",
+          "title": "Retained records over every gpux per-frame output",
+          "descriptionMarkdown": "Port `RetainedSubtrees`/`RetainedSubtree`. Extend `PrepaintStateIndex`/`PaintIndex` with `shifted` and exhaustive equality. Copy and shift every gpux array (DevKit remap and rollback, pending transfers, `hitbox_dispatch_nodes`, `visual_bounds`, window-control hitboxes), with sticky republication and deferred attribution. Write `fast/tests/retained_records.rs`.",
+          "criterionIds": [
+            "VIEW-4"
+          ],
+          "designIds": [
+            "d-view-retention"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-retained-records"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window.rs",
+              "symbol": "reuse_prepaint"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window.rs",
+              "symbol": "reuse_paint"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/deferred.rs"
+            }
+          ]
+        },
+        {
+          "id": "t20-reuse-paths",
+          "title": "Reused, built-at-retained-layout, prebuilt and built paths",
+          "descriptionMarkdown": "Route `ViewElement` through `fast::retained`, add `relayout_in_place`, and make `cached(style)` dependency-aware. Write `fast/tests/reuse_paths.rs`. Update the attribution expectations for `views`.",
+          "criterionIds": [
+            "VIEW-1",
+            "VIEW-3"
+          ],
+          "designIds": [
+            "d-view-retention"
+          ],
+          "dependsOn": [
+            "t19-retained-records"
+          ],
+          "checkIds": [
+            "check-reuse-paths",
+            "check-attribution"
+          ],
+          "supportingCriterionIds": [
+            "PERF-2"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/view.rs"
+            }
+          ]
+        },
+        {
+          "id": "t21-view-invalidation",
+          "title": "Dependency-driven invalidation and disabling conditions",
+          "descriptionMarkdown": "Add frame-start invalidation from dependencies, hover rechecks, innermost-subtree dirtying, the disabling conditions and their counters. Write `fast/tests/view_invalidation.rs`.",
+          "criterionIds": [
+            "VIEW-2",
+            "VIEW-5"
+          ],
+          "designIds": [
+            "d-view-retention"
+          ],
+          "dependsOn": [
+            "t20-reuse-paths"
+          ],
+          "checkIds": [
+            "check-view-invalidation"
+          ]
+        },
+        {
+          "id": "t22-verify-mode",
+          "title": "Retention verify mode for consumers",
+          "descriptionMarkdown": "Add the `diagnostics` verify mode: `GPUX_RETENTION_VERIFY`, `set_retention_verify`, the shadow frame, and the first-difference report. Write `fast/tests/verify_mode.rs`.",
+          "criterionIds": [
+            "VIEW-6"
+          ],
+          "designIds": [
+            "d-view-retention",
+            "d-oracle"
+          ],
+          "dependsOn": [
+            "t21-view-invalidation"
+          ],
+          "checkIds": [
+            "check-verify-mode"
+          ]
+        },
+        {
+          "id": "t23-oracle-views",
+          "title": "View-retention oracle",
+          "descriptionMarkdown": "Add the views mode to the oracle support, and fix every difference it finds with a focused test in the owning group. Write `fast/tests/oracle_views.rs`.",
+          "criterionIds": [
+            "VIEW-7"
+          ],
+          "designIds": [
+            "d-oracle",
+            "d-view-retention"
+          ],
+          "dependsOn": [
+            "t21-view-invalidation"
+          ],
+          "checkIds": [
+            "check-oracle-views"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s06-splice",
+      "title": "Splice around rebuilt nested views",
+      "dependsOn": [
+        "s05-view-retention"
+      ],
+      "memoryScopes": [
+        "gpui/frame-pipeline"
+      ],
+      "tasks": [
+        {
+          "id": "t24-splice",
+          "title": "Stretch copying with rebuilt gaps",
+          "descriptionMarkdown": "Port `fast/splice.rs`, sharing the range-copy helpers, with gpux inherited stacks in `Inherited`/`Rebuild` and the dispatch reattachment. Write `fast/tests/splice.rs`. Update the attribution expectations for `splice`.",
+          "criterionIds": [
+            "SPL-1"
+          ],
+          "designIds": [
+            "d-splice"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-splice",
+            "check-attribution"
+          ],
+          "supportingCriterionIds": [
+            "PERF-2"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window.rs",
+              "symbol": "element_transform_stack"
+            }
+          ]
+        },
+        {
+          "id": "t25-own-dirty",
+          "title": "Own-dependency dirtying",
+          "descriptionMarkdown": "Mark views whose own reads changed as dirty at frame start. Write `fast/tests/own_dirty.rs`.",
+          "criterionIds": [
+            "SPL-2"
+          ],
+          "designIds": [
+            "d-splice"
+          ],
+          "dependsOn": [
+            "t24-splice"
+          ],
+          "checkIds": [
+            "check-own-dirty"
+          ]
+        },
+        {
+          "id": "t26-oracle-splice",
+          "title": "Splice oracle",
+          "descriptionMarkdown": "Add the splice mode to the oracle and fix the differences it finds. Write `fast/tests/oracle_splice.rs`.",
+          "criterionIds": [
+            "SPL-3"
+          ],
+          "designIds": [
+            "d-oracle",
+            "d-splice"
+          ],
+          "dependsOn": [
+            "t25-own-dirty"
+          ],
+          "checkIds": [
+            "check-oracle-splice"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s07-composition-core-macos",
+      "title": "Window composition core and macOS",
+      "dependsOn": [
+        "s06-splice"
+      ],
+      "memoryScopes": [
+        "gpui/frame-pipeline",
+        "renderer/wgpu",
+        "platform/desktop"
+      ],
+      "tasks": [
+        {
+          "id": "t27-composition-core",
+          "title": "Composition API, surface tree and scene split",
+          "descriptionMarkdown": "Port `fast/composition.rs` and the `PlatformWindow` hooks, with the top-layer band in the overlay. Add `reuse_starts` in the shared reuse path and the `native_surface` element, and extend the test platform with a composed-scene recorder. Write `fast/tests/composition.rs`.",
+          "criterionIds": [
+            "CMP-1",
+            "CMP-2"
+          ],
+          "designIds": [
+            "d-composition-core"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-composition-core"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/platform.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/scene.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window.rs",
+              "symbol": "draw"
+            }
+          ]
+        },
+        {
+          "id": "t28-overlay-renderers",
+          "title": "Sharing renderers for extra surfaces and overlay text policy",
+          "descriptionMarkdown": "Add `WgpuRenderer::new_sharing` (shared context, atlas and pipelines), `replace_surface_sharing_context` and `MetalRenderer::new_overlay`, with grayscale glyphs for overlay ranges. Write `fast/tests/composition_overlay.rs`.",
+          "criterionIds": [
+            "CMP-8"
+          ],
+          "designIds": [
+            "d-composition-renderers"
+          ],
+          "dependsOn": [
+            "t27-composition-core"
+          ],
+          "checkIds": [
+            "check-composition-overlay"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_wgpu/src/wgpu_renderer.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_apple/src/metal_renderer.rs"
+            }
+          ]
+        },
+        {
+          "id": "t29-composition-macos",
+          "title": "macOS composition backend",
+          "descriptionMarkdown": "Port `gpui_macos/src/fast/composition.rs` and the window hooks. Add the solid-colour native test view and the `composition-macos-*` platform checks to the desktop host.",
+          "criterionIds": [
+            "CMP-3"
+          ],
+          "designIds": [
+            "d-composition-platforms"
+          ],
+          "dependsOn": [
+            "t28-overlay-renderers"
+          ],
+          "checkIds": [
+            "check-composition-macos"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_macos/src/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_conformance/src/platform_checks.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_conformance/examples/desktop_host/checks.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s08-composition-linux",
+      "title": "Window composition on Linux (Wayland and X11)",
+      "dependsOn": [
+        "s07-composition-core-macos"
+      ],
+      "memoryScopes": [
+        "platform/desktop"
+      ],
+      "tasks": [
+        {
+          "id": "t30-composition-wayland",
+          "title": "Wayland subsurface composition",
+          "descriptionMarkdown": "Port `gpui_linux/src/fast/composition/wayland.rs` and the client and window hooks. Add the `composition-wayland-*` checks.",
+          "criterionIds": [
+            "CMP-4"
+          ],
+          "designIds": [
+            "d-composition-platforms"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-composition-wayland"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_linux/src/linux/wayland/client.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_linux/src/linux/wayland/window.rs"
+            }
+          ]
+        },
+        {
+          "id": "t31-composition-x11",
+          "title": "X11 child-window composition with cut-outs and overlay window",
+          "descriptionMarkdown": "Port `gpui_linux/src/fast/composition/x11.rs` and the hooks, including `Background::is_opaque`. Add the `composition-x11-*` checks.",
+          "criterionIds": [
+            "CMP-5"
+          ],
+          "designIds": [
+            "d-composition-platforms"
+          ],
+          "dependsOn": [
+            "t30-composition-wayland"
+          ],
+          "checkIds": [
+            "check-composition-x11"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_linux/src/linux/x11/client.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_linux/src/linux/x11/window.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s09-composition-windows-web",
+      "title": "Window composition on Windows (DirectComposition over wgpu) and the browser",
+      "dependsOn": [
+        "s08-composition-linux"
+      ],
+      "memoryScopes": [
+        "platform/desktop",
+        "platform/web",
+        "renderer/wgpu"
+      ],
+      "tasks": [
+        {
+          "id": "t32-composition-windows",
+          "title": "Windows DirectComposition backend",
+          "descriptionMarkdown": "Spike option (a) against option (b) under fast height-only live resize, and record the evidence in `docs/upstream/gpui-fast.md`. Then implement the gpux-owned DirectComposition tree, CompositionVisual overlay renderers, portals, device-loss recreation and the accelerator rule. Add the `composition-windows-*` checks.",
+          "criterionIds": [
+            "CMP-6"
+          ],
+          "designIds": [
+            "d-composition-platforms",
+            "d-composition-renderers"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-composition-windows"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_windows/src/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_windows/src/platform.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_wgpu/src/wgpu_context.rs"
+            }
+          ]
+        },
+        {
+          "id": "t33-composition-web",
+          "title": "Browser overlay canvas above the DOM overlay",
+          "descriptionMarkdown": "Add `gpui_web/src/fast/composition.rs` (overlay canvas, shared-device surface, pointer gating) and re-layer the `html_element` z-order. On WebGL2 it reports unsupported. Write `tools-node/specs/composition.spec.ts` and the web-host scene.",
+          "criterionIds": [
+            "CMP-7"
+          ],
+          "designIds": [
+            "d-composition-platforms"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-composition-web"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/src/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/src/html_element.rs"
+            }
+          ]
+        },
+        {
+          "id": "t34-webview-examples",
+          "title": "Native webview examples",
+          "descriptionMarkdown": "Add the manual examples (WKWebView, WebView2, WebKitGTK and a Wayland surface) with crates.io dev-dependencies, and run each on its platform.",
+          "criterionIds": [
+            "CMP-9"
+          ],
+          "designIds": [
+            "d-composition-platforms"
+          ],
+          "dependsOn": [
+            "t32-composition-windows",
+            "t33-composition-web"
+          ],
+          "checkIds": [],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_platform/Cargo.toml"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s09b-composition-mobile",
+      "title": "Window composition on iOS and Android, and gpui-mobile platform views on top of it",
+      "dependsOn": [
+        "s09-composition-windows-web"
+      ],
+      "memoryScopes": [
+        "platform/mobile",
+        "gpui/input",
+        "renderer/wgpu"
+      ],
+      "tasks": [
+        {
+          "id": "t45-composition-ios",
+          "title": "iOS composition backend",
+          "descriptionMarkdown": "Add `gpui_mobile/src/ios/fast/composition.rs`: native `UIView` containers, a `GPUIOverlayView` (transparent `CAMetalLayer` with a sharing renderer on `Backends::METAL`), `hitTest:` gating, touch forwarding, rotation and safe-area geometry, background and resume, and release ordering. Add the `composition-ios-*` lane F scenes with a solid-colour native test view.",
+          "criterionIds": [
+            "CMP-10"
+          ],
+          "designIds": [
+            "d-composition-mobile",
+            "d-composition-renderers"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-composition-ios"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/ios/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/ios/events.rs"
+            }
+          ]
+        },
+        {
+          "id": "t46-composition-android",
+          "title": "Android composition backend and Java helper",
+          "descriptionMarkdown": "Spike panel windows against a managed hierarchy with a top-ordered translucent overlay `SurfaceView` in both host modes, and record the evidence. Add the `dev.gpux.mobile` Java helper under `crates/gpui_mobile/java/`, the `javac`/`d8` step in `gpux-testkit android build`, and `gpui_mobile/src/android/fast/composition.rs` (JNI wiring, overlay sharing renderer per backend, touch forwarding, lifecycle). Add `tooling/testkit/tests/android_java.rs` and the `composition-android-*` lane E scenes.",
+          "criterionIds": [
+            "CMP-11"
+          ],
+          "designIds": [
+            "d-composition-mobile",
+            "d-composition-renderers"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-android-java-build",
+            "check-composition-android"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/android/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/android/embedded.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/android/jni.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tooling/testkit/src/android.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tooling/android/AndroidManifest.xml"
+            }
+          ]
+        },
+        {
+          "id": "t47-mobile-platform-views",
+          "title": "Rebuild gpui-mobile platform views on composition",
+          "descriptionMarkdown": "Move the iOS and Android `PlatformView` implementations into composition native surfaces, and place `platform_view_element` through `native_surface`. Replace `RayXPlatformView` with the gpux helper, and remove the below-Metal-view insertion. Add the `platform-view-*` scenes to lanes E and F.",
+          "criterionIds": [
+            "CMP-12"
+          ],
+          "designIds": [
+            "d-composition-mobile"
+          ],
+          "dependsOn": [
+            "t45-composition-ios",
+            "t46-composition-android"
+          ],
+          "checkIds": [
+            "check-platform-views-e",
+            "check-platform-views-f"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/platform_view.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/ios/platform_view.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/android/platform_view.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/components/platform_view_element.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s10-layers-core",
+      "title": "Scroll layers core",
+      "dependsOn": [
+        "s09b-composition-mobile"
+      ],
+      "memoryScopes": [
+        "gpui/positioning-scroll",
+        "gpui/frame-pipeline"
+      ],
+      "tasks": [
+        {
+          "id": "t35-layer-policy",
+          "title": "Layer policy, compiled scope and switch",
+          "descriptionMarkdown": "Port `fast/layers/{mod,policy,work}.rs`. Gate snapping and quantization on the switch. Write `fast/tests/layer_policy.rs`.",
+          "criterionIds": [
+            "LYR-1"
+          ],
+          "designIds": [
+            "d-layers-core"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-layer-policy"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/div.rs"
+            }
+          ]
+        },
+        {
+          "id": "t36-layer-carry",
+          "title": "Scroll-only detection, carrying and input",
+          "descriptionMarkdown": "Port `fast/layers/{invalidate,reuse,input,record}.rs`, counting gpux scroll dependents. Write `fast/tests/layer_carry.rs`.",
+          "criterionIds": [
+            "LYR-2"
+          ],
+          "designIds": [
+            "d-layers-core"
+          ],
+          "dependsOn": [
+            "t35-layer-policy"
+          ],
+          "checkIds": [
+            "check-layer-carry"
+          ]
+        },
+        {
+          "id": "t48-layer-touch",
+          "title": "Touch pans and fling momentum as scrolls",
+          "descriptionMarkdown": "Note scrolled containers from the `TouchGestureRecognizer` pan and fling scroll path, and classify touch input for layers (pan moves as scroll input, other touches repainting moved content). Write `fast/tests/layer_touch.rs`.",
+          "criterionIds": [
+            "LYR-8"
+          ],
+          "designIds": [
+            "d-layers-core"
+          ],
+          "dependsOn": [
+            "t36-layer-carry"
+          ],
+          "checkIds": [
+            "check-layer-touch"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/gestures.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/div.rs"
+            }
+          ]
+        },
+        {
+          "id": "t37-layer-inputs",
+          "title": "Layer painting, tiles, background and bypass reasons",
+          "descriptionMarkdown": "Port `fast/layers/{paint,tiles,scene,background}.rs` and glyph quantization and reach. Shift transforms into content space, and add the gpux bypass reasons. Write `fast/tests/layer_inputs.rs`.",
+          "criterionIds": [
+            "LYR-3"
+          ],
+          "designIds": [
+            "d-layers-core"
+          ],
+          "dependsOn": [
+            "t36-layer-carry"
+          ],
+          "checkIds": [
+            "check-layer-inputs"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/scene.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/text_system/line.rs"
+            }
+          ]
+        },
+        {
+          "id": "t38-oracle-layers",
+          "title": "Layers oracle",
+          "descriptionMarkdown": "Port `fast/layers/verify.rs` expansion into `fast::verify`, and the layers oracle. Write `fast/tests/oracle_layers.rs`. Update the attribution expectations for `layers` (div scenarios).",
+          "criterionIds": [
+            "LYR-4"
+          ],
+          "designIds": [
+            "d-layers-core",
+            "d-oracle"
+          ],
+          "dependsOn": [
+            "t37-layer-inputs"
+          ],
+          "checkIds": [
+            "check-oracle-layers",
+            "check-attribution"
+          ],
+          "supportingCriterionIds": [
+            "PERF-2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s11-layers-renderers",
+      "title": "Scroll-layer tiles in the wgpu and Metal renderers",
+      "dependsOn": [
+        "s10-layers-core"
+      ],
+      "memoryScopes": [
+        "renderer/wgpu",
+        "renderer/color",
+        "platform/desktop"
+      ],
+      "tasks": [
+        {
+          "id": "t39-wgpu-tiles",
+          "title": "wgpu tile cache, raster and composite",
+          "descriptionMarkdown": "Split `encode_scene_to_view` for tile targets. Add `fast/layers/{tile_cache,raster,composite}.rs`, the premultiplied polychrome flag in Rust and WGSL, and the dither seed. Write the renderer tests and `lane_c_scroll_layers.rs`, and run lane B for the ABI.",
+          "criterionIds": [
+            "LYR-5"
+          ],
+          "designIds": [
+            "d-layers-renderers"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-wgpu-tiles",
+            "check-layers-lane-c",
+            "check-wgpu-abi-lane-b"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_wgpu/src/wgpu_renderer.rs",
+              "symbol": "encode_scene_to_view"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_wgpu/src/shaders.wgsl"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_wgpu/src/wgpu_atlas.rs"
+            }
+          ]
+        },
+        {
+          "id": "t40-metal-tiles",
+          "title": "Metal tile cache, raster and composite",
+          "descriptionMarkdown": "Port `gpui_apple/src/fast/layers/` and the Metal dither seed. Write the Metal tests.",
+          "criterionIds": [
+            "LYR-6"
+          ],
+          "designIds": [
+            "d-layers-renderers"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-metal-tiles"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_apple/src/metal_renderer.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_apple/src/shaders.metal"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s12-list-layers",
+      "title": "Scroll layers for uniform_list and list",
+      "dependsOn": [
+        "s11-layers-renderers"
+      ],
+      "memoryScopes": [
+        "gpui/positioning-scroll",
+        "gpui/layout-style"
+      ],
+      "tasks": [
+        {
+          "id": "t41-list-layers",
+          "title": "Per-row list layers",
+          "descriptionMarkdown": "Port `fast/layers/lists.rs` adapted to gpux lists, with lingering row nodes. Write `fast/tests/list_layers.rs` with the list oracle. Update the attribution expectations for the list and chat scenarios.",
+          "criterionIds": [
+            "LYR-7"
+          ],
+          "designIds": [
+            "d-list-layers",
+            "d-oracle"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-list-layers",
+            "check-attribution"
+          ],
+          "supportingCriterionIds": [
+            "PERF-2"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/list.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/uniform_list.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s12b-layers-web-mobile",
+      "title": "Scroll layers in the browser, on Android and on iOS",
+      "dependsOn": [
+        "s12-list-layers"
+      ],
+      "memoryScopes": [
+        "platform/web",
+        "platform/mobile",
+        "renderer/wgpu"
+      ],
+      "tasks": [
+        {
+          "id": "t49-layers-web",
+          "title": "Browser scroll layers on WebGPU and WebGL2",
+          "descriptionMarkdown": "Enable layers on wasm32 with the browser budget, publish `__gpuxFastStats` under `diagnostics`, and add the web-host layers-off URL switch. Write `tools-node/specs/scroll-layers.spec.ts`, including the `@timing` test that only lane G runs.",
+          "criterionIds": [
+            "LYR-9"
+          ],
+          "designIds": [
+            "d-layers-web-mobile"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-layers-web"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_web/src/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_wgpu/src/web_globals.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_conformance/examples/web_host"
+            }
+          ]
+        },
+        {
+          "id": "t50-layers-android",
+          "title": "Android scroll layers",
+          "descriptionMarkdown": "Enable layers on Android with the mobile budget. Add the `PlatformWindow` memory-pressure hook and call it from `onTrimMemory`, background and surface loss in both host modes. Add counter reporting to the Android host and the `scroll-layers-*` lane E scenes.",
+          "criterionIds": [
+            "LYR-10"
+          ],
+          "designIds": [
+            "d-layers-web-mobile"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-layers-android"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/android/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/android/embedded.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_conformance/examples/android_host"
+            }
+          ]
+        },
+        {
+          "id": "t51-layers-ios",
+          "title": "iOS scroll layers",
+          "descriptionMarkdown": "Enable layers on iOS with the mobile budget. Call the memory-pressure hook from `didReceiveMemoryWarning` and background. Add counter reporting to the iOS host and the `scroll-layers-*` lane F scenes.",
+          "criterionIds": [
+            "LYR-11"
+          ],
+          "designIds": [
+            "d-layers-web-mobile"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-layers-ios"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/src/ios/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_conformance/examples/ios_host"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s13-defaults-docs-comparison",
+      "title": "Defaults on, documentation, and the final comparison",
+      "dependsOn": [
+        "s12b-layers-web-mobile"
+      ],
+      "memoryScopes": [
+        "gpui",
+        "repository/validation"
+      ],
+      "tasks": [
+        {
+          "id": "t42-defaults-on",
+          "title": "Turn gpui-fast's defaults on",
+          "descriptionMarkdown": "Flip the compiled defaults in `fast/mode.rs`. Write `fast/tests/defaults.rs`. Update the attribution and parity groups for the new defaults.",
+          "criterionIds": [
+            "FM-4"
+          ],
+          "designIds": [
+            "d-switches",
+            "d-defaults-docs"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-defaults",
+            "check-parity-a",
+            "check-parity-c",
+            "check-attribution"
+          ],
+          "supportingCriterionIds": [
+            "OR-3",
+            "OR-4",
+            "PERF-2"
+          ]
+        },
+        {
+          "id": "t43-docs",
+          "title": "Fast-mode documentation",
+          "descriptionMarkdown": "Write `docs/fast-mode.md`, and update `docs/testing.md`, the README, `docs/upstream/gpui-fast.md`'s module table and the gpux skill reference.",
+          "criterionIds": [
+            "FIN-1"
+          ],
+          "designIds": [
+            "d-defaults-docs"
+          ],
+          "dependsOn": [
+            "t42-defaults-on"
+          ],
+          "checkIds": [],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "docs/testing.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "README.md"
+            }
+          ]
+        },
+        {
+          "id": "t44-final-comparison",
+          "title": "Lane G comparison and the benefit summary",
+          "descriptionMarkdown": "Run `gpux-testkit lane g` on macOS and on a wgpu desktop, including the browser `@timing` layers comparison. Run the Android and iOS hosts' layers-on and layers-off scroll scenes on devices. Compare against the s01 baseline and write the per-mechanism summary in `docs/fast-mode.md`.",
+          "criterionIds": [
+            "PERF-4",
+            "PERF-6"
+          ],
+          "designIds": [
+            "d-defaults-docs",
+            "d-perf",
+            "d-layers-web-mobile"
+          ],
+          "dependsOn": [
+            "t42-defaults-on"
+          ],
+          "checkIds": []
+        }
+      ]
+    }
+  ]
+}

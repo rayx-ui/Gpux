@@ -1,0 +1,397 @@
+{
+  "schemaVersion": 6,
+  "epicId": "gpux-fast-mode",
+  "scopeMarkdown": "Bring the performance and composition work of **gpui-fast** (longbridge/gpui-fast, v0.1.6, commit `b8f0c02`, Apache-2.0) into gpux as **fast mode**. Fast mode is a set of mechanisms that can be switched on and off the way gpui-fast switches them:\n\n| Mechanism | What it does | gpui-fast reference |\n|---|---|---|\n| Layout retention | Taffy nodes keyed by element identity are kept across frames. A node is rewritten only when its style, children or measurement changed. Text measurements are carried or replayed. | `fast/layout.rs`, `layout_key.rs`, `text.rs` |\n| View retention | Every view is a retained subtree. Reuse is decided from what it read (entities, globals, scroll/list state, ambient input, hovers). | `fast/retained.rs`, `dependencies.rs` |\n| Splice | A view that is dirty only because a nested view changed is copied from the last frame around the rebuilt child. | `fast/splice.rs` |\n| Scroll layers | Scrolled content is rasterized once into GPU tiles, and scroll-only frames composite those tiles. | `fast/layers/` plus the renderer `fast/layers/` modules |\n| Window composition | Native views (WKWebView, WebView2, WebKitGTK, Wayland/X11 surfaces, browser DOM) sit between a GPUI base surface and a GPUI overlay surface. It is opt-in per window and mirrors the API of open Zed PR #62379. | `fast/composition.rs` plus the platform `fast/composition` modules |\n\nThe independent scene and text optimizations ship too: a grid bounds tree with ordering replay, a counting draw-order sort with texture batching, number shaping, a path tessellation cache and per-run glyph work.\n\n## How \"on/off the same way as gpui-fast\" is interpreted\n- **Runtime switches, not Cargo features.**\n  - Environment variables are read when a window is created: `GPUX_LAYOUT_RETENTION`, `GPUX_VIEW_RETENTION`, `GPUX_SCROLL_LAYERS` (`0`/`1`), plus `GPUX_FAST_MODE=0` for all off. gpui-fast's `GPUI_VIEW_RETENTION` and `GPUI_SCROLL_LAYERS` are honoured as aliases.\n  - A per-window `FastMode` value can be read and set at runtime.\n  - Composition is enabled per window through its API.\n  - Scroll layers are compiled only where a renderer implements tiles (`fast::layers::COMPILED`), as in gpui-fast.\n- **Defaults follow gpui-fast at the end of the epic.** Layout retention, view retention, splice and scroll layers are on wherever they are compiled. Composition stays opt-in.\n  - Until the final sprint every switch defaults **off**, so mechanisms land dark.\n  - RayX depends on gpux by relative path and would otherwise run each mechanism before its proof is complete.\n- **\"Off\" means today's gpux behaviour.** Behaviour that gpui-fast applies unconditionally where layers are compiled (scroll-offset device-pixel snapping, glyph-origin quantization, path snapping) is tied to the scroll-layers switch, so turning layers off restores today's output.\n\n## Measurement and testing obligations\n- A broad comparison harness measures every scenario under every cumulative mode (`off`, `layout`, `views`, `splice`, `layers`). It reports wall time, instructions where the OS exposes them, allocations, and fast-mode work counters, so each benefit is attributed to a mechanism.\n- Deterministic counter-attribution tests run in lane A.\n- Timing comparisons run only in lane G.\n- In-depth correctness uses a randomized oracle: each mode is drawn incrementally and compared with a from-scratch window over the whole frame (scene, hitboxes, listeners, cursors, tooltips, tab stops, dispatch, element state, DevKit nodes), with layers expanded into their primitives.\n- There are also lane A/C parity groups for the conformance catalog, renderer byte-equality tests for tiles, and lane B/D proof for composition.\n\n## Assumptions and recorded product decisions\n- The two cached-view defects found while analysing gpui-fast are already fixed on this branch: `ac952a4` orders hit tests by layer and then by reverse insertion, and `3f7fae5` keys replay on the painted context (inherited opacity and transform) through `Window::with_element_paint_context`. Retained records reuse that paint-context key, and the oracle exercises both fixes.\n- Composition targets macOS, Linux Wayland, Linux X11, Windows, the browser, iOS and Android.\n  - On WebGL2 it reports unsupported and keeps today's DOM overlay behaviour.\n  - On Windows a spike chooses between keeping the HWND base swap chain under a topmost DirectComposition target and moving the base onto a composition visual.\n  - On iOS, native views sit in the UIKit hierarchy between the base `GPUIMetalView` and a transparent overlay view.\n  - On Android, native views and the overlay need native code that receives touches, so gpux ships a small Java helper inside `gpui_mobile`. The Gradle-free lane E build compiles it with `javac` and `d8` from the pinned SDK and JDK 21. A spike first decides the window mechanism (attached panel windows or a managed view hierarchy) so the NativeActivity host and the embedded `SurfaceView` host share one path.\n  - gpui-mobile's existing platform-view scaffold (WKWebView, AVPlayer, camera, and the Android views) is rebuilt on composition native surfaces, so there is one embedding mechanism. Its missing `dev.rayx.mobile.RayXPlatformView` Java class is replaced by the gpux helper.\n- Scroll layers target every gpux renderer: Linux and Windows (wgpu), macOS (Metal), the browser (WebGPU and WebGL2), Android (Vulkan with GL fallback) and iOS (wgpu on Metal).\n  - Tile budgets are per platform: 64 MB per window on desktop, 32 MB in the browser and on mobile.\n  - Mobile releases tiles under memory pressure, in the background and on surface loss.\n  - Touch pans and fling momentum count as scrolls, so mobile scrolling composites.\n- RayX adoption is a follow-up RayX change: auditing render state kept outside entities, removing per-frame global writes, and using the retention verify mode. This epic changes no RayX files.\n\n## Excluded\n- gpui-fast's Direct3D 11 renderer code (gpux renders Windows through wgpu on DX12).\n- Its `gpui_perf` showcase application, the `compat/` gpui-pre stand-ins, and `script/check-upstream`.\n- Any change to `vendor/wgpu`.\n",
+  "constraintsMarkdown": "- **Repository and crates.**\n  - Work only in the gpux repository.\n  - Keep Zed's crate boundaries.\n  - New code lives in `src/fast/` modules of the owning crate. Files mirror gpui-fast's split so its later fixes can be compared file by file.\n  - Hooks in existing gpux files call `crate::fast::...` by full path. They stay small: a field, a forwarding call, a visibility change.\n  - Every crate stays publishable, and dependencies come from crates.io: no git dependencies and no `[patch]`. Run `cargo package --workspace` after manifest changes.\n- **Licence and provenance.**\n  - Code adapted from gpui-fast keeps Apache-2.0 attribution: add Longbridge's copyright line to `LICENSE-APACHE`.\n  - Commit bodies name the gpui-fast source commit and files a change adapts.\n  - `docs/upstream/gpui-fast.md` records what was adopted, adapted and excluded.\n- **API.**\n  - Public API changes are additive.\n  - Measurement-only switches and counters exist only under `test-support`, `bench-support` or `diagnostics`.\n  - Composition mirrors the names in Zed PR #62379 so a later Zed import reconciles cleanly.\n- **Correctness contract.** With any switch on, every frame equals the frame gpux draws from scratch with fast mode off. The only exceptions are the documented device-pixel snapping and glyph quantization that the scroll-layers switch enables. Any oracle difference is a defect, never a tolerated delta.\n- **gpux features stay correct under every mode:**\n  - fixed and sticky positioning, top layer, `Deferred::unclipped`;\n  - frame-family effects, screen effects and transitions, `animated_frame`;\n  - DevKit inspection and semantics, AccessKit;\n  - editable text, programmatic scroll and `ScrollActivity`;\n  - HTML islands and elements;\n  - the request-to-prepaint style handoff.\n- **Renderer ABI.** Any packed-record or WGSL change updates Rust structs and shaders together, asserts sizes and offsets in Rust tests, and is proved in lane B on WebGPU and forced WebGL2, plus lane C.\n- **Validation.**\n  - Each task owns a new, separately selectable test group: a crate-internal module `fast::tests::<group>` selected with `cargo test -p <package> --features test-support --lib fast::tests::<group>::`, a `crates/*/tests/<group>.rs` file, a conformance test file, a Playwright spec, or a lane D platform check.\n  - Timing thresholds and timing comparisons run only in lane G.\n  - CI-safe tests assert deterministic counters and output equality.\n  - Raw benchmark output and reports stay in ignored `artifacts-temp/`.\n- **Reference source.** Shallow-clone `https://github.com/longbridge/gpui-fast` at `b8f0c02` (v0.1.6) into a temporary or cache directory. Read it only, never build or run it. Use `git -C <clone> show 8848cdc:<path>` for the Zed baseline of any file it changed.\n",
+  "requirements": [
+    {
+      "id": "FM",
+      "title": "Fast-mode switches and counters",
+      "descriptionMarkdown": "Fast mode is a set of independently switchable mechanisms with gpui-fast's switch semantics, plus counters that show what each mechanism did.",
+      "criteria": [
+        {
+          "id": "FM-1",
+          "descriptionMarkdown": "`gpux::FastMode` is a `Copy` value with `layout_retention`, `view_retention`, `splice` and `scroll_layers`. `Window::fast_mode()` returns the effective value and `Window::set_fast_mode(FastMode)` sets it.\n\n- **Implications are applied on set:** no layout retention means no view retention; no view retention means no splice and no scroll layers. Scroll layers are also false wherever `fast::layers::COMPILED` is false; after this epic that is no gpux target, but the gate stays for new ones.\n- **Initial value at window creation:**\n  - `GPUX_FAST_MODE=0` forces all off.\n  - `GPUX_LAYOUT_RETENTION`, `GPUX_VIEW_RETENTION` and `GPUX_SCROLL_LAYERS` accept `0` or `1`.\n  - gpui-fast's `GPUI_VIEW_RETENTION` and `GPUI_SCROLL_LAYERS` are aliases. The `GPUX_*` name wins when both are set.\n  - Unset variables take the compiled default.\n- **Splice** has no environment variable, matching gpui-fast. It is switchable through `set_fast_mode` for measurement.\n\nVerified by the `fast::tests::switches` group, which covers every variable, alias, precedence rule and implication.",
+          "verification": "automated"
+        },
+        {
+          "id": "FM-2",
+          "descriptionMarkdown": "Changing the mode at runtime:\n\n- takes effect on the next frame, and that frame equals the from-scratch frame;\n- releases retained records, kept layout nodes and layer tiles that the disabled mechanism owned, with no growth after 1,000 on/off toggles under churn;\n- with every switch off, makes no `fast::` work beyond reading the switch. Off frames record zero fast-mode counters.\n\nVerified by the `fast::tests::switches` group.",
+          "verification": "automated"
+        },
+        {
+          "id": "FM-3",
+          "descriptionMarkdown": "`FastStats` exists only under `test-support`, `bench-support` or `diagnostics`. It is read per frame and accumulated across a run. It counts:\n\n- views built, built at retained layout, reused, spliced and prebuilt;\n- Taffy nodes claimed, style writes, children writes, nodes released and lingering;\n- measured leaves carried, replayed and re-measured;\n- lines shaped;\n- primitives painted and copied;\n- draw orders replayed and computed;\n- scroll layers composited, repainted and bypassed (each bypass with its reason), tiles rasterized and composited, and list rows rendered and kept.\n\nProduction code never references it: a default-feature `cargo check -p gpux` fails if ungated code does. Verified by the `fast::tests::stats` group and that build.",
+          "verification": "automated"
+        },
+        {
+          "id": "FM-4",
+          "descriptionMarkdown": "The compiled defaults become gpui-fast's: layout retention, view retention, splice and scroll layers are on where compiled, and composition stays opt-in.\n\n- Before the final sprint, the defaults are all off, and a test pins that.\n- After the flip:\n  - a new window reports all switches on where compiled;\n  - `GPUX_FAST_MODE=0` and each `GPUX_*=0` turn the corresponding mechanism off;\n  - the gpui-fast aliases still work.\n\nVerified by the `fast::tests::defaults` group.",
+          "verification": "automated"
+        }
+      ]
+    },
+    {
+      "id": "PERF",
+      "title": "Broad performance comparison",
+      "descriptionMarkdown": "Every benefit is measured per mechanism and per scenario, so it is known exactly where fast mode helps, where it does nothing, and where it costs.",
+      "criteria": [
+        {
+          "id": "PERF-1",
+          "descriptionMarkdown": "A new `#[gpux::bench]` suite, `fast_mode` in `gpux-platform` (`[[bench]]` with `bench-support`), runs every scenario in every cumulative mode: `off`, `layout`, `views`, `splice`, `layers`. Ids have the form `fast/<scenario>/<mode>`.\n\nScenarios are shared fixtures in `gpux` under `bench-support`/`test-support`:\n- `still-frame`: 60 panel views of 64 labels, nothing changed;\n- `one-panel`, `six-panels`, `all-panels`: panels notified per frame;\n- `table-stream`: a data table with ticking cells of changing and equal width;\n- `settings-toggle` and `tree-expand`: layout changes;\n- `form-typing`: a focused editable text;\n- `hover-sweep`: the pointer moving across rows;\n- `scroll-child-view`, `scroll-same-view`, `scroll-uniform-list`, `scroll-list` and `chat-scroll`: real wheel events;\n- `sticky-scroll`: sticky headers in a scroll area;\n- `effect-scroll`: an `effect_frame` backdrop blur inside a scroll area, a negative control;\n- `animated-frame`: a negative control.\n\nEach measured loop asserts its scenario's work counters, for example that the changed cell re-rendered and the still frame rendered nothing in `views`. A faster frame that skipped required work fails.\n\n`cargo bench -p gpux-platform --features bench-support --bench fast_mode -- --test` runs every id once and passes.",
+          "verification": "automated"
+        },
+        {
+          "id": "PERF-2",
+          "descriptionMarkdown": "The deterministic counter-attribution test group `crates/gpui/tests/fast_mode_attribution.rs` runs every scenario for a fixed number of frames in every mode and asserts the counter shape that attributes the benefit. For example:\n\n- `still-frame`: `views` reuses all 60 panels and renders none;\n- `layout`: writes no Taffy node;\n- `table-stream`: equal-width ticks replay and leave the row clean;\n- `one-panel`: `splice` rebuilds exactly one view;\n- `scroll-child-view`: `layers` composites on every scrolled frame after promotion and renders no view.\n\nExpectations are exact counts or exact bounds, and are machine-independent.",
+          "verification": "automated"
+        },
+        {
+          "id": "PERF-3",
+          "descriptionMarkdown": "`gpux-testkit` writes `artifacts-temp/testkit/g/fast-mode.md` from a `fast_mode` bench run. `gpux-testkit lane g` runs the suite as part of its benchmarks, and `gpux-testkit perf fast-mode [--compare <run-dir>]` runs it standalone.\n\nThe report has one table per scenario:\n- per mode, the median and confidence interval, and the delta against `off` and against the previous mode;\n- instructions and allocations where `BENCH_MEASUREMENT` provides them;\n- the counters.\n\nIt also has a per-mechanism summary that ranks scenarios by benefit and flags any regression. `--compare` diffs two runs, such as the pre-optimization baseline against the current run.\n\nVerified by the testkit group `tooling/testkit/tests/fast_mode_report.rs` against recorded fixture output.",
+          "verification": "automated"
+        },
+        {
+          "id": "PERF-4",
+          "descriptionMarkdown": "At the end of the epic, lane G runs on macOS (Metal) and on at least one wgpu desktop (Windows DX12 or Linux Vulkan). The reports are compared with the pre-optimization baseline (PERF-5).\n\n`docs/fast-mode.md` records, per mechanism, the scenarios where it pays off, the size of the benefit as relative deltas, the machine and commit, and every scenario where it is neutral or regresses, with the reason. This is a reviewed summary of the epic's outcome, not a committed regression baseline. Verified by review of the reports and the document.",
+          "verification": "manual"
+        },
+        {
+          "id": "PERF-6",
+          "descriptionMarkdown": "Scroll layers are also compared in the browser and on mobile:\n\n- **Browser:** lane G's local-GPU profile runs a `@timing` test in `tools-node/specs/scroll-layers.spec.ts`. It scrolls the same list and div scenes with layers on and off, on WebGPU and forced WebGL2, and prints the 95th percentile of gpux frame work for each.\n- **Mobile:** the Android and iOS conformance hosts run the same scroll scenes with layers on and off on one physical Android device and one physical iOS device. If no device is available, a Simulator or emulator run is used and labelled as such. They report frame-work percentiles and fast-mode counters.\n- The results go into the per-mechanism summary in `docs/fast-mode.md`.\n\nVerified by review.",
+          "verification": "manual"
+        },
+        {
+          "id": "PERF-5",
+          "descriptionMarkdown": "A pre-optimization baseline is captured after the harness lands and before any optimization: the `fast_mode` suite in mode `off` on the implementer's machine.\n\n- It is kept under `artifacts-temp/testkit/perf/baseline-s01/` with the commit and machine recorded.\n- The same machine is used for the final comparison.\n- The capture command and the commit are noted in `docs/fast-mode.md`.\n\nVerified by review.",
+          "verification": "manual"
+        }
+      ]
+    },
+    {
+      "id": "OR",
+      "title": "In-depth correctness oracle and parity",
+      "descriptionMarkdown": "A retained or composited frame is correct exactly when it equals the frame drawn from scratch. The oracle checks that directly, every frame, over randomized histories.",
+      "criteria": [
+        {
+          "id": "OR-1",
+          "descriptionMarkdown": "A test-support frame description (`fast::verify::describe_frame`) captures:\n\n- every scene primitive family, gpux's included: quads, shadows, underlines, monochrome, subpixel and polychrome sprites, paths, surfaces, visual effects, HTML islands and elements, screen-effect regions and requests;\n- for each primitive, its draw order, bounds, content mask with radii, transform, opacity and colour;\n- every hitbox: bounds, mask, behaviour and the point-local hit-test order;\n- cursor styles, tooltip requests, tab stops, the mouse-listener count per phase, dispatch tree shape and focus path, accessed element-state keys, DevKit node tree, and input-handler presence.\n\nIt reports the first difference, with the seed and change history. Verified by the `fast::tests::oracle` group, which checks that a deliberately mutated field of each kind is detected.",
+          "verification": "automated"
+        },
+        {
+          "id": "OR-2",
+          "descriptionMarkdown": "The randomized oracle drives two windows with the same view through the same history. The reference window forgets all retained state and refreshes before every frame. The frames must match after every step.\n\nThe history generator covers at least these change kinds:\n- notify, update with notify, update without notify, and a notify while drawing;\n- global write, `has_global` presence change, unobserved model read;\n- `ScrollHandle` and `ListState` scroll, and programmatic scroll;\n- hover, press, focus and key;\n- editable-text edit;\n- keyed child insert, remove and reorder;\n- window resize and scale change;\n- an animation frame;\n- fixed and sticky scrolling, a top-layer overlay, `deferred` and `Deferred::unclipped`;\n- `effect_frame`, `animated_frame` and `transition_frame`;\n- a drag.\n\n`SEED` and `ITERATIONS` control seeds, and the default run is at least 16 seeds of 60 steps. A non-vacuity assertion requires that the incremental window really reused work: cached views in this sprint, and each later mode in its own oracle group. Verified by the `fast::tests::oracle` group.",
+          "verification": "automated"
+        },
+        {
+          "id": "OR-3",
+          "descriptionMarkdown": "`crates/gpux_conformance/tests/lane_a_fast_parity.rs` runs every lane-A catalog scene twice, with `FastMode` all on and all off. Both runs must pass, and every capture must be equal. Verified by that test group.",
+          "verification": "automated"
+        },
+        {
+          "id": "OR-4",
+          "descriptionMarkdown": "`crates/gpux_conformance/tests/lane_c_fast_parity.rs` renders every lane-C scene on the software adapter with `FastMode` all on and all off and requires byte-identical pixels.\n\nThe only exception is scroll-layer snapping, documented per scene. Those scenes compare against the layers-off reference with snapping forced on.\n\nVerified by that test group.",
+          "verification": "automated"
+        }
+      ]
+    },
+    {
+      "id": "PRE",
+      "title": "Scoped invalidation instead of window refreshes",
+      "descriptionMarkdown": "Fast mode makes every view reusable, and a `Window::refresh()` disables every cache for the frame, so gpux-owned hot paths must invalidate only what changed.",
+      "criteria": [
+        {
+          "id": "PRE-1",
+          "descriptionMarkdown": "gpux-owned hot paths stop calling `Window::refresh()`, which disables every cache for the frame, where a scoped invalidation is enough. These paths now notify the owning view, plus registered scroll dependents where they apply:\n\n- programmatic scroll and `ScrollActivity` animation steps (`div.rs`, `list.rs`, `uniform_list.rs`);\n- hover, active and group-hover style changes (`div.rs`);\n- editable-text and text-selection redraws;\n- key-dispatch redraws.\n\n`refresh()` stays only for whole-window changes: resize, scale, appearance, font installation, GPU recovery, root replacement and inspector toggles. Each kept site has a comment saying why.\n\nVerified by the `fast::tests::scoped_invalidation` group. It asserts that each converted path redraws correctly against the oracle and leaves `refreshing` false.",
+          "verification": "automated"
+        }
+      ]
+    },
+    {
+      "id": "SC",
+      "title": "Standalone scene and text optimizations",
+      "descriptionMarkdown": "gpui-fast optimizations that do not depend on retention, adopted only where they measurably help gpux.",
+      "criteria": [
+        {
+          "id": "SC-1",
+          "descriptionMarkdown": "The three scene bounds trees (normal, positioned at `1<<30`, top layer at `1<<31`) use gpui-fast's uniform grid with last-frame ordering replay. This covers cell covers, degenerate bounds, a changed-bounds bitmask, a comparison budget, and a fallback to building from what was recorded.\n\n- Draw orders equal those of the current `BoundsTree` for random insert sequences and across frames.\n- They also equal a brute-force overlap reference.\n- `Scene::replay` of a reused range replays orders rather than recomputing them.\n\nVerified by the `fast::tests::bounds_grid` group.",
+          "verification": "automated"
+        },
+        {
+          "id": "SC-2",
+          "descriptionMarkdown": "Scene finishing sorts primitives with a counting draw-order sort, falling back to packed keys, and sorts sprites on packed `(order, texture index, tile, index)` keys, which batches sprites by texture.\n\n- Equal-key order is preserved for every family, the monochrome family included, per the frame-pipeline rule.\n- Batches differ from today only by texture grouping.\n- The skip-when-sorted and scratch reuse paths are covered.\n\nVerified by the `fast::tests::draw_order` group.",
+          "verification": "automated"
+        },
+        {
+          "id": "SC-3",
+          "descriptionMarkdown": "Three text and path optimizations land:\n\n- **Number shaping** assembles digit runs from cached glyphs, with glyph positions identical to shaping.\n- **The path tessellation cache** keys on the path relative to its first point and gives identical vertices wherever the path is drawn.\n- **Glyph runs** compute their rasterization parameters once per run.\n\nAll three respect the text rules: the prehashed line-layout keys, the decoration-vector sizing and the shared font-run pool are unchanged. Verified by the `fast::tests::text_path_caches` group.",
+          "verification": "automated"
+        },
+        {
+          "id": "SC-4",
+          "descriptionMarkdown": "Each standalone optimization (SC-1 to SC-3) is kept only if the comparison harness shows that it improves at least one scenario without regressing another beyond noise. The comparison is against the PERF-5 baseline on the same machine. Otherwise it is reverted, and the measurement is recorded in `docs/fast-mode.md`. Verified by review of the lane G reports.",
+          "verification": "manual"
+        }
+      ]
+    },
+    {
+      "id": "LAY",
+      "title": "Layout retention",
+      "descriptionMarkdown": "Taffy nodes and text measurements survive frames, so unchanged parts of the tree are neither written nor laid out again.",
+      "criteria": [
+        {
+          "id": "LAY-1",
+          "descriptionMarkdown": "With layout retention on, an element finds its Taffy node by a 64-bit key:\n\n- a hash of the path from the root, each step being the element's `ElementId` or its position among unidentified siblings;\n- for `uniform_list` and `list` items without an id, the item index;\n- for layout requested during prepaint (`layout_as_root`, `prepaint_as_root`), a prepaint-scope salt.\n\nInserting, removing or reordering keyed siblings leaves every other node unwritten, so Taffy's cache keeps it clean, as shown by the counters. A duplicate key within a frame gets a fresh transient node. With layout retention off, today's ordinal pool behaviour is unchanged.\n\nVerified by the `fast::tests::layout_keys` group.",
+          "verification": "automated"
+        },
+        {
+          "id": "LAY-2",
+          "descriptionMarkdown": "A kept node's style is rewritten only if it differs from the requested one, and its children only if the ordered child ids differ.\n\n- Style equality stays exact, per the layout rules: a fingerprint of every field the Taffy conversion reads is only a fast inequality pre-filter.\n- Equal fingerprints are confirmed by full comparison of the gpux `Style` fields the conversion reads, so `to_taffy` runs only for changed styles.\n- A test mutates each converted field and proves the fingerprint changes.\n- The root's `stretch_auto_size_to_fill` does not rewrite an unchanged root.\n\nVerified by the `fast::tests::write_elision` group.",
+          "verification": "automated"
+        },
+        {
+          "id": "LAY-3",
+          "descriptionMarkdown": "Text leaves carry or replay their measurements, and only text owns this optimization.\n\n- **Carry.** If last frame's text element at the same key had equal text, runs and text style, the new element takes over its measurement and the node stays clean. If only colours or decorations changed, decorations are rewritten in place.\n- **Replay.** Otherwise the node's log of up to 16 constraints Taffy used since it was last dirtied is replayed with the new closure. If every size is equal, the node stays clean.\n- **Re-measure.** Otherwise it is measured afresh and stale replay state is discarded.\n- Probe-width measurements are settled after layout, as in gpui-fast's fix `2e2c73a`.\n- Truncation, wrapping and `TextLayout`'s local-size reuse behave as before.\n- Non-text measured leaves are dirtied every frame as today.\n- Tracked closures are still taken at clear, so no closure or captured application state outlives its frame.\n\nVerified by the `fast::tests::text_carry` group.",
+          "verification": "automated"
+        },
+        {
+          "id": "LAY-4",
+          "descriptionMarkdown": "Lifecycle:\n\n- A node unclaimed for a frame is released.\n- Nodes claimed while laying out a list row linger for 240 unclaimed frames.\n- Unkeyed transient nodes are released at the end of the frame.\n- A new node detaches children from a stale parent.\n- The node store stays bounded by the window's largest observed tree plus lingering rows: no growth over 1,000 frames of insert, remove and scroll churn.\n\nVerified by the `fast::tests::layout_keys` group.",
+          "verification": "automated"
+        },
+        {
+          "id": "LAY-5",
+          "descriptionMarkdown": "Layout retention composes with gpux layout features:\n\n- sticky candidate discovery and fixed containing blocks;\n- absolute edge snapping;\n- the request-to-prepaint style handoff and conditional prepaint style recompute;\n- `container_query`, `uniform_list` and variable-height `list`;\n- editable text, and gpux's taffy feature set (no `content_size`).\n\nThe randomized oracle in layout-only mode (`FastMode { layout_retention: true, .. off }`) matches the from-scratch frame over every change kind, with a non-vacuity assertion that nodes were kept clean. Verified by the `fast::tests::oracle_layout` group.",
+          "verification": "automated"
+        }
+      ]
+    },
+    {
+      "id": "DEP",
+      "title": "Dependency tracking",
+      "descriptionMarkdown": "While a view requests layout, prepaints and paints, gpux records what it read. Changes are stamped, so reuse can be decided from real dependencies.",
+      "criteria": [
+        {
+          "id": "DEP-1",
+          "descriptionMarkdown": "These reads are recorded:\n\n- entity reads;\n- global reads, and global presence through `has_global` (presence only);\n- `ScrollHandle` and `ListState` reads, through a version that changes only when state really changes. Idempotent `scroll_to`, `set_offset` and `scroll_to_end` do not bump it, and gpux's thumb publication and dependent views keep their single invalidation;\n- ambient window input: `mouse_position`, `modifiers`, `capslock` and gpux's `pressed_mouse_button`;\n- hover reads through `HitboxId::is_hovered`.\n\nThese changes are stamped:\n- entity update, notify, insert and release;\n- global write, insert and remove;\n- ambient input changes after event dispatch;\n- writes while drawing.\n\nNotify-versus-update rules follow gpui-fast:\n- a pure notify does not invalidate readers;\n- an update without notify counts only inside a notified view;\n- a write while drawing counts as a change for foreign readers.\n\n`ElementInputHandler` platform queries are exempt. Verified by the `fast::tests::dependencies` group, with one test per read kind and per rule.",
+          "verification": "automated"
+        },
+        {
+          "id": "DEP-2",
+          "descriptionMarkdown": "Recording nests:\n\n- a record's own dependencies exclude those of nested records;\n- its subtree dependencies include them;\n- replaying a reused record re-registers its accessed entities, so window invalidation routing (`dirty_views`, `mark_view_dirty`) still reaches the window.\n\nVerified by the `fast::tests::dependency_nesting` group.",
+          "verification": "automated"
+        }
+      ]
+    },
+    {
+      "id": "VIEW",
+      "title": "View retention",
+      "descriptionMarkdown": "Every view is a retained subtree that is drawn from the last frame while nothing it depends on changed.",
+      "criteria": [
+        {
+          "id": "VIEW-1",
+          "descriptionMarkdown": "With view retention on, an unchanged window renders no view and writes no layout node. Every view's prepaint and paint ranges, and its nested records, are copied from the last frame, and the output equals the from-scratch frame.\n\nVerified by the `fast::tests::reuse_paths` group.",
+          "verification": "automated"
+        },
+        {
+          "id": "VIEW-2",
+          "descriptionMarkdown": "Each dependency kind invalidates exactly the views that read it, and no others:\n\n- entity update with notify;\n- a write while drawing;\n- global write and presence;\n- scroll and list version;\n- ambient input;\n- a hover that changes appearance;\n- interactions inside a view, which rebuild only the innermost view.\n\nThe notify-versus-update rules hold at the view level. Verified by the `fast::tests::view_invalidation` group.",
+          "verification": "automated"
+        },
+        {
+          "id": "VIEW-3",
+          "descriptionMarkdown": "The paths are implemented with gpui-fast's selection rules:\n\n- **Reused.**\n- **Built at retained layout:** the view moved, or its inherited bounds, content mask, text style or painted context (the `with_element_paint_context` opacity and transform that cached views already key on) changed.\n- **Prebuilt.**\n- **Built.**\n\n`cached(style)` views keep upstream's shape but also depend on what they read. Stateless `RenderOnce` components are never retained. Verified by the `fast::tests::reuse_paths` group.",
+          "verification": "automated"
+        },
+        {
+          "id": "VIEW-4",
+          "descriptionMarkdown": "A retained record copies and shifts every per-frame output gpux has:\n\n- hitboxes, re-pointed at reused dispatch nodes;\n- `hitbox_dispatch_nodes` entries;\n- tooltips and deferred draws (attributed to their enclosing record);\n- the dispatch subtree, which keeps focus;\n- accessed element states and pending element-state transfers;\n- line layouts, mouse listeners, input handlers, cursor styles, tab stops and window-control hitboxes;\n- `visual_bounds`;\n- DevKit nodes, with remapped ids, parents, focus and property setters, truncated on rollback.\n\nFixed and sticky behaviour is kept for reused views: sticky candidates are republished, and positioned and top-layer ranges keep their draw-order bands.\n\nScreen-effect and transition requests owned by `Window` are neither duplicated nor lost.\n\nVerified by the `fast::tests::retained_records` group, with one test per output and a rollback test.",
+          "verification": "automated"
+        },
+        {
+          "id": "VIEW-5",
+          "descriptionMarkdown": "Nothing is drawn from the last frame in any of these cases:\n\n- while refreshing;\n- during a drag;\n- while the inspector is picking;\n- while AccessKit is active;\n- for a record whose id is duplicated in a frame;\n- with view retention off.\n\nEach case is tested and each reason is counted in `FastStats`. Verified by the `fast::tests::view_invalidation` group.",
+          "verification": "automated"
+        },
+        {
+          "id": "VIEW-6",
+          "descriptionMarkdown": "A verify mode exists under `diagnostics`, enabled with `GPUX_RETENTION_VERIFY=1` or `Window::set_retention_verify(true)`. It draws a from-scratch shadow frame after each retained frame and reports the first differing record by `GlobalElementId` and view type through the log and a diagnostics callback. It never affects presented output.\n\nA test with a view that reads an `Rc<RefCell<_>>` mutated without notify proves the report names that view. Verified by the `fast::tests::verify_mode` group.",
+          "verification": "automated"
+        },
+        {
+          "id": "VIEW-7",
+          "descriptionMarkdown": "The randomized oracle in views mode (layout and view retention on, splice off) matches the from-scratch frame over every change kind. Its non-vacuity assertion requires reused subtrees. Verified by the `fast::tests::oracle_views` group.",
+          "verification": "automated"
+        }
+      ]
+    },
+    {
+      "id": "SPL",
+      "title": "Splice around rebuilt nested views",
+      "descriptionMarkdown": "A notified view no longer rebuilds every view around it.",
+      "criteria": [
+        {
+          "id": "SPL-1",
+          "descriptionMarkdown": "A view that is dirty only through nesting is copied from the last frame in stretches, with each changed nested view rebuilt in its gap. That requires:\n\n- the view was not notified;\n- its own dependencies, offset reads and hovers are unchanged;\n- its rem size and text style match;\n- every changed nested view is rebuildable on its own and reachable from the view's layout root;\n- every deferred draw lies inside a gap.\n\nThe rebuilt view inherits the content mask, text style, opacity, transform, sticky and scroll stacks it had in that position. If a gap asks for a different layout, the surrounding view is rebuilt and takes over the prebuilt child rather than building it twice. Dispatch reattachment does not deepen the tree over 1,000 frames.\n\nVerified by the `fast::tests::splice` group.",
+          "verification": "automated"
+        },
+        {
+          "id": "SPL-2",
+          "descriptionMarkdown": "At frame start, a view whose own reads changed is marked dirty as if notified: an entity updated without notify, a global written, or a scroll or list state moved. Its ancestors are spliced rather than rebuilt. Verified by the `fast::tests::own_dirty` group.",
+          "verification": "automated"
+        },
+        {
+          "id": "SPL-3",
+          "descriptionMarkdown": "The randomized oracle in splice mode matches the from-scratch frame over every change kind. Its non-vacuity assertion requires spliced views. Verified by the `fast::tests::oracle_splice` group.",
+          "verification": "automated"
+        }
+      ]
+    },
+    {
+      "id": "CMP",
+      "title": "Window composition",
+      "descriptionMarkdown": "Native content sits between GPUI's base surface and an overlay surface, so GPUI menus, popovers and dialogs, with shadows and translucent backdrops, draw above it.",
+      "criteria": [
+        {
+          "id": "CMP-1",
+          "descriptionMarkdown": "The core API mirrors Zed PR #62379 and gpui-fast:\n\n- `Window::enable_window_composition() -> Result<WindowComposition>` (idempotent);\n- on the controller:\n  - `base_surface` and `overlay_surface`;\n  - `create_native_surface`, `create_external_gpu_surface` and `create_gpui_surface`;\n  - transactional `place_above`, `place_below`, `reparent` and `remove_surface`;\n- `Window::with_composition_surface(id, f)`;\n- `PlatformSurfaceAttachment` and `PlatformWindow::{enable_window_composition, create_native_surface, set_composition_order, draw_composed}`, with defaults that return an unsupported error or fall back to `draw`.\n\ngpux adds a `native_surface(surface)` element that applies device-pixel bounds during prepaint and registers itself for the scroll-layer bypass. Until composition is enabled, the window draws through today's path with byte-identical scenes. Verified by the `fast::tests::composition` group on the test platform.",
+          "verification": "automated"
+        },
+        {
+          "id": "CMP-2",
+          "descriptionMarkdown": "Scene split:\n\n- **Base:** primitives painted before the overlay start, outside the top-layer band.\n- **Overlay:** primitives in the top-layer draw-order band, plus everything painted from the overlay start, which is before deferred draws, prompts, the active drag, tooltips and the inspector.\n- Clip layers are replayed balanced across range boundaries.\n- Retained, cached and spliced reuse keep their surface switches (`reuse_starts`).\n- Surface geometry changes are pushed only when bounds change, and order changes are diffed.\n\nVerified by the `fast::tests::composition` group: a recording test platform checks the per-surface scenes.",
+          "verification": "automated"
+        },
+        {
+          "id": "CMP-3",
+          "descriptionMarkdown": "macOS (lane D):\n\n- **Native surface:** a layer-backed `NSView` container, ordered between the base `GPUIView` and the overlay.\n- **Overlay:** a `GPUIOverlayView` with a transparent `CAMetalLayer` renderer that shares the device, instance buffer pool and atlas.\n- **Input:** the overlay takes input only while it has content.\n- **Re-mounting:** views re-mount only when identity, parent or order changes, as in gpui-fast's fix `8e1e198`.\n- **Resize:** live resize presents with transactions.\n\nThe lane D checks `composition-macos-*` assert:\n- the native view order and bounds in device pixels;\n- that a click passes through to the native view when the overlay is empty and is taken by an open GPUI menu;\n- the OS-screenshot pixels of a menu shadow blended over a solid-colour native view, where the host grants screen capture (skipped with the reason otherwise).",
+          "verification": "automated"
+        },
+        {
+          "id": "CMP-4",
+          "descriptionMarkdown": "Linux Wayland (lane D on a Wayland session):\n\n- **GPUI overlays:** synchronized `wl_subsurface`s, each with a transparent wgpu renderer sharing the context, the atlas and (a gpux improvement) the pipelines.\n- **Native surfaces:** desynchronized subsurfaces that hand out `RawWindowHandle::Wayland`.\n- **Viewport:** `wp_viewport` for fractional scale.\n- **Commit order:** each frame commits the overlay first and then the base, atomically.\n- **Input:** an overlay's input region is empty while it has no content.\n\nThe lane D checks `composition-wayland-*` assert surface order, positions and the input region, and pixels where screen capture is available. Without a Wayland session they are skipped with the reason.",
+          "verification": "automated"
+        },
+        {
+          "id": "CMP-5",
+          "descriptionMarkdown": "Linux X11 (lane D, Xvfb in CI):\n\n- **Native surfaces:** child windows with the ARGB visual that select their own pointer events.\n- **Without a compositing manager:** the GPUI content above a native surface is cut out of its `ShapeBounding`, falling back to a bounding union after 256 rectangles.\n- **With a compositing manager** (`_NET_WM_CM_S<n>` or XWayland): an override-redirect ARGB overlay window, typed as a dropdown menu and transient for the window, is recreated rather than remapped and reuses its renderer. Opaque parts are also cut out of the native content in the main window.\n\nThe lane D checks `composition-x11-*` assert the cut-out rectangles under Xvfb, and the overlay window's stacking and input shape where a compositor is present (skipped with the reason otherwise).",
+          "verification": "automated"
+        },
+        {
+          "id": "CMP-6",
+          "descriptionMarkdown": "Windows (lane D; WARP in CI):\n\n- A spike first decides between:\n  - (a) keeping the base on the HWND flip swap chain with `DXGI_SCALING_NONE`, and composing native portals plus overlay swap chains through a topmost DirectComposition target;\n  - (b) moving the base onto a wgpu `SurfaceTargetUnsafe::CompositionVisual` surface while composition is enabled.\n- The choice and its resize-artifact evidence are recorded in `docs/upstream/gpui-fast.md`.\n- gpux owns the DirectComposition device, target and visual tree, and calls `Commit()` itself.\n- The overlay renders through a `WgpuRenderer` sharing the GPU context and atlas, with premultiplied alpha.\n- Native surfaces hand out an `IDCompositionVisual` usable by WebView2's `SetRootVisualTarget`.\n- Device loss recreates the tree and fires `compositor_recreated`.\n- `translate_accelerator` leaves non-gpux child HWNDs alone.\n- No DirectX renderer is reintroduced and `vendor/wgpu` is unchanged.\n\nThe lane D checks `composition-windows-*` assert the visual tree order, portal bounds and clip, and pixels through the OS screenshot.",
+          "verification": "automated"
+        },
+        {
+          "id": "CMP-7",
+          "descriptionMarkdown": "Browser (lane B, WebGPU):\n\n- When composition is enabled, the overlay surface renders into a second canvas on the shared WebGPU device, stacked above the `html_element` DOM overlay.\n- The overlay canvas takes pointer events only while it has content.\n- `html_element` z-ordering moves below the overlay canvas without changing its geometry, fit or wheel contracts.\n- On WebGL2 `enable_window_composition` returns an unsupported error, and the V1 always-above DOM overlay behaviour is unchanged.\n\nThe Playwright spec `tools-node/specs/composition.spec.ts` shows a GPUI popover drawn over a DOM element, with the element clickable when the popover closes. It asserts the backend in both runs (WebGPU, and forced WebGL2 unsupported).",
+          "verification": "automated"
+        },
+        {
+          "id": "CMP-8",
+          "descriptionMarkdown": "Overlay surfaces always rasterize grayscale text (no subpixel), whatever the window's negotiated subpixel capability. Backdrop-sampling element effects on an overlay surface sample only GPUI content, as a documented capability limit, and never sample native pixels. Verified by the `fast::tests::composition_overlay` group.",
+          "verification": "automated"
+        },
+        {
+          "id": "CMP-9",
+          "descriptionMarkdown": "Manual native-webview examples exist in `crates/gpui_platform/examples/`:\n\n- WKWebView on macOS;\n- WebView2 on Windows;\n- WebKitGTK on X11 or XWayland;\n- a GPU surface of its own on Wayland.\n\nEach shows a menu, a popover and a dialog with backdrop over live web content. They need dev-dependencies from crates.io only and are not run in CI. Verified by running each on its platform and reviewing the behaviour.",
+          "verification": "manual"
+        },
+        {
+          "id": "CMP-10",
+          "descriptionMarkdown": "iOS (lane F, Simulator):\n\n- **Native surface:** a `UIView` container (handed out as a `UIView*`), placed in the view controller's view above the base `GPUIMetalView` and below the overlay.\n- **Overlay:** a `GPUIOverlayView` whose transparent `CAMetalLayer` is rendered by a sharing `WgpuRenderer`. It stays on the Metal-specific wgpu path (`Backends::METAL`), with premultiplied alpha and shared context, atlas and pipelines.\n- **Input:** `hitTest:withEvent:` returns nil while the overlay is empty, so touches reach the native view. While it has content, its touches go into the `IosWindow` touch path as raw `PlatformInput::Touch`.\n- **Lifecycle:** geometry follows rotation and safe-area changes. Background and resume drop and recreate the overlay surface. Overlay and native containers are released before the `IosWindow` they point to.\n\nThe lane F scenes `composition-ios-*` assert:\n- view order and frames in points;\n- a tap reaching a solid-colour native test view while the overlay is empty, and an open GPUI menu taking the tap;\n- the shadow pixels over the native view, where the Simulator has a Metal device (skipped with the reason otherwise).",
+          "verification": "automated"
+        },
+        {
+          "id": "CMP-11",
+          "descriptionMarkdown": "Android (lane E, emulator):\n\n- **Spike first.** A spike decides how native surfaces and the overlay stack above GPUI's window:\n  - (a) attached panel windows (`WindowManager` sub-windows on the Activity's window token);\n  - (b) a managed view hierarchy with an overlay `SurfaceView` using `setZOrderOnTop(true)` and `PixelFormat.TRANSLUCENT`.\n  The chosen mechanism must serve both the NativeActivity host and the embedded `SurfaceView` host. The evidence is recorded in `docs/upstream/gpui-fast.md`.\n- **Java helper.** gpux ships a small Java helper under `crates/gpui_mobile/java/` with the `dev.gpux.mobile` package. It holds the composition root, native containers, an overlay view that forwards touches to GPUI only while the overlay has content, and the lifecycle callbacks. `gpux-testkit android build` compiles it with `javac` and `d8` against the pinned SDK's `android.jar`, still without Gradle. Consumers add the same sources to their build.\n- **Overlay rendering:** a sharing `WgpuRenderer` on the overlay's `ANativeWindow`. It follows the Vulkan-then-GL policy with its own surface per backend, premultiplied alpha, and shared context and atlas.\n- **Native surfaces** hand out a JNI global reference to their container `ViewGroup`.\n- **Lifecycle:** surface destruction and recreation, background and resume, and configuration changes drop and recreate overlay surfaces and keep native containers attached.\n\nThe lane E scenes `composition-android-*` assert, through `adb screencap` and `adb shell input`:\n- the order;\n- tap pass-through while the overlay is empty, and an open menu taking the tap;\n- a menu shadow over a solid-colour native `View`, compared with the 16-bit surface tolerance policy.",
+          "verification": "automated"
+        },
+        {
+          "id": "CMP-12",
+          "descriptionMarkdown": "gpui-mobile platform views are rebuilt on composition:\n\n- `PlatformView` implementations on iOS (generic, WKWebView, AVPlayer, camera) and Android insert their native view into a composition native surface. `platform_view_element` places it through `native_surface`: bounds, clip to the element's content mask, and visibility.\n- The missing `dev.rayx.mobile.RayXPlatformView` is replaced by the gpux Java helper.\n- Unused hybrid-composition code paths (`insert_into_window` below the Metal view, `set_z_index`) are removed or reduced to composition ordering.\n\nThe lane E and lane F scenes `platform-view-*` show a generic platform view between GPUI base content and an open GPUI menu, with correct taps on each.",
+          "verification": "automated"
+        }
+      ]
+    },
+    {
+      "id": "LYR",
+      "title": "Scroll layers",
+      "descriptionMarkdown": "Scroll-only frames composite cached GPU tiles instead of rebuilding the scrolled content.",
+      "criteria": [
+        {
+          "id": "LYR-1",
+          "descriptionMarkdown": "Layer lifecycle follows gpui-fast:\n\n- a layer is promoted after two consecutive scrolled frames;\n- each frame decides Composite, Repaint or Bypass;\n- **demotion:** content changing on 8 or more of the last 16 frames (4 for `uniform_list`), or a work budget over 32 samples;\n- **cooldown:** 60 frames, doubling up to 1,920;\n- **eviction:** after 120 idle frames, with a 64 MB tile budget per window;\n- every layer is dropped on resize or scale change.\n\nLayers are compiled for every gpux renderer: Linux, Windows, the browser, Android and iOS through wgpu, and macOS through Metal. The tile budget is a per-target constant: 64 MB per window on desktop, 32 MB in the browser and on mobile. The scroll-layers switch also enables device-pixel scroll-offset snapping, glyph-origin quantization and path snapping; with it off, output is today's.\n\nVerified by the `fast::tests::layer_policy` group.",
+          "verification": "automated"
+        },
+        {
+          "id": "LYR-2",
+          "descriptionMarkdown": "**Scroll-only detection.** A frame is scroll-only when:\n\n- the owner was notified no more times than it was scrolled. Notifications of gpux scroll dependents count as scroll notifications;\n- nothing the content read changed;\n- no content view was notified;\n- no hover changed;\n- the owner did not read the offset during render.\n\n**Composite frames** carry, translated by the scroll delta and clipped to the viewport:\n\n- hitboxes;\n- listeners;\n- the dispatch subtree, which keeps focus;\n- cursors, element states, tab stops and window-control hitboxes;\n- tooltips, only when the layer did not move.\n\n**Input.** Any input other than the wheel that reaches content which moved since it was painted repaints the layer first. `ScrollHandle::bounds` and `bounds_for_item` are translated when read.\n\nVerified by the `fast::tests::layer_carry` group.",
+          "verification": "automated"
+        },
+        {
+          "id": "LYR-3",
+          "descriptionMarkdown": "Tiles are 512 device pixels. Each tile is hashed from the primitives that reach it, translated into tile space and including each primitive's transform matrix. The background is baked only when the viewport lies on one opaque solid quad.\n\nGlyphs are culled by reach. Paths are never rasterized into tiles: they are lifted above the tiles, or the layer bypasses.\n\nA layer bypasses when the content holds any of:\n- deferred or anchored elements, or `on_children_prepainted`;\n- a focused input handler;\n- an animation-frame request;\n- visual effects or screen-effect regions;\n- HTML islands or elements;\n- composition `native_surface` elements;\n- fixed, sticky or top-layer primitives;\n- a translucent or rounded viewport background.\n\nEach bypass is counted with its reason. Verified by the `fast::tests::layer_inputs` group.",
+          "verification": "automated"
+        },
+        {
+          "id": "LYR-4",
+          "descriptionMarkdown": "The layers oracle plays random histories through a layers-on window and a reference window with layers off and snapping forced on. Histories include:\n\n- wheel scrolls, fractional deltas at scale 1.25 included;\n- programmatic scrolls, hovers, clicks, keys, content changes and resizes.\n\nEvery frame compares:\n- the scenes, with each layer's tile sprites expanded into its content;\n- hit tests at 32 random points;\n- the positions every listener observed.\n\nCoverage asserts require composited frames, clicks and keys. Verified by the `fast::tests::oracle_layers` group.",
+          "verification": "automated"
+        },
+        {
+          "id": "LYR-5",
+          "descriptionMarkdown": "The wgpu renderer implements the tile contract:\n\n- tile textures are keyed by layer and generation, in the non-sRGB render-target format, with `RENDER_ATTACHMENT | TEXTURE_BINDING | COPY_SRC`;\n- the generation contract holds (a skipped generation invalidates, and dirty tiles wait until shown);\n- tiles are rasterized from `LayerFrame::tile_scene` before the main pass, in the same encoder;\n- reserved texture ids `0xF000_0000 + key` are resolved in the polychrome sprite path through a premultiplied-input flag. This is an ABI change, made together in Rust and WGSL;\n- the gradient dither is seeded by position within the quad;\n- the cache is released on resize, scale, alpha mode, device loss and GPU recovery (`force_render`).\n\nVerified in these places:\n- the renderer group `cargo test -p gpux-wgpu-renderer --features test-support --lib fast::layers::tests`: assembled tiles, negative tile coordinates, odd translations and a second frame from cache are byte-equal to direct drawing on the software adapter;\n- `crates/gpux_conformance/tests/lane_c_scroll_layers.rs`;\n- lane B's WebGPU and forced-WebGL2 backend and Dawn specs, for the ABI.",
+          "verification": "automated"
+        },
+        {
+          "id": "LYR-6",
+          "descriptionMarkdown": "The Metal renderer implements the same tile contract:\n\n- tiles are encoded in their own command buffer before the frame's, with a failure flag;\n- the gradient dither is seeded by position within the quad.\n\nVerified by `cargo test -p gpux-apple --features test-support --lib fast::layers`, which checks byte-equality on a headless Metal device. It runs on a Mac or in the macOS CI lane.",
+          "verification": "automated"
+        },
+        {
+          "id": "LYR-7",
+          "descriptionMarkdown": "`uniform_list` and `list` get layers with per-row records:\n\n- **Rows:** each holds its slot, scene part, tile hashes, hitboxes, hovers, ranges, its own layout keys and its own reads.\n- **Extend mode:** renders only missing rows, rows whose foretold hover changed, suspect or dropped rows that are visible, and rows whose reads changed.\n- **Overscan:** `uniform_list` uses `ceil(2·viewport / item)`. `list` uses 2 viewports on the first paint, then only the shown rows, then grows by half a viewport per frame.\n- **`is_scrolled_to_end`:** read as a boolean that flips.\n- **`scroll_to_end`:** idempotent.\n- **A changed item count** forces a repaint.\n- gpux list features (sticky in lists, `ScrollActivity`) bypass where they cannot be carried.\n\nVerified by the `fast::tests::list_layers` group, including a list oracle.",
+          "verification": "automated"
+        },
+        {
+          "id": "LYR-8",
+          "descriptionMarkdown": "Touch scrolling composites like wheel scrolling. Scrolls applied by `TouchGestureRecognizer` pans and by fling momentum note the scrolled container before the owner is notified, through the same path as the wheel listener and `ScrollHandle::set_offset`. No parallel gesture or momentum state is added.\n\nTouch moves that belong to an active pan of that container reach the layer as scroll input, without a repaint. Touch down, up, taps, long presses and touch drags on content that moved since it was painted repaint the layer first. Batched Android history samples replay as before.\n\nVerified by the `fast::tests::layer_touch` group on the test platform: a pan, a fling, a tap after a fling and a long press, each compared against the layers-off reference.",
+          "verification": "automated"
+        },
+        {
+          "id": "LYR-9",
+          "descriptionMarkdown": "Scroll layers run in the browser on WebGPU and forced WebGL2:\n\n- tile render targets and tile sampling work through the full-record WebGL2 transport;\n- the browser tile budget applies;\n- HTML islands and elements in scroll content bypass;\n- under `diagnostics`, fast-mode counters are published as the browser global `__gpuxFastStats` through `web_globals`.\n\n`tools-node/specs/scroll-layers.spec.ts` scrolls a div and a list in the web host with trusted wheel input on both backends. It asserts composited frames through the global, and screenshot equality with a layers-off page load at DPR 1, plus DPR 2 in the nightly and lane G runs.",
+          "verification": "automated"
+        },
+        {
+          "id": "LYR-10",
+          "descriptionMarkdown": "Scroll layers run on Android, on Vulkan and on the GL fallback:\n\n- tiles follow the GL ES rules (no early fragment return after sampling, `Rgba8Unorm` atlases on GL, per-buffer uniform binding);\n- the mobile tile budget applies;\n- tiles are released on `onTrimMemory`, on background, and on surface destruction or recreation, in both host modes;\n- the next frame repaints.\n\nThe lane E scenes `scroll-layers-*` swipe a div and a list with `adb shell input swipe`. They assert composited frames through the host's counter report and `adb screencap` equality with layers off, using the 16-bit tolerance policy, plus a background-and-resume step that rebuilds the tiles.",
+          "verification": "automated"
+        },
+        {
+          "id": "LYR-11",
+          "descriptionMarkdown": "Scroll layers run on iOS, on wgpu's Metal backend:\n\n- the mobile tile budget applies;\n- tiles are released on `didReceiveMemoryWarning` and on background;\n- the next frame repaints.\n\nThe lane F scenes `scroll-layers-*` pan a div and a list with Simulator touch input. They assert composited frames through the host's counter report and pixel equality with layers off where the Simulator has a Metal device (skipped with the reason otherwise), plus a background-and-resume step.",
+          "verification": "automated"
+        }
+      ]
+    },
+    {
+      "id": "FIN",
+      "title": "Documentation and provenance",
+      "descriptionMarkdown": "Fast mode is documented for application authors and its origin is recorded.",
+      "criteria": [
+        {
+          "id": "FIN-1",
+          "descriptionMarkdown": "These documents are written or updated:\n\n- **`docs/fast-mode.md`** documents:\n  - each mechanism, its switches and defaults, and the aliases;\n  - the application contract: state outside entities, globals, scroll/list state and ambient input needs `cx.notify()`; notify or write globals only on change; scroll through `ScrollHandle`/`ListState`;\n  - the retention verify mode;\n  - the composition API, platform matrix and limits;\n  - the scroll-layer bypass list;\n  - how to run the comparison.\n- **`docs/testing.md`** lists the new test groups, the `fast_mode` bench, `gpux-testkit perf fast-mode` and lane G's report.\n- **The README** links the page.\n- **The gpux skill** gets a fast-mode reference.\n\nVerified by review.",
+          "verification": "manual"
+        },
+        {
+          "id": "FIN-2",
+          "descriptionMarkdown": "Provenance is recorded:\n\n- `docs/upstream/gpui-fast.md` records the source repository and commit (`b8f0c02`, v0.1.6). It maps each gpux `fast/` module to its gpui-fast origin, marked adopted, adapted (with what changed for gpux) or excluded (with why).\n- It describes how to compare later gpui-fast fixes.\n- `LICENSE-APACHE` carries Longbridge's copyright line.\n\nVerified by review.",
+          "verification": "manual"
+        }
+      ]
+    }
+  ]
+}

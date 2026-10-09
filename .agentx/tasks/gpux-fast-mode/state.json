@@ -1,0 +1,191 @@
+{
+  "schemaVersion": 6,
+  "epicId": "gpux-fast-mode",
+  "revision": 1,
+  "planRevision": 2,
+  "specHashes": {
+    "requirements": "6844e13eeeb63cd0f5d25cd364ac8d4885408a62b83cf98a194f4d2b3cb1df39",
+    "design": "8734bf00279cecac6e86634c9c027265bb8ebeaa0c2af4af8ba76ad0e62c3d2f",
+    "plan": "a09dbc19c14dcf31d047845dc5c1f82e07942747c030b88a278e2caa06ce210e"
+  },
+  "tasks": {
+    "t01-fast-switches": {
+      "status": "pending"
+    },
+    "t02-fast-stats": {
+      "status": "pending"
+    },
+    "t03-oracle-harness": {
+      "status": "pending"
+    },
+    "t04-conformance-parity": {
+      "status": "pending"
+    },
+    "t05-perf-scenarios": {
+      "status": "pending"
+    },
+    "t06-perf-report": {
+      "status": "pending"
+    },
+    "t07-provenance": {
+      "status": "pending"
+    },
+    "t08-scoped-invalidation": {
+      "status": "pending"
+    },
+    "t09-bounds-grid": {
+      "status": "pending"
+    },
+    "t10-draw-order-sort": {
+      "status": "pending"
+    },
+    "t11-text-path-caches": {
+      "status": "pending"
+    },
+    "t12-standalone-keep-or-revert": {
+      "status": "pending"
+    },
+    "t13-layout-keys": {
+      "status": "pending"
+    },
+    "t14-write-elision": {
+      "status": "pending"
+    },
+    "t15-text-carry-replay": {
+      "status": "pending"
+    },
+    "t16-oracle-layout": {
+      "status": "pending"
+    },
+    "t17-dependency-recording": {
+      "status": "pending"
+    },
+    "t18-dependency-nesting": {
+      "status": "pending"
+    },
+    "t19-retained-records": {
+      "status": "pending"
+    },
+    "t20-reuse-paths": {
+      "status": "pending"
+    },
+    "t21-view-invalidation": {
+      "status": "pending"
+    },
+    "t22-verify-mode": {
+      "status": "pending"
+    },
+    "t23-oracle-views": {
+      "status": "pending"
+    },
+    "t24-splice": {
+      "status": "pending"
+    },
+    "t25-own-dirty": {
+      "status": "pending"
+    },
+    "t26-oracle-splice": {
+      "status": "pending"
+    },
+    "t27-composition-core": {
+      "status": "pending"
+    },
+    "t28-overlay-renderers": {
+      "status": "pending"
+    },
+    "t29-composition-macos": {
+      "status": "pending"
+    },
+    "t30-composition-wayland": {
+      "status": "pending"
+    },
+    "t31-composition-x11": {
+      "status": "pending"
+    },
+    "t32-composition-windows": {
+      "status": "pending"
+    },
+    "t33-composition-web": {
+      "status": "pending"
+    },
+    "t34-webview-examples": {
+      "status": "pending"
+    },
+    "t35-layer-policy": {
+      "status": "pending"
+    },
+    "t36-layer-carry": {
+      "status": "pending"
+    },
+    "t37-layer-inputs": {
+      "status": "pending"
+    },
+    "t38-oracle-layers": {
+      "status": "pending"
+    },
+    "t39-wgpu-tiles": {
+      "status": "pending"
+    },
+    "t40-metal-tiles": {
+      "status": "pending"
+    },
+    "t41-list-layers": {
+      "status": "pending"
+    },
+    "t42-defaults-on": {
+      "status": "pending"
+    },
+    "t43-docs": {
+      "status": "pending"
+    },
+    "t44-final-comparison": {
+      "status": "pending"
+    },
+    "t45-composition-ios": {
+      "status": "pending"
+    },
+    "t46-composition-android": {
+      "status": "pending"
+    },
+    "t47-mobile-platform-views": {
+      "status": "pending"
+    },
+    "t48-layer-touch": {
+      "status": "pending"
+    },
+    "t49-layers-web": {
+      "status": "pending"
+    },
+    "t50-layers-android": {
+      "status": "pending"
+    },
+    "t51-layers-ios": {
+      "status": "pending"
+    }
+  },
+  "validationBatches": {},
+  "checkResults": {},
+  "reviews": {},
+  "checkpoints": {},
+  "findings": [],
+  "handoffMarkdown": "",
+  "protectedPaths": {
+    "gpux": {
+      "gpux:.agentx/experiments/**": "4d6e9d6f34b51c6bb0257e4f2f777eb83f05617ce9649c225e686ef2c3ea997a",
+      "gpux:.agentx/tasks/frame-effects-navigation-transitions/**": "97cc9f821c990f4d3560b1c4726ede795e7d91f4329839215674e7649efd8747",
+      "gpux:.agentx/tasks/frame-family-component-transitions/**": "3987d07e830ea8dadd35abe56c1d8ccc36b8fb2f8feb189a1d6727c14f114ab1",
+      "gpux:.agentx/tasks/gpux-cross-platform-test-lanes/**": "c2f120afd8760d4b62f6eacc957881ee595de63049c1a7a20f9a494e83eea033",
+      "gpux:.agentx/tasks/gpux-fixed-sticky-positioning/**": "0e971f9ad2c8147d6f56981b495a94b8f5cc7cce5eef6f391b7894b3223959b7",
+      "gpux:.agentx/tasks/gpux-text-rendering-quality-performance/**": "213eb24a25a50d0ccbc7d468e8bedc96a10bdf38f76a4e9130109b9142a0a3e5",
+      "gpux:.agentx/tasks/gpux-wgpu-platform-renderers/**": "585529d42deceb4ae2639c37596347714777579ccca3b5b5e74b007eaf7d2f81",
+      "gpux:.agentx/tasks/high-quality-wasm-text-rendering/**": "81eee19badcd190b59dae1d9fb52bcdf0f53273ab9f00df9cb617c79213a0061",
+      "gpux:.agentx/tasks/html-element-dom-overlay/**": "eb0c49ccecf4bfea51485d81c60e272f47d1cf1e582701f1791f9c5a77ee6be7",
+      "gpux:.agentx/tasks/html-island-wasm/**": "8db76e0d9f0706ea6e4b34b9f7741317d47ee734673bd83cb97352d82d6520b8",
+      "gpux:.agentx/tasks/keyed-sticky-stacking/**": "7f924a57495dfb6d3a2ca3be75e5fdb04cb012ecfc41554bdb278a84987e82ef",
+      "gpux:.agentx/tasks/macos-only-metal-port-and-ci-repair/**": "64ecc143e24a8468c3b4e5d28bbc0f65d4fbbddab867d46a44823b1725ff1e5d",
+      "gpux:.agentx/tasks/shader-effects-and-screen-transitions/**": "f3f66695ebf53686a0437e18bf587955317994e21eac47d7908641e0281996ce",
+      "gpux:ToFix/**": "e72e6c15df92515c9a96c1ef2a6db675ce345e0eb600212658582f156b1beb64",
+      "gpux:vendor/wgpu/**": "a4c4ab1992f6a0aeeca032fedb82b953741f6d547ac517ef15467c67dffa69e5"
+    }
+  }
+}
