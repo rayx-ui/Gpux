@@ -49,6 +49,7 @@ pub struct Scene {
     pub subpixel_sprites: Vec<SubpixelSprite>,
     pub polychrome_sprites: Vec<PolychromeSprite>,
     pub surfaces: Vec<PaintSurface>,
+    pub(crate) sort_scratch: crate::fast::scene::SortScratch,
     #[cfg(feature = "diagnostics")]
     sprite_sort_disorder_counts: [u64; 3],
     #[cfg(feature = "diagnostics")]
@@ -245,18 +246,6 @@ impl Scene {
     }
 
     pub fn finish(&mut self) {
-        self.shadows.sort_by_key(|shadow| shadow.order);
-        self.visual_effects
-            .sort_by_key(|visual_effect| visual_effect.order);
-        self.quads.sort_by_key(|quad| quad.order);
-        self.html_islands
-            .sort_by_key(|html_island| html_island.order);
-        self.html_elements
-            .sort_by_key(|html_element| html_element.order);
-        self.screen_effect_regions
-            .sort_by_key(|screen_effect_region| screen_effect_region.order);
-        self.paths.sort_by_key(|path| path.order);
-        self.underlines.sort_by_key(|underline| underline.order);
         #[cfg(feature = "diagnostics")]
         {
             self.sprite_sort_disorder_counts = [
@@ -283,13 +272,7 @@ impl Scene {
                     .count() as u64,
             ];
         }
-        self.monochrome_sprites
-            .sort_by_cached_key(|sprite| (sprite.order, sprite.tile.tile_id));
-        self.subpixel_sprites
-            .sort_by_key(|sprite| (sprite.order, sprite.tile.tile_id));
-        self.polychrome_sprites
-            .sort_by_key(|sprite| (sprite.order, sprite.tile.tile_id));
-        self.surfaces.sort_by_key(|surface| surface.order);
+        crate::fast::scene::sort_in_drawing_order(self);
     }
 
     #[cfg(feature = "diagnostics")]

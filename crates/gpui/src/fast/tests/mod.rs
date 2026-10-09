@@ -3,6 +3,7 @@
 //! `cargo test -p gpux --features test-support --lib fast::tests::<group>::`.
 
 mod bounds_grid;
+mod draw_order;
 mod oracle;
 mod oracle_support;
 mod scoped_invalidation;

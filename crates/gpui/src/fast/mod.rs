@@ -19,6 +19,7 @@ pub(crate) mod layers;
 pub(crate) mod mode;
 #[cfg(any(test, feature = "test-support", feature = "bench-support"))]
 pub mod scenarios;
+pub(crate) mod scene;
 #[cfg(any(
     test,
     feature = "test-support",
