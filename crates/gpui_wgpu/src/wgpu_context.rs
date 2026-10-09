@@ -807,11 +807,12 @@ impl WgpuContext {
 
     /// Whether instance data goes through textures instead of storage buffers: on WebGL2, and on
     /// native devices whose vertex shaders cannot read storage buffers (GLES devices such as
-    /// Android emulators).
+    /// Android emulators) or whose limits allow too few of them.
     pub fn uses_webgl_instance_data(&self) -> bool {
         texture_instance_data(
             self.backend,
             self.adapter.get_downlevel_capabilities().flags,
+            &self.device.limits(),
         )
     }
 
@@ -1021,14 +1022,25 @@ mod required_limits_tests {
     }
 }
 
+/// The storage buffers a shader stage binds when instance data comes from storage buffers
+/// (`instances_layout`).
+const INSTANCE_STORAGE_BUFFERS: u32 = 2;
+
 /// Whether a backend reads instance data from textures instead of storage buffers: WebGL2
 /// always, and native devices whose vertex shaders cannot read storage buffers (GLES devices such
-/// as Android emulators).
-pub(crate) fn texture_instance_data(backend: WgpuBackend, flags: wgpu::DownlevelFlags) -> bool {
+/// as Android emulators) or whose device `limits` allow too few per stage. A GL device gets the
+/// WebGL2 baseline (`required_limits`), which allows none even where the adapter reports vertex
+/// storage, as ANGLE on SwiftShader Vulkan does.
+pub(crate) fn texture_instance_data(
+    backend: WgpuBackend,
+    flags: wgpu::DownlevelFlags,
+    limits: &wgpu::Limits,
+) -> bool {
     match backend {
         WgpuBackend::Gl => true,
         WgpuBackend::BrowserWebGpu | WgpuBackend::Native(_) => {
             !flags.contains(wgpu::DownlevelFlags::VERTEX_STORAGE)
+                || limits.max_storage_buffers_per_shader_stage < INSTANCE_STORAGE_BUFFERS
         }
     }
 }
@@ -1048,6 +1060,46 @@ pub(crate) fn preferred_color_atlas_format(
 }
 
 #[cfg(test)]
+mod instance_storage_limit_tests {
+    use super::{WgpuBackend, required_limits, texture_instance_data};
+    use wgpu::{Backend, DownlevelFlags};
+
+    #[test]
+    fn gl_devices_on_the_webgl2_baseline_read_instances_from_textures() {
+        // ANGLE on SwiftShader Vulkan (Android emulators on Apple silicon) reports vertex storage,
+        // but a GL device is created with the WebGL2 baseline, which allows no storage buffers.
+        let adapter = wgpu::Limits::downlevel_defaults();
+        let device = required_limits(Backend::Gl, adapter);
+        assert_eq!(device.max_storage_buffers_per_shader_stage, 0);
+        assert!(texture_instance_data(
+            WgpuBackend::Native(Backend::Gl),
+            DownlevelFlags::VERTEX_STORAGE,
+            &device
+        ));
+    }
+
+    #[test]
+    fn devices_with_enough_storage_buffers_keep_them() {
+        let device = required_limits(Backend::Vulkan, wgpu::Limits::default());
+        assert!(device.max_storage_buffers_per_shader_stage >= 2);
+        assert!(!texture_instance_data(
+            WgpuBackend::Native(Backend::Vulkan),
+            DownlevelFlags::VERTEX_STORAGE,
+            &device
+        ));
+        let one = wgpu::Limits {
+            max_storage_buffers_per_shader_stage: 1,
+            ..device
+        };
+        assert!(texture_instance_data(
+            WgpuBackend::Native(Backend::Vulkan),
+            DownlevelFlags::VERTEX_STORAGE,
+            &one
+        ));
+    }
+}
+
+#[cfg(test)]
 mod backend_choice_tests {
     use super::{WgpuBackend, preferred_color_atlas_format, texture_instance_data};
     use wgpu::{Backend, DownlevelFlags, TextureFormat};
@@ -1056,6 +1108,8 @@ mod backend_choice_tests {
     fn devices_without_vertex_storage_read_instances_from_textures() {
         let without = DownlevelFlags::empty();
         let with = DownlevelFlags::VERTEX_STORAGE;
+        let limits = &wgpu::Limits::downlevel_defaults();
+        let texture_instance_data = |backend, flags| texture_instance_data(backend, flags, limits);
         assert!(texture_instance_data(WgpuBackend::Gl, with));
         assert!(texture_instance_data(
             WgpuBackend::Native(Backend::Gl),
