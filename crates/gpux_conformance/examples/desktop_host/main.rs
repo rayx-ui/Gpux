@@ -138,6 +138,10 @@ fn main() {
             eprintln!("desktop_host: could not register the bundled fonts: {error:#}");
         }
         println!("desktop_host: {}", os::describe());
+        // macOS runs a window's frames only while the window is at least partly visible, so the
+        // host comes to the front rather than opening its windows behind the active app.
+        #[cfg(target_os = "macos")]
+        cx.update(|cx| cx.activate(true));
         // Platforms quit when their last window closes; this window outlives every scene's.
         let anchor = match cx.open_window(anchor_options(), |_, cx| cx.new(|_| Anchor)) {
             Ok(anchor) => anchor,
@@ -169,6 +173,10 @@ fn main() {
         }
         let host = AppHost::new(Lane::D, point(px(WINDOW_ORIGIN.0), px(WINDOW_ORIGIN.1)))
             .with_failure_frames(gpux_conformance::compare::artifacts_dir("d"));
+        let host = match os::cursor_sync() {
+            Some(sync) => host.with_cursor_sync(sync),
+            None => host,
+        };
         for scene in CATALOG
             .iter()
             .filter(|scene| scene.runs_in(Lane::D) && selected(scene.id, &args))

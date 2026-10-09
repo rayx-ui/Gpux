@@ -214,10 +214,13 @@ injected into the window, and pixels read back from the window's own surface wit
 | Windows | `SendInput` | `WM_DPICHANGED` sent to the window | Hosted CI sessions run with `GPUX_OS_INPUT=optional`, which reports the OS-input check skipped if the session delivers no synthetic input. |
 | Linux X11 | XTest through `xdotool` | skipped: the X server sets the scale | Run under `xvfb-run -a -s "-screen 0 1280x1024x24"` with `WAYLAND_DISPLAY` unset; needs `xdotool`. Select lavapipe with `VK_DRIVER_FILES`. |
 | Linux Wayland | none: Wayland gives clients no synthetic input | skipped: the compositor sets the scale | Informational only, see below. |
-| macOS | none: hosted macOS grants no accessibility permission for posting events | skipped: the display sets the scale | Scenes inject input in-app. |
+| macOS | none: hosted macOS grants no accessibility permission for posting events | skipped: the display sets the scale | Scenes inject input in-app. The host comes to the front and moves the cursor to every injected pointer position (`CGWarpMouseCursorPosition` needs no permission): the active window re-reads the cursor every frame. |
 
 Local Windows desktops need nothing extra; the run briefly opens windows, moves the cursor, and
-types into its own text field. Scenes that assert exact animation timing (programmatic scroll,
+types into its own text field. On a local Mac, keep the display awake for the run
+(`caffeinate -d cargo run -p gpux-testkit -- lane d`) and leave the windows uncovered: macOS
+stops a window's frames while it is hidden or the display sleeps, and the scenes then fail with
+"no frame within 10s". Scenes that assert exact animation timing (programmatic scroll,
 animated and transition frames) and IME composition stay in lanes A and C: lane D runs on the
 real clock, and a host cannot drive the platform's input method.
 

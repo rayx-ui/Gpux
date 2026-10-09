@@ -349,6 +349,8 @@ impl SceneRun<'_> {
             PlatformInput::MouseUp(event) => Some(event.position),
             PlatformInput::MouseMove(event) => Some(event.position),
             PlatformInput::ScrollWheel(event) => Some(event.position),
+            // GPUI delivers a touch as pointer events at the touch point.
+            PlatformInput::Touch(event) => Some(event.position),
             _ => None,
         };
         let sync = self.host.cursor_sync.clone();

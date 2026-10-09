@@ -1,9 +1,11 @@
 //! What the desktop host asks of the operating system: OS-level synthetic input, cursor parking
 //! and scale changes. Windows uses `SendInput`; X11 uses XTest through `xdotool`; other systems
 //! (Wayland, macOS) have no synthetic input for an unprivileged client, so their scenes inject
-//! input in-app only.
+//! input in-app only. macOS re-reads the OS cursor every frame of the active window, so its host
+//! moves the cursor to every injected pointer position (see [`cursor_sync`]).
 
 use gpux::{Pixels, Point, Window};
+use gpux_conformance::app_host::CursorSync;
 
 /// One line describing the OS-input path, printed before the results.
 pub fn describe() -> String {
@@ -14,6 +16,12 @@ pub fn describe() -> String {
 /// injected pointer positions.
 pub fn park_cursor() {
     imp::park_cursor();
+}
+
+/// What the host passes to `AppHost::with_cursor_sync`: `None` where the platform keeps injected
+/// pointer positions while the OS cursor stays parked off the scene windows.
+pub fn cursor_sync() -> Option<CursorSync> {
+    imp::cursor_sync()
 }
 
 /// Whether OS-level input can be sent here; the error explains why not.
@@ -85,6 +93,10 @@ mod imp {
     pub fn park_cursor() {
         // The scene windows open at (80, 80) and below; the screen's corner is clear of them.
         unsafe { SetCursorPos(0, 0) }.ok();
+    }
+
+    pub fn cursor_sync() -> Option<super::CursorSync> {
+        None
     }
 
     pub fn os_input_available() -> Result<(), String> {
@@ -279,6 +291,10 @@ mod imp {
         }
     }
 
+    pub fn cursor_sync() -> Option<super::CursorSync> {
+        None
+    }
+
     pub fn os_input_available() -> Result<(), String> {
         if x11() {
             Ok(())
@@ -347,11 +363,21 @@ mod imp {
     const NO_OS_INPUT: &str = "posting OS input needs an accessibility permission that hosted \
                                systems do not grant; scenes inject input in-app";
 
+    #[cfg(not(target_os = "macos"))]
     pub fn describe() -> String {
         format!("{}, in-app input only", std::env::consts::OS)
     }
 
+    #[cfg(not(target_os = "macos"))]
     pub fn park_cursor() {}
+
+    #[cfg(not(target_os = "macos"))]
+    pub fn cursor_sync() -> Option<super::CursorSync> {
+        None
+    }
+
+    #[cfg(target_os = "macos")]
+    pub use super::macos::{cursor_sync, describe, park_cursor};
 
     pub fn os_input_available() -> Result<(), String> {
         Err(NO_OS_INPUT.into())
@@ -381,5 +407,62 @@ mod imp {
 
     pub fn change_scale(_: &Native, _: f32, _: f32) -> Result<(), String> {
         scale_change_supported()
+    }
+}
+
+/// macOS: the active window takes its mouse position from the OS cursor every frame, so the host
+/// moves the cursor, which needs no accessibility permission (`CGWarpMouseCursorPosition` posts no
+/// events), to every injected pointer position, and parks it between scenes.
+#[cfg(target_os = "macos")]
+mod macos {
+    use super::{CursorSync, Pixels, Point, Window};
+    use core_graphics::{display::CGDisplay, geometry::CGPoint};
+    use objc2_app_kit::NSView;
+    use raw_window_handle::{HasWindowHandle, RawWindowHandle};
+    use std::rc::Rc;
+
+    pub fn describe() -> String {
+        "macOS, in-app input with the OS cursor moved to injected positions".into()
+    }
+
+    pub fn park_cursor() {
+        // The scene windows open at (80, 80) and below; the screen's corner is clear of them.
+        CGDisplay::warp_mouse_cursor_position(CGPoint::new(0., 0.)).ok();
+    }
+
+    pub fn cursor_sync() -> Option<CursorSync> {
+        Some(Rc::new(|window, position| {
+            match screen_position(window, position) {
+                Ok(point) => {
+                    if let Err(error) = CGDisplay::warp_mouse_cursor_position(point) {
+                        eprintln!("desktop_host: could not move the cursor: CGError {error}");
+                    }
+                }
+                Err(error) => eprintln!("desktop_host: could not move the cursor: {error}"),
+            }
+        }))
+    }
+
+    /// A window-local logical position in CoreGraphics' global display space, whose origin is the
+    /// primary display's top-left (AppKit's screen space starts at its bottom-left).
+    fn screen_position(window: &Window, position: Point<Pixels>) -> Result<CGPoint, String> {
+        // `Window::window_handle` is GPUI's own handle; the native one comes from the trait.
+        let RawWindowHandle::AppKit(handle) = HasWindowHandle::window_handle(window)
+            .map_err(|error| error.to_string())?
+            .as_raw()
+        else {
+            return Err("not an AppKit window".into());
+        };
+        // SAFETY: the handle names the window's content view, alive while the window is, and the
+        // host runs on the main thread.
+        let view = unsafe { handle.ns_view.cast::<NSView>().as_ref() };
+        let native = view.window().ok_or("the content view has no window")?;
+        let on_screen = native.convertRectToScreen(view.convertRect_toView(view.bounds(), None));
+        let primary_height = CGDisplay::main().bounds().size.height;
+        Ok(CGPoint::new(
+            on_screen.origin.x + f64::from(f32::from(position.x)),
+            primary_height - (on_screen.origin.y + on_screen.size.height)
+                + f64::from(f32::from(position.y)),
+        ))
     }
 }
