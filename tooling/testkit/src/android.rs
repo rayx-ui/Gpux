@@ -759,6 +759,8 @@ fn run_on_device(
     );
     let mut collected = String::new();
     let mut failures = Vec::new();
+    // The host repeats a screenshot request until the file arrives.
+    let mut screenshots = std::collections::HashSet::new();
     let mut handle = |line: &str| -> bool {
         collected.push_str(line);
         collected.push('\n');
@@ -777,6 +779,9 @@ fn run_on_device(
         match request(line) {
             Some(Request::Done) => return false,
             Some(Request::Screenshot(number)) => {
+                if !screenshots.insert(number) {
+                    return true;
+                }
                 if let Err(error) = screenshot(&adb, &serial, &logs, number, runner, root) {
                     failures.push(format!("could not take screenshot {number}: {error}"));
                 }
@@ -805,7 +810,10 @@ fn run_on_device(
     .map_err(|error| format!("could not follow logcat: {error:#}"))?;
 
     pull_frames(&adb, &serial, &logs, runner, root, out);
-    let mut tally = tally(&collected, selection);
+    // `adb logcat` can drop lines from its stream (it did while transferring screenshots); the
+    // device's log buffer keeps them.
+    let device_log = device_log(&adb, &serial, &logs, runner, root);
+    let mut tally = tally(fuller_log(&collected, &device_log), selection);
     for failure in failures {
         tally.add(Tally::failure(failure));
     }
@@ -818,6 +826,47 @@ fn run_on_device(
         )));
     }
     Ok(tally)
+}
+
+/// The host's lines in the device's log buffer (`adb logcat -d`), or nothing if adb fails.
+fn device_log(
+    adb: &Path,
+    serial: &str,
+    logs: &Path,
+    runner: &mut dyn Runner,
+    root: &Path,
+) -> String {
+    let dump = tool_invocation(
+        "adb-logcat-dump",
+        adb,
+        ["-s", serial, "logcat", "-d", "-v", "raw", "-s"]
+            .iter()
+            .map(|arg| arg.to_string())
+            .chain([format!("{LOG_TAG}:I")])
+            .collect(),
+    );
+    match runner.run(&dump, adb, root, &logs.join("adb-logcat-dump.log")) {
+        Ok(result) if result.success => result.output,
+        _ => String::new(),
+    }
+}
+
+/// Of the streamed log and the device's buffer of the same run, the one that reports more
+/// results: the stream when the buffer is missing or wrapped, the buffer when the stream dropped
+/// lines.
+pub fn fuller_log<'a>(streamed: &'a str, device: &'a str) -> &'a str {
+    let reported = |log: &str| {
+        results::result_lines(log)
+            .into_iter()
+            .map(|line| line.scene)
+            .collect::<std::collections::HashSet<_>>()
+            .len()
+    };
+    if reported(device) > reported(streamed) {
+        device
+    } else {
+        streamed
+    }
 }
 
 /// Copies the frames failing pixel probes saved on the device into `artifacts-temp/testkit/e/`.

@@ -75,6 +75,9 @@ mod android {
         log::info!("gpux-conformance-host: {request}");
     }
 
+    /// How long the host waits for an answer before repeating a request.
+    const REQUEST_REPEAT: Duration = Duration::from_secs(5);
+
     /// Screenshots the testkit takes on request, numbered in order.
     pub struct Screens {
         dir: PathBuf,
@@ -100,13 +103,19 @@ mod android {
             let number = self.taken.get() + 1;
             self.taken.set(number);
             let path = self.dir.join(format!("{number}.png"));
-            request(&format!("screenshot {number}"));
             let start = Instant::now();
+            let mut asked = None::<Instant>;
             while !path.is_file() {
                 anyhow::ensure!(
                     start.elapsed() < Duration::from_secs(60),
                     "the testkit sent no screenshot {number}"
                 );
+                // `adb logcat` can drop lines while adb transfers a screenshot, so the request is
+                // repeated until the file arrives; the testkit takes each number once.
+                if asked.is_none_or(|asked| asked.elapsed() >= REQUEST_REPEAT) {
+                    request(&format!("screenshot {number}"));
+                    asked = Some(Instant::now());
+                }
                 cx.background_executor()
                     .timer(Duration::from_millis(50))
                     .await;

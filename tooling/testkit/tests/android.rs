@@ -157,6 +157,24 @@ impl Environment for FakeEnvironment {
 }
 
 #[test]
+fn results_come_from_whichever_log_kept_more_of_them() {
+    let pass =
+        |scene: &str| format!("android_host::android: gpux-conformance: PASS {scene} 4 steps");
+    let full = [
+        pass("paint-canvas-path"),
+        "android_host::android: gpux-conformance-host: screenshot 27".into(),
+        pass("paint-borders"),
+    ]
+    .join("\n");
+    // The stream lost the first two lines while adb transferred a screenshot.
+    let streamed = pass("paint-borders");
+    assert_eq!(android::fuller_log(&streamed, &full), full);
+    // A buffer that wrapped, or no buffer at all, leaves the stream.
+    assert_eq!(android::fuller_log(&full, &streamed), full);
+    assert_eq!(android::fuller_log(&streamed, ""), streamed);
+}
+
+#[test]
 fn missing_sdk_pieces_name_the_sdkmanager_package() {
     let sdk = tempfile::tempdir().unwrap();
     let environment = |vars: &[(&'static str, &Path)]| FakeEnvironment {

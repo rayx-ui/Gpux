@@ -19,6 +19,8 @@ use std::time::{Duration, Instant};
 
 /// How long a check waits for the testkit's action to take effect.
 const ACTION_TIMEOUT: Duration = Duration::from_secs(30);
+/// How long the system's animation of an app starting or coming back to the front may take.
+const SYSTEM_TRANSITION: Duration = Duration::from_secs(10);
 
 fn pass(id: &str, detail: impl Into<String>) -> ResultLine {
     ResultLine::new(Outcome::Pass, id.to_string(), detail.into())
@@ -158,6 +160,41 @@ fn capture_state(
         .ok()
 }
 
+/// Why the screen did not show a window.
+enum NotShown {
+    /// The testkit sent no screenshot.
+    NoScreenshot(anyhow::Error),
+    /// The screenshots arrived, but the pixel never showed the color.
+    Pixel(anyhow::Error),
+}
+
+/// The screen once it shows `color` at the logical point (`x`, `y`) of `window`. The system
+/// animates a window in when its app starts or comes back to the front (it fades and scales in
+/// over the launcher), so the screen is captured again until the window shows or the transition
+/// time is over.
+async fn capture_showing(
+    cx: &mut AsyncApp,
+    screens: &Screens,
+    window: AnyWindowHandle,
+    (x, y, color): (f32, f32, [u8; 4]),
+) -> Result<image::RgbaImage, NotShown> {
+    let scale = scale_factor(cx, window);
+    let start = Instant::now();
+    loop {
+        let screen = screens
+            .capture(cx, window)
+            .await
+            .map_err(NotShown::NoScreenshot)?;
+        match screen_shows(&screen, scale, x, y, color) {
+            Ok(()) => return Ok(screen),
+            Err(error) if start.elapsed() >= SYSTEM_TRANSITION => {
+                return Err(NotShown::Pixel(error));
+            }
+            Err(_) => sleep(cx, Duration::from_millis(500)).await,
+        }
+    }
+}
+
 /// Startup: a window opens and shows its scene through the backend the device gave (Vulkan, or
 /// the GL fallback). The renderer's own readback is reported too: emulators' GL drivers read
 /// rendered textures back empty, which is why pixel steps read the screen.
@@ -183,30 +220,28 @@ pub async fn startup(cx: &mut AsyncApp, screens: &Screens) -> ResultLine {
         Ok(_) => "renderer readback empty on this device".into(),
         Err(error) => format!("no renderer readback: {error:#}"),
     };
-    let scale = scale_factor(cx, window);
-    let screen = screens.capture(cx, window).await;
-    close(cx, window);
-    let Some((x, y, color)) = known_pixel(scene) else {
+    let Some(pixel) = known_pixel(scene) else {
+        close(cx, window);
         return fail(ID, "paint-borders probes no uniform region to look for");
     };
+    let screen = capture_showing(cx, screens, window, pixel).await;
+    close(cx, window);
     match screen {
-        Ok(screen) => match screen_shows(&screen, scale, x, y, color) {
-            Ok(()) => pass(
-                ID,
-                format!(
-                    "backend {backend}, showing the scene's border on a {}x{} screen; {readback}",
-                    screen.width(),
-                    screen.height()
-                ),
+        Ok(screen) => pass(
+            ID,
+            format!(
+                "backend {backend}, showing the scene's border on a {}x{} screen; {readback}",
+                screen.width(),
+                screen.height()
             ),
-            Err(error) => fail(
-                ID,
-                format!(
-                    "backend {backend}, but the screen does not show the scene ({error:#}); {readback}"
-                ),
+        ),
+        Err(NotShown::Pixel(error)) => fail(
+            ID,
+            format!(
+                "backend {backend}, but the screen does not show the scene ({error:#}); {readback}"
             ),
-        },
-        Err(error) => fail(
+        ),
+        Err(NotShown::NoScreenshot(error)) => fail(
             ID,
             format!("backend {backend}, but no screenshot arrived: {error:#}"),
         ),
@@ -405,25 +440,21 @@ async fn lifecycle(cx: &mut AsyncApp, screens: &Screens) -> ResultLine {
     } else if !recovered {
         fail(ID, "the surface never came back after the app returned")
     } else {
-        let scale = scale_factor(cx, handle);
-        let (x, y, color) = BLOCK;
-        match screens.capture(cx, handle).await {
-            Ok(screen) => match screen_shows(&screen, scale, x, y, color) {
-                Ok(()) => pass(
-                    ID,
-                    format!(
-                        "lost and recovered the surface, deactivated and reactivated, then showed \
-                         the window's block on a {}x{} screen",
-                        screen.width(),
-                        screen.height()
-                    ),
+        match capture_showing(cx, screens, handle, BLOCK).await {
+            Ok(screen) => pass(
+                ID,
+                format!(
+                    "lost and recovered the surface, deactivated and reactivated, then showed \
+                     the window's block on a {}x{} screen",
+                    screen.width(),
+                    screen.height()
                 ),
-                Err(error) => fail(
-                    ID,
-                    format!("came back, but the screen does not show the window ({error:#})"),
-                ),
-            },
-            Err(error) => fail(
+            ),
+            Err(NotShown::Pixel(error)) => fail(
+                ID,
+                format!("came back, but the screen does not show the window ({error:#})"),
+            ),
+            Err(NotShown::NoScreenshot(error)) => fail(
                 ID,
                 format!("came back, but no screenshot arrived: {error:#}"),
             ),

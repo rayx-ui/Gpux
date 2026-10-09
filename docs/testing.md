@@ -289,6 +289,15 @@ show it, color probes allow its rounding of up to 4 levels per channel, while di
 keep their tolerance. Shrinking the emulator's screen (`adb shell wm size 720x1280`,
 `adb shell wm density 320`) keeps software frames fast.
 
+On Apple silicon the arm64 emulator exposes a software SwiftShader Vulkan beside its GL driver.
+gpux skips software Vulkan on Android and gives each backend its own surface (Vulkan, then GL),
+because a Vulkan surface keeps the window connected until it is destroyed; the scenes then run
+on GL. `adb logcat` can drop lines from its stream while adb transfers a screenshot, so the host
+repeats a screenshot request until the file arrives, and the testkit counts results from the
+device's log buffer (`adb logcat -d`) when it kept more of them than the stream. Checks that read
+the screen after the app starts or returns capture again until the system's window animation
+(fade or scale in) has ended.
+
 Scenes that need exact animation timing or an input method stay out of lane E: the device runs on
 the real clock, and adb cannot drive the input method. The fling check is skipped on software
 renderers, where `adb shell input` delivers a fast swipe only after slow frames, as a tap.
