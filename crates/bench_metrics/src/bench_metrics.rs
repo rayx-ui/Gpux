@@ -2121,11 +2121,29 @@ mod tests {
     fn resource_counter_counts_page_faults_and_context_switches() {
         let faults = ResourceCounter::new(ResourceMetric::MinorPageFaults, MetricScope::Process)
             .expect("RUSAGE_SELF is always available");
-        let start = faults.start();
-        // Touch fresh pages: a 4 MiB allocation faults in ~1000 pages.
-        let buffer = vec![1_u8; 4 << 20];
-        std::hint::black_box(&buffer);
-        assert!(faults.end(start) > 100.0);
+        // Touch fresh pages: 4 MiB is 1024 pages of 4 KiB, or 256 of 16 KiB (Apple silicon).
+        // The pages are mapped here rather than allocated: macOS malloc hands a large request
+        // a block an earlier test freed, whose pages are already resident and never fault.
+        const LEN: usize = 4 << 20;
+        // SAFETY: an anonymous private mapping that nothing else references; it is written only
+        // within its length and unmapped before returning.
+        let faulted = unsafe {
+            let pages = libc::mmap(
+                std::ptr::null_mut(),
+                LEN,
+                libc::PROT_READ | libc::PROT_WRITE,
+                libc::MAP_PRIVATE | libc::MAP_ANONYMOUS,
+                -1,
+                0,
+            );
+            assert_ne!(pages, libc::MAP_FAILED, "mmap failed");
+            let start = faults.start();
+            std::ptr::write_bytes(pages.cast::<u8>(), 1, LEN);
+            let faulted = faults.end(start);
+            libc::munmap(pages, LEN);
+            faulted
+        };
+        assert!(faulted > 100.0, "{faulted} page faults");
 
         #[cfg(target_os = "linux")]
         {
