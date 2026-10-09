@@ -68,6 +68,10 @@ the `GPUX_WGPU_ADAPTER` adapter override, and extends the port to Windows (DX12,
 without a GPU). `zed-imports.tsv` records the port with `port:` rows; they leave the
 represented upstream commit and the merge base unchanged.
 
+Other upstreams gpux adapts code from, each with its own page:
+
+- [gpui-fast](../upstream/gpui-fast.md) (longbridge/gpui-fast, v0.1.6 `b8f0c02`): fast mode, adapted file by file into `fast/` modules.
+
 History mapping files:
 
 - [gpux-commit-map.tsv](gpux-commit-map.tsv) maps the original standalone gpux hashes to the filtered hashes used by the predecessor repository.
