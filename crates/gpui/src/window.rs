@@ -2917,6 +2917,7 @@ impl Window {
             cx.foreground_executor()
                 .spawn(async move {
                     while activation_receiver.recv().await.is_ok() {
+                        // Whole-window: Accessibility activation rebuilds the whole tree.
                         handle
                             .update(&mut async_cx, |_, window, _| window.refresh())
                             .log_err();
@@ -2928,6 +2929,7 @@ impl Window {
             cx.foreground_executor()
                 .spawn(async move {
                     while deactivation_receiver.recv().await.is_ok() {
+                        // Whole-window: Accessibility deactivation rebuilds the whole tree.
                         handle
                             .update(&mut async_cx, |_, window, _| window.refresh())
                             .log_err();
@@ -3148,6 +3150,7 @@ impl Window {
         platform_window.on_visual_viewport_changed(Box::new({
             let mut cx = cx.to_async();
             move || {
+                // Whole-window: The visual viewport moves every view.
                 handle
                     .update(&mut cx, |_, window, _| window.refresh())
                     .log_err();
@@ -3156,6 +3159,7 @@ impl Window {
         platform_window.on_insets_changed(Box::new({
             let mut cx = cx.to_async();
             move |_| {
+                // Whole-window: Safe-area insets can change any view's layout.
                 handle
                     .update(&mut cx, |_, window, _| window.refresh())
                     .log_err();
@@ -3215,6 +3219,7 @@ impl Window {
                             .retain(&(), |callback| callback(window, cx));
 
                         window.bounds_changed(cx);
+                        // Whole-window: Window activation restyles every view that reads it.
                         window.refresh();
 
                         SystemWindowTabController::update_last_active(cx, window.handle.id);
@@ -3234,6 +3239,7 @@ impl Window {
                             .retain(&(), |callback| callback(window, cx));
 
                         window.bounds_changed(cx);
+                        // Whole-window: Leaving or entering the minimized state redraws everything shown.
                         window.refresh();
                     })
                     .log_err();
@@ -3255,6 +3261,7 @@ impl Window {
                 handle
                     .update(&mut cx, |_, window, _| {
                         window.hovered.set(active);
+                        // Whole-window: The window's hover status gates every hover style.
                         window.refresh();
                     })
                     .log_err();
@@ -3693,6 +3700,7 @@ impl Window {
     {
         let view = cx.new(|cx| build_view(self, cx));
         self.root = Some(view.clone().into());
+        // Whole-window: A new root replaces every view.
         self.refresh();
         view
     }
@@ -3752,6 +3760,7 @@ impl Window {
         self.focus_generation = self.focus_generation.wrapping_add(1);
         self.clear_pending_keystrokes(cx);
 
+        // Whole-window: Focus can restyle any view (focus, in-focus and focus-visible styles).
         self.refresh();
     }
 
@@ -3767,6 +3776,7 @@ impl Window {
             self.focus_generation = self.focus_generation.wrapping_add(1);
         }
         self.focus = None;
+        // Whole-window: Focus can restyle any view (focus, in-focus and focus-visible styles).
         self.refresh();
     }
 
@@ -4285,6 +4295,7 @@ impl Window {
         self.viewport_size = self.platform_window.content_size();
         self.display_id = self.platform_window.display().map(|display| display.id());
 
+        // Whole-window: A resize lays out every view.
         self.refresh();
 
         self.bounds_observers
@@ -4533,6 +4544,7 @@ impl Window {
     #[cfg(any(test, feature = "test-support"))]
     pub fn set_scale_factor(&mut self, scale_factor: f32) {
         self.scale_factor = scale_factor;
+        // Whole-window: A scale change re-rasterizes every view.
         self.refresh();
     }
 
@@ -5171,6 +5183,7 @@ impl Window {
         self.retained_styles.clear();
 
         if self.platform_window.prepare_frame() {
+            // Whole-window: The platform asked for a full frame (surface lost or reconfigured).
             self.refresh();
         }
         self.invalidate_entities();
@@ -5447,6 +5460,7 @@ impl Window {
     #[cfg(feature = "profiler")]
     pub fn set_debug_frame_overlay_mode(&mut self, mode: DebugFrameOverlayMode) {
         self.debug_frame_overlay.set_mode(mode);
+        // Whole-window: The profiler overlay covers the whole window.
         self.refresh();
     }
 
@@ -5462,6 +5476,7 @@ impl Window {
     #[cfg(feature = "profiler")]
     pub fn reset_debug_frame_overlay_stats(&mut self) {
         self.debug_frame_overlay.reset_stats();
+        // Whole-window: The profiler overlay covers the whole window.
         self.refresh();
     }
 
@@ -8551,6 +8566,7 @@ impl Window {
             _ => self.last_input_modality,
         };
         if self.last_input_modality != old_modality {
+            // Whole-window: The input modality gates every hover style.
             self.refresh();
         }
 
@@ -8646,11 +8662,13 @@ impl Window {
                     if !cx.hand_restored_drag_to_platform(self.handle.window_id()) {
                         cx.active_drag.take();
                     }
+                    // Whole-window: The drag preview is window-level chrome drawn over every view.
                     self.refresh();
                     PlatformInput::FileDrop(FileDropEvent::Exited)
                 }
                 FileDropEvent::Ended => {
                     cx.end_platform_drag(self.handle.window_id());
+                    // Whole-window: The drag preview is window-level chrome drawn over every view.
                     self.refresh();
                     PlatformInput::FileDrop(FileDropEvent::Ended)
                 }
@@ -8736,6 +8754,7 @@ impl Window {
         if self.platform_window.start_external_drag(&payload)
             && cx.hand_active_drag_to_platform(self.handle.window_id())
         {
+            // Whole-window: The drag preview is window-level chrome drawn over every view.
             self.refresh();
         }
     }
@@ -10217,6 +10236,7 @@ impl Window {
                 None
             }
         };
+        // Whole-window: Toggling the inspector draws without caches.
         self.refresh();
     }
 

@@ -2817,6 +2817,7 @@ impl App {
             }) {
                 self.platform_owned_drag = None;
             }
+            // Whole-window: The drag preview is window-level chrome drawn over every view.
             window.refresh();
             true
         } else {
@@ -2889,6 +2890,7 @@ impl App {
     ) -> bool {
         if let Some(ref mut drag) = self.active_drag {
             drag.cursor_style = Some(cursor_style);
+            // Whole-window: The drag cursor is window-level chrome.
             window.refresh();
             true
         } else {

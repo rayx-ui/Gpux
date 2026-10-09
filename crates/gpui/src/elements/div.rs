@@ -2943,13 +2943,14 @@ impl Interactivity {
                             cx,
                         );
                         if frame.request_next_frame {
+                            // Publication notified the owner and its dependents; the
+                            // scheduled callback keeps frames coming.
                             schedule_programmatic_scroll(
                                 scroll_handle.clone(),
                                 frame.generation,
                                 window.current_view(),
                                 window,
                             );
-                            window.refresh();
                         }
                     }
                     return scroll_handle.offset();
@@ -3245,6 +3246,7 @@ impl Interactivity {
                                 if e.modifiers.secondary() != secondary_held
                                     && text_bounds.contains(&window.mouse_position())
                                 {
+                                    // Inspector chrome; inspection draws without caches.
                                     window.refresh();
                                 }
                             }
@@ -3481,6 +3483,8 @@ impl Interactivity {
 
                                 if can_drop {
                                     listener(drag.value.as_ref(), window, cx);
+                                    // The drag preview is window-level chrome: the whole
+                                    // window redraws without it.
                                     window.refresh();
                                     cx.stop_propagation();
                                 }
@@ -3515,13 +3519,14 @@ impl Interactivity {
                     let pending_mouse_down = pending_mouse_down.clone();
                     let hitbox = hitbox.clone();
                     let has_aux_click_listeners = !aux_click_listeners.is_empty();
-                    move |event: &MouseDownEvent, phase, window, _cx| {
+                    let current_view = window.current_view();
+                    move |event: &MouseDownEvent, phase, window, cx| {
                         if phase == DispatchPhase::Bubble
                             && (event.button == MouseButton::Left || has_aux_click_listeners)
                             && hitbox.is_hovered(window)
                         {
                             *pending_mouse_down.borrow_mut() = Some(event.clone());
-                            window.refresh();
+                            cx.notify(current_view);
                         }
                     }
                 });
@@ -3565,6 +3570,7 @@ impl Interactivity {
                                 external_payload_source,
                             });
                             pending_mouse_down.take();
+                            // The drag preview is window-level chrome drawn over every view.
                             window.refresh();
                             cx.stop_propagation();
                         }
@@ -3641,6 +3647,7 @@ impl Interactivity {
                 window.on_mouse_event({
                     let mut captured_mouse_down = None;
                     let hitbox = hitbox.clone();
+                    let current_view = window.current_view();
                     move |event: &MouseUpEvent, phase, window, cx| match phase {
                         // Clear the pending mouse down during the capture phase,
                         // so that it happens even if another event handler stops
@@ -3649,7 +3656,7 @@ impl Interactivity {
                             let mut pending_mouse_down = pending_mouse_down.borrow_mut();
                             if pending_mouse_down.is_some() && hitbox.is_hovered(window) {
                                 captured_mouse_down = pending_mouse_down.take();
-                                window.refresh();
+                                cx.notify(current_view);
                             } else if pending_mouse_down.is_some() {
                                 // Clear the pending mouse down event (without firing click handlers)
                                 // if the hitbox is not being hovered.
@@ -3795,12 +3802,13 @@ impl Interactivity {
                 .get_or_insert_with(Default::default)
                 .clone();
 
+            let current_view = window.current_view();
             {
                 let active_state = active_state.clone();
-                window.on_mouse_event(move |_: &MouseUpEvent, phase, window, _cx| {
+                window.on_mouse_event(move |_: &MouseUpEvent, phase, _window, cx| {
                     if phase == DispatchPhase::Capture && active_state.borrow().is_clicked() {
                         *active_state.borrow_mut() = ElementClickedState::default();
-                        window.refresh();
+                        cx.notify(current_view);
                     }
                 });
             }
@@ -3811,7 +3819,7 @@ impl Interactivity {
                     .as_ref()
                     .and_then(|group_active| GroupHitboxes::get(&group_active.group, cx));
                 let hitbox = hitbox.clone();
-                window.on_mouse_event(move |_: &MouseDownEvent, phase, window, _cx| {
+                window.on_mouse_event(move |_: &MouseDownEvent, phase, window, cx| {
                     if phase == DispatchPhase::Bubble && !window.default_prevented() {
                         let group_hovered = active_group_hitbox
                             .is_some_and(|group_hitbox_id| group_hitbox_id.is_hovered(window));
@@ -3821,7 +3829,7 @@ impl Interactivity {
                                 group: group_hovered,
                                 element: element_hovered,
                             };
-                            window.refresh();
+                            cx.notify(current_view);
                         }
                     }
                 });
@@ -4342,6 +4350,7 @@ pub(crate) fn clear_active_tooltip(
     active_tooltip: &Rc<RefCell<Option<ActiveTooltip>>>,
     window: &mut Window,
 ) {
+    // Tooltips are window-level overlays: showing or hiding one redraws the window.
     match active_tooltip.borrow_mut().take() {
         None => {}
         Some(ActiveTooltip::WaitingForShow { .. }) => {}
@@ -5457,7 +5466,8 @@ fn schedule_programmatic_scroll(
         };
         if frame.request_next_frame {
             schedule_programmatic_scroll(scroll_handle, generation, current_view, window);
-            window.refresh();
+            // A step redraws the scroll owner, not the whole window.
+            cx.notify(current_view);
         }
     });
 }

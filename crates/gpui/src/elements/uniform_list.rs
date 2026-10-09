@@ -549,8 +549,9 @@ impl Element for UniformList {
                                 .as_ref()
                                 .and_then(UniformListScrollHandle::try_base_handle),
                         ) {
+                            // The list's scroll area takes the request when it prepaints
+                            // below; a refresh while drawing would do nothing.
                             handle.scroll_to(updated_scroll_offset, behavior);
-                            window.refresh();
                         }
                     }
 

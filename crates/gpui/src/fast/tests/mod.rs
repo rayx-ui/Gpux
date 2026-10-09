@@ -4,5 +4,6 @@
 
 mod oracle;
 mod oracle_support;
+mod scoped_invalidation;
 mod stats;
 mod switches;

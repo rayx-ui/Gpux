@@ -340,8 +340,9 @@ impl Element for EditableTextPaintElement {
             .state
             .update(cx, |state, _| state.take_pending_programmatic_generation())
         {
+            // The scheduled callback redraws the field; a refresh while drawing would do
+            // nothing.
             schedule_editable_programmatic_scroll(self.state.downgrade(), generation, window);
-            window.refresh();
         }
 
         let state = self.state.read(cx);
@@ -552,9 +553,11 @@ fn schedule_editable_programmatic_scroll(
             return;
         };
         if request_next_frame {
-            schedule_editable_programmatic_scroll(state, generation, window);
+            schedule_editable_programmatic_scroll(state.clone(), generation, window);
         }
-        window.refresh();
+        // The field's backing entity is its view id: a step redraws the field, not the
+        // whole window.
+        cx.notify(state.entity_id());
     });
 }
 

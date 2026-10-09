@@ -2326,7 +2326,7 @@ impl Element for List {
                 window.current_view(),
                 window,
             );
-            window.refresh();
+            // Publication notified the owner; the scheduled callback keeps frames coming.
         }
         ListPrepaintState { hitbox, layout }
     }
@@ -2439,7 +2439,8 @@ fn schedule_list_programmatic_scroll(
             schedule_list_programmatic_scroll(list_state, generation, None, current_view, window);
         }
         if advanced || frame.request_next_frame {
-            window.refresh();
+            // A step redraws the list's owner, not the whole window.
+            cx.notify(current_view);
         }
     });
 }
