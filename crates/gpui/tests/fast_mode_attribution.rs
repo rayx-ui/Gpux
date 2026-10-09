@@ -6,9 +6,9 @@
 //! and the executor clock make every run draw the same frames. Timing is
 //! measured only by the `fast_mode` bench in lane G.
 //!
-//! Until a mechanism lands, its mode must work exactly as `off` does; each
-//! mechanism's sprint amends the expectations of the scenarios it changes
-//! here and in their fixtures.
+//! Until a mechanism lands, its mode must work exactly as the mode before it
+//! does; each mechanism's sprint amends the expectations of the scenarios it
+//! changes here and in their fixtures.
 //!
 //! `cargo test -p gpux --features test-support,bench-support --test fast_mode_attribution`
 
@@ -74,14 +74,33 @@ fn attribute(name: &str) -> Vec<(Mode, FastStats)> {
         .collect()
 }
 
-/// No mechanism has landed: every mode does exactly the work `off` does.
-fn every_mode_works_as_off(name: &str) {
+/// Each mode does the work of the mode before it, except where the
+/// mechanism it adds has landed: layout retention may write other Taffy
+/// nodes than the ordinal pool, and nothing else; view retention, splice and
+/// scroll layers have not landed, and work as layout retention does.
+fn modes_differ_only_by_landed_mechanisms(name: &str) {
     let modes = attribute(name);
     let (_, off) = modes[0];
-    for (mode, stats) in &modes[1..] {
+    let (_, layout) = modes[1];
+    let without_layout_writes = |stats: FastStats| FastStats {
+        style_writes: 0,
+        children_writes: 0,
+        ..stats
+    };
+    assert_eq!(
+        without_layout_writes(FastStats {
+            nodes_claimed: 0,
+            nodes_released: 0,
+            nodes_lingering: 0,
+            ..layout
+        }),
+        without_layout_writes(off),
+        "{name}: layout counted other work than off beyond its Taffy writes"
+    );
+    for (mode, stats) in &modes[2..] {
         assert_eq!(
-            *stats, off,
-            "{name}: {mode} counted other work than off before its mechanism landed"
+            *stats, layout,
+            "{name}: {mode} counted other work than layout before its mechanism landed"
         );
     }
 }
@@ -91,7 +110,7 @@ macro_rules! scenarios {
         $(
             #[test]
             fn $test() {
-                every_mode_works_as_off($name);
+                modes_differ_only_by_landed_mechanisms($name);
             }
         )*
 

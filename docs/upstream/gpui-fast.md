@@ -46,7 +46,9 @@ row is completed when it does).
 | `scene.rs` | `fast/scene.rs` | Adopted: the counting draw-order sort and the packed sprite keys (order, texture, tile), called from `Scene::finish` for every primitive family. |
 | `glyphs.rs` | `fast/glyphs.rs` (the per-run part) | Adapted: `LineGlyphPainter` works out a run's rendering once and quantizes each glyph exactly as `Window::paint_glyph` does; glyph bounds are cached per frame. The layer-only quantization is pending (scroll layers). |
 | — | `fast/number_shaping.rs`, `fast/path_cache.rs` | Measured and reverted: no scenario was faster with them (see [Measurements](../fast-mode.md#measurements)). |
-| `layout.rs`, `layout_key.rs`, `text.rs` | the same files (`text_style.rs`, `layout_bounds.rs` folded in where needed) | Pending (layout retention). |
+| `layout_key.rs` | `fast/layout_key.rs` | Adapted: keys are derived only in frames that begin with layout retention on; list items go through `layout_as_list_item` in `list.rs` and `uniform_list.rs`. gpui-fast's frame phase times are left to the bench. |
+| `layout.rs` | `fast/layout.rs` (claims and lifecycle) | Adapted: keyed claims beside gpux's ordinal pool, which stays the off path; a frame that switches retention starts from a fresh engine; measurement closures are still taken at clear. Write elision, text carry and replay are pending. |
+| `text.rs` | `fast/text.rs` (`text_style.rs`, `layout_bounds.rs` folded in where needed) | Pending (layout retention: text carry and replay). |
 | `retained.rs`, `dispatch.rs`, `global_id.rs`, `interactivity.rs` | the same files | Pending (view retention). |
 | `splice.rs` | `fast/splice.rs` | Pending (splice). |
 | `composition.rs` | `fast/composition.rs` | Pending (window composition). |

@@ -186,10 +186,6 @@ impl WindowFastMode {
 
     /// Whether layout retention is on.
     #[inline(always)]
-    #[allow(
-        dead_code,
-        reason = "read by the layout-retention hooks of a later sprint"
-    )]
     pub(crate) fn layout_retention(&self) -> bool {
         self.mode.layout_retention
     }
@@ -291,11 +287,10 @@ impl Window {
     /// What this window's fast-mode mechanisms hold on to between frames.
     #[cfg(any(test, feature = "test-support"))]
     pub fn fast_owned_state(&self) -> FastOwnedState {
+        let engine = self.layout_engine.as_ref();
         FastOwnedState {
-            layout_engine_nodes: self
-                .layout_engine
-                .as_ref()
-                .map_or(0, |engine| engine.node_count()),
+            kept_layout_nodes: engine.map_or(0, |engine| engine.retention.kept_count()),
+            layout_engine_nodes: engine.map_or(0, |engine| engine.node_count()),
             ..FastOwnedState::default()
         }
     }

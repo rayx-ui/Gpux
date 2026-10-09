@@ -2397,6 +2397,7 @@ pub struct Window {
     pub(crate) layout_engine: Option<TaffyLayoutEngine>,
     pub(crate) fast_mode: crate::fast::mode::WindowFastMode,
     pub(crate) fast_hover_reads: crate::fast::dependencies::HoverReads,
+    pub(crate) fast_layout: crate::fast::layout_key::WindowLayout,
     pub(crate) fast_glyph_bounds: crate::fast::glyphs::GlyphBoundsCache,
     #[cfg(any(
         test,
@@ -3368,6 +3369,7 @@ impl Window {
             layout_engine: Some(TaffyLayoutEngine::new()),
             fast_mode: crate::fast::mode::WindowFastMode::from_process_environment(),
             fast_hover_reads: crate::fast::dependencies::HoverReads::default(),
+            fast_layout: crate::fast::layout_key::WindowLayout::default(),
             fast_glyph_bounds: crate::fast::glyphs::GlyphBoundsCache::default(),
             #[cfg(any(
                 test,
@@ -5207,6 +5209,7 @@ impl Window {
             feature = "diagnostics"
         ))]
         crate::fast::stats::begin_frame(self);
+        crate::fast::layout::begin_frame(self);
         if !cx.mode.skip_drawing() {
             self.draw_roots(cx);
             #[cfg(feature = "profiler")]
@@ -5290,6 +5293,7 @@ impl Window {
                 });
         }
 
+        self.layout_engine.as_mut().unwrap().clear();
         #[cfg(any(
             test,
             feature = "test-support",
@@ -5297,7 +5301,6 @@ impl Window {
             feature = "diagnostics"
         ))]
         crate::fast::stats::finish_frame(self);
-        self.layout_engine.as_mut().unwrap().clear();
         self.text_system().finish_frame();
         self.fast_glyph_bounds.finish_frame();
         let screen_effect_now = cx.background_executor().now();
@@ -8014,9 +8017,11 @@ impl Window {
         cx.layout_id_buffer.extend(children);
         let rem_size = self.rem_size();
         let scale_factor = self.scale_factor();
+        let key = crate::fast::layout_key::layout_key(self);
 
-        self.layout_engine.as_mut().unwrap().request_layout(
-            style,
+        self.layout_engine.as_mut().unwrap().request_layout_ref(
+            key,
+            &style,
             rem_size,
             scale_factor,
             &cx.layout_id_buffer,
@@ -8035,8 +8040,10 @@ impl Window {
         cx.layout_id_buffer.extend(children);
         let rem_size = self.rem_size();
         let scale_factor = self.scale_factor();
+        let key = crate::fast::layout_key::layout_key(self);
 
         self.layout_engine.as_mut().unwrap().request_layout_ref(
+            key,
             style,
             rem_size,
             scale_factor,
@@ -8068,10 +8075,11 @@ impl Window {
 
         let rem_size = self.rem_size();
         let scale_factor = self.scale_factor();
+        let key = crate::fast::layout_key::layout_key(self);
         self.layout_engine
             .as_mut()
             .unwrap()
-            .request_measured_layout(style, rem_size, scale_factor, kind, measure)
+            .request_measured_layout_ref(key, &style, rem_size, scale_factor, kind, measure)
     }
 
     #[cfg_attr(feature = "diagnostics", track_caller)]
@@ -8090,10 +8098,11 @@ impl Window {
 
         let rem_size = self.rem_size();
         let scale_factor = self.scale_factor();
+        let key = crate::fast::layout_key::layout_key(self);
         self.layout_engine
             .as_mut()
             .unwrap()
-            .request_measured_layout_ref(style, rem_size, scale_factor, kind, measure)
+            .request_measured_layout_ref(key, style, rem_size, scale_factor, kind, measure)
     }
 
     /// Compute the layout for the given id within the given available space.

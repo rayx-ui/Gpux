@@ -522,6 +522,8 @@ impl Display for GlobalElementId {
 trait ElementObject {
     fn inner_element(&mut self) -> &mut dyn Any;
 
+    fn fast_element_id(&self) -> Option<ElementId>;
+
     fn request_layout(&mut self, window: &mut Window, cx: &mut App) -> LayoutId;
 
     fn prepaint(&mut self, window: &mut Window, cx: &mut App);
@@ -549,12 +551,14 @@ enum ElementDrawPhase<RequestLayoutState, PrepaintState> {
     Start,
     RequestLayout {
         layout_id: LayoutId,
+        fast_layout_key: crate::fast::layout_key::LayoutKey,
         global_id: Option<GlobalElementId>,
         inspector_id: Option<InspectorElementId>,
         request_layout: RequestLayoutState,
     },
     LayoutComputed {
         layout_id: LayoutId,
+        fast_layout_key: crate::fast::layout_key::LayoutKey,
         global_id: Option<GlobalElementId>,
         inspector_id: Option<InspectorElementId>,
         available_space: Size<AvailableSpace>,
@@ -584,10 +588,10 @@ impl<E: Element> Drawable<E> {
     fn request_layout(&mut self, window: &mut Window, cx: &mut App) -> LayoutId {
         match mem::take(&mut self.phase) {
             ElementDrawPhase::Start => {
-                let global_id = self
-                    .element
-                    .id()
-                    .map(|element_id| prepare_element_id(element_id, window));
+                let element_id = self.element.id();
+                let fast_layout_key =
+                    crate::fast::layout_key::push_layout_key(window, element_id.as_ref());
+                let global_id = element_id.map(|element_id| prepare_element_id(element_id, window));
 
                 let inspector_id;
                 #[cfg(any(feature = "inspector", debug_assertions))]
@@ -615,9 +619,11 @@ impl<E: Element> Drawable<E> {
                 if global_id.is_some() {
                     window.element_id_stack.pop();
                 }
+                crate::fast::layout_key::pop_layout_key(window);
 
                 self.phase = ElementDrawPhase::RequestLayout {
                     layout_id,
+                    fast_layout_key,
                     global_id,
                     inspector_id,
                     request_layout,
@@ -632,12 +638,14 @@ impl<E: Element> Drawable<E> {
         match mem::take(&mut self.phase) {
             ElementDrawPhase::RequestLayout {
                 layout_id,
+                fast_layout_key,
                 global_id,
                 inspector_id,
                 mut request_layout,
             }
             | ElementDrawPhase::LayoutComputed {
                 layout_id,
+                fast_layout_key,
                 global_id,
                 inspector_id,
                 mut request_layout,
@@ -684,6 +692,7 @@ impl<E: Element> Drawable<E> {
                 let node_id = window.next_frame.dispatch_tree.push_node();
                 let source = self.element.source_location();
                 let hitbox_start = window.next_frame.hitboxes.len();
+                let scope = crate::fast::layout_key::enter_prepaint_scope(window, fast_layout_key);
                 let mut prepaint = self.element.prepaint(
                     global_id.as_ref(),
                     inspector_id.as_ref(),
@@ -692,6 +701,7 @@ impl<E: Element> Drawable<E> {
                     window,
                     cx,
                 );
+                crate::fast::layout_key::exit_prepaint_scope(window, scope);
                 let hitbox_end = window.next_frame.hitboxes.len();
                 // Fixed and sticky divs paint and hit-test at visual bounds that differ from
                 // their layout bounds; devtools and accessibility report where they paint.
@@ -825,6 +835,7 @@ impl<E: Element> Drawable<E> {
         let layout_id = match mem::take(&mut self.phase) {
             ElementDrawPhase::RequestLayout {
                 layout_id,
+                fast_layout_key,
                 global_id,
                 inspector_id,
                 request_layout,
@@ -832,6 +843,7 @@ impl<E: Element> Drawable<E> {
                 window.compute_layout(layout_id, available_space, cx);
                 self.phase = ElementDrawPhase::LayoutComputed {
                     layout_id,
+                    fast_layout_key,
                     global_id,
                     inspector_id,
                     available_space,
@@ -841,6 +853,7 @@ impl<E: Element> Drawable<E> {
             }
             ElementDrawPhase::LayoutComputed {
                 layout_id,
+                fast_layout_key,
                 global_id,
                 inspector_id,
                 available_space: prev_available_space,
@@ -851,6 +864,7 @@ impl<E: Element> Drawable<E> {
                 }
                 self.phase = ElementDrawPhase::LayoutComputed {
                     layout_id,
+                    fast_layout_key,
                     global_id,
                     inspector_id,
                     available_space,
@@ -872,6 +886,10 @@ where
 {
     fn inner_element(&mut self) -> &mut dyn Any {
         &mut self.element
+    }
+
+    fn fast_element_id(&self) -> Option<ElementId> {
+        self.element.id()
     }
 
     #[inline]
@@ -917,6 +935,12 @@ impl AnyElement {
     /// Attempt to downcast a reference to the boxed element to a specific type.
     pub fn downcast_mut<T: 'static>(&mut self) -> Option<&mut T> {
         self.0.inner_element().downcast_mut::<T>()
+    }
+
+    /// The id of the element stored in this `AnyElement`, which keys its
+    /// layout node under layout retention.
+    pub(crate) fn fast_element_id(&self) -> Option<ElementId> {
+        self.0.fast_element_id()
     }
 
     /// Request the layout ID of the element stored in this `AnyElement`.

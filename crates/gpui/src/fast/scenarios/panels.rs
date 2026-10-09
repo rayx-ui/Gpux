@@ -143,6 +143,13 @@ impl Fixture for Dashboard {
         expect_frames(mode, stats)?;
         // Every frame builds the scenario root, the dashboard and its panels.
         exactly_per_frame(stats, "views_built", PANELS as u64 + 2)?;
+        if mode.fast_mode().layout_retention {
+            // Panel text changes, but no element comes or goes: every node
+            // is claimed again and none is written or released.
+            exactly_per_frame(stats, "style_writes", 0)?;
+            exactly_per_frame(stats, "children_writes", 0)?;
+            exactly_per_frame(stats, "nodes_released", 0)?;
+        }
         // A background per panel and a glyph or more per label.
         drawn_per_frame(stats, (PANELS * (LABELS + 1)) as u64)
     }

@@ -663,7 +663,13 @@ impl Element for UniformList {
                                     AvailableSpace::Definite(available_width),
                                     AvailableSpace::Definite(item_height),
                                 );
-                                let item_size = item.layout_as_root(available_space, window, cx);
+                                let item_size = crate::fast::layout_key::layout_as_list_item(
+                                    &mut item,
+                                    ix,
+                                    available_space,
+                                    window,
+                                    cx,
+                                );
                                 if sticky_stack_offset.is_some() {
                                     window.insert_hitbox(
                                         Bounds::new(item_origin, item_size),

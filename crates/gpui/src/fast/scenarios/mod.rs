@@ -165,18 +165,30 @@ pub(crate) fn check(holds: bool, message: impl FnOnce() -> String) -> Result<(),
     if holds { Ok(()) } else { Err(message()) }
 }
 
-/// The work every scenario's frames do in every mode until each mechanism's
-/// sprint makes its mode save some: frames were drawn, painted something,
-/// and fast mode decided nothing it does not have yet.
+/// The work every scenario's frames do in every mode: frames were drawn and
+/// painted something, a mode with layout retention claimed kept nodes, and
+/// fast mode decided nothing for a mechanism that has not landed or that the
+/// mode leaves off.
 pub(crate) fn expect_frames(mode: Mode, stats: &FastStats) -> Result<(), String> {
     check(stats.frames > 0, || "no frame was drawn".into())?;
     check(
         stats.primitives_painted + stats.primitives_copied > 0,
         || format!("the frames painted nothing: {stats:?}"),
     )?;
-    // No mechanism has landed yet: every mode works as `off` does.
-    check(stats.mechanism_total() == 0, || {
-        format!("{mode} made a fast-mode decision before its mechanism landed: {stats:?}")
+    let layout_retention = mode.fast_mode().layout_retention;
+    if layout_retention {
+        check(stats.nodes_claimed > 0, || {
+            format!("{mode} claimed no kept layout node: {stats:?}")
+        })?;
+    }
+    // Layout retention has landed; the other mechanisms work as `off` does.
+    let landed = if layout_retention {
+        stats.layout_retention_total()
+    } else {
+        0
+    };
+    check(stats.mechanism_total() == landed, || {
+        format!("{mode} made a fast-mode decision for a mechanism it does not run: {stats:?}")
     })
 }
 

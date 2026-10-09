@@ -286,8 +286,9 @@ fn a_mode_change_draws_the_next_frame_from_scratch() {
 }
 
 /// Toggling the mode 1,000 times while the view keeps changing leaves
-/// nothing behind: what the mechanisms own stays bounded, and is nothing
-/// while they are off.
+/// nothing behind: what the mechanisms own is nothing while they are off,
+/// and after each frame is exactly what drawing that frame from scratch
+/// leaves, so nothing accumulates.
 #[test]
 fn toggling_a_thousand_times_releases_what_the_mechanisms_own() {
     let mut oracle = OracleWindow::open(3, FastMode::OFF);
@@ -305,7 +306,6 @@ fn toggling_a_thousand_times_releases_what_the_mechanisms_own() {
         oracle.apply(&Change::random(&mut rng));
         oracle.draw(false);
     }
-    let mut ceiling = None;
     for toggle in 0..1_000 {
         let next = if toggle % 2 == 0 {
             FastMode::ALL
@@ -344,19 +344,20 @@ fn toggling_a_thousand_times_releases_what_the_mechanisms_own() {
                 "fast mode off still owns something after toggle {toggle}"
             );
         }
-        // After the first round trip, nothing may grow.
-        if toggle == 2 {
-            ceiling = Some(state);
-        }
-        if let Some(ceiling) = ceiling {
-            assert!(
-                state.layout_engine_nodes <= ceiling.layout_engine_nodes
-                    && state.kept_layout_nodes <= ceiling.kept_layout_nodes
-                    && state.retained_records <= ceiling.retained_records
-                    && state.layer_tiles <= ceiling.layer_tiles,
-                "toggle {toggle} grew what fast mode owns from {ceiling:?} to {state:?}"
-            );
-        }
+        // The same frame drawn from scratch: a fresh layout engine holds
+        // exactly this frame's nodes.
+        oracle
+            .cx
+            .update_window(oracle.window.into(), |_, window, _| {
+                window.forget_retained_state()
+            })
+            .unwrap();
+        oracle.draw(false);
+        let fresh = owned(&mut oracle);
+        assert_eq!(
+            state, fresh,
+            "toggle {toggle} left more than drawing its frame from scratch does"
+        );
     }
 }
 

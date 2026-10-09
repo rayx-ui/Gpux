@@ -17,6 +17,8 @@ pub(crate) mod bounds_tree;
 pub(crate) mod dependencies;
 pub(crate) mod glyphs;
 pub(crate) mod layers;
+pub(crate) mod layout;
+pub(crate) mod layout_key;
 pub(crate) mod mode;
 #[cfg(any(test, feature = "test-support", feature = "bench-support"))]
 pub mod scenarios;

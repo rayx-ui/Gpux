@@ -100,7 +100,8 @@ pub struct FastStats {
     pub nodes_claimed: u64,
     /// Kept Taffy nodes released because their element was not drawn.
     pub nodes_released: u64,
-    /// Kept Taffy nodes lingering one frame unclaimed before release.
+    /// Kept Taffy nodes of list rows left unclaimed this frame, kept for up
+    /// to 240 frames before release.
     pub nodes_lingering: u64,
     /// Measured leaves that carried last frame's measurement unmeasured.
     pub leaves_carried: u64,
@@ -224,6 +225,17 @@ impl FastStats {
         self.counters()
             .into_iter()
             .find_map(|(counter, value)| (counter == name).then_some(value))
+    }
+
+    /// The sum of layout retention's counters: zero on frames drawn with it
+    /// off.
+    pub fn layout_retention_total(&self) -> u64 {
+        self.nodes_claimed
+            + self.nodes_released
+            + self.nodes_lingering
+            + self.leaves_carried
+            + self.leaves_replayed
+            + self.leaves_remeasured
     }
 
     /// The sum of every mechanism counter: zero on frames drawn with fast
@@ -361,7 +373,8 @@ pub(crate) fn begin_frame(window: &mut Window) {
 
 /// Gathers what the layout engine, the text system and the scene counted
 /// into the frame `window` just drew, and adds the frame to the run. Called
-/// before the layout engine is cleared and the frames are swapped.
+/// once the layout engine is cleared, which releases the nodes the frame did
+/// not claim, and before the frames are swapped.
 pub(crate) fn finish_frame(window: &mut Window) {
     let engine = window
         .layout_engine
