@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-cross-platform-test-lanes",
-  "revision": 149,
+  "revision": 151,
   "planRevision": 16,
   "specHashes": {
     "requirements": "3f8965b93cec48532001be23870a27d3d32f943ab0b25051b05770ba82acedef",
@@ -166,20 +166,20 @@
       ]
     },
     "t27-macos-desktop-lanes": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "082cbae1-8a3f-4e78-bee2-ea43a9debb0e",
         "df822115-0dad-451a-b1f1-06ccc2d3cada"
       ]
     },
     "t28-ios-host-build": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "df822115-0dad-451a-b1f1-06ccc2d3cada"
       ]
     },
     "t29-ios-run-and-ci": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "df822115-0dad-451a-b1f1-06ccc2d3cada"
       ]
@@ -3277,6 +3277,161 @@
         "S7-F5"
       ],
       "recordedAt": "2026-10-07T20:39:59Z"
+    },
+    "s8-apple-lanes": {
+      "reviewerId": "s8-independent-reviewer-subagent-claude-opus-5-5",
+      "snapshotId": "71a6fb5686ebe5fb6df9f43c4d082ddaef287e9017bbb6ed7ffb125a0f23b9d1",
+      "criterionIds": [
+        "M-1",
+        "M-3",
+        "F-1",
+        "F-2",
+        "F-3"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/desktop_host/os.rs",
+          "kind": "source",
+          "criterionIds": [
+            "M-1",
+            "M-3"
+          ],
+          "sha256": "a26b75886cb7ed5f5290d296206fa3f56833179fa924815013c07bc402c76219"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/desktop_host/main.rs",
+          "kind": "source",
+          "criterionIds": [
+            "M-1",
+            "M-3"
+          ],
+          "sha256": "408af12ded1999d6a3e328be25833aa8b7cb8b598c486517ce14f58094bd16f2"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/app_host.rs",
+          "kind": "source",
+          "criterionIds": [
+            "M-1"
+          ],
+          "sha256": "3d095c43036483d5b42b8326a783b1f28c59fc73bf04fed2151ba60d228e0dff"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scenes/text.rs",
+          "kind": "source",
+          "criterionIds": [
+            "M-1"
+          ],
+          "sha256": "83c088c8374c557ab4c5bee86bf92328c4575e758e2ec8f8048035a6b9d78d11"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scenes/focus.rs",
+          "kind": "test",
+          "criterionIds": [
+            "M-1"
+          ],
+          "sha256": "ebc23073c668298fc054afb846b55bd93a83188c2c5ba1eddddf674d2facc968"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c.rs",
+          "kind": "test",
+          "criterionIds": [
+            "M-1",
+            "M-3"
+          ],
+          "sha256": "5b73bffb10f8c896c371b570717a24c612b532581a44093ca25520fe040ccf6a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/bench_metrics/src/bench_metrics.rs",
+          "kind": "test",
+          "criterionIds": [
+            "M-3"
+          ],
+          "sha256": "1112173d0ef12069a73abf30ba38fe5de8b022623d12e858926ec9698bd0badc"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/ios/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "F-1",
+            "F-2"
+          ],
+          "sha256": "1988072d83fbb2759e43e109565ec3a331b3eeb30f1def2cbda6ac80f0194a4e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/ios/project.yml",
+          "kind": "source",
+          "criterionIds": [
+            "F-1"
+          ],
+          "sha256": "5a61e285629b7cedbc3231fdb5b0cd254f96b0d9aa3760ac8901e0af4af75a7f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/ios/Sources/macos_gl_stubs.c",
+          "kind": "source",
+          "criterionIds": [
+            "F-1",
+            "F-2"
+          ],
+          "sha256": "7331c75708d5811816ffdced248a196b75dc2adc70780c2a70ccbc4bcad1578d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/ios.rs",
+          "kind": "source",
+          "criterionIds": [
+            "F-1",
+            "F-2",
+            "F-3"
+          ],
+          "sha256": "7fe96a82bb967d0a7729d41870215024d302b97b4fcbf79d35a1bdcda0f4fd6d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/tests/ios.rs",
+          "kind": "test",
+          "criterionIds": [
+            "F-2",
+            "F-3"
+          ],
+          "sha256": "869e1fca149dd5101ed8262e8ad395f26525cdc3be631ee0f75beff7fa2c02fe"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/lane-f.yml",
+          "kind": "source",
+          "criterionIds": [
+            "F-3"
+          ],
+          "sha256": "e18cdcd72b6f32629246ad1a747f8e3c6e5ba6c9661f9442f12f90c5c0db138a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/testing.md",
+          "kind": "source",
+          "criterionIds": [
+            "M-1",
+            "F-2",
+            "F-3"
+          ],
+          "sha256": "6ea7b1aabe1027959f678865c4cbbee30a086696c9de4c404ccd6d45fea7a95b"
+        }
+      ],
+      "summaryMarkdown": "All five Apple criteria are supported by the Mac runs. M-1: lane A 72/72, lane C 79/79 with the committed `metal` goldens (a spot rerun of `layout-flex` and `paint-borders` with `GPUX_EXPECT_BACKEND=metal` shows `[metal]` and golden steps), and lane D 38 passed with 2 legitimate skips (scale change and OS input). M-3: check exit 0 (rerun on HEAD, since check.log predates 3cccd62), test job 1263 passed with 0 failed, and the darwin groups 31/31 (4 process, 27 tests). F-1/F-2: the unsigned Simulator build and lane F 30/30 on Metal, with no panic or dyld line in the console. F-3: `lane-f.yml` triggers plus the owner-approved local `lane f` run, and the device flow is documented.\n\nThe macOS host changes stay in the example: cfg-gated, with sound Windows/Linux `None` stubs and a justified unsafe NSView borrow. The coordinate conversion is correct. The Touch arm is exercised by lane D `hover-active`'s `TouchTap`. The CGL stubs match the `cgl` signatures and abort. `ios::fatal` has a test that can fail, and `follow_lines` kills the child when it stops. The 1 px tolerance still catches any per-glyph advance regression. Protected paths are unchanged since 0376af4. S8-R1-bench-thp is resolved by 2835d30 (Linux `MADV_NOHUGEPAGE` before counting). The ebac916 doc fixes are accurate. Residual risks: a Linux kernel built without THP rejects `MADV_NOHUGEPAGE` with EINVAL, so the asserted `== 0` would fail loudly there; the new project.yml header line exceeds the wrap width (cosmetic); and Linux execution of the test is still a recorded follow-up.",
+      "findingIds": [
+        "S8-R1-bench-thp"
+      ],
+      "recordedAt": "2026-10-09T00:37:55Z"
     }
   },
   "checkpoints": {
@@ -4108,8 +4263,14 @@
         "M-3"
       ],
       "severity": "minor",
-      "status": "open",
-      "descriptionMarkdown": "`resource_counter_counts_page_faults_and_context_switches` (crates/bench_metrics/src/bench_metrics.rs:2130, changed in 73c3abf) now maps exactly 4 MiB with `mmap(MAP_PRIVATE | MAP_ANONYMOUS)` and asserts more than 100 minor faults. That fixes macOS but introduces a Linux regression.\n\n**Expected:** the test passes on every Unix host where it passed before, Linux included.\n\n**Observed (by mechanism, on Linux):** with transparent huge pages set to `always` (the default on Arch and RHEL kernels, among others) on a 6.7+ kernel, the kernel aligns PMD-multiple anonymous mappings to 2 MiB. 4 MiB qualifies, so the first write to each 2 MiB half maps a huge page. The region takes 2 minor faults, `faulted > 100.0` fails, and the test job's `cargo test --workspace` goes red. The old `vec![1; 4 << 20]` went through glibc's unaligned, non-PMD-multiple mmap, which always left hundreds of 4 KiB faults.\n\n**Repair:** under `#[cfg(target_os = \"linux\")]`, call `libc::madvise(pages, LEN, libc::MADV_NOHUGEPAGE)` before `faults.start()`. Alternatively, write one byte per 4 KiB with a length that is not a multiple of 2 MiB, but that still leaves the aligned middle open to THP. Check the result once on Linux (WSL or CI), then rerun `cargo test -p gpux-bench-metrics --lib -- --test-threads=1` on the Mac."
+      "status": "resolved",
+      "descriptionMarkdown": "`resource_counter_counts_page_faults_and_context_switches` (crates/bench_metrics/src/bench_metrics.rs:2130, changed in 73c3abf) now maps exactly 4 MiB with `mmap(MAP_PRIVATE | MAP_ANONYMOUS)` and asserts more than 100 minor faults. That fixes macOS but introduces a Linux regression.\n\n**Expected:** the test passes on every Unix host where it passed before, Linux included.\n\n**Observed (by mechanism, on Linux):** with transparent huge pages set to `always` (the default on Arch and RHEL kernels, among others) on a 6.7+ kernel, the kernel aligns PMD-multiple anonymous mappings to 2 MiB. 4 MiB qualifies, so the first write to each 2 MiB half maps a huge page. The region takes 2 minor faults, `faulted > 100.0` fails, and the test job's `cargo test --workspace` goes red. The old `vec![1; 4 << 20]` went through glibc's unaligned, non-PMD-multiple mmap, which always left hundreds of 4 KiB faults.\n\n**Repair:** under `#[cfg(target_os = \"linux\")]`, call `libc::madvise(pages, LEN, libc::MADV_NOHUGEPAGE)` before `faults.start()`. Alternatively, write one byte per 4 KiB with a length that is not a multiple of 2 MiB, but that still leaves the aligned middle open to THP. Check the result once on Linux (WSL or CI), then rerun `cargo test -p gpux-bench-metrics --lib -- --test-threads=1` on the Mac.\n\n**Resolved in 2835d30:** on Linux, the test now calls `madvise(pages, LEN, MADV_NOHUGEPAGE)` right after `mmap` and before `faults.start()`, so the region faults in 4 KiB pages whatever the THP setting. The test asserts the call returns 0. On macOS it still passes 9/9 (rerun by the reviewer). The Linux run is recorded as a HANDOFF follow-up, because this Mac cannot run Linux.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/bench_metrics/src/bench_metrics.rs"
+        }
+      ]
     }
   ],
   "handoffMarkdown": "macOS 26.6.2 (25G83), Xcode 26.4.1 (17E202), Apple M5, Metal toolchain 17.5.188. cargo check --workspace --all-targets: exit 0, no warnings (rerun on HEAD by the reviewer); the gpux-apple build script compiled shaders.metallib with xcrun metal. cargo test (CI test job: fork exclusions, without gpux-conformance, --test-threads=1): first run 1262 passed, 1 failed (gpux-bench-metrics resource_counter_counts_page_faults_and_context_switches: macOS malloc reuses a freed resident 4 MiB block, so the serial run saw 0 faults; fixed in 73c3abf by mmap-ing fresh pages; old code failed 3/3 serial, new passes 3/3); rerun exit 0: 75 binaries, 1263 passed, 0 failed, 101 ignored. Review finding S8-R1-bench-thp (Linux THP=always could fault the 2 MiB-aligned mapping as 2 huge pages) repaired in 2835d30 with madvise(MADV_NOHUGEPAGE) on Linux; gpux-bench-metrics lib serial 9/9 three times on macOS, fmt and clippy clean; a Linux run is a recorded follow-up in HANDOFF.md (no Linux host on this Mac). command::darwin (MACCI-1): 31 passed. lane a: 72 passed, 0 failed, 0 skipped. lane c (GPUX_EXPECT_BACKEND=metal): 79 passed, 0 failed, 0 skipped (metal goldens match on the M5). lane d: first run 1 passed, 37 failed (no frame within 10s: the host never activated, its windows were occluded behind the active app and their display links never started); then 35 passed, 3 failed, 2 skipped (hover-active and tooltip: macOS re-reads the OS cursor every frame of the active window; text-shaping: CoreText width 144.00002 ceiled to 145). Fixed in 3cccd62 (macOS-only activate, CGWarpMouseCursorPosition cursor sync through AppHost::with_cursor_sync including touch positions, cursor parking, docs/testing.md) and 049fc0c (text-shaping size tolerance 1 px). Final lane d (caffeinate -d): 38 passed, 0 failed, 2 skipped (platform-scale-change, platform-os-input). Lanes a, c and d rerun at 049fc0c with these results. fmt and clippy -D warnings for gpux-conformance and gpux-bench-metrics: clean. The Windows/Linux cursor_sync() -> None stubs in desktop_host/os.rs were not cross-compiled from the Mac. Protected-path hashes re-recorded on the Mac (plan revisions 14 and 15, order-only boundary amendments): the Windows CRLF checkout hashes differed from LF; git shows no forbidden path changed since 0376af4.",
