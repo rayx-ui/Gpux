@@ -2384,7 +2384,7 @@ pub struct Window {
     display_id: Option<DisplayId>,
     is_resizable: bool,
     is_minimizable: bool,
-    sprite_atlas: Arc<dyn PlatformAtlas>,
+    pub(crate) sprite_atlas: Arc<dyn PlatformAtlas>,
     text_system: Arc<WindowTextSystem>,
     text_rendering_mode: Rc<Cell<TextRenderingMode>>,
     rem_size: Pixels,
@@ -2397,6 +2397,7 @@ pub struct Window {
     pub(crate) layout_engine: Option<TaffyLayoutEngine>,
     pub(crate) fast_mode: crate::fast::mode::WindowFastMode,
     pub(crate) fast_hover_reads: crate::fast::dependencies::HoverReads,
+    pub(crate) fast_glyph_bounds: crate::fast::glyphs::GlyphBoundsCache,
     #[cfg(any(
         test,
         feature = "test-support",
@@ -3367,6 +3368,7 @@ impl Window {
             layout_engine: Some(TaffyLayoutEngine::new()),
             fast_mode: crate::fast::mode::WindowFastMode::from_process_environment(),
             fast_hover_reads: crate::fast::dependencies::HoverReads::default(),
+            fast_glyph_bounds: crate::fast::glyphs::GlyphBoundsCache::default(),
             #[cfg(any(
                 test,
                 feature = "test-support",
@@ -5297,6 +5299,7 @@ impl Window {
         crate::fast::stats::finish_frame(self);
         self.layout_engine.as_mut().unwrap().clear();
         self.text_system().finish_frame();
+        self.fast_glyph_bounds.finish_frame();
         let screen_effect_now = cx.background_executor().now();
         self.prune_expired_screen_effects(screen_effect_now);
         let has_active_screen_effects = !self.active_screen_effects.is_empty();
@@ -6741,7 +6744,7 @@ impl Window {
     }
 
     #[inline]
-    fn current_element_transform(&self) -> TransformationMatrix {
+    pub(crate) fn current_element_transform(&self) -> TransformationMatrix {
         self.element_transform_stack
             .last()
             .copied()
@@ -6788,7 +6791,7 @@ impl Window {
     }
 
     #[inline]
-    fn paint_content_mask(&self) -> ContentMask<ScaledPixels> {
+    pub(crate) fn paint_content_mask(&self) -> ContentMask<ScaledPixels> {
         self.invalidator.debug_assert_paint();
         self.paint_content_mask_stack
             .last()
@@ -7686,7 +7689,7 @@ impl Window {
         Ok(())
     }
 
-    fn should_use_subpixel_rendering(&self, font_id: FontId, font_size: Pixels) -> bool {
+    pub(crate) fn should_use_subpixel_rendering(&self, font_id: FontId, font_size: Pixels) -> bool {
         if self.platform_window.background_appearance() != WindowBackgroundAppearance::Opaque {
             return false;
         }

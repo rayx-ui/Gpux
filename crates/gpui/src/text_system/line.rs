@@ -556,7 +556,7 @@ fn paint_line(
         let mut color: Color = black().into();
         let mut current_underline: Option<(Point<Pixels>, UnderlineStyle, Range<usize>)> = None;
         let mut current_strikethrough: Option<(Point<Pixels>, StrikethroughStyle)> = None;
-        let text_system = cx.text_system().clone();
+        let mut glyph_painter = crate::fast::glyphs::LineGlyphPainter::new(window);
         let mut glyph_origin = point(
             aligned_origin_x(
                 origin,
@@ -572,7 +572,8 @@ fn paint_line(
         let mut max_glyph_size = size(px(0.), px(0.));
         let mut first_glyph_x = origin.x;
         for (run_ix, run) in layout.runs.iter().enumerate() {
-            max_glyph_size = text_system.bounding_box(run.font_id, layout.font_size).size;
+            max_glyph_size =
+                crate::fast::glyphs::bounding_box(window, cx, run.font_id, layout.font_size).size;
 
             for (glyph_ix, glyph) in run.glyphs.iter().enumerate() {
                 glyph_origin.x += glyph.position.x - prev_glyph_position.x;
@@ -751,12 +752,13 @@ fn paint_line(
                             layout.font_size,
                         )?;
                     } else {
-                        window.paint_glyph(
+                        glyph_painter.paint_glyph(
+                            window,
                             glyph_origin + baseline_offset + vertical_offset,
                             run.font_id,
                             glyph.id,
                             layout.font_size,
-                            color.clone(),
+                            &color,
                         )?;
                     }
                 }

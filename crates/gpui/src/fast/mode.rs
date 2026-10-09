@@ -284,6 +284,7 @@ impl Window {
         self.layout_engine = Some(crate::TaffyLayoutEngine::new());
         self.rendered_frame.scene.forget_orderings();
         self.next_frame.scene.forget_orderings();
+        self.fast_glyph_bounds.forget();
         self.refresh();
     }
 
