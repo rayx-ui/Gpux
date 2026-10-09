@@ -81,46 +81,8 @@ macro_rules! lane_c {
     };
 }
 
-lane_c! {
-    layout_flex => "layout-flex",
-    layout_grid => "layout-grid",
-    layout_absolute => "layout-absolute",
-    layout_overflow => "layout-overflow",
-    layout_fixed_sticky => "layout-fixed-sticky",
-    text_shaping => "text-shaping",
-    text_runs => "text-runs",
-    text_decorations => "text-decorations",
-    text_wrapping => "text-wrapping",
-    text_truncation => "text-truncation",
-    text_interactive => "text-interactive",
-    editable_text => "editable-text",
-    editable_ime => "editable-ime",
-    list_uniform => "list-uniform",
-    list_variable => "list-variable",
-    scroll_wheel => "scroll-wheel",
-    scroll_nested => "scroll-nested",
-    scroll_scrollbar => "scroll-scrollbar",
-    scroll_programmatic => "scroll-programmatic",
-    scroll_touch => "scroll-touch",
-    focus_tab_order => "focus-tab-order",
-    actions_keymaps => "actions-keymaps",
-    hover_active => "hover-active",
-    drag_drop => "drag-drop",
-    tooltip => "tooltip",
-    overlay_anchored => "overlay-anchored",
-    overlay_deferred => "overlay-deferred",
-    media_image => "media-image",
-    media_svg => "media-svg",
-    paint_canvas_path => "paint-canvas-path",
-    paint_borders => "paint-borders",
-    paint_shadows_gradients => "paint-shadows-gradients",
-    paint_opacity_clipping => "paint-opacity-clipping",
-    color_srgb_compositing => "color-srgb-compositing",
-    effects_shader => "effects-shader",
-    effects_animated_frame => "effects-animated-frame",
-    effects_transition_frame => "effects-transition-frame",
-    semantics_accessibility => "semantics-accessibility",
-}
+include!("catalog/lane_c_scenes.rs");
+lane_c_scenes!(lane_c);
 
 #[test]
 fn every_lane_c_scene_has_a_test_at_both_scales() {

@@ -18,7 +18,7 @@ use crate::{
 };
 use anyhow::{Context as _, anyhow, bail};
 use gpux::{
-    AnyView, AnyWindowHandle, Context, DevtoolsElementSnapshot, IntoElement, Modifiers,
+    AnyView, AnyWindowHandle, Context, DevtoolsElementSnapshot, FastMode, IntoElement, Modifiers,
     MouseButton, Pixels, PlatformHeadlessRenderer, Point, Render, TestAppContext, TestDispatcher,
     TestWindowOptions, TouchEvent, TouchId, TouchPhase, VisualTestContext, Window, point, px,
     semantic_query::Query, size,
@@ -46,6 +46,18 @@ struct OpenScene {
     backend: Option<BackendId>,
 }
 
+/// What the window showed after one step, recorded by [`TestHost::recording_frames`].
+#[derive(Clone, Debug, PartialEq)]
+pub struct RecordedFrame {
+    /// The step's number in the flattened script, counting from one; zero is the frame the
+    /// scene opened with.
+    pub step: usize,
+    /// [`gpux::Window::describe_rendered_frame`] of the last frame drawn.
+    pub description: Vec<String>,
+    /// A screenshot of the window, when the host renders pixels.
+    pub pixels: Option<RgbaImage>,
+}
+
 /// Runs scenes on the test platform.
 pub struct TestHost {
     lane: Lane,
@@ -54,6 +66,10 @@ pub struct TestHost {
     probes_only: bool,
     open: Option<OpenScene>,
     backend: Option<BackendId>,
+    fast_mode: Option<FastMode>,
+    recording: Option<Vec<RecordedFrame>>,
+    /// Steps run in the open scene, for numbering recorded frames.
+    steps_run: usize,
 }
 
 impl TestHost {
@@ -76,7 +92,53 @@ impl TestHost {
             probes_only: false,
             open: None,
             backend: None,
+            fast_mode: None,
+            recording: None,
+            steps_run: 0,
         }
+    }
+
+    /// Opens every scene's window in `mode` instead of the mode the environment gives it. The
+    /// fast-mode parity groups run each scene with fast mode all on and all off.
+    pub fn with_fast_mode(mut self, mode: FastMode) -> Self {
+        self.fast_mode = Some(mode);
+        self
+    }
+
+    /// Records what the window shows when the scene opens and after every step that ran: the
+    /// frame description and, when the host renders pixels, a screenshot.
+    pub fn recording_frames(mut self) -> Self {
+        self.recording = Some(Vec::new());
+        self
+    }
+
+    /// The frames recorded since the host was made, in order.
+    pub fn recorded_frames(&self) -> &[RecordedFrame] {
+        self.recording.as_deref().unwrap_or_default()
+    }
+
+    /// Records the open scene's current frame as the frame after `step`.
+    fn record(&mut self, step: usize) -> anyhow::Result<()> {
+        let Some(recording) = self.recording.as_mut() else {
+            return Ok(());
+        };
+        let open = self
+            .open
+            .as_mut()
+            .ok_or_else(|| anyhow!("no scene is open"))?;
+        let mut vcx = open.vcx();
+        let description = vcx.update(|window, _| window.describe_rendered_frame());
+        let pixels = if open.backend.is_some() {
+            Some(open.frame()?.clone())
+        } else {
+            None
+        };
+        recording.push(RecordedFrame {
+            step,
+            description,
+            pixels,
+        });
+        Ok(())
     }
 
     /// Skips golden steps, leaving the relative probes: lane G renders on the developer's GPU,
@@ -189,6 +251,9 @@ impl Host for TestHost {
         );
         let window: AnyWindowHandle = handle.into();
         let mut vcx = VisualTestContext::from_window(window, &cx);
+        if let Some(mode) = self.fast_mode {
+            vcx.update(|window, _| window.set_fast_mode(mode));
+        }
         // Active windows deliver every frame; inactive ones throttle frames to ~30 per second.
         vcx.update(|window, _| window.activate_window());
         vcx.run_until_parked();
@@ -209,10 +274,67 @@ impl Host for TestHost {
             captures: HashMap::new(),
             backend,
         });
-        Ok(())
+        self.steps_run = 0;
+        self.record(0)
     }
 
     fn step(&mut self, scene: &SceneSpec, step: &Step) -> anyhow::Result<StepOutcome> {
+        self.steps_run += 1;
+        let outcome = self.run_step(scene, step)?;
+        if outcome == StepOutcome::Done {
+            self.record(self.steps_run)?;
+        }
+        Ok(outcome)
+    }
+
+    fn supports(&mut self, capability: Capability) -> bool {
+        // The test platform advances its executor clock only through `Step::Advance`.
+        if capability == Capability::ExecutorClock {
+            return true;
+        }
+        if !self.lane.has_pixels() {
+            return false;
+        }
+        let Some(open) = self.open.as_ref() else {
+            return false;
+        };
+        let capabilities = open.vcx().update(|window, _| window.effect_capabilities());
+        match capability {
+            Capability::ElementEffects => {
+                capabilities.element.backdrop_blur && capabilities.element.glow
+            }
+            Capability::SnapshotTransitions => capabilities.screen.snapshot_transitions,
+            Capability::ExecutorClock => true,
+        }
+    }
+
+    fn close(&mut self) {
+        if let Some(open) = self.open.take() {
+            open.cx.quit();
+        }
+    }
+}
+
+/// The headless renderer lane C draws with: the software adapter unless `GPUX_WGPU_ADAPTER`
+/// picks another on the platforms that render through wgpu, the platform renderer elsewhere.
+fn lane_c_renderer() -> anyhow::Result<Option<Box<dyn PlatformHeadlessRenderer>>> {
+    #[cfg(any(target_os = "linux", target_os = "windows"))]
+    {
+        use gpui_wgpu::{HeadlessAdapterSelection, WgpuHeadlessRenderer};
+        let selection = std::env::var(HeadlessAdapterSelection::ENV_VAR)
+            .map(|value| HeadlessAdapterSelection::parse(&value))
+            .unwrap_or(HeadlessAdapterSelection::Software);
+        WgpuHeadlessRenderer::with_adapter(&selection)
+            .map(|renderer| Some(Box::new(renderer) as Box<dyn PlatformHeadlessRenderer>))
+    }
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    {
+        gpui_platform::current_headless_renderer()
+    }
+}
+
+impl TestHost {
+    fn run_step(&mut self, scene: &SceneSpec, step: &Step) -> anyhow::Result<StepOutcome> {
         if step.needs_pixels() && !self.lane.has_pixels() {
             return Ok(StepOutcome::Skipped(format!(
                 "pixel steps need a renderer, lane {} has none",
@@ -364,51 +486,6 @@ impl Host for TestHost {
             }
         }
         Ok(StepOutcome::Done)
-    }
-
-    fn supports(&mut self, capability: Capability) -> bool {
-        // The test platform advances its executor clock only through `Step::Advance`.
-        if capability == Capability::ExecutorClock {
-            return true;
-        }
-        if !self.lane.has_pixels() {
-            return false;
-        }
-        let Some(open) = self.open.as_ref() else {
-            return false;
-        };
-        let capabilities = open.vcx().update(|window, _| window.effect_capabilities());
-        match capability {
-            Capability::ElementEffects => {
-                capabilities.element.backdrop_blur && capabilities.element.glow
-            }
-            Capability::SnapshotTransitions => capabilities.screen.snapshot_transitions,
-            Capability::ExecutorClock => true,
-        }
-    }
-
-    fn close(&mut self) {
-        if let Some(open) = self.open.take() {
-            open.cx.quit();
-        }
-    }
-}
-
-/// The headless renderer lane C draws with: the software adapter unless `GPUX_WGPU_ADAPTER`
-/// picks another on the platforms that render through wgpu, the platform renderer elsewhere.
-fn lane_c_renderer() -> anyhow::Result<Option<Box<dyn PlatformHeadlessRenderer>>> {
-    #[cfg(any(target_os = "linux", target_os = "windows"))]
-    {
-        use gpui_wgpu::{HeadlessAdapterSelection, WgpuHeadlessRenderer};
-        let selection = std::env::var(HeadlessAdapterSelection::ENV_VAR)
-            .map(|value| HeadlessAdapterSelection::parse(&value))
-            .unwrap_or(HeadlessAdapterSelection::Software);
-        WgpuHeadlessRenderer::with_adapter(&selection)
-            .map(|renderer| Some(Box::new(renderer) as Box<dyn PlatformHeadlessRenderer>))
-    }
-    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
-    {
-        gpui_platform::current_headless_renderer()
     }
 }
 
