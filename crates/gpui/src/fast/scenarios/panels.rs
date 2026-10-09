@@ -6,7 +6,7 @@ use crate::{
     prelude::*, px,
 };
 
-use super::{Fixture, Mode, Scenario, drawn_per_frame, exactly_per_frame, expect_frames};
+use super::{Fixture, Mode, Scenario, check, drawn_per_frame, exactly_per_frame, expect_frames};
 
 const PANELS: usize = 60;
 const LABELS: usize = 64;
@@ -149,6 +149,22 @@ impl Fixture for Dashboard {
             exactly_per_frame(stats, "style_writes", 0)?;
             exactly_per_frame(stats, "children_writes", 0)?;
             exactly_per_frame(stats, "nodes_released", 0)?;
+            // A panel's title and labels: the panels that did not change
+            // carry all of them, and the ones that did measure theirs again,
+            // replayed where the new text has the old one's size.
+            let changing = match self.changing {
+                Changing::None => 0,
+                Changing::Panels(count) => count,
+            } as u64;
+            let texts = (LABELS + 1) as u64;
+            exactly_per_frame(stats, "leaves_carried", (PANELS as u64 - changing) * texts)?;
+            check(
+                stats.leaves_replayed + stats.leaves_remeasured == changing * texts * stats.frames,
+                || format!("the changed panels did not measure their text again: {stats:?}"),
+            )?;
+            if changing == 0 {
+                exactly_per_frame(stats, "leaves_measured", 0)?;
+            }
         }
         // A background per panel and a glyph or more per label.
         drawn_per_frame(stats, (PANELS * (LABELS + 1)) as u64)

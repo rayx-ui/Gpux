@@ -114,6 +114,21 @@ impl Fixture for Stream {
         expect_frames(mode, stats)?;
         // Every frame builds the scenario root, the table and its rows.
         exactly_per_frame(stats, "views_built", ROWS as u64 + 2)?;
+        if mode.fast_mode().layout_retention {
+            // Each ticking row's equal-width cell replays and its widening
+            // cell is measured afresh; every other cell carries; no node is
+            // written, so every row but the ticking cells stays clean.
+            exactly_per_frame(stats, "leaves_replayed", TICKING as u64)?;
+            exactly_per_frame(stats, "leaves_remeasured", TICKING as u64)?;
+            exactly_per_frame(
+                stats,
+                "leaves_carried",
+                (ROWS * COLUMNS - 2 * TICKING) as u64,
+            )?;
+            exactly_per_frame(stats, "style_writes", 0)?;
+            exactly_per_frame(stats, "children_writes", 0)?;
+            exactly_per_frame(stats, "nodes_released", 0)?;
+        }
         // Two glyphs or more per cell.
         drawn_per_frame(stats, (ROWS * COLUMNS * 2) as u64)
     }
