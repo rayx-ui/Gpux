@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/gpui/frame-pipeline
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-09T21:45:00+02:00
+  updated: 2026-10-09T23:30:00+02:00
   topics:
     - window
     - frame
@@ -31,15 +31,17 @@ Read before changing `Window::draw`, prepaint/paint bookkeeping, `Scene`, `Bound
 
 ## Current Technical Shape
 
-`Scene::BatchIterator` selects its first and second family heads with one linear scan per batch. Sprites keep stable equal-key order; the hot 128-byte monochrome family stable-sorts through cached `(DrawOrder, TileId)` keys, while subpixel and polychrome sprites sort directly.
+`Scene::BatchIterator` selects its first and second family heads with one linear scan per batch. `Scene::finish` sorts every family through `fast/scene.rs`: a stable counting sort by draw order (a packed-key sort when orders are sparse, nothing when already sorted), and sprites by packed `(order, texture, tile, index)` keys, so equal orders batch by texture.
 
-`BoundsTree::find_max_ordering` rejects non-intersecting roots before stacking and filters non-intersecting children at expansion; non-full terminal insertion relies on the existing propagation loop instead of updating the same node twice.
+The scene orders primitives with `fast/bounds_tree.rs` (gpui-fast's uniform grid) in all three draw-order bands: a frame inserting what the last one did replays its orderings, and orderings always equal comparing against every earlier bounds. The upstream R-tree (`crate::bounds_tree`) remains only as the tests' reference.
 
 `Arena::alloc` records a type-erased destructor only when `std::mem::needs_drop::<T>()`; trivial allocations keep chunk lifetime and generation invalidation. `GlobalElementId` owns its path as `Arc<[ElementId]>` and caches a deterministic `collections::FxHasher` hash used for maps and AccessKit node ids; full path equality stays authoritative.
 
 `WindowFrame` keeps the complete accessed-state history (needed for replay ranges and rollback) and separately owns only pending replay transfers. Direct `with_element_state` access moves state immediately; prepaint/paint replay copies keys into both lists; prepaint rollback truncates both; finish scans only pending replay keys. Deferred draws keep stable arena indices across cached prepaint reuse and are processed in place.
 
-Cached views (`Entity::cached` / `AnyView::cached`) replay prepaint and paint ranges under a key of bounds, content mask, text style, and paint context (inherited element opacity and transform). Opacity and transforms are baked into primitives at paint, so `div` and the frame elements apply them around their children's prepaint as well as paint (`Window::with_element_paint_context`), and the key stores the context actually painted with: under an ancestor that applies either only while painting, the view renders instead of replaying, and a replay whose painted context changed after prepaint renders again on the next frame. Replayed hitboxes keep the previous frame's ids, so `WindowFrame::hit_test` orders candidates by id layer (normal, positioned, top layer) and then by reverse insertion, never by raw id. Cached views also record the hovers they read (`HitboxId::is_hovered`, through `fast/dependencies.rs`) while they render and paint, and replay only while each is unchanged against the current hit test; a replay whose hovers this frame's hitboxes changed (an overlay appearing under a still pointer) marks the view and its ancestors dirty and `Window::draw` draws the frame again before it is shown, without notifying the view. This applies in every fast mode.
+Cached views (`Entity::cached` / `AnyView::cached`) replay prepaint and paint ranges under a key of bounds, content mask, text style, and paint context (inherited element opacity and transform). Opacity and transforms are baked into primitives at paint, so `div` and the frame elements apply them around their children's prepaint as well as paint (`Window::with_element_paint_context`), and the key stores the context actually painted with: under an ancestor that applies either only while painting, the view renders instead of replaying, and a replay whose painted context changed after prepaint renders again on the next frame. Replayed hitboxes keep the previous frame's ids, so `WindowFrame::hit_test` orders candidates by id layer (normal, positioned, top layer) and then by reverse insertion, never by raw id. Cached views also record the hovers they read (`HitboxId::is_hovered`, through `fast/dependencies.rs`) while they render and paint, and replay only while each is unchanged against the current hit test, the pointer is outside their own hitboxes' masked bounds, and none holds the pointer captured; a view that read a hitbox it did not insert (an ancestor's `group_hover` group, reinserted under a new id whenever its owner draws) is never replayed. Prepaint's replay decision therefore holds at paint (asserted in debug), and a frame is drawn once. This applies in every fast mode.
+
+Hot paths redraw through their owning view (`cx.notify(view)`): programmatic and animated scroll, hover/active/group-hover styles and abandoned presses, interactive and editable text, key dispatch. `Window::refresh()`, which turns every cache off for a frame, stays only at whole-window changes, each commented `// Whole-window:`; it does nothing while drawing.
 
 `gpux::deferred(...)` inherits the current content mask; `Deferred::unclipped()` paints with no mask for top-level overlays that must escape a clipped parent. `ContentMask` carries bounds and corner radii (`rectangular`/`rounded`), and intersection and scaling preserve radii. `Window` keeps empty logical mask bounds empty before cover-rounding non-empty masks to device pixels, so a zero-width or zero-height mask cannot become a one-device-pixel strip at fractional scales.
 
