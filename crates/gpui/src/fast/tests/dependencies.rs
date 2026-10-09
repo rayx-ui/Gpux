@@ -22,7 +22,7 @@ fn record(cx: &mut TestAppContext, read: impl FnOnce(&mut crate::App)) -> Render
     cx.update(|cx| {
         let recording = cx.begin_recording_dependencies();
         read(cx);
-        cx.finish_recording_dependencies(recording)
+        cx.finish_recording_dependencies(recording).all
     })
 }
 
@@ -288,7 +288,7 @@ fn ambient_input_reads_are_recorded_and_events_stamp_them() {
         cx.update_window(window.into(), |_, window, cx| {
             let recording = cx.begin_recording_dependencies();
             read(window);
-            cx.finish_recording_dependencies(recording)
+            cx.finish_recording_dependencies(recording).all
         })
         .unwrap()
     };

@@ -173,6 +173,46 @@ pub(crate) struct AppDependencies {
     /// Every [`StateVersion`] read while a recording is open, with the
     /// version it was at.
     state_read_log: RefCell<Vec<(StateVersion, u64)>>,
+    /// For each open recording, innermost last, the stretches of the logs
+    /// that recordings nested in it, or dependencies replayed into it, took
+    /// up: what it read through a nested subtree rather than itself.
+    nested: Vec<Vec<LogRanges>>,
+}
+
+/// Stretches of the three read logs.
+#[derive(Clone)]
+struct LogRanges {
+    entities: Range<usize>,
+    globals: Range<usize>,
+    states: Range<usize>,
+}
+
+/// The entries of `log` in `range` that fall outside every range in
+/// `nested`, which lie within `range`, in order.
+fn outside<'a, T: Clone>(
+    log: &[T],
+    range: &Range<usize>,
+    nested: impl Iterator<Item = &'a Range<usize>>,
+    own: &mut Vec<T>,
+) {
+    let mut cursor = range.start;
+    for nested in nested {
+        if nested.start > cursor {
+            own.extend_from_slice(&log[cursor..nested.start]);
+        }
+        cursor = cursor.max(nested.end);
+    }
+    if range.end > cursor {
+        own.extend_from_slice(&log[cursor..range.end]);
+    }
+}
+
+/// What a recording saw: everything read while it was open, nested
+/// recordings included, and what the subtree read itself, outside them.
+#[allow(dead_code, reason = "read by view retention, which lands next")]
+pub(crate) struct RecordedDependencies {
+    pub(crate) all: RenderDependencies,
+    pub(crate) own: RenderDependencies,
 }
 
 impl AppDependencies {
@@ -633,6 +673,7 @@ impl App {
     /// globals and global presence read, state versions and ambient input.
     #[allow(dead_code, reason = "read by view retention, which lands next")]
     pub(crate) fn begin_recording_dependencies(&mut self) -> DependencyRecording {
+        self.fast_dependencies.nested.push(Vec::new());
         let log = &mut self.entities.fast_access_log;
         let entities = log.access_log.borrow().len();
         log.boundary.set(entities);
@@ -647,39 +688,82 @@ impl App {
         }
     }
 
-    /// Ends `recording`, returning everything read while it was open.
+    /// Ends `recording`, returning everything read while it was open and
+    /// what was read outside the recordings nested in it.
     #[allow(dead_code, reason = "read by view retention, which lands next")]
     pub(crate) fn finish_recording_dependencies(
         &mut self,
         recording: DependencyRecording,
-    ) -> RenderDependencies {
+    ) -> RecordedDependencies {
+        let dependencies = &mut self.fast_dependencies;
+        let nested = dependencies.nested.pop().unwrap_or_default();
         let log = &mut self.entities.fast_access_log;
-        let entities = {
-            let mut accesses = log.access_log.borrow()[recording.entities..].to_vec();
-            sort_unique(&mut accesses);
-            Rc::from(accesses)
+        let ranges = LogRanges {
+            entities: recording.entities..log.access_log.borrow().len(),
+            globals: recording.globals..dependencies.global_read_log.borrow().len(),
+            states: recording.states..dependencies.state_read_log.borrow().len(),
         };
-        let globals = {
-            let mut reads =
-                self.fast_dependencies.global_read_log.borrow()[recording.globals..].to_vec();
-            sort_unique(&mut reads);
-            Rc::from(reads)
+        let (entities, own_entities) = {
+            let accesses = log.access_log.borrow();
+            let mut all = accesses[ranges.entities.clone()].to_vec();
+            sort_unique(&mut all);
+            let mut own = Vec::new();
+            outside(
+                &accesses,
+                &ranges.entities,
+                nested.iter().map(|n| &n.entities),
+                &mut own,
+            );
+            sort_unique(&mut own);
+            (Rc::<[EntityId]>::from(all), Rc::<[EntityId]>::from(own))
         };
-        let states =
-            unique_states(&self.fast_dependencies.state_read_log.borrow()[recording.states..]);
+        let (globals, own_globals) = {
+            let reads = dependencies.global_read_log.borrow();
+            let mut all = reads[ranges.globals.clone()].to_vec();
+            sort_unique(&mut all);
+            let mut own = Vec::new();
+            outside(
+                &reads,
+                &ranges.globals,
+                nested.iter().map(|n| &n.globals),
+                &mut own,
+            );
+            sort_unique(&mut own);
+            (Rc::<[TypeId]>::from(all), Rc::<[TypeId]>::from(own))
+        };
+        let (states, own_states) = {
+            let reads = dependencies.state_read_log.borrow();
+            let all = unique_states(&reads[ranges.states.clone()]);
+            let mut own = Vec::new();
+            outside(
+                &reads,
+                &ranges.states,
+                nested.iter().map(|n| &n.states),
+                &mut own,
+            );
+            (all, unique_states(&own))
+        };
+        if let Some(parent) = dependencies.nested.last_mut() {
+            parent.push(ranges);
+        }
         let open = log.recordings.get() - 1;
         log.recordings.set(open);
         if open == 0 {
             log.access_log.borrow_mut().clear();
-            self.fast_dependencies.global_read_log.borrow_mut().clear();
-            self.fast_dependencies.state_read_log.borrow_mut().clear();
+            dependencies.global_read_log.borrow_mut().clear();
+            dependencies.state_read_log.borrow_mut().clear();
         }
         log.boundary.set(log.access_log.borrow().len());
-        let mut own = SmallVec::new();
+        let mut own_writes = SmallVec::new();
         if log.write_generation > recording.writes {
-            own.push((recording.writes, log.write_generation));
+            own_writes.push((recording.writes, log.write_generation));
         }
-        RenderDependencies {
+        let writes = Writes {
+            from: recording.writes,
+            to: log.write_generation,
+            own: own_writes,
+        };
+        let stamped = |entities, globals, states| RenderDependencies {
             entities,
             globals,
             states,
@@ -687,11 +771,52 @@ impl App {
             // it was open, after being read, counts as changed.
             generation: recording.generation,
             updates: recording.updates,
-            writes: Writes {
-                from: recording.writes,
-                to: log.write_generation,
-                own,
-            },
+            writes: writes.clone(),
+        };
+        RecordedDependencies {
+            all: stamped(entities, globals, states),
+            own: stamped(own_entities, own_globals, own_states),
+        }
+    }
+
+    /// Reads `dependencies` again, as a subtree drawn from what it drew last
+    /// frame does without building: its entities count as accessed this
+    /// frame, so the window's invalidation still reaches it, and any open
+    /// recording depends on them, as read through a nested subtree.
+    #[allow(dead_code, reason = "read by view retention, which lands next")]
+    pub(crate) fn replay_dependencies(&mut self, dependencies: &RenderDependencies) {
+        self.entities
+            .accessed_entities
+            .get_mut()
+            .extend(dependencies.entities.iter().copied());
+        let log = &mut self.entities.fast_access_log;
+        if !log.is_recording() {
+            return;
+        }
+        let start = LogRanges {
+            entities: log.access_log.borrow().len()..0,
+            globals: self.fast_dependencies.global_read_log.borrow().len()..0,
+            states: self.fast_dependencies.state_read_log.borrow().len()..0,
+        };
+        log.access_log
+            .borrow_mut()
+            .extend(dependencies.entities.iter().copied());
+        log.boundary.set(log.access_log.borrow().len());
+        self.fast_dependencies
+            .global_read_log
+            .borrow_mut()
+            .extend(dependencies.globals.iter().copied());
+        self.fast_dependencies
+            .state_read_log
+            .borrow_mut()
+            .extend(dependencies.states.iter().cloned());
+        let ranges = LogRanges {
+            entities: start.entities.start..log.access_log.borrow().len(),
+            globals: start.globals.start..self.fast_dependencies.global_read_log.borrow().len(),
+            states: start.states.start..self.fast_dependencies.state_read_log.borrow().len(),
+        };
+        if let Some(open) = self.fast_dependencies.nested.last_mut() {
+            open.push(ranges);
         }
     }
 

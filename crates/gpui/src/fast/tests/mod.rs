@@ -4,6 +4,7 @@
 
 mod bounds_grid;
 mod dependencies;
+mod dependency_nesting;
 mod draw_order;
 mod glyph_runs;
 mod hover_dependencies;
