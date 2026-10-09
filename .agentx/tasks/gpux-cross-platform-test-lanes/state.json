@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-cross-platform-test-lanes",
-  "revision": 145,
+  "revision": 149,
   "planRevision": 16,
   "specHashes": {
     "requirements": "3f8965b93cec48532001be23870a27d3d32f943ab0b25051b05770ba82acedef",
@@ -4100,9 +4100,19 @@
           "path": "tooling/testkit/tests/lane_coverage.rs"
         }
       ]
+    },
+    {
+      "id": "S8-R1-bench-thp",
+      "boundaryId": "s8-apple-lanes",
+      "criterionIds": [
+        "M-3"
+      ],
+      "severity": "minor",
+      "status": "open",
+      "descriptionMarkdown": "`resource_counter_counts_page_faults_and_context_switches` (crates/bench_metrics/src/bench_metrics.rs:2130, changed in 73c3abf) now maps exactly 4 MiB with `mmap(MAP_PRIVATE | MAP_ANONYMOUS)` and asserts more than 100 minor faults. That fixes macOS but introduces a Linux regression.\n\n**Expected:** the test passes on every Unix host where it passed before, Linux included.\n\n**Observed (by mechanism, on Linux):** with transparent huge pages set to `always` (the default on Arch and RHEL kernels, among others) on a 6.7+ kernel, the kernel aligns PMD-multiple anonymous mappings to 2 MiB. 4 MiB qualifies, so the first write to each 2 MiB half maps a huge page. The region takes 2 minor faults, `faulted > 100.0` fails, and the test job's `cargo test --workspace` goes red. The old `vec![1; 4 << 20]` went through glibc's unaligned, non-PMD-multiple mmap, which always left hundreds of 4 KiB faults.\n\n**Repair:** under `#[cfg(target_os = \"linux\")]`, call `libc::madvise(pages, LEN, libc::MADV_NOHUGEPAGE)` before `faults.start()`. Alternatively, write one byte per 4 KiB with a length that is not a multiple of 2 MiB, but that still leaves the aligned middle open to THP. Check the result once on Linux (WSL or CI), then rerun `cargo test -p gpux-bench-metrics --lib -- --test-threads=1` on the Mac."
     }
   ],
-  "handoffMarkdown": "cargo run -p gpux-testkit -- lane f on macOS 26.6.2, Xcode 26.4.1, Apple M5; Simulator gpux-conformance (290AE108-2F98-46CE-A12B-B2BE840B1DE4), iPhone 16, iOS 26.5 (23F77): gpux-testkit: 30 passed, 0 failed, 0 skipped. Platform checks: ios-startup PASS (drew through metal on Apple iOS simulator GPU); ios-metal PASS (wgpu on Metal, read back 1179x2556; the Simulator offers Metal on Apple silicon); ios-text-metrics PASS (ascent 16.4, descent 4.4, \"Conformance\" 96.27201 px); ios-touch-tap PASS; ios-lifecycle PASS (deactivated, reactivated, drew 1179x2556). All 25 lane-F scenes PASS. Fixes on the way: the first run hung 20 minutes because dyld could not bind the -Wl,-U CGL symbols of t28 (ea443f0) at launch (\"symbol not found in flat namespace _CGLErrorString\") and simctl launch --console-pty kept waiting; ea3cc6d replaces the -U flags with aborting CGL stubs (tooling/ios/Sources/macos_gl_stubs.c; the t28 build still passes with it) and docs/testing.md records it; adce23d adds ios::fatal so a dyld load failure or panic ends the run (new test a_host_that_panics_or_fails_to_load_ends_the_run; cargo test -p gpux-testkit --test ios: 8 passed). fmt and clippy -D warnings for gpux-testkit: clean. F-3: hosted CI is still blocked by billing (run 37790934619 never started a job); the owner ruled on 2026-10-09 that the local lane f run counts (plan revision 16 amendment); a green lane-f.yml run stays a follow-up. Device flow is documented in docs/testing.md (not run).",
+  "handoffMarkdown": "macOS 26.6.2 (25G83), Xcode 26.4.1 (17E202), Apple M5, Metal toolchain 17.5.188. cargo check --workspace --all-targets: exit 0, no warnings (rerun on HEAD by the reviewer); the gpux-apple build script compiled shaders.metallib with xcrun metal. cargo test (CI test job: fork exclusions, without gpux-conformance, --test-threads=1): first run 1262 passed, 1 failed (gpux-bench-metrics resource_counter_counts_page_faults_and_context_switches: macOS malloc reuses a freed resident 4 MiB block, so the serial run saw 0 faults; fixed in 73c3abf by mmap-ing fresh pages; old code failed 3/3 serial, new passes 3/3); rerun exit 0: 75 binaries, 1263 passed, 0 failed, 101 ignored. Review finding S8-R1-bench-thp (Linux THP=always could fault the 2 MiB-aligned mapping as 2 huge pages) repaired in 2835d30 with madvise(MADV_NOHUGEPAGE) on Linux; gpux-bench-metrics lib serial 9/9 three times on macOS, fmt and clippy clean; a Linux run is a recorded follow-up in HANDOFF.md (no Linux host on this Mac). command::darwin (MACCI-1): 31 passed. lane a: 72 passed, 0 failed, 0 skipped. lane c (GPUX_EXPECT_BACKEND=metal): 79 passed, 0 failed, 0 skipped (metal goldens match on the M5). lane d: first run 1 passed, 37 failed (no frame within 10s: the host never activated, its windows were occluded behind the active app and their display links never started); then 35 passed, 3 failed, 2 skipped (hover-active and tooltip: macOS re-reads the OS cursor every frame of the active window; text-shaping: CoreText width 144.00002 ceiled to 145). Fixed in 3cccd62 (macOS-only activate, CGWarpMouseCursorPosition cursor sync through AppHost::with_cursor_sync including touch positions, cursor parking, docs/testing.md) and 049fc0c (text-shaping size tolerance 1 px). Final lane d (caffeinate -d): 38 passed, 0 failed, 2 skipped (platform-scale-change, platform-os-input). Lanes a, c and d rerun at 049fc0c with these results. fmt and clippy -D warnings for gpux-conformance and gpux-bench-metrics: clean. The Windows/Linux cursor_sync() -> None stubs in desktop_host/os.rs were not cross-compiled from the Mac. Protected-path hashes re-recorded on the Mac (plan revisions 14 and 15, order-only boundary amendments): the Windows CRLF checkout hashes differed from LF; git shows no forbidden path changed since 0376af4.",
   "protectedPaths": {
     "gpux": {
       "gpux:.agentx/experiments/**": "4d6e9d6f34b51c6bb0257e4f2f777eb83f05617ce9649c225e686ef2c3ea997a",
