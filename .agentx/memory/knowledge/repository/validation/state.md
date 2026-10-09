@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/repository/validation
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-07T19:30:00+02:00
+  updated: 2026-10-09T17:00:00+02:00
   topics:
     - validation
     - focused-checks
@@ -51,3 +51,10 @@ Performance work measures on a real GPU through lane G: the `gpux-platform` benc
 - [Playwright specs](../../../../../tools-node/specs)
 - [CI workflow](../../../../../.github/workflows/ci.yml), [lane B workflow](../../../../../.github/workflows/lane-b.yml), [lane E workflow](../../../../../.github/workflows/lane-e.yml), [lane F workflow](../../../../../.github/workflows/lane-f.yml)
 - 2026-10-05 current [RayX consumer validation memory](../../../../../../RayX/.agentx/memory/knowledge/tooling/validation/state.md)
+- 2026-10-07 current [Seven test lanes](../../../decisions/repository/validation/2026-10-07-repository-validation-test-lanes.md)
+- 2026-10-07 current [gpux owns its runtime proof](../../../decisions/repository/validation/2026-10-07-repository-validation-gpux-owns-runtime-proof.md)
+- 2026-10-07 current [gpux-testkit entry point](../../../decisions/repository/validation/2026-10-07-repository-validation-gpux-testkit.md)
+- 2026-10-07 current [Local lane G](../../../decisions/repository/validation/2026-10-07-repository-validation-local-gpu-lane-g.md)
+- 2026-10-07 current [Browser lane B](../../../decisions/platform/web/2026-10-07-platform-web-browser-lane-b.md)
+- 2026-10-07 current [Android lane E](../../../decisions/platform/mobile/2026-10-07-platform-mobile-android-lane-e.md)
+- 2026-10-07 current [iOS lane F](../../../decisions/platform/mobile/2026-10-07-platform-mobile-ios-lane-f.md)

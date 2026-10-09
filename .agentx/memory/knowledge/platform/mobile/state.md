@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/platform/mobile
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-09T16:00:00+02:00
+  updated: 2026-10-09T17:00:00+02:00
   topics:
     - gpui-mobile
     - android
@@ -49,3 +49,5 @@ iOS keeps a Metal-specific WGPU path: `GPUIMetalView` exposes `CAMetalLayer`, th
 - [iOS FFI](../../../../../crates/gpui_mobile/src/ios/ffi.rs)
 - [iOS window](../../../../../crates/gpui_mobile/src/ios/window.rs)
 - [iOS text system](../../../../../crates/gpui_mobile/src/ios/text_system.rs)
+- 2026-10-07 current [Android lane E](../../../decisions/platform/mobile/2026-10-07-platform-mobile-android-lane-e.md)
+- 2026-10-07 current [iOS lane F](../../../decisions/platform/mobile/2026-10-07-platform-mobile-ios-lane-f.md)

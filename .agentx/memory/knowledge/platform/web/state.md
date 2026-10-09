@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/platform/web
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-09T12:00:00+02:00
+  updated: 2026-10-09T17:00:00+02:00
   topics:
     - gpui-web
     - wasm
@@ -65,3 +65,4 @@ Lane B proves this crate: one Playwright spec per area (backend fallback, viewpo
 - 2026-07-03 current [HTML element DOM overlay](../../../decisions/platform/web/2026-07-03-platform-web-html-element-dom-overlay.md)
 - 2026-07-03 current [HTML element fit, styles, and wheel](../../../decisions/platform/web/2026-07-03-platform-web-html-element-fit-styles-wheel.md)
 - 2026-10-05 current [gpux-wgpu fork and gpux-owned element upload](../../../decisions/repository/packaging/2026-10-05-repository-packaging-gpux-wgpu-fork.md)
+- 2026-10-07 current [Browser lane B](../../../decisions/platform/web/2026-10-07-platform-web-browser-lane-b.md)

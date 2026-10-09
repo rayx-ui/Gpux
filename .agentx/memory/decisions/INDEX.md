@@ -4,7 +4,7 @@ agentx:
   scope: decisions
   status: current
   created: 2026-10-05T23:00:00+02:00
-  updated: 2026-10-05T23:30:00+02:00
+  updated: 2026-10-09T17:00:00+02:00
   topics:
     - decisions
     - gpux
@@ -62,6 +62,9 @@ Durable architecture choices for gpux. Current source remains the first evidence
   - [Add `html_element` as a real DOM overlay system, separate from `html_island`](platform/web/2026-07-03-platform-web-html-element-dom-overlay.md)
   - [Extend `html_element` with content fit, root extra styles, class-based static CSS, and explicit wheel modes](platform/web/2026-07-03-platform-web-html-element-fit-styles-wheel.md)
   - [Initialize WASM constructors explicitly in gpui_platform](platform/web/2026-08-31-platform-web-explicit-wasm-constructors.md)
+  - [Lane B drives the threaded WASM conformance host in Chromium through Playwright and asserts the backend](platform/web/2026-10-07-platform-web-browser-lane-b.md)
+  - [Lane E runs a Gradle-free NativeActivity conformance host over adb](platform/mobile/2026-10-07-platform-mobile-android-lane-e.md)
+  - [Lane F runs a static-library conformance host behind a minimal XcodeGen UIKit shell on the Simulator](platform/mobile/2026-10-07-platform-mobile-ios-lane-f.md)
   - [Use WGPU DX12 as the Windows native backend policy](platform/desktop/2026-07-08-platform-desktop-windows-wgpu-dx12-policy.md)
   - [Use non-stretch DXGI scaling for Windows WGPU HWND surfaces](platform/desktop/2026-07-08-platform-desktop-windows-wgpu-dxgi-scaling.md)
 
@@ -72,3 +75,7 @@ Durable architecture choices for gpux. Current source remains the first evidence
   - [gpux does not carry `zlog`, `ztracing` or `ztracing_macro`](repository/packaging/2026-10-05-repository-packaging-drop-z-crates.md)
   - [wgpu 30 from crates.io through a minimal published `gpux-wgpu` fork, with the element-image upload owned by gpux](repository/packaging/2026-10-05-repository-packaging-gpux-wgpu-fork.md)
   - [Give Gpux its own AgentX memory with a crate-ownership taxonomy, transplanted from RayX](repository/agentx-memory/2026-10-05-repository-agentx-memory-taxonomy-transplant.md)
+  - [Seven test lanes named by where they can run](repository/validation/2026-10-07-repository-validation-test-lanes.md)
+  - [gpux owns its runtime proof; RayX is only a consumer](repository/validation/2026-10-07-repository-validation-gpux-owns-runtime-proof.md)
+  - [`gpux-testkit` is the single entry point for every lane](repository/validation/2026-10-07-repository-validation-gpux-testkit.md)
+  - [Real-GPU and timing proof run locally in lane G](repository/validation/2026-10-07-repository-validation-local-gpu-lane-g.md)
