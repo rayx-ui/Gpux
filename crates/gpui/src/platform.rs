@@ -1,5 +1,6 @@
 mod app_menu;
 mod keyboard;
+mod keyboard_os;
 mod keystroke;
 
 #[cfg(all(target_os = "linux", feature = "wayland"))]
@@ -79,6 +80,7 @@ use uuid::Uuid;
 
 pub use app_menu::*;
 pub use keyboard::*;
+pub use keyboard_os::*;
 pub use keystroke::*;
 
 /// Whether the platform is presenting a window's frames.

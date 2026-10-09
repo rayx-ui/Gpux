@@ -1,11 +1,8 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use std::{
-    error::Error,
-    fmt::{Display, Write},
-};
+use std::{error::Error, fmt::Display};
 
-use crate::PlatformKeyboardMapper;
+use crate::{KeyboardOs, PlatformKeyboardMapper};
 
 /// This is a helper trait so that we can simplify the implementation of some functions
 pub trait AsKeystroke {
@@ -115,108 +112,10 @@ impl Keystroke {
     /// key syntax is:
     /// [secondary-][ctrl-][alt-][shift-][cmd-][fn-]key[->key_char]
     /// key_char syntax is only used for generating test events,
-    /// secondary means "cmd" on macOS and "ctrl" on other platforms
+    /// secondary means "cmd" under macOS conventions and "ctrl" otherwise (see [`KeyboardOs`])
     /// when matching a key with an key_char set will be matched without it.
     pub fn parse(source: &str) -> std::result::Result<Self, InvalidKeystrokeError> {
-        let mut modifiers = Modifiers::none();
-        let mut key = None;
-        let mut key_char = None;
-
-        let mut components = source.split('-').peekable();
-        while let Some(component) = components.next() {
-            if component.eq_ignore_ascii_case("ctrl") {
-                modifiers.control = true;
-                continue;
-            }
-            if component.eq_ignore_ascii_case("alt") {
-                modifiers.alt = true;
-                continue;
-            }
-            if component.eq_ignore_ascii_case("shift") {
-                modifiers.shift = true;
-                continue;
-            }
-            if component.eq_ignore_ascii_case("fn") {
-                modifiers.function = true;
-                continue;
-            }
-            if component.eq_ignore_ascii_case("secondary") {
-                if cfg!(target_os = "macos") {
-                    modifiers.platform = true;
-                } else {
-                    modifiers.control = true;
-                };
-                continue;
-            }
-
-            let is_platform = component.eq_ignore_ascii_case("cmd")
-                || component.eq_ignore_ascii_case("super")
-                || component.eq_ignore_ascii_case("win");
-
-            if is_platform {
-                modifiers.platform = true;
-                continue;
-            }
-
-            let mut key_str = component.to_string();
-
-            if let Some(next) = components.peek() {
-                if next.is_empty() && source.ends_with('-') {
-                    key = Some(String::from("-"));
-                    break;
-                } else if next.len() > 1 && next.starts_with('>') {
-                    key = Some(key_str);
-                    key_char = Some(String::from(&next[1..]));
-                    components.next();
-                } else {
-                    return Err(InvalidKeystrokeError {
-                        keystroke: source.to_owned(),
-                    });
-                }
-                continue;
-            }
-
-            if component.len() == 1 && component.as_bytes()[0].is_ascii_uppercase() {
-                // Convert to shift + lowercase char
-                modifiers.shift = true;
-                key_str.make_ascii_lowercase();
-            } else {
-                // convert ascii chars to lowercase so that named keys like "tab" and "enter"
-                // are accepted case insensitively and stored how we expect so they are matched properly
-                key_str.make_ascii_lowercase()
-            }
-            key = Some(key_str);
-        }
-
-        // Allow for the user to specify a keystroke modifier as the key itself
-        // This sets the `key` to the modifier, and disables the modifier
-        key = key.or_else(|| {
-            use std::mem;
-            // std::mem::take clears bool incase its true
-            if mem::take(&mut modifiers.shift) {
-                Some("shift".to_string())
-            } else if mem::take(&mut modifiers.control) {
-                Some("control".to_string())
-            } else if mem::take(&mut modifiers.alt) {
-                Some("alt".to_string())
-            } else if mem::take(&mut modifiers.platform) {
-                Some("platform".to_string())
-            } else if mem::take(&mut modifiers.function) {
-                Some("function".to_string())
-            } else {
-                None
-            }
-        });
-
-        let key = key.ok_or_else(|| InvalidKeystrokeError {
-            keystroke: source.to_owned(),
-        })?;
-
-        Ok(Keystroke {
-            modifiers,
-            key,
-            key_char,
-        })
+        parse_keystroke(source, KeyboardOs::current())
     }
 
     /// Produces a representation of this key that Parse can understand.
@@ -375,6 +274,112 @@ impl KeybindingKeystroke {
     }
 }
 
+/// [`Keystroke::parse`] under the conventions of `os`.
+pub(crate) fn parse_keystroke(
+    source: &str,
+    os: KeyboardOs,
+) -> std::result::Result<Keystroke, InvalidKeystrokeError> {
+    let mut modifiers = Modifiers::none();
+    let mut key = None;
+    let mut key_char = None;
+
+    let mut components = source.split('-').peekable();
+    while let Some(component) = components.next() {
+        if component.eq_ignore_ascii_case("ctrl") {
+            modifiers.control = true;
+            continue;
+        }
+        if component.eq_ignore_ascii_case("alt") {
+            modifiers.alt = true;
+            continue;
+        }
+        if component.eq_ignore_ascii_case("shift") {
+            modifiers.shift = true;
+            continue;
+        }
+        if component.eq_ignore_ascii_case("fn") {
+            modifiers.function = true;
+            continue;
+        }
+        if component.eq_ignore_ascii_case("secondary") {
+            if os.is_mac() {
+                modifiers.platform = true;
+            } else {
+                modifiers.control = true;
+            };
+            continue;
+        }
+
+        let is_platform = component.eq_ignore_ascii_case("cmd")
+            || component.eq_ignore_ascii_case("super")
+            || component.eq_ignore_ascii_case("win");
+
+        if is_platform {
+            modifiers.platform = true;
+            continue;
+        }
+
+        let mut key_str = component.to_string();
+
+        if let Some(next) = components.peek() {
+            if next.is_empty() && source.ends_with('-') {
+                key = Some(String::from("-"));
+                break;
+            } else if next.len() > 1 && next.starts_with('>') {
+                key = Some(key_str);
+                key_char = Some(String::from(&next[1..]));
+                components.next();
+            } else {
+                return Err(InvalidKeystrokeError {
+                    keystroke: source.to_owned(),
+                });
+            }
+            continue;
+        }
+
+        if component.len() == 1 && component.as_bytes()[0].is_ascii_uppercase() {
+            // Convert to shift + lowercase char
+            modifiers.shift = true;
+            key_str.make_ascii_lowercase();
+        } else {
+            // convert ascii chars to lowercase so that named keys like "tab" and "enter"
+            // are accepted case insensitively and stored how we expect so they are matched properly
+            key_str.make_ascii_lowercase()
+        }
+        key = Some(key_str);
+    }
+
+    // Allow for the user to specify a keystroke modifier as the key itself
+    // This sets the `key` to the modifier, and disables the modifier
+    key = key.or_else(|| {
+        use std::mem;
+        // std::mem::take clears bool incase its true
+        if mem::take(&mut modifiers.shift) {
+            Some("shift".to_string())
+        } else if mem::take(&mut modifiers.control) {
+            Some("control".to_string())
+        } else if mem::take(&mut modifiers.alt) {
+            Some("alt".to_string())
+        } else if mem::take(&mut modifiers.platform) {
+            Some("platform".to_string())
+        } else if mem::take(&mut modifiers.function) {
+            Some("function".to_string())
+        } else {
+            None
+        }
+    });
+
+    let key = key.ok_or_else(|| InvalidKeystrokeError {
+        keystroke: source.to_owned(),
+    })?;
+
+    Ok(Keystroke {
+        modifiers,
+        key,
+        key_char,
+    })
+}
+
 fn is_printable_key(key: &str) -> bool {
     !matches!(
         key,
@@ -431,15 +436,17 @@ fn is_printable_key(key: &str) -> bool {
 
 impl std::fmt::Display for Keystroke {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        display_modifiers(&self.modifiers, f)?;
-        display_key(&self.key, f)
+        let os = KeyboardOs::current();
+        display_modifiers(&self.modifiers, os, f)?;
+        display_key(&self.key, os, f)
     }
 }
 
 impl std::fmt::Display for KeybindingKeystroke {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        display_modifiers(self.modifiers(), f)?;
-        display_key(self.key(), f)
+        let os = KeyboardOs::current();
+        display_modifiers(self.modifiers(), os, f)?;
+        display_key(self.key(), os, f)
     }
 }
 
@@ -476,18 +483,16 @@ impl Modifiers {
         self.control || self.alt || self.shift || self.platform || self.function
     }
 
-    /// Whether the semantically 'secondary' modifier key is pressed.
-    ///
-    /// On macOS, this is the command key.
-    /// On Linux and Windows, this is the control key.
+    /// Whether the semantically 'secondary' modifier key is pressed: Command under macOS
+    /// conventions and Control otherwise (see [`KeyboardOs`]; in a browser, the visitor's system).
     pub fn secondary(&self) -> bool {
-        #[cfg(target_os = "macos")]
-        {
-            self.platform
-        }
+        self.secondary_for(KeyboardOs::current())
+    }
 
-        #[cfg(not(target_os = "macos"))]
-        {
+    pub(crate) fn secondary_for(&self, os: KeyboardOs) -> bool {
+        if os.is_mac() {
+            self.platform
+        } else {
             self.control
         }
     }
@@ -516,20 +521,14 @@ impl Modifiers {
 
     /// A Returns [`Modifiers`] with just the secondary key pressed.
     pub fn secondary_key() -> Modifiers {
-        #[cfg(target_os = "macos")]
-        {
-            Modifiers {
-                platform: true,
-                ..Default::default()
-            }
-        }
+        Self::secondary_key_for(KeyboardOs::current())
+    }
 
-        #[cfg(not(target_os = "macos"))]
-        {
-            Modifiers {
-                control: true,
-                ..Default::default()
-            }
+    pub(crate) fn secondary_key_for(os: KeyboardOs) -> Modifiers {
+        if os.is_mac() {
+            Self::command()
+        } else {
+            Self::control()
         }
     }
 
@@ -686,74 +685,87 @@ impl<T: AsKeystroke + ?Sized> AsKeystroke for &T {
     }
 }
 
-fn display_modifiers(modifiers: &Modifiers, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+fn display_modifiers(
+    modifiers: &Modifiers,
+    os: KeyboardOs,
+    f: &mut impl std::fmt::Write,
+) -> std::fmt::Result {
+    let mac = os.is_mac();
     if modifiers.control {
-        #[cfg(target_os = "macos")]
-        f.write_char('^')?;
-
-        #[cfg(not(target_os = "macos"))]
-        write!(f, "ctrl-")?;
+        if mac {
+            f.write_char('^')?;
+        } else {
+            write!(f, "ctrl-")?;
+        }
     }
     if modifiers.alt {
-        #[cfg(target_os = "macos")]
-        f.write_char('⌥')?;
-
-        #[cfg(not(target_os = "macos"))]
-        write!(f, "alt-")?;
+        if mac {
+            f.write_char('⌥')?;
+        } else {
+            write!(f, "alt-")?;
+        }
     }
     if modifiers.platform {
-        #[cfg(target_os = "macos")]
-        f.write_char('⌘')?;
-
-        #[cfg(any(target_os = "linux", target_os = "freebsd"))]
-        f.write_char('❖')?;
-
-        #[cfg(target_os = "windows")]
-        f.write_char('⊞')?;
+        match os {
+            KeyboardOs::MacOs => f.write_char('⌘')?,
+            KeyboardOs::Linux => f.write_char('❖')?,
+            KeyboardOs::Windows => f.write_char('⊞')?,
+            KeyboardOs::Unknown => write!(f, "super-")?,
+        }
     }
     if modifiers.shift {
-        #[cfg(target_os = "macos")]
-        f.write_char('⇧')?;
-
-        #[cfg(not(target_os = "macos"))]
-        write!(f, "shift-")?;
+        if mac {
+            f.write_char('⇧')?;
+        } else {
+            write!(f, "shift-")?;
+        }
     }
     Ok(())
 }
 
-fn display_key(key: &str, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    let key = match key {
-        #[cfg(target_os = "macos")]
-        "backspace" => '⌫',
-        #[cfg(target_os = "macos")]
-        "up" => '↑',
-        #[cfg(target_os = "macos")]
-        "down" => '↓',
-        #[cfg(target_os = "macos")]
-        "left" => '←',
-        #[cfg(target_os = "macos")]
-        "right" => '→',
-        #[cfg(target_os = "macos")]
-        "tab" => '⇥',
-        #[cfg(target_os = "macos")]
-        "escape" => '⎋',
-        #[cfg(target_os = "macos")]
-        "shift" => '⇧',
-        #[cfg(target_os = "macos")]
-        "control" => '⌃',
-        #[cfg(target_os = "macos")]
-        "alt" => '⌥',
-        #[cfg(target_os = "macos")]
-        "platform" => '⌘',
-
-        key if key.len() == 1 => key.chars().next().unwrap().to_ascii_uppercase(),
-        key => return f.write_str(key),
+fn display_key(key: &str, os: KeyboardOs, f: &mut impl std::fmt::Write) -> std::fmt::Result {
+    let symbol = if os.is_mac() {
+        match key {
+            "backspace" => Some('⌫'),
+            "up" => Some('↑'),
+            "down" => Some('↓'),
+            "left" => Some('←'),
+            "right" => Some('→'),
+            "tab" => Some('⇥'),
+            "escape" => Some('⎋'),
+            "shift" => Some('⇧'),
+            "control" => Some('⌃'),
+            "alt" => Some('⌥'),
+            "platform" => Some('⌘'),
+            _ => None,
+        }
+    } else {
+        None
+    };
+    let key = match symbol {
+        Some(symbol) => symbol,
+        None if key.len() == 1 => key.chars().next().unwrap().to_ascii_uppercase(),
+        None => return f.write_str(key),
     };
     f.write_char(key)
 }
 
+/// A keystroke as [`std::fmt::Display`] shows it under the conventions of `os`.
+#[cfg(test)]
+pub(crate) fn display_keystroke(modifiers: &Modifiers, key: &str, os: KeyboardOs) -> String {
+    let mut shown = String::new();
+    display_modifiers(modifiers, os, &mut shown).unwrap();
+    display_key(key, os, &mut shown).unwrap();
+    shown
+}
+
 #[inline]
 fn unparse(modifiers: &Modifiers, key: &str) -> String {
+    unparse_keystroke(modifiers, key, KeyboardOs::current())
+}
+
+/// A keystroke as [`Keystroke::parse`] reads it, written under the conventions of `os`.
+pub(crate) fn unparse_keystroke(modifiers: &Modifiers, key: &str, os: KeyboardOs) -> String {
     let mut result = String::new();
     if modifiers.function {
         result.push_str("fn-");
@@ -765,18 +777,15 @@ fn unparse(modifiers: &Modifiers, key: &str) -> String {
         result.push_str("alt-");
     }
     if modifiers.platform {
-        #[cfg(target_os = "macos")]
-        result.push_str("cmd-");
-
-        #[cfg(any(target_os = "linux", target_os = "freebsd"))]
-        result.push_str("super-");
-
-        #[cfg(target_os = "windows")]
-        result.push_str("win-");
+        result.push_str(match os {
+            KeyboardOs::MacOs => "cmd-",
+            KeyboardOs::Windows => "win-",
+            KeyboardOs::Linux | KeyboardOs::Unknown => "super-",
+        });
     }
     if modifiers.shift {
         result.push_str("shift-");
     }
-    result.push_str(&key);
+    result.push_str(key);
     result
 }

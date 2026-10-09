@@ -1,4 +1,4 @@
-use crate::SharedString;
+use crate::{KeyboardOs, SharedString};
 use anyhow::{Context as _, Result};
 use std::fmt;
 
@@ -27,22 +27,16 @@ impl<'a> TryFrom<&'a str> for KeyContext {
 }
 
 impl KeyContext {
-    /// Initialize a new [`KeyContext`] that contains an `os` key set to either `macos`, `linux`, `windows` or `unknown`.
+    /// Initialize a new [`KeyContext`] that contains an `os` key set to either `macos`, `linux`,
+    /// `windows` or `unknown`: the [`KeyboardOs`] in effect, which in a browser is the visitor's
+    /// operating system.
     pub fn new_with_defaults() -> Self {
+        Self::with_defaults_for(KeyboardOs::current())
+    }
+
+    pub(crate) fn with_defaults_for(os: KeyboardOs) -> Self {
         let mut context = Self::default();
-        #[cfg(target_os = "macos")]
-        context.set("os", "macos");
-        #[cfg(any(target_os = "linux", target_os = "freebsd"))]
-        context.set("os", "linux");
-        #[cfg(target_os = "windows")]
-        context.set("os", "windows");
-        #[cfg(not(any(
-            target_os = "macos",
-            target_os = "linux",
-            target_os = "freebsd",
-            target_os = "windows"
-        )))]
-        context.set("os", "unknown");
+        context.set("os", os.key_context_name());
         context
     }
 
