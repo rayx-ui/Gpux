@@ -4,8 +4,8 @@ Where the `gpux-cross-platform-test-lanes` epic stands and exactly what is left.
 then [docs/testing.md](docs/testing.md) (the lane contract) and the epic's AgentX specs in
 [.agentx/tasks/gpux-cross-platform-test-lanes/](.agentx/tasks/gpux-cross-platform-test-lanes).
 
-Last updated: 2026-10-09, branch `refactor/gpux-cross-platform-test-lanes` (pushed to `origin` up to
-`4f3394e`; the sprint 8 commits from the Mac are local until the owner says to push).
+Last updated: 2026-10-09, branch `refactor/gpux-cross-platform-test-lanes` (pushed to `origin`,
+including every commit from the Mac).
 
 **If you are the agent on the Mac, follow [Part 1](#part-1-the-mac-session-sprint-8) step by step.**
 
