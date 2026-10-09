@@ -1,12 +1,12 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 33,
-  "planRevision": 7,
+  "revision": 37,
+  "planRevision": 8,
   "specHashes": {
     "requirements": "c0daa9e1ff938fb4db82ab2200a1c3f0c6fd80fcfbd35ec9c3e64970a3071061",
-    "design": "c9ee00375349e97c0b579767513a6a7c23666c4ce551a4c8e331ec729ce9240d",
-    "plan": "60ade60b631fd1eb81187e3c768554155578f76616180b53202b9528b3764fc1"
+    "design": "ced53cba4d43459ebedd8030744af071bd95badf06ef61c6b509a91be3972a6e",
+    "plan": "cc426704b15ae6baad6763e870533e99b02e8829196c22662f1e658983740740"
   },
   "tasks": {
     "t01-fast-switches": {
@@ -82,13 +82,22 @@
       ]
     },
     "t13-layout-keys": {
-      "status": "pending"
+      "status": "implemented",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t14-write-elision": {
-      "status": "pending"
+      "status": "implemented",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t15-text-carry-replay": {
-      "status": "pending"
+      "status": "in_progress",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t16-oracle-layout": {
       "status": "pending"
