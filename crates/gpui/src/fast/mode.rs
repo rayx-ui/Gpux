@@ -282,6 +282,8 @@ impl Window {
     #[cfg(any(test, feature = "test-support"))]
     pub fn forget_retained_state(&mut self) {
         self.layout_engine = Some(crate::TaffyLayoutEngine::new());
+        self.rendered_frame.scene.forget_orderings();
+        self.next_frame.scene.forget_orderings();
         self.refresh();
     }
 

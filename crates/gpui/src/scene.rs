@@ -7,8 +7,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     ActiveScreenEffect, ActiveScreenEffectSnapshot, AtlasTextureId, AtlasTile, Bounds, ContentMask,
     Corners, Edges, ElementId, PaintColor, Pixels, Point, PreparedBackground,
-    PreparedElementEffect, Radians, ScaledPixels, ScreenEffectRegionId, SharedString, Size,
-    bounds_tree::BoundsTree, point,
+    PreparedElementEffect, Radians, ScaledPixels, ScreenEffectRegionId, SharedString, Size, point,
 };
 use std::{
     fmt::Debug,
@@ -24,16 +23,16 @@ pub type PathVertex_ScaledPixels = PathVertex<ScaledPixels>;
 #[expect(missing_docs)]
 pub type DrawOrder = u32;
 
-const POSITIONED_DRAW_ORDER_BASE: DrawOrder = 1 << 30;
+pub(crate) const POSITIONED_DRAW_ORDER_BASE: DrawOrder = 1 << 30;
 const TOP_LAYER_DRAW_ORDER_BASE: DrawOrder = 1 << 31;
 
 #[derive(Default)]
 #[expect(missing_docs)]
 pub struct Scene {
     pub(crate) paint_operations: Vec<PaintOperation>,
-    primitive_bounds: BoundsTree<ScaledPixels>,
-    positioned_primitive_bounds: BoundsTree<ScaledPixels>,
-    top_layer_primitive_bounds: BoundsTree<ScaledPixels>,
+    pub(crate) primitive_bounds: crate::fast::bounds_tree::BoundsTree<ScaledPixels>,
+    pub(crate) positioned_primitive_bounds: crate::fast::bounds_tree::BoundsTree<ScaledPixels>,
+    pub(crate) top_layer_primitive_bounds: crate::fast::bounds_tree::BoundsTree<ScaledPixels>,
     layer_stack: Vec<LayerOrder>,
     pub scale_factor: f32,
     pub active_screen_effects: Vec<ActiveScreenEffect>,

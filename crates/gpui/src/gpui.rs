@@ -14,6 +14,8 @@ mod app;
 mod arena;
 mod asset_cache;
 mod assets;
+// Upstream's R-tree: the reference `fast::bounds_tree` is checked against.
+#[allow(dead_code)]
 mod bounds_tree;
 mod color;
 /// The default colors used by GPUI.

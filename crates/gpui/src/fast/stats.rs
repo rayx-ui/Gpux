@@ -89,8 +89,11 @@ pub struct FastStats {
     pub primitives_painted: u64,
     /// Primitives copied into the scene from the last frame.
     pub primitives_copied: u64,
-    /// Draw orders computed by inserting bounds into the bounds tree.
+    /// Draw orders computed by searching the bounds tree.
     pub draw_orders_computed: u64,
+    /// Draw orders replayed from the last frame's fill of the bounds tree
+    /// instead of searched for. The grid bounds tree does this in every mode.
+    pub draw_orders_replayed: u64,
 
     // Layout retention.
     /// Taffy nodes claimed from the last frame by element identity.
@@ -105,8 +108,6 @@ pub struct FastStats {
     pub leaves_replayed: u64,
     /// Measured leaves measured again because their measurement changed.
     pub leaves_remeasured: u64,
-    /// Draw orders replayed from the last frame instead of computed.
-    pub draw_orders_replayed: u64,
 
     // View retention and splice.
     /// Views rendered whose layout was kept from the last frame.
@@ -137,7 +138,7 @@ pub struct FastStats {
 
 impl FastStats {
     /// The names of the work counters, counted in every mode.
-    pub const WORK: [&'static str; 9] = [
+    pub const WORK: [&'static str; 10] = [
         "views_built",
         "cached_views_replayed",
         "style_writes",
@@ -147,18 +148,18 @@ impl FastStats {
         "primitives_painted",
         "primitives_copied",
         "draw_orders_computed",
+        "draw_orders_replayed",
     ];
 
     /// The names of the mechanism counters, zero with fast mode off. Layer
     /// bypasses are reported per reason as `layer_bypasses.<reason>`.
-    pub const MECHANISM: [&'static str; 18] = [
+    pub const MECHANISM: [&'static str; 17] = [
         "nodes_claimed",
         "nodes_released",
         "nodes_lingering",
         "leaves_carried",
         "leaves_replayed",
         "leaves_remeasured",
-        "draw_orders_replayed",
         "views_built_at_retained_layout",
         "views_reused",
         "views_spliced",
@@ -188,13 +189,13 @@ impl FastStats {
             ("primitives_painted".into(), self.primitives_painted),
             ("primitives_copied".into(), self.primitives_copied),
             ("draw_orders_computed".into(), self.draw_orders_computed),
+            ("draw_orders_replayed".into(), self.draw_orders_replayed),
             ("nodes_claimed".into(), self.nodes_claimed),
             ("nodes_released".into(), self.nodes_released),
             ("nodes_lingering".into(), self.nodes_lingering),
             ("leaves_carried".into(), self.leaves_carried),
             ("leaves_replayed".into(), self.leaves_replayed),
             ("leaves_remeasured".into(), self.leaves_remeasured),
-            ("draw_orders_replayed".into(), self.draw_orders_replayed),
             (
                 "views_built_at_retained_layout".into(),
                 self.views_built_at_retained_layout,
@@ -235,7 +236,6 @@ impl FastStats {
             + self.leaves_carried
             + self.leaves_replayed
             + self.leaves_remeasured
-            + self.draw_orders_replayed
             + self.views_built_at_retained_layout
             + self.views_reused
             + self.views_spliced
@@ -374,7 +374,12 @@ pub(crate) fn finish_frame(window: &mut Window) {
         .fast_lines_shaped
         .swap(0, std::sync::atomic::Ordering::Relaxed);
     let (primitives, draw_orders) = scene_work(&window.next_frame.scene);
+    let scene = &window.next_frame.scene;
+    let replayed = u64::from(scene.primitive_bounds.replayed)
+        + u64::from(scene.positioned_primitive_bounds.replayed)
+        + u64::from(scene.top_layer_primitive_bounds.replayed);
     let frame = &mut window.fast_stats.frame;
+    frame.draw_orders_replayed += replayed;
     frame.accumulate(&FastStats {
         frames: 0,
         ..engine
@@ -386,7 +391,7 @@ pub(crate) fn finish_frame(window: &mut Window) {
 }
 
 /// How many primitives `scene` holds and how many draw orders inserting its
-/// operations computed in the bounds trees.
+/// operations took from the bounds trees, searched or replayed.
 fn scene_work(scene: &crate::Scene) -> (u64, u64) {
     use crate::scene::PaintOperation;
     // Whether each open layer fixes the draw order of what it holds.
