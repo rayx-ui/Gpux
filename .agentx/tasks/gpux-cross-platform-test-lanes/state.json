@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-cross-platform-test-lanes",
-  "revision": 165,
+  "revision": 167,
   "planRevision": 17,
   "specHashes": {
     "requirements": "bd98fa954f56be4faf4edb7f97bae81f5885b13cd3fb3a3f40b1d738ff09e2a9",
@@ -293,6 +293,15 @@
         }
       },
       "recordedAt": "2026-10-09T13:53:36Z"
+    },
+    "932d85987859c0918b820321b177191c00d2ab35cd592501355eddc93849f071": {
+      "snapshot": {
+        "specHash": "62030b67d292c66c21bc58f4083201a3fb41bd01b260676118059c7cabe706e3",
+        "repositories": {
+          "gpux": "63f630bef246d6f067d00265e2eefd761665cd34e00d0ac770dfa5659c11e89b"
+        }
+      },
+      "recordedAt": "2026-10-09T14:06:12Z"
     }
   },
   "checkResults": {
@@ -1076,33 +1085,33 @@
       "checkId": "check-lane-d",
       "boundaryId": "final",
       "phase": "final",
-      "batchId": "1e47b3173206292b2a3f21d01a94e5edb85b6daa6fd92ac5b2c1434a4b3cd8af",
+      "batchId": "932d85987859c0918b820321b177191c00d2ab35cd592501355eddc93849f071",
       "definitionHash": "960663a020d4fde84ade3a47fbaffe0102952fd714d98c397ea28f310b32d163",
-      "basisHash": "34f1620e366d0e7a38b316598473e7cdd33e465bdd499df6c7649c30395d2d1e",
+      "basisHash": "4aef60ed3d668f6fa8b0070e13e3c17bbaa3fa81cac5f37be9f0f8137faa0326",
       "status": "passed",
       "exitCode": 0,
       "testCount": 40,
-      "durationSeconds": 25.4348,
-      "recordedAt": "2026-10-09T13:45:32Z",
+      "durationSeconds": 23.2658,
+      "recordedAt": "2026-10-09T13:58:26Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/final-final-64a597bc262f.log",
-      "logSha256": "ecef56bb997598fb16428c17183808a7b7ddabf53b8b26989dfbdbbc1d88acf7"
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/final-final-19dbb6afe37b.log",
+      "logSha256": "b91df16cbdfe50276f2dd29b3bab8f9a8c876a5b8f9ca2d81912bbb033e01dad"
     },
     "final/check-web-build/final": {
       "checkId": "check-web-build",
       "boundaryId": "final",
       "phase": "final",
-      "batchId": "1e47b3173206292b2a3f21d01a94e5edb85b6daa6fd92ac5b2c1434a4b3cd8af",
+      "batchId": "932d85987859c0918b820321b177191c00d2ab35cd592501355eddc93849f071",
       "definitionHash": "dc42501a6af89c8b8e0d0442eeb354fd683fa3a3eb1384b64c88e72243aadca5",
-      "basisHash": "1c7ca477efe83e64fcd2f34db241721fc61499f86c6500f88ff16ffe06ca76dd",
+      "basisHash": "585283d2baf545d16bf18668beb3fa36b7bf2d61bb82f998dfe59d5ec0169a19",
       "status": "passed",
       "exitCode": 0,
       "testCount": 1,
-      "durationSeconds": 6.5572,
-      "recordedAt": "2026-10-09T13:45:39Z",
+      "durationSeconds": 3.6317,
+      "recordedAt": "2026-10-09T13:58:30Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/final-final-89727196022d.log",
-      "logSha256": "213e2d7687c2b047e29981a9d0669d1ddf562bc4af17fe40ba8b9e506e1c7b07"
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/final-final-71eaa066dc95.log",
+      "logSha256": "d75d8f06d4fdc68c5ceb83fb227ea155acceeb30a400d2ed1bd9f81789f3ccf2"
     },
     "final/check-web-diagnostics-compile/final": {
       "checkId": "check-web-diagnostics-compile",
@@ -1142,65 +1151,65 @@
       "checkId": "check-web-canary",
       "boundaryId": "final",
       "phase": "final",
-      "batchId": "1e47b3173206292b2a3f21d01a94e5edb85b6daa6fd92ac5b2c1434a4b3cd8af",
+      "batchId": "932d85987859c0918b820321b177191c00d2ab35cd592501355eddc93849f071",
       "definitionHash": "7a5b94b6c8e726e23118ce7efa79a71b08b178dd1d6a503c9d20bfed7ae4950e",
-      "basisHash": "431a47364989d3d4f52d41c9e1ebb94b7ad43579969ec2f623c247a8d95afaea",
+      "basisHash": "473dbd55670523c8491623b62ceb7611b5358149a3f47d80442728438990d8be",
       "status": "passed",
       "exitCode": 0,
       "testCount": 3,
-      "durationSeconds": 8.7185,
-      "recordedAt": "2026-10-09T13:45:47Z",
+      "durationSeconds": 9.0694,
+      "recordedAt": "2026-10-09T13:58:39Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/final-final-181df6d97a1b.log",
-      "logSha256": "8dc348e44e1c795cb2f4050838f9dda0c378a2e6a1421813b2e1558c118ff50f"
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/final-final-098cb1e32704.log",
+      "logSha256": "0d67394c6c36a9eae10648633f43d2b691b460e3083d0205c87407b7397f4c0c"
     },
     "final/check-web-pr/final": {
       "checkId": "check-web-pr",
       "boundaryId": "final",
       "phase": "final",
-      "batchId": "1e47b3173206292b2a3f21d01a94e5edb85b6daa6fd92ac5b2c1434a4b3cd8af",
+      "batchId": "932d85987859c0918b820321b177191c00d2ab35cd592501355eddc93849f071",
       "definitionHash": "ea8a68034561bba9325e18c6df1a3d139e201c0bcd07dd4bd0cc1c3ee647f9e9",
-      "basisHash": "24ffb0f6d93ef9c917660ed6cdef3b9a400d6b6d9b6cf702cdb497f9910e3a91",
+      "basisHash": "0a302ce0cbfa2ced37d609d966cf2df8f3026e4611f1f3de0281db92de78d846",
       "status": "passed",
       "exitCode": 0,
       "testCount": 124,
-      "durationSeconds": 52.5661,
-      "recordedAt": "2026-10-09T13:46:40Z",
+      "durationSeconds": 58.0579,
+      "recordedAt": "2026-10-09T13:59:37Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/final-final-a8145884baa9.log",
-      "logSha256": "c983383cfbabb939a89df6a7d1a61612e9a7c1d887b3fd3cbfcef337f867e50d"
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/final-final-41c931598dbb.log",
+      "logSha256": "ac3702ad3ce2a03990b392488a9bed7384b47dd6951ddb0d91139da4a9100e0f"
     },
     "final/check-android-build/final": {
       "checkId": "check-android-build",
       "boundaryId": "final",
       "phase": "final",
-      "batchId": "1e47b3173206292b2a3f21d01a94e5edb85b6daa6fd92ac5b2c1434a4b3cd8af",
+      "batchId": "932d85987859c0918b820321b177191c00d2ab35cd592501355eddc93849f071",
       "definitionHash": "d17c6a973b64aeddd7abae03e436ead4d287f54f195386c7e1ebf8cbc81644fb",
-      "basisHash": "083ab2a243aeb18e54592178862f51f7493ee14cb98f77421541fa506c29fee0",
+      "basisHash": "0076e607b04fe01a8a50d1209ad9f5558b528bb2e6e3afdc9942f22c5dd3bcd5",
       "status": "passed",
       "exitCode": 0,
       "testCount": 1,
-      "durationSeconds": 8.988,
-      "recordedAt": "2026-10-09T13:46:49Z",
+      "durationSeconds": 5.0083,
+      "recordedAt": "2026-10-09T13:59:42Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/final-final-4f0177c185f2.log",
-      "logSha256": "100b38808a5df7e5e8675d439a097d0c676814add9dcd4dc0aa2bbd9de014ee7"
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/final-final-4a73e850cab5.log",
+      "logSha256": "4361d5db36750455f044f983340ea6edfde86faa03a55871f21da2f03220d7ab"
     },
     "final/check-android-run/final": {
       "checkId": "check-android-run",
       "boundaryId": "final",
       "phase": "final",
-      "batchId": "1e47b3173206292b2a3f21d01a94e5edb85b6daa6fd92ac5b2c1434a4b3cd8af",
+      "batchId": "932d85987859c0918b820321b177191c00d2ab35cd592501355eddc93849f071",
       "definitionHash": "7ad924d7dd574ecaaf6faf266a8d08e6756284993b125c827825d9ab8aba11d2",
-      "basisHash": "99905ef8e02ed0b7148c20e6560481f31f5e107eeb53ea83d5109dcf54f55f18",
+      "basisHash": "f1e62b78767d3bed35d2a728276ce690423f398ab631cb73a167d2f947d25101",
       "status": "passed",
       "exitCode": 0,
       "testCount": 29,
-      "durationSeconds": 156.003,
-      "recordedAt": "2026-10-09T13:49:25Z",
+      "durationSeconds": 164.798,
+      "recordedAt": "2026-10-09T14:02:27Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/final-final-06d761f6ebf2.log",
-      "logSha256": "5eb050201c0fd067e9a804b7a5b0d3cf7d7d7d6420809dc6900e233ce7fd134a"
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/final-final-53f0eb532f28.log",
+      "logSha256": "70dc5ea825415c2d238da97e14d3a4ced8e795b9be4e1b6bf4a1d7f46dd1b747"
     },
     "final/check-lane-g-list/final": {
       "checkId": "check-lane-g-list",
@@ -1342,81 +1351,81 @@
       "checkId": "final-fmt",
       "boundaryId": "final",
       "phase": "final",
-      "batchId": "1e47b3173206292b2a3f21d01a94e5edb85b6daa6fd92ac5b2c1434a4b3cd8af",
+      "batchId": "932d85987859c0918b820321b177191c00d2ab35cd592501355eddc93849f071",
       "definitionHash": "0662c13c3f209c6b43fe9cc99611aca2be8ab526288d5b8ca16ec04604c76a5f",
-      "basisHash": "a28fe0ac7e2b05112653dddc3b2eb14407fba07e1820c89e89a598d0af196194",
+      "basisHash": "e0dbf468efe179e0c3d38a3cea24d40071731adffbd7ceb59bbab58f30e11fe7",
       "status": "passed",
       "exitCode": 0,
       "testCount": 0,
-      "durationSeconds": 4.9113,
-      "recordedAt": "2026-10-09T13:49:30Z",
+      "durationSeconds": 4.7972,
+      "recordedAt": "2026-10-09T14:02:32Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/final-final-1e2095be20d1.log",
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/final-final-53edb30cf431.log",
       "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     "final/final-clippy/final": {
       "checkId": "final-clippy",
       "boundaryId": "final",
       "phase": "final",
-      "batchId": "1e47b3173206292b2a3f21d01a94e5edb85b6daa6fd92ac5b2c1434a4b3cd8af",
+      "batchId": "932d85987859c0918b820321b177191c00d2ab35cd592501355eddc93849f071",
       "definitionHash": "83cb1a846bdffe702ce7ed4043f95aa2b6cc8d47b9d9dcbd2d7e88f2b0b0bd49",
-      "basisHash": "035946220523134237e03c9769a7481226062c8b1121e2cc36c3084ab474ad69",
+      "basisHash": "583629c0a81642009e349486f582a132b8e970e028b6e571979e6dffac9b4775",
       "status": "passed",
       "exitCode": 0,
       "testCount": 0,
-      "durationSeconds": 2.9436,
-      "recordedAt": "2026-10-09T13:49:33Z",
+      "durationSeconds": 2.4327,
+      "recordedAt": "2026-10-09T14:02:35Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/final-final-900c174e4dc9.log",
-      "logSha256": "44f78d1b915ca934aa503e115e9d9a70677762cdafa031b388591a752758b78c"
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/final-final-298d7d1f5be8.log",
+      "logSha256": "973e90baef6c80b65d743dc9936f88af2bf71a73e74a4bbf4c7609c5a08ddd98"
     },
     "final/final-web-check/final": {
       "checkId": "final-web-check",
       "boundaryId": "final",
       "phase": "final",
-      "batchId": "1e47b3173206292b2a3f21d01a94e5edb85b6daa6fd92ac5b2c1434a4b3cd8af",
+      "batchId": "932d85987859c0918b820321b177191c00d2ab35cd592501355eddc93849f071",
       "definitionHash": "0462723c596799454d3305c0b907047dec249a6b4fcb45a829dd23649f6fa8d9",
-      "basisHash": "2074fb25bd349604823e8dc056056eaf6a6c21e91394c63986fe72e2c791043d",
+      "basisHash": "eafcec58c31a9cdbb535649d689fc8c4b20a3dbfec5d86cd82e58bf6cdd74b15",
       "status": "passed",
       "exitCode": 0,
       "testCount": 0,
-      "durationSeconds": 2.4171,
-      "recordedAt": "2026-10-09T13:49:36Z",
+      "durationSeconds": 2.0289,
+      "recordedAt": "2026-10-09T14:02:37Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/final-final-965c31d62c97.log",
-      "logSha256": "fd8ce289c4909e7bbe7db629e28e61c3e5ef2d2b9b3b128c61506ed627290f1c"
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/final-final-d4347deaca2a.log",
+      "logSha256": "1a7468e3f740f57870dd233c845bab9c1df03813cb5df9b073e5269e8433bf11"
     },
     "final/final-package/final": {
       "checkId": "final-package",
       "boundaryId": "final",
       "phase": "final",
-      "batchId": "1e47b3173206292b2a3f21d01a94e5edb85b6daa6fd92ac5b2c1434a4b3cd8af",
+      "batchId": "932d85987859c0918b820321b177191c00d2ab35cd592501355eddc93849f071",
       "definitionHash": "8b798dc6c19e67a884bd9ee49798e20730db99597c7ed7db6ee01d9c49547fc8",
-      "basisHash": "d736fd5396a3175cd4297fbdb0b707ce80b599b3015a4d18f21ae32a645d43cc",
+      "basisHash": "729c9860e745cd05b094453027a65802bfd7281556d5bfda4ba19aa39cf15a34",
       "status": "passed",
       "exitCode": 0,
       "testCount": 0,
-      "durationSeconds": 150.0472,
-      "recordedAt": "2026-10-09T13:52:06Z",
+      "durationSeconds": 156.9791,
+      "recordedAt": "2026-10-09T14:05:14Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/final-final-49e3b59c3aba.log",
-      "logSha256": "6789290fd5d4a05c6dfc0abba1d4f0e8bc13de3d33f7770a75295e6190e65aa4"
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/final-final-267ab68b448a.log",
+      "logSha256": "856e658933b2a304fcc2a1f8e7e85a6fed8997ce085ca50de162a8cfe1eaf705"
     },
     "final/final-tests/final": {
       "checkId": "final-tests",
       "boundaryId": "final",
       "phase": "final",
-      "batchId": "1e47b3173206292b2a3f21d01a94e5edb85b6daa6fd92ac5b2c1434a4b3cd8af",
+      "batchId": "932d85987859c0918b820321b177191c00d2ab35cd592501355eddc93849f071",
       "definitionHash": "4a1a806812a6a4c156773a38993b09916e3143f1232ecc46188f40918ca98131",
-      "basisHash": "e6e7acaa3c3bf0dea4695d67cfaf7efefaf77c299f55ebe39ed375a92b4ea35b",
+      "basisHash": "0d79d4b95dabaf181ae37a241903fe731c3b400de3d89227485c64b8e38aadc3",
       "status": "passed",
       "exitCode": 0,
       "testCount": 1108,
-      "durationSeconds": 89.0681,
-      "recordedAt": "2026-10-09T13:53:35Z",
+      "durationSeconds": 57.8838,
+      "recordedAt": "2026-10-09T14:06:12Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/final-final-a19afbb28d7b.log",
-      "logSha256": "0a0acdb1edbdd43db9d5b036672e3a99a5dc72106cde429dfca0a03f92037da0"
+      "logPath": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/final-final-5900fdf967bf.log",
+      "logSha256": "655bad15c705ccf469d7346b0fa11c9ca1b8f37effa274a269184f5256afbc10"
     },
     "s9-ci-cadence/check-ci-pr-only/final": {
       "checkId": "check-ci-pr-only",
@@ -4164,7 +4173,7 @@
     },
     "final": {
       "reviewerId": "final-independent-reviewer-opus-5-5-windows-20261009",
-      "snapshotId": "1e47b3173206292b2a3f21d01a94e5edb85b6daa6fd92ac5b2c1434a4b3cd8af",
+      "snapshotId": "932d85987859c0918b820321b177191c00d2ab35cd592501355eddc93849f071",
       "criterionIds": [
         "LANES-1",
         "LANES-2",
@@ -5238,20 +5247,6 @@
         },
         {
           "repositoryId": "gpux",
-          "path": "HANDOFF.md",
-          "kind": "source",
-          "criterionIds": [
-            "M-1",
-            "M-3",
-            "F-1",
-            "F-2",
-            "F-3",
-            "G-1"
-          ],
-          "sha256": "c921cb735529ca4e03fdf20aefa19ff0d86c9052fbaec5f2814fe6ff650360b2"
-        },
-        {
-          "repositoryId": "gpux",
           "path": "artifacts-temp/agentx/gpux-cross-platform-test-lanes/s9-ci-cadence-final-c8ae63660f19.log",
           "kind": "runtime",
           "criterionIds": [
@@ -5271,11 +5266,11 @@
           "sha256": "0a0acdb1edbdd43db9d5b036672e3a99a5dc72106cde429dfca0a03f92037da0"
         }
       ],
-      "summaryMarkdown": "**Passed.** All 49 criteria hold at gpux `bc361a2` (snapshot 1e47b317, revision 164), including A-3. FINAL-F1-a2-push-trigger is resolved.\n\n**Delta since the first final review:** `c383477` changes only AgentX metadata: the A-3 amendment, sprint s9 and its state. No product source, test, workflow or doc changed. The integrated assessment from the first final review therefore stands:\n- the post-sprint-8 changes are correct (KeyboardOs and browser_os, the Playwright user agent, the instance-data limit, the Android per-backend surfaces, the logcat fallback, the Windows `cursor_sync() -> None`, and the bench page-fault test);\n- the android-touch-pan failure on the 1344x2992 emulator is an environment limit that the docs cover, not a defect.\n\n**A-3:** `ci.yml`, `lane-b.yml`, `lane-e.yml` and `lane-f.yml` run on pull requests, schedules and dispatch only, and the `docs/testing.md` cadence table agrees. `check-ci-pr-only` passes and can fail.\n\n**Evidence:** `check --epic` passed 37 of 37 at revision 164. The rerun checks:\n- lane D 40;\n- web build, `@canary` 3 and `@pr` 124;\n- Android build, and Android run 29 passed with 1 skipped at 720x1280, pan included;\n- fmt, Clippy, the web check, package, and tests 1108.\n\n**Note:** the decision promotion for DOCS-2 is stashed (`promoted-memory`), to be applied when the epic completes, as CLAUDE.md prescribes.",
+      "summaryMarkdown": "**Passed.** All 49 criteria hold at snapshot 932d8598 (revision 166). FINAL-F1-a2-push-trigger stays resolved.\n\n**Delta since the passing review at revision 165:**\n- `4b5e5fd` promotes the seven decisions into `.agentx/memory`, completing DOCS-2's promotion;\n- `39c772f` deletes `HANDOFF.md`.\n\n`git diff c383477 HEAD -- . ':(exclude).agentx'` shows only that deletion (380 lines). Outside `.agentx/tasks`, no file names `HANDOFF` any more: no doc, skill, memory or source file. Within `.agentx/tasks`, only `state.json` mentions it, in historical review and handoff text, whose `handoffMarkdown` keeps the Mac run evidence for M-1, M-3 and F-1 to F-3.\n\nThe epic's lasting contracts live in `docs/testing.md`, the workflows, the gpux skill and memory, so removing the handoff file loses no required documentation. I removed `HANDOFF.md` from the anchors; the criteria it anchored are covered by `docs/testing.md`, the CI workflows, `darwin.rs`, `tooling/testkit/src/ios.rs` and the `ios_host` example.\n\n**Evidence:** `check --epic` passed 37 of 37 at revision 166. No product source, test or workflow changed, so the integrated assessment and the anchored check logs of the previous review still apply.",
       "findingIds": [
         "FINAL-F1-a2-push-trigger"
       ],
-      "recordedAt": "2026-10-09T13:54:42Z"
+      "recordedAt": "2026-10-09T14:07:02Z"
     }
   },
   "checkpoints": {
