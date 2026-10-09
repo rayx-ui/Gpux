@@ -135,6 +135,9 @@ pub(crate) enum Change {
     /// Shows or hides an overlay over the grid's first row, which can cover a
     /// hovered cell with the pointer still.
     CoverCells,
+    /// Swaps an unidentified text child for an empty box at the same place,
+    /// or back.
+    SwapText,
     /// Presses and releases the button over the press target.
     Press,
     /// Moves focus to the key target, the editable text, or nowhere.
@@ -275,6 +278,7 @@ impl Change {
             95..97 => Change::HoverCell {
                 cell: rng.random_range(0..GRID_CELLS),
             },
+            97..98 => Change::SwapText,
             _ => Change::Redraw,
         }
     }
@@ -507,6 +511,7 @@ pub(crate) struct OracleView {
     dropped: Vec<usize>,
     top_layer: bool,
     covered: bool,
+    text_swapped: bool,
     unclipped: bool,
     blur: usize,
     wide: bool,
@@ -566,6 +571,7 @@ impl OracleView {
             dropped: Vec::new(),
             top_layer: false,
             covered: false,
+            text_swapped: false,
             unclipped: false,
             blur: 1,
             wide: false,
@@ -654,6 +660,7 @@ impl OracleView {
             }
             Change::TopLayer => self.top_layer = !self.top_layer,
             Change::CoverCells => self.covered = !self.covered,
+            Change::SwapText => self.text_swapped = !self.text_swapped,
             Change::Deferred => self.unclipped = !self.unclipped,
             Change::Effect { radius } => self.blur = radius,
             Change::Animate => self.wide = !self.wide,
@@ -801,6 +808,16 @@ impl Render for OracleView {
                                     .bg(PALETTE[chip as usize % PALETTE.len()])
                                     .child(SharedString::from(chip.to_string()))
                             })),
+                    )
+                    // An unidentified child that is text or an empty box,
+                    // before a box placed after it.
+                    .child(
+                        div()
+                            .flex()
+                            .flex_row()
+                            .when(!self.text_swapped, |this| this.child("swapped text"))
+                            .when(self.text_swapped, |this| this.child(div()))
+                            .child(div().size(px(6.)).bg(PALETTE[3])),
                     )
                     .child(
                         div()

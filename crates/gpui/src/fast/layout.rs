@@ -119,6 +119,10 @@ struct TextLeaf {
     /// caches them in device pixels, so another scale factor measures it
     /// afresh whatever its text.
     scale_factor: f32,
+    /// The text system's font generation it was measured under: fonts
+    /// installed since can shape the same text differently, so it is
+    /// measured afresh.
+    font_generation: usize,
 }
 
 /// The measurements Taffy took of one text leaf since the leaf was last
@@ -279,8 +283,13 @@ pub(crate) fn request_node(
             crate::fast::fast_stat!(engine.fast_stats, nodes_claimed += 1);
             apply_requested_style(engine, key, id, fingerprint, style, rem_size, scale_factor);
             engine.update_node_topology(id, children, context);
-            if let Some(node) = engine.retention.retained.get_mut(&key) {
-                node.text = None;
+            // A text leaf was left clean at clear for the next text at its
+            // key to carry, replay or dirty. Another element is none of
+            // those: what Taffy cached for the text is not its size.
+            if let Some(node) = engine.retention.retained.get_mut(&key)
+                && node.text.take().is_some()
+            {
+                engine.taffy.mark_dirty(id.into()).expect(EXPECT_MESSAGE);
             }
             return id;
         }
@@ -340,12 +349,29 @@ pub(crate) fn request_text_node(
     window.invalidator.debug_assert_prepaint();
     let rem_size = window.rem_size();
     let scale_factor = window.scale_factor();
+    let font_generation = window
+        .text_system()
+        .line_layout_cache
+        .font_generation
+        .load(std::sync::atomic::Ordering::Acquire);
     let key = crate::fast::layout_key::layout_key(window);
     let mut engine = window
         .layout_engine
         .take()
         .expect("text is laid out with the layout engine in place");
-    let id = request_text_leaf(&mut engine, key, inputs, rem_size, scale_factor, window, cx);
+    let measured_under = MeasuredUnder {
+        scale_factor,
+        font_generation,
+    };
+    let id = request_text_leaf(
+        &mut engine,
+        key,
+        inputs,
+        rem_size,
+        measured_under,
+        window,
+        cx,
+    );
     window.layout_engine = Some(engine);
     id
 }
@@ -379,15 +405,26 @@ fn replays(
     })
 }
 
+/// What a text leaf's sizes depend on beyond its own inputs.
+#[derive(Clone, Copy, PartialEq)]
+struct MeasuredUnder {
+    scale_factor: f32,
+    font_generation: usize,
+}
+
 fn request_text_leaf(
     engine: &mut TaffyLayoutEngine,
     key: Option<u64>,
     inputs: Rc<TextMeasureInputs>,
     rem_size: Pixels,
-    scale_factor: f32,
+    measured_under: MeasuredUnder,
     window: &mut Window,
     cx: &mut App,
 ) -> LayoutId {
+    let MeasuredUnder {
+        scale_factor,
+        font_generation,
+    } = measured_under;
     let style = Style::default();
     let fingerprint = layout_fingerprint(&style, rem_size, scale_factor);
     let (key, id) = match engine.retention.claim(key) {
@@ -416,6 +453,7 @@ fn request_text_leaf(
                     inputs,
                     log,
                     scale_factor,
+                    font_generation,
                 });
             }
             return id;
@@ -428,9 +466,18 @@ fn request_text_leaf(
         .retained
         .get(&key)
         .and_then(|node| node.text.as_ref())
-        .map(|text| (text.inputs.clone(), text.log.clone(), text.scale_factor));
+        .map(|text| {
+            (
+                text.inputs.clone(),
+                text.log.clone(),
+                MeasuredUnder {
+                    scale_factor: text.scale_factor,
+                    font_generation: text.font_generation,
+                },
+            )
+        });
     let (log, outcome) = match previous {
-        Some((_, _, previous_scale)) if previous_scale != scale_factor => {
+        Some((_, _, previous_under)) if previous_under != measured_under => {
             crate::fast::text::forget_measurement(&inputs);
             (Rc::default(), TextOutcome::Remeasured)
         }
@@ -449,7 +496,7 @@ fn request_text_leaf(
     let context = text_context(&inputs, &log);
     match outcome {
         TextOutcome::Carried | TextOutcome::Replayed => {
-            engine.set_measure_keeping_clean(id, context);
+            set_measure_keeping_clean(engine, id, context);
             engine
                 .retention
                 .pending_settles
@@ -473,6 +520,7 @@ fn request_text_leaf(
             inputs,
             log,
             scale_factor,
+            font_generation,
         });
     }
     id
@@ -588,7 +636,8 @@ pub(crate) fn settle_text_leaves(
             continue;
         }
         crate::fast::fast_stat!(window.fast_stats.frame, leaves_measured += 1);
-        engine.measure_node(
+        measure_node(
+            engine,
             id,
             Size {
                 width: Some(content.width),
@@ -736,7 +785,12 @@ pub(crate) fn closures_held(engine: &TaffyLayoutEngine) -> usize {
         .values()
         .map(|node| node.id)
         .chain(retention.transient.iter().copied())
-        .filter(|id| engine.holds_measure(*id))
+        .filter(|id| {
+            engine
+                .taffy
+                .get_node_context((*id).into())
+                .is_some_and(|context| context.measure.is_some())
+        })
         .count()
 }
 
@@ -760,7 +814,7 @@ pub(crate) fn probe_and_settle_text_leaves(window: &mut Window, cx: &mut App) ->
         .map(|(id, context)| {
             // The frame that measured it was cleared: give it its closure
             // back for the probe, as the next frame would.
-            engine.set_measure_keeping_clean(id, context);
+            set_measure_keeping_clean(&mut engine, id, context);
             id
         })
         .collect();
@@ -777,7 +831,7 @@ pub(crate) fn probe_and_settle_text_leaves(window: &mut Window, cx: &mut App) ->
             },
         );
         engine.retention.text_leaves.insert(*id);
-        engine.measure_node(*id, known, available, window, cx);
+        measure_node(&mut engine, *id, known, available, window, cx);
         note_measured(&mut engine.retention, *id, known, available);
         let mut root: taffy::NodeId = (*id).into();
         while let Some(parent) = engine.taffy.parent(root) {
@@ -788,6 +842,44 @@ pub(crate) fn probe_and_settle_text_leaves(window: &mut Window, cx: &mut App) ->
     engine.clear();
     window.layout_engine = Some(engine);
     leaves.len()
+}
+
+/// Gives a measured node `context`'s closure without dirtying it, for a
+/// measurement that still stands.
+fn set_measure_keeping_clean(engine: &mut TaffyLayoutEngine, id: LayoutId, context: NodeContext) {
+    match engine.taffy.get_node_context_mut(id.into()) {
+        Some(kept) => {
+            kept.measure = context.measure;
+            #[cfg(feature = "diagnostics")]
+            {
+                kept.kind = context.kind;
+            }
+        }
+        None => engine
+            .taffy
+            .set_node_context(id.into(), Some(context))
+            .expect(EXPECT_MESSAGE),
+    }
+    engine.note_requested_node(id, &[], true);
+}
+
+/// Runs a measured node's closure under these constraints, outside a layout
+/// computation.
+fn measure_node(
+    engine: &mut TaffyLayoutEngine,
+    id: LayoutId,
+    known_dimensions: Size<Option<Pixels>>,
+    available_space: Size<AvailableSpace>,
+    window: &mut Window,
+    cx: &mut App,
+) {
+    if let Some(measure) = engine
+        .taffy
+        .get_node_context_mut(id.into())
+        .and_then(|context| context.measure.as_mut())
+    {
+        measure(known_dimensions, available_space, window, cx);
+    }
 }
 
 /// Begins a frame for `window`'s layout: it keys its layout while layout

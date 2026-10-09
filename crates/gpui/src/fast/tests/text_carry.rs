@@ -513,3 +513,198 @@ fn carried_text_keeps_its_lines_in_the_line_layout_cache() {
     let (back, _) = draw(&mut kept);
     assert!(back.lines_shaped > 0, "{back:?}");
 }
+
+/// A row whose first child, unidentified, is text or an empty box, before a
+/// box placed after it.
+struct Swap {
+    text: bool,
+}
+
+impl Render for Swap {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        div()
+            .flex()
+            .flex_row()
+            .when(self.text, |this| this.child("hello wide world"))
+            .when(!self.text, |this| this.child(div()))
+            .child(div().size(px(10.)).bg(PALETTE[1]))
+    }
+}
+
+/// Found by review: a text leaf is left clean at clear for the next text at
+/// its key; an empty box claiming that key instead did not dirty it, and
+/// kept the text's width in Taffy's cache. A node that was a text leaf is
+/// dirtied when anything else claims it.
+#[test]
+fn text_replaced_by_another_element_at_its_key_is_laid_out_afresh() {
+    let open = |mode: FastMode| {
+        let mut cx = oracle_app(0);
+        cx.set_draw_on_flush(false);
+        let window = cx.add_window(|_, _| Swap { text: true });
+        cx.update_window(window.into(), |_, window, _| window.set_fast_mode(mode))
+            .unwrap();
+        (cx, window)
+    };
+    let (mut kept, mut pooled) = (open(LAYOUT), open(FastMode::OFF));
+    for (step, text) in [true, true, false, false, true, false]
+        .into_iter()
+        .enumerate()
+    {
+        let frames: Vec<Vec<String>> = [&mut kept, &mut pooled]
+            .into_iter()
+            .map(|(cx, window)| {
+                cx.update_window((*window).into(), |root, window, cx| {
+                    root.downcast::<Swap>().unwrap().update(cx, |view, cx| {
+                        view.text = text;
+                        cx.notify();
+                    });
+                    window.draw(cx).clear(cx);
+                    window.describe_rendered_frame()
+                })
+                .unwrap()
+            })
+            .collect();
+        if let Some(difference) =
+            crate::fast::verify::first_frame_difference(&frames[0], &frames[1])
+        {
+            panic!("step {step}: {difference}");
+        }
+    }
+}
+
+/// The oracle's text system, whose lines come out twice as wide once fonts
+/// are installed.
+struct WideningTextSystem {
+    inner: super::oracle_support::GlyphBoxTextSystem,
+    wide: std::sync::atomic::AtomicBool,
+}
+
+impl crate::PlatformTextSystem for WideningTextSystem {
+    fn add_fonts(&self, fonts: Vec<std::borrow::Cow<'static, [u8]>>) -> anyhow::Result<()> {
+        self.wide.store(true, std::sync::atomic::Ordering::SeqCst);
+        self.inner.add_fonts(fonts)
+    }
+
+    fn all_font_names(&self) -> Vec<String> {
+        self.inner.all_font_names()
+    }
+
+    fn font_id(&self, descriptor: &crate::Font) -> anyhow::Result<crate::FontId> {
+        self.inner.font_id(descriptor)
+    }
+
+    fn font_metrics(&self, font_id: crate::FontId) -> crate::FontMetrics {
+        self.inner.font_metrics(font_id)
+    }
+
+    fn typographic_bounds(
+        &self,
+        font_id: crate::FontId,
+        glyph_id: crate::GlyphId,
+    ) -> anyhow::Result<crate::Bounds<f32>> {
+        self.inner.typographic_bounds(font_id, glyph_id)
+    }
+
+    fn advance(
+        &self,
+        font_id: crate::FontId,
+        glyph_id: crate::GlyphId,
+    ) -> anyhow::Result<Size<f32>> {
+        self.inner.advance(font_id, glyph_id)
+    }
+
+    fn glyph_for_char(&self, font_id: crate::FontId, ch: char) -> Option<crate::GlyphId> {
+        self.inner.glyph_for_char(font_id, ch)
+    }
+
+    fn glyph_raster_bounds(
+        &self,
+        params: &crate::RenderGlyphParams,
+    ) -> anyhow::Result<crate::Bounds<crate::DevicePixels>> {
+        self.inner.glyph_raster_bounds(params)
+    }
+
+    fn rasterize_glyph(
+        &self,
+        params: &crate::RenderGlyphParams,
+        raster_bounds: crate::Bounds<crate::DevicePixels>,
+    ) -> anyhow::Result<(Size<crate::DevicePixels>, Vec<u8>)> {
+        self.inner.rasterize_glyph(params, raster_bounds)
+    }
+
+    fn layout_line(
+        &self,
+        text: &str,
+        font_size: Pixels,
+        runs: &[crate::FontRun],
+    ) -> crate::LineLayout {
+        let mut line = self.inner.layout_line(text, font_size, runs);
+        if self.wide.load(std::sync::atomic::Ordering::SeqCst) {
+            line.width = line.width * 2.;
+            for run in &mut line.runs {
+                for glyph in &mut run.glyphs {
+                    glyph.position.x = glyph.position.x * 2.;
+                }
+            }
+        }
+        line
+    }
+
+    fn recommended_rendering_mode(
+        &self,
+        font_id: crate::FontId,
+        font_size: Pixels,
+    ) -> crate::TextRenderingMode {
+        self.inner.recommended_rendering_mode(font_id, font_size)
+    }
+}
+
+/// Found by review: installing fonts reshapes every text without fast mode,
+/// while carried text kept the lines and size it was shaped into before.
+/// Text measured under an earlier font generation is measured afresh.
+#[test]
+fn text_is_measured_afresh_after_fonts_are_installed() {
+    let open = |mode: FastMode| {
+        let mut cx = crate::TestAppContext::build_with_text_system(
+            crate::TestDispatcher::new(0),
+            None,
+            std::sync::Arc::new(WideningTextSystem {
+                inner: super::oracle_support::GlyphBoxTextSystem(crate::NoopTextSystem),
+                wide: Default::default(),
+            }),
+        );
+        cx.set_draw_on_flush(false);
+        let window = cx.add_window(|_, _| Swap { text: true });
+        cx.update_window(window.into(), |_, window, _| window.set_fast_mode(mode))
+            .unwrap();
+        (cx, window)
+    };
+    let (mut kept, mut pooled) = (open(LAYOUT), open(FastMode::OFF));
+    for step in 0..4 {
+        let frames: Vec<Vec<String>> = [&mut kept, &mut pooled]
+            .into_iter()
+            .map(|(cx, window)| {
+                if step == 2 {
+                    cx.update(|cx| {
+                        cx.text_system()
+                            .add_fonts(vec![std::borrow::Cow::Borrowed(&[])])
+                            .unwrap()
+                    });
+                }
+                cx.update_window((*window).into(), |root, window, cx| {
+                    root.downcast::<Swap>()
+                        .unwrap()
+                        .update(cx, |_, cx| cx.notify());
+                    window.draw(cx).clear(cx);
+                    window.describe_rendered_frame()
+                })
+                .unwrap()
+            })
+            .collect();
+        if let Some(difference) =
+            crate::fast::verify::first_frame_difference(&frames[0], &frames[1])
+        {
+            panic!("step {step}: {difference}");
+        }
+    }
+}

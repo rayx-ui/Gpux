@@ -15,12 +15,10 @@ use std::{borrow::Cow, cmp, hash::Hash, mem, rc::Rc, sync::Arc};
 
 use collections::FxHashMap;
 
-use gpui_util::ResultExt as _;
-
 use crate::{
     App, AvailableSpace, Color, DecorationRun, FrameCache, LayoutId, Pixels, SharedString, Size,
-    StrikethroughStyle, TextLayout, TextLayoutInner, TextOverflow, TextRun, TextStyle,
-    TruncateFrom, UnderlineStyle, WhiteSpace, Window, WrappedLine,
+    StrikethroughStyle, TextLayout, TextLayoutInner, TextMetrics, TextRun, TextStyle,
+    UnderlineStyle, Window, WrappedLine,
 };
 
 /// Everything a text element's measurement is taken from, and the layout it
@@ -210,7 +208,7 @@ pub(crate) fn forget_measurement(inputs: &TextMeasureInputs) {
 }
 
 /// Measures text under the constraints Taffy offers, keeping the result in
-/// its layout: gpux's text measurement (`TextLayout::layout`), reading its
+/// its layout: gpux's text measurement (`TextLayout::measure`), reading its
 /// inputs from `inputs`.
 pub(crate) fn measure_text(
     inputs: &TextMeasureInputs,
@@ -219,137 +217,20 @@ pub(crate) fn measure_text(
     window: &mut Window,
     cx: &mut App,
 ) -> Size<Pixels> {
-    let TextMeasureInputs {
-        text,
-        text_style,
-        font_size,
-        letter_spacing,
-        line_height,
-        layout,
-        ..
-    } = inputs;
-    let (font_size, letter_spacing, line_height) = (*font_size, *letter_spacing, *line_height);
-    let wrap_width = if text_style.white_space == WhiteSpace::Normal {
-        known_dimensions.width.or(match available_space.width {
-            AvailableSpace::Definite(x) => Some(x),
-            _ => None,
-        })
-    } else {
-        None
-    };
-
-    let (truncate_width, truncation_affix, truncate_from) =
-        if let Some(text_overflow) = text_style.text_overflow.clone() {
-            let width = known_dimensions.width.or(match available_space.width {
-                AvailableSpace::Definite(x) => match text_style.line_clamp {
-                    Some(max_lines) => Some(x * max_lines),
-                    None => Some(x),
-                },
-                _ => None,
-            });
-            match text_overflow {
-                TextOverflow::Truncate(s) => (width, s, TruncateFrom::End),
-                TextOverflow::TruncateStart(s) => (width, s, TruncateFrom::Start),
-                TextOverflow::TruncateMiddle(s) => (width, s, TruncateFrom::Middle),
-            }
-        } else {
-            (None, "".into(), TruncateFrom::End)
-        };
-
-    // A kept measurement answers under the conditions `TextLayout::layout`
-    // gives: a cached size, a matching wrap width, and no truncation either
-    // way.
-    if let Some(text_layout) = layout.0.borrow().as_ref()
-        && let Some(size) = text_layout.size
-        && !(wrap_width.is_some() && wrap_width != text_layout.wrap_width)
-        && truncate_width.is_none()
-        && text_layout.truncate_width.is_none()
-    {
-        return size;
-    }
-
-    let runs = inputs.runs();
-    let runs = &*runs;
-    let (text, runs) = if let Some(truncate_width) = truncate_width {
-        let mut line_wrapper =
-            cx.text_system()
-                .line_wrapper(text_style.font(), font_size, letter_spacing);
-        if let Some(max_lines) = text_style.line_clamp
-            && let Some(wrap_width) = wrap_width
-        {
-            line_wrapper.truncate_wrapped_line(
-                text.clone(),
-                wrap_width,
-                max_lines,
-                &truncation_affix,
-                runs,
-                truncate_from,
-            )
-        } else if let Some(unclipped) = window
-            .text_system()
-            .shape_text(text.clone(), font_size, letter_spacing, runs, None, None)
-            .log_err()
-            && unclipped
-                .iter()
-                .all(|line| line.size(line_height).width <= truncate_width)
-        {
-            // Truncation sums per-character advances, which overestimates the
-            // shaped width, so text that fits once shaped is not truncated.
-            (text.clone(), Cow::Borrowed(runs))
-        } else {
-            line_wrapper.truncate_line(
-                text.clone(),
-                truncate_width,
-                &truncation_affix,
-                runs,
-                truncate_from,
-            )
-        }
-    } else {
-        (text.clone(), Cow::Borrowed(runs))
-    };
-    let len = text.len();
-
-    let Some(lines) = window
-        .text_system()
-        .shape_text(
-            text,
-            font_size,
-            letter_spacing,
-            &runs,
-            wrap_width,
-            text_style.line_clamp,
-        )
-        .log_err()
-    else {
-        layout.0.borrow_mut().replace(TextLayoutInner {
-            lines: Default::default(),
-            len: 0,
-            line_height,
-            wrap_width,
-            truncate_width,
-            size: Some(Size::default()),
-            bounds: None,
-        });
-        return Size::default();
-    };
-
-    let mut size: Size<Pixels> = Size::default();
-    for line in &lines {
-        let line_size = line.size(line_height);
-        size.height += line_size.height;
-        size.width = size.width.max(line_size.width).ceil();
-    }
-    layout.0.borrow_mut().replace(TextLayoutInner {
-        lines,
-        len,
-        line_height,
-        wrap_width,
-        truncate_width,
-        size: Some(size),
-        bounds: None,
-    });
-    size
+    inputs.layout.measure(
+        &inputs.text,
+        &inputs.runs(),
+        &inputs.text_style,
+        TextMetrics {
+            font_size: inputs.font_size,
+            letter_spacing: inputs.letter_spacing,
+            line_height: inputs.line_height,
+        },
+        known_dimensions,
+        available_space,
+        window,
+        cx,
+    )
 }
 
 /// Rewrites the decorations of lines already shaped, leaving the shaping

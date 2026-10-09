@@ -501,7 +501,7 @@ pub(crate) struct LineLayoutCache {
     current_frame: RwLock<FrameCache>,
     platform_text_system: Arc<dyn PlatformTextSystem>,
     /// Advances when [`TextSystem::add_fonts`] successfully changes the font database.
-    font_generation: Arc<AtomicUsize>,
+    pub(crate) font_generation: Arc<AtomicUsize>,
     /// Records the generation represented by both frame caches.
     cached_font_generation: AtomicUsize,
     /// Lines handed to the platform to be shaped since the window last took

@@ -26,9 +26,9 @@ type MeasureFn =
 type NodeMeasureFn = StackSafe<Box<MeasureFn>>;
 
 pub(crate) struct NodeContext {
-    measure: Option<NodeMeasureFn>,
+    pub(crate) measure: Option<NodeMeasureFn>,
     #[cfg(feature = "diagnostics")]
-    kind: MeasuredLayoutKind,
+    pub(crate) kind: MeasuredLayoutKind,
     #[cfg(feature = "diagnostics")]
     previous_measurements: Vec<MeasuredLayoutSample>,
     #[cfg(feature = "diagnostics")]
@@ -414,52 +414,6 @@ impl TaffyLayoutEngine {
             }
         }
         self.note_requested_node(id, children, is_measured);
-    }
-
-    /// Gives a measured node `context`'s closure without dirtying it, for a
-    /// measurement that still stands. See [`crate::fast::layout`].
-    pub(crate) fn set_measure_keeping_clean(&mut self, id: LayoutId, context: NodeContext) {
-        match self.taffy.get_node_context_mut(id.0) {
-            Some(retained) => {
-                retained.measure = context.measure;
-                #[cfg(feature = "diagnostics")]
-                {
-                    retained.kind = context.kind;
-                }
-            }
-            None => self
-                .taffy
-                .set_node_context(id.0, Some(context))
-                .expect(EXPECT_MESSAGE),
-        }
-        self.note_requested_node(id, &[], true);
-    }
-
-    /// Whether a node holds a measurement closure.
-    #[cfg(test)]
-    pub(crate) fn holds_measure(&self, id: LayoutId) -> bool {
-        self.taffy
-            .get_node_context(id.0)
-            .is_some_and(|context| context.measure.is_some())
-    }
-
-    /// Runs a measured node's closure under these constraints, outside a
-    /// layout computation.
-    pub(crate) fn measure_node(
-        &mut self,
-        id: LayoutId,
-        known_dimensions: Size<Option<Pixels>>,
-        available_space: Size<AvailableSpace>,
-        window: &mut Window,
-        cx: &mut App,
-    ) {
-        if let Some(measure) = self
-            .taffy
-            .get_node_context_mut(id.0)
-            .and_then(|context| context.measure.as_mut())
-        {
-            measure(known_dimensions, available_space, window, cx);
-        }
     }
 
     /// Records a node requested this frame: a measured one has its closure
