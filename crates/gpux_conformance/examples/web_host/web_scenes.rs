@@ -1,12 +1,13 @@
 //! Browser-only conformance scenes: gpui_web areas no other lane has (DOM overlays, HTML islands,
-//! fetched assets, CSS cursors, page lifecycle, safe areas). They live with the browser host
+//! fetched assets, CSS cursors, page lifecycle, safe areas, the visitor's shortcut modifier). They live with the browser host
 //! because the shared catalog runs every scene in lane A. Their scripts follow the catalog's
 //! conventions, so the Playwright driver runs them like any lane-B scene.
 
 use gpux::{
-    AnyElement, AnyView, App, AppContext as _, Context, ElementId, HtmlElementContentFit,
-    HtmlElementInputMode, HtmlElementLifetime, HtmlElementWheelBehavior, HtmlIslandInputMode,
-    IntoElement, Render, Subscription, Window, canvas, div, prelude::*, px, rgb, svg,
+    AnyElement, AnyView, App, AppContext as _, Context, ElementId, FocusHandle,
+    HtmlElementContentFit, HtmlElementInputMode, HtmlElementLifetime, HtmlElementWheelBehavior,
+    HtmlIslandInputMode, IntoElement, KeyBinding, KeyContext, Keystroke, Render, Subscription,
+    Window, actions, canvas, div, prelude::*, px, rgb, svg,
 };
 use gpux_conformance::{
     Expect, Lane, SceneSpec, Step,
@@ -23,6 +24,7 @@ pub static WEB_SCENES: &[SceneSpec] = &[
     CURSORS,
     LIFECYCLE,
     SAFE_AREA,
+    SHORTCUT_MODIFIER,
 ];
 
 /// The browser-only scene with this id.
@@ -309,4 +311,80 @@ pub const SAFE_AREA: SceneSpec = SceneSpec {
     golden: false,
     build: |_, cx| cx.new(|_| SafeArea).into(),
     script: || vec![Step::Expect(Expect::Exists(id("status")))],
+};
+
+actions!(web_conformance, [Shortcut, MacShortcut]);
+
+/// Follows the visitor's keyboard conventions: a `secondary-k` binding, a binding for macOS only
+/// (`os == macos`), and how `secondary-k` is written and shown. Command is the secondary modifier
+/// in Apple browsers and Control elsewhere, whatever the WASM was compiled for.
+struct ShortcutModifier {
+    focus: FocusHandle,
+    shortcuts: usize,
+    mac_shortcuts: usize,
+}
+
+impl Render for ShortcutModifier {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let mut context = KeyContext::new_with_defaults();
+        context.add("Shortcuts");
+        let os = context.get("os").cloned().unwrap_or_default();
+        let secondary_k = Keystroke::parse("secondary-k").expect("a valid keystroke");
+        root()
+            .child(status(format!(
+                "os {os} written {} shown {} shortcuts {} mac {}",
+                secondary_k.unparse(),
+                secondary_k,
+                self.shortcuts,
+                self.mac_shortcuts
+            )))
+            .child(
+                div()
+                    .id("target")
+                    .key_context(context)
+                    .track_focus(&self.focus)
+                    .w(px(100.))
+                    .h(px(30.))
+                    .bg(rgb(GRAY_HEX))
+                    .on_action(cx.listener(|this, _: &Shortcut, _, cx| {
+                        this.shortcuts += 1;
+                        cx.notify();
+                    }))
+                    .on_action(cx.listener(|this, _: &MacShortcut, _, cx| {
+                        this.mac_shortcuts += 1;
+                        cx.notify();
+                    })),
+            )
+    }
+}
+
+fn shortcut_modifier(_: &mut Window, cx: &mut App) -> AnyView {
+    cx.bind_keys([
+        KeyBinding::new("secondary-k", Shortcut, Some("Shortcuts")),
+        KeyBinding::new("f2", MacShortcut, Some("Shortcuts && os == macos")),
+    ]);
+    cx.new(|cx| ShortcutModifier {
+        focus: cx.focus_handle(),
+        shortcuts: 0,
+        mac_shortcuts: 0,
+    })
+    .into()
+}
+
+pub const SHORTCUT_MODIFIER: SceneSpec = SceneSpec {
+    id: "web-shortcut-modifier",
+    areas: &[],
+    size: (420., 70.),
+    scales: &[1.],
+    lanes: &[Lane::B],
+    golden: false,
+    build: shortcut_modifier,
+    script: || {
+        vec![
+            Step::Focus(id("target")),
+            // The bridge sends `secondary-k` with the visitor's secondary modifier.
+            Step::Keys("secondary-k secondary-k".into()),
+            Step::Expect(Expect::Exists(id("status"))),
+        ]
+    },
 };

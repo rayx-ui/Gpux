@@ -146,7 +146,9 @@ The specs:
 - One spec per `gpui_web` area covers the rest: backend fallback, viewport and resize, window
   close, pointer buttons and hover, wheel delta modes, keyboard repeat and AltGr, touch, IME,
   clipboard and its fallback, HTML elements and islands, canvas text fallback, worker threads,
-  fetched assets, cursors, page lifecycle and safe areas. Browser-only scenes for these live in
+  fetched assets, cursors, page lifecycle, safe areas, and the shortcut modifier
+  (`shortcut-modifier.spec.ts`: Command in Apple browsers and Control elsewhere, presented as a
+  Mac and as a Windows browser, so it answers the same on every host). Browser-only scenes for these live in
   `web_host`, because the shared catalog runs every scene in lane A.
 - `dawn.spec.ts` renders every scene and fails on any WebGPU validation error. Every spec also
   fails on console errors, uncaught exceptions and crashes, and checks that the page is
@@ -165,7 +167,9 @@ output, traces and failure screenshots go to `artifacts-temp/testkit/b/`.
 ### Chromium flags and troubleshooting
 
 Every profile passes `--enable-blink-features=CanvasDrawElement`, which the HTML-island specs
-need. Beyond that:
+need, and keeps the browser's own user agent: Playwright's desktop Chrome device would report
+Windows on every host, and gpux follows the browser's keyboard conventions (Command as the
+secondary modifier on a Mac), so specs press the host's modifier. Beyond that:
 
 - `local-gpu` uses new headless Chromium (`channel: 'chromium'`) with `--enable-unsafe-webgpu`.
   On Windows the old headless shell gets no WebGPU adapter (its ANGLE runs on SwiftShader), so

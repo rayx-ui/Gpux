@@ -9,6 +9,9 @@ const ci = !!process.env.CI;
 // gpui_web drives the experimental HTML-in-canvas API only on pages that opt into HTML islands;
 // enabling it lets the island specs exercise that path.
 const htmlInCanvas = '--enable-blink-features=CanvasDrawElement';
+// The desktop Chrome device without its user agent, which is Windows Chrome's: the browser reports
+// its own platform, so the app follows the host's keyboard conventions (Command on a Mac).
+const { userAgent: _windowsChrome, ...desktopChrome } = devices['Desktop Chrome'];
 
 export default defineConfig({
   testDir: './specs',
@@ -24,7 +27,7 @@ export default defineConfig({
     ? [['list'], ['blob', { outputDir: `${artifacts}/blob-report` }]]
     : [['list']],
   use: {
-    ...devices['Desktop Chrome'],
+    ...desktopChrome,
     baseURL,
     viewport: { width: 1280, height: 720 },
     deviceScaleFactor: 1,
