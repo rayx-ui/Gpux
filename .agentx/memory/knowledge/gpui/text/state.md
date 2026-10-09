@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/gpui/text
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-09T23:30:00+02:00
+  updated: 2026-10-10T00:30:00+02:00
   topics:
     - text-system
     - line-layout-cache
@@ -26,6 +26,8 @@ Read before changing text shaping, line layout caches, `TextLayout`, or `editabl
 `TextSystem::shape_text` seeds each line's decoration vector from `min(input_text_run_count, 32)`. All four font-run scratch callers share a thread-local pool whose `RefCell` borrow covers only pop/push, so nested calls are safe and the old shared mutex is gone. `TextLayout` takes a pooled `LineWrapperHandle` only inside its truncation branch and keeps its local-size cache for repeated measurement at the same width.
 
 The ordinary line-layout cache keeps two generations (current and previous frame) with exact unused-entry eviction. Each borrowed request computes one deterministic Fx hash over all identity fields; owned keys retain that scalar, so lookup, previous-frame removal, and promotion hash only the scalar while equality still compares the hash and every text/layout field.
+
+Text measurement is `TextLayout::measure` (shared by the ordinary path and layout retention). Under layout retention (`crates/gpui/src/fast/text.rs`) a text leaf carries last frame's measurement at its key when it shapes the same way (decorations rewritten in place if only colours changed), replays its logged sizes with the new closure, or is measured afresh; and the line layout cache's rollover also keeps lines that carried text still holds (only under retention; lines nothing holds are evicted exactly).
 
 Shaped lines paint their glyphs a run at a time through `fast::glyphs::LineGlyphPainter`: font, size, color, subpixel mode and paint color are worked out once per run, each glyph is quantized exactly as `Window::paint_glyph` does, and glyph bounding boxes are kept per frame (`GlyphBoundsCache`). Number shaping and gpui-fast's path tessellation cache were measured and reverted (no scenario was faster), so every line not in the layout cache is shaped by the platform.
 
