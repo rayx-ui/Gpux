@@ -4,7 +4,8 @@ Where the `gpux-cross-platform-test-lanes` epic stands and exactly what is left.
 then [docs/testing.md](docs/testing.md) (the lane contract) and the epic's AgentX specs in
 [.agentx/tasks/gpux-cross-platform-test-lanes/](.agentx/tasks/gpux-cross-platform-test-lanes).
 
-Last updated: 2026-10-09, branch `refactor/gpux-cross-platform-test-lanes` (pushed to `origin`).
+Last updated: 2026-10-09, branch `refactor/gpux-cross-platform-test-lanes` (pushed to `origin` up to
+`4f3394e`; the sprint 8 commits from the Mac are local until the owner says to push).
 
 **If you are the agent on the Mac, follow [Part 1](#part-1-the-mac-session-sprint-8) step by step.**
 
@@ -350,6 +351,11 @@ Then:
 - Keep raw output in `artifacts-temp/`; never commit logs, screenshots or frames.
 
 ## Known follow-ups outside the epic
+
+- `gpux-bench-metrics`' page-fault test maps fresh pages (`73c3abf`) and opts them out of
+  transparent huge pages on Linux (sprint 8 review finding `S8-R1-bench-thp`); it was proven on
+  macOS only. Run `cargo test -p gpux-bench-metrics --lib -- --test-threads=1` once on Linux (WSL,
+  or the CI test job).
 
 - Headless rendering on llvmpipe over GL (Linux with no Vulkan adapter) fails validation:
   `screen_effects_layout` is invalid and 76 of 77 lane C tests fail. Lane C selects lavapipe with

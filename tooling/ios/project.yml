@@ -1,8 +1,8 @@
 # Lane F's iOS app: a minimal UIKit shell around the `ios_host` example of gpux-conformance.
 #
 # `gpux-testkit ios build --simulator` builds the static library, generates the Xcode project
-# from this spec with XcodeGen into target/gpux-ios, and builds it with xcodebuild, passing the
-# library's path as GPUX_IOS_HOST_LIB. Simulator builds are not signed (CODE_SIGNING_ALLOWED=NO);
+# from this spec with XcodeGen beside it (tooling/ios/GpuxConformance.xcodeproj, git-ignored), and
+# builds it with xcodebuild into target/gpux-ios, passing the library's path as GPUX_IOS_HOST_LIB. Simulator builds are not signed (CODE_SIGNING_ALLOWED=NO);
 # device builds take the developer's team as DEVELOPMENT_TEAM (see docs/testing.md).
 name: GpuxConformance
 options:
