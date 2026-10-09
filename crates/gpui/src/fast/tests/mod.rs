@@ -8,6 +8,7 @@ mod glyph_runs;
 mod hover_dependencies;
 mod layout_keys;
 mod oracle;
+mod oracle_layout;
 mod oracle_support;
 mod scoped_invalidation;
 mod stats;
