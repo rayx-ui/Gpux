@@ -102,7 +102,7 @@ pub enum ScrollStrategy {
     Nearest,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[allow(missing_docs)]
 pub struct DeferredScrollToItem {
     /// The item index to scroll to
@@ -249,6 +249,10 @@ impl UniformListScrollHandle {
     ) {
         let mut state = self.0.borrow_mut();
         state.base_handle.cancel_programmatic_scroll();
+        state.base_handle.fast_version().bump_if(
+            state.deferred_scroll_to_item != Some(request)
+                || state.deferred_scroll_behavior != behavior,
+        );
         state.deferred_scroll_to_item = Some(request);
         state.deferred_scroll_behavior = behavior;
     }

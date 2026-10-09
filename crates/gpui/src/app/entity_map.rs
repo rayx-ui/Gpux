@@ -57,6 +57,7 @@ pub(crate) struct EntityMap {
     entities: SecondaryMap<EntityId, Box<dyn Any>>,
     pub accessed_entities: RefCell<FxHashSet<EntityId>>,
     ref_counts: Arc<RwLock<EntityRefCounts>>,
+    pub(crate) fast_access_log: crate::fast::dependencies::EntityAccessLog,
 }
 
 #[doc(hidden)]
@@ -76,6 +77,7 @@ impl EntityMap {
         Self {
             entities: SecondaryMap::new(),
             accessed_entities: RefCell::new(FxHashSet::default()),
+            fast_access_log: crate::fast::dependencies::EntityAccessLog::default(),
             ref_counts: Arc::new(RwLock::new(EntityRefCounts {
                 counts: SlotMap::with_key(),
                 dropped_entity_ids: Vec::new(),
@@ -127,6 +129,7 @@ impl EntityMap {
     {
         let mut accessed_entities = self.accessed_entities.get_mut();
         accessed_entities.insert(slot.entity_id);
+        crate::fast::dependencies::note_access(&self.fast_access_log, slot.entity_id);
 
         let handle = slot.0;
         self.entities.insert(handle.entity_id, Box::new(entity));
@@ -201,6 +204,7 @@ impl EntityMap {
                     "dropped an entity that was referenced"
                 );
                 accessed_entities.remove(&entity_id);
+                self.fast_access_log.forget(entity_id);
                 // If the EntityId was allocated with `Context::reserve`,
                 // the entity may not have been inserted.
                 Some((entity_id, self.entities.remove(entity_id)?))
@@ -212,12 +216,14 @@ impl EntityMap {
     fn read_inner(&self, entity_id: EntityId) -> Option<&dyn Any> {
         let mut accessed_entities = self.accessed_entities.borrow_mut();
         accessed_entities.insert(entity_id);
+        crate::fast::dependencies::note_access(&self.fast_access_log, entity_id);
         self.entities.get(entity_id).map(Box::as_ref)
     }
 
     #[inline(never)]
     fn lease_inner(&mut self, entity_id: EntityId) -> Option<Box<dyn Any>> {
         self.accessed_entities.get_mut().insert(entity_id);
+        crate::fast::dependencies::note_update(&mut self.fast_access_log, entity_id);
         self.entities.remove(entity_id)
     }
 

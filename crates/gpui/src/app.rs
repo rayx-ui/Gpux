@@ -826,6 +826,7 @@ pub struct App {
     // the tokio runtime. As any task attempting to spawn a blocking tokio task,
     // might panic.
     pub(crate) globals_by_type: TypeIdHashMap<Box<dyn Any>>,
+    pub(crate) fast_dependencies: crate::fast::dependencies::AppDependencies,
 
     // assets
     pub(crate) loading_assets: FxHashMap<(TypeId, u64), Box<dyn Any>>,
@@ -919,6 +920,7 @@ impl App {
                 asset_source,
                 http_client,
                 globals_by_type: Default::default(),
+                fast_dependencies: Default::default(),
                 entities,
                 new_entity_observers: SubscriberSet::new(),
                 windows: SlotMap::with_key(),
@@ -1865,6 +1867,7 @@ impl App {
                 }
             }
             Effect::NotifyGlobalObservers { global_type } => {
+                crate::fast::dependencies::global_changed(self, *global_type);
                 if !self.pending_global_notifications.insert(*global_type) {
                     return;
                 }
@@ -2263,12 +2266,14 @@ impl App {
 
     /// Check whether a global of the given type has been assigned.
     pub fn has_global<G: Global>(&self) -> bool {
+        crate::fast::dependencies::note_global_presence_read::<G>(self);
         self.globals_by_type.contains_key(&TypeId::of::<G>())
     }
 
     /// Access the global of the given type. Panics if a global for that type has not been assigned.
     #[track_caller]
     pub fn global<G: Global>(&self) -> &G {
+        crate::fast::dependencies::note_global_read(self, TypeId::of::<G>());
         self.globals_by_type
             .get(&TypeId::of::<G>())
             .map(|any_state| any_state.downcast_ref::<G>().unwrap())
@@ -2277,6 +2282,7 @@ impl App {
 
     /// Access the global of the given type if a value has been assigned.
     pub fn try_global<G: Global>(&self) -> Option<&G> {
+        crate::fast::dependencies::note_global_read(self, TypeId::of::<G>());
         self.globals_by_type
             .get(&TypeId::of::<G>())
             .map(|any_state| any_state.downcast_ref::<G>().unwrap())
@@ -2297,6 +2303,7 @@ impl App {
     /// yet been assigned.
     pub fn default_global<G: Global + Default>(&mut self) -> &mut G {
         let global_type = TypeId::of::<G>();
+        crate::fast::dependencies::note_global_inserted::<G>(self);
         self.push_effect(Effect::NotifyGlobalObservers { global_type });
         self.globals_by_type
             .entry(global_type)
@@ -2308,6 +2315,7 @@ impl App {
     /// Sets the value of the global of the given type.
     pub fn set_global<G: Global>(&mut self, global: G) {
         let global_type = TypeId::of::<G>();
+        crate::fast::dependencies::note_global_inserted::<G>(self);
         self.push_effect(Effect::NotifyGlobalObservers { global_type });
         self.globals_by_type.insert(global_type, Box::new(global));
     }
@@ -2321,6 +2329,7 @@ impl App {
     /// Remove the global of the given type from the app context. Does not notify global observers.
     pub fn remove_global<G: Global>(&mut self) -> G {
         let global_type = TypeId::of::<G>();
+        crate::fast::dependencies::note_global_removed::<G>(self);
         self.push_effect(Effect::NotifyGlobalObservers { global_type });
         *self
             .globals_by_type
@@ -2964,6 +2973,7 @@ impl App {
 
     /// Tell GPUI that an entity has changed and observers of it should be notified.
     pub fn notify(&mut self, entity_id: EntityId) {
+        crate::fast::dependencies::note_notify(&mut self.entities.fast_access_log, entity_id);
         let window_invalidators = mem::take(
             self.window_invalidators_by_entity
                 .entry(entity_id)

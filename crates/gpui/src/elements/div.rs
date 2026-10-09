@@ -2598,6 +2598,7 @@ impl Interactivity {
 
                 if let Some(scroll_handle) = self.tracked_scroll_handle.as_ref() {
                     if let Ok(state) = scroll_handle.0.try_borrow() {
+                        crate::fast::dependencies::note_state_read(cx, &state.fast_version);
                         self.scroll_offset = Some(state.offset.clone());
                         self.ongoing_scroll = Some(state.ongoing_scroll.clone());
                     } else {
@@ -4904,6 +4905,9 @@ impl ScrollAnchor {
 #[derive(Default, Debug)]
 struct ScrollHandleState {
     offset: Rc<RefCell<Point<Pixels>>>,
+    /// Moves when a request changes where the owner will scroll to, for a
+    /// retained owner to be built again to apply it.
+    fast_version: crate::fast::dependencies::StateVersion,
     ongoing_scroll: Rc<RefCell<OngoingScroll>>,
     bounds: Bounds<Pixels>,
     max_offset: Point<Pixels>,
@@ -4919,13 +4923,13 @@ struct ScrollHandleState {
     pending_programmatic_offset: Option<(Point<Pixels>, ScrollBehavior)>,
 }
 
-#[derive(Default, Debug, Clone, Copy)]
+#[derive(Default, Debug, Clone, Copy, PartialEq)]
 struct ScrollActiveItem {
     index: usize,
     strategy: ScrollStrategy,
 }
 
-#[derive(Default, Debug, Clone, Copy)]
+#[derive(Default, Debug, Clone, Copy, PartialEq)]
 enum ScrollStrategy {
     #[default]
     FirstVisible,
@@ -4953,6 +4957,11 @@ impl ScrollHandle {
     /// Construct a new scroll handle.
     pub fn new() -> Self {
         Self(Rc::default())
+    }
+
+    /// The version a request to this handle moves, for a retained owner.
+    pub(crate) fn fast_version(&self) -> crate::fast::dependencies::StateVersion {
+        self.0.borrow().fast_version.clone()
     }
 
     /// Registers an entity whose rendered output reads this handle even though a different
@@ -5062,20 +5071,24 @@ impl ScrollHandle {
     /// Update [ScrollHandleState]'s active item for scrolling to in prepaint
     pub fn scroll_to_item(&self, ix: usize) {
         let mut state = self.0.borrow_mut();
-        state.active_item = Some(ScrollActiveItem {
+        let item = Some(ScrollActiveItem {
             index: ix,
             strategy: ScrollStrategy::default(),
         });
+        state.fast_version.bump_if(state.active_item != item);
+        state.active_item = item;
     }
 
     /// Update [ScrollHandleState]'s active item for scrolling to in prepaint
     /// This scrolls the minimal amount to ensure that the child is the first visible element
     pub fn scroll_to_top_of_item(&self, ix: usize) {
         let mut state = self.0.borrow_mut();
-        state.active_item = Some(ScrollActiveItem {
+        let item = Some(ScrollActiveItem {
             index: ix,
             strategy: ScrollStrategy::Top,
         });
+        state.fast_version.bump_if(state.active_item != item);
+        state.active_item = item;
     }
 
     /// Try to queue the active item request without panicking if the handle is already borrowed.
@@ -5141,6 +5154,7 @@ impl ScrollHandle {
     /// Scrolls to the bottom.
     pub fn scroll_to_bottom(&self) {
         let mut state = self.0.borrow_mut();
+        state.fast_version.bump_if(!state.scroll_to_bottom);
         state.scroll_to_bottom = true;
     }
 
@@ -5166,6 +5180,13 @@ impl ScrollHandle {
             state.activity.borrow_mut().stop();
         }
         state.pending_programmatic_offset = None;
+        let moves = state
+            .offset
+            .try_borrow()
+            .map_or(true, |offset| *offset != position);
+        state
+            .fast_version
+            .bump_if(moves && state.pending_offset != Some((position, source)));
         state.pending_offset = Some((position, source));
         true
     }
@@ -5210,6 +5231,13 @@ impl ScrollHandle {
         };
         state.activity.borrow_mut().stop();
         state.pending_offset = None;
+        let moves = state
+            .offset
+            .try_borrow()
+            .map_or(true, |offset| *offset != position);
+        state
+            .fast_version
+            .bump_if(moves && state.pending_programmatic_offset != Some((position, behavior)));
         state.pending_programmatic_offset = Some((position, behavior));
         true
     }

@@ -80,9 +80,12 @@ struct StateInner {
     follow_state: FollowState,
     sticky_items: StickyItems,
     activity: ScrollActivity,
+    /// Moves when the list's items, scroll position or following change from
+    /// outside the list element, for a retained owner to be built again.
+    fast_version: crate::fast::dependencies::StateVersion,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 enum PendingProgrammaticScroll {
     Logical(ListOffset, ScrollBehavior),
     Scrollbar(Point<Pixels>, ScrollBehavior),
@@ -444,9 +447,37 @@ impl ListState {
             follow_state: FollowState::default(),
             sticky_items: StickyItems::default(),
             activity: ScrollActivity::default(),
+            fast_version: Default::default(),
         })));
         this.splice(0..0, item_count);
         this
+    }
+
+    /// The version the list's changes from outside move, for a retained
+    /// owner.
+    #[cfg(test)]
+    pub(crate) fn fast_version(&self) -> crate::fast::dependencies::StateVersion {
+        self.0.borrow().fast_version.clone()
+    }
+
+    /// Bumps the list's version when dropped if what it scrolls to, how it
+    /// follows its tail or what scroll is pending changed meanwhile.
+    fn fast_scroll_guard(
+        &self,
+    ) -> crate::fast::dependencies::ChangeGuard<'_, StateInner, impl PartialEq + use<>> {
+        crate::fast::dependencies::ChangeGuard::new(
+            &self.0,
+            |state: &StateInner| {
+                (
+                    state.logical_scroll_top,
+                    state.follow_state,
+                    state.pending_scroll.is_some(),
+                    state.pending_programmatic_scroll,
+                    state.scrollbar_drag_start_height.is_some(),
+                )
+            },
+            |state: &StateInner| &state.fast_version,
+        )
     }
 
     /// Set the list to measure all items in the list in the first layout phase.
@@ -475,6 +506,7 @@ impl ListState {
         I::Item: Into<StickyItem>,
     {
         let mut state = self.0.borrow_mut();
+        state.fast_version.bump();
         let item_count = state.items.summary().count;
         state.sticky_items = StickyItems::new(items, item_count);
     }
@@ -493,6 +525,7 @@ impl ListState {
     pub fn set_item_height_hint(&self, height: Pixels) {
         let state = &mut *self.0.borrow_mut();
         let hint = Some(size(px(0.), height.max(px(1.))));
+        state.fast_version.bump_if(state.item_size_hint != hint);
         state.item_size_hint = hint;
 
         let new_items = SumTree::from_iter(
@@ -527,6 +560,7 @@ impl ListState {
     pub fn reset(&self, element_count: usize) {
         let old_count = {
             let state = &mut *self.0.borrow_mut();
+            state.fast_version.bump();
             state.reset = true;
             state.measuring_behavior.reset();
             state.activity.stop();
@@ -555,6 +589,7 @@ impl ListState {
             height,
         };
         let mut state = self.0.borrow_mut();
+        state.fast_version.bump();
         let new_items = state
             .items
             .iter()
@@ -590,6 +625,7 @@ impl ListState {
 
     fn remeasure_items_with_scroll_anchor(&self, range: Range<usize>, scroll_anchor: ScrollAnchor) {
         let state = &mut *self.0.borrow_mut();
+        state.fast_version.bump();
 
         if let Some(scroll_top) = state.logical_scroll_top {
             if range.contains(&scroll_top.item_ix) {
@@ -697,6 +733,7 @@ impl ListState {
         focus_handles: impl IntoIterator<Item = Option<FocusHandle>>,
     ) {
         let state = &mut *self.0.borrow_mut();
+        state.fast_version.bump();
 
         let mut old_items = state.items.cursor::<Count>(());
         let mut new_items = old_items.slice(&Count(old_range.start), Bias::Right);
@@ -766,6 +803,7 @@ impl ListState {
 
     /// Scroll the list by the given offset
     pub fn scroll_by(&self, distance: Pixels) {
+        let _fast = self.fast_scroll_guard();
         if distance == px(0.) {
             return;
         }
@@ -806,6 +844,7 @@ impl ListState {
     /// always show the bottom of the last item — even when that item is still
     /// growing (e.g. during streaming).
     pub fn scroll_to_end(&self) {
+        let _fast = self.fast_scroll_guard();
         let state = &mut *self.0.borrow_mut();
         state.activity.stop();
         state.pending_programmatic_scroll = None;
@@ -818,6 +857,7 @@ impl ListState {
 
     /// Try to scroll the list to the end without panicking if the state is already borrowed.
     pub fn try_scroll_to_end(&self) -> bool {
+        let _fast = self.fast_scroll_guard();
         let Ok(mut state) = self.0.try_borrow_mut() else {
             return false;
         };
@@ -837,6 +877,7 @@ impl ListState {
     /// scrolls back to the bottom. In `Normal` mode, no automatic
     /// following occurs.
     pub fn set_follow_mode(&self, mode: FollowMode) {
+        let _fast = self.fast_scroll_guard();
         let state = &mut *self.0.borrow_mut();
         state.activity.stop();
         state.pending_programmatic_scroll = None;
@@ -868,6 +909,7 @@ impl ListState {
     /// diagram) and the current position should stay put rather than snapping
     /// to the end.
     pub fn pause_following_tail(&self) {
+        let _fast = self.fast_scroll_guard();
         self.0.borrow_mut().follow_state.stop_following();
     }
 
@@ -882,6 +924,7 @@ impl ListState {
 
     /// Scroll the list to the given offset
     pub fn scroll_to(&self, mut scroll_top: ListOffset) {
+        let _fast = self.fast_scroll_guard();
         let state = &mut *self.0.borrow_mut();
         state.activity.stop();
         state.pending_programmatic_scroll = None;
@@ -901,6 +944,7 @@ impl ListState {
 
     /// Try to scroll the list without panicking if the state is already borrowed.
     pub fn try_scroll_to(&self, mut scroll_top: ListOffset) -> bool {
+        let _fast = self.fast_scroll_guard();
         let Ok(mut state) = self.0.try_borrow_mut() else {
             return false;
         };
@@ -922,6 +966,7 @@ impl ListState {
     /// the shared [`ScrollActivity`] driver. Instant and zero-duration requests preserve the
     /// existing exact logical-offset behavior.
     pub fn scroll_to_with_behavior(&self, mut scroll_top: ListOffset, behavior: ScrollBehavior) {
+        let _fast = self.fast_scroll_guard();
         let state = &mut *self.0.borrow_mut();
         state.activity.stop();
         let item_count = state.items.summary().count;
@@ -959,6 +1004,7 @@ impl ListState {
         mut scroll_top: ListOffset,
         behavior: ScrollBehavior,
     ) -> bool {
+        let _fast = self.fast_scroll_guard();
         let Ok(mut state) = self.0.try_borrow_mut() else {
             return false;
         };
@@ -1010,6 +1056,7 @@ impl ListState {
 
     /// Scroll the list to the given item, such that the item is fully visible.
     pub fn scroll_to_reveal_item(&self, ix: usize) {
+        let _fast = self.fast_scroll_guard();
         let state = &mut *self.0.borrow_mut();
         state.activity.stop();
         state.pending_programmatic_scroll = None;
@@ -1109,6 +1156,7 @@ impl ListState {
     /// This will prevent the height reported to the scrollbar from changing during the drag
     /// as items in the overdraw get measured, and help offset scroll position changes accordingly.
     pub fn scrollbar_drag_started(&self) {
+        let _fast = self.fast_scroll_guard();
         let mut state = self.0.borrow_mut();
         state.scrollbar_drag_start_height = Some(state.items.summary().height);
         state.scrollbar_drag_start_items = Some(state.items.clone());
@@ -1118,6 +1166,7 @@ impl ListState {
     ///
     /// See `scrollbar_drag_started`.
     pub fn scrollbar_drag_ended(&self) {
+        let _fast = self.fast_scroll_guard();
         let mut state = self.0.borrow_mut();
         state.scrollbar_drag_start_height.take();
         state.scrollbar_drag_start_items.take();
@@ -1135,6 +1184,7 @@ impl ListState {
 
     /// Set the offset from the scrollbar
     pub fn request_offset_from_scrollbar(&self, point: Point<Pixels>) {
+        let _fast = self.fast_scroll_guard();
         let mut state = self.0.borrow_mut();
         state.activity.stop();
         state.pending_programmatic_scroll = None;
@@ -1147,6 +1197,7 @@ impl ListState {
         point: Point<Pixels>,
         behavior: ScrollBehavior,
     ) {
+        let _fast = self.fast_scroll_guard();
         let mut state = self.0.borrow_mut();
         state.activity.stop();
         if matches!(behavior, ScrollBehavior::Instant)
@@ -1174,6 +1225,7 @@ impl ListState {
         point: Point<Pixels>,
         behavior: ScrollBehavior,
     ) -> bool {
+        let _fast = self.fast_scroll_guard();
         let Ok(mut state) = self.0.try_borrow_mut() else {
             return false;
         };
@@ -1200,6 +1252,7 @@ impl ListState {
 
     /// Try to set the scrollbar-derived offset without panicking if the state is already borrowed.
     pub fn try_request_offset_from_scrollbar(&self, point: Point<Pixels>) -> bool {
+        let _fast = self.fast_scroll_guard();
         let Ok(mut state) = self.0.try_borrow_mut() else {
             return false;
         };
@@ -2189,7 +2242,7 @@ impl std::fmt::Debug for ListItem {
 
 /// An offset into the list's items, in terms of the item index and the number
 /// of pixels off the top left of the item.
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct ListOffset {
     /// The index of an item in the list
     pub item_ix: usize,
@@ -2216,6 +2269,9 @@ impl Element for List {
         window: &mut Window,
         cx: &mut App,
     ) -> (crate::LayoutId, Self::RequestLayoutState) {
+        if let Ok(state) = self.state.0.try_borrow() {
+            crate::fast::dependencies::note_state_read(cx, &state.fast_version);
+        }
         let layout_id = match self.sizing_behavior {
             ListSizingBehavior::Infer => {
                 let mut style = Style::default();

@@ -2398,6 +2398,7 @@ pub struct Window {
     pub(crate) fast_mode: crate::fast::mode::WindowFastMode,
     pub(crate) fast_hover_reads: crate::fast::dependencies::HoverReads,
     pub(crate) fast_layout: crate::fast::layout_key::WindowLayout,
+    pub(crate) fast_ambient_reads: crate::fast::dependencies::AmbientReads,
     pub(crate) fast_glyph_bounds: crate::fast::glyphs::GlyphBoundsCache,
     #[cfg(any(
         test,
@@ -2452,10 +2453,10 @@ pub struct Window {
     focus_lost_path: SmallVec<[FocusId; 8]>,
     default_prevented: bool,
     pub(crate) mouse_position: Point<Pixels>,
-    pressed_mouse_button: Option<MouseButton>,
+    pub(crate) pressed_mouse_button: Option<MouseButton>,
     mouse_hit_test: HitTest,
-    modifiers: Modifiers,
-    capslock: Capslock,
+    pub(crate) modifiers: Modifiers,
+    pub(crate) capslock: Capslock,
     scale_factor: f32,
     pub(crate) bounds_observers: SubscriberSet<(), AnyObserver>,
     appearance: WindowAppearance,
@@ -3370,6 +3371,7 @@ impl Window {
             fast_mode: crate::fast::mode::WindowFastMode::from_process_environment(),
             fast_hover_reads: crate::fast::dependencies::HoverReads::default(),
             fast_layout: crate::fast::layout_key::WindowLayout::default(),
+            fast_ambient_reads: cx.fast_ambient_reads(),
             fast_glyph_bounds: crate::fast::glyphs::GlyphBoundsCache::default(),
             #[cfg(any(
                 test,
@@ -4824,11 +4826,15 @@ impl Window {
 
     /// The position of the mouse relative to the window.
     pub fn mouse_position(&self) -> Point<Pixels> {
+        self.fast_ambient_reads
+            .note::<crate::fast::dependencies::ambient::Pointer>();
         self.mouse_position
     }
 
     /// The mouse button currently held according to the latest platform event.
     pub fn pressed_mouse_button(&self) -> Option<MouseButton> {
+        self.fast_ambient_reads
+            .note::<crate::fast::dependencies::ambient::Button>();
         self.pressed_mouse_button
     }
 
@@ -5131,6 +5137,8 @@ impl Window {
 
     /// The current state of the keyboard's modifiers
     pub fn modifiers(&self) -> Modifiers {
+        self.fast_ambient_reads
+            .note::<crate::fast::dependencies::ambient::Keys>();
         self.modifiers
     }
 
@@ -5146,6 +5154,8 @@ impl Window {
 
     /// The current state of the keyboard's capslock
     pub fn capslock(&self) -> Capslock {
+        self.fast_ambient_reads
+            .note::<crate::fast::dependencies::ambient::Keys>();
         self.capslock
     }
 
@@ -8553,6 +8563,17 @@ impl Window {
     /// Dispatch a mouse, keyboard, or touch event on the window.
     #[profiling::function]
     pub fn dispatch_event(&mut self, event: PlatformInput, cx: &mut App) -> DispatchEventResult {
+        let ambient = crate::fast::dependencies::AmbientInput::of(self);
+        let result = self.dispatch_event_and_track_input(event, cx);
+        ambient.stamp_changes(self, cx);
+        result
+    }
+
+    fn dispatch_event_and_track_input(
+        &mut self,
+        event: PlatformInput,
+        cx: &mut App,
+    ) -> DispatchEventResult {
         #[cfg(feature = "profiler")]
         self.window_profiler.begin_input(event.kind_name());
         let update_count_before = self.invalidator.update_count();

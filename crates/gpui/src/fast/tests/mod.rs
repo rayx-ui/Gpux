@@ -3,6 +3,7 @@
 //! `cargo test -p gpux --features test-support --lib fast::tests::<group>::`.
 
 mod bounds_grid;
+mod dependencies;
 mod draw_order;
 mod glyph_runs;
 mod hover_dependencies;
