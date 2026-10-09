@@ -3589,7 +3589,7 @@ impl ContentMask<Pixels> {
 }
 
 impl Window {
-    fn mark_view_dirty(&mut self, view_id: EntityId) {
+    pub(crate) fn mark_view_dirty(&mut self, view_id: EntityId) {
         // Mark ancestor views as dirty. If already in the `dirty_views` set, then all its ancestors
         // should already be dirty.
         for view_id in self
@@ -5145,7 +5145,7 @@ impl Window {
         let arena_clear_needed = self.draw_frame(cx);
         // A cached view replayed with hovers this frame's hitboxes changed is
         // built again before the frame is shown.
-        if crate::fast::dependencies::redraw_stale_replays(self, cx) {
+        if crate::fast::dependencies::redraw_stale_replays(self) {
             arena_clear_needed.clear(cx);
             return self.draw_frame(cx);
         }

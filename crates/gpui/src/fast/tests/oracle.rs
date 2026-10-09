@@ -574,6 +574,14 @@ fn cached_view_drops_its_hover_in_the_frame_an_overlay_covers_it() {
     })
     .unwrap();
     let hovered = cell_background(&mut cx);
+    // Drawing the frame again is the window's own business: nothing about the
+    // view changed, so its observers must not run.
+    let observed = std::rc::Rc::new(std::cell::Cell::new(0));
+    let cell = window.read_with(&cx, |root, _| root.cell.clone()).unwrap();
+    let _observation = cx.update({
+        let observed = observed.clone();
+        move |cx| cx.observe(&cell, move |_, _| observed.set(observed.get() + 1))
+    });
     // Cover the view and draw in one update, so the frame drawn is the one
     // the overlay appears in.
     cx.update_window(window.into(), |root, window, cx| {
@@ -589,5 +597,11 @@ fn cached_view_drops_its_hover_in_the_frame_an_overlay_covers_it() {
         cell_background(&mut cx),
         hovered,
         "the frame the overlay appeared in showed the covered view hovered"
+    );
+    cx.run_until_parked();
+    assert_eq!(
+        observed.get(),
+        0,
+        "drawing the frame again notified the covered view's observers"
     );
 }

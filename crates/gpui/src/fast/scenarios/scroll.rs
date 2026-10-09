@@ -285,8 +285,9 @@ impl Fixture for Scrolling {
         expect_frames(mode, stats)?;
         // Until scroll layers land, every scrolled frame builds the scroller.
         at_least_per_frame(stats, "views_built", 2)?;
-        // The glyphs of the rows (or messages) in view.
-        drawn_per_frame(stats, 30)
+        // The backgrounds and glyphs of the rows (or messages) in view, well
+        // above the 31 backgrounds alone.
+        drawn_per_frame(stats, 60)
     }
 }
 

@@ -85,13 +85,15 @@ pub(crate) fn note_stale_replay(window: &Window, entity: EntityId) {
 }
 
 /// Whether the frame just drawn replayed a view whose hovers changed; if so,
-/// marks those views dirty so that drawing again builds them with this
-/// frame's hovers. The window draws the frame again before it is shown, so no
-/// frame shows a stale hover.
-pub(crate) fn redraw_stale_replays(window: &Window, cx: &mut crate::App) -> bool {
+/// marks those views and their ancestors dirty for drawing again, so they are
+/// built with this frame's hovers. The window draws the frame again before it
+/// is shown, so no frame shows a stale hover. Nothing about the views changed,
+/// so they are not notified: their observers do not run, and the platform is
+/// not asked for another frame.
+pub(crate) fn redraw_stale_replays(window: &mut Window) -> bool {
     let stale = std::mem::take(&mut *window.fast_hover_reads.stale_replays.borrow_mut());
     for entity in &stale {
-        window.invalidator.invalidate_view(*entity, cx);
+        window.mark_view_dirty(*entity);
     }
     !stale.is_empty()
 }
