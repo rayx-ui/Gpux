@@ -2137,6 +2137,14 @@ mod tests {
                 0,
             );
             assert_ne!(pages, libc::MAP_FAILED, "mmap failed");
+            // Linux aligns a mapping of whole 2 MiB huge pages, and with transparent huge pages
+            // always on it would fault in two of them.
+            #[cfg(target_os = "linux")]
+            assert_eq!(
+                libc::madvise(pages, LEN, libc::MADV_NOHUGEPAGE),
+                0,
+                "madvise failed"
+            );
             let start = faults.start();
             std::ptr::write_bytes(pages.cast::<u8>(), 1, LEN);
             let faulted = faults.end(start);
