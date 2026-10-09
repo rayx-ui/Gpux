@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 13,
+  "revision": 17,
   "planRevision": 3,
   "specHashes": {
     "requirements": "46d52edcae4614629194ef518ba03fc81921857dee61325fbb106108d9227b78",
@@ -10,43 +10,43 @@
   },
   "tasks": {
     "t01-fast-switches": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "claude-240e1cb7"
       ]
     },
     "t02-fast-stats": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "claude-240e1cb7"
       ]
     },
     "t03-oracle-harness": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "claude-240e1cb7"
       ]
     },
     "t04-conformance-parity": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "claude-240e1cb7"
       ]
     },
     "t05-perf-scenarios": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "claude-240e1cb7"
       ]
     },
     "t06-perf-report": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "claude-240e1cb7"
       ]
     },
     "t07-provenance": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "claude-240e1cb7"
       ]
@@ -193,6 +193,15 @@
         }
       },
       "recordedAt": "2026-10-09T19:27:23Z"
+    },
+    "035340bab88667b746afdb36aaf7e004fe7aa260e8cfe588b5693135a9b687ea": {
+      "snapshot": {
+        "specHash": "f178256f79637f9080013d3a5f2ec3a575ade73663e71c7a5075147f26f4dde5",
+        "repositories": {
+          "gpux": "b8038e7ea56db1d0ed40a6a4062c8baf030e4ac7184501cb2e0f9d909733f6ad"
+        }
+      },
+      "recordedAt": "2026-10-09T19:40:42Z"
     }
   },
   "checkResults": {
@@ -200,137 +209,137 @@
       "checkId": "check-switches",
       "boundaryId": "s01-foundation",
       "phase": "final",
-      "batchId": "6c688dd6b67e55e5c059a0883039f8655bf9cea40f8ce5b95c19aafeea5a2164",
+      "batchId": "035340bab88667b746afdb36aaf7e004fe7aa260e8cfe588b5693135a9b687ea",
       "definitionHash": "fa29d5becd58e046a4fba2229b3c449b36de423b61133493ee1af3564409c165",
-      "basisHash": "8e036e32ecbca1d276ccb86863733222e0aaa964538e4a14117e7f452c49f751",
+      "basisHash": "8df9d2cf48f5434ee9638e09ffae388a81fbba882263df350102edc641b57d50",
       "status": "passed",
       "exitCode": 0,
       "testCount": 12,
-      "durationSeconds": 18.7248,
-      "recordedAt": "2026-10-09T19:25:12Z",
+      "durationSeconds": 22.0772,
+      "recordedAt": "2026-10-09T19:38:41Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s01-foundation-final-343a2f7672d2.log",
-      "logSha256": "c98f2e0e4ab3756ec4e9f89d0555f77e299726b5d48f715771189a8a640594fc",
-      "inputsHash": "ca89e4da1e76434509fae4d410044a69f63ca9c326ba8e8280b0c384ca7af79a"
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s01-foundation-final-84e03e69bf22.log",
+      "logSha256": "e4031bd9d5bc73850ccfcc64ae669e6d6197f6e3393ebfaafe0f0d8a122cb55d",
+      "inputsHash": "e5e4f299fe95b5615e63140d952505de688e0c26b765285db5bd215366c957b9"
     },
     "s01-foundation/check-stats/final": {
       "checkId": "check-stats",
       "boundaryId": "s01-foundation",
       "phase": "final",
-      "batchId": "6c688dd6b67e55e5c059a0883039f8655bf9cea40f8ce5b95c19aafeea5a2164",
+      "batchId": "035340bab88667b746afdb36aaf7e004fe7aa260e8cfe588b5693135a9b687ea",
       "definitionHash": "a64212dd138f63c954853986f031adb81243bcff3da55e141c7ebbef336493ed",
-      "basisHash": "d431b08f5dc24f51a68c8a2c4bcf92d5b7c7371a99ba118d7b54e1727638f402",
+      "basisHash": "52dd0df8cd6c379c33c7699de8f4ae2b4a858cbf8a613f7980a752004bd2bb51",
       "status": "passed",
       "exitCode": 0,
       "testCount": 4,
-      "durationSeconds": 0.3202,
-      "recordedAt": "2026-10-09T19:25:12Z",
+      "durationSeconds": 0.3664,
+      "recordedAt": "2026-10-09T19:38:41Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s01-foundation-final-fccbcc87ae99.log",
-      "logSha256": "9d3dc8c57ead298ee65b950540e84cb02a41e7be362ccbea45bacb487e7466f8",
-      "inputsHash": "ca89e4da1e76434509fae4d410044a69f63ca9c326ba8e8280b0c384ca7af79a"
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s01-foundation-final-145a9481e87a.log",
+      "logSha256": "c16986c450ca4154cb90926212e0cd3f772b81456180ef7d971889bdd2e926bd",
+      "inputsHash": "e5e4f299fe95b5615e63140d952505de688e0c26b765285db5bd215366c957b9"
     },
     "s01-foundation/check-gpux-default-build/final": {
       "checkId": "check-gpux-default-build",
       "boundaryId": "s01-foundation",
       "phase": "final",
-      "batchId": "6c688dd6b67e55e5c059a0883039f8655bf9cea40f8ce5b95c19aafeea5a2164",
+      "batchId": "035340bab88667b746afdb36aaf7e004fe7aa260e8cfe588b5693135a9b687ea",
       "definitionHash": "4d7521a0238752613b78013c894a1c54bd5ab420e5be1edfd4a5c2241fc12ec7",
-      "basisHash": "f9fcb66aac5a517efd4ff33bb2d948672e1ba3c5c1c83e96d909aef83c81c8aa",
+      "basisHash": "60bcc902462561f44b475cb4fe3799704990f04fcb738d46d666d65bde4b978c",
       "status": "passed",
       "exitCode": 0,
       "testCount": 0,
-      "durationSeconds": 2.2869,
-      "recordedAt": "2026-10-09T19:25:14Z",
+      "durationSeconds": 2.0004,
+      "recordedAt": "2026-10-09T19:38:43Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s01-foundation-final-7f987a9cbd43.log",
-      "logSha256": "0c45afb2b5f545b8a35cf2b5bb3676146d6f714c4799ca82960c58468bbeb17c",
-      "inputsHash": "ca89e4da1e76434509fae4d410044a69f63ca9c326ba8e8280b0c384ca7af79a"
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s01-foundation-final-19a42f306df0.log",
+      "logSha256": "75c66a88f91ffbd3d5c69418e4704387720b1cfc3a6506635e4177fd8b69ebf6",
+      "inputsHash": "e5e4f299fe95b5615e63140d952505de688e0c26b765285db5bd215366c957b9"
     },
     "s01-foundation/check-oracle/final": {
       "checkId": "check-oracle",
       "boundaryId": "s01-foundation",
       "phase": "final",
-      "batchId": "6c688dd6b67e55e5c059a0883039f8655bf9cea40f8ce5b95c19aafeea5a2164",
+      "batchId": "035340bab88667b746afdb36aaf7e004fe7aa260e8cfe588b5693135a9b687ea",
       "definitionHash": "842a0a9e6d7a51c90a81b669ca4c523231b1ce385c6edea58850d76e0124897c",
-      "basisHash": "a7baf5e0d44ccc8e17f0a6c85345f67c4a535ea830062d28e852d734b63c9a39",
+      "basisHash": "8c0e974f7599b0513db1b92d9416601b40db06ab0e29796258ebcb88a23e2897",
       "status": "passed",
       "exitCode": 0,
       "testCount": 6,
-      "durationSeconds": 9.2259,
-      "recordedAt": "2026-10-09T19:25:23Z",
+      "durationSeconds": 9.1315,
+      "recordedAt": "2026-10-09T19:38:53Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s01-foundation-final-70535b68f257.log",
-      "logSha256": "ba11c8464a0ea1faa76951941a38b829d3a9fcbee0c6de0edf51e14cadcebf85",
-      "inputsHash": "ca89e4da1e76434509fae4d410044a69f63ca9c326ba8e8280b0c384ca7af79a"
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s01-foundation-final-740f8d5f9a44.log",
+      "logSha256": "f4505c8b96eb89a65d44b0775ab32cba16392ac15112282bd4fdba640a6dc0f9",
+      "inputsHash": "e5e4f299fe95b5615e63140d952505de688e0c26b765285db5bd215366c957b9"
     },
     "s01-foundation/check-parity-a/final": {
       "checkId": "check-parity-a",
       "boundaryId": "s01-foundation",
       "phase": "final",
-      "batchId": "6c688dd6b67e55e5c059a0883039f8655bf9cea40f8ce5b95c19aafeea5a2164",
+      "batchId": "035340bab88667b746afdb36aaf7e004fe7aa260e8cfe588b5693135a9b687ea",
       "definitionHash": "3c3266bf4dfcd8f54606055376c4ace20c7ce79c09683d381a0dd1902fecbe05",
-      "basisHash": "35133f84c00184999dc7f00edaea777b5f69863d50b157327d96769f67a544f4",
+      "basisHash": "1e155f13822055c79ae1d79ed6e62e14ada0ff695d2e7258be689efc62b9dff0",
       "status": "passed",
       "exitCode": 0,
       "testCount": 39,
-      "durationSeconds": 12.1415,
-      "recordedAt": "2026-10-09T19:25:36Z",
+      "durationSeconds": 9.8574,
+      "recordedAt": "2026-10-09T19:39:02Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s01-foundation-final-ff5e87ccf25c.log",
-      "logSha256": "9796f7e9ce6c5f516e55661656663ffd0d5f64c7cad532080e1ff4668952a734",
-      "inputsHash": "19ae876bf0452e9f6de87dafd4d0da8cb3a205343a06d56705ffd434e0f07da8"
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s01-foundation-final-ebec512a88b3.log",
+      "logSha256": "ed896d6561226a23ec4eb5864d73126329da7379f46a8325e32a2b7fbd1a2fd9",
+      "inputsHash": "6ed56a8be17b157db447f9e2e23c14d95d04faa8d383359d4347324efa72cef5"
     },
     "s01-foundation/check-parity-c/final": {
       "checkId": "check-parity-c",
       "boundaryId": "s01-foundation",
       "phase": "final",
-      "batchId": "6c688dd6b67e55e5c059a0883039f8655bf9cea40f8ce5b95c19aafeea5a2164",
+      "batchId": "035340bab88667b746afdb36aaf7e004fe7aa260e8cfe588b5693135a9b687ea",
       "definitionHash": "64508581b60b2e10dce9797c72d7ccf4cff5968907d83c6b2cbec854dac7d343",
-      "basisHash": "c0ef4efb9f4ee2b0b2bb7df463176d8ac8bb170661e90e95694b9762b726128c",
+      "basisHash": "4977dec210017ae570ec53d0369cb5bed2faa26b01aa292c4d991e86f7c6d12f",
       "status": "passed",
       "exitCode": 0,
       "testCount": 77,
-      "durationSeconds": 5.4785,
-      "recordedAt": "2026-10-09T19:25:41Z",
+      "durationSeconds": 5.3547,
+      "recordedAt": "2026-10-09T19:39:08Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s01-foundation-final-30e6babd1f1a.log",
-      "logSha256": "6ae43f3f21421aed9819208458f99fd2912645428c6d2439032e142df329bebb",
-      "inputsHash": "d13df78aed03b0ef383dc4f0552443967d0dbb7eb148534b55f0598ef0156456"
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s01-foundation-final-62b5eddbd285.log",
+      "logSha256": "811e16adf72d39513413568e95e0287917b8cc72d788125313a18875750d85e5",
+      "inputsHash": "f87fe230b91627b1388ad835e46339de0d47ddabeb8826124d1e4fc643f7b1bc"
     },
     "s01-foundation/check-bench-smoke/final": {
       "checkId": "check-bench-smoke",
       "boundaryId": "s01-foundation",
       "phase": "final",
-      "batchId": "6c688dd6b67e55e5c059a0883039f8655bf9cea40f8ce5b95c19aafeea5a2164",
+      "batchId": "035340bab88667b746afdb36aaf7e004fe7aa260e8cfe588b5693135a9b687ea",
       "definitionHash": "b8f122e189cda4d5bb658e38ae1dd36cd4a818802c8c2b29b55becc8c0f80d23",
-      "basisHash": "ddc70ba90cc55e453dc25510af83ff625f9d10f807bb8aa0958144f1e78a6ef9",
+      "basisHash": "2dabadf711e2ea5fe303fca6a0329f046d6df36943d24232b117993b3ac47b44",
       "status": "passed",
       "exitCode": 0,
       "testCount": 0,
-      "durationSeconds": 59.4643,
-      "recordedAt": "2026-10-09T19:26:41Z",
+      "durationSeconds": 58.8005,
+      "recordedAt": "2026-10-09T19:40:07Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s01-foundation-final-3fcc0b94299c.log",
-      "logSha256": "16eb83136a6805ea7978dc4c0e714e46d8519043f93c9b104c2c9e5c0df8f4c1",
-      "inputsHash": "ab79c8a4b11431df12bc7893a8d30e0eeb9c3cbf7fdf8eb91d8aab5ebc45602a"
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s01-foundation-final-22a0436d4f73.log",
+      "logSha256": "26d2cdb0c9639194ea2da4903aaa4b08ba59e9adb9f154725857a842f40a4df1",
+      "inputsHash": "2e4f01af289c6142bba1ace436ead48e77bb314f9c87aa235e5ebbf5c42d0c42"
     },
     "s01-foundation/check-attribution/final": {
       "checkId": "check-attribution",
       "boundaryId": "s01-foundation",
       "phase": "final",
-      "batchId": "6c688dd6b67e55e5c059a0883039f8655bf9cea40f8ce5b95c19aafeea5a2164",
+      "batchId": "035340bab88667b746afdb36aaf7e004fe7aa260e8cfe588b5693135a9b687ea",
       "definitionHash": "b82e7feef64210ed76175fef9ab5b0339af24962e55e46b6ea32da027de45969",
-      "basisHash": "f134392ffcd3b23656563297005ec5fe692ce9b5fafca8227c0fe171b1874fcf",
+      "basisHash": "aa619455fa63447e9868c44a58222d51566136e5058d73f1d5b62a52f1437f27",
       "status": "passed",
       "exitCode": 0,
       "testCount": 19,
-      "durationSeconds": 37.3216,
-      "recordedAt": "2026-10-09T19:27:18Z",
+      "durationSeconds": 35.6638,
+      "recordedAt": "2026-10-09T19:40:42Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s01-foundation-final-c07289e1d185.log",
-      "logSha256": "a4c4ef2920037cc7fbf7e25742dda1b906d0c3b7b05d3e7b754609434469130f",
-      "inputsHash": "ca89e4da1e76434509fae4d410044a69f63ca9c326ba8e8280b0c384ca7af79a"
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s01-foundation-final-9dfe8a5459da.log",
+      "logSha256": "0cd1737d3216e33dcdb4e61123ac720eeafa809838b3c844d1641acd13137a53",
+      "inputsHash": "e5e4f299fe95b5615e63140d952505de688e0c26b765285db5bd215366c957b9"
     },
     "s01-foundation/check-report/final": {
       "checkId": "check-report",
@@ -350,8 +359,400 @@
       "inputsHash": "2634e5d1265e4482ef592ff741eb185e74d982e5b2d0c10d3244f77ad6ebe504"
     }
   },
-  "reviews": {},
-  "checkpoints": {},
+  "reviews": {
+    "s01-foundation": {
+      "reviewerId": "claude-reviewer-s01-7f3c91a2",
+      "snapshotId": "035340bab88667b746afdb36aaf7e004fe7aa260e8cfe588b5693135a9b687ea",
+      "criterionIds": [
+        "FM-1",
+        "FM-2",
+        "FM-3",
+        "OR-1",
+        "OR-2",
+        "OR-3",
+        "OR-4",
+        "PERF-1",
+        "PERF-2",
+        "PERF-3",
+        "PERF-5",
+        "FIN-2"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/mode.rs",
+          "kind": "source",
+          "criterionIds": [
+            "FM-1",
+            "FM-2"
+          ],
+          "sha256": "11d6fcf65f10e21c717a066848a79c79cc4785206daf899442f044cd7cb1a0ed"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/dependencies.rs",
+          "kind": "source",
+          "criterionIds": [
+            "FM-2",
+            "OR-2"
+          ],
+          "sha256": "868988629ed6fd44232b44f33ac8455f7d09d408f7f302e6483815d1746b8b7f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/view.rs",
+          "kind": "source",
+          "criterionIds": [
+            "FM-2",
+            "OR-2"
+          ],
+          "sha256": "91aef04706a18d7ce02f81b49e0faed798c5923babb331fbd6b52b9cd474274d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "FM-1",
+            "FM-2",
+            "FM-3"
+          ],
+          "sha256": "e8ff80d2a81f73a8b2120beb79913acf3ac8fd8e5c931c8edcf0dc6ebafb0cb2"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/gpui.rs",
+          "kind": "source",
+          "criterionIds": [
+            "FM-1",
+            "FM-3"
+          ],
+          "sha256": "b790f37850b01d548acb924f0cfe5cc995414cfd344c690c74246e8739fe0b49"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/switches.rs",
+          "kind": "test",
+          "criterionIds": [
+            "FM-1",
+            "FM-2"
+          ],
+          "sha256": "2da4d1e59e7a767cd899174c1f4916bd9342834a946472cdceb2c1824c96f196"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/stats.rs",
+          "kind": "source",
+          "criterionIds": [
+            "FM-3"
+          ],
+          "sha256": "ba22446289555ae5ae9f4c0e3e68ab501e25d50254b58efc016b8a47354fb1a9"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "FM-3"
+          ],
+          "sha256": "1246fef071b3b7c54a6c8765c1d8fcc7054eb10fff95d665de4f06d1daa74860"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/taffy.rs",
+          "kind": "source",
+          "criterionIds": [
+            "FM-3"
+          ],
+          "sha256": "0ee81c9949a4288a967eb4e271005c358a1a1185173203620075de6c9ec51c68"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/stats.rs",
+          "kind": "test",
+          "criterionIds": [
+            "FM-3"
+          ],
+          "sha256": "15e780f17409c623415f35ab77b364781920427260e2108aa531adad30faf654"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/verify.rs",
+          "kind": "source",
+          "criterionIds": [
+            "OR-1"
+          ],
+          "sha256": "19caa45de92cc256dfa82efba9d3f8110fd5b671eef133d2887f7639b155c64f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/oracle_support.rs",
+          "kind": "test",
+          "criterionIds": [
+            "OR-1",
+            "OR-2"
+          ],
+          "sha256": "9e81f388fa6da0fd983da943985b5b04b7489403af6647c14530b4ad9f5cade8"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/oracle.rs",
+          "kind": "test",
+          "criterionIds": [
+            "OR-1",
+            "OR-2"
+          ],
+          "sha256": "d029124f1c6fa9276327c7225cae43f35518539a2d67d6a3049b149ae85bda66"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/test_host.rs",
+          "kind": "source",
+          "criterionIds": [
+            "OR-3",
+            "OR-4"
+          ],
+          "sha256": "2b08f795717a5fba829992a0e389a290fd6f9fb8e918a88c66daf51810b2f5af"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_a_fast_parity.rs",
+          "kind": "test",
+          "criterionIds": [
+            "OR-3"
+          ],
+          "sha256": "ab7b2be4370aab3a63a560d98f780764ad0cf858301139f78b66ab9c3bdf2439"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_fast_parity.rs",
+          "kind": "test",
+          "criterionIds": [
+            "OR-4"
+          ],
+          "sha256": "a1aa076dea3c48a16030c03e7c3e59fb6c57e7e323b801d9c8bb724972f8a963"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/scenarios/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-1",
+            "PERF-2"
+          ],
+          "sha256": "1d6dfbeeb15e8171bcd2a6aa63566333ad602cc55f2a0ac0603e9c9aade68493"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/scenarios/scroll.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-1",
+            "PERF-2"
+          ],
+          "sha256": "690a34d720b64993f9446d875d7ace156da106b20a22f30f259f208d58d83219"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/src/gpui_platform.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-1",
+            "PERF-5"
+          ],
+          "sha256": "77fdfd081e1fc4fd7b4e70c218cd6fa6fabec0dcfec5de387309f9f53242c322"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_macos/src/gpui_macos.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-1"
+          ],
+          "sha256": "2c5432d1b2002dfdb530e09377c731f43df0c946da293e58d48adfa116988f5a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_apple/src/metal_renderer.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-1"
+          ],
+          "sha256": "e0185a1e7c451c602b2b43a9e5d8a1b3ba35c5b3b9d49590cc8de3170c4f0a4b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/benches/fast_mode.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PERF-1"
+          ],
+          "sha256": "037d366b0a158da50b708fb956700aa91cb279c0112e2062f0a3a2fbb57a99b6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/fast_mode_attribution.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PERF-2"
+          ],
+          "sha256": "09dfb94f09f6b7d759c6be828a5d54cb9d7b50a6cbf2ab14c1b2ba08e42859ef"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/fast_mode.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-3",
+            "PERF-5"
+          ],
+          "sha256": "2285e94d8c43bc3e7ab514e8dd0862b63d1b6c0276153772d4b6c8fd853afa16"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/local_gpu.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-3"
+          ],
+          "sha256": "9cc8646b3ddcbed8a0a2aac24e0f7a22ecac1ecdf5c7433ac98d4e7ac3a81835"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/cli.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-3"
+          ],
+          "sha256": "d4c1d97c8da436df616ed6e6ffec047abbdd2069ed0eccb3676e4f5e4997d03b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/tests/fast_mode_report.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PERF-3"
+          ],
+          "sha256": "a4652eac56f0cd4b83680e6ee9f4b78dd9bf6749fd1ebfa6f36e06140af6f12f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-5",
+            "FM-2"
+          ],
+          "sha256": "d2cb868643dbf354887ea2f8f56596067ad301b9ac6155a7d27f113935704432"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/testkit/perf/baseline-s01/fast_mode.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "PERF-1",
+            "PERF-5"
+          ],
+          "sha256": "40a5d143c22a4148ecf75d2111e13d2ccbc8e1c56e379d83a1a8772b31c136f3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/testkit/perf/baseline-s01/run.txt",
+          "kind": "runtime",
+          "criterionIds": [
+            "PERF-5"
+          ],
+          "sha256": "5f8ee27bbadaead96afd669fb85367bfbcd2f4d018114d94bdcd263873bb0dfc"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/upstream/gpui-fast.md",
+          "kind": "source",
+          "criterionIds": [
+            "FIN-2"
+          ],
+          "sha256": "a02948f9b9d9edd4b4232bcf4094c6c699959bff8f8e72937fa3ec9ea08e379e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/history/upstream-provenance.md",
+          "kind": "source",
+          "criterionIds": [
+            "FIN-2"
+          ],
+          "sha256": "750148a9fb488a9638c4b0fd3576bb63e07f0a7ae42c9b0d1382050c4a08d929"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "LICENSE-APACHE",
+          "kind": "source",
+          "criterionIds": [
+            "FIN-2"
+          ],
+          "sha256": "19182332d041e03f92bd9a9eaca52181e21184f2215528834b2cd329c540d18b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/app.rs",
+          "kind": "source",
+          "criterionIds": [
+            "OR-2"
+          ],
+          "sha256": "88fc045c398599a7ad8cb89f238dece45f5d8181a86ece046816ece6760d3d05"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/app/test_context.rs",
+          "kind": "source",
+          "criterionIds": [
+            "OR-2"
+          ],
+          "sha256": "1abb7d6e1b8cfcf2319a4916a0d9d790aba1460502c8b5f53722a6581bb98978"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-1"
+          ],
+          "sha256": "536923ce8ab1ec7e2cb052709ec731b61790eb45b79703dfeda972b63da62bfe"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/testkit/perf/baseline-s01/medians.txt",
+          "kind": "runtime",
+          "criterionIds": [
+            "PERF-3",
+            "PERF-5"
+          ],
+          "sha256": "8c3b502ac1294fb8900a3d1db1b75fbb73f189970a44b65b34322d1c4d2ace91"
+        }
+      ],
+      "summaryMarkdown": "I verified all repairs against the committed delta through `86441c0`. All seven findings are resolved:\n- The macOS bench draws text through CoreText, and every text scenario has a glyph-covering floor (60 a frame for the scroll scenarios).\n- The baseline was recaptured from the clean commit `24d413c`, with medians.\n- The cached-view hover dependency is declared gpux behaviour in every mode. A frame that replayed a stale hover is drawn again before it is shown, without notifying the view's observers or waking the platform, and the oracle covers this case.\n- OR-1 now has per-event-type listener counts and mutation cases for screen-effect requests.\n- `cargo fmt --check` passes, and all 9 checks pass.",
+      "findingIds": [
+        "s01-bench-paints-no-glyphs",
+        "s01-baseline-provenance",
+        "s01-hover-fix-off-path-contract",
+        "s01-oracle-description-gaps",
+        "s01-report-median-label",
+        "s01-fmt-gpui-macos",
+        "s01-stale-redraw-notifies-observers"
+      ],
+      "recordedAt": "2026-10-09T19:41:35Z"
+    }
+  },
+  "checkpoints": {
+    "s01-foundation": {
+      "snapshotId": "035340bab88667b746afdb36aaf7e004fe7aa260e8cfe588b5693135a9b687ea",
+      "commits": {
+        "gpux": "86441c0193037fce33a3f3844448b31e592c7c92"
+      },
+      "reviewHash": "64b849148c9ff049493278497aaca50198a31bbb333cbc100699cbb307d55bf5",
+      "recordedAt": "2026-10-09T19:41:45Z"
+    }
+  },
   "findings": [
     {
       "id": "s01-bench-paints-no-glyphs",
@@ -361,8 +762,27 @@
         "PERF-5"
       ],
       "severity": "major",
-      "status": "open",
-      "descriptionMarkdown": "**Expected.** The `fast_mode` scenarios paint what they lay out, text included, so the bench and the PERF-5 baseline measure the frame work the text and glyph optimizations of later sprints (glyphs, number shaping, per-run glyph work, `table-stream`'s changing and equal widths) will be compared against.\n\n**Observed.** On macOS the bench paints no glyph sprite at all. The baseline's `gpux-fast-stats` lines in `artifacts-temp/testkit/perf/baseline-s01/fast_mode.log` count only quads. `still-frame/off` paints 60 primitives a frame: one background quad per panel, and nothing for its 3,900 text labels, although it records 8,160 measured leaves a frame. `hover-sweep/off` paints 80 a frame (2 quads x 40 rows). `scroll-child-view` and `scroll-same-view` paint 31 a frame (2 quads x ~15.5 visible rows). `chat-scroll` paints about 5 a frame for whole visible messages. `Scene::insert_primitive` records every sprite as a `PaintOperation::Primitive`, and `MacTextSystem::raster_bounds` dilates by 1 px so it is never zero. So the text paints no glyph sprites in the bench's window. This came with the new macOS `bench_text_system` (a bare `MacTextSystem::new()` on the bench thread). No fixture expectation checks glyph or text output (`expect_frames` needs only `primitives_painted + primitives_copied > 0`, and the views_built bounds), so the bench and `check-bench-smoke` pass. The PERF-5 baseline was captured in this state.\n\n**Repair.**\n1. Find out why text paints no glyph sprites in the macOS bench (font resolution or shaping of `.SystemUIFont` off the main thread, or empty shaped runs) and fix it, for example by using the bundled fonts as the lane-A attribution test does.\n2. Add a text check to the text-bearing fixtures that the bench and attribution group both run: a glyph-sprite counter in `FastStats` or a primitives lower bound that includes the visible glyphs.\n3. Recapture `baseline-s01` after the fix (see `s01-baseline-provenance`) and update `docs/fast-mode.md`."
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved.** The cause was that `gpui_platform`'s `bench-support` did not enable `font-kit`, so macOS benches drew with `NoopTextSystem`. `bench-support` now enables `font-kit`.\n\nThe recaptured baseline paints glyphs:\n- `still-frame/off`: 7,766 primitives a frame (was 60).\n- `scroll-child-view`: 120 a frame (was 31).\n- `hover-sweep`: 310 a frame (was 80).\n\nEvery text scenario's `expect` now applies `drawn_per_frame`, which is shared by the bench and the attribution group.\n\nThe scroll scenarios' floor has since been raised to 60 primitives a frame (86441c0), above their 31 row backgrounds, so each of them now fails on its own if the glyphs are missing.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/Cargo.toml"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/scenarios/mod.rs",
+          "symbol": "drawn_per_frame"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/fast_mode_attribution.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/benches/fast_mode.rs"
+        }
+      ]
     },
     {
       "id": "s01-baseline-provenance",
@@ -371,8 +791,22 @@
         "PERF-5"
       ],
       "severity": "minor",
-      "status": "open",
-      "descriptionMarkdown": "**Expected (PERF-5).** The baseline records the commit and machine it ran on, so the final comparison can name the exact source measured.\n\n**Observed.** `run.txt` and `docs/fast-mode.md` record `d2e1461`. That is HEAD *without* the harness: the bench, scenarios, stats and Metal fix were uncommitted, and `perf fast-mode` records only `git rev-parse HEAD`, with no dirty-tree marker.\n\nSeveral measured sources were modified after the capture (20:53:44), including `fast/stats.rs`, `fast/scenarios/*.rs`, `window.rs` and `benches/fast_mode.rs` (all 21:00:02), and `gpui_macos.rs` (21:00:41). The baseline's `fast-mode.md` was also rendered by an older report renderer: it has no 3% regression floor and flags +0.8% \"regressions\".\n\n**Repair.**\n- Commit sprint 1, recapture `baseline-s01` from the clean committed tree (together with the glyph fix), and name that commit in `docs/fast-mode.md`.\n- Make `perf fast-mode` record whether the tree was dirty (`git status --porcelain`) in `run.txt`."
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved.** `perf fast-mode` now records `Tree: clean|N uncommitted changes` from `git status --porcelain`, and this is tested in `fast_mode_report.rs`.\n\nThe baseline was recaptured at `24d413c` with `Tree: clean`, and `docs/fast-mode.md` names `24d413c`. The only later change, `88326e6`, touches `docs/fast-mode.md` alone, so `24d413c` is the measured source. The baseline also keeps `medians.txt`.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/fast_mode.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/tests/fast_mode_report.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md"
+        }
+      ]
     },
     {
       "id": "s01-hover-fix-off-path-contract",
@@ -382,8 +816,29 @@
         "OR-2"
       ],
       "severity": "minor",
-      "status": "open",
-      "descriptionMarkdown": "**Expected.**\n- FM-2 and d-switches: with every switch off, no `fast::` work beyond reading the switch and no `fast::` allocation, and the off path's output byte-identical to the pre-epic path.\n- `docs/fast-mode.md`: \"With every switch off a window draws exactly as gpux draws without fast mode\".\n- The correctness contract: any difference from the from-scratch frame is a defect, never a tolerated delta.\n\n**Observed.** The cached-view hover fix is unconditional:\n- `HitboxId::is_hovered` always calls `crate::fast::dependencies::note_hover_read`.\n- `prepaint_view` and `paint_view` always open and close `fast::dependencies` recordings. They allocate the per-view `hover_reads` and the window's read log whatever `FastMode` says.\n- Cached-view replay decisions now differ from the pre-epic path with fast mode off.\n\nThe fix is a legitimate gpux correctness fix, but the contract above was not amended to declare it.\n\nThe fix also leaves an undeclared one-frame stale frame that the oracle cannot reach. Prepaint checks hovers against the previous frame's hit test, so when a hitbox inserted this frame (a top-layer overlay, a deferred popup) covers a hovered cached view under a still pointer, the view is replayed. `paint_view` then notices the change only after reusing its primitives: the code comment says \"this frame shows stale primitives: render it next frame\". A from-scratch window paints it unhovered in that same frame. The oracle never places an overlay over a hover-styled cached view: its top layer and deferred overlay sit away from the grid. So this divergence is neither exercised nor declared.\n\n**Repair.**\n- Declare the cached-view hover dependency as gpux behaviour independent of `FastMode`: amend the FM-2/d-switches wording and `docs/fast-mode.md`, or keep the bookkeeping outside the fast-mode switch contract.\n- Add an oracle change that toggles a top-layer or deferred overlay over a hovered cached grid cell. Then either fix the lag or record it as an explicitly documented exception, like layer snapping."
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved.** FM-2, the d-switches invariants and `docs/fast-mode.md` (\"Cached views and hovers\") now declare the cached-view hover dependency as gpux behaviour in every mode.\n\nThe one-frame lag is gone: `paint_view` notes a replay whose hovers changed (`note_stale_replay`), and `Window::draw` draws the frame again before it is shown (`redraw_stale_replays` followed by a second `draw_frame`). I checked the side effects of the discarded first frame: snapshot requests are not drained, and the focus diff, arena clear and input handler are idempotent.\n\nThe regression test `cached_view_drops_its_hover_in_the_frame_an_overlay_covers_it` exercises the covered case. The oracle now has `CoverCells` (an occluding overlay over the first grid row) and `HoverCell`, and it compares the first frame after each step (`set_draw_on_flush(false)`).",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/dependencies.rs",
+          "symbol": "redraw_stale_replays"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "symbol": "Window::draw"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/oracle.rs",
+          "symbol": "cached_view_drops_its_hover_in_the_frame_an_overlay_covers_it"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/oracle_support.rs"
+        }
+      ]
     },
     {
       "id": "s01-oracle-description-gaps",
@@ -392,8 +847,25 @@
         "OR-1"
       ],
       "severity": "minor",
-      "status": "open",
-      "descriptionMarkdown": "**Expected (OR-1).**\n- The description captures \"the mouse-listener count per phase\" and \"screen-effect regions and requests\".\n- The oracle group checks that a mutated field of each kind is detected.\n\n**Observed.**\n- `describe_frame` emits one total, `mouse listeners {len}`, not per phase. gpux mouse listeners are phase-agnostic closures, so the phase is not recorded anywhere.\n- `description_detects_screen_effect_requests_and_layers` mutates a layer and the scale factor, but never `scene.active_screen_effects` or `active_screen_effect_snapshots`. So no test proves the description detects a screen-effect request change, although the test's name claims it.\n\n**Repair.**\n- Either record the phase each mouse listener is registered for (test-support only) and describe counts per phase, or amend OR-1 to a total count.\n- Add mutation cases for an active screen-effect request and a snapshot request."
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved.** OR-1 was amended: the dispatch phase is a call argument, so listeners are described per event type.\n\n`Window::on_mouse_event`, the single registration site, records each listener's event type in test builds, and `reuse_paint` copies it. `describe_frame` emits the counts per type. New mutation cases cover:\n- the listener event type;\n- an active screen-effect request;\n- a screen-effect snapshot request.\n\nBoth requests are made real by playing a ripple and capturing a snapshot.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/verify.rs",
+          "symbol": "describe_frame"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/oracle.rs",
+          "symbol": "description_detects_screen_effect_requests_and_layers"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "symbol": "Window::on_mouse_event"
+        }
+      ]
     },
     {
       "id": "s01-report-median-label",
@@ -402,8 +874,20 @@
         "PERF-3"
       ],
       "severity": "minor",
-      "status": "open",
-      "descriptionMarkdown": "**Expected (PERF-3).** Per mode, the report shows \"the median and confidence interval\".\n\n**Observed.** `fast_mode::parse` takes the middle value of Criterion's `time: [low estimate high]` line (via `local_gpu::bench_results`) and `render` labels it \"Median\". That value is Criterion's point estimate (the slope or mean), not the median. The fixtures and `fast_mode_report.rs` encode the same mislabel.\n\n**Repair.** Read the median and its interval from Criterion's `target/criterion/<id>/new/estimates.json` (`median`), or relabel the column \"Estimate\" and amend PERF-3 accordingly."
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved.** Medians now come from Criterion's `target/criterion/<id>/new/estimates.json` (`parse_median`, `apply_medians`). They are kept per run in `medians.txt` for `--compare`.\n\nThe column reads \"Median\" only when medians were found, and \"Estimate\" with a note otherwise. The baseline's `medians.txt` holds a median for every id. This is tested by `medians_come_from_criterion_estimates`.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/fast_mode.rs",
+          "symbol": "parse_median"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/tests/fast_mode_report.rs",
+          "symbol": "medians_come_from_criterion_estimates"
+        }
+      ]
     },
     {
       "id": "s01-fmt-gpui-macos",
@@ -412,8 +896,41 @@
         "PERF-1"
       ],
       "severity": "minor",
-      "status": "open",
-      "descriptionMarkdown": "**Expected.** `cargo fmt --check` passes (CLAUDE.md validation).\n\n**Observed.** It fails on `crates/gpui_macos/src/gpui_macos.rs:51`. Removing `pub(crate) use text_system::*;` (for the `MacTextSystem` export the bench needs) left two consecutive blank lines.\n\n**Repair.** Run `cargo fmt` and re-run `cargo fmt --check`."
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved.** `cargo fmt --check` passes (re-run by the reviewer).",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_macos/src/gpui_macos.rs"
+        }
+      ]
+    },
+    {
+      "id": "s01-stale-redraw-notifies-observers",
+      "boundaryId": "s01-foundation",
+      "criterionIds": [
+        "FM-2"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved (86441c0).** `redraw_stale_replays(&mut Window)` now marks each stale view and its ancestors with `Window::mark_view_dirty`, which walks the rendered frame's dispatch tree into `window.dirty_views`. It no longer uses the invalidator, `Effect::Notify` or the platform waker.\n\n`dirty_views` is cleared during the first draw and not reset when the second `draw_frame` starts. So the second draw rebuilds those views, because `prepaint_view` checks `!window.dirty_views.contains`.\n\nThe overlay regression test now registers `cx.observe(&cell, ..)` and asserts, after `run_until_parked`, that the observer never ran.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/dependencies.rs",
+          "symbol": "redraw_stale_replays"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "symbol": "Window::mark_view_dirty"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/oracle.rs",
+          "symbol": "cached_view_drops_its_hover_in_the_frame_an_overlay_covers_it"
+        }
+      ]
     }
   ],
   "handoffMarkdown": "",

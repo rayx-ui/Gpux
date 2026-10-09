@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/gpui/frame-pipeline
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-09T19:29:00+02:00
+  updated: 2026-10-09T21:45:00+02:00
   topics:
     - window
     - frame
@@ -39,7 +39,7 @@ Read before changing `Window::draw`, prepaint/paint bookkeeping, `Scene`, `Bound
 
 `WindowFrame` keeps the complete accessed-state history (needed for replay ranges and rollback) and separately owns only pending replay transfers. Direct `with_element_state` access moves state immediately; prepaint/paint replay copies keys into both lists; prepaint rollback truncates both; finish scans only pending replay keys. Deferred draws keep stable arena indices across cached prepaint reuse and are processed in place.
 
-Cached views (`Entity::cached` / `AnyView::cached`) replay prepaint and paint ranges under a key of bounds, content mask, text style, and paint context (inherited element opacity and transform). Opacity and transforms are baked into primitives at paint, so `div` and the frame elements apply them around their children's prepaint as well as paint (`Window::with_element_paint_context`), and the key stores the context actually painted with: under an ancestor that applies either only while painting, the view renders instead of replaying, and a replay whose painted context changed after prepaint renders again on the next frame. Replayed hitboxes keep the previous frame's ids, so `WindowFrame::hit_test` orders candidates by id layer (normal, positioned, top layer) and then by reverse insertion, never by raw id.
+Cached views (`Entity::cached` / `AnyView::cached`) replay prepaint and paint ranges under a key of bounds, content mask, text style, and paint context (inherited element opacity and transform). Opacity and transforms are baked into primitives at paint, so `div` and the frame elements apply them around their children's prepaint as well as paint (`Window::with_element_paint_context`), and the key stores the context actually painted with: under an ancestor that applies either only while painting, the view renders instead of replaying, and a replay whose painted context changed after prepaint renders again on the next frame. Replayed hitboxes keep the previous frame's ids, so `WindowFrame::hit_test` orders candidates by id layer (normal, positioned, top layer) and then by reverse insertion, never by raw id. Cached views also record the hovers they read (`HitboxId::is_hovered`, through `fast/dependencies.rs`) while they render and paint, and replay only while each is unchanged against the current hit test; a replay whose hovers this frame's hitboxes changed (an overlay appearing under a still pointer) marks the view and its ancestors dirty and `Window::draw` draws the frame again before it is shown, without notifying the view. This applies in every fast mode.
 
 `gpux::deferred(...)` inherits the current content mask; `Deferred::unclipped()` paints with no mask for top-level overlays that must escape a clipped parent. `ContentMask` carries bounds and corner radii (`rectangular`/`rounded`), and intersection and scaling preserve radii. `Window` keeps empty logical mask bounds empty before cover-rounding non-empty masks to device pixels, so a zero-width or zero-height mask cannot become a one-device-pixel strip at fractional scales.
 
@@ -51,7 +51,11 @@ DevKit inspection: `Window::devtools_frame_snapshot()` is a read-only surface po
 
 Under `diagnostics`, `gpui_wgpu` keeps a bounded latest-frame telemetry snapshot (primitive-family sizes, batches, buffer/atlas writes, bind groups, passes, restarts, submissions, sprite disorder, bounds-tree work, element-id depth, Taffy tree shape, style phases, text-cache tiers) that `gpui_web` publishes as numeric-only `__gpuxWgpuFrameDiagnostics` (and `__rayxWgpuFrameDiagnostics` under the `rayx_diagnostics` alias) for browser proof. Completed probes (deferred-intersection prune, element-state finish) were retired once their decision landed.
 
+Fast mode (`crates/gpui/src/fast/`, adapted from gpui-fast) holds a per-window `FastMode` (`Window::fast_mode`/`set_fast_mode`, environment `GPUX_FAST_MODE`, `GPUX_LAYOUT_RETENTION`, `GPUX_VIEW_RETENTION`, `GPUX_SCROLL_LAYERS`), every compiled default off until its mechanism is proven. Measurement-only `FastStats` (work counters in every mode, mechanism counters zero when off) and the frame description `Window::describe_rendered_frame` exist only under `test-support`/`bench-support`/`diagnostics` and `test-support`; the randomized oracle in `fast::tests` compares an incremental window with a from-scratch one after every step, with draw-on-flush off (`TestAppContext::set_draw_on_flush`).
+
 ## Backlinks
+
+- [Fast mode](../../../../../crates/gpui/src/fast/mod.rs)
 
 - [Window](../../../../../crates/gpui/src/window.rs)
 - [Cached views](../../../../../crates/gpui/src/view.rs)

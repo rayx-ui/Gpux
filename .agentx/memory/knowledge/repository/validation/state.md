@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/repository/validation
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-09T17:00:00+02:00
+  updated: 2026-10-09T21:45:00+02:00
   topics:
     - validation
     - focused-checks
@@ -39,7 +39,7 @@ Runtime proof is gpux's own: `gpux-testkit` ([`tooling/testkit`](../../../../../
 
 CI (`ci.yml`) runs check, test, package, and lanes A, C and D on `ubuntu-24.04`, `windows-2025` and `macos-15` for every pull request; `lane-b.yml` runs `@canary`/`@pr` specs on SwiftShader per pull request and every spec but `@timing` nightly; `lane-e.yml` runs an API 34 x86_64 emulator under KVM, and `lane-f.yml` a `macos-15` Simulator, nightly and on path-filtered pull requests. CI's lane A, C and D jobs run through `gpux-testkit`. A manual `update-goldens` dispatch regenerates each backend's goldens.
 
-Performance work measures on a real GPU through lane G: the `gpux-platform` benchmarks (`randomized_element_tree`, `inspector_render`, run on an 8 MiB stack thread on every platform) and lane B's `@timing` specs. Earlier measurements on RayX's warmed wide-DataTable workload remain evidence in the decisions that cite them. A change is kept only when output and every established counter stay exact; transient evidence goes to ignored `artifacts-temp/`.
+Performance work measures on a real GPU through lane G: the `gpux-platform` benchmarks (`randomized_element_tree`, `inspector_render`, `fast_mode`, run on an 8 MiB stack thread on every platform; on macOS `bench-support` enables `font-kit` and the Metal headless renderer drains an autorelease pool per frame) and lane B's `@timing` specs. `gpux-testkit perf fast-mode [--name <run>] [--compare <run-dir>]` runs `fast_mode` alone into `artifacts-temp/testkit/perf/<run>/` (`run.txt` records commit, tree cleanliness and machine; `fast-mode.md` reports Criterion medians per scenario and mode with mechanism rankings); lane G writes the same report to `artifacts-temp/testkit/g/fast-mode.md`. The fast-mode pre-optimization baseline is `artifacts-temp/testkit/perf/baseline-s01/` (commit `24d413c`, see `docs/fast-mode.md`). Fast-mode parity runs every lane-A and lane-C scene with fast mode on and off (`lane_a_fast_parity`, `lane_c_fast_parity`); the scene lists live in `crates/gpux_conformance/tests/catalog/`. Earlier measurements on RayX's warmed wide-DataTable workload remain evidence in the decisions that cite them. A change is kept only when output and every established counter stay exact; transient evidence goes to ignored `artifacts-temp/`.
 
 ## Backlinks
 
