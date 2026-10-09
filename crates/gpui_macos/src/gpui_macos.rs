@@ -51,10 +51,11 @@ pub(crate) use keyboard::*;
 pub(crate) use platform::*;
 pub(crate) use window::*;
 
-#[cfg(feature = "font-kit")]
-pub(crate) use text_system::*;
-
 pub use platform::MacPlatform;
+/// The CoreText text system, for contexts that cannot create a [`MacPlatform`], such as
+/// benchmarks off the main thread.
+#[cfg(feature = "font-kit")]
+pub use text_system::MacTextSystem;
 
 trait BoolExt {
     fn to_objc(self) -> BOOL;

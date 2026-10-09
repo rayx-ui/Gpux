@@ -1847,18 +1847,21 @@ impl MetalHeadlessRenderer {
 
 #[cfg(any(test, feature = "bench-support", feature = "test-support"))]
 impl gpux::PlatformHeadlessRenderer for MetalHeadlessRenderer {
+    // Headless rendering runs off the main thread (tests and the benchmarks' worker thread),
+    // where no autorelease pool drains Metal's autoreleased command buffers and textures: each
+    // frame drains its own, or a benchmark holds every frame's textures until it exits.
     fn render_scene_to_image(
         &mut self,
         scene: &Scene,
         size: Size<DevicePixels>,
     ) -> anyhow::Result<image::RgbaImage> {
-        self.renderer.render_scene_to_image(scene, size)
+        objc2::rc::autoreleasepool(|_| self.renderer.render_scene_to_image(scene, size))
     }
 
     fn render_scene(&mut self, scene: &Scene, size: Size<DevicePixels>) -> anyhow::Result<()> {
         // gpux's Metal renderer has no read-back-free offscreen path yet; benchmark
         // presentation renders through the image path and discards the pixels.
-        self.renderer.render_scene_to_image(scene, size).map(|_| ())
+        objc2::rc::autoreleasepool(|_| self.renderer.render_scene_to_image(scene, size).map(|_| ()))
     }
 
     fn sprite_atlas(&self) -> Arc<dyn gpux::PlatformAtlas> {

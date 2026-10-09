@@ -18,7 +18,9 @@ doctest = false
 
 [features]
 default = []
-bench-support = ["gpux/bench-support", "gpui_macos/bench-support", "gpui_wgpu/bench-support"]
+# Benchmarks shape and draw text with the platform's real text system; on macOS that is the
+# CoreText one behind `font-kit`, without which macOS text draws nothing.
+bench-support = ["gpux/bench-support", "gpui_macos/bench-support", "gpui_wgpu/bench-support", "font-kit"]
 font-kit = ["gpui_macos/font-kit"]
 inspector = ["gpux/inspector"]
 test-support = [

@@ -130,11 +130,26 @@ pub fn current_platform(headless: bool) -> Rc<dyn Platform> {
 /// platform each time only to take its text system leaks the platform's threads on Linux
 /// (a 20-worker dispatcher and a timer thread per call), which slows every later
 /// benchmark in the process.
+///
+/// Benchmarks run on a worker thread with a larger stack ([`gpux::run_with_bench_stack`]),
+/// where macOS cannot create its platform, so there the text system is built on its own.
 #[cfg(feature = "bench-support")]
 pub fn bench_text_system() -> std::sync::Arc<dyn gpux::PlatformTextSystem> {
     thread_local! {
-        static TEXT_SYSTEM: std::sync::Arc<dyn gpux::PlatformTextSystem> =
-            current_platform(true).text_system();
+        static TEXT_SYSTEM: std::sync::Arc<dyn gpux::PlatformTextSystem> = {
+            #[cfg(all(target_os = "macos", feature = "font-kit"))]
+            {
+                std::sync::Arc::new(gpui_macos::MacTextSystem::new())
+            }
+            #[cfg(all(target_os = "macos", not(feature = "font-kit")))]
+            {
+                std::sync::Arc::new(gpux::NoopTextSystem::new())
+            }
+            #[cfg(not(target_os = "macos"))]
+            {
+                current_platform(true).text_system()
+            }
+        };
     }
     TEXT_SYSTEM.with(|text_system| text_system.clone())
 }
