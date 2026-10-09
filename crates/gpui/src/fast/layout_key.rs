@@ -91,6 +91,12 @@ fn mix(state: u64, value: u64) -> u64 {
     z ^ (z >> 31)
 }
 
+/// Whether the frame being drawn keys its layout.
+#[inline(always)]
+pub(crate) fn keyed(window: &Window) -> bool {
+    window.fast_layout.active
+}
+
 /// The key identifying the element currently requesting layout, matching it
 /// with the Taffy node it had last frame; `None` in a frame that does not key
 /// its layout, or outside an element.

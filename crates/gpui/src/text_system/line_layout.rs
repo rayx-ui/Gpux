@@ -513,14 +513,18 @@ pub(crate) struct LineLayoutCache {
         feature = "diagnostics"
     ))]
     pub(crate) fast_lines_shaped: std::sync::atomic::AtomicU64,
+    /// Whether a frame keeps the lines carried text still holds (see
+    /// [`crate::fast::text::carry_over_line_layouts`]); set when a frame
+    /// keying its layout begins.
+    pub(crate) fast_carry_held_lines: std::sync::atomic::AtomicBool,
 }
 
 #[derive(Default)]
-struct FrameCache {
-    lines: FxHashMap<Arc<CacheKey>, Arc<LineLayout>>,
-    wrapped_lines: FxHashMap<Arc<CacheKey>, Arc<WrappedLineLayout>>,
-    used_lines: Vec<Arc<CacheKey>>,
-    used_wrapped_lines: Vec<Arc<CacheKey>>,
+pub(crate) struct FrameCache {
+    pub(crate) lines: FxHashMap<Arc<CacheKey>, Arc<LineLayout>>,
+    pub(crate) wrapped_lines: FxHashMap<Arc<CacheKey>, Arc<WrappedLineLayout>>,
+    pub(crate) used_lines: Vec<Arc<CacheKey>>,
+    pub(crate) used_wrapped_lines: Vec<Arc<CacheKey>>,
 
     // Content-addressable caches keyed by caller-provided text hash + layout params.
     // These allow cache hits without materializing a contiguous `SharedString`.
@@ -528,10 +532,10 @@ struct FrameCache {
     // IMPORTANT: To support allocation-free lookups, we store these maps using a key type
     // (`HashedCacheKeyRef`) that can be computed without building a contiguous `&str`/`SharedString`.
     // On miss, we allocate once and store under an owned `HashedCacheKey`.
-    lines_by_hash: FxHashMap<Arc<HashedCacheKey>, Arc<LineLayout>>,
-    wrapped_lines_by_hash: FxHashMap<Arc<HashedCacheKey>, Arc<WrappedLineLayout>>,
-    used_lines_by_hash: Vec<Arc<HashedCacheKey>>,
-    used_wrapped_lines_by_hash: Vec<Arc<HashedCacheKey>>,
+    pub(crate) lines_by_hash: FxHashMap<Arc<HashedCacheKey>, Arc<LineLayout>>,
+    pub(crate) wrapped_lines_by_hash: FxHashMap<Arc<HashedCacheKey>, Arc<WrappedLineLayout>>,
+    pub(crate) used_lines_by_hash: Vec<Arc<HashedCacheKey>>,
+    pub(crate) used_wrapped_lines_by_hash: Vec<Arc<HashedCacheKey>>,
 }
 
 #[derive(Clone, Default)]
@@ -562,6 +566,7 @@ impl LineLayoutCache {
                 feature = "diagnostics"
             ))]
             fast_lines_shaped: std::sync::atomic::AtomicU64::new(0),
+            fast_carry_held_lines: std::sync::atomic::AtomicBool::new(false),
         }
     }
 
@@ -644,6 +649,13 @@ impl LineLayoutCache {
         let _font_generation = self.clear_if_font_generation_changed();
         let mut curr_frame = self.current_frame.write();
         let mut prev_frame = self.previous_frame.lock();
+        if self
+            .fast_carry_held_lines
+            .load(std::sync::atomic::Ordering::Relaxed)
+        {
+            crate::fast::text::carry_over_line_layouts(&mut prev_frame, &mut curr_frame);
+            return;
+        }
         std::mem::swap(&mut *prev_frame, &mut *curr_frame);
         curr_frame.lines.clear();
         curr_frame.wrapped_lines.clear();
@@ -1067,7 +1079,7 @@ trait AsCacheKeyRef {
 }
 
 #[derive(Clone, Debug, Eq)]
-struct CacheKey {
+pub(crate) struct CacheKey {
     cached_hash: u64,
     text: SharedString,
     font_size: Pixels,
@@ -1141,7 +1153,7 @@ impl Hash for CacheKeyRef<'_> {
 }
 
 #[derive(Clone, Debug)]
-struct HashedCacheKey {
+pub(crate) struct HashedCacheKey {
     text_hash: u64,
     text_len: usize,
     font_size: Pixels,

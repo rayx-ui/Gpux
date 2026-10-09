@@ -12,4 +12,5 @@ mod oracle_support;
 mod scoped_invalidation;
 mod stats;
 mod switches;
+mod text_carry;
 mod write_elision;

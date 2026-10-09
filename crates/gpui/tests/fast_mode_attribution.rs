@@ -75,27 +75,40 @@ fn attribute(name: &str) -> Vec<(Mode, FastStats)> {
 }
 
 /// Each mode does the work of the mode before it, except where the
-/// mechanism it adds has landed: layout retention may write other Taffy
-/// nodes than the ordinal pool, and nothing else; view retention, splice and
-/// scroll layers have not landed, and work as layout retention does.
+/// mechanism it adds has landed. Layout retention may write other Taffy
+/// nodes than the ordinal pool, and measures and shapes no more text than
+/// `off` (carried and replayed text is measured less); everything else is the
+/// same work. View retention, splice and scroll layers have not landed, and
+/// work as layout retention does.
 fn modes_differ_only_by_landed_mechanisms(name: &str) {
     let modes = attribute(name);
     let (_, off) = modes[0];
     let (_, layout) = modes[1];
-    let without_layout_writes = |stats: FastStats| FastStats {
+    assert!(
+        layout.leaves_measured <= off.leaves_measured && layout.lines_shaped <= off.lines_shaped,
+        "{name}: layout measured or shaped more text than off: measured {} shaped {} against {} {}",
+        layout.leaves_measured,
+        layout.lines_shaped,
+        off.leaves_measured,
+        off.lines_shaped
+    );
+    let shared_work = |stats: FastStats| FastStats {
         style_writes: 0,
         children_writes: 0,
+        leaves_measured: 0,
+        lines_shaped: 0,
+        nodes_claimed: 0,
+        nodes_released: 0,
+        nodes_lingering: 0,
+        leaves_carried: 0,
+        leaves_replayed: 0,
+        leaves_remeasured: 0,
         ..stats
     };
     assert_eq!(
-        without_layout_writes(FastStats {
-            nodes_claimed: 0,
-            nodes_released: 0,
-            nodes_lingering: 0,
-            ..layout
-        }),
-        without_layout_writes(off),
-        "{name}: layout counted other work than off beyond its Taffy writes"
+        shared_work(layout),
+        shared_work(off),
+        "{name}: layout counted other work than off beyond its layout and text"
     );
     for (mode, stats) in &modes[2..] {
         assert_eq!(

@@ -30,6 +30,7 @@ pub(crate) mod scene;
     feature = "diagnostics"
 ))]
 pub(crate) mod stats;
+pub(crate) mod text;
 #[cfg(any(test, feature = "test-support"))]
 pub(crate) mod verify;
 

@@ -641,7 +641,7 @@ impl IntoElement for StyledText {
 
 /// The Layout for TextElement. This can be used to map indices to pixels and vice versa.
 #[derive(Default, Clone)]
-pub struct TextLayout(Rc<RefCell<Option<TextLayoutInner>>>);
+pub struct TextLayout(pub(crate) Rc<RefCell<Option<TextLayoutInner>>>);
 
 #[derive(Clone, Copy)]
 enum TextPaintPass {
@@ -650,14 +650,14 @@ enum TextPaintPass {
     Foreground,
 }
 
-struct TextLayoutInner {
-    len: usize,
-    lines: SmallVec<[WrappedLine; 1]>,
-    line_height: Pixels,
-    wrap_width: Option<Pixels>,
-    truncate_width: Option<Pixels>,
-    size: Option<Size<Pixels>>,
-    bounds: Option<Bounds<Pixels>>,
+pub(crate) struct TextLayoutInner {
+    pub(crate) len: usize,
+    pub(crate) lines: SmallVec<[WrappedLine; 1]>,
+    pub(crate) line_height: Pixels,
+    pub(crate) wrap_width: Option<Pixels>,
+    pub(crate) truncate_width: Option<Pixels>,
+    pub(crate) size: Option<Size<Pixels>>,
+    pub(crate) bounds: Option<Bounds<Pixels>>,
 }
 
 impl TextLayout {
@@ -666,8 +666,11 @@ impl TextLayout {
         text: SharedString,
         runs: Option<Vec<TextRun>>,
         window: &mut Window,
-        _: &mut App,
+        cx: &mut App,
     ) -> LayoutId {
+        if crate::fast::layout_key::keyed(window) {
+            return crate::fast::text::layout_text(self, text, runs, window, cx);
+        }
         let text_style = window.text_style();
         let font_size = text_style.font_size.to_pixels(window.rem_size());
         let letter_spacing = text_style.letter_spacing.to_pixels(window.rem_size());
