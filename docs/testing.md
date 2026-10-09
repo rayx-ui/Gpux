@@ -307,10 +307,17 @@ its console. The host runs five platform checks and every lane-F scene:
 - `ios-lifecycle`: the testkit brings Settings to the front and reopens the host through its
   `gpux-conformance://` URL; the window deactivates, reactivates and draws again.
 
-Pixel steps read frames back through the window's wgpu renderer. A Simulator without a Metal
+Pixel steps read frames back through the window's wgpu renderer. The Simulator on Apple silicon
+offers Metal (lane F ran 30 of 30 on an M5 with iOS 26.5, Xcode 26.4). A Simulator without a Metal
 device leaves the window without a renderer: `ios-metal` and the pixel steps then report themselves
 skipped with that reason, and everything else still runs. The console log and the frames failing
-pixel steps saved (in the app's `Documents/frames/`) land in `artifacts-temp/testkit/f/`.
+pixel steps saved (in the app's `Documents/frames/`) land in `artifacts-temp/testkit/f/`. A host that
+panics or that dyld cannot load ends the run at once with that line as the failure.
+
+The shell force-loads the whole Rust library, including io-surface's OpenGL texture binding, which
+gpux reaches through core-video on every Apple target; its CGL functions exist only on macOS, so
+`tooling/ios/Sources/macos_gl_stubs.c` defines them (aborting, never called). Undefined-symbol
+flags (`-Wl,-U`) are not enough: dyld binds them at launch and the app never starts.
 
 ### On a device
 
