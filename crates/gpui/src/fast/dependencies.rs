@@ -6,11 +6,12 @@
 //! covers hovers, which gpux's cached views (`AnyView::cached`) read through
 //! hover styles: a cached view painted while hovered must not be replayed
 //! once the pointer has left it, whether a mouse move, a wheel event, or a
-//! press moved the pointer.
+//! press moved the pointer, nor while an overlay this frame adds may cover
+//! it.
 
 use std::cell::{Cell, RefCell};
 
-use crate::{EntityId, HitboxId, Window};
+use crate::{Bounds, HitboxId, Pixels, Window};
 
 /// The hovers read while reusable subtrees were being drawn.
 #[derive(Default)]
@@ -20,9 +21,6 @@ pub(crate) struct HoverReads {
     /// Every hover read since the outermost recording opened, in order:
     /// a nested recording's reads stay for the recordings around it.
     reads: RefCell<Vec<(HitboxId, bool)>>,
-    /// Views replayed this frame although a hover they read changed once the
-    /// frame's hitboxes were known, too late to build them again in it.
-    stale_replays: RefCell<Vec<EntityId>>,
 }
 
 /// Notes that whatever is being drawn asked whether `hitbox` is hovered and
@@ -73,27 +71,37 @@ pub(crate) fn hovers_unchanged(window: &Window, reads: &[(HitboxId, bool)]) -> b
         .all(|(hitbox, hovered)| hitbox.hovered_unrecorded(window) == *hovered)
 }
 
-/// Notes that the view `entity` was replayed with hovers that changed once
-/// this frame's hitboxes were known: an overlay now covers it, or uncovers
-/// it, with the pointer still. [`redraw_stale_replays`] draws the frame again.
-pub(crate) fn note_stale_replay(window: &Window, entity: EntityId) {
-    window
-        .fast_hover_reads
-        .stale_replays
-        .borrow_mut()
-        .push(entity);
+/// Where the hitboxes inserted since `start` in the frame being drawn can be
+/// hit: the union of their masked bounds.
+pub(crate) fn hitbox_area(window: &Window, start: usize) -> Option<Bounds<Pixels>> {
+    window.next_frame.hitboxes[start..]
+        .iter()
+        .map(|hitbox| hitbox.bounds.intersect(&hitbox.content_mask.bounds))
+        .filter(|bounds| !bounds.is_empty())
+        .reduce(|area, bounds| area.union(&bounds))
 }
 
-/// Whether the frame just drawn replayed a view whose hovers changed; if so,
-/// marks those views and their ancestors dirty for drawing again, so they are
-/// built with this frame's hovers. The window draws the frame again before it
-/// is shown, so no frame shows a stale hover. Nothing about the views changed,
-/// so they are not notified: their observers do not run, and the platform is
-/// not asked for another frame.
-pub(crate) fn redraw_stale_replays(window: &mut Window) -> bool {
-    let stale = std::mem::take(&mut *window.fast_hover_reads.stale_replays.borrow_mut());
-    for entity in &stale {
-        window.mark_view_dirty(*entity);
+/// Whether a cached view drawn by `reads`, whose hitboxes lie in `area`, may
+/// be replayed as far as its hovers go.
+///
+/// Its hovers must be as they were against the hit test prepaint sees, which
+/// is last frame's hitboxes. This frame's hitboxes, known only after
+/// prepaint, can cover or uncover the view's, but only where the pointer is:
+/// with the pointer away from all of them, and none holding the pointer
+/// captured, every hover it read is false whatever this frame adds. So a view
+/// that read hovers is drawn again while the pointer is over its hitboxes,
+/// and its replays always show the hovers a frame drawn from scratch shows.
+pub(crate) fn may_replay_hovers(
+    window: &Window,
+    reads: &[(HitboxId, bool)],
+    area: Option<Bounds<Pixels>>,
+) -> bool {
+    if reads.is_empty() {
+        return true;
     }
-    !stale.is_empty()
+    let pointer_over = area.is_some_and(|area| area.contains(&window.mouse_position));
+    let captured = window
+        .captured_hitbox
+        .is_some_and(|captured| reads.iter().any(|(hitbox, _)| *hitbox == captured));
+    !pointer_over && !captured && hovers_unchanged(window, reads)
 }

@@ -300,6 +300,9 @@ struct ViewElementState {
     /// The hovers the view was drawn by, nested views included: it is
     /// replayed only while each is as it was.
     hover_reads: Vec<(crate::HitboxId, bool)>,
+    /// Where the view's hitboxes can be hit: a view with hovers is not
+    /// replayed while the pointer is there.
+    hover_area: Option<Bounds<Pixels>>,
 }
 
 struct ViewElementCacheKey {
@@ -493,7 +496,11 @@ fn prepaint_view(
                     && element_state.cache_key.content_mask == content_mask
                     && element_state.cache_key.text_style == text_style
                     && element_state.cache_key.paint_context == paint_context
-                    && crate::fast::dependencies::hovers_unchanged(window, &element_state.hover_reads)
+                    && crate::fast::dependencies::may_replay_hovers(
+                        window,
+                        &element_state.hover_reads,
+                        element_state.hover_area,
+                    )
                     && !window.dirty_views.contains(&entity_id)
                     && !window.refreshing
                     // Accessibility nodes and action listeners are rebuilt
@@ -522,6 +529,8 @@ fn prepaint_view(
                     element
                 });
                 let hover_reads = crate::fast::dependencies::finish_recording(window, hovers_start);
+                let hover_area =
+                    crate::fast::dependencies::hitbox_area(window, prepaint_start.hitboxes_index);
 
                 let prepaint_end = window.prepaint_index();
                 window.refreshing = refreshing;
@@ -531,6 +540,7 @@ fn prepaint_view(
                     ViewElementState {
                         accessed_entities,
                         hover_reads,
+                        hover_area,
                         prepaint_range: prepaint_start..prepaint_end,
                         paint_range: PaintIndex::default()..PaintIndex::default(),
                         cache_key: ViewElementCacheKey {
@@ -597,14 +607,15 @@ fn paint_view(
                             window,
                             &element_state.hover_reads,
                         );
-                        // Its hovers were checked against last frame's hitboxes, which
-                        // this frame's can cover: the window draws the frame again.
-                        if !crate::fast::dependencies::hovers_unchanged(
-                            window,
-                            &element_state.hover_reads,
-                        ) {
-                            crate::fast::dependencies::note_stale_replay(window, entity_id);
-                        }
+                        // Prepaint replayed it only with the pointer away from its
+                        // hitboxes, where nothing this frame adds can hover them.
+                        debug_assert!(
+                            crate::fast::dependencies::hovers_unchanged(
+                                window,
+                                &element_state.hover_reads,
+                            ),
+                            "a replayed cached view's hovers changed after prepaint"
+                        );
                         // An ancestor that applies opacity or a transform only while
                         // painting can change after prepaint replayed this view, so
                         // this frame shows stale primitives: render it next frame.

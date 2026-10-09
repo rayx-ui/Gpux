@@ -1155,7 +1155,7 @@ pub(crate) struct WindowFrame {
 
 #[derive(Clone, Default)]
 pub(crate) struct PrepaintStateIndex {
-    hitboxes_index: usize,
+    pub(crate) hitboxes_index: usize,
     tooltips_index: usize,
     deferred_draws_index: usize,
     dispatch_tree_index: usize,
@@ -2449,7 +2449,7 @@ pub struct Window {
     pub(crate) focus_lost_listeners: SubscriberSet<(), AnyObserver>,
     focus_lost_path: SmallVec<[FocusId; 8]>,
     default_prevented: bool,
-    mouse_position: Point<Pixels>,
+    pub(crate) mouse_position: Point<Pixels>,
     pressed_mouse_button: Option<MouseButton>,
     mouse_hit_test: HitTest,
     modifiers: Modifiers,
@@ -2492,7 +2492,7 @@ pub struct Window {
     pub(crate) client_inset: Option<Pixels>,
     /// The hitbox that has captured the pointer, if any.
     /// While captured, mouse events route to this hitbox regardless of hit testing.
-    captured_hitbox: Option<HitboxId>,
+    pub(crate) captured_hitbox: Option<HitboxId>,
     #[cfg(any(feature = "inspector", debug_assertions))]
     inspector: Option<Entity<Inspector>>,
     #[cfg(feature = "profiler")]
@@ -3596,7 +3596,7 @@ impl ContentMask<Pixels> {
 }
 
 impl Window {
-    pub(crate) fn mark_view_dirty(&mut self, view_id: EntityId) {
+    fn mark_view_dirty(&mut self, view_id: EntityId) {
         // Mark ancestor views as dirty. If already in the `dirty_views` set, then all its ancestors
         // should already be dirty.
         for view_id in self
@@ -5153,19 +5153,8 @@ impl Window {
 
     /// Produces a new frame and assigns it to `rendered_frame`. To actually show
     /// the contents of the new [`Scene`], use [`Self::present`].
-    pub fn draw(&mut self, cx: &mut App) -> ArenaClearNeeded {
-        let arena_clear_needed = self.draw_frame(cx);
-        // A cached view replayed with hovers this frame's hitboxes changed is
-        // built again before the frame is shown.
-        if crate::fast::dependencies::redraw_stale_replays(self) {
-            arena_clear_needed.clear(cx);
-            return self.draw_frame(cx);
-        }
-        arena_clear_needed
-    }
-
     #[profiling::function]
-    fn draw_frame(&mut self, cx: &mut App) -> ArenaClearNeeded {
+    pub fn draw(&mut self, cx: &mut App) -> ArenaClearNeeded {
         // Drain every draw in profiler builds so a previous frame's
         // first-invalidation timestamp can't be attributed to this one.
         #[cfg(feature = "profiler")]

@@ -4,6 +4,7 @@
 
 mod bounds_grid;
 mod draw_order;
+mod hover_dependencies;
 mod oracle;
 mod oracle_support;
 mod scoped_invalidation;
