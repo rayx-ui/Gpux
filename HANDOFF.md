@@ -292,7 +292,18 @@ review and the checkpoint.
 
 ## Part 2: finishing the epic (after sprint 8)
 
-Any machine works, but the Mac is where everything is fresh.
+**Run it on Windows (or Linux/WSL).** On the Mac (2026-10-09, after `40a5e14`), `check --epic`
+passed 30 of its 31 accumulated sprint checks (lane B with Node 22 first on `PATH`, lane E with
+`ANDROID_HOME`, JDK 21 and a booted emulator). The one left is `check-headless-renderer`:
+`crates/gpui_wgpu/tests/headless_renderer.rs` is Linux/Windows-only by design (HEADLESS-1/2; macOS
+renders headless through Metal), so on a Mac it runs 0 tests, and `730d369` changed
+`crates/gpui_wgpu`, so its Windows proof is stale. AgentX skips the five final checks and refuses
+the final review until it passes. The final checks were run by hand on the Mac and all passed:
+fmt, clippy (eight packages, no warnings), the wasm32 web check, tests (1,100 passed, 0 failed,
+7 ignored) and `cargo package --workspace`.
+
+On the Windows machine: pull, set up lane B (Node 22, `pnpm install` in `tools-node`) and lane E
+(SDK, JDK 21, emulator) as before, then:
 
 ```bash
 python3 $A check --task-dir $T --epic        # accumulated sprint checks, then the 5 final checks
