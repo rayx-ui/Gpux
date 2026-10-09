@@ -168,11 +168,15 @@ fn the_benchmarks_are_the_gpux_bench_suites_of_gpux_platform() {
     assert_eq!(
         bench.command_line(),
         "GPUX_WGPU_ADAPTER=hardware cargo bench -p gpux-platform --features bench-support \
-         --bench randomized_element_tree --bench inspector_render"
+         --bench randomized_element_tree --bench inspector_render --bench fast_mode"
     );
     assert_eq!(
         plan.tests,
-        ["bench::randomized_element_tree", "bench::inspector_render"]
+        [
+            "bench::randomized_element_tree",
+            "bench::inspector_render",
+            "bench::fast_mode"
+        ]
     );
 }
 

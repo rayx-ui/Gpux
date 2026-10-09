@@ -1,0 +1,60 @@
+   Compiling gpux v0.3.0
+     Running benches/fast_mode.rs (target/release/deps/fast_mode-0)
+Gnuplot not found, using plotters backend
+Benchmarking fast/still-frame/off: Warming up for 300.00 ms
+gpux-fast-stats: fast/still-frame/off frames=20 views_built=1240 cached_views_replayed=0 style_writes=0 children_writes=0 leaves_measured=10 lines_shaped=0 primitives_painted=60 primitives_copied=0 draw_orders_computed=100 nodes_claimed=0 nodes_released=0 nodes_lingering=0 leaves_carried=0 leaves_replayed=0 leaves_remeasured=0 draw_orders_replayed=0 views_built_at_retained_layout=0 views_reused=0 views_spliced=0 views_prebuilt=0 layers_composited=0 layers_repainted=0 tiles_rasterized=0 tiles_composited=0 list_rows_rendered=0 list_rows_kept=0 layer_bypasses.inactive=0 layer_bypasses.not-promoted=0 layer_bypasses.demoted=0 layer_bypasses.ineligible=0 layer_bypasses.nested=0 layer_bypasses.moved=0
+fast/still-frame/off    time:   [0.95 ms 1.0 ms 1.05 ms]
+                        change: [-1.0% +0.2% +1.4%] (p = 0.70 > 0.05)
+GPUI bench report (all observed iterations): fast/still-frame/off
+  note: includes Criterion warmup/calibration
+  instructions per iteration: median 350.000 M instructions (min 1, max 2, samples 20)
+  cycles per iteration: median 80.001 M cycles (min 80.001, max 80.001, samples 20)
+  allocations per iteration: median 72.000 K allocations (min 1, max 2, samples 20)
+  foreground allocations per iteration: median 1 allocations (min 1, max 1, samples 20)
+  window draw:
+    samples: 20
+    mean: 1.2ms
+
+Benchmarking fast/table-stream/off: Warming up for 300.00 ms
+gpux-fast-stats: fast/table-stream/off frames=20 views_built=840 cached_views_replayed=0 style_writes=0 children_writes=0 leaves_measured=10 lines_shaped=0 primitives_painted=60 primitives_copied=0 draw_orders_computed=100 nodes_claimed=0 nodes_released=0 nodes_lingering=0 leaves_carried=0 leaves_replayed=0 leaves_remeasured=0 draw_orders_replayed=0 views_built_at_retained_layout=0 views_reused=0 views_spliced=0 views_prebuilt=0 layers_composited=0 layers_repainted=0 tiles_rasterized=0 tiles_composited=0 list_rows_rendered=0 list_rows_kept=0 layer_bypasses.inactive=0 layer_bypasses.not-promoted=0 layer_bypasses.demoted=0 layer_bypasses.ineligible=0 layer_bypasses.nested=0 layer_bypasses.moved=0
+fast/table-stream/off
+                        time:   [1.0 ms 1.05 ms 1.1 ms]
+                        change: [-1.0% +0.2% +1.4%] (p = 0.70 > 0.05)
+GPUI bench report (all observed iterations): fast/table-stream/off
+  note: includes Criterion warmup/calibration
+  instructions per iteration: median 110.000 M instructions (min 1, max 2, samples 20)
+  cycles per iteration: median 80.001 M cycles (min 80.001, max 80.001, samples 20)
+  allocations per iteration: median 21.000 K allocations (min 1, max 2, samples 20)
+  foreground allocations per iteration: median 1 allocations (min 1, max 1, samples 20)
+  window draw:
+    samples: 20
+    mean: 1.2ms
+
+Benchmarking fast/scroll-list/off: Warming up for 300.00 ms
+gpux-fast-stats: fast/scroll-list/off frames=20 views_built=40 cached_views_replayed=0 style_writes=0 children_writes=0 leaves_measured=10 lines_shaped=0 primitives_painted=60 primitives_copied=0 draw_orders_computed=100 nodes_claimed=0 nodes_released=0 nodes_lingering=0 leaves_carried=0 leaves_replayed=0 leaves_remeasured=0 draw_orders_replayed=0 views_built_at_retained_layout=0 views_reused=0 views_spliced=0 views_prebuilt=0 layers_composited=0 layers_repainted=0 tiles_rasterized=0 tiles_composited=0 list_rows_rendered=0 list_rows_kept=0 layer_bypasses.inactive=0 layer_bypasses.not-promoted=0 layer_bypasses.demoted=0 layer_bypasses.ineligible=0 layer_bypasses.nested=0 layer_bypasses.moved=0
+fast/scroll-list/off    time:   [2.0 ms 2.1 ms 2.2 ms]
+                        change: [-1.0% +0.2% +1.4%] (p = 0.70 > 0.05)
+GPUI bench report (all observed iterations): fast/scroll-list/off
+  note: includes Criterion warmup/calibration
+  instructions per iteration: median 500.000 M instructions (min 1, max 2, samples 20)
+  cycles per iteration: median 80.001 M cycles (min 80.001, max 80.001, samples 20)
+  allocations per iteration: median 100.000 K allocations (min 1, max 2, samples 20)
+  foreground allocations per iteration: median 1 allocations (min 1, max 1, samples 20)
+  window draw:
+    samples: 20
+    mean: 1.2ms
+
+Benchmarking fast/chat-scroll/off: Warming up for 300.00 ms
+gpux-fast-stats: fast/chat-scroll/off frames=20 views_built=40 cached_views_replayed=0 style_writes=0 children_writes=0 leaves_measured=10 lines_shaped=0 primitives_painted=60 primitives_copied=0 draw_orders_computed=100 nodes_claimed=0 nodes_released=0 nodes_lingering=0 leaves_carried=0 leaves_replayed=0 leaves_remeasured=0 draw_orders_replayed=0 views_built_at_retained_layout=0 views_reused=0 views_spliced=0 views_prebuilt=0 layers_composited=0 layers_repainted=0 tiles_rasterized=0 tiles_composited=0 list_rows_rendered=0 list_rows_kept=0 layer_bypasses.inactive=0 layer_bypasses.not-promoted=0 layer_bypasses.demoted=0 layer_bypasses.ineligible=0 layer_bypasses.nested=0 layer_bypasses.moved=0
+fast/chat-scroll/off    time:   [3.0 ms 3.1 ms 3.2 ms]
+                        change: [-1.0% +0.2% +1.4%] (p = 0.70 > 0.05)
+GPUI bench report (all observed iterations): fast/chat-scroll/off
+  note: includes Criterion warmup/calibration
+  instructions per iteration: median 600.000 M instructions (min 1, max 2, samples 20)
+  cycles per iteration: median 80.001 M cycles (min 80.001, max 80.001, samples 20)
+  allocations per iteration: median 120.000 K allocations (min 1, max 2, samples 20)
+  foreground allocations per iteration: median 1 allocations (min 1, max 1, samples 20)
+  window draw:
+    samples: 20
+    mean: 1.2ms
+

@@ -13,6 +13,7 @@ usage: gpux-testkit lane <lane>... [--list] [--scene <id>] [--grep <pattern>] [-
        gpux-testkit android run [--serial <serial>] [--scene <id>] [--grep <pattern>]
        gpux-testkit ios build --simulator
        gpux-testkit ios run --simulator [--scene <id>] [--grep <pattern>]
+       gpux-testkit perf fast-mode [--name <run>] [--compare <run-dir>]
 
 lanes:
   a  behaviour on the test platform (no GPU or display)
@@ -44,7 +45,12 @@ android (lane e's conformance host):
 
 ios (lane f's conformance host; devices are signed and run by hand, see docs/testing.md):
   build    build the ios_host app for the Simulator, unsigned
-  run      build, boot the pinned Simulator, install, run and follow the host";
+  run      build, boot the pinned Simulator, install, run and follow the host
+
+perf (timing on the local machine, like lane g):
+  fast-mode  run the `fast_mode` bench of every scenario in every fast mode into
+             artifacts-temp/testkit/perf/<run>/ (--name, default fast-mode-<seconds>) and
+             write its fast-mode.md; --compare <run-dir> diffs it against an earlier run";
 
 /// A parsed command.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -59,6 +65,20 @@ pub enum Command {
     Android(AndroidCommand),
     /// Builds or runs lane F's iOS host.
     Ios(IosCommand),
+    /// Runs a performance comparison.
+    Perf(PerfCommand),
+}
+
+/// The `perf` subcommands.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum PerfCommand {
+    /// Runs the `fast_mode` bench and writes its report.
+    FastMode {
+        /// The run directory's name under `artifacts-temp/testkit/perf/`.
+        name: String,
+        /// An earlier run directory to compare with.
+        compare: Option<std::path::PathBuf>,
+    },
 }
 
 /// The `ios` subcommands, all on the Simulator.
@@ -171,8 +191,10 @@ pub fn parse(args: impl IntoIterator<Item = String>) -> Result<Command, UsageErr
         Some("web") => parse_web(args).map(Command::Web),
         Some("android") => parse_android(args).map(Command::Android),
         Some("ios") => parse_ios(args).map(Command::Ios),
+        Some("perf") => parse_perf(args).map(Command::Perf),
         Some(other) => Err(UsageError(format!(
-            "unknown command `{other}`; the commands are `lane`, `web`, `android` and `ios`"
+            "unknown command `{other}`; the commands are `lane`, `web`, `android`, `ios` and \
+             `perf`"
         ))),
     }
 }
@@ -233,6 +255,49 @@ fn parse_android(mut args: impl Iterator<Item = String>) -> Result<AndroidComman
             "unknown android command `{other}`; the android commands are `build` and `run`"
         ))),
     }
+}
+
+fn parse_perf(mut args: impl Iterator<Item = String>) -> Result<PerfCommand, UsageError> {
+    let subcommand = args
+        .next()
+        .ok_or_else(|| UsageError("name a perf command: `fast-mode`".into()))?;
+    if subcommand != "fast-mode" {
+        return Err(UsageError(format!(
+            "unknown perf command `{subcommand}`; the perf command is `fast-mode`"
+        )));
+    }
+    let mut name = None;
+    let mut compare = None;
+    while let Some(arg) = args.next() {
+        let slot = match arg.as_str() {
+            "--name" => &mut name,
+            "--compare" => &mut compare,
+            _ => {
+                return Err(UsageError(format!(
+                    "unknown option `{arg}` for `perf fast-mode`"
+                )));
+            }
+        };
+        if slot.replace(value(&arg, &mut args)?).is_some() {
+            return Err(UsageError(format!("`{arg}` is given twice")));
+        }
+    }
+    if let Some(name) = &name
+        && (name.contains(['/', '\\']) || name == "." || name == "..")
+    {
+        return Err(UsageError(format!(
+            "`--name {name}` must be a plain directory name"
+        )));
+    }
+    Ok(PerfCommand::FastMode {
+        name: name.unwrap_or_else(|| {
+            let seconds = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_or(0, |elapsed| elapsed.as_secs());
+            format!("fast-mode-{seconds}")
+        }),
+        compare: compare.map(std::path::PathBuf::from),
+    })
 }
 
 fn parse_ios(mut args: impl Iterator<Item = String>) -> Result<IosCommand, UsageError> {

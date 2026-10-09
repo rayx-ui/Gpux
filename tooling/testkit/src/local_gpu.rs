@@ -6,10 +6,11 @@
 //!   (`--headed` shows the browser);
 //! - lanes C and D with relative probes only, since no committed golden matches a GPU, and with
 //!   `GPUX_EXPECT_BACKEND=hardware`, so a failing GPU cannot leave them on a software rasterizer;
-//! - the `#[gpux::bench]` Criterion suites of `gpux-platform`.
+//! - the `#[gpux::bench]` Criterion suites of `gpux-platform`, `fast_mode` among them.
 //!
 //! It refuses to run under CI, and writes a timing summary to
-//! `artifacts-temp/testkit/g/timing.md`.
+//! `artifacts-temp/testkit/g/timing.md` and the fast-mode report to
+//! `artifacts-temp/testkit/g/fast-mode.md`.
 
 use crate::{
     Environment, Os,
@@ -30,7 +31,11 @@ use std::{
 pub const PROFILE: &str = "local-gpu";
 
 /// `gpux-platform`'s benchmark targets: the `#[gpux::bench]` Criterion suites.
-pub const BENCHES: [&str; 2] = ["randomized_element_tree", "inspector_render"];
+pub const BENCHES: [&str; 3] = [
+    "randomized_element_tree",
+    "inspector_render",
+    crate::fast_mode::BENCH,
+];
 
 /// The prefix of the lines timing specs print for the summary.
 pub const TIMING_PREFIX: &str = "gpux-timing:";
@@ -55,7 +60,7 @@ pub fn refusal(environment: &dyn Environment) -> Option<String> {
 
 /// The adapter variables that put headless rendering on the GPU. macOS renders through Metal on
 /// the system GPU without them.
-fn adapter_env(os: Os) -> Vec<(String, String)> {
+pub fn adapter_env(os: Os) -> Vec<(String, String)> {
     if os == Os::MacOs {
         Vec::new()
     } else {
@@ -357,7 +362,24 @@ pub fn run(
             runner,
             out,
         );
-        benches = bench_results(&read_log(root, "g", "benches.log"));
+        let bench_output = read_log(root, "g", "benches.log");
+        benches = bench_results(&bench_output);
+        // The `fast_mode` suite's report: its ids by scenario and mode, with their counters.
+        match crate::fast_mode::write_report(
+            &run::artifacts_dir(root, "g"),
+            &bench_output,
+            Some(&crate::fast_mode::criterion_dir(root, environment)),
+            None,
+            None,
+        ) {
+            Ok((path, ids)) if ids > 0 => {
+                writeln!(out, "lane g: fast-mode report in {}", path.display()).ok();
+            }
+            Ok(_) => {}
+            Err(error) => tally.add(Tally::failure(format!(
+                "lane g: could not write the fast-mode report: {error:#}"
+            ))),
+        }
         parts.push(Part {
             name: "`gpux-platform` benchmarks".into(),
             tally: part.clone(),

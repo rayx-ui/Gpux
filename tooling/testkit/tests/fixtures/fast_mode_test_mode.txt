@@ -1,0 +1,11 @@
+     Running benches/fast_mode.rs
+Testing fast/still-frame/off
+gpux-fast-stats: fast/still-frame/off frames=1 views_built=62 cached_views_replayed=0 style_writes=0 children_writes=0 leaves_measured=10 lines_shaped=0 primitives_painted=60 primitives_copied=0 draw_orders_computed=100 nodes_claimed=0 nodes_released=0 nodes_lingering=0 leaves_carried=0 leaves_replayed=0 leaves_remeasured=0 draw_orders_replayed=0 views_built_at_retained_layout=0 views_reused=0 views_spliced=0 views_prebuilt=0 layers_composited=0 layers_repainted=0 tiles_rasterized=0 tiles_composited=0 list_rows_rendered=0 list_rows_kept=0 layer_bypasses.inactive=0 layer_bypasses.not-promoted=0 layer_bypasses.demoted=0 layer_bypasses.ineligible=0 layer_bypasses.nested=0 layer_bypasses.moved=0
+Success
+GPUI bench report (all observed iterations): fast/still-frame/off
+  note: includes Criterion warmup/calibration
+  instructions per iteration: median 331.334 M instructions (min 331.334, max 331.334, samples 1)
+  allocations per iteration: median 71.383 K allocations (min 71.383, max 71.383, samples 1)
+Testing fast/still-frame/layout
+gpux-fast-stats: fast/still-frame/layout frames=1 views_built=62 cached_views_replayed=0 style_writes=0 children_writes=0 leaves_measured=10 lines_shaped=0 primitives_painted=60 primitives_copied=0 draw_orders_computed=100 nodes_claimed=0 nodes_released=0 nodes_lingering=0 leaves_carried=0 leaves_replayed=0 leaves_remeasured=0 draw_orders_replayed=0 views_built_at_retained_layout=0 views_reused=0 views_spliced=0 views_prebuilt=0 layers_composited=0 layers_repainted=0 tiles_rasterized=0 tiles_composited=0 list_rows_rendered=0 list_rows_kept=0 layer_bypasses.inactive=0 layer_bypasses.not-promoted=0 layer_bypasses.demoted=0 layer_bypasses.ineligible=0 layer_bypasses.nested=0 layer_bypasses.moved=0
+Success

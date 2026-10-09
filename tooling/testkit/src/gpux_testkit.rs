@@ -9,6 +9,7 @@
 
 pub mod android;
 pub mod cli;
+pub mod fast_mode;
 pub mod ios;
 pub mod lanes;
 pub mod local_gpu;
@@ -21,7 +22,7 @@ pub mod summary;
 pub mod wasm_verify;
 pub mod web;
 
-use cli::{AndroidCommand, Command, IosCommand, LaneArgs, WebCommand};
+use cli::{AndroidCommand, Command, IosCommand, LaneArgs, PerfCommand, WebCommand};
 use lanes::{LaneId, LanePlan, OutputKind};
 use results::Tally;
 use run::Runner;
@@ -133,7 +134,25 @@ pub fn execute(
         Command::Web(command) => web_command(&command, environment, runner, out),
         Command::Android(command) => android_command(&command, environment, runner, out),
         Command::Ios(command) => ios_command(&command, environment, runner, out),
+        Command::Perf(command) => perf_command(&command, environment, runner, out),
     }
+}
+
+fn perf_command(
+    command: &PerfCommand,
+    environment: &dyn Environment,
+    runner: &mut dyn Runner,
+    out: &mut dyn Write,
+) -> i32 {
+    let tally = match environment.workspace_root() {
+        None => Tally::failure(OUTSIDE_CHECKOUT),
+        Some(root) => match command {
+            PerfCommand::FastMode { name, compare } => {
+                fast_mode::run(&root, name, compare.as_deref(), environment, runner, out)
+            }
+        },
+    };
+    finish(&tally, 0, out)
 }
 
 fn ios_command(
