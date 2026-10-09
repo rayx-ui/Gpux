@@ -3214,8 +3214,10 @@ impl Window {
                 handle
                     .update(&mut cx, |_, window, cx| {
                         window.active.set(active);
+                        let ambient = crate::fast::dependencies::AmbientInput::of(window);
                         window.modifiers = window.platform_window.modifiers();
                         window.capslock = window.platform_window.capslock();
+                        ambient.stamp_changes(window, cx);
                         window
                             .activation_observers
                             .clone()
@@ -5491,9 +5493,11 @@ impl Window {
         // overlay scrollbars, and drag affordances anchored to the latest pointer position even
         // when intermediate move messages are dropped.
         if self.is_window_hovered() || cx.active_drag.is_some() || self.captured_hitbox.is_some() {
+            let ambient = crate::fast::dependencies::AmbientInput::of(self);
             self.mouse_position = self.platform_window.mouse_position();
             self.modifiers = self.platform_window.modifiers();
             self.capslock = self.platform_window.capslock();
+            ambient.stamp_changes(self, cx);
         }
 
         self.invalidator.set_phase(DrawPhase::Prepaint);

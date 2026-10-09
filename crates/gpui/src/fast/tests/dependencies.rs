@@ -470,3 +470,54 @@ fn text_input_queries_do_not_change_the_input() {
     field.update(&mut cx, |field, _| field.asked += 1);
     assert!(changed(&mut cx, &dependencies, true));
 }
+
+/// Found by review: the window reloads the pointer and modifier keys from
+/// the platform at the start of a draw while it is hovered, dragging or has
+/// the pointer captured (Windows coalesces mouse moves), outside any event.
+/// That change is stamped too.
+#[test]
+fn ambient_input_changed_outside_dispatch_is_stamped() {
+    let mut cx = TestAppContext::single();
+    let window = cx.add_window(|_, _| Plain);
+    let pointer = cx
+        .update_window(window.into(), |_, window, cx| {
+            let recording = cx.begin_recording_dependencies();
+            window.mouse_position();
+            cx.finish_recording_dependencies(recording).all
+        })
+        .unwrap();
+    cx.test_window(window.into()).0.lock().pointer.0 = point(px(80.), px(40.));
+    cx.update_window(window.into(), |_, window, cx| {
+        // Captured, so the draw reloads the pointer from the platform.
+        window.captured_hitbox = Some(crate::HitboxId::placeholder());
+        window.draw(cx).clear(cx);
+        assert_eq!(window.mouse_position, point(px(80.), px(40.)));
+    })
+    .unwrap();
+    assert!(changed(&mut cx, &pointer, false));
+}
+
+/// An app that never records stamps nothing: with view retention off in
+/// every window, an update, a notify or a global write costs a branch.
+#[test]
+fn an_app_that_never_records_stamps_nothing() {
+    let mut cx = TestAppContext::single();
+    let entity = model(&mut cx);
+    entity.update(&mut cx, |model, cx| {
+        model.0 += 1;
+        cx.notify();
+    });
+    entity.update(&mut cx, |model, _| model.0 += 1);
+    cx.update(|cx| cx.set_global(Setting(1)));
+    cx.update(|cx| {
+        assert_eq!(cx.entities.fast_access_log.stamps_held(), 0);
+    });
+    // From the first recording on, changes are stamped.
+    record(&mut cx, |cx| {
+        entity.read(cx);
+    });
+    entity.update(&mut cx, |model, _| model.0 += 1);
+    cx.update(|cx| {
+        assert!(cx.entities.fast_access_log.stamps_held() > 0);
+    });
+}

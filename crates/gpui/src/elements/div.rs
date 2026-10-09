@@ -2409,6 +2409,11 @@ pub struct Interactivity {
     pub active: Option<bool>,
     /// Whether the element was hovered. This will only be present after paint if an hitbox
     /// was created for the interactive element.
+    ///
+    /// It is published, not painted from: reading it does not make the element's
+    /// cached view depend on the hover. An element that paints by hover must ask
+    /// [`Hitbox::is_hovered`], so a cached view holding it is never replayed
+    /// with a stale hover.
     pub hovered: Option<bool>,
     pub(crate) tooltip_id: Option<TooltipId>,
     pub(crate) content_size: Size<Pixels>,

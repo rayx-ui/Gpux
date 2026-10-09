@@ -253,7 +253,8 @@ pub(crate) fn note_global_presence_read<G: 'static>(cx: &App) {
 /// Stamps a change to whether a global of type `G` is set, if it is about to
 /// be set where it was not.
 pub(crate) fn note_global_inserted<G: 'static>(cx: &mut App) {
-    if !cx.globals_by_type.contains_key(&TypeId::of::<G>()) {
+    if cx.entities.fast_access_log.stamping && !cx.globals_by_type.contains_key(&TypeId::of::<G>())
+    {
         cx.fast_dependencies
             .global_changed(TypeId::of::<GlobalPresence<G>>());
     }
@@ -262,6 +263,9 @@ pub(crate) fn note_global_inserted<G: 'static>(cx: &mut App) {
 /// Stamps a change to whether a global of type `G` is set, as it is about to
 /// be removed.
 pub(crate) fn note_global_removed<G: 'static>(cx: &mut App) {
+    if !cx.entities.fast_access_log.stamping {
+        return;
+    }
     cx.fast_dependencies
         .global_changed(TypeId::of::<GlobalPresence<G>>());
 }
@@ -270,7 +274,9 @@ pub(crate) fn note_global_removed<G: 'static>(cx: &mut App) {
 /// are about to be notified: every write to a global goes through that.
 #[inline(always)]
 pub(crate) fn global_changed(cx: &mut App, global_type: TypeId) {
-    cx.fast_dependencies.global_changed(global_type);
+    if cx.entities.fast_access_log.stamping {
+        cx.fast_dependencies.global_changed(global_type);
+    }
 }
 
 /// Records, for any recording that is open, that the state `version`
@@ -407,6 +413,9 @@ impl AmbientInput {
     /// Stamps what the event changed as changed, for the views that read it
     /// while they were drawn.
     pub(crate) fn stamp_changes(self, window: &Window, cx: &mut App) {
+        if !cx.entities.fast_access_log.stamping {
+            return;
+        }
         if window.mouse_position != self.position {
             cx.fast_dependencies
                 .global_changed(TypeId::of::<ambient::Pointer>());
@@ -432,6 +441,11 @@ pub(crate) struct EntityAccessLog {
     boundary: Cell<usize>,
     /// How many recordings are open.
     recordings: Rc<Cell<usize>>,
+    /// Whether changes are stamped: from the first recording on. Stamps only
+    /// tell recordings what changed since they were made, so an app that
+    /// never records (every window with view retention off) stamps nothing,
+    /// and its hooks cost a branch.
+    stamping: bool,
     /// Counts the entities updated or changed while no recording is open,
     /// each stamped into `updated_at` or `changed_at`.
     update_generation: u64,
@@ -492,6 +506,15 @@ impl EntityAccessLog {
         self.changed_at.insert(entity_id, self.update_generation);
     }
 
+    /// How many stamps the log holds.
+    #[cfg(test)]
+    pub(crate) fn stamps_held(&self) -> usize {
+        self.updated_at.len()
+            + self.written_at.len()
+            + self.updated_unnotified.len()
+            + self.changed_at.len()
+    }
+
     /// Forgets a released entity's stamps.
     pub(crate) fn forget(&mut self, entity_id: EntityId) {
         self.updated_at.remove(&entity_id);
@@ -522,6 +545,9 @@ pub(crate) fn note_access(log: &EntityAccessLog, entity_id: EntityId) {
 /// could have read.
 #[inline(always)]
 pub(crate) fn note_notify(log: &mut EntityAccessLog, entity_id: EntityId) {
+    if !log.stamping {
+        return;
+    }
     if log.updated_unnotified.remove(&entity_id) || log.is_recording() || log.queried.is_some() {
         log.stamp_changed(entity_id);
     }
@@ -540,6 +566,12 @@ pub(crate) fn note_notify(log: &mut EntityAccessLog, entity_id: EntityId) {
 #[inline]
 pub(crate) fn note_update(log: &mut EntityAccessLog, entity_id: EntityId) {
     note_access(log, entity_id);
+    if !log.stamping {
+        if log.rendering == Some(entity_id) {
+            log.rendering = None;
+        }
+        return;
+    }
     if log.rendering == Some(entity_id) {
         log.rendering = None;
         if log.is_recording() {
@@ -675,6 +707,7 @@ impl App {
     pub(crate) fn begin_recording_dependencies(&mut self) -> DependencyRecording {
         self.fast_dependencies.nested.push(Vec::new());
         let log = &mut self.entities.fast_access_log;
+        log.stamping = true;
         let entities = log.access_log.borrow().len();
         log.boundary.set(entities);
         log.recordings.set(log.recordings.get() + 1);
