@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/renderer/wgpu
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-07T20:15:00+02:00
+  updated: 2026-10-09T16:00:00+02:00
   topics:
     - wgsl
     - abi
@@ -29,6 +29,6 @@ agentx:
 - Coalesce live-resize drawable changes into the scheduled frame path; a pending size change must present and force a fresh draw. Wait for prior GPU work before native surface reconfiguration; keep WASM resize nonblocking.
 - Keep browser backend selection WebGPU-first with WebGL2 fallback and the full record ABI on WebGL2 through `Rgba32Uint` textures. Run lane B's forced-WebGL2 and automatic-WebGPU specs whenever transport bindings, record layouts, or backend selection change.
 - Never return early from a fragment shader after `textureSample`: some GL ES drivers (Android emulators') drop every fragment of such a shader. Fold clip, mask, and kind tests into the result through `visible_if`; `tests/shader_sampling.rs` guards it.
-- Choose GL behavior by capability: GL devices request WebGL2 limits on every platform, devices without `VERTEX_STORAGE` read instance records from textures, and GL prefers `Rgba8Unorm` color atlases because BGRA comes from an ES extension some drivers report but cannot sample.
+- Choose GL behavior by capability: GL devices request WebGL2 limits on every platform, devices without `VERTEX_STORAGE` or whose device limits allow fewer than the two storage buffers per stage `instances_layout` binds read instance records from textures (decide from the device limits, not only the adapter's flags: a GL device's WebGL2 limits allow none even where ANGLE reports vertex storage), and GL prefers `Rgba8Unorm` color atlases because BGRA comes from an ES extension some drivers report but cannot sample.
 - Bind each uniform block to its own buffer; GL drivers that bind two ranges of one buffer to two blocks give the second the wrong range.
 - Raise GPU errors on a cached headless device only in `tests/headless_renderer_gpu_errors.rs`, one test per adapter selection: every renderer on that device observes them, so they fail concurrent tests that share it.

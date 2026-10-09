@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/renderer/wgpu
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-07T16:45:00+02:00
+  updated: 2026-10-09T16:00:00+02:00
   topics:
     - wgpu-renderer
     - wgsl
@@ -34,7 +34,7 @@ Live resize coalesces drawable-size changes into scheduled frames; a frame with 
 
 Effects: element effects render through offscreen effect targets; backdrop blur samples a full-resolution source with a normalized multi-tap kernel (glass-blur/fast-Gaussian look); `glass(...)` is Liquid Glass refraction from an OverShifted-style squircle SDF (`sdSquircle(..., 3.0, 1.0)`, sample scale `pow(liquid_glass_refract(dist), 1.779)`, then noise/glow/tint); glow composites in a separate additive color pass that preserves destination alpha, so a glow over white saturates away and shows only on darker backdrops. Screen ripples and snapshot transitions (`crossfade`, `blur_crossfade`, `radial_reveal`, `ripple_reveal`) share one packed storage struct with a `kind` tag. The renderer retains a previous-frame color texture and copies it into per-snapshot textures when `Scene.active_screen_effect_snapshots` requests new ids; if an encoder overflows and is discarded, newly copied ids are marked uncaptured before retry.
 
-Native GL (Android emulators, Linux GL) uses the WebGL2 limits, the texture instance path when the adapter lacks `VERTEX_STORAGE`, and `Rgba8Unorm` atlases; gamma parameters live in their own uniform buffer. Sampling fragment shaders fold clip and mask tests into their result instead of returning early. `render_to_image` reads the surface back when it supports `COPY_SRC` and otherwise renders the scene into a surface-sized texture and reads that back, reporting validation errors (native builds wait on an error scope).
+Native GL (Android emulators, Linux GL) uses the WebGL2 limits, the texture instance path when the adapter lacks `VERTEX_STORAGE` or the device limits allow fewer than two storage buffers per stage (always under the WebGL2 limits), and `Rgba8Unorm` atlases; gamma parameters live in their own uniform buffer. Sampling fragment shaders fold clip and mask tests into their result instead of returning early. `render_to_image` reads the surface back when it supports `COPY_SRC` and otherwise renders the scene into a surface-sized texture and reads that back, reporting validation errors (native builds wait on an error scope).
 
 Browser backends: startup prefers WebGPU and retries with WebGL2. WebGPU moves packed scene instances through storage buffers; WebGL2 carries the same complete record ABI (effects, HTML islands, paths, sprites, auxiliary families) through exact word-addressable `Rgba32Uint` textures. Adapter selection is surface-compatible, a failed WebGPU canvas is removed before the WebGL surface is created, and `?backend=webgl` / `?backend=webgpu` force one backend for diagnostics. HTML islands composite through a dedicated `html_islands` pipeline (upload path under [platform/web](../../platform/web/state.md)).
 
