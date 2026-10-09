@@ -36,9 +36,9 @@ Splice has no variable, as in gpui-fast; set it through `Window::set_fast_mode`.
 One piece of fast mode's groundwork is gpux behaviour in every mode: cached views
 (`AnyView::cached`) record the hovers they read and are replayed only while each is unchanged.
 Fast mode's oracle found that a cached view painted with a hover style kept it after a wheel
-event, or an overlay appearing under a still pointer, moved the hover elsewhere. When an overlay
-is found to cover a replayed view only once the frame's hitboxes are known, the window draws that
-frame again before showing it.
+event, or an overlay appearing under a still pointer, moved the hover elsewhere. A cached view
+that read hovers is also built again, rather than replayed, while the pointer is over its
+hitboxes: only there can hitboxes the frame adds later (an overlay) change its hovers.
 
 ## Measuring
 
