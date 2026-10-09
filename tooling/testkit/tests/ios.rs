@@ -143,6 +143,29 @@ fn host_requests_bring_another_app_forward_and_reopen_the_host() {
 }
 
 #[test]
+fn a_host_that_panics_or_fails_to_load_ends_the_run() {
+    let unresolved = "dyld[68780]: symbol not found in flat namespace '_CGLErrorString'";
+    assert_eq!(
+        ios::fatal(unresolved),
+        Some(format!("the app did not load: {unresolved}"))
+    );
+    assert!(
+        ios::fatal("dyld[1]: Library not loaded: @rpath/libios_host.dylib")
+            .is_some_and(|failure| failure.starts_with("the app did not load"))
+    );
+    assert!(
+        ios::fatal("thread 'main' panicked at examples/ios_host/lib.rs:9:5")
+            .is_some_and(|failure| failure.starts_with("the host panicked"))
+    );
+    assert_eq!(ios::fatal("dev.gpux.conformance: 68780"), None);
+    assert_eq!(ios::fatal("gpux-conformance: PASS ios-startup"), None);
+    assert_eq!(
+        ios::fatal("[WARN wgpu_core::instance] Missing downlevel flags"),
+        None
+    );
+}
+
+#[test]
 fn results_count_the_platform_checks_and_lane_f_scenes() {
     let everything = Selection::default();
     let expected = ios::expected_results(&everything);

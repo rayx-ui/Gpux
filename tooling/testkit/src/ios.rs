@@ -100,6 +100,19 @@ pub fn request(line: &str) -> Option<Request> {
     }
 }
 
+/// Why the run is over when a console line reports that the host died: a panic, or dyld failing
+/// to load the app (an unresolved symbol or a missing library), after which `simctl launch
+/// --console-pty` keeps waiting on an app that never started.
+pub fn fatal(line: &str) -> Option<String> {
+    if line.contains("panicked at") {
+        Some(format!("the host panicked: {line}"))
+    } else if line.trim_start().starts_with("dyld[") {
+        Some(format!("the app did not load: {line}"))
+    } else {
+        None
+    }
+}
+
 /// The `simctl` invocations that carry out a request on `udid`, with the pause between them.
 pub fn simctl_commands(request: &Request, udid: &str) -> Vec<Vec<String>> {
     let words = |words: &[&str]| words.iter().map(|word| word.to_string()).collect();
@@ -410,9 +423,9 @@ fn run_on_simulator(
             writeln!(out, "{line}").ok();
             out.flush().ok();
         }
-        if line.contains("panicked at") {
+        if let Some(failure) = fatal(line) {
             writeln!(out, "{line}").ok();
-            failures.push(format!("the host panicked: {line}"));
+            failures.push(failure);
             return false;
         }
         match request(line) {
