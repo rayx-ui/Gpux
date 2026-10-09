@@ -712,6 +712,25 @@
           "path": "crates/gpui/src/view.rs"
         }
       ]
+    },
+    {
+      "id": "d-hover-read-scope",
+      "requirementIds": [
+        "FM"
+      ],
+      "descriptionMarkdown": "`Interactivity::paint` publishes `hovered` through `HitboxId::hovered_unrecorded`. `fast::dependencies::hover_area` takes the union of the masked bounds of only the read hitboxes. A view with no hover-painting reads therefore replays anywhere, and one with a hover-styled box replays while the pointer is elsewhere in it.",
+      "invariantsMarkdown": "- Every hover a cached view's painted output depends on is recorded.\n- A replayed view's hovers equal those a frame drawn from scratch computes at paint.",
+      "rationaleMarkdown": "FM-5 rebuilt any cached view under the pointer, because every interactive div recorded a hover read. That broke gpux's cached-view contracts and rebuilt hovered panes on every frame.",
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/dependencies.rs"
+        }
+      ]
     }
   ],
   "memoryDecisionsConsidered": [

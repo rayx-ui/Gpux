@@ -1,12 +1,12 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 46,
-  "planRevision": 9,
+  "revision": 50,
+  "planRevision": 10,
   "specHashes": {
-    "requirements": "a3d85273180c9636a2d584c84c8d9047bd68188e7aba11b042babf84f9494ccf",
-    "design": "ced53cba4d43459ebedd8030744af071bd95badf06ef61c6b509a91be3972a6e",
-    "plan": "d9bdb4cacd5961087a6ede89ae9302f0dacdb7dbb566d3b64b53f01fa4645abb"
+    "requirements": "879709135f4d6aca4a541d55a220a36388d002f417637fec099bf8a161e961d3",
+    "design": "db0d560d0d17533e195886cc2524d6fc754e953b609fdca937d5d4fc77a5f750",
+    "plan": "446fd99ef1dce43b63fa437f711e6c7aef8f1a97768a51fffaf933be300f0267"
   },
   "tasks": {
     "t01-fast-switches": {
@@ -106,10 +106,16 @@
       ]
     },
     "t17-dependency-recording": {
-      "status": "pending"
+      "status": "implemented",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t18-dependency-nesting": {
-      "status": "pending"
+      "status": "in_progress",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t19-retained-records": {
       "status": "pending"
@@ -212,6 +218,12 @@
     },
     "t08b-hover-area": {
       "status": "done",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
+    },
+    "t17b-hover-read-scope": {
+      "status": "implemented",
       "workerIds": [
         "claude-240e1cb7"
       ]

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 9,
+  "revision": 10,
   "title": "gpux fast mode: retained layout and views, splice, scroll layers and window composition from gpui-fast",
   "validationMode": "sprint",
   "repositories": [
@@ -2138,6 +2138,40 @@
         "Cargo.toml",
         "Cargo.lock"
       ]
+    },
+    {
+      "id": "check-hover-read-scope",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "FM-6"
+      ],
+      "descriptionMarkdown": "The hover-read-scope test in `fast/tests/hover_dependencies.rs`: a view without hover styles, one with a hover style elsewhere, and one under its styled box.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::hover_dependencies::a_cached_view_is_replayed_under_the_pointer_unless_it_paints_that_hover"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
     }
   ],
   "finalCheckIds": [
@@ -2698,6 +2732,31 @@
               "repositoryId": "gpux",
               "path": "crates/gpui/src/elements/list.rs",
               "symbol": "ListState"
+            }
+          ]
+        },
+        {
+          "id": "t17b-hover-read-scope",
+          "title": "Replay cached views under the pointer unless they paint that hover",
+          "descriptionMarkdown": "Corrective task for a regression found in s04: FM-5's rule rebuilt every interactive cached view under the pointer. Read the published hover unrecorded, and scope the replay area to the read hitboxes.",
+          "criterionIds": [
+            "FM-6"
+          ],
+          "designIds": [
+            "d-hover-read-scope"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-hover-read-scope"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/div.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/dependencies.rs"
             }
           ]
         },
