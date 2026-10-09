@@ -40,6 +40,12 @@ targets:
           - "-force_load"
           - "$(GPUX_IOS_HOST_LIB)"
           - "-lc++"
+          # io-surface (through gpux's core-video) carries OpenGL code that exists only on macOS,
+          # and -force_load keeps it even when dead-code stripping. iOS never calls it, so its CGL
+          # symbols may stay undefined.
+          - "-Wl,-U,_CGLErrorString"
+          - "-Wl,-U,_CGLGetCurrentContext"
+          - "-Wl,-U,_CGLTexImageIOSurface2D"
           - "-framework UIKit"
           - "-framework Metal"
           - "-framework MetalKit"
