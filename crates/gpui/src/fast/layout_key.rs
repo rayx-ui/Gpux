@@ -194,6 +194,28 @@ pub(crate) fn exit_prepaint_scope(window: &mut Window, enclosing: (u64, u32)) {
     (layout.prepaint_scope, layout.root_index) = enclosing;
 }
 
+/// Runs `f` as though the element being prepainted were requesting its
+/// layout, so what `f` lays out is keyed as that element's children were in
+/// the request-layout walk, and finds the nodes they had: a view built at
+/// the layout it kept.
+pub(crate) fn with_layout_key_of_prepainting_element<R>(
+    window: &mut Window,
+    f: impl FnOnce(&mut Window) -> R,
+) -> R {
+    let layout = &mut window.fast_layout;
+    if !layout.active {
+        return f(window);
+    }
+    let key = layout.prepaint_scope;
+    layout.key_stack.push(LayoutKeyFrame {
+        key,
+        next_unidentified_child: 0,
+    });
+    let result = f(window);
+    window.fast_layout.key_stack.pop();
+    result
+}
+
 /// Lays `element` out as the item at `index` of a list, the way
 /// [`AnyElement::layout_as_root`] does.
 ///

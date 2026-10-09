@@ -538,13 +538,13 @@ pub(crate) struct FrameCache {
     pub(crate) used_wrapped_lines_by_hash: Vec<Arc<HashedCacheKey>>,
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug, PartialEq)]
 pub(crate) struct LineLayoutIndex {
-    font_generation: usize,
-    lines_index: usize,
-    wrapped_lines_index: usize,
-    lines_by_hash_index: usize,
-    wrapped_lines_by_hash_index: usize,
+    pub(crate) font_generation: usize,
+    pub(crate) lines_index: usize,
+    pub(crate) wrapped_lines_index: usize,
+    pub(crate) lines_by_hash_index: usize,
+    pub(crate) wrapped_lines_by_hash_index: usize,
 }
 
 impl LineLayoutCache {

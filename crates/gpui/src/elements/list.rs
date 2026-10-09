@@ -480,6 +480,30 @@ impl ListState {
         )
     }
 
+    /// Bumps the list's version when dropped if laying the list out changed
+    /// what it lays out next from: the heights it measured, where it
+    /// scrolls to, the bounds it was laid out in. A retained owner drawn
+    /// from this frame would otherwise show what the next frame changes.
+    fn fast_layout_guard(
+        &self,
+    ) -> crate::fast::dependencies::ChangeGuard<'_, StateInner, impl PartialEq + use<>> {
+        crate::fast::dependencies::ChangeGuard::new(
+            &self.0,
+            |state: &StateInner| {
+                (
+                    state.items.summary().clone(),
+                    state.logical_scroll_top,
+                    state.follow_state,
+                    state.pending_scroll.is_some(),
+                    state.pending_programmatic_scroll,
+                    state.last_layout_bounds,
+                    state.reset,
+                )
+            },
+            |state: &StateInner| &state.fast_version,
+        )
+    }
+
     /// Set the list to measure all items in the list in the first layout phase.
     ///
     /// This is useful for ensuring that the scrollbar size is correct instead of based on only rendered elements.
@@ -2356,6 +2380,7 @@ impl Element for List {
 
         let hitbox = window.insert_hitbox(bounds, HitboxBehavior::Normal);
 
+        let _fast = self.state.fast_layout_guard();
         let Ok(mut state) = self.state.0.try_borrow_mut() else {
             return ListPrepaintState {
                 hitbox,

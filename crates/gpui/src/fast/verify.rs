@@ -263,6 +263,7 @@ pub(crate) fn describe_frame(window: &Window) -> Vec<String> {
     // what it registered for, so listeners are described by their event type.
     lines.push(format!("mouse listeners {}", frame.mouse_listeners.len()));
     let mut events: Vec<(&str, usize)> = Vec::new();
+    #[cfg(any(test, feature = "test-support"))]
     for event in &frame.fast_mouse_listener_events {
         let event = event.rsplit("::").next().unwrap_or(event);
         match events.iter_mut().find(|(name, _)| *name == event) {
@@ -295,9 +296,25 @@ pub(crate) fn describe_frame(window: &Window) -> Vec<String> {
     if let Some(focus) = frame.focus {
         lines.push(format!("focus path {:?}", dispatch_tree.focus_path(focus)));
     }
-    for (id, type_id) in &frame.accessed_element_states {
-        lines.push(format!("element state {id} {type_id:?}"));
-    }
+    // The states the frame keeps, as a set: the order elements reach them in
+    // is not something the frame shows, and a view drawn from last frame
+    // carries the states its layout used before those its prepaint did. A
+    // cached view's own replay bookkeeping is the ordinary path's, which
+    // view retention replaces, and view retention's released entries stand
+    // for nothing.
+    let bookkeeping = [
+        std::any::TypeId::of::<crate::view::ViewElementState>(),
+        std::any::TypeId::of::<crate::fast::retained::ReleasedElementState>(),
+    ];
+    let mut element_states = frame
+        .accessed_element_states
+        .iter()
+        .filter(|(_, type_id)| !bookkeeping.contains(type_id))
+        .map(|(id, type_id)| format!("element state {id} {type_id:?}"))
+        .collect::<Vec<_>>();
+    element_states.sort();
+    element_states.dedup();
+    lines.extend(element_states);
     let devtools = window.devtools_frame_snapshot();
     lines.push(format!(
         "devtools viewport {:?} effects {:?}",
@@ -351,4 +368,272 @@ pub fn first_frame_difference(actual: &[String], expected: &[String]) -> Option<
         excerpt(actual),
         excerpt(expected)
     ))
+}
+
+/// Verify mode: after a frame that drew views from last frame, the frame
+/// drawn from scratch they stand for is drawn too, without being presented,
+/// and the first view whose part of the two differs is reported, through
+/// the log and the window's mismatch callback.
+///
+/// The shadow frame is drawn before the retained one, from the same state,
+/// into the frame that is about to be drawn, with view retention recording
+/// every view and reusing none; what it leaves (element states taken, a
+/// fresh layout) is put back before the retained frame draws. A view is
+/// rendered twice a frame while verifying, so a render with side effects
+/// has them twice. Verifying stops while AccessKit is active, which a frame
+/// reports to, and on frames nothing is drawn from last frame in.
+#[cfg(feature = "diagnostics")]
+pub(crate) mod retention {
+    use std::{mem, rc::Rc};
+
+    use collections::FxHashMap;
+
+    use crate::{App, EntityId, GlobalElementId, Window, fast::retained::RetainedSubtree};
+
+    /// A window's verify mode.
+    pub(crate) struct RetentionVerify {
+        enabled: bool,
+        on_mismatch: Option<Rc<dyn Fn(&RetentionMismatch)>>,
+        /// The type of each view rendered while verifying, to name a view
+        /// that differs by.
+        view_types: FxHashMap<EntityId, &'static str>,
+    }
+
+    impl Default for RetentionVerify {
+        fn default() -> Self {
+            Self {
+                enabled: std::env::var("GPUX_RETENTION_VERIFY").is_ok_and(|value| value == "1"),
+                on_mismatch: None,
+                view_types: FxHashMap::default(),
+            }
+        }
+    }
+
+    /// A view whose part of a frame differs from the frame drawn from
+    /// scratch, as verify mode reports it.
+    #[derive(Clone, Debug)]
+    pub struct RetentionMismatch {
+        /// The view's element id path, as `GlobalElementId` displays it, or
+        /// `window` when the difference lies outside every view.
+        pub global_id: String,
+        /// The view's type.
+        pub view_type: &'static str,
+        /// The first difference, as `first_frame_difference` words it.
+        pub difference: String,
+    }
+
+    /// What the shadow frame drawn from scratch showed.
+    pub(crate) struct ShadowFrame {
+        frame: Vec<String>,
+        views: FxHashMap<GlobalElementId, Vec<String>>,
+    }
+
+    /// Notes the type of the view `entity` as it renders, for a report to
+    /// name it by.
+    #[inline]
+    pub(crate) fn note_view_type(window: &mut Window, entity: EntityId, view_type: &'static str) {
+        if window.fast_verify.enabled {
+            window.fast_verify.view_types.insert(entity, view_type);
+        }
+    }
+
+    /// Draws the frame `window` is about to draw from scratch, when verify
+    /// mode is on and the frame may draw views from last frame, and returns
+    /// what it showed. See the module documentation.
+    pub(crate) fn draw_shadow(window: &mut Window, cx: &mut App) -> Option<ShadowFrame> {
+        if !window.fast_verify.enabled
+            || !window.fast_mode.view_retention()
+            || window.refreshing
+            || window.a11y.is_active()
+            || cx.has_active_drag()
+            || cx.mode.skip_drawing()
+        {
+            return None;
+        }
+        let engine = window
+            .layout_engine
+            .replace(crate::TaffyLayoutEngine::new());
+        let refreshing = mem::replace(&mut window.refreshing, true);
+        crate::fast::layout::begin_frame(window);
+        crate::fast::retained::begin_frame(window, cx);
+        // Rendering a view leases it; inside a recording that is not an
+        // update the retained frame would see.
+        let recording = cx.begin_recording_dependencies();
+        window.draw_roots(cx);
+        cx.finish_recording_dependencies(recording);
+        cx.entities.clear_accessed();
+        // As a frame drawn is before it is presented.
+        window.next_frame.scene.finish();
+
+        mem::swap(&mut window.rendered_frame, &mut window.next_frame);
+        let shadow = ShadowFrame {
+            frame: super::describe_frame(window),
+            views: window
+                .rendered_frame
+                .fast_retained
+                .records
+                .iter()
+                .map(|record| (record.id.clone(), describe_view(window, record)))
+                .collect(),
+        };
+        mem::swap(&mut window.rendered_frame, &mut window.next_frame);
+
+        // The element states the shadow took go back where the retained
+        // frame finds them.
+        let states = mem::take(&mut window.next_frame.element_states);
+        window.rendered_frame.element_states.extend(states);
+        window.next_frame.clear();
+        window.layout_engine = engine;
+        window.refreshing = refreshing;
+        Some(shadow)
+    }
+
+    /// Compares the frame `window` just drew with the `shadow` drawn from
+    /// scratch before it, and reports the first view that differs.
+    pub(crate) fn check(window: &mut Window, shadow: Option<ShadowFrame>) {
+        let Some(shadow) = shadow else {
+            return;
+        };
+        let frame = super::describe_frame(window);
+        let Some(difference) = super::first_frame_difference(&frame, &shadow.frame) else {
+            return;
+        };
+        let records = &window.rendered_frame.fast_retained.records;
+        let differs = |index: usize| {
+            let record = &records[index];
+            shadow
+                .views
+                .get(&record.id)
+                .is_some_and(|expected| *expected != describe_view(window, record))
+        };
+        // The innermost view that differs: within the first that does, the
+        // last nested one that does too.
+        let mut found = (0..records.len()).find(|index| differs(*index));
+        while let Some(index) = found {
+            let nested = (index + 1..=index + records[index].nested)
+                .rev()
+                .find(|nested| differs(*nested));
+            match nested {
+                Some(nested) => found = Some(nested),
+                None => break,
+            }
+        }
+        let mismatch = match found {
+            Some(index) => {
+                let record = &records[index];
+                let view_type = match record.id.last() {
+                    Some(crate::ElementId::View(entity)) => window
+                        .fast_verify
+                        .view_types
+                        .get(entity)
+                        .copied()
+                        .unwrap_or("an unnamed view"),
+                    _ => "an unnamed view",
+                };
+                let expected = &shadow.views[&record.id];
+                RetentionMismatch {
+                    global_id: record.id.to_string(),
+                    view_type,
+                    difference: super::first_frame_difference(
+                        &describe_view(window, record),
+                        expected,
+                    )
+                    .unwrap_or(difference),
+                }
+            }
+            None => RetentionMismatch {
+                global_id: "window".into(),
+                view_type: "",
+                difference,
+            },
+        };
+        log::error!(
+            "view retention verify: {} {} differs from the frame drawn from scratch: {}",
+            mismatch.view_type,
+            mismatch.global_id,
+            mismatch.difference
+        );
+        if let Some(on_mismatch) = window.fast_verify.on_mismatch.clone() {
+            on_mismatch(&mismatch);
+        }
+    }
+
+    /// The part of the rendered frame `record` stands for: what it painted
+    /// and the hitboxes it inserted.
+    fn describe_view(window: &Window, record: &RetainedSubtree) -> Vec<String> {
+        let frame = &window.rendered_frame;
+        let mut lines = Vec::new();
+        let paint = &record.paint_range;
+        if paint.start.scene_index <= paint.end.scene_index
+            && paint.end.scene_index <= frame.scene.paint_operations.len()
+        {
+            for operation in
+                &frame.scene.paint_operations[paint.start.scene_index..paint.end.scene_index]
+            {
+                lines.push(match operation {
+                    crate::scene::PaintOperation::Primitive(primitive) => {
+                        super::describe_primitive(primitive)
+                    }
+                    crate::scene::PaintOperation::StartLayer(bounds) => format!("layer {bounds:?}"),
+                    crate::scene::PaintOperation::StartPositionedLayer(bounds) => {
+                        format!("positioned layer {bounds:?}")
+                    }
+                    crate::scene::PaintOperation::StartTopLayer(bounds) => {
+                        format!("top layer {bounds:?}")
+                    }
+                    crate::scene::PaintOperation::EndLayer => "end layer".into(),
+                });
+            }
+        }
+        let prepaint = &record.prepaint_range;
+        for hitbox in &frame.hitboxes[prepaint.start.hitboxes_index..prepaint.end.hitboxes_index] {
+            lines.push(format!(
+                "hitbox {:?} {:?} {:?}",
+                hitbox.bounds, hitbox.content_mask, hitbox.behavior
+            ));
+        }
+        // What the DevKit shows of it, its text among it, without the ids a
+        // frame numbers its nodes by.
+        for node in &frame.devtools_nodes
+            [prepaint.start.devtools_nodes_index..prepaint.end.devtools_nodes_index]
+        {
+            lines.push(format!(
+                "devtools {:?}",
+                crate::DevtoolsElementSnapshot {
+                    devtools_node_id: 0,
+                    parent_devtools_node_id: None,
+                    dispatch_node_id: 0,
+                    parent_dispatch_node_id: None,
+                    ..node.snapshot()
+                }
+            ));
+        }
+        lines
+    }
+
+    impl Window {
+        /// Turns verify mode on or off: while it is on, a frame that draws
+        /// views from last frame is checked against the frame drawn from
+        /// scratch, and the first view that differs is reported through the
+        /// log and [`Window::on_retention_mismatch`]. Presented frames are
+        /// unaffected. `GPUX_RETENTION_VERIFY=1` turns it on for every
+        /// window.
+        pub fn set_retention_verify(&mut self, enabled: bool) {
+            self.fast_verify.enabled = enabled;
+            if !enabled {
+                self.fast_verify.view_types.clear();
+            }
+        }
+
+        /// Whether verify mode is on. See [`Window::set_retention_verify`].
+        pub fn retention_verify(&self) -> bool {
+            self.fast_verify.enabled
+        }
+
+        /// Calls `callback` with each view verify mode finds differing from
+        /// the frame drawn from scratch.
+        pub fn on_retention_mismatch(&mut self, callback: impl Fn(&RetentionMismatch) + 'static) {
+            self.fast_verify.on_mismatch = Some(Rc::new(callback));
+        }
+    }
 }

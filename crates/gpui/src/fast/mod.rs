@@ -20,6 +20,7 @@ pub(crate) mod layers;
 pub(crate) mod layout;
 pub(crate) mod layout_key;
 pub(crate) mod mode;
+pub(crate) mod retained;
 #[cfg(any(test, feature = "test-support", feature = "bench-support"))]
 pub mod scenarios;
 pub(crate) mod scene;
@@ -31,7 +32,7 @@ pub(crate) mod scene;
 ))]
 pub(crate) mod stats;
 pub(crate) mod text;
-#[cfg(any(test, feature = "test-support"))]
+#[cfg(any(test, feature = "test-support", feature = "diagnostics"))]
 pub(crate) mod verify;
 
 #[cfg(test)]

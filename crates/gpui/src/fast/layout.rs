@@ -90,6 +90,17 @@ pub(crate) struct LayoutRetention {
     /// Text leaves measured by the layout being computed, with the width
     /// each was last measured at.
     measured_text: FxHashMap<LayoutId, Option<Pixels>>,
+    /// The keys claimed or made while a recording is open, for a retained
+    /// view to keep its nodes by. See [`TaffyLayoutEngine::record_claimed_keys`].
+    claimed_key_log: Vec<u64>,
+    /// How many recordings of claimed keys are open, nested.
+    open_key_recordings: usize,
+    /// Counts the writes that change what a layout computes: a node made,
+    /// a style or a child list written, a measured leaf dirtied. A subtree
+    /// laid out again without any is laid out as it was.
+    pub(crate) layout_changes: u64,
+    /// Counts the measured leaves dirtied to be measured again.
+    pub(crate) remeasures: u64,
 }
 
 /// A node kept from one frame to the next.
@@ -225,6 +236,9 @@ impl LayoutRetention {
         node.claimed_in_frame = frame;
         node.lingers = self.list_rows > 0;
         self.claimed_this_frame += 1;
+        if self.open_key_recordings > 0 {
+            self.claimed_key_log.push(key);
+        }
         Claim::Reused(key, node.id)
     }
 
@@ -246,6 +260,99 @@ impl LayoutRetention {
             },
         );
         self.claimed_this_frame += 1;
+        self.layout_changes += 1;
+        if self.open_key_recordings > 0 {
+            self.claimed_key_log.push(key);
+        }
+    }
+
+    /// Starts recording the keys of the nodes claimed or made from now on,
+    /// returning where the recording starts. Recordings nest.
+    pub(crate) fn record_claimed_keys(&mut self) -> usize {
+        self.open_key_recordings += 1;
+        self.claimed_key_log.len()
+    }
+
+    /// Ends the recording started at `start`, returning the keys it saw.
+    pub(crate) fn finish_recording_claimed_keys(&mut self, start: usize) -> Vec<u64> {
+        let keys = self.claimed_key_log[start.min(self.claimed_key_log.len())..].to_vec();
+        self.open_key_recordings = self.open_key_recordings.saturating_sub(1);
+        if self.open_key_recordings == 0 {
+            self.claimed_key_log.clear();
+        }
+        keys
+    }
+
+    /// Keeps the nodes under `keys` for another frame without requesting
+    /// them, for a subtree drawn from last frame: they are there when it is
+    /// built next. Keys already claimed this frame, or no longer kept, are
+    /// passed over.
+    pub(crate) fn keep_retained(&mut self, keys: &[u64]) {
+        let frame = self.frame;
+        for key in keys {
+            if let Some(node) = self.retained.get_mut(key)
+                && node.claimed_in_frame != frame
+            {
+                node.claimed_in_frame = frame;
+                self.claimed_this_frame += 1;
+                if self.open_key_recordings > 0 {
+                    self.claimed_key_log.push(*key);
+                }
+            }
+        }
+    }
+
+    /// Keeps the nodes under `keys`, as [`Self::keep_retained`] does, only if
+    /// every one is still kept and unclaimed this frame: a layout reused
+    /// without being requested needs all of its nodes as they were.
+    pub(crate) fn try_keep_retained(&mut self, keys: &[u64]) -> bool {
+        let frame = self.frame;
+        let all_there = keys.iter().all(|key| {
+            self.retained
+                .get(key)
+                .is_some_and(|node| node.claimed_in_frame != frame)
+        });
+        if all_there {
+            self.keep_retained(keys);
+        }
+        all_there
+    }
+
+    /// The text leaves among the nodes under `keys` that were kept this
+    /// frame without being requested, with what they were last measured
+    /// from.
+    fn kept_text_leaves(
+        &self,
+        keys: &[u64],
+    ) -> Vec<(LayoutId, Rc<TextMeasureInputs>, Rc<MeasureLog>)> {
+        keys.iter()
+            .filter_map(|key| {
+                let node = self.retained.get(key)?;
+                let text = node.text.as_ref()?;
+                (node.claimed_in_frame == self.frame && !self.text_leaves.contains(&node.id))
+                    .then(|| (node.id, text.inputs.clone(), text.log.clone()))
+            })
+            .collect()
+    }
+
+    /// Undoes [`Self::try_keep_retained`] for `keys`, so the subtree can be
+    /// laid out again this frame and claim its nodes itself.
+    pub(crate) fn release_kept(&mut self, keys: &[u64]) {
+        let frame = self.frame;
+        for key in keys {
+            if let Some(node) = self.retained.get_mut(key)
+                && node.claimed_in_frame == frame
+            {
+                node.claimed_in_frame = frame.wrapping_sub(1);
+                self.claimed_this_frame -= 1;
+            }
+        }
+    }
+
+    /// How many nodes made this frame are not kept: a subtree that made any
+    /// cannot have its layout reused, since they go when the frame ends.
+    pub(crate) fn transient_count(&self) -> usize {
+        self.transient.len()
     }
 
     /// Converts `style` to a Taffy style.
@@ -685,6 +792,7 @@ fn apply_requested_style(
     }
     // Taffy now holds exactly what was asked.
     retention.unstretched_styles.remove(&id);
+    retention.layout_changes += 1;
     crate::fast::fast_stat!(engine.fast_stats, style_writes += 1);
     engine
         .taffy
@@ -863,6 +971,34 @@ fn set_measure_keeping_clean(engine: &mut TaffyLayoutEngine, id: LayoutId, conte
     engine.note_requested_node(id, &[], true);
 }
 
+/// Keeps the nodes under `keys` for a subtree drawn from last frame, as
+/// [`LayoutRetention::keep_retained`] does, or, with `all_or_none`, only if
+/// every one is there, as [`LayoutRetention::try_keep_retained`] does.
+///
+/// Each text leaf kept is given back a closure measuring the text it was
+/// last measured from, as if it had been requested: the subtree is laid out
+/// as it was only while its constraints are, and a parent laid out under
+/// other constraints measures its leaves again. Without a closure, Taffy
+/// would size them as empty.
+pub(crate) fn keep_retained_nodes(
+    engine: &mut TaffyLayoutEngine,
+    keys: &[u64],
+    all_or_none: bool,
+) -> bool {
+    if all_or_none {
+        if !engine.retention.try_keep_retained(keys) {
+            return false;
+        }
+    } else {
+        engine.retention.keep_retained(keys);
+    }
+    for (id, inputs, log) in engine.retention.kept_text_leaves(keys) {
+        set_measure_keeping_clean(engine, id, text_context(&inputs, &log));
+        engine.retention.text_leaves.insert(id);
+    }
+    true
+}
+
 /// Runs a measured node's closure under these constraints, outside a layout
 /// computation.
 fn measure_node(
@@ -880,6 +1016,70 @@ fn measure_node(
     {
         measure(known_dimensions, available_space, window, cx);
     }
+}
+
+/// Lays out again the subtree under `id`, a node already placed by its
+/// parent this frame, within `available_space`, leaving it where its parent
+/// put it, for a view built at the layout it kept.
+///
+/// Computing a layout from a node treats it as a root and moves it to the
+/// origin; its absolute position, worked out before, is put back so that
+/// the bounds of everything under it are found relative to it as before. A
+/// root is sized by its own style, so a node its parent stretched would
+/// shrink to its content: it is held at the size its parent gave it while it
+/// is laid out, and given back the style it asked for afterwards.
+pub(crate) fn relayout_in_place(
+    engine: &mut TaffyLayoutEngine,
+    id: LayoutId,
+    available_space: Size<AvailableSpace>,
+    window: &mut Window,
+    cx: &mut App,
+) {
+    let scale_factor = window.scale_factor();
+    let bounds = engine.layout_bounds(id, scale_factor);
+    let origin = engine
+        .absolute_outer_origins
+        .get(&id)
+        .copied()
+        .expect("layout_bounds caches the absolute origin");
+    let requested = engine.taffy.style(id.into()).expect(EXPECT_MESSAGE).clone();
+    let given = engine.taffy.layout(id.into()).expect(EXPECT_MESSAGE).size;
+    let mut held = requested.clone();
+    held.size = taffy::geometry::Size {
+        width: taffy::style::Dimension::length(given.width),
+        height: taffy::style::Dimension::length(given.height),
+    };
+    held.min_size = taffy::geometry::Size {
+        width: taffy::style::LengthPercentageAuto::length(given.width),
+        height: taffy::style::LengthPercentageAuto::length(given.height),
+    };
+    held.max_size = held.min_size;
+    held.box_sizing = taffy::style::BoxSizing::BorderBox;
+    engine
+        .taffy
+        .set_style(id.into(), held)
+        .expect(EXPECT_MESSAGE);
+    engine.compute_layout(id, available_space, window, cx);
+    engine
+        .taffy
+        .set_style(id.into(), requested)
+        .expect(EXPECT_MESSAGE);
+    let stack = &mut engine.layout_bounds_scratch_space;
+    stack.push(id);
+    while let Some(id) = stack.pop() {
+        engine.absolute_layout_bounds.remove(&id);
+        engine.absolute_outer_origins.remove(&id);
+        stack.extend(
+            engine
+                .taffy
+                .children(id.into())
+                .expect(EXPECT_MESSAGE)
+                .into_iter()
+                .map(LayoutId::from),
+        );
+    }
+    engine.absolute_outer_origins.insert(id, origin);
+    engine.absolute_layout_bounds.insert(id, bounds);
 }
 
 /// Begins a frame for `window`'s layout: it keys its layout while layout

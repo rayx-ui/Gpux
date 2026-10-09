@@ -130,9 +130,11 @@ pub use fast::scenarios as fast_scenarios;
     feature = "bench-support",
     feature = "diagnostics"
 ))]
-pub use fast::stats::{FastStats, LAYER_BYPASS_REASONS, LayerBypassReason};
+pub use fast::stats::{FastStats, LAYER_BYPASS_REASONS, LayerBypassReason, ViewBypassReason};
 #[cfg(any(test, feature = "test-support"))]
 pub use fast::verify::first_frame_difference;
+#[cfg(feature = "diagnostics")]
+pub use fast::verify::retention::RetentionMismatch;
 pub use geometry::*;
 pub use gestures::*;
 pub use global::*;

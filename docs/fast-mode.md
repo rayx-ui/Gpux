@@ -43,6 +43,53 @@ view that read the hover of a hitbox it does not insert, such as the group aroun
 (`group_hover`), is built again every frame: that hitbox belongs to whoever inserts it, under a
 new id each frame its owner draws.
 
+## View retention
+
+With `view_retention` on (it needs `layout_retention`), every entity-backed view is a retained
+subtree. Each frame leaves a record per view drawn: where its hitboxes, dispatch nodes,
+listeners, element states, line layouts and primitives went, the views nested in it, where it was
+drawn (bounds, content mask, text style and the opacity and transform it was painted with), the
+layout nodes it holds, the hovers it was drawn by, and what it read: entities, globals and their
+presence, scroll and list state, and the window's pointer, modifiers and pressed button.
+
+On the next frame a view is
+
+- **reused** when nothing it read changed, it is drawn where and as it was, and its hovers
+  stand: its stretch of last frame is copied, the records nested in it with it;
+- **built at its retained layout** when only where it is drawn changed (it moved, or its content
+  mask or painted context changed): it is rendered, but lays out at the nodes it kept;
+- **built** otherwise, a changed text style included, which can measure text otherwise.
+
+What builds a view again:
+
+- an entity it read, updated and notified, or updated without a notify (a frame drawn from
+  scratch would show the update); a notify alone changes nothing a view read;
+- an entity it read, written by another view while the window draws;
+- a global it read written, inserted or removed;
+- a scroll handle or list it laid out scrolled, or a list whose layout changed what it lays out
+  next;
+- the pointer, modifiers or pressed button, when it read them;
+- a hover it read, while the pointer is over the hitbox it read (a hover of a hitbox it did not
+  insert, such as an ancestor's group, builds it every frame);
+- an interaction inside it, which notifies it: it and the views around it are built, the views
+  beside it reused.
+
+Nothing is reused while the window refreshes, during a drag, while the inspector picks, while
+AccessKit is active, or for a view whose id is drawn twice in a frame; each reason is counted in
+`FastStats` (`views_bypassed_*`). A stateless `RenderOnce` component is part of the view it is in.
+A view whose content has a sticky element pinned by a scroll container outside it is built rather
+than laid out from its record, so the container pins it from what this frame registered.
+
+### Verify mode
+
+Under the `diagnostics` feature, `GPUX_RETENTION_VERIFY=1` or `Window::set_retention_verify(true)`
+checks each frame that may reuse views against the frame drawn from scratch: a shadow frame is
+drawn first, recording every view and reusing none, and is never presented. The innermost view
+whose part of the two frames differs is reported by its element id path and type through the log
+and `Window::on_retention_mismatch`. Use it to find a view that reads state its dependencies
+cannot see, such as an `Rc<RefCell<_>>` changed without a notify. Every view renders twice a
+frame while it is on, so a render with side effects has them twice.
+
 ## Measuring
 
 Fast mode's benefit is measured scenario by scenario in every cumulative mode (`off`, `layout`,

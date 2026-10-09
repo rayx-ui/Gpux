@@ -12,8 +12,15 @@ mod layout_keys;
 mod oracle;
 mod oracle_layout;
 mod oracle_support;
+mod oracle_views;
+mod retained_records;
+mod reuse_paths;
 mod scoped_invalidation;
 mod stats;
 mod switches;
 mod text_carry;
+#[cfg(feature = "diagnostics")]
+mod verify_mode;
+mod view_invalidation;
+mod view_support;
 mod write_elision;

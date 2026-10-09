@@ -174,6 +174,12 @@ mod any_view {
             .a11y
             .view_type_names
             .insert(view.entity_id(), std::any::type_name::<V>());
+        #[cfg(feature = "diagnostics")]
+        crate::fast::verify::retention::note_view_type(
+            window,
+            view.entity_id(),
+            std::any::type_name::<V>(),
+        );
         crate::fast::dependencies::render_next(cx, view.entity_id());
         view.update(cx, |view, cx| view.render(window, cx).into_any_element())
     }
@@ -225,6 +231,12 @@ impl<T: Render> View for Entity<T> {
 
     #[inline]
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
+        #[cfg(feature = "diagnostics")]
+        crate::fast::verify::retention::note_view_type(
+            window,
+            self.entity_id(),
+            std::any::type_name::<T>(),
+        );
         crate::fast::dependencies::render_next(cx, self.entity_id());
         self.update(cx, |this, cx| {
             Render::render(this, window, cx).into_any_element()
@@ -255,6 +267,8 @@ pub struct ViewElement<V: View> {
     cached_style: Option<StyleRefinement>,
     #[cfg(debug_assertions)]
     source: &'static core::panic::Location<'static>,
+    /// How the view was drawn with view retention on.
+    fast_retention: crate::fast::retained::ViewRetention,
 }
 
 impl<V: View> ViewElement<V> {
@@ -268,6 +282,7 @@ impl<V: View> ViewElement<V> {
             view: Some(view),
             #[cfg(debug_assertions)]
             source: core::panic::Location::caller(),
+            fast_retention: Default::default(),
         }
     }
 
@@ -294,7 +309,7 @@ impl<V: View> IntoElement for ViewElement<V> {
     }
 }
 
-struct ViewElementState {
+pub(crate) struct ViewElementState {
     prepaint_range: Range<PrepaintStateIndex>,
     paint_range: Range<PaintIndex>,
     cache_key: ViewElementCacheKey,
@@ -333,12 +348,26 @@ impl<V: View> Element for ViewElement<V> {
 
     fn request_layout(
         &mut self,
-        _id: Option<&GlobalElementId>,
+        id: Option<&GlobalElementId>,
         _inspector_id: Option<&InspectorElementId>,
         window: &mut Window,
         cx: &mut App,
     ) -> (LayoutId, Self::RequestLayoutState) {
-        if let Some(entity_id) = self.entity_id {
+        if let Some(entity_id) = self.entity_id
+            && crate::fast::retained::active(window)
+        {
+            let view = &mut self.view;
+            let layout_id = crate::fast::retained::request_view_layout(
+                &mut self.fast_retention,
+                entity_id,
+                self.cached_style.as_ref(),
+                id,
+                window,
+                cx,
+                &mut |window, cx| view.take().unwrap().render(window, cx).into_any_element(),
+            );
+            (layout_id, None)
+        } else if let Some(entity_id) = self.entity_id {
             // Stateful path: create a reactive boundary.
             let view = &mut self.view;
             request_layout_view(
@@ -369,7 +398,25 @@ impl<V: View> Element for ViewElement<V> {
         window: &mut Window,
         cx: &mut App,
     ) -> Option<AnyElement> {
-        if let Some(entity_id) = self.entity_id {
+        if let Some(entity_id) = self.entity_id
+            && crate::fast::retained::prepaint_view(
+                &mut self.fast_retention,
+                entity_id,
+                global_id,
+                bounds,
+                window,
+                cx,
+                &mut |window, cx| {
+                    self.view
+                        .take()
+                        .unwrap()
+                        .render(window, cx)
+                        .into_any_element()
+                },
+            )
+        {
+            None
+        } else if let Some(entity_id) = self.entity_id {
             // Stateful path.
             prepaint_view(
                 entity_id,
@@ -402,7 +449,10 @@ impl<V: View> Element for ViewElement<V> {
         window: &mut Window,
         cx: &mut App,
     ) {
-        if let Some(entity_id) = self.entity_id {
+        if let Some(entity_id) = self.entity_id
+            && crate::fast::retained::paint_view(&mut self.fast_retention, entity_id, window, cx)
+        {
+        } else if let Some(entity_id) = self.entity_id {
             // Stateful path.
             paint_view(
                 entity_id,
@@ -536,7 +586,7 @@ fn prepaint_view(
                 let hover_area = crate::fast::dependencies::hover_area(
                     window,
                     &hover_reads,
-                    prepaint_start.hitboxes_index..prepaint_end.hitboxes_index,
+                    &[prepaint_start.hitboxes_index..prepaint_end.hitboxes_index],
                 );
                 window.refreshing = refreshing;
 
@@ -606,7 +656,7 @@ fn paint_view(
                             element_state.hover_area = crate::fast::dependencies::hover_area(
                                 window,
                                 &element_state.hover_reads,
-                                prepaint.start.hitboxes_index..prepaint.end.hitboxes_index,
+                                &[prepaint.start.hitboxes_index..prepaint.end.hitboxes_index],
                             );
                         }
                         window.refreshing = refreshing;

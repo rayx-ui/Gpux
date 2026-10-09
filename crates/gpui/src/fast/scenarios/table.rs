@@ -112,18 +112,29 @@ impl Fixture for Stream {
 
     fn expect(&self, mode: Mode, stats: &FastStats) -> Result<(), String> {
         expect_frames(mode, stats)?;
-        // Every frame builds the scenario root, the table and its rows.
-        exactly_per_frame(stats, "views_built", ROWS as u64 + 2)?;
+        // Rows drawn from last frame lay nothing out.
+        let laid_out_rows = if mode.fast_mode().view_retention {
+            // The scenario root and the table are built around the ticking
+            // rows; every other row is drawn from last frame.
+            exactly_per_frame(stats, "views_built", TICKING as u64 + 2)?;
+            exactly_per_frame(stats, "views_reused", (ROWS - TICKING) as u64)?;
+            TICKING
+        } else {
+            // Every frame builds the scenario root, the table and its rows.
+            exactly_per_frame(stats, "views_built", ROWS as u64 + 2)?;
+            ROWS
+        };
         if mode.fast_mode().layout_retention {
             // Each ticking row's equal-width cell replays and its widening
-            // cell is measured afresh; every other cell carries; no node is
-            // written, so every row but the ticking cells stays clean.
+            // cell is measured afresh; every other cell laid out carries; no
+            // node is written, so every row but the ticking cells stays
+            // clean.
             exactly_per_frame(stats, "leaves_replayed", TICKING as u64)?;
             exactly_per_frame(stats, "leaves_remeasured", TICKING as u64)?;
             exactly_per_frame(
                 stats,
                 "leaves_carried",
-                (ROWS * COLUMNS - 2 * TICKING) as u64,
+                (laid_out_rows * COLUMNS - 2 * TICKING) as u64,
             )?;
             exactly_per_frame(stats, "style_writes", 0)?;
             exactly_per_frame(stats, "children_writes", 0)?;

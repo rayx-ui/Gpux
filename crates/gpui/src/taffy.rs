@@ -164,11 +164,11 @@ pub struct TaffyLayoutEngine {
     active_layout_count: usize,
     active_child_layouts: FxHashSet<LayoutId>,
     measured_layouts: Vec<LayoutId>,
-    absolute_layout_bounds: FxHashMap<LayoutId, Bounds<Pixels>>,
+    pub(crate) absolute_layout_bounds: FxHashMap<LayoutId, Bounds<Pixels>>,
     /// Unrounded absolute border-box top-left per-node coordinate in device pixels.
-    absolute_outer_origins: FxHashMap<LayoutId, Point<f32>>,
+    pub(crate) absolute_outer_origins: FxHashMap<LayoutId, Point<f32>>,
     computed_layouts: FxHashSet<LayoutId>,
-    layout_bounds_scratch_space: Vec<LayoutId>,
+    pub(crate) layout_bounds_scratch_space: Vec<LayoutId>,
     pub(crate) retention: crate::fast::layout::LayoutRetention,
     #[cfg(feature = "diagnostics")]
     diagnostics: [u64; 31],
@@ -376,11 +376,15 @@ impl TaffyLayoutEngine {
         }
         if !topology_matches {
             crate::fast::fast_stat!(self.fast_stats, children_writes += 1);
+            self.retention.layout_changes += 1;
             self.taffy
                 .set_children(id.0, taffy_children)
                 .expect(EXPECT_MESSAGE);
         }
         if let Some(context) = context {
+            // A measured leaf given a new closure is measured again.
+            self.retention.layout_changes += 1;
+            self.retention.remeasures += 1;
             if let Some(retained_context) = self.taffy.get_node_context_mut(id.0) {
                 #[cfg(feature = "diagnostics")]
                 {

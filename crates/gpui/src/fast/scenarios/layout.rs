@@ -7,7 +7,8 @@ use crate::{
 };
 
 use super::{
-    Fixture, Mode, Scenario, at_least_per_frame, drawn_per_frame, exactly_per_frame, expect_frames,
+    Fixture, Mode, Scenario, at_least_per_frame, check, drawn_per_frame, exactly_per_frame,
+    expect_frames,
 };
 
 const SECTIONS: usize = 12;
@@ -118,7 +119,7 @@ impl Fixture for Settings {
 
     fn expect(&self, mode: Mode, stats: &FastStats) -> Result<(), String> {
         expect_frames(mode, stats)?;
-        exactly_per_frame(stats, "views_built", SECTIONS as u64 + 2)?;
+        expect_one_toggled(mode, stats, SECTIONS)?;
         // A section opening or closing writes its children.
         at_least_per_frame(stats, "children_writes", 1)?;
         // The glyphs of every section's title.
@@ -204,9 +205,31 @@ impl Fixture for Tree {
 
     fn expect(&self, mode: Mode, stats: &FastStats) -> Result<(), String> {
         expect_frames(mode, stats)?;
-        exactly_per_frame(stats, "views_built", TREE_NODES as u64 + 2)?;
+        expect_one_toggled(mode, stats, TREE_NODES)?;
         at_least_per_frame(stats, "children_writes", 1)?;
         // A background and the glyphs of every node's header.
         drawn_per_frame(stats, (TREE_NODES * 7) as u64)
     }
+}
+
+/// The views a frame that toggles one of `views` builds. Without view
+/// retention, the scenario root, the list and every one of them. With it,
+/// the scenario root, the list and the toggled one are built; the others
+/// are drawn from last frame where they did not move, and built at the
+/// layout they kept where they moved.
+fn expect_one_toggled(mode: Mode, stats: &FastStats, views: usize) -> Result<(), String> {
+    if !mode.fast_mode().view_retention {
+        return exactly_per_frame(stats, "views_built", views as u64 + 2);
+    }
+    let moved = stats.views_built_at_retained_layout;
+    check(stats.views_built == 3 * stats.frames + moved, || {
+        format!("more than the toggled view and those that moved was built: {stats:?}")
+    })?;
+    check(
+        stats.views_reused + moved == (views as u64 - 1) * stats.frames,
+        || format!("a view that did not change was neither reused nor moved: {stats:?}"),
+    )?;
+    check(stats.views_reused > 0 && moved > 0, || {
+        format!("views above the toggled one were not reused, or none below moved: {stats:?}")
+    })
 }

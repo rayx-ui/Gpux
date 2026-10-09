@@ -141,8 +141,22 @@ impl Fixture for Dashboard {
 
     fn expect(&self, mode: Mode, stats: &FastStats) -> Result<(), String> {
         expect_frames(mode, stats)?;
-        // Every frame builds the scenario root, the dashboard and its panels.
-        exactly_per_frame(stats, "views_built", PANELS as u64 + 2)?;
+        let changing = match self.changing {
+            Changing::None => 0,
+            Changing::Panels(count) => count,
+        } as u64;
+        if mode.fast_mode().view_retention {
+            // The scenario root and the dashboard around the changed panels
+            // are built with them; every other panel is drawn from last
+            // frame where it was.
+            exactly_per_frame(stats, "views_built", changing + 2)?;
+            exactly_per_frame(stats, "views_reused", PANELS as u64 - changing)?;
+            exactly_per_frame(stats, "views_built_at_retained_layout", 0)?;
+        } else {
+            // Every frame builds the scenario root, the dashboard and its
+            // panels.
+            exactly_per_frame(stats, "views_built", PANELS as u64 + 2)?;
+        }
         if mode.fast_mode().layout_retention {
             // Panel text changes, but no element comes or goes: every node
             // is claimed again and none is written or released.
@@ -150,14 +164,16 @@ impl Fixture for Dashboard {
             exactly_per_frame(stats, "children_writes", 0)?;
             exactly_per_frame(stats, "nodes_released", 0)?;
             // A panel's title and labels: the panels that did not change
-            // carry all of them, and the ones that did measure theirs again,
+            // carry all of them, unless they are drawn from last frame and
+            // lay nothing out, and the ones that did measure theirs again,
             // replayed where the new text has the old one's size.
-            let changing = match self.changing {
-                Changing::None => 0,
-                Changing::Panels(count) => count,
-            } as u64;
             let texts = (LABELS + 1) as u64;
-            exactly_per_frame(stats, "leaves_carried", (PANELS as u64 - changing) * texts)?;
+            let carrying = if mode.fast_mode().view_retention {
+                0
+            } else {
+                PANELS as u64 - changing
+            };
+            exactly_per_frame(stats, "leaves_carried", carrying * texts)?;
             check(
                 stats.leaves_replayed + stats.leaves_remeasured == changing * texts * stats.frames,
                 || format!("the changed panels did not measure their text again: {stats:?}"),

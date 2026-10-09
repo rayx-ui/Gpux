@@ -75,15 +75,23 @@ fn attribute(name: &str) -> Vec<(Mode, FastStats)> {
 }
 
 /// Each mode does the work of the mode before it, except where the
-/// mechanism it adds has landed. Layout retention may write other Taffy
-/// nodes than the ordinal pool, and measures and shapes no more text than
-/// `off` (carried and replayed text is measured less); everything else is the
-/// same work. View retention, splice and scroll layers have not landed, and
-/// work as layout retention does.
+/// mechanism it adds has landed.
+///
+/// - Layout retention may write other Taffy nodes than the ordinal pool, and
+///   measures and shapes no more text than `off` (carried and replayed text
+///   is measured less); everything else is the same work.
+/// - View retention renders no more views than layout retention, and copies
+///   from last frame what it does not paint, so the frame shows as many
+///   primitives; it claims, carries and measures no more than layout
+///   retention, and writes and releases the same nodes, since a view drawn
+///   from last frame keeps the nodes it laid out. Ordering is the same work.
+/// - Splice and scroll layers have not landed, and work as view retention
+///   does.
 fn modes_differ_only_by_landed_mechanisms(name: &str) {
     let modes = attribute(name);
     let (_, off) = modes[0];
     let (_, layout) = modes[1];
+    let (_, views) = modes[2];
     assert!(
         layout.leaves_measured <= off.leaves_measured && layout.lines_shaped <= off.lines_shaped,
         "{name}: layout measured or shaped more text than off: measured {} shaped {} against {} {}",
@@ -110,10 +118,51 @@ fn modes_differ_only_by_landed_mechanisms(name: &str) {
         shared_work(off),
         "{name}: layout counted other work than off beyond its layout and text"
     );
-    for (mode, stats) in &modes[2..] {
+
+    for (counter, more) in [
+        ("views_built", views.views_built > layout.views_built),
+        (
+            "leaves_measured",
+            views.leaves_measured > layout.leaves_measured,
+        ),
+        ("lines_shaped", views.lines_shaped > layout.lines_shaped),
+        ("nodes_claimed", views.nodes_claimed > layout.nodes_claimed),
+        (
+            "leaves_carried",
+            views.leaves_carried > layout.leaves_carried,
+        ),
+    ] {
+        assert!(
+            !more,
+            "{name}: views counted more {counter} than layout: {views:?}"
+        );
+    }
+    assert_eq!(
+        views.primitives_painted + views.primitives_copied,
+        layout.primitives_painted + layout.primitives_copied,
+        "{name}: views shows other primitives than layout"
+    );
+    let unchanged_by_views = |stats: FastStats| FastStats {
+        views_built: 0,
+        primitives_painted: 0,
+        primitives_copied: 0,
+        leaves_measured: 0,
+        lines_shaped: 0,
+        nodes_claimed: 0,
+        leaves_carried: 0,
+        views_built_at_retained_layout: 0,
+        views_reused: 0,
+        ..stats
+    };
+    assert_eq!(
+        unchanged_by_views(views),
+        unchanged_by_views(layout),
+        "{name}: views counted other work than layout beyond the views it drew from last frame"
+    );
+    for (mode, stats) in &modes[3..] {
         assert_eq!(
-            *stats, layout,
-            "{name}: {mode} counted other work than layout before its mechanism landed"
+            *stats, views,
+            "{name}: {mode} counted other work than views before its mechanism landed"
         );
     }
 }

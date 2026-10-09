@@ -181,12 +181,15 @@ pub(crate) fn expect_frames(mode: Mode, stats: &FastStats) -> Result<(), String>
             format!("{mode} claimed no kept layout node: {stats:?}")
         })?;
     }
-    // Layout retention has landed; the other mechanisms work as `off` does.
-    let landed = if layout_retention {
-        stats.layout_retention_total()
-    } else {
-        0
-    };
+    // Layout and view retention have landed; the other mechanisms work as
+    // `off` does.
+    let mut landed = 0;
+    if layout_retention {
+        landed += stats.layout_retention_total();
+    }
+    if mode.fast_mode().view_retention {
+        landed += stats.view_retention_total();
+    }
     check(stats.mechanism_total() == landed, || {
         format!("{mode} made a fast-mode decision for a mechanism it does not run: {stats:?}")
     })

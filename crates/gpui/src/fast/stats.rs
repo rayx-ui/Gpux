@@ -59,6 +59,48 @@ impl LayerBypassReason {
 /// How many [`LayerBypassReason`]s there are.
 pub const LAYER_BYPASS_REASONS: usize = 6;
 
+/// Why a view with view retention on was not drawn from last frame although
+/// nothing it depends on changed. Each is counted in its own
+/// `views_bypassed_*` counter of [`FastStats`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ViewBypassReason {
+    /// The window is refreshing: every view is built.
+    Refreshing,
+    /// A drag is under way, and its preview reads what views are dragged
+    /// over.
+    Drag,
+    /// The inspector is picking an element, which every view's build reports
+    /// to.
+    Inspector,
+    /// AccessKit is active, and its tree is built from every view's build.
+    Accessibility,
+    /// Another view in the frame has the same id, so neither can be told
+    /// apart from its record.
+    Duplicate,
+}
+
+impl ViewBypassReason {
+    /// Every reason, in report order.
+    pub const ALL: [ViewBypassReason; 5] = [
+        ViewBypassReason::Refreshing,
+        ViewBypassReason::Drag,
+        ViewBypassReason::Inspector,
+        ViewBypassReason::Accessibility,
+        ViewBypassReason::Duplicate,
+    ];
+
+    /// The name of the counter the reason is counted in.
+    pub fn counter(self) -> &'static str {
+        match self {
+            ViewBypassReason::Refreshing => "views_bypassed_refreshing",
+            ViewBypassReason::Drag => "views_bypassed_drag",
+            ViewBypassReason::Inspector => "views_bypassed_inspector",
+            ViewBypassReason::Accessibility => "views_bypassed_accessibility",
+            ViewBypassReason::Duplicate => "views_bypassed_duplicate",
+        }
+    }
+}
+
 /// Counters of the work frames did and the work fast mode saved.
 ///
 /// The *work* counters ([`FastStats::WORK`]) count what a frame does in every
@@ -115,6 +157,17 @@ pub struct FastStats {
     pub views_built_at_retained_layout: u64,
     /// Views drawn again from their retained record without rendering.
     pub views_reused: u64,
+    /// Views built while view retention was on, though nothing they depend
+    /// on changed, by [`ViewBypassReason`].
+    pub views_bypassed_refreshing: u64,
+    /// See [`ViewBypassReason::Drag`].
+    pub views_bypassed_drag: u64,
+    /// See [`ViewBypassReason::Inspector`].
+    pub views_bypassed_inspector: u64,
+    /// See [`ViewBypassReason::Accessibility`].
+    pub views_bypassed_accessibility: u64,
+    /// See [`ViewBypassReason::Duplicate`].
+    pub views_bypassed_duplicate: u64,
     /// Views copied from the last frame around a rebuilt nested view.
     pub views_spliced: u64,
     /// Views built ahead of the frame that draws them.
@@ -154,7 +207,7 @@ impl FastStats {
 
     /// The names of the mechanism counters, zero with fast mode off. Layer
     /// bypasses are reported per reason as `layer_bypasses.<reason>`.
-    pub const MECHANISM: [&'static str; 17] = [
+    pub const MECHANISM: [&'static str; 22] = [
         "nodes_claimed",
         "nodes_released",
         "nodes_lingering",
@@ -163,6 +216,11 @@ impl FastStats {
         "leaves_remeasured",
         "views_built_at_retained_layout",
         "views_reused",
+        "views_bypassed_refreshing",
+        "views_bypassed_drag",
+        "views_bypassed_inspector",
+        "views_bypassed_accessibility",
+        "views_bypassed_duplicate",
         "views_spliced",
         "views_prebuilt",
         "layers_composited",
@@ -202,6 +260,23 @@ impl FastStats {
                 self.views_built_at_retained_layout,
             ),
             ("views_reused".into(), self.views_reused),
+            (
+                "views_bypassed_refreshing".into(),
+                self.views_bypassed_refreshing,
+            ),
+            ("views_bypassed_drag".into(), self.views_bypassed_drag),
+            (
+                "views_bypassed_inspector".into(),
+                self.views_bypassed_inspector,
+            ),
+            (
+                "views_bypassed_accessibility".into(),
+                self.views_bypassed_accessibility,
+            ),
+            (
+                "views_bypassed_duplicate".into(),
+                self.views_bypassed_duplicate,
+            ),
             ("views_spliced".into(), self.views_spliced),
             ("views_prebuilt".into(), self.views_prebuilt),
             ("layers_composited".into(), self.layers_composited),
@@ -238,6 +313,32 @@ impl FastStats {
             + self.leaves_remeasured
     }
 
+    /// The sum of view retention's counters: zero on frames drawn with it
+    /// off.
+    pub fn view_retention_total(&self) -> u64 {
+        self.views_built_at_retained_layout + self.views_reused + self.views_bypassed()
+    }
+
+    /// The views built for any [`ViewBypassReason`].
+    pub fn views_bypassed(&self) -> u64 {
+        self.views_bypassed_refreshing
+            + self.views_bypassed_drag
+            + self.views_bypassed_inspector
+            + self.views_bypassed_accessibility
+            + self.views_bypassed_duplicate
+    }
+
+    /// Counts a view built for `reason`.
+    pub(crate) fn bypass_view(&mut self, reason: ViewBypassReason) {
+        match reason {
+            ViewBypassReason::Refreshing => self.views_bypassed_refreshing += 1,
+            ViewBypassReason::Drag => self.views_bypassed_drag += 1,
+            ViewBypassReason::Inspector => self.views_bypassed_inspector += 1,
+            ViewBypassReason::Accessibility => self.views_bypassed_accessibility += 1,
+            ViewBypassReason::Duplicate => self.views_bypassed_duplicate += 1,
+        }
+    }
+
     /// The sum of every mechanism counter: zero on frames drawn with fast
     /// mode off.
     pub fn mechanism_total(&self) -> u64 {
@@ -250,6 +351,7 @@ impl FastStats {
             + self.leaves_remeasured
             + self.views_built_at_retained_layout
             + self.views_reused
+            + self.views_bypassed()
             + self.views_spliced
             + self.views_prebuilt
             + self.layers_composited
@@ -291,6 +393,11 @@ impl FastStats {
         self.draw_orders_replayed += other.draw_orders_replayed;
         self.views_built_at_retained_layout += other.views_built_at_retained_layout;
         self.views_reused += other.views_reused;
+        self.views_bypassed_refreshing += other.views_bypassed_refreshing;
+        self.views_bypassed_drag += other.views_bypassed_drag;
+        self.views_bypassed_inspector += other.views_bypassed_inspector;
+        self.views_bypassed_accessibility += other.views_bypassed_accessibility;
+        self.views_bypassed_duplicate += other.views_bypassed_duplicate;
         self.views_spliced += other.views_spliced;
         self.views_prebuilt += other.views_prebuilt;
         self.layers_composited += other.layers_composited;

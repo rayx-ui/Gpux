@@ -1113,6 +1113,8 @@ pub(crate) struct DeferredDraw {
     absolute_offset: Point<Pixels>,
     prepaint_range: Range<PrepaintStateIndex>,
     paint_range: Range<PaintIndex>,
+    /// The retained views it was deferred from, whose part it is.
+    fast_enclosing: crate::fast::retained::EnclosingRetained,
 }
 
 pub(crate) struct WindowFrame {
@@ -1120,7 +1122,7 @@ pub(crate) struct WindowFrame {
     pub(crate) window_active: bool,
     pub(crate) element_states: FxHashMap<(GlobalElementId, TypeId), ElementStateBox>,
     pub(crate) accessed_element_states: Vec<(GlobalElementId, TypeId)>,
-    pending_element_state_transfers: Vec<(GlobalElementId, TypeId)>,
+    pub(crate) pending_element_state_transfers: Vec<(GlobalElementId, TypeId)>,
     pub(crate) mouse_listeners: Vec<Option<AnyMouseListener>>,
     /// The event type of each mouse listener, for the fast-mode frame description.
     #[cfg(any(test, feature = "test-support"))]
@@ -1151,32 +1153,37 @@ pub(crate) struct WindowFrame {
     #[cfg(any(feature = "inspector", debug_assertions))]
     pub(crate) inspector_hitboxes: FxHashMap<HitboxId, crate::InspectorElementId>,
     pub(crate) tab_stops: TabStopMap,
+    /// The retained views drawn in the frame.
+    pub(crate) fast_retained: crate::fast::retained::RetainedSubtrees,
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub(crate) struct PrepaintStateIndex {
     pub(crate) hitboxes_index: usize,
-    tooltips_index: usize,
-    deferred_draws_index: usize,
-    dispatch_tree_index: usize,
-    devtools_nodes_index: usize,
-    devtools_node_id: usize,
-    accessed_element_states_index: usize,
-    pending_element_state_transfers_index: usize,
-    line_layout_index: LineLayoutIndex,
+    pub(crate) tooltips_index: usize,
+    pub(crate) deferred_draws_index: usize,
+    pub(crate) dispatch_tree_index: usize,
+    pub(crate) devtools_nodes_index: usize,
+    pub(crate) devtools_node_id: usize,
+    pub(crate) accessed_element_states_index: usize,
+    pub(crate) pending_element_state_transfers_index: usize,
+    pub(crate) line_layout_index: LineLayoutIndex,
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub(crate) struct PaintIndex {
-    scene_index: usize,
+    pub(crate) scene_index: usize,
     #[cfg(any(test, feature = "test-support"))]
-    debug_bounds_index: usize,
-    mouse_listeners_index: usize,
-    input_handlers_index: usize,
-    cursor_styles_index: usize,
-    accessed_element_states_index: usize,
-    tab_handle_index: usize,
-    line_layout_index: LineLayoutIndex,
+    pub(crate) debug_bounds_index: usize,
+    pub(crate) mouse_listeners_index: usize,
+    pub(crate) input_handlers_index: usize,
+    pub(crate) cursor_styles_index: usize,
+    pub(crate) accessed_element_states_index: usize,
+    pub(crate) tab_handle_index: usize,
+    pub(crate) line_layout_index: LineLayoutIndex,
+    /// Where the window-control hitboxes painted from here start: a view
+    /// drawn from last frame paints them again with the rest.
+    pub(crate) fast_window_control_hitboxes_index: usize,
 }
 
 impl WindowFrame {
@@ -1224,6 +1231,7 @@ impl WindowFrame {
             #[cfg(any(feature = "inspector", debug_assertions))]
             inspector_hitboxes: FxHashMap::default(),
             tab_stops: TabStopMap::default(),
+            fast_retained: Default::default(),
         }
     }
 
@@ -1264,6 +1272,7 @@ impl WindowFrame {
             self.next_inspector_instance_ids.clear();
             self.inspector_hitboxes.clear();
         }
+        self.fast_retained.clear();
     }
 
     pub(crate) fn cursor_style(&self, window: &Window) -> Option<CursorStyle> {
@@ -1423,7 +1432,7 @@ pub(crate) struct DevtoolsFrameNode {
 }
 
 impl DevtoolsFrameNode {
-    fn snapshot(&self) -> DevtoolsElementSnapshot {
+    pub(crate) fn snapshot(&self) -> DevtoolsElementSnapshot {
         DevtoolsElementSnapshot {
             devtools_node_id: self.devtools_node_id,
             parent_devtools_node_id: self.parent_devtools_node_id,
@@ -1930,7 +1939,7 @@ pub fn sticky_push_offset(active_stack_end: Pixels, incoming_start: Pixels) -> P
     (incoming_start - active_stack_end).min(px(0.))
 }
 
-type StickyLayoutContextId = usize;
+pub(crate) type StickyLayoutContextId = usize;
 
 type StickyOccurrenceId = usize;
 
@@ -1941,12 +1950,12 @@ struct StickyLayoutContext {
 }
 
 #[derive(Clone)]
-struct StickyCandidate {
+pub(crate) struct StickyCandidate {
     layout_id: Option<LayoutId>,
     stack_id: Option<ElementId>,
     inset: Edges<Length>,
-    horizontal_context: Option<StickyLayoutContextId>,
-    vertical_context: Option<StickyLayoutContextId>,
+    pub(crate) horizontal_context: Option<StickyLayoutContextId>,
+    pub(crate) vertical_context: Option<StickyLayoutContextId>,
 }
 
 #[derive(Clone, Copy, Default)]
@@ -2399,6 +2408,9 @@ pub struct Window {
     pub(crate) fast_hover_reads: crate::fast::dependencies::HoverReads,
     pub(crate) fast_layout: crate::fast::layout_key::WindowLayout,
     pub(crate) fast_ambient_reads: crate::fast::dependencies::AmbientReads,
+    pub(crate) fast_retained_state: crate::fast::retained::RetainedState,
+    #[cfg(feature = "diagnostics")]
+    pub(crate) fast_verify: crate::fast::verify::retention::RetentionVerify,
     pub(crate) fast_glyph_bounds: crate::fast::glyphs::GlyphBoundsCache,
     #[cfg(any(
         test,
@@ -2418,9 +2430,9 @@ pub struct Window {
     pub(crate) content_mask_stack: Vec<ContentMask<Pixels>>,
     scroll_container_context_stack: ScrollContainerContextStack,
     sticky_layout_context_stack: Vec<StickyLayoutContext>,
-    sticky_candidates: Vec<StickyCandidate>,
+    pub(crate) sticky_candidates: Vec<StickyCandidate>,
     sticky_plans: Vec<StickyCandidatePlan>,
-    next_sticky_layout_context_id: StickyLayoutContextId,
+    pub(crate) next_sticky_layout_context_id: StickyLayoutContextId,
     paint_content_mask_stack: Vec<ContentMask<ScaledPixels>>,
     hitbox_behavior_overrides: Vec<HitboxBehavior>,
     pointer_semantics_suppressed: usize,
@@ -3374,6 +3386,9 @@ impl Window {
             fast_hover_reads: crate::fast::dependencies::HoverReads::default(),
             fast_layout: crate::fast::layout_key::WindowLayout::default(),
             fast_ambient_reads: cx.fast_ambient_reads(),
+            fast_retained_state: Default::default(),
+            #[cfg(feature = "diagnostics")]
+            fast_verify: Default::default(),
             fast_glyph_bounds: crate::fast::glyphs::GlyphBoundsCache::default(),
             #[cfg(any(
                 test,
@@ -5214,6 +5229,8 @@ impl Window {
                 self.rendered_frame.input_handlers.push(Some(input_handler));
             }
         }
+        #[cfg(feature = "diagnostics")]
+        let fast_shadow = crate::fast::verify::retention::draw_shadow(self, cx);
         #[cfg(any(
             test,
             feature = "test-support",
@@ -5222,6 +5239,7 @@ impl Window {
         ))]
         crate::fast::stats::begin_frame(self);
         crate::fast::layout::begin_frame(self);
+        crate::fast::retained::begin_frame(self, cx);
         if !cx.mode.skip_drawing() {
             self.draw_roots(cx);
             #[cfg(feature = "profiler")]
@@ -5273,6 +5291,7 @@ impl Window {
                 self.layout_engine.as_ref().unwrap().request_diagnostics(),
             );
         }
+        crate::fast::retained::finish_frame(self);
         self.dirty_views.clear();
         self.next_frame.window_active = self.active.get();
 
@@ -5330,6 +5349,8 @@ impl Window {
         let previous_window_active = self.rendered_frame.window_active;
         mem::swap(&mut self.rendered_frame, &mut self.next_frame);
         self.next_frame.clear();
+        #[cfg(feature = "diagnostics")]
+        crate::fast::verify::retention::check(self, fast_shadow);
         if has_active_screen_effects {
             self.invalidator.set_dirty(true);
         }
@@ -5487,7 +5508,7 @@ impl Window {
         self.refresh();
     }
 
-    fn draw_roots(&mut self, cx: &mut App) {
+    pub(crate) fn draw_roots(&mut self, cx: &mut App) {
         // The Windows backend may coalesce WM_MOUSEMOVE during hover and drag to avoid starving
         // redraw delivery. Refreshing from the live platform cursor here keeps hover visuals,
         // overlay scrollbars, and drag affordances anchored to the latest pointer position even
@@ -5741,6 +5762,11 @@ impl Window {
 
                 let prepaint_start = self.prepaint_index();
                 if let Some(mut element) = element {
+                    let enclosing = self.next_frame.deferred_draws[deferred_draw_ix]
+                        .fast_enclosing
+                        .clone();
+                    let recording =
+                        crate::fast::retained::begin_deferred(self, &enclosing, None, cx);
                     self.with_rendered_view(current_view, |window| {
                         window.with_rem_size(Some(rem_size), |window| {
                             window.with_absolute_element_offset(absolute_offset, |window| {
@@ -5750,6 +5776,7 @@ impl Window {
                             });
                         });
                     });
+                    crate::fast::retained::finish_deferred(self, recording, cx);
                     self.next_frame.deferred_draws[deferred_draw_ix].element = Some(element);
                 } else {
                     self.reuse_prepaint(prepaint_range);
@@ -5787,13 +5814,20 @@ impl Window {
             let paint_start = self.paint_index();
             let content_mask = deferred_draw.content_mask;
             if let Some(element) = deferred_draw.element.as_mut() {
+                let recording = crate::fast::retained::begin_deferred(
+                    self,
+                    &deferred_draw.fast_enclosing,
+                    Some(deferred_draw.prepaint_range.clone()),
+                    cx,
+                );
                 self.with_rendered_view(deferred_draw.current_view, |window| {
                     window.with_content_mask(content_mask, |window| {
                         window.with_rem_size(Some(deferred_draw.rem_size), |window| {
                             element.paint(window, cx);
                         });
                     })
-                })
+                });
+                crate::fast::retained::finish_deferred(self, recording, cx);
             } else {
                 self.reuse_paint(deferred_draw.paint_range.clone());
             }
@@ -5947,6 +5981,7 @@ impl Window {
                     absolute_offset: deferred_draw.absolute_offset,
                     prepaint_range: deferred_draw.prepaint_range.clone(),
                     paint_range: deferred_draw.paint_range.clone(),
+                    fast_enclosing: Default::default(),
                 }),
         );
     }
@@ -5962,10 +5997,19 @@ impl Window {
             accessed_element_states_index: self.next_frame.accessed_element_states.len(),
             tab_handle_index: self.next_frame.tab_stops.paint_index(),
             line_layout_index: self.text_system.layout_index(),
+            fast_window_control_hitboxes_index: self.next_frame.window_control_hitboxes.len(),
         }
     }
 
     pub(crate) fn reuse_paint(&mut self, range: Range<PaintIndex>) {
+        self.next_frame.window_control_hitboxes.extend(
+            self.rendered_frame.window_control_hitboxes[range
+                .start
+                .fast_window_control_hitboxes_index
+                ..range.end.fast_window_control_hitboxes_index]
+                .iter()
+                .cloned(),
+        );
         // Cached elements still exist in the frame even when their paint methods don't run.
         #[cfg(any(test, feature = "test-support"))]
         for (selector, bounds) in &self.rendered_frame.debug_bounds_records
@@ -6643,8 +6687,10 @@ impl Window {
     pub fn transact<T, U>(&mut self, f: impl FnOnce(&mut Self) -> Result<T, U>) -> Result<T, U> {
         self.invalidator.debug_assert_prepaint();
         let index = self.prepaint_index();
+        let fast_records = self.next_frame.fast_retained.len();
         let result = f(self);
         if result.is_err() {
+            self.next_frame.fast_retained.truncate(fast_records);
             self.next_frame.hitboxes.truncate(index.hitboxes_index);
             self.next_frame
                 .tooltip_requests
@@ -7031,6 +7077,7 @@ impl Window {
             absolute_offset,
             prepaint_range: PrepaintStateIndex::default()..PrepaintStateIndex::default(),
             paint_range: PaintIndex::default()..PaintIndex::default(),
+            fast_enclosing: crate::fast::retained::enclosing_retained(self),
         });
     }
 

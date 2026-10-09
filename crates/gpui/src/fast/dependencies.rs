@@ -104,16 +104,20 @@ pub(crate) enum HoverArea {
 }
 
 /// Where the hovers in `reads` can change, for a view that inserted the
-/// hitboxes at `hitboxes` in the frame being drawn.
+/// hitboxes in the ranges `hitboxes` of the frame being drawn: its own
+/// stretch, and those of what was deferred from it.
 pub(crate) fn hover_area(
     window: &Window,
     reads: &[(HitboxId, bool)],
-    hitboxes: Range<usize>,
+    hitboxes: &[Range<usize>],
 ) -> HoverArea {
     if reads.is_empty() {
         return HoverArea::Own(None);
     }
-    let own = &window.next_frame.hitboxes[hitboxes];
+    let own = hitboxes
+        .iter()
+        .flat_map(|range| &window.next_frame.hitboxes[range.clone()])
+        .collect::<Vec<_>>();
     let ids: FxHashSet<HitboxId> = own.iter().map(|hitbox| hitbox.id).collect();
     if reads.iter().any(|(hitbox, _)| !ids.contains(hitbox)) {
         return HoverArea::Foreign;
@@ -888,5 +892,103 @@ impl App {
                 .states
                 .iter()
                 .any(|(version, read_at)| version.get() != *read_at)
+    }
+}
+
+impl Writes {
+    fn union(&self, other: &Self) -> Self {
+        let mut own = self.own.clone();
+        own.extend_from_slice(&other.own);
+        Writes {
+            from: self.from.min(other.from),
+            to: self.to.max(other.to),
+            own,
+        }
+    }
+}
+
+/// The union of two sorted lists without repeats, itself sorted and without
+/// repeats. When one holds all of the other, which is the usual case (a
+/// view's paint reads what its prepaint read), it is shared, not copied.
+pub(crate) fn merge_sorted<T: Ord + Copy>(a: &Rc<[T]>, b: &Rc<[T]>) -> Rc<[T]> {
+    fn contains_all<T: Ord>(all: &[T], some: &[T]) -> bool {
+        let mut rest = all;
+        some.iter().all(|item| match rest.binary_search(item) {
+            Ok(index) => {
+                rest = &rest[index + 1..];
+                true
+            }
+            Err(_) => false,
+        })
+    }
+    if b.is_empty() || Rc::ptr_eq(a, b) || contains_all(a, b) {
+        return a.clone();
+    }
+    if a.is_empty() || contains_all(b, a) {
+        return b.clone();
+    }
+    let mut merged = Vec::with_capacity(a.len() + b.len());
+    let (mut i, mut j) = (0, 0);
+    while i < a.len() && j < b.len() {
+        match a[i].cmp(&b[j]) {
+            std::cmp::Ordering::Less => {
+                merged.push(a[i]);
+                i += 1;
+            }
+            std::cmp::Ordering::Greater => {
+                merged.push(b[j]);
+                j += 1;
+            }
+            std::cmp::Ordering::Equal => {
+                merged.push(a[i]);
+                i += 1;
+                j += 1;
+            }
+        }
+    }
+    merged.extend_from_slice(&a[i..]);
+    merged.extend_from_slice(&b[j..]);
+    merged.into()
+}
+
+impl RenderDependencies {
+    /// Both sets at once, as of the earlier stamps, so that a change either
+    /// would have seen is still seen.
+    pub(crate) fn union(&self, other: &Self) -> Self {
+        let states = if other.states.is_empty() {
+            self.states.clone()
+        } else {
+            let mut states = self.states.to_vec();
+            states.extend_from_slice(&other.states);
+            unique_states(&states)
+        };
+        Self {
+            entities: merge_sorted(&self.entities, &other.entities),
+            globals: merge_sorted(&self.globals, &other.globals),
+            states,
+            generation: self.generation.min(other.generation),
+            updates: self.updates.min(other.updates),
+            writes: self.writes.union(&other.writes),
+        }
+    }
+
+    /// The same dependencies, up to date with every write up to `writes`: a
+    /// reused subtree's, checked when it was reused.
+    pub(crate) fn written_up_to(&self, writes: u64) -> Self {
+        Self {
+            writes: Writes {
+                from: writes,
+                to: writes,
+                own: SmallVec::new(),
+            },
+            ..self.clone()
+        }
+    }
+}
+
+impl EntityAccessLog {
+    /// How many writes were made while the window drew so far.
+    pub(crate) fn write_generation(&self) -> u64 {
+        self.write_generation
     }
 }
