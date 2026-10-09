@@ -1406,21 +1406,7 @@ fn capslock_from_keyboard_event(event: &web_sys::KeyboardEvent) -> Capslock {
 }
 
 pub(crate) fn is_mac_platform(browser_window: &web_sys::Window) -> bool {
-    let navigator = browser_window.navigator();
-
-    #[allow(deprecated)]
-    // navigator.platform() is deprecated but navigator.userAgentData is not widely available yet
-    if let Ok(platform) = navigator.platform() {
-        if platform.contains("Mac") {
-            return true;
-        }
-    }
-
-    if let Ok(user_agent) = navigator.user_agent() {
-        return user_agent.contains("Mac");
-    }
-
-    false
+    crate::browser_os::keyboard_os_of(browser_window).is_mac()
 }
 
 fn is_modifier_only_key(key: &str) -> bool {

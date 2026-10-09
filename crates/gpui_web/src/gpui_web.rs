@@ -6,6 +6,8 @@ pub mod canvas_fallback;
 
 pub use canvas_fallback::CanvasFontFallback;
 
+#[cfg(any(target_family = "wasm", test))]
+mod browser_os;
 #[cfg(target_family = "wasm")]
 mod canvas_text;
 #[cfg(target_family = "wasm")]

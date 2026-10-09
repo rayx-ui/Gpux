@@ -12,8 +12,8 @@ use gpui_wgpu::{PreparedWebGraphics, WebBackendPreference, WgpuBackend, WgpuCont
 use gpux::{
     Action, ActivityGuard, AnyWindowHandle, BackgroundExecutor, ClipboardEntry, ClipboardItem,
     ClipboardReadError, ClipboardString, CursorStyle, DummyKeyboardMapper, ForegroundExecutor,
-    GestureTuning, Image, ImageFormat, Keymap, Menu, MenuItem, PathPromptOptions, Platform,
-    PlatformDisplay, PlatformGestures, PlatformKeyboardLayout, PlatformKeyboardMapper,
+    GestureTuning, Image, ImageFormat, KeyboardOs, Keymap, Menu, MenuItem, PathPromptOptions,
+    Platform, PlatformDisplay, PlatformGestures, PlatformKeyboardLayout, PlatformKeyboardMapper,
     PlatformTextSystem, PlatformWindow, ScrollPhysics, Task, ThermalState, WindowAppearance,
     WindowKind, WindowParams, popup::PopupNotSupportedError,
 };
@@ -193,6 +193,8 @@ impl WebPlatform {
     ) -> Self {
         let browser_window =
             web_sys::window().expect("must be running in a browser window context");
+        // Before any key binding is parsed: `secondary` is Command in Apple browsers.
+        KeyboardOs::set_web(crate::browser_os::keyboard_os_of(&browser_window));
         let dispatcher = Arc::new(WebDispatcher::with_background_worker_limit(
             browser_window.clone(),
             allow_multi_threading,
