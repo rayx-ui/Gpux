@@ -19,6 +19,22 @@ impl AndroidBackend {
         }
     }
 
+    /// The backends a window tries, one surface each, in order. Android's Vulkan loader connects
+    /// the native window when it creates a Vulkan surface (`vkCreateAndroidSurfaceKHR`), and only
+    /// destroying that surface releases it, so a GL surface on the same window fails ("already
+    /// connected") while a Vulkan surface exists. A surface shared by both backends therefore
+    /// never falls back to GL when Vulkan is present but unusable, such as an emulator's software
+    /// SwiftShader Vulkan, which gpux skips.
+    pub fn surface_attempts(self) -> &'static [gpui_wgpu::wgpu::Backends] {
+        match self {
+            Self::Vulkan => &[
+                gpui_wgpu::wgpu::Backends::VULKAN,
+                gpui_wgpu::wgpu::Backends::GL,
+            ],
+            Self::Gles => &[gpui_wgpu::wgpu::Backends::GL],
+        }
+    }
+
     pub fn wgpu_backend_policy_label(self) -> &'static str {
         match self {
             Self::Vulkan => "VULKAN|GL",
@@ -32,6 +48,41 @@ impl std::fmt::Display for AndroidBackend {
         match self {
             Self::Vulkan => write!(f, "Vulkan"),
             Self::Gles => write!(f, "OpenGL ES"),
+        }
+    }
+}
+
+#[cfg(test)]
+mod surface_attempt_tests {
+    use super::AndroidBackend;
+    use gpui_wgpu::wgpu::Backends;
+
+    #[test]
+    fn vulkan_and_gl_get_a_surface_each_vulkan_first() {
+        assert_eq!(
+            AndroidBackend::Vulkan.surface_attempts(),
+            [Backends::VULKAN, Backends::GL]
+        );
+        assert_eq!(AndroidBackend::Gles.surface_attempts(), [Backends::GL]);
+    }
+
+    #[test]
+    fn the_attempts_cover_exactly_the_backend_policy() {
+        for backend in [AndroidBackend::Vulkan, AndroidBackend::Gles] {
+            let attempts = backend.surface_attempts();
+            assert_eq!(
+                attempts
+                    .iter()
+                    .fold(Backends::empty(), |all, attempt| all | *attempt),
+                backend.wgpu_backends(),
+                "{backend}"
+            );
+            assert!(
+                attempts
+                    .iter()
+                    .all(|attempt| attempt.bits().count_ones() == 1),
+                "{backend}: one backend per surface"
+            );
         }
     }
 }

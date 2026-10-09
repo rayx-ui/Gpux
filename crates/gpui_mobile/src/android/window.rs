@@ -1129,21 +1129,34 @@ impl AndroidWindow {
     ) -> Result<WgpuRenderer> {
         let raw = Self::raw_window(native_window);
 
-        let config = Self::surface_config(width, height, transparent);
-
         log::info!(
             "AndroidWindow::create_renderer — preferred_backend={} backend_policy={}",
             backend,
             backend.wgpu_backend_policy_label()
         );
 
-        WgpuRenderer::new_with_backend_policy(
-            gpu_context,
-            &raw,
-            config,
-            None,
-            backend.wgpu_backends(),
-        )
+        // One surface per backend: a failed Vulkan attempt drops its surface, which releases the
+        // native window for GL (see `AndroidBackend::surface_attempts`).
+        let mut failures = Vec::new();
+        for &attempt in backend.surface_attempts() {
+            match WgpuRenderer::new_with_backend_policy(
+                Rc::clone(&gpu_context),
+                &raw,
+                Self::surface_config(width, height, transparent),
+                None,
+                attempt,
+            ) {
+                Ok(renderer) => return Ok(renderer),
+                Err(error) => {
+                    log::info!("AndroidWindow::create_renderer — {attempt:?} failed: {error:#}");
+                    failures.push(format!("{attempt:?}: {error:#}"));
+                }
+            }
+        }
+        Err(anyhow::anyhow!(
+            "no backend could render to the window ({})",
+            failures.join("; ")
+        ))
     }
 }
 
