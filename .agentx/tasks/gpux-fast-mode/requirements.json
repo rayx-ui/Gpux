@@ -28,6 +28,11 @@
           "id": "FM-4",
           "descriptionMarkdown": "The compiled defaults become gpui-fast's: layout retention, view retention, splice and scroll layers are on where compiled, and composition stays opt-in.\n\n- Before the final sprint, the defaults are all off, and a test pins that.\n- After the flip:\n  - a new window reports all switches on where compiled;\n  - `GPUX_FAST_MODE=0` and each `GPUX_*=0` turn the corresponding mechanism off;\n  - the gpui-fast aliases still work.\n\nVerified by the `fast::tests::defaults` group.",
           "verification": "automated"
+        },
+        {
+          "id": "FM-5",
+          "descriptionMarkdown": "Cached views (`AnyView::cached`) that read hovers are never shown with a stale hover, in every mode, and every frame is drawn once.\n\n- A cached view records the hovers it reads while it renders and paints, and is replayed only while each is unchanged against the current hit test.\n- A cached view that read hovers is built again, not replayed, while the pointer is over its hitboxes (or one of them holds the pointer captured): only there can hitboxes the frame adds after prepaint, such as an overlay, change its hovers.\n- No frame is drawn twice, so no discarded draw mutates element or list state (supersedes the redraw-before-show part of FM-2's exception).\n\nVerified by the `fast::tests::hover_dependencies` group: a wheel event moving the pointer off a hovered cached view, an overlay covering one with the pointer still and no observer notified, and the oracle's seed 31, where a discarded second draw had dropped a list row's element state.",
+          "verification": "automated"
         }
       ]
     },
@@ -102,7 +107,7 @@
       "criteria": [
         {
           "id": "PRE-1",
-          "descriptionMarkdown": "gpux-owned hot paths stop calling `Window::refresh()`, which disables every cache for the frame, where a scoped invalidation is enough. These paths now notify the owning view, plus registered scroll dependents where they apply:\n\n- programmatic scroll and `ScrollActivity` animation steps (`div.rs`, `list.rs`, `uniform_list.rs`);\n- hover, active and group-hover style changes (`div.rs`);\n- editable-text and text-selection redraws;\n- key-dispatch redraws.\n\n`refresh()` stays only for whole-window changes: resize, scale, appearance, font installation, GPU recovery, root replacement and inspector toggles. Each kept site has a comment saying why.\n\nVerified by the `fast::tests::scoped_invalidation` group. It asserts that each converted path redraws correctly against the oracle and leaves `refreshing` false.",
+          "descriptionMarkdown": "gpux-owned hot paths stop calling `Window::refresh()`, which disables every cache for the frame, where a scoped invalidation is enough. These paths now notify the owning view, plus registered scroll dependents where they apply:\n\n- programmatic scroll and `ScrollActivity` animation steps (`div.rs`, `list.rs`, `uniform_list.rs`);\n- hover, active and group-hover style changes (`div.rs`);\n- editable-text and text-selection redraws;\n- key-dispatch redraws.\n\n`refresh()` stays only for whole-window changes: resize, scale, appearance, font installation, GPU recovery, root replacement and inspector toggles, and the changes any view may read or that draw window-level chrome over every view: focus moves, the input modality, window activation and hover status, the visual viewport and insets, accessibility activation, the active drag preview and tooltips. Each kept site has a comment saying why. Paths that refreshed while drawing, where `refresh()` does nothing, lose the call.\n\nVerified by the `fast::tests::scoped_invalidation` group. It asserts that each converted path redraws correctly against the oracle and leaves `refreshing` false.",
           "verification": "automated"
         }
       ]

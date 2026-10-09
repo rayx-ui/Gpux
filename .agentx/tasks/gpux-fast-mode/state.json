@@ -1,12 +1,12 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 17,
-  "planRevision": 3,
+  "revision": 25,
+  "planRevision": 5,
   "specHashes": {
-    "requirements": "46d52edcae4614629194ef518ba03fc81921857dee61325fbb106108d9227b78",
-    "design": "caa27bf02dc67fe6266a9cce010cae429902430f31ff87d987f32a32d3594883",
-    "plan": "08ed62d9ed80c40faf44da23e4da608b97d7c569d52bcba7fbce62a3492976d3"
+    "requirements": "c598ca7201c3981f72463febfd0b1484bd9c7e045b498fad24c4442ade4c411b",
+    "design": "2d3b4169a2079e10b5dc338346c7b2a5955edd5c6c3657a56fc02615b9cfdc14",
+    "plan": "56aaf0390972efe23c167bfac7e0e10d7a5c4646c509af9b668c80764f95374c"
   },
   "tasks": {
     "t01-fast-switches": {
@@ -52,19 +52,34 @@
       ]
     },
     "t08-scoped-invalidation": {
-      "status": "pending"
+      "status": "implemented",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t09-bounds-grid": {
-      "status": "pending"
+      "status": "implemented",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t10-draw-order-sort": {
-      "status": "pending"
+      "status": "implemented",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t11-text-path-caches": {
-      "status": "pending"
+      "status": "implemented",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t12-standalone-keep-or-revert": {
-      "status": "pending"
+      "status": "in_progress",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t13-layout-keys": {
       "status": "pending"
@@ -182,6 +197,12 @@
     },
     "t51-layers-ios": {
       "status": "pending"
+    },
+    "t08b-hover-area": {
+      "status": "implemented",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     }
   },
   "validationBatches": {

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 3,
+  "revision": 5,
   "title": "gpux fast mode: retained layout and views, splice, scroll layers and window composition from gpui-fast",
   "validationMode": "sprint",
   "repositories": [
@@ -2104,6 +2104,40 @@
         "testCountPattern": "gpux-testkit: (\\d+) passed"
       },
       "reuse": false
+    },
+    {
+      "id": "check-hover-dependencies",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "FM-5"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/hover_dependencies.rs`: a wheel event moving the pointer off a hovered cached view, an overlay covering one with the pointer still without notifying its observers, and the oracle's seed 31.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::hover_dependencies::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
     }
   ],
   "finalCheckIds": [
@@ -2375,6 +2409,35 @@
             {
               "repositoryId": "gpux",
               "path": "crates/gpui/src/key_dispatch.rs"
+            }
+          ]
+        },
+        {
+          "id": "t08b-hover-area",
+          "title": "Rebuild hover-reading cached views under the pointer instead of drawing frames twice",
+          "descriptionMarkdown": "Corrective task for an oracle finding during s02 (seed 31): replace the redraw-before-show of stale cached-view hovers (s01) with `fast::dependencies::may_replay_hovers` and `hitbox_area`, so no frame is drawn twice. Move the hover regression tests into their own group `fast/tests/hover_dependencies.rs` and add the seed-31 case.",
+          "criterionIds": [
+            "FM-5"
+          ],
+          "designIds": [
+            "d-hover-area"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-hover-dependencies"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/dependencies.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/view.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window.rs"
             }
           ]
         },
