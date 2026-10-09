@@ -108,9 +108,10 @@ fn one_frame_counts_its_work() {
     assert!(built.draw_orders_computed >= built.primitives_painted / 2);
     assert_eq!(built.mechanism_total(), 0);
 
-    // Replayed: cached views copy their primitives.
+    // Replayed: cached views copy their primitives. Of the 16 grid cells,
+    // the 5 styled by their row's group hover are built every frame.
     let (_, replayed) = oracle.draw(false);
-    assert!(replayed.cached_views_replayed >= 16, "{replayed:?}");
+    assert!(replayed.cached_views_replayed >= 11, "{replayed:?}");
     assert!(replayed.primitives_copied > 0);
     assert!(replayed.views_built < built.views_built);
 
