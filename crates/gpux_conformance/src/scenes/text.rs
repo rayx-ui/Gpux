@@ -46,8 +46,9 @@ pub const SHAPING: SceneSpec = SceneSpec {
         vec![
             Step::Expect(Expect::Exists(Query::text("Hello, gpux!"))),
             // Lilex is monospaced: 12 glyphs of 0.6 em at 20 px. The line height rounds to
-            // device pixels, half pixels at 2x.
-            Step::Expect(Expect::Size(Query::text("fn main() {}"), 144., 32., 0.5)),
+            // device pixels, half pixels at 2x. The text element ceils its width, and CoreText
+            // (macOS windows) measures the line at 144.00002 px, so it can be one pixel wider.
+            Step::Expect(Expect::Size(Query::text("fn main() {}"), 144., 32., 1.)),
             // Glyphs paint dark pixels where the text sits and nothing beside it.
             Step::ProbeDiffer((12., 14., 100., 16.), (130., 14., 100., 16.), 40),
             Step::ProbeUniform((150., 10., 80., 20.), WHITE, 0),
