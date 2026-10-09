@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 10,
+  "revision": 11,
   "title": "gpux fast mode: retained layout and views, splice, scroll layers and window composition from gpui-fast",
   "validationMode": "sprint",
   "repositories": [
@@ -622,7 +622,7 @@
       "criterionIds": [
         "DEP-1"
       ],
-      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/dependencies.rs`: one test per read kind and per change rule, idempotent state writes, and the `ElementInputHandler` exemption.",
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/dependencies.rs`: one test per read kind and per change rule, idempotent state writes, and the `ElementInputHandler` exemption. Also: ambient input reloaded outside dispatch, and an app that never records holding no stamps.",
       "argv": [
         "cargo",
         "test",
@@ -635,7 +635,7 @@
       ],
       "expected": {
         "exitCode": 0,
-        "minimumTests": 12
+        "minimumTests": 14
       },
       "inputs": [
         "crates/gpui/**",
