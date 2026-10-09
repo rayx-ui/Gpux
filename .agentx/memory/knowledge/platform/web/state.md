@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/platform/web
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-07T16:45:00+02:00
+  updated: 2026-10-09T12:00:00+02:00
   topics:
     - gpui-web
     - wasm
@@ -35,7 +35,7 @@ The first top-level window takes the canvas the graphics context was created aga
 
 Clipboard writes start `navigator.clipboard.writeText` during the trusted action gesture and also run a synchronous one-shot `copy` event fallback that saves the document selection, selects a focus-neutral offscreen range, supplies the exact text through `ClipboardEvent.clipboardData`, and restores the selection. Paste is bridged from the trusted DOM `paste` event: the plain-text payload becomes the cached `ClipboardItem` and replaces the active input-handler selection; platform clipboard reads return that cache.
 
-Text input uses Zed's hidden IME mirror textarea (`ime_mirror.rs`): desktop keystrokes dispatch as key events, while IME and software-keyboard edits are imported from the mirror's `input` events by diffing its value against the stored text; gpux caps that diff at the stored selection so an edit always replaces the whole selection.
+Text input uses Zed's hidden IME mirror textarea (`ime_mirror.rs`): desktop keystrokes dispatch as key events, while IME and software-keyboard edits are imported from the mirror's `input` events by diffing its value against the stored text; gpux caps that diff at the stored selection so an edit always replaces the whole selection. Keyboard conventions follow the visitor's operating system: `WebPlatform` reports it through `KeyboardOs::set_web` (from `navigator.platform`, then the user agent; Apple systems are `MacOs`, Android `Unknown`) before any binding is parsed, so `Modifiers::secondary`, `secondary-` bindings, keystroke `unparse`/display and the `os` key context use Command in Apple browsers and Control elsewhere; the window's `is_mac` (paste shortcut, text insertion) comes from the same detection.
 
 Wheel input keeps line deltas as GPUI line deltas and converts page deltas to pixels at the canvas's client size, so page-mode wheels scroll by the visible page.
 
@@ -45,7 +45,7 @@ HTML islands (experimental, Chrome Canary HTML-in-canvas): gpux owns the `HtmlIs
 
 HTML elements: gpux owns `HtmlElementPrimitive`, the window paint hook, and the web registry; `html_element(...)` and its builder types live in RayX `rayx_components_html`. Roots live under one fixed body-sibling overlay above the canvas, keyed by stable ids, with revision-gated `innerHTML`, geometry diffing, rectangular content-mask clipping, input-mode pointer CSS, default pruning, keep-alive offscreen parking, static CSS classes plus inline geometry/state and caller `extra_styles`; `Drop` removes the overlay with its window. `HtmlElementContentFit::Fill` makes top-level trusted children fill the GPUI box. `HtmlElementWheelBehavior::ForwardIfObservable` forwards same-document wheel events; `CaptureForward` puts a transparent capture layer over cross-origin iframes. `gpui_web` publishes `__gpuxHtmlElementDiagnostics` under `diagnostics`.
 
-Lane B proves this crate: one Playwright spec per area (backend fallback, viewport and resize, window close, pointer, wheel delta modes, keyboard, touch, IME, clipboard and its fallback, HTML elements and islands, canvas text fallback, worker threads, fetched assets, cursors, page lifecycle, safe areas) plus every lane-B conformance scene with trusted CDP input.
+Lane B proves this crate: one Playwright spec per area (backend fallback, viewport and resize, window close, pointer, wheel delta modes, keyboard, touch, IME, clipboard and its fallback, HTML elements and islands, canvas text fallback, worker threads, fetched assets, cursors, page lifecycle, safe areas, shortcut modifier) plus every lane-B conformance scene with trusted CDP input. The Playwright config keeps the browser's own user agent; Playwright's desktop Chrome device reports Windows on every host. Lane B passed 164/164 on an Apple M5 (2026-10-09).
 
 ## Backlinks
 

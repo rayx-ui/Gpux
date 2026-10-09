@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/platform/web
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-08T00:30:00+02:00
+  updated: 2026-10-09T12:00:00+02:00
   topics:
     - wasm
     - multithreading
@@ -13,6 +13,7 @@ agentx:
     - wasm-assets
     - html-island
     - html-element
+    - keyboard
   supersedes: []
   superseded_by: []
 ---
@@ -33,4 +34,5 @@ agentx:
 - Use `html_element(...)`, not `html_island(...)`, for provider-owned iframes that must stay interactive DOM. Give elements stable semantic ids and use `keep_alive(true)` only for provider sessions that must survive temporary absence.
 - Size `html_element(...)` with ordinary `Styled` APIs and use `extra_styles(...)` only for trusted root decoration, never for runtime geometry, transform, visibility, opacity, or pointer behavior.
 - Add `credentialless` to third-party iframe markup in threaded pages unless the provider already satisfies the page's cross-origin isolation policy.
+- Decide keyboard conventions (the secondary modifier, keystroke names and symbols, the `os` key context) through `KeyboardOs::current()`, never `cfg!(target_os = ...)`: a wasm32 build says nothing about the visitor's keyboard. Lane B specs press the host's modifier, so the Playwright config must keep the browser's own user agent.
 - Keep `gpux-testkit`'s `DEFAULT_TOOLCHAIN` (`nightly-2026-06-23`) equal to `lane-b.yml`'s `GPUX_WEB_TOOLCHAIN` and to RayX's `web-toolchain` pin; move all of them together using RayX's `.claude/skills/rayx/references/wasm-toolchain-update.md`. Lane E and the testkit's Android prerequisite use JDK 21.
