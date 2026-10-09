@@ -65,7 +65,7 @@ and before any mechanism:
 | | |
 |---|---|
 | Command | `cargo run -p gpux-testkit -- perf fast-mode --name baseline-s01` |
-| Source | `d2e1461` with the fast-mode harness (sprint 1) on top, no mechanism enabled |
+| Source | `24d413c`, a clean tree: the sprint-1 harness, no mechanism yet |
 | Machine | Apple Silicon Mac (`Darwin 25.6.0 arm64`), Metal headless renderer |
 | Run | `artifacts-temp/testkit/perf/baseline-s01/` (`run.txt` records the commit and machine) |
 
