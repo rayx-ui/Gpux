@@ -1,12 +1,12 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 25,
-  "planRevision": 5,
+  "revision": 26,
+  "planRevision": 6,
   "specHashes": {
-    "requirements": "c598ca7201c3981f72463febfd0b1484bd9c7e045b498fad24c4442ade4c411b",
-    "design": "2d3b4169a2079e10b5dc338346c7b2a5955edd5c6c3657a56fc02615b9cfdc14",
-    "plan": "56aaf0390972efe23c167bfac7e0e10d7a5c4646c509af9b668c80764f95374c"
+    "requirements": "dd8b020b0d4db7443f41cec8f934deb768e67a517fe5b09bd5f1263dff4f3303",
+    "design": "46a9d6e5edf1e6eb6db48e122877f523fedb8425603ab9c6749e947e0992fa75",
+    "plan": "511711b32d64696a8d0fde802601d049983a2c3c9463659f3c3ba6065427ef8c"
   },
   "tasks": {
     "t01-fast-switches": {

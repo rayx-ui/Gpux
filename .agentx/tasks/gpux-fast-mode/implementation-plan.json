@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 5,
+  "revision": 6,
   "title": "gpux fast mode: retained layout and views, splice, scroll layers and window composition from gpui-fast",
   "validationMode": "sprint",
   "repositories": [
@@ -451,7 +451,7 @@
       "criterionIds": [
         "SC-3"
       ],
-      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/text_path_caches.rs`: number-shaped glyph positions equal to full shaping, path-cache vertices equal across translations, and per-run glyph parameters equal to per-glyph parameters.",
+      "descriptionMarkdown": "Group `crates/gpui/src/fast/tests/glyph_runs.rs`: per-run glyph parameters equal to per-glyph parameters, and lines painted by runs equal to frames drawn from scratch. Number shaping and the path cache, whose tests left with them, were reverted under SC-4.",
       "argv": [
         "cargo",
         "test",
@@ -460,11 +460,11 @@
         "--features",
         "test-support",
         "--lib",
-        "fast::tests::text_path_caches::"
+        "fast::tests::glyph_runs::"
       ],
       "expected": {
         "exitCode": 0,
-        "minimumTests": 5
+        "minimumTests": 2
       },
       "inputs": [
         "crates/gpui/**",
@@ -2492,7 +2492,7 @@
         {
           "id": "t11-text-path-caches",
           "title": "Number shaping, path tessellation cache and per-run glyph work",
-          "descriptionMarkdown": "Port `fast/number_shaping.rs`, `fast/path_cache.rs` and the per-run part of `fast/glyphs.rs`. The layer-only quantization lands in s10. Write `fast/tests/text_path_caches.rs`. Commit each separately.",
+          "descriptionMarkdown": "Port `fast/number_shaping.rs`, `fast/path_cache.rs` and the per-run part of `fast/glyphs.rs`. The layer-only quantization lands in s10. Write `fast/tests/text_path_caches.rs`. Commit each separately. t12 reverted number shaping and the path cache under SC-4; the glyph-run tests moved to `fast/tests/glyph_runs.rs`.",
           "criterionIds": [
             "SC-3"
           ],

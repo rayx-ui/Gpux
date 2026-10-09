@@ -183,7 +183,7 @@
       "requirementIds": [
         "SC"
       ],
-      "descriptionMarkdown": "`fast/bounds_tree.rs` (a uniform grid with ordering replay) replaces `crate::bounds_tree::BoundsTree` behind the same interface. It is used for all three draw-order bands; the `1<<30` and `1<<31` band bases are unchanged.\n\n`fast/scene.rs` provides the counting draw-order sort and the packed sprite sort, called from `Scene::finish`. Number shaping, the path tessellation cache and per-run glyph parameters are hooked into `text_system` and `path_builder`.\n\nEach optimization is a separate commit, so SC-4 can revert one alone.",
+      "descriptionMarkdown": "`fast/bounds_tree.rs` (a uniform grid with ordering replay) replaces `crate::bounds_tree::BoundsTree` behind the same interface. It is used for all three draw-order bands; the `1<<30` and `1<<31` band bases are unchanged.\n\n`fast/scene.rs` provides the counting draw-order sort and the packed sprite sort, called from `Scene::finish`. Per-run glyph parameters are hooked into `text_system`. Number shaping and the path tessellation cache were hooked into `text_system` and `path_builder`, measured, and reverted under SC-4, so `fast/number_shaping.rs` and `fast/path_cache.rs` do not exist.\n\nEach optimization is a separate commit, so SC-4 can revert one alone.",
       "invariantsMarkdown": "- Draw orders and equal-key order are identical to today's.\n- The text-cache contracts (prehashed keys, two-generation rollover, decoration sizing, shared font-run pool) are untouched.",
       "memoryDecisionRefs": [
         {
