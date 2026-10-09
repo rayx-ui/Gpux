@@ -1379,7 +1379,7 @@ mod tests {
     };
 
     use super::*;
-    use crate::profiler::journal::install_test_foreground_journal;
+    use crate::profiler::journal::{IntervalBoundary, install_test_foreground_journal};
 
     /// Runs `benchmark` under a wall-time primary with a fake counter as the
     /// secondary metric and returns the per-iteration values the report
@@ -1476,9 +1476,25 @@ mod tests {
         run_task_to_completion(&foreground_executor, task);
 
         let events = trace_scope.finish();
+        // `frame_events` come from a process-wide buffer that windows drawn
+        // by concurrently running tests also feed, so check this thread's
+        // journal instead: every draw or present that records a frame event
+        // also records it into the drawing thread's journal.
+        let frame_entries = events
+            .journal_entries
+            .iter()
+            .filter(|entry| {
+                matches!(
+                    entry,
+                    ForegroundJournalEntry::Event(
+                        ForegroundEvent::Draw(_) | ForegroundEvent::Present(_)
+                    ) | ForegroundJournalEntry::Boundary(IntervalBoundary::Presented(_))
+                )
+            })
+            .collect::<Vec<_>>();
         assert!(
-            events.frame_events.is_empty(),
-            "no window was involved, so no frame events should be recorded"
+            frame_entries.is_empty(),
+            "no window was involved, so no frame events should be recorded: {frame_entries:?}"
         );
 
         let report = BenchReport::default();
