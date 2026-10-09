@@ -396,3 +396,37 @@ fn the_node_store_stays_bounded_under_churn() {
         );
     }
 }
+
+/// Uniform-list rows have no ids, and are keyed by their index under the
+/// list: scrolled by one row, every row still in view finds its nodes, and
+/// only the row scrolled in is made.
+#[test]
+fn list_items_without_ids_keep_their_nodes_by_index() {
+    let handle = UniformListScrollHandle::new();
+    let mut column = Column::new(0, true);
+    column.list = Some((100, handle.clone()));
+    let mut harness = Harness::open(LAYOUT, column);
+    let steady = harness.draw();
+    // Five 10px rows show in the 50px list: bringing the sixth to the
+    // bottom scrolls by one row.
+    handle.scroll_to_item(5, ScrollStrategy::Bottom);
+    harness.update(|_| {});
+    let scrolled = harness.draw();
+    // The row scrolled in: a row and its bar.
+    assert_eq!(writes(&scrolled, &steady), (2, 1), "{scrolled:?}");
+    assert!(scrolled.nodes_lingering > 0, "{scrolled:?}");
+}
+
+/// A node its element no longer requests is released when the frame is
+/// cleared, and the engine holds one node fewer.
+#[test]
+fn a_node_left_unclaimed_for_a_frame_is_released() {
+    let mut harness = Harness::open(LAYOUT, Column::new(4, true));
+    let before = harness.owned();
+    harness.update(|column| column.children.truncate(3));
+    let frame = harness.draw();
+    assert_eq!(frame.nodes_released, 2, "{frame:?}");
+    let after = harness.owned();
+    assert_eq!(after.kept_layout_nodes, before.kept_layout_nodes - 2);
+    assert_eq!(after.layout_engine_nodes, before.layout_engine_nodes - 2);
+}
