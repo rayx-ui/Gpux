@@ -106,7 +106,7 @@ impl LineGlyphPainter {
         );
         let integer_origin = quantized_origin.map(|c| ScaledPixels(c.trunc()));
         let transformation = self.transformation;
-        let content_mask = self.content_mask.clone();
+        let content_mask = self.content_mask;
         let run = self.rendering(window, font_id, font_size, color).clone();
         let params = RenderGlyphParams {
             font_id,
