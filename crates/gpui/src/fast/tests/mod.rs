@@ -4,10 +4,10 @@
 
 mod bounds_grid;
 mod draw_order;
+mod glyph_runs;
 mod hover_dependencies;
 mod oracle;
 mod oracle_support;
 mod scoped_invalidation;
 mod stats;
 mod switches;
-mod text_path_caches;

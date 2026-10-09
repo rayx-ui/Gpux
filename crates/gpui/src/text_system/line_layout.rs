@@ -499,11 +499,9 @@ impl WrappedLineLayout {
 pub(crate) struct LineLayoutCache {
     previous_frame: Mutex<FrameCache>,
     current_frame: RwLock<FrameCache>,
-    pub(crate) platform_text_system: Arc<dyn PlatformTextSystem>,
+    platform_text_system: Arc<dyn PlatformTextSystem>,
     /// Advances when [`TextSystem::add_fonts`] successfully changes the font database.
-    pub(crate) font_generation: Arc<AtomicUsize>,
-    /// Numbers put together from their glyphs instead of shaped by the platform.
-    pub(crate) fast_numbers: Mutex<crate::fast::number_shaping::NumberShaping>,
+    font_generation: Arc<AtomicUsize>,
     /// Records the generation represented by both frame caches.
     cached_font_generation: AtomicUsize,
     /// Lines handed to the platform to be shaped since the window last took
@@ -557,7 +555,6 @@ impl LineLayoutCache {
             platform_text_system,
             font_generation,
             cached_font_generation: AtomicUsize::new(cached_font_generation),
-            fast_numbers: Mutex::default(),
             #[cfg(any(
                 test,
                 feature = "test-support",
@@ -784,7 +781,10 @@ impl LineLayoutCache {
             #[cfg(feature = "diagnostics")]
             record_line_layout_cache_path(7);
             let text = SharedString::from(text);
-            let mut layout = crate::fast::number_shaping::shape_line(self, &text, font_size, runs);
+            let mut layout = self
+                .platform_text_system
+                .layout_line(&text, font_size, runs);
+            crate::fast::fast_stat!(atomic self.fast_lines_shaped, += 1);
 
             apply_letter_spacing_to_layout(&mut layout, letter_spacing);
 
@@ -945,7 +945,10 @@ impl LineLayoutCache {
         }
 
         let text = materialize_text();
-        let mut layout = crate::fast::number_shaping::shape_line(self, &text, font_size, runs);
+        let mut layout = self
+            .platform_text_system
+            .layout_line(&text, font_size, runs);
+        crate::fast::fast_stat!(atomic self.fast_lines_shaped, += 1);
 
         apply_letter_spacing_to_layout(&mut layout, letter_spacing);
 
