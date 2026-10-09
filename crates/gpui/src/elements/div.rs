@@ -3664,7 +3664,7 @@ impl Interactivity {
                                 // immediately after being clicked.
                                 // See https://github.com/zed-industries/zed/issues/24600 for more details
                                 pending_mouse_down.take();
-                                window.refresh();
+                                cx.notify(current_view);
                             }
                         }
                         // Fire click handlers during the bubble phase.

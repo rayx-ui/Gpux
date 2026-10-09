@@ -405,6 +405,11 @@ fn active_and_hover_styles_redraw_their_view() {
     pair.frames("press", 1);
     pair.dispatch(mouse_up(ACTIVE.0, ACTIVE.1));
     pair.frames("release", 1);
+    // A press released elsewhere is abandoned without a click.
+    pair.dispatch(mouse_down(ACTIVE.0, ACTIVE.1));
+    pair.frames("press again", 1);
+    pair.dispatch(mouse_up(390., 390.));
+    pair.frames("release elsewhere", 1);
     pair.dispatch(mouse_move(GROUP_HOVER.0, GROUP_HOVER.1));
     pair.frames("group hover", 1);
     pair.dispatch(mouse_move(390., 390.));

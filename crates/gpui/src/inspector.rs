@@ -108,6 +108,7 @@ mod conditional {
             let changed = Some(&id) != self.active_element_id();
             if changed {
                 self.active_element = Some(InspectedElement::new(id));
+                // Whole-window: the inspector outlines its element over every view.
                 window.refresh();
             }
             changed
