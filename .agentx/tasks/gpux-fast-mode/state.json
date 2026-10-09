@@ -1,12 +1,12 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 26,
-  "planRevision": 6,
+  "revision": 30,
+  "planRevision": 7,
   "specHashes": {
-    "requirements": "dd8b020b0d4db7443f41cec8f934deb768e67a517fe5b09bd5f1263dff4f3303",
-    "design": "46a9d6e5edf1e6eb6db48e122877f523fedb8425603ab9c6749e947e0992fa75",
-    "plan": "511711b32d64696a8d0fde802601d049983a2c3c9463659f3c3ba6065427ef8c"
+    "requirements": "c0daa9e1ff938fb4db82ab2200a1c3f0c6fd80fcfbd35ec9c3e64970a3071061",
+    "design": "c9ee00375349e97c0b579767513a6a7c23666c4ce551a4c8e331ec729ce9240d",
+    "plan": "60ade60b631fd1eb81187e3c768554155578f76616180b53202b9528b3764fc1"
   },
   "tasks": {
     "t01-fast-switches": {
@@ -76,7 +76,7 @@
       ]
     },
     "t12-standalone-keep-or-revert": {
-      "status": "in_progress",
+      "status": "implemented",
       "workerIds": [
         "claude-240e1cb7"
       ]
@@ -223,6 +223,15 @@
         }
       },
       "recordedAt": "2026-10-09T19:40:42Z"
+    },
+    "5edd7e294a60226fb2b07e7e783bc47ee663f98264b91d27382543cd8f3c981f": {
+      "snapshot": {
+        "specHash": "389d4a0e531a4c065c423549f8da5fba6ab41b0867efe1d1336f4dfd80f01456",
+        "repositories": {
+          "gpux": "f24ee1ace0cdf3ad5bd6fc05c72fcb67e28c75fee03fa0e501e61ebf496a3997"
+        }
+      },
+      "recordedAt": "2026-10-09T20:44:30Z"
     }
   },
   "checkResults": {
@@ -378,6 +387,91 @@
       "logPath": "artifacts-temp/agentx/gpux-fast-mode/s01-foundation-final-429b67595e64.log",
       "logSha256": "243be02d8e8c899b8d6bf3cd5ba51b49d39ad98513a33796d0e874399e69da9f",
       "inputsHash": "2634e5d1265e4482ef592ff741eb185e74d982e5b2d0c10d3244f77ad6ebe504"
+    },
+    "s02-hygiene-standalone/check-scoped-invalidation/final": {
+      "checkId": "check-scoped-invalidation",
+      "boundaryId": "s02-hygiene-standalone",
+      "phase": "final",
+      "batchId": "5edd7e294a60226fb2b07e7e783bc47ee663f98264b91d27382543cd8f3c981f",
+      "definitionHash": "b136850406646d7c6b9e9f46e87883792f75c2daa04b197224c0cec5ff604722",
+      "basisHash": "af801facecac45fe394f7dc48111720bb68e9c5a2a99f6a9bb3313d29232a790",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 6,
+      "durationSeconds": 15.6074,
+      "recordedAt": "2026-10-09T20:44:27Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s02-hygiene-standalone-final-f2eecd205110.log",
+      "logSha256": "4edd717b4c233d4250e4826ffc1d0e16cecd529461e57de037509498d25f3809",
+      "inputsHash": "7f4072671e77d637fb414740a8a4bc9fca442c0b58f49c5356c89431486c5a7f"
+    },
+    "s02-hygiene-standalone/check-bounds-grid/final": {
+      "checkId": "check-bounds-grid",
+      "boundaryId": "s02-hygiene-standalone",
+      "phase": "final",
+      "batchId": "5edd7e294a60226fb2b07e7e783bc47ee663f98264b91d27382543cd8f3c981f",
+      "definitionHash": "244e67afa8b06d17bd7f5b4b740b5973fbf4b3f5b728c71f6d1d052ca336b8f2",
+      "basisHash": "d5f87b36154dcf4180a249aa7a9d00b58cdf64b7b007d04236f2ff1f8d0714ae",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 7,
+      "durationSeconds": 1.434,
+      "recordedAt": "2026-10-09T20:44:29Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s02-hygiene-standalone-final-a74b55c93bc3.log",
+      "logSha256": "d4a5a566e2e5e2038034dcdbf847891982089370841abbcecc8cfbade8fc3d05",
+      "inputsHash": "7f4072671e77d637fb414740a8a4bc9fca442c0b58f49c5356c89431486c5a7f"
+    },
+    "s02-hygiene-standalone/check-draw-order/final": {
+      "checkId": "check-draw-order",
+      "boundaryId": "s02-hygiene-standalone",
+      "phase": "final",
+      "batchId": "5edd7e294a60226fb2b07e7e783bc47ee663f98264b91d27382543cd8f3c981f",
+      "definitionHash": "b6784434dda648628ab1afd5e897acef694437dfe1e57dad82aa170fa964a5d0",
+      "basisHash": "8f47303d007ccc53c90a28e28eaea559274a5699486d476bb76af457b60472bd",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 0.5572,
+      "recordedAt": "2026-10-09T20:44:29Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s02-hygiene-standalone-final-14a0852aaaf5.log",
+      "logSha256": "067c402268facf9ad7e18191dd280fa2481d58934fcd621a3035c4ab23d16d04",
+      "inputsHash": "7f4072671e77d637fb414740a8a4bc9fca442c0b58f49c5356c89431486c5a7f"
+    },
+    "s02-hygiene-standalone/check-text-path/final": {
+      "checkId": "check-text-path",
+      "boundaryId": "s02-hygiene-standalone",
+      "phase": "final",
+      "batchId": "5edd7e294a60226fb2b07e7e783bc47ee663f98264b91d27382543cd8f3c981f",
+      "definitionHash": "322f9225f9a8ba8a11c4a92977331acc11a76c73199327ed78d6dd9bb06ae94c",
+      "basisHash": "29a4b0d02c66c4bd1b244b54a169d463e12a2411b5fce16eeaeacadc7a2ae54c",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 0.507,
+      "recordedAt": "2026-10-09T20:44:30Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s02-hygiene-standalone-final-2826919aca41.log",
+      "logSha256": "113c2cb1399181f6359279c9c339b1c03510fa83560030f5db30c5ce523ee500",
+      "inputsHash": "7f4072671e77d637fb414740a8a4bc9fca442c0b58f49c5356c89431486c5a7f"
+    },
+    "s02-hygiene-standalone/check-hover-dependencies/final": {
+      "checkId": "check-hover-dependencies",
+      "boundaryId": "s02-hygiene-standalone",
+      "phase": "final",
+      "batchId": "5edd7e294a60226fb2b07e7e783bc47ee663f98264b91d27382543cd8f3c981f",
+      "definitionHash": "84afd4c78912862805019bd67a4c204319f9cd6faca33dc579cdb2219b9366bd",
+      "basisHash": "b38ba6e98c7daaf597abd8a20c1fe69c5651118c965a2ce8542bde589dcd1168",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 0.5017,
+      "recordedAt": "2026-10-09T20:44:30Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s02-hygiene-standalone-final-b2429ed61a89.log",
+      "logSha256": "3c3c2c00ca83acaed9c4f7eb4e07beef968fc902532bdb22e056faa912b3d9d5",
+      "inputsHash": "7f4072671e77d637fb414740a8a4bc9fca442c0b58f49c5356c89431486c5a7f"
     }
   },
   "reviews": {
@@ -952,6 +1046,26 @@
           "symbol": "cached_view_drops_its_hover_in_the_frame_an_overlay_covers_it"
         }
       ]
+    },
+    {
+      "id": "s02-hover-area-misses-foreign-hitboxes",
+      "boundaryId": "s02-hygiene-standalone",
+      "criterionIds": [
+        "FM-5"
+      ],
+      "severity": "major",
+      "status": "open",
+      "descriptionMarkdown": "**Expected (FM-5, d-hover-area).** A cached view that read hovers is never shown with a stale hover. A replayed view's hovers equal those that a frame drawn from scratch computes at paint.\n\n**Observed.** `fast::dependencies::hitbox_area` (`crates/gpui/src/fast/dependencies.rs:76`) takes the union of only the hitboxes the view inserted itself (`next_frame.hitboxes[prepaint_start..]`). `may_replay_hovers` (`:94`) then treats \"pointer outside that area\" as \"every hover it read is false whatever this frame adds\". That premise fails for hover reads of hitboxes the view does not own. The common case is `group_hover`: a cached child reads the hover of an ancestor's `.group(..)` hitbox through `GroupHitboxes::get(..).is_hovered`.\n\n**Failure scenario (reproduced).** A 200x50 `div().id(\"row\").group(\"row\")` holds a 50x50 `AnyView::cached` cell styled `.group_hover(\"row\", |s| s.bg(..))`. The pointer is at (150,10): over the group, outside the cell. In the next frame an `.occlude()` overlay appears over (100..200, 0..50).\n- Prepaint replays the cell: the area does not contain the pointer, and its read `(group hitbox, true)` is unchanged against last frame's hit test.\n- At paint, the overlay blocks the group hitbox. In debug builds `view.rs:612` panics: \"a replayed cached view's hovers changed after prepaint\".\n- In release builds the frame shows the cell group-hovered, where a from-scratch frame shows it unhovered.\n\nThe probe test ran in a scratch worktree and fails at HEAD `a7229fd`. The oracle does not cover this because none of its cached views reads a group hover.\n\n**Repair.**\n- Make the replay area cover every hitbox the view's hovers were read from, not only those it inserted. For example, record the masked bounds of each read hitbox with the read (they are known in `next_frame.hitboxes`/`rendered_frame.hitboxes` at read time), and refuse replay while the pointer is inside any of them.\n- Add a `fast::tests::hover_dependencies` case: group hover on a cached child, with an overlay over the group outside the child.\n- Add a group-hover cached view to the oracle's `OracleView`."
+    },
+    {
+      "id": "s02-click-bookkeeping-refresh",
+      "boundaryId": "s02-hygiene-standalone",
+      "criterionIds": [
+        "PRE-1"
+      ],
+      "severity": "minor",
+      "status": "open",
+      "descriptionMarkdown": "**Expected (PRE-1).** Click bookkeeping and other gpux hot paths notify the owning view. A kept `refresh()` is a whole-window change with a comment saying why.\n\n**Observed.**\n- `crates/gpui/src/elements/div.rs:3667`: the capture-phase `MouseUpEvent` listener converted the hovered branch to `cx.notify(current_view)`, but the sibling branch still calls `window.refresh()`. That branch clears a pending mouse-down when the release lands outside the hitbox: press on a clickable or draggable element, release elsewhere. The nearby comment explains clearing the pending press (zed#24600), not why the whole window must redraw. So every abandoned click turns all caches off for a frame. `fast::tests::scoped_invalidation` never releases outside the pressed element, so this path is untested.\n- `crates/gpui/src/inspector.rs:111` (`set_active_element_id`) keeps a `refresh()` with no comment. It is an allowed inspector change but misses the annotation PRE-1 requires.\n\n**Repair.**\n- Replace the `div.rs:3667` refresh with `cx.notify(current_view)` (already captured in that closure). Add a press-then-release-outside step to `active_and_hover_styles_redraw_their_view`.\n- Annotate the inspector refresh."
     }
   ],
   "handoffMarkdown": "",

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 6,
+  "revision": 7,
   "title": "gpux fast mode: retained layout and views, splice, scroll layers and window composition from gpui-fast",
   "validationMode": "sprint",
   "repositories": [
@@ -2112,7 +2112,7 @@
       "criterionIds": [
         "FM-5"
       ],
-      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/hover_dependencies.rs`: a wheel event moving the pointer off a hovered cached view, an overlay covering one with the pointer still without notifying its observers, and the oracle's seed 31.",
+      "descriptionMarkdown": "Group `crates/gpui/src/fast/tests/hover_dependencies.rs`: a wheel event moving the pointer off a hovered cached view, an overlay covering one with the pointer still without notifying its observers, the oracle's seed 31, an overlay covering the group a cached cell's `group_hover` reads, the pointer entering a group redrawn under new hitbox ids, and a view reading only its own hovers still replayed.",
       "argv": [
         "cargo",
         "test",
@@ -2125,7 +2125,7 @@
       ],
       "expected": {
         "exitCode": 0,
-        "minimumTests": 3
+        "minimumTests": 6
       },
       "inputs": [
         "crates/gpui/**",
