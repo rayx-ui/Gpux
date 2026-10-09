@@ -205,17 +205,17 @@
         },
         {
           "id": "VIEW-2",
-          "descriptionMarkdown": "Each dependency kind invalidates exactly the views that read it, and no others:\n\n- entity update with notify;\n- a write while drawing;\n- global write and presence;\n- scroll and list version;\n- ambient input;\n- a hover that changes appearance;\n- interactions inside a view, which rebuild only the innermost view.\n\nThe notify-versus-update rules hold at the view level. Verified by the `fast::tests::view_invalidation` group.",
+          "descriptionMarkdown": "Each dependency kind invalidates exactly the views that read it, and no others:\n\n- entity update with notify;\n- a write while drawing;\n- global write and presence;\n- scroll and list version;\n- ambient input;\n- a hover that changes appearance;\n- interactions inside a view, which build that view and the views around it while the views beside it are reused (with splice, the views around it are spliced, so only the innermost is built).\n\nThe notify-versus-update rules hold at the view level. Verified by the `fast::tests::view_invalidation` group.",
           "verification": "automated"
         },
         {
           "id": "VIEW-3",
-          "descriptionMarkdown": "The paths are implemented with gpui-fast's selection rules:\n\n- **Reused.**\n- **Built at retained layout:** the view moved, or its inherited bounds, content mask, text style or painted context (the `with_element_paint_context` opacity and transform that cached views already key on) changed.\n- **Prebuilt.**\n- **Built.**\n\n`cached(style)` views keep upstream's shape but also depend on what they read. Stateless `RenderOnce` components are never retained. Verified by the `fast::tests::reuse_paths` group.",
+          "descriptionMarkdown": "The paths follow gpui-fast's selection rules:\n\n- **Reused:** nothing the view read changed, its hovers stand, and it is drawn where and as it was.\n- **Built at retained layout:** the view moved, or its inherited content mask or painted context (the `with_element_paint_context` opacity and transform that cached views already key on) changed.\n- **Built:** otherwise. A changed inherited text style builds the view, layout included, because a text style can measure text differently (gpui-fast's layout reuse checks it too); its kept nodes are claimed again.\n- **Prebuilt** belongs to splice (SPL-1: a surrounding view rebuilt after a gap asked for another layout takes over the prebuilt child) and lands with it.\n\n`cached(style)` views keep upstream's shape but also depend on what they read. Stateless `RenderOnce` components are never retained. Verified by the `fast::tests::reuse_paths` group.",
           "verification": "automated"
         },
         {
           "id": "VIEW-4",
-          "descriptionMarkdown": "A retained record copies and shifts every per-frame output gpux has:\n\n- hitboxes, re-pointed at reused dispatch nodes;\n- `hitbox_dispatch_nodes` entries;\n- tooltips and deferred draws (attributed to their enclosing record);\n- the dispatch subtree, which keeps focus;\n- accessed element states and pending element-state transfers;\n- line layouts, mouse listeners, input handlers, cursor styles, tab stops and window-control hitboxes;\n- `visual_bounds`;\n- DevKit nodes, with remapped ids, parents, focus and property setters, truncated on rollback.\n\nFixed and sticky behaviour is kept for reused views: sticky candidates are republished, and positioned and top-layer ranges keep their draw-order bands.\n\nScreen-effect and transition requests owned by `Window` are neither duplicated nor lost.\n\nVerified by the `fast::tests::retained_records` group, with one test per output and a rollback test.",
+          "descriptionMarkdown": "A retained record copies and shifts every per-frame output gpux has:\n\n- hitboxes, re-pointed at reused dispatch nodes;\n- `hitbox_dispatch_nodes` entries;\n- tooltips and deferred draws (attributed to their enclosing record);\n- the dispatch subtree, which keeps focus;\n- accessed element states and pending element-state transfers;\n- line layouts, mouse listeners, input handlers, cursor styles, tab stops and window-control hitboxes;\n- `visual_bounds`, which is reported and taken within an element's prepaint and so travels in the DevKit nodes it lands in;\n- DevKit nodes, with remapped ids, parents, focus and property setters, truncated on rollback.\n\nFixed and sticky behaviour is kept for reused views: positioned and top-layer ranges keep their draw-order bands, and a view whose content registers a sticky candidate with a scroll container outside it is laid out by building it, never from its record, so the container pins it from the candidates registered that frame (a candidate's plan is found by the occurrence registered while its layout is requested, which a republished record could not match).\n\nScreen-effect and transition requests owned by `Window` are neither duplicated nor lost.\n\nVerified by the `fast::tests::retained_records` group, with one test per output and a rollback test.",
           "verification": "automated"
         },
         {
@@ -231,6 +231,11 @@
         {
           "id": "VIEW-7",
           "descriptionMarkdown": "The randomized oracle in views mode (layout and view retention on, splice off) matches the from-scratch frame over every change kind. Its non-vacuity assertion requires reused subtrees. Verified by the `fast::tests::oracle_views` group.",
+          "verification": "automated"
+        },
+        {
+          "id": "VIEW-8",
+          "descriptionMarkdown": "An entity updated without a notify counts as changed for every view that read it, so the next frame drawn builds those views and shows the update, as a frame drawn from scratch does. gpui-fast counts such an update only for a view drawn inside a view notified since; gpux's correctness contract (every frame equals the frame drawn from scratch) rules that out, since without fast mode a view that is not cached is rendered on every frame and shows the update. A lease that only asks the entity something (`query`) is not an update. Verified by the `fast::tests::view_invalidation` group (`an_update_without_notify_builds_its_readers_on_the_next_frame`) and the views oracle's silent-update change.",
           "verification": "automated"
         }
       ]

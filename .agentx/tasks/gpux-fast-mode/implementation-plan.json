@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 11,
+  "revision": 12,
   "title": "gpux fast mode: retained layout and views, splice, scroll layers and window composition from gpui-fast",
   "validationMode": "sprint",
   "repositories": [
@@ -690,7 +690,7 @@
       "criterionIds": [
         "VIEW-4"
       ],
-      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/retained_records.rs`: one test per copied output (DevKit remap and rollback included), sticky republication, positioned and top-layer bands, deferred attribution, and window-owned effect requests.",
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/retained_records.rs`: one test per copied output (DevKit remap and rollback included), sticky candidates of an outer scroll container, positioned and top-layer bands, deferred attribution, and window-owned effect requests.",
       "argv": [
         "cargo",
         "test",
@@ -725,7 +725,7 @@
         "VIEW-1",
         "VIEW-3"
       ],
-      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/reuse_paths.rs`: still-frame reuse, built-at-retained-layout for each inherited-context change, prebuilt, dependency-aware `cached(style)`, and `RenderOnce` never retained.",
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/reuse_paths.rs`: still-frame reuse, built-at-retained-layout for each inherited-context change, a changed text style building the view, dependency-aware `cached(style)`, and `RenderOnce` never retained. The prebuilt path is checked with splice.",
       "argv": [
         "cargo",
         "test",
@@ -758,7 +758,8 @@
       "kind": "test",
       "criterionIds": [
         "VIEW-2",
-        "VIEW-5"
+        "VIEW-5",
+        "VIEW-8"
       ],
       "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/view_invalidation.rs`: exact reader invalidation per dependency kind, the notify and update rules, innermost-view interactions, and each disabling condition with its counter.",
       "argv": [
@@ -826,7 +827,8 @@
       "repositoryId": "gpux",
       "kind": "test",
       "criterionIds": [
-        "VIEW-7"
+        "VIEW-7",
+        "VIEW-8"
       ],
       "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/oracle_views.rs`: the randomized oracle in views mode, with a non-vacuity assertion on reused subtrees.",
       "argv": [
@@ -2825,7 +2827,7 @@
         {
           "id": "t20-reuse-paths",
           "title": "Reused, built-at-retained-layout, prebuilt and built paths",
-          "descriptionMarkdown": "Route `ViewElement` through `fast::retained`, add `relayout_in_place`, and make `cached(style)` dependency-aware. Write `fast/tests/reuse_paths.rs`. Update the attribution expectations for `views`.",
+          "descriptionMarkdown": "Route `ViewElement` through `fast::retained` (reused, built-at-retained-layout and built; prebuilt lands with splice), add `relayout_in_place`, and make `cached(style)` dependency-aware. Write `fast/tests/reuse_paths.rs`. Update the attribution expectations for `views`.",
           "criterionIds": [
             "VIEW-1",
             "VIEW-3"
@@ -2856,7 +2858,8 @@
           "descriptionMarkdown": "Add frame-start invalidation from dependencies, hover rechecks, innermost-subtree dirtying, the disabling conditions and their counters. Write `fast/tests/view_invalidation.rs`.",
           "criterionIds": [
             "VIEW-2",
-            "VIEW-5"
+            "VIEW-5",
+            "VIEW-8"
           ],
           "designIds": [
             "d-view-retention"

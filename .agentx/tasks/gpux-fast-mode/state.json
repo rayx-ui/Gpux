@@ -1,12 +1,12 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 58,
-  "planRevision": 11,
+  "revision": 66,
+  "planRevision": 12,
   "specHashes": {
-    "requirements": "382ceb5caa924483b8b3c0cce0998a6a80fdce218c77ed0a4d6bc8e0c04be058",
-    "design": "db0d560d0d17533e195886cc2524d6fc754e953b609fdca937d5d4fc77a5f750",
-    "plan": "b7222313a28bcafbaa7786efe2a5097e506fb1e26e4a358980c5c0f1b2328f69"
+    "requirements": "9a032d1345bbc15ddac8a565144cc02934f65cee34ff9fbb7e0ef3453253fcf0",
+    "design": "7f395940bdf1da3213a9e4b0ffd5ca1fec81099f3fddc09268c8d9761f890b00",
+    "plan": "8e7f8e18ca21a1f84cc0f0932d14039d2fef6fdcf4ee9878821eacc7cb5198cb"
   },
   "tasks": {
     "t01-fast-switches": {
@@ -118,19 +118,34 @@
       ]
     },
     "t19-retained-records": {
-      "status": "pending"
+      "status": "implemented",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t20-reuse-paths": {
-      "status": "pending"
+      "status": "implemented",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t21-view-invalidation": {
-      "status": "pending"
+      "status": "implemented",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t22-verify-mode": {
-      "status": "pending"
+      "status": "implemented",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t23-oracle-views": {
-      "status": "pending"
+      "status": "implemented",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t24-splice": {
       "status": "pending"
@@ -274,6 +289,15 @@
         }
       },
       "recordedAt": "2026-10-09T22:46:11Z"
+    },
+    "2c5cd4d83963260dd1fb32ac75e4d1f630cd4e03dc88cd1af68739b630306fb9": {
+      "snapshot": {
+        "specHash": "9cf17136f245c3f50c88e11f4534517bb42b808da4724e9a86a692865724e051",
+        "repositories": {
+          "gpux": "9ba6a84a0c943e547ef90307d3f757f6f9521179989e9d8ed5382302d23c51a9"
+        }
+      },
+      "recordedAt": "2026-10-09T23:46:29Z"
     }
   },
   "checkResults": {
@@ -650,6 +674,108 @@
       "logPath": "artifacts-temp/agentx/gpux-fast-mode/s04-dependencies-final-cecfbf789d0b.log",
       "logSha256": "597110b25eed8d47ba3536ef7263c69d113774e3cbe1035b22772b3645fd9356",
       "inputsHash": "14a7caeab82f3183da041a5440df14d029c20f1f7d2426a2131317a225a859da"
+    },
+    "s05-view-retention/check-attribution/final": {
+      "checkId": "check-attribution",
+      "boundaryId": "s05-view-retention",
+      "phase": "final",
+      "batchId": "2c5cd4d83963260dd1fb32ac75e4d1f630cd4e03dc88cd1af68739b630306fb9",
+      "definitionHash": "b82e7feef64210ed76175fef9ab5b0339af24962e55e46b6ea32da027de45969",
+      "basisHash": "8b2483720ccba287e95bf7b6cd5e31498c1b4cf6adfcd0451992f6fa78d9ec5d",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 19,
+      "durationSeconds": 26.3129,
+      "recordedAt": "2026-10-09T23:46:20Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s05-view-retention-final-2287d14b4433.log",
+      "logSha256": "c7fce182c1704c109f90ad522f662afc944e3f7bd03c2c3d20eb1bcaa2151ef6",
+      "inputsHash": "7f0feb1f21084fd4bb3bed2da13a371060a307a997a9e62e97f5ac6df8bc3480"
+    },
+    "s05-view-retention/check-retained-records/final": {
+      "checkId": "check-retained-records",
+      "boundaryId": "s05-view-retention",
+      "phase": "final",
+      "batchId": "2c5cd4d83963260dd1fb32ac75e4d1f630cd4e03dc88cd1af68739b630306fb9",
+      "definitionHash": "ef66e885585e34e28bb9f0d3dc07ff6dee714fa5c7e990d72e3c422082f67c19",
+      "basisHash": "bf4acf949abf9a93e11dccced46c2f98c6f657b5fe4b76b3e4230039cf76e040",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 15,
+      "durationSeconds": 0.2505,
+      "recordedAt": "2026-10-09T23:46:20Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s05-view-retention-final-c3ad87d13bdd.log",
+      "logSha256": "a2ca159e83829ffd474299c906f038bad14b02396297df551de993640c4a3c33",
+      "inputsHash": "7f0feb1f21084fd4bb3bed2da13a371060a307a997a9e62e97f5ac6df8bc3480"
+    },
+    "s05-view-retention/check-reuse-paths/final": {
+      "checkId": "check-reuse-paths",
+      "boundaryId": "s05-view-retention",
+      "phase": "final",
+      "batchId": "2c5cd4d83963260dd1fb32ac75e4d1f630cd4e03dc88cd1af68739b630306fb9",
+      "definitionHash": "9ded5536fc4456af6eb17e02393914d31504bc1dad14cd9c93d86d07feb51832",
+      "basisHash": "b2e4129776dfa66d5f01f1bb57a7e3c61ac2489166a958bc666f4d7be5e1fdb9",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 8,
+      "durationSeconds": 0.2469,
+      "recordedAt": "2026-10-09T23:46:20Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s05-view-retention-final-418b7ecdc60a.log",
+      "logSha256": "56bcce2be73c709b5f976c0e7b1872c2fd0f02d1916b481c51db1afddc77ca3d",
+      "inputsHash": "7f0feb1f21084fd4bb3bed2da13a371060a307a997a9e62e97f5ac6df8bc3480"
+    },
+    "s05-view-retention/check-view-invalidation/final": {
+      "checkId": "check-view-invalidation",
+      "boundaryId": "s05-view-retention",
+      "phase": "final",
+      "batchId": "2c5cd4d83963260dd1fb32ac75e4d1f630cd4e03dc88cd1af68739b630306fb9",
+      "definitionHash": "b6686c15f3976c1ff14d5696141a53533a75da3c57ddc16c9ed52a324caa65af",
+      "basisHash": "dfabe140bdefd4c1c8c94f74bed007863066cf744e1d44745450d4040915fd12",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 17,
+      "durationSeconds": 0.2517,
+      "recordedAt": "2026-10-09T23:46:20Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s05-view-retention-final-ec06f390933a.log",
+      "logSha256": "30d9b0965b31299b5bf9956e5373c0f22b2339f347bf7e77c9ca749bd57ee1e7",
+      "inputsHash": "7f0feb1f21084fd4bb3bed2da13a371060a307a997a9e62e97f5ac6df8bc3480"
+    },
+    "s05-view-retention/check-verify-mode/final": {
+      "checkId": "check-verify-mode",
+      "boundaryId": "s05-view-retention",
+      "phase": "final",
+      "batchId": "2c5cd4d83963260dd1fb32ac75e4d1f630cd4e03dc88cd1af68739b630306fb9",
+      "definitionHash": "67c65c83e35c42fd53f21c8604ece45c0f68558a99f7b40d8f4e9b6f67bc78a6",
+      "basisHash": "70780dc2be3551d49d7c787208fb3fa9f558289cc9086a200fa71333807c78e6",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 0.2465,
+      "recordedAt": "2026-10-09T23:46:21Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s05-view-retention-final-1ac5d1331d5e.log",
+      "logSha256": "c63ca7a9a394bef7bedc93e63fbc7f95dd8aabafe2b2d8ea9ee530293492f940",
+      "inputsHash": "7f0feb1f21084fd4bb3bed2da13a371060a307a997a9e62e97f5ac6df8bc3480"
+    },
+    "s05-view-retention/check-oracle-views/final": {
+      "checkId": "check-oracle-views",
+      "boundaryId": "s05-view-retention",
+      "phase": "final",
+      "batchId": "2c5cd4d83963260dd1fb32ac75e4d1f630cd4e03dc88cd1af68739b630306fb9",
+      "definitionHash": "f9a918b5deddffa905e9e237a0db748afd6ff27c3638cbfa326a7c0c7c3135e1",
+      "basisHash": "8670af4896a53340b5b02b854bd0e8742005d4969c50017caf8aa58194ad0243",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 8.5015,
+      "recordedAt": "2026-10-09T23:46:29Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s05-view-retention-final-d4853536a30b.log",
+      "logSha256": "68844542252570bfbe48a8e7adb971e16373a116bf04b84ab64f99d748ee3147",
+      "inputsHash": "7f0feb1f21084fd4bb3bed2da13a371060a307a997a9e62e97f5ac6df8bc3480"
     }
   },
   "reviews": {
