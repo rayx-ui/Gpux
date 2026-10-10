@@ -44,7 +44,7 @@ Headless rendering (with `test-support` or `bench-support`, native only) is gpux
 
 Composition overlays on wgpu platforms use `WgpuRenderer::new_sharing` / `replace_surface_sharing_context` (`gpui_wgpu/src/fast/composition.rs`): a premultiplied-alpha surface renderer sharing the window's GPU context, atlas and pipelines (pipelines do not depend on the surface alpha mode).
 
-`new_sharing_target` makes a sharing renderer on a non-window `SurfaceTargetUnsafe` (DirectComposition visuals) and `new_sharing_with_context` on a surface the caller made on a given context (the browser, whose window renderer keeps no context). A transparent sharing renderer reconfigures itself with its overlay alpha mode (`use_overlay_alpha_mode`): `PreMultiplied` on browser WebGPU, whose surface capabilities report only `Opaque`. Other transparent surfaces, a transparent browser window's own canvas included, keep the mode `new_internal` picks.
+`new_sharing_target` makes a sharing renderer on a non-window `SurfaceTargetUnsafe` (DirectComposition visuals) and `new_sharing_with_context` on a surface the caller made on a given context (the browser, whose window renderer keeps no context). A transparent sharing renderer reconfigures itself with its overlay alpha mode (`use_overlay_alpha_mode`): `PreMultiplied` on browser WebGPU, whose surface capabilities report only `Opaque`. On Metal (iOS overlays) it is `PostMultiplied` when the surface offers that and not `PreMultiplied`: either makes the `CAMetalLayer` non-opaque, which Core Animation composites as premultiplied. Other transparent surfaces, a transparent browser window's own canvas included, keep the mode `new_internal` picks.
 
 ## Backlinks
 

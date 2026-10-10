@@ -1,12 +1,12 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 112,
-  "planRevision": 14,
+  "revision": 128,
+  "planRevision": 16,
   "specHashes": {
-    "requirements": "9a032d1345bbc15ddac8a565144cc02934f65cee34ff9fbb7e0ef3453253fcf0",
+    "requirements": "4eee0bead77fbb7a45533530a2710748e2a4a7a8dbcab5e061616d319c13c5d9",
     "design": "7f395940bdf1da3213a9e4b0ffd5ca1fec81099f3fddc09268c8d9761f890b00",
-    "plan": "d58af7dee0b302d6b52b5478cd412b0b0efaf9244cabc08817001d5382b4e06c"
+    "plan": "7207727b0e2a0cab396ffe5bbbe160f76cad5528a254076aa8ebd9899fd08ddb"
   },
   "tasks": {
     "t01-fast-switches": {
@@ -244,13 +244,22 @@
       "status": "pending"
     },
     "t45-composition-ios": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t46-composition-android": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t47-mobile-platform-views": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t48-layer-touch": {
       "status": "pending"
@@ -367,6 +376,15 @@
         }
       },
       "recordedAt": "2026-10-10T12:42:52Z"
+    },
+    "2df3fe46bd3fb1d921cb49e67869ddbd7b8f131e547ddaa1c29dbdff4f415d8c": {
+      "snapshot": {
+        "specHash": "07c5415e3e5f5b23c0de3118c47968e35073125f1d2b74dbdf5cc984ee63628d",
+        "repositories": {
+          "gpux": "b75a1ff770522f6243aa7754c093b3806ac851fcb208a486326c0797deed56e4"
+        }
+      },
+      "recordedAt": "2026-10-10T13:24:10Z"
     }
   },
   "checkResults": {
@@ -1032,6 +1050,108 @@
       "logPath": "artifacts-temp/agentx/gpux-fast-mode/s09-composition-windows-web-final-0da9b2906da5.log",
       "logSha256": "e984923b2026458f2ed384e60584a2d402f246f9f112a1a8995c585e669e809b",
       "inputsHash": "e9bd90547df52252bc2b4894f55b9af4c4b01cf86d2eb27d978477a3c05ea2e0"
+    },
+    "s09b-composition-mobile/check-composition-ios/final": {
+      "checkId": "check-composition-ios",
+      "boundaryId": "s09b-composition-mobile",
+      "phase": "final",
+      "batchId": "2df3fe46bd3fb1d921cb49e67869ddbd7b8f131e547ddaa1c29dbdff4f415d8c",
+      "definitionHash": "1d36f9299e2d374c6caaa99643202887d428683d18574e4b87dc55ca3a88575f",
+      "basisHash": "ad5f66c6578d64feae3ae653cf9ed30b04e115fbb0a6e4685542b06dc94abbc0",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 8.0582,
+      "recordedAt": "2026-10-10T13:23:06Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s09b-composition-mobile-final-6b2d6c85c258.log",
+      "logSha256": "7159e945462f5c00fb5d8c4474d06e9b3a90fa41906107bcfcd6f12831c2a23d",
+      "inputsHash": "b7a3831406e8889f07dfd702c581458c976cb97f62161831bccec8f26f3f229d"
+    },
+    "s09b-composition-mobile/check-android-java-build/final": {
+      "checkId": "check-android-java-build",
+      "boundaryId": "s09b-composition-mobile",
+      "phase": "final",
+      "batchId": "2df3fe46bd3fb1d921cb49e67869ddbd7b8f131e547ddaa1c29dbdff4f415d8c",
+      "definitionHash": "ea25cda55bfd436544570d4771198a87d2d764955f87b219153e397e2c00dc52",
+      "basisHash": "56fc598d61ee42c46098a33c514f834d08681b1397a98f86de3d0290a6b02159",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 0.4137,
+      "recordedAt": "2026-10-10T13:23:07Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s09b-composition-mobile-final-7d46a3da35c8.log",
+      "logSha256": "7f6a75a1ef3d8ee46c6acfc8b384a469c5b4dcccd0d8b8bbe2a855c5a8ad45c8",
+      "inputsHash": "8d760f28cbac1d1ccd4fcbb6ae45b6a50689163c0505d12be68c0f99d0c747dc"
+    },
+    "s09b-composition-mobile/check-composition-android/final": {
+      "checkId": "check-composition-android",
+      "boundaryId": "s09b-composition-mobile",
+      "phase": "final",
+      "batchId": "2df3fe46bd3fb1d921cb49e67869ddbd7b8f131e547ddaa1c29dbdff4f415d8c",
+      "definitionHash": "f6b803e7065124455305fcabfe410b27c06699089217e91c7a8a70ef2fb34552",
+      "basisHash": "9a6b3d5bdd4d0d49ac215e6bee452e13384fa3639e9c565ffdcd8730a5ec8351",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 18.8494,
+      "recordedAt": "2026-10-10T13:23:26Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s09b-composition-mobile-final-a933be3860f1.log",
+      "logSha256": "99eb2e984ee0ca661859f75e76427c1826c35caa1ce63d715651e160545a48b5",
+      "inputsHash": "b7a3831406e8889f07dfd702c581458c976cb97f62161831bccec8f26f3f229d"
+    },
+    "s09b-composition-mobile/check-platform-views-e/final": {
+      "checkId": "check-platform-views-e",
+      "boundaryId": "s09b-composition-mobile",
+      "phase": "final",
+      "batchId": "2df3fe46bd3fb1d921cb49e67869ddbd7b8f131e547ddaa1c29dbdff4f415d8c",
+      "definitionHash": "194a0e8ead0b4a5b23b120f97792953d4d4098e29b97d17c903bda924b85f780",
+      "basisHash": "574f745def099fe7b4280d4abd9aa54265cf90f39ceb35a6e0353487bc99df6c",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 10.8016,
+      "recordedAt": "2026-10-10T13:23:37Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s09b-composition-mobile-final-f8ac778ff36c.log",
+      "logSha256": "2264d686fd76c8c845d0b885a7c34235bce1d953a5cd1aa46f8793033cedd5f6",
+      "inputsHash": "b7a3831406e8889f07dfd702c581458c976cb97f62161831bccec8f26f3f229d"
+    },
+    "s09b-composition-mobile/check-platform-views-f/final": {
+      "checkId": "check-platform-views-f",
+      "boundaryId": "s09b-composition-mobile",
+      "phase": "final",
+      "batchId": "2df3fe46bd3fb1d921cb49e67869ddbd7b8f131e547ddaa1c29dbdff4f415d8c",
+      "definitionHash": "626d58c9330458a84ebd721af479846da5eae3ca8b52b7c5e4ab66a281ebd5fc",
+      "basisHash": "104657a097998333a11ee5dc25c1e0b99a32a20059241583d088d22dbe226955",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 6.3976,
+      "recordedAt": "2026-10-10T13:23:43Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s09b-composition-mobile-final-c13e9da8fc01.log",
+      "logSha256": "1e65927842a057ea7a90ebe277569e17d2ef9b6950d5d2097fac374f87a8fa0a",
+      "inputsHash": "b7a3831406e8889f07dfd702c581458c976cb97f62161831bccec8f26f3f229d"
+    },
+    "s09b-composition-mobile/check-android-embedded-build/final": {
+      "checkId": "check-android-embedded-build",
+      "boundaryId": "s09b-composition-mobile",
+      "phase": "final",
+      "batchId": "2df3fe46bd3fb1d921cb49e67869ddbd7b8f131e547ddaa1c29dbdff4f415d8c",
+      "definitionHash": "25365fb6c3aa081693189cef87a1d0db497cfe2c86e2cdf6651908f74aec28b4",
+      "basisHash": "d093e9727c1c1541570996afc6c0fab9c7158fc380364c797f38ec39e6bba9ed",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 26.98,
+      "recordedAt": "2026-10-10T13:24:10Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s09b-composition-mobile-final-eb56b8194f5d.log",
+      "logSha256": "851821f8312cf8ac491fd6b68649c33079d845705a2465f5828a51b996b4c978",
+      "inputsHash": "78e3edde3b9ed054d9879b3f1bfbac470af84ed9c52580704e32228ed3ab04ef"
     }
   },
   "reviews": {
@@ -2876,6 +2996,332 @@
         "s09-browser-transparent-alpha-global"
       ],
       "recordedAt": "2026-10-10T12:47:16Z"
+    },
+    "s09b-composition-mobile": {
+      "reviewerId": "claude-reviewer-s09b3-7f3c91a2",
+      "snapshotId": "2df3fe46bd3fb1d921cb49e67869ddbd7b8f131e547ddaa1c29dbdff4f415d8c",
+      "criterionIds": [
+        "CMP-10",
+        "CMP-11",
+        "CMP-12"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/ios/fast/composition.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-10"
+          ],
+          "sha256": "34eb18477dade8c95071fb717010b200b5e3e18c85e5c8c480bb797f8e485f9d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/ios/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-10"
+          ],
+          "sha256": "fca30ac30d26bc43599a7a0417a2719595a349fc30466fef3d52443feef6963a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/fast/composition.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-10",
+            "CMP-11"
+          ],
+          "sha256": "0907705a80f705eaa29e9705f8614a08dfaf9da0bbf848f7ebeedd3ae2cd8c7f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/ios_host/composition.rs",
+          "kind": "test",
+          "criterionIds": [
+            "CMP-10"
+          ],
+          "sha256": "5382822d1db7d73b76ef385d574bf7d7f81390c9cc53405b5eae275d89a356e1"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s09b-composition-mobile-final-6b2d6c85c258.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "CMP-10"
+          ],
+          "sha256": "7159e945462f5c00fb5d8c4474d06e9b3a90fa41906107bcfcd6f12831c2a23d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/fast/composition.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-11"
+          ],
+          "sha256": "e9722f276447a84b4da238c9f437bdcf4c426d87eea5bbf41b3fee51f146f449"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/java/dev/gpux/mobile/Composition.java",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-11"
+          ],
+          "sha256": "a700c0d0883769908550e9fcf803a151a529c0ef11593cc3577e640d220e10a6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-11"
+          ],
+          "sha256": "8ee272d2160676f60e6ef3e9500840f780bba2e245875d164fe91134892cda39"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/jni.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-11",
+            "CMP-12"
+          ],
+          "sha256": "261aaa9724deb201563abd59950aa793e8892efb0ab3358b67de1e7d7c2ff403"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/embedded.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-11"
+          ],
+          "sha256": "37212a39ce982c9606210169251b26b6c50cd757a574b3d90ce841dcd58dbe43"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/android.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-11"
+          ],
+          "sha256": "d280521373e877eba1598f5264190b935629e796302ecd91b52ab070c31300a6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/android/AndroidManifest.xml",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-11"
+          ],
+          "sha256": "b2afc149b112be3e0453ae382ed65b0dbfa7646016860c889f4468c109e3adfd"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/tests/android_java.rs",
+          "kind": "test",
+          "criterionIds": [
+            "CMP-11"
+          ],
+          "sha256": "a812eaef43d99e4922f226c3bb6bbf00217ca622c0762e70cd1937917d029d6e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/android_host/composition.rs",
+          "kind": "test",
+          "criterionIds": [
+            "CMP-11"
+          ],
+          "sha256": "87a234b3806fa6af6042de31dfc74423ca61c89be13614ea72b51d0f9b1aea5d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s09b-composition-mobile-final-7d46a3da35c8.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "CMP-11"
+          ],
+          "sha256": "7f6a75a1ef3d8ee46c6acfc8b384a469c5b4dcccd0d8b8bbe2a855c5a8ad45c8"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s09b-composition-mobile-final-a933be3860f1.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "CMP-11"
+          ],
+          "sha256": "99eb2e984ee0ca661859f75e76427c1826c35caa1ce63d715651e160545a48b5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/lane-e-composition-vk.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "CMP-11"
+          ],
+          "sha256": "ba20415913bdbf9679502ae9088d8a82a375a0a92f743499b69920de5c726e1f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/components/platform_view_element.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-12"
+          ],
+          "sha256": "f60fac2517801d65185718ea1220ba5bf0c2e0e690534cbbe8db5855a0246917"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/platform_view.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-12"
+          ],
+          "sha256": "318a6fafa04682466a77b161f75f017c87d0ca5ee8bb89532c1f030bab07ef61"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/ios/platform_view.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-12"
+          ],
+          "sha256": "9d6b04d6696c6878b44f6a79d5c5bd32772c9939b0396d44907bdd9f130f865e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/platform_view.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-12"
+          ],
+          "sha256": "a8366420aa6d5dc9fe6543e701da7bb776778988132292a63b134906522d034d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/java/dev/gpux/mobile/PlatformViews.java",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-12"
+          ],
+          "sha256": "be7f59b15f5ed0e71f473831859e9725256b1fdc89eb5be20d71514abdf30c75"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/ios_host/platform_views.rs",
+          "kind": "test",
+          "criterionIds": [
+            "CMP-12"
+          ],
+          "sha256": "49749b86e6ae7197299ca6ac5aad3a2361537d242bbafb8a2a8679e8782e89d5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/android_host/platform_views.rs",
+          "kind": "test",
+          "criterionIds": [
+            "CMP-12"
+          ],
+          "sha256": "888e77a2601ec67c04c930b92a6f8c9dd49c437c51b1b07765e5456f8d793319"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s09b-composition-mobile-final-c13e9da8fc01.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "CMP-12"
+          ],
+          "sha256": "1e65927842a057ea7a90ebe277569e17d2ef9b6950d5d2097fac374f87a8fa0a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s09b-composition-mobile-final-f8ac778ff36c.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "CMP-12"
+          ],
+          "sha256": "2264d686fd76c8c845d0b885a7c34235bce1d953a5cd1aa46f8793033cedd5f6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-10",
+            "CMP-11",
+            "CMP-12"
+          ],
+          "sha256": "a36128d64c496077774329c4a93cbbc36dd35f8a01bbb4d6aec814d79acee1b1"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/upstream/gpui-fast.md",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-11"
+          ],
+          "sha256": "cbac56cfbeb09128cc4afc18cc1e2ba52b8b0b3f7b7d574c04d823150795efe0"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s09b-composition-mobile-final-eb56b8194f5d.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "CMP-11"
+          ],
+          "sha256": "851821f8312cf8ac491fd6b68649c33079d845705a2465f5828a51b996b4c978"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/lane-e-full.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "CMP-11",
+            "CMP-12"
+          ],
+          "sha256": "e2658681c1390ef14dc5cdfa866d136d993137464b42b63c4138bd4d4cff6c7a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/dispatcher.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-11"
+          ],
+          "sha256": "3d7b722790cbe9e23d534b25a6adf232c18cdd73912af988a3a912d2d81cf26c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/lane-e.yml",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-11"
+          ],
+          "sha256": "42b61f81da67a199d80db02769e8a2426dfe5c1cb7f6f62fc3496f38d23fcd13"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/testing.md",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-11",
+            "CMP-12"
+          ],
+          "sha256": "ecd0e09ab0fee4d9951d779c31d5dd2ae75c104eeb6f40e20224a4976e421a43"
+        }
+      ],
+      "summaryMarkdown": "**Verdict: passed.** Re-review of `s09b-composition-mobile` at `e5b3eb5`, snapshot `2df3fe46...` (revision 127). All seven findings of the failed review at revision 121 are resolved.\n\n**Evidence.** Reused: the final check at revision 127 (6 checks). Lane F: `composition-ios` 3 passed, `platform-view-ios` passed. Lane E: `composition-android` 3 passed with the shadow skipped on GL, `platform-view` 2 passed. `android_java` 3 tests, and the embedded build check. A full local lane E run after the cherry-pick: 34 passed, 2 skipped. I read the repair diff and re-ran the default-feature Android and iOS Simulator type-checks myself; both pass. The red runs for findings 4 and 5 are the coordinator's report; I did not rerun them.\n\n**Still not run on a device.** The embedded Android host (now documented as such), and the Vulkan overlay window beyond the earlier one-off run.\n\n**Notes, not findings.**\n- `PlatformViewHandle::dispose` calls `forget` before the view sets its disposed flag. A view disposed from another thread in the instant it is first placed could miss both the channel and the `is_disposed` re-check in `remove_when_disposed`, and keep its surface. Disposing the view before `remove_view` would close that window.\n- `PANEL_HOLDS_FOCUS` is only read by the NativeActivity loop. In an embedded host the host app decides whether a panel taking the focus makes GPUI inactive.\n- `ae28efc` (timer thread for delayed tasks) is outside the sprint; I skimmed it and saw nothing that affects composition. `e5b3eb5` only makes the lane B spec wait for the shield and fixes a path comparison in a test.\n- The uncommitted `.agentx` changes are outside this review.",
+      "findingIds": [
+        "s09b-android-build-needs-native-activity",
+        "s09b-android-embedded-host-origin",
+        "s09b-android-forwarded-touch-history",
+        "s09b-android-order-remounts-all-panels",
+        "s09b-platform-view-surface-not-swept",
+        "s09b-managed-platform-view-unsizable",
+        "s09b-android-native-views-no-keyboard"
+      ],
+      "recordedAt": "2026-10-10T13:27:15Z"
     }
   },
   "checkpoints": {
@@ -3632,6 +4078,174 @@
           "repositoryId": "gpux",
           "path": "tools-node/specs/composition.spec.ts",
           "symbol": "a popover draws over a DOM element on WebGPU"
+        }
+      ]
+    },
+    {
+      "id": "s09b-android-build-needs-native-activity",
+      "boundaryId": "s09b-composition-mobile",
+      "criterionIds": [
+        "CMP-11"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved (1a61e91).** `dispatcher()` (`crates/gpui_mobile/src/android/fast/composition.rs:338`) calls `android_jni::platform()` only under `android-native-activity` and otherwise uses the embedded host's platform.\n\n`cargo check -p gpux-mobile --target aarch64-linux-android` passes at `e5b3eb5`; I ran it again myself. It is now the sprint check `check-android-embedded-build`, and the lane E workflow type-checks the default feature set before building the host.\n\n*Original finding:* the default Android build failed with E0425 because the call was not gated.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/fast/composition.rs",
+          "symbol": "dispatcher"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/lane-e.yml"
+        }
+      ]
+    },
+    {
+      "id": "s09b-android-embedded-host-origin",
+      "boundaryId": "s09b-composition-mobile",
+      "criterionIds": [
+        "CMP-11"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved (1a61e91, fa4ac25), by code and documentation; still not run on a device.**\n\n- `Composition.setHostView(View)` names the view GPUI draws into. Containers keep their bounds in GPUI coordinates and `place` adds the host's position in the window.\n- Holes and forwarded touches use the container's GPUI bounds, so they no longer depend on the window position.\n- The overlay window is sized and placed over the host view, and a layout listener on the host re-places panels and overlay.\n- With no host view named, the origin is the window's, which is the NativeActivity case the lane runs.\n- `docs/upstream/gpui-fast.md` and `docs/testing.md` now say that only the NativeActivity host has a lane and that no device run covers the embedded host.\n\n*Original finding:* panels were placed in activity-window coordinates with no way to learn the embedded surface's origin.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/java/dev/gpux/mobile/Composition.java",
+          "symbol": "setHostView"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/java/dev/gpux/mobile/Composition.java",
+          "symbol": "place"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/upstream/gpui-fast.md"
+        }
+      ]
+    },
+    {
+      "id": "s09b-android-forwarded-touch-history",
+      "boundaryId": "s09b-composition-mobile",
+      "criterionIds": [
+        "CMP-11"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved (1a61e91).** `forwardTouches` (`Composition.java:489`) sends a move's historical samples first, each with `getHistoricalEventTime`, then the current sample with `getEventTime`. `native_touch` takes the time and `touch_instant` (`android/fast/composition.rs:269`) converts it from the `uptimeMillis` timeline by its age.\n\nProof: `composition-android-pan` passes at revision 127 (a swipe on the menu over the native view scrolled it 37 px, with no taps). It runs the cut-out path on GL, which shares `forwardTouches` with the overlay window. The swipe is slow, so the check proves a whole gesture arrives on this path, not the history replay by itself; that part I confirmed by reading.\n\n*Original finding:* forwarded touches dropped batched history and were stamped with the JNI call time.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/java/dev/gpux/mobile/Composition.java",
+          "symbol": "forwardTouches"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/fast/composition.rs",
+          "symbol": "touch_instant"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/android_host/composition.rs",
+          "symbol": "pan"
+        }
+      ]
+    },
+    {
+      "id": "s09b-android-order-remounts-all-panels",
+      "boundaryId": "s09b-composition-mobile",
+      "criterionIds": [
+        "CMP-11"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved (1a61e91).** `setOrder` (`Composition.java:352`) keeps the panels up to the first position where the mounted and requested orders differ, removes the rest from the top down and mounts the new tail.\n\nProof: `platform-view-android` adds and disposes a second view and compares the first panel's window through `WindowInspector.getGlobalWindowViews`; it passes at revision 127. You report it red with `kept = 0` forced.\n\n*Original finding:* any change to the order removed and re-added every panel window.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/java/dev/gpux/mobile/Composition.java",
+          "symbol": "setOrder"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/android_host/platform_views.rs"
+        }
+      ]
+    },
+    {
+      "id": "s09b-platform-view-surface-not-swept",
+      "boundaryId": "s09b-composition-mobile",
+      "criterionIds": [
+        "CMP-12"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved (1a61e91).**\n\n- `remove_when_disposed` (`platform_view_element.rs:76`) spawns one foreground task per placed (window, view). `forget` fires its channel, and the task removes the entry and calls `remove_surface` in the window the surface belongs to. It no longer depends on another element's layout, and each window removes its own surface.\n- `prepaint` returns early for a disposed handle (line 245), so a view is not re-attached.\n- Android asserts the panel window count reaches 0 after dispose; iOS asserts the container left the Metal view. Both pass at revision 127. You report the Android check red with the removal disabled.\n\n*Original finding:* the surface was swept only from a later platform view element's layout, another window's entry was dropped without removal, and no check reached `remove_surface`.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/components/platform_view_element.rs",
+          "symbol": "remove_when_disposed"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/android_host/platform_views.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/ios_host/platform_views.rs"
+        }
+      ]
+    },
+    {
+      "id": "s09b-managed-platform-view-unsizable",
+      "boundaryId": "s09b-composition-mobile",
+      "criterionIds": [
+        "CMP-12"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved (1a61e91).** `platform_view_element` (`platform_view_element.rs:159`) and `ManagedPlatformView::render` (line 354) return `gpui::Div` again. The placing element is private and fills the `Div`, so the caller sizes it as before. The lane scenes size that `Div` and pass.\n\n*Original finding:* `render` returned an unstyleable `AnyElement` with no size, and `platform_view_element` changed its public return type.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/components/platform_view_element.rs",
+          "symbol": "platform_view_element"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/components/platform_view_element.rs",
+          "symbol": "ManagedPlatformView::render"
+        }
+      ]
+    },
+    {
+      "id": "s09b-android-native-views-no-keyboard",
+      "boundaryId": "s09b-composition-mobile",
+      "criterionIds": [
+        "CMP-12"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved (1a61e91, fa4ac25).**\n\n- A container whose views take text (a `WebView`, or `onCheckIsTextEditor`) clears `FLAG_NOT_FOCUSABLE` when touched and watches outside touches (`Composition.java:212`).\n- It gives the focus back on a touch outside, the back key, being hidden, leaving the order, or release.\n- `nativePanelFocus` sets the flag before the focus moves, and `android/jni.rs:993` does not treat that `LostFocus` as a pause.\n- `docs/fast-mode.md` describes the behaviour.\n\nProof: `platform-view-android-text` passes at revision 127: touching the web view moves the window focus to its panel while the GPUI window stays active, and a touch beside it returns the focus and reaches GPUI.\n\n*Original finding:* panels were never focusable, so native text fields got no soft keyboard, and the docs did not say so.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/java/dev/gpux/mobile/Composition.java",
+          "symbol": "focus"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/fast/composition.rs",
+          "symbol": "panel_holds_focus"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/android_host/platform_views.rs"
         }
       ]
     }

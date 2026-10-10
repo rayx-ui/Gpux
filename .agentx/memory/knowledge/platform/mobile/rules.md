@@ -29,3 +29,10 @@ agentx:
 - Build lane E with the pinned NDK only: an `ANDROID_NDK_HOME` override must be the pinned directory or declare its base revision (the pinned 28.0.12674087 is r28-beta2, `Pkg.Revision = 28.0.12674087-beta2`); CI runner images point the variable at other NDKs.
 - Replay a motion event's batched history samples as moves at their own times before its current sample; fast gestures otherwise reach the recognizer as a press and a release.
 - Never keep per-activity Android state in a set-once static: a restarted `android_main` in the same process must replace it.
+- Keep Android composition panel windows `FLAG_NOT_FOCUSABLE` except while a text-taking view in one was touched; announce that focus move to Rust first (`nativePanelFocus`), since the activity's `LostFocus` otherwise pauses GPUI.
+- Build `gpux-mobile` for Android with and without `android-native-activity` after touching `android/`: the embedded host is the default feature set and no lane builds it.
+- Prove that a native window or view is gone by listing windows or the view tree, not by a tap or a pixel: a hidden panel passes both.
+- Never present a GPUI overlay through a GLES surface over native views: wgpu's GLES surfaces are opaque; use cut-out mode there and the overlay window only under Vulkan.
+- Place a platform view through `platform_view_element` (a composition native surface), never by adding it to the activity's or view controller's hierarchy; the element clips it to its content mask.
+- Do not route NativeActivity touches by platform-view bounds: a view's panel window takes its own touches, and GPUI gets the ones on its content.
+- Ship Android Java that gpux calls through JNI in `crates/gpui_mobile/java` under `dev.gpux.mobile`; consumers compile those sources and keep the package from R8.

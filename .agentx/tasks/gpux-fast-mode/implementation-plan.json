@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 14,
+  "revision": 16,
   "title": "gpux fast mode: retained layout and views, splice, scroll layers and window composition from gpui-fast",
   "validationMode": "sprint",
   "repositories": [
@@ -1599,7 +1599,7 @@
       "criterionIds": [
         "CMP-11"
       ],
-      "descriptionMarkdown": "New lane E scenes `composition-android-*`: order, tap pass-through and overlay capture, and menu shadow pixels over a native `View`, read through `adb screencap` with the 16-bit tolerance. Runs with an emulator or device attached.",
+      "descriptionMarkdown": "New lane E scenes `composition-android-*`: order, tap pass-through and overlay capture, a pan on overlay content over the native view, and menu shadow pixels over a native `View`, read through `adb screencap` with the 16-bit tolerance. Runs with an emulator or device attached. The shadow scene skips on GL, where the overlay is cut out of native views (CMP-11).",
       "argv": [
         "cargo",
         "run",
@@ -1633,7 +1633,7 @@
       "criterionIds": [
         "CMP-12"
       ],
-      "descriptionMarkdown": "New lane E scenes `platform-view-*`: a generic platform view between GPUI content and an open menu, with taps on each.",
+      "descriptionMarkdown": "New lane E scenes `platform-view-*`: a generic platform view between GPUI content and an open menu, clipped by its parent, its panel window untouched by a second view and gone once disposed; and a web view whose panel takes and returns the window focus.",
       "argv": [
         "cargo",
         "run",
@@ -1647,7 +1647,7 @@
       ],
       "expected": {
         "exitCode": 0,
-        "minimumTests": 1,
+        "minimumTests": 2,
         "testCountPattern": "gpux-testkit: (\\d+) passed"
       },
       "reuse": false,
@@ -2155,6 +2155,33 @@
         "crates/scheduler/**",
         "crates/gpui_util/**",
         "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-android-embedded-build",
+      "repositoryId": "gpux",
+      "kind": "build",
+      "criterionIds": [
+        "CMP-11"
+      ],
+      "descriptionMarkdown": "`gpux-mobile` type-checks for Android with its default feature set, the embedded host: composition must not depend on items the `android-native-activity` feature gates.",
+      "argv": [
+        "cargo",
+        "check",
+        "-p",
+        "gpux-mobile",
+        "--target",
+        "aarch64-linux-android"
+      ],
+      "expected": {
+        "exitCode": 0
+      },
+      "inputs": [
+        "crates/gpui_mobile/**",
+        "crates/gpui/**",
+        "crates/gpui_wgpu/**",
         "Cargo.toml",
         "Cargo.lock"
       ]
@@ -3276,7 +3303,8 @@
           "dependsOn": [],
           "checkIds": [
             "check-android-java-build",
-            "check-composition-android"
+            "check-composition-android",
+            "check-android-embedded-build"
           ],
           "sourceRefs": [
             {

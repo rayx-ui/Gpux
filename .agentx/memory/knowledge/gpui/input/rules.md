@@ -24,3 +24,4 @@ agentx:
 - For drags that continue across nested controls, poll `Window::mouse_position()` and `Window::pressed_mouse_button()` during paint.
 - Schedule browser animation-frame continuation from paint/render context; event callbacks update state and call `Window::refresh()`.
 - Retain `KeymapSnapshot` with `Rc` and keep it UI-thread state; do not switch it to `Arc` unless every contained action becomes `Send + Sync`.
+- Give a composition surface above native content the pointer only within its input region (`ComposedScene::layer_input_region`), and hand what it takes to GPUI as the platform's ordinary input (raw touches on mobile); a crossing between a window's own surfaces is a move, not a window exit.
