@@ -20,10 +20,11 @@
 //! ```
 
 use gpux::{
-    AnyWindowHandle, BoxShadow, Context, Entity, FastMode, FastStats, IntoElement, Modifiers,
-    ParentElement, PathBuilder, Render, ScrollDelta, ScrollWheelEvent, SharedString, Styled,
-    TestAppContext, TestDispatcher, TestWindowOptions, TouchPhase, VisualTestContext, Window,
-    canvas, div, linear_color_stop, linear_gradient, point, prelude::*, px, rgb, rgba, size,
+    AnyWindowHandle, BoxShadow, Context, Entity, FastMode, FastStats, IntoElement, ListAlignment,
+    ListState, Modifiers, ParentElement, PathBuilder, Render, ScrollDelta, ScrollWheelEvent,
+    SharedString, Styled, TestAppContext, TestDispatcher, TestWindowOptions, TouchPhase,
+    VisualTestContext, Window, canvas, div, linear_color_stop, linear_gradient, list, point,
+    prelude::*, px, rgb, rgba, size, uniform_list,
 };
 use gpux_conformance::test_host::lane_c_renderer;
 use image::RgbaImage;
@@ -49,6 +50,10 @@ enum Content {
     Paths,
     /// Rows wider than the viewport: the container scrolls on both axes.
     Wide,
+    /// The text rows in a `uniform_list`, whose layer holds them row by row.
+    UniformList,
+    /// Text rows of three heights in a `list`.
+    List,
 }
 
 /// A panel around a scroll container over an opaque background, which a layer's tiles bake.
@@ -56,14 +61,45 @@ struct Page {
     content: Content,
     /// Changes what a few rows show, for the tests that change content while it is scrolled.
     tick: usize,
+    /// The state of the `list`, when the content is one.
+    list: ListState,
+}
+
+/// How many rows the content has.
+fn row_count(content: Content) -> usize {
+    match content {
+        Content::Cards | Content::TightCards | Content::HeavyShadows => 40,
+        _ => 120,
+    }
 }
 
 impl Page {
     fn row(&self, index: usize) -> gpux::AnyElement {
+        row(self.content, self.tick, index)
+    }
+}
+
+/// Row `index` of `content` after `tick` changes.
+fn row(content: Content, tick: usize, index: usize) -> gpux::AnyElement {
+    let page = RowOf { content, tick };
+    page.row(index)
+}
+
+/// What a row is drawn from.
+struct RowOf {
+    content: Content,
+    tick: usize,
+}
+
+impl RowOf {
+    fn row(&self, index: usize) -> gpux::AnyElement {
         let marked = self.tick > 0 && index % 7 == self.tick % 7;
         match self.content {
-            Content::Text | Content::Wide => div()
-                .h(px(27.))
+            Content::Text | Content::Wide | Content::UniformList | Content::List => div()
+                .h(px(match self.content {
+                    Content::List => 27. + (index % 3) as f32 * 9.,
+                    _ => 27.,
+                }))
                 .when(matches!(self.content, Content::Wide), |row| {
                     row.w(px(900.)).flex_none()
                 })
@@ -180,12 +216,38 @@ impl Page {
 }
 
 impl Render for Page {
-    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-        let rows = match self.content {
-            Content::Cards | Content::TightCards | Content::HeavyShadows => 40,
-            _ => 120,
-        };
-        div().size_full().bg(rgb(0x1e2430)).p(px(PADDING)).child(
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let rows = row_count(self.content);
+        let panel = div().size_full().bg(rgb(0x1e2430)).p(px(PADDING));
+        let (content, tick) = (self.content, self.tick);
+        match content {
+            Content::UniformList => {
+                return panel.child(
+                    uniform_list(
+                        "scroll",
+                        rows,
+                        cx.processor(move |_, range: std::ops::Range<usize>, _, _| {
+                            range
+                                .map(|index| row(content, tick, index))
+                                .collect::<Vec<_>>()
+                        }),
+                    )
+                    .size_full()
+                    .bg(rgb(0xf4f1ea)),
+                );
+            }
+            Content::List => {
+                return panel.child(
+                    list(self.list.clone(), move |index, _, _| {
+                        row(content, tick, index)
+                    })
+                    .size_full()
+                    .bg(rgb(0xf4f1ea)),
+                );
+            }
+            _ => {}
+        }
+        panel.child(
             div()
                 .id("scroll")
                 .size_full()
@@ -228,7 +290,11 @@ impl Run {
     fn open(cx: &mut TestAppContext, content: Content, scale: f32, layered: bool) -> Run {
         let handle = cx.add_window_with_options(
             TestWindowOptions::new(size(px(WINDOW.0), px(WINDOW.1))).scale_factor(scale),
-            move |_, _| Page { content, tick: 0 },
+            move |_, _| Page {
+                content,
+                tick: 0,
+                list: ListState::new(row_count(content), ListAlignment::Top, px(0.)),
+            },
         );
         let page = handle.root(cx).expect("the window's page");
         let window: AnyWindowHandle = handle.into();
@@ -306,7 +372,11 @@ impl Content {
             Content::Cards => 3. * 6. + 4.,
             Content::TightCards => 3. * 15. + 10.,
             Content::HeavyShadows => 3. * 16.,
-            Content::Text | Content::Paths | Content::Wide => 0.,
+            Content::Text
+            | Content::Paths
+            | Content::Wide
+            | Content::UniformList
+            | Content::List => 0.,
         }
     }
 
@@ -527,6 +597,30 @@ fn a_change_while_scrolled_shows_and_scrolling_goes_on_from_tiles() {
     script.insert(6, Step::Tick);
     script.extend([-20., -20., -20., -20., -20., -20.].map(|dy| Step::Wheel(0., dy)));
     for content in [Content::Text, Content::Cards] {
+        let totals = compare(content, 1., &script);
+        assert_composited(&totals, 10);
+    }
+}
+
+/// A `uniform_list` and a `list` keep their rows in their layer one by one, and extend it by
+/// the rows a scroll uncovers: every frame shows what the lists draw without a layer.
+#[test]
+fn list_rows_scroll_from_tiles() {
+    for content in [Content::UniformList, Content::List] {
+        for scale in [1., 1.5] {
+            let totals = compare(content, scale, &scrolls());
+            assert_composited(&totals, 8);
+        }
+    }
+}
+
+/// Rows that change while a list is scrolled show, and the list scrolls on from its tiles.
+#[test]
+fn a_change_while_a_list_is_scrolled_shows_and_scrolling_goes_on_from_tiles() {
+    let mut script = scrolls();
+    script.insert(6, Step::Tick);
+    script.extend([-20., -20., -20., -20., -20., -20.].map(|dy| Step::Wheel(0., dy)));
+    for content in [Content::UniformList, Content::List] {
         let totals = compare(content, 1., &script);
         assert_composited(&totals, 10);
     }
