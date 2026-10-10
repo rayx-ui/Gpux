@@ -2399,11 +2399,12 @@ mod rows {
                 "uniform {uniform}: kept rows in {extended}"
             );
             assert_eq!(demoted, 0, "uniform {uniform}");
-            // The pointer, near the top of the list, crosses into another row
-            // every eight frames: the row it leaves and the row it enters are
-            // rendered again, and so is a row showing again after it left.
+            // The row under the pointer, near the top of the list, is
+            // rendered on every frame; the pointer crosses into another row
+            // every eight frames, and the row it leaves is rendered again
+            // too, and so is a row showing again after it left.
             assert!(
-                (50..=90).contains(&for_hover),
+                (240..=330).contains(&for_hover),
                 "uniform {uniform}: {for_hover} rows rendered again for their hover"
             );
         }
@@ -2496,8 +2497,9 @@ mod rows {
     }
 
     /// Rows move under a still pointer: a frame renders the rows new to the
-    /// layer and, when the pointer crosses into another row, the row it left
-    /// and the row it entered, whose hover styles change, and no other.
+    /// layer, the row under the pointer, whose hover whatever else the frame
+    /// draws can take, and, when the pointer crosses into another row, the
+    /// row it left; and no other.
     #[crate::test]
     fn a_hover_change_renders_only_the_rows_it_touches(cx: &mut TestAppContext) {
         if !crate::fast::layers::COMPILED {
@@ -2542,12 +2544,10 @@ mod rows {
                 .flatten()
                 .collect();
             let again: BTreeSet<usize> = rows.intersection(&held).copied().collect();
-            let expected: BTreeSet<usize> = if hovered(offset) == before {
-                BTreeSet::new()
-            } else {
+            if hovered(offset) != before {
                 crossings += 1;
-                [before, hovered(offset)].into()
-            };
+            }
+            let expected: BTreeSet<usize> = [before, hovered(offset)].into();
             assert_eq!(again, expected, "frame {frame}: rows rendered again");
             assert!(rows.len() <= 3, "frame {frame}: {rows:?}");
             held = now;
@@ -2935,12 +2935,31 @@ mod gpux {
         assert_eq!(demoted, 0);
     }
 
-    /// A view beside a list, in a view of its own.
-    struct Beside;
+    /// A view beside a list, in a view of its own; with `overlay`, it lays
+    /// a sheet over the list above it that takes the pointer from its rows.
+    struct Beside {
+        overlay: bool,
+    }
 
     impl Render for Beside {
         fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-            div().w(px(20.)).h(px(20.)).bg(rgb(0x808080))
+            use crate::{InteractiveElement as _, prelude::FluentBuilder as _};
+            div()
+                .w(px(20.))
+                .h(px(20.))
+                .bg(rgb(0x808080))
+                .when(self.overlay, |beside| {
+                    beside.child(
+                        div()
+                            .absolute()
+                            .left(px(0.))
+                            .top(px(-VIEWPORT_HEIGHT))
+                            .w(px(VIEWPORT_WIDTH))
+                            .h(px(VIEWPORT_HEIGHT))
+                            .bg(crate::rgba(0x00000020))
+                            .occlude(),
+                    )
+                })
         }
     }
 
@@ -2985,7 +3004,7 @@ mod gpux {
         }
         let tint = Rc::new(std::cell::Cell::new(0));
         let state = ListState::new(1000, ListAlignment::Top, px(0.)).measure_all();
-        let beside = cx.new(|_| Beside);
+        let beside = cx.new(|_| Beside { overlay: false });
         let mut open = |cx: &mut TestAppContext| -> AnyWindowHandle {
             let (state, tint, beside) = (state.clone(), tint.clone(), beside.clone());
             let window: AnyWindowHandle = add_window(cx, move |_, _| SplicedPage {
@@ -3053,11 +3072,97 @@ mod gpux {
         List,
     }
 
+    /// How the rows of a [`ToldPage`] are held and what they do besides.
+    #[derive(Clone, Copy, Debug, Default)]
+    struct Shape {
+        /// The list has 8 px of padding above and below its rows, where it
+        /// shows none.
+        padded: bool,
+        /// A `list` is told of its rows' focus handles
+        /// ([`ListState::splice_focusable`]): it draws the row holding the
+        /// focus off screen, after the rows it shows.
+        focusable: bool,
+        /// Each row handles text input while it holds the focus.
+        input: bool,
+    }
+
+    /// Handles text input by doing nothing with it.
+    struct NoInput;
+
+    impl crate::InputHandler for NoInput {
+        fn selected_text_range(
+            &mut self,
+            _: bool,
+            _: &mut Window,
+            _: &mut crate::App,
+        ) -> Option<crate::UTF16Selection> {
+            None
+        }
+
+        fn marked_text_range(
+            &mut self,
+            _: &mut Window,
+            _: &mut crate::App,
+        ) -> Option<Range<usize>> {
+            None
+        }
+
+        fn text_for_range(
+            &mut self,
+            _: Range<usize>,
+            _: &mut Option<Range<usize>>,
+            _: &mut Window,
+            _: &mut crate::App,
+        ) -> Option<String> {
+            None
+        }
+
+        fn replace_text_in_range(
+            &mut self,
+            _: Option<Range<usize>>,
+            _: &str,
+            _: &mut Window,
+            _: &mut crate::App,
+        ) {
+        }
+
+        fn replace_and_mark_text_in_range(
+            &mut self,
+            _: Option<Range<usize>>,
+            _: &str,
+            _: Option<Range<usize>>,
+            _: &mut Window,
+            _: &mut crate::App,
+        ) {
+        }
+
+        fn unmark_text(&mut self, _: &mut Window, _: &mut crate::App) {}
+
+        fn bounds_for_range(
+            &mut self,
+            _: Range<usize>,
+            _: &mut Window,
+            _: &mut crate::App,
+        ) -> Option<crate::Bounds<crate::Pixels>> {
+            None
+        }
+
+        fn character_index_for_point(
+            &mut self,
+            _: crate::Point<crate::Pixels>,
+            _: &mut Window,
+            _: &mut crate::App,
+        ) -> Option<usize> {
+            None
+        }
+    }
+
     /// A panel of 300 rows 20 px tall in a scrolling `div`, a uniform list or
     /// a list. Each row is a tab stop named for tests and for what a frame
     /// tells of its elements, and logs a mouse going down outside it.
     struct ToldPage {
         kind: Told,
+        shape: Shape,
         state: ListState,
         handles: Vec<crate::FocusHandle>,
         outside: Rc<RefCell<Vec<usize>>>,
@@ -3067,6 +3172,7 @@ mod gpux {
         fn row(
             ix: usize,
             hover: bool,
+            input: bool,
             handle: &crate::FocusHandle,
             outside: &Rc<RefCell<Vec<usize>>>,
         ) -> crate::AnyElement {
@@ -3074,6 +3180,7 @@ mod gpux {
                 InspectableElementExt as _, InteractiveElement as _, prelude::FluentBuilder as _,
             };
             let outside = outside.clone();
+            let focus = handle.clone();
             div()
                 .id(("row", ix))
                 .w(px(VIEWPORT_WIDTH))
@@ -3095,6 +3202,15 @@ mod gpux {
                         .role("listitem")
                         .name(format!("Row {ix}")),
                 )
+                .when(input, |row| {
+                    row.child(
+                        crate::canvas(
+                            |_, _, _| (),
+                            move |_, _, window, cx| window.handle_input(&focus, NoInput, cx),
+                        )
+                        .size_full(),
+                    )
+                })
                 .into_any_element()
         }
     }
@@ -3105,6 +3221,8 @@ mod gpux {
             let (handles, outside) = (self.handles.clone(), self.outside.clone());
             let page = div().size_full().bg(rgb(0xffffff));
             let hover = !matches!(self.kind, Told::Div);
+            let Shape { padded, input, .. } = self.shape;
+            let padding = px(if padded { 8. } else { 0. });
             match self.kind {
                 Told::Div => page.child(
                     div()
@@ -3114,7 +3232,7 @@ mod gpux {
                         .overflow_y_scroll()
                         .children(
                             (0..handles.len())
-                                .map(|ix| Self::row(ix, hover, &handles[ix], &outside)),
+                                .map(|ix| Self::row(ix, hover, input, &handles[ix], &outside)),
                         ),
                 ),
                 Told::UniformList => page.child(
@@ -3123,19 +3241,21 @@ mod gpux {
                         handles.len(),
                         cx.processor(move |_, range: Range<usize>, _, _| {
                             range
-                                .map(|ix| Self::row(ix, hover, &handles[ix], &outside))
+                                .map(|ix| Self::row(ix, hover, input, &handles[ix], &outside))
                                 .collect::<Vec<_>>()
                         }),
                     )
                     .w(px(VIEWPORT_WIDTH))
-                    .h(px(VIEWPORT_HEIGHT)),
+                    .h(px(VIEWPORT_HEIGHT))
+                    .py(padding),
                 ),
                 Told::List => page.child(
                     crate::list(self.state.clone(), move |ix, _, _| {
-                        Self::row(ix, hover, &handles[ix], &outside)
+                        Self::row(ix, hover, input, &handles[ix], &outside)
                     })
                     .w(px(VIEWPORT_WIDTH))
-                    .h(px(VIEWPORT_HEIGHT)),
+                    .h(px(VIEWPORT_HEIGHT))
+                    .py(padding),
                 ),
             }
         }
@@ -3168,34 +3288,47 @@ mod gpux {
     struct ToldWindow {
         window: AnyWindowHandle,
         outside: Rc<RefCell<Vec<usize>>>,
-        focus: Rc<RefCell<Vec<crate::FocusId>>>,
+        focus: Rc<RefCell<Vec<crate::FocusHandle>>>,
+        page: Rc<RefCell<Option<Entity<ToldPage>>>>,
         beside: Entity<Beside>,
     }
 
     fn told_page(cx: &mut TestAppContext, kind: Told) -> ToldWindow {
-        told_page_at(cx, kind, 1.)
+        told_page_at(cx, kind, Shape::default(), 1.)
     }
 
-    fn told_page_at(cx: &mut TestAppContext, kind: Told, scale_factor: f32) -> ToldWindow {
+    fn told_page_at(
+        cx: &mut TestAppContext,
+        kind: Told,
+        shape: Shape,
+        scale_factor: f32,
+    ) -> ToldWindow {
         let outside = Rc::new(RefCell::new(Vec::new()));
         let focus = Rc::new(RefCell::new(Vec::new()));
-        let (log, ids) = (outside.clone(), focus.clone());
-        let beside = cx.new(|_| Beside);
+        let page = Rc::new(RefCell::new(None));
+        let (log, ids, opened) = (outside.clone(), focus.clone(), page.clone());
+        let beside = cx.new(|_| Beside { overlay: false });
         let window: AnyWindowHandle = add_window(cx, {
             let beside = beside.clone();
-            move |_, cx| ToldRoot {
-                page: cx.new(|cx| {
+            move |_, cx| {
+                let page = cx.new(|cx| {
                     let handles: Vec<_> =
                         (0..300).map(|_| cx.focus_handle().tab_stop(true)).collect();
-                    *ids.borrow_mut() = handles.iter().map(|handle| handle.id).collect();
+                    *ids.borrow_mut() = handles.clone();
+                    let state = ListState::new(300, ListAlignment::Top, px(0.)).measure_all();
+                    if shape.focusable {
+                        state.splice_focusable(0..300, handles.iter().cloned().map(Some));
+                    }
                     ToldPage {
                         kind,
-                        state: ListState::new(300, ListAlignment::Top, px(0.)).measure_all(),
+                        shape,
+                        state,
                         handles,
                         outside: log,
                     }
-                }),
-                beside,
+                });
+                *opened.borrow_mut() = Some(page.clone());
+                ToldRoot { page, beside }
             }
         })
         .into();
@@ -3204,6 +3337,7 @@ mod gpux {
             window,
             outside,
             focus,
+            page,
             beside,
         }
     }
@@ -3212,7 +3346,8 @@ mod gpux {
     /// elements and where they lie, the bounds tests find elements by, and
     /// the rows the tab key stops at, in its order.
     fn told(cx: &mut TestAppContext, page: &ToldWindow) -> (Vec<String>, Vec<String>, Vec<usize>) {
-        let focus = page.focus.borrow().clone();
+        let focus: Vec<crate::FocusId> =
+            page.focus.borrow().iter().map(|handle| handle.id).collect();
         with_window(cx, page.window, |window, _| {
             // In the order the frame tells of them.
             let elements: Vec<String> = window
@@ -3486,6 +3621,22 @@ mod gpux {
                     "uniform {uniform}: {stats:?}"
                 );
             });
+            // The frame that tries the layer renders the rows around those
+            // shown before it finds them reaching over one another: after a
+            // scroll back up, or a jump, the row above the first shown was
+            // not shown before, and draws nothing into the frame though its
+            // child reaches into view.
+            for deltas in [[-200., 40.], [-20., -220.]] {
+                let with_layers = overlapping_page(cx, uniform, true);
+                let without_layers = overlapping_page(cx, uniform, true);
+                compare_with_layers_off(
+                    cx,
+                    with_layers,
+                    without_layers,
+                    &deltas,
+                    &format!("uniform {uniform}, {deltas:?}"),
+                );
+            }
         }
     }
 
@@ -3500,6 +3651,21 @@ mod gpux {
         /// The view beside the page is notified: the frame draws the page,
         /// and the rows its list's layer holds, from the last one.
         Beside,
+        /// The page is notified: its list is built again, and keeps the
+        /// rows its layer holds.
+        Page,
+        /// The view beside the page lays its sheet over the rows, or takes
+        /// it away: the page is drawn from the last frame, under a pointer
+        /// that hovers no row, or does again.
+        Overlay(bool),
+        /// The mouse is pressed and let go beside the rows, where it has
+        /// not been moved to.
+        Press,
+        /// This row takes the focus.
+        Focus(usize),
+        /// The mouse is let go at this height over the rows, where it has
+        /// not been moved to: nothing hears of the pointer being there.
+        Release(f32),
     }
 
     /// How a window's frames were shown: how many from a layer's tiles, and
@@ -3516,13 +3682,23 @@ mod gpux {
     /// shown from a layer.
     fn described(
         kind: Told,
+        shape: Shape,
         scale_factor: f32,
         layered: bool,
         script: &[Input],
     ) -> (Vec<Vec<String>>, Shown) {
         let mut cx = crate::fast::tests::oracle_support::oracle_app(3);
         let cx = &mut cx;
-        let page = told_page_at(cx, kind, scale_factor);
+        let page = told_page_at(cx, kind, shape, scale_factor);
+        // Where a pointer is tested: down two columns of the rows, every
+        // half pixel from above the first to below the last.
+        let points: Vec<_> = [5., 40.]
+            .into_iter()
+            .flat_map(|x| {
+                (-4..(VIEWPORT_HEIGHT as i32 + 12) * 2)
+                    .map(move |y| crate::point(px(x), px(y as f32 / 2.)))
+            })
+            .collect();
         let window = page.window;
         if !layered {
             with_window(cx, window, |window, _| {
@@ -3565,6 +3741,47 @@ mod gpux {
                     page.beside.update(cx, |_, cx| cx.notify());
                     Vec::new()
                 }
+                Input::Page => {
+                    let opened = page.page.borrow().clone().unwrap();
+                    opened.update(cx, |_, cx| cx.notify());
+                    Vec::new()
+                }
+                Input::Overlay(overlay) => {
+                    page.beside.update(cx, |beside, cx| {
+                        beside.overlay = overlay;
+                        cx.notify();
+                    });
+                    Vec::new()
+                }
+                Input::Press => {
+                    let position = crate::point(px(VIEWPORT_WIDTH + 50.), px(50.));
+                    vec![
+                        crate::PlatformInput::MouseDown(crate::MouseDownEvent {
+                            button: crate::MouseButton::Left,
+                            position,
+                            modifiers: Default::default(),
+                            click_count: 1,
+                            first_mouse: false,
+                        }),
+                        crate::PlatformInput::MouseUp(crate::MouseUpEvent {
+                            button: crate::MouseButton::Left,
+                            position,
+                            modifiers: Default::default(),
+                            click_count: 1,
+                        }),
+                    ]
+                }
+                Input::Release(y) => vec![crate::PlatformInput::MouseUp(crate::MouseUpEvent {
+                    button: crate::MouseButton::Left,
+                    position: at(y),
+                    modifiers: Default::default(),
+                    click_count: 1,
+                })],
+                Input::Focus(row) => {
+                    let handle = page.focus.borrow()[row].clone();
+                    with_window(cx, window, |window, cx| handle.focus(window, cx));
+                    Vec::new()
+                }
             };
             for event in events {
                 with_window(cx, window, |window, cx| {
@@ -3573,7 +3790,7 @@ mod gpux {
             }
             super::draw(cx, window);
             frames.push(with_window(cx, window, |window, _| {
-                crate::fast::verify::describe_frame(window)
+                crate::fast::verify::describe_frame_hit_at(window, &points)
             }));
         }
         let stats = with_window(cx, window, |window, _| window.fast_stats());
@@ -3623,7 +3840,7 @@ mod gpux {
             Input::Wheel(-20.),
         ];
         for kind in [Told::Div, Told::UniformList, Told::List] {
-            let shown = describes_alike(kind, 1., &script);
+            let shown = describes_alike(kind, Shape::default(), 1., &script);
             assert!(
                 shown.from_layers >= 8,
                 "{kind:?}: shown from a layer {} times",
@@ -3640,20 +3857,285 @@ mod gpux {
     /// Puts a [`ToldPage`] of `kind` at `scale_factor` through `script` with
     /// its layers and without, checks that every frame describes itself
     /// alike, and returns how many frames were shown from a layer.
-    fn describes_alike(kind: Told, scale_factor: f32, script: &[Input]) -> Shown {
-        let (layered, shown) = described(kind, scale_factor, true, script);
-        let (reference, none) = described(kind, scale_factor, false, script);
+    fn describes_alike(kind: Told, shape: Shape, scale_factor: f32, script: &[Input]) -> Shown {
+        let (layered, shown) = described(kind, shape, scale_factor, true, script);
+        let (reference, none) = described(kind, shape, scale_factor, false, script);
         assert_eq!(none.from_layers, 0, "{kind:?}: the reference has no layer");
         for (step, (layered, reference)) in layered.iter().zip(&reference).enumerate() {
             if let Some(difference) = crate::first_frame_difference(layered, reference) {
                 panic!(
-                    "{kind:?} at {scale_factor}, after step {step} ({:?}): shown from the layer \
-                     (actual) differs from drawn without (expected): {difference}",
+                    "{kind:?} {shape:?} at {scale_factor}, after step {step} ({:?}): shown from \
+                     the layer (actual) differs from drawn without (expected): {difference}",
                     script[step]
                 );
             }
         }
         shown
+    }
+
+    /// A list ends its rows at its padding: with 8 px of it above and
+    /// below, a row whose room reaches into the padding and no further is
+    /// not drawn, cannot be hit there and is no stop for the keyboard. A
+    /// layer holds the rows around those shown, but none that lies across
+    /// the list's bounds without being shown.
+    #[test]
+    fn a_padded_list_shows_no_row_in_its_padding() {
+        if !crate::fast::layers::COMPILED {
+            return;
+        }
+        let script = [
+            Input::Wheel(-20.),
+            Input::Wheel(-20.),
+            Input::Wheel(-15.),
+            Input::Wheel(-15.),
+            Input::Move(4.),
+            Input::Wheel(-7.),
+            Input::Move(97.),
+            Input::Wheel(-90.),
+            Input::Click(3.),
+            Input::Wheel(-15.),
+            Input::Beside,
+            Input::Wheel(30.),
+            Input::Wheel(30.),
+            Input::Click(98.),
+            Input::Wheel(-200.),
+            Input::Wheel(-5.),
+            Input::Page,
+            Input::Wheel(-5.),
+            Input::Wheel(130.),
+            Input::Wheel(-20.),
+            Input::Wheel(-20.),
+        ];
+        let shape = Shape {
+            padded: true,
+            ..Shape::default()
+        };
+        for kind in [Told::UniformList, Told::List] {
+            let shown = describes_alike(kind, shape, 1., &script);
+            assert!(
+                shown.from_layers >= 8,
+                "{kind:?}: shown from a layer {} times",
+                shown.from_layers
+            );
+        }
+    }
+
+    /// A row the layer keeps was painted by where the pointer was: the view
+    /// holding the list is shown by that too, and is not drawn from its last
+    /// frame once another view's sheet takes the pointer from the row, or
+    /// the mouse is pressed somewhere it was not moved to.
+    #[test]
+    fn a_row_kept_under_a_hover_that_changes_is_drawn_again() {
+        if !crate::fast::layers::COMPILED {
+            return;
+        }
+        let script = [
+            Input::Wheel(-20.),
+            Input::Wheel(-20.),
+            Input::Wheel(-20.),
+            Input::Move(52.),
+            // The pointer leaves the rows, of which only the one it was
+            // over is rendered again, and comes down on another without
+            // having been moved there.
+            Input::Press,
+            Input::Release(31.),
+            Input::Wheel(-20.),
+            Input::Press,
+            Input::Release(71.),
+            Input::Beside,
+            Input::Press,
+            Input::Beside,
+            Input::Release(12.),
+            Input::Move(52.),
+            Input::Page,
+            Input::Page,
+            Input::Overlay(true),
+            Input::Beside,
+            Input::Page,
+            Input::Overlay(false),
+            Input::Page,
+            Input::Page,
+            Input::Press,
+            Input::Beside,
+            Input::Move(31.),
+            Input::Page,
+            Input::Wheel(-20.),
+            Input::Page,
+            Input::Overlay(true),
+            Input::Wheel(-20.),
+            Input::Overlay(false),
+            // The pointer leaves the rows, which are then all kept, and
+            // comes down on one without having been moved there.
+            Input::Press,
+            Input::Page,
+            Input::Release(31.),
+            Input::Beside,
+            Input::Press,
+            Input::Page,
+            Input::Page,
+            Input::Release(71.),
+            Input::Wheel(-20.),
+            Input::Press,
+            Input::Page,
+            Input::Click(51.),
+        ];
+        for kind in [Told::UniformList, Told::List] {
+            let shown = describes_alike(kind, Shape::default(), 1., &script);
+            assert!(
+                shown.from_layers >= 4,
+                "{kind:?}: shown from a layer {} times",
+                shown.from_layers
+            );
+        }
+    }
+
+    /// A `list` told of its rows' focus draws the row holding it when it is
+    /// off screen, after the rows it shows, for the keyboard to reach: the
+    /// tab key walks the rows shown and then that one, whether the list's
+    /// layer holds the row or not, and from the frame the focus moves on.
+    #[test]
+    fn the_row_a_list_draws_off_screen_for_the_keyboard_comes_last() {
+        if !crate::fast::layers::COMPILED {
+            return;
+        }
+        let script = [
+            Input::Wheel(-20.),
+            Input::Wheel(-20.),
+            Input::Focus(3),
+            Input::Wheel(-20.),
+            // Off screen from here on, among the rows the layer holds.
+            Input::Wheel(-40.),
+            Input::Wheel(-20.),
+            Input::Beside,
+            Input::Page,
+            Input::Wheel(-20.),
+            Input::Wheel(60.),
+            // Shown again, and off again.
+            Input::Wheel(60.),
+            Input::Wheel(-200.),
+            Input::Wheel(-20.),
+            // A row far below, which the layer does not hold.
+            Input::Focus(250),
+            Input::Wheel(-20.),
+            Input::Beside,
+            Input::Wheel(-20.),
+            // One it shows, and then one it holds off screen.
+            Input::Focus(17),
+            Input::Wheel(-20.),
+            Input::Focus(22),
+            Input::Wheel(-20.),
+            Input::Wheel(-300.),
+            Input::Wheel(-20.),
+        ];
+        for shape in [
+            Shape {
+                focusable: true,
+                ..Shape::default()
+            },
+            Shape {
+                focusable: true,
+                padded: true,
+                ..Shape::default()
+            },
+        ] {
+            let shown = describes_alike(Told::List, shape, 1., &script);
+            assert!(
+                shown.from_layers >= 8,
+                "{shape:?}: shown from a layer {} times",
+                shown.from_layers
+            );
+        }
+    }
+
+    /// A list draws its rows where the scroll offset, moved to whole device
+    /// pixels, puts them, but draws the rows its own offset shows: one a
+    /// third of a pixel in view is drawn where the pixels put it, out of
+    /// view, and is a row of the frame all the same. A layer shows the rows
+    /// the list does.
+    #[test]
+    fn a_row_the_whole_pixels_move_out_of_view_is_still_shown() {
+        if !crate::fast::layers::COMPILED {
+            return;
+        }
+        let script = [
+            Input::Wheel(-0.3),
+            Input::Wheel(-19.4),
+            Input::Wheel(-0.2),
+            Input::Wheel(-40.4),
+            Input::Wheel(10.3),
+            Input::Wheel(-29.7),
+            Input::Move(52.),
+            Input::Wheel(-19.7),
+            Input::Beside,
+            Input::Wheel(-0.3),
+            Input::Wheel(-60.3),
+            Input::Wheel(20.3),
+            Input::Wheel(-0.4),
+            Input::Wheel(-19.6),
+            Input::Wheel(-19.7),
+            Input::Wheel(-19.7),
+            Input::Wheel(-19.7),
+        ];
+        for kind in [Told::UniformList, Told::List] {
+            for padded in [false, true] {
+                let shape = Shape {
+                    padded,
+                    ..Shape::default()
+                };
+                let shown = describes_alike(kind, shape, 1., &script);
+                assert!(
+                    shown.from_layers >= 8,
+                    "{kind:?} {shape:?}: shown from a layer {} times",
+                    shown.from_layers
+                );
+            }
+        }
+    }
+
+    /// A row the list does not show handles no text input: the list
+    /// without a layer does not draw it, and the platform is handed no
+    /// handler for an input nobody sees. The row asks again once it shows.
+    #[test]
+    fn a_row_off_screen_handles_no_text_input() {
+        if !crate::fast::layers::COMPILED {
+            return;
+        }
+        let script = [
+            Input::Wheel(-20.),
+            Input::Wheel(-20.),
+            Input::Focus(6),
+            Input::Wheel(-20.),
+            Input::Wheel(-20.),
+            Input::Wheel(-60.),
+            Input::Wheel(-20.),
+            Input::Beside,
+            Input::Wheel(-20.),
+            Input::Wheel(60.),
+            Input::Wheel(60.),
+            Input::Wheel(-20.),
+            Input::Focus(9),
+            Input::Wheel(-200.),
+            Input::Wheel(-20.),
+            Input::Wheel(-20.),
+            Input::Wheel(-20.),
+            Input::Wheel(-20.),
+            Input::Wheel(-20.),
+        ];
+        for kind in [Told::UniformList, Told::List] {
+            for focusable in [false, true] {
+                let shape = Shape {
+                    input: true,
+                    focusable,
+                    ..Shape::default()
+                };
+                let shown = describes_alike(kind, shape, 1., &script);
+                assert!(
+                    shown.from_layers >= 4,
+                    "{kind:?} {shape:?}: shown from a layer {} times",
+                    shown.from_layers
+                );
+            }
+        }
     }
 
     /// Random histories of wheel turns, pointer moves and clicks over a
@@ -3678,18 +4160,35 @@ mod gpux {
                 state = state.wrapping_mul(1_103_515_245).wrapping_add(12_345);
                 (state >> 16) % range
             };
+            let mut overlay = false;
             let script: Vec<Input> = (0..120)
-                .map(|_| match next(12) {
+                .map(|_| match next(16) {
                     0 => Input::Move(next(100) as f32),
                     1 => Input::Click(next(100) as f32),
                     2 | 3 => Input::Beside,
-                    // Mostly on, sometimes back, by whole and half pixels.
+                    // Mostly on, sometimes back, by whole and half pixels,
+                    // and by a little more or less.
                     4 | 5 => Input::Wheel(next(90) as f32 + 0.5),
+                    6 => Input::Wheel(-(next(70) as f32) - 0.3),
+                    7 => Input::Page,
+                    8 => {
+                        overlay = !overlay;
+                        Input::Overlay(overlay)
+                    }
+                    9 => Input::Press,
+                    10 => Input::Focus(next(60) as usize),
+                    11 => Input::Release(next(100) as f32),
                     _ => Input::Wheel(-(next(70) as f32) - 1.),
                 })
                 .collect();
+            // The lists as they come, padded, and told of their rows' focus.
+            let shape = Shape {
+                padded: seed == 1,
+                focusable: seed == 2,
+                input: false,
+            };
             for kind in [Told::UniformList, Told::List] {
-                let shown = describes_alike(kind, 1., &script);
+                let shown = describes_alike(kind, shape, 1., &script);
                 from_layers += shown.from_layers;
                 from_last_frame += shown.from_last_frame;
             }
