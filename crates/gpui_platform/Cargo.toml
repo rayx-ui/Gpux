@@ -36,7 +36,7 @@ wayland = ["gpui_linux/wayland"]
 x11 = ["gpui_linux/x11"]
 # The manual native-view examples (`examples/webview_*.rs`, `examples/wayland_surface.rs`), which
 # need their platform's web engine; not built by default or in CI.
-webview-examples = ["font-kit"]
+webview-examples = ["font-kit", "dep:gdkx11", "dep:gtk", "dep:webkit2gtk"]
 
 [[bench]]
 name = "fast_mode"
@@ -76,11 +76,8 @@ windows = { workspace = true, features = ["Win32_Graphics_DirectComposition"] }
 windows-core.workspace = true
 
 [target.'cfg(any(target_os = "linux", target_os = "freebsd"))'.dev-dependencies]
-gdkx11 = "0.18"
 gpui_wgpu.workspace = true
-gtk = "0.18"
 pollster.workspace = true
-webkit2gtk = "2.0.2"
 x11rb = "0.13.1"
 
 [target.'cfg(target_os = "macos")'.dependencies]
@@ -95,6 +92,11 @@ gpui_mobile.workspace = true
 
 [target.'cfg(any(target_os = "linux", target_os = "freebsd"))'.dependencies]
 gpui_linux.workspace = true
+# The WebKitGTK example only (`webview-examples`): they need the system's GTK and WebKitGTK, so
+# they cannot be dev-dependencies, which every test and bench target would build.
+gdkx11 = { version = "0.18", optional = true }
+gtk = { version = "0.18", optional = true }
+webkit2gtk = { version = "2.0.2", optional = true }
 
 # The bundled-font test text system (`test-support`) uses the wgpu crate's Cosmic Text system on
 # every desktop OS, so layout under the test platform is identical everywhere.
