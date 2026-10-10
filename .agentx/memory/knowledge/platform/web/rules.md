@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/platform/web
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-09T12:00:00+02:00
+  updated: 2026-10-10T16:30:00+02:00
   topics:
     - wasm
     - multithreading
@@ -37,4 +37,5 @@ agentx:
 - Decide keyboard conventions (the secondary modifier, keystroke names and symbols, the `os` key context) through `KeyboardOs::current()`, never `cfg!(target_os = ...)`: a wasm32 build says nothing about the visitor's keyboard. Lane B specs press the host's modifier, so the Playwright config must keep the browser's own user agent.
 - Keep `gpux-testkit`'s `DEFAULT_TOOLCHAIN` (`nightly-2026-06-23`) equal to `lane-b.yml`'s `GPUX_WEB_TOOLCHAIN` and to RayX's `web-toolchain` pin; move all of them together using RayX's `.claude/skills/rayx/references/wasm-toolchain-update.md`. Lane E and the testkit's Android prerequisite use JDK 21.
 - Run lane B with Node 22 or later first on PATH (`/opt/homebrew/opt/node@22/bin` on the macOS dev machine, where nvm puts Node 17 first); Playwright refuses older Node.
+- Keep GPUI's own helper elements above the canvas (the IME mirror textarea) `pointer-events: none`: a hit-testable one takes the pointer where it sits, which GPUI sees as the pointer leaving the window.
 - Treat a browser window's canvas and its composition input shields as one pointer target: enter and leave between them must not reach GPUI as window hover changes.

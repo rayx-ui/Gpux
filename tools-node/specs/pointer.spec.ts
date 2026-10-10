@@ -2,8 +2,8 @@ import { expect, test } from '../fixtures/gpux';
 
 // Trusted pointer input beyond what the scene scripts cover: buttons other than the primary one
 // do not click and the browser's own context menu stays closed, the pointer entering and leaving
-// an element changes its hover state, and a press held while the pointer moves keeps reaching
-// the scene.
+// an element changes its hover state, a press held while the pointer moves keeps reaching the
+// scene, and the window's top-left corner, where the hidden input mirror sits, stays the canvas's.
 
 test('a right click opens no browser context menu @pr', async ({ gpux, page }) => {
   await gpux.open('overlay-anchored');
@@ -91,4 +91,15 @@ test('only the primary button clicks @pr', async ({ gpux, page }) => {
   await gpux.locate('role=status value="hovered true clicks 0"');
   await page.mouse.click(x, y);
   await gpux.locate('role=status value="hovered true clicks 1"');
+});
+
+test('the hidden input mirror leaves the corner it sits in to the canvas @pr', async ({ gpux, page }) => {
+  // `web-composition` counts the pointer exits GPUI sees.
+  await gpux.open('web-composition', { backend: 'webgpu' });
+  await page.mouse.move(220, 140);
+  await page.mouse.move(2, 2);
+  expect(await page.evaluate(() => document.elementFromPoint(2, 2)?.tagName)).toBe('CANVAS');
+  await page.mouse.move(220, 140);
+  await gpux.frames();
+  await gpux.locate('role=status value="exits 0"');
 });

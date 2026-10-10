@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/platform/web
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-09T17:00:00+02:00
+  updated: 2026-10-10T16:30:00+02:00
   topics:
     - gpui-web
     - wasm
@@ -35,7 +35,7 @@ The first top-level window takes the canvas the graphics context was created aga
 
 Clipboard writes start `navigator.clipboard.writeText` during the trusted action gesture and also run a synchronous one-shot `copy` event fallback that saves the document selection, selects a focus-neutral offscreen range, supplies the exact text through `ClipboardEvent.clipboardData`, and restores the selection. Paste is bridged from the trusted DOM `paste` event: the plain-text payload becomes the cached `ClipboardItem` and replaces the active input-handler selection; platform clipboard reads return that cache.
 
-Text input uses Zed's hidden IME mirror textarea (`ime_mirror.rs`): desktop keystrokes dispatch as key events, while IME and software-keyboard edits are imported from the mirror's `input` events by diffing its value against the stored text; gpux caps that diff at the stored selection so an edit always replaces the whole selection. Keyboard conventions follow the visitor's operating system: `WebPlatform` reports it through `KeyboardOs::set_web` (from `navigator.platform`, then the user agent; Apple systems are `MacOs`, Android `Unknown`) before any binding is parsed, so `Modifiers::secondary`, `secondary-` bindings, keystroke `unparse`/display and the `os` key context use Command in Apple browsers and Control elsewhere; the window's `is_mac` (paste shortcut, text insertion) comes from the same detection.
+Text input uses Zed's hidden IME mirror textarea (`ime_mirror.rs`): desktop keystrokes dispatch as key events, while IME and software-keyboard edits are imported from the mirror's `input` events by diffing its value against the stored text; gpux caps that diff at the stored selection so an edit always replaces the whole selection. Keyboard conventions follow the visitor's operating system: `WebPlatform` reports it through `KeyboardOs::set_web` (from `navigator.platform`, then the user agent; Apple systems are `MacOs`, Android `Unknown`) before any binding is parsed, so `Modifiers::secondary`, `secondary-` bindings, keystroke `unparse`/display and the `os` key context use Command in Apple browsers and Control elsewhere; the window's `is_mac` (paste shortcut, text insertion) comes from the same detection. gpux makes the mirror `pointer-events: none`: it is a 7×7 px fixed element above the canvas at the window's top-left corner, and hit-testable it took the pointer there (a canvas `pointerleave`, so GPUI's `MouseExited`, and presses that never reached GPUI). Headless Chromium on Linux starts with the pointer at (0, 0), so every window there began with one spurious exit.
 
 Wheel input keeps line deltas as GPUI line deltas and converts page deltas to pixels at the canvas's client size, so page-mode wheels scroll by the visible page.
 

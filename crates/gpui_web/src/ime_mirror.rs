@@ -104,6 +104,11 @@ impl ImeMirror {
         style.set_property("width", "1px").ok();
         style.set_property("height", "1px").ok();
         style.set_property("opacity", "0").ok();
+        // gpux: the element sits above the canvas in the window's top-left
+        // corner. Hit-testable, it takes the pointer there: the canvas sees
+        // the pointer leave the window, and a press on it never reaches
+        // GPUI. Focus is only ever given programmatically.
+        style.set_property("pointer-events", "none").ok();
         // Android Chrome zooms the visual viewport onto a focused text input
         // whose font is smaller than 16px; with page zoom disabled the user
         // can never zoom back out, so keep the hidden IME input at 16px.
