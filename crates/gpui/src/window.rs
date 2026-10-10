@@ -8058,6 +8058,7 @@ impl Window {
 
             self.sprite_atlas.remove(&params.clone().into());
         }
+        crate::fast::layers::atlas_entry_removed(self);
 
         Ok(())
     }
@@ -8066,6 +8067,7 @@ impl Window {
     pub fn drop_svg(&mut self, path: SharedString, size: Size<DevicePixels>) -> Result<()> {
         let params = RenderSvgParams { path, size };
         self.sprite_atlas.remove(&params.into());
+        crate::fast::layers::atlas_entry_removed(self);
         Ok(())
     }
 

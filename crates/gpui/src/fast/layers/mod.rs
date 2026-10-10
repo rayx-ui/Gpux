@@ -177,6 +177,17 @@ pub(crate) fn finish_frame(window: &mut Window) {
     layers.frame += 1;
 }
 
+/// Notes that `window` removed an entry from its sprite atlas. The atlas
+/// hands the slot out again, so content painted after it can name another
+/// image by the very tile a layer's content named the removed one by: the
+/// tiles' hashes would not tell the two apart, and the renderer would keep
+/// the tiles it rasterized. No layer keeps content painted before it.
+pub(crate) fn atlas_entry_removed(window: &mut Window) {
+    for layer in window.fast_layers.layers.values_mut() {
+        policy::forget_content(layer);
+    }
+}
+
 /// Drops every layer of `window`: scroll layers were switched off.
 pub(crate) fn release(window: &mut Window) {
     window.fast_layers.layers.clear();
