@@ -278,6 +278,11 @@ fn listing_lane_g_shows_the_benchmarks_and_the_hardware_runs() {
                 code: Some(0),
                 output: "probes_only_skips_goldens_and_keeps_the_probes: test\n".into(),
             },
+            RunOutput {
+                success: true,
+                code: Some(0),
+                output: "paint_borders_matches_with_fast_mode: test\n".into(),
+            },
         ],
         ..FakeRunner::default()
     };
@@ -297,7 +302,7 @@ fn listing_lane_g_shows_the_benchmarks_and_the_hardware_runs() {
         "{text}"
     );
     assert!(text.contains("  bench::randomized_element_tree"), "{text}");
-    assert_eq!(runner.ran.len(), 2, "{:?}", runner.ran);
+    assert_eq!(runner.ran.len(), 3, "{:?}", runner.ran);
     assert!(
         runner
             .ran

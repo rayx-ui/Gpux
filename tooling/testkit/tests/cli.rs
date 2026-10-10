@@ -87,7 +87,7 @@ fn lane_a_selects_every_lane_a_scene_and_the_catalog_groups() {
         .iter()
         .filter(|scene| scene.runs_in(Lane::A))
         .count();
-    assert_eq!(plan.tests.len(), scenes + 7);
+    assert_eq!(plan.tests.len(), scenes + 8);
     assert!(plan.tests.contains(&"lane_a::layout_flex".to_string()));
     assert!(plan.tests.contains(&"golden_policy::*".to_string()));
     assert!(plan.tests.contains(&"executor_clock::*".to_string()));
@@ -98,7 +98,7 @@ fn lane_a_selects_every_lane_a_scene_and_the_catalog_groups() {
         invocation.command_line(),
         "cargo test -p gpux-conformance --test lane_a --test catalog_coverage --test image_compare \
          --test golden_policy --test executor_clock --test host_capabilities --test rgb565_tolerance \
-         --test screen_shows --no-fail-fast"
+         --test screen_shows --test lane_a_fast_parity --no-fail-fast"
     );
 }
 
@@ -219,7 +219,8 @@ fn libtest_lanes_list_every_target_they_run() {
             "executor_clock",
             "host_capabilities",
             "rgb565_tolerance",
-            "screen_shows"
+            "screen_shows",
+            "lane_a_fast_parity"
         ]
     );
     for listing in &everything.listings {
@@ -238,7 +239,7 @@ fn libtest_lanes_list_every_target_they_run() {
         .iter()
         .map(|listing| listing.target.as_str())
         .collect();
-    assert_eq!(targets, ["lane_c", "lane_g"]);
+    assert_eq!(targets, ["lane_c", "lane_g", "lane_c_fast_parity"]);
     assert!(
         lane_c.listings[1]
             .invocation
@@ -247,7 +248,8 @@ fn libtest_lanes_list_every_target_they_run() {
     );
     assert_eq!(
         lane_c.invocations[0].command_line(),
-        "cargo test -p gpux-conformance --test lane_c --test lane_g --no-fail-fast -- --test-threads=1"
+        "cargo test -p gpux-conformance --test lane_c --test lane_g --test lane_c_fast_parity --no-fail-fast \
+         -- --test-threads=1"
     );
     assert!(lane_c.tests.contains(&"lane_g::*".to_string()));
     assert!(

@@ -184,7 +184,7 @@ pub fn test_name(scene: &SceneSpec) -> String {
 
 /// The lane-A groups besides the scenes: the catalog, image comparison and the host contract,
 /// none of which needs a renderer.
-const LANE_A_GROUPS: [&str; 7] = [
+const LANE_A_GROUPS: [&str; 8] = [
     "catalog_coverage",
     "image_compare",
     "golden_policy",
@@ -192,10 +192,11 @@ const LANE_A_GROUPS: [&str; 7] = [
     "host_capabilities",
     "rgb565_tolerance",
     "screen_shows",
+    "lane_a_fast_parity",
 ];
 
 /// The lane-C groups besides the scenes, which need the renderer: lane G's probes-only mode.
-const LANE_C_GROUPS: [&str; 1] = ["lane_g"];
+const LANE_C_GROUPS: [&str; 2] = ["lane_g", "lane_c_fast_parity"];
 
 /// Plans `lane` for `selection`.
 pub fn plan(lane: LaneId, selection: &Selection) -> Result<LanePlan, PlanError> {
