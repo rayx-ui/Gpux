@@ -248,7 +248,7 @@ impl SafeAreaInsets {
     }
 }
 
-struct WindowState {
+pub(crate) struct WindowState {
     /// The `NativeWindow` handle.  Reference-counted via `ndk::NativeWindow`
     /// (Clone acquires, Drop releases).  `None` while the surface is
     /// unavailable (between `term_window` and the next `init_window`).
@@ -259,7 +259,7 @@ struct WindowState {
     gpu_context: GpuContext,
 
     /// The wgpu renderer from `gpui_wgpu`.  `None` while the surface is unavailable.
-    renderer: Option<WgpuRenderer>,
+    pub(crate) renderer: Option<WgpuRenderer>,
 
     /// Cached display geometry.
     width: i32,
@@ -310,7 +310,7 @@ unsafe impl Send for WindowState {}
 /// system.  On a typical Android device there is exactly one window per app,
 /// but foldable / multi-display devices may have two.
 pub struct AndroidWindow {
-    state: Arc<Mutex<WindowState>>,
+    pub(crate) state: Arc<Mutex<WindowState>>,
     /// A stable numeric ID derived from the initial native-window pointer.
     id: u64,
     /// Whether the window is currently active (foregrounded).
@@ -321,7 +321,7 @@ pub struct AndroidWindow {
     active: Arc<AtomicBool>,
     /// Set when Android lifecycle or surface events require the next GPUI
     /// frame callback to render even if GPUI has no ordinary invalidation.
-    force_next_frame_render: Arc<AtomicBool>,
+    pub(crate) force_next_frame_render: Arc<AtomicBool>,
 }
 
 // SAFETY: `WindowState` is protected by a `Mutex`.
@@ -1183,6 +1183,7 @@ impl Drop for AndroidWindow {
 #[allow(clippy::type_complexity)]
 pub struct AndroidPlatformWindow {
     window: Arc<AndroidWindow>,
+    fast_composition: std::cell::RefCell<crate::android::fast::composition::Composition>,
     display: Option<Rc<dyn PlatformDisplay>>,
     input_handler: Option<PlatformInputHandler>,
     title: String,
@@ -1196,6 +1197,7 @@ impl AndroidPlatformWindow {
             display,
             input_handler: None,
             title: String::new(),
+            fast_composition: Default::default(),
         }
     }
 
@@ -1786,6 +1788,37 @@ impl PlatformWindow for AndroidPlatformWindow {
         );
 
         self.window.draw(scene);
+    }
+
+    fn draw_composed(&self, scene: gpui::ComposedScene<'_>) {
+        crate::android::fast::composition::draw_composed(
+            &self.window,
+            &mut self.fast_composition.borrow_mut(),
+            scene,
+        )
+    }
+
+    fn enable_window_composition(&self) -> Result<()> {
+        crate::android::fast::composition::enable_window_composition(
+            &self.window,
+            &mut self.fast_composition.borrow_mut(),
+        )
+    }
+
+    fn create_native_surface(&self) -> Result<Rc<dyn gpui::PlatformSurfaceAttachment>> {
+        crate::android::fast::composition::create_native_surface(
+            &mut self.fast_composition.borrow_mut(),
+        )
+    }
+
+    fn set_composition_order(
+        &self,
+        fast_surfaces: &[gpui::PlatformCompositionSurface],
+    ) -> Result<()> {
+        crate::android::fast::composition::set_composition_order(
+            &mut self.fast_composition.borrow_mut(),
+            fast_surfaces,
+        )
     }
 
     fn render_to_image(&self, scene: &gpui::Scene) -> Result<image::RgbaImage> {

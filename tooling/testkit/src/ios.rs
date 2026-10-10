@@ -40,12 +40,15 @@ pub const HOST_MARKER: &str = "gpux-conformance-host:";
 pub const RUN_TIMEOUT: Duration = Duration::from_secs(20 * 60);
 
 /// The ids of the iOS platform checks the host reports, in order.
-pub const PLATFORM_CHECKS: [&str; 5] = [
+pub const PLATFORM_CHECKS: [&str; 8] = [
     "ios-startup",
     "ios-metal",
     "ios-text-metrics",
     "ios-touch-tap",
     "ios-lifecycle",
+    "composition-ios-order",
+    "composition-ios-input",
+    "composition-ios-shadow",
 ];
 
 /// Every result `ios run` expects for `selection`: the platform checks and the lane-F scenes it
@@ -87,6 +90,9 @@ pub fn tally(output: &str, selection: &Selection) -> Tally {
 pub enum Request {
     /// Another app comes to the front, then the host is reopened through its URL scheme.
     Background,
+    /// A screenshot of the Simulator's screen is written to this path, which the host reads
+    /// back (a Simulator app's files are files of the Mac).
+    Screenshot(String),
     /// The run is over.
     Done,
 }
@@ -96,7 +102,9 @@ pub fn request(line: &str) -> Option<Request> {
     match line.split_once(HOST_MARKER)?.1.trim() {
         "background" => Some(Request::Background),
         "done" => Some(Request::Done),
-        _ => None,
+        other => other
+            .strip_prefix("screenshot ")
+            .map(|path| Request::Screenshot(path.trim().to_string())),
     }
 }
 
@@ -126,6 +134,7 @@ pub fn simctl_commands(request: &Request, udid: &str) -> Vec<Vec<String>> {
                 &format!("{URL_SCHEME}://foreground"),
             ]),
         ],
+        Request::Screenshot(path) => vec![words(&["simctl", "io", udid, "screenshot", path])],
         Request::Done => Vec::new(),
     }
 }

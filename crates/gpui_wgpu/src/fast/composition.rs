@@ -19,15 +19,28 @@ use raw_window_handle::HasWindowHandle;
 use crate::{WgpuContext, WgpuRenderer, WgpuSurfaceConfig, wgpu};
 
 /// The alpha mode of a transparent overlay: the one the renderer `picked`
-/// from the surface's capabilities, except in the browser, where wgpu's
-/// WebGPU backend reports only `Opaque` although a canvas configures
-/// `premultiplied`, which an overlay over DOM content needs.
+/// from the surface's `available` modes, except where a translucent mode
+/// exists that the renderer's preferences do not name:
+///
+/// - in the browser, wgpu's WebGPU backend reports only `Opaque` although a
+///   canvas configures `premultiplied`, which an overlay over DOM content
+///   needs;
+/// - on Metal (iOS overlays), wgpu offers `PostMultiplied` but not
+///   `PreMultiplied`; either makes the `CAMetalLayer` non-opaque, and Core
+///   Animation composites a non-opaque layer as premultiplied, as gpux
+///   paints.
 fn overlay_alpha_mode(
     context: &WgpuContext,
+    available: &[wgpu::CompositeAlphaMode],
     picked: wgpu::CompositeAlphaMode,
 ) -> wgpu::CompositeAlphaMode {
     if context.backend() == crate::WgpuBackend::BrowserWebGpu {
         wgpu::CompositeAlphaMode::PreMultiplied
+    } else if picked == wgpu::CompositeAlphaMode::Opaque
+        && context.backend() == crate::WgpuBackend::Native(wgpu::Backend::Metal)
+        && available.contains(&wgpu::CompositeAlphaMode::PostMultiplied)
+    {
+        wgpu::CompositeAlphaMode::PostMultiplied
     } else {
         picked
     }
@@ -36,8 +49,13 @@ fn overlay_alpha_mode(
 impl WgpuRenderer {
     /// Reconfigures a transparent sharing renderer with its overlay alpha
     /// mode, when that is not the one every transparent surface gets.
-    fn use_overlay_alpha_mode(&mut self, context: &WgpuContext) {
-        let alpha_mode = overlay_alpha_mode(context, self.transparent_alpha_mode);
+    /// `available` is what the renderer's surface supports.
+    fn use_overlay_alpha_mode(
+        &mut self,
+        context: &WgpuContext,
+        available: &[wgpu::CompositeAlphaMode],
+    ) {
+        let alpha_mode = overlay_alpha_mode(context, available, self.transparent_alpha_mode);
         if alpha_mode != self.transparent_alpha_mode {
             self.transparent_alpha_mode = alpha_mode;
             self.update_transparency(true);
@@ -59,6 +77,7 @@ impl WgpuRenderer {
         transparent: bool,
     ) -> anyhow::Result<Self> {
         context.check_compatible_with_surface(&surface)?;
+        let alpha_modes = surface.get_capabilities(&context.adapter).alpha_modes;
         config.transparent = transparent;
         let mut renderer = Self::new_internal(
             None,
@@ -76,7 +95,7 @@ impl WgpuRenderer {
             Some(self),
         )?;
         if transparent {
-            renderer.use_overlay_alpha_mode(context);
+            renderer.use_overlay_alpha_mode(context, &alpha_modes);
         }
         renderer.set_subpixel_layout(self.is_bgr);
         Ok(renderer)
@@ -146,6 +165,7 @@ impl WgpuRenderer {
             .ok_or_else(|| anyhow::anyhow!("GPU context is not initialized"))?;
         let surface = create_surface(&context.instance)?;
         context.check_compatible_with_surface(&surface)?;
+        let alpha_modes = surface.get_capabilities(&context.adapter).alpha_modes;
         config.transparent = transparent;
         let mut renderer = Self::new_internal(
             Some(Rc::clone(gpu_context)),
@@ -158,7 +178,7 @@ impl WgpuRenderer {
             Some(self),
         )?;
         if transparent {
-            renderer.use_overlay_alpha_mode(context);
+            renderer.use_overlay_alpha_mode(context, &alpha_modes);
         }
         renderer.set_subpixel_layout(self.is_bgr);
         Ok(renderer)

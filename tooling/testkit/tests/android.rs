@@ -113,7 +113,10 @@ fn the_first_attached_device_or_the_named_one_runs() {
 fn every_check_and_lane_e_scene_must_report() {
     let everything = Selection::default();
     let expected = android::expected_results(&everything);
-    assert_eq!(&expected[..5], android::PLATFORM_CHECKS);
+    assert_eq!(
+        &expected[..android::PLATFORM_CHECKS.len()],
+        android::PLATFORM_CHECKS
+    );
     assert!(expected.contains(&"layout-flex".to_string()));
     let mut output: String = expected
         .iter()

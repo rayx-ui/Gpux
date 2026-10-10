@@ -2991,6 +2991,7 @@ dependencies = [
  "gpux-platform",
  "gpux-wgpu-renderer",
  "image",
+ "jni",
  "js-sys",
  "libc",
  "log",

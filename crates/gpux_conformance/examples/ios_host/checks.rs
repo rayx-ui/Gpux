@@ -421,5 +421,14 @@ pub async fn platform_checks(cx: &mut AsyncApp) -> Vec<ResultLine> {
     if selected("ios-lifecycle") {
         lines.push(lifecycle(cx).await);
     }
+    if selected("composition-ios-order") {
+        lines.push(crate::composition::order(cx).await);
+    }
+    if selected("composition-ios-input") {
+        lines.push(crate::composition::input(cx).await);
+    }
+    if selected("composition-ios-shadow") {
+        lines.push(crate::composition::shadow(cx).await);
+    }
     lines
 }

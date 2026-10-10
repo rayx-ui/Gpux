@@ -19,6 +19,8 @@
 
 #[cfg(target_os = "android")]
 mod checks;
+#[cfg(target_os = "android")]
+mod composition;
 
 #[cfg(target_os = "android")]
 mod android {

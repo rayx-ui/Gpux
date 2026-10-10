@@ -123,10 +123,10 @@ impl AndroidCredentialStore {
 
 // ── platform state ────────────────────────────────────────────────────────────
 
-struct AndroidPlatformState {
+pub(crate) struct AndroidPlatformState {
     // ── executors ─────────────────────────────────────────────────────────────
     /// Shared between `background_executor` and `foreground_executor`.
-    dispatcher: Arc<AndroidDispatcher>,
+    pub(crate) dispatcher: Arc<AndroidDispatcher>,
 
     // ── rendering ─────────────────────────────────────────────────────────────
     /// Shared wgpu device + queue.  `None` until the first window is opened.
@@ -196,7 +196,7 @@ unsafe impl Send for AndroidPlatformState {}
 /// shell is wrapped in `Rc` (not `Arc`) by the caller, matching GPUI's
 /// expectation that the platform is single-threaded at the Rc level.
 pub struct AndroidPlatform {
-    state: Mutex<AndroidPlatformState>,
+    pub(crate) state: Mutex<AndroidPlatformState>,
     /// Set to `true` when `quit()` is called; the main loop checks this.
     should_quit: AtomicBool,
 }

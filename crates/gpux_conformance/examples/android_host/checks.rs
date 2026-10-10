@@ -483,5 +483,14 @@ pub async fn os_checks(cx: &mut AsyncApp, screens: &Screens) -> Vec<ResultLine> 
     if selected("android-lifecycle") {
         lines.push(lifecycle(cx, screens).await);
     }
+    if selected("composition-android-order") {
+        lines.push(crate::composition::order(cx, screens).await);
+    }
+    if selected("composition-android-input") {
+        lines.push(crate::composition::input(cx, screens).await);
+    }
+    if selected("composition-android-shadow") {
+        lines.push(crate::composition::shadow(cx, screens).await);
+    }
     lines
 }

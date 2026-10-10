@@ -1,9 +1,11 @@
 //! Lane E's Android commands: `android build` (the `android_host` conformance APK) and
 //! `android run` (install, launch and follow it on a device or emulator).
 //!
-//! The APK needs no Gradle: `android_host` is a NativeActivity without Java code, so `aapt2`
-//! links `tooling/android/AndroidManifest.xml`, the native libraries are added uncompressed, and
-//! `zipalign` (16 KB pages) and `apksigner` (a local debug key) finish it. The SDK, NDK and
+//! The APK needs no Gradle: `android_host` is a NativeActivity whose only Java code is gpux's
+//! own helper (`crates/gpui_mobile/java`, the `dev.gpux.mobile` package), which `javac` compiles
+//! against the pinned `android.jar` and `d8` turns into `classes.dex`. `aapt2` links
+//! `tooling/android/AndroidManifest.xml`, the dex and the native libraries are added uncompressed,
+//! and `zipalign` (16 KB pages) and `apksigner` (a local debug key) finish it. The SDK, NDK and
 //! platform versions are pinned below; `sdkmanager` installs them.
 
 use crate::{
@@ -29,6 +31,10 @@ pub const MIN_SDK: u32 = 26;
 pub const COMPILE_SDK: u32 = 36;
 /// The pinned NDK.
 pub const NDK_VERSION: &str = "28.0.12674087";
+/// gpux's Java sources, inside the `gpui_mobile` crate so the crate stays publishable; consumers
+/// add them to their own build.
+pub const JAVA_SOURCES: &str = "crates/gpui_mobile/java";
+
 /// The pinned SDK build tools (`aapt2`, `zipalign`, `apksigner`).
 pub const BUILD_TOOLS_VERSION: &str = "36.0.0";
 /// The logcat tag `gpui_mobile` logs under, where the host's lines appear.
@@ -251,6 +257,69 @@ pub(crate) fn run_tool(
     Ok(result)
 }
 
+/// The `.java` files under [`JAVA_SOURCES`], sorted.
+pub fn java_sources(root: &Path) -> Vec<PathBuf> {
+    files_with_extension(&root.join(JAVA_SOURCES), "java")
+}
+
+/// Every file under `dir` with the extension `extension`, sorted.
+pub fn files_with_extension(dir: &Path, extension: &str) -> Vec<PathBuf> {
+    let mut files = Vec::new();
+    let mut pending = vec![dir.to_path_buf()];
+    while let Some(dir) = pending.pop() {
+        let Ok(entries) = std::fs::read_dir(&dir) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                pending.push(path);
+            } else if path.extension().is_some_and(|found| found == extension) {
+                files.push(path);
+            }
+        }
+    }
+    files.sort();
+    files
+}
+
+/// `javac` compiling `sources` against the pinned `android.jar` into `classes`.
+pub fn javac(sdk: &Sdk, javac: &Path, sources: &[PathBuf], classes: &Path) -> Invocation {
+    let mut args = vec![
+        "--release".to_string(),
+        "11".into(),
+        "-classpath".into(),
+        sdk.android_jar.display().to_string(),
+        "-d".into(),
+        classes.display().to_string(),
+    ];
+    args.extend(sources.iter().map(|source| source.display().to_string()));
+    tool_invocation("javac", javac, args)
+}
+
+/// The build tools' `d8` (run on `java`) turning `class_files` into `out/classes.dex` for the
+/// minimum API level.
+pub fn d8(sdk: &Sdk, java: &Path, class_files: &[PathBuf], out: &Path) -> Invocation {
+    let mut args = vec![
+        "-cp".to_string(),
+        sdk.build_tools
+            .join("lib")
+            .join("d8.jar")
+            .display()
+            .to_string(),
+        "com.android.tools.r8.D8".into(),
+        "--release".into(),
+        "--min-api".into(),
+        MIN_SDK.to_string(),
+        "--lib".into(),
+        sdk.android_jar.display().to_string(),
+        "--output".into(),
+        out.display().to_string(),
+    ];
+    args.extend(class_files.iter().map(|file| file.display().to_string()));
+    tool_invocation("d8", java, args)
+}
+
 /// Appends each `(path in the APK, file)` uncompressed, so libraries load in place.
 pub fn add_stored(apk: &Path, entries: &[(String, PathBuf)]) -> Result<(), String> {
     let file = std::fs::OpenOptions::new()
@@ -296,6 +365,15 @@ pub fn build(
     if environment.find_program("cargo-ndk").is_none() {
         return Err("cargo-ndk is missing: install it with `cargo install cargo-ndk`".into());
     }
+    let javac_program = environment.find_program("javac").ok_or(
+        "`javac` is not on PATH: it comes with the JDK (install JDK 21); put its `bin` on PATH",
+    )?;
+    if !sdk.build_tools.join("lib").join("d8.jar").is_file() {
+        return Err(format!(
+            "the build tools {BUILD_TOOLS_VERSION} have no `lib/d8.jar`: reinstall them with \
+             `sdkmanager \"build-tools;{BUILD_TOOLS_VERSION}\"`"
+        ));
+    }
     let logs = run::artifacts_dir(root, "e");
     let out_dir = out_dir(root);
     std::fs::create_dir_all(&out_dir)
@@ -324,6 +402,32 @@ pub fn build(
             built_library(root, abi),
         ));
     }
+
+    // gpux's Java helper: javac, then d8.
+    let classes = out_dir.join("classes");
+    let dex = out_dir.join("dex");
+    for dir in [&classes, &dex] {
+        std::fs::remove_dir_all(dir).ok();
+        std::fs::create_dir_all(dir)
+            .map_err(|error| format!("could not create {}: {error}", dir.display()))?;
+    }
+    let sources = java_sources(root);
+    if sources.is_empty() {
+        return Err(format!("no Java sources under {JAVA_SOURCES}"));
+    }
+    let compile = javac(&sdk, &javac_program, &sources, &classes);
+    writeln!(out, "android: {}", compile.command_line()).ok();
+    run_tool(
+        &compile,
+        &javac_program,
+        root,
+        runner,
+        &logs.join("javac.log"),
+    )?;
+    let dexing = d8(&sdk, &java, &files_with_extension(&classes, "class"), &dex);
+    writeln!(out, "android: {}", dexing.command_line()).ok();
+    run_tool(&dexing, &java, root, runner, &logs.join("d8.log"))?;
+    libraries.push(("classes.dex".into(), dex.join("classes.dex")));
 
     let unsigned = out_dir.join("unsigned.apk");
     let aapt2 = sdk.tool("aapt2", windows);
@@ -530,12 +634,15 @@ pub fn signed_with_another_key(install_output: &str) -> bool {
 }
 
 /// The ids of the Android platform checks the host reports, in order.
-pub const PLATFORM_CHECKS: [&str; 5] = [
+pub const PLATFORM_CHECKS: [&str; 8] = [
     "android-startup",
     "android-touch-tap",
     "android-touch-pan",
     "android-touch-fling",
     "android-lifecycle",
+    "composition-android-order",
+    "composition-android-input",
+    "composition-android-shadow",
 ];
 
 /// Every result `android run` expects for `selection`: the platform checks and the lane-E

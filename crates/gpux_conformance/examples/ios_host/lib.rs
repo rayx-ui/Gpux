@@ -18,6 +18,8 @@
 
 #[cfg(target_os = "ios")]
 mod checks;
+#[cfg(target_os = "ios")]
+mod composition;
 
 #[cfg(target_os = "ios")]
 mod ios {

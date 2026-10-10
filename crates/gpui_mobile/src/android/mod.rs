@@ -152,6 +152,7 @@ pub fn size<T>(width: T, height: T) -> Size<T> {
 pub mod dispatcher;
 pub mod display;
 pub mod embedded;
+mod fast;
 pub mod jni;
 pub mod keyboard;
 pub mod platform;

@@ -128,6 +128,14 @@ fn host_requests_bring_another_app_forward_and_reopen_the_host() {
         Some(Request::Done)
     );
     assert_eq!(ios::request("gpux-conformance-host: tap 1 2"), None);
+    assert_eq!(
+        ios::request("gpux-conformance-host: screenshot /tmp/shot.png"),
+        Some(Request::Screenshot("/tmp/shot.png".into()))
+    );
+    assert_eq!(
+        ios::simctl_commands(&Request::Screenshot("/tmp/shot.png".into()), "UDID"),
+        [["simctl", "io", "UDID", "screenshot", "/tmp/shot.png"].map(String::from)]
+    );
     assert_eq!(ios::request("gpux-conformance: PASS ios-startup"), None);
     let commands: Vec<String> = ios::simctl_commands(&Request::Background, "UDID")
         .iter()
@@ -169,8 +177,14 @@ fn a_host_that_panics_or_fails_to_load_ends_the_run() {
 fn results_count_the_platform_checks_and_lane_f_scenes() {
     let everything = Selection::default();
     let expected = ios::expected_results(&everything);
-    assert_eq!(&expected[..5], &ios::PLATFORM_CHECKS);
-    assert!(expected.len() > 5, "lane F runs catalog scenes too");
+    assert_eq!(
+        &expected[..ios::PLATFORM_CHECKS.len()],
+        &ios::PLATFORM_CHECKS
+    );
+    assert!(
+        expected.len() > ios::PLATFORM_CHECKS.len(),
+        "lane F runs catalog scenes too"
+    );
     let output: String = expected
         .iter()
         .map(|id| format!("gpux-conformance: PASS {id} ok\n"))

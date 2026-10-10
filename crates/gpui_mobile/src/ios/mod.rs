@@ -11,6 +11,7 @@ pub(crate) mod cg_types;
 mod dispatcher;
 mod display;
 mod events;
+mod fast;
 pub mod ffi;
 mod platform;
 pub mod platform_view;

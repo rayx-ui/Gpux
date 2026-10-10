@@ -40,7 +40,7 @@ use std::{
     },
 };
 
-const GPUI_WINDOW_IVAR: &str = "gpui_window_ptr";
+pub(crate) const GPUI_WINDOW_IVAR: &str = "gpui_window_ptr";
 
 unsafe extern "C" {
     static NSRunLoopCommonModes: *mut AnyObject;
@@ -50,8 +50,8 @@ unsafe extern "C" {
 /// Stores the raw UIView pointer needed by wgpu to create a Metal surface.
 /// Implements the traits required by `WgpuRenderer::new`.
 #[derive(Debug, Clone, Copy)]
-struct RawIosWindow {
-    view: *mut c_void,
+pub(crate) struct RawIosWindow {
+    pub(crate) view: *mut c_void,
 }
 
 unsafe impl Send for RawIosWindow {}
@@ -479,7 +479,7 @@ fn register_display_link_target_class() -> &'static AnyClass {
 }
 
 /// Handle touch events from the GPUIMetalView
-fn handle_touches(view: *mut AnyObject, touches: *mut AnyObject, event: *mut AnyObject) {
+pub(crate) fn handle_touches(view: *mut AnyObject, touches: *mut AnyObject, event: *mut AnyObject) {
     unsafe {
         // Get the window pointer from the view's ivar
         #[allow(deprecated)]
@@ -561,7 +561,7 @@ pub(crate) struct IosWindow {
     /// The UIViewController
     view_controller: *mut AnyObject,
     /// The Metal-backed UIView
-    view: *mut AnyObject,
+    pub(crate) view: *mut AnyObject,
     /// The hidden text input view for keyboard input
     text_input_view: *mut AnyObject,
     /// CADisplayLink target that pumps GPUI frame requests.
@@ -571,7 +571,7 @@ pub(crate) struct IosWindow {
     /// Current bounds in pixels
     bounds: Cell<Bounds<Pixels>>,
     /// Scale factor
-    scale_factor: Cell<f32>,
+    pub(crate) scale_factor: Cell<f32>,
     /// Input handler for text input
     input_handler: RefCell<Option<PlatformInputHandler>>,
     /// Callback for frame requests
@@ -582,7 +582,7 @@ pub(crate) struct IosWindow {
     /// Callback for active status changes
     active_status_callback: RefCell<Option<Box<dyn FnMut(bool)>>>,
     /// Whether the app's scene is in the foreground and presenting.
-    visible: Cell<bool>,
+    pub(crate) visible: Cell<bool>,
     visibility_callback: RefCell<Option<Box<dyn FnMut(WindowVisibility)>>>,
     /// Callback for hover status changes (not really applicable on iOS)
     hover_status_callback: RefCell<Option<Box<dyn FnMut(bool)>>>,
@@ -617,7 +617,8 @@ pub(crate) struct IosWindow {
     /// Wrapped in a `Mutex<Option<…>>` so that `draw()` (called from the
     /// `request_frame` callback) can acquire a mutable reference without
     /// conflicting with the outer `&self` borrow.
-    renderer: Mutex<Option<WgpuRenderer>>,
+    pub(crate) renderer: Mutex<Option<WgpuRenderer>>,
+    pub(crate) fast_composition: RefCell<crate::ios::fast::composition::Composition>,
 }
 
 // Required for raw_window_handle
@@ -726,6 +727,7 @@ impl IosWindow {
                 multi_touch_state: Cell::new(MultiTouchState::Idle),
                 force_next_frame_render: AtomicBool::new(true),
                 renderer: Mutex::new(None),
+                fast_composition: RefCell::default(),
             };
 
             // Create the wgpu renderer using the Metal backend.
@@ -1311,6 +1313,7 @@ impl IosWindow {
         if visible {
             self.mark_force_next_frame_render();
         }
+        crate::ios::fast::composition::visibility_changed(self, visibility);
         if let Some(callback) = self.visibility_callback.borrow_mut().as_mut() {
             callback(visibility);
         }
@@ -1422,6 +1425,8 @@ impl Drop for IosWindow {
                 }
             }
         }
+        // Overlay views point at this window, and draw with surfaces of its context.
+        crate::ios::fast::composition::release(self);
         // The renderer's surface draws into the view's layer: drop it before the view goes.
         self.renderer.lock().take();
         unsafe {
@@ -1696,6 +1701,25 @@ impl PlatformWindow for IosWindow {
         } else {
             log::trace!("GPUI iOS: draw called but no renderer available");
         }
+    }
+
+    fn draw_composed(&self, scene: gpui::ComposedScene<'_>) {
+        crate::ios::fast::composition::draw_composed(self, scene)
+    }
+
+    fn enable_window_composition(&self) -> anyhow::Result<()> {
+        crate::ios::fast::composition::enable_window_composition(self)
+    }
+
+    fn create_native_surface(&self) -> anyhow::Result<Rc<dyn gpui::PlatformSurfaceAttachment>> {
+        crate::ios::fast::composition::create_native_surface(self)
+    }
+
+    fn set_composition_order(
+        &self,
+        fast_surfaces: &[gpui::PlatformCompositionSurface],
+    ) -> anyhow::Result<()> {
+        crate::ios::fast::composition::set_composition_order(self, fast_surfaces)
     }
 
     fn render_to_image(&self, scene: &Scene) -> anyhow::Result<image::RgbaImage> {

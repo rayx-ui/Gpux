@@ -31,7 +31,7 @@ const SURFACE_STABILITY_DELAY: Duration = Duration::from_millis(50);
 static INITIALIZED: AtomicBool = AtomicBool::new(false);
 static SURFACE_ALIVE: AtomicBool = AtomicBool::new(false);
 static SURFACE_GENERATION: AtomicU64 = AtomicU64::new(0);
-static PLATFORM: OnceLock<Arc<AndroidPlatform>> = OnceLock::new();
+pub(crate) static PLATFORM: OnceLock<Arc<AndroidPlatform>> = OnceLock::new();
 static EVENTS: OnceLock<EventQueue> = OnceLock::new();
 
 struct EventQueue {
