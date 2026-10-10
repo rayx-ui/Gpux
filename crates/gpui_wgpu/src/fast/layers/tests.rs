@@ -2,9 +2,9 @@
 //! layer tiles must come out byte for byte the same.
 //!
 //! Adapted from gpui-fast's `gpui_wgpu/src/fast/layers/tests.rs`. The scenes
-//! are drawn by [`WgpuHeadlessRenderer`], the renderer of gpux's pixel lane:
-//! on the adapter `GPUX_WGPU_ADAPTER` selects (`software` for lavapipe or
-//! WARP), the best one otherwise. A tile never holds a path in gpux, so the
+//! are drawn by [`WgpuHeadlessRenderer`], the renderer of gpux's pixel lane,
+//! on the software adapter where the host has one (see [`renderer`]). A tile
+//! never holds a path in gpux, so the
 //! content the tiles are rasterized from has none, and a test of its own
 //! draws a layer's paths the way the core does, into the frame.
 //!
@@ -25,8 +25,8 @@ use gpux::{
 };
 use image::RgbaImage;
 
-use crate::WgpuHeadlessRenderer;
 use crate::fast::layers::TileCache;
+use crate::{HeadlessAdapterSelection, WgpuHeadlessRenderer};
 
 const TILE: u32 = 512;
 
@@ -692,8 +692,23 @@ fn scene_layers(key: LayerKey, generation: u64, dirty: &[TileCoord]) -> SceneLay
 
 // --- helpers --- //
 
+/// A renderer on the software adapter (lavapipe, WARP), which lane C draws
+/// with, unless `GPUX_WGPU_ADAPTER` names another. A Mac has no software
+/// adapter: there the tests run on its GPU, through wgpu's Metal backend.
 fn renderer() -> WgpuHeadlessRenderer {
-    WgpuHeadlessRenderer::new().expect("a wgpu adapter to draw the layer tests on")
+    let selection = match HeadlessAdapterSelection::from_env() {
+        HeadlessAdapterSelection::Default => HeadlessAdapterSelection::Software,
+        selection => selection,
+    };
+    WgpuHeadlessRenderer::with_adapter(&selection)
+        .or_else(|error| {
+            if selection == HeadlessAdapterSelection::Software {
+                WgpuHeadlessRenderer::with_adapter(&HeadlessAdapterSelection::Default)
+            } else {
+                Err(error)
+            }
+        })
+        .expect("a wgpu adapter to draw the layer tests on")
 }
 
 fn render(
