@@ -21,11 +21,12 @@ const ROWS: usize = 400;
 const WHEEL_STEP: f32 = 24.;
 /// Frames a wheel scrolls one way before it turns back.
 const WHEEL_TURN: usize = 30;
-/// The strip a scrolling `div` leaves beside its rows, where the pointer
-/// rests while the wheel turns: over no row, so no row's hover changes as
-/// the rows move under it. A scroll layer shows a frame from its tiles only
-/// where no hover its content read can have changed (a list's layer renders
-/// the rows whose hover did instead).
+/// The strip a scrolling `div` leaves beside its rows. A scroll layer shows a
+/// frame from its tiles only where no hover its content read can have
+/// changed (a list's layer renders the rows whose hover did instead), so the
+/// scenarios scroll a `div` both ways: `scroll-child-view` with the pointer
+/// resting here, over no row, and `scroll-same-view` with it over the rows,
+/// whose hover changes with every wheel step.
 const GUTTER: f32 = 40.;
 
 pub(super) fn scenarios() -> Vec<Scenario> {
@@ -39,12 +40,14 @@ pub(super) fn scenarios() -> Vec<Scenario> {
         },
         scroll_scenario(
             "scroll-child-view",
-            "a scroll area whose 400 rows are a child view; a wheel event per frame",
+            "a scroll area whose 400 rows are a child view; a wheel event per frame, the pointer \
+             beside the rows",
             Content::ChildView,
         ),
         scroll_scenario(
             "scroll-same-view",
-            "a scroll area whose 400 rows are in its own view; a wheel event per frame",
+            "a scroll area whose 400 rows are in its own view; a wheel event per frame, the \
+             pointer over the rows, whose hover styles follow it",
             Content::SameView,
         ),
         scroll_scenario(
@@ -259,6 +262,9 @@ impl Render for Scroller {
 struct Scrolling {
     scroller: Entity<Scroller>,
     content: Content,
+    /// Whether the scenario's window runs scroll layers: a mode with them
+    /// leaves them off in a window whose renderer rasterizes no tile.
+    layers: bool,
 }
 
 impl Scrolling {
@@ -275,7 +281,11 @@ impl Scrolling {
             list,
             rows,
         });
-        Self { scroller, content }
+        Self {
+            scroller,
+            content,
+            layers: false,
+        }
     }
 }
 
@@ -287,6 +297,7 @@ impl Fixture for Scrolling {
     fn step(&mut self, frame: usize, window: &mut Window, cx: &mut App) {
         // Scroll one way, then back, so the wheel never runs out of content.
         let down = (frame / WHEEL_TURN).is_multiple_of(2);
+        self.layers = window.fast_mode().scroll_layers;
         let content = self.content;
         let chat = content == Content::Chat;
         // A chat starts at its bottom, so it scrolls up first.
@@ -296,10 +307,10 @@ impl Fixture for Scrolling {
             WHEEL_STEP
         };
         let position = match content {
-            Content::UniformList | Content::List | Content::Chat => viewport_center(),
-            Content::ChildView | Content::SameView | Content::Sticky | Content::Effect => {
-                gutter_center()
+            Content::SameView | Content::UniformList | Content::List | Content::Chat => {
+                viewport_center()
             }
+            Content::ChildView | Content::Sticky | Content::Effect => gutter_center(),
         };
         place_pointer(window, position);
         window.dispatch_event(
@@ -316,7 +327,7 @@ impl Fixture for Scrolling {
 
     fn expect(&self, mode: Mode, stats: &FastStats) -> Result<(), String> {
         expect_frames(mode, stats)?;
-        if mode.fast_mode().scroll_layers {
+        if self.layers {
             return self.expect_layers(stats);
         }
         // Every scrolled frame builds the scroller.
@@ -339,7 +350,7 @@ impl Scrolling {
             // the scenario warms up, every frame shows the layer's tiles,
             // painted again only where the scroll runs past what the layer
             // holds (twice its viewport on either side).
-            Content::ChildView | Content::SameView => {
+            Content::ChildView => {
                 check(
                     stats.layers_composited + stats.layers_repainted == frames,
                     || format!("a frame went without its layer: {stats:?}"),
@@ -355,11 +366,28 @@ impl Scrolling {
                 })?;
                 // The view holding the container is built for its scroll, and
                 // the rows' view only on the frames that paint the layer.
-                let rows_view = (self.content == Content::ChildView) as u64;
-                check(
-                    stats.views_built == frames + rows_view * stats.layers_repainted,
-                    || format!("a composited frame rendered the content's view: {stats:?}"),
-                )
+                check(stats.views_built == frames + stats.layers_repainted, || {
+                    format!("a composited frame rendered the content's view: {stats:?}")
+                })
+            }
+            // The wheel turns over rows with hover styles: every step moves
+            // another row under the pointer, so no frame only scrolls. The
+            // layer is painted again until the policy gives it up, and the
+            // container is drawn as without one from then on.
+            Content::SameView => {
+                check(stats.layers_composited == 0, || {
+                    format!("a frame showed tiles painted for other hovers: {stats:?}")
+                })?;
+                check(stats.layers_repainted + all_bypasses == frames, || {
+                    format!("a frame was not counted: {stats:?}")
+                })?;
+                check(bypassed(LayerBypassReason::Demoted) + 2 >= frames, || {
+                    format!("the layer kept being painted for nothing: {stats:?}")
+                })?;
+                check(stats.views_built == frames, || {
+                    format!("other views were built than the scroller: {stats:?}")
+                })?;
+                drawn_per_frame(stats, 60)
             }
             // Sticky headers are painted where they stick, above the rows
             // and not with them, and a backdrop blur samples what is under

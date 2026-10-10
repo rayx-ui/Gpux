@@ -223,6 +223,19 @@ fn modes_differ_only_by_landed_mechanisms(name: &str) {
             layers.draw_orders_computed >= splice.draw_orders_computed,
             "{name}: layers ordered fewer primitives than splice: {layers:?}"
         );
+    } else if layers.layers_composited == 0 {
+        // The layer was painted and never paid: no frame only scrolled it,
+        // as with the pointer over rows whose hover follows it. It builds
+        // the views splice builds, and the policy gave the layer up.
+        assert_eq!(
+            layers.views_built, splice.views_built,
+            "{name}: layers built other views than splice with no frame composited"
+        );
+        let demoted = layers.layer_bypasses[gpux::LayerBypassReason::Demoted as usize];
+        assert!(
+            demoted > 0,
+            "{name}: the layer that never composited was not given up: {layers:?}"
+        );
     } else {
         // Frames shown from a layer's tiles build, lay out and paint no more
         // than splice does.
