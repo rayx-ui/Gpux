@@ -1258,7 +1258,7 @@ pub struct WgpuRenderer {
     pub(crate) transparent_alpha_mode: wgpu::CompositeAlphaMode,
     opaque_alpha_mode: wgpu::CompositeAlphaMode,
     max_texture_size: u32,
-    last_error: Arc<Mutex<Option<String>>>,
+    pub(crate) last_error: Arc<Mutex<Option<String>>>,
     failed_frame_count: u32,
     device_lost: std::sync::Arc<std::sync::atomic::AtomicBool>,
     surface_configured: bool,
@@ -3248,9 +3248,12 @@ impl WgpuRenderer {
             .submit(std::iter::once(encoder.finish())))
     }
 
-    fn prepare_frame(&mut self) -> bool {
+    pub(crate) fn prepare_frame(&mut self) -> bool {
         let last_error = self.last_error.lock().unwrap().take();
         if let Some(error) = last_error {
+            // The frame the error was raised in may have been the one that
+            // rasterized tiles the cache counts as held.
+            crate::fast::layers::release(self);
             self.failed_frame_count += 1;
             log::error!(
                 "GPU error during frame (failure {} of 10): {error}",

@@ -356,6 +356,34 @@ fn a_failed_frame_releases_the_tiles_it_planned() {
     assert_same_pixels(&actual, &direct);
 }
 
+/// A GPU error drops the command buffer it was raised in, tile passes
+/// included, while the cache counts the tiles that frame planned as held.
+/// The renderer hears of the error when it prepares the next frame, and
+/// releases every tile then, whichever frame the error came from.
+#[test]
+fn a_gpu_error_releases_every_tile() {
+    let mut renderer = renderer();
+    let tiles = [coord(0, 0)];
+    let layer = layer_frame(LayerKey(1), 1, content(&renderer, (0., 0.)), &tiles);
+    let composited = composited_scene(layer, &tiles, (0., 0.), None);
+    let window = device_size(512, 512);
+    render(&mut renderer, &composited, window);
+    assert_eq!(rasterized(&renderer), 1);
+
+    // What the device's error callback leaves for the next frame to find.
+    *renderer.renderer.last_error.lock().unwrap() = Some("validation error".into());
+    assert!(
+        renderer.renderer.prepare_frame(),
+        "the first error draws on"
+    );
+    assert!(renderer.renderer.fast_layers.cache.is_empty());
+
+    let actual = render(&mut renderer, &composited, window);
+    assert_eq!(rasterized(&renderer), 2);
+    let direct = render_direct(&mut renderer, (0., 0.), None, window);
+    assert_same_pixels(&actual, &direct);
+}
+
 // --- scenes --- //
 
 #[derive(Clone, Copy, PartialEq)]
