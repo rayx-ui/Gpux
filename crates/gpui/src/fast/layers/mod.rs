@@ -39,6 +39,25 @@ pub(crate) const COMPILED: bool = cfg!(any(
     target_os = "windows"
 ));
 
+thread_local! {
+    /// Whether a window of this thread has had scroll layers on. The hooks
+    /// that have no window to ask (a scroll handle publishing an offset or
+    /// being read, an entity being notified) do nothing until one has, so
+    /// an application that never turns the switch on pays a branch for them.
+    static ON_THREAD: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+/// Notes that a window of this thread turns scroll layers on.
+pub(crate) fn turned_on() {
+    ON_THREAD.set(true);
+}
+
+/// Whether a window of this thread has had scroll layers on.
+#[inline]
+pub(crate) fn on_thread() -> bool {
+    COMPILED && ON_THREAD.get()
+}
+
 /// A window's scroll layers, by the scroll container's global id.
 #[derive(Default)]
 pub(crate) struct WindowLayers {
@@ -64,6 +83,13 @@ pub(crate) struct WindowLayers {
     /// content, for tests.
     #[cfg(any(test, feature = "test-support"))]
     pub(crate) input_rebuilds: u64,
+    /// Whether input other than a scroll is being dispatched (see
+    /// [`input::before_dispatch`]). A frame drawn meanwhile is drawn for it,
+    /// by the layers or by the window itself (a key is dispatched after the
+    /// frame a dirty window owes): no layer leaves such a frame showing
+    /// content away from where it was painted, one a scroll still pending
+    /// moves in that very frame included.
+    pub(crate) before_input: bool,
     /// Counts the frames drawn, for layers to tell how long ago something was.
     pub(crate) frame: u64,
     /// The window's size and scale factor the layers were painted at.
@@ -114,6 +140,9 @@ pub(crate) fn active(window: &Window, cx: &App) -> bool {
 /// layers not composited for long, or painted for another window size or
 /// scale factor, are dropped.
 pub(crate) fn finish_frame(window: &mut Window) {
+    if !window.fast_mode.scroll_layers() {
+        return;
+    }
     policy::drop_layers_on_resize(window);
     let layers = &mut window.fast_layers;
     let frame = layers.frame;
@@ -130,6 +159,7 @@ pub(crate) fn finish_frame(window: &mut Window) {
 pub(crate) fn release(window: &mut Window) {
     window.fast_layers.layers.clear();
     window.fast_layers.painting = None;
+    window.fast_layers.scrolls = Default::default();
 }
 
 /// How many layers `window` keeps and tiles they hold, for tests that check

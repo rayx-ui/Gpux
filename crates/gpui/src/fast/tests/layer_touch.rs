@@ -90,8 +90,8 @@ impl Render for TouchPage {
     }
 }
 
-/// A [`TouchPage`] in a window with scroll layers and in one without, which
-/// snaps what layers snap: both get the same touches at the same times.
+/// A [`TouchPage`] in a window with scroll layers and in one drawing every
+/// frame from scratch, which snaps what layers snap: both get the same touches at the same times.
 struct Pair {
     layered: WindowHandle<TouchPage>,
     plain: WindowHandle<TouchPage>,
@@ -106,8 +106,11 @@ impl Pair {
                 long_presses: Default::default(),
             });
             with_window(cx, window.into(), |window, cx| {
-                set_layers(window, layers);
-                window.force_layer_snapping(!layers);
+                if layers {
+                    set_layers(window, true);
+                } else {
+                    crate::fast::tests::layer_support::make_reference(window);
+                }
                 window.draw(cx).clear(cx);
                 window.draw(cx).clear(cx);
             });
@@ -203,7 +206,7 @@ impl Pair {
 
     fn offset(&self, cx: &mut TestAppContext, window: WindowHandle<TouchPage>) -> Point<Pixels> {
         window
-            .update(cx, |page, _, _| page.handle.offset())
+            .read_with(cx, |page, _| page.handle.offset())
             .unwrap()
     }
 
@@ -218,8 +221,8 @@ impl Pair {
         cx: &mut TestAppContext,
         pick: impl Fn(&TouchPage) -> Vec<Seen>,
     ) -> (Vec<Seen>, Vec<Seen>) {
-        let layered = self.layered.update(cx, |page, _, _| pick(page)).unwrap();
-        let plain = self.plain.update(cx, |page, _, _| pick(page)).unwrap();
+        let layered = self.layered.read_with(cx, |page, _| pick(page)).unwrap();
+        let plain = self.plain.read_with(cx, |page, _| pick(page)).unwrap();
         (layered, plain)
     }
 

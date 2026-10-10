@@ -175,10 +175,14 @@ pub(crate) struct WindowFastMode {
 }
 
 impl WindowFastMode {
-    /// The mode of a window being created, read from the process environment.
-    pub(crate) fn from_process_environment() -> Self {
+    /// The mode of a window being created on `platform_window`, read from
+    /// the process environment and normalized for it.
+    pub(crate) fn for_window(platform_window: &dyn crate::PlatformWindow) -> Self {
         Self {
-            mode: FastMode::from_environment(|name| std::env::var(name).ok()),
+            mode: turning_layers_on(
+                FastMode::from_environment(|name| std::env::var(name).ok())
+                    .normalized_for(layers_drawn_by(platform_window)),
+            ),
             #[cfg(any(test, feature = "test-support"))]
             snapping_forced: false,
         }
@@ -246,6 +250,21 @@ pub struct FastOwnedState {
     pub layout_engine_nodes: usize,
 }
 
+/// Whether scroll layers can be on in a window on `platform_window`: the
+/// target compiles them and the window's renderer rasterizes their tiles.
+fn layers_drawn_by(platform_window: &dyn crate::PlatformWindow) -> bool {
+    crate::fast::layers::COMPILED && platform_window.rasterizes_layer_tiles()
+}
+
+/// `mode`, a window's, noted for the hooks of scroll layers that have no
+/// window to ask when it has them on.
+fn turning_layers_on(mode: FastMode) -> FastMode {
+    if mode.scroll_layers {
+        crate::fast::layers::turned_on();
+    }
+    mode
+}
+
 /// Releases what the mechanisms that `previous` had on and `current` has off
 /// own. Each mechanism adds its release here as it lands.
 fn release_disabled(window: &mut Window, previous: FastMode, current: FastMode) {
@@ -269,13 +288,15 @@ impl Window {
 
     /// Changes the fast-mode mechanisms this window uses, from the next frame.
     ///
-    /// The mode is [normalized](FastMode::normalized) first. If that changes
-    /// anything, what the mechanisms turned off kept between frames is
+    /// The mode is [normalized](FastMode::normalized) first, and scroll
+    /// layers stay off in a window whose renderer does not rasterize their
+    /// tiles. If that changes anything, what the mechanisms turned off kept between frames is
     /// released and the window is refreshed, so the next frame is drawn from
     /// scratch.
     pub fn set_fast_mode(&mut self, mode: FastMode) {
         let previous = self.fast_mode.get();
-        let current = mode.normalized();
+        let current =
+            turning_layers_on(mode.normalized_for(layers_drawn_by(self.platform_window.as_ref())));
         if previous == current {
             return;
         }

@@ -29,7 +29,7 @@ use std::{
 use rand::{Rng as _, SeedableRng as _, rngs::StdRng};
 
 use crate::fast::layers::verify::drawn;
-use crate::fast::tests::layer_support::{add_window, set_layers};
+use crate::fast::tests::layer_support::{add_window, make_reference, set_layers};
 use crate::{
     AnyElement, AppContext as _, Bounds, ContentMask, Context, DispatchPhase, Div, Entity,
     FocusHandle, HitboxBehavior, Hsla, InputEvent as _, InteractiveElement as _, IntoElement,
@@ -188,6 +188,8 @@ const CONTAINER_HEIGHT: f32 = 200.;
 const CONTAINER_TOP: f32 = 30.;
 const INITIAL_ROWS: u64 = 60;
 const UNIFORM_ROW_HEIGHT: f32 = 22.;
+/// The strip the scrolling `div`s leave beside their rows.
+const GUTTER: f32 = 24.;
 /// Wheel deltas, as trackpads (fractions of a pixel) and wheels send them.
 const WHEEL_DELTAS: [f32; 5] = [0.37, 1.0, 12.5, 40., 90.];
 
@@ -290,8 +292,13 @@ fn probe(label: SharedString, log: Log) -> impl IntoElement {
 
 /// Content of the first container: a child view (pattern A) holding a
 /// focusable field and the rows.
+/// A model the first container's content view reads as it renders and does
+/// not observe.
+struct Shade(usize);
+
 struct ContentView {
     rows: Entity<Rows>,
+    shade: Entity<Shade>,
     log: Log,
     focus: FocusHandle,
     /// Where the field was last prepainted, which its key listener reports.
@@ -302,6 +309,7 @@ struct ContentView {
 impl Render for ContentView {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let log = self.log.clone();
+        let shade = self.shade.read(cx).0;
         let field_bounds = self.field_bounds.clone();
         let field = div()
             .id("field")
@@ -332,7 +340,7 @@ impl Render for ContentView {
                 .read(cx)
                 .rows
                 .iter()
-                .map(|&row| render_row("a", row, self.tint, &self.log, false)),
+                .map(|&row| render_row("a", row, self.tint + shade, &self.log, false)),
         )
     }
 }
@@ -344,6 +352,9 @@ impl Render for ContentView {
 struct LayerOracleView {
     rows: Entity<Rows>,
     content: Entity<ContentView>,
+    shade: Entity<Shade>,
+    /// Tints the second container's rows; changed without a notification.
+    stripe: usize,
     scroll_a: ScrollHandle,
     scroll_b: ScrollHandle,
     uniform: UniformListScrollHandle,
@@ -364,8 +375,10 @@ impl LayerOracleView {
             next_id: INITIAL_ROWS,
         });
         let log = Log::default();
+        let shade = cx.new(|_| Shade(0));
         let content = cx.new(|cx| ContentView {
             rows: rows.clone(),
+            shade: shade.clone(),
             log: log.clone(),
             focus: cx.focus_handle(),
             field_bounds: Rc::default(),
@@ -374,6 +387,8 @@ impl LayerOracleView {
         Self {
             rows,
             content,
+            shade,
+            stripe: 0,
             scroll_a: ScrollHandle::new(),
             scroll_b: ScrollHandle::new(),
             uniform: UniformListScrollHandle::new(),
@@ -407,6 +422,7 @@ impl Render for LayerOracleView {
                     div()
                         .id("a")
                         .size_full()
+                        .pr(px(GUTTER))
                         .overflow_y_scroll()
                         .track_scroll(&self.scroll_a)
                         .child(self.content.clone()),
@@ -417,11 +433,15 @@ impl Render for LayerOracleView {
                     div()
                         .id("b")
                         .size_full()
+                        .pr(px(GUTTER))
                         .overflow_y_scroll()
                         .track_scroll(&self.scroll_b)
-                        .child(div().flex().flex_col().children(
-                            rows.iter().map(|&row| render_row("b", row, 0, &log, false)),
-                        )),
+                        .child(
+                            div().flex().flex_col().children(
+                                rows.iter()
+                                    .map(|&row| render_row("b", row, self.stripe, &log, false)),
+                            ),
+                        ),
                 ),
             )
             .child(
@@ -461,11 +481,14 @@ impl Render for LayerOracleView {
 
 #[derive(Clone, Debug)]
 enum Change {
-    /// A wheel turned over a container, `y` below its top.
+    /// A wheel turned over a container, `y` below its top: over its rows,
+    /// or with `gutter` over the strip its scrolling `div` leaves beside
+    /// them, where no row's hover changes as the rows move.
     Wheel {
         container: usize,
         y: f32,
         delta: f32,
+        gutter: bool,
     },
     /// A scroll by the application, to `top`.
     Scroll {
@@ -507,6 +530,14 @@ enum Change {
         width: f32,
         height: f32,
     },
+    /// Changes a model the first container's content view reads without
+    /// observing it, notifying the model or not: nothing notifies the view.
+    Shade {
+        notify: bool,
+    },
+    /// Changes what the view holding the containers renders in the second
+    /// one, without notifying it.
+    Stripe,
     Redraw,
 }
 
@@ -521,6 +552,7 @@ impl Change {
                 y: rng.random_range(2.0..CONTAINER_HEIGHT - 2.),
                 delta: WHEEL_DELTAS[rng.random_range(0..WHEEL_DELTAS.len())]
                     * if rng.random_bool(0.6) { -1. } else { 1. },
+                gutter: rng.random_bool(0.5),
             },
             30..36 => Change::Scroll {
                 container,
@@ -558,6 +590,10 @@ impl Change {
                 width: rng.random_range(500.0..1000.0),
                 height: rng.random_range(200.0..700.0),
             },
+            95..97 => Change::Shade {
+                notify: rng.random_bool(0.5),
+            },
+            97..99 => Change::Stripe,
             _ => Change::Redraw,
         }
     }
@@ -576,12 +612,18 @@ fn apply(cx: &mut TestAppContext, window: WindowHandle<LayerOracleView>, change:
             container,
             y,
             delta,
+            gutter,
         } => dispatch(
             cx,
             window,
             ScrollWheelEvent {
                 position: point(
-                    px(container_left(container) + CONTAINER_WIDTH / 2.),
+                    px(container_left(container)
+                        + if gutter {
+                            CONTAINER_WIDTH - GUTTER / 2.
+                        } else {
+                            CONTAINER_WIDTH / 2.
+                        }),
                     px(CONTAINER_TOP + y),
                 ),
                 delta: ScrollDelta::Pixels(point(px(0.), px(delta))),
@@ -626,13 +668,8 @@ fn apply(cx: &mut TestAppContext, window: WindowHandle<LayerOracleView>, change:
             }
             .to_platform_input(),
         ),
-        Change::Click { x, y } => click(cx, window, point(px(x), px(y))),
-        Change::ClickInPlace => {
-            let position = cx
-                .update_window(window.into(), |_, window, _| window.mouse_position())
-                .unwrap();
-            click(cx, window, position);
-        }
+        // The two halves of a click are applied one at a time, by `run`.
+        Change::Click { .. } | Change::ClickInPlace => {}
         Change::Focus => {
             window
                 .update(cx, |view, window, cx| {
@@ -668,6 +705,18 @@ fn apply(cx: &mut TestAppContext, window: WindowHandle<LayerOracleView>, change:
         Change::Resize { width, height } => {
             cx.simulate_window_resize(window.into(), size(px(width), px(height)));
         }
+        Change::Shade { notify } => {
+            let shade = window.read_with(cx, |view, _| view.shade.clone()).unwrap();
+            shade.update(cx, |shade, cx| {
+                shade.0 += 1;
+                if notify {
+                    cx.notify();
+                }
+            });
+        }
+        Change::Stripe => {
+            window.update(cx, |view, _, _| view.stripe += 1).unwrap();
+        }
         Change::Redraw => {}
     }
 }
@@ -701,10 +750,19 @@ fn change_rows(rows: &mut Rows, list: &ListState, change: &Change, cx: &mut Cont
     cx.notify();
 }
 
-fn click(cx: &mut TestAppContext, window: WindowHandle<LayerOracleView>, position: Point<Pixels>) {
-    dispatch(
-        cx,
-        window,
+/// One half of a click at `position`, or where the pointer is: the press,
+/// or the release.
+fn press_or_release(
+    cx: &mut TestAppContext,
+    window: WindowHandle<LayerOracleView>,
+    position: Option<Point<Pixels>>,
+    press: bool,
+) {
+    let position = position.unwrap_or_else(|| {
+        cx.update_window(window.into(), |_, window, _| window.mouse_position())
+            .unwrap()
+    });
+    let event = if press {
         MouseDownEvent {
             button: MouseButton::Left,
             position,
@@ -712,19 +770,17 @@ fn click(cx: &mut TestAppContext, window: WindowHandle<LayerOracleView>, positio
             click_count: 1,
             first_mouse: false,
         }
-        .to_platform_input(),
-    );
-    dispatch(
-        cx,
-        window,
+        .to_platform_input()
+    } else {
         MouseUpEvent {
             button: MouseButton::Left,
             position,
             modifiers: Modifiers::default(),
             click_count: 1,
         }
-        .to_platform_input(),
-    );
+        .to_platform_input()
+    };
+    dispatch(cx, window, event);
 }
 
 /// What a window drew, what `points` hit in it, and what its listeners saw
@@ -830,6 +886,8 @@ struct Coverage {
     keys: usize,
     /// Frames drawn with some container scrolled.
     scrolled: usize,
+    /// Inputs dispatched after a frame painting a layer where it shows.
+    frames_before_input: usize,
 }
 
 /// Drives a window with layers and one without through one random history
@@ -849,10 +907,14 @@ fn run(
     for (window, layers) in [(layered, true), (plain, false)] {
         cx.simulate_window_scale_factor_change(window.into(), scale_factor);
         cx.update_window(window.into(), |_, window, cx| {
-            set_layers(window, layers);
-            // The reference snaps what layers snap, and nothing else.
-            window.force_layer_snapping(!layers);
-            window.fast_layers.never_demote = keep_layers;
+            if layers {
+                set_layers(window, true);
+                window.fast_layers.never_demote = keep_layers;
+            } else {
+                // The reference draws every frame from scratch, and snaps
+                // what layers snap.
+                make_reference(window);
+            }
             window.draw(cx).clear(cx);
             window.reset_fast_stats();
         })
@@ -885,8 +947,52 @@ fn run(
             })
             .collect();
         for change in &changes {
-            apply(&mut cx, layered, change);
-            apply(&mut cx, plain, change);
+            // Input other than a wheel that reaches content shown away from
+            // where it was painted is dispatched after a frame painting it
+            // where it shows, and that frame draws whatever else was pending
+            // (an earlier change of the same step) before the input, where
+            // without layers the input comes first. That is the one
+            // difference layers make to when things happen: the reference
+            // draws its pending frame before the same event. A click is two
+            // events, each of which may be the one.
+            let mut in_step = |cx: &mut TestAppContext,
+                               apply: &dyn Fn(
+                &mut TestAppContext,
+                WindowHandle<LayerOracleView>,
+            )| {
+                let rebuilds = |cx: &mut TestAppContext| {
+                    cx.update_window(layered.into(), |_, window, _| {
+                        window.fast_layers.input_rebuilds
+                    })
+                    .unwrap()
+                };
+                let before = rebuilds(cx);
+                apply(cx, layered);
+                if rebuilds(cx) > before {
+                    coverage.frames_before_input += 1;
+                    cx.update_window(plain.into(), |_, window, cx| window.draw(cx).clear(cx))
+                        .unwrap();
+                }
+                apply(cx, plain);
+            };
+            match *change {
+                Change::Click { x, y } => {
+                    let position = Some(point(px(x), px(y)));
+                    for press in [true, false] {
+                        in_step(&mut cx, &|cx, window| {
+                            press_or_release(cx, window, position, press)
+                        });
+                    }
+                }
+                Change::ClickInPlace => {
+                    for press in [true, false] {
+                        in_step(&mut cx, &|cx, window| {
+                            press_or_release(cx, window, None, press)
+                        });
+                    }
+                }
+                _ => in_step(&mut cx, &|cx, window| apply(cx, window, change)),
+            }
         }
         history.push(changes);
 
@@ -978,6 +1084,7 @@ fn run_all(scale_factor: f32, containers: Range<usize>, keep_turning: f64) -> [C
             total.downs += coverage.downs;
             total.keys += coverage.keys;
             total.scrolled += coverage.scrolled;
+            total.frames_before_input += coverage.frames_before_input;
         }
     }
     totals
@@ -997,6 +1104,10 @@ fn frames_match_at(scale_factor: f32) {
     // layers, or they compared nothing but drawing from scratch with itself.
     if crate::fast::layers::COMPILED {
         assert!(policy.composited > 0, "{policy:?}");
+        assert!(
+            kept.frames_before_input > 0,
+            "no input reached content that had moved since it was painted: {kept:?}"
+        );
         assert!(
             kept.composited * 10 >= kept.scrolled as u64,
             "too few frames composited a scroll layer: {kept:?}"

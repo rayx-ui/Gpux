@@ -117,13 +117,26 @@ impl LayerInput {
 /// refresh) prevents, and its content is not about to see input. It is
 /// painted again otherwise, which the policy does not take for a change of
 /// the content.
-pub(crate) fn decide(window: &mut Window, id: &GlobalElementId, decision: Decision) -> Decision {
+pub(crate) fn decide(
+    window: &mut Window,
+    id: &GlobalElementId,
+    decision: Decision,
+    scroll_offset: Point<Pixels>,
+) -> Decision {
     let frame = window.fast_layers.frame;
+    let before_input = window.fast_layers.before_input;
     let owner = crate::fast::retained::prepainting_view(window).cloned();
     let Some(layer) = window.fast_layers.layers.get_mut(id) else {
         return decision;
     };
     let has_record = layer.record.is_some();
+    // A frame drawn for input about to be dispatched shows no content away
+    // from where it was painted.
+    let moved_before_input = before_input
+        && layer
+            .record
+            .as_ref()
+            .is_some_and(|record| record.scroll_offset != scroll_offset);
     let input = &mut layer.input;
     if input.owner != owner {
         input.owner = owner;
@@ -131,6 +144,7 @@ pub(crate) fn decide(window: &mut Window, id: &GlobalElementId, decision: Decisi
     let rebuild = std::mem::take(&mut input.rebuild);
     let decision = if decision == Decision::Composite
         && (rebuild
+            || moved_before_input
             || !has_record
             || input
                 .ranges_frame
@@ -163,6 +177,13 @@ pub(crate) fn before_dispatch(window: &mut Window, cx: &mut App, event: &Platfor
     if !COMPILED || window.fast_layers.layers.is_empty() {
         return;
     }
+    // Any frame drawn until the event is dispatched is drawn for it: the one
+    // drawn here, and the one the window draws itself before it dispatches
+    // a key while it is dirty.
+    window.fast_layers.before_input = !matches!(
+        event,
+        PlatformInput::ScrollWheel(_) | PlatformInput::Touch(_)
+    );
     match event {
         // Dispatched as they come: the content's wheel listeners go by its
         // hitboxes, which are current.
@@ -172,33 +193,88 @@ pub(crate) fn before_dispatch(window: &mut Window, cx: &mut App, event: &Platfor
         PlatformInput::Touch(_) => {}
         PlatformInput::KeyDown(_)
         | PlatformInput::KeyUp(_)
-        | PlatformInput::ModifiersChanged(_) => rebuild_reached(window, cx, &focus_inside),
-        // A move reaches the content when it lands on one of the content's
-        // elements, whose listeners may compare it with the bounds they
-        // hold. Moves elsewhere — dragging a scrollbar beside or over the
-        // content — are hit tested against the content's translated
-        // hitboxes, which is all its hover handling needs, and must not
-        // rebuild it on every frame of the drag.
+        | PlatformInput::ModifiersChanged(_) => {
+            rebuild_reached(window, cx, &|window, _, layer| focus_inside(window, layer))
+        }
+        // A move reaches the content when nothing covers it under the
+        // pointer: its listeners, with a hitbox of their own or not, may
+        // compare the move with the bounds they hold. While a button is
+        // held, the moves belong to what the press began on: a drag begun in
+        // the content keeps reaching it, and one begun elsewhere — a
+        // scrollbar dragged beside or over the content — does not, and must
+        // not paint the content again on every frame of the drag. Nor does a
+        // move while a hitbox outside the content holds the pointer captured.
         PlatformInput::MouseMove(event) => {
-            // The element the move lands on, as last frame hit tested it.
-            let moved_onto = window
-                .rendered_frame
-                .hit_test(event.position)
-                .ids
-                .first()
-                .copied();
-            rebuild_reached(window, cx, &|_, layer| {
-                moved_onto.is_some_and(|id| {
-                    layer.input.hitboxes.iter().any(|hitbox| hitbox.id == id)
-                        || layer.rows.holds_hitbox(id)
-                })
+            let under_pointer = topmost_hitbox(window, event.position);
+            let held = event.pressed_button.is_some();
+            let captured = window.captured_hitbox;
+            rebuild_reached(window, cx, &|window, id, layer| {
+                if captured.is_some_and(|captured| !holds_hitbox(window, id, layer, captured)) {
+                    return false;
+                }
+                if held {
+                    return window.fast_layers.scrolls.pressed_in.contains(id);
+                }
+                under_pointer.is_some_and(|hitbox| holds_hitbox(window, id, layer, hitbox))
             })
         }
-        // Presses, releases and drops, wherever they land: a press starts
-        // what later moves continue (a drag, a selection) with the bounds
-        // it sees.
-        _ => rebuild_reached(window, cx, &|_, _| true),
+        // A press, wherever it lands: it starts what later moves continue
+        // (a drag, a selection) with the bounds it sees.
+        PlatformInput::MouseDown(event) => {
+            rebuild_reached(window, cx, &|_, _, _| true);
+            // Told from the frame the press is dispatched in, which the
+            // rebuild may just have drawn.
+            let under_pointer = topmost_hitbox(window, event.position);
+            let pressed_in = window
+                .fast_layers
+                .layers
+                .iter()
+                .filter(|(id, layer)| {
+                    under_pointer.is_some_and(|hitbox| holds_hitbox(window, id, layer, hitbox))
+                })
+                .map(|(id, _)| id.clone())
+                .collect();
+            window.fast_layers.scrolls.pressed_in = pressed_in;
+        }
+        PlatformInput::MouseUp(_) => {
+            rebuild_reached(window, cx, &|_, _, _| true);
+            window.fast_layers.scrolls.pressed_in.clear();
+        }
+        // Drops and whatever else carries a position.
+        _ => rebuild_reached(window, cx, &|_, _, _| true),
     }
+}
+
+/// The topmost hitbox at `position`, as the last frame hit tests it.
+fn topmost_hitbox(window: &Window, position: Point<Pixels>) -> Option<crate::HitboxId> {
+    window
+        .rendered_frame
+        .hit_test(position)
+        .ids
+        .first()
+        .copied()
+}
+
+/// Whether `hitbox` is one the content of `layer`, the layer of the scroll
+/// container `id`, inserted, or the container's own, which lies under its
+/// content: an event landing on it lands on the content, or on where content
+/// without a hitbox of its own would see it.
+fn holds_hitbox(
+    window: &Window,
+    id: &GlobalElementId,
+    layer: &Layer,
+    hitbox: crate::HitboxId,
+) -> bool {
+    layer.input.hitboxes.iter().any(|held| held.id == hitbox)
+        || layer.rows.holds_hitbox(hitbox)
+        || window.fast_layers.scrolls.container_hitbox(id) == Some(hitbox)
+}
+
+/// Ends what [`before_dispatch`] or [`before_touch_gesture`] began, once the
+/// event is dispatched: frames drawn from here on are ordinary ones.
+#[inline]
+pub(crate) fn after_dispatch(window: &mut Window) {
+    window.fast_layers.before_input = false;
 }
 
 /// [`before_dispatch`] for a gesture recognized from touches, which
@@ -214,24 +290,30 @@ pub(crate) fn before_touch_gesture(
     if !COMPILED || window.fast_layers.layers.is_empty() {
         return;
     }
+    window.fast_layers.before_input =
+        !matches!(gesture, crate::gestures::RecognizedTouchGesture::Scroll(_));
     match gesture {
         crate::gestures::RecognizedTouchGesture::Scroll(_) => {}
         crate::gestures::RecognizedTouchGesture::Tap { .. }
         | crate::gestures::RecognizedTouchGesture::TouchDrag(_)
         | crate::gestures::RecognizedTouchGesture::LongPress(_) => {
-            rebuild_reached(window, cx, &|_, _| true)
+            rebuild_reached(window, cx, &|_, _, _| true)
         }
     }
 }
 
 /// Paints again, in a frame drawn now, every layer whose content shows
 /// scrolled since it was painted and which `reaches` picks.
-fn rebuild_reached(window: &mut Window, cx: &mut App, reaches: &dyn Fn(&Window, &Layer) -> bool) {
+fn rebuild_reached(
+    window: &mut Window,
+    cx: &mut App,
+    reaches: &dyn Fn(&Window, &GlobalElementId, &Layer) -> bool,
+) {
     let mut owners = Vec::new();
     let mut unknown_owner = false;
     let mut rebuilt = 0;
-    for layer in window.fast_layers.layers.values() {
-        if layer.input.stale != Point::default() && reaches(window, layer) {
+    for (id, layer) in &window.fast_layers.layers {
+        if layer.input.stale != Point::default() && reaches(window, id, layer) {
             rebuilt += 1;
             match layer.input.owner.as_ref() {
                 Some(owner) if view_entity(owner).is_some() => {
@@ -402,7 +484,7 @@ fn unclip(
 /// is prepainted, whether it is prepainted into a layer, whose scroll then
 /// moves it.
 pub(crate) fn track_handle(window: &Window, handle: &HandleState) {
-    if !COMPILED {
+    if !window.fast_mode.scroll_layers() {
         return;
     }
     let key = Rc::as_ptr(handle) as usize;
@@ -427,6 +509,9 @@ pub(crate) fn moved(
     bounds: Option<Bounds<Pixels>>,
 ) -> Option<Bounds<Pixels>> {
     let bounds = bounds?;
+    if !crate::fast::layers::on_thread() {
+        return Some(bounds);
+    }
     let key = Rc::as_ptr(handle) as usize;
     let delta = MOVED_HANDLES.with_borrow(|moved| {
         moved

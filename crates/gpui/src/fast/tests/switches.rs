@@ -379,3 +379,83 @@ fn frames_with_fast_mode_off_record_no_mechanism_counter() {
     assert_eq!(total.frames, 40);
     assert!(total.views_built > 0 && total.primitives_painted > 0);
 }
+
+/// With scroll layers off a scroll container does none of their
+/// bookkeeping: its window remembers no container and counts no frame, a
+/// published offset is logged for no one, and the hooks that have no window
+/// to ask stay off until a window of the thread turns the switch on.
+#[crate::test]
+fn a_window_without_scroll_layers_keeps_none_of_their_books(cx: &mut crate::TestAppContext) {
+    use crate::fast::tests::layer_support::{
+        LayerPage, drag_scrollbar_by, draw, new_page, scroll, with_window,
+    };
+    let page = cx.add_window(|_, cx| new_page(false, cx));
+    let window = page.into();
+    cx.set_draw_on_flush(false);
+    with_window(cx, window, |window, _| {
+        assert!(!window.fast_mode().scroll_layers);
+    });
+    assert!(!crate::fast::layers::on_thread());
+    let books = |cx: &mut crate::TestAppContext| {
+        with_window(cx, window, |window, _| {
+            (
+                window.fast_layers.frame,
+                window.fast_layers.layers.len(),
+                window.fast_layers.scrolls.containers().count(),
+                crate::fast::layers::invalidate::pending_publishes(),
+            )
+        })
+    };
+    draw(cx, window);
+    draw(cx, window);
+    let version = page
+        .read_with(cx, |page: &LayerPage, _| page.handle.fast_version().get())
+        .unwrap();
+    for _ in 0..3 {
+        cx.update_window(window, |_, window, cx| {
+            window.dispatch_event(
+                crate::PlatformInput::ScrollWheel(crate::ScrollWheelEvent {
+                    position: crate::point(crate::px(20.), crate::px(20.)),
+                    delta: crate::ScrollDelta::Pixels(crate::point(crate::px(0.), crate::px(-20.))),
+                    modifiers: Default::default(),
+                    touch_phase: crate::TouchPhase::Moved,
+                }),
+                cx,
+            );
+            window.draw(cx).clear(cx);
+        })
+        .unwrap();
+    }
+    assert!(drag_scrollbar_by(cx, page, -10.));
+    draw(cx, window);
+    let offset = page.read_with(cx, |page, _| page.handle.offset()).unwrap();
+    assert_eq!(offset.y, crate::px(-70.), "the page scrolled");
+    assert_eq!(books(cx), (0, 0, 0, 0));
+    assert_eq!(
+        page.read_with(cx, |page, _| page.handle.fast_version().get())
+            .unwrap(),
+        version,
+        "a published offset moves no version"
+    );
+    assert!(!crate::fast::layers::on_thread());
+
+    // Turned on, the window keeps them; turned off again, it drops them.
+    with_window(cx, window, |window, _| {
+        window.set_fast_mode(crate::fast::tests::layer_support::LAYERS)
+    });
+    assert_eq!(
+        crate::fast::layers::on_thread(),
+        crate::fast::layers::COMPILED
+    );
+    draw(cx, window);
+    scroll(cx, window, -20.);
+    scroll(cx, window, -20.);
+    if crate::fast::layers::COMPILED {
+        let (frames, layers, containers, _) = books(cx);
+        assert!(frames > 0 && layers == 1 && containers == 1);
+    }
+    with_window(cx, window, |window, _| window.set_fast_mode(FastMode::OFF));
+    draw(cx, window);
+    let (_, layers, containers, _) = books(cx);
+    assert_eq!((layers, containers), (0, 0));
+}

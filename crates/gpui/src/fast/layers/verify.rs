@@ -170,16 +170,56 @@ fn layer_frame(scene: &Scene, key: LayerKey) -> &LayerFrame {
         .unwrap_or_else(|| panic!("a tile of layer {key:?}, which the scene has no frame of"))
 }
 
+/// Rounds the edges of every content mask `primitive` carries to 1/1024 of a
+/// device pixel. A mask is scaled from logical pixels, so its edges are
+/// whatever `f32` that gives; a layer keeps it moved into content space and
+/// moves it back, by thousands of pixels once scrolled, which can cost its
+/// last bits, where a mask scaled where it lies keeps them. No rasterizer
+/// tells the two apart.
+fn settle_masks(primitive: &mut Primitive) {
+    fn settle(bounds: &mut Bounds<ScaledPixels>) {
+        let round = |value: ScaledPixels| ScaledPixels((value.0 * 1024.).round() / 1024.);
+        let corner = bounds.bottom_right();
+        let origin = point(round(bounds.origin.x), round(bounds.origin.y));
+        *bounds = Bounds::from_corners(origin, point(round(corner.x), round(corner.y)));
+    }
+    let content_mask = match primitive {
+        Primitive::Shadow(p) => &mut p.content_mask,
+        Primitive::VisualEffect(p) => &mut p.content_mask,
+        Primitive::HtmlIsland(p) => &mut p.content_mask,
+        Primitive::HtmlElement(p) => &mut p.content_mask,
+        Primitive::ScreenEffectRegion(p) => &mut p.content_mask,
+        Primitive::Quad(p) => &mut p.content_mask,
+        Primitive::Path(p) => {
+            for vertex in &mut p.vertices {
+                settle(&mut vertex.content_mask.bounds);
+            }
+            &mut p.content_mask
+        }
+        Primitive::Underline(p) => &mut p.content_mask,
+        Primitive::MonochromeSprite(p) => &mut p.content_mask,
+        Primitive::SubpixelSprite(p) => &mut p.content_mask,
+        Primitive::PolychromeSprite(p) => &mut p.content_mask,
+        Primitive::Surface(p) => &mut p.content_mask,
+    };
+    settle(&mut content_mask.bounds);
+}
+
 /// What `scene` draws, as text that two scenes drawing the same pixels share.
 ///
-/// The drawing sequence, layers expanded, is put in a canonical order: each
+/// Content masks are given to 1/1024 of a device pixel (see
+/// [`settle_masks`]). The drawing sequence, layers expanded, is put in a
+/// canonical order: each
 /// primitive's depth is one more than the deepest primitive drawn before it
 /// that it overlaps, and primitives are sorted by depth, then by text. Two
 /// sequences that draw every overlapping pair in the same order get the same
 /// depths, however they number their draw orders and whatever order they
 /// draw primitives that do not overlap in.
 pub(crate) fn drawn(scene: &Scene) -> Vec<String> {
-    let sequence = expanded_sequence(scene);
+    let mut sequence = expanded_sequence(scene);
+    for primitive in &mut sequence {
+        settle_masks(primitive);
+    }
     let clips: Vec<Bounds<ScaledPixels>> = sequence.iter().map(clipped).collect();
     let mut depths: Vec<u32> = Vec::with_capacity(sequence.len());
     for (ix, clip) in clips.iter().enumerate() {

@@ -56,13 +56,6 @@ pub(crate) fn drawing_sequence(scene: &crate::Scene) -> Vec<Drawn> {
     sequence
 }
 
-/// `sequence` with every composited scroll-layer tile replaced by the content
-/// it was rasterized from. Scroll layers fill this in when they land; until
-/// then a scene holds no tiles.
-fn expand_layers(_scene: &crate::Scene, sequence: Vec<Drawn>) -> Vec<Drawn> {
-    sequence
-}
-
 /// An atlas tile without where the atlas put it, which two windows painting
 /// the same thing may place differently.
 fn neutral(tile: AtlasTile) -> AtlasTile {
@@ -155,8 +148,17 @@ pub(crate) fn describe_primitive(primitive: &Primitive) -> String {
 /// The scene's primitives in drawing order, each prefixed by the rank of its
 /// draw order among the scene's distinct draw orders.
 fn describe_scene(scene: &crate::Scene, lines: &mut Vec<String>) {
+    // A scene compositing scroll layers is described as the scene painting
+    // their content straight into the frame would have left.
+    let expanded;
+    let scene = if scene.layers.frames.is_empty() {
+        scene
+    } else {
+        expanded = crate::fast::layers::paint::expanded_scene(scene);
+        &expanded
+    };
     lines.push(format!("scene scale_factor={:?}", scene.scale_factor));
-    let sequence = expand_layers(scene, drawing_sequence(scene));
+    let sequence = drawing_sequence(scene);
     let mut rank = 0;
     let mut previous = None;
     for drawn in &sequence {

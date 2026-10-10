@@ -37,6 +37,7 @@ use crate::{
     size as size2,
 };
 use collections::FxHashMap;
+use smallvec::SmallVec;
 use std::{mem, ops::Range, rc::Rc};
 
 /// The side of a tile, in device pixels.
@@ -286,7 +287,7 @@ fn begin_scrolling_children(
     }
     let viewport = mask.bounds;
     let decision = policy::decide(window, cx, id, bounds, content_size, scroll_offset);
-    let mut decision = crate::fast::layers::input::decide(window, id, decision);
+    let mut decision = crate::fast::layers::input::decide(window, id, decision, scroll_offset);
     if decision == Decision::Composite
         && window
             .fast_layers
@@ -920,7 +921,29 @@ pub(crate) fn draw_into_frame<'a>(
 ) {
     let viewport = window.snapped_content_mask().bounds;
     let logical_viewport = window.content_mask().bounds;
-    let scene = &mut window.next_frame.scene;
+    replay_content(
+        &mut window.next_frame.scene,
+        operations,
+        delta,
+        viewport,
+        logical_viewport,
+    );
+}
+
+/// Replays `operations`, a layer's content, into `scene`, moved by `delta`
+/// and clipped to `viewport`, as painting the content there would have left
+/// it: a layer the viewport clips away entirely is not begun, as
+/// [`Window::paint_layer`] begins none, and what is painted in it is dropped
+/// with every other primitive clipped away.
+pub(crate) fn replay_content<'a>(
+    scene: &mut Scene,
+    operations: impl IntoIterator<Item = &'a PaintOperation>,
+    delta: Point<ScaledPixels>,
+    viewport: Bounds<ScaledPixels>,
+    logical_viewport: Bounds<Pixels>,
+) {
+    // Whether each layer begun in the content was begun in the scene.
+    let mut begun: SmallVec<[bool; 8]> = SmallVec::new();
     for operation in operations {
         match operation {
             PaintOperation::Primitive(primitive) => {
@@ -935,30 +958,104 @@ pub(crate) fn draw_into_frame<'a>(
                 }
                 scene.insert_primitive(primitive);
             }
-            PaintOperation::StartLayer(bounds) => {
+            PaintOperation::StartLayer(bounds)
+            | PaintOperation::StartPositionedLayer(bounds)
+            | PaintOperation::StartTopLayer(bounds) => {
                 let bounds = Bounds {
                     origin: bounds.origin + delta,
                     size: bounds.size,
-                };
-                scene.push_layer(bounds.intersect(&viewport));
+                }
+                .intersect(&viewport);
+                begun.push(!bounds.is_empty());
+                if !bounds.is_empty() {
+                    match operation {
+                        PaintOperation::StartLayer(_) => scene.push_layer(bounds),
+                        PaintOperation::StartPositionedLayer(_) => {
+                            scene.push_positioned_layer(bounds)
+                        }
+                        _ => scene.push_top_layer(bounds),
+                    }
+                }
             }
-            PaintOperation::StartPositionedLayer(bounds) => {
-                let bounds = Bounds {
-                    origin: bounds.origin + delta,
-                    size: bounds.size,
-                };
-                scene.push_positioned_layer(bounds.intersect(&viewport));
+            PaintOperation::EndLayer => {
+                if begun.pop().unwrap_or(true) {
+                    scene.pop_layer();
+                }
             }
-            PaintOperation::StartTopLayer(bounds) => {
-                let bounds = Bounds {
-                    origin: bounds.origin + delta,
-                    size: bounds.size,
-                };
-                scene.push_top_layer(bounds.intersect(&viewport));
-            }
-            PaintOperation::EndLayer => scene.pop_layer(),
         }
     }
+}
+
+/// `scene` as a frame painting the content of every layer it composites
+/// straight into it would have left it: its paint operations replayed, each
+/// run of a layer's tile sprites (and the layer [`insert_tile_quads`] wraps
+/// them in) replaced by the layer's content, moved to where the tiles put it
+/// and clipped to their viewport. Draw orders come out as painting assigns
+/// them, so the scene describes like the one drawn without layers.
+///
+#[cfg(any(test, feature = "test-support", feature = "diagnostics"))]
+pub(crate) fn expanded_scene(scene: &Scene) -> Scene {
+    let tile_of = |operation: Option<&PaintOperation>| match operation {
+        Some(PaintOperation::Primitive(Primitive::PolychromeSprite(sprite))) => {
+            decode_layer_tile(sprite.tile.texture_id, sprite.tile.tile_id)
+                .map(|(key, tile)| (key, tile, sprite.bounds.origin))
+        }
+        _ => None,
+    };
+    let operations = &scene.paint_operations;
+    let mut expanded = Scene::default();
+    expanded.scale_factor = scene.scale_factor;
+    let mut index = 0;
+    while index < operations.len() {
+        let operation = &operations[index];
+        if let PaintOperation::StartLayer(viewport) = operation
+            && let Some((key, tile, origin)) = tile_of(operations.get(index + 1))
+        {
+            let layer = scene
+                .layers
+                .frames
+                .iter()
+                .find(|layer| layer.key == key)
+                .unwrap_or_else(|| {
+                    panic!("a tile of layer {key:?}, which the scene has no frame of")
+                });
+            let tile_origin = layer.tile_bounds(tile).origin;
+            let translation = point(origin.x - tile_origin.x, origin.y - tile_origin.y);
+            replay_content(
+                &mut expanded,
+                layer.content.operations(),
+                translation,
+                *viewport,
+                Bounds::default(),
+            );
+            index += 1;
+            while tile_of(operations.get(index)).is_some_and(|(other, ..)| other == key) {
+                index += 1;
+            }
+            assert!(
+                matches!(operations.get(index), Some(PaintOperation::EndLayer)),
+                "the tiles of layer {key:?} are not composited in a layer of their own"
+            );
+            index += 1;
+            continue;
+        }
+        match operation {
+            PaintOperation::Primitive(primitive) => expanded.insert_primitive(primitive.clone()),
+            PaintOperation::StartLayer(bounds) => expanded.push_layer(*bounds),
+            PaintOperation::StartPositionedLayer(bounds) => expanded.push_positioned_layer(*bounds),
+            PaintOperation::StartTopLayer(bounds) => expanded.push_top_layer(*bounds),
+            PaintOperation::EndLayer => expanded.pop_layer(),
+        }
+        index += 1;
+    }
+    expanded
+        .active_screen_effects
+        .clone_from(&scene.active_screen_effects);
+    expanded
+        .active_screen_effect_snapshots
+        .clone_from(&scene.active_screen_effect_snapshots);
+    expanded.finish();
+    expanded
 }
 
 /// Narrows every content mask `primitive` carries to `mask`.

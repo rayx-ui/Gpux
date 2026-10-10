@@ -1223,6 +1223,13 @@ pub trait PlatformWindow: HasWindowHandle + HasDisplayHandle {
     fn draw_composed(&self, scene: crate::fast::composition::ComposedScene<'_>) {
         crate::fast::composition::draw_uncomposed(self, scene)
     }
+    /// Whether the window's renderer rasterizes scroll-layer tiles
+    /// ([`crate::LayerFrame`]) and draws the sprites that composite them. A
+    /// window whose renderer does not keeps scroll layers off whatever its
+    /// fast mode asks for.
+    fn rasterizes_layer_tiles(&self) -> bool {
+        false
+    }
     /// Starts presenting the window through a composition of surfaces.
     fn enable_window_composition(&self) -> anyhow::Result<()> {
         crate::fast::composition::unsupported("window composition")
@@ -1403,6 +1410,12 @@ pub trait PlatformHeadlessRenderer {
     /// The GPU this renderer draws with, when it knows.
     fn gpu_specs(&self) -> Option<GpuSpecs> {
         None
+    }
+
+    /// Whether this renderer rasterizes scroll-layer tiles. See
+    /// [`PlatformWindow::rasterizes_layer_tiles`].
+    fn rasterizes_layer_tiles(&self) -> bool {
+        false
     }
 }
 

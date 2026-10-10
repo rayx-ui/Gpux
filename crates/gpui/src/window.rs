@@ -3378,6 +3378,7 @@ impl Window {
 
         platform_window.map_window().unwrap();
 
+        let fast_mode = crate::fast::mode::WindowFastMode::for_window(platform_window.as_ref());
         Ok(Window {
             handle,
             invalidator,
@@ -3393,7 +3394,7 @@ impl Window {
             rem_size_override_stack: SmallVec::new(),
             viewport_size: content_size,
             layout_engine: Some(TaffyLayoutEngine::new()),
-            fast_mode: crate::fast::mode::WindowFastMode::from_process_environment(),
+            fast_mode,
             fast_hover_reads: crate::fast::dependencies::HoverReads::default(),
             fast_layout: crate::fast::layout_key::WindowLayout::default(),
             fast_ambient_reads: cx.fast_ambient_reads(),
@@ -8639,6 +8640,7 @@ impl Window {
     pub fn dispatch_event(&mut self, event: PlatformInput, cx: &mut App) -> DispatchEventResult {
         let ambient = crate::fast::dependencies::AmbientInput::of(self);
         let result = self.dispatch_event_and_track_input(event, cx);
+        crate::fast::layers::input::after_dispatch(self);
         ambient.stamp_changes(self, cx);
         result
     }
@@ -8966,6 +8968,7 @@ impl Window {
                 }
             }
         }
+        crate::fast::layers::input::after_dispatch(self);
     }
 
     fn schedule_long_press_timer(&mut self, cx: &mut App) {

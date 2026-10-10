@@ -1450,11 +1450,11 @@ impl Element for NativeSurface {
 
 /// The test platform's composition: what it was handed, recorded for tests
 /// to read, with native surfaces that record their geometry.
-#[cfg(any(test, feature = "test-support"))]
+#[cfg(any(test, feature = "test-support", feature = "bench-support"))]
 #[derive(Clone, Default)]
 pub(crate) struct TestComposition(Rc<RefCell<TestCompositionState>>);
 
-#[cfg(any(test, feature = "test-support"))]
+#[cfg(any(test, feature = "test-support", feature = "bench-support"))]
 #[derive(Default)]
 pub(crate) struct TestCompositionState {
     pub(crate) enabled: bool,
@@ -1474,7 +1474,7 @@ pub(crate) struct TestCompositionState {
     pub(crate) unsupported: bool,
 }
 
-#[cfg(any(test, feature = "test-support"))]
+#[cfg(any(test, feature = "test-support", feature = "bench-support"))]
 impl TestComposition {
     #[cfg(test)]
     pub(crate) fn state(&self) -> std::cell::RefMut<'_, TestCompositionState> {
@@ -1516,12 +1516,7 @@ impl TestComposition {
             .map(|layer| {
                 let lines = scene
                     .layer_scene(layer)
-                    .map(|scene| {
-                        crate::fast::verify::drawing_sequence(&scene)
-                            .iter()
-                            .map(|drawn| crate::fast::verify::describe_primitive(&drawn.primitive))
-                            .collect()
-                    })
+                    .map(|scene| described(&scene))
                     .unwrap_or_default();
                 (layer.surface, lines)
             })
@@ -1537,8 +1532,23 @@ impl TestComposition {
     }
 }
 
-/// A native surface on the test platform.
+/// `scene`'s primitives in drawing order, described without their draw order.
 #[cfg(any(test, feature = "test-support"))]
+fn described(scene: &crate::Scene) -> Vec<String> {
+    crate::fast::verify::drawing_sequence(scene)
+        .iter()
+        .map(|drawn| crate::fast::verify::describe_primitive(&drawn.primitive))
+        .collect()
+}
+
+/// A bench window presents frames nothing reads back.
+#[cfg(all(feature = "bench-support", not(any(test, feature = "test-support"))))]
+fn described(_scene: &crate::Scene) -> Vec<String> {
+    Vec::new()
+}
+
+/// A native surface on the test platform.
+#[cfg(any(test, feature = "test-support", feature = "bench-support"))]
 #[derive(Default)]
 pub(crate) struct TestNativeSurface {
     pub(crate) bounds: Cell<Bounds<DevicePixels>>,
@@ -1548,7 +1558,7 @@ pub(crate) struct TestNativeSurface {
     pub(crate) visibility_changes: RefCell<Vec<bool>>,
 }
 
-#[cfg(any(test, feature = "test-support"))]
+#[cfg(any(test, feature = "test-support", feature = "bench-support"))]
 impl PlatformSurfaceAttachment for TestNativeSurface {
     fn set_bounds(&self, bounds: Bounds<DevicePixels>) -> Result<()> {
         self.bounds_writes.set(self.bounds_writes.get() + 1);

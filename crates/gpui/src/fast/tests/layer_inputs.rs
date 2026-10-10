@@ -887,7 +887,7 @@ mod paint {
         }
         let window = rows_window(cx, 40);
         window
-            .update(cx, |view, _, _| {
+            .read_with(cx, |view, _| {
                 crate::fast::tests::layer_support::set_offset(
                     &view.scroll,
                     crate::point(crate::px(0.), crate::px(-300.)),
@@ -974,7 +974,7 @@ mod paint {
         let window = rows_window_of_height(cx, 400, crate::px(1000.));
         let scroll_to = |cx: &mut crate::TestAppContext, y: f32| {
             window
-                .update(cx, |view, _, _| {
+                .read_with(cx, |view, _| {
                     crate::fast::tests::layer_support::set_offset(
                         &view.scroll,
                         crate::point(crate::px(0.), crate::px(y)),
@@ -1275,7 +1275,7 @@ mod paint {
         let window = rows_window(cx, 40);
         draw_deciding(cx, window, Decision::Repaint);
         window
-            .update(cx, |view, _, _| {
+            .read_with(cx, |view, _| {
                 crate::fast::tests::layer_support::set_offset(
                     &view.scroll,
                     crate::point(crate::px(0.), crate::px(-130.)),
@@ -1453,7 +1453,7 @@ mod paint {
         let window = rows_window(cx, 40);
         let scroll_to = |cx: &mut crate::TestAppContext, y: f32| {
             window
-                .update(cx, |view, _, _| {
+                .read_with(cx, |view, _| {
                     crate::fast::tests::layer_support::set_offset(
                         &view.scroll,
                         point(crate::px(0.), crate::px(y)),
@@ -1836,9 +1836,13 @@ mod integration {
             let window = crate::fast::tests::layer_support::add_window(cx, |_, cx| page(cx));
             cx.simulate_window_scale_factor_change(window.into(), scale_factor);
             cx.update_window(window.into(), |_, window, cx| {
-                crate::fast::tests::layer_support::set_layers(window, layers);
-                // The window without layers snaps what one with them snaps.
-                window.force_layer_snapping(!layers);
+                // The window without layers draws every frame from scratch,
+                // and snaps what one with them snaps.
+                if layers {
+                    crate::fast::tests::layer_support::set_layers(window, true);
+                } else {
+                    crate::fast::tests::layer_support::make_reference(window);
+                }
                 window.draw(cx).clear(cx);
             })
             .unwrap();
@@ -2230,8 +2234,11 @@ mod composed {
         let handle = add_window(cx, |_, cx| new_page(false, cx));
         let window: AnyWindowHandle = handle.into();
         let extra = with_window(cx, window, |window, _| {
-            set_layers(window, layers);
-            window.force_layer_snapping(!layers);
+            if layers {
+                set_layers(window, true);
+            } else {
+                crate::fast::tests::layer_support::make_reference(window);
+            }
             window.enable_window_composition().unwrap();
             extra(window)
         });
@@ -2454,7 +2461,7 @@ mod bypasses {
         let handle = page(cx, true);
         let window = handle.into();
         let rows = handle
-            .update(cx, |page, _, _| page.rows.clone().unwrap())
+            .read_with(cx, |page, _| page.rows.clone().unwrap())
             .unwrap();
         promote(cx, window);
         let mut demoted = false;
@@ -2672,19 +2679,21 @@ mod bypasses {
         draw(cx, window);
         draw(cx, window);
         // Scrolled past the inner container, which sticks to the top.
+        let owner = handle.entity(cx).unwrap().entity_id();
+        let outer = handle
+            .read_with(cx, |stuck, _| stuck.outer.clone())
+            .unwrap();
         frame_after(cx, window, |cx| {
-            handle
-                .update(cx, |stuck, _, cx| {
-                    let owner = cx.entity_id();
-                    stuck
-                        .outer
-                        .publish_scrollbar_offset(point(px(0.), px(-80.)), owner, cx);
-                })
-                .unwrap();
+            crate::fast::tests::layer_support::publish_scrollbar(
+                cx,
+                &outer,
+                owner,
+                point(px(0.), px(-80.)),
+            );
         });
         draw(cx, window);
         let before = handle
-            .update(cx, |stuck, _, _| stuck.inner.offset())
+            .read_with(cx, |stuck, _| stuck.inner.offset())
             .unwrap();
         for _ in 0..3 {
             scroll_at(cx, window, point(px(20.), px(20.)), -20.);
@@ -2697,7 +2706,7 @@ mod bypasses {
         }
         assert_ne!(
             handle
-                .update(cx, |stuck, _, _| stuck.inner.offset())
+                .read_with(cx, |stuck, _| stuck.inner.offset())
                 .unwrap(),
             before,
             "the wheel scrolled the stuck container"

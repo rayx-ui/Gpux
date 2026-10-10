@@ -312,17 +312,7 @@ mod decisions {
         promote(cx, window);
         for step in 0..6 {
             frame_after(cx, window, |cx| {
-                handle
-                    .update(cx, |page, _, cx| {
-                        let offset = page.handle.offset();
-                        let owner = cx.entity_id();
-                        assert!(page.handle.publish_scrollbar_offset(
-                            point(offset.x, offset.y - px(10.)),
-                            owner,
-                            cx,
-                        ));
-                    })
-                    .unwrap();
+                assert!(drag_scrollbar_by(cx, handle, -10.));
             });
             assert_eq!(
                 decision(cx, window),
@@ -330,6 +320,77 @@ mod decisions {
                 "step {step}"
             );
         }
+    }
+
+    /// gpux counts an entity updated without being notified as changed for
+    /// everything that read it. A view updated on the way to a scroll, as by
+    /// a listener of its own that publishes the offset or changes what it
+    /// renders, may hand the content something else: its layer is painted
+    /// afresh, where a scroll that leaves the view alone composites.
+    #[crate::test]
+    fn an_owner_updated_with_the_scroll_repaints(cx: &mut TestAppContext) {
+        if !crate::fast::layers::COMPILED {
+            return;
+        }
+        let handle = page(cx, false);
+        let window = handle.into();
+        // What the owner renders changes through state nothing records a
+        // read of, and takes as much room whatever it is: only the update
+        // of the view tells.
+        let color = Rc::new(Cell::new(0x0000ff));
+        handle
+            .update(cx, |page, _, cx| {
+                let color = color.clone();
+                page.extra = Some(Rc::new(move || {
+                    div().h(px(60.)).bg(rgb(color.get())).into_any_element()
+                }));
+                cx.notify();
+            })
+            .unwrap();
+        draw(cx, window);
+        cx.run_until_parked();
+        draw(cx, window);
+        promote(cx, window);
+        assert_eq!(scroll(cx, window, -5.), Some(Decision::Composite));
+        let shown = |color: u32| {
+            let color = format!("{:?}", paint_color(rgb(color)));
+            color[..color.find(" a:").unwrap()].to_string()
+        };
+        let draws = |cx: &mut TestAppContext, text: &str| {
+            with_window(cx, window, |window, _| {
+                window
+                    .painted_primitives()
+                    .iter()
+                    .any(|line| line.contains(text))
+            })
+        };
+        assert!(draws(cx, &shown(0x0000ff)));
+        // The view's own listener publishes the scroll, and changes the view
+        // without notifying it: the publish's notification is all it gets.
+        frame_after(cx, window, |cx| {
+            handle
+                .update(cx, |page, _, cx| {
+                    color.set(0x00ff00);
+                    let offset = page.handle.offset();
+                    let owner = cx.entity_id();
+                    assert!(page.handle.publish_scrollbar_offset(
+                        point(offset.x, offset.y - px(5.)),
+                        owner,
+                        cx,
+                    ));
+                })
+                .unwrap();
+        });
+        assert_eq!(decision(cx, window), Some(Decision::Repaint));
+        assert!(draws(cx, &shown(0x00ff00)));
+        assert!(!draws(cx, &shown(0x0000ff)));
+        cx.run_until_parked();
+        draw(cx, window);
+        frame_after(cx, window, |cx| {
+            assert!(drag_scrollbar_by(cx, handle, -5.));
+        });
+        assert_eq!(decision(cx, window), Some(Decision::Composite));
+        assert!(draws(cx, &shown(0x00ff00)));
     }
 
     /// A scroll an application asks for is applied when the container is
@@ -357,7 +418,7 @@ mod decisions {
         assert_eq!(decision(cx, window), Some(Decision::Repaint));
         assert_eq!(
             handle
-                .update(cx, |page, _, _| page.handle.offset())
+                .read_with(cx, |page, _| page.handle.offset())
                 .unwrap(),
             point(px(0.), px(-70.))
         );
@@ -548,17 +609,7 @@ mod decisions {
     ) -> Option<Decision> {
         let window = handle.into();
         frame_after(cx, window, |cx| {
-            handle
-                .update(cx, |page, _, cx| {
-                    let offset = page.handle.offset();
-                    let owner = cx.entity_id();
-                    page.handle.publish_scrollbar_offset(
-                        point(offset.x, offset.y + px(dy)),
-                        owner,
-                        cx,
-                    );
-                })
-                .unwrap();
+            drag_scrollbar_by(cx, handle, dy);
         });
         decision(cx, window)
     }
@@ -625,6 +676,173 @@ mod decisions {
         assert_ne!(drag_scrollbar(cx, handle, -20.), Some(Decision::Composite));
     }
 
+    /// A model the rows' view reads as it renders and does not observe.
+    struct Shade(u32);
+
+    /// Rows in a view of their own, coloured by [`Shade`], as wide as the
+    /// pointer is far from the window's left edge when `follows_pointer`.
+    struct ShadedRows {
+        shade: Entity<Shade>,
+        follows_pointer: bool,
+    }
+
+    fn shade_color(shade: u32, index: usize) -> crate::Rgba {
+        rgb(0x100000 + shade * 0x1000 + index as u32 * 0x10)
+    }
+
+    impl Render for ShadedRows {
+        fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+            let shade = self.shade.read(cx).0;
+            let width = if self.follows_pointer {
+                window.mouse_position().x
+            } else {
+                viewport().size.width
+            };
+            div().children((0..ROWS).map(|index| {
+                div()
+                    .w(width)
+                    .h(px(ROW_HEIGHT))
+                    .bg(shade_color(shade, index))
+            }))
+        }
+    }
+
+    struct ShadedPage {
+        handle: ScrollHandle,
+        rows: Entity<ShadedRows>,
+    }
+
+    impl Render for ShadedPage {
+        fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+            div().size_full().bg(rgb(0xffffff)).child(
+                div()
+                    .id("scroller")
+                    .overflow_y_scroll()
+                    .track_scroll(&self.handle)
+                    .w(viewport().size.width)
+                    .h(viewport().size.height)
+                    .child(self.rows.clone()),
+            )
+        }
+    }
+
+    /// A [`ShadedPage`] whose layer is kept whatever it costs, promoted and
+    /// composited once.
+    fn shaded_page(
+        cx: &mut TestAppContext,
+        follows_pointer: bool,
+    ) -> (AnyWindowHandle, Entity<Shade>) {
+        let page = add_window(cx, move |_, cx| {
+            let shade = cx.new(|_| Shade(0));
+            ShadedPage {
+                handle: ScrollHandle::new(),
+                rows: cx.new(|_| ShadedRows {
+                    shade,
+                    follows_pointer,
+                }),
+            }
+        });
+        let window: AnyWindowHandle = page.into();
+        with_window(cx, window, |window, _| {
+            window.fast_layers.never_demote = true
+        });
+        draw(cx, window);
+        draw(cx, window);
+        promote(cx, window);
+        assert_eq!(scroll(cx, window, -20.), Some(Decision::Composite));
+        let shade = page
+            .read_with(cx, |page, cx| page.rows.read(cx).shade.clone())
+            .unwrap();
+        (window, shade)
+    }
+
+    /// Whether the last frame, its layers expanded, draws something `text`
+    /// describes.
+    fn draws(cx: &mut TestAppContext, window: AnyWindowHandle, text: &str) -> bool {
+        with_window(cx, window, |window, _| {
+            window
+                .painted_primitives()
+                .iter()
+                .any(|line| line.contains(text))
+        })
+    }
+
+    /// A view inside the content is laid out from what its layer kept while
+    /// nothing its render read changed. When something did, a model it does
+    /// not observe among them, it renders again, and what it rendered is
+    /// new content: the layer is painted afresh, with the scroll or without.
+    #[crate::test]
+    fn a_content_view_whose_render_read_something_that_changed_repaints(cx: &mut TestAppContext) {
+        if !crate::fast::layers::COMPILED {
+            return;
+        }
+        let (window, shade) = shaded_page(cx, false);
+        // The red and green of every row's colour, which the shade sets.
+        let shown = |shade: u32| {
+            let color = format!("{:?}", paint_color(shade_color(shade, 0)));
+            color[..color.find(" b:").unwrap()].to_string()
+        };
+        assert!(draws(cx, window, &shown(0)));
+        // Updated without a notification, updated and notified, and each
+        // again: a first change is not the only one that counts.
+        for (step, notify) in [false, true, false, true].into_iter().enumerate() {
+            let step = step as u32 + 1;
+            let decided = scroll_and(cx, window, -20., |cx| {
+                shade.update(cx, |shade, cx| {
+                    shade.0 = step;
+                    if notify {
+                        cx.notify();
+                    }
+                })
+            });
+            assert_eq!(decided, Some(Decision::Repaint), "step {step}");
+            assert!(draws(cx, window, &shown(step)), "step {step}");
+            assert!(!draws(cx, window, &shown(step - 1)), "step {step}");
+            assert_eq!(scroll(cx, window, -20.), Some(Decision::Composite));
+            assert!(draws(cx, window, &shown(step)), "step {step}");
+        }
+        // Without a scroll in the frame.
+        frame_after(cx, window, |cx| shade.update(cx, |shade, _| shade.0 = 9));
+        assert!(draws(cx, window, &shown(9)));
+        assert!(!draws(cx, window, &shown(4)));
+    }
+
+    /// What a content view's render reads of the window counts too: one
+    /// that draws by the pointer's position renders again when the pointer
+    /// moves, over the content or anywhere else, and the layer with it.
+    #[crate::test]
+    fn a_content_view_that_reads_the_pointer_repaints_when_it_moves(cx: &mut TestAppContext) {
+        if !crate::fast::layers::COMPILED {
+            return;
+        }
+        let (window, _) = shaded_page(cx, true);
+        let scale = with_window(cx, window, |window, _| window.scale_factor());
+        // A row as wide as the pointer is far in.
+        let marker = |x: f32| {
+            format!(
+                "size: Size {{ {}px (scaled) × {}px (scaled) }}",
+                x * scale,
+                ROW_HEIGHT * scale
+            )
+        };
+        assert!(draws(cx, window, &marker(20.)));
+        // Below the container: the move reaches none of the content.
+        move_to(cx, window, point(px(60.), px(300.)));
+        assert_eq!(decision(cx, window), Some(Decision::Repaint));
+        assert!(draws(cx, window, &marker(60.)));
+        assert!(!draws(cx, window, &marker(20.)));
+        let page: WindowHandle<ShadedPage> = window.downcast().unwrap();
+        let (handle, owner) = (
+            page.read_with(cx, |page, _| page.handle.clone()).unwrap(),
+            page.entity(cx).unwrap().entity_id(),
+        );
+        frame_after(cx, window, |cx| {
+            publish_scrollbar(cx, &handle, owner, point(px(0.), px(-20.)));
+        });
+        assert_eq!(decision(cx, window), Some(Decision::Composite));
+        assert!(draws(cx, window, &marker(60.)));
+    }
+
     /// A page beside a scroll container of the view around it, whose
     /// handle the page is a dependent view of.
     struct Sided {
@@ -680,7 +898,7 @@ mod decisions {
         promote(cx, window);
         assert_eq!(scroll(cx, window, -20.), Some(Decision::Composite));
         let beside = point(viewport().size.width + px(50.), px(20.));
-        let side = handle.update(cx, |sided, _, _| sided.side.clone()).unwrap();
+        let side = handle.read_with(cx, |sided, _| sided.side.clone()).unwrap();
         for _ in 0..3 {
             let before = side.offset();
             // The page is built again, as the handle's dependent, and its
@@ -695,7 +913,7 @@ mod decisions {
                 "the wheel scrolled the side container"
             );
         }
-        let page = handle.update(cx, |sided, _, _| sided.page.clone()).unwrap();
+        let page = handle.read_with(cx, |sided, _| sided.page.clone()).unwrap();
         frame_after(cx, window, |cx| page.update(cx, |_, cx| cx.notify()));
         assert_eq!(decision(cx, window), Some(Decision::Repaint));
     }
@@ -834,7 +1052,7 @@ mod decisions {
         handle: WindowHandle<LayerPage>,
     ) -> crate::Point<Pixels> {
         handle
-            .update(cx, |page, _, _| page.handle.offset())
+            .read_with(cx, |page, _| page.handle.offset())
             .unwrap()
     }
 
@@ -856,19 +1074,10 @@ mod decisions {
         // The scrollbar scrolls the outer container alone, which composites.
         assert_eq!(drag_scrollbar(cx, handle, -10.), Some(Decision::Composite));
         // With the inner one scrolled in the same frame, it does not.
+        let owner = handle.entity(cx).unwrap().entity_id();
         frame_after(cx, window, |cx| {
-            handle
-                .update(cx, |page, _, cx| {
-                    let offset = page.handle.offset();
-                    let owner = cx.entity_id();
-                    page.handle.publish_scrollbar_offset(
-                        point(offset.x, offset.y - px(10.)),
-                        owner,
-                        cx,
-                    );
-                    inner.publish_scrollbar_offset(point(px(-100.), px(0.)), owner, cx);
-                })
-                .unwrap();
+            drag_scrollbar_by(cx, handle, -10.);
+            publish_scrollbar(cx, &inner, owner, point(px(-100.), px(0.)));
         });
         assert_eq!(decision(cx, window), Some(Decision::Repaint));
         assert_eq!(inner.offset(), point(px(-100.), px(0.)));
@@ -1134,7 +1343,7 @@ mod input {
 
     fn clicks(cx: &mut TestAppContext, window: WindowHandle<InputPage>) -> Vec<usize> {
         window
-            .update(cx, |page, _, _| page.clicks.borrow().clone())
+            .read_with(cx, |page, _| page.clicks.borrow().clone())
             .unwrap()
     }
 
@@ -1191,7 +1400,7 @@ mod input {
             .unwrap();
         assert!(focused, "the focused row's dispatch node is carried");
         cx.simulate_keystrokes(window, "a");
-        let keys = handle.update(cx, |page, _, _| page.keys.get()).unwrap();
+        let keys = handle.read_with(cx, |page, _| page.keys.get()).unwrap();
         assert_eq!(keys, 1);
     }
 
@@ -1213,7 +1422,7 @@ mod input {
         }
         let seen = |cx: &mut TestAppContext, window: WindowHandle<InputPage>| {
             window
-                .update(cx, |page, _, _| page.seen.borrow().clone())
+                .read_with(cx, |page, _| page.seen.borrow().clone())
                 .unwrap()
         };
         let seen_with = seen(cx, with);
@@ -1254,7 +1463,7 @@ mod input {
                 ],
             );
             window
-                .update(cx, |page, _, _| page.drags.borrow().clone())
+                .read_with(cx, |page, _| page.drags.borrow().clone())
                 .unwrap()
         };
         let drags_with = drags(cx, with);
@@ -1369,7 +1578,7 @@ mod input {
         draw(cx, window);
         assert!(tooltip_requested(cx, window));
         // Scrolled from outside, which keeps the tooltip up on today's path.
-        let handle = page.update(cx, |page, _, _| page.handle.clone()).unwrap();
+        let handle = page.read_with(cx, |page, _| page.handle.clone()).unwrap();
         let mut decisions = Vec::new();
         for offset in [-110., -120.] {
             crate::fast::tests::layer_support::set_offset(&handle, point(px(0.), px(offset)));
@@ -1411,7 +1620,7 @@ mod input {
         // scrolling, which prepainting the container keeps current.
         let outer = |cx: &mut TestAppContext, window: WindowHandle<InputPage>| {
             window
-                .update(cx, |page, _, _| page.handle.bounds_for_item(0))
+                .read_with(cx, |page, _| page.handle.bounds_for_item(0))
                 .unwrap()
         };
         assert_eq!(outer(cx, with), outer(cx, without));
@@ -1459,12 +1668,13 @@ mod input {
         with_window(cx, window, |window, _| window.fast_stats().layers_repainted)
     }
 
-    /// A move that lands beside the content — on a scrollbar being dragged,
-    /// say — does not rebuild a scrolled layer: only the content's own
-    /// elements compare pointer positions with bounds they hold. A move onto
-    /// the content does.
+    /// A move reaches the content where nothing covers it under the pointer:
+    /// on one of its hitboxes, or on the container's own, where content
+    /// without a hitbox would see it. A move outside the viewport does not,
+    /// nor do the moves of a drag begun elsewhere, a scrollbar's say, which
+    /// must not paint the content again on every frame of the drag.
     #[crate::test]
-    fn only_a_move_onto_the_content_rebuilds_it(cx: &mut TestAppContext) {
+    fn only_a_move_that_reaches_the_content_rebuilds_it(cx: &mut TestAppContext) {
         if !crate::fast::layers::COMPILED {
             return;
         }
@@ -1475,29 +1685,42 @@ mod input {
             let y = px(50. + step as f32);
             dispatch(cx, window, [mouse_move(point(px(150.), y), true)]);
         }
-        assert_eq!(rebuilds(cx, window), 0, "moves beside the rows");
+        assert_eq!(
+            rebuilds(cx, window),
+            0,
+            "moves with a button held elsewhere"
+        );
+        dispatch(cx, window, [mouse_move(point(px(300.), px(50.)), false)]);
+        assert_eq!(rebuilds(cx, window), 0, "a move outside the viewport");
         dispatch(cx, window, [mouse_move(point(px(20.), px(50.)), false)]);
         assert_eq!(rebuilds(cx, window), 1, "a move onto a row");
+        scroll(cx, window, -5.);
+        scroll(cx, window, -5.);
+        dispatch(cx, window, [mouse_move(point(px(150.), px(50.)), false)]);
+        assert_eq!(
+            rebuilds(cx, window),
+            2,
+            "a move beside the rows, in the viewport"
+        );
     }
 
     #[crate::test]
-    fn moves_beside_the_content_neither_rebuild_nor_demote(cx: &mut TestAppContext) {
+    fn moves_outside_the_viewport_neither_rebuild_nor_demote(cx: &mut TestAppContext) {
         if !crate::fast::layers::COMPILED {
             return;
         }
         let handle = input_page(cx);
         let window: AnyWindowHandle = handle.into();
         scroll_five_times(cx, window);
-        // Scrolling with the pointer moving in the viewport between scrolls,
-        // beside the rows, where it lands on none of the content: no move
-        // rebuilds, and none changes the content.
+        // Scrolling with the pointer moving outside the viewport between
+        // scrolls: no move rebuilds, and none changes the content.
         for step in 0..12 {
             assert_eq!(
                 scroll(cx, window, 5.),
                 Some(Decision::Composite),
                 "step {step}"
             );
-            let y = px(50. + (step % 2) as f32);
+            let y = px(150. + (step % 2) as f32);
             let repainted = repaints(cx, window);
             dispatch(cx, window, [mouse_move(point(px(150.), y), false)]);
             assert_eq!(repaints(cx, window), repainted, "step {step}");
@@ -1512,6 +1735,124 @@ mod input {
             )
         });
         assert_eq!((demoted, changes), (0, 0));
+    }
+
+    /// The moves of a drag belong to what its press began on: one begun on
+    /// the content keeps reaching it as the content scrolls under it, and
+    /// one begun elsewhere does not, though it strays over the content.
+    #[crate::test]
+    fn a_drag_reaches_the_content_its_press_began_on(cx: &mut TestAppContext) {
+        if !crate::fast::layers::COMPILED {
+            return;
+        }
+        let handle = input_page(cx);
+        let window: AnyWindowHandle = handle.into();
+        scroll_five_times(cx, window);
+        // Begun outside the container.
+        dispatch(cx, window, [mouse_down(point(px(300.), px(150.)))]);
+        assert_eq!(rebuilds(cx, window), 1, "a press paints what moved");
+        scroll(cx, window, -5.);
+        scroll(cx, window, -5.);
+        dispatch(cx, window, [mouse_move(point(px(20.), px(50.)), true)]);
+        dispatch(cx, window, [mouse_move(point(px(150.), px(60.)), true)]);
+        assert_eq!(
+            rebuilds(cx, window),
+            1,
+            "its moves do not reach the content"
+        );
+        dispatch(cx, window, [mouse_up(point(px(150.), px(60.)))]);
+        assert_eq!(rebuilds(cx, window), 2, "a release paints what moved");
+        draw(cx, window);
+
+        // Begun on a row.
+        dispatch(cx, window, [mouse_down(point(px(20.), px(50.)))]);
+        assert_eq!(rebuilds(cx, window), 2, "nothing had moved");
+        draw(cx, window);
+        scroll(cx, window, -5.);
+        scroll(cx, window, -5.);
+        dispatch(cx, window, [mouse_move(point(px(20.), px(60.)), true)]);
+        assert_eq!(rebuilds(cx, window), 3, "its moves reach the content");
+        dispatch(cx, window, [mouse_up(point(px(20.), px(60.)))]);
+    }
+
+    /// Rows that follow the pointer by the bounds they were painted with,
+    /// through a listener registered as they paint and no hitbox.
+    struct BareRows {
+        handle: ScrollHandle,
+        over: Rc<RefCell<Vec<usize>>>,
+    }
+
+    impl Render for BareRows {
+        fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+            let over = self.over.clone();
+            div().size_full().bg(rgb(0xffffff)).child(
+                div()
+                    .id("scroller")
+                    .overflow_y_scroll()
+                    .track_scroll(&self.handle)
+                    .w(px(200.))
+                    .h(px(100.))
+                    .children((0..ROWS).map(move |index| {
+                        let over = over.clone();
+                        canvas(
+                            |_, _, _| {},
+                            move |bounds, _, window, _| {
+                                window.paint_quad(crate::fill(
+                                    bounds,
+                                    rgb(0x100000 + index as u32 * 0x10),
+                                ));
+                                window.on_mouse_event(
+                                    move |event: &MouseMoveEvent, phase, _, _| {
+                                        if phase == DispatchPhase::Bubble
+                                            && bounds.contains(&event.position)
+                                        {
+                                            over.borrow_mut().push(index);
+                                        }
+                                    },
+                                );
+                            },
+                        )
+                        .h(px(ROW_HEIGHT))
+                        .w_full()
+                    })),
+            )
+        }
+    }
+
+    /// Content need not insert a hitbox to see a move: a listener that
+    /// compares the pointer with the bounds it was painted at finds the row
+    /// the pointer is over, as without layers.
+    #[crate::test]
+    fn a_move_over_content_without_a_hitbox_sees_current_bounds(cx: &mut TestAppContext) {
+        if !crate::fast::layers::COMPILED {
+            return;
+        }
+        let over = Rc::new(RefCell::new(Vec::new()));
+        let page = crate::fast::tests::layer_support::add_window(cx, {
+            let over = over.clone();
+            move |_, _| BareRows {
+                handle: ScrollHandle::new(),
+                over,
+            }
+        });
+        let window: AnyWindowHandle = page.into();
+        draw(cx, window);
+        draw(cx, window);
+        let mut decisions = Vec::new();
+        for _ in 0..5 {
+            decisions.push(scroll(cx, window, -7.));
+        }
+        assert_eq!(
+            decisions[2..],
+            [Some(Decision::Composite); 3],
+            "{decisions:?}"
+        );
+        let offset = page.read_with(cx, |page, _| page.handle.offset()).unwrap();
+        assert_eq!(offset.y, px(-35.));
+        dispatch(cx, window, [mouse_move(point(px(30.), px(55.)), false)]);
+        assert_eq!(rebuilds(cx, window), 1);
+        // 55 px down a viewport scrolled by 35 px, in rows of 20 px.
+        assert_eq!(*over.borrow(), [4]);
     }
 
     #[crate::test]

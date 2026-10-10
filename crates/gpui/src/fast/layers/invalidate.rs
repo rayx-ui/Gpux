@@ -30,9 +30,9 @@ use std::{cell::RefCell, ops::Range, rc::Rc};
 use collections::{FxHashMap, FxHashSet};
 
 use crate::fast::dependencies::{RenderDependencies, StateVersion};
-use crate::fast::layers::COMPILED;
 use crate::fast::layers::record::LayerRecord;
-use crate::{App, EntityId, GlobalElementId, Interactivity, PrepaintStateIndex, Window};
+use crate::fast::layers::{COMPILED, on_thread};
+use crate::{App, EntityId, GlobalElementId, HitboxId, Interactivity, PrepaintStateIndex, Window};
 use smallvec::SmallVec;
 
 /// Where a scroll container's offset lives, which scrolls and reads of it are
@@ -65,6 +65,7 @@ struct Container {
     source: ScrollSource,
     version: Option<StateVersion>,
     view: EntityId,
+    hitbox: Option<HitboxId>,
 }
 
 /// The scrolls of the frame being drawn, and the scroll containers painted.
@@ -77,6 +78,9 @@ pub(crate) struct ScrollLog {
     scrolled_sources: FxHashSet<ScrollSource>,
     /// The scroll containers painted lately, by id.
     containers: FxHashMap<GlobalElementId, PaintedContainer>,
+    /// The containers a press began on, or on whose content, while the
+    /// button is held. See [`crate::fast::layers::input::before_dispatch`].
+    pub(crate) pressed_in: SmallVec<[GlobalElementId; 2]>,
     /// How many times a wheel listener notified each view since the last
     /// frame was drawn, for having scrolled a container it painted.
     scroll_notifies: FxHashMap<EntityId, u64>,
@@ -101,6 +105,8 @@ struct PaintedContainer {
     source: ScrollSource,
     /// The view that painted it, which a scroll of it notifies.
     view: EntityId,
+    /// The container's own hitbox, under its content, if it has one.
+    hitbox: Option<HitboxId>,
     /// Its shared scroll state's version, and the version it was at when it
     /// was painted, if it has shared state.
     version: Option<(StateVersion, u64)>,
@@ -127,6 +133,11 @@ impl ScrollLog {
             .map(|container| container.source.clone())
     }
 
+    /// The own hitbox of the scroll container `id`, as it was last painted.
+    pub(crate) fn container_hitbox(&self, id: &GlobalElementId) -> Option<HitboxId> {
+        self.containers.get(id)?.hitbox
+    }
+
     fn remember(&mut self, container: &Container, frame: u64) {
         let version = container
             .version
@@ -137,6 +148,7 @@ impl ScrollLog {
             PaintedContainer {
                 source: container.source.clone(),
                 view: container.view,
+                hitbox: container.hitbox,
                 version,
                 frame,
             },
@@ -150,7 +162,22 @@ impl ScrollLog {
     /// are notified for it: now, or once the frame is drawn when the offset
     /// was published while it was.
     pub(crate) fn take_offsets_set(&mut self) {
-        let published = OFFSETS_SET.with_borrow_mut(std::mem::take);
+        // A thread's windows share the log: a window takes the publishes of
+        // the scroll states its own containers scroll by, and leaves the
+        // rest to the window that painted theirs.
+        let containers = &self.containers;
+        let published: Vec<PublishedOffset> = OFFSETS_SET.with_borrow_mut(|set| {
+            if set.is_empty() {
+                return Vec::new();
+            }
+            let (mine, others) = std::mem::take(set).into_iter().partition(|offset| {
+                containers
+                    .values()
+                    .any(|container| container.source == offset.source)
+            });
+            *set = others;
+            mine
+        });
         for offset in published {
             let mut notified: SmallVec<[EntityId; 4]> = offset.dependents.iter().copied().collect();
             for (id, container) in &self.containers {
@@ -199,8 +226,12 @@ impl ScrollLog {
 /// at the top of the element id stack, `element` its interactivity, with
 /// the scroll handle it tracks, if any.
 /// It is remembered as painted, for scrolls and reads of it to be told apart.
-pub(crate) fn painted_container(window: &mut Window, element: &Interactivity) -> ScrollContainer {
-    if !COMPILED {
+pub(crate) fn painted_container(
+    window: &mut Window,
+    element: &Interactivity,
+    hitbox: &crate::Hitbox,
+) -> ScrollContainer {
+    if !window.fast_mode.scroll_layers() {
         return ScrollContainer(None);
     }
     let id = window.element_id_stack.global_id();
@@ -216,6 +247,7 @@ pub(crate) fn painted_container(window: &mut Window, element: &Interactivity) ->
         source,
         version,
         view: window.current_view(),
+        hitbox: Some(hitbox.id),
     };
     let frame = window.fast_layers.frame;
     window.fast_layers.scrolls.remember(&container, frame);
@@ -245,7 +277,7 @@ pub(crate) fn note_scrolled(window: &mut Window, container: &ScrollContainer) {
 /// list by the id [`painted_list`] remembered it under, if it was painted.
 #[allow(dead_code, reason = "list layers use it, from sprint 12")]
 pub(crate) fn note_list_scrolled(window: &mut Window, version: &StateVersion, view: EntityId) {
-    if !COMPILED {
+    if !window.fast_mode.scroll_layers() {
         return;
     }
     let scrolls = &mut window.fast_layers.scrolls;
@@ -278,6 +310,7 @@ pub(crate) fn painted_list(window: &mut Window, id: &GlobalElementId, version: &
         source: ScrollSource::Container(id.clone()),
         version: Some(version.clone()),
         view: window.current_view(),
+        hitbox: None,
     };
     let frame = window.fast_layers.frame;
     window.fast_layers.scrolls.remember(&container, frame);
@@ -355,6 +388,15 @@ thread_local! {
     static LIST_BUILT: std::cell::Cell<Option<ListBuilt>> = const { std::cell::Cell::new(None) };
 }
 
+/// How many publishes wait for a window of this thread to take them in.
+#[cfg(test)]
+pub(crate) fn pending_publishes() -> usize {
+    OFFSETS_SET.with_borrow(Vec::len)
+}
+
+/// How many publishes wait for a window to take them in at most.
+const UNCLAIMED_PUBLISHES: usize = 64;
+
 /// A scroll offset its owner published. See [`offset_published`].
 struct PublishedOffset {
     source: ScrollSource,
@@ -412,17 +454,23 @@ pub(crate) fn offset_published(
     dependents: &[EntityId],
     deferred: bool,
 ) {
-    crate::fast::dependencies::StateVersion::bump_if(version, moved);
-    if COMPILED {
-        OFFSETS_SET.with_borrow_mut(|set| {
-            set.push(PublishedOffset {
-                source: ScrollSource::of_state(version),
-                moved,
-                dependents: dependents.iter().copied().collect(),
-                deferred,
-            })
-        });
+    if !on_thread() {
+        return;
     }
+    crate::fast::dependencies::StateVersion::bump_if(version, moved);
+    OFFSETS_SET.with_borrow_mut(|set| {
+        // Publishes no window of the thread has a container for (one drawn
+        // with scroll layers off) are never taken in: the oldest go.
+        if set.len() >= UNCLAIMED_PUBLISHES {
+            set.remove(0);
+        }
+        set.push(PublishedOffset {
+            source: ScrollSource::of_state(version),
+            moved,
+            dependents: dependents.iter().copied().collect(),
+            deferred,
+        })
+    });
 }
 
 /// Records, for any recording that is open, that the offset of the scroll
@@ -445,7 +493,7 @@ pub(crate) fn note_at_end_read(version: &StateVersion, at_end: Option<bool>) {
 
 #[inline]
 fn note_read(version: &StateVersion, read: Read) {
-    if !COMPILED {
+    if !on_thread() {
         return;
     }
     OFFSET_READS.with_borrow_mut(|log| {
@@ -604,7 +652,7 @@ pub(crate) fn render_read_offset(dependencies: &RenderDependencies, source: &Scr
 /// is not known this frame — the list's layer is not being decided on — it
 /// is taken for a read of the offset.
 pub(crate) fn offset_read_changed(window: &Window, dependencies: &RenderDependencies) -> bool {
-    if !COMPILED {
+    if !on_thread() {
         return false;
     }
     let scrolls = &window.fast_layers.scrolls;
@@ -678,27 +726,6 @@ pub(crate) fn changed(
             }))
 }
 
-/// `dependencies` without `entity`, if they name it.
-pub(crate) fn without_entity(
-    dependencies: &RenderDependencies,
-    entity: Option<EntityId>,
-) -> Option<RenderDependencies> {
-    let entity = entity?;
-    if !dependencies.entities.contains(&entity) {
-        return None;
-    }
-    let entities: Vec<_> = dependencies
-        .entities
-        .iter()
-        .copied()
-        .filter(|other| *other != entity)
-        .collect();
-    Some(RenderDependencies {
-        entities: entities.into(),
-        ..dependencies.clone()
-    })
-}
-
 /// The view holding the scroll container being prepainted.
 pub(crate) fn owner_view(window: &Window) -> Option<EntityId> {
     window.rendered_entity_stack.last().copied()
@@ -746,7 +773,7 @@ pub(crate) fn animation_frame_requested(window: &Window, id: &GlobalElementId) -
 /// Notes that the view `view` asked for an animation frame, as
 /// [`Window::request_animation_frame`] does.
 pub(crate) fn note_animation_frame(window: &Window, view: EntityId) {
-    if COMPILED {
+    if window.fast_mode.scroll_layers() {
         window
             .fast_layers
             .scrolls
@@ -842,7 +869,7 @@ impl Drop for OwnerWatch {
 /// [`crate::App::notify`].
 #[inline]
 pub(crate) fn note_notify(entity: EntityId) {
-    if COMPILED {
+    if on_thread() {
         OWNER_NOTIFIES.with_borrow_mut(|watched| {
             if let Some(notifies) = watched.get_mut(&entity) {
                 notifies.notifies += 1;
@@ -874,6 +901,7 @@ pub(crate) fn scroll_only(
         && hovers_stand(window, id, record, scroll_offset)
         && !nested_container_scrolled(window, id)
         && !content_view_notified(window, id, record)
+        && !content_view_rendered(window, id, record)
         && owner_scrolled_only(window, cx, id, source.as_ref())
 }
 
@@ -955,6 +983,21 @@ pub(crate) fn content_views(
 fn content_view_notified(window: &Window, id: &GlobalElementId, record: &LayerRecord) -> bool {
     record.views.iter().any(|view| {
         view_notified(window, *view)
+            && !crate::fast::layers::lists::held_row_view(window, id, *view)
+    })
+}
+
+/// Whether a view drawn inside the content the layer of `id` holds rendered
+/// in the frame being drawn. The view holding the container lays its
+/// children out before the container is prepainted, and a content view
+/// whose kept layout could not stand
+/// ([`crate::fast::layers::reuse::reuse_kept_layout`]: something laying it
+/// out or prepainting it read has changed, an entity updated without a
+/// notification among them) renders there. What it rendered is new content,
+/// which a composited frame would drop.
+fn content_view_rendered(window: &Window, id: &GlobalElementId, record: &LayerRecord) -> bool {
+    record.views.iter().any(|view| {
+        crate::fast::retained::rendering_since(window, *view).is_some()
             && !crate::fast::layers::lists::held_row_view(window, id, *view)
     })
 }
@@ -1051,10 +1094,12 @@ fn owner_change(
         .render_dependencies
         .as_ref()
         .unwrap_or(&owner.own_dependencies);
-    // What the view read of itself (a list renders its rows as the view
-    // holding it) is judged by how often it was notified, above.
-    let own = without_entity(read, owner_view(window));
-    let own = own.as_ref().unwrap_or(read);
+    // The view reads itself as it renders. A notification alone, which a
+    // scroll sends it, changes nothing it held: gpux counts an entity as
+    // changed when it was updated, notified or not, so a listener that
+    // changes the view on the way to a scroll is a change of what it hands
+    // the content.
+    let own = read;
     // What the view writes as it renders again is part of building it.
     let rendering;
     let own = match owner_view(window)
@@ -1110,6 +1155,7 @@ pub(crate) fn owner_rerendered_only(
         && hovers_stand(window, id, record, scroll_offset)
         && !nested_container_scrolled(window, id)
         && !content_view_notified(window, id, record)
+        && !content_view_rendered(window, id, record)
         && owner_change(window, cx, id, source.as_ref()) == OwnerChange::Rerendered
 }
 

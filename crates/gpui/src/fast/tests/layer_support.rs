@@ -245,8 +245,16 @@ fn scroll_at_and(
 /// What the scroll container decided in the last frame drawn, if it
 /// decided anything in it.
 pub(crate) fn decision(cx: &mut TestAppContext, window: AnyWindowHandle) -> Option<Decision> {
-    let id = scroller_id(cx, window);
-    with_window(cx, window, |window, _| last_decision(window, &id))
+    with_window(cx, window, |window, _| {
+        // A window without scroll layers remembers no container.
+        let id = window
+            .fast_layers
+            .scrolls
+            .containers()
+            .find(|id| id.last() == Some(&"scroller".into()))
+            .cloned()?;
+        last_decision(window, &id)
+    })
 }
 
 /// Scrolls until the container has a layer, checking it is promoted on
@@ -392,4 +400,39 @@ pub(crate) fn bg(color: impl Into<crate::Background>) -> crate::PreparedBackgrou
 /// `color` as it is painted, at full opacity.
 pub(crate) fn paint_color(color: impl Into<crate::Color>) -> crate::PaintColor {
     crate::color::prepare_color_with_opacity(&color.into(), 1.)
+}
+
+/// Scrolls the page's container by `dy` the way a scrollbar does: the
+/// offset is published at once and the view holding the container notified,
+/// without the view being updated.
+pub(crate) fn drag_scrollbar_by(
+    cx: &mut TestAppContext,
+    page: WindowHandle<LayerPage>,
+    dy: f32,
+) -> bool {
+    let (handle, owner) = page
+        .read_with(cx, |page, _| page.handle.clone())
+        .map(|handle| (handle, page.entity(cx).unwrap().entity_id()))
+        .unwrap();
+    publish_scrollbar(cx, &handle, owner, point(px(0.), px(dy)))
+}
+
+/// Publishes `handle`'s offset moved by `delta`, as a scrollbar of the view
+/// `owner` does.
+pub(crate) fn publish_scrollbar(
+    cx: &mut TestAppContext,
+    handle: &ScrollHandle,
+    owner: crate::EntityId,
+    delta: crate::Point<Pixels>,
+) -> bool {
+    let offset = handle.offset();
+    cx.update(|cx| handle.publish_scrollbar_offset(offset + delta, owner, cx))
+}
+
+/// Makes `window` the reference a window with scroll layers is compared
+/// with: every mechanism off, so each frame is drawn from scratch, with
+/// what scroll layers snap snapped alike.
+pub(crate) fn make_reference(window: &mut Window) {
+    window.set_fast_mode(crate::FastMode::OFF);
+    window.force_layer_snapping(true);
 }

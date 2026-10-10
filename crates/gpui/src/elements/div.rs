@@ -3951,7 +3951,8 @@ impl Interactivity {
             let line_height = window.line_height();
             let hitbox = hitbox.clone();
             let current_view = window.current_view();
-            let fast_container = crate::fast::layers::invalidate::painted_container(window, self);
+            let fast_container =
+                crate::fast::layers::invalidate::painted_container(window, self, &hitbox);
             window.on_mouse_event(move |event: &ScrollWheelEvent, phase, window, cx| {
                 if phase == DispatchPhase::Bubble && hitbox.should_handle_scroll(window) {
                     // Wheel, trackpad, and recognized touch scrolling replace any

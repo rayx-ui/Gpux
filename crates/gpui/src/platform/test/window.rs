@@ -362,6 +362,17 @@ impl PlatformWindow for TestWindow {
         self.draw(scene.scene());
     }
 
+    // A test window without a renderer draws nothing: what it would
+    // rasterize is compared as the scene's layer frames. One with a headless
+    // renderer shows what that renderer draws.
+    fn rasterizes_layer_tiles(&self) -> bool {
+        self.0
+            .lock()
+            .renderer
+            .as_ref()
+            .is_none_or(|renderer| renderer.rasterizes_layer_tiles())
+    }
+
     fn enable_window_composition(&self) -> anyhow::Result<()> {
         self.0.lock().fast_composition.enable()
     }
