@@ -180,6 +180,24 @@ mod linux {
             .ok();
     }
 
+    /// Whether every component of `actual` is within a pixel of `expected`:
+    /// regions are rounded out, so at a fractional scale an edge may land a
+    /// pixel further out than the rounded bounds.
+    fn within_a_pixel(actual: &[i32], expected: &[i32; 4]) -> bool {
+        actual.len() == 4
+            && actual
+                .iter()
+                .zip(expected)
+                .all(|(actual, expected)| (actual - expected).abs() <= 1)
+    }
+
+    /// The integers in `text`, in order.
+    fn numbers(text: &str) -> Vec<i32> {
+        text.split(|c: char| !(c.is_ascii_digit() || c == '-'))
+            .filter_map(|part| part.parse().ok())
+            .collect()
+    }
+
     /// `(x, y, w, h)` in logical pixels as device pixels, rounded.
     fn device((x, y, w, h): (f32, f32, f32, f32), scale: f32) -> [i32; 4] {
         [x, y, w, h].map(|value| (value * scale).round() as i32)
@@ -353,14 +371,22 @@ mod linux {
             in_order(&lines, &[format!("wayland input {overlay:?} []")])?;
             update(cx, &setup, |composed| composed.menu_open = true);
             wait_frames(cx, setup.window, 3).await?;
-            let [x, y, w, h] = [MENU.0, MENU.1, MENU.2, MENU.3].map(|value| value as i32);
+            let expected = [MENU.0, MENU.1, MENU.2, MENU.3].map(|value| value as i32);
+            let prefix = format!("wayland input {overlay:?} ");
             let lines = take_trace();
-            in_order(
-                &lines,
-                &[format!("wayland input {overlay:?} [({x}, {y}, {w}, {h})]")],
-            )?;
+            let line = lines
+                .iter()
+                .rev()
+                .find(|line| line.starts_with(&prefix))
+                .with_context(|| format!("no `{prefix}` line in {lines:#?}"))?;
+            let region = numbers(&line[prefix.len()..]);
+            // The region is rounded out to logical pixels, so at a fractional
+            // scale an edge may land a pixel further out.
+            if region.len() != 4 || !within_a_pixel(&region, &expected) {
+                bail!("the overlay's input region is {line}, expected the menu {expected:?}");
+            }
             Ok(Check::Passed(format!(
-                "empty while closed, the menu's {x},{y} {w}x{h} while open"
+                "empty while closed, the menu's {region:?} while open"
             )))
         }
         .await;
@@ -657,12 +683,15 @@ mod linux {
                 .rectangles;
             let expected = device(MENU, x11.setup.scale);
             let matches = input.iter().any(|rectangle| {
-                [
-                    i32::from(rectangle.x),
-                    i32::from(rectangle.y),
-                    i32::from(rectangle.width),
-                    i32::from(rectangle.height),
-                ] == expected
+                within_a_pixel(
+                    &[
+                        i32::from(rectangle.x),
+                        i32::from(rectangle.y),
+                        i32::from(rectangle.width),
+                        i32::from(rectangle.height),
+                    ],
+                    &expected,
+                )
             });
             if input.len() != 1 || !matches {
                 bail!(

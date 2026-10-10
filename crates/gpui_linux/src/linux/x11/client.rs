@@ -1394,12 +1394,21 @@ impl X11Client {
             }
             Event::XinputEnter(event) if event.mode == xinput::NotifyMode::NORMAL => {
                 let window = self.get_window(event.event)?;
-                window.set_hovered(true);
+                if !crate::fast::composition::x11::still_hovered(self, &window) {
+                    window.set_hovered(true);
+                }
                 let mut state = self.0.borrow_mut();
                 state.mouse_focused_window = Some(event.event);
                 state.restore_cursor_after_hide();
             }
             Event::XinputLeave(event) if event.mode == xinput::NotifyMode::NORMAL => {
+                if crate::fast::composition::x11::crossing_within_window(
+                    &self.get_window(event.event)?,
+                    event.event,
+                    gpux::point(event.root_x >> 16, event.root_y >> 16),
+                ) {
+                    return Some(());
+                }
                 let mut state = self.0.borrow_mut();
 
                 // Set last scroll values to `None` so that a large delta isn't created if scrolling is done outside the window (the valuator is global)

@@ -31,7 +31,7 @@ use raw_window_handle as rwh;
 use wayland_backend::client::ObjectId;
 use wayland_client::{
     Proxy, delegate_noop,
-    protocol::{wl_subcompositor, wl_subsurface, wl_surface},
+    protocol::{wl_pointer, wl_subcompositor, wl_subsurface, wl_surface},
 };
 use wayland_protocols::wp::viewporter::client::wp_viewport;
 
@@ -40,8 +40,8 @@ use crate::linux::{Globals, WaylandClientState, WaylandClientStatePtr, get_windo
 use gpui_wgpu::{WgpuRenderer, WgpuSurfaceConfig, wgpu};
 use gpux::{
     Bounds, ComposedScene, CompositionSurfaceId, DevicePixels, Pixels, PlatformCompositionSurface,
-    PlatformCompositionSurfaceContent, PlatformSurfaceAttachment, PlatformWindow, Point,
-    ScaledPixels, Scene, Size,
+    PlatformCompositionSurfaceContent, PlatformInput, PlatformSurfaceAttachment, PlatformWindow,
+    Point, ScaledPixels, Scene, Size,
 };
 
 /// The `log` target of the composition requests handed to the compositor.
@@ -70,6 +70,78 @@ pub(crate) fn get_input_window(
     })
 }
 
+/// A pointer exit held back until its `wl_pointer.frame`: moving between a
+/// window's surface and its overlay subsurfaces' input regions is a leave and
+/// an enter in one frame, which is a move within the window, not an exit.
+#[derive(Default)]
+pub(crate) struct PointerCrossing(Option<(WaylandWindowStatePtr, PlatformInput)>);
+
+/// What an enter found of an exit held back.
+pub(crate) enum Crossing {
+    /// No exit was held back.
+    None,
+    /// The pointer left a surface of the window it entered: it stayed in it.
+    Within,
+    /// The pointer left another window, whose exit is delivered now.
+    Left(WaylandWindowStatePtr, PlatformInput),
+}
+
+/// Holds back the exit `input` from `window` when the pointer may be crossing
+/// onto another of its surfaces: the window composes with overlay
+/// subsurfaces and the pointer sends frames (version 5). Returns the input
+/// when it must be delivered now.
+pub(crate) fn defer_exit(
+    state: &mut WaylandClientState,
+    pointer: &wl_pointer::WlPointer,
+    window: &WaylandWindowStatePtr,
+    input: PlatformInput,
+) -> Option<PlatformInput> {
+    let composes = state
+        .fast_composition_input_surfaces
+        .0
+        .values()
+        .any(|surface_window| surface_window.ptr_eq(window));
+    if !composes || pointer.version() < wl_pointer::EVT_FRAME_SINCE {
+        return Some(input);
+    }
+    state.fast_pointer_crossing.0 = Some((window.clone(), input));
+    None
+}
+
+/// Resolves an exit held back when the pointer enters `window`.
+pub(crate) fn resolve_exit(
+    state: &mut WaylandClientState,
+    window: &WaylandWindowStatePtr,
+) -> Crossing {
+    match state.fast_pointer_crossing.0.take() {
+        None => Crossing::None,
+        Some((left, _)) if left.ptr_eq(window) => Crossing::Within,
+        Some((left, input)) => Crossing::Left(left, input),
+    }
+}
+
+/// Delivers what [`resolve_exit`] found, with the client state released, and
+/// returns whether the entered window is newly hovered.
+pub(crate) fn finish_crossing(crossing: Crossing) -> bool {
+    match crossing {
+        Crossing::None => true,
+        Crossing::Within => false,
+        Crossing::Left(window, input) => {
+            window.handle_input(input);
+            window.set_hovered(false);
+            true
+        }
+    }
+}
+
+/// The exit still held back when the pointer frame ends: the pointer left
+/// the window.
+pub(crate) fn take_exit(
+    state: &mut WaylandClientState,
+) -> Option<(WaylandWindowStatePtr, PlatformInput)> {
+    state.fast_pointer_crossing.0.take()
+}
+
 /// Forgets the input surfaces of a window that closed.
 pub(crate) fn forget_input_surfaces(
     state: &mut WaylandClientState,
@@ -79,6 +151,14 @@ pub(crate) fn forget_input_surfaces(
         .fast_composition_input_surfaces
         .0
         .retain(|_, window| !window.ptr_eq(closed_window));
+    if state
+        .fast_pointer_crossing
+        .0
+        .as_ref()
+        .is_some_and(|(window, _)| window.ptr_eq(closed_window))
+    {
+        state.fast_pointer_crossing.0 = None;
+    }
 }
 
 impl WaylandClientStatePtr {
@@ -124,10 +204,17 @@ impl WaylandSubsurface {
             "the Wayland compositor does not support wl_subcompositor"
         );
         let surface = globals.compositor.create_surface(&globals.qh, ());
-        let viewport = globals
-            .viewporter
-            .as_ref()
-            .map(|viewporter| viewporter.get_viewport(&surface, &globals.qh, ()));
+        // Only GPUI's own surfaces get a viewport: a producer presenting to
+        // a native surface may create its own, and a second one is a
+        // protocol error (`viewport_exists`).
+        let viewport = if synchronized {
+            globals
+                .viewporter
+                .as_ref()
+                .map(|viewporter| viewporter.get_viewport(&surface, &globals.qh, ()))
+        } else {
+            None
+        };
         Ok(Self {
             surface,
             subsurface: None,
@@ -171,7 +258,12 @@ impl WaylandSubsurface {
         self.parent = None;
     }
 
+    /// Sizes a GPUI surface's buffer to `size` on screen; a native surface's
+    /// producer sizes its own buffers.
     fn set_size(&self, size: Size<DevicePixels>, scale: f32) {
+        if !self.synchronized {
+            return;
+        }
         if let Some(viewport) = &self.viewport {
             let size = logical_size(size, scale);
             viewport.set_destination(size.width.max(1), size.height.max(1));
@@ -281,6 +373,8 @@ impl WaylandNativeSurfaceState {
 /// A `wl_surface` slot for content produced outside GPUI's renderer. Its
 /// `platform_handle` is a `raw_window_handle::RawWindowHandle::Wayland`, which
 /// the producer must stop presenting to before this attachment is dropped.
+/// GPUI positions the subsurface; the producer sizes and scales its buffers
+/// (with a `wp_viewport` of its own where it wants one) to the bounds.
 struct WaylandNativeSurface {
     state: Rc<RefCell<WaylandNativeSurfaceState>>,
     composition: Weak<RefCell<WaylandComposition>>,
@@ -637,6 +731,11 @@ pub(crate) fn draw_composed(window: &WaylandWindow, scene: ComposedScene<'_>) {
         let size = composition.size;
         let mut failed = false;
         for surface in composition.gpui_surfaces.values_mut() {
+            // Release the lost renderer's swapchain first: a second one on
+            // the same wl_surface can fail (VK_ERROR_NATIVE_WINDOW_IN_USE_KHR).
+            // An unconfigured renderer draws nothing until it is replaced.
+            surface.renderer.unconfigure_surface();
+            surface.renderer.destroy();
             let renderer = surface.raw_window().and_then(|raw_window| {
                 state
                     .renderer

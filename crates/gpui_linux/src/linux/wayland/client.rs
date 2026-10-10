@@ -371,6 +371,7 @@ pub(crate) struct WaylandClientState {
     // Surface to Window mapping
     windows: HashMap<ObjectId, WaylandWindowStatePtr>,
     pub(crate) fast_composition_input_surfaces: crate::fast::composition::wayland::InputSurfaces,
+    pub(crate) fast_pointer_crossing: crate::fast::composition::wayland::PointerCrossing,
     // Output to scale mapping
     outputs: HashMap<ObjectId, Output>,
     in_progress_outputs: HashMap<ObjectId, InProgressOutput>,
@@ -1045,6 +1046,7 @@ impl WaylandConnection {
             windows: HashMap::default(),
             fast_composition_input_surfaces:
                 crate::fast::composition::wayland::InputSurfaces::default(),
+            fast_pointer_crossing: crate::fast::composition::wayland::PointerCrossing::default(),
             common,
             keyboard_layout: LinuxKeyboardLayout::new(UNKNOWN_KEYBOARD_LAYOUT_NAME),
             keymap_state: None,
@@ -2347,8 +2349,12 @@ impl Dispatch<wl_pointer::WlPointer, ()> for WaylandClientStatePtr {
                         }
                     }
                     let modifiers = state.modifiers;
+                    let crossing =
+                        crate::fast::composition::wayland::resolve_exit(&mut state, &window);
                     drop(state);
-                    window.set_hovered(true);
+                    if crate::fast::composition::wayland::finish_crossing(crossing) {
+                        window.set_hovered(true);
+                    }
                     // No Motion follows Enter unless the pointer keeps moving, so synthesize
                     // a MouseMove to establish hover at the entry position.
                     window.handle_input(PlatformInput::MouseMove(MouseMoveEvent {
@@ -2370,6 +2376,14 @@ impl Dispatch<wl_pointer::WlPointer, ()> for WaylandClientStatePtr {
                     state.button_pressed = None;
                     state.cursor_hidden_window = None;
 
+                    let Some(input) = crate::fast::composition::wayland::defer_exit(
+                        &mut state,
+                        wl_pointer,
+                        &focused_window,
+                        input,
+                    ) else {
+                        return;
+                    };
                     drop(state);
                     focused_window.handle_input(input);
                     focused_window.set_hovered(false);
@@ -2611,6 +2625,14 @@ impl Dispatch<wl_pointer::WlPointer, ()> for WaylandClientStatePtr {
                 }
             }
             wl_pointer::Event::Frame => {
+                if let Some((window, input)) =
+                    crate::fast::composition::wayland::take_exit(&mut state)
+                {
+                    drop(state);
+                    window.handle_input(input);
+                    window.set_hovered(false);
+                    state = client.borrow_mut();
+                }
                 if state.scroll_event_received {
                     state.scroll_event_received = false;
                     let continuous = state.continuous_scroll_delta.take();

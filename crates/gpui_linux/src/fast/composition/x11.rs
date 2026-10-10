@@ -46,7 +46,8 @@ use x11rb::{
 };
 
 use crate::linux::{
-    X11Window, X11WindowStatePtr, XINPUT_ALL_DEVICE_GROUPS, check_reply, get_reply, xcb_flush,
+    X11Client, X11Window, X11WindowStatePtr, XINPUT_ALL_DEVICE_GROUPS, check_reply, get_reply,
+    xcb_flush,
 };
 
 /// An X11 window's composition state, held by `X11WindowState`.
@@ -246,18 +247,52 @@ fn scene_occluders(scene: &Scene, opaque_only: bool) -> Vec<Bounds<DevicePixels>
     // gpux bakes element transforms into primitives: occlude where they
     // land, not at their untransformed bounds.
     let mut rectangles = Vec::new();
-    rectangles.extend(
-        scene
+    if opaque_only {
+        // Only what covers native content completely may replace it: opaque
+        // quads, without their rounded corners (the cross between them).
+        // Glyphs, paths and translucent content blend in the overlay window.
+        for quad in scene
             .quads
             .iter()
-            .filter(|quad| !opaque_only || quad.background.is_opaque())
-            .map(|quad| {
-                clipped(
-                    quad.transformation.apply_to_scaled_bounds(quad.bounds),
-                    &quad.content_mask,
+            .filter(|quad| quad.background.is_opaque())
+        {
+            let bounds = quad.transformation.apply_to_scaled_bounds(quad.bounds);
+            let radii = &quad.corner_radii;
+            let radius = radii
+                .top_left
+                .0
+                .max(radii.top_right.0)
+                .max(radii.bottom_left.0)
+                .max(radii.bottom_right.0)
+                .min(bounds.size.width.0 / 2.)
+                .min(bounds.size.height.0 / 2.);
+            if radius <= 0. {
+                rectangles.push(clipped(bounds, &quad.content_mask));
+                continue;
+            }
+            let (x, y) = (bounds.origin.x.0, bounds.origin.y.0);
+            let (width, height) = (bounds.size.width.0, bounds.size.height.0);
+            let scaled = |x: f32, y: f32, width: f32, height: f32| {
+                Bounds::new(
+                    gpux::point(ScaledPixels(x), ScaledPixels(y)),
+                    gpux::size(ScaledPixels(width), ScaledPixels(height)),
                 )
-            }),
-    );
+            };
+            for band in [
+                scaled(x, y + radius, width, height - radius * 2.),
+                scaled(x + radius, y, width - radius * 2., height),
+            ] {
+                rectangles.push(clipped(band, &quad.content_mask));
+            }
+        }
+        return keep_uncovered(rectangles);
+    }
+    rectangles.extend(scene.quads.iter().map(|quad| {
+        clipped(
+            quad.transformation.apply_to_scaled_bounds(quad.bounds),
+            &quad.content_mask,
+        )
+    }));
     rectangles.extend(
         scene
             .paths
@@ -297,6 +332,13 @@ fn scene_occluders(scene: &Scene, opaque_only: bool) -> Vec<Bounds<DevicePixels>
             .map(|surface| clipped(surface.bounds, &surface.content_mask)),
     );
 
+    keep_uncovered(rectangles)
+}
+
+/// `rectangles` in device pixels, rounded out, without the ones a larger one
+/// covers, and merged into their bounding box past
+/// [`MAX_OCCLUDER_RECTANGLES`].
+fn keep_uncovered(rectangles: Vec<Bounds<ScaledPixels>>) -> Vec<Bounds<DevicePixels>> {
     let mut rectangles = rectangles
         .into_iter()
         .map(|bounds| {
@@ -694,6 +736,7 @@ impl X11Composition {
             return Ok(());
         }
         let size = window_renderer.viewport_size();
+        let window_bounds = state.bounds;
         if overlay
             .as_ref()
             .is_some_and(|overlay| overlay.renderer.device_lost())
@@ -732,18 +775,25 @@ impl X11Composition {
         };
         drop(state);
 
-        let origin = get_reply(
-            || "X11 TranslateCoordinates for the overlay window failed.",
-            self.xcb.translate_coordinates(self.x_window, *root, 0, 0),
-        )?;
-        overlay.set_geometry(
-            &self.xcb,
-            Point::new(
-                DevicePixels(origin.dst_x.into()),
-                DevicePixels(origin.dst_y.into()),
-            ),
-            size,
-        )?;
+        // The window's root origin changes only when the window (or the
+        // frame a window manager put it in) is configured, which updates its
+        // bounds: ask the server again only then, not every frame.
+        let origin = match overlay.root_origin {
+            Some((bounds, origin)) if bounds == window_bounds => origin,
+            _ => {
+                let reply = get_reply(
+                    || "X11 TranslateCoordinates for the overlay window failed.",
+                    self.xcb.translate_coordinates(self.x_window, *root, 0, 0),
+                )?;
+                let origin = Point::new(
+                    DevicePixels(reply.dst_x.into()),
+                    DevicePixels(reply.dst_y.into()),
+                );
+                overlay.root_origin = Some((window_bounds, origin));
+                origin
+            }
+        };
+        overlay.set_geometry(&self.xcb, origin, size)?;
         overlay.set_input(&self.xcb, scene_occluders(scene, false))?;
         overlay.map(&self.xcb)?;
         overlay.raise_above(&self.xcb, self.x_window);
@@ -777,6 +827,47 @@ thread_local! {
         RefCell::default();
 }
 
+/// Whether a pointer leave on `event_window`, at `root` in root-window device
+/// pixels, only crosses between `window` and its overlay window: from the
+/// window into the overlay's input shape, or from the overlay back onto the
+/// window. That is a move within the window, not an exit.
+pub(crate) fn crossing_within_window(
+    window: &X11WindowStatePtr,
+    event_window: xproto::Window,
+    root: Point<i32>,
+) -> bool {
+    let composition = window.state.borrow().fast_composition.0.clone();
+    let composition = composition.borrow();
+    let Overlay::Supported {
+        window: Some(overlay),
+        ..
+    } = &composition.overlay
+    else {
+        return false;
+    };
+    let local = Point::new(
+        DevicePixels(root.x - overlay.origin.x.0),
+        DevicePixels(root.y - overlay.origin.y.0),
+    );
+    if event_window == overlay.x_window {
+        Bounds::new(Point::default(), overlay.size).contains(&local)
+    } else {
+        overlay
+            .input
+            .as_ref()
+            .is_some_and(|input| input.iter().any(|bounds| bounds.contains(&local)))
+    }
+}
+
+/// Whether the pointer entering `window` comes from another of its surfaces
+/// (a leave [`crossing_within_window`] kept), so the window is hovered still.
+pub(crate) fn still_hovered(client: &X11Client, window: &X11WindowStatePtr) -> bool {
+    let focused = client.0.borrow().mouse_focused_window;
+    focused
+        .and_then(|focused| client.get_window(focused))
+        .is_some_and(|focused| Rc::ptr_eq(&focused.state, &window.state))
+}
+
 /// `X11Client::get_window`'s fallback for an overlay window: the window it
 /// covers, which shares its coordinate space.
 pub(crate) fn input_window(x_window: xproto::Window) -> Option<X11WindowStatePtr> {
@@ -807,6 +898,9 @@ struct OverlayWindow {
     size: Size<DevicePixels>,
     input: Option<Vec<Bounds<DevicePixels>>>,
     mapped: bool,
+    /// The covered window's root origin, with the window bounds it was
+    /// asked for at.
+    root_origin: Option<(Bounds<gpux::Pixels>, Point<DevicePixels>)>,
 }
 
 impl OverlayWindow {
@@ -866,6 +960,7 @@ impl OverlayWindow {
             size,
             input: None,
             mapped: false,
+            root_origin: None,
         };
         overlay.set_popup_hints(xcb, parent)?;
         // An empty input shape until the first frame sets it from content.

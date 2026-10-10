@@ -268,7 +268,7 @@ pub struct X11WindowState {
     visual_id: u32,
     pub(crate) counter_id: sync::Counter,
     pub(crate) last_sync_counter: Option<sync::Int64>,
-    bounds: Bounds<Pixels>,
+    pub(crate) bounds: Bounds<Pixels>,
     scale_factor: f32,
     /// Taken when the window is dropped. Its GPU objects use the X connection, so they mustn't
     /// outlive the window, which a display mode switch relies on.
