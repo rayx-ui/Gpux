@@ -14,6 +14,7 @@
 mod checks;
 mod composition;
 mod composition_linux;
+mod composition_windows;
 mod os;
 
 use gpux::{

@@ -124,6 +124,7 @@ pub struct WindowsWindowState {
     pub direct_manipulation: DirectManipulationHandler,
 
     pub renderer: RefCell<WgpuRenderer>,
+    pub fast_composition: RefCell<crate::fast::composition::Composition>,
     pub subpixel_rendering_supported: bool,
     /// Coalesce live-resize surface changes until the frame that draws with the
     /// matching GPUI viewport. This avoids presenting with a surface size from
@@ -156,7 +157,7 @@ pub struct WindowsWindowState {
 }
 
 pub(crate) struct WindowsWindowInner {
-    hwnd: HWND,
+    pub(crate) hwnd: HWND,
     pub(crate) dialog_owner: Rc<crate::dialog::DialogOwner>,
     drop_target_helper: IDropTargetHelper,
     pub(crate) state: WindowsWindowState,
@@ -265,6 +266,7 @@ impl WindowsWindowState {
             hovered: Cell::new(hovered),
             last_visibility: Cell::new(None),
             renderer: RefCell::new(renderer),
+            fast_composition: RefCell::default(),
             subpixel_rendering_supported,
             pending_drawable_size: Cell::new(None),
             force_render_after_recovery: Cell::new(false),
@@ -1184,6 +1186,7 @@ impl PlatformWindow for WindowsWindow {
             match renderer.recover(&WgpuWin32Window::new(self.0.hwnd)) {
                 Ok(()) => {
                     log::info!("Windows WGPU recovery completed; forcing a fresh render");
+                    crate::fast::composition::device_lost(&self.0);
                 }
                 Err(err) => {
                     log::warn!(
@@ -1201,6 +1204,25 @@ impl PlatformWindow for WindowsWindow {
         if renderer.needs_redraw() {
             self.0.post_wgpu_force_update_window();
         }
+    }
+
+    fn draw_composed(&self, scene: gpux::ComposedScene<'_>) {
+        crate::fast::composition::draw_composed(self, scene)
+    }
+
+    fn enable_window_composition(&self) -> anyhow::Result<()> {
+        crate::fast::composition::enable_window_composition(self)
+    }
+
+    fn create_native_surface(&self) -> anyhow::Result<Rc<dyn gpux::PlatformSurfaceAttachment>> {
+        crate::fast::composition::create_native_surface(self)
+    }
+
+    fn set_composition_order(
+        &self,
+        fast_surfaces: &[gpux::PlatformCompositionSurface],
+    ) -> anyhow::Result<()> {
+        crate::fast::composition::set_composition_order(self, fast_surfaces)
     }
 
     fn render_to_image(&self, scene: &Scene) -> anyhow::Result<image::RgbaImage> {
@@ -1626,7 +1648,7 @@ enum WindowOpenState {
     Windowed,
 }
 
-const WINDOW_CLASS_NAME: PCWSTR = w!("Zed::Window");
+pub(crate) const WINDOW_CLASS_NAME: PCWSTR = w!("Zed::Window");
 
 fn register_window_class(icon_handle: HICON) {
     static ONCE: Once = Once::new();

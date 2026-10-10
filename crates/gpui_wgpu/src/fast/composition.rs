@@ -16,7 +16,7 @@ use std::rc::Rc;
 
 use raw_window_handle::HasWindowHandle;
 
-use crate::{WgpuRenderer, WgpuSurfaceConfig};
+use crate::{WgpuRenderer, WgpuSurfaceConfig, wgpu};
 
 impl WgpuRenderer {
     /// Creates a renderer for another surface of the same window, sharing
@@ -25,25 +25,60 @@ impl WgpuRenderer {
     pub fn new_sharing<W>(
         &self,
         window: &W,
-        mut config: WgpuSurfaceConfig,
+        config: WgpuSurfaceConfig,
         transparent: bool,
     ) -> anyhow::Result<Self>
     where
         W: HasWindowHandle,
     {
+        let window_handle = window
+            .window_handle()
+            .map_err(|e| anyhow::anyhow!("Failed to get window handle: {e}"))?;
+        self.new_sharing_surface(
+            |instance| crate::wgpu_renderer::create_surface(instance, window_handle.as_raw()),
+            config,
+            transparent,
+        )
+    }
+
+    /// [`Self::new_sharing`] for a surface target that is not a window, such
+    /// as a DirectComposition visual (`SurfaceTargetUnsafe::CompositionVisual`),
+    /// whose swap chain wgpu sets as the visual's content. The caller commits
+    /// the composition.
+    ///
+    /// # Safety
+    ///
+    /// `target` must stay valid for the renderer's lifetime, as
+    /// [`wgpu::Instance::create_surface_unsafe`] requires.
+    pub unsafe fn new_sharing_target(
+        &self,
+        target: wgpu::SurfaceTargetUnsafe,
+        config: WgpuSurfaceConfig,
+        transparent: bool,
+    ) -> anyhow::Result<Self> {
+        self.new_sharing_surface(
+            // SAFETY: the caller keeps `target` valid for the renderer's lifetime.
+            |instance| unsafe { instance.create_surface_unsafe(target) }.map_err(Into::into),
+            config,
+            transparent,
+        )
+    }
+
+    fn new_sharing_surface(
+        &self,
+        create_surface: impl FnOnce(&wgpu::Instance) -> anyhow::Result<wgpu::Surface<'static>>,
+        mut config: WgpuSurfaceConfig,
+        transparent: bool,
+    ) -> anyhow::Result<Self> {
         let gpu_context = self
             .context
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("renderer has no shared GPU context"))?;
-        let window_handle = window
-            .window_handle()
-            .map_err(|e| anyhow::anyhow!("Failed to get window handle: {e}"))?;
         let context_ref = gpu_context.borrow();
         let context = context_ref
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("GPU context is not initialized"))?;
-        let surface =
-            crate::wgpu_renderer::create_surface(&context.instance, window_handle.as_raw())?;
+        let surface = create_surface(&context.instance)?;
         context.check_compatible_with_surface(&surface)?;
         config.transparent = transparent;
         let mut renderer = Self::new_internal(

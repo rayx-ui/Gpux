@@ -42,6 +42,11 @@ pub async fn run(id: &str, cx: &mut AsyncApp) -> ResultLine {
         "composition-x11-cutouts" => crate::composition_linux::x11_cutouts(cx).await,
         "composition-x11-input" => crate::composition_linux::x11_input(cx).await,
         "composition-x11-overlay" => crate::composition_linux::x11_overlay(cx).await,
+        "composition-windows-order" => crate::composition_windows::order(cx).await,
+        "composition-windows-clip" => crate::composition_windows::clip(cx).await,
+        "composition-windows-device-loss" => crate::composition_windows::device_loss(cx).await,
+        "composition-windows-accelerator" => crate::composition_windows::accelerator(cx).await,
+        "composition-windows-resize" => crate::composition_windows::resize(cx).await,
         other => Err(anyhow!("unknown platform check `{other}`")),
     };
     match result {

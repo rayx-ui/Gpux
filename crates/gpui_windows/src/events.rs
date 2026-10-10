@@ -1314,6 +1314,7 @@ impl WindowsWindowInner {
         // a fresh scene build on the next frame.
         log::debug!("Windows GPU device-lost message received; forcing a fresh WGPU scene rebuild");
         self.state.force_render_after_recovery.set(true);
+        crate::fast::composition::device_lost(self);
         Some(0)
     }
 

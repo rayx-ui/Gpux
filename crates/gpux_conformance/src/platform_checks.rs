@@ -80,6 +80,26 @@ pub const PLATFORM_CHECKS: &[PlatformCheck] = &[
         id: "composition-x11-overlay",
         description: "with window composition on X11 under a compositing manager, the GPUI content above native surfaces is drawn into an override-redirect overlay window whose input shape is that content (skipped without a compositing manager)",
     },
+    PlatformCheck {
+        id: "composition-windows-order",
+        description: "with window composition on Windows, an OS screenshot shows a native surface's DirectComposition visual above the base content and below a GPUI menu (skipped outside Windows)",
+    },
+    PlatformCheck {
+        id: "composition-windows-clip",
+        description: "with window composition on Windows, a native surface's content presented larger than its bounds is clipped to them (skipped outside Windows)",
+    },
+    PlatformCheck {
+        id: "composition-windows-device-loss",
+        description: "with window composition on Windows, the device-lost message rebuilds the DirectComposition tree, tells the native surface's owner once, and its content shows again (skipped outside Windows)",
+    },
+    PlatformCheck {
+        id: "composition-windows-accelerator",
+        description: "with window composition on Windows, a key down for a non-GPUI child window reaches its window procedure translated (skipped outside Windows)",
+    },
+    PlatformCheck {
+        id: "composition-windows-resize",
+        description: "with window composition on Windows, fast height-only live resize leaves the base content unstretched, and reports the visual-hosted alternative's behaviour (skipped outside Windows)",
+    },
 ];
 
 /// The platform check with this id.

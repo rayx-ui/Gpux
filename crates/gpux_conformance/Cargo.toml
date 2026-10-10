@@ -55,7 +55,13 @@ log.workspace = true
 x11rb = { version = "0.13.1", features = ["shape"] }
 
 [target.'cfg(target_os = "windows")'.dev-dependencies]
-windows = { workspace = true, features = ["Win32_UI_Input_KeyboardAndMouse"] }
+gpui_wgpu.workspace = true
+pollster.workspace = true
+windows = { workspace = true, features = [
+    "Win32_Graphics_DirectComposition",
+    "Win32_Graphics_Dwm",
+    "Win32_UI_Input_KeyboardAndMouse",
+] }
 
 [target.'cfg(target_os = "macos")'.dev-dependencies]
 core-graphics.workspace = true
