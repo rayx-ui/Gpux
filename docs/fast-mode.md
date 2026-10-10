@@ -178,7 +178,9 @@ A container goes without a layer, counted by reason in `FastStats::layer_bypasse
   while the inspector picks. A frame drawn from scratch (`Window::refresh`, as after the
   renderer lost its sprite atlas, whose tiles the kept content would still name) also leaves no
   layer content painted before it: the container is painted into its layer again the next time
-  it scrolls;
+  it scrolls. So does removing an image or an SVG from the sprite atlas (`Window::drop_image`,
+  `drop_svg`): the atlas hands the slot out again, and the tiles' hashes would not tell the next
+  image from the one removed;
 - `not-promoted`: it has not scrolled on two frames in a row;
 - `demoted`: its content changed on 8 of the last 16 frames, painting it again cost more than
   the frames it composited saved, it draws over a path (paths are never rasterized into tiles),
@@ -229,12 +231,14 @@ a tile cache per renderer, so each surface of a composed window has its own:
   on mobile), evicting the least recently composited, never one the frame being drawn uses. A
   layer no frame composited for 120 frames is released.
 - Every tile is released when the drawable is resized, the alpha mode or transparency changes,
-  the renderer clears its sprite atlas after repeated GPU errors, a frame that was to rasterize
-  tiles fails, or the device is lost (the recovered renderer starts with an empty cache). A
-  change of scale drops the window's layers, so their tiles age out.
+  a GPU error is reported for a frame (a Metal command buffer that failed, any error the wgpu
+  device raised), a frame that was to rasterize tiles is not drawn, or the device is lost (the
+  recovered renderer starts with an empty cache). A change of scale drops the window's layers,
+  so their tiles age out.
 
-A tile has to hold the bytes the frame would. Two things in the shaders make it so, with or
-without layers:
+A tile has to hold the bytes the frame would. Two things in the shaders make it so. They apply
+in every mode, so a frame's last bits can differ from those of gpux before them (the committed
+goldens did not change):
 
 - An untransformed quad, shadow, underline or sprite is shaded from the fragment's own
   position, which is exact. The position interpolated from the vertices differs in its last
@@ -244,26 +248,22 @@ without layers:
 - The gradient dither is seeded by the pixel within the quad, not by its position in the
   window, so a gradient dithers alike wherever it is drawn.
 
-And one in how a scene culls: a shadow is drawn while its blur reaches its content mask (three
-blur radii beyond its bounds; an inset shadow, while its element shows). It used to be dropped
-with its bounds, so a blur vanished a few pixels early as its box scrolled out of a viewport,
-which a layer's tiles, holding the shadow whole, do not do. Such a shadow is ordered as it was
-when the last pixel of its bounds showed.
-
-One limit remains. Where the blurs of two shadows overlap outside both boxes, the order they
-are blended in rounds the result, and that order follows the draw orders of what else is in the
-scene, as it does without layers. A tile is painted with both boxes in view; a frame drawn
-without the layer, at a scroll position where one box has just left the viewport and the
-other, closer to it than a blur reaches, is at its edge, draws the two in another order. The
-overlap can then differ by one level of one channel.
+One difference from a frame drawn without layers remains, and it is the layer that is right.
+gpux drops a shadow when its box leaves its clip, though its blur reaches three blur radii
+further, so a blur vanishes a few pixels early as its box scrolls out of a viewport. A layer's
+tiles hold the content as it was painted, every shadow whole: a frame drawn from them still
+shows that blur, under whatever the shadow lay under, within a blur's reach of the viewport's
+edge. A frame that draws the container without its layer (a refresh, a demotion) drops it again.
 
 The renderers' groups (`fast::layers::tests` in `gpui_wgpu`, `fast::layers` in `gpui_apple`)
 compare content drawn from tiles with the same content drawn directly, byte for byte: tiles of
 positive and negative coordinates, odd translations, a second frame from the cache, paths over
 tiles, eviction and release. Lane C's `lane_c_scroll_layers` group scrolls real views (text
-rows at scales 1, 1.5 and 2, cards with shadows and gradients, paths, both axes, content that
-changes while scrolled) in a window with every mechanism on and in one with them off and the
-snapping forced on, and compares every frame's pixels.
+rows at scales 1, 1.5 and 2, cards with shadows and gradients, shadowed cards closer together
+than their blurs reach, paths, both axes, content that changes while scrolled) in a window with
+every mechanism on and in one with them off and the snapping forced on, and compares every
+frame's pixels: equal, but within a blur's reach of the viewport's top and bottom edges, where
+the layered frame may only be darker, and not on a card.
 
 ## Window composition
 
