@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 70,
+  "revision": 75,
   "planRevision": 12,
   "specHashes": {
     "requirements": "9a032d1345bbc15ddac8a565144cc02934f65cee34ff9fbb7e0ef3453253fcf0",
@@ -148,13 +148,22 @@
       ]
     },
     "t24-splice": {
-      "status": "pending"
+      "status": "implemented",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t25-own-dirty": {
-      "status": "pending"
+      "status": "implemented",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t26-oracle-splice": {
-      "status": "pending"
+      "status": "implemented",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t27-composition-core": {
       "status": "pending"
@@ -298,6 +307,15 @@
         }
       },
       "recordedAt": "2026-10-10T00:06:23Z"
+    },
+    "fbe2c325e5ce062241cf3d732442587a7d73c6bbb752d9291a1c5c15e187ab24": {
+      "snapshot": {
+        "specHash": "9cf17136f245c3f50c88e11f4534517bb42b808da4724e9a86a692865724e051",
+        "repositories": {
+          "gpux": "929c1fbd4d9a0099895204f92093d5e41f4e62b07db3a416821d0b3fc503f858"
+        }
+      },
+      "recordedAt": "2026-10-10T00:32:11Z"
     }
   },
   "checkResults": {
@@ -776,6 +794,74 @@
       "logPath": "artifacts-temp/agentx/gpux-fast-mode/s05-view-retention-final-e975d3088866.log",
       "logSha256": "8d8408dc698a36038910ee1b49d2e05b83f32d39e0231cb3d89ec7ab62b2924b",
       "inputsHash": "430cf4dbc4aaacdd1c74623a8227cfe13a5e9edcc4292974403377933b554b66"
+    },
+    "s06-splice/check-attribution/final": {
+      "checkId": "check-attribution",
+      "boundaryId": "s06-splice",
+      "phase": "final",
+      "batchId": "fbe2c325e5ce062241cf3d732442587a7d73c6bbb752d9291a1c5c15e187ab24",
+      "definitionHash": "b82e7feef64210ed76175fef9ab5b0339af24962e55e46b6ea32da027de45969",
+      "basisHash": "99a22ebfc78d26d4a6d7b266100d54729efa476b55a9bce07a8cc5ccc75dffcd",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 19,
+      "durationSeconds": 25.0262,
+      "recordedAt": "2026-10-10T00:31:56Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s06-splice-final-b65664dbfaa3.log",
+      "logSha256": "7d2e744e5ff2c10c49068c14222d1115ef93cb100dd80ffc32262872ba098f8e",
+      "inputsHash": "1f69e3f598de691d8cf400db3ab325f29b14f509ef847d425c9b5977a40ce597"
+    },
+    "s06-splice/check-splice/final": {
+      "checkId": "check-splice",
+      "boundaryId": "s06-splice",
+      "phase": "final",
+      "batchId": "fbe2c325e5ce062241cf3d732442587a7d73c6bbb752d9291a1c5c15e187ab24",
+      "definitionHash": "7359b89c8ebac14074c587a3b89383cf099cd39e3d3d7b156cc690bd2ed47a34",
+      "basisHash": "474a8e8ad1b7a37d13636a3648c96d606ca1443daf24ceac0e78c59a0ffc56f4",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 7,
+      "durationSeconds": 6.4291,
+      "recordedAt": "2026-10-10T00:32:02Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s06-splice-final-73e2ae56042b.log",
+      "logSha256": "aee805f6d9de80340a73fe7aa0e72071f721ae9a8efcb7225ec21302b65f9d15",
+      "inputsHash": "1f69e3f598de691d8cf400db3ab325f29b14f509ef847d425c9b5977a40ce597"
+    },
+    "s06-splice/check-own-dirty/final": {
+      "checkId": "check-own-dirty",
+      "boundaryId": "s06-splice",
+      "phase": "final",
+      "batchId": "fbe2c325e5ce062241cf3d732442587a7d73c6bbb752d9291a1c5c15e187ab24",
+      "definitionHash": "2399a8fc42e331667d6c1bd53de6098300a46fd19207220aa3a4b46af0d7c6ea",
+      "basisHash": "24d6aec4fe75b7604091fc7851ce9a3e26f5d2eaf3f444427dd1b9cb3e492181",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 0.2627,
+      "recordedAt": "2026-10-10T00:32:03Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s06-splice-final-18835959819b.log",
+      "logSha256": "98279f677fab68f2dc8f8235ef33f0b0abb12618b0ddd45c3352fe9efdb9a70d",
+      "inputsHash": "1f69e3f598de691d8cf400db3ab325f29b14f509ef847d425c9b5977a40ce597"
+    },
+    "s06-splice/check-oracle-splice/final": {
+      "checkId": "check-oracle-splice",
+      "boundaryId": "s06-splice",
+      "phase": "final",
+      "batchId": "fbe2c325e5ce062241cf3d732442587a7d73c6bbb752d9291a1c5c15e187ab24",
+      "definitionHash": "882e7a5bc729b09d37ac17e960de37b39e816cc5061a4eb1a6b706fd0a5b0af8",
+      "basisHash": "d52a6f498491b4a85332416abc0df2be1e48d3bc30e3b664e4deeb23eef27c59",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 8.6114,
+      "recordedAt": "2026-10-10T00:32:11Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s06-splice-final-3999d38b17b0.log",
+      "logSha256": "2674b2a99666268686dcbdbf8e998c8d0f2cb2033758a3b849434018eb7060f0",
+      "inputsHash": "1f69e3f598de691d8cf400db3ab325f29b14f509ef847d425c9b5977a40ce597"
     }
   },
   "reviews": {
