@@ -213,16 +213,18 @@ impl PlatformViewHandle {
     ///
     /// Also removes the view from the global registry's bounds tracking.
     pub fn dispose(&self) {
-        PlatformViewRegistry::global().remove_view(self.view.id());
+        // Disposed first: an element placing the view on another thread then sees the flag
+        // when it re-checks, whichever side of `remove_view` it is on.
         self.view.dispose();
+        PlatformViewRegistry::global().remove_view(self.view.id());
     }
 }
 
 impl Drop for PlatformViewHandle {
     fn drop(&mut self) {
         if !self.view.is_disposed() {
-            PlatformViewRegistry::global().remove_view(self.view.id());
             self.view.dispose();
+            PlatformViewRegistry::global().remove_view(self.view.id());
         }
     }
 }
