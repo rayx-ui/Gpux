@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 12,
+  "revision": 13,
   "title": "gpux fast mode: retained layout and views, splice, scroll layers and window composition from gpui-fast",
   "validationMode": "sprint",
   "repositories": [
@@ -1069,17 +1069,15 @@
       "criterionIds": [
         "CMP-4"
       ],
-      "descriptionMarkdown": "New lane D platform checks `composition-wayland-*`: subsurface order, positions and input regions. Runs in a Wayland session (a Linux desktop, or WSLg per `LINUX-WSL.md`); skipped with the reason otherwise.",
+      "descriptionMarkdown": "New lane D platform checks `composition-wayland-*`: subsurface order, positions and input regions. Runs in a Wayland session: on this macOS machine, headless sway in the local Lima VM `gpux` (a Linux desktop or WSLg per `LINUX-WSL.md` elsewhere); skipped with the reason outside one.",
       "argv": [
-        "cargo",
-        "run",
-        "-p",
-        "gpux-testkit",
+        "limactl",
+        "shell",
+        "gpux",
         "--",
-        "lane",
-        "d",
-        "--grep",
-        "composition-wayland"
+        "bash",
+        "-lc",
+        "set -e; source \"$HOME/.cargo/env\"; rsync -a --delete --exclude /target --exclude /artifacts-temp /Users/dinko/work-private/projects/RayX/Gpux/ \"$HOME/src/Gpux/\"; cd \"$HOME/src/Gpux\"; export VK_DRIVER_FILES=/usr/share/vulkan/icd.d/lvp_icd.json; export XDG_RUNTIME_DIR=/run/user/$(id -u); printf \"output HEADLESS-1 resolution 1280x1024\\n\" > /tmp/gpux-sway.conf; pgrep -x sway >/dev/null || (WLR_BACKENDS=headless WLR_RENDERER=pixman WLR_LIBINPUT_NO_DEVICES=1 setsid sway -c /tmp/gpux-sway.conf >/tmp/gpux-sway.log 2>&1 &); sleep 2; socket=$(ls \"$XDG_RUNTIME_DIR\" | grep -E \"^wayland-[0-9]+$\" | head -1); env -u DISPLAY WAYLAND_DISPLAY=\"$socket\" cargo run -p gpux-testkit -- lane d --grep composition-wayland"
       ],
       "expected": {
         "exitCode": 0,
@@ -1103,21 +1101,19 @@
       "criterionIds": [
         "CMP-5"
       ],
-      "descriptionMarkdown": "New lane D platform checks `composition-x11-*`: cut-outs under Xvfb, and the overlay window where a compositor runs. Runs on Linux or WSL.",
+      "descriptionMarkdown": "New lane D platform checks `composition-x11-*`: order and bounds, cut-outs, server hit testing, and the overlay window under a compositing manager. Runs under Xvfb with xcompmgr in the local Lima VM `gpux` on this macOS machine (Linux or WSL elsewhere).",
       "argv": [
-        "cargo",
-        "run",
-        "-p",
-        "gpux-testkit",
+        "limactl",
+        "shell",
+        "gpux",
         "--",
-        "lane",
-        "d",
-        "--grep",
-        "composition-x11"
+        "bash",
+        "-lc",
+        "set -e; source \"$HOME/.cargo/env\"; rsync -a --delete --exclude /target --exclude /artifacts-temp /Users/dinko/work-private/projects/RayX/Gpux/ \"$HOME/src/Gpux/\"; cd \"$HOME/src/Gpux\"; export VK_DRIVER_FILES=/usr/share/vulkan/icd.d/lvp_icd.json; printf \"#!/bin/sh\\nxcompmgr -n >/tmp/gpux-xcompmgr.log 2>&1 &\\nsleep 1\\nexec cargo run -p gpux-testkit -- lane d --grep composition-x11\\n\" > /tmp/gpux-x11-lane.sh; chmod +x /tmp/gpux-x11-lane.sh; env -u WAYLAND_DISPLAY xvfb-run -a -s \"-screen 0 1280x1024x24 +extension Composite\" /tmp/gpux-x11-lane.sh"
       ],
       "expected": {
         "exitCode": 0,
-        "minimumTests": 3,
+        "minimumTests": 4,
         "testCountPattern": "gpux-testkit: (\\d+) passed"
       },
       "reuse": false,
