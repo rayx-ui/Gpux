@@ -171,6 +171,25 @@ async fn wait_for(
     }
 }
 
+/// Taps `point` until `done`, up to three times. The request reaches the
+/// testkit through logcat, whose stream can drop a line while a screenshot
+/// transfers, so a tap whose effect never shows is asked for again; every
+/// tap here may land more than once.
+async fn tap_until(
+    cx: &mut AsyncApp,
+    scale: f32,
+    point: (f32, f32),
+    mut done: impl FnMut(&mut AsyncApp) -> bool,
+) -> bool {
+    for _ in 0..3 {
+        tap(scale, point);
+        if wait_for(cx, 4, &mut done).await {
+            return true;
+        }
+    }
+    false
+}
+
 /// The red view shows between the base and the menu, clipped by its parent,
 /// and goes once it is disposed.
 pub async fn platform_view(cx: &mut AsyncApp, screens: &Screens) -> ResultLine {
@@ -279,8 +298,7 @@ async fn disposed(
             format!("once disposed, its area reads {native:?}, not the base"),
         );
     }
-    tap(scale, ON_VIEW);
-    if wait_for(cx, 5, |cx| {
+    if tap_until(cx, scale, ON_VIEW, |cx| {
         root.read_with(cx, |placed, _| placed.base_taps) > 0
     })
     .await
@@ -475,8 +493,7 @@ pub async fn text_input(cx: &mut AsyncApp, screens: &Screens) -> ResultLine {
             "the activity's window lost the focus before the web view was touched",
         )
     } else {
-        tap(scale, ON_VIEW);
-        if !wait_for(cx, 8, |_| !activity_has_focus()).await {
+        if !tap_until(cx, scale, ON_VIEW, |_| !activity_has_focus()).await {
             line(
                 Outcome::Fail,
                 ID,
@@ -495,8 +512,7 @@ pub async fn text_input(cx: &mut AsyncApp, screens: &Screens) -> ResultLine {
                     "GPUI went inactive when the web view's panel took the focus",
                 )
             } else {
-                tap(scale, BESIDE);
-                let returned = wait_for(cx, 8, |_| activity_has_focus()).await;
+                let returned = tap_until(cx, scale, BESIDE, |_| activity_has_focus()).await;
                 let tapped = wait_for(cx, 5, |cx| {
                     root.read_with(cx, |placed, _| placed.base_taps) > 0
                 })

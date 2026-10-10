@@ -338,15 +338,22 @@ pub async fn pan(cx: &mut AsyncApp, screens: &Screens) -> ResultLine {
     let x = ((MENU.0 + MENU.2 / 2.) * scale) as i32;
     let from = ((MENU.1 + MENU.3 - 8.) * scale) as i32;
     let to = ((MENU.1 + 6.) * scale) as i32;
-    request(&format!("swipe {x} {from} {x} {to} 600"));
     let scrolled = |cx: &mut AsyncApp| {
         root.read_with(cx, |composed, _| -composed.menu_scroll.offset().y.as_f32())
     };
-    let start = Instant::now();
-    while scrolled(cx) <= 0. && start.elapsed() < Duration::from_secs(10) {
-        cx.background_executor()
-            .timer(Duration::from_millis(100))
-            .await;
+    // The request reaches the testkit through logcat, whose stream can drop a line while a
+    // screenshot transfers: a swipe that never shows is asked for again.
+    for _ in 0..3 {
+        request(&format!("swipe {x} {from} {x} {to} 600"));
+        let start = Instant::now();
+        while scrolled(cx) <= 0. && start.elapsed() < Duration::from_secs(5) {
+            cx.background_executor()
+                .timer(Duration::from_millis(100))
+                .await;
+        }
+        if scrolled(cx) > 0. {
+            break;
+        }
     }
     cx.background_executor()
         .timer(Duration::from_millis(500))
