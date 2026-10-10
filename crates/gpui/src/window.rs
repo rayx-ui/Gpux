@@ -1155,6 +1155,10 @@ pub(crate) struct WindowFrame {
     pub(crate) tab_stops: TabStopMap,
     /// The retained views drawn in the frame.
     pub(crate) fast_retained: crate::fast::retained::RetainedSubtrees,
+    /// Where painting switched composition surface.
+    pub(crate) fast_composition_starts: crate::fast::composition::SurfaceStarts,
+    /// How many native surfaces were placed.
+    pub(crate) fast_native_surfaces: usize,
 }
 
 #[derive(Clone, Default, Debug)]
@@ -1232,6 +1236,8 @@ impl WindowFrame {
             inspector_hitboxes: FxHashMap::default(),
             tab_stops: TabStopMap::default(),
             fast_retained: Default::default(),
+            fast_composition_starts: Default::default(),
+            fast_native_surfaces: 0,
         }
     }
 
@@ -1273,6 +1279,8 @@ impl WindowFrame {
             self.inspector_hitboxes.clear();
         }
         self.fast_retained.clear();
+        self.fast_composition_starts.clear();
+        self.fast_native_surfaces = 0;
     }
 
     pub(crate) fn cursor_style(&self, window: &Window) -> Option<CursorStyle> {
@@ -2409,6 +2417,7 @@ pub struct Window {
     pub(crate) fast_layout: crate::fast::layout_key::WindowLayout,
     pub(crate) fast_ambient_reads: crate::fast::dependencies::AmbientReads,
     pub(crate) fast_retained_state: crate::fast::retained::RetainedState,
+    pub(crate) fast_composition: crate::fast::composition::WindowCompositionHandle,
     #[cfg(feature = "diagnostics")]
     pub(crate) fast_verify: crate::fast::verify::retention::RetentionVerify,
     pub(crate) fast_glyph_bounds: crate::fast::glyphs::GlyphBoundsCache,
@@ -3387,6 +3396,7 @@ impl Window {
             fast_layout: crate::fast::layout_key::WindowLayout::default(),
             fast_ambient_reads: cx.fast_ambient_reads(),
             fast_retained_state: Default::default(),
+            fast_composition: Default::default(),
             #[cfg(feature = "diagnostics")]
             fast_verify: Default::default(),
             fast_glyph_bounds: crate::fast::glyphs::GlyphBoundsCache::default(),
@@ -5239,6 +5249,7 @@ impl Window {
         ))]
         crate::fast::stats::begin_frame(self);
         crate::fast::layout::begin_frame(self);
+        crate::fast::composition::begin_frame(self);
         crate::fast::retained::begin_frame(self, cx);
         if !cx.mode.skip_drawing() {
             self.draw_roots(cx);
@@ -5442,12 +5453,12 @@ impl Window {
     }
 
     #[profiling::function]
-    fn present(&mut self) {
+    pub(crate) fn present(&mut self) {
         #[cfg(feature = "profiler")]
         let _foreground_turn = profiler::journal::foreground_turn();
         #[cfg(feature = "profiler")]
         let present_start = Instant::now();
-        self.platform_window.draw(&self.rendered_frame.scene);
+        crate::fast::composition::present(self);
         #[cfg(feature = "profiler")]
         self.window_profiler.record_present(
             present_start,
@@ -5599,7 +5610,9 @@ impl Window {
         // Now actually paint the elements.
         self.invalidator.set_phase(DrawPhase::Paint);
         self.debug_assert_scroll_container_context_stack_empty();
+        crate::fast::composition::begin_base(self);
         root_element.paint(self, cx);
+        crate::fast::composition::begin_overlay(self);
 
         #[cfg(any(feature = "inspector", debug_assertions))]
         self.paint_inspector(inspector_element, cx);
@@ -6005,6 +6018,7 @@ impl Window {
     }
 
     pub(crate) fn reuse_paint(&mut self, range: Range<PaintIndex>) {
+        crate::fast::composition::reuse_starts(self, &range);
         self.next_frame.window_control_hitboxes.extend(
             self.rendered_frame.window_control_hitboxes[range
                 .start
@@ -7757,6 +7771,9 @@ impl Window {
     }
 
     pub(crate) fn should_use_subpixel_rendering(&self, font_id: FontId, font_size: Pixels) -> bool {
+        if crate::fast::composition::paints_over_native_content(self) {
+            return false;
+        }
         if self.platform_window.background_appearance() != WindowBackgroundAppearance::Opaque {
             return false;
         }

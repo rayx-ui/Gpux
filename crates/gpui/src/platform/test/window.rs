@@ -82,6 +82,10 @@ pub(crate) struct TestWindowState {
     /// Accessibility tree updates sent to the platform adapter, oldest first.
     pub(crate) a11y_updates: Vec<accesskit::TreeUpdate>,
     pub(crate) calls: Vec<TestWindowCall>,
+    /// The window's composition as it was handed to the platform.
+    pub(crate) fast_composition: crate::fast::composition::TestComposition,
+    /// Whether the window reports subpixel text rendering supported.
+    pub(crate) subpixel_rendering_supported: bool,
 }
 
 #[derive(Clone)]
@@ -160,6 +164,8 @@ impl TestWindow {
             a11y_callbacks: None,
             a11y_updates: Vec::new(),
             calls: Vec::new(),
+            fast_composition: Default::default(),
+            subpixel_rendering_supported: false,
         })))
     }
     pub fn simulate_scheduled_frame(&self) -> bool {
@@ -350,6 +356,29 @@ impl TestWindow {
 }
 
 impl PlatformWindow for TestWindow {
+    fn draw_composed(&self, scene: crate::fast::composition::ComposedScene<'_>) {
+        let composition = self.0.lock().fast_composition.clone();
+        composition.record_presented(&scene);
+        self.draw(scene.scene());
+    }
+
+    fn enable_window_composition(&self) -> anyhow::Result<()> {
+        self.0.lock().fast_composition.enable()
+    }
+
+    fn create_native_surface(
+        &self,
+    ) -> anyhow::Result<Rc<dyn crate::fast::composition::PlatformSurfaceAttachment>> {
+        self.0.lock().fast_composition.create_native_surface()
+    }
+
+    fn set_composition_order(
+        &self,
+        surfaces: &[crate::fast::composition::PlatformCompositionSurface],
+    ) -> anyhow::Result<()> {
+        self.0.lock().fast_composition.record_order(surfaces)
+    }
+
     fn visual_viewport_bounds(&self) -> Bounds<Pixels> {
         let state = self.0.lock();
         state
@@ -489,7 +518,7 @@ impl PlatformWindow for TestWindow {
     }
 
     fn is_subpixel_rendering_supported(&self) -> bool {
-        false
+        self.0.lock().subpixel_rendering_supported
     }
 
     fn set_title(&mut self, title: &str) {

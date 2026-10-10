@@ -40,6 +40,18 @@ pub const PLATFORM_CHECKS: &[PlatformCheck] = &[
         id: "platform-close",
         description: "closing a window removes it and releases its views, without panics",
     },
+    PlatformCheck {
+        id: "composition-macos-order-bounds",
+        description: "with window composition on macOS, a native surface's view sits between the GPUI base view and the overlay view, at its element's bounds in device pixels",
+    },
+    PlatformCheck {
+        id: "composition-macos-input",
+        description: "with window composition on macOS, a click passes through the empty overlay to the native view, and is taken by the overlay while a GPUI menu covers it",
+    },
+    PlatformCheck {
+        id: "composition-macos-shadow",
+        description: "with window composition on macOS, an OS screenshot shows a GPUI menu's shadow blended over a solid-colour native view (skipped without screen-capture permission)",
+    },
 ];
 
 /// The platform check with this id.

@@ -32,6 +32,9 @@ pub async fn run(id: &str, cx: &mut AsyncApp) -> ResultLine {
         "platform-clipboard" => clipboard(cx).await,
         "platform-os-input" => os_input(cx).await,
         "platform-close" => close(cx).await,
+        "composition-macos-order-bounds" => crate::composition::order_bounds(cx).await,
+        "composition-macos-input" => crate::composition::input(cx).await,
+        "composition-macos-shadow" => crate::composition::shadow(cx).await,
         other => Err(anyhow!("unknown platform check `{other}`")),
     };
     match result {
@@ -41,7 +44,7 @@ pub async fn run(id: &str, cx: &mut AsyncApp) -> ResultLine {
     }
 }
 
-enum Check {
+pub(crate) enum Check {
     Passed(String),
     Skipped(String),
 }
@@ -94,7 +97,7 @@ fn options(title: &str, (width, height): (f32, f32)) -> WindowOptions {
     }
 }
 
-fn open<V: Render + 'static>(
+pub(crate) fn open<V: Render + 'static>(
     cx: &mut AsyncApp,
     title: &str,
     window_size: (f32, f32),
@@ -106,7 +109,7 @@ fn open<V: Render + 'static>(
     Ok(window.into())
 }
 
-fn close_window(cx: &mut AsyncApp, window: AnyWindowHandle) {
+pub(crate) fn close_window(cx: &mut AsyncApp, window: AnyWindowHandle) {
     window
         .update(cx, |_, window, _| window.remove_window())
         .ok();

@@ -33,7 +33,7 @@ pub struct Scene {
     pub(crate) primitive_bounds: crate::fast::bounds_tree::BoundsTree<ScaledPixels>,
     pub(crate) positioned_primitive_bounds: crate::fast::bounds_tree::BoundsTree<ScaledPixels>,
     pub(crate) top_layer_primitive_bounds: crate::fast::bounds_tree::BoundsTree<ScaledPixels>,
-    layer_stack: Vec<LayerOrder>,
+    pub(crate) layer_stack: Vec<LayerOrder>,
     pub scale_factor: f32,
     pub active_screen_effects: Vec<ActiveScreenEffect>,
     pub active_screen_effect_snapshots: Vec<ActiveScreenEffectSnapshot>,
@@ -69,7 +69,7 @@ pub struct Scene {
 }
 
 #[derive(Clone, Copy)]
-enum LayerOrder {
+pub(crate) enum LayerOrder {
     Fixed(DrawOrder),
     Positioned,
     Top,

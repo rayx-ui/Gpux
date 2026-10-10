@@ -12,6 +12,7 @@
 //! checks that the windows render on it.
 
 mod checks;
+mod composition;
 mod os;
 
 use gpux::{

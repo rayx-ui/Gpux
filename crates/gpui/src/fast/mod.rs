@@ -14,6 +14,7 @@
 //! one gpux draws without fast mode.
 
 pub(crate) mod bounds_tree;
+pub(crate) mod composition;
 pub(crate) mod dependencies;
 pub(crate) mod glyphs;
 pub(crate) mod layers;

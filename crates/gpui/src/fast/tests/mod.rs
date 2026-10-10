@@ -3,6 +3,8 @@
 //! `cargo test -p gpux --features test-support --lib fast::tests::<group>::`.
 
 mod bounds_grid;
+mod composition;
+mod composition_overlay;
 mod dependencies;
 mod dependency_nesting;
 mod draw_order;

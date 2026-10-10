@@ -105,7 +105,7 @@ impl InstanceBufferPool {
 }
 
 pub struct MetalRenderer {
-    device: metal::Device,
+    pub(crate) device: metal::Device,
     layer: Option<metal::MetalLayer>,
     is_apple_gpu: bool,
     is_unified_memory: bool,
@@ -123,8 +123,8 @@ pub struct MetalRenderer {
     surfaces_pipeline_state: metal::RenderPipelineState,
     unit_vertices: metal::Buffer,
     #[allow(clippy::arc_with_non_send_sync)]
-    instance_buffer_pool: Arc<Mutex<InstanceBufferPool>>,
-    sprite_atlas: Arc<MetalAtlas>,
+    pub(crate) instance_buffer_pool: Arc<Mutex<InstanceBufferPool>>,
+    pub(crate) sprite_atlas: Arc<MetalAtlas>,
     core_video_texture_cache: core_video::metal_texture_cache::CVMetalTextureCache,
     path_intermediate_texture: Option<metal::Texture>,
     path_intermediate_msaa_texture: Option<metal::Texture>,
@@ -178,9 +178,18 @@ impl MetalRenderer {
     /// Creates a new MetalRenderer with a CAMetalLayer for window-based rendering.
     pub fn new(instance_buffer_pool: Arc<Mutex<InstanceBufferPool>>, transparent: bool) -> Self {
         let device = Self::create_device();
-
         let layer = metal::MetalLayer::new();
-        layer.set_device(&device);
+        Self::configure_layer(&layer, &device, transparent);
+        Self::new_internal(device, Some(layer), !transparent, instance_buffer_pool)
+    }
+
+    /// Sets a window's `CAMetalLayer` up to draw with `device`.
+    pub(crate) fn configure_layer(
+        layer: &metal::MetalLayer,
+        device: &metal::Device,
+        transparent: bool,
+    ) {
+        layer.set_device(device);
         layer.set_pixel_format(MTLPixelFormat::BGRA8Unorm);
         // Support direct-to-display rendering if the window is not transparent
         // https://developer.apple.com/documentation/metal/managing-your-game-window-for-metal-in-macos
@@ -200,8 +209,6 @@ impl MetalRenderer {
             objc2_quartz_core::CAAutoresizingMask::LayerWidthSizable
                 | objc2_quartz_core::CAAutoresizingMask::LayerHeightSizable,
         );
-
-        Self::new_internal(device, Some(layer), !transparent, instance_buffer_pool)
     }
 
     /// Creates a new headless MetalRenderer for offscreen rendering without a window.
@@ -236,7 +243,7 @@ impl MetalRenderer {
         }
     }
 
-    fn new_internal(
+    pub(crate) fn new_internal(
         device: metal::Device,
         layer: Option<metal::MetalLayer>,
         opaque: bool,

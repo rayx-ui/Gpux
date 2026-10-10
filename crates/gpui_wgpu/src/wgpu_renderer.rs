@@ -816,6 +816,7 @@ fn is_auto_present_mode(mode: wgpu::PresentMode) -> bool {
     )
 }
 
+#[derive(Clone)]
 struct WgpuPipelines {
     quads: wgpu::RenderPipeline,
     shadows: wgpu::RenderPipeline,
@@ -837,6 +838,7 @@ struct WgpuPipelines {
     screen_effects: wgpu::RenderPipeline,
 }
 
+#[derive(Clone)]
 struct WgpuBindGroupLayouts {
     globals: wgpu::BindGroupLayout,
     instances: wgpu::BindGroupLayout,
@@ -1232,16 +1234,16 @@ impl WgpuResources {
 pub struct WgpuRenderer {
     /// Shared GPU context for device recovery coordination (unused on WASM).
     #[allow(dead_code)]
-    context: Option<GpuContext>,
+    pub(crate) context: Option<GpuContext>,
     /// Compositor GPU hint for adapter selection (unused on WASM).
     #[allow(dead_code)]
-    compositor_gpu: Option<CompositorGpuHint>,
+    pub(crate) compositor_gpu: Option<CompositorGpuHint>,
     #[cfg(not(target_family = "wasm"))]
-    backend_policy: wgpu::Backends,
+    pub(crate) backend_policy: wgpu::Backends,
     resources: Option<WgpuResources>,
     surface_config: wgpu::SurfaceConfiguration,
     render_target_format: wgpu::TextureFormat,
-    atlas: Arc<WgpuAtlas>,
+    pub(crate) atlas: Arc<WgpuAtlas>,
     path_globals_offset: u64,
     instance_buffer_capacity: u64,
     gradient_stop_buffer_capacity: u64,
@@ -1249,7 +1251,7 @@ pub struct WgpuRenderer {
     storage_buffer_alignment: u64,
     uses_webgl_instance_data: bool,
     rendering_params: RenderingParameters,
-    is_bgr: bool,
+    pub(crate) is_bgr: bool,
     dual_source_blending: bool,
     adapter_info: wgpu::AdapterInfo,
     transparent_alpha_mode: wgpu::CompositeAlphaMode,
@@ -1538,6 +1540,7 @@ impl WgpuRenderer {
             compositor_gpu,
             atlas,
             backend_policy,
+            None,
         )
     }
 
@@ -1558,10 +1561,12 @@ impl WgpuRenderer {
             None,
             atlas,
             wgpu::Backends::all(),
+            None,
         )
     }
 
-    fn new_internal(
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn new_internal(
         gpu_context: Option<GpuContext>,
         context: &WgpuContext,
         surface: wgpu::Surface<'static>,
@@ -1569,6 +1574,7 @@ impl WgpuRenderer {
         compositor_gpu: Option<CompositorGpuHint>,
         atlas: Arc<WgpuAtlas>,
         backend_policy: wgpu::Backends,
+        shared: Option<&WgpuRenderer>,
     ) -> anyhow::Result<Self> {
         #[cfg(target_family = "wasm")]
         let _ = backend_policy;
@@ -1659,6 +1665,18 @@ impl WgpuRenderer {
         // that this adapter can successfully configure this surface.
         surface.configure(&context.device, &surface_config);
 
+        // Pipelines compiled for the same target format are shared: they are
+        // much slower to create than a surface.
+        let shared = shared
+            .filter(|shared| shared.render_target_format == render_target_format)
+            .and_then(|shared| shared.resources.as_ref())
+            .map(|resources| {
+                (
+                    resources.pipelines.clone(),
+                    resources.bind_group_layouts.clone(),
+                )
+            });
+
         Ok(Self::from_target(
             gpu_context,
             context,
@@ -1670,6 +1688,7 @@ impl WgpuRenderer {
             atlas,
             backend_policy,
             None,
+            shared,
         ))
     }
 
@@ -1691,6 +1710,7 @@ impl WgpuRenderer {
         atlas: Arc<WgpuAtlas>,
         backend_policy: wgpu::Backends,
         path_sample_count: Option<u32>,
+        shared: Option<(WgpuPipelines, WgpuBindGroupLayouts)>,
     ) -> Self {
         #[cfg(target_family = "wasm")]
         let _ = backend_policy;
@@ -1708,16 +1728,23 @@ impl WgpuRenderer {
         if let Some(path_sample_count) = path_sample_count {
             rendering_params.path_sample_count = path_sample_count;
         }
-        let bind_group_layouts = Self::create_bind_group_layouts(&device, uses_webgl_instance_data);
-        let pipelines = Self::create_pipelines(
-            &device,
-            &bind_group_layouts,
-            render_target_format,
-            alpha_mode,
-            rendering_params.path_sample_count,
-            dual_source_blending,
-            uses_webgl_instance_data,
-        );
+        let (pipelines, bind_group_layouts) = match shared {
+            Some(shared) => shared,
+            None => {
+                let bind_group_layouts =
+                    Self::create_bind_group_layouts(&device, uses_webgl_instance_data);
+                let pipelines = Self::create_pipelines(
+                    &device,
+                    &bind_group_layouts,
+                    render_target_format,
+                    alpha_mode,
+                    rendering_params.path_sample_count,
+                    dual_source_blending,
+                    uses_webgl_instance_data,
+                );
+                (pipelines, bind_group_layouts)
+            }
+        };
 
         let atlas_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("atlas_sampler"),
@@ -3173,6 +3200,7 @@ impl WgpuRenderer {
             atlas,
             native_backend_policy(),
             Some(path_sample_count),
+            None,
         )
     }
 
@@ -4974,6 +5002,7 @@ impl WgpuRenderer {
             self.compositor_gpu,
             self.atlas.clone(),
             self.backend_policy,
+            None,
         )?;
 
         log::info!("GPU recovery complete");
@@ -5241,7 +5270,7 @@ impl gpux::PlatformHeadlessRenderer for WgpuHeadlessRenderer {
 }
 
 #[cfg(not(target_family = "wasm"))]
-fn create_surface(
+pub(crate) fn create_surface(
     instance: &wgpu::Instance,
     raw_window_handle: raw_window_handle::RawWindowHandle,
 ) -> anyhow::Result<wgpu::Surface<'static>> {

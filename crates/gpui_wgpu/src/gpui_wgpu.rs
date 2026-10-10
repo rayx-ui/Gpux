@@ -1,4 +1,5 @@
 mod cosmic_text_system;
+mod fast;
 #[cfg(feature = "diagnostics")]
 mod frame_telemetry;
 #[cfg(target_family = "wasm")]

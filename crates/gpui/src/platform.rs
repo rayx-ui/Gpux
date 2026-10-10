@@ -1219,6 +1219,27 @@ pub trait PlatformWindow: HasWindowHandle + HasDisplayHandle {
     fn on_appearance_changed(&self, callback: Box<dyn FnMut()>);
     fn on_button_layout_changed(&self, _callback: Box<dyn FnMut()>) {}
     fn draw(&self, scene: &Scene);
+    /// Draws a scene split across the surfaces of the window's composition.
+    fn draw_composed(&self, scene: crate::fast::composition::ComposedScene<'_>) {
+        crate::fast::composition::draw_uncomposed(self, scene)
+    }
+    /// Starts presenting the window through a composition of surfaces.
+    fn enable_window_composition(&self) -> anyhow::Result<()> {
+        crate::fast::composition::unsupported("window composition")
+    }
+    /// Creates a surface for platform-native content in the composition.
+    fn create_native_surface(
+        &self,
+    ) -> anyhow::Result<std::rc::Rc<dyn crate::fast::composition::PlatformSurfaceAttachment>> {
+        crate::fast::composition::unsupported("native surface portals")
+    }
+    /// Orders the composition's surfaces, bottom to top, with their geometry.
+    fn set_composition_order(
+        &self,
+        _fast_surfaces: &[crate::fast::composition::PlatformCompositionSurface],
+    ) -> anyhow::Result<()> {
+        crate::fast::composition::unsupported("surface ordering")
+    }
     fn effect_capabilities(&self) -> EffectCapabilities {
         EffectCapabilities::default()
     }

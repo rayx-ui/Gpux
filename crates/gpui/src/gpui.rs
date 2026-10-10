@@ -119,6 +119,11 @@ pub use debug_overlay::*;
 pub use element::*;
 pub use elements::*;
 pub use executor::*;
+pub use fast::composition::{
+    ComposedScene, ComposedSceneLayer, CompositionSurfaceId, CompositionSurfaceKind, NativeSurface,
+    PlatformCompositionSurface, PlatformCompositionSurfaceContent, PlatformSurfaceAttachment,
+    WindowComposition, WindowCompositionSurface, native_surface,
+};
 pub use fast::mode::FastMode;
 #[cfg(any(test, feature = "test-support"))]
 pub use fast::mode::FastOwnedState;
