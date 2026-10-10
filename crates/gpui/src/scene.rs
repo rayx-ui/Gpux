@@ -24,7 +24,7 @@ pub type PathVertex_ScaledPixels = PathVertex<ScaledPixels>;
 pub type DrawOrder = u32;
 
 pub(crate) const POSITIONED_DRAW_ORDER_BASE: DrawOrder = 1 << 30;
-const TOP_LAYER_DRAW_ORDER_BASE: DrawOrder = 1 << 31;
+pub(crate) const TOP_LAYER_DRAW_ORDER_BASE: DrawOrder = 1 << 31;
 
 #[derive(Default)]
 #[expect(missing_docs)]
@@ -51,6 +51,7 @@ pub struct Scene {
     pub surfaces: Vec<PaintSurface>,
     pub(crate) sort_scratch: crate::fast::scene::SortScratch,
     pub layers: crate::fast::layers::scene::SceneLayers,
+    pub(crate) fast_edge_shadows: crate::fast::edge_shadows::EdgeShadows,
     #[cfg(feature = "diagnostics")]
     sprite_sort_disorder_counts: [u64; 3],
     #[cfg(feature = "diagnostics")]
@@ -99,6 +100,7 @@ impl Scene {
         self.polychrome_sprites.clear();
         self.surfaces.clear();
         crate::fast::layers::scene::SceneLayers::clear(&mut self.layers);
+        crate::fast::edge_shadows::EdgeShadows::clear(&mut self.fast_edge_shadows);
         #[cfg(feature = "diagnostics")]
         {
             self.sprite_sort_disorder_counts = [0; 3];
@@ -166,7 +168,7 @@ impl Scene {
             .intersect(&primitive.content_mask().bounds);
 
         if clipped_bounds.is_empty() {
-            return;
+            return crate::fast::edge_shadows::keep(self, primitive);
         }
 
         let order = match self.layer_stack.last().copied() {
@@ -179,6 +181,7 @@ impl Scene {
             }
             None => self.primitive_bounds.insert(clipped_bounds),
         };
+        let order = crate::fast::edge_shadows::raise(self, &primitive, clipped_bounds, order);
         match &mut primitive {
             Primitive::Shadow(shadow) => {
                 shadow.order = order;

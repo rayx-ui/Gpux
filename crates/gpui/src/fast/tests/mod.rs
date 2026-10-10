@@ -8,6 +8,7 @@ mod composition_overlay;
 mod dependencies;
 mod dependency_nesting;
 mod draw_order;
+mod edge_shadows;
 mod glyph_runs;
 mod hover_dependencies;
 mod layer_carry;
