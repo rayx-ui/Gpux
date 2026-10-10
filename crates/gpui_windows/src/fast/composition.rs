@@ -73,6 +73,10 @@ pub(crate) struct Composition {
     /// Whether the tree must be rebuilt on a new device before the next
     /// composed frame.
     rebuild: bool,
+    /// The visuals gpux nested in other surfaces' visuals, with their
+    /// containers: a restack removes exactly these, never the children a
+    /// native surface's producer added to its own visual (WebView2's).
+    nested: Vec<(IDCompositionVisual, IDCompositionVisual)>,
 }
 
 struct Tree {
@@ -316,7 +320,7 @@ impl Composition {
                     .insert(*id, Overlay::new(tree, window_renderer)?);
             }
         }
-        restack(tree, &self.overlays, surfaces, base)?;
+        restack(tree, &self.overlays, surfaces, base, &mut self.nested)?;
         self.base = Some(base);
         self.surfaces = surfaces.to_vec();
         Ok(())
@@ -327,6 +331,7 @@ impl Composition {
     fn rebuild(&mut self, hwnd: HWND, window_renderer: &WgpuRenderer) -> Result<()> {
         self.rebuild = false;
         self.overlays.clear();
+        self.nested.clear();
         self.tree = None;
         let tree = Tree::new(hwnd)?;
         self.native_surfaces
@@ -363,17 +368,19 @@ impl Composition {
                     .context("rebinding a composition surface")?;
             }
         }
-        restack(tree, &self.overlays, &surfaces, base)
+        restack(tree, &self.overlays, &surfaces, base, &mut self.nested)
     }
 }
 
 /// Makes the root hold every surface's visual but the base's in `surfaces`'
-/// order, each nested in its parent's visual, and commits.
+/// order, each nested in its parent's visual, and commits. `nested` holds
+/// the visuals the last restack put in other surfaces' visuals.
 fn restack(
     tree: &Tree,
     overlays: &FxHashMap<CompositionSurfaceId, Overlay>,
     surfaces: &[PlatformCompositionSurface],
     base: CompositionSurfaceId,
+    nested: &mut Vec<(IDCompositionVisual, IDCompositionVisual)>,
 ) -> Result<()> {
     let mut visuals = FxHashMap::<CompositionSurfaceId, IDCompositionVisual>::default();
     for surface in surfaces {
@@ -401,9 +408,11 @@ fn restack(
         visuals.insert(surface.id, visual);
     }
     unsafe {
+        // The root is gpux's alone; a surface's visual may also hold its
+        // producer's children, which stay.
         tree.root.RemoveAllVisuals()?;
-        for visual in visuals.values() {
-            visual.RemoveAllVisuals()?;
+        for (container, child) in nested.drain(..) {
+            container.RemoveVisual(&child).ok();
         }
         let root = tree.root.cast::<IDCompositionVisual>()?;
         let mut previous =
@@ -422,6 +431,9 @@ fn restack(
                 visual.SetOffsetY2((surface.window_origin.y - surface.parent_origin.y).0 as f32)?;
             }
             container.AddVisual(visual, true, previous.get(&parent))?;
+            if parent.is_some() {
+                nested.push((container.clone(), visual.clone()));
+            }
             previous.insert(parent, visual.clone());
         }
         tree.device.Commit()?;
