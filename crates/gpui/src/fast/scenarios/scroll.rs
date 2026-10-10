@@ -404,14 +404,33 @@ impl Scrolling {
                 views_built_at_least(Mode::Layers, stats, 2)?;
                 drawn_per_frame(stats, 60)
             }
-            // Lists get their layers with list layers: until then they are
-            // drawn as without.
+            // A virtual list's layer holds its rows one by one: promoted while
+            // the scenario warms up, every frame shows the layer's tiles,
+            // keeping the rows it held and rendering only those the scroll
+            // uncovers and the two whose hover the pointer changes as the
+            // rows move under it.
             Content::UniformList | Content::List | Content::Chat => {
-                check(stats.layers_total() == 0, || {
-                    format!("a list decided something for a layer: {stats:?}")
+                check(
+                    stats.layers_composited + stats.layers_repainted == frames,
+                    || format!("a frame went without its layer: {stats:?}"),
+                )?;
+                check(all_bypasses == 0, || {
+                    format!("a frame was drawn on today's path: {stats:?}")
                 })?;
-                views_built_at_least(Mode::Layers, stats, 2)?;
-                drawn_per_frame(stats, 60)
+                check(stats.layers_repainted <= 2, || {
+                    format!("the rows were painted afresh for a scroll: {stats:?}")
+                })?;
+                check(stats.tiles_composited >= frames, || {
+                    format!("a frame composited no tile: {stats:?}")
+                })?;
+                check(stats.list_rows_rendered <= 4 * frames, || {
+                    format!("frames rendered rows their layer held: {stats:?}")
+                })?;
+                check(stats.list_rows_kept >= 10 * frames, || {
+                    format!("the layer kept too few rows to scroll over: {stats:?}")
+                })?;
+                // The view holding the list is built for its scroll.
+                views_built_at_least(Mode::Layers, stats, 2)
             }
         }
     }

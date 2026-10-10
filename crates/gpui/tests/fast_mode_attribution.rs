@@ -238,14 +238,24 @@ fn modes_differ_only_by_landed_mechanisms(name: &str) {
         );
     } else {
         // Frames shown from a layer's tiles build, lay out and paint no more
-        // than splice does.
+        // than splice does. A list's layer renders the rows a scroll is about
+        // to uncover before a list without one shows them, so over a window
+        // of frames it may lay out a few rows' text that splice has yet to:
+        // a quarter more at most, and four leaves.
+        let ahead = |splice: u64| match layers.list_rows_rendered {
+            0 => splice,
+            _ => splice + splice / 4 + 4,
+        };
         for (counter, more) in [
             ("views_built", layers.views_built > splice.views_built),
             (
                 "leaves_measured",
-                layers.leaves_measured > splice.leaves_measured,
+                layers.leaves_measured > ahead(splice.leaves_measured),
             ),
-            ("lines_shaped", layers.lines_shaped > splice.lines_shaped),
+            (
+                "lines_shaped",
+                layers.lines_shaped > ahead(splice.lines_shaped),
+            ),
             (
                 "primitives_painted",
                 layers.primitives_painted > splice.primitives_painted,
