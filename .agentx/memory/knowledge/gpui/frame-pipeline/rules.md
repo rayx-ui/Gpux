@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/gpui/frame-pipeline
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-07T16:45:00+02:00
+  updated: 2026-10-10T18:00:00+02:00
   topics:
     - scene
     - arena
@@ -28,3 +28,5 @@ agentx:
 - Elide inherited opacity transformation only when the factor is exactly `1.0`.
 - Frame callbacks must not re-enter `AnyWindowHandle::update` to read app-owned platform snapshots; cache them through an owned subscription before scheduling frames.
 - Remap inspection occurrence ids, parents, dispatch ids, focus, and property setters on cached prepaint replay, and truncate them on rollback.
+- With view retention, copy a reused view's deferred draws with the records open at the copy, and stamp a reused record at the write generation of its reuse decision, never at its prepaint.
+- Count an entity updated without a notify as changed for every reader that retained it; frames must equal the frame drawn from scratch.
