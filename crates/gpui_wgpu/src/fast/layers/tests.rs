@@ -156,7 +156,8 @@ fn the_premultiplied_flag_is_the_second_word_of_the_polychrome_sprite_record() {
     assert_eq!(offset_of!(PolychromeSprite, bounds), 16);
     // 34 words: what `load_poly_sprite` steps by in `shaders_webgl.wgsl`.
     assert_eq!(size_of::<PolychromeSprite>(), 34 * 4);
-    let webgl = include_str!("../../shaders_webgl.wgsl");
+    // Line endings aside: a Windows checkout may have converted them.
+    let webgl = include_str!("../../shaders_webgl.wgsl").replace("\r\n", "\n");
     assert!(webgl.contains("instance_cursor(index * 34u, 0u);\n    return PolychromeSprite("));
     let shared = include_str!("../../shaders.wgsl");
     let record = shared
