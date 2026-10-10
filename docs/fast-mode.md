@@ -108,6 +108,68 @@ and `Window::on_retention_mismatch`. Use it to find a view that reads state its 
 cannot see, such as an `Rc<RefCell<_>>` changed without a notify. Every view renders twice a
 frame while it is on, so a render with side effects has them twice.
 
+## Scroll layers
+
+With `scroll_layers` on (it needs view retention), a scrolling `div` whose offset moves on two
+frames in a row paints its content once into a layer: a scene in content space, cut into tiles
+of 512 device pixels, covering the viewport and two viewports on either side. Frames that only
+scroll it are then drawn from those tiles, moved by the offset, without prepainting or painting
+the content. `uniform_list` and `list` get layers of their own, with a record per row, in a
+later step.
+
+> The renderers' side of the tiles lands after this core. Until it does nothing rasterizes a
+> tile, so leave the switch off outside tests.
+
+A frame only scrolls a container when:
+
+- nothing its content read changed and no view inside it was notified;
+- the view holding it was notified no more often than scroll state published: the notifications
+  a published offset or its metrics send the owner and the handle's dependent views
+  (`ScrollHandle::register_dependent_view`) are the scroll's. A wheel and a scrollbar
+  (`publish_scrollbar_offset`) publish at once and composite. An offset an application requests
+  (`request_offset`, `scroll_to`) is applied when the container is next prepainted, and the
+  notification that asks for that frame cannot be told from a change, so that frame paints the
+  layer again;
+- the owner's render did not read the offset or the metrics;
+- no container inside the content scrolled;
+- no hover the content read can have changed. Prepaint sees last frame's hit test, which the
+  scroll leaves behind, so content that read hovers composites only while the pointer is over
+  none of the hitboxes it read, moved to where they show now. With the pointer over a row that
+  has a hover style, each scrolled frame paints the layer again and the policy falls back to
+  drawing the container as without a layer.
+
+On a composited frame the content's hitboxes, mouse and key listeners, focus, cursor styles,
+element state, tab stops and window-control areas are carried over, moved by the scroll and
+clipped to the viewport; tooltips are dropped once the layer moved. Input other than a wheel
+that reaches content shown where it was not painted (a press, a key with focus inside, a move
+onto it, a tap, a long press, a touch down) first paints the layer where it shows, in a frame
+drawn before the event is dispatched. A touch pan and the momentum of a fling scroll through the
+same wheel path and composite. `ScrollHandle::bounds` and `bounds_for_item` answer for where the
+content shows.
+
+A container goes without a layer, counted by reason in `FastStats::layer_bypasses`, when:
+
+- `inactive`: the frame is drawn from scratch, during a drag, with accessibility active, or
+  while the inspector picks;
+- `not-promoted`: it has not scrolled on two frames in a row;
+- `demoted`: its content changed on 8 of the last 16 frames, painting it again cost more than
+  the frames it composited saved, it draws over a path (paths are never rasterized into tiles),
+  or its tiles would not fit the window's budget (64 MB; 32 MB in the browser and on mobile); it
+  is tried again after 60 stable frames, doubling up to 1,920;
+- `ineligible`: its content holds what no tile can: a deferred or anchored element, a
+  children-prepainted listener, a focused text input, an animation-frame request, a visual
+  effect, a screen-effect region, an HTML island or element, a native surface, content painted
+  onto another composition surface, or fixed, sticky or top-layer content; or the container is
+  under a rounded clip, a transform or a clip that is not on device pixels, or over a background
+  that is not one opaque solid quad. It is tried again after 8 frames, doubling up to 2,048
+  while the content stays so;
+- `nested`: it is painted inside another container's layer;
+- `moved`: sticky or fixed positioning displaced it.
+
+The switch also snaps scroll offsets to device pixels, quantizes glyph origins so that they
+shift by whole pixels, and snaps path vertices to 1/256 of a pixel, which tiles need to match a
+direct draw. With it off, output is today's.
+
 ## Window composition
 
 `Window::enable_window_composition()` lets a window present its one scene on several ordered
@@ -209,6 +271,13 @@ and before any mechanism:
 | Source | `24d413c`, a clean tree: the sprint-1 harness, no mechanism yet |
 | Machine | Apple Silicon Mac (`Darwin 25.6.0 arm64`), Metal headless renderer |
 | Run | `artifacts-temp/testkit/perf/baseline-s01/` (`run.txt` records the commit and machine) |
+
+The scroll scenarios changed after the baseline, when scroll layers landed: their scroll areas
+sit on an opaque panel, and the scrolling `div`s (`scroll-child-view`, `scroll-same-view`,
+`sticky-scroll`, `effect-scroll`) leave a 40 px gutter where the pointer rests, over no row. A
+window's pointer is also where the scenario puts it on every platform, where before a test
+window on macOS drew with the pointer at its top-left corner. Compare their `layers` timings
+with `off` of the same run, not with the baseline.
 
 The final comparison runs on the same machine:
 
