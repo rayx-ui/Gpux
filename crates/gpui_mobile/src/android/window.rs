@@ -322,6 +322,10 @@ pub struct AndroidWindow {
     /// Set when Android lifecycle or surface events require the next GPUI
     /// frame callback to render even if GPUI has no ordinary invalidation.
     pub(crate) force_next_frame_render: Arc<AtomicBool>,
+    /// Whether a display frame callback is posted for this window and has not
+    /// fired yet. The event loop keeps at most one, so the request-frame
+    /// callback runs once per vsync.
+    frame_callback_pending: AtomicBool,
 }
 
 // SAFETY: `WindowState` is protected by a `Mutex`.
@@ -404,6 +408,7 @@ impl AndroidWindow {
             id,
             active: Arc::new(AtomicBool::new(true)),
             force_next_frame_render: Arc::new(AtomicBool::new(true)),
+            frame_callback_pending: AtomicBool::new(false),
         }))
     }
 
@@ -438,6 +443,7 @@ impl AndroidWindow {
             id: ((width as u64) << 32) | (height as u64),
             active: Arc::new(AtomicBool::new(false)),
             force_next_frame_render: Arc::new(AtomicBool::new(false)),
+            frame_callback_pending: AtomicBool::new(false),
         })
     }
 
@@ -1013,6 +1019,20 @@ impl AndroidWindow {
     /// Consume the one-shot render request raised by Android lifecycle events.
     pub fn take_force_next_frame_render(&self) -> bool {
         self.force_next_frame_render.swap(false, Ordering::AcqRel)
+    }
+
+    /// Claim the window's display frame callback slot.
+    ///
+    /// Returns `false` while a posted callback has not fired yet, in which
+    /// case the caller must not post another one.
+    pub fn begin_frame_callback(&self) -> bool {
+        !self.frame_callback_pending.swap(true, Ordering::AcqRel)
+    }
+
+    /// Release the slot claimed by `begin_frame_callback`, when the posted
+    /// callback fires or could not be posted.
+    pub fn end_frame_callback(&self) {
+        self.frame_callback_pending.store(false, Ordering::Release);
     }
 
     /// A stable numeric identifier for this window.
@@ -2247,6 +2267,19 @@ mod tests {
         w.set_active(true);
         assert!(w.take_force_next_frame_render());
         assert!(!w.take_force_next_frame_render());
+    }
+
+    #[test]
+    fn frame_callback_slot_holds_one_pending_callback() {
+        let w = AndroidWindow::headless(1080, 1920, 2.0);
+
+        assert!(w.begin_frame_callback());
+        assert!(!w.begin_frame_callback());
+        assert!(!w.begin_frame_callback());
+
+        w.end_frame_callback();
+        assert!(w.begin_frame_callback());
+        assert!(!w.begin_frame_callback());
     }
 
     #[test]

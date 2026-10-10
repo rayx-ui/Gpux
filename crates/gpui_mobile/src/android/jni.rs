@@ -595,17 +595,24 @@ fn input_event_instant(event_time_nanos: i64) -> Option<std::time::Instant> {
     std::time::Instant::now().checked_sub(Duration::from_nanos(age_nanos))
 }
 
-/// Queue the next display-synchronised frame. The raw `Arc` is consumed by the
+/// Queue the next display-synchronised frame, unless one is already queued for
+/// this window: every posted callback re-posts itself while the window is
+/// active, so a second one would start a second chain and run the
+/// request-frame callback twice per vsync. The raw `Arc` is consumed by the
 /// callback so the choreographer never observes a borrowed window.
 #[cfg(feature = "android-native-activity")]
 fn request_choreographer_frame(window: Arc<AndroidWindow>) {
+    if !window.begin_frame_callback() {
+        return;
+    }
     let data = Arc::into_raw(window).cast_mut().cast::<c_void>();
     // SAFETY: this runs on Android's native activity thread, which owns its
     // ALooper. The callback reconstructs and consumes exactly this Arc pointer.
     unsafe {
         let choreographer = ndk_sys::AChoreographer_getInstance();
         if choreographer.is_null() {
-            drop(Arc::from_raw(data.cast::<AndroidWindow>()));
+            let window = Arc::from_raw(data.cast::<AndroidWindow>());
+            window.end_frame_callback();
             return;
         }
         ndk_sys::AChoreographer_postFrameCallback(
@@ -621,6 +628,7 @@ unsafe extern "C" fn on_choreographer_frame(_frame_time_nanos: libc::c_long, dat
     // SAFETY: `request_choreographer_frame` created this pointer with
     // `Arc::into_raw`, and this callback is invoked once by AChoreographer.
     let window = unsafe { Arc::from_raw(data.cast::<AndroidWindow>()) };
+    window.end_frame_callback();
     window.request_frame();
     if window.is_active() {
         request_choreographer_frame(window);
