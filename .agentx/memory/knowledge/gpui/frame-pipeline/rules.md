@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/gpui/frame-pipeline
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-10T18:00:00+02:00
+  updated: 2026-10-10T20:00:00+02:00
   topics:
     - scene
     - arena
@@ -30,3 +30,4 @@ agentx:
 - Remap inspection occurrence ids, parents, dispatch ids, focus, and property setters on cached prepaint replay, and truncate them on rollback.
 - With view retention, copy a reused view's deferred draws with the records open at the copy, and stamp a reused record at the write generation of its reuse decision, never at its prepaint.
 - Count an entity updated without a notify as changed for every reader that retained it; frames must equal the frame drawn from scratch.
+- Splice only what can be copied exactly: refuse a deferred draw outside the gaps, check the copied content's reads and hovers before splicing, and keep a gap at its bounds; otherwise build the view and hand it the gaps as prebuilt.
