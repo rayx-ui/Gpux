@@ -74,7 +74,11 @@ row is completed when it does).
 | `crates/gpui_windows/src/fast/composition.rs` | `crates/gpui_windows/src/fast/composition.rs` | gpux's own, modelled on it: gpui-fast moves Zed's DirectX renderer onto a composition swap chain; gpux keeps the wgpu DX12 HWND swap chain (`DXGI_SCALING_NONE`) under a gpux-owned topmost DirectComposition target (spike result below), with overlay swap chains from `SurfaceTargetUnsafe::CompositionVisual` (`WgpuRenderer::new_sharing_target`), a commit after every composed frame, and the device-lost message rebuilding the tree as well. `is_gpui_window` and the portal shape are gpui-fast's. |
 | `crates/gpui_web/src/fast/composition.rs` | — | gpux's own: overlay canvases above the `html_element` DOM overlay on the shared WebGPU device (`new_sharing_with_context`), input shields clipped to each overlay's input region forwarding pointer events to the window's canvas (a crossing between the canvas and a shield is not a window exit), overlay surfaces alone configured premultiplied (`use_overlay_alpha_mode`; a transparent window's own canvas keeps the mode wgpu picks); WebGL2 reports unsupported. |
 | `crates/gpux_conformance/examples/desktop_host/composition_windows.rs`, `tools-node/specs/composition.spec.ts` | — | gpux's own: lane D's `composition-windows-*` (GDI screenshots of what DWM composed, the device-lost rebuild, accelerator pass-through, live resize) and lane B's composition spec. |
-| `crates/*/src/fast/layers`, other `crates/*/src/fast/composition` | the renderer and platform `fast/` modules | Pending (scroll-layer renderers, composition on mobile). |
+| `crates/gpui_mobile/src/ios/fast/composition.rs` | — | gpux's own: native `UIView` containers and a `GPUIOverlayView` (transparent `CAMetalLayer`, `hitTest:withEvent:` gated by the input region) under the Metal view, the overlay renderer made through `new_sharing_target` and configured `PostMultiplied` (`overlay_alpha_mode`), released before the window's renderer. |
+| `crates/gpui_mobile/src/android/fast/composition.rs`, `crates/gpui_mobile/java/dev/gpux/mobile/Composition.java` | — | gpux's own: panel windows for native containers, a sub-panel overlay window with a `SurfaceView` under Vulkan, cut-out mode under GL (spike result below); JNI natives registered by gpux, surface and touch events dispatched onto GPUI's thread. |
+| `crates/gpui_mobile/src/{platform_view.rs,components/platform_view_element.rs}`, `crates/gpui_mobile/src/{ios,android}/platform_view.rs`, `crates/gpui_mobile/java/dev/gpux/mobile/PlatformViews.java` | — | gpux's own: platform views attached to composition native surfaces and clipped to their element's content mask; the Android view factories (`container`, `webview`, app-registered types) replace RayX's `RayXPlatformView`. |
+| `crates/gpux_conformance/examples/{ios_host,android_host}/{composition,platform_views}.rs`, `tooling/testkit/tests/android_java.rs` | — | gpux's own: lane F's `composition-ios-*` and `platform-view-ios` (UIKit's view tree and hit testing, a Simulator screenshot), lane E's `composition-android-*` and `platform-view-android` (`adb screencap` and `adb shell input`), and the Gradle-free `javac`/`d8` build plan. |
+| `crates/*/src/fast/layers` | the renderer `fast/` modules | Pending (scroll-layer renderers). |
 | — | the Direct3D 11 renderer | Excluded: gpux renders Windows through wgpu on DX12. |
 | — | `compat/` gpui-pre stand-ins, `script/check-upstream` | Excluded: gpux tracks Zed through its own import process. |
 
@@ -107,6 +111,31 @@ renderer path, the swap chain and the `DXGI_SCALING_NONE` behaviour of every win
 adds DirectComposition only above them, and needs no second base presentation path to keep in
 step with wgpu. The check keeps reporting both measurements, so a later wgpu or Windows change
 that separates them shows in lane D.
+
+## Android composition spike
+
+A `NativeActivity` hands its window's surface to native code, and the embedded host renders into a
+`SurfaceView`; neither leaves a view hierarchy that draws above GPUI's own surface. The spike
+compared two ways to stack native views and GPUI's overlay above it:
+
+| Option | Native views | Overlay |
+|---|---|---|
+| (a) | A container per native surface in a panel window (`TYPE_APPLICATION_PANEL`) on the activity's window token | A translucent sub-panel window holding a `SurfaceView` GPUI renders into |
+| (b) | One managed view hierarchy added to the activity's content view | A `SurfaceView` in it with `setZOrderOnTop(true)` and `PixelFormat.TRANSLUCENT` |
+
+(b) cannot serve the `NativeActivity` host: native code takes the window's surface, so views
+added to the activity's content view never draw there. It could only work in the embedded host,
+where GPUI's `SurfaceView` sits behind the window. gpux uses (a), which needs only the activity
+and its window token and so serves both hosts the same way. Panels are `FLAG_NOT_FOCUSABLE` (a
+focusable panel takes window focus from the activity and GPUI goes inactive), and a changed order
+re-adds them, since later panels stack above earlier ones.
+
+Lane E on the API 34 emulator (`composition-android-*`) then showed what the overlay can be:
+
+| GPUI's backend | Result |
+|---|---|
+| GL (the emulator's default) | wgpu's GLES surfaces are `R8G8B8X8`: an overlay window presents opaque and hides the native views. gpux draws the whole scene into its own window instead, and each container clips the overlay content above it out of itself and hands touches there to GPUI (cut-out mode). Order and input pass; a shadow cannot blend over a native view, so `composition-android-shadow` skips with that reason. |
+| Vulkan (software Vulkan, with the adapter filter lifted for the experiment) | The overlay window presents premultiplied: order, input and shadow pass, the shadow reading `[236, 0, 0]` over the view's `[255, 0, 0]`. |
 
 ## Comparing a later gpui-fast fix
 

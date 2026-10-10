@@ -131,7 +131,8 @@ external surface where it is laid out, handing it device-pixel bounds only when 
 - **Native surfaces.** Once a `native_surface` element has placed a surface, the surface is
   shown only in frames that place it and hidden in the others. GPUI's content masks do not clip
   native surfaces: one inside a scroll area shows past the area's edges unless its content clips
-  itself.
+  itself, or its element places it at its visible part, as gpui-mobile's `platform_view_element`
+  does.
 - **Text.** Text on the overlay is grayscale, since it blends over native content. Backdrop effects
   on the overlay sample only the overlay's GPUI content, never native pixels.
 - **Off by default.** Until composition is enabled, the scene, the draw call and allocations are
@@ -153,9 +154,28 @@ device rebuilds the tree and calls `compositor_recreated`, and key downs of othe
 to them). The browser on WebGPU (overlay canvases above the `html_element` DOM overlay, sharing the
 window's device, with an input shield clipped to each overlay's input region that hands pointer
 events to the window's canvas, the pointer staying inside the window as it crosses between them; native surfaces are `html_element`'s, and WebGL2 reports composition
-unsupported and keeps the single canvas). On
+unsupported and keeps the single canvas). iOS (native `UIView` containers and a `GPUIOverlayView` on a transparent `CAMetalLayer`, subviews
+of the Metal view; the overlay's renderer shares the window's through `new_sharing_target`, and
+its `hitTest:withEvent:` takes a touch only within its input region). Android (each native surface
+is a container in a non-focusable panel window attached to the activity's window, so the
+NativeActivity host and the embedded host work alike; under Vulkan the overlay is a translucent
+sub-panel window holding a `SurfaceView` that GPUI renders into, touchable only while it has
+content; wgpu presents GLES surfaces only opaque, so under GL the whole scene is drawn into GPUI's
+window and each container clips the overlay content above it out of itself and hands touches there
+to GPUI, which leaves no shadow blending over native views). The Android side is gpux's Java
+helper `dev.gpux.mobile` in `crates/gpui_mobile/java`: `gpux-testkit android build` compiles it
+with `javac` and `d8`, and apps add those sources to their Gradle build (and keep
+`dev.gpux.mobile.**` from R8). On
 Wayland the placements, geometry and input regions handed to the compositor are logged at debug
 level under `gpux::composition`.
+
+gpui-mobile's platform views sit on composition: `platform_view_element` makes a native surface
+for its view the first time it is laid out in a window, attaches the view to it
+(`PlatformView::attach`), and places the surface at the part of the element inside the bounds of its content mask, the
+view keeping its full frame inside (`PlatformView::set_frame`), so a scroll area clips it. On Android
+`dev.gpux.mobile.PlatformViews` makes the view for its type: `container` and `webview` are built
+in, and an app registers its own (a video surface, a camera preview) with
+`PlatformViews.register` before GPUI creates them.
 
 ## Measuring
 
