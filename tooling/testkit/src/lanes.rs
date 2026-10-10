@@ -195,8 +195,9 @@ const LANE_A_GROUPS: [&str; 8] = [
     "lane_a_fast_parity",
 ];
 
-/// The lane-C groups besides the scenes, which need the renderer: lane G's probes-only mode.
-const LANE_C_GROUPS: [&str; 2] = ["lane_g", "lane_c_fast_parity"];
+/// The lane-C groups besides the scenes, which need the renderer: lane G's probes-only mode,
+/// fast-mode parity, and scroll layers drawn from the renderer's tiles.
+const LANE_C_GROUPS: [&str; 3] = ["lane_g", "lane_c_fast_parity", "lane_c_scroll_layers"];
 
 /// Plans `lane` for `selection`.
 pub fn plan(lane: LaneId, selection: &Selection) -> Result<LanePlan, PlanError> {

@@ -317,7 +317,7 @@ impl Host for TestHost {
 
 /// The headless renderer lane C draws with: the software adapter unless `GPUX_WGPU_ADAPTER`
 /// picks another on the platforms that render through wgpu, the platform renderer elsewhere.
-fn lane_c_renderer() -> anyhow::Result<Option<Box<dyn PlatformHeadlessRenderer>>> {
+pub fn lane_c_renderer() -> anyhow::Result<Option<Box<dyn PlatformHeadlessRenderer>>> {
     #[cfg(any(target_os = "linux", target_os = "windows"))]
     {
         use gpui_wgpu::{HeadlessAdapterSelection, WgpuHeadlessRenderer};

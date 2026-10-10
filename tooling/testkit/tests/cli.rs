@@ -239,7 +239,15 @@ fn libtest_lanes_list_every_target_they_run() {
         .iter()
         .map(|listing| listing.target.as_str())
         .collect();
-    assert_eq!(targets, ["lane_c", "lane_g", "lane_c_fast_parity"]);
+    assert_eq!(
+        targets,
+        [
+            "lane_c",
+            "lane_g",
+            "lane_c_fast_parity",
+            "lane_c_scroll_layers"
+        ]
+    );
     assert!(
         lane_c.listings[1]
             .invocation
@@ -248,8 +256,8 @@ fn libtest_lanes_list_every_target_they_run() {
     );
     assert_eq!(
         lane_c.invocations[0].command_line(),
-        "cargo test -p gpux-conformance --test lane_c --test lane_g --test lane_c_fast_parity --no-fail-fast \
-         -- --test-threads=1"
+        "cargo test -p gpux-conformance --test lane_c --test lane_g --test lane_c_fast_parity \
+         --test lane_c_scroll_layers --no-fail-fast -- --test-threads=1"
     );
     assert!(lane_c.tests.contains(&"lane_g::*".to_string()));
     assert!(
