@@ -10,9 +10,10 @@
 //! the window's view.
 //!
 //! An overlay view covers the whole window, so it takes mouse events only
-//! while its surface drew something last frame, and hands them to the
-//! window's view; otherwise AppKit's hit testing passes through it to the
-//! native views below.
+//! where its surface drew last frame (its input region: GPUI content, not
+//! shadows) and hands them to the window's view; elsewhere AppKit's hit
+//! testing passes through it to the native views below. This is gpux's
+//! own: gpui-fast's overlay takes the whole window while it draws anything.
 
 use std::{
     any::Any,
@@ -22,7 +23,7 @@ use std::{
     rc::Rc,
     sync::{
         Arc, Weak,
-        atomic::{AtomicBool, AtomicPtr, Ordering},
+        atomic::{AtomicPtr, Ordering},
     },
 };
 
@@ -34,8 +35,8 @@ use cocoa::{
 };
 use collections::{FxHashMap, FxHashSet};
 use gpux::{
-    Bounds, ComposedScene, CompositionSurfaceId, DevicePixels, PlatformCompositionSurface,
-    PlatformCompositionSurfaceContent, PlatformSurfaceAttachment, Point, Size, px,
+    Bounds, ComposedScene, CompositionSurfaceId, DevicePixels, Pixels, PlatformCompositionSurface,
+    PlatformCompositionSurfaceContent, PlatformSurfaceAttachment, Point, Size, point, px, size,
 };
 use objc::{
     class,
@@ -55,9 +56,13 @@ use crate::{
 };
 
 /// The ivar of a `GPUIOverlayView` holding its surface's
-/// [`MacGpuiSurface::input_active`], an `Arc<AtomicBool>` turned into a raw
-/// pointer.
-const OVERLAY_INPUT_IVAR: &str = "overlayInputActive";
+/// [`MacGpuiSurface::input_region`], an [`InputRegion`] `Arc` turned into a
+/// raw pointer.
+const OVERLAY_INPUT_IVAR: &str = "overlayInputRegion";
+
+/// Where an overlay view takes mouse events, in logical pixels from the top
+/// left of the window's content.
+type InputRegion = Mutex<Vec<Bounds<Pixels>>>;
 
 /// The `GPUIOverlayView` class, registered by [`build_overlay_view_class`].
 static OVERLAY_VIEW_CLASS: AtomicPtr<Class> = AtomicPtr::new(ptr::null_mut());
@@ -79,9 +84,9 @@ pub(crate) struct MacComposition {
 struct MacGpuiSurface {
     view: NonNull<Object>,
     renderer: renderer::Renderer,
-    /// Whether the surface drew anything last frame, and so takes the mouse
-    /// events over it; shared with the view.
-    input_active: Arc<AtomicBool>,
+    /// Where the surface drew last frame, and so takes the mouse events;
+    /// shared with the view.
+    input_region: Arc<InputRegion>,
 }
 
 /// Registers the `GPUIOverlayView` class, with the window's other classes.
@@ -128,12 +133,33 @@ pub(crate) unsafe fn build_overlay_view_class() {
     OVERLAY_VIEW_CLASS.store(class as *mut Class, Ordering::Release);
 }
 
-extern "C" fn overlay_hit_test(this: &Object, _: Sel, _: NSPoint) -> id {
-    let active = unsafe {
+/// `hitTest:` takes `point`, in the superview's coordinates, only within the
+/// surface's input region.
+extern "C" fn overlay_hit_test(this: &Object, _: Sel, point_in_superview: NSPoint) -> id {
+    let region = unsafe {
         let raw: *mut c_void = *this.get_ivar(OVERLAY_INPUT_IVAR);
-        &*(raw as *const AtomicBool)
+        &*(raw as *const InputRegion)
     };
-    if active.load(Ordering::Acquire) {
+    let region = region.lock();
+    if region.is_empty() {
+        return nil;
+    }
+    let (local, height): (NSPoint, f64) = unsafe {
+        let superview: id = msg_send![this, superview];
+        let local = msg_send![this, convertPoint: point_in_superview fromView: superview];
+        (
+            local,
+            NSView::bounds(this as *const Object as id).size.height,
+        )
+    };
+    let flipped: objc::runtime::BOOL = unsafe { msg_send![this, isFlipped] };
+    let y = if flipped == YES {
+        local.y
+    } else {
+        height - local.y
+    };
+    let position = point(px(local.x as f32), px(y as f32));
+    if region.iter().any(|bounds| bounds.contains(&position)) {
         this as *const Object as id
     } else {
         nil
@@ -150,7 +176,7 @@ extern "C" fn dealloc_overlay_view(this: &Object, _: Sel) {
     unsafe {
         drop_window_state(this);
         let raw: *mut c_void = *this.get_ivar(OVERLAY_INPUT_IVAR);
-        drop(Arc::from_raw(raw as *const AtomicBool));
+        drop(Arc::from_raw(raw as *const InputRegion));
         let _: () = msg_send![super(this, class!(NSView)), dealloc];
     }
 }
@@ -165,6 +191,7 @@ pub(crate) fn draw_composed(window_state: &Arc<Mutex<MacWindowState>>, scene: Co
         state.renderer.draw(scene.scene());
         return;
     };
+    let scale_factor = state.scale_factor();
     for layer in scene.layers() {
         let surface_scene = match scene.layer_scene(layer) {
             Ok(surface_scene) => surface_scene,
@@ -176,9 +203,22 @@ pub(crate) fn draw_composed(window_state: &Arc<Mutex<MacWindowState>>, scene: Co
         if layer.surface == base_surface {
             state.renderer.draw(&surface_scene);
         } else if let Some(surface) = state.fast_composition.gpui_surfaces.get_mut(&layer.surface) {
-            surface
-                .input_active
-                .store(!surface_scene.is_empty(), Ordering::Release);
+            *surface.input_region.lock() = scene
+                .layer_input_region(layer)
+                .into_iter()
+                .map(|bounds| {
+                    Bounds::new(
+                        point(
+                            px(bounds.origin.x.0 / scale_factor),
+                            px(bounds.origin.y.0 / scale_factor),
+                        ),
+                        size(
+                            px(bounds.size.width.0 / scale_factor),
+                            px(bounds.size.height.0 / scale_factor),
+                        ),
+                    )
+                })
+                .collect();
             surface.renderer.draw(&surface_scene);
         } else {
             log::error!(
@@ -353,7 +393,7 @@ unsafe fn create_gpui_surface(
     window_state: &Arc<Mutex<MacWindowState>>,
     state: &mut MacWindowState,
 ) -> Result<MacGpuiSurface> {
-    let input_active = Arc::new(AtomicBool::new(false));
+    let input_region = Arc::new(InputRegion::default());
     let native_view = state.native_view.as_ptr() as id;
     let class = OVERLAY_VIEW_CLASS.load(Ordering::Acquire) as *const Class;
     anyhow::ensure!(!class.is_null(), "GPUIOverlayView is not registered");
@@ -367,7 +407,7 @@ unsafe fn create_gpui_surface(
         );
         (*view).set_ivar(
             OVERLAY_INPUT_IVAR,
-            Arc::into_raw(input_active.clone()) as *const c_void,
+            Arc::into_raw(input_region.clone()) as *const c_void,
         );
     }
 
@@ -388,7 +428,7 @@ unsafe fn create_gpui_surface(
     Ok(MacGpuiSurface {
         view: NonNull::new(view).context("GPUI composition view is null")?,
         renderer,
-        input_active,
+        input_region,
     })
 }
 

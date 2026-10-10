@@ -1087,6 +1087,7 @@ impl StretchCopy {
             range.start.deferred_draws_index, range.end.deferred_draws_index,
             "a splice copies no deferred draw"
         );
+        crate::fast::composition::reuse_placements(window, &range);
         let rendered = &mut window.rendered_frame;
         let next = &mut window.next_frame;
         next.hitboxes.extend(

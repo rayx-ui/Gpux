@@ -123,14 +123,22 @@ external surface where it is laid out, handing it device-pixel bounds only when 
   band wherever it was painted. A range replayed onto a surface reopens the clip, positioned and
   top layers it began inside.
 - **Reuse.** Views drawn from last frame (cached, retained, spliced) carry their surface
-  switches.
+  switches and their native-surface placements.
+- **Input.** A surface above native content takes pointer input only within its input region:
+  the bounds of what it drew last frame, clipped, without shadows
+  (`ComposedScene::layer_input_region`). A menu or a top-layer scrollbar on the overlay leaves
+  the rest of a native view clickable; a click on the native view reaches it, not GPUI.
+- **Native surfaces.** Once a `native_surface` element has placed a surface, the surface is
+  shown only in frames that place it and hidden in the others. GPUI's content masks do not clip
+  native surfaces: one inside a scroll area shows past the area's edges unless its content clips
+  itself.
 - **Text.** Text on the overlay is grayscale, since it blends over native content. Backdrop effects
   on the overlay sample only the overlay's GPUI content, never native pixels.
 - **Off by default.** Until composition is enabled, the scene, the draw call and allocations are
   unchanged. The first composed frame is drawn afresh.
 
 Platforms: macOS (overlay `NSView`s on `CAMetalLayer`s sharing the window renderer's device,
-instance buffers and atlas; the overlay takes mouse events only while it has content). wgpu
+instance buffers and atlas; the overlay takes mouse events only within its input region). wgpu
 platforms share the window's GPU context, atlas and pipelines through
 `WgpuRenderer::new_sharing`.
 

@@ -1157,8 +1157,8 @@ pub(crate) struct WindowFrame {
     pub(crate) fast_retained: crate::fast::retained::RetainedSubtrees,
     /// Where painting switched composition surface.
     pub(crate) fast_composition_starts: crate::fast::composition::SurfaceStarts,
-    /// How many native surfaces were placed.
-    pub(crate) fast_native_surfaces: usize,
+    /// The native surfaces placed.
+    pub(crate) fast_native_surfaces: crate::fast::composition::NativeSurfacePlacements,
 }
 
 #[derive(Clone, Default, Debug)]
@@ -1172,6 +1172,7 @@ pub(crate) struct PrepaintStateIndex {
     pub(crate) accessed_element_states_index: usize,
     pub(crate) pending_element_state_transfers_index: usize,
     pub(crate) line_layout_index: LineLayoutIndex,
+    pub(crate) fast_native_surfaces_index: usize,
 }
 
 #[derive(Clone, Default, Debug)]
@@ -1237,7 +1238,7 @@ impl WindowFrame {
             tab_stops: TabStopMap::default(),
             fast_retained: Default::default(),
             fast_composition_starts: Default::default(),
-            fast_native_surfaces: 0,
+            fast_native_surfaces: Default::default(),
         }
     }
 
@@ -1280,7 +1281,7 @@ impl WindowFrame {
         }
         self.fast_retained.clear();
         self.fast_composition_starts.clear();
-        self.fast_native_surfaces = 0;
+        self.fast_native_surfaces.clear();
     }
 
     pub(crate) fn cursor_style(&self, window: &Window) -> Option<CursorStyle> {
@@ -5872,10 +5873,12 @@ impl Window {
                 .pending_element_state_transfers
                 .len(),
             line_layout_index: self.text_system.layout_index(),
+            fast_native_surfaces_index: self.next_frame.fast_native_surfaces.len(),
         }
     }
 
     pub(crate) fn reuse_prepaint(&mut self, range: Range<PrepaintStateIndex>) {
+        crate::fast::composition::reuse_placements(self, &range);
         self.next_frame.hitboxes.extend(
             self.rendered_frame.hitboxes[range.start.hitboxes_index..range.end.hitboxes_index]
                 .iter()
@@ -6708,6 +6711,9 @@ impl Window {
         let result = f(self);
         if result.is_err() {
             self.next_frame.fast_retained.truncate(fast_records);
+            self.next_frame
+                .fast_native_surfaces
+                .truncate(index.fast_native_surfaces_index);
             self.next_frame.hitboxes.truncate(index.hitboxes_index);
             self.next_frame
                 .tooltip_requests

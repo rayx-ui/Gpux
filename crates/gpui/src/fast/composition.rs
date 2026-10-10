@@ -35,14 +35,14 @@
 //! cached, retained or spliced view) carries the surface switches it made with
 //! it: [`reuse_starts`] copies them along with its scene.
 
-use crate::window::PaintIndex;
+use crate::window::{PaintIndex, PrepaintStateIndex};
 use crate::{
     App, Bounds, DevicePixels, Element, ElementId, GlobalElementId, InspectorElementId,
-    IntoElement, LayoutId, Pixels, PlatformWindow, Point, Scene, Style, StyleRefinement, Styled,
-    Window, scene::PaintOperation,
+    IntoElement, LayoutId, Pixels, PlatformWindow, Point, Primitive, ScaledPixels, Scene, Style,
+    StyleRefinement, Styled, Window, scene::PaintOperation,
 };
 use anyhow::{Context as _, Result, anyhow, bail};
-use collections::FxHashMap;
+use collections::{FxHashMap, FxHashSet};
 use gpui_util::ResultExt as _;
 use refineable::Refineable as _;
 use slotmap::SlotMap;
@@ -438,7 +438,48 @@ impl<'a> ComposedScene<'a> {
         scene.finish();
         Ok(scene)
     }
+
+    /// Where `layer` drew, in window-content device pixels: the bounds of
+    /// its primitives clipped by their content masks, overlapping ones
+    /// merged. A surface above native content takes pointer input only
+    /// there, so a menu or a scrollbar on the overlay leaves the rest of a
+    /// native view clickable. Shadows are left out, as GPUI's hit testing
+    /// leaves them out.
+    pub fn layer_input_region(&self, layer: &ComposedSceneLayer) -> Vec<Bounds<ScaledPixels>> {
+        let mut region = Vec::<Bounds<ScaledPixels>>::new();
+        for range in &layer.ranges {
+            for operation in &self.scene.paint_operations[range.clone()] {
+                let PaintOperation::Primitive(primitive) = operation else {
+                    continue;
+                };
+                if matches!(primitive, Primitive::Shadow(_)) {
+                    continue;
+                }
+                let mut bounds = primitive
+                    .bounds()
+                    .intersect(&primitive.content_mask().bounds);
+                if bounds.is_empty() {
+                    continue;
+                }
+                while let Some(index) = region.iter().position(|other| other.intersects(&bounds)) {
+                    bounds = bounds.union(&region.swap_remove(index));
+                }
+                region.push(bounds);
+                if region.len() > INPUT_REGION_RECTS {
+                    let merged = region
+                        .drain(..)
+                        .reduce(|merged, bounds| merged.union(&bounds));
+                    region.extend(merged);
+                }
+            }
+        }
+        region
+    }
 }
+
+/// The most rectangles a layer's input region keeps before it is merged
+/// into one, which bounds the cost of a hit test on it.
+const INPUT_REGION_RECTS: usize = 32;
 
 /// A platform surface participating in window composition.
 #[derive(Clone)]
@@ -639,6 +680,12 @@ pub(crate) struct WindowCompositionState {
     /// The order and geometry last handed to the platform, so that only a
     /// change is handed over again.
     synchronized: Option<Vec<SynchronizedSurface>>,
+    /// The native and external surfaces a [`native_surface`] element has
+    /// placed: from then on they are shown only in frames that place them.
+    placed_by_elements: FxHashSet<CompositionSurfaceId>,
+    /// The surfaces of `placed_by_elements` hidden because the last frame
+    /// presented placed them nowhere.
+    hidden_unplaced: FxHashSet<CompositionSurfaceId>,
 }
 
 /// What [`WindowComposition::synchronize_platform_order`] last handed to the
@@ -671,6 +718,8 @@ impl Default for WindowCompositionHandle {
             enabled: false,
             refresh_pending: false,
             synchronized: None,
+            placed_by_elements: FxHashSet::default(),
+            hidden_unplaced: FxHashSet::default(),
         })))
     }
 }
@@ -856,6 +905,8 @@ impl WindowComposition<'_> {
         }
         state.tree.remove(surface)?;
         state.platform_surfaces.remove(&surface);
+        state.placed_by_elements.remove(&surface);
+        state.hidden_unplaced.remove(&surface);
         drop(state);
         if let Err(error) = self.synchronize_platform_order() {
             let mut state = self.state.borrow_mut();
@@ -1145,6 +1196,10 @@ pub(crate) fn present(window: &mut Window) {
         window.platform_window.draw(&window.rendered_frame.scene);
         return;
     }
+    show_placed_surfaces(
+        &mut state.borrow_mut(),
+        &window.rendered_frame.fast_native_surfaces.0,
+    );
     if state.borrow().geometry_dirty.get() {
         let composition = WindowComposition {
             platform_window: window.platform_window.as_ref(),
@@ -1175,8 +1230,82 @@ pub(crate) fn present(window: &mut Window) {
         .draw_composed(ComposedScene::new(scene, layers));
 }
 
+/// Shows the surfaces `placed` this frame and hides the others an element
+/// placed before, so a native surface whose element is no longer drawn does
+/// not stay on screen at its last bounds.
+fn show_placed_surfaces(state: &mut WindowCompositionState, placed: &[CompositionSurfaceId]) {
+    if placed.is_empty() && state.placed_by_elements.is_empty() {
+        return;
+    }
+    let WindowCompositionState {
+        platform_surfaces,
+        placed_by_elements,
+        hidden_unplaced,
+        ..
+    } = state;
+    placed_by_elements.extend(
+        placed
+            .iter()
+            .copied()
+            .filter(|surface| platform_surfaces.contains_key(surface)),
+    );
+    for surface in placed_by_elements.iter() {
+        let Some(platform_surface) = platform_surfaces.get(surface) else {
+            continue;
+        };
+        let shown = placed.contains(surface);
+        if shown == hidden_unplaced.contains(surface) {
+            platform_surface.set_visible(shown).log_err();
+            if shown {
+                hidden_unplaced.remove(surface);
+            } else {
+                hidden_unplaced.insert(*surface);
+            }
+        }
+    }
+}
+
+/// The native and external surfaces placed in a frame by [`native_surface`]
+/// elements, in prepaint order. A view drawn from last frame carries the
+/// placements it made, as [`reuse_placements`] copies them.
+#[derive(Default)]
+pub(crate) struct NativeSurfacePlacements(pub(crate) Vec<CompositionSurfaceId>);
+
+impl NativeSurfacePlacements {
+    pub(crate) fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub(crate) fn truncate(&mut self, len: usize) {
+        self.0.truncate(len);
+    }
+
+    pub(crate) fn clear(&mut self) {
+        self.0.clear();
+    }
+}
+
+/// Carries the native surfaces last frame placed within `range` into the
+/// frame being drawn, as its prepaint is copied rather than run.
+#[inline]
+pub(crate) fn reuse_placements(window: &mut Window, range: &Range<PrepaintStateIndex>) {
+    let placed = &window.rendered_frame.fast_native_surfaces.0
+        [range.start.fast_native_surfaces_index..range.end.fast_native_surfaces_index];
+    if !placed.is_empty() {
+        window
+            .next_frame
+            .fast_native_surfaces
+            .0
+            .extend_from_slice(placed);
+    }
+}
+
 /// Places `surface`, a native or external surface of the window's
 /// composition, where the element is laid out.
+///
+/// The surface is shown in the frames that place it and hidden in the others.
+/// GPUI's content masks do not clip it: a native surface inside a scroll
+/// area shows past the area's edges unless its content clips itself.
 pub fn native_surface(surface: WindowCompositionSurface) -> NativeSurface {
     NativeSurface {
         surface,
@@ -1186,7 +1315,8 @@ pub fn native_surface(surface: WindowCompositionSurface) -> NativeSurface {
 
 /// An element a native surface is placed at: see [`native_surface`]. Its
 /// bounds are handed to the surface, in device pixels, as it is prepainted,
-/// and only when they change.
+/// and only when they change; a view drawn from last frame carries the
+/// placement.
 pub struct NativeSurface {
     surface: WindowCompositionSurface,
     style: StyleRefinement,
@@ -1258,7 +1388,11 @@ impl Element for NativeSurface {
         if let Ok(platform_surface) = self.surface.platform_surface() {
             platform_surface.set_bounds(bounds).log_err();
         }
-        window.next_frame.fast_native_surfaces += 1;
+        window
+            .next_frame
+            .fast_native_surfaces
+            .0
+            .push(self.surface.id());
     }
 
     fn paint(
@@ -1289,6 +1423,8 @@ pub(crate) struct TestCompositionState {
     /// Each frame presented: every GPUI surface's scene, as its primitives
     /// in drawing order described without their draw order.
     pub(crate) presented: Vec<Vec<(CompositionSurfaceId, Vec<String>)>>,
+    /// Each frame presented: every GPUI surface's input region.
+    pub(crate) input_regions: Vec<Vec<(CompositionSurfaceId, Vec<Bounds<ScaledPixels>>)>>,
     /// Native surfaces created, in order.
     pub(crate) native_surfaces: Vec<Rc<TestNativeSurface>>,
     /// Whether the next native surface fails to be created.
@@ -1350,7 +1486,14 @@ impl TestComposition {
                 (layer.surface, lines)
             })
             .collect();
-        self.0.borrow_mut().presented.push(layers);
+        let regions = scene
+            .layers()
+            .iter()
+            .map(|layer| (layer.surface, scene.layer_input_region(layer)))
+            .collect();
+        let mut state = self.0.borrow_mut();
+        state.presented.push(layers);
+        state.input_regions.push(regions);
     }
 }
 
@@ -1361,6 +1504,8 @@ pub(crate) struct TestNativeSurface {
     pub(crate) bounds: Cell<Bounds<DevicePixels>>,
     pub(crate) bounds_writes: Cell<usize>,
     pub(crate) visible: Cell<bool>,
+    /// Each visibility handed to the surface, in order.
+    pub(crate) visibility_changes: RefCell<Vec<bool>>,
 }
 
 #[cfg(any(test, feature = "test-support"))]
@@ -1381,6 +1526,7 @@ impl PlatformSurfaceAttachment for TestNativeSurface {
 
     fn set_visible(&self, visible: bool) -> Result<()> {
         self.visible.set(visible);
+        self.visibility_changes.borrow_mut().push(visible);
         Ok(())
     }
 

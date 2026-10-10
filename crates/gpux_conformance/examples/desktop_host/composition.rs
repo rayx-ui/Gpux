@@ -244,7 +244,9 @@ mod macos {
     }
 
     /// AppKit's hit testing passes a click through the empty overlay to the
-    /// native view, and gives it to the overlay while a menu covers it.
+    /// native view, gives it to the overlay while a menu covers it, and
+    /// still passes a click beside the open menu, under its shadow, through
+    /// to the native view.
     pub async fn input(cx: &mut AsyncApp) -> anyhow::Result<Check> {
         let setup = setup(cx, "composition-input").await?;
         let result = async {
@@ -278,8 +280,20 @@ mod macos {
                     class_name(&hit)
                 );
             }
+            // Inside the native view, left of the menu and within its shadow.
+            let beside = view_point(&setup.content_view, (MENU.0 - 8., MENU.1 + 10.));
+            let hit = setup
+                .content_view
+                .hitTest(beside)
+                .context("nothing is beside the open menu")?;
+            if *hit != *setup.native_view {
+                bail!(
+                    "with the menu open, a click beside it hits {}, not the native view",
+                    class_name(&hit)
+                );
+            }
             Ok(Check::Passed(
-                "passes through when empty, taken by the open menu".into(),
+                "passes through when empty and beside the open menu, taken by the menu".into(),
             ))
         }
         .await;

@@ -2,7 +2,9 @@
 //! the surface tree and its transactions, unsupported platforms, the path
 //! with composition off, the scene split per surface (the top-layer band and
 //! the overlay range), balanced clips, surface switches carried by views
-//! drawn from last frame, and native-surface geometry pushed only on change.
+//! drawn from last frame, native-surface geometry pushed only on change,
+//! the overlay's input region, and native surfaces shown only while their
+//! element is drawn.
 
 use super::view_support::VIEWS;
 use super::{oracle_support::oracle_app, splice::SPLICE};
@@ -160,27 +162,36 @@ impl Render for Content {
     }
 }
 
-/// A child view that paints part of itself onto the overlay.
+/// A child view that paints part of itself onto the overlay, and may place
+/// a native surface.
 struct Child {
     overlay: CompositionSurfaceId,
+    native: Option<crate::WindowCompositionSurface>,
 }
 
 impl Render for Child {
     fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
         let overlay = self.overlay;
-        div().size(px(30.)).child(
-            canvas(
-                |_, _, _| {},
-                move |bounds, _, window, _| {
-                    window
-                        .with_composition_surface(overlay, |window| {
-                            window.paint_quad(crate::fill(bounds, crate::white()))
-                        })
-                        .unwrap();
-                },
+        div()
+            .size(px(30.))
+            .child(
+                canvas(
+                    |_, _, _| {},
+                    move |bounds, _, window, _| {
+                        window
+                            .with_composition_surface(overlay, |window| {
+                                window.paint_quad(crate::fill(bounds, crate::white()))
+                            })
+                            .unwrap();
+                    },
+                )
+                .size(px(10.)),
             )
-            .size(px(10.)),
-        )
+            .children(
+                self.native
+                    .clone()
+                    .map(|surface| native_surface(surface).size(px(10.))),
+            )
     }
 }
 
@@ -395,7 +406,10 @@ fn views_drawn_from_last_frame_keep_their_surface_switches() {
         let (base, overlay) = enable(&mut cx, window);
         window
             .update(&mut cx, move |content, _, cx| {
-                content.child = Some(cx.new(|_| Child { overlay }));
+                content.child = Some(cx.new(|_| Child {
+                    overlay,
+                    native: None,
+                }));
                 cx.notify();
             })
             .unwrap();
@@ -483,4 +497,130 @@ fn native_surface_bounds_are_pushed_only_on_change() {
     assert_eq!(native.bounds_writes.get(), 2);
     assert_eq!(native.bounds.get().origin.x, DevicePixels(80));
     assert_eq!(recorder(&cx, window).state().orders.len(), orders + 1);
+}
+
+/// The overlay takes pointer input only where it drew: the deferred box and
+/// the top-layer band, not the rest of the window, and no shadow.
+#[test]
+fn the_overlay_takes_input_only_where_it_draws() {
+    let (mut cx, window) = open(FastMode::OFF);
+    let (_, overlay) = enable(&mut cx, window);
+    window
+        .update(&mut cx, |content, _, cx| {
+            content.top_layer = true;
+            cx.notify();
+        })
+        .unwrap();
+    present(&mut cx, window);
+    let scale = cx
+        .update_window(window.into(), |_, window, _| window.scale_factor())
+        .unwrap();
+    let regions = recorder(&cx, window)
+        .state()
+        .input_regions
+        .last()
+        .cloned()
+        .unwrap();
+    let region = regions
+        .iter()
+        .find(|(surface, _)| *surface == overlay)
+        .map(|(_, region)| region.clone())
+        .unwrap();
+    assert!(!region.is_empty(), "{regions:?}");
+    // The 8px deferred box and the 16px top-layer canvas, in device pixels.
+    let area: f32 = region
+        .iter()
+        .map(|bounds| bounds.size.width.0 * bounds.size.height.0)
+        .sum();
+    let expected = (8. * scale).powi(2) + (16. * scale).powi(2);
+    assert!(area <= expected + 1., "{area} > {expected}: {region:?}");
+    let corner = point(
+        crate::ScaledPixels(290. * scale),
+        crate::ScaledPixels(190. * scale),
+    );
+    assert!(
+        region.iter().all(|bounds| !bounds.contains(&corner)),
+        "{region:?}"
+    );
+}
+
+/// A native surface placed in a view drawn from last frame stays shown, is
+/// hidden in the first frame that places it nowhere, and is shown again
+/// when placed again: replayed as a cached view with fast mode off, reused
+/// with view retention, copied around a splice.
+#[test]
+fn native_surfaces_are_shown_while_their_element_is_drawn() {
+    for mode in [FastMode::OFF, VIEWS, SPLICE] {
+        let (mut cx, window) = open(mode);
+        let (_, overlay) = enable(&mut cx, window);
+        let surface = cx
+            .update_window(window.into(), |_, window, _| {
+                window
+                    .enable_window_composition()
+                    .unwrap()
+                    .create_native_surface()
+                    .unwrap()
+            })
+            .unwrap();
+        let placed = surface.clone();
+        window
+            .update(&mut cx, move |content, _, cx| {
+                content.child = Some(cx.new(|_| Child {
+                    overlay,
+                    native: Some(placed),
+                }));
+                cx.notify();
+            })
+            .unwrap();
+        present(&mut cx, window);
+        let native = recorder(&cx, window).state().native_surfaces[0].clone();
+        for step in 0..3 {
+            window
+                .update(&mut cx, |content, _, cx| {
+                    content.tick += 1;
+                    cx.notify();
+                })
+                .unwrap();
+            present(&mut cx, window);
+            assert!(
+                native.visibility_changes.borrow().is_empty(),
+                "{mode:?} step {step}: {:?}",
+                native.visibility_changes.borrow()
+            );
+        }
+        let stats = cx
+            .update_window(window.into(), |_, window, _| window.fast_frame_stats())
+            .unwrap();
+        assert!(
+            stats.cached_views_replayed + stats.views_reused + stats.views_spliced > 0,
+            "{mode:?}: the child was drawn from last frame: {stats:?}"
+        );
+
+        window
+            .update(&mut cx, |content, _, cx| {
+                content.child = None;
+                cx.notify();
+            })
+            .unwrap();
+        present(&mut cx, window);
+        assert_eq!(*native.visibility_changes.borrow(), [false], "{mode:?}");
+        present(&mut cx, window);
+        assert_eq!(*native.visibility_changes.borrow(), [false], "{mode:?}");
+
+        window
+            .update(&mut cx, move |content, _, cx| {
+                content.child = Some(cx.new(|_| Child {
+                    overlay,
+                    native: Some(surface),
+                }));
+                cx.notify();
+            })
+            .unwrap();
+        present(&mut cx, window);
+        assert_eq!(
+            *native.visibility_changes.borrow(),
+            [false, true],
+            "{mode:?}"
+        );
+    }
 }

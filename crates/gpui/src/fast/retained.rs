@@ -254,6 +254,11 @@ impl PrepaintStateIndex {
             line_layout_index: self
                 .line_layout_index
                 .shifted(&from.line_layout_index, &to.line_layout_index),
+            fast_native_surfaces_index: shift(
+                self.fast_native_surfaces_index,
+                from.fast_native_surfaces_index,
+                to.fast_native_surfaces_index,
+            ),
         }
     }
 }
@@ -272,6 +277,7 @@ impl PartialEq for PrepaintStateIndex {
             accessed_element_states_index,
             pending_element_state_transfers_index,
             line_layout_index,
+            fast_native_surfaces_index,
         } = self;
         *hitboxes_index == other.hitboxes_index
             && *tooltips_index == other.tooltips_index
@@ -282,6 +288,7 @@ impl PartialEq for PrepaintStateIndex {
             && *accessed_element_states_index == other.accessed_element_states_index
             && *pending_element_state_transfers_index == other.pending_element_state_transfers_index
             && *line_layout_index == other.line_layout_index
+            && *fast_native_surfaces_index == other.fast_native_surfaces_index
     }
 }
 
