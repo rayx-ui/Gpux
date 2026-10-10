@@ -113,6 +113,9 @@ pub(crate) enum Change {
     Badge,
     /// Changes the leaf nested in a panel, notifying only it.
     Leaf { panel: usize },
+    /// Gives the leaf nested in a panel a click listener, and so a hitbox,
+    /// or takes it away, without changing its layout.
+    LeafListener { panel: usize },
     /// Writes the global some panels read.
     GlobalWrite { value: usize },
     /// Adds or removes the global whose presence a panel reads.
@@ -279,6 +282,7 @@ impl Change {
                 cell: rng.random_range(0..GRID_CELLS),
             },
             97..98 => Change::SwapText,
+            98..99 => Change::LeafListener { panel },
             _ => Change::Redraw,
         }
     }
@@ -384,11 +388,19 @@ impl Render for Panel {
 /// A view nested in a panel, notified on its own.
 pub(crate) struct Leaf {
     count: usize,
+    clickable: bool,
 }
 
 impl Render for Leaf {
-    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         div()
+            .id("leaf")
+            .when(self.clickable, |this| {
+                this.on_click(cx.listener(|leaf, _, _, cx| {
+                    leaf.count += 1;
+                    cx.notify();
+                }))
+            })
             .flex()
             .flex_row()
             .children((0..self.count % 3 + 1).map(|ix| {
@@ -544,7 +556,10 @@ impl OracleView {
                         ix,
                         value: ix,
                         shared,
-                        leaf: cx.new(|_| Leaf { count: ix }),
+                        leaf: cx.new(|_| Leaf {
+                            count: ix,
+                            clickable: false,
+                        }),
                     })
                 })
                 .collect(),
@@ -697,6 +712,13 @@ impl OracleNested {
                 let leaf = self.panels[panel].read(cx).leaf.clone();
                 leaf.update(cx, |leaf, cx| {
                     leaf.count += 1;
+                    cx.notify();
+                });
+            }
+            Change::LeafListener { panel } => {
+                let leaf = self.panels[panel].read(cx).leaf.clone();
+                leaf.update(cx, |leaf, cx| {
+                    leaf.clickable = !leaf.clickable;
                     cx.notify();
                 });
             }
@@ -1255,6 +1277,7 @@ impl OracleWindow {
             | Change::NotifyWhileDrawing
             | Change::Badge
             | Change::Leaf { .. }
+            | Change::LeafListener { .. }
             | Change::UnobservedRead { .. }
             | Change::TogglePulse => {
                 let nested = handle.read_with(&self.cx, |view, _| view.nested()).unwrap();

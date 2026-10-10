@@ -563,9 +563,13 @@ pub(crate) fn notified(window: &Window, entity: EntityId) -> bool {
 
 /// Notes the entities notified since the last frame was drawn.
 pub(crate) fn note_notified(window: &mut Window, entities: &FxHashSet<EntityId>) {
+    let splice = window.fast_mode.splice();
     let notified = &mut window.fast_retained_state.notified;
     notified.clear();
-    notified.extend(entities.iter().copied());
+    // Read only by splice.
+    if splice {
+        notified.extend(entities.iter().copied());
+    }
 }
 
 fn frame_bypass(window: &mut Window, cx: &App) -> Option<Bypass> {

@@ -49,11 +49,66 @@ use crate::{
 #[derive(Default)]
 pub(crate) struct RebuildHandle(Option<AnyView>);
 
-/// An entity's element, kept as `any` to be built again on its own.
+/// How a [`ViewElement`] keeps its view to be built again on its own: how to
+/// make an [`AnyView`] of it, taken only in a frame that splices, and the
+/// view once taken. Elements cost nothing more otherwise.
+pub(crate) struct Rebuildable<V> {
+    make: Option<fn(&V) -> AnyView>,
+    pub(crate) handle: RebuildHandle,
+}
+
+impl<V> Default for Rebuildable<V> {
+    fn default() -> Self {
+        Self {
+            make: None,
+            handle: RebuildHandle::default(),
+        }
+    }
+}
+
+fn entity_view<T: crate::Render>(entity: &crate::Entity<T>) -> AnyView {
+    AnyView::from(entity.clone())
+}
+
+fn any_view(view: &AnyView) -> AnyView {
+    view.clone()
+}
+
+/// An entity's element, which can be built again on its own.
 #[inline]
-pub(crate) fn rebuildable<V: View>(view: V, any: AnyView) -> ViewElement<V> {
+pub(crate) fn rebuildable_entity<T: crate::Render>(
+    entity: crate::Entity<T>,
+) -> ViewElement<crate::Entity<T>> {
+    let mut element = ViewElement::new(entity);
+    element.fast_rebuild.make = Some(entity_view::<T>);
+    element
+}
+
+/// An [`AnyView`]'s element, which can be built again on its own.
+#[inline]
+pub(crate) fn rebuildable_any(view: AnyView) -> ViewElement<AnyView> {
     let mut element = ViewElement::new(view);
-    element.fast_rebuild = RebuildHandle(Some(any));
+    element.fast_rebuild.make = Some(any_view);
+    element
+}
+
+/// Takes what `rebuildable` needs to build its view again on its own, from
+/// `view`, before it renders: in a frame that splices only.
+#[inline]
+pub(crate) fn capture<V>(rebuildable: &mut Rebuildable<V>, view: Option<&V>, window: &Window) {
+    if let Some(make) = rebuildable.make
+        && let Some(view) = view
+        && window.fast_mode.splice()
+        && crate::fast::retained::active(window)
+    {
+        rebuildable.handle = RebuildHandle(Some(make(view)));
+    }
+}
+
+/// A nested view's element built on its own, kept as `any`.
+fn rebuildable(any: AnyView) -> ViewElement<AnyView> {
+    let mut element = ViewElement::new(any.clone());
+    element.fast_rebuild.handle = RebuildHandle(Some(any));
     element
 }
 
@@ -511,7 +566,7 @@ fn lay_out_gap(window: &mut Window, record: usize, cx: &mut App) -> Option<(Gap,
     let recording = cx.begin_recording_dependencies();
     let masks = Masks::of(&window.rendered_frame.fast_retained.records[record]);
     let inherited = enter_gap(window, &global_id, &rebuild, masks);
-    let mut view = rebuildable(rebuild.view.clone(), rebuild.view.clone());
+    let mut view = rebuildable(rebuild.view.clone());
     view.cached_style = rebuild.cached_style.clone();
     // What its element's request for layout does, inside the view around it.
     let (layout_id, layout_key) = crate::fast::layout_key::with_parent_layout_key(
@@ -575,6 +630,7 @@ fn request_layout(
         fast_rebuild,
         ..
     } = view;
+    let fast_rebuild = &fast_rebuild.handle;
     crate::fast::retained::request_view_layout(
         fast_retention,
         entity,
@@ -677,6 +733,7 @@ fn prepaint_nested(
         fast_rebuild,
         ..
     } = view;
+    let fast_rebuild = &fast_rebuild.handle;
     let prepainted = crate::fast::retained::prepaint_view(
         fast_retention,
         entity,
@@ -795,16 +852,31 @@ pub(crate) fn splice_prepaint(
     copy.close(&mut window.next_frame.dispatch_tree);
     let end = window.prepaint_index();
 
-    // Each gap's element recorded its DevKit node over its whole subtree.
+    // A DevKit node counts the hitboxes of its element's whole subtree: the
+    // gap's element, and every copied node around it up to the view's root,
+    // count the gap's change in hitboxes.
     for gap in &gaps {
-        if let Some((_, devtools_node)) = gap.prepainted {
-            let hitboxes = gap_hitbox_count(window, gap);
-            let frame = &mut window.next_frame;
-            if let Some(&index) = frame.devtools_node_indices.get(devtools_node)
-                && let Some(node) = frame.devtools_nodes.get_mut(index)
-            {
-                node.hitbox_count = hitboxes;
-            }
+        let Some((_, devtools_node)) = gap.prepainted else {
+            continue;
+        };
+        let previous = &window.rendered_frame.fast_retained.records[gap.record].prepaint_range;
+        let previous = previous.end.hitboxes_index - previous.start.hitboxes_index;
+        let change = gap_hitbox_count(window, gap) as isize - previous as isize;
+        if change == 0 {
+            continue;
+        }
+        let frame = &mut window.next_frame;
+        let mut node = Some(devtools_node);
+        while let Some(id) = node.filter(|id| copy.copied_devtools_id(*id)) {
+            let Some(entry) = frame
+                .devtools_node_indices
+                .get(id)
+                .and_then(|&index| frame.devtools_nodes.get_mut(index))
+            else {
+                break;
+            };
+            entry.hitbox_count = (entry.hitbox_count as isize + change).max(0) as usize;
+            node = entry.parent_devtools_node_id;
         }
     }
 
@@ -1165,6 +1237,14 @@ impl StretchCopy {
             .iter()
             .find(|(range, _)| range.contains(&id))?;
         Some(id - range.start + start)
+    }
+
+    /// Whether `id`, a DevKit id of this frame, was given to a node copied
+    /// in a stretch.
+    fn copied_devtools_id(&self, id: usize) -> bool {
+        self.devtools_ids
+            .iter()
+            .any(|(range, start)| (*start..start + range.len()).contains(&id))
     }
 
     fn devtools_id(&self, id: usize) -> usize {

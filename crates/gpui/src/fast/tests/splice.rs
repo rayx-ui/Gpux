@@ -387,3 +387,56 @@ fn views_copied_around_a_gap_keep_their_listeners() {
     assert_eq!(clicks, 1);
     pair.draw("after click");
 }
+
+/// A nested view whose element gains a listener, and so a hitbox, without
+/// changing its layout.
+struct Toggling {
+    clickable: bool,
+}
+
+impl Render for Toggling {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        div()
+            .id("clickable")
+            .w(px(40.))
+            .h(px(20.))
+            .when(self.clickable, |this| {
+                this.on_click(cx.listener(|_, _, _, _| {}))
+            })
+    }
+}
+
+struct Wrapping {
+    toggling: Entity<Toggling>,
+}
+
+impl Render for Wrapping {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        div()
+            .size_full()
+            .child(div().p_1().child(self.toggling.clone()))
+    }
+}
+
+/// Found by review: the DevKit nodes around a gap kept last frame's count of
+/// hitboxes when the gap gained or lost one. Every node from the gap's
+/// element up to the spliced view counts the change.
+#[test]
+fn devkit_nodes_around_a_gap_count_its_new_hitboxes() {
+    let mut pair = ViewPair::open_in(SPLICE, |_, cx| Wrapping {
+        toggling: cx.new(|_| Toggling { clickable: false }),
+    });
+    pair.pointer_away();
+    pair.draw("second frame");
+    for (step, clickable) in [true, false, true].into_iter().enumerate() {
+        pair.update_app(move |wrapping, cx| {
+            let toggling = wrapping.read(cx).toggling.clone();
+            toggling.update(cx, |toggling, cx| {
+                toggling.clickable = clickable;
+                cx.notify();
+            });
+        });
+        let stats = pair.draw(&format!("step {step}"));
+        assert_eq!(stats.views_spliced, 1, "step {step}: {stats:?}");
+    }
+}
