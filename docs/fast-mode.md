@@ -144,7 +144,16 @@ Wayland (synchronized overlay subsurfaces and desynchronized native subsurfaces 
 an overlay's input region is its content). X11 (native child windows; GPUI content above them is
 cut out of their shape, or, under a compositing manager with an ARGB visual, drawn into a
 transparent override-redirect overlay window whose input shape is its content). wgpu platforms
-share the window's GPU context, atlas and pipelines through `WgpuRenderer::new_sharing`. On
+share the window's GPU context, atlas and pipelines through `WgpuRenderer::new_sharing`. Windows
+(the window keeps its wgpu DX12 HWND swap chain with `DXGI_SCALING_NONE`; a gpux-owned topmost
+DirectComposition target holds native surface visuals, clipped and handed out as `IUnknown` for
+WebView2's `SetRootVisualTarget`, and overlay visuals whose premultiplied swap chains wgpu makes
+from `SurfaceTargetUnsafe::CompositionVisual`; gpux commits after every composed frame, a lost
+device rebuilds the tree and calls `compositor_recreated`, and key downs of other windows are left
+to them). The browser on WebGPU (overlay canvases above the `html_element` DOM overlay, sharing the
+window's device, with an input shield clipped to each overlay's input region that hands pointer
+events to the window's canvas; native surfaces are `html_element`'s, and WebGL2 reports composition
+unsupported and keeps the single canvas). On
 Wayland the placements, geometry and input regions handed to the compositor are logged at debug
 level under `gpux::composition`.
 
