@@ -718,15 +718,18 @@ mod windows_checks {
         let result = async {
             let scale = setup.scale;
             let column = ((NATIVE.0 + NATIVE.2 + 20.) * scale).round() as i32;
-            let before = Screenshot::of(setup.hwnd)?.red_rows(column);
+            let before_shot = Screenshot::of(setup.hwnd)?;
+            let before = before_shot.red_rows(column);
             if before.is_empty() {
                 bail!("the base's red line is not on screen before the resize");
             }
             let grown = grow(setup.hwnd, 240)?;
             let after = Screenshot::of(setup.hwnd)?;
             let after_rows = after.red_rows(column);
+            let exposed = after.at((20., before_shot.height as f32 / scale + 100.), scale)?;
             let base = format!(
-                "base rows {:?}..{:?} -> {:?}..{:?} after growing {grown} px",
+                "base rows {:?}..{:?} -> {:?}..{:?} after growing {grown} px, newly exposed rows \
+                 read {exposed:?}",
                 before.first(),
                 before.last(),
                 after_rows.first(),
