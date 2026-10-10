@@ -2,7 +2,7 @@
 //! operating system (touch through `adb shell input`, and the activity going to the background
 //! and coming back), which the testkit performs on request.
 
-use crate::android::{Screens, request, selected};
+use crate::android::{REQUEST_REPEAT, Screens, request, selected};
 use gpux::semantic_query::Query;
 use gpux::{
     AnyWindowHandle, AppContext as _, AsyncApp, Context, IntoElement, ParentElement as _, Render,
@@ -21,6 +21,8 @@ use std::time::{Duration, Instant};
 const ACTION_TIMEOUT: Duration = Duration::from_secs(30);
 /// How long the system's animation of an app starting or coming back to the front may take.
 const SYSTEM_TRANSITION: Duration = Duration::from_secs(10);
+/// How many of the window's frames a swipe that asserts no timing lasts at least.
+const SWIPE_FRAMES: u32 = 8;
 
 fn pass(id: &str, detail: impl Into<String>) -> ResultLine {
     ResultLine::new(Outcome::Pass, id.to_string(), detail.into())
@@ -60,6 +62,16 @@ fn close(cx: &mut AsyncApp, window: AnyWindowHandle) {
 
 async fn sleep(cx: &mut AsyncApp, duration: Duration) {
     cx.background_executor().timer(duration).await;
+}
+
+/// How long the window takes to draw a frame.
+async fn frame_time(cx: &mut AsyncApp, window: AnyWindowHandle) -> Duration {
+    const FRAMES: u32 = 2;
+    let start = Instant::now();
+    match app_host::wait_frames(cx, window, FRAMES as usize).await {
+        Ok(()) => start.elapsed() / FRAMES,
+        Err(_) => Duration::ZERO,
+    }
 }
 
 /// The element `query` matches in the latest frame.
@@ -280,6 +292,12 @@ async fn touch_tap(cx: &mut AsyncApp) -> ResultLine {
 
 /// A swipe through the operating system scrolls the element under it: a slow one by about its
 /// distance, a fast one further, carried by fling momentum after the finger lifts.
+///
+/// `adb shell input swipe` injects each event once the app handled the one before it, and sends
+/// only the moves its duration still has time for. The app handles input between frames, so a
+/// swipe shorter than a frame is a press and a release with no move between them: a tap. With
+/// `timing` the swipe lasts `duration_ms`; without, at least that and [`SWIPE_FRAMES`] frames,
+/// however slow the device draws them.
 async fn touch_swipe(
     cx: &mut AsyncApp,
     id: &str,
@@ -305,6 +323,12 @@ async fn touch_swipe(
     let scale = window
         .update(cx, |_, window, _| window.scale_factor())
         .unwrap_or(1.);
+    let frame = frame_time(cx, window).await;
+    let duration_ms = if timing {
+        duration_ms
+    } else {
+        duration_ms.max((frame * SWIPE_FRAMES).as_millis() as u32)
+    };
     let result = match find(cx, window, &Query::id("scroller")) {
         None => fail(id, "the scroller is not on screen"),
         Some(scroller) => {
@@ -314,15 +338,20 @@ async fn touch_swipe(
             let start = scroller.bounds.y + scroller.bounds.height - 10.;
             let y = (start * scale).round() as i32;
             let to = ((start - distance) * scale).round() as i32;
+            let requested = Instant::now();
             request(&format!("swipe {x} {y} {x} {to} {duration_ms}"));
             let moved = wait_for(cx, window, |cx| {
                 offset(cx, window).is_some_and(|offset| offset > 0.)
             })
             .await;
-            // Let any fling settle before reading the distance.
+            // Let the swipe end and any fling settle before reading the distance: each move
+            // scrolls a frame after the one before, so the offset rests only once they are over.
+            let swipe = Duration::from_millis(duration_ms.into());
+            sleep(cx, swipe.saturating_sub(requested.elapsed())).await;
+            let rest = Duration::from_millis(250).max(frame * 3);
             let mut last = offset(cx, window).unwrap_or(0.);
             loop {
-                sleep(cx, Duration::from_millis(250)).await;
+                sleep(cx, rest).await;
                 let now = offset(cx, window).unwrap_or(0.);
                 if now == last {
                     break;
@@ -399,6 +428,8 @@ async fn lifecycle(cx: &mut AsyncApp, screens: &Screens) -> ResultLine {
     }
     request("background");
     // In the background the system takes the surface away; capture then reports it unconfigured.
+    // It does so once it stopped the activity, seconds later on a slow device, and an activity
+    // that returns sooner keeps its surface: the host asks to come back only after the loss.
     let start = Instant::now();
     let mut lost = false;
     while start.elapsed() < ACTION_TIMEOUT {
@@ -415,8 +446,15 @@ async fn lifecycle(cx: &mut AsyncApp, screens: &Screens) -> ResultLine {
             .update(cx, |view, _, _| view.changes.clone())
             .unwrap_or_default()
     };
+    // `am start` only brings a task that is already in front forward again, so the request is
+    // repeated like a screenshot's, in case `adb logcat` dropped its line.
     let start = Instant::now();
+    let mut asked = None::<Instant>;
     while start.elapsed() < ACTION_TIMEOUT && !changes(cx).ends_with(&[false, true]) {
+        if asked.is_none_or(|asked| asked.elapsed() >= REQUEST_REPEAT) {
+            request("foreground");
+            asked = Some(Instant::now());
+        }
         sleep(cx, Duration::from_millis(50)).await;
     }
     let seen = changes(cx);
@@ -470,7 +508,8 @@ pub async fn os_checks(cx: &mut AsyncApp, screens: &Screens) -> Vec<ResultLine> 
     if selected("android-touch-tap") {
         lines.push(touch_tap(cx).await);
     }
-    // Slowly, the content follows the finger; fast, momentum carries it further.
+    // Slowly, over 600 ms or more, the content follows the finger; fast, momentum carries it
+    // further.
     if selected("android-touch-pan") {
         lines.push(touch_swipe(cx, "android-touch-pan", 40., 600, 20., false).await);
     }

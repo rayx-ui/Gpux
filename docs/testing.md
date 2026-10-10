@@ -250,9 +250,9 @@ builds the `android_host` example of `gpux-conformance` for the device's ABI, in
 first attached device or emulator (`ANDROID_SERIAL` or `--serial` picks one), launches it and
 follows logcat. The host runs the startup check, every lane-E scene, and the checks that need the
 operating system, which it asks the testkit to perform: taps and swipes through
-`adb shell input`, and the home key followed by `am start` for going to the background and coming
-back. Results, screenshots, logcat and the frames failing probes saved land in
-`artifacts-temp/testkit/e/`.
+`adb shell input`, the home key for going to the background, and `am start` for coming back once
+the host saw the system take its surface. Results, screenshots, logcat and the frames failing
+probes saved land in `artifacts-temp/testkit/e/`.
 
 `gpux-testkit android build [--abi x86_64|arm64-v8a]...` builds the APK on its own. It needs no
 Gradle: the host is a NativeActivity whose only Java is gpux's own helpers
@@ -311,8 +311,12 @@ lane E workflow type-checks (`cargo check -p gpux-mobile --target x86_64-linux-a
 lane runs.
 
 Scenes that need exact animation timing or an input method stay out of lane E: the device runs on
-the real clock, and adb cannot drive the input method. The fling check is skipped on software
-renderers, where `adb shell input` delivers a fast swipe only after slow frames, as a tap.
+the real clock, and adb cannot drive the input method. `adb shell input swipe` injects each event
+once the app handled the one before and sends only the moves its duration has time left for, and
+the app handles input between frames: a swipe shorter than a frame arrives as a press and a
+release, a tap. The pan check therefore swipes for at least eight of the window's frames (600 ms
+on a GPU, several seconds on SwiftShader), and the fling check, which needs a fast swipe, is
+skipped on software renderers.
 
 ## Lane F: iOS
 

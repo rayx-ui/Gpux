@@ -546,8 +546,10 @@ pub enum Request {
     Tap(i32, i32),
     /// `adb shell input swipe <x1> <y1> <x2> <y2> <ms>`.
     Swipe(i32, i32, i32, i32, u32),
-    /// The home key, then the activity relaunched.
+    /// The home key.
     Background,
+    /// The activity relaunched.
+    Foreground,
     /// `adb screencap`, written to the app's `files/screens/<n>.png`.
     Screenshot(u32),
     /// The run is over.
@@ -573,6 +575,7 @@ pub fn request(line: &str) -> Option<Request> {
             _ => None,
         },
         "background" => Some(Request::Background),
+        "foreground" => Some(Request::Foreground),
         "screenshot" => match numbers(words)?.as_slice() {
             [number] => Some(Request::Screenshot(u32::try_from(*number).ok()?)),
             _ => None,
@@ -601,11 +604,13 @@ pub fn shell_commands(request: &Request) -> Vec<Vec<String>> {
             &y2.to_string(),
             &ms.to_string(),
         ])],
-        Request::Background => vec![
-            words(&["input", "keyevent", "KEYCODE_HOME"]),
-            words(&["sleep", "2"]),
-            words(&["am", "start", "-n", &format!("{PACKAGE}/{ACTIVITY}")]),
-        ],
+        Request::Background => vec![words(&["input", "keyevent", "KEYCODE_HOME"])],
+        Request::Foreground => vec![words(&[
+            "am",
+            "start",
+            "-n",
+            &format!("{PACKAGE}/{ACTIVITY}"),
+        ])],
         Request::Screenshot(_) | Request::Done => Vec::new(),
     }
 }

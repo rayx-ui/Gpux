@@ -7,7 +7,7 @@
 //! `gpux-conformance-host:` request line and wait for the outcome:
 //!
 //! - `tap <x> <y>` and `swipe <x1> <y1> <x2> <y2> <ms>`: `adb shell input` in physical pixels;
-//! - `background`: the home key, then the activity relaunched with `am start`;
+//! - `background` and `foreground`: the home key, and the activity relaunched with `am start`;
 //! - `screenshot <n>`: `adb screencap`, written to the app's `files/screens/<n>.png`.
 //!
 //! Pixel steps read the screen through `screenshot`: the GL drivers of Android emulators read
@@ -79,7 +79,7 @@ mod android {
     }
 
     /// How long the host waits for an answer before repeating a request.
-    const REQUEST_REPEAT: Duration = Duration::from_secs(5);
+    pub const REQUEST_REPEAT: Duration = Duration::from_secs(5);
 
     /// Screenshots the testkit takes on request, numbered in order.
     pub struct Screens {

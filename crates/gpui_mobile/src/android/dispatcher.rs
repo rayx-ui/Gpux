@@ -35,7 +35,7 @@ use std::{
 };
 
 use gpui::{PlatformDispatcher, Priority, RunnableVariant};
-use parking_lot::Mutex;
+use parking_lot::{Condvar, Mutex};
 
 // ── NDK / libc symbols we need ────────────────────────────────────────────────
 
@@ -84,6 +84,7 @@ struct MainQueue {
 // ── thread-pool ───────────────────────────────────────────────────────────────
 
 /// A minimal fixed-size thread-pool for background tasks.
+#[derive(Clone)]
 struct ThreadPool {
     sender: std::sync::mpsc::Sender<BoxedTask>,
 }
@@ -128,13 +129,84 @@ struct DelayedTask {
     task: BoxedTask,
 }
 
+/// Delayed background tasks and the thread that releases them.
+///
+/// The main loop blocks in the looper for as long as nothing wakes it: once frames stop (the
+/// activity lost focus or went to the background), nothing does. A thread of their own releases
+/// delayed tasks when they come due, whatever the main thread is doing.
+struct Timers {
+    queue: Mutex<TimerQueue>,
+    /// Signalled when a task is added or the dispatcher shuts down.
+    changed: Condvar,
+}
+
+struct TimerQueue {
+    /// Sorted by ascending due time.
+    tasks: Vec<DelayedTask>,
+    stopped: bool,
+}
+
+impl Timers {
+    /// Starts the timer thread, which releases due tasks onto `pool`.
+    fn new(pool: ThreadPool) -> Arc<Self> {
+        let timers = Arc::new(Self {
+            queue: Mutex::new(TimerQueue {
+                tasks: Vec::new(),
+                stopped: false,
+            }),
+            changed: Condvar::new(),
+        });
+        let thread_timers = Arc::clone(&timers);
+        std::thread::Builder::new()
+            .name("gpui-timers".to_string())
+            .spawn(move || thread_timers.run(&pool))
+            .expect("failed to spawn timer thread");
+        timers
+    }
+
+    fn run(&self, pool: &ThreadPool) {
+        let mut queue = self.queue.lock();
+        while !queue.stopped {
+            for task in queue.take_due(Instant::now()) {
+                pool.dispatch(task);
+            }
+            match queue.tasks.first().map(|task| task.due) {
+                Some(due) => {
+                    self.changed.wait_until(&mut queue, due);
+                }
+                None => self.changed.wait(&mut queue),
+            }
+        }
+    }
+
+    fn push(&self, due: Instant, task: BoxedTask) {
+        let mut queue = self.queue.lock();
+        queue.tasks.push(DelayedTask { due, task });
+        queue.tasks.sort_by_key(|task| task.due);
+        self.changed.notify_one();
+    }
+
+    fn stop(&self) {
+        self.queue.lock().stopped = true;
+        self.changed.notify_one();
+    }
+}
+
+impl TimerQueue {
+    /// Removes the tasks due by `now`.
+    fn take_due(&mut self, now: Instant) -> Vec<BoxedTask> {
+        let due = self.tasks.partition_point(|task| task.due <= now);
+        self.tasks.drain(..due).map(|task| task.task).collect()
+    }
+}
+
 // ── AndroidDispatcher ─────────────────────────────────────────────────────────
 
 /// GPUI dispatcher for Android.
 ///
 /// * Foreground tasks run on the Android main/native thread via `ALooper`.
 /// * Background tasks run on a Rust thread-pool.
-/// * Delayed tasks are checked on each `tick()` call (driven by the main loop).
+/// * Delayed tasks are released by a timer thread when they come due.
 pub struct AndroidDispatcher {
     /// Shared task queue + wake pipe for the main thread.
     main_queue: Arc<Mutex<MainQueue>>,
@@ -145,8 +217,8 @@ pub struct AndroidDispatcher {
     looper: *mut libc_looper_opaque,
     /// Background thread-pool.
     pool: ThreadPool,
-    /// Delayed background tasks sorted by due time.
-    delayed: Mutex<Vec<DelayedTask>>,
+    /// Delayed background tasks and their timer thread.
+    timers: Arc<Timers>,
     /// Set to `true` once `shutdown()` is called.
     shutdown: AtomicBool,
 }
@@ -188,12 +260,13 @@ impl AndroidDispatcher {
             write_fd,
         }));
 
+        let pool = ThreadPool::new(pool_threads);
         let dispatcher = Arc::new(Self {
             main_queue: Arc::clone(&main_queue),
             read_fd,
             looper,
-            pool: ThreadPool::new(pool_threads),
-            delayed: Mutex::new(Vec::new()),
+            timers: Timers::new(pool.clone()),
+            pool,
             shutdown: AtomicBool::new(false),
         });
 
@@ -224,12 +297,13 @@ impl AndroidDispatcher {
             write_fd,
         }));
 
+        let pool = ThreadPool::new(pool_threads);
         Arc::new(Self {
             main_queue,
             read_fd,
             looper: std::ptr::null_mut(), // no real looper in headless mode
-            pool: ThreadPool::new(pool_threads),
-            delayed: Mutex::new(Vec::new()),
+            timers: Timers::new(pool.clone()),
+            pool,
             shutdown: AtomicBool::new(false),
         })
     }
@@ -277,29 +351,15 @@ impl AndroidDispatcher {
         if self.shutdown.load(Ordering::Relaxed) {
             return;
         }
-        let due = Instant::now() + delay;
-        let mut delayed = self.delayed.lock();
-        delayed.push(DelayedTask {
-            due,
-            task: Box::new(f),
-        });
-        // Keep sorted by ascending due time.
-        delayed.sort_by_key(|d| d.due);
+        self.timers.push(Instant::now() + delay, Box::new(f));
     }
 
     /// Process any delayed background tasks whose due time has passed.
     ///
-    /// Should be called from the main loop on every iteration (e.g. just
-    /// before calling `ALooper_pollOnce`).
+    /// The timer thread releases them on its own; the main loop's call on
+    /// every iteration only releases the ones due right now a little sooner.
     pub fn tick(&self) {
-        let now = Instant::now();
-        let mut ready: Vec<BoxedTask> = Vec::new();
-        {
-            let mut delayed = self.delayed.lock();
-            while delayed.first().map(|d| d.due <= now).unwrap_or(false) {
-                ready.push(delayed.remove(0).task);
-            }
-        }
+        let ready = self.timers.queue.lock().take_due(Instant::now());
         for task in ready {
             self.pool.dispatch(task);
         }
@@ -324,6 +384,7 @@ impl AndroidDispatcher {
     /// Stop accepting new tasks and signal the thread-pool to wind down.
     pub fn shutdown(&self) {
         self.shutdown.store(true, Ordering::SeqCst);
+        self.timers.stop();
         self.unregister_from_looper();
     }
 
@@ -377,6 +438,7 @@ impl Default for AndroidDispatcher {
 impl Drop for AndroidDispatcher {
     fn drop(&mut self) {
         self.shutdown.store(true, Ordering::SeqCst);
+        self.timers.stop();
         self.unregister_from_looper();
         // Close file descriptors.
         unsafe {
@@ -524,15 +586,12 @@ impl PlatformDispatcher for AndroidDispatcher {
         if self.shutdown.load(Ordering::Relaxed) {
             return;
         }
-        let due = Instant::now() + duration;
-        let mut delayed = self.delayed.lock();
-        delayed.push(DelayedTask {
-            due,
-            task: Box::new(move || {
+        self.timers.push(
+            Instant::now() + duration,
+            Box::new(move || {
                 runnable.run();
             }),
-        });
-        delayed.sort_by_key(|d| d.due);
+        );
     }
 
     fn spawn_realtime(&self, f: Box<dyn FnOnce() + Send>) {
@@ -586,12 +645,13 @@ mod tests {
             write_fd,
         }));
 
+        let pool = ThreadPool::new(1);
         let dispatcher = AndroidDispatcher {
             main_queue,
             read_fd,
             looper: std::ptr::null_mut(),
-            pool: ThreadPool::new(1),
-            delayed: Mutex::new(Vec::new()),
+            timers: Timers::new(pool.clone()),
+            pool,
             shutdown: AtomicBool::new(false),
         };
 
@@ -607,11 +667,29 @@ mod tests {
 
         // Cleanup — prevent Drop from calling ALooper_removeFd with a null pointer.
         dispatcher.shutdown.store(true, Ordering::SeqCst);
+        dispatcher.timers.stop();
         std::mem::forget(dispatcher); // skip Drop (null looper)
         unsafe {
             libc_close(read_fd);
             libc_close(write_fd);
         }
+    }
+
+    /// Verify that delayed tasks run when due without the main loop's `tick()`.
+    #[test]
+    fn delayed_tasks_run_without_tick() {
+        let timers = Timers::new(ThreadPool::new(1));
+        let (sender, receiver) = std::sync::mpsc::channel();
+
+        timers.push(
+            Instant::now() + Duration::from_millis(20),
+            Box::new(move || {
+                sender.send(()).ok();
+            }),
+        );
+
+        assert!(receiver.recv_timeout(Duration::from_secs(5)).is_ok());
+        timers.stop();
     }
 
     /// Verify pipe creation succeeds.

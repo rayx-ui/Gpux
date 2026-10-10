@@ -61,6 +61,10 @@ fn host_requests_parse_from_logcat_lines() {
         Some(Request::Background)
     );
     assert_eq!(
+        android::request("gpux-conformance-host: foreground"),
+        Some(Request::Foreground)
+    );
+    assert_eq!(
         android::request("x gpux-conformance-host: done"),
         Some(Request::Done)
     );
@@ -77,16 +81,20 @@ fn requests_become_adb_shell_commands() {
         android::shell_commands(&Request::Swipe(1, 2, 3, 4, 50)),
         [["input", "swipe", "1", "2", "3", "4", "50"]]
     );
-    let background = android::shell_commands(&Request::Background);
-    assert_eq!(background[0], ["input", "keyevent", "KEYCODE_HOME"]);
+    // Going to the background and coming back are separate requests: the host asks to come back
+    // once the system took its surface, however long a slow device takes to stop the activity.
     assert_eq!(
-        background.last().unwrap(),
-        &[
+        android::shell_commands(&Request::Background),
+        [["input", "keyevent", "KEYCODE_HOME"]]
+    );
+    assert_eq!(
+        android::shell_commands(&Request::Foreground),
+        [[
             "am",
             "start",
             "-n",
             "dev.gpux.conformance/android.app.NativeActivity"
-        ]
+        ]]
     );
     assert!(android::shell_commands(&Request::Done).is_empty());
 }
