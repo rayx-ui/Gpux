@@ -197,6 +197,44 @@ fn transformation_is_axis_aligned(transform: TransformationMatrix) -> bool {
         transform.rotation_scale[1][0] == 0.0;
 }
 
+// Whether `transform` leaves every position where it is.
+fn transformation_is_unit(transform: TransformationMatrix) -> bool {
+    return transform.rotation_scale[0][0] == 1.0 &&
+        transform.rotation_scale[0][1] == 0.0 &&
+        transform.rotation_scale[1][0] == 0.0 &&
+        transform.rotation_scale[1][1] == 1.0 &&
+        transform.translation.x == 0.0 &&
+        transform.translation.y == 0.0;
+}
+
+// The position within its primitive a fragment shades, before the primitive's transformation.
+// For an untransformed primitive that is the fragment's own position, which is exact. The
+// interpolated position is not: it differs in its last bits with what the rasterizer clips the
+// primitive to, so a primitive would not shade alike in the window and in a scroll layer tile
+// whose edge it crosses.
+fn local_fragment_position(
+    interpolated: vec2<f32>,
+    fragment: vec4<f32>,
+    transform: TransformationMatrix,
+) -> vec2<f32> {
+    return select(interpolated, fragment.xy, transformation_is_unit(transform));
+}
+
+// Where in its atlas texture a sprite's fragment samples: computed from the fragment's own
+// position for an untransformed sprite, as `local_fragment_position` is.
+fn local_tile_position(
+    interpolated: vec2<f32>,
+    local_position: vec2<f32>,
+    bounds: Bounds,
+    tile: AtlasTile,
+    transform: TransformationMatrix,
+) -> vec2<f32> {
+    let atlas_size = vec2<f32>(textureDimensions(t_sprite, 0));
+    let unit_position = (local_position - bounds.origin) / bounds.size;
+    let exact = (vec2<f32>(tile.bounds.origin) + unit_position * vec2<f32>(tile.bounds.size)) / atlas_size;
+    return select(interpolated, exact, transformation_is_unit(transform));
+}
+
 fn to_device_position_transformed(unit_vertex: vec2<f32>, bounds: Bounds, transform: TransformationMatrix) -> vec4<f32> {
     let position = unit_vertex * vec2<f32>(bounds.size) + bounds.origin;
     let transformed = transform_position(position, transform);
@@ -448,7 +486,11 @@ fn gradient_color(background: Background, position: vec2<f32>, bounds: Bounds) -
             // ±2/255 for RGB (enough for dark-on-dark compositing),
             // ±3/255 for alpha (needs more because alpha × dark color = tiny steps).
             {
-                let seed = position * 0.6180339887;
+                // Seeded by the pixel within the quad, so that a quad draws the same pixels
+                // wherever it is: in the window, or in a scroll layer tile. A quad's bounds
+                // lie on device pixels, so the pixel is a whole number however the position
+                // was rounded on its way here.
+                let seed = floor(position - bounds.origin) * 0.6180339887;
                 let r1 = fract(sin(dot(seed, vec2<f32>(12.9898, 78.233))) * 43758.5453);
                 let r2 = fract(sin(dot(seed, vec2<f32>(39.3460, 11.135))) * 24634.6345);
                 let tri = r1 + r2 - 1.0;
@@ -542,21 +584,22 @@ fn vs_quad(@builtin(vertex_index) vertex_id: u32, @builtin(instance_index) insta
 @fragment
 fn fs_quad(input: QuadVarying) -> @location(0) vec4<f32> {
     let quad = load_quad(input.quad_id);
+    let local_position = local_fragment_position(input.local_position, input.position, quad.transformation);
 
     // Derivatives must be computed in uniform control flow on WebGPU.
     let antialias_threshold = 0.5 * max(
-        length(vec2<f32>(dpdx(input.local_position.x), dpdy(input.local_position.x))),
-        length(vec2<f32>(dpdx(input.local_position.y), dpdy(input.local_position.y))));
+        length(vec2<f32>(dpdx(local_position.x), dpdy(local_position.x))),
+        length(vec2<f32>(dpdx(local_position.y), dpdy(local_position.y))));
 
     // Alpha clip first, since we don't have `clip_distance`.
     if (any(input.clip_distances < vec4<f32>(0.0))) {
         return vec4<f32>(0.0);
     }
-    if (content_mask_sdf(transform_position(input.local_position, quad.transformation), quad.content_mask) > 0.0) {
+    if (content_mask_sdf(transform_position(local_position, quad.transformation), quad.content_mask) > 0.0) {
         return vec4<f32>(0.0);
     }
 
-    let background_color = gradient_color(quad.background, input.local_position, quad.bounds);
+    let background_color = gradient_color(quad.background, local_position, quad.bounds);
 
     let unrounded = quad.corner_radii.top_left == 0.0 &&
         quad.corner_radii.bottom_left == 0.0 &&
@@ -576,7 +619,7 @@ fn fs_quad(input: QuadVarying) -> @location(0) vec4<f32> {
 
     let size = quad.bounds.size;
     let half_size = size / 2.0;
-    let point = input.local_position - quad.bounds.origin;
+    let point = local_position - quad.bounds.origin;
     let center_to_point = point - half_size;
 
     // Radius of the nearest corner
@@ -670,7 +713,7 @@ fn fs_quad(input: QuadVarying) -> @location(0) vec4<f32> {
     var color = background_color;
     var outer_coverage = saturate(antialias_threshold - outer_sdf);
     if (border_sdf < antialias_threshold) {
-        var border_color = gradient_color(quad.border_color, input.local_position, quad.bounds);
+        var border_color = gradient_color(quad.border_color, local_position, quad.bounds);
         let border_straight_color = border_color.rgb / max(border_color.a, 0.000001);
 
         // Dashed border logic when border_style == 1
@@ -1007,24 +1050,25 @@ fn vs_shadow(@builtin(vertex_index) vertex_id: u32, @builtin(instance_index) ins
 @fragment
 fn fs_shadow(input: ShadowVarying) -> @location(0) vec4<f32> {
     let shadow = load_shadow(input.shadow_id);
+    let local_position = local_fragment_position(input.local_position, input.position, shadow.transformation);
 
     // Alpha clip first, since we don't have `clip_distance`.
     if (any(input.clip_distances < vec4<f32>(0.0))) {
         return vec4<f32>(0.0);
     }
-    if (content_mask_sdf(transform_position(input.local_position, shadow.transformation), shadow.content_mask) > 0.0) {
+    if (content_mask_sdf(transform_position(local_position, shadow.transformation), shadow.content_mask) > 0.0) {
         return vec4<f32>(0.0);
     }
 
     let half_size = shadow.bounds.size / 2.0;
     let center = shadow.bounds.origin + half_size;
-    let center_to_point = input.local_position - center;
+    let center_to_point = local_position - center;
 
     let corner_radius = pick_corner_radius(center_to_point, shadow.corner_radii);
 
     var alpha: f32;
     if (shadow.blur_radius == 0.0) {
-        let distance = quad_sdf(input.local_position, shadow.bounds, shadow.corner_radii);
+        let distance = quad_sdf(local_position, shadow.bounds, shadow.corner_radii);
         alpha = saturate(0.5 - distance);
     } else {
         // The signal is only non-zero in a limited range, so don't waste samples.
@@ -1050,7 +1094,7 @@ fn fs_shadow(input: ShadowVarying) -> @location(0) vec4<f32> {
         // the rounded element bounds.
         alpha = 1.0 - alpha;
         let element_distance = quad_sdf(
-            input.local_position,
+            local_position,
             shadow.element_bounds,
             shadow.element_corner_radii,
         );
@@ -1202,6 +1246,7 @@ fn vs_underline(@builtin(vertex_index) vertex_id: u32, @builtin(instance_index) 
 @fragment
 fn fs_underline(input: UnderlineVarying) -> @location(0) vec4<f32> {
     let underline = load_underline(input.underline_id);
+    let local_position = local_fragment_position(input.local_position, input.position, underline.transformation);
 
     const WAVE_FREQUENCY: f32 = 2.0;
     const WAVE_HEIGHT_RATIO: f32 = 0.8;
@@ -1210,7 +1255,7 @@ fn fs_underline(input: UnderlineVarying) -> @location(0) vec4<f32> {
     if (any(input.clip_distances < vec4<f32>(0.0))) {
         return vec4<f32>(0.0);
     }
-    if (content_mask_sdf(transform_position(input.local_position, underline.transformation), underline.content_mask) > 0.0) {
+    if (content_mask_sdf(transform_position(local_position, underline.transformation), underline.content_mask) > 0.0) {
         return vec4<f32>(0.0);
     }
 
@@ -1221,7 +1266,7 @@ fn fs_underline(input: UnderlineVarying) -> @location(0) vec4<f32> {
 
     let half_thickness = underline.thickness * 0.5;
 
-    let st = (input.local_position - underline.bounds.origin) / underline.bounds.size.y
+    let st = (local_position - underline.bounds.origin) / underline.bounds.size.y
         - vec2<f32>(0.0, 0.5);
     let frequency = 3.1415926 * WAVE_FREQUENCY * underline.thickness / underline.bounds.size.y;
     let amplitude = (underline.thickness * WAVE_HEIGHT_RATIO) / underline.bounds.size.y;
@@ -1284,7 +1329,9 @@ fn visible_if(condition: bool) -> f32 {
 @fragment
 fn fs_mono_sprite(input: MonoSpriteVarying) -> @location(0) vec4<f32> {
     let sprite = load_mono_sprite(input.sprite_id);
-    let sample = textureSample(t_sprite, s_sprite, input.tile_position).r;
+    let local_position = local_fragment_position(input.local_position, input.position, sprite.transformation);
+    let tile_position = local_tile_position(input.tile_position, local_position, sprite.bounds, sprite.tile, sprite.transformation);
+    let sample = textureSample(t_sprite, s_sprite, tile_position).r;
     var coverage = sample;
     if (sprite.kind == 0u) {
         let straight_color = input.color.rgb / max(input.color.a, 0.000001);
@@ -1294,7 +1341,7 @@ fn fs_mono_sprite(input: MonoSpriteVarying) -> @location(0) vec4<f32> {
     let visible = visible_if(
         sprite.kind <= 1u
             && !any(input.clip_distances < vec4<f32>(0.0))
-            && content_mask_sdf(transform_position(input.local_position, sprite.transformation), sprite.content_mask) <= 0.0
+            && content_mask_sdf(transform_position(local_position, sprite.transformation), sprite.content_mask) <= 0.0
     );
     return blend_color(input.color, coverage * visible);
 }
@@ -1303,6 +1350,7 @@ fn fs_mono_sprite(input: MonoSpriteVarying) -> @location(0) vec4<f32> {
 
 struct PolychromeSprite {
     order: u32,
+    // Non-zero when the texture holds premultiplied colour: a scroll layer tile.
     pad: u32,
     grayscale: u32,
     opacity: f32,
@@ -1344,20 +1392,25 @@ fn vs_poly_sprite(@builtin(vertex_index) vertex_id: u32, @builtin(instance_index
 @fragment
 fn fs_poly_sprite(input: PolySpriteVarying) -> @location(0) vec4<f32> {
     let sprite = load_poly_sprite(input.sprite_id);
-    let sample = textureSample(t_sprite, s_sprite, input.tile_position);
+    let local_position = local_fragment_position(input.local_position, input.position, sprite.transformation);
+    let tile_position = local_tile_position(input.tile_position, local_position, sprite.bounds, sprite.tile, sprite.transformation);
+    let sample = textureSample(t_sprite, s_sprite, tile_position);
     let visible = visible_if(
         !any(input.clip_distances < vec4<f32>(0.0))
-            && content_mask_sdf(transform_position(input.local_position, sprite.transformation), sprite.content_mask) <= 0.0
+            && content_mask_sdf(transform_position(local_position, sprite.transformation), sprite.content_mask) <= 0.0
     );
 
-    let distance = quad_sdf(input.local_position, sprite.bounds, sprite.corner_radii);
+    let distance = quad_sdf(local_position, sprite.bounds, sprite.corner_radii);
 
     var straight_rgb = sample.rgb;
     if ((sprite.grayscale & 0xFFu) != 0u) {
         let grayscale = dot(straight_rgb, vec3<f32>(0.2126, 0.7152, 0.0722));
         straight_rgb = vec3<f32>(grayscale);
     }
-    let color = vec4<f32>(straight_rgb * sample.a, sample.a);
+    // A scroll layer tile (`pad` is `gpux::LAYER_TILE_PREMULTIPLIED`) holds what was
+    // drawn into it, which is premultiplied already; an atlas texture holds straight colour.
+    let alpha = select(sample.a, 1.0, sprite.pad != 0u);
+    let color = vec4<f32>(straight_rgb * alpha, sample.a);
     return blend_color(color, sprite.opacity * saturate(0.5 - distance) * visible);
 }
 

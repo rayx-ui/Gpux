@@ -43,17 +43,19 @@ fn vs_subpixel_sprite(@builtin(vertex_index) vertex_id: u32, @builtin(instance_i
 
 @fragment
 fn fs_subpixel_sprite(input: SubpixelSpriteOutput) -> SubpixelSpriteFragmentOutput {
-    var sample = textureSample(t_sprite, s_sprite, input.tile_position).rgb;
+    let sprite = b_subpixel_sprites[input.sprite_id];
+    let local_position = local_fragment_position(input.local_position, input.position, sprite.transformation);
+    let tile_position = local_tile_position(input.tile_position, local_position, sprite.bounds, sprite.tile, sprite.transformation);
+    var sample = textureSample(t_sprite, s_sprite, tile_position).rgb;
     if (gamma_params.is_bgr != 0u) {
         sample = sample.bgr;
     }
     let straight_color = input.color.rgb / max(input.color.a, 0.000001);
     let alpha_corrected = apply_contrast_and_gamma_correction3(sample, straight_color, gamma_params.subpixel_enhanced_contrast, gamma_params.gamma_ratios);
 
-    let sprite = b_subpixel_sprites[input.sprite_id];
     let visible = visible_if(
         !any(input.clip_distances < vec4<f32>(0.0))
-            && content_mask_sdf(transform_position(input.local_position, sprite.transformation), sprite.content_mask) <= 0.0
+            && content_mask_sdf(transform_position(local_position, sprite.transformation), sprite.content_mask) <= 0.0
     );
 
     var out = SubpixelSpriteFragmentOutput();

@@ -1807,6 +1807,11 @@ impl PlatformWindow for X11Window {
         crate::fast::composition::x11::draw_composed(self, scene)
     }
 
+    fn rasterizes_layer_tiles(&self) -> bool {
+        // The wgpu renderer does (`gpui_wgpu`'s `fast::layers`).
+        true
+    }
+
     fn enable_window_composition(&self) -> anyhow::Result<()> {
         crate::fast::composition::x11::enable_window_composition(self)
     }

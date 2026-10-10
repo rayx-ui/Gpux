@@ -2037,6 +2037,11 @@ impl PlatformWindow for WaylandWindow {
         crate::fast::composition::wayland::draw_composed(self, scene)
     }
 
+    fn rasterizes_layer_tiles(&self) -> bool {
+        // The wgpu renderer does (`gpui_wgpu`'s `fast::layers`).
+        true
+    }
+
     fn enable_window_composition(&self) -> anyhow::Result<()> {
         crate::fast::composition::wayland::enable_window_composition(self)
     }
