@@ -8,6 +8,10 @@
 //! layers are held to. Both get the same input, one frame at a time, and every frame is read
 //! back from both.
 //!
+//! One difference is allowed, and bounded: gpux drops a shadow when its box leaves its clip,
+//! while a layer's tiles keep the blur that still reaches into the viewport (see
+//! [`Content::edge_band`]).
+//!
 //! A test also checks that the layered window did composite tiles, so that a renderer without
 //! tiles, which keeps scroll layers off, fails it rather than passing by drawing as before.
 //!
@@ -16,31 +20,31 @@
 //! ```
 
 use gpux::{
-    AnyWindowHandle, Context, Entity, FastMode, FastStats, IntoElement, Modifiers, ParentElement,
-    PathBuilder, Render, ScrollDelta, ScrollWheelEvent, SharedString, Styled, TestAppContext,
-    TestDispatcher, TestWindowOptions, TouchPhase, VisualTestContext, Window, canvas, div,
-    linear_color_stop, linear_gradient, point, prelude::*, px, rgb, rgba, size,
+    AnyWindowHandle, BoxShadow, Context, Entity, FastMode, FastStats, IntoElement, Modifiers,
+    ParentElement, PathBuilder, Render, ScrollDelta, ScrollWheelEvent, SharedString, Styled,
+    TestAppContext, TestDispatcher, TestWindowOptions, TouchPhase, VisualTestContext, Window,
+    canvas, div, linear_color_stop, linear_gradient, point, prelude::*, px, rgb, rgba, size,
 };
 use gpux_conformance::test_host::lane_c_renderer;
 use image::RgbaImage;
 
 const WINDOW: (f32, f32) = (420., 360.);
 
-/// The space between two cards. A shadow whose box has scrolled out of the viewport while its
-/// blur still shows is ordered by the edge of the viewport it left (see
-/// `gpux::fast::layers::scene::shown_bounds`); a neighbour whose own shadow box is at that edge
-/// at the same time is then drawn after it, where a tile, painted with both boxes in view, draws
-/// the two in the order they share. Where the two blurs overlap that rounds a pixel one level
-/// apart. It takes boxes closer than a blur reaches, three blur radii: these are further.
-const CARD_GAP: f32 = 24.;
+/// The panel's padding around the scroll container.
+const PADDING: f32 = 16.;
 
 /// What the scrolled content is made of.
 #[derive(Clone, Copy)]
 enum Content {
     /// Rows of text on alternating backgrounds, with borders.
     Text,
-    /// Rounded cards with shadows, gradients and borders.
+    /// Rounded cards with shadows, gradients and borders, 24 px apart.
     Cards,
+    /// Cards 6 px apart under a large two-part shadow, whose blur reaches well over the
+    /// neighbours.
+    TightCards,
+    /// White cards 2 px apart under a heavy shadow: 16 px of blur at half black.
+    HeavyShadows,
     /// Rows that each draw a path, the last thing painted where it lies.
     Paths,
     /// Rows wider than the viewport: the container scrolls on both axes.
@@ -82,10 +86,49 @@ impl Page {
                     self.tick
                 )))
                 .into_any_element(),
-            // Their shadows are a blur's reach apart (see `CARD_GAP`).
+            Content::TightCards => div()
+                .mx_3()
+                .mt(px(6.))
+                .h(px(64.))
+                .rounded(px(8.))
+                .bg(if marked { rgb(0xffe9c9) } else { rgb(0xfbfaf7) })
+                .shadow(vec![
+                    BoxShadow {
+                        color: rgba(0x0000001a).into(),
+                        offset: point(px(0.), px(10.)),
+                        blur_radius: px(15.),
+                        spread_radius: px(-3.),
+                        inset: false,
+                    },
+                    BoxShadow {
+                        color: rgba(0x0000001a).into(),
+                        offset: point(px(0.), px(4.)),
+                        blur_radius: px(6.),
+                        spread_radius: px(-4.),
+                        inset: false,
+                    },
+                ])
+                .p_3()
+                .text_color(rgb(0x1e2430))
+                .text_size(px(14.))
+                .child(SharedString::from(format!("Card {index:02}")))
+                .into_any_element(),
+            Content::HeavyShadows => div()
+                .mx_3()
+                .mt(px(2.))
+                .h(px(60.))
+                .bg(if marked { rgb(0xffe9c9) } else { rgb(0xffffff) })
+                .shadow(vec![BoxShadow {
+                    color: rgba(0x00000080).into(),
+                    offset: point(px(0.), px(0.)),
+                    blur_radius: px(16.),
+                    spread_radius: px(0.),
+                    inset: false,
+                }])
+                .into_any_element(),
             Content::Cards => div()
                 .mx_3()
-                .mt(px(CARD_GAP))
+                .mt(px(24.))
                 .h(px(74.))
                 .rounded(px(10.))
                 .border_1()
@@ -139,10 +182,10 @@ impl Page {
 impl Render for Page {
     fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
         let rows = match self.content {
-            Content::Cards => 40,
+            Content::Cards | Content::TightCards | Content::HeavyShadows => 40,
             _ => 120,
         };
-        div().size_full().bg(rgb(0x1e2430)).p_4().child(
+        div().size_full().bg(rgb(0x1e2430)).p(px(PADDING)).child(
             div()
                 .id("scroll")
                 .size_full()
@@ -248,6 +291,37 @@ struct Totals {
     tiles_rasterized: u64,
 }
 
+impl Content {
+    /// How far from the viewport's top and bottom edges a frame drawn from tiles may differ
+    /// from the reference: as far as the blur of a shadow reaches from its box, offset
+    /// included.
+    ///
+    /// gpux drops a shadow when its box leaves its clip, though its blur reaches three blur
+    /// radii further. A layer's tiles hold the content as it was painted, with every shadow
+    /// whole, so a frame drawn from them still shows the blur of a shadow whose box has just
+    /// scrolled out of the viewport, and is darker there than the reference, which dropped it.
+    fn edge_band(self) -> f32 {
+        match self {
+            // `shadow_md`: 6 px of blur 4 px down.
+            Content::Cards => 3. * 6. + 4.,
+            Content::TightCards => 3. * 15. + 10.,
+            Content::HeavyShadows => 3. * 16.,
+            Content::Text | Content::Paths | Content::Wide => 0.,
+        }
+    }
+
+    /// The colour of a card no shadow falls on, where the cards are of one colour: a blur kept
+    /// at the viewport's edge lies under the cards around it, as it does when its box shows,
+    /// so a pixel the reference shows in this colour is this colour from tiles too.
+    fn card_color(self) -> Option<[u8; 3]> {
+        match self {
+            Content::TightCards => Some([0xfb, 0xfa, 0xf7]),
+            Content::HeavyShadows => Some([0xff, 0xff, 0xff]),
+            _ => None,
+        }
+    }
+}
+
 /// Runs `script` in a layered window and in the reference, comparing every frame, and returns
 /// what the layered window's layers did.
 fn compare(content: Content, scale: f32, script: &[Step]) -> Totals {
@@ -257,7 +331,7 @@ fn compare(content: Content, scale: f32, script: &[Step]) -> Totals {
     let mut totals = Totals::default();
     let (first, _) = layered.frame(&mut cx);
     let (expected, _) = reference.frame(&mut cx);
-    assert_same(&first, &expected, 0, scale);
+    assert_same(&first, &expected, 0, scale, content);
     for (index, step) in script.iter().enumerate() {
         for run in [&layered, &reference] {
             match *step {
@@ -272,7 +346,7 @@ fn compare(content: Content, scale: f32, script: &[Step]) -> Totals {
             0,
             "the reference has no layers"
         );
-        assert_same(&actual, &expected, index + 1, scale);
+        assert_same(&actual, &expected, index + 1, scale, content);
         totals.composited += stats.layers_composited;
         totals.repainted += stats.layers_repainted;
         totals.tiles_composited += stats.tiles_composited;
@@ -282,12 +356,47 @@ fn compare(content: Content, scale: f32, script: &[Step]) -> Totals {
     totals
 }
 
+/// Whether row `y` of a frame at `scale` lies within `band` logical pixels of the viewport's top
+/// or bottom edge.
+fn in_edge_band(y: u32, scale: f32, band: f32) -> bool {
+    let y = y as f32 / scale;
+    let (top, bottom) = (PADDING, WINDOW.1 - PADDING);
+    (top..top + band).contains(&y) || (bottom - band..bottom).contains(&y)
+}
+
+/// Checks `actual`, drawn from tiles, against `expected`, the reference: the same bytes, but
+/// within the content's [edge band](Content::edge_band) of the viewport's top and bottom
+/// edges, where it may only be darker, a rounding step aside, and on a card not even that.
 #[track_caller]
-fn assert_same(actual: &RgbaImage, expected: &RgbaImage, step: usize, scale: f32) {
+fn assert_same(
+    actual: &RgbaImage,
+    expected: &RgbaImage,
+    step: usize,
+    scale: f32,
+    content: Content,
+) {
     assert_eq!(actual.dimensions(), expected.dimensions());
+    let band = content.edge_band();
+    let card = content.card_color();
     let differing: Vec<(u32, u32)> = actual
         .enumerate_pixels()
-        .filter(|(x, y, pixel)| *pixel != expected.get_pixel(*x, *y))
+        .filter(|(x, y, pixel)| {
+            let reference = expected.get_pixel(*x, *y);
+            if !in_edge_band(*y, scale, band) {
+                return *pixel != reference;
+            }
+            let channels = pixel.0.iter().zip(reference.0);
+            if card == Some([reference.0[0], reference.0[1], reference.0[2]]) {
+                // A card's antialiased edge blends with what lies under it: a rounding step.
+                channels
+                    .clone()
+                    .any(|(actual, expected)| actual.abs_diff(expected) > 1)
+            } else {
+                channels
+                    .clone()
+                    .any(|(actual, expected)| *actual > expected.saturating_add(1))
+            }
+        })
         .map(|(x, y, _)| (x, y))
         .collect();
     let Some(&(x, y)) = differing.first() else {
@@ -354,6 +463,30 @@ fn cards_with_shadows_and_gradients_scroll_from_tiles() {
         let totals = compare(Content::Cards, scale, &scrolls());
         assert_composited(&totals, 8);
     }
+}
+
+/// Shadowed boxes closer together than their blurs reach, at every one-pixel step of a card's
+/// way out of the viewport and in the scripted scroll: the frames are the reference's, but for
+/// the blur a layer keeps showing at the viewport's edges.
+#[test]
+fn close_shadowed_cards_scroll_from_tiles() {
+    let mut script = scrolls();
+    script.extend((0..80).map(|_| Step::Wheel(0., -1.)));
+    for content in [Content::TightCards, Content::HeavyShadows] {
+        for scale in [1., 2.] {
+            let totals = compare(content, scale, &script);
+            assert_composited(&totals, 60);
+        }
+    }
+}
+
+/// The content begins below the container's top, by its first card's margin: scrolled a few
+/// pixels at a time from the top, the layer still covers what shows, and composites.
+#[test]
+fn small_scrolls_from_the_top_of_content_with_a_margin_composite() {
+    let script: Vec<Step> = (0..40).map(|_| Step::Wheel(0., -3.)).collect();
+    let totals = compare(Content::Cards, 1., &script);
+    assert_composited(&totals, 34);
 }
 
 /// A layer's paths are drawn into the frame over its tiles.
