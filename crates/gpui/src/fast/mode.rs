@@ -179,7 +179,8 @@ impl WindowFastMode {
     /// the process environment and normalized for it.
     pub(crate) fn for_window(platform_window: &dyn crate::PlatformWindow) -> Self {
         Self {
-            mode: turning_layers_on(
+            mode: counted(
+                FastMode::OFF,
                 FastMode::from_environment(|name| std::env::var(name).ok())
                     .normalized_for(layers_drawn_by(platform_window)),
             ),
@@ -256,13 +257,22 @@ fn layers_drawn_by(platform_window: &dyn crate::PlatformWindow) -> bool {
     crate::fast::layers::COMPILED && platform_window.rasterizes_layer_tiles()
 }
 
-/// `mode`, a window's, noted for the hooks of scroll layers that have no
-/// window to ask when it has them on.
-fn turning_layers_on(mode: FastMode) -> FastMode {
-    if mode.scroll_layers {
-        crate::fast::layers::turned_on();
+/// `current`, the mode a window goes to from `previous`, with the window
+/// counted for the hooks of scroll layers that have no window to ask: they
+/// work while a window of the thread has scroll layers on.
+fn counted(previous: FastMode, current: FastMode) -> FastMode {
+    match (previous.scroll_layers, current.scroll_layers) {
+        (false, true) => crate::fast::layers::turned_on(),
+        (true, false) => crate::fast::layers::turned_off(),
+        _ => {}
     }
-    mode
+    current
+}
+
+impl Drop for WindowFastMode {
+    fn drop(&mut self) {
+        counted(self.mode, FastMode::OFF);
+    }
 }
 
 /// Releases what the mechanisms that `previous` had on and `current` has off
@@ -295,12 +305,11 @@ impl Window {
     /// scratch.
     pub fn set_fast_mode(&mut self, mode: FastMode) {
         let previous = self.fast_mode.get();
-        let current =
-            turning_layers_on(mode.normalized_for(layers_drawn_by(self.platform_window.as_ref())));
+        let current = mode.normalized_for(layers_drawn_by(self.platform_window.as_ref()));
         if previous == current {
             return;
         }
-        self.fast_mode.mode = current;
+        self.fast_mode.mode = counted(previous, current);
         release_disabled(self, previous, current);
         if self.invalidator.not_drawing() {
             self.refresh();

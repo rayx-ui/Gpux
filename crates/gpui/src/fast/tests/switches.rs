@@ -383,7 +383,7 @@ fn frames_with_fast_mode_off_record_no_mechanism_counter() {
 /// With scroll layers off a scroll container does none of their
 /// bookkeeping: its window remembers no container and counts no frame, a
 /// published offset is logged for no one, and the hooks that have no window
-/// to ask stay off until a window of the thread turns the switch on.
+/// to ask work only while a window of the thread has the switch on.
 #[crate::test]
 fn a_window_without_scroll_layers_keeps_none_of_their_books(cx: &mut crate::TestAppContext) {
     use crate::fast::tests::layer_support::{
@@ -455,7 +455,35 @@ fn a_window_without_scroll_layers_keeps_none_of_their_books(cx: &mut crate::Test
         assert!(frames > 0 && layers == 1 && containers == 1);
     }
     with_window(cx, window, |window, _| window.set_fast_mode(FastMode::OFF));
+    assert!(
+        !crate::fast::layers::on_thread(),
+        "the thread's last window with scroll layers turned them off"
+    );
     draw(cx, window);
-    let (_, layers, containers, _) = books(cx);
-    assert_eq!((layers, containers), (0, 0));
+    let frames = books(cx).0;
+    let version = page
+        .read_with(cx, |page, _| page.handle.fast_version().get())
+        .unwrap();
+    for _ in 0..3 {
+        assert!(drag_scrollbar_by(cx, page, -10.));
+        draw(cx, window);
+    }
+    assert_eq!(books(cx), (frames, 0, 0, 0), "off again, no books again");
+    assert_eq!(
+        page.read_with(cx, |page, _| page.handle.fast_version().get())
+            .unwrap(),
+        version
+    );
+
+    // A window that closes with scroll layers on is no longer counted.
+    with_window(cx, window, |window, _| {
+        window.set_fast_mode(crate::fast::tests::layer_support::LAYERS)
+    });
+    assert_eq!(
+        crate::fast::layers::on_thread(),
+        crate::fast::layers::COMPILED
+    );
+    with_window(cx, window, |window, _| window.remove_window());
+    cx.run_until_parked();
+    assert!(!crate::fast::layers::on_thread());
 }

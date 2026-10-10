@@ -198,6 +198,12 @@ The switch also snaps scroll offsets to device pixels, quantizes glyph origins s
 shift by whole pixels, and snaps path vertices to 1/256 of a pixel, which tiles need to match a
 direct draw. With it off, output is today's.
 
+Frames drawn through layers are checked against frames drawn from scratch by a randomized
+oracle (`fast::tests::oracle_layers`), which expands each layer's tiles into its content and
+compares the two scenes exactly but for content masks, given to 1/1024 of a device pixel: a
+mask is scaled from logical pixels, and one a layer moved into content space and back can
+differ in its last bits. Pixel equality is the renderers' tests' to show.
+
 ## Window composition
 
 `Window::enable_window_composition()` lets a window present its one scene on several ordered

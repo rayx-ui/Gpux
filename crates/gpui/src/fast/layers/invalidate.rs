@@ -388,6 +388,12 @@ thread_local! {
     static LIST_BUILT: std::cell::Cell<Option<ListBuilt>> = const { std::cell::Cell::new(None) };
 }
 
+/// Drops what the hooks without a window logged for this thread's windows:
+/// the last of them with scroll layers on turned them off.
+pub(crate) fn forget_thread() {
+    OFFSETS_SET.with_borrow_mut(Vec::clear);
+}
+
 /// How many publishes wait for a window of this thread to take them in.
 #[cfg(test)]
 pub(crate) fn pending_publishes() -> usize {

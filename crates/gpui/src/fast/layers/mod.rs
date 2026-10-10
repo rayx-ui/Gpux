@@ -40,22 +40,33 @@ pub(crate) const COMPILED: bool = cfg!(any(
 ));
 
 thread_local! {
-    /// Whether a window of this thread has had scroll layers on. The hooks
+    /// How many windows of this thread have scroll layers on. The hooks
     /// that have no window to ask (a scroll handle publishing an offset or
-    /// being read, an entity being notified) do nothing until one has, so
-    /// an application that never turns the switch on pays a branch for them.
-    static ON_THREAD: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    /// being read, an entity being notified) do nothing while none has, so
+    /// an application with the switch off pays a branch for them.
+    static ON_THREAD: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
 
 /// Notes that a window of this thread turns scroll layers on.
 pub(crate) fn turned_on() {
-    ON_THREAD.set(true);
+    ON_THREAD.set(ON_THREAD.get() + 1);
 }
 
-/// Whether a window of this thread has had scroll layers on.
+/// Notes that a window of this thread that had scroll layers on turns them
+/// off, or closes. With the last one, what the hooks without a window kept
+/// for the thread's windows goes.
+pub(crate) fn turned_off() {
+    let windows = ON_THREAD.get().saturating_sub(1);
+    ON_THREAD.set(windows);
+    if windows == 0 {
+        invalidate::forget_thread();
+    }
+}
+
+/// Whether a window of this thread has scroll layers on.
 #[inline]
 pub(crate) fn on_thread() -> bool {
-    COMPILED && ON_THREAD.get()
+    COMPILED && ON_THREAD.get() > 0
 }
 
 /// A window's scroll layers, by the scroll container's global id.
