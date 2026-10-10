@@ -89,7 +89,9 @@ fn attribute(name: &str) -> Vec<(Mode, FastStats)> {
 ///   does not paint, so the frame shows as many primitives; its layout and
 ///   text work is no more, and everything else (writes, releases, ordering)
 ///   is the same.
-/// - Scroll layers have not landed, and work as splice does.
+/// - Scroll layers do the work of splice where no frame shows a layer, and
+///   count why each scroll container went without one; where frames are
+///   shown from a layer's tiles, they build, shape and paint no more.
 fn modes_differ_only_by_landed_mechanisms(name: &str) {
     let modes = attribute(name);
     let (_, off) = modes[0];
@@ -198,10 +200,52 @@ fn modes_differ_only_by_landed_mechanisms(name: &str) {
         unchanged_by_splice(views),
         "{name}: splice counted other work than views beyond the views it spliced"
     );
-    for (mode, stats) in &modes[4..] {
+    let (_, layers) = modes[4];
+    if layers.layers_composited + layers.layers_repainted == 0 {
+        // No frame showed a layer: the same work as splice, with the scroll
+        // containers counted for why they went without one. A container
+        // whose content turns out to hold what no tile can (a sticky header,
+        // a backdrop blur) paints it for its layer before it is drawn into
+        // the frame, which orders its primitives once more; it tries again
+        // every few frames.
+        let but_ordering = |stats: FastStats| FastStats {
+            layer_bypasses: Default::default(),
+            draw_orders_computed: 0,
+            draw_orders_replayed: 0,
+            ..stats
+        };
         assert_eq!(
-            *stats, splice,
-            "{name}: {mode} counted other work than splice before its mechanism landed"
+            but_ordering(layers),
+            but_ordering(splice),
+            "{name}: layers counted other work than splice with no layer shown"
+        );
+        assert!(
+            layers.draw_orders_computed >= splice.draw_orders_computed,
+            "{name}: layers ordered fewer primitives than splice: {layers:?}"
+        );
+    } else {
+        // Frames shown from a layer's tiles build, lay out and paint no more
+        // than splice does.
+        for (counter, more) in [
+            ("views_built", layers.views_built > splice.views_built),
+            (
+                "leaves_measured",
+                layers.leaves_measured > splice.leaves_measured,
+            ),
+            ("lines_shaped", layers.lines_shaped > splice.lines_shaped),
+            (
+                "primitives_painted",
+                layers.primitives_painted > splice.primitives_painted,
+            ),
+        ] {
+            assert!(
+                !more,
+                "{name}: layers counted more {counter} than splice: {layers:?}"
+            );
+        }
+        assert!(
+            layers.tiles_composited > 0,
+            "{name}: layers showed no tile: {layers:?}"
         );
     }
 }

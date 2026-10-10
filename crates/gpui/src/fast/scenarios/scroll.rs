@@ -8,7 +8,10 @@ use crate::{
     div, effect_frame, hsla, list, point, prelude::*, px, uniform_list,
 };
 
-use super::{Fixture, Mode, Scenario, drawn_per_frame, expect_frames, views_built_at_least};
+use super::{
+    Fixture, Mode, Scenario, check, drawn_per_frame, expect_frames, place_pointer,
+    views_built_at_least,
+};
 
 /// Where every scroll container of these scenarios sits: its top left and size.
 const VIEWPORT: (f32, f32, f32, f32) = (0., 0., 400., 300.);
@@ -18,6 +21,12 @@ const ROWS: usize = 400;
 const WHEEL_STEP: f32 = 24.;
 /// Frames a wheel scrolls one way before it turns back.
 const WHEEL_TURN: usize = 30;
+/// The strip a scrolling `div` leaves beside its rows, where the pointer
+/// rests while the wheel turns: over no row, so no row's hover changes as
+/// the rows move under it. A scroll layer shows a frame from its tiles only
+/// where no hover its content read can have changed (a list's layer renders
+/// the rows whose hover did instead).
+const GUTTER: f32 = 40.;
 
 pub(super) fn scenarios() -> Vec<Scenario> {
     vec![
@@ -85,10 +94,18 @@ fn scroll_scenario(name: &'static str, description: &'static str, content: Conte
     }
 }
 
-/// The centre of the scroll containers, where the pointer is.
+/// The centre of the scroll containers, where the pointer is over a list.
 fn viewport_center() -> Point<Pixels> {
     point(
         px(VIEWPORT.0 + VIEWPORT.2 / 2.),
+        px(VIEWPORT.1 + VIEWPORT.3 / 2.),
+    )
+}
+
+/// Where the pointer is over a scrolling `div`: in its [`GUTTER`].
+fn gutter_center() -> Point<Pixels> {
+    point(
+        px(VIEWPORT.0 + VIEWPORT.2 - GUTTER / 2.),
         px(VIEWPORT.1 + VIEWPORT.3 / 2.),
     )
 }
@@ -159,6 +176,7 @@ impl Render for Scroller {
             div()
                 .id("scroll area")
                 .size_full()
+                .pr(px(GUTTER))
                 .overflow_y_scroll()
                 .track_scroll(&self.scroll)
         };
@@ -228,12 +246,19 @@ impl Render for Scroller {
                 }))
                 .into_any_element(),
         };
-        div().size_full().relative().child(area.child(content))
+        // An opaque panel, as an application's window has: what a scroll
+        // layer's tiles are cleared with.
+        div()
+            .size_full()
+            .relative()
+            .bg(hsla(0., 0., 0.08, 1.))
+            .child(area.child(content))
     }
 }
 
 struct Scrolling {
     scroller: Entity<Scroller>,
+    content: Content,
 }
 
 impl Scrolling {
@@ -250,7 +275,7 @@ impl Scrolling {
             list,
             rows,
         });
-        Self { scroller }
+        Self { scroller, content }
     }
 }
 
@@ -262,16 +287,24 @@ impl Fixture for Scrolling {
     fn step(&mut self, frame: usize, window: &mut Window, cx: &mut App) {
         // Scroll one way, then back, so the wheel never runs out of content.
         let down = (frame / WHEEL_TURN).is_multiple_of(2);
-        let chat = self.scroller.read(cx).content == Content::Chat;
+        let content = self.content;
+        let chat = content == Content::Chat;
         // A chat starts at its bottom, so it scrolls up first.
         let delta = if down != chat {
             -WHEEL_STEP
         } else {
             WHEEL_STEP
         };
+        let position = match content {
+            Content::UniformList | Content::List | Content::Chat => viewport_center(),
+            Content::ChildView | Content::SameView | Content::Sticky | Content::Effect => {
+                gutter_center()
+            }
+        };
+        place_pointer(window, position);
         window.dispatch_event(
             ScrollWheelEvent {
-                position: viewport_center(),
+                position,
                 delta: ScrollDelta::Pixels(point(px(0.), px(delta))),
                 modifiers: Modifiers::default(),
                 touch_phase: TouchPhase::Moved,
@@ -283,11 +316,76 @@ impl Fixture for Scrolling {
 
     fn expect(&self, mode: Mode, stats: &FastStats) -> Result<(), String> {
         expect_frames(mode, stats)?;
-        // Until scroll layers land, every scrolled frame builds the scroller.
+        if mode.fast_mode().scroll_layers {
+            return self.expect_layers(stats);
+        }
+        // Every scrolled frame builds the scroller.
         views_built_at_least(mode, stats, 2)?;
         // The backgrounds and glyphs of the rows (or messages) in view, well
         // above the 31 backgrounds alone.
         drawn_per_frame(stats, 60)
+    }
+}
+
+impl Scrolling {
+    /// What scroll layers do with each kind of content.
+    fn expect_layers(&self, stats: &FastStats) -> Result<(), String> {
+        use crate::fast::stats::LayerBypassReason;
+        let frames = stats.frames;
+        let bypassed = |reason: LayerBypassReason| stats.layer_bypasses[reason as usize];
+        let all_bypasses: u64 = stats.layer_bypasses.iter().sum();
+        match self.content {
+            // A scrolling `div` whose content only scrolls: promoted while
+            // the scenario warms up, every frame shows the layer's tiles,
+            // painted again only where the scroll runs past what the layer
+            // holds (twice its viewport on either side).
+            Content::ChildView | Content::SameView => {
+                check(
+                    stats.layers_composited + stats.layers_repainted == frames,
+                    || format!("a frame went without its layer: {stats:?}"),
+                )?;
+                check(all_bypasses == 0, || {
+                    format!("a frame was drawn on today's path: {stats:?}")
+                })?;
+                check(stats.layers_repainted <= 2, || {
+                    format!("the layer was painted more than the scroll exposes: {stats:?}")
+                })?;
+                check(stats.tiles_composited >= frames, || {
+                    format!("a frame composited no tile: {stats:?}")
+                })?;
+                // The view holding the container is built for its scroll, and
+                // the rows' view only on the frames that paint the layer.
+                let rows_view = (self.content == Content::ChildView) as u64;
+                check(
+                    stats.views_built == frames + rows_view * stats.layers_repainted,
+                    || format!("a composited frame rendered the content's view: {stats:?}"),
+                )
+            }
+            // Sticky headers are painted where they stick, above the rows
+            // and not with them, and a backdrop blur samples what is under
+            // it: no tile holds either, and every frame is drawn as without
+            // layers.
+            Content::Sticky | Content::Effect => {
+                check(
+                    stats.layers_composited + stats.layers_repainted == 0,
+                    || format!("a layer held content it cannot composite: {stats:?}"),
+                )?;
+                check(bypassed(LayerBypassReason::Ineligible) == frames, || {
+                    format!("a frame was not counted as ineligible: {stats:?}")
+                })?;
+                views_built_at_least(Mode::Layers, stats, 2)?;
+                drawn_per_frame(stats, 60)
+            }
+            // Lists get their layers with list layers: until then they are
+            // drawn as without.
+            Content::UniformList | Content::List | Content::Chat => {
+                check(stats.layers_total() == 0, || {
+                    format!("a list decided something for a layer: {stats:?}")
+                })?;
+                views_built_at_least(Mode::Layers, stats, 2)?;
+                drawn_per_frame(stats, 60)
+            }
+        }
     }
 }
 
@@ -321,12 +419,14 @@ impl Fixture for Pointer {
     }
 
     fn step(&mut self, frame: usize, window: &mut Window, cx: &mut App) {
+        let position = point(
+            px(60.),
+            px(ROW_HEIGHT / 2. + (frame % 40) as f32 * ROW_HEIGHT),
+        );
+        place_pointer(window, position);
         window.dispatch_event(
             MouseMoveEvent {
-                position: point(
-                    px(60.),
-                    px(ROW_HEIGHT / 2. + (frame % 40) as f32 * ROW_HEIGHT),
-                ),
+                position,
                 pressed_button: None,
                 modifiers: Modifiers::default(),
             }

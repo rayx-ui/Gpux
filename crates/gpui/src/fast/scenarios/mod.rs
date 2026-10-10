@@ -160,6 +160,17 @@ pub fn open(
     fixture
 }
 
+/// Puts the platform's pointer at `position` in a test window, before an
+/// event dispatched there. A window reads the pointer back from its platform
+/// window as it draws a frame (see `Window::draw_roots`), which a test
+/// platform only moves for the input it is asked to simulate: without this
+/// the frame is drawn with the pointer where the platform left it.
+pub(crate) fn place_pointer(window: &mut Window, position: crate::Point<crate::Pixels>) {
+    if let Some(test_window) = window.platform_window.as_test() {
+        test_window.0.lock().pointer.0 = position;
+    }
+}
+
 /// A check that fails with `message` unless `holds`.
 pub(crate) fn check(holds: bool, message: impl FnOnce() -> String) -> Result<(), String> {
     if holds { Ok(()) } else { Err(message()) }
@@ -181,8 +192,7 @@ pub(crate) fn expect_frames(mode: Mode, stats: &FastStats) -> Result<(), String>
             format!("{mode} claimed no kept layout node: {stats:?}")
         })?;
     }
-    // Layout retention, view retention and splice have landed; scroll
-    // layers work as `off` does.
+    // Every mechanism counts only in the modes that run it.
     let mut landed = 0;
     if layout_retention {
         landed += stats.layout_retention_total();
@@ -192,6 +202,9 @@ pub(crate) fn expect_frames(mode: Mode, stats: &FastStats) -> Result<(), String>
     }
     if mode.fast_mode().splice {
         landed += stats.splice_total();
+    }
+    if mode.fast_mode().scroll_layers {
+        landed += stats.layers_total();
     }
     check(stats.mechanism_total() == landed, || {
         format!("{mode} made a fast-mode decision for a mechanism it does not run: {stats:?}")
