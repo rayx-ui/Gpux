@@ -26,3 +26,4 @@ agentx:
 - Prove Android changes in lane E (`gpux-testkit lane e`). On emulators, read pixels from OS screenshots: their GL drivers read rendered textures back as zeros, and their 16-bit surfaces round colors.
 - Build lane E with the pinned NDK only: an `ANDROID_NDK_HOME` override must be the pinned directory or declare its base revision (the pinned 28.0.12674087 is r28-beta2, `Pkg.Revision = 28.0.12674087-beta2`); CI runner images point the variable at other NDKs.
 - Replay a motion event's batched history samples as moves at their own times before its current sample; fast gestures otherwise reach the recognizer as a press and a release.
+- Never keep per-activity Android state in a set-once static: a restarted `android_main` in the same process must replace it.

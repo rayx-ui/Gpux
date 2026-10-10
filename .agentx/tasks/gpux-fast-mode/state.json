@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 107,
+  "revision": 111,
   "planRevision": 14,
   "specHashes": {
     "requirements": "9a032d1345bbc15ddac8a565144cc02934f65cee34ff9fbb7e0ef3453253fcf0",
@@ -196,19 +196,19 @@
       ]
     },
     "t32-composition-windows": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "claude-240e1cb7"
       ]
     },
     "t33-composition-web": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "claude-240e1cb7"
       ]
     },
     "t34-webview-examples": {
-      "status": "in_progress",
+      "status": "done",
       "workerIds": [
         "claude-240e1cb7"
       ]
@@ -358,6 +358,15 @@
         }
       },
       "recordedAt": "2026-10-10T10:32:01Z"
+    },
+    "4fd41f09eac4943f132ff0660be02ddfbca68ab952d99234cadcf7fcb46271cc": {
+      "snapshot": {
+        "specHash": "d2219c95b279d5198f6afd4d6b785a20db818882d3e310d9a7f20f1ff6ff99f3",
+        "repositories": {
+          "gpux": "7ec78d031c9a16c63eaa3e9c33723468675cb0c724df0cccd0826226951a8333"
+        }
+      },
+      "recordedAt": "2026-10-10T12:42:52Z"
     }
   },
   "checkResults": {
@@ -989,6 +998,40 @@
       "logPath": "artifacts-temp/agentx/gpux-fast-mode/s08-composition-linux-final-a240ca1c2868.log",
       "logSha256": "38ab443c55c9fa6dd34fd6b137775ae59c8f7bd6cc1b4665539e694465fd55ff",
       "inputsHash": "0049312cbcc69e03c7ccc86ccc58c1d393bf2800dce357d878fdf22b1360bd71"
+    },
+    "s09-composition-windows-web/check-composition-windows/final": {
+      "checkId": "check-composition-windows",
+      "boundaryId": "s09-composition-windows-web",
+      "phase": "final",
+      "batchId": "4fd41f09eac4943f132ff0660be02ddfbca68ab952d99234cadcf7fcb46271cc",
+      "definitionHash": "2f79fd659b663873635e943a28f54692c055e316b0f993d70a5375a193658d42",
+      "basisHash": "d24868868de1b5278a5a19ff4b166d2a21e7b48a9007afbeb9142b321d777601",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 3.4585,
+      "recordedAt": "2026-10-10T12:42:05Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s09-composition-windows-web-final-0093002837fe.log",
+      "logSha256": "881d443be35bfffd5f7ee327d06b9737c207a74f661fe6bc40d68215b4cfc8a2",
+      "inputsHash": "e9bd90547df52252bc2b4894f55b9af4c4b01cf86d2eb27d978477a3c05ea2e0"
+    },
+    "s09-composition-windows-web/check-composition-web/final": {
+      "checkId": "check-composition-web",
+      "boundaryId": "s09-composition-windows-web",
+      "phase": "final",
+      "batchId": "4fd41f09eac4943f132ff0660be02ddfbca68ab952d99234cadcf7fcb46271cc",
+      "definitionHash": "83ef5c638e8ab1e18b784659d773b6f77cf8a317b86419e8b645b8205539bfc3",
+      "basisHash": "3e7dfedc883929dbd5793fa7961f24e27e65cb0296ae80656a0d256dc6a604fe",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 46.7875,
+      "recordedAt": "2026-10-10T12:42:52Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s09-composition-windows-web-final-0da9b2906da5.log",
+      "logSha256": "e984923b2026458f2ed384e60584a2d402f246f9f112a1a8995c585e669e809b",
+      "inputsHash": "e9bd90547df52252bc2b4894f55b9af4c4b01cf86d2eb27d978477a3c05ea2e0"
     }
   },
   "reviews": {
@@ -2575,6 +2618,264 @@
         "s08-x11-overlay-to-native-no-exit"
       ],
       "recordedAt": "2026-10-10T10:33:21Z"
+    },
+    "s09-composition-windows-web": {
+      "reviewerId": "claude-reviewer-s09b-7f3c91a2",
+      "snapshotId": "4fd41f09eac4943f132ff0660be02ddfbca68ab952d99234cadcf7fcb46271cc",
+      "criterionIds": [
+        "CMP-6",
+        "CMP-7",
+        "CMP-9"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_windows/src/fast/composition.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-6"
+          ],
+          "sha256": "feed8cb3fd93fabafd07268536e5c0f0b48ba6ec67f7185ef6d877df0b041b74"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_windows/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-6"
+          ],
+          "sha256": "fb976b2f10640a56cd5ce27c4edb2df5ffa0b7f1e01abaa5228e9beaabbdfdd4"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_windows/src/events.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-6"
+          ],
+          "sha256": "17490c5ed84022bc3119300d907bc6412f57142b3fe1bb957b99496e549f16a8"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/fast/composition.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-6",
+            "CMP-7"
+          ],
+          "sha256": "f281a7bf7c924c0a2b30e9a786ae2cb98181178a33256209018d5d9e1d8514b6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/wgpu_renderer.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-6",
+            "CMP-7"
+          ],
+          "sha256": "57fb9705b3bac69c9074c1bd3419f2424d56e06093e010d1142c150c1b598ba5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/desktop_host/composition_windows.rs",
+          "kind": "test",
+          "criterionIds": [
+            "CMP-6"
+          ],
+          "sha256": "a709d6cdb6b0d97dd64d2d2f013db90faab77f1e81684fcc4d11c58bafcd903b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s09-composition-windows-web-final-0093002837fe.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "CMP-6"
+          ],
+          "sha256": "881d443be35bfffd5f7ee327d06b9737c207a74f661fe6bc40d68215b4cfc8a2"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/fast/composition.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-7"
+          ],
+          "sha256": "4060b09f681dd257409cd311e03db07173160cda954011ddda450856f4541b4b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-7"
+          ],
+          "sha256": "43eb9c11e5caab8c55931613c9cc3e0f92d022f3241908c1199c859b1d1f4995"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/events.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-7"
+          ],
+          "sha256": "8c31ac847ff03c0680979341c47d34676ea22834deb592ab187b904a66aa8208"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/web_host/web_scenes.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-7"
+          ],
+          "sha256": "67ef0fb94acb6bcad2502911ba20e4375332fc45bd473c16c5517d1bd6c5c74a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/composition.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "CMP-7"
+          ],
+          "sha256": "eaccb0ad22755613313633f22410b17cf3e1d70c67ebd3f210b9572910334f10"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s09-composition-windows-web-final-0da9b2906da5.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "CMP-7"
+          ],
+          "sha256": "e984923b2026458f2ed384e60584a2d402f246f9f112a1a8995c585e669e809b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/examples/webview_macos.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-9"
+          ],
+          "sha256": "4123ca8b0b07f7bc04791a7d65dfe213fdc76f77f8ad7ffc1352cd8bcea834f7"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/examples/webview_windows.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-9"
+          ],
+          "sha256": "f1c3f6099121630197f33ec452549acbc51c7b94add387215516dabc8ab86ef7"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/examples/webview_gtk.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-9"
+          ],
+          "sha256": "a960f169489da8ba4d378d3495a8963d767c8034df1bc42a8d63d855704aee43"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/examples/wayland_surface.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-9"
+          ],
+          "sha256": "9491d9caf1a9d674885c871fe0bd1ff84432236ded50fb62cdef7a6518d5421f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-9"
+          ],
+          "sha256": "34c3e9441b703141b69478bb5160ef73ccdd99b18036cc36d261427be8404570"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/webview_macos.png",
+          "kind": "runtime",
+          "criterionIds": [
+            "CMP-9"
+          ],
+          "sha256": "cdabcbb1851dbe984b74ffb1cf47e0b56f710d84a85168e60bf0763ed0a3b27a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/webview-windows2/webview_windows.png",
+          "kind": "runtime",
+          "criterionIds": [
+            "CMP-9"
+          ],
+          "sha256": "f30d35647858c9bc788b88c4723d2b0c95036110a38a07a737fc976bcfbfdcc3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/webview_gtk_cm.png",
+          "kind": "runtime",
+          "criterionIds": [
+            "CMP-9"
+          ],
+          "sha256": "3127cb5ab9602022f10f59a94da315babc3cbbc2add09c16e978e24aeb7a24cd"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/wayland_surface.png",
+          "kind": "runtime",
+          "criterionIds": [
+            "CMP-9"
+          ],
+          "sha256": "fb1ac847a67d6f97c11292901f8cc3a7e2f0e35f320c01066288af3b640aed0a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/upstream/gpui-fast.md",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-6",
+            "CMP-7",
+            "CMP-9"
+          ],
+          "sha256": "ea0ba0192a6af6ffddb1976adf1d438edfa4bc2a3a967a90707aa6314aab915e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-6",
+            "CMP-7"
+          ],
+          "sha256": "a9d88ffe0de37914bc17426ca523f63d5bfe6ff7fa75825f56969aa0eeedd249"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/platform.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-7"
+          ],
+          "sha256": "12cf5b53c55ee17badae615122519b629b09f6559d63aed31aab4e6c0faf8edf"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/ci/laneB-red.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "CMP-7"
+          ],
+          "sha256": "218bdfbface5c51bdc9b151c542dbe317f181b57e5d926a6d4845dbdcb4f1227"
+        }
+      ],
+      "summaryMarkdown": "**Verdict: passed.** Re-review of `s09-composition-windows-web` at `6e7b966`, snapshot `4fd41f09...` (revision 110). The first review (`review-s09.json`, three minor findings) was never submitted because its snapshot went stale; its findings are carried here and all three are resolved.\n\n- `s09-windows-spike-evidence-unrecorded` (CMP-6): resolved by `6e7b966`. The spike section records both options, the CI output and the reason for keeping the HWND swap chain.\n- `s09-web-shield-crossing-exit` (CMP-7): resolved by `3bff743`. Crossing between the canvas and an overlay shield is no longer a `MouseExited`; leaving the window from a shield still is. The new lane B spec is green with the hook and red without it.\n- `s09-browser-transparent-alpha-global` (CMP-7): resolved by `3bff743`. The premultiplied override applies to transparent sharing renderers only; `wgpu_renderer.rs` is back to its pre-composition alpha choice.\n\nEvidence reused, not rerun: the final check passed at revision 110 (2 checks, `check-s09.log`). Lane B ran the four composition specs locally (4 passed). Lane D on Windows is the CI job on `6e7b966`, run 38052342200 (5 passed). I read the repair diff and the code around each hook and ran no tests of my own.\n\nCMP-9 is unchanged by the repairs; the example sources and screenshots from the first review still apply. The uncommitted `.agentx/memory` sync and the stashed s09b work are outside this review.",
+      "findingIds": [
+        "s09-windows-spike-evidence-unrecorded",
+        "s09-web-shield-crossing-exit",
+        "s09-browser-transparent-alpha-global"
+      ],
+      "recordedAt": "2026-10-10T12:47:16Z"
     }
   },
   "checkpoints": {
@@ -3249,6 +3550,80 @@
           "repositoryId": "gpux",
           "path": "crates/gpui_linux/src/fast/composition/x11.rs",
           "symbol": "tests::a_crossing_onto_a_native_surface_leaves_gpui_content"
+        }
+      ]
+    },
+    {
+      "id": "s09-windows-spike-evidence-unrecorded",
+      "boundaryId": "s09-composition-windows-web",
+      "criterionIds": [
+        "CMP-6"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved (6e7b966).** `docs/upstream/gpui-fast.md` has the section the mapping row at line 74 points to, \"Windows base surface spike\" (line 81). It names the two options: (a) the wgpu HWND swap chain under a gpux-owned topmost DirectComposition target, and (b) a composition-visual swap chain in the same tree. It says how `composition-windows-resize` measures them and quotes the output of CI run 38050809476 on `79eafd5`.\n\nThe recorded result matches the log: both options keep the line at rows 30..33 after the 240 px growth, and both read `[0, 0, 0]` on the newly exposed rows. The section says the resize evidence does not tell the options apart and gives the actual reason for keeping (a): no change to the renderer path, the swap chain or the `DXGI_SCALING_NONE` behaviour of any window, and no second base presentation path.\n\nThe lane D log for `6e7b966` (CI run 38052342200) reports the same two measurements, so the document and the check agree.\n\n*Original finding:* the mapping row said \"(spike result below)\" but no section recorded the spike, its two options or the measured output.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/upstream/gpui-fast.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/desktop_host/composition_windows.rs"
+        }
+      ]
+    },
+    {
+      "id": "s09-web-shield-crossing-exit",
+      "boundaryId": "s09-composition-windows-web",
+      "criterionIds": [
+        "CMP-7"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved (3bff743).** The canvas `pointerleave` handler (`crates/gpui_web/src/events.rs:679`) returns before touching hover state or dispatching `MouseExited` when `fast::composition::stays_in_window` finds the event's `relatedTarget` among this window's own overlay shields. The hook is one full-path call.\n\nEach shield has a `forward_leave` listener (`crates/gpui_web/src/fast/composition.rs:261`). It hands the shield's `pointerleave` to the canvas only when the pointer goes somewhere other than the canvas or a shield. The copy keeps the original `relatedTarget`, so the canvas handler does not suppress it, and a pointer leaving the window from above an overlay still produces one `MouseExited`. A leave with no `relatedTarget` (out of the browser window) is forwarded too.\n\nProof: the lane B spec \"moving between the canvas and the popover stays inside the window\" (`tools-node/specs/composition.spec.ts:42`) moves canvas, popover, canvas, clicks the popover and expects `exits 0`. It passes in the revision 110 check log and fails with the hook disabled (`artifacts-temp/ci/laneB-red.log`).\n\nCursor part: I agree no change is needed. `set_body_cursor` (`crates/gpui_web/src/platform.rs:961`) sets `cursor` on `document.body`. The shield is a child of `body` whose inline styles do not set `cursor`, so it inherits the same value as the window's canvas. On wasm `Window::is_window_hovered` is `is_window_active`, so the platform hover flag does not gate cursor updates there either.\n\nNot a defect, for the record: `is_shield` accepts any element with the shield attribute, not only this window's shields. It differs from the doc comment only for two gpux windows on one page whose shields abut. A browser window's canvas fills the viewport, so that layout does not occur.\n\n*Original finding:* moving the pointer from the canvas onto an overlay's input shield fired the canvas `pointerleave`, which dispatched `MouseExited` and marked the window unhovered while the pointer was still over the window.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/composition.spec.ts",
+          "symbol": "moving between the canvas and the popover stays inside the window"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/fast/composition.rs",
+          "symbol": "stays_in_window"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/fast/composition.rs",
+          "symbol": "forward_leave"
+        }
+      ]
+    },
+    {
+      "id": "s09-browser-transparent-alpha-global",
+      "boundaryId": "s09-composition-windows-web",
+      "criterionIds": [
+        "CMP-7"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved (3bff743).** `crates/gpui_wgpu/src/wgpu_renderer.rs` picks the transparent alpha mode with the plain `pick_alpha_mode(&[PreMultiplied, Inherit])` again. Against the pre-composition base `9ace2ad` the file differs by one line, the `pub(crate)` visibility of the `transparent_alpha_mode` field. A transparent browser window that never composes is configured as it was before the sprint.\n\nThe browser override now lives in `crates/gpui_wgpu/src/fast/composition.rs`. `overlay_alpha_mode` is private, and `WgpuRenderer::use_overlay_alpha_mode` is called by the sharing constructors only for a `transparent` surface. When the mode differs it stores it and calls `update_transparency(true)`, which reconfigures the overlay's surface and rebuilds that renderer's own pipelines; the window renderer's pipelines are a separate value and are not touched. Outside the browser `overlay_alpha_mode` returns the picked mode, so native overlays take the same path as before.\n\nProof: \"a popover draws over a DOM element on WebGPU\" still passes in the revision 110 lane B log, so the overlay canvas is still premultiplied over the DOM. Lane D on Windows (CI run 38052342200, `6e7b966`) passes with the same constructors.\n\n*Original finding:* `transparent_alpha_mode`, called from the renderer's constructor, forced `PreMultiplied` for every transparent browser WebGPU surface, not only for composition overlays.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/fast/composition.rs",
+          "symbol": "use_overlay_alpha_mode"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/wgpu_renderer.rs",
+          "symbol": "transparent_alpha_mode"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/composition.spec.ts",
+          "symbol": "a popover draws over a DOM element on WebGPU"
         }
       ]
     }

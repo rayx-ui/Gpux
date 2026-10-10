@@ -37,6 +37,8 @@ Lane F proves iOS through the `ios_host` conformance example: a static library b
 
 iOS keeps a Metal-specific WGPU path: `GPUIMetalView` exposes `CAMetalLayer`, the window creates a `wgpu::Instance` with `Backends::METAL`, pre-populates `WgpuContext`, and builds `WgpuRenderer` from it. Effect capabilities delegate to the active renderer. Text uses the independent `IosTextSystem` on CoreText and font-kit CoreText loaders. `gpui_mobile` retains a cloned `gpux::Application` in FFI-owned state after `Application::run()` returns, because UIKit owns the event loop and later callbacks need GPUI state.
 
+Android may run `android_main` again in the same process after destroying the native activity (CI's lane E x86_64 emulator does at startup). `jni::init_platform` replaces the process-wide `AndroidApp` and `AndroidPlatform` each time (`Current<T>`, leaking replaced values); a kept platform's dispatcher would belong to the previous run's looper and App construction would panic ("must construct App on main thread").
+
 ## Backlinks
 
 - [Android conformance host](../../../../../crates/gpux_conformance/examples/android_host)

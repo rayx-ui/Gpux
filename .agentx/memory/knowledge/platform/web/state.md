@@ -47,8 +47,11 @@ HTML elements: gpux owns `HtmlElementPrimitive`, the window paint hook, and the 
 
 Lane B proves this crate: one Playwright spec per area (backend fallback, viewport and resize, window close, pointer, wheel delta modes, keyboard, touch, IME, clipboard and its fallback, HTML elements and islands, canvas text fallback, worker threads, fetched assets, cursors, page lifecycle, safe areas, shortcut modifier) plus every lane-B conformance scene with trusted CDP input. The Playwright config keeps the browser's own user agent; Playwright's desktop Chrome device reports Windows on every host. Lane B passed 164/164 on an Apple M5 (2026-10-09).
 
+Browser window composition (`gpui_web/src/fast/composition.rs`, gpux's own): on WebGPU, every GPUI surface above the base gets a canvas above the `html_element` overlay root (re-layered to z-index 2147483646), drawn by a renderer sharing the window's device, atlas and pipelines (`WgpuRenderer::new_sharing_with_context` on the platform's context), and an input shield whose `clip-path` is the overlay's input region and which re-dispatches pointer events onto the window's canvas. The base draw places the whole composed frame's DOM elements; HTML islands inside overlays are not supported. Overlay surfaces alone configure premultiplied alpha, which wgpu's WebGPU backend accepts but does not report. The shields are siblings above the canvas, so the canvas ignores a `pointerleave` onto one of its window's shields (`stays_in_window`) and a shield forwards a leave that goes anywhere else: crossing onto a popover is not a window exit. The cursor needs nothing: GPUI sets it on `body`, which the shields inherit. WebGL2 reports composition unsupported. Lane B: `specs/composition.spec.ts` and the `web-composition` scene (also in the Dawn smoke).
+
 ## Backlinks
 
+- [Browser composition](../../../../../crates/gpui_web/src/fast/composition.rs)
 - [Lane B specs](../../../../../tools-node/specs)
 - [gpui_web platform](../../../../../crates/gpui_web/src/platform.rs)
 - [gpui_web window](../../../../../crates/gpui_web/src/window.rs)

@@ -28,3 +28,4 @@ agentx:
 - On a Mac, run the Linux lane D checks in the Lima VM `gpux` (Ubuntu 24.04): Wayland under headless sway (`WLR_BACKENDS=headless WLR_RENDERER=pixman WLR_LIBINPUT_NO_DEVICES=1`), X11 under `xvfb-run` (with `xcompmgr` for the composition overlay). Headless Weston advertises no `wl_seat`, which gpux requires.
 - Never give a Wayland surface handed to a native producer a `wp_viewport` or buffer scale of GPUI's: the producer may create its own, and a second viewport is a protocol error.
 - Prove desktop window behavior in lane D (`desktop_host`): presenting, resizing, scale changes, clipboard, OS input, and close, in real windows on each OS.
+- On Windows, never clear a native surface visual's children: a producer (WebView2) adds its own; remove only what gpux nested. Lane D content set with `SetContent` cannot catch this, so run the WebView2 example after DirectComposition changes.
