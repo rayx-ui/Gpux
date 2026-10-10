@@ -2165,6 +2165,7 @@ impl Element for Div {
         let content_size = if request_layout.child_layout_ids.is_empty() {
             bounds.size
         } else if let Some(scroll_handle) = self.interactivity.tracked_scroll_handle.as_ref() {
+            crate::fast::layers::input::track_handle(window, &scroll_handle.0);
             if let Ok(mut state) = scroll_handle.0.try_borrow_mut() {
                 state.child_bounds = Vec::with_capacity(request_layout.child_layout_ids.len());
                 for child_layout_id in &request_layout.child_layout_ids {
@@ -2218,6 +2219,18 @@ impl Element for Div {
 
                 window.with_image_cache(image_cache, |window| {
                     let bounds = positioned_bounds.visual_bounds;
+                    let fast_layer = crate::fast::layers::paint::begin_children(
+                        window,
+                        cx,
+                        global_id,
+                        bounds,
+                        child_min,
+                        content_size,
+                        scroll_offset,
+                        style,
+                        positioned_bounds.delta != Point::default(),
+                    );
+                    let scroll_offset = fast_layer.scroll_offset();
                     let scroll_context = (style.overflow.x == Overflow::Scroll
                         || style.overflow.y == Overflow::Scroll)
                         .then(|| ScrollContainerContext {
@@ -2255,7 +2268,9 @@ impl Element for Div {
                         }
                     };
 
-                    if let Some(scroll_context) = scroll_context {
+                    // Children whose scroll layer is composited are not prepainted.
+                    if !fast_layer.prepainted() {
+                    } else if let Some(scroll_context) = scroll_context {
                         window.with_scroll_container_context(scroll_context, |window| {
                             window.with_element_offset(
                                 positioned_bounds.delta + scroll_offset,
@@ -2277,8 +2292,10 @@ impl Element for Div {
                             },
                         );
                     }
+                    crate::fast::layers::paint::end_children(window, cx, fast_layer);
 
                     if let Some(listener) = self.prepaint_listener.as_ref() {
+                        crate::fast::layers::invalidate::note_uncarried(window);
                         listener(children_bounds, window, cx);
                     }
                 });
@@ -2344,11 +2361,18 @@ impl Element for Div {
                         });
 
                     let mut paint_children = |window: &mut Window, cx: &mut App| {
-                        for idx in _request_layout.paint_order.iter().copied() {
-                            if let Some(child) = self.children.get_mut(idx) {
-                                child.paint(window, cx);
-                            }
-                        }
+                        crate::fast::layers::paint::paint_children(
+                            window,
+                            cx,
+                            global_id,
+                            |window, cx| {
+                                for idx in _request_layout.paint_order.iter().copied() {
+                                    if let Some(child) = self.children.get_mut(idx) {
+                                        child.paint(window, cx);
+                                    }
+                                }
+                            },
+                        );
                     };
 
                     if let Some(scroll_context) = scroll_context {
@@ -3927,6 +3951,7 @@ impl Interactivity {
             let line_height = window.line_height();
             let hitbox = hitbox.clone();
             let current_view = window.current_view();
+            let fast_container = crate::fast::layers::invalidate::painted_container(window, self);
             window.on_mouse_event(move |event: &ScrollWheelEvent, phase, window, cx| {
                 if phase == DispatchPhase::Bubble && hitbox.should_handle_scroll(window) {
                     // Wheel, trackpad, and recognized touch scrolling replace any
@@ -3998,6 +4023,8 @@ impl Interactivity {
                         );
                     } else {
                         *scroll_offset_state.borrow_mut() = new_scroll_offset;
+                        // A handle's publish notes its own scroll.
+                        crate::fast::layers::invalidate::note_scrolled(window, &fast_container);
                         cx.notify(current_view);
                     }
                     cx.stop_propagation();
@@ -4910,7 +4937,7 @@ impl ScrollAnchor {
 }
 
 #[derive(Default, Debug)]
-struct ScrollHandleState {
+pub(crate) struct ScrollHandleState {
     offset: Rc<RefCell<Point<Pixels>>>,
     /// Moves when a request changes where the owner will scroll to, for a
     /// retained owner to be built again to apply it.
@@ -4947,7 +4974,7 @@ enum ScrollStrategy {
 /// Used for accessing scroll state, like the current scroll offset,
 /// and for mutating the scroll state, like scrolling to a specific child.
 #[derive(Clone, Debug)]
-pub struct ScrollHandle(Rc<RefCell<ScrollHandleState>>);
+pub struct ScrollHandle(pub(crate) Rc<RefCell<ScrollHandleState>>);
 
 impl Default for ScrollHandle {
     fn default() -> Self {
@@ -4983,22 +5010,32 @@ impl ScrollHandle {
 
     /// Return the latest immutable positive-logical metrics snapshot.
     pub fn metrics(&self) -> ScrollMetrics {
-        self.0.borrow().metrics
+        let state = self.0.borrow();
+        crate::fast::layers::invalidate::note_offset_read(&state.fast_version);
+        state.metrics
     }
 
     /// Try to return the latest metrics snapshot without panicking on a re-entrant borrow.
     pub fn try_metrics(&self) -> Option<ScrollMetrics> {
-        self.0.try_borrow().ok().map(|state| state.metrics)
+        self.0.try_borrow().ok().map(|state| {
+            crate::fast::layers::invalidate::note_offset_read(&state.fast_version);
+            state.metrics
+        })
     }
 
     /// Get the current scroll offset.
     pub fn offset(&self) -> Point<Pixels> {
-        *self.0.borrow().offset.borrow()
+        let state = self.0.borrow();
+        crate::fast::layers::invalidate::note_offset_read(&state.fast_version);
+        *state.offset.borrow()
     }
 
     /// Try to get the current scroll offset without panicking if the handle is already borrowed.
     pub fn try_offset(&self) -> Option<Point<Pixels>> {
-        self.0.try_borrow().ok().map(|state| *state.offset.borrow())
+        self.0.try_borrow().ok().map(|state| {
+            crate::fast::layers::invalidate::note_offset_read(&state.fast_version);
+            *state.offset.borrow()
+        })
     }
 
     /// Return the latest queued direct-scrollbar offset without publishing it.
@@ -5014,17 +5051,23 @@ impl ScrollHandle {
 
     /// Get the maximum scroll offset.
     pub fn max_offset(&self) -> Point<Pixels> {
-        self.0.borrow().max_offset
+        let state = self.0.borrow();
+        crate::fast::layers::invalidate::note_offset_read(&state.fast_version);
+        state.max_offset
     }
 
     /// Try to get the maximum scroll offset without panicking if the handle is already borrowed.
     pub fn try_max_offset(&self) -> Option<Point<Pixels>> {
-        self.0.try_borrow().ok().map(|state| state.max_offset)
+        self.0.try_borrow().ok().map(|state| {
+            crate::fast::layers::invalidate::note_offset_read(&state.fast_version);
+            state.max_offset
+        })
     }
 
     /// Get the top child that's scrolled into view.
     pub fn top_item(&self) -> usize {
         let state = self.0.borrow();
+        crate::fast::layers::invalidate::note_offset_read(&state.fast_version);
         let top = state.bounds.top() - state.offset.borrow().y;
 
         match state.child_bounds.binary_search_by(|bounds| {
@@ -5044,6 +5087,7 @@ impl ScrollHandle {
     /// Get the bottom child that's scrolled into view.
     pub fn bottom_item(&self) -> usize {
         let state = self.0.borrow();
+        crate::fast::layers::invalidate::note_offset_read(&state.fast_version);
         let bottom = state.bounds.bottom() - state.offset.borrow().y;
 
         match state.child_bounds.binary_search_by(|bounds| {
@@ -5062,17 +5106,24 @@ impl ScrollHandle {
 
     /// Return the bounds into which this child is painted
     pub fn bounds(&self) -> Bounds<Pixels> {
-        self.0.borrow().bounds
+        let bounds = self.0.borrow().bounds;
+        crate::fast::layers::input::moved(&self.0, Some(bounds)).unwrap_or_default()
     }
 
     /// Try to get the viewport bounds without panicking if the handle is already borrowed.
     pub fn try_bounds(&self) -> Option<Bounds<Pixels>> {
-        self.0.try_borrow().ok().map(|state| state.bounds)
+        let bounds = self.0.try_borrow().ok().map(|state| state.bounds);
+        crate::fast::layers::input::moved(&self.0, bounds)
     }
 
     /// Get the bounds for a specific child.
     pub fn bounds_for_item(&self, ix: usize) -> Option<Bounds<Pixels>> {
-        self.0.borrow().child_bounds.get(ix).cloned()
+        let bounds = {
+            let state = self.0.borrow();
+            crate::fast::layers::invalidate::note_offset_read(&state.fast_version);
+            state.child_bounds.get(ix).cloned()
+        };
+        crate::fast::layers::input::moved(&self.0, bounds)
     }
 
     /// Update [ScrollHandleState]'s active item for scrolling to in prepaint
@@ -5403,6 +5454,12 @@ impl ScrollHandle {
             }
 
             *offset = next;
+            crate::fast::layers::invalidate::offset_published(
+                &state.fast_version,
+                next != previous,
+                &state.dependent_views,
+                !(source == ScrollMutationSource::Wheel || notify_immediately),
+            );
             let primary_delta = if logical_delta.y.abs() >= logical_delta.x.abs() {
                 logical_delta.y
             } else {

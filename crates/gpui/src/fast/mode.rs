@@ -168,6 +168,10 @@ impl FastMode {
 /// A window's fast mode.
 pub(crate) struct WindowFastMode {
     mode: FastMode,
+    /// Whether what scroll layers snap is snapped with them off, in a
+    /// window drawn as the reference of one with them on.
+    #[cfg(any(test, feature = "test-support"))]
+    snapping_forced: bool,
 }
 
 impl WindowFastMode {
@@ -175,6 +179,8 @@ impl WindowFastMode {
     pub(crate) fn from_process_environment() -> Self {
         Self {
             mode: FastMode::from_environment(|name| std::env::var(name).ok()),
+            #[cfg(any(test, feature = "test-support"))]
+            snapping_forced: false,
         }
     }
 
@@ -208,8 +214,19 @@ impl WindowFastMode {
 
     /// Whether scroll layers are on, which also enables their snapping.
     #[inline(always)]
-    #[allow(dead_code, reason = "read by the scroll-layer hooks of a later sprint")]
     pub(crate) fn scroll_layers(&self) -> bool {
+        self.mode.scroll_layers
+    }
+
+    /// Whether scroll offsets, glyph origins and paths are snapped to what
+    /// a layer's tiles can hold: with scroll layers on, or in a test's
+    /// reference window (see [`Window::force_layer_snapping`]).
+    #[inline(always)]
+    pub(crate) fn snapping(&self) -> bool {
+        #[cfg(any(test, feature = "test-support"))]
+        if self.snapping_forced {
+            return true;
+        }
         self.mode.scroll_layers
     }
 }
@@ -232,7 +249,9 @@ pub struct FastOwnedState {
 /// Releases what the mechanisms that `previous` had on and `current` has off
 /// own. Each mechanism adds its release here as it lands.
 fn release_disabled(window: &mut Window, previous: FastMode, current: FastMode) {
-    let _ = (window, previous, current);
+    if previous.scroll_layers && !current.scroll_layers {
+        crate::fast::layers::release(window);
+    }
 }
 
 impl Window {
@@ -283,6 +302,18 @@ impl Window {
         self.refresh();
     }
 
+    /// Snaps scroll offsets, glyph origins and paths as scroll layers do,
+    /// with scroll layers off: what a window drawn with them on is compared
+    /// with, since the snapping moves what is drawn by fractions of a
+    /// device pixel whether or not a layer is composited.
+    #[cfg(any(test, feature = "test-support"))]
+    pub fn force_layer_snapping(&mut self, forced: bool) {
+        if self.fast_mode.snapping_forced != forced {
+            self.fast_mode.snapping_forced = forced;
+            self.refresh();
+        }
+    }
+
     /// What this window's fast-mode mechanisms hold on to between frames.
     #[cfg(any(test, feature = "test-support"))]
     pub fn fast_owned_state(&self) -> FastOwnedState {
@@ -290,6 +321,7 @@ impl Window {
         FastOwnedState {
             kept_layout_nodes: engine.map_or(0, |engine| engine.retention.kept_count()),
             layout_engine_nodes: engine.map_or(0, |engine| engine.node_count()),
+            layer_tiles: crate::fast::layers::owned(self),
             ..FastOwnedState::default()
         }
     }

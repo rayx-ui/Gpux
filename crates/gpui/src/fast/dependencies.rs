@@ -203,6 +203,7 @@ struct LogRanges {
     entities: Range<usize>,
     globals: Range<usize>,
     states: Range<usize>,
+    offset_reads: Range<usize>,
 }
 
 /// The entries of `log` in `range` that fall outside every range in
@@ -231,6 +232,10 @@ fn outside<'a, T: Clone>(
 pub(crate) struct RecordedDependencies {
     pub(crate) all: RenderDependencies,
     pub(crate) own: RenderDependencies,
+    /// What a view read itself while its `render` ran, before its elements
+    /// were laid out, if the recording was of a view rendering. See
+    /// [`App::dependencies_so_far`].
+    pub(crate) render: Option<RenderDependencies>,
 }
 
 impl AppDependencies {
@@ -338,6 +343,11 @@ impl StateVersion {
     fn same_state(&self, other: &Self) -> bool {
         Rc::ptr_eq(&self.0, &other.0)
     }
+
+    /// What tells this state apart from any other while it lives.
+    pub(crate) fn id(&self) -> usize {
+        Rc::as_ptr(&self.0) as usize
+    }
 }
 
 /// Bumps the version of a piece of state, when it is dropped, if a mutator
@@ -425,6 +435,24 @@ impl AmbientInput {
             modifiers: window.modifiers,
             capslock: window.capslock,
             button: window.pressed_mouse_button,
+        }
+    }
+
+    /// Stamps all of the input state as changed, for a frame drawn while an
+    /// event is being dispatched (see
+    /// [`crate::fast::layers::input::before_dispatch`]): the window has
+    /// taken the event in, and what it changed is told only once it is
+    /// dispatched.
+    pub(crate) fn stamp_all(cx: &mut App) {
+        if !cx.entities.fast_access_log.stamping {
+            return;
+        }
+        for ambient in [
+            TypeId::of::<ambient::Pointer>(),
+            TypeId::of::<ambient::Keys>(),
+            TypeId::of::<ambient::Button>(),
+        ] {
+            cx.fast_dependencies.global_changed(ambient);
         }
     }
 
@@ -563,6 +591,7 @@ pub(crate) fn note_access(log: &EntityAccessLog, entity_id: EntityId) {
 /// could have read.
 #[inline(always)]
 pub(crate) fn note_notify(log: &mut EntityAccessLog, entity_id: EntityId) {
+    crate::fast::layers::invalidate::note_notify(entity_id);
     if !log.stamping {
         return;
     }
@@ -643,6 +672,7 @@ pub(crate) struct DependencyRecording {
     entities: usize,
     globals: usize,
     states: usize,
+    offset_reads: usize,
     generation: u64,
     updates: u64,
     writes: u64,
@@ -660,6 +690,20 @@ pub(crate) struct Writes {
 }
 
 impl Writes {
+    /// These writes, and those made from `since` to `now` taken for the
+    /// subtree's own.
+    fn with_own(&self, since: u64, now: u64) -> Self {
+        let mut own = self.own.clone();
+        if now > since {
+            own.push((since, now));
+        }
+        Writes {
+            from: self.from,
+            to: self.to,
+            own,
+        }
+    }
+
     /// Whether a write at `written_at` came from outside the subtree after it
     /// began.
     #[allow(dead_code, reason = "read by view retention, which lands next")]
@@ -681,6 +725,9 @@ pub(crate) struct RenderDependencies {
     pub(crate) globals: Rc<[TypeId]>,
     /// State kept outside of entities, with the version each was read at.
     pub(crate) states: Rc<[(StateVersion, u64)]>,
+    /// The scroll offsets read through the scroll getters. See
+    /// [`crate::fast::layers::invalidate::note_offset_read`].
+    pub(crate) offset_reads: crate::fast::layers::invalidate::OffsetReads,
     pub(crate) generation: u64,
     /// The entity update generation the recording began at.
     pub(crate) updates: u64,
@@ -733,6 +780,7 @@ impl App {
             entities,
             globals: self.fast_dependencies.global_read_log.borrow().len(),
             states: self.fast_dependencies.state_read_log.borrow().len(),
+            offset_reads: crate::fast::layers::invalidate::begin_offset_reads(),
             generation: self.fast_dependencies.global_generation,
             updates: log.update_generation,
             writes: log.write_generation,
@@ -753,7 +801,14 @@ impl App {
             entities: recording.entities..log.access_log.borrow().len(),
             globals: recording.globals..dependencies.global_read_log.borrow().len(),
             states: recording.states..dependencies.state_read_log.borrow().len(),
+            offset_reads: recording.offset_reads
+                ..crate::fast::layers::invalidate::offset_reads_len(),
         };
+        let (offset_reads, own_offset_reads) = crate::fast::layers::invalidate::offset_reads_in(
+            &ranges.offset_reads,
+            nested.iter().map(|n| &n.offset_reads),
+        );
+        crate::fast::layers::invalidate::end_offset_reads();
         let (entities, own_entities) = {
             let accesses = log.access_log.borrow();
             let mut all = accesses[ranges.entities.clone()].to_vec();
@@ -814,10 +869,11 @@ impl App {
             to: log.write_generation,
             own: own_writes,
         };
-        let stamped = |entities, globals, states| RenderDependencies {
+        let stamped = |entities, globals, states, offset_reads| RenderDependencies {
             entities,
             globals,
             states,
+            offset_reads,
             // As of when the recording began, so that a global written while
             // it was open, after being read, counts as changed.
             generation: recording.generation,
@@ -825,8 +881,84 @@ impl App {
             writes: writes.clone(),
         };
         RecordedDependencies {
-            all: stamped(entities, globals, states),
-            own: stamped(own_entities, own_globals, own_states),
+            all: stamped(entities, globals, states, offset_reads),
+            own: stamped(own_entities, own_globals, own_states, own_offset_reads),
+            render: None,
+        }
+    }
+
+    /// What `recording`, the innermost recording open, saw read so far
+    /// outside the recordings nested in it: what a view read itself while its
+    /// `render` ran, when taken as `render` returns, before the elements it
+    /// built are laid out and the views nested in them render. When it built
+    /// a list, only what it read before it built the last one counts (see
+    /// [`crate::fast::layers::invalidate::list_built`]).
+    pub(crate) fn dependencies_so_far(
+        &mut self,
+        recording: &DependencyRecording,
+    ) -> RenderDependencies {
+        let dependencies = &self.fast_dependencies;
+        let empty = Vec::new();
+        let nested = dependencies.nested.last().unwrap_or(&empty);
+        let log = &self.entities.fast_access_log;
+        let mut entities_range = recording.entities..log.access_log.borrow().len();
+        let mut globals_range = recording.globals..dependencies.global_read_log.borrow().len();
+        let mut states_range = recording.states..dependencies.state_read_log.borrow().len();
+        let mut offset_range =
+            recording.offset_reads..crate::fast::layers::invalidate::offset_reads_len();
+        if let Some(built) =
+            crate::fast::layers::invalidate::list_built(offset_range.start, offset_range.end)
+        {
+            offset_range.end = built.offsets;
+            entities_range.end = built
+                .entities
+                .clamp(entities_range.start, entities_range.end);
+            globals_range.end = built.globals.clamp(globals_range.start, globals_range.end);
+            states_range.end = built.states.clamp(states_range.start, states_range.end);
+        }
+        let (_, offset_reads) = crate::fast::layers::invalidate::offset_reads_in(
+            &offset_range,
+            nested.iter().map(|n| &n.offset_reads),
+        );
+        let mut entities = Vec::new();
+        outside(
+            &log.access_log.borrow(),
+            &entities_range,
+            nested.iter().map(|n| &n.entities),
+            &mut entities,
+        );
+        sort_unique(&mut entities);
+        let mut globals = Vec::new();
+        outside(
+            &dependencies.global_read_log.borrow(),
+            &globals_range,
+            nested.iter().map(|n| &n.globals),
+            &mut globals,
+        );
+        sort_unique(&mut globals);
+        let mut states = Vec::new();
+        outside(
+            &dependencies.state_read_log.borrow(),
+            &states_range,
+            nested.iter().map(|n| &n.states),
+            &mut states,
+        );
+        let mut own_writes = SmallVec::new();
+        if log.write_generation > recording.writes {
+            own_writes.push((recording.writes, log.write_generation));
+        }
+        RenderDependencies {
+            entities: entities.into(),
+            globals: globals.into(),
+            states: unique_states(&states),
+            offset_reads,
+            generation: recording.generation,
+            updates: recording.updates,
+            writes: Writes {
+                from: recording.writes,
+                to: log.write_generation,
+                own: own_writes,
+            },
         }
     }
 
@@ -848,6 +980,7 @@ impl App {
             entities: log.access_log.borrow().len()..0,
             globals: self.fast_dependencies.global_read_log.borrow().len()..0,
             states: self.fast_dependencies.state_read_log.borrow().len()..0,
+            offset_reads: 0..0,
         };
         log.access_log
             .borrow_mut()
@@ -861,10 +994,13 @@ impl App {
             .state_read_log
             .borrow_mut()
             .extend(dependencies.states.iter().cloned());
+        let offset_reads =
+            crate::fast::layers::invalidate::replay_offset_reads(&dependencies.offset_reads);
         let ranges = LogRanges {
             entities: start.entities.start..log.access_log.borrow().len(),
             globals: start.globals.start..self.fast_dependencies.global_read_log.borrow().len(),
             states: start.states.start..self.fast_dependencies.state_read_log.borrow().len(),
+            offset_reads,
         };
         if let Some(open) = self.fast_dependencies.nested.last_mut() {
             open.push(ranges);
@@ -980,9 +1116,20 @@ impl RenderDependencies {
             entities: merge_sorted(&self.entities, &other.entities),
             globals: merge_sorted(&self.globals, &other.globals),
             states,
+            offset_reads: self.offset_reads.union(&other.offset_reads),
             generation: self.generation.min(other.generation),
             updates: self.updates.min(other.updates),
             writes: self.writes.union(&other.writes),
+        }
+    }
+
+    /// The same dependencies, with the writes made from `since` to `now`
+    /// taken for the subtree's own: those of a view rendering again, which
+    /// are part of building it, as its writes the last time were.
+    pub(crate) fn with_own_writes(&self, since: u64, now: u64) -> Self {
+        Self {
+            writes: self.writes.with_own(since, now),
+            ..self.clone()
         }
     }
 

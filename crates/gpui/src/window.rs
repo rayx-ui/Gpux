@@ -21,16 +21,16 @@ use crate::{
     Pixels, PlatformAtlas, PlatformDisplay, PlatformInput, PlatformInputHandler, PlatformWindow,
     Point, PolychromeSprite, Position, Priority, PromptButton, PromptLevel, Quad, Render,
     RenderGlyphParams, RenderImage, RenderImageParams, RenderSvgParams, Replay, ResizeEdge,
-    SMOOTH_SVG_SCALE_FACTOR, SUBPIXEL_VARIANTS_X, SUBPIXEL_VARIANTS_Y, ScaledPixels, Scene,
-    ScreenEffect, ScreenEffectId, ScreenEffectRegionId, ScreenEffectRegionPrimitive,
-    ScreenEffectSnapshotId, ScreenEffectTarget, Shadow, SharedString, Size, StickyStacking,
-    StrikethroughStyle, Style, SubpixelSprite, SubscriberSet, Subscription, SystemWindowTab,
-    SystemWindowTabController, TabStopMap, TaffyLayoutEngine, Task, TextInputConfiguration,
-    TextInputStateChange, TextRenderingMode, TextStyle, TextStyleRefinement, ThermalState,
-    TransformationMatrix, Underline, UnderlineStyle, VisualEffectPrimitive, WindowAppearance,
-    WindowBackgroundAppearance, WindowBounds, WindowControls, WindowDecorations, WindowOptions,
-    WindowParams, WindowTextSystem, WindowVisibility, point, prelude::*,
-    prepare_color_with_opacity, px, rems, size, transparent_black,
+    SMOOTH_SVG_SCALE_FACTOR, ScaledPixels, Scene, ScreenEffect, ScreenEffectId,
+    ScreenEffectRegionId, ScreenEffectRegionPrimitive, ScreenEffectSnapshotId, ScreenEffectTarget,
+    Shadow, SharedString, Size, StickyStacking, StrikethroughStyle, Style, SubpixelSprite,
+    SubscriberSet, Subscription, SystemWindowTab, SystemWindowTabController, TabStopMap,
+    TaffyLayoutEngine, Task, TextInputConfiguration, TextInputStateChange, TextRenderingMode,
+    TextStyle, TextStyleRefinement, ThermalState, TransformationMatrix, Underline, UnderlineStyle,
+    VisualEffectPrimitive, WindowAppearance, WindowBackgroundAppearance, WindowBounds,
+    WindowControls, WindowDecorations, WindowOptions, WindowParams, WindowTextSystem,
+    WindowVisibility, point, prelude::*, prepare_color_with_opacity, px, rems, size,
+    transparent_black,
 };
 
 use crate::gestures::{GestureTuning, RecognizedTouchGesture, TouchGestureRecognizer};
@@ -1139,7 +1139,7 @@ pub(crate) struct WindowFrame {
     #[cfg(any(test, feature = "test-support"))]
     pub(crate) debug_bounds: FxHashMap<String, Bounds<Pixels>>,
     #[cfg(any(test, feature = "test-support"))]
-    debug_bounds_records: Vec<(String, Bounds<Pixels>)>,
+    pub(crate) debug_bounds_records: Vec<(String, Bounds<Pixels>)>,
     pub(crate) devtools_nodes: Vec<DevtoolsFrameNode>,
     pub(crate) devtools_node_indices: Vec<usize>,
     pub(crate) devtools_property_setters: FxHashMap<usize, Vec<DevtoolsPropertySetter>>,
@@ -2403,7 +2403,7 @@ pub struct Window {
     is_resizable: bool,
     is_minimizable: bool,
     pub(crate) sprite_atlas: Arc<dyn PlatformAtlas>,
-    text_system: Arc<WindowTextSystem>,
+    pub(crate) text_system: Arc<WindowTextSystem>,
     text_rendering_mode: Rc<Cell<TextRenderingMode>>,
     rem_size: Pixels,
     /// The stack of override values for the window's rem size.
@@ -2422,6 +2422,7 @@ pub struct Window {
     #[cfg(feature = "diagnostics")]
     pub(crate) fast_verify: crate::fast::verify::retention::RetentionVerify,
     pub(crate) fast_glyph_bounds: crate::fast::glyphs::GlyphBoundsCache,
+    pub(crate) fast_layers: crate::fast::layers::WindowLayers,
     #[cfg(any(
         test,
         feature = "test-support",
@@ -3401,6 +3402,7 @@ impl Window {
             #[cfg(feature = "diagnostics")]
             fast_verify: Default::default(),
             fast_glyph_bounds: crate::fast::glyphs::GlyphBoundsCache::default(),
+            fast_layers: crate::fast::layers::WindowLayers::default(),
             #[cfg(any(
                 test,
                 feature = "test-support",
@@ -4135,6 +4137,7 @@ impl Window {
     /// and skip the frame request when it is set.
     pub fn request_animation_frame(&self) {
         let entity = self.current_view();
+        crate::fast::layers::invalidate::note_animation_frame(self, entity);
         self.on_next_frame(move |_, cx| cx.notify(entity));
     }
 
@@ -4816,7 +4819,7 @@ impl Window {
     }
 
     #[inline]
-    fn snapped_content_mask(&self) -> ContentMask<ScaledPixels> {
+    pub(crate) fn snapped_content_mask(&self) -> ContentMask<ScaledPixels> {
         let content_mask = self.content_mask();
         ContentMask {
             bounds: self.cover_bounds(content_mask.bounds),
@@ -6595,7 +6598,8 @@ impl Window {
                 (positioned_bounds, Some(sticky_state))
             }
             Position::Fixed => {
-                let containing_block_bounds = self.content_mask().bounds;
+                let containing_block_bounds =
+                    crate::fast::layers::paint::unlayered_content_mask(self).bounds;
                 (
                     PositionedBounds::resolve_fixed_for_containing_block(
                         style,
@@ -7534,6 +7538,7 @@ impl Window {
         } else {
             path.transformed(self.current_element_transform(), content_mask)
         };
+        let path = crate::fast::layers::paint::snapped_path(self, path);
         self.next_frame.scene.insert_primitive(path);
     }
 
@@ -7612,17 +7617,8 @@ impl Window {
         let transformation = self.current_element_transform();
         let glyph_origin = origin.scale(scale_factor);
 
-        let quantized_origin = Point::new(
-            round_half_toward_zero(glyph_origin.x.0 * SUBPIXEL_VARIANTS_X as f32)
-                / SUBPIXEL_VARIANTS_X as f32,
-            round_half_toward_zero(glyph_origin.y.0 * SUBPIXEL_VARIANTS_Y as f32)
-                / SUBPIXEL_VARIANTS_Y as f32,
-        );
-        let subpixel_variant = Point::new(
-            (quantized_origin.x.fract() * SUBPIXEL_VARIANTS_X as f32) as u8,
-            (quantized_origin.y.fract() * SUBPIXEL_VARIANTS_Y as f32) as u8,
-        );
-        let integer_origin = quantized_origin.map(|c| ScaledPixels(c.trunc()));
+        let (integer_origin, subpixel_variant) =
+            crate::fast::glyphs::glyph_pixel_origin(self.fast_mode.snapping(), glyph_origin);
         let subpixel_rendering = transformation == TransformationMatrix::unit()
             && self.should_use_subpixel_rendering(font_id, font_size);
         let dilation = self.text_system().glyph_dilation_for_color(color.clone());
@@ -7818,7 +7814,8 @@ impl Window {
         let scale_factor = self.scale_factor();
         let transformation = self.current_element_transform();
         let glyph_origin = origin.scale(scale_factor);
-        let integer_origin = glyph_origin.map(|c| ScaledPixels(round_half_toward_zero(c.0)));
+        let integer_origin =
+            crate::fast::glyphs::emoji_origin(self.fast_mode.snapping(), glyph_origin);
         let params = RenderGlyphParams {
             font_id,
             glyph_id,
@@ -8316,7 +8313,7 @@ impl Window {
             .last()
             .copied()
             .unwrap_or(behavior);
-        let content_mask = self.content_mask();
+        let content_mask = crate::fast::layers::input::hitbox_mask(self);
         let hitbox = Hitbox {
             id,
             bounds,
@@ -8791,6 +8788,8 @@ impl Window {
             PlatformInput::KeyDown(_) | PlatformInput::KeyUp(_) => event,
         };
 
+        crate::fast::layers::input::before_dispatch(self, cx, &event);
+
         if let Some(any_mouse_event) = event.mouse_event() {
             self.dispatch_mouse_event(any_mouse_event, cx);
         } else if let Some(any_key_event) = event.keyboard_event() {
@@ -8916,6 +8915,7 @@ impl Window {
     }
 
     fn dispatch_recognized_touch_gesture(&mut self, gesture: RecognizedTouchGesture, cx: &mut App) {
+        crate::fast::layers::input::before_touch_gesture(self, cx, &gesture);
         match gesture {
             RecognizedTouchGesture::Scroll(scroll_wheel) => {
                 self.mouse_position = scroll_wheel.position;

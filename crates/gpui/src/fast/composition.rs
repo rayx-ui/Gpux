@@ -590,7 +590,7 @@ impl Scene {
             .context("scene replay range starts past the scene")?;
         let operations = previous_scene
             .paint_operations
-            .get(range)
+            .get(range.clone())
             .context("scene replay range ends past the scene")?;
         let mut active_layers = Vec::new();
         for operation in prefix {
@@ -607,6 +607,7 @@ impl Scene {
                 PaintOperation::Primitive(_) => {}
             }
         }
+        crate::fast::layers::paint::replay_layers(self, range, previous_scene);
         for layer in &active_layers {
             self.open_layer(layer);
         }
@@ -670,6 +671,12 @@ impl SurfaceStarts {
     #[cfg(test)]
     pub(crate) fn is_empty(&self) -> bool {
         self.0.is_empty()
+    }
+
+    /// The switches, in scene order.
+    #[cfg(test)]
+    pub(crate) fn switches(&self) -> &[(CompositionSurfaceId, usize)] {
+        &self.0
     }
 
     fn switch_to(&mut self, surface: CompositionSurfaceId, scene_len: usize) {
@@ -1109,6 +1116,11 @@ impl Window {
             self.fast_composition.0.borrow().tree.kind(surface)? == CompositionSurfaceKind::Gpui,
             "paint operations can only target GPUI composition surfaces"
         );
+        // Content painting into a scroll layer's scene switches there.
+        let paint = match crate::fast::layers::paint::paint_onto_surface(self, surface, paint) {
+            Ok(result) => return Ok(result),
+            Err(paint) => paint,
+        };
         let previous_surface = self
             .next_frame
             .fast_composition_starts
@@ -1131,7 +1143,13 @@ pub(crate) fn begin_frame(window: &mut Window) {
     }
 }
 
-fn switch_surface(window: &mut Window, surface: CompositionSurfaceId) {
+/// The surface painted onto now, if the window composes.
+#[inline]
+pub(crate) fn current_surface(window: &Window) -> Option<CompositionSurfaceId> {
+    window.next_frame.fast_composition_starts.current()
+}
+
+pub(crate) fn switch_surface(window: &mut Window, surface: CompositionSurfaceId) {
     let scene_len = window.next_frame.scene.len();
     window
         .next_frame
@@ -1166,9 +1184,15 @@ pub(crate) fn begin_overlay(window: &mut Window) {
 #[inline]
 pub(crate) fn paints_over_native_content(window: &Window) -> bool {
     let state = window.fast_composition.0.borrow();
-    state.enabled
-        && (window.next_frame.fast_composition_starts.current() == Some(state.overlay_surface)
-            || window.next_frame.scene.in_top_layer())
+    if !state.enabled {
+        return false;
+    }
+    // Content painting into a scroll layer's scene is where its container is.
+    let (surface, in_top_layer) = match crate::fast::layers::paint::painting_onto(window) {
+        Some(onto) => (onto.surface, onto.in_top_layer),
+        None => (window.next_frame.fast_composition_starts.current(), false),
+    };
+    surface == Some(state.overlay_surface) || in_top_layer || window.next_frame.scene.in_top_layer()
 }
 
 /// Carries the surface switches last frame made within `range` into the

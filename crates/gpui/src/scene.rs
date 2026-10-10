@@ -50,6 +50,7 @@ pub struct Scene {
     pub polychrome_sprites: Vec<PolychromeSprite>,
     pub surfaces: Vec<PaintSurface>,
     pub(crate) sort_scratch: crate::fast::scene::SortScratch,
+    pub layers: crate::fast::layers::scene::SceneLayers,
     #[cfg(feature = "diagnostics")]
     sprite_sort_disorder_counts: [u64; 3],
     #[cfg(feature = "diagnostics")]
@@ -97,6 +98,7 @@ impl Scene {
         self.subpixel_sprites.clear();
         self.polychrome_sprites.clear();
         self.surfaces.clear();
+        crate::fast::layers::scene::SceneLayers::clear(&mut self.layers);
         #[cfg(feature = "diagnostics")]
         {
             self.sprite_sort_disorder_counts = [0; 3];
@@ -234,6 +236,7 @@ impl Scene {
     }
 
     pub fn replay(&mut self, range: Range<usize>, prev_scene: &Scene) {
+        crate::fast::layers::paint::replay_layers(self, range.clone(), prev_scene);
         for operation in &prev_scene.paint_operations[range] {
             match operation {
                 PaintOperation::Primitive(primitive) => self.insert_primitive(primitive.clone()),
@@ -1352,8 +1355,8 @@ pub struct Path<P: Clone + Debug + Default + PartialEq> {
     pub content_mask: ContentMask<P>,
     pub vertices: Vec<PathVertex<P>>,
     pub color: PreparedBackground,
-    start: Point<P>,
-    current: Point<P>,
+    pub(crate) start: Point<P>,
+    pub(crate) current: Point<P>,
     contour_count: usize,
 }
 

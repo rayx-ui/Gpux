@@ -88,7 +88,9 @@ impl Element for Deferred {
         let child = self.child.take().unwrap();
         let element_offset = window.element_offset();
         let content_mask = match self.content_mask_mode {
-            DeferredContentMaskMode::Current => Some(window.content_mask()),
+            DeferredContentMaskMode::Current => {
+                Some(crate::fast::layers::paint::unlayered_content_mask(window))
+            }
             DeferredContentMaskMode::Unclipped => None,
         };
         window.defer_draw(child, element_offset, self.priority, content_mask)

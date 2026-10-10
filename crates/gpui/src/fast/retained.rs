@@ -71,6 +71,18 @@ pub(crate) struct RetainedSubtree {
     pub(crate) dependencies: RenderDependencies,
     /// What the view read itself, outside the views nested in it.
     pub(crate) own_dependencies: RenderDependencies,
+    /// The scroll offsets the view's render read itself, outside nested
+    /// views, when it was rendered: unlike offsets read while it was
+    /// prepainted or painted, they shape the elements it built, a scroll
+    /// container's content included. `None` when it was laid out without
+    /// being rendered. See [`crate::fast::layers::invalidate`].
+    pub(crate) render_offset_reads: Option<crate::fast::layers::invalidate::OffsetReads>,
+    /// What the view read itself while its `render` ran, before the elements
+    /// it built were laid out: unlike what they read as they are laid out,
+    /// prepainted or painted, it shapes the closures its render handed its
+    /// elements, such as a list's row renderer. `None` when the view was not
+    /// rendered.
+    pub(crate) render_dependencies: Option<RenderDependencies>,
     /// The hovers the view was drawn by, nested views included.
     pub(crate) hover_reads: Rc<[(HitboxId, bool)]>,
     /// Where those hovers can change.
@@ -157,14 +169,36 @@ struct RetainedLayoutRecording {
     /// How many sticky candidates and scroll contexts there were when it
     /// began.
     sticky: (usize, crate::window::StickyLayoutContextId),
+    /// What the view read while its `render` ran. See
+    /// [`RetainedLayoutRecording::rendered`].
+    render: Option<RenderDependencies>,
+}
+
+impl RetainedLayoutRecording {
+    /// Notes that the view whose layout request this records has rendered,
+    /// before the elements it built are laid out.
+    fn rendered(&mut self, cx: &mut App) {
+        self.render = Some(cx.dependencies_so_far(&self.dependencies));
+    }
 }
 
 /// A retained view being prepainted. See [`begin_retained`].
 struct RetainedRecording {
+    /// The view's id, for the layer it is drawn in to keep its layout by
+    /// when it has no record.
+    id: GlobalElementId,
     index: Option<usize>,
     dependencies: DependencyRecording,
     layout_keys: usize,
     hovers: usize,
+}
+
+impl RetainedRecording {
+    /// What the view this records the prepaint of read while its `render`
+    /// ran, taken as `render` returns.
+    fn rendered(&self, cx: &mut App) -> RenderDependencies {
+        cx.dependencies_so_far(&self.dependencies)
+    }
 }
 
 /// A retained view being painted. See [`begin_retained_paint`].
@@ -194,6 +228,10 @@ pub(crate) struct RetainedState {
     /// Nested views built for a splice that did not happen, for their
     /// elements to take over. See [`crate::fast::splice::take_prebuilt`].
     pub(crate) prebuilt: FxHashMap<GlobalElementId, crate::fast::splice::PrebuiltGap>,
+    /// Where in the write generation each view rendered this frame began to
+    /// render: what it writes from then on is part of building it, not a
+    /// change of what it read. See [`note_rendering`].
+    rendering_since: FxHashMap<EntityId, u64>,
 }
 
 /// Why no view is drawn from last frame: see `ViewBypassReason`, which
@@ -512,7 +550,12 @@ pub(crate) fn begin_frame(window: &mut Window, cx: &App) {
         let Some(entity) = view_entity(&record.id) else {
             continue;
         };
-        if cx.dependencies_changed(&record.own_dependencies, UPDATES_CHANGE) {
+        if cx.dependencies_changed(&record.own_dependencies, UPDATES_CHANGE)
+            || crate::fast::layers::invalidate::offset_read_changed(
+                window,
+                &record.own_dependencies,
+            )
+        {
             changed.push(entity);
         }
     }
@@ -530,18 +573,52 @@ pub(crate) fn begin_frame(window: &mut Window, cx: &App) {
 }
 
 /// The entity of the view a record's id ends in.
-fn view_entity(id: &GlobalElementId) -> Option<EntityId> {
+pub(crate) fn view_entity(id: &GlobalElementId) -> Option<EntityId> {
     match id.last()? {
         crate::ElementId::View(entity) => Some(*entity),
         _ => None,
     }
 }
 
+/// The id of the retained view whose prepaint is under way, innermost: the
+/// view holding the element being prepainted, if it has a record.
+pub(crate) fn prepainting_view(window: &Window) -> Option<&GlobalElementId> {
+    let retained = &window.next_frame.fast_retained;
+    retained
+        .open
+        .last()
+        .map(|index| &retained.records[*index].id)
+}
+
+/// Where in the write generation `view` began to render this frame, if it
+/// rendered. See [`note_rendering`].
+pub(crate) fn rendering_since(window: &Window, view: EntityId) -> Option<u64> {
+    window
+        .fast_retained_state
+        .rendering_since
+        .get(&view)
+        .copied()
+}
+
+/// Notes that the view `entity_id` begins to render, if it has not yet this
+/// frame: what it writes from now on is part of building it.
+fn note_rendering(window: &mut Window, cx: &App, entity_id: EntityId) {
+    let since = cx.entities.fast_access_log.write_generation();
+    window
+        .fast_retained_state
+        .rendering_since
+        .entry(entity_id)
+        .or_insert(since);
+}
+
 /// Ends the retained bookkeeping of the frame being drawn, before it becomes
 /// the rendered frame.
 pub(crate) fn finish_frame(window: &mut Window) {
     window.fast_retained_state.prebuilt.clear();
+    window.fast_retained_state.rendering_since.clear();
     window.next_frame.fast_retained.finish_frame();
+    crate::fast::layers::paint::finish_frame(window);
+    crate::fast::layers::finish_frame(window);
 }
 
 /// Whether an entity updated without being notified counts as changed for
@@ -568,13 +645,18 @@ pub(crate) fn notified(window: &Window, entity: EntityId) -> bool {
     window.fast_retained_state.notified.contains(&entity)
 }
 
+/// Whether any entity was notified since the last frame was drawn.
+pub(crate) fn any_notified(window: &Window) -> bool {
+    !window.fast_retained_state.notified.is_empty()
+}
+
 /// Notes the entities notified since the last frame was drawn.
 pub(crate) fn note_notified(window: &mut Window, entities: &FxHashSet<EntityId>) {
-    let splice = window.fast_mode.splice();
+    let wanted = window.fast_mode.splice() || window.fast_mode.scroll_layers();
     let notified = &mut window.fast_retained_state.notified;
     notified.clear();
-    // Read only by splice.
-    if splice {
+    // Read only by splice and scroll layers.
+    if wanted {
         notified.extend(entities.iter().copied());
     }
 }
@@ -629,9 +711,15 @@ fn reusable(window: &mut Window, id: &GlobalElementId, cx: &App) -> Option<usize
         });
         return None;
     }
+    // A view inside a layer's content is painted into the layer, which is
+    // its retention.
+    if crate::fast::layers::paint::inside_layer(window) {
+        return None;
+    }
     let index = window.rendered_frame.fast_retained.find(id)?;
     let record = &window.rendered_frame.fast_retained.records[index];
     if cx.dependencies_changed(&record.dependencies, UPDATES_CHANGE)
+        || crate::fast::layers::invalidate::offset_read_changed(window, &record.dependencies)
         || !crate::fast::dependencies::may_replay_hovers(
             window,
             &record.hover_reads,
@@ -655,7 +743,9 @@ fn context_here(window: &Window, bounds: Bounds<Pixels>) -> RetainedContext {
 /// Whether the view last frame's record `previous` stands for would be
 /// drawn at `bounds` just as it was.
 fn context_matches(window: &Window, previous: usize, bounds: Bounds<Pixels>) -> bool {
-    *window.rendered_frame.fast_retained.records[previous].context == context_here(window, bounds)
+    !crate::fast::layers::paint::inside_layer(window)
+        && *window.rendered_frame.fast_retained.records[previous].context
+            == context_here(window, bounds)
 }
 
 /// Lays out the view of last frame's record `previous` as it was, without
@@ -725,10 +815,21 @@ pub(crate) struct ReleasedElementState;
 /// Gives back the layout nodes and element states [`reuse_layout`] kept, for
 /// a view that has to be built after all.
 pub(crate) fn release_layout(window: &mut Window, previous: usize, carried: CarriedStates) {
-    if let Some(layout) = window.rendered_frame.fast_retained.records[previous]
+    let layout = window.rendered_frame.fast_retained.records[previous]
         .layout
-        .clone()
-    {
+        .clone();
+    release_carried(window, layout.as_deref(), carried);
+}
+
+/// Gives back the nodes and element states of `layout`, which a view laid
+/// out as its scroll layer kept it carried into the frame, for the view to
+/// be built after all.
+fn release_kept_layout(window: &mut Window, layout: &RetainedLayout, carried: CarriedStates) {
+    release_carried(window, Some(layout), carried);
+}
+
+fn release_carried(window: &mut Window, layout: Option<&RetainedLayout>, carried: CarriedStates) {
+    if let Some(layout) = layout {
         window
             .layout_engine
             .as_mut()
@@ -763,6 +864,7 @@ fn begin_layout(window: &mut Window, cx: &mut App) -> RetainedLayoutRecording {
             window.sticky_candidates.len(),
             window.next_sticky_layout_context_id,
         ),
+        render: None,
     }
 }
 
@@ -779,7 +881,8 @@ fn finish_layout(
         .retention
         .finish_recording_claimed_keys(recording.keys);
     let transient = engine.retention.transient_count();
-    let dependencies = cx.finish_recording_dependencies(recording.dependencies);
+    let mut dependencies = cx.finish_recording_dependencies(recording.dependencies);
+    dependencies.render = recording.render;
     // A node nothing keeps is gone when the frame ends. A sticky element
     // pinned by a scroll container outside the view is placed by that
     // container's prepaint, from the candidates registered while layouts are
@@ -854,6 +957,9 @@ fn reuse_prepaint(
         copied_whole,
         "a reused prepaint range changed length: {prepaint_range:?} copied to {start:?}..{end:?}"
     );
+    if copied_whole {
+        crate::fast::layers::reuse::follow_prepaint(window, &prepaint_range, &start);
+    }
     // What it read was found unchanged up to this write; one after, by a view
     // drawn between, is a change for the next frame.
     let checked_at =
@@ -888,6 +994,10 @@ fn reuse_prepaint(
         // read, or they would not be reused: up to date as of the decision.
         copy.dependencies = copy.dependencies.written_up_to(checked_at);
         copy.own_dependencies = copy.own_dependencies.written_up_to(checked_at);
+        copy.render_dependencies = copy
+            .render_dependencies
+            .as_ref()
+            .map(|render| render.written_up_to(checked_at));
         target.push(copy);
     }
     anchor
@@ -913,6 +1023,8 @@ pub(crate) fn copy_record(
         context: record.context.clone(),
         dependencies: record.dependencies.clone(),
         own_dependencies: record.own_dependencies.clone(),
+        render_offset_reads: record.render_offset_reads.clone(),
+        render_dependencies: record.render_dependencies.clone(),
         hover_reads: record.hover_reads.clone(),
         hover_area: record.hover_area,
         deferred_hitboxes: SmallVec::new(),
@@ -1008,6 +1120,9 @@ fn reuse_paint(window: &mut Window, index: usize) {
     let end = window.paint_index();
     let copied_whole = end == source.end.shifted(&source.start, &start);
     debug_assert!(copied_whole, "a reused paint range changed length");
+    if copied_whole {
+        crate::fast::layers::reuse::follow_paint(window, &source, &start);
+    }
     crate::fast::dependencies::note_replayed_hovers(window, &hover_reads);
     // Prepaint drew it again only with the pointer away from the hitboxes
     // whose hovers it read, where nothing this frame adds can hover them.
@@ -1040,11 +1155,14 @@ fn begin_retained(
 ) -> RetainedRecording {
     let start = window.prepaint_index();
     let context = Rc::new(context_here(window, bounds));
+    // Inside a layer's content the layer is the view's retention: it keeps
+    // no record of its own.
+    let inside_layer = crate::fast::layers::paint::inside_layer(window);
     let retained = &mut window.next_frame.fast_retained;
     if retained.by_id.contains_key(id) {
         retained.duplicates.insert(id.clone());
     }
-    let index = (!retained.by_id.contains_key(id)).then(|| {
+    let index = (!retained.by_id.contains_key(id) && !inside_layer).then(|| {
         let index = retained.push(RetainedSubtree {
             id: id.clone(),
             prepaint_range: start.clone()..start,
@@ -1054,6 +1172,8 @@ fn begin_retained(
             context,
             dependencies: RenderDependencies::default(),
             own_dependencies: RenderDependencies::default(),
+            render_offset_reads: None,
+            render_dependencies: None,
             hover_reads: Rc::new([]),
             hover_area: HoverArea::Own(None),
             deferred_hitboxes: SmallVec::new(),
@@ -1066,6 +1186,7 @@ fn begin_retained(
         index
     });
     RetainedRecording {
+        id: id.clone(),
         index,
         dependencies: cx.begin_recording_dependencies(),
         layout_keys: window
@@ -1096,11 +1217,28 @@ fn finish_retained_prepaint(
         .finish_recording_claimed_keys(recording.layout_keys);
     let mut dependencies = cx.finish_recording_dependencies(recording.dependencies);
     let hover_reads = crate::fast::dependencies::finish_recording(window, recording.hovers);
-    let index = recording.index?;
+    let Some(index) = recording.index else {
+        // Inside a layer's content: the layer keeps how it was laid out.
+        if let (Some(layout), Some(layout_dependencies)) = (layout, layout_dependencies)
+            && crate::fast::layers::paint::inside_layer(window)
+        {
+            crate::fast::layers::reuse::keep_view_layout(
+                window,
+                recording.id,
+                layout,
+                layout_dependencies.all.union(&dependencies.all),
+            );
+        }
+        return None;
+    };
+    let render_offset_reads = layout_dependencies
+        .as_ref()
+        .map(|layout| layout.own.offset_reads.clone());
     if let Some(layout_dependencies) = layout_dependencies {
         dependencies = RecordedDependencies {
             all: layout_dependencies.all.union(&dependencies.all),
             own: layout_dependencies.own.union(&dependencies.own),
+            render: layout_dependencies.render,
         };
     }
     let end = window.prepaint_index();
@@ -1113,6 +1251,8 @@ fn finish_retained_prepaint(
     record.nested = nested;
     record.dependencies = dependencies.all;
     record.own_dependencies = dependencies.own;
+    record.render_offset_reads = render_offset_reads;
+    record.render_dependencies = dependencies.render;
     record.hover_reads = hover_reads.into();
     record.layout_keys = layout_keys.into();
     record.layout = layout;
@@ -1310,6 +1450,13 @@ pub(crate) enum ViewLayout {
     /// Built and laid out already, by a splice of the view around it that
     /// did not happen.
     Prebuilt(Box<Prebuilt>),
+    /// Laid out as the scroll layer it is drawn in kept it, without being
+    /// built, for a frame expected to composite the layer. See
+    /// [`crate::fast::layers::reuse::KeptLayout`].
+    Kept {
+        layout: Rc<RetainedLayout>,
+        carried: CarriedStates,
+    },
 }
 
 pub(crate) enum ViewPrepaint {
@@ -1384,6 +1531,16 @@ pub(crate) fn request_view_layout(
                     );
                     return layout_id;
                 }
+                if !dirty
+                    && let Some((layout_id, layout, carried)) =
+                        crate::fast::layers::reuse::reuse_kept_layout(
+                            window, global_id, entity_id, cx,
+                        )
+                {
+                    *state =
+                        ViewRetention::Layout(ViewLayout::Kept { layout, carried }, parent_key);
+                    return layout_id;
+                }
                 if dirty
                     && let Some(splice) =
                         crate::fast::splice::splice_layout(window, global_id, entity_id, cx)
@@ -1394,8 +1551,10 @@ pub(crate) fn request_view_layout(
                     return root;
                 }
                 crate::fast::fast_stat!(window.fast_stats.frame, views_built += 1);
-                let recording = begin_layout(window, cx);
+                note_rendering(window, cx, entity_id);
+                let mut recording = begin_layout(window, cx);
                 let mut element = render(window, cx);
+                recording.rendered(cx);
                 let layout_id = element.request_layout(window, cx);
                 let (layout, dependencies) = finish_layout(window, recording, layout_id, cx);
                 *state = ViewRetention::Layout(
@@ -1478,7 +1637,23 @@ pub(crate) fn prepaint_view(
                 }
                 let rebuild = rebuild_here(window);
                 build_at_retained_layout(
-                    previous, carried, rebuild, global_id, bounds, window, cx, render,
+                    previous, carried, rebuild, entity_id, global_id, bounds, window, cx, render,
+                )
+            }
+            ViewLayout::Kept { layout, carried } => {
+                // The layer is painted afresh after all: the view is built at
+                // the layout it kept.
+                release_kept_layout(window, &layout, carried);
+                let rebuild = rebuild_here(window);
+                build_at_layout(
+                    Some(layout.root),
+                    rebuild,
+                    entity_id,
+                    global_id,
+                    bounds,
+                    window,
+                    cx,
+                    render,
                 )
             }
             ViewLayout::Spliced(splice) => {
@@ -1494,7 +1669,7 @@ pub(crate) fn prepaint_view(
                 crate::fast::splice::abandon_splice(window, *splice);
                 let rebuild = rebuild_here(window);
                 build_at_retained_layout(
-                    previous, carried, rebuild, global_id, bounds, window, cx, render,
+                    previous, carried, rebuild, entity_id, global_id, bounds, window, cx, render,
                 )
             }
             ViewLayout::Cached {
@@ -1517,8 +1692,10 @@ pub(crate) fn prepaint_view(
                 }
                 crate::fast::fast_stat!(window.fast_stats.frame, views_built += 1);
                 let rebuild = rebuild_here(window);
+                note_rendering(window, cx, entity_id);
                 let recording = begin_retained(window, global_id, bounds, cx);
                 let mut element = render(window, cx);
+                let rendered = recording.rendered(cx);
                 element.layout_as_root(bounds.size.into(), window, cx);
                 element.prepaint_at(bounds.origin, window, cx);
                 let record = finish_retained_prepaint(
@@ -1529,6 +1706,10 @@ pub(crate) fn prepaint_view(
                     rebuild,
                     cx,
                 );
+                if let Some(index) = record {
+                    window.next_frame.fast_retained.records[index].render_dependencies =
+                        Some(rendered);
+                }
                 ViewPrepaint::Built { element, record }
             }
             ViewLayout::Prebuilt(_) => unreachable!("handled above"),
@@ -1549,6 +1730,7 @@ fn build_at_retained_layout(
     previous: usize,
     carried: CarriedStates,
     rebuild: Option<Rc<Rebuild>>,
+    entity_id: EntityId,
     global_id: &GlobalElementId,
     bounds: Bounds<Pixels>,
     window: &mut Window,
@@ -1560,9 +1742,28 @@ fn build_at_retained_layout(
         .as_ref()
         .map(|layout| layout.root);
     release_layout(window, previous, carried);
+    build_at_layout(
+        root, rebuild, entity_id, global_id, bounds, window, cx, render,
+    )
+}
+
+/// Builds a view laid out at `root`, whose nodes and element states were
+/// given back, as [`build_at_retained_layout`] does.
+#[allow(clippy::too_many_arguments)]
+fn build_at_layout(
+    root: Option<LayoutId>,
+    rebuild: Option<Rc<Rebuild>>,
+    entity_id: EntityId,
+    global_id: &GlobalElementId,
+    bounds: Bounds<Pixels>,
+    window: &mut Window,
+    cx: &mut App,
+    render: &mut dyn FnMut(&mut Window, &mut App) -> AnyElement,
+) -> ViewPrepaint {
     crate::fast::fast_stat!(window.fast_stats.frame, views_built += 1);
     crate::fast::fast_stat!(window.fast_stats.frame, views_built_at_retained_layout += 1);
-    let recording = begin_layout(window, cx);
+    note_rendering(window, cx, entity_id);
+    let mut recording = begin_layout(window, cx);
     let (changes_before, remeasures_before) = {
         let retention = &window.layout_engine.as_ref().unwrap().retention;
         (retention.layout_changes, retention.remeasures)
@@ -1570,6 +1771,7 @@ fn build_at_retained_layout(
     let (mut element, layout_id) =
         crate::fast::layout_key::with_layout_key_of_prepainting_element(window, |window| {
             let mut element = render(window, cx);
+            recording.rendered(cx);
             let layout_id = element.request_layout(window, cx);
             (element, layout_id)
         });

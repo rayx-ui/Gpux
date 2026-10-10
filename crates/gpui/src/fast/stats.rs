@@ -324,6 +324,19 @@ impl FastStats {
         self.views_spliced + self.views_prebuilt
     }
 
+    /// The sum of scroll layers' counters: zero on frames drawn with them
+    /// off.
+    pub fn layers_total(&self) -> u64 {
+        let bypasses: u64 = self.layer_bypasses.iter().sum();
+        self.layers_composited
+            + self.layers_repainted
+            + bypasses
+            + self.tiles_rasterized
+            + self.tiles_composited
+            + self.list_rows_rendered
+            + self.list_rows_kept
+    }
+
     /// The views built for any [`ViewBypassReason`].
     pub fn views_bypassed(&self) -> u64 {
         self.views_bypassed_refreshing

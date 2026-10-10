@@ -364,6 +364,7 @@ pub(crate) fn splice_layout(
         || crate::fast::retained::frame_bypassed(window, cx)
         || window.next_frame.fast_retained.contains(id)
         || crate::fast::retained::notified(window, entity)
+        || crate::fast::layers::paint::inside_layer(window)
     {
         return None;
     }
