@@ -31,3 +31,5 @@ agentx:
 - With view retention, copy a reused view's deferred draws with the records open at the copy, and stamp a reused record at the write generation of its reuse decision, never at its prepaint.
 - Count an entity updated without a notify as changed for every reader that retained it; frames must equal the frame drawn from scratch.
 - Splice only what can be copied exactly: refuse a deferred draw outside the gaps, check the copied content's reads and hovers before splicing, and keep a gap at its bounds; otherwise build the view and hand it the gaps as prebuilt.
+- Everything a view's prepaint records per frame for composition (surface switches, native-surface placements) must be copied by every reuse path: `reuse_prepaint`/`reuse_paint`, retained `shifted` indices, and splice `StretchCopy`, and truncated by `transact`.
+- A composition surface above native content takes pointer input only where it drew, never across the whole window.

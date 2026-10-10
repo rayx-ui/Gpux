@@ -24,4 +24,5 @@ agentx:
 - Keep Wayland popup parent/grab/configure/reposition/teardown semantics together.
 - Keep normalized `Segoe UI Emoji`, `Noto Color Emoji`, and `Apple Color Emoji` recognition in Cosmic Text; do not classify `Segoe UI Symbol` as color emoji.
 - Do not call the Metal border-antialiasing port done until a macOS build passes lanes C (Metal) and D with the border scenes (`paint-borders`).
+- Before blaming code for lane D "no frame within 10s" on macOS, check the session: a locked screen (`CGSSessionScreenIsLocked`) or a sleeping display presents no frames, and the baseline `platform-open-present` fails the same way.
 - Prove desktop window behavior in lane D (`desktop_host`): presenting, resizing, scale changes, clipboard, OS input, and close, in real windows on each OS.

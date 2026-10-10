@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 81,
+  "revision": 90,
   "planRevision": 12,
   "specHashes": {
     "requirements": "9a032d1345bbc15ddac8a565144cc02934f65cee34ff9fbb7e0ef3453253fcf0",
@@ -166,16 +166,22 @@
       ]
     },
     "t27-composition-core": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "claude-240e1cb7"
       ]
     },
     "t28-overlay-renderers": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t29-composition-macos": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t30-composition-wayland": {
       "status": "pending"
@@ -319,6 +325,15 @@
         }
       },
       "recordedAt": "2026-10-10T00:50:01Z"
+    },
+    "8b11df5d5aa150bcba3a7dc8f6de298087ce51d12ce831c65713d601adc8d2d9": {
+      "snapshot": {
+        "specHash": "9cf17136f245c3f50c88e11f4534517bb42b808da4724e9a86a692865724e051",
+        "repositories": {
+          "gpux": "98919e3927962ba7d803152d1696e88b293cc5acc116b2d18dcaa1762dd6fdbd"
+        }
+      },
+      "recordedAt": "2026-10-10T09:51:47Z"
     }
   },
   "checkResults": {
@@ -865,6 +880,57 @@
       "logPath": "artifacts-temp/agentx/gpux-fast-mode/s06-splice-final-b9aaad471b01.log",
       "logSha256": "3ea63ee532743fa922772968b30635c8f2e341c7da7c54f3dee6e21d17dc3544",
       "inputsHash": "b7f3810ae98279af687555d34d8783bc7c36391bd88b5dade8ce85898347580a"
+    },
+    "s07-composition-core-macos/check-composition-core/final": {
+      "checkId": "check-composition-core",
+      "boundaryId": "s07-composition-core-macos",
+      "phase": "final",
+      "batchId": "8b11df5d5aa150bcba3a7dc8f6de298087ce51d12ce831c65713d601adc8d2d9",
+      "definitionHash": "d9a4a54361afff4cf2ec7df958fec4cecc78b66dea8c88a45f37a8cfe92a0231",
+      "basisHash": "e57419c19ea05b4849ab2d07ab7594bba4e3c192146e84d57bf0f9c35e4073d0",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 12,
+      "durationSeconds": 0.4044,
+      "recordedAt": "2026-10-10T09:51:45Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s07-composition-core-macos-final-46ede6b8df89.log",
+      "logSha256": "5c022b7a76fed499181d8ff5075c18b5d2b84ce966c07e594355b62176f0bf2b",
+      "inputsHash": "ddd055ab89d7641e05090390c5e31c85e17c467b25ec417fa2b40cf99b2a8b2c"
+    },
+    "s07-composition-core-macos/check-composition-overlay/final": {
+      "checkId": "check-composition-overlay",
+      "boundaryId": "s07-composition-core-macos",
+      "phase": "final",
+      "batchId": "8b11df5d5aa150bcba3a7dc8f6de298087ce51d12ce831c65713d601adc8d2d9",
+      "definitionHash": "0cc4d80db92f708b8c5a9a7527a945a09686c37e5ce34a9838a0816f1fe30461",
+      "basisHash": "ea07ebb7416e5e56ccd6bef03023d618e0ce70489956d412d853ba3ec4a439fa",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 0.2423,
+      "recordedAt": "2026-10-10T09:51:45Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s07-composition-core-macos-final-399947e99478.log",
+      "logSha256": "70287a07c2f462704b678fffa0820e3b63e5424adb1b1c55a5eefdc1d8180a8d",
+      "inputsHash": "ddd055ab89d7641e05090390c5e31c85e17c467b25ec417fa2b40cf99b2a8b2c"
+    },
+    "s07-composition-core-macos/check-composition-macos/final": {
+      "checkId": "check-composition-macos",
+      "boundaryId": "s07-composition-core-macos",
+      "phase": "final",
+      "batchId": "8b11df5d5aa150bcba3a7dc8f6de298087ce51d12ce831c65713d601adc8d2d9",
+      "definitionHash": "e26c6bf3d7b646e1f32e2a4267fd5c408e6e6f5e182422022a6d584b2fe32bb5",
+      "basisHash": "85aca4343322a9f4a9a13fbe0b1504d63c1ccbcabf56a5338130d94c3e58351d",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 2.3485,
+      "recordedAt": "2026-10-10T09:51:47Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s07-composition-core-macos-final-29c788d7aae9.log",
+      "logSha256": "4513dd4177453ed963f35ede602c7242ca131af1bdd916d11d9711b179a7e308",
+      "inputsHash": "c683b8a4a24da612979906e9cc5efb05aa1e76df719cc67491c9090aec4d0cbc"
     }
   },
   "reviews": {
@@ -2141,6 +2207,199 @@
         "s06-off-path-rebuild-handle"
       ],
       "recordedAt": "2026-10-10T00:52:15Z"
+    },
+    "s07-composition-core-macos": {
+      "reviewerId": "claude-reviewer-s07b-7f3c91a2",
+      "snapshotId": "8b11df5d5aa150bcba3a7dc8f6de298087ce51d12ce831c65713d601adc8d2d9",
+      "criterionIds": [
+        "CMP-1",
+        "CMP-2",
+        "CMP-3",
+        "CMP-8"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/composition.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-1",
+            "CMP-2",
+            "CMP-8"
+          ],
+          "sha256": "8638a375dd2bab4e09fb6185e3a94e5331348e3717c469571503000558b94f51"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-1",
+            "CMP-2",
+            "CMP-8"
+          ],
+          "sha256": "273fd9460f7844aefe0354648ec17188a405d54405ba7c295037853ade7480a0"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/platform.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-1"
+          ],
+          "sha256": "361a3d4ec8609b7718e19f6390ddfeb106a6db5f464138c000c033452d1c7887"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/scene.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-2"
+          ],
+          "sha256": "d89044cfbe92f07180e2b1d77e30d6cd942c598bd283be2ba501d73062b00afb"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/platform/test/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-1",
+            "CMP-2"
+          ],
+          "sha256": "879acaeedb49f42ceea37f12f01370e5ed7b792d7d74e61696cdf2ad29b37e5b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/fast/composition.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-8"
+          ],
+          "sha256": "c6b0a8129ebc084ec5c9badd0d2272c09a6892b2994f6f0ccd0621372fc0bd22"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/wgpu_renderer.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-8"
+          ],
+          "sha256": "cc87e9d21d25b8858cfa6fa04f0ef135624ef592905129d2ca8de0c021e37ef0"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_apple/src/fast/composition.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-3",
+            "CMP-8"
+          ],
+          "sha256": "8a2d6ab30a4874040330b189f9dad77fa8c0ddd00d0ee6ca72b00010f1dd966f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_apple/src/metal_renderer.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-3",
+            "CMP-8"
+          ],
+          "sha256": "72d2c793ffd80fc71ffc9542f9ac4aaa52bebc2f220203b3ae22a4e7535c7786"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_macos/src/fast/composition.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-3"
+          ],
+          "sha256": "c45ef6ef7012d71ce41c487719146fdfb789a6a19cd80c103d2215ee9775687c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_macos/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-3"
+          ],
+          "sha256": "cbb239866fe20fd6c787cf0f80bb6f2561864832a57ac87de3e21b61711e5b16"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/desktop_host/composition.rs",
+          "kind": "test",
+          "criterionIds": [
+            "CMP-3"
+          ],
+          "sha256": "f9493727cf10cf2742d6a9fe7a7338a8f1ec2a228f374e61a71eb05a5ee971e4"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/composition.rs",
+          "kind": "test",
+          "criterionIds": [
+            "CMP-1",
+            "CMP-2"
+          ],
+          "sha256": "51171e7142a5734e5fb5b2b4d982efc6b5f88f23c3ebeb77d0a3d59b7c542be5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/composition_overlay.rs",
+          "kind": "test",
+          "criterionIds": [
+            "CMP-8"
+          ],
+          "sha256": "5243e2cc9e1f766dbf4c5ad2976b7bedfdc197ce0bef0e74da34be8e242361d0"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-1",
+            "CMP-2",
+            "CMP-3",
+            "CMP-8"
+          ],
+          "sha256": "48b64115ffc8f5315567a83030b248c11ce4aa2cb0eea031c488b15841197a37"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/lane-d-composition.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "CMP-3"
+          ],
+          "sha256": "2a7afe07e004013a44e17d842c153b0b711cce3c36128c037e26db1f1c002519"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/retained.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-1"
+          ],
+          "sha256": "d17a90ee765d8ed9f5f7b55e313706846ca5ae0c922876c154d517b63e74ed43"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/splice.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-1"
+          ],
+          "sha256": "571d3edc2afdfb5d6bf813cc830344d7a89008db4911577308d9438be052ec19"
+        }
+      ],
+      "summaryMarkdown": "I verified the repair `ae9c3ab` against source, the passing lane D log and the three sprint checks passed at revision 89. All three findings are resolved:\n- **CMP-3 runtime proof:** lane D passes 3/3 on an unlocked Mac.\n- **Overlay input:** the AppKit overlay takes input only within the content it drew, clipped and without shadows. A native view stays clickable beside overlay content.\n- **Native-surface placements:** they are carried through cached, retained and spliced reuse. Unplaced surfaces are hidden, and the clipping limit is documented.\n\nWhat the first review found sound still holds:\n- the API mirror of PR #62379;\n- the off path left unchanged;\n- the scene split with balanced replay and `reuse_starts`;\n- grayscale overlay text;\n- wgpu and Metal resource sharing.\n\nTwo residual limits:\n- the input region follows painted primitives, not hitboxes, and ignores primitive transforms;\n- an invisible blocking or click-outside surface over a native view no longer intercepts clicks there.",
+      "findingIds": [
+        "s07-lane-d-proof-pending",
+        "s07-overlay-input-window-wide",
+        "s07-native-surface-lifecycle"
+      ],
+      "recordedAt": "2026-10-10T09:53:34Z"
     }
   },
   "checkpoints": {
@@ -2693,6 +2952,85 @@
           "repositoryId": "gpux",
           "path": "crates/gpui/src/fast/retained.rs",
           "symbol": "note_notified"
+        }
+      ]
+    },
+    {
+      "id": "s07-lane-d-proof-pending",
+      "boundaryId": "s07-composition-core-macos",
+      "criterionIds": [
+        "CMP-3"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved.** Lane D ran on an unlocked Mac: `gpux-testkit lane d --grep composition-macos` reports `3 passed, 0 failed, 0 skipped` (`artifacts-temp/agentx/gpux-fast-mode/lane-d-composition.log`).\n- **Order and bounds:** the native view sits below the overlay at `[40, 50, 160, 100]` at scale 2.\n- **Input:** a click passes through when the overlay is empty and beside the open menu, and is taken by the menu.\n- **Shadow:** the shadow over the native view reads `[216, 47, 32]` against native `[234, 51, 35]`.\n\nThe runtime recorded `check-composition-macos` as passed at revision 89.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/desktop_host/composition.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/lane-d-composition.log"
+        }
+      ]
+    },
+    {
+      "id": "s07-overlay-input-window-wide",
+      "boundaryId": "s07-composition-core-macos",
+      "criterionIds": [
+        "CMP-3",
+        "CMP-2"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved (ae9c3ab).** `ComposedScene::layer_input_region` returns the overlay layer's primitive bounds clipped by their content masks, without shadows, with overlapping rectangles merged (capped at 32). The AppKit overlay's `hitTest:` takes a point only inside that region, converted from its superview into logical top-left coordinates with the flip honoured. Elsewhere AppKit's hit testing passes through to the native views. A top-layer scrollbar or a tooltip therefore no longer makes a native view unclickable.\n\n`the_overlay_takes_input_only_where_it_draws` covers the region. The lane D input check requires a point beside the open menu, under its shadow, to reach the native view. `docs/fast-mode.md` documents the rule.\n\nNote: the region follows painted content, not hitboxes, so an invisible blocking overlay or a click-outside-to-dismiss surface over a native view no longer intercepts that click. This is the documented trade-off.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/composition.rs",
+          "symbol": "ComposedScene::layer_input_region"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_macos/src/fast/composition.rs",
+          "symbol": "overlay_hit_test"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/composition.rs",
+          "symbol": "the_overlay_takes_input_only_where_it_draws"
+        }
+      ]
+    },
+    {
+      "id": "s07-native-surface-lifecycle",
+      "boundaryId": "s07-composition-core-macos",
+      "criterionIds": [
+        "CMP-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved (ae9c3ab).** Placements are a per-frame `NativeSurfacePlacements` list indexed by `PrepaintStateIndex::fast_native_surfaces_index`. It is copied by `reuse_prepaint` (cached replay and retention) and `StretchCopy::prepaint` (splice), shifted and compared in the retained index helpers, and truncated by `transact`. At present, `show_placed_surfaces` hides surfaces an element placed before when no element places them this frame, and shows them again when one does. It touches only element-placed surfaces, and only on transitions.\n\n`native_surfaces_are_shown_while_their_element_is_drawn` covers off, views and splice modes; per the coordinator it fails with placement reuse disabled. `docs/fast-mode.md` states the visibility rule and that GPUI content masks do not clip native surfaces.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/composition.rs",
+          "symbol": "reuse_placements"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "symbol": "Window::reuse_prepaint"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/composition.rs",
+          "symbol": "native_surfaces_are_shown_while_their_element_is_drawn"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md"
         }
       ]
     }
