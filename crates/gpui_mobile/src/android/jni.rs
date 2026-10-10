@@ -238,15 +238,43 @@ pub fn find_app_class<'local>(
 
 /// The `AndroidApp` handle from `android-activity`.
 ///
-/// Set once in `android_main`; read-only thereafter.
+/// Set by every `android_main`: see [`Current`].
 #[cfg(feature = "android-native-activity")]
-static ANDROID_APP: OnceLock<AndroidApp> = OnceLock::new();
+static ANDROID_APP: Current<AndroidApp> = Current::new();
 
 /// Process-global `AndroidPlatform` instance.
 ///
-/// Initialised once during `android_main`; read-only thereafter.
+/// Created by every `android_main`: see [`Current`].
 #[cfg(feature = "android-native-activity")]
-static PLATFORM: OnceLock<Arc<AndroidPlatform>> = OnceLock::new();
+static PLATFORM: Current<Arc<AndroidPlatform>> = Current::new();
+
+/// A process-wide value that each `android_main` replaces. Android can start
+/// the native activity again in the same process after destroying it (the
+/// lane E emulator on CI does at startup), and that run must not get the
+/// previous run's `AndroidApp`, or its platform, whose dispatcher belongs to
+/// the previous run's thread and looper (App construction then panics with
+/// "must construct App on main thread"). A replaced value is leaked, so a
+/// reference still held elsewhere stays valid.
+#[cfg(feature = "android-native-activity")]
+struct Current<T>(std::sync::atomic::AtomicPtr<T>);
+
+#[cfg(feature = "android-native-activity")]
+impl<T: Send + Sync> Current<T> {
+    const fn new() -> Self {
+        Self(std::sync::atomic::AtomicPtr::new(std::ptr::null_mut()))
+    }
+
+    fn get(&self) -> Option<&'static T> {
+        // SAFETY: the pointer is null or a leaked `Box`, never freed.
+        unsafe { self.0.load(std::sync::atomic::Ordering::Acquire).as_ref() }
+    }
+
+    fn set(&self, value: T) -> &'static T {
+        let leaked: &'static mut T = Box::leak(Box::new(value));
+        self.0.store(leaked, std::sync::atomic::Ordering::Release);
+        leaked
+    }
+}
 
 /// Get the unicode character produced by an Android key event via JNI.
 ///
@@ -1142,24 +1170,21 @@ pub fn install_panic_hook() {
 
 /// Store the `AndroidApp` globally and create the `AndroidPlatform`.
 ///
-/// Must be called exactly once from `android_main` before
-/// `run_event_loop`.  Returns a reference to the platform so the caller
-/// can register callbacks (e.g. `set_on_init_window`) before entering
-/// the event loop.
+/// Called by every `android_main` before `run_event_loop`, which may run
+/// more than once in a process (see [`Current`]). Returns a reference to the
+/// platform so the caller can register callbacks (e.g. `set_on_init_window`)
+/// before entering the event loop.
 #[cfg(feature = "android-native-activity")]
 pub fn init_platform(app: &AndroidApp) -> &'static Arc<AndroidPlatform> {
-    let _ = ANDROID_APP.set(app.clone());
+    if PLATFORM.get().is_some() {
+        log::info!("init_platform: the activity started again; replacing the previous platform");
+    }
+    ANDROID_APP.set(app.clone());
     log::info!("init_platform: stored AndroidApp");
 
-    let platform = Arc::new(AndroidPlatform::new(false));
+    let platform = PLATFORM.set(Arc::new(AndroidPlatform::new(false)));
     log::info!("init_platform: AndroidPlatform created");
-
-    PLATFORM
-        .set(Arc::clone(&platform))
-        .unwrap_or_else(|_| log::warn!("PLATFORM already set — duplicate init_platform?"));
-
-    // SAFETY: we just set it above.
-    PLATFORM.get().unwrap()
+    platform
 }
 
 // ── system chrome (status bar / navigation bar) ───────────────────────────────
