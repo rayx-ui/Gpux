@@ -8,9 +8,9 @@
 //! layers are held to. Both get the same input, one frame at a time, and every frame is read
 //! back from both.
 //!
-//! One difference is allowed, and bounded: gpux drops a shadow when its box leaves its clip,
-//! while a layer's tiles keep the blur that still reaches into the viewport (see
-//! [`Content::edge_band`]).
+//! No difference is allowed, at the viewport's edges either: a shadow whose box has scrolled
+//! out of the viewport still shows the blur that reaches in, drawn from tiles or without them
+//! (`fast/edge_shadows.rs` in `gpui`).
 //!
 //! A test also checks that the layered window did composite tiles, so that a renderer without
 //! tiles, which keeps scroll layers off, fails it rather than passing by drawing as before.
@@ -357,41 +357,6 @@ struct Totals {
     tiles_rasterized: u64,
 }
 
-impl Content {
-    /// How far from the viewport's top and bottom edges a frame drawn from tiles may differ
-    /// from the reference: as far as the blur of a shadow reaches from its box, offset
-    /// included.
-    ///
-    /// gpux drops a shadow when its box leaves its clip, though its blur reaches three blur
-    /// radii further. A layer's tiles hold the content as it was painted, with every shadow
-    /// whole, so a frame drawn from them still shows the blur of a shadow whose box has just
-    /// scrolled out of the viewport, and is darker there than the reference, which dropped it.
-    fn edge_band(self) -> f32 {
-        match self {
-            // `shadow_md`: 6 px of blur 4 px down.
-            Content::Cards => 3. * 6. + 4.,
-            Content::TightCards => 3. * 15. + 10.,
-            Content::HeavyShadows => 3. * 16.,
-            Content::Text
-            | Content::Paths
-            | Content::Wide
-            | Content::UniformList
-            | Content::List => 0.,
-        }
-    }
-
-    /// The colour of a card no shadow falls on, where the cards are of one colour: a blur kept
-    /// at the viewport's edge lies under the cards around it, as it does when its box shows,
-    /// so a pixel the reference shows in this colour is this colour from tiles too.
-    fn card_color(self) -> Option<[u8; 3]> {
-        match self {
-            Content::TightCards => Some([0xfb, 0xfa, 0xf7]),
-            Content::HeavyShadows => Some([0xff, 0xff, 0xff]),
-            _ => None,
-        }
-    }
-}
-
 /// Runs `script` in a layered window and in the reference, comparing every frame, and returns
 /// what the layered window's layers did.
 fn compare(content: Content, scale: f32, script: &[Step]) -> Totals {
@@ -401,7 +366,7 @@ fn compare(content: Content, scale: f32, script: &[Step]) -> Totals {
     let mut totals = Totals::default();
     let (first, _) = layered.frame(&mut cx);
     let (expected, _) = reference.frame(&mut cx);
-    assert_same(&first, &expected, 0, scale, content);
+    assert_same(&first, &expected, 0, scale);
     for (index, step) in script.iter().enumerate() {
         for run in [&layered, &reference] {
             match *step {
@@ -416,7 +381,7 @@ fn compare(content: Content, scale: f32, script: &[Step]) -> Totals {
             0,
             "the reference has no layers"
         );
-        assert_same(&actual, &expected, index + 1, scale, content);
+        assert_same(&actual, &expected, index + 1, scale);
         totals.composited += stats.layers_composited;
         totals.repainted += stats.layers_repainted;
         totals.tiles_composited += stats.tiles_composited;
@@ -426,47 +391,13 @@ fn compare(content: Content, scale: f32, script: &[Step]) -> Totals {
     totals
 }
 
-/// Whether row `y` of a frame at `scale` lies within `band` logical pixels of the viewport's top
-/// or bottom edge.
-fn in_edge_band(y: u32, scale: f32, band: f32) -> bool {
-    let y = y as f32 / scale;
-    let (top, bottom) = (PADDING, WINDOW.1 - PADDING);
-    (top..top + band).contains(&y) || (bottom - band..bottom).contains(&y)
-}
-
-/// Checks `actual`, drawn from tiles, against `expected`, the reference: the same bytes, but
-/// within the content's [edge band](Content::edge_band) of the viewport's top and bottom
-/// edges, where it may only be darker, a rounding step aside, and on a card not even that.
+/// Checks `actual`, drawn from tiles, against `expected`, the reference: the same bytes.
 #[track_caller]
-fn assert_same(
-    actual: &RgbaImage,
-    expected: &RgbaImage,
-    step: usize,
-    scale: f32,
-    content: Content,
-) {
+fn assert_same(actual: &RgbaImage, expected: &RgbaImage, step: usize, scale: f32) {
     assert_eq!(actual.dimensions(), expected.dimensions());
-    let band = content.edge_band();
-    let card = content.card_color();
     let differing: Vec<(u32, u32)> = actual
         .enumerate_pixels()
-        .filter(|(x, y, pixel)| {
-            let reference = expected.get_pixel(*x, *y);
-            if !in_edge_band(*y, scale, band) {
-                return *pixel != reference;
-            }
-            let channels = pixel.0.iter().zip(reference.0);
-            if card == Some([reference.0[0], reference.0[1], reference.0[2]]) {
-                // A card's antialiased edge blends with what lies under it: a rounding step.
-                channels
-                    .clone()
-                    .any(|(actual, expected)| actual.abs_diff(expected) > 1)
-            } else {
-                channels
-                    .clone()
-                    .any(|(actual, expected)| *actual > expected.saturating_add(1))
-            }
-        })
+        .filter(|(x, y, pixel)| *pixel != expected.get_pixel(*x, *y))
         .map(|(x, y, _)| (x, y))
         .collect();
     let Some(&(x, y)) = differing.first() else {
@@ -527,25 +458,36 @@ fn text_rows_scroll_from_tiles_at_a_fractional_scale() {
     assert_composited(&totals, 8);
 }
 
+/// The scripted scroll, and then one pixel at a time, down the content and back up: every step
+/// of a card's shadow on its way across the viewport's top and bottom edges.
+fn scrolls_and_single_pixels() -> Vec<Step> {
+    let mut script = scrolls();
+    script.extend((0..80).map(|_| Step::Wheel(0., -1.)));
+    script.extend((0..40).map(|_| Step::Wheel(0., 1.)));
+    script
+}
+
+/// Cards under a shadow cast downwards: a card's top edge shows at the viewport's bottom while
+/// the boxes of its shadows are still below it, and its shadows' blur shows at the viewport's
+/// top after their boxes have left.
 #[test]
 fn cards_with_shadows_and_gradients_scroll_from_tiles() {
     for scale in [1., 2.] {
-        let totals = compare(Content::Cards, scale, &scrolls());
-        assert_composited(&totals, 8);
+        let totals = compare(Content::Cards, scale, &scrolls_and_single_pixels());
+        assert_composited(&totals, 60);
     }
 }
 
 /// Shadowed boxes closer together than their blurs reach, at every one-pixel step of a card's
-/// way out of the viewport and in the scripted scroll: the frames are the reference's, but for
-/// the blur a layer keeps showing at the viewport's edges.
+/// way out of the viewport and into it, and in the scripted scroll: the blur of a shadow whose
+/// box is out of the viewport falls on the cards around it, and under them, as the reference
+/// draws it.
 #[test]
 fn close_shadowed_cards_scroll_from_tiles() {
-    let mut script = scrolls();
-    script.extend((0..80).map(|_| Step::Wheel(0., -1.)));
     for content in [Content::TightCards, Content::HeavyShadows] {
         for scale in [1., 2.] {
-            let totals = compare(content, scale, &script);
-            assert_composited(&totals, 60);
+            let totals = compare(content, scale, &scrolls_and_single_pixels());
+            assert_composited(&totals, 90);
         }
     }
 }
