@@ -43,12 +43,16 @@ Cosmic Text recognizes normalized `Noto Color Emoji`, `Apple Color Emoji`, and `
 
 macOS window composition (`gpui_macos/src/fast/composition.rs`, ported from gpui-fast): every GPUI surface but the base gets a `GPUIOverlayView` whose `CAMetalLayer` renderer (`gpui_apple` `new_overlay`, `opaque = NO`) shares the window renderer's device, instance buffers and atlas; native surfaces are layer-backed container `NSView`s clipping their content. `set_composition_order` re-mounts views only when the tree or order changes and otherwise updates frames; scale and drawable-size changes reach every surface. The overlay's `hitTest:` takes a point only inside its input region (logical, top-left) and forwards events to the window's view. Lane D proves it with `composition-macos-order-bounds`, `-input` and `-shadow` (the shadow check is skipped without screen-capture permission); lane D needs an unlocked, awake screen, since a locked session presents no frames.
 
+Linux window composition (`gpui_linux/src/fast/composition/`, ported from gpui-fast): on Wayland, GPUI overlays are synchronized `wl_subsurface`s drawn by `new_sharing` renderers and committed before the base, with a `wp_viewport` (only GPUI's own subsurfaces get one); native surfaces are desynchronized subsurfaces handing out `RawWindowHandle::Wayland` that their producer sizes. An overlay's input region is its content (`layer_input_region`), and pointer input on it resolves to its window (`get_input_window`); a leave and enter between a window's surfaces in one `wl_pointer.frame` is a move, not an exit. Placements, geometry and input regions are logged at debug level under `gpux::composition`, which lane D's `composition-wayland-*` checks read. On X11, native surfaces are child windows with the GPUI content above them cut out of their bounding shape (SHAPE), or, under a compositing manager with an ARGB visual, an override-redirect overlay window (transient for the window, typed dropdown menu, input shape = its content) whose crossings with the window are moves; `composition-x11-*` read the server's tree, geometry, shapes and hit testing.
+
 ## Backlinks
 
 - [Windows window](../../../../../crates/gpui_windows/src/window.rs)
 - [Windows events](../../../../../crates/gpui_windows/src/events.rs)
 - [macOS platform crate](../../../../../crates/gpui_macos)
 - [macOS composition](../../../../../crates/gpui_macos/src/fast/composition.rs)
+- [Wayland composition](../../../../../crates/gpui_linux/src/fast/composition/wayland.rs)
+- [X11 composition](../../../../../crates/gpui_linux/src/fast/composition/x11.rs)
 - [Desktop conformance host](../../../../../crates/gpux_conformance/examples/desktop_host)
 - [Wayland client](../../../../../crates/gpui_linux/src/linux/wayland/client.rs)
 - [Wayland popup](../../../../../crates/gpui_linux/src/linux/wayland/popup.rs)

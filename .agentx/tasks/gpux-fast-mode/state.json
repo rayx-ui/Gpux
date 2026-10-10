@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 97,
+  "revision": 100,
   "planRevision": 13,
   "specHashes": {
     "requirements": "9a032d1345bbc15ddac8a565144cc02934f65cee34ff9fbb7e0ef3453253fcf0",
@@ -184,13 +184,13 @@
       ]
     },
     "t30-composition-wayland": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "claude-240e1cb7"
       ]
     },
     "t31-composition-x11": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "claude-240e1cb7"
       ]
@@ -341,14 +341,14 @@
       },
       "recordedAt": "2026-10-10T09:51:47Z"
     },
-    "d49c496ca96332b0d445ff8e885c5f0eaacd91b82778cfda698ab32b36795d76": {
+    "b8a08db38bc8a2c3463fcfb8829ffe78e075f499a740e4531124301f8f63b1dd": {
       "snapshot": {
         "specHash": "d29b4b0d0ddf0119e56fb9a0b17569dc8ad1d346924c2720bc0a6437b73b4271",
         "repositories": {
-          "gpux": "d1255b5f104774f041a0b85c6e225babee411fdd90082687c21d642ca231e0b2"
+          "gpux": "8c695716779c60680fafe051c1452c123503df3723b4d9827cefdf61ed699eae"
         }
       },
-      "recordedAt": "2026-10-10T10:27:52Z"
+      "recordedAt": "2026-10-10T10:32:01Z"
     }
   },
   "checkResults": {
@@ -951,35 +951,35 @@
       "checkId": "check-composition-wayland",
       "boundaryId": "s08-composition-linux",
       "phase": "final",
-      "batchId": "d49c496ca96332b0d445ff8e885c5f0eaacd91b82778cfda698ab32b36795d76",
+      "batchId": "b8a08db38bc8a2c3463fcfb8829ffe78e075f499a740e4531124301f8f63b1dd",
       "definitionHash": "e93c5d3d747a1c334b584110e3ca077b74374cf50605869f6f64db9e3ba4aab2",
-      "basisHash": "900cb27fa4df12be182cf14c21434da142032811cb395b4a7d477c9e104604c5",
+      "basisHash": "15dfe37ffa7914d97b30982573ee39338ac8b697fecb69e2fa98735147d6f001",
       "status": "passed",
       "exitCode": 0,
       "testCount": 3,
-      "durationSeconds": 13.8201,
-      "recordedAt": "2026-10-10T10:27:49Z",
+      "durationSeconds": 12.8987,
+      "recordedAt": "2026-10-10T10:31:58Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s08-composition-linux-final-deee96784132.log",
-      "logSha256": "f6a8a677c58b6446eb1bef7adb87f6f3f0da644254373b84642391db7b24e692",
-      "inputsHash": "c94b52bf3892cead60480f8f321e72e9aa178b469a575a7ce1db3a54d82ecf8c"
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s08-composition-linux-final-fb9e297407f9.log",
+      "logSha256": "4231f3aa0e0290fcf9ede906bb09e33e736cc9c8da8bcc52478be5ae3334d5f3",
+      "inputsHash": "0049312cbcc69e03c7ccc86ccc58c1d393bf2800dce357d878fdf22b1360bd71"
     },
     "s08-composition-linux/check-composition-x11/final": {
       "checkId": "check-composition-x11",
       "boundaryId": "s08-composition-linux",
       "phase": "final",
-      "batchId": "d49c496ca96332b0d445ff8e885c5f0eaacd91b82778cfda698ab32b36795d76",
+      "batchId": "b8a08db38bc8a2c3463fcfb8829ffe78e075f499a740e4531124301f8f63b1dd",
       "definitionHash": "351f31a2655bbde949ad039c45b623895a06f9ae4dd5ca4d8f0b23f597a3075b",
-      "basisHash": "1214612298a8b8d192ea6e6d29815ee04bde84e83c0de3a697356afc52526770",
+      "basisHash": "e767e562adb2375f3d2b6e57c5fbae9ad5eee08f07e046c24350e78a8031b54e",
       "status": "passed",
       "exitCode": 0,
       "testCount": 4,
-      "durationSeconds": 3.4218,
-      "recordedAt": "2026-10-10T10:27:52Z",
+      "durationSeconds": 3.3282,
+      "recordedAt": "2026-10-10T10:32:01Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s08-composition-linux-final-6e0183bd22be.log",
-      "logSha256": "f5b2ec3ca1efd26eeb7d0de81fc8c513281aaa8ffddffe18baf7e8e4cc2d8e1e",
-      "inputsHash": "c94b52bf3892cead60480f8f321e72e9aa178b469a575a7ce1db3a54d82ecf8c"
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s08-composition-linux-final-a240ca1c2868.log",
+      "logSha256": "38ab443c55c9fa6dd34fd6b137775ae59c8f7bd6cc1b4665539e694465fd55ff",
+      "inputsHash": "0049312cbcc69e03c7ccc86ccc58c1d393bf2800dce357d878fdf22b1360bd71"
     }
   },
   "reviews": {
@@ -2449,6 +2449,123 @@
         "s07-native-surface-lifecycle"
       ],
       "recordedAt": "2026-10-10T09:53:34Z"
+    },
+    "s08-composition-linux": {
+      "reviewerId": "claude-reviewer-s08b-7f3c91a2",
+      "snapshotId": "b8a08db38bc8a2c3463fcfb8829ffe78e075f499a740e4531124301f8f63b1dd",
+      "criterionIds": [
+        "CMP-4",
+        "CMP-5"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_linux/src/fast/composition/wayland.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-4"
+          ],
+          "sha256": "0fc6fbcb5495b352498f0210f4fa9af1b08e43db9aa0707b18c291790a638693"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_linux/src/linux/wayland/client.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-4"
+          ],
+          "sha256": "5da7582f5ab4b48848893e3a222569f4d92b4f5392f5fe094bddedbdc0672ef9"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_linux/src/linux/wayland/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-4"
+          ],
+          "sha256": "bac37be351b7703e194908c27428dd1c8fce494c986addd8ad028787f7db8932"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_linux/src/fast/composition/x11.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-5"
+          ],
+          "sha256": "54fdaf961a3bed6ebe33fc21a1e110b8c51bfa20012d8ef86f02e1aaa9b07ba0"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_linux/src/linux/x11/client.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-5"
+          ],
+          "sha256": "bbb6a532d66b640947e238c3210952c0c00edba8281a0b9d77736d2d71d0cad4"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_linux/src/linux/x11/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-5"
+          ],
+          "sha256": "b8749fde4fcf479267221f9eab2fb57f9e2a507afa9b13786a210465036dff9e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/composition.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-5"
+          ],
+          "sha256": "1c2c5df1e774a48cff2326f0645bc89a2c88fecca0e899f7ce8148984930e6fd"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/desktop_host/composition_linux.rs",
+          "kind": "test",
+          "criterionIds": [
+            "CMP-4",
+            "CMP-5"
+          ],
+          "sha256": "c6c41d9a2db65520465e4efe87fcbb6bd9f26d6c42d99492df2c989c0b7e7780"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s08-composition-linux-final-fb9e297407f9.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "CMP-4"
+          ],
+          "sha256": "4231f3aa0e0290fcf9ede906bb09e33e736cc9c8da8bcc52478be5ae3334d5f3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s08-composition-linux-final-a240ca1c2868.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "CMP-5"
+          ],
+          "sha256": "38ab443c55c9fa6dd34fd6b137775ae59c8f7bd6cc1b4665539e694465fd55ff"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-4",
+            "CMP-5"
+          ],
+          "sha256": "94467d0fbde109ce4995b23497ae2c0c45ec92fb0c0ee3a066f4b0d0a9774ba2"
+        }
+      ],
+      "summaryMarkdown": "I verified the repair `efe96bd` against source. A leave from the X11 overlay is a move only when the pointer lands on the window's own content, outside mapped native surfaces or through their cut-outs. A unit test covers this.\n\nThe runtime evidence is the VM checks recorded at revision 99: Wayland under sway 3/3, X11 with xcompmgr 4/4.\n\nThe one finding is resolved, and everything the first s08 review found sound for CMP-4 and CMP-5 still holds.",
+      "findingIds": [
+        "s08-x11-overlay-to-native-no-exit"
+      ],
+      "recordedAt": "2026-10-10T10:33:21Z"
     }
   },
   "checkpoints": {
@@ -3088,6 +3205,33 @@
         {
           "repositoryId": "gpux",
           "path": "docs/fast-mode.md"
+        }
+      ]
+    },
+    {
+      "id": "s08-x11-overlay-to-native-no-exit",
+      "boundaryId": "s08-composition-linux",
+      "criterionIds": [
+        "CMP-5"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved (efe96bd).** `crossing_within_window` counts a leave from the overlay window as a move only when the point is inside the overlay's bounds and `lands_on_gpui_content` holds. That means the point is outside every mapped native surface's window bounds, or inside one of the cut-outs applied to that surface, in the surface's own coordinates. Nested natives are checked each against their own bounds.\n\nA pointer moving from an overlay menu straight onto a native child window is now a `MouseExited` for GPUI, as before `57b7401`, while crossings onto GPUI content, including through cut-outs, stay moves.\n\n`fast::composition::x11::tests::a_crossing_onto_a_native_surface_leaves_gpui_content` covers outside, on and through a cut-out, and the case with no natives; it passed in the VM. Lane D passed again at revision 99: X11 with xcompmgr 4/4, Wayland on sway 3/3.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_linux/src/fast/composition/x11.rs",
+          "symbol": "crossing_within_window"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_linux/src/fast/composition/x11.rs",
+          "symbol": "lands_on_gpui_content"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_linux/src/fast/composition/x11.rs",
+          "symbol": "tests::a_crossing_onto_a_native_surface_leaves_gpui_content"
         }
       ]
     }
