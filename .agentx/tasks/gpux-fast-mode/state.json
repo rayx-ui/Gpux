@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 111,
+  "revision": 112,
   "planRevision": 14,
   "specHashes": {
     "requirements": "9a032d1345bbc15ddac8a565144cc02934f65cee34ff9fbb7e0ef3453253fcf0",
@@ -2942,6 +2942,14 @@
       },
       "reviewHash": "e85f99ced49b69839837166db1bfccc73e591a43db7727c4ee963b1894c1f00a",
       "recordedAt": "2026-10-10T10:33:21Z"
+    },
+    "s09-composition-windows-web": {
+      "snapshotId": "4fd41f09eac4943f132ff0660be02ddfbca68ab952d99234cadcf7fcb46271cc",
+      "commits": {
+        "gpux": "eb918b7b68694e4fce2b4b71e0daf6c83ef612af"
+      },
+      "reviewHash": "b94c402a8cd94cdafbcadaac7cb544972088011b477cd237798efcc9fcc009db",
+      "recordedAt": "2026-10-10T12:47:24Z"
     }
   },
   "findings": [
