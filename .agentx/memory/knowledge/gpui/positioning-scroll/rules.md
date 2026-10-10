@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/gpui/positioning-scroll
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-10T19:30:00+02:00
+  updated: 2026-10-11T09:00:00+02:00
   topics:
     - fixed-positioning
     - sticky-positioning
@@ -38,3 +38,11 @@ agentx:
 - Give every `ScrollHandle` getter that reads the offset, metrics or item positions `note_offset_read`, and every getter of tracked bounds `fast::layers::input::moved`: a retained owner must be built again when what it read moves, and bounds read on a composited frame must be where the content shows.
 - Read a scroll offset or its metrics in `render` only when the view's own elements depend on them; draw what merely follows the scroll (a scrollbar, an indicator) from prepaint or paint, or the owner's scroll layer is painted again on every scrolled frame.
 - Publish a scroll without updating the view that owns the container: from a scrollbar entity of its own or a listener that leases nothing. gpux counts an entity updated without a notification as changed, so a scroll published from a `cx.listener` of the owner repaints its scroll layer on every step.
+- Render a list's rows only through `fast::layers::lists::render_items` (the `uniform_list` constructor's closure, `spanned_render_item` for `list`): the lease of the view holding the list is then part of drawing it. A row rendered around it writes that view, and every row a layer holds counts as changed.
+- Whatever an element can register in a frame that answers without a hit test (a tab stop, a focus id, a mouse listener that fires outside its hitbox, a DevKit node, debug bounds, a count on an ancestor) must be made inert for the rows a list's layer holds off screen (`lists::hide_records`, `hide_focus`, `listen_while_shown`, `NodeRow`, `hidden_hitboxes`), re-applied where a frame copies the owner from the last one (`LayerRows::follow_told_*`), and told by `fast/verify.rs`'s `told_order`. A list without a layer does not draw those rows.
+- Keep a list row that read hovers only where no hitbox of the frame can change them (`lists::stale_rows`). The frame's hit test is made after the rows prepaint, from hitboxes that include what other views add in the same frame; foretelling it from last frame's hitboxes is a frame late, and frames must equal those drawn from scratch one by one.
+- Take the rows a list shows from the list's own layout (`flow`, the uniform list's visible range), never from where rows lie: padding and the snapped offset put rows across the bounds that the list does not draw, and rows the list draws outside them.
+- Leave a hidden row's record out of `told_order` only through its `answers` test for that kind of record; a new kind of record a row can add needs both the inert treatment and the test.
+- Place a row in a list's layer by the list's own arithmetic (`list_row_top`), never by a running sum from another row, wherever the list knows the heights between: at a fractional scale a half-pixel edge rounds by the last bits of the sum.
+- Move what a composited frame copies from the last frame (DevKit bounds, debug bounds, window-control hitboxes) by the scroll since that frame (`LayerInput::step`, `LayerRows::step`); only what is rebuilt from the content as painted (the layer's kept hitboxes) moves by the scroll since the paint.
+- Compare a list shown from its layer with the reference by whole frame descriptions in two applications run one after the other (`list_layers::gpux::describes_alike`), at scale factor 1: two applications on one thread at once collide on entity ids, and at a fractional scale a carried hitbox differs from a fresh one in its last bits.

@@ -1,12 +1,12 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 161,
-  "planRevision": 21,
+  "revision": 169,
+  "planRevision": 23,
   "specHashes": {
-    "requirements": "b21da83ad9da89e3d0266ed9c1af86eaa6e25d22fa374bdc600b78f491cd14ac",
-    "design": "406a087f7c2c86ca6724574db18be5629c5b99f961b1b6a781a669416f1e0138",
-    "plan": "c84febc0026cbc1fff6a8f53847622deb72e4aa7133e5c9fb664f1be74e5ba07"
+    "requirements": "26899f26fce2cc622c86a9e78fecf3c925fe0458bd187d18b89d94737d2d43b1",
+    "design": "ddf820af9ddc88aaef89adcf5e2026bace0b69fe1061c3a535bc1c170d2dada3",
+    "plan": "78d39f851c8a65a5dba31be7d6d42d381a8ff46972a9a3a1879ec0ee3bc0d5a6"
   },
   "tasks": {
     "t01-fast-switches": {
@@ -250,7 +250,10 @@
       ]
     },
     "t41-list-layers": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t42-defaults-on": {
       "status": "pending"
@@ -424,6 +427,15 @@
         }
       },
       "recordedAt": "2026-10-10T18:20:45Z"
+    },
+    "2bc6cda1026b737394b34528717065abea74922c7e7edf78e99150b170f3c932": {
+      "snapshot": {
+        "specHash": "ef168aae941b488391ecd3a61de759203eb0d1123cef2814938bf2e8ffd6ac63",
+        "repositories": {
+          "gpux": "ecf2aa95a79adae132b42f197e5711005e0dbf5973738b83d7c150b0799dc25b"
+        }
+      },
+      "recordedAt": "2026-10-10T22:14:18Z"
     }
   },
   "checkResults": {
@@ -1429,6 +1441,74 @@
       "logPath": "artifacts-temp/agentx/gpux-fast-mode/s11-layers-renderers-final-15eb3449db19.log",
       "logSha256": "503788efa3f53c487c5456cd3c333a1584848474dec2e583906b6290685759c8",
       "inputsHash": "3e63b04a72238394f8e9f73aa285fd511c9cdee8f2526aefca68326eef6a848d"
+    },
+    "s12-list-layers/check-parity-a/final": {
+      "checkId": "check-parity-a",
+      "boundaryId": "s12-list-layers",
+      "phase": "final",
+      "batchId": "2bc6cda1026b737394b34528717065abea74922c7e7edf78e99150b170f3c932",
+      "definitionHash": "d69f8133d92835694c1051f8c9d6217957ffd3159a80600a80fea0bdae259d7a",
+      "basisHash": "c37d552ba07a4681371272cca040756de1a2d904a5016b019da6f5b233677f1f",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 39,
+      "durationSeconds": 12.7946,
+      "recordedAt": "2026-10-10T22:12:28Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s12-list-layers-final-94b2640b7ba1.log",
+      "logSha256": "a6da7532ff38b8788b8cf3f066d6682f0d6d02f4f1b578c373e214e2e76f41f8",
+      "inputsHash": "16a04067a9b6140a4b0259ae5e83894bab3182de7acef555f5fdbce4024672db"
+    },
+    "s12-list-layers/check-attribution/final": {
+      "checkId": "check-attribution",
+      "boundaryId": "s12-list-layers",
+      "phase": "final",
+      "batchId": "2bc6cda1026b737394b34528717065abea74922c7e7edf78e99150b170f3c932",
+      "definitionHash": "80c9398e75ebaa48c924a0e73fa456211b2fdfff46be5daecc5ec837f963218b",
+      "basisHash": "66ece514acf72b1fcc68e4d40c253c2dc91f9b629fe9e7c1fa09c1fa635279bb",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 19,
+      "durationSeconds": 28.6907,
+      "recordedAt": "2026-10-10T22:12:57Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s12-list-layers-final-526f19cf24bf.log",
+      "logSha256": "4abfe2f05a12bb8d6aaa2c2e11e69df25ab985242d6088232518c68c5ddb3d60",
+      "inputsHash": "570fd1a7954fdb31dab7d342ebe4078c1fd672005c3386e40acf7f56ed54e597"
+    },
+    "s12-list-layers/check-layers-lane-c/final": {
+      "checkId": "check-layers-lane-c",
+      "boundaryId": "s12-list-layers",
+      "phase": "final",
+      "batchId": "2bc6cda1026b737394b34528717065abea74922c7e7edf78e99150b170f3c932",
+      "definitionHash": "2ccb9d51e8f1083bbecdedaa7be188b97d37b181754d1250dbf144cb8e5e1e6f",
+      "basisHash": "ca3a2521950bc6811a45163aff3ba323bb914f66c1cb25a6ba10330fe6a1e6e6",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 11,
+      "durationSeconds": 31.7463,
+      "recordedAt": "2026-10-10T22:13:28Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s12-list-layers-final-1a90ea8744a7.log",
+      "logSha256": "17421287bcc6b9008d3817ccbea267ab4bcc1356c20e88020ae5ceed569821c6",
+      "inputsHash": "999b780007cc77df93bdc30aee4b072effac57cb0e6c730b22ab4336fdc26284"
+    },
+    "s12-list-layers/check-list-layers/final": {
+      "checkId": "check-list-layers",
+      "boundaryId": "s12-list-layers",
+      "phase": "final",
+      "batchId": "2bc6cda1026b737394b34528717065abea74922c7e7edf78e99150b170f3c932",
+      "definitionHash": "72db22c6f28b7d6fdf6d3f19acd26d2398d189ff8a75caed4616a43ccaaf12f8",
+      "basisHash": "3584c63b6ad748e8680ec4bb468a794f069829ae43329aac2525430f1e69b0d0",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 64,
+      "durationSeconds": 49.6184,
+      "recordedAt": "2026-10-10T22:14:18Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s12-list-layers-final-b4b936a4424c.log",
+      "logSha256": "c6771c2f6ae6312a170c8ebbaaceba9effd95d9c83eb4cdbdd939b290d11d2a8",
+      "inputsHash": "570fd1a7954fdb31dab7d342ebe4078c1fd672005c3386e40acf7f56ed54e597"
     }
   },
   "reviews": {
@@ -4410,6 +4490,254 @@
         "s11-windows-and-mobile-unproven"
       ],
       "recordedAt": "2026-10-10T18:46:26Z"
+    },
+    "s12-list-layers": {
+      "reviewerId": "claude-reviewer-s12b-7f3c91a2",
+      "snapshotId": "2bc6cda1026b737394b34528717065abea74922c7e7edf78e99150b170f3c932",
+      "criterionIds": [
+        "LYR-7",
+        "LYR-13",
+        "PERF-2",
+        "OR-3"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-7",
+            "LYR-13"
+          ],
+          "sha256": "7878c4d3325d88f910729dab1058ff893750d1aa0bfb0c4e67e2f8586adfac5b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/dependencies.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-7",
+            "LYR-13"
+          ],
+          "sha256": "c2b10d851cf8caf8d25b194b26de855fde8540c96bf1177d1ccbc7c83fe17b3a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/invalidate.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-7",
+            "LYR-13"
+          ],
+          "sha256": "da501fb759ef4ee3be63bd94343cb271b155cb1b30b71a2b686d01f431939ffc"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/reuse.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-13"
+          ],
+          "sha256": "2886814f847b510b59c8ffa756ef2ebf7b2b0dd1f1192e1c7ea19fb3df803e7a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/policy.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-7"
+          ],
+          "sha256": "38bc42256f19eb7b8f37bb4d5ce9ed984a47a06d0da1c4ca30c1160e88e25d91"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/paint.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-7"
+          ],
+          "sha256": "a445ffb4e53673d8c05304c8a81eb3f400573599756b099845f86f0413925bd3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/verify.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-13"
+          ],
+          "sha256": "0db11d50b2e765749f8a93970794e5e2d226e14b56f0a52cd37ac8d82939b2ca"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/list.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-7"
+          ],
+          "sha256": "c46b99f4eae5cbf27f2d3af5896fc236bbe91474a93552cebd3082ee54d341c7"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/uniform_list.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-7"
+          ],
+          "sha256": "6280e35026bae1b909686e838a079cf5ad08434fc7ceba7d2296da5e498fd27d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-7"
+          ],
+          "sha256": "03a78f9c63df1c6a4154eb6eafef965bcf056fea571882fd612e805a158c4610"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-7",
+            "LYR-13"
+          ],
+          "sha256": "059c2320eed9a30a5c0d636ef0587b9672e51f1b2246dd8996f39d4202068e96"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/scenarios/scroll.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-2"
+          ],
+          "sha256": "396b82f9a42402dc70f79486e645c413ff088ed621ab4508430eb7067cc31b47"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scenes/lists.rs",
+          "kind": "source",
+          "criterionIds": [
+            "OR-3"
+          ],
+          "sha256": "21d9cbf5cc19dae568433f01ec92be5f24e3288df5eedbd762190bf7268204b4"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/test_host.rs",
+          "kind": "source",
+          "criterionIds": [
+            "OR-3"
+          ],
+          "sha256": "88985a698d4eb6f537f173e3be0c116ab23f661ef99842411e1b7be033518d8e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/list_layers.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-7",
+            "LYR-13"
+          ],
+          "sha256": "4ec58ea12933692c06cbcebd274298bfc6008dff1bf7ec102a57901cb78384d9"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/oracle_layers.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-7"
+          ],
+          "sha256": "f3741cd59d0b11f9773b9dc88d1d92e0ea3c911676923d8105c6207e2f36cfb6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_scroll_layers.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-7"
+          ],
+          "sha256": "7b50714533f7daba9dddd674ce09fbdeb5aba0f4c175de15fa33a9db9678b662"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/fast_mode_attribution.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PERF-2"
+          ],
+          "sha256": "7800ea0f18368cd3db06a24b0dfc878e0f8992cc883b0cbe2ace2421a12123fc"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_a_fast_parity.rs",
+          "kind": "test",
+          "criterionIds": [
+            "OR-3",
+            "LYR-7",
+            "LYR-13"
+          ],
+          "sha256": "ab7b2be4370aab3a63a560d98f780764ad0cf858301139f78b66ab9c3bdf2439"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s12-list-layers-final-b4b936a4424c.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "LYR-7",
+            "LYR-13"
+          ],
+          "sha256": "c6771c2f6ae6312a170c8ebbaaceba9effd95d9c83eb4cdbdd939b290d11d2a8"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s12-list-layers-final-1a90ea8744a7.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "LYR-7"
+          ],
+          "sha256": "17421287bcc6b9008d3817ccbea267ab4bcc1356c20e88020ae5ceed569821c6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s12-list-layers-final-526f19cf24bf.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "PERF-2"
+          ],
+          "sha256": "4abfe2f05a12bb8d6aaa2c2e11e69df25ab985242d6088232518c68c5ddb3d60"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s12-list-layers-final-94b2640b7ba1.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "OR-3"
+          ],
+          "sha256": "a6da7532ff38b8788b8cf3f066d6682f0d6d02f4f1b578c373e214e2e76f41f8"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s12-repair-lima.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "LYR-7",
+            "LYR-13"
+          ],
+          "sha256": "468ab2281311c1a4a25b4a70b9ce2d15ae21a55b81814cce611d36a6018b67c4"
+        }
+      ],
+      "summaryMarkdown": "**Verdict: passed.** All six findings of the first review are resolved at `8285288` (snapshot `2bc6cda1…`, revision 168); no new finding.\n\n**Evidence.** The four sprint checks at revision 168 were reused (list layers 64, lane C scroll layers 11, attribution 19, lane A parity 39). The first review's probes were run again in a scratch worktree (removed), with new ones aimed at the repairs; they are `probe_s12b.rs` and `probe-s12b-*.log` in the reviewer's scratchpad. The sprint's own list group also passed there (64).\n\n**New holes looked for, none found.**\n- The hover rule: sheet over the hovered row, press and release without a move, a press held across scrolls, group hovers. About 150 random histories of 140 steps over plain, padded, focusable and backgroundless lists agreed frame for frame (3038 frames from a layer in the largest sweep).\n- `flow` and `loose` with the autoscroll second layout pass: autoscroll at both edges (6 effective) and from the focused off-screen row (2 effective) agree.\n- `finish_list_paint` called early: the loose row is the last the list paints, and the second call finds no frame.\n- Input handlers: a focused text-input row scrolled out slowly, both list kinds, focusable or not, padded or not, agrees. A layer whose record holds an input handler is already ineligible, so no carried row holds one.\n- The `answers` tests: each matches what answers.\n- Hooks in `list.rs`: forwarding calls and arguments only; the two local bindings are inlined.\n\n**Declared tolerance, confirmed again.** At scale factors 1.1, 1.25 and 1.5 the only differences are hit tests on exact row boundaries (at most 3 of 140 frames a run); 1.75 and 2 agree.\n\n**Notes, not findings.**\n- With a focused text input in a row shown, the list is off its layer (16 of 42 frames from the layer against 40 without the focus).\n- At scale 1.1 with 8 px of padding no frame used the layer in any of the three kinds.\n- A row first rendered into the overscan has its autoscroll request discarded; an element that consumes a pending request as it prepaints loses it. This predates the repair.\n\n**Not covered.** CI on `8285288` was still running: checks, lane A, lane D and lane F had passed on all platforms; `test` on all three, lane C on warp, lane B shards and lane E were pending. PERF-2 and OR-3 rest on the reused checks.",
+      "findingIds": [
+        "s12-padded-list-shows-rows-in-its-padding",
+        "s12-carried-row-hover-lost-to-owner",
+        "s12-focused-offscreen-row-out-of-order",
+        "s12-row-snapped-out-of-view-is-hidden",
+        "s12-fallback-frame-draws-offscreen-spill",
+        "s12-description-omits-records-that-still-answer"
+      ],
+      "recordedAt": "2026-10-10T22:25:45Z"
     }
   },
   "checkpoints": {
@@ -5653,6 +5981,164 @@
         {
           "repositoryId": "gpux",
           "path": "crates/gpui_wgpu/src/shaders.wgsl"
+        }
+      ]
+    },
+    {
+      "id": "s12-padded-list-shows-rows-in-its-padding",
+      "boundaryId": "s12-list-layers",
+      "criterionIds": [
+        "LYR-7"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved (67b6d9b, 403f1ec).**\n\n- The rows a list shows now come from the list's own layout: `keeps_row`'s `shown` and `place_list_item` fill `RowsFrame::left_to_layer` and `placed`, and `flow` is the run from the first row; a uniform list passes its visible range. A row lying across the viewport without being shown (`hidden_in_view`) is neither held nor rendered.\n- Re-probed: `uniform_list` and `list` with 8 px above, 8 px below, and paddings taller than a row (30/0, 0/30, 27/45): 0 differences in the four scripted runs and in 60 random histories of 140 steps, each frame compared by description and by a hit-test grid.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "symbol": "hidden_in_view"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "symbol": "flow"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/list_layers.rs",
+          "symbol": "gpux::a_padded_list_shows_no_row_in_its_padding"
+        }
+      ]
+    },
+    {
+      "id": "s12-carried-row-hover-lost-to-owner",
+      "boundaryId": "s12-list-layers",
+      "criterionIds": [
+        "LYR-7"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved (67b6d9b, 403f1ec).**\n\n- `carry_paint_rows` replays the hovers of rows kept and shown (`lists.rs:1344`), and `stale_rows` (`lists.rs:797`) keeps a row that read hovers only while every hover was false and of its own hitboxes, the pointer is over none of them and none is captured. The rule is sound: a hitbox the pointer is not over cannot become hovered whatever else the frame adds.\n- Re-probed: the sheet from another view over the row under the pointer, on a uniform list, a `list` and a `div` (0 of 8 steps differ, 7 of them from the layer); the press with no move (8 scripts, both list kinds, all alike); rows that show the hover of a group around the list; and presses held down across scrolls. The new `debug_assert` in `check_hovers` never fired in about 150 random histories.\n- The cost is one row and the list's view rendered per frame while the pointer is over the rows, which is what a view under the pointer already costs; I think it is justified.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "symbol": "stale_rows"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "symbol": "carry_paint_rows"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/list_layers.rs",
+          "symbol": "gpux::a_row_kept_under_a_hover_that_changes_is_drawn_again"
+        }
+      ]
+    },
+    {
+      "id": "s12-focused-offscreen-row-out-of-order",
+      "boundaryId": "s12-list-layers",
+      "criterionIds": [
+        "LYR-7",
+        "LYR-13"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved (67b6d9b, 403f1ec).**\n\n- The row a `list` places outside the run it shows is `RowsFrame::loose`: prepainted in the list's clip, never held, painted into the frame after the layer is composited (`finish_list_paint` from `paint_row`), and last in `order_tab_stops`, `shown_nodes` and `told_order`. `paint_row` now skips only rows the frame carried, so the one-frame loss of paint records is gone.\n- Re-probed: the scripted focus history (143 steps) and the random histories over a focusable list, plain and padded: 0 differences, where 37 of 160 differed before. A focused off-screen row that asks for an autoscroll moves the list in the second layout pass and agrees with the reference.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "symbol": "place_list_item"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "symbol": "finish_list_paint"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "symbol": "order_tab_stops"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/list_layers.rs",
+          "symbol": "gpux::the_row_a_list_draws_off_screen_for_the_keyboard_comes_last"
+        }
+      ]
+    },
+    {
+      "id": "s12-row-snapped-out-of-view-is-hidden",
+      "boundaryId": "s12-list-layers",
+      "criterionIds": [
+        "LYR-7"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved (67b6d9b, 403f1ec).**\n\n- `shown_rows` is gone; the rows shown are the list's own (see the first finding), wherever snapping puts them.\n- Re-probed: the -19.7 wheel script (0 of 16 steps differ, 5 before) and random histories with wheels of x.3 and x.7 pixels on both list kinds: 0 differences.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "symbol": "flow"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/list_layers.rs",
+          "symbol": "gpux::a_row_the_whole_pixels_move_out_of_view_is_still_shown"
+        }
+      ]
+    },
+    {
+      "id": "s12-fallback-frame-draws-offscreen-spill",
+      "boundaryId": "s12-list-layers",
+      "criterionIds": [
+        "LYR-7"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved (67b6d9b, 403f1ec).**\n\n- The fallback (`lists.rs:3464`) and the path without a baked background draw only the operations of rows the list shows and the kept scenes of rows shown.\n- Re-probed: wheel -200 then +40, and -20 then -220, on the overlapping page with hitboxes, both list kinds: all four agree with the reference, where all four differed before.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "symbol": "end_paint_rows"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/list_layers.rs",
+          "symbol": "gpux::a_list_whose_rows_reach_over_one_another_keeps_todays_path"
+        }
+      ]
+    },
+    {
+      "id": "s12-description-omits-records-that-still-answer",
+      "boundaryId": "s12-list-layers",
+      "criterionIds": [
+        "LYR-13"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved (67b6d9b, 403f1ec).**\n\n- `told_order` (`verify.rs:206`) takes an `answers` test per kind of record and tells a hidden row's record that still answers: a hitbox clipped to something, a cursor over a live hitbox, a tab stop in the order at its index, a dispatch node found by its focus, a listening listener, any input handler. `describe_frame_hit_at` adds hit tests at points, and the `gpux` group's `described` uses it every half pixel down two columns.\n- Each test matches what really answers; tooltips and DevKit nodes are left to the hitbox and to the snapshot, which is correct.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/verify.rs",
+          "symbol": "told_order"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/verify.rs",
+          "symbol": "describe_frame_hit_at"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/list_layers.rs",
+          "symbol": "gpux::list_frames_shown_from_a_layer_describe_themselves_alike"
         }
       ]
     }

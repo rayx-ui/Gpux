@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/gpui/layout-style
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-10T00:30:00+02:00
+  updated: 2026-10-11T03:30:00+02:00
   topics:
     - taffy
     - layout
@@ -34,6 +34,8 @@ The gpux-owned `Div`, `Img`, `Svg`, and `UniformList` request paths borrow their
 Measured leaves are re-executed every frame: a stable prior result is never reused from Taffy's numeric inputs alone.
 
 Under fast mode's layout retention (`FastMode::layout_retention`, `crates/gpui/src/fast/layout.rs`, `layout_key.rs`), nodes are kept by a 64-bit key instead of the ordinal pool, which remains the off path: the hash of the element's path (`ElementId` or position among unidentified siblings), list items keyed by index under their list (`layout_as_list_item`), and layout requested during prepaint keyed under the prepainting element. A frame that switches retention starts from a fresh engine. Unclaimed nodes are released at clear, list-row nodes linger 240 frames, a duplicate key gets a transient node. A kept node's style is converted only when its `layout_fingerprint` differs or its `LayoutFields` (every field `to_taffy` reads, plus rem size and scale) differ exactly, written only when the conversion differs; children only when ordered ids differ; the stretched root keeps its requested style aside and is not rewritten. Clear still takes every closure; it dirties every measured leaf except text leaves, which their next text carries (same text, runs, style, scale factor and font generation), replays (new closure gives every logged size), or dirties; any other element claiming a former text leaf dirties it. After each `compute_layout`, text leaves reachable from the root that were last measured at another width are measured at their laid-out content size.
+
+A row a list's scroll layer holds keeps the layout nodes laying it out claimed (`Row::layout_keys`, kept through `LayoutRetention::keep_retained` on every frame that carries the row), so a list scrolled back over rows its layer held lays none of them out afresh; rows that left the layer linger as any list row's nodes do.
 
 ## Backlinks
 

@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/gpui/frame-pipeline
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-10T23:30:00+02:00
+  updated: 2026-10-11T03:30:00+02:00
   topics:
     - scene
     - arena
@@ -45,3 +45,5 @@ agentx:
 - A frame drawn from scratch (`window.refreshing`) drops every scroll layer's record (`policy::forget_content`): the renderer may have lost the sprite atlas the kept content names. Content painted after it takes a new generation.
 - Drop every scroll layer's record when the window removes an entry from its sprite atlas (`layers::atlas_entry_removed`, from `drop_image` and `drop_svg`): the atlas hands the slot out again, and tile hashes name a sprite by its atlas tile.
 - A scroll layer's content is everything the container scrolls over (`LayerRecord::content_bounds`: from the container's origin to its scroll extent, padding and child margins included). Cut the painted region and test coverage against the same bounds.
+- Keep a view's render reads whole for whatever it built and cut at the last `list(...)` it built only for that list's rows (`dependencies::RenderReads::shaping`): cutting them for every scroll container the view holds leaves a scrolling `div` built after a list stale when what the view read in between changes.
+- A lease that is part of drawing a view (`render_next`, `rendering_rows_of`) stamps neither an update nor a write; any new framework lease of a view while a frame is drawn needs the same mark, or every retained reader of the view is built again each frame.

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 21,
+  "revision": 23,
   "title": "gpux fast mode: retained layout and views, splice, scroll layers and window composition from gpui-fast",
   "validationMode": "sprint",
   "repositories": [
@@ -172,6 +172,7 @@
       "repositoryId": "gpux",
       "kind": "test",
       "criterionIds": [
+        "LYR-7",
         "OR-3",
         "PERF-7"
       ],
@@ -1364,11 +1365,12 @@
       "repositoryId": "gpux",
       "kind": "test",
       "criterionIds": [
+        "LYR-12",
         "LYR-5",
         "LYR-6",
-        "LYR-12"
+        "LYR-7"
       ],
-      "descriptionMarkdown": "New group `crates/gpux_conformance/tests/lane_c_scroll_layers.rs`: views scrolled from tiles (text rows at scales 1, 1.5 and 2, cards with shadows and gradients, shadowed cards closer together than their blurs reach, paths, both axes, content that changes while scrolled, small scrolls from the top of content with a margin) against the layers-off, snapping-on reference on the lane-C renderer, frame for frame: pixel-identical, but within a shadow blur's reach of the viewport's top and bottom edges, where the layered frame may only be darker and never on a card. Metal on a Mac, the software wgpu adapter on Linux and Windows.",
+      "descriptionMarkdown": "New group `crates/gpux_conformance/tests/lane_c_scroll_layers.rs`: views scrolled from tiles (text rows at scales 1, 1.5 and 2, cards with shadows and gradients, shadowed cards closer together than their blurs reach, paths, both axes, content that changes while scrolled, small scrolls from the top of content with a margin) against the layers-off, snapping-on reference on the lane-C renderer, frame for frame: pixel-identical, but within a shadow blur's reach of the viewport's top and bottom edges, where the layered frame may only be darker and never on a card. Metal on a Mac, the software wgpu adapter on Linux and Windows. A `uniform_list` and a `list` of text rows scroll from tiles too, at scales 1 and 1.5 and with rows that change while scrolled, pixel-identical everywhere.",
       "argv": [
         "cargo",
         "test",
@@ -1379,7 +1381,7 @@
       ],
       "expected": {
         "exitCode": 0,
-        "minimumTests": 8
+        "minimumTests": 10
       },
       "inputs": [
         "crates/gpui/**",
@@ -1472,9 +1474,10 @@
       "repositoryId": "gpux",
       "kind": "test",
       "criterionIds": [
+        "LYR-13",
         "LYR-7"
       ],
-      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/list_layers.rs`: row records, extend versus repaint, overscan growth and dropping, row reads, foretold hovers, `is_scrolled_to_end` and `scroll_to_end`, a changed item count, sticky-row bypass, lingering nodes, and the list oracle.",
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/list_layers.rs`: row records, extend versus repaint, overscan growth and dropping, row reads, hovers, `is_scrolled_to_end` and `scroll_to_end`, a changed item count, lingering nodes, and the list oracle; gpux's own group: two lists in one view, a change every row reads, a state changed without a notification, lists a layer cannot carry (sticky rows, a flipped uniform list), rows reaching outside their room, and what a frame shown from a layer tells (DevKit elements, debug bounds, tab order, listeners, whole frame descriptions over random histories). After the first review: padded lists, a `list` told of its rows' focus, a sheet from another view over the rows, a press and a release where the pointer was not moved to, fractional wheel turns, rows that handle text input, and a scroll back up and a jump over rows that can be hit outside their room; frame descriptions carry what a pointer hits down two columns of the rows.",
       "argv": [
         "cargo",
         "test",
@@ -1487,7 +1490,7 @@
       ],
       "expected": {
         "exitCode": 0,
-        "minimumTests": 12
+        "minimumTests": 60
       },
       "inputs": [
         "crates/gpui/**",
@@ -3659,9 +3662,10 @@
         {
           "id": "t41-list-layers",
           "title": "Per-row list layers",
-          "descriptionMarkdown": "Port `fast/layers/lists.rs` adapted to gpux lists, with lingering row nodes. Write `fast/tests/list_layers.rs` with the list oracle. Update the attribution expectations for the list and chat scenarios.",
+          "descriptionMarkdown": "Port `fast/layers/lists.rs` adapted to gpux lists, with lingering row nodes. Write `fast/tests/list_layers.rs` with the list oracle. Update the attribution expectations for the list and chat scenarios. Make the rows a layer holds off screen inert in what the frame answers by, keep the rows shown in row order for the tab key and the DevKit snapshot, and describe such a frame by the rows shown (`fast/verify.rs`). Add list rows to `lane_c_scroll_layers`. After the first review: keep a row that read hovers only where no hitbox of the frame can change them, show the rows the list's own layout renders, hold no row lying across the bounds unshown, draw the row a `list` draws off screen after the layer, draw only shown rows on the fallback, let no row off screen handle text input, and leave a record out of the description only while it answers nothing.",
           "criterionIds": [
-            "LYR-7"
+            "LYR-7",
+            "LYR-13"
           ],
           "designIds": [
             "d-list-layers",
@@ -3670,9 +3674,12 @@
           "dependsOn": [],
           "checkIds": [
             "check-list-layers",
-            "check-attribution"
+            "check-attribution",
+            "check-parity-a",
+            "check-layers-lane-c"
           ],
           "supportingCriterionIds": [
+            "OR-3",
             "PERF-2"
           ],
           "sourceRefs": [
@@ -3683,6 +3690,18 @@
             {
               "repositoryId": "gpux",
               "path": "crates/gpui/src/elements/uniform_list.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/verify.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/layers/reuse.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/tab_stop.rs"
             }
           ]
         }
