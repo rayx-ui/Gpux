@@ -221,8 +221,14 @@ frame that only scrolls the list renders the rows the layer lacks and no other:
   rows on either side of those it shows. A `list` holds two viewports of rows on either side
   when it is first painted, only the rows it shows after a change of its content painted them
   again, and half a viewport more on each frame that keeps them;
-- the two rows whose hover changes as rows move under the pointer, which the frame foretells
-  from last frame's hitboxes;
+- the row under the pointer, and a row that was drawn hovered. A frame hit tests the pointer
+  against its own hitboxes after its rows are prepainted, and another view can lay a sheet over
+  the list, or take one away, in that very frame: a row that read hovers is kept only where no
+  hitbox of the frame can change them, which is where every hover it read was false and of a
+  hitbox of its own, the pointer is over none of its hitboxes and none holds the pointer
+  captured. The hovers of the rows kept and shown count among those the view holding the list is
+  drawn by, so a pointer that comes down on a kept row without having been moved there draws
+  the view again;
 - the rows the list shows whose reads changed, or which hold a view that was notified. A row
   the list does not show is rendered when it comes to: in gpux every row reads the view that
   holds its list, and a change of what they all read would otherwise rebuild several viewports
@@ -259,10 +265,19 @@ not draw them: their hitboxes are clipped away, their mouse listeners hear nothi
 listens for a press outside its element would hear every press), they are no stops for the tab
 key, hold no focus, are not among the frame's DevKit elements
 (`Window::devtools_frame_snapshot`), are not counted among the hitboxes of the elements around
-them, and have no bounds for tests to find them by. The rows the
-list shows are told row after row, in the tab order and among the DevKit elements, whichever of
-them the frame carried and whichever it rendered. Two things keep that true where rows reach
-outside the room their list gives them:
+them, have no bounds for tests to find them by, and handle no text input. The rows the list
+shows are told row after row, in the tab order and among the DevKit elements, whichever of them
+the frame carried and whichever it rendered.
+
+The rows a list shows are those its own layout renders. A `list` shows the rows from its first
+on that start above the height of its bounds, by its own offset, wherever the offset moved to
+whole device pixels puts them; a list with padding ends its rows at the padding. A row that lies
+across the list's bounds without being shown (under the padding) is neither held nor rendered. A
+`list` told of its rows' focus (`ListState::splice_focusable`) draws the row holding it when it
+is off screen, after the rows it shows, for the keyboard to reach: that row is no row of the
+layer's, and is drawn into the frame in the list's own clip once the layer is composited.
+
+Two things keep all that true where rows reach outside the room their list gives them:
 
 - a row that draws above or below its room (a shadow under a card, glyphs taller than their
   line) is held only while the list shows it, rendered when it comes into view and dropped when
@@ -270,6 +285,7 @@ outside the room their list gives them:
 - a row that can be hit outside its room keeps its list on today's path. The frame holds the
   hitboxes of the rows it carried before those of the rows it rendered, and a point under two
   hitboxes hits the later one: rows hit only inside their own rooms are hit alike in any order.
+  The frame that finds such a row draws the rows the list shows and no other.
 
 A list goes without a layer, counted `ineligible`, when it has rows that stick to its top
 (`ListState::with_sticky_items`, `UniformList::sticky_items`), is a uniform list drawn bottom up
@@ -279,7 +295,10 @@ opaque background.
 `FastStats::list_rows_rendered` and `list_rows_kept` count the rows rendered into list layers
 and the rows kept without rendering. `Window::describe_rendered_frame` describes a frame shown
 from a list's layer by the rows its list shows, row after row, as it describes a scene
-compositing layers by their content. At a fractional scale factor the hitboxes carried with a
+compositing layers by their content. A record of a row off screen is left out of it only while
+it answers nothing: a hitbox that can be hit, a tab stop in the order, a node the dispatch tree
+finds by its focus, a listener that listens or an input handler is told, and the frame differs
+from the one drawn without the layer. At a fractional scale factor the hitboxes carried with a
 row lie a few units in the last place from where laying the row out afresh puts them.
 
 The `fast::tests::list_layers` group checks all of it against a window drawing from scratch:
