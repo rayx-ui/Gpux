@@ -1168,6 +1168,7 @@ impl StretchCopy {
                 key_listener_count: dispatch_node.key_listeners.len(),
                 action_listener_count: dispatch_node.action_listeners.len(),
                 focused: dispatch_node.focus_id.is_some() && dispatch_node.focus_id == window.focus,
+                fast_row: source.fast_row,
             });
             if let Some(setters) = rendered
                 .devtools_property_setters

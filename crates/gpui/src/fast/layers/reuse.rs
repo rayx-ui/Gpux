@@ -51,12 +51,18 @@ pub(crate) fn carry_prepaint(
     let range = record.prepaint_range.clone();
     let input = &mut layer.input;
     let moved = delta != input.stale;
+    // The records were carried into the last frame too, moved as far as the
+    // content had scrolled by then.
+    let step = delta - input.stale;
+    input.step = step;
     input.stale = delta;
     input.viewport = viewport;
     input.handle_offset.set(delta);
     // The hitboxes are the layer's, lent to the carry while it runs.
     let hitboxes = std::mem::take(&mut input.hitboxes);
-    let carried = carry_prepaint_records(window, &range, &hitboxes, delta, viewport, !moved, true);
+    let carried = carry_prepaint_records(
+        window, &range, &hitboxes, delta, step, viewport, !moved, true,
+    );
     if let Some(layer) = window.fast_layers.layers.get_mut(id) {
         layer.input.hitboxes = hitboxes;
         if let Some(record) = layer.record.as_mut() {
@@ -71,13 +77,20 @@ pub(crate) fn carry_prepaint(
 /// of the range, moved by `delta` and clipped to `viewport`; its tooltips if
 /// `tooltips`, a tooltip showing where its element was when it was
 /// requested; its element states if `element_states`, which are dropped
-/// otherwise; its line layouts and dispatch nodes.
+/// otherwise; its line layouts and dispatch nodes; and what it tells of its
+/// elements, moved by `step`.
+///
+/// `delta` is how far the content has moved since it was painted, which the
+/// hitboxes kept from then are moved by; `step` how far since the last
+/// frame, whose records, copied here, lie where that frame showed them.
 #[inline]
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn carry_prepaint_records(
     window: &mut Window,
     range: &Range<PrepaintStateIndex>,
     hitboxes: &[Hitbox],
     delta: Point<Pixels>,
+    step: Point<Pixels>,
     viewport: Bounds<Pixels>,
     tooltips: bool,
     element_states: bool,
@@ -111,8 +124,8 @@ pub(crate) fn carry_prepaint_records(
             .truncate(start.pending_element_state_transfers_index);
     }
     for node in &mut next.devtools_nodes[start.devtools_nodes_index..] {
-        node.bounds.x += delta.x.as_f32();
-        node.bounds.y += delta.y.as_f32();
+        node.bounds.x += step.x.as_f32();
+        node.bounds.y += step.y.as_f32();
     }
     start..window.prepaint_index()
 }
@@ -129,9 +142,9 @@ pub(crate) fn carry_paint(window: &mut Window, id: &GlobalElementId) {
         return;
     };
     let range = record.paint_range.clone();
-    let delta = layer.input.stale;
+    let step = layer.input.step;
     let viewport = layer.input.viewport;
-    let mut carried = carry_paint_records(window, &range, delta, viewport, true);
+    let mut carried = carry_paint_records(window, &range, step, viewport, true);
     let Some(layer) = window.fast_layers.layers.get_mut(id) else {
         return;
     };
@@ -147,15 +160,18 @@ pub(crate) fn carry_paint(window: &mut Window, id: &GlobalElementId) {
 /// Carries the paint records the rendered frame holds over `range` into
 /// the frame being drawn, where painting what added them would add them
 /// again, returning where they lie in it: its window control hitboxes,
-/// moved by `delta` and clipped to `viewport`, cursor styles, input
+/// moved by `step` and clipped to `viewport`, cursor styles, input
 /// handlers, mouse listeners, element states if `element_states`, tab stops,
-/// line layouts and, for tests, debug bounds, moved by `delta`. The scene is
+/// line layouts and, for tests, debug bounds, moved by `step`. The scene is
 /// not carried.
+///
+/// `step` is how far the content has moved since the last frame, whose
+/// records, copied here, lie where that frame showed them.
 #[inline]
 pub(crate) fn carry_paint_records(
     window: &mut Window,
     range: &Range<PaintIndex>,
-    delta: Point<Pixels>,
+    step: Point<Pixels>,
     viewport: Bounds<Pixels>,
     element_states: bool,
 ) -> Range<PaintIndex> {
@@ -170,7 +186,7 @@ pub(crate) fn carry_paint_records(
     let next = &mut window.next_frame;
     let controls = start.fast_window_control_hitboxes_index;
     for (_, hitbox) in &mut next.window_control_hitboxes[controls..] {
-        let moved = LayerInput::hitboxes_at(std::slice::from_ref(hitbox), delta, viewport)
+        let moved = LayerInput::hitboxes_at(std::slice::from_ref(hitbox), step, viewport)
             .next()
             .expect("one hitbox");
         *hitbox = moved;
@@ -185,7 +201,7 @@ pub(crate) fn carry_paint_records(
         let moved: Vec<_> = next
             .debug_bounds_records
             .drain(start.debug_bounds_index..)
-            .map(|(selector, bounds)| (selector, Bounds::new(bounds.origin + delta, bounds.size)))
+            .map(|(selector, bounds)| (selector, Bounds::new(bounds.origin + step, bounds.size)))
             .collect();
         for (selector, bounds) in moved {
             next.record_debug_bounds(selector, bounds);
@@ -233,7 +249,15 @@ pub(crate) fn follow_prepaint(
     let shift = |range: &Range<PrepaintStateIndex>| {
         range.start.shifted(&from.start, to)..range.end.shifted(&from.start, to)
     };
+    let mut hidden_hitboxes = window.fast_layers.hidden_hitboxes.take();
     for layer in window.fast_layers.layers.values_mut() {
+        layer.rows.follow_told_prepaint(
+            frame,
+            &mut window.next_frame,
+            &mut hidden_hitboxes,
+            &inside,
+            &shift,
+        );
         let current = layer
             .input
             .ranges_frame
@@ -248,6 +272,7 @@ pub(crate) fn follow_prepaint(
         layer.rows.follow_prepaint(&shift);
         layer.input.prepaint_followed = Some(frame);
     }
+    window.fast_layers.hidden_hitboxes = hidden_hitboxes;
 }
 
 /// Follows, as [`follow_prepaint`] does, the copy of the paint records the
@@ -290,6 +315,16 @@ pub(crate) fn follow_paint(window: &mut Window, from: &Range<PaintIndex>, to: &P
         range.start.shifted(&from_start, &to)..range.end.shifted(&from_start, &to)
     };
     for layer in window.fast_layers.layers.values_mut() {
+        // A row's scene index is its layer's own, as the record's is.
+        let copied = |paint: &Range<PaintIndex>| {
+            let mut paint = paint.clone();
+            paint.start.scene_index = from.start.scene_index;
+            paint.end.scene_index = from.start.scene_index;
+            inside(&paint)
+        };
+        layer
+            .rows
+            .follow_told_paint(frame, &mut window.next_frame, &copied, &shift);
         if layer.input.prepaint_followed != Some(frame) {
             continue;
         }

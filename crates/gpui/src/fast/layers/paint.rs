@@ -396,7 +396,7 @@ pub(crate) fn unlayered_content_mask(window: &Window) -> ContentMask<Pixels> {
 /// An edge a few units in the last place off a device pixel is on it: a
 /// window's size in pixels is its size in device pixels divided by the scale
 /// factor, and scaling it back can miss by as much.
-fn on_device_pixels(bounds: Bounds<Pixels>, scale_factor: f32) -> bool {
+pub(crate) fn on_device_pixels(bounds: Bounds<Pixels>, scale_factor: f32) -> bool {
     let whole = |value: Pixels| {
         let device = value.0 * scale_factor;
         (device - device.round()).abs() <= device.abs().max(1.) * f32::EPSILON * 4.
@@ -511,7 +511,7 @@ fn note_composited_hovers(window: &Window, id: &GlobalElementId) {
 /// prepaint decided to composite its layer, so this frame shows what the
 /// layer painted before: it is painted afresh on the next, as a view drawn
 /// from last frame is built on the next (`retained::reuse_paint`).
-fn repaint_if_painted_otherwise(window: &mut Window, id: &GlobalElementId) {
+pub(crate) fn repaint_if_painted_otherwise(window: &mut Window, id: &GlobalElementId) {
     let now = PaintedWith::current(window);
     let Some(layer) = window.fast_layers.layers.get_mut(id) else {
         return;
@@ -888,7 +888,7 @@ pub(crate) fn uncompositable(scene: &Scene) -> bool {
 /// Moves what `from`, a layer's scene, holds besides its paint operations
 /// (the screen effects requested while the content was painted) to `to`,
 /// the frame's scene, where painting without a layer would have put it.
-fn take_scene_requests(from: &mut Scene, to: &mut Scene) {
+pub(crate) fn take_scene_requests(from: &mut Scene, to: &mut Scene) {
     to.active_screen_effects
         .append(&mut from.active_screen_effects);
     to.active_screen_effect_snapshots

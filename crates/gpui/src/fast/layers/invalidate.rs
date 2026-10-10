@@ -428,6 +428,27 @@ pub(crate) struct ListBuilt {
     pub(crate) states: usize,
 }
 
+/// Notes that a `list` is being built, by the render of the view holding it.
+pub(crate) fn note_list_built() {
+    if !COMPILED {
+        return;
+    }
+    let offsets = OFFSET_READS
+        .with_borrow(|log| (log.recordings > 0).then_some((log.epoch, log.reads.len())));
+    let built = offsets
+        .zip(crate::fast::dependencies::read_log_lengths())
+        .map(
+            |((epoch, offsets), (entities, globals, states))| ListBuilt {
+                epoch,
+                offsets,
+                entities,
+                globals,
+                states,
+            },
+        );
+    LIST_BUILT.set(built);
+}
+
 /// Where the logs stood when the last list was built by a render that began
 /// reading offsets at `start` and has read up to `end`, if it built one.
 ///
@@ -1095,10 +1116,12 @@ fn owner_change(
     // content: the row renderer a list is handed is built as the view
     // renders, before the elements it built are laid out, prepainted and
     // painted and read what they read — an input showing its cursor, say.
-    // What the content itself reads is its record's.
+    // What the content itself reads is its record's. A list's rows are
+    // shaped only by what the render read before it built the list.
     let read = owner
         .render_dependencies
         .as_ref()
+        .map(|render| render.shaping(is_list(window, id)))
         .unwrap_or(&owner.own_dependencies);
     // The view reads itself as it renders. A notification alone, which a
     // scroll sends it, changes nothing it held: gpux counts an entity as

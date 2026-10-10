@@ -191,6 +191,7 @@ mod invalidation {
             let read = record
                 .render_dependencies
                 .as_ref()
+                .map(|render| &render.all)
                 .unwrap_or(&record.own_dependencies);
             render_read_offset(read, &source)
         })

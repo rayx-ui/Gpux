@@ -82,7 +82,7 @@ pub(crate) struct RetainedSubtree {
     /// prepainted or painted, it shapes the closures its render handed its
     /// elements, such as a list's row renderer. `None` when the view was not
     /// rendered.
-    pub(crate) render_dependencies: Option<RenderDependencies>,
+    pub(crate) render_dependencies: Option<crate::fast::dependencies::RenderReads>,
     /// The hovers the view was drawn by, nested views included.
     pub(crate) hover_reads: Rc<[(HitboxId, bool)]>,
     /// Where those hovers can change.
@@ -171,7 +171,7 @@ struct RetainedLayoutRecording {
     sticky: (usize, crate::window::StickyLayoutContextId),
     /// What the view read while its `render` ran. See
     /// [`RetainedLayoutRecording::rendered`].
-    render: Option<RenderDependencies>,
+    render: Option<crate::fast::dependencies::RenderReads>,
 }
 
 impl RetainedLayoutRecording {
@@ -196,7 +196,7 @@ struct RetainedRecording {
 impl RetainedRecording {
     /// What the view this records the prepaint of read while its `render`
     /// ran, taken as `render` returns.
-    fn rendered(&self, cx: &mut App) -> RenderDependencies {
+    fn rendered(&self, cx: &mut App) -> crate::fast::dependencies::RenderReads {
         cx.dependencies_so_far(&self.dependencies)
     }
 }

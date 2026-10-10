@@ -190,19 +190,92 @@ fn describe_scene(scene: &crate::Scene, lines: &mut Vec<String>) {
     }
 }
 
+/// The indices `0..len` of the records of one kind a frame holds, as a frame
+/// drawn without list layers would hold them: in the frame's order, but with
+/// the records of each list's rows (`lists`, each row's range of the kind
+/// given by `range_of`) gathered where the first of them lies, row after
+/// row, and those of the rows the list does not show left out. See
+/// [`crate::fast::layers::lists::ToldRow`].
+///
+/// With no list shown from a layer this is `0..len`.
+fn told_order(
+    len: usize,
+    lists: &[&[ToldRow]],
+    range_of: impl Fn(&ToldRow) -> Option<std::ops::Range<usize>>,
+) -> Vec<usize> {
+    if lists.is_empty() {
+        return (0..len).collect();
+    }
+    // Which list's rows each index belongs to, if any.
+    let mut owner: Vec<Option<usize>> = vec![None; len];
+    for (list, rows) in lists.iter().enumerate() {
+        for row in rows.iter() {
+            for index in range_of(row).into_iter().flatten() {
+                if let Some(owner) = owner.get_mut(index) {
+                    *owner = Some(list);
+                }
+            }
+        }
+    }
+    let mut order = Vec::with_capacity(len);
+    let mut gathered = vec![false; lists.len()];
+    for (index, owner) in owner.iter().enumerate() {
+        let Some(list) = *owner else {
+            order.push(index);
+            continue;
+        };
+        if std::mem::replace(&mut gathered[list], true) {
+            continue;
+        }
+        let mut rows: Vec<&ToldRow> = lists[list].iter().filter(|row| row.shown).collect();
+        rows.sort_by_key(|row| row.row);
+        for row in rows {
+            order.extend(range_of(row).into_iter().flatten().filter(|at| *at < len));
+        }
+    }
+    order
+}
+
+use crate::fast::layers::lists::ToldRow;
+
 /// What the last frame `window` drew shows, where it can be hit and how it
 /// dispatches input, one line per fact, in an order two windows drawing the
 /// same frame share. Hitboxes are listed in hit-test order, and every
 /// reference to a hitbox names its place in that order rather than its id,
 /// which a replayed view keeps from the frame it was recorded in.
+///
+/// A frame shown from a list's layer is described as the frame drawing the
+/// rows its list shows, row after row, would have left it (see
+/// [`told_order`]), as a scene compositing layers is described by their
+/// content.
 pub(crate) fn describe_frame(window: &Window) -> Vec<String> {
     let frame = &window.rendered_frame;
     let mut lines = Vec::new();
     describe_scene(&frame.scene, &mut lines);
 
+    let lists = crate::fast::layers::lists::told_rows(window);
+    let prepaint = |index: fn(&crate::PrepaintStateIndex) -> usize| {
+        move |row: &ToldRow| Some(index(&row.prepaint.start)..index(&row.prepaint.end))
+    };
+    let paint = |index: fn(&crate::PaintIndex) -> usize| {
+        move |row: &ToldRow| {
+            row.paint
+                .as_ref()
+                .map(|paint| index(&paint.start)..index(&paint.end))
+        }
+    };
+
     // Hitboxes in the order a point under all of them tests them: by layer,
     // topmost first, then the latest inserted first.
-    let mut hitboxes: Vec<(usize, &crate::Hitbox)> = frame.hitboxes.iter().enumerate().collect();
+    let mut hitboxes: Vec<(usize, &crate::Hitbox)> = told_order(
+        frame.hitboxes.len(),
+        &lists,
+        prepaint(|index| index.hitboxes_index),
+    )
+    .into_iter()
+    .map(|index| &frame.hitboxes[index])
+    .enumerate()
+    .collect();
     hitboxes.sort_by_key(|(index, hitbox)| {
         (
             std::cmp::Reverse(hitbox.id.layer()),
@@ -230,30 +303,48 @@ pub(crate) fn describe_frame(window: &Window) -> Vec<String> {
             hitbox.behavior
         ));
     }
-    for (area, hitbox) in &frame.window_control_hitboxes {
+    for index in told_order(
+        frame.window_control_hitboxes.len(),
+        &lists,
+        paint(|index| index.fast_window_control_hitboxes_index),
+    ) {
+        let (area, hitbox) = &frame.window_control_hitboxes[index];
         lines.push(format!(
             "window control {area:?} {:?} {:?} {:?}",
             hitbox.bounds, hitbox.content_mask, hitbox.behavior
         ));
     }
-    for request in &frame.cursor_styles {
+    for index in told_order(
+        frame.cursor_styles.len(),
+        &lists,
+        paint(|index| index.cursor_styles_index),
+    ) {
+        let request = &frame.cursor_styles[index];
         lines.push(format!(
             "cursor {} {:?}",
             hitbox_name(request.hitbox_id),
             request.style
         ));
     }
+    let tooltips = told_order(
+        frame.tooltip_requests.len(),
+        &lists,
+        prepaint(|index| index.tooltips_index),
+    );
     lines.push(format!(
         "tooltips {} slots {}",
-        frame
-            .tooltip_requests
+        tooltips
             .iter()
-            .filter(|request| request.is_some())
+            .filter(|index| frame.tooltip_requests[**index].is_some())
             .count(),
-        frame.tooltip_requests.len()
+        tooltips.len()
     ));
-    for operation in &frame.tab_stops.insertion_history {
-        lines.push(match operation {
+    for index in told_order(
+        frame.tab_stops.insertion_history.len(),
+        &lists,
+        paint(|index| index.tab_handle_index),
+    ) {
+        lines.push(match &frame.tab_stops.insertion_history[index] {
             crate::TabStopOperation::Insert(handle) => {
                 format!("tab stop {:?} index={}", handle.id, handle.tab_index)
             }
@@ -263,29 +354,60 @@ pub(crate) fn describe_frame(window: &Window) -> Vec<String> {
     }
     // A listener's dispatch phase is an argument it is called with, not part of
     // what it registered for, so listeners are described by their event type.
-    lines.push(format!("mouse listeners {}", frame.mouse_listeners.len()));
+    let listeners = told_order(
+        frame.mouse_listeners.len(),
+        &lists,
+        paint(|index| index.mouse_listeners_index),
+    );
+    lines.push(format!("mouse listeners {}", listeners.len()));
     let mut events: Vec<(&str, usize)> = Vec::new();
     #[cfg(any(test, feature = "test-support"))]
-    for event in &frame.fast_mouse_listener_events {
+    for index in &listeners {
+        let Some(event) = frame.fast_mouse_listener_events.get(*index) else {
+            continue;
+        };
         let event = event.rsplit("::").next().unwrap_or(event);
         match events.iter_mut().find(|(name, _)| *name == event) {
             Some((_, count)) => *count += 1,
             None => events.push((event, 1)),
         }
     }
+    #[cfg(not(any(test, feature = "test-support")))]
+    let _ = &listeners;
     for (event, count) in events {
         lines.push(format!("mouse listeners for {event}: {count}"));
     }
     lines.push(format!(
         "input handler slots {}",
-        frame.input_handlers.len()
+        told_order(
+            frame.input_handlers.len(),
+            &lists,
+            paint(|index| index.input_handlers_index),
+        )
+        .len()
     ));
 
+    // The dispatch nodes, numbered as they are told.
     let dispatch_tree = &frame.dispatch_tree;
-    for (index, node) in dispatch_tree.nodes.iter().enumerate() {
+    let nodes = told_order(
+        dispatch_tree.nodes.len(),
+        &lists,
+        prepaint(|index| index.dispatch_tree_index),
+    );
+    let mut told_node: FxHashMap<usize, usize> = FxHashMap::default();
+    for (told, index) in nodes.iter().enumerate() {
+        told_node.insert(*index, told);
+    }
+    let node_id = |id: crate::key_dispatch::DispatchNodeId| {
+        told_node
+            .get(&id.as_usize())
+            .map(|told| crate::key_dispatch::DispatchNodeId::from_usize(*told))
+    };
+    for (told, index) in nodes.iter().enumerate() {
+        let node = &dispatch_tree.nodes[*index];
         lines.push(format!(
-            "dispatch {index} parent={:?} context={:?} focus={:?} view={:?} keys={} actions={} modifiers={}",
-            node.parent,
+            "dispatch {told} parent={:?} context={:?} focus={:?} view={:?} keys={} actions={} modifiers={}",
+            node.parent.and_then(node_id),
             node.context,
             node.focus_id,
             node.view_id,
@@ -303,26 +425,73 @@ pub(crate) fn describe_frame(window: &Window) -> Vec<String> {
     // carries the states its layout used before those its prepaint did. A
     // cached view's own replay bookkeeping is the ordinary path's, which
     // view retention replaces, and view retention's released entries stand
-    // for nothing.
+    // for nothing. A row a list's layer holds off screen keeps its states
+    // while a list without a layer has yet to draw it.
     let bookkeeping = [
         std::any::TypeId::of::<crate::view::ViewElementState>(),
         std::any::TypeId::of::<crate::fast::retained::ReleasedElementState>(),
     ];
+    let states = |row: &ToldRow| {
+        let prepaint = |range: &std::ops::Range<crate::PrepaintStateIndex>| {
+            range.start.accessed_element_states_index..range.end.accessed_element_states_index
+        };
+        let paint = row.paint.as_ref().map_or(0..0, |paint| {
+            paint.start.accessed_element_states_index..paint.end.accessed_element_states_index
+        });
+        [
+            prepaint(&row.prepaint),
+            row.layout.as_ref().map_or(0..0, prepaint),
+            paint,
+        ]
+    };
+    let mut hidden_states = vec![false; frame.accessed_element_states.len()];
+    for row in lists
+        .iter()
+        .flat_map(|rows| rows.iter())
+        .filter(|row| !row.shown)
+    {
+        for index in states(row).into_iter().flatten() {
+            if let Some(hidden) = hidden_states.get_mut(index) {
+                *hidden = true;
+            }
+        }
+    }
     let mut element_states = frame
         .accessed_element_states
         .iter()
-        .filter(|(_, type_id)| !bookkeeping.contains(type_id))
-        .map(|(id, type_id)| format!("element state {id} {type_id:?}"))
+        .zip(&hidden_states)
+        .filter(|((_, type_id), hidden)| !**hidden && !bookkeeping.contains(type_id))
+        .map(|((id, type_id), _)| format!("element state {id} {type_id:?}"))
         .collect::<Vec<_>>();
     element_states.sort();
     element_states.dedup();
     lines.extend(element_states);
+    // The DevKit nodes, which the snapshot leaves the rows off screen out
+    // of and tells row after row, numbered as they are told.
     let devtools = window.devtools_frame_snapshot();
     lines.push(format!(
         "devtools viewport {:?} effects {:?}",
         devtools.viewport, devtools.effects
     ));
-    for element in &devtools.elements {
+    let ids = told_order(
+        frame.next_devtools_node_id,
+        &lists,
+        prepaint(|index| index.devtools_node_id),
+    );
+    let mut told_id: FxHashMap<usize, usize> = FxHashMap::default();
+    for (told, id) in ids.iter().enumerate() {
+        told_id.insert(*id, told);
+    }
+    let told =
+        |ids: &FxHashMap<usize, usize>, id: usize| ids.get(&id).copied().unwrap_or(usize::MAX);
+    for mut element in devtools.elements {
+        element.devtools_node_id = told(&told_id, element.devtools_node_id);
+        element.parent_devtools_node_id =
+            element.parent_devtools_node_id.map(|id| told(&told_id, id));
+        element.dispatch_node_id = told(&told_node, element.dispatch_node_id);
+        element.parent_dispatch_node_id = element
+            .parent_dispatch_node_id
+            .map(|id| told(&told_node, id));
         lines.push(format!("devtools {element:?}"));
     }
     lines

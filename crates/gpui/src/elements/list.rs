@@ -20,16 +20,17 @@ use refineable::Refineable as _;
 use std::{cell::RefCell, ops::Range, rc::Rc};
 use sum_tree::{Bias, Dimensions, SumTree};
 
-type RenderItemFn = dyn FnMut(usize, &mut Window, &mut App) -> AnyElement + 'static;
+pub(crate) type RenderItemFn = dyn FnMut(usize, &mut Window, &mut App) -> AnyElement + 'static;
 
 /// Construct a new list element
 pub fn list(
     state: ListState,
     render_item: impl FnMut(usize, &mut Window, &mut App) -> AnyElement + 'static,
 ) -> List {
+    crate::fast::layers::invalidate::note_list_built();
     List {
         state,
-        render_item: Box::new(render_item),
+        render_item: crate::fast::layers::lists::spanned_render_item(render_item),
         style: StyleRefinement::default(),
         sizing_behavior: ListSizingBehavior::default(),
     }
@@ -53,7 +54,7 @@ impl List {
 
 /// The list state that views must hold on behalf of the list element.
 #[derive(Clone)]
-pub struct ListState(Rc<RefCell<StateInner>>);
+pub struct ListState(pub(crate) Rc<RefCell<StateInner>>);
 
 impl std::fmt::Debug for ListState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -61,10 +62,10 @@ impl std::fmt::Debug for ListState {
     }
 }
 
-struct StateInner {
-    last_layout_bounds: Option<Bounds<Pixels>>,
-    last_padding: Option<Edges<Pixels>>,
-    items: SumTree<ListItem>,
+pub(crate) struct StateInner {
+    pub(crate) last_layout_bounds: Option<Bounds<Pixels>>,
+    pub(crate) last_padding: Option<Edges<Pixels>>,
+    pub(crate) items: SumTree<ListItem>,
     logical_scroll_top: Option<ListOffset>,
     alignment: ListAlignment,
     overdraw: Pixels,
@@ -75,18 +76,18 @@ struct StateInner {
     scrollbar_drag_start_items: Option<SumTree<ListItem>>,
     measuring_behavior: ListMeasuringBehavior,
     item_size_hint: Option<Size<Pixels>>,
-    pending_scroll: Option<PendingScroll>,
-    pending_programmatic_scroll: Option<PendingProgrammaticScroll>,
+    pub(crate) pending_scroll: Option<PendingScroll>,
+    pub(crate) pending_programmatic_scroll: Option<PendingProgrammaticScroll>,
     follow_state: FollowState,
-    sticky_items: StickyItems,
+    pub(crate) sticky_items: StickyItems,
     activity: ScrollActivity,
     /// Moves when the list's items, scroll position or following change from
     /// outside the list element, for a retained owner to be built again.
-    fast_version: crate::fast::dependencies::StateVersion,
+    pub(crate) fast_version: crate::fast::dependencies::StateVersion,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-enum PendingProgrammaticScroll {
+pub(crate) enum PendingProgrammaticScroll {
     Logical(ListOffset, ScrollBehavior),
     Scrollbar(Point<Pixels>, ScrollBehavior),
 }
@@ -115,7 +116,7 @@ impl From<usize> for StickyItem {
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct StickyItems {
-    candidates: Vec<StickyItem>,
+    pub(crate) candidates: Vec<StickyItem>,
     relation: StickyRelationIndex,
 }
 
@@ -196,7 +197,7 @@ impl StickyItems {
 /// proportional pending scroll preserves the same fractional position within the item,
 /// which is useful when the whole list is being resized and each item scales similarly.
 #[derive(Clone)]
-enum PendingScroll {
+pub(crate) enum PendingScroll {
     /// Preserve the same pixel offset into the item after it is remeasured.
     Absolute { item_ix: usize, offset: Pixels },
     /// Preserve the same fractional offset into the item after it is remeasured.
@@ -206,7 +207,7 @@ enum PendingScroll {
 /// Keeps track of a fractional scroll position within an item for restoration
 /// after remeasurement.
 #[derive(Clone)]
-struct PendingScrollFraction {
+pub(crate) struct PendingScrollFraction {
     /// The index of the item to scroll within.
     item_ix: usize,
     /// Fractional offset (0.0 to 1.0) within the item's height.
@@ -359,7 +360,7 @@ pub struct ListPrepaintState {
 }
 
 #[derive(Clone)]
-enum ListItem {
+pub(crate) enum ListItem {
     Unmeasured {
         size_hint: Option<Size<Pixels>>,
         focus_handle: Option<FocusHandle>,
@@ -371,7 +372,7 @@ enum ListItem {
 }
 
 impl ListItem {
-    fn size(&self) -> Option<Size<Pixels>> {
+    pub(crate) fn size(&self) -> Option<Size<Pixels>> {
         if let ListItem::Measured { size, .. } = self {
             Some(*size)
         } else {
@@ -406,17 +407,17 @@ impl ListItem {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-struct ListItemSummary {
-    count: usize,
+pub(crate) struct ListItemSummary {
+    pub(crate) count: usize,
     rendered_count: usize,
     unrendered_count: usize,
-    height: Pixels,
+    pub(crate) height: Pixels,
     has_focus_handles: bool,
-    has_unknown_height: bool,
+    pub(crate) has_unknown_height: bool,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
-struct Count(usize);
+pub(crate) struct Count(pub(crate) usize);
 
 #[derive(Clone, Debug, Default)]
 struct Height(Pixels);
@@ -718,6 +719,7 @@ impl ListState {
     /// not scrollable or the total content height is not yet known.
     pub fn is_scrolled_to_end(&self) -> Option<bool> {
         let state = self.0.borrow();
+        crate::fast::layers::lists::note_at_end_read(&state);
         let bounds = state.last_layout_bounds?;
         let summary = state.items.summary();
         if summary.has_unknown_height {
@@ -814,15 +816,16 @@ impl ListState {
 
     /// Get the current scroll offset, in terms of the list's items.
     pub fn logical_scroll_top(&self) -> ListOffset {
+        crate::fast::layers::invalidate::note_offset_read(&self.0.borrow().fast_version);
         self.0.borrow().logical_scroll_top()
     }
 
     /// Try to get the current logical scroll offset without panicking if the state is already borrowed.
     pub fn try_logical_scroll_top(&self) -> Option<ListOffset> {
-        self.0
-            .try_borrow()
-            .ok()
-            .map(|state| state.logical_scroll_top())
+        self.0.try_borrow().ok().map(|state| {
+            crate::fast::layers::invalidate::note_offset_read(&state.fast_version);
+            state.logical_scroll_top()
+        })
     }
 
     /// Scroll the list by the given offset
@@ -868,7 +871,8 @@ impl ListState {
     /// always show the bottom of the last item — even when that item is still
     /// growing (e.g. during streaming).
     pub fn scroll_to_end(&self) {
-        let _fast = self.fast_scroll_guard();
+        let _fast =
+            crate::fast::layers::lists::moves_to_end(&self.0).then(|| self.fast_scroll_guard());
         let state = &mut *self.0.borrow_mut();
         state.activity.stop();
         state.pending_programmatic_scroll = None;
@@ -881,7 +885,8 @@ impl ListState {
 
     /// Try to scroll the list to the end without panicking if the state is already borrowed.
     pub fn try_scroll_to_end(&self) -> bool {
-        let _fast = self.fast_scroll_guard();
+        let _fast =
+            crate::fast::layers::lists::moves_to_end(&self.0).then(|| self.fast_scroll_guard());
         let Ok(mut state) = self.0.try_borrow_mut() else {
             return false;
         };
@@ -1118,6 +1123,7 @@ impl ListState {
     /// been rendered.
     pub fn bounds_for_item(&self, ix: usize) -> Option<Bounds<Pixels>> {
         let state = &*self.0.borrow();
+        crate::fast::layers::invalidate::note_offset_read(&state.fast_version);
 
         let bounds = state.last_layout_bounds.unwrap_or_default();
         let scroll_top = state.logical_scroll_top();
@@ -1149,6 +1155,7 @@ impl ListState {
         let Ok(state) = self.0.try_borrow() else {
             return None;
         };
+        crate::fast::layers::invalidate::note_offset_read(&state.fast_version);
 
         let bounds = state.last_layout_bounds.unwrap_or_default();
         let scroll_top = state.logical_scroll_top();
@@ -1307,6 +1314,7 @@ impl ListState {
     /// how far the content has scrolled.
     pub fn scroll_px_offset_for_scrollbar(&self) -> Point<Pixels> {
         let state = &self.0.borrow();
+        crate::fast::layers::invalidate::note_offset_read(&state.fast_version);
 
         if state.logical_scroll_top.is_none() && state.alignment == ListAlignment::Bottom {
             return Point::new(px(0.), -state.max_scroll_offset());
@@ -1331,6 +1339,7 @@ impl ListState {
         let Ok(state) = self.0.try_borrow() else {
             return None;
         };
+        crate::fast::layers::invalidate::note_offset_read(&state.fast_version);
 
         if state.logical_scroll_top.is_none() && state.alignment == ListAlignment::Bottom {
             return Some(Point::new(px(0.), -state.max_scroll_offset()));
@@ -1563,11 +1572,16 @@ impl StateInner {
             );
         }
 
+        crate::fast::layers::invalidate::note_list_scrolled(
+            window,
+            &self.fast_version,
+            current_view,
+        );
         cx.notify(current_view);
         advanced
     }
 
-    fn logical_scroll_top(&self) -> ListOffset {
+    pub(crate) fn logical_scroll_top(&self) -> ListOffset {
         self.logical_scroll_top
             .unwrap_or_else(|| match self.alignment {
                 ListAlignment::Top => ListOffset {
@@ -1581,7 +1595,7 @@ impl StateInner {
             })
     }
 
-    fn scroll_top(&self, logical_scroll_top: &ListOffset) -> Pixels {
+    pub(crate) fn scroll_top(&self, logical_scroll_top: &ListOffset) -> Pixels {
         let (start, ..) = self.items.find::<ListItemSummary, _>(
             (),
             &Count(logical_scroll_top.item_ix),
@@ -1590,7 +1604,7 @@ impl StateInner {
         start.height + logical_scroll_top.offset_in_item
     }
 
-    fn item_top(&self, item_ix: usize) -> Pixels {
+    pub(crate) fn item_top(&self, item_ix: usize) -> Pixels {
         let (start, ..) = self
             .items
             .find::<ListItemSummary, _>((), &Count(item_ix), Bias::Right);
@@ -1714,7 +1728,14 @@ impl StateInner {
             let mut size = item.size();
 
             // If we're within the visible area or the height wasn't cached, render and measure the item's element
-            if visible_height < available_height || size.is_none() {
+            if (visible_height < available_height || size.is_none())
+                && !crate::fast::layers::lists::keeps_row(
+                    window,
+                    &self.fast_version,
+                    scroll_top.item_ix + ix,
+                    size.is_some(),
+                )
+            {
                 let item_index = scroll_top.item_ix + ix;
                 let mut element = render_item(item_index, window, cx);
                 let element_size = crate::fast::layout_key::layout_as_list_item(
@@ -2029,7 +2050,11 @@ impl StateInner {
 
             // Only paint the visible items, if there is actually any space for them (taking padding into account)
             if bounds.size.height > padding.top + padding.bottom {
-                let scroll_top = self.scroll_top(&layout_response.scroll_top);
+                let scroll_top = crate::fast::layers::lists::snap_scroll_top(
+                    window,
+                    self,
+                    self.scroll_top(&layout_response.scroll_top),
+                );
                 let scroll_offset = point(px(0.), -scroll_top);
                 let content_size = size(
                     bounds.size.width,
@@ -2045,6 +2070,14 @@ impl StateInner {
                 layout_response.scroll_context = Some(scroll_context);
 
                 window.with_scroll_container_context(scroll_context, |window| {
+                    let first_row = layout_response.scroll_top.item_ix;
+                    crate::fast::layers::lists::anchor_rows(
+                        window,
+                        self,
+                        first_row,
+                        point(bounds.origin.x, bounds.origin.y + padding.top),
+                        scroll_top,
+                    );
                     for item in &mut layout_response.item_layouts {
                         let item_origin = point(
                             bounds.origin.x,
@@ -2054,8 +2087,18 @@ impl StateInner {
                                     .sticky_stack_offset
                                     .unwrap_or_else(|| self.item_top(item.index) - scroll_top),
                         );
+                        crate::fast::layers::lists::place_list_item(
+                            window,
+                            cx,
+                            self,
+                            item.index,
+                            item_origin,
+                        );
                         window.with_content_mask(
-                            Some(ContentMask::rectangular(bounds)),
+                            crate::fast::layers::lists::row_clip(
+                                window,
+                                ContentMask::rectangular(bounds),
+                            ),
                             |window| {
                                 if item.sticky_stack_offset.is_some() {
                                     window.insert_hitbox(
@@ -2414,6 +2457,7 @@ impl Element for List {
         let padding = style
             .padding
             .to_pixels(bounds.size.into(), window.rem_size());
+        crate::fast::layers::lists::begin_list(window, cx, &state, bounds);
         let layout =
             match state.prepaint_items(bounds, padding, true, &mut self.render_item, window, cx) {
                 Ok(layout) => layout,
@@ -2424,6 +2468,14 @@ impl Element for List {
                         .unwrap()
                 }
             };
+        crate::fast::layers::lists::end_list(
+            window,
+            cx,
+            &state,
+            &mut self.render_item,
+            bounds,
+            layout.scroll_context,
+        );
 
         state.last_layout_bounds = Some(bounds);
         state.last_padding = Some(padding);
@@ -2473,11 +2525,19 @@ impl Element for List {
         cx: &mut App,
     ) {
         let current_view = window.current_view();
+        let state = &self.state;
         let mut paint_items = |window: &mut Window, cx: &mut App| {
             window.with_content_mask(Some(ContentMask::rectangular(bounds)), |window| {
+                crate::fast::layers::lists::begin_paint_list(window, cx, state);
                 for item in &mut prepaint.layout.item_layouts {
-                    item.element.paint(window, cx);
+                    crate::fast::layers::lists::paint_row(
+                        window,
+                        cx,
+                        Some(item.index),
+                        |window, cx| item.element.paint(window, cx),
+                    );
                 }
+                crate::fast::layers::lists::end_paint_list(window, cx, state);
             });
         };
         if let Some(scroll_context) = prepaint.layout.scroll_context {

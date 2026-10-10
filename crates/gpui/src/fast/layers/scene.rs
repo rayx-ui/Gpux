@@ -207,7 +207,6 @@ impl From<Rc<Scene>> for LayerContent {
 
 impl LayerContent {
     /// Content made of `parts`, drawn in order.
-    #[allow(dead_code, reason = "list layers use it, from sprint 12")]
     pub(crate) fn from_parts(parts: impl IntoIterator<Item = LayerPart>) -> Self {
         LayerContent {
             parts: parts.into_iter().collect(),
@@ -220,6 +219,12 @@ impl LayerContent {
             [part] => Some(&part.scene),
             _ => None,
         }
+    }
+
+    /// The scenes of the content's parts, in order.
+    #[cfg(test)]
+    pub(crate) fn part_scenes(&self) -> impl Iterator<Item = &Rc<Scene>> {
+        self.parts.iter().map(|part| &part.scene)
     }
 
     /// Whether `self` and `other` are the same content, shared.

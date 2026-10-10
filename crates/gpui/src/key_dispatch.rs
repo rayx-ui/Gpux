@@ -87,7 +87,7 @@ pub(crate) struct DispatchTree {
     pub(crate) context_stack: Vec<KeyContext>,
     view_stack: Vec<EntityId>,
     pub(crate) nodes: Vec<DispatchNode>,
-    focusable_node_ids: FxHashMap<FocusId, DispatchNodeId>,
+    pub(crate) focusable_node_ids: FxHashMap<FocusId, DispatchNodeId>,
     view_node_ids: FxHashMap<EntityId, DispatchNodeId>,
     keymap: Rc<RefCell<Keymap>>,
     action_registry: Rc<ActionRegistry>,

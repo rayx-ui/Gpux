@@ -1438,6 +1438,7 @@ pub(crate) struct DevtoolsFrameNode {
     pub(crate) key_listener_count: usize,
     pub(crate) action_listener_count: usize,
     pub(crate) focused: bool,
+    pub(crate) fast_row: crate::fast::layers::lists::NodeRow,
 }
 
 impl DevtoolsFrameNode {
@@ -4879,10 +4880,7 @@ impl Window {
             }
             .into(),
             effects: self.devtools_effect_snapshot(),
-            elements: self
-                .rendered_frame
-                .devtools_nodes
-                .iter()
+            elements: crate::fast::layers::lists::shown_nodes(&self.rendered_frame.devtools_nodes)
                 .map(DevtoolsFrameNode::snapshot)
                 .collect(),
         }
@@ -4953,11 +4951,13 @@ impl Window {
             source,
             bounds: bounds.into(),
             semantics: None,
-            hitbox_count: hitbox_range.len(),
+            hitbox_count: hitbox_range.len()
+                - crate::fast::layers::lists::hidden_hitboxes(self, &hitbox_range),
             key_listener_count: dispatch_node.key_listeners.len(),
             action_listener_count: dispatch_node.action_listeners.len(),
             focused: dispatch_node.focus_id.is_some()
                 && dispatch_node.focus_id == self.next_frame.focus,
+            fast_row: crate::fast::layers::lists::node_row(self),
         });
     }
 
@@ -5973,6 +5973,7 @@ impl Window {
                 key_listener_count: dispatch_node.key_listeners.len(),
                 action_listener_count: dispatch_node.action_listeners.len(),
                 focused: dispatch_node.focus_id.is_some() && dispatch_node.focus_id == self.focus,
+                fast_row: source.fast_row,
             });
             if let Some(setters) = self
                 .rendered_frame

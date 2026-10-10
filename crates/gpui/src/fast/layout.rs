@@ -266,6 +266,12 @@ impl LayoutRetention {
         }
     }
 
+    /// The keys claimed or made since the outermost recording open began, in
+    /// order: what [`Self::record_claimed_keys`] returns positions in.
+    pub(crate) fn claimed_key_log(&self) -> &[u64] {
+        &self.claimed_key_log
+    }
+
     /// Starts recording the keys of the nodes claimed or made from now on,
     /// returning where the recording starts. Recordings nest.
     pub(crate) fn record_claimed_keys(&mut self) -> usize {

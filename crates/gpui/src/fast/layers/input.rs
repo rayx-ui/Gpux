@@ -39,6 +39,10 @@ pub(crate) struct LayerInput {
     /// painted: how far behind the positions its closures and element
     /// states hold are.
     pub(crate) stale: Point<Pixels>,
+    /// How far the content shown scrolled between the last two frames that
+    /// carried its records: what a frame copies from the last one lies where
+    /// that one showed it.
+    pub(crate) step: Point<Pixels>,
     /// Whether the content is to be painted again at the offset shown the
     /// next time the container is prepainted, though nothing it is built
     /// from changed: it is about to see input (see [`before_dispatch`]).
@@ -60,11 +64,6 @@ pub(crate) struct PaintingInput {
     pub(crate) hitbox_masks: Vec<ContentMask<Pixels>>,
     /// Shared with the scroll handles tracking elements inside the content.
     pub(crate) handle_offset: Rc<Cell<Point<Pixels>>>,
-    /// For a virtual list's rows, the part of the content painted, which
-    /// the list's own clip, its viewport, is taken out of the masks noted
-    /// for: rows are prepainted inside that clip, which does not move with
-    /// them. See [`unclip`].
-    pub(crate) list_region: Option<Bounds<Pixels>>,
 }
 
 /// A scroll handle's state, as a handle shares it.
@@ -429,55 +428,11 @@ pub(crate) fn hitbox_mask(window: &mut Window) -> ContentMask<Pixels> {
     let Some(painting) = window.fast_layers.painting.as_mut() else {
         return mask;
     };
-    let noted = match painting.input.list_region {
-        Some(region) => unclip(mask, painting.viewport, region),
-        None => mask,
-    };
-    painting.input.hitbox_masks.push(noted);
+    painting.input.hitbox_masks.push(mask);
     ContentMask {
         bounds: mask.bounds.intersect(&painting.viewport),
         corner_radii: mask.corner_radii,
     }
-}
-
-/// `mask`, a mask inside `viewport`, with each edge it shares with
-/// `viewport` moved out to `region`'s: the clips of what lies inside a
-/// virtual list's rows, which move with the rows, without the list's own,
-/// which does not.
-fn unclip(
-    mask: ContentMask<Pixels>,
-    viewport: Bounds<Pixels>,
-    region: Bounds<Pixels>,
-) -> ContentMask<Pixels> {
-    let mask = mask.bounds;
-    let pick = |edge: Pixels, viewport: Pixels, region: Pixels| {
-        if edge == viewport { region } else { edge }
-    };
-    let top_left = crate::point(
-        pick(
-            mask.origin.x,
-            viewport.origin.x,
-            region.origin.x.min(viewport.origin.x),
-        ),
-        pick(
-            mask.origin.y,
-            viewport.origin.y,
-            region.origin.y.min(viewport.origin.y),
-        ),
-    );
-    let bottom_right = crate::point(
-        pick(
-            mask.right(),
-            viewport.right(),
-            region.right().max(viewport.right()),
-        ),
-        pick(
-            mask.bottom(),
-            viewport.bottom(),
-            region.bottom().max(viewport.bottom()),
-        ),
-    );
-    ContentMask::rectangular(Bounds::from_corners(top_left, bottom_right))
 }
 
 /// Notes, as the element the scroll handle whose state is `handle` tracks

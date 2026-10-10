@@ -271,7 +271,8 @@ pub(crate) fn layout_as_list_item(
     if !window.fast_layout.active {
         return element.layout_as_root(available_space, window, cx);
     }
-    crate::fast::layout::laying_out_list_row(window, |window| {
+    let start = crate::fast::layers::lists::row_layout_start(window, cx);
+    let size = crate::fast::layout::laying_out_list_row(window, |window| {
         if element.fast_element_id().is_some() {
             return element.layout_as_root(available_space, window, cx);
         }
@@ -282,5 +283,7 @@ pub(crate) fn layout_as_list_item(
         let size = element.layout_as_root(available_space, window, cx);
         pop_layout_key(window);
         size
-    })
+    });
+    crate::fast::layers::lists::note_row_layout(window, cx, index, start);
+    size
 }

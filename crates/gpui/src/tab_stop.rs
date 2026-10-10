@@ -11,8 +11,8 @@ use crate::{FocusHandle, FocusId};
 pub(crate) struct TabStopMap {
     current_path: TabStopPath,
     pub(crate) insertion_history: Vec<TabStopOperation>,
-    by_id: FxHashMap<FocusId, TabStopNode>,
-    order: SumTree<TabStopNode>,
+    pub(crate) by_id: FxHashMap<FocusId, TabStopNode>,
+    pub(crate) order: SumTree<TabStopNode>,
 }
 
 #[derive(Debug, Clone)]
@@ -37,13 +37,13 @@ type TabIndex = isize;
 struct TabStopPath(smallvec::SmallVec<[TabIndex; 6]>);
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
-struct TabStopNode {
+pub(crate) struct TabStopNode {
     /// Path to access the node in the tree
     /// The final node in the list is a leaf node corresponding to an actual focus handle,
     /// all other nodes are group nodes
     path: TabStopPath,
     /// index into the backing array of nodes. Corresponds to insertion order
-    node_insertion_index: usize,
+    pub(crate) node_insertion_index: usize,
 
     /// Whether this node is a tab stop
     tab_stop: bool,

@@ -888,6 +888,10 @@ struct Coverage {
     scrolled: usize,
     /// Inputs dispatched after a frame painting a layer where it shows.
     frames_before_input: usize,
+    /// Frames that composited a list's layer keeping the rows it held.
+    list_frames: usize,
+    /// Rows a list's layer held that were rendered again for their hover.
+    rows_rendered_for_hover: usize,
 }
 
 /// Drives a window with layers and one without through one random history
@@ -924,6 +928,8 @@ fn run(
     let mut history: Vec<Vec<Change>> = Vec::new();
     let mut last_wheel: Option<Change> = None;
     let mut coverage = Coverage::default();
+    let list_frames = crate::fast::layers::lists::extended_frames();
+    let rows_rendered_for_hover = crate::fast::layers::lists::rows_rendered_for_hover();
 
     for step in 0..steps {
         // A wheel turns for several frames in a row, which is what promotes
@@ -1052,12 +1058,17 @@ fn run(
             window.fast_stats().layers_composited
         })
         .unwrap();
+    coverage.list_frames = crate::fast::layers::lists::extended_frames() - list_frames;
+    coverage.rows_rendered_for_hover =
+        crate::fast::layers::lists::rows_rendered_for_hover() - rows_rendered_for_hover;
     coverage
 }
 
 /// The containers the runs scroll: the two scrolling divs. The lists beside
-/// them get their layers, and their own runs, with list layers.
+/// them have their own runs (see [`list_frames_match_at`]).
 const DIVS: Range<usize> = 0..2;
+/// The uniform list and the list.
+const LISTS: Range<usize> = 2..4;
 
 /// Runs random histories at `scale_factor`, as [`run`] does, and adds up
 /// what they went through. `SEED` and `ITERATIONS` pick the seeds.
@@ -1085,6 +1096,8 @@ fn run_all(scale_factor: f32, containers: Range<usize>, keep_turning: f64) -> [C
             total.keys += coverage.keys;
             total.scrolled += coverage.scrolled;
             total.frames_before_input += coverage.frames_before_input;
+            total.list_frames += coverage.list_frames;
+            total.rows_rendered_for_hover += coverage.rows_rendered_for_hover;
         }
     }
     totals
@@ -1111,6 +1124,29 @@ fn frames_match_at(scale_factor: f32) {
         assert!(
             kept.composited * 10 >= kept.scrolled as u64,
             "too few frames composited a scroll layer: {kept:?}"
+        );
+    }
+}
+
+/// The same, scrolling only the uniform list and the list, whose layers keep
+/// their rows from frame to frame, carry their rows' hitboxes and listeners,
+/// and render again the rows whose hover changes. Run from the list layers'
+/// own group (`fast::tests::list_layers::oracle`).
+pub(crate) fn list_frames_match_at(scale_factor: f32) {
+    let [policy, kept] = run_all(scale_factor, LISTS, 0.9);
+    for total in [&policy, &kept] {
+        assert!(
+            total.clicks > 0 && total.downs > 0,
+            "no listener saw a click and a mouse down, so their positions were not \
+             compared: {total:?}"
+        );
+        assert!(total.scrolled > 0, "nothing ever scrolled");
+    }
+    if crate::fast::layers::COMPILED {
+        assert!(
+            kept.list_frames > 50 && kept.rows_rendered_for_hover > 0,
+            "no frame kept the rows of a list's layer, or rendered one again for its \
+             hover: {kept:?}"
         );
     }
 }

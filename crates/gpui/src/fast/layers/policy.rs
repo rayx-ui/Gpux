@@ -258,6 +258,7 @@ pub(crate) fn decide(
         }
         Some(record)
             if policy.painted_in.as_ref() == Some(&context)
+                && !layer.rows.state_changed
                 && invalidate::scroll_only(window, cx, id, record, scroll_offset) =>
         {
             // Only scrolled; painted again if the scroll exposes what was
