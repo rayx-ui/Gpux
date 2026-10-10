@@ -34,6 +34,9 @@ screen-capture = ["gpux/screen-capture", "gpui_macos/screen-capture", "gpui_wind
 runtime_shaders = ["gpui_macos/runtime_shaders"]
 wayland = ["gpui_linux/wayland"]
 x11 = ["gpui_linux/x11"]
+# The manual native-view examples (`examples/webview_*.rs`, `examples/wayland_surface.rs`), which
+# need their platform's web engine; not built by default or in CI.
+webview-examples = ["font-kit"]
 
 [[bench]]
 name = "fast_mode"
@@ -56,8 +59,29 @@ gpux.workspace = true
 gpux_fonts = { workspace = true, optional = true }
 
 [dev-dependencies]
+anyhow.workspace = true
 bench_metrics.workspace = true
 criterion.workspace = true
+raw-window-handle.workspace = true
+
+[target.'cfg(target_os = "macos")'.dev-dependencies]
+objc2.workspace = true
+objc2-app-kit.workspace = true
+objc2-foundation.workspace = true
+objc2-web-kit = { version = "0.3.2", default-features = false, features = ["std", "objc2-app-kit", "objc2-core-foundation", "WKWebView", "WKWebViewConfiguration", "WKNavigation"] }
+
+[target.'cfg(target_os = "windows")'.dev-dependencies]
+webview2-com = "0.39.1"
+windows = { workspace = true, features = ["Win32_Graphics_DirectComposition"] }
+windows-core.workspace = true
+
+[target.'cfg(any(target_os = "linux", target_os = "freebsd"))'.dev-dependencies]
+gdkx11 = "0.18"
+gpui_wgpu.workspace = true
+gtk = "0.18"
+pollster.workspace = true
+webkit2gtk = "2.0.2"
+x11rb = "0.13.1"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 gpui_macos.workspace = true
@@ -80,3 +104,19 @@ gpui_wgpu = { workspace = true, optional = true }
 [target.'cfg(target_family = "wasm")'.dependencies]
 gpui_web.workspace = true
 console_error_panic_hook.workspace = true
+
+[[example]]
+name = "webview_macos"
+required-features = ["webview-examples"]
+
+[[example]]
+name = "webview_windows"
+required-features = ["webview-examples"]
+
+[[example]]
+name = "webview_gtk"
+required-features = ["webview-examples"]
+
+[[example]]
+name = "wayland_surface"
+required-features = ["webview-examples"]
