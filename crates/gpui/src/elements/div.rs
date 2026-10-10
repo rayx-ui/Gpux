@@ -3008,7 +3008,7 @@ impl Interactivity {
         }
     }
 
-    fn scroll_max_for_bounds(
+    pub(crate) fn scroll_max_for_bounds(
         content_size: Size<Pixels>,
         bounds_size: Size<Pixels>,
         style: &Style,

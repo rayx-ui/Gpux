@@ -28,6 +28,9 @@ pub(crate) struct LayerRecord {
     /// The part of the content painted, in window space at paint: the
     /// viewport and the overscan around it.
     pub(crate) painted_region: Bounds<Pixels>,
+    /// Where the content lay, in window space at paint, from the container's
+    /// origin to the far corner of its children.
+    pub(crate) content_bounds: Bounds<Pixels>,
     /// The container's clip rect in window space at paint.
     pub(crate) viewport: Bounds<Pixels>,
     /// The scroll offset the content was painted at, snapped.

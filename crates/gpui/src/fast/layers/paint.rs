@@ -52,6 +52,10 @@ pub(crate) struct Painting {
     /// The part of the content painted, in window space: the viewport and
     /// the overscan around it, within the content.
     pub(crate) painted_region: Bounds<Pixels>,
+    /// Where the content lies, in window space: from the container's origin,
+    /// where its padding and its first child's margin begin, to the far
+    /// corner of its children.
+    pub(crate) content_bounds: Bounds<Pixels>,
     /// While the content paints, the frame's scene, swapped out for the
     /// layer's; otherwise the layer's scene, in window space.
     pub(crate) scene: Scene,
@@ -307,14 +311,30 @@ fn begin_scrolling_children(
             crate::fast::layers::reuse::carry_prepaint(window, id, viewport, scroll_offset);
         }
         Decision::Repaint => {
-            let content_origin = if child_min.x == Pixels::MAX {
-                bounds.origin
+            // The content is everything the container scrolls over: its
+            // padding and its first child's margin scroll with the children,
+            // and the layer covers them like the rest (`policy::covers`).
+            let scroll_max = crate::Interactivity::scroll_max_for_bounds(
+                content_size,
+                bounds.size,
+                style,
+                window.rem_size(),
+                window.scale_factor(),
+            );
+            let scrolled_over = bounds.bottom_right() + scroll_max;
+            let content = if child_min.x == Pixels::MAX {
+                Bounds::from_corners(
+                    bounds.origin + scroll_offset,
+                    scrolled_over
+                        .max(&(bounds.origin + point(content_size.width, content_size.height)))
+                        + scroll_offset,
+                )
             } else {
-                child_min
-            };
-            let content = Bounds {
-                origin: content_origin + scroll_offset,
-                size: content_size,
+                let children_end = child_min + point(content_size.width, content_size.height);
+                Bounds::from_corners(
+                    bounds.origin.min(&child_min) + scroll_offset,
+                    scrolled_over.max(&children_end) + scroll_offset,
+                )
             };
             let painted_region = painted_region(viewport, content, style.overflow);
             let start = window.prepaint_index();
@@ -322,6 +342,7 @@ fn begin_scrolling_children(
                 id: id.clone(),
                 viewport,
                 painted_region,
+                content_bounds: content,
                 scene: Scene::default(),
                 scroll_offset,
                 translation: translation(window, scroll_offset),
@@ -1199,6 +1220,7 @@ fn repaint(
         content: LayerContent::from(content),
         generation,
         painted_region: painting.painted_region,
+        content_bounds: painting.content_bounds,
         viewport: painting.viewport,
         scroll_offset: painting.scroll_offset,
         translation,

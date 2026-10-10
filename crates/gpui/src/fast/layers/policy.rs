@@ -263,7 +263,7 @@ pub(crate) fn decide(
             // Only scrolled; painted again if the scroll exposes what was
             // not painted, which is not a change of the content. A list's
             // layer is extended by the rows it exposes instead.
-            if layer.rows.list || covers(record, bounds, content_size, scroll_offset) {
+            if layer.rows.list || covers(record, scroll_offset) {
                 Decision::Composite
             } else {
                 Decision::Repaint
@@ -563,16 +563,15 @@ pub(crate) fn keep(layer: &Layer, frame: u64) -> bool {
 }
 
 /// Whether the part of the content `record` painted still covers the
-/// viewport at `bounds`, scrolled by `scroll_offset`, with a margin of a
-/// quarter of the overscan — a quarter of the viewport's extent — around
-/// it, as far as the content reaches (spec §5.4). The margin is kept only on
-/// the axes overscan was painted on, those the container scrolls on.
-fn covers(
-    record: &LayerRecord,
-    bounds: Bounds<Pixels>,
-    content_size: Size<Pixels>,
-    scroll_offset: Point<Pixels>,
-) -> bool {
+/// viewport, scrolled by `scroll_offset`, with a margin of a quarter of the
+/// overscan — a quarter of the viewport's extent — around it, as far as the
+/// content reaches (spec §5.4). The margin is kept only on the axes overscan
+/// was painted on, those the container scrolls on.
+///
+/// The content reaches as far as it did when it was painted, which is what
+/// the painted region was cut to: the layer is painted again when the
+/// container or its children's extent changes.
+fn covers(record: &LayerRecord, scroll_offset: Point<Pixels>) -> bool {
     let translation = scroll_offset - record.scroll_offset;
     let painted = Bounds {
         origin: record.painted_region.origin + translation,
@@ -595,8 +594,8 @@ fn covers(
     let viewport = record.viewport;
     let wanted = Bounds::from_corners(viewport.origin - margin, viewport.bottom_right() + margin);
     let content = Bounds {
-        origin: bounds.origin + scroll_offset,
-        size: content_size,
+        origin: record.content_bounds.origin + translation,
+        size: record.content_bounds.size,
     };
     let wanted = wanted.intersect(&content);
     if wanted.size.width <= Pixels::ZERO || wanted.size.height <= Pixels::ZERO {
