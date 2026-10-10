@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 79,
+  "revision": 81,
   "planRevision": 12,
   "specHashes": {
     "requirements": "9a032d1345bbc15ddac8a565144cc02934f65cee34ff9fbb7e0ef3453253fcf0",
@@ -166,7 +166,10 @@
       ]
     },
     "t27-composition-core": {
-      "status": "pending"
+      "status": "implemented",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t28-overlay-renderers": {
       "status": "pending"
