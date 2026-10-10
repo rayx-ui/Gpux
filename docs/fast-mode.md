@@ -108,6 +108,32 @@ and `Window::on_retention_mismatch`. Use it to find a view that reads state its 
 cannot see, such as an `Rc<RefCell<_>>` changed without a notify. Every view renders twice a
 frame while it is on, so a render with side effects has them twice.
 
+## Window composition
+
+`Window::enable_window_composition()` lets a window present its one scene on several ordered
+surfaces, so a platform-native view sits above GPUI's base content and below its overlays. The
+API mirrors Zed PR #62379: the controller has `base_surface` and `overlay_surface`,
+`create_native_surface`, `create_external_gpu_surface` and `create_gpui_surface`, and transactional
+`place_above`, `place_below`, `reparent` and `remove_surface`; `Window::with_composition_surface`
+paints a scope onto another GPUI surface. A `native_surface(surface)` element places a native or
+external surface where it is laid out, handing it device-pixel bounds only when they change.
+
+- **Base and overlay.** The root view paints onto the base surface. Deferred draws, prompts, the
+  active drag, tooltips and the inspector paint onto the overlay, and so does gpux's top-layer
+  band wherever it was painted. A range replayed onto a surface reopens the clip, positioned and
+  top layers it began inside.
+- **Reuse.** Views drawn from last frame (cached, retained, spliced) carry their surface
+  switches.
+- **Text.** Text on the overlay is grayscale, since it blends over native content. Backdrop effects
+  on the overlay sample only the overlay's GPUI content, never native pixels.
+- **Off by default.** Until composition is enabled, the scene, the draw call and allocations are
+  unchanged. The first composed frame is drawn afresh.
+
+Platforms: macOS (overlay `NSView`s on `CAMetalLayer`s sharing the window renderer's device,
+instance buffers and atlas; the overlay takes mouse events only while it has content). wgpu
+platforms share the window's GPU context, atlas and pipelines through
+`WgpuRenderer::new_sharing`.
+
 ## Measuring
 
 Fast mode's benefit is measured scenario by scenario in every cumulative mode (`off`, `layout`,

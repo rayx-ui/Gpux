@@ -54,7 +54,7 @@ row is completed when it does).
 | — | `fast/dispatch.rs`, `fast/global_id.rs`, `fast/interactivity.rs` | Not adopted with view retention: one-pass dispatch-node copying, a per-frame global-id cache (gpux already folds path hashes incrementally) and lazily allocated listener lists are allocation work on upstream structures, considered with the final comparison. |
 | `tests/retained_records.rs`, `tests/reuse_paths.rs`, `tests/view_invalidation.rs`, `tests/verify_mode.rs`, `tests/oracle_views.rs`, `tests/view_support.rs` | `fast/tests/retained.rs` | Adapted: each copied output, path, dependency kind and bypass reason checked against a window drawing from scratch. |
 | `splice.rs` | `fast/splice.rs` | Adapted: gaps inherit gpux's every stack (paint content mask, transform, scroll and sticky contexts, hitbox behavior, positioned depth besides gpui-fast's), and the stretches between gaps map DevKit ids and dispatch nodes across the gaps, since gpux records an element's DevKit node after its children; a gap's own DevKit node is patched with its new hitbox count, and a gap must keep its bounds. What is copied around the gaps is checked for changed reads and hovers before splicing rather than after. Prebuilt children are taken over by non-cached views. Adds `fast/tests/splice.rs`, `own_dirty.rs` and `oracle_splice.rs`. |
-| `composition.rs` | `fast/composition.rs` | Pending (window composition). |
+| `composition.rs` | `fast/composition.rs` | Adapted: the surface tree, controller and surface starts as gpui-fast has them; gpux moves its top-layer band to the overlay, replays positioned and top layers balanced as well as clips, diffs the platform order, draws the first composed frame afresh, makes overlay text grayscale at paint, and adds the `native_surface` element and a recording test platform. Platform backends land per sprint (macOS here). |
 | `layers/` (the rest) | `fast/layers/` | Pending (scroll layers). |
 | — | `fast/windows_manifest.rs` | Excluded: gpux keeps its own Windows manifest handling. |
 
@@ -64,7 +64,11 @@ row is completed when it does).
 |---|---|---|
 | `crates/gpui_platform/benches/fast_mode.rs` | `crates/gpui_perf/src/runner.rs` | Adapted: a `#[gpux::bench]` suite, `fast/<scenario>/<mode>`, printing `gpux-fast-stats:` lines. |
 | `tooling/testkit/src/fast_mode.rs` | `crates/gpui_perf/src/main.rs` (its report) | Adapted: `gpux-testkit perf fast-mode` and lane G's `fast-mode.md`. |
-| `crates/*/src/fast/layers`, `crates/*/src/fast/composition` | the renderer and platform `fast/` modules | Pending (scroll-layer renderers, composition per platform). |
+| `crates/gpui_wgpu/src/fast/composition.rs` | `crates/gpui_wgpu/src/fast/composition.rs` | Adapted: `new_sharing` (gpui-fast's `new_sharing_atlas`) also shares compiled pipelines and bind group layouts when the surface takes the same format, and configures overlays transparent. |
+| `crates/gpui_apple/src/fast/composition.rs` | `crates/gpui_apple/src/fast/composition.rs` | Adapted: `MetalRenderer::new_overlay`, sharing the device, instance buffer pool and sprite atlas, with `opaque = NO`. |
+| `crates/gpui_macos/src/fast/composition.rs` | `crates/gpui_macos/src/fast/composition.rs` | Adopted: `GPUIOverlayView` with `hitTest:` gating, layer-backed native containers, diffed re-mounting (gpui-fast `8e1e198`), transactions during live resize; overlay renderers come from `new_overlay`. |
+| `crates/gpux_conformance/examples/desktop_host/composition.rs` | — | gpux's own: lane D's `composition-macos-*` checks against AppKit's view tree, hit testing and window screenshots. |
+| `crates/*/src/fast/layers`, other `crates/*/src/fast/composition` | the renderer and platform `fast/` modules | Pending (scroll-layer renderers, composition on Linux, Windows, the web and mobile). |
 | — | the Direct3D 11 renderer | Excluded: gpux renders Windows through wgpu on DX12. |
 | — | `compat/` gpui-pre stand-ins, `script/check-upstream` | Excluded: gpux tracks Zed through its own import process. |
 
