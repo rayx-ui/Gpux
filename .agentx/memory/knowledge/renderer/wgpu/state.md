@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/renderer/wgpu
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-09T16:00:00+02:00
+  updated: 2026-10-10T23:30:00+02:00
   topics:
     - wgpu-renderer
     - wgsl
@@ -46,12 +46,16 @@ Composition overlays on wgpu platforms use `WgpuRenderer::new_sharing` / `replac
 
 `new_sharing_target` makes a sharing renderer on a non-window `SurfaceTargetUnsafe` (DirectComposition visuals) and `new_sharing_with_context` on a surface the caller made on a given context (the browser, whose window renderer keeps no context). A transparent sharing renderer reconfigures itself with its overlay alpha mode (`use_overlay_alpha_mode`): `PreMultiplied` on browser WebGPU, whose surface capabilities report only `Opaque`. On Metal (iOS overlays) it is `PostMultiplied` when the surface offers that and not `PreMultiplied`: either makes the `CAMetalLayer` non-opaque, which Core Animation composites as premultiplied. Other transparent surfaces, a transparent browser window's own canvas included, keep the mode `new_internal` picks.
 
+Scroll-layer tiles (`gpui_wgpu/src/fast/layers/`, adapted from gpui-fast): `WgpuRenderer::fast_layers` holds a `TileCache` of render-target-format textures keyed by layer and tile and tagged with the content generation they hold. `raster::plan` runs once per frame in `encode_scene_to_view` (the cache's `begin_frame` applies the generation contract and LRU eviction within `gpux::LAYER_TILE_BUDGET_BYTES`), and `raster::rasterize` encodes the planned tiles inside the overflow retry loop before `main_pass`, through `draw_quads`/`draw_shadows`/`draw_underlines`/`draw_*_sprites` with per-tile-size globals. `draw_polychrome_sprites` forwards reserved texture ids to `composite::draw`, a run per tile. The polychrome fragment shader takes a texture as premultiplied when `PolychromeSprite.pad` is `LAYER_TILE_PREMULTIPLIED`. Each renderer has its own cache, so a composed window's overlay renderers do too. `WgpuHeadlessRenderer` and the Linux and Windows windows answer `rasterizes_layer_tiles()`; the browser, Android and iOS do not yet.
+
 ## Backlinks
 
 - [Headless renderer tests](../../../../../crates/gpui_wgpu/tests/headless_renderer.rs)
 - [Headless renderer GPU-error tests](../../../../../crates/gpui_wgpu/tests/headless_renderer_gpu_errors.rs)
 - [WGPU renderer](../../../../../crates/gpui_wgpu/src/wgpu_renderer.rs)
 - [WGPU composition overlays](../../../../../crates/gpui_wgpu/src/fast/composition.rs)
+- [WGPU scroll-layer tiles](../../../../../crates/gpui_wgpu/src/fast/layers/mod.rs)
+- [WGPU tile tests](../../../../../crates/gpui_wgpu/src/fast/layers/tests.rs)
 - [WGPU context](../../../../../crates/gpui_wgpu/src/wgpu_context.rs)
 - [Shaders](../../../../../crates/gpui_wgpu/src/shaders.wgsl)
 - [Storage-buffer shaders](../../../../../crates/gpui_wgpu/src/shaders_storage.wgsl)

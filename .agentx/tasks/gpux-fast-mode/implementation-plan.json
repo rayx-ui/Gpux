@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 18,
+  "revision": 20,
   "title": "gpux fast mode: retained layout and views, splice, scroll layers and window composition from gpui-fast",
   "validationMode": "sprint",
   "repositories": [
@@ -1328,7 +1328,7 @@
       "criterionIds": [
         "LYR-5"
       ],
-      "descriptionMarkdown": "New renderer group `crates/gpui_wgpu/src/fast/layers/tests.rs` on the software adapter. Byte-equality of assembled tiles, negative coordinates, odd translations, paths excluded, a second frame from cache, the generation contract, LRU eviction, release on resize, and Rust size and offset assertions for the premultiplied flag.",
+      "descriptionMarkdown": "New renderer group `crates/gpui_wgpu/src/fast/layers/tests.rs`, on the adapter `GPUX_WGPU_ADAPTER` selects (the Mac's GPU through wgpu locally; the software adapter in the Linux VM). Byte-equality of a layer drawn from tiles, negative coordinates, odd translations, a second frame from cache, paths drawn over tiles (a tile holds none), the premultiplied flag, the generation contract, LRU eviction, release on resize, after a failed frame and after a GPU error, and Rust size and offset assertions for the flag.",
       "argv": [
         "cargo",
         "test",
@@ -1364,9 +1364,11 @@
       "repositoryId": "gpux",
       "kind": "test",
       "criterionIds": [
-        "LYR-5"
+        "LYR-5",
+        "LYR-6",
+        "LYR-12"
       ],
-      "descriptionMarkdown": "New group `crates/gpux_conformance/tests/lane_c_scroll_layers.rs`: scrolled scenes composited from tiles are pixel-identical to the layers-off, snapping-on reference on the lane-C renderer.",
+      "descriptionMarkdown": "New group `crates/gpux_conformance/tests/lane_c_scroll_layers.rs`: views scrolled from tiles (text rows at scales 1, 1.5 and 2, cards with shadows and gradients, shadowed cards closer together than their blurs reach, paths, both axes, content that changes while scrolled, small scrolls from the top of content with a margin) against the layers-off, snapping-on reference on the lane-C renderer, frame for frame: pixel-identical, but within a shadow blur's reach of the viewport's top and bottom edges, where the layered frame may only be darker and never on a card. Metal on a Mac, the software wgpu adapter on Linux and Windows.",
       "argv": [
         "cargo",
         "test",
@@ -1377,7 +1379,7 @@
       ],
       "expected": {
         "exitCode": 0,
-        "minimumTests": 4
+        "minimumTests": 8
       },
       "inputs": [
         "crates/gpui/**",
@@ -2185,6 +2187,74 @@
         "crates/gpui_mobile/**",
         "crates/gpui/**",
         "crates/gpui_wgpu/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-layer-renderers",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "LYR-12"
+      ],
+      "descriptionMarkdown": "New core group `crates/gpui/src/fast/tests/layer_renderers.rs`: tile sprites carry the premultiplied flag, and a frame drawn from scratch or an entry removed from the sprite atlas leaves no layer content, the next content taking a new generation with every tile dirty.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::layer_renderers::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-layer-extent",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "LYR-12"
+      ],
+      "descriptionMarkdown": "New core group `crates/gpui/src/fast/tests/layer_extent.rs`: a layer over content with top padding, a first-child margin or padding all round composites within a quarter viewport of its top and reaches its end, each frame drawing what a window without layers draws.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::layer_extent::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
         "Cargo.toml",
         "Cargo.lock"
       ]
@@ -3516,9 +3586,10 @@
         {
           "id": "t39-wgpu-tiles",
           "title": "wgpu tile cache, raster and composite",
-          "descriptionMarkdown": "Split `encode_scene_to_view` for tile targets. Add `fast/layers/{tile_cache,raster,composite}.rs`, the premultiplied polychrome flag in Rust and WGSL, and the dither seed. Write the renderer tests and `lane_c_scroll_layers.rs`, and run lane B for the ABI.",
+          "descriptionMarkdown": "Add `fast/layers/{tile_cache,raster,composite}.rs` and the hooks that draw tiles with the renderer's own batch functions, the premultiplied polychrome flag in Rust and WGSL, the dither seed and the exact fragment positions. In the core: drop layer content on a frame drawn from scratch and when an atlas entry is removed, and make a layer's content everything its container scrolls over. Write the renderer tests, the core groups and `lane_c_scroll_layers.rs` (registered in lane C), and run lane B for the ABI.",
           "criterionIds": [
-            "LYR-5"
+            "LYR-5",
+            "LYR-12"
           ],
           "designIds": [
             "d-layers-renderers"
@@ -3526,6 +3597,8 @@
           "dependsOn": [],
           "checkIds": [
             "check-wgpu-tiles",
+            "check-layer-renderers",
+            "check-layer-extent",
             "check-layers-lane-c",
             "check-wgpu-abi-lane-b"
           ],
@@ -3548,7 +3621,7 @@
         {
           "id": "t40-metal-tiles",
           "title": "Metal tile cache, raster and composite",
-          "descriptionMarkdown": "Port `gpui_apple/src/fast/layers/` and the Metal dither seed. Write the Metal tests.",
+          "descriptionMarkdown": "Port `gpui_apple/src/fast/layers/` into the frame's command buffer, with the Metal shader changes (premultiplied flag, dither seed, exact fragment positions). Write the Metal tests.",
           "criterionIds": [
             "LYR-6"
           ],

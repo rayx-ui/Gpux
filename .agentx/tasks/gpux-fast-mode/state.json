@@ -1,12 +1,12 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 148,
-  "planRevision": 18,
+  "revision": 159,
+  "planRevision": 20,
   "specHashes": {
-    "requirements": "bba4a4f075e41b4eadf680e8df6f9b525d17feb10b19d722bbdfa9f95482fba7",
-    "design": "87dbe781ba05caf6b2e223b1b1e9592863fdc0283e76411d4c92d35b40b10406",
-    "plan": "92759436e79819382a4300107b6a8241e9f80fc0cea5698a1267c615cf0ea66b"
+    "requirements": "a431ab743ab540ad745f0dbce897c7e3f1667f036964119f97670f5c105a98bc",
+    "design": "406a087f7c2c86ca6724574db18be5629c5b99f961b1b6a781a669416f1e0138",
+    "plan": "f5e7879cb3aea332fce5b76d245121f83a4681d8f3132013c64d564e8ea98d94"
   },
   "tasks": {
     "t01-fast-switches": {
@@ -238,10 +238,16 @@
       ]
     },
     "t39-wgpu-tiles": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t40-metal-tiles": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t41-list-layers": {
       "status": "pending"
@@ -409,6 +415,15 @@
         }
       },
       "recordedAt": "2026-10-10T16:36:13Z"
+    },
+    "4a56736577fd95d8cfe0bcb8a1a5c975d653d29b3f687e9b51e94ffa772bc87e": {
+      "snapshot": {
+        "specHash": "9f1bbab25abf13f1b711a60704920f8a07187c06430c6712a5006d271d3f6955",
+        "repositories": {
+          "gpux": "9e79c76af5054fd5d19f80978250ac05f29c1e545129fe8217839ab2aac9367c"
+        }
+      },
+      "recordedAt": "2026-10-10T18:20:45Z"
     }
   },
   "checkResults": {
@@ -1312,6 +1327,108 @@
       "logPath": "artifacts-temp/agentx/gpux-fast-mode/s10-layers-core-final-2e29fa8e0a8b.log",
       "logSha256": "8ae45ea995a25e35dfda29cdb567ec58422053d15ab8d41fc554f37c5e47da23",
       "inputsHash": "472d12e3109a4c9204c41fc964458bc50f4157c5b7197a4b747064a4417db3c0"
+    },
+    "s11-layers-renderers/check-wgpu-tiles/final": {
+      "checkId": "check-wgpu-tiles",
+      "boundaryId": "s11-layers-renderers",
+      "phase": "final",
+      "batchId": "4a56736577fd95d8cfe0bcb8a1a5c975d653d29b3f687e9b51e94ffa772bc87e",
+      "definitionHash": "7d4fde35acc116b6f947497d82543f8ed42924a60dfe4bccfb5a0019680f3c7e",
+      "basisHash": "937704053208386dd377539d20c13fc0c77cf33cf6678e31ef7d9a5818df126e",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 13,
+      "durationSeconds": 1.8857,
+      "recordedAt": "2026-10-10T18:18:51Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s11-layers-renderers-final-b70a8bb65a39.log",
+      "logSha256": "d6aa93b1e0177a7626564f4920bf9d074997314150a0c424e75f2c597a66af50",
+      "inputsHash": "a1af9ef10258fad499a1bdfcc9de3f261b4c84ad599d1850bf4a2c62067fe3c8"
+    },
+    "s11-layers-renderers/check-layers-lane-c/final": {
+      "checkId": "check-layers-lane-c",
+      "boundaryId": "s11-layers-renderers",
+      "phase": "final",
+      "batchId": "4a56736577fd95d8cfe0bcb8a1a5c975d653d29b3f687e9b51e94ffa772bc87e",
+      "definitionHash": "a6674406cbcf8e37c97eda06f97c339012008728902e33437b5f90a6a129aa9b",
+      "basisHash": "1658adae2f2c01786f140b5665fa9c406c5f5004085fcc4298cd8f155dce76f3",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 9,
+      "durationSeconds": 19.6589,
+      "recordedAt": "2026-10-10T18:19:11Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s11-layers-renderers-final-7d5f7cf44837.log",
+      "logSha256": "a84fa389fc05aee21bfc619f0781bebc4270d31cd9d00e43c1e0842509a42fae",
+      "inputsHash": "0368b6b7259995c803d8ad706dbf985fb8ca2b56a373375316a47c102bb7f73b"
+    },
+    "s11-layers-renderers/check-wgpu-abi-lane-b/final": {
+      "checkId": "check-wgpu-abi-lane-b",
+      "boundaryId": "s11-layers-renderers",
+      "phase": "final",
+      "batchId": "4a56736577fd95d8cfe0bcb8a1a5c975d653d29b3f687e9b51e94ffa772bc87e",
+      "definitionHash": "ae1bf01e51c87c72751edcec71aa056bb86a05d380d7848aaf091b027edd949e",
+      "basisHash": "452a290f268d81bc14c3c71ef6dcfd599636645f2d0e571c465ae1b29adbc72f",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 45,
+      "durationSeconds": 82.5883,
+      "recordedAt": "2026-10-10T18:20:34Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s11-layers-renderers-final-4b5220e58ab6.log",
+      "logSha256": "1e051da914e21c5acfdb654e8021310aa609ecfda6c0646c262f1d13b997e407",
+      "inputsHash": "4ad1457929e5d6d16e0e0bc4993240e949e0ce29539ade3af26831e6a8567bdc"
+    },
+    "s11-layers-renderers/check-metal-tiles/final": {
+      "checkId": "check-metal-tiles",
+      "boundaryId": "s11-layers-renderers",
+      "phase": "final",
+      "batchId": "4a56736577fd95d8cfe0bcb8a1a5c975d653d29b3f687e9b51e94ffa772bc87e",
+      "definitionHash": "cf62fa873dfd713772e33d37beb043e16504ea6300a4dc5379f46a2403edc292",
+      "basisHash": "0b6aa90ddd790a2e4afec26e9e8efe4f96dae91f536f3944bd8001b20ed2ac63",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 12,
+      "durationSeconds": 9.9251,
+      "recordedAt": "2026-10-10T18:20:43Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s11-layers-renderers-final-8a55b6a4bc9f.log",
+      "logSha256": "cd38b0ce36346af61f7154ec16e5ddbd0004368b835ff38cf912c16fd35cac72",
+      "inputsHash": "29e08616b84444e455df9f005776b0f1442091bba3662d4d4fdfb9ac01014916"
+    },
+    "s11-layers-renderers/check-layer-renderers/final": {
+      "checkId": "check-layer-renderers",
+      "boundaryId": "s11-layers-renderers",
+      "phase": "final",
+      "batchId": "4a56736577fd95d8cfe0bcb8a1a5c975d653d29b3f687e9b51e94ffa772bc87e",
+      "definitionHash": "97d64235371580725dcf405e43980af06ba799fbc0ca8d91560996479e7a5d2e",
+      "basisHash": "7962bf86dba85baeb60bb5648638110e4489c8927aa4958190d2b4d1e9010806",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 0.4704,
+      "recordedAt": "2026-10-10T18:20:44Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s11-layers-renderers-final-7524e9f670e5.log",
+      "logSha256": "19b2cc3dd8fcabb3ed96246a780af51fa2c965289582a18ce356a6630963622a",
+      "inputsHash": "3e63b04a72238394f8e9f73aa285fd511c9cdee8f2526aefca68326eef6a848d"
+    },
+    "s11-layers-renderers/check-layer-extent/final": {
+      "checkId": "check-layer-extent",
+      "boundaryId": "s11-layers-renderers",
+      "phase": "final",
+      "batchId": "4a56736577fd95d8cfe0bcb8a1a5c975d653d29b3f687e9b51e94ffa772bc87e",
+      "definitionHash": "b4ea3477f3a0729eec26d06b442acde57e3f124eb178ea610acd4c5dc20e30df",
+      "basisHash": "f5d955e563926f3039d456e40f496fe9ae6da7adff9a58107633fc17eac30230",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 0.4284,
+      "recordedAt": "2026-10-10T18:20:44Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s11-layers-renderers-final-15eb3449db19.log",
+      "logSha256": "503788efa3f53c487c5456cd3c333a1584848474dec2e583906b6290685759c8",
+      "inputsHash": "3e63b04a72238394f8e9f73aa285fd511c9cdee8f2526aefca68326eef6a848d"
     }
   },
   "reviews": {
@@ -3915,6 +4032,384 @@
         "s10-oracle-mask-rounding-undeclared"
       ],
       "recordedAt": "2026-10-10T16:38:07Z"
+    },
+    "s11-layers-renderers": {
+      "reviewerId": "claude-reviewer-s11b-7f3c91a2",
+      "snapshotId": "4a56736577fd95d8cfe0bcb8a1a5c975d653d29b3f687e9b51e94ffa772bc87e",
+      "criterionIds": [
+        "LYR-5",
+        "LYR-6",
+        "LYR-12"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/fast/layers/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-5"
+          ],
+          "sha256": "88a8ee1c19ba25d3dad6994e62bc7acf81f096f23730974cbfdc2bda57c7ee40"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/fast/layers/tile_cache.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-5"
+          ],
+          "sha256": "94c58f3fc60b1c29d76a19fe86ab14796462e176963bb8f4b07d2b19fa1dc30b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/fast/layers/raster.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-5"
+          ],
+          "sha256": "c71564e2964d99519b5e8f2a7864718163c0865bbe2b71b450bd5759037eb829"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/fast/layers/composite.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-5"
+          ],
+          "sha256": "a3e5e16a7bc394b956f79a9fcb4da4e946238377814af317b9f56d7319d31f9b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/wgpu_renderer.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-5"
+          ],
+          "sha256": "68e883444ebaf578e193569e35751e5cb97ffe71c160b4cd14b2421299bc8868"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/wgpu_atlas.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-5",
+            "LYR-12"
+          ],
+          "sha256": "3f057d5b75e6c41c0ea96454b6e74b573d14fdcf21bc6d6e154f0c9f25509e20"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/shaders.wgsl",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-5"
+          ],
+          "sha256": "326496ca9e287ae092caaeb65775c470e17e9cfb56504f8e32d7f7f336a0de3b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/shaders_subpixel.wgsl",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-5"
+          ],
+          "sha256": "1e4d1fc1bf681872091c5b617c2498aec339d2d239ab71294587c4d8373ea800"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/fast/layers/tests.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-5"
+          ],
+          "sha256": "d2ab1f6db4d5be04f2011b92baa8bf7da729014bbd9532130e6d24548aab4c8d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s11-layers-renderers-final-b70a8bb65a39.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "LYR-5"
+          ],
+          "sha256": "d6aa93b1e0177a7626564f4920bf9d074997314150a0c424e75f2c597a66af50"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s11-layers-renderers-final-4b5220e58ab6.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "LYR-5"
+          ],
+          "sha256": "1e051da914e21c5acfdb654e8021310aa609ecfda6c0646c262f1d13b997e407"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s11-lane-b.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "LYR-5"
+          ],
+          "sha256": "c0a7103fc431301a4b6d57b77c3af0affdc3456bd4b5453b65f53ee4da5e4d55"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s11-lane-b-scenes.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "LYR-5"
+          ],
+          "sha256": "a52b56556a3878ed9a07fa48ca2d3ef65460fc8c17e6595fb0488d76137b656c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_linux/src/linux/x11/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-5"
+          ],
+          "sha256": "471d2171d614683d9fc4d88c1a7e7fcf36ba8c350075697cd9241adc9db64824"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_linux/src/linux/wayland/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-5"
+          ],
+          "sha256": "63cbedb7f1e46ec0ae918dced70bf5587b6696760b4ddbb8844c9298d7ebfabc"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_windows/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-5"
+          ],
+          "sha256": "bba5b84d949a3554e9be51e00baa7ce2b020d548f8e49115b9325ad4ffff3e1b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_apple/src/fast/layers/tile_cache.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-6"
+          ],
+          "sha256": "794d0dd537261754fb0182b9a0603016f6986856b2b88d15bb716b7620cb6f9a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_apple/src/fast/layers/raster.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-6"
+          ],
+          "sha256": "8fc392cacf3177b6e86443877b0479898f1b6177ed21f5c9489a13d2f212ac6a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_apple/src/fast/layers/composite.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-6"
+          ],
+          "sha256": "85df5b1d3d5c96f274132ef39fa4650464ef11a0c6a4be89c6c48bdb402b79e5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_apple/src/metal_renderer.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-6"
+          ],
+          "sha256": "c8f5d81d4c88eb394bf081f7c4aa8cbba633948fede6279ea4a05b4e5832794a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_apple/src/shaders.metal",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-6"
+          ],
+          "sha256": "9d64d124127ba01acfcbc23f45efd222c7fa4faae2d2944c93f8b1aa26162f1b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_apple/src/fast/layers/tests.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-6"
+          ],
+          "sha256": "5b23e31173432cc00a88323d2890b9ca6bf624420a53bd28e4bd5d0fb9953eb3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_macos/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-6"
+          ],
+          "sha256": "1dc1e7d392895ac8b78cf3cba1ccab13456035b91c3ce96e8b64c99631c7ba13"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s11-layers-renderers-final-8a55b6a4bc9f.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "LYR-6"
+          ],
+          "sha256": "cd38b0ce36346af61f7154ec16e5ddbd0004368b835ff38cf912c16fd35cac72"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/scene.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-12"
+          ],
+          "sha256": "4f038a945668873eef9765812118cad75e399591876993263b5e67080d90192c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/scene.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-12"
+          ],
+          "sha256": "10602efb439e0249dc9cabc18681520c9bb09e63dd4be3ab45c7d8f33822a563"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-12"
+          ],
+          "sha256": "e0ecef1a9b131691a8b2411f512305152dd068ae521d13d6c151d239df15a838"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/policy.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-12"
+          ],
+          "sha256": "f6a928cad0385bef2cc6f4ab002f066f7f639d99574fde6368f0617878c42198"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/paint.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-12"
+          ],
+          "sha256": "4d1a2c16b44a58866fad1c3b7669dfc0f5be7b68f6e8b16a0f30f8b41cc54787"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/tiles.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-12"
+          ],
+          "sha256": "40aa54eaa882ab3f04fec410bd131adbc09d81c318e6ac45f5accf347fb7ebb6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/layer_renderers.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-12"
+          ],
+          "sha256": "fb868ddf8a88e6200494e6e68b6fb25a4b87b276a4ac345d0754b69a450ad456"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s11-layers-renderers-final-7524e9f670e5.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "LYR-12"
+          ],
+          "sha256": "19b2cc3dd8fcabb3ed96246a780af51fa2c965289582a18ce356a6630963622a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_scroll_layers.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-5",
+            "LYR-6",
+            "LYR-12"
+          ],
+          "sha256": "5c7f0bb0ddd70757b614fb7b617aa9c3bfbe0d6ce42f4cf213d818e582f3c34b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s11-layers-renderers-final-7d5f7cf44837.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "LYR-5",
+            "LYR-6",
+            "LYR-12"
+          ],
+          "sha256": "a84fa389fc05aee21bfc619f0781bebc4270d31cd9d00e43c1e0842509a42fae"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-5",
+            "LYR-6",
+            "LYR-12"
+          ],
+          "sha256": "fe298a7cc86cb82dc5c43f7072a7bda012b115d0f1792ffc22d8964b154fbaf3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/layer_extent.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-12"
+          ],
+          "sha256": "744bd975c305b51e0620fcbe32feeb68854f718204a8e9a7806a31deb3cc2a7c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s11-layers-renderers-final-15eb3449db19.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "LYR-12"
+          ],
+          "sha256": "503788efa3f53c487c5456cd3c333a1584848474dec2e583906b6290685759c8"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/record.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-12"
+          ],
+          "sha256": "4ea52829f12a21b0423380b6c086a5b08f396f78d3916765a3d601186330f7f8"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-12"
+          ],
+          "sha256": "71ba2e89a3582ac752aa1e5199a68930b9f071b81153275962954466b25d0545"
+        }
+      ],
+      "summaryMarkdown": "**Verdict: passed.** Re-review of `s11-layers-renderers` at `41c9889`, snapshot `4a567365...` (revision 158). The four findings of the failed review at revision 156 are resolved, and the s10 defect I reported with them is repaired.\n\n**What I ran.** In a scratch worktree, since removed: a probe on the three shadowed lane C scenes and a fast-mode-off probe (Metal), and my twelve s10 core probes again (eleven pass; the twelfth is the content-mask note). Sources and logs: `/private/tmp/claude-501/-Users-dinko-work-private-projects-RayX-Gpux/240e1cb7-bb16-4828-b6e1-d5859432e15d/scratchpad/probe_s11b_lane_c_scroll_layers.rs`, `probe-s11b-lanec.log`, `probe-s11b-core.log`. I reused the six sprint checks at revision 158 and read the four CI runs on `41c9889`.\n\n**The s10 defect.** `9b445fe` records a layer's content bounds from the container's origin to its scroll extent, cuts the painted region to them and tests coverage against them (`policy.rs:574`, `paint.rs:317`). With 3 px steps from the top of content with a margin, 88 of 90 frames now composite where none did. The new group `layer_extent` and a lane C test cover it, including the mirror case at the end of padded content.\n\n**One thing for the user, not a finding.** The epic's constraint still says the only exceptions to frame equality are snapping and glyph quantization, and its scope that off is today's output. Two documented differences now sit beside that: frames from tiles show a shadow's blur at the viewport's edges that direct drawing drops (up to tens of levels for a strong shadow), and fragment-position shading and the dither seed apply in every mode. Both are stated accurately in LYR-5, LYR-12 and the docs. I would amend the constraint and the scope sentence to name them, and have the user agree to the first, since it relaxes the contract the epic was set up with.\n\n**Notes.**\n- Dropping every layer's content on each removed image costs a full rasterization; an image cache that evicts while a list scrolls will keep its layer from compositing.\n- The uncommitted memory draft is outside this review.",
+      "findingIds": [
+        "s11-kept-shadow-drawn-over-neighbours",
+        "s11-atlas-slot-reuse-keeps-stale-tiles",
+        "s11-wgpu-tiles-kept-after-gpu-error",
+        "s11-windows-and-mobile-unproven"
+      ],
+      "recordedAt": "2026-10-10T18:46:26Z"
     }
   },
   "checkpoints": {
@@ -5060,6 +5555,96 @@
         {
           "repositoryId": "gpux",
           "path": "docs/fast-mode.md"
+        }
+      ]
+    },
+    {
+      "id": "s11-kept-shadow-drawn-over-neighbours",
+      "boundaryId": "s11-layers-renderers",
+      "criterionIds": [
+        "LYR-12"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved (ac865b4, ea2d4df, 41c9889).**\n\n- `Scene::insert_primitive` culls and orders by bounds within the mask again; `crates/gpui/src/scene.rs` is identical to its state before `44520f0`, and `shown_bounds` and `nearest_strip` are gone. My fast-mode-off probe on the heavy-shadow scene no longer shows the dark band: the pixel on the last visible card reads 255 until the gap between cards passes under it.\n- The remaining difference is stated as what it is, in LYR-12 and `docs/fast-mode.md:251`: a layer's tiles keep the blur of a shadow whose box has left the viewport; drawing without layers drops it with its box.\n- `lane_c_scroll_layers` gained `TightCards` and `HeavyShadows` and bounds the difference (`Content::edge_band`, line 303): the same bytes everywhere except within a blur's reach of the viewport's top and bottom edges, where the layered frame may only be darker, and not on a card.\n\nMy own probe on those scenes agrees with the stated bounds at 1x and 2x, over 90 one-pixel and three-pixel steps each: no pixel differs outside the band, none is lighter, none lies on a card. The size inside the band is up to 47 levels on the heavy scene, 11 on the tight one and 13 on the shipped `shadow_md` cards; 88 of 90 frames composited.\n\n*Original finding:* a shadow kept for its blur was ordered by the edge strip of its mask and drawn over earlier neighbours, in every mode, fast mode off included.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/scene.rs",
+          "symbol": "Scene::insert_primitive"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_scroll_layers.rs",
+          "symbol": "close_shadowed_cards_scroll_from_tiles"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md"
+        }
+      ]
+    },
+    {
+      "id": "s11-atlas-slot-reuse-keeps-stale-tiles",
+      "boundaryId": "s11-layers-renderers",
+      "criterionIds": [
+        "LYR-12"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved (ac865b4).** `Window::drop_image` and `drop_svg` (`crates/gpui/src/window.rs:8061`, `8070`), the only callers of the atlas's `remove`, call `fast::layers::atlas_entry_removed` (`crates/gpui/src/fast/layers/mod.rs:185`), which drops every layer's content as a refreshed frame does. The content painted next gets a new generation with every tile dirty, which `layer_renderers::removing_an_atlas_entry_leaves_no_layer_content` checks. With layers off the call walks an empty map.\n\n*Original finding:* an image replaced by another of the same size in the atlas slot it left hashed alike, so its tiles kept the old image.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/mod.rs",
+          "symbol": "atlas_entry_removed"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/layer_renderers.rs",
+          "symbol": "removing_an_atlas_entry_leaves_no_layer_content"
+        }
+      ]
+    },
+    {
+      "id": "s11-wgpu-tiles-kept-after-gpu-error",
+      "boundaryId": "s11-layers-renderers",
+      "criterionIds": [
+        "LYR-5"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved (0f7685e).** `prepare_frame` releases the tile cache whenever an error was reported for the last frame, before it counts the failure (`crates/gpui_wgpu/src/wgpu_renderer.rs:3256`). `fast::layers::tests::a_gpu_error_releases_every_tile` covers it, and LYR-5 now says so.\n\n*Original finding:* the cache was released only with the atlas, after more than five consecutive errors.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/wgpu_renderer.rs",
+          "symbol": "prepare_frame"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/fast/layers/tests.rs",
+          "symbol": "a_gpu_error_releases_every_tile"
+        }
+      ]
+    },
+    {
+      "id": "s11-windows-and-mobile-unproven",
+      "boundaryId": "s11-layers-renderers",
+      "criterionIds": [
+        "LYR-5"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved by CI on `41c9889`, which I read with `gh run view`.**\n\n- Main workflow, run 38075273378: all sixteen jobs passed, among them `check`, `test`, lane A, lane C (WARP, lavapipe, Metal) and lane D on Windows, Ubuntu and macOS, and `package`.\n- Lane E, run 38075273212: passed on the emulator.\n- Lane F, run 38075273340: passed on the Simulator.\n- Lane B, run 38075273393: passed.\n- The `test` failures of the first push (run 38072848372) were the two test bugs named: the lane G listing count on all three platforms and the CRLF comparison of the sprite record on Windows. Both pass now.\n\n*Original finding:* the Windows platform crate had not been type-checked, DX12 had not drawn the new shader code, and lanes E and F had not run for the shader change.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_windows/src/window.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/shaders.wgsl"
         }
       ]
     }

@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/gpui/frame-pipeline
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-10T19:30:00+02:00
+  updated: 2026-10-10T23:30:00+02:00
   topics:
     - scene
     - arena
@@ -41,3 +41,7 @@ agentx:
 - A frame drawn while input other than a scroll is being dispatched must leave no scroll layer showing content away from where it was painted (`WindowLayers::before_input`): the window itself draws inside dispatch, before a key when it is dirty, and a composited pending scroll there hands the event stale listeners.
 - Keep scroll-layer hooks inert without the switch: window-side hooks check `fast_mode.scroll_layers()`, hooks without a window check `fast::layers::on_thread()`, and a window turns layers on only where its renderer rasterizes tiles (`PlatformWindow::rasterizes_layer_tiles`, `PlatformHeadlessRenderer::rasterizes_layer_tiles`).
 - Describe a frame that composites scroll layers through `layers::verify::expanded_scene` (what painting the content into the frame would have left), so `describe_rendered_frame` parity holds against a window drawn from scratch.
+- Leave `Scene::insert_primitive`'s cull and ordering as upstream has them (bounds within the content mask). Keeping a shadow for its blur needs an order for it, and every order tried from the bounds a scene keeps (the reach, the nearest edge strip) put it over a neighbour its box never overlaps; see the hypotheses. Anything that tells where a primitive draws (tile membership, tile hashes) uses `layers::scene::drawn_bounds`.
+- A frame drawn from scratch (`window.refreshing`) drops every scroll layer's record (`policy::forget_content`): the renderer may have lost the sprite atlas the kept content names. Content painted after it takes a new generation.
+- Drop every scroll layer's record when the window removes an entry from its sprite atlas (`layers::atlas_entry_removed`, from `drop_image` and `drop_svg`): the atlas hands the slot out again, and tile hashes name a sprite by its atlas tile.
+- A scroll layer's content is everything the container scrolls over (`LayerRecord::content_bounds`: from the container's origin to its scroll extent, padding and child margins included). Cut the painted region and test coverage against the same bounds.
