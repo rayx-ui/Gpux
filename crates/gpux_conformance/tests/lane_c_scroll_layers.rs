@@ -46,6 +46,12 @@ enum Content {
     TightCards,
     /// White cards 2 px apart under a heavy shadow: 16 px of blur at half black.
     HeavyShadows,
+    /// Rows with backgrounds of their own, each holding a card under a heavy shadow that
+    /// reaches over the rows around it.
+    ShadowedRows,
+    /// Sections with backgrounds of their own, each holding three shadowed cards: the first
+    /// and the last card's shadows reach into the sections around.
+    Sections,
     /// Rows that each draw a path, the last thing painted where it lies.
     Paths,
     /// Rows wider than the viewport: the container scrolls on both axes.
@@ -68,7 +74,8 @@ struct Page {
 /// How many rows the content has.
 fn row_count(content: Content) -> usize {
     match content {
-        Content::Cards | Content::TightCards | Content::HeavyShadows => 40,
+        Content::Cards | Content::TightCards | Content::HeavyShadows | Content::ShadowedRows => 40,
+        Content::Sections => 16,
         _ => 120,
     }
 }
@@ -161,6 +168,64 @@ impl RowOf {
                     spread_radius: px(0.),
                     inset: false,
                 }])
+                .into_any_element(),
+            Content::ShadowedRows => div()
+                .py(px(10.))
+                .bg(if index.is_multiple_of(2) {
+                    rgb(0xe9e4d8)
+                } else {
+                    rgb(0xd5dde6)
+                })
+                .child(
+                    div()
+                        .mx_3()
+                        .h(px(54.))
+                        .bg(if marked { rgb(0xffe9c9) } else { rgb(0xffffff) })
+                        .shadow(vec![BoxShadow {
+                            color: rgba(0x00000080).into(),
+                            offset: point(px(0.), px(0.)),
+                            blur_radius: px(16.),
+                            spread_radius: px(0.),
+                            inset: false,
+                        }]),
+                )
+                .into_any_element(),
+            Content::Sections => div()
+                .pt(px(4.))
+                .pb(px(12.))
+                .bg(if index.is_multiple_of(2) {
+                    rgb(0xf0ece2)
+                } else {
+                    rgb(0xdfe6d8)
+                })
+                .children((0..3).map(|card| {
+                    div()
+                        .mx_3()
+                        .mt(px(8.))
+                        .h(px(44.))
+                        .rounded(px(6.))
+                        .bg(if marked && card == 1 {
+                            rgb(0xffe9c9)
+                        } else {
+                            rgb(0xfbfaf7)
+                        })
+                        .shadow(vec![
+                            BoxShadow {
+                                color: rgba(0x00000033).into(),
+                                offset: point(px(0.), px(8.)),
+                                blur_radius: px(14.),
+                                spread_radius: px(-2.),
+                                inset: false,
+                            },
+                            BoxShadow {
+                                color: rgba(0x00000026).into(),
+                                offset: point(px(0.), px(2.)),
+                                blur_radius: px(5.),
+                                spread_radius: px(0.),
+                                inset: false,
+                            },
+                        ])
+                }))
                 .into_any_element(),
             Content::Cards => div()
                 .mx_3()
@@ -488,6 +553,24 @@ fn close_shadowed_cards_scroll_from_tiles() {
         for scale in [1., 2.] {
             let totals = compare(content, scale, &scrolls_and_single_pixels());
             assert_composited(&totals, 90);
+        }
+    }
+}
+
+/// Rows and sections with backgrounds of their own, under shadows that reach past them: the
+/// blur of a shadow whose row is wholly out of the viewport falls on the rows in view as it
+/// does when its row shows, drawn from tiles or without them, and a tile's edge that falls
+/// between a shadow and what it lies on leaves no step in the blur.
+#[test]
+fn shadows_reaching_over_other_backgrounds_scroll_from_tiles() {
+    for content in [Content::ShadowedRows, Content::Sections] {
+        for scale in [1., 2.] {
+            let mut script = scrolls_and_single_pixels();
+            // On past the first tiles' edges, a pixel at a time.
+            script.extend([-120., -55., -91.].map(|dy| Step::Wheel(0., dy)));
+            script.extend((0..90).map(|_| Step::Wheel(0., -1.)));
+            let totals = compare(content, scale, &script);
+            assert_composited(&totals, 150);
         }
     }
 }
