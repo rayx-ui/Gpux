@@ -349,27 +349,40 @@ goldens did not change):
 A shadow draws three blur radii past its box, and a scene used to drop a primitive whose box
 had left its clip: a blur vanished a few pixels early as its element scrolled out of a
 viewport, and a layer's tiles, which hold the content as it was painted, kept showing it. The
-scene now keeps a shadow while what it draws reaches into its clip, with or without layers, and
-stacks it as it is while its box shows (`fast/edge_shadows.rs`):
+scene now keeps a shadow while what it draws reaches into its clip, with or without layers
+(`fast/edge_shadows.rs`).
 
-- over what was painted before it under its box and draws inside the clip: the backgrounds it
-  lies on;
-- under what is painted after it over its box: the element casting it, whose edge can show
-  while the shadow's box, offset away from it, does not;
-- among primitives its box does not overlap, as primitives of one draw order are drawn: by
-  kind, then in paint order.
+Where a blur is stacked must not depend on how far its content is scrolled either. A blur falls
+on neighbours its shadow's box never overlaps, over those of a lower draw order and under the
+others, and a draw order worked out from what a clip leaves in view changes as rows enter and
+leave it: the shadow of a card in the next row lies over its own row's background, and so over
+the row above; with its row out of view it would be level with that row instead, and hidden
+under it. So at a clip's edge a scene orders primitives as it would were the clip not there:
 
-A primitive painted inside the shadow's clip is taken as it would lie were the clip not there;
-one painted outside it (the background behind a viewport, an overlay over it) lies under or over
-the shadow where it lies under or over the blur that shows. A scene that keeps no such shadow
-orders every primitive as it did before. This applies with fast mode off too: a blur at the
-edge of a scroll container, a clipped panel or the window no longer pops as its box crosses the
-edge.
+- a primitive the clip drops keeps an entry of its whole bounds, at the order it would have had;
+- a primitive the clip cuts is ordered over the dropped ones, and the other cut ones, that its
+  whole bounds lie over;
+- a kept shadow is ordered over what lies under its box, dropped or drawn, and what is painted
+  after it over its box is ordered past it: the element casting it, whose edge can show while
+  the shadow's box, offset away from it, does not.
 
-What a kept shadow lies on is what draws inside the clip. A background that is wholly out of
-view (a row's, beginning where the card casting the shadow does) is not counted, so the shadow
-is drawn level with the backgrounds of the rows around it rather than over them, until a pixel
-of its own row shows. A layer's tile orders a shadow by what draws in the tile, in the same way.
+Content in one clip has, primitive for primitive, the draw orders it has with the clip not
+there, wherever the clip lies over it. A primitive wholly inside its clip meets nothing outside
+it and is ordered as before, and a scene none of whose primitives a clip cuts or drops is the
+scene it was. This applies with fast mode off too: a blur at the edge of a scroll container, a
+clipped panel or the window no longer pops as its box crosses the edge.
+
+A layer's tiles draw the content's primitives at the orders the content gave them as a whole,
+not at orders worked out among the primitives over each tile, which changed at a tile's edge
+when what lay under a shadow's box did not reach into the tile, and left a step in the blur
+there.
+
+The entries are kept by clip: primitives of one content mask are ordered against each other,
+not against what another clip dropped where they happen to lie in the window. What is painted
+outside a clip (the background behind a viewport, an overlay over it) lies under or over a kept
+shadow where it lies under or over the blur that shows. A dropped primitive further than 2048
+device pixels from its clip leaves no entry, and a primitive is raised past what it lies over at
+most 256 orders at a time.
 
 The renderers' groups (`fast::layers::tests` in `gpui_wgpu`, `fast::layers` in `gpui_apple`)
 compare content drawn from tiles with the same content drawn directly, byte for byte: tiles of
