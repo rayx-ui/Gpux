@@ -29,6 +29,8 @@ test('the popover takes the pointer where it drew and the DOM element beside it 
   await gpux.locate('role=status value="composition on clicks 0"');
   const block = page.locator('#gpux-dom-block');
   await expect(block).toHaveCount(1);
+  // Once the overlay's first frame is drawn, its shield takes the pointer over the popover.
+  await expect(page.locator('[data-gpux-composition-shield]')).toBeVisible();
 
   await page.mouse.click(ON_POPOVER.x, ON_POPOVER.y);
   await gpux.locate('role=status value="composition on clicks 1"');
@@ -45,6 +47,10 @@ test('moving between the canvas and the popover stays inside the window @pr', as
 }) => {
   await gpux.open('web-composition', { backend: 'webgpu' });
   await gpux.locate('role=status value="composition on clicks 0"');
+  // The overlay takes the pointer once its first frame is drawn; until then the DOM block
+  // under the popover does, and moving onto a DOM-owned element does leave GPUI's content.
+  await gpux.expectColor(ON_POPOVER.x, ON_POPOVER.y, GREEN);
+  await expect(page.locator('[data-gpux-composition-shield]')).toBeVisible();
   await page.mouse.move(ON_CANVAS.x, ON_CANVAS.y);
   await page.mouse.move(ON_POPOVER.x, ON_POPOVER.y);
   await page.mouse.move(ON_CANVAS.x, ON_CANVAS.y);

@@ -168,12 +168,13 @@ fn the_java_helper_is_compiled_dexed_and_packaged() {
 
     let android_jar = sdk
         .path()
-        .join(format!(
-            "platforms/android-{}/android.jar",
-            android::COMPILE_SDK
-        ))
+        .join("platforms")
+        .join(format!("android-{}", android::COMPILE_SDK))
+        .join("android.jar")
         .display()
         .to_string();
+    // Compared by path components: Windows joins them with backslashes.
+    let ends_with = |arg: &String, tail: &str| Path::new(arg).ends_with(tail);
     let labels: Vec<&str> = runner
         .invocations
         .iter()
@@ -188,20 +189,20 @@ fn the_java_helper_is_compiled_dexed_and_packaged() {
         javac
             .args
             .iter()
-            .any(|arg| arg.ends_with("dev/gpux/mobile/Composition.java")),
+            .any(|arg| ends_with(arg, "dev/gpux/mobile/Composition.java")),
         "{:?}",
         javac.args
     );
 
     let d8 = &runner.invocations[position("d8")];
     assert_eq!(d8.program, "/bin/java");
-    assert!(d8.args[1].ends_with("lib/d8.jar"), "{:?}", d8.args);
+    assert!(ends_with(&d8.args[1], "lib/d8.jar"), "{:?}", d8.args);
     assert_eq!(after(&d8.args, "--lib"), android_jar);
     assert_eq!(after(&d8.args, "--min-api"), android::MIN_SDK.to_string());
     assert!(
         d8.args
             .iter()
-            .any(|arg| arg.ends_with("dev/gpux/mobile/Composition.class"))
+            .any(|arg| ends_with(arg, "dev/gpux/mobile/Composition.class"))
     );
 
     // The dex is in the signed APK, next to the native library.
