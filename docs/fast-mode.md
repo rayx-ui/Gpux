@@ -114,8 +114,8 @@ With `scroll_layers` on (it needs view retention), a scrolling `div` whose offse
 frames in a row paints its content once into a layer: a scene in content space, cut into tiles
 of 512 device pixels, covering the viewport and two viewports on either side. Frames that only
 scroll it are then drawn from those tiles, moved by the offset, without prepainting or painting
-the content. `uniform_list` and `list` get layers of their own, with a record per row, in a
-later step.
+the content. `uniform_list` and `list` get layers of their own, with a record per row (see
+[Virtual lists](#virtual-lists)).
 
 A window runs scroll layers only where its renderer rasterizes their tiles
 (`PlatformWindow::rasterizes_layer_tiles`); in any other window the switch normalizes to off.
@@ -209,6 +209,85 @@ compares the two scenes exactly but for content masks, given to 1/1024 of a devi
 mask is scaled from logical pixels, and one a layer moved into content space and back can
 differ in its last bits. Pixel equality is the renderers' tests' to show.
 
+### Virtual lists
+
+A `uniform_list` or a `list` renders only the rows it shows. Its layer holds those and the rows
+around them, each painted once at its place and kept by row with everything it handed the
+frame: its part of the layer's scene, the hashes of the tiles it reaches, its hitboxes, the
+hovers it was painted by, its prepaint and paint records, its layout nodes and what it read. A
+frame that only scrolls the list renders the rows the layer lacks and no other:
+
+- the rows the scroll brings within reach. A `uniform_list` holds `ceil(2 · viewport / item)`
+  rows on either side of those it shows. A `list` holds two viewports of rows on either side
+  when it is first painted, only the rows it shows after a change of its content painted them
+  again, and half a viewport more on each frame that keeps them;
+- the two rows whose hover changes as rows move under the pointer, which the frame foretells
+  from last frame's hitboxes;
+- the rows the list shows whose reads changed, or which hold a view that was notified. A row
+  the list does not show is rendered when it comes to: in gpux every row reads the view that
+  holds its list, and a change of what they all read would otherwise rebuild several viewports
+  of rows on each frame of it;
+- a row whose element states were dropped when it left the viewport, as a list without a layer
+  drops them, when it shows again.
+
+A list's rows are rendered by a closure the view holding the list hands it, which commonly
+leases that view (`Context::processor`). With scroll layers on, that lease is part of drawing
+the view, as the lease that renders it is: neither an update nor a write. A row a layer holds
+is therefore not changed by the rows rendered after it, in its own list or in another the view
+holds. With scroll layers off the lease counts as it did.
+
+The renderer a `list` is handed is built when `list(...)` is called, as the view renders. What
+the view reads before that can shape the rows, and a change of it renders them again. What it
+reads after (whether its list is at its end, which of its rows are in view, the state of an
+input below it) cannot shape the rows and leaves the list on its layer; it still shapes
+everything else the view builds, so a scrolling `div` beside the list is painted again for it.
+
+A change of a `list`'s state from outside the wheel (a splice, a remeasure, a reset, a scroll
+to an item or an offset) holds other rows than the layer does. When the view holding the list
+was notified with it, the rows the list shows are rendered again and the layer kept, the rows
+around them rendered as they come to show; a changed item count, or a change no notification
+of that view came with, paints the rows afresh. A view that asks whether its list
+`is_scrolled_to_end` reads a boolean, and is rendered again only when it flips; scrolling a
+list to its end where it already is (`scroll_to_end`, as a view following its transcript calls
+on every render) moves nothing. Each step of an animated scroll (`ScrollActivity`) changes the
+state and notifies the view: the rows shown are rendered on each, as without a layer, and the
+work budget gives the layer up while the animation lasts.
+
+A frame shown from a list's layer tells what the frame drawn without it tells. The rows the
+layer holds off screen give it their pixels and nothing else, as a list without a layer does
+not draw them: their hitboxes are clipped away, their mouse listeners hear nothing (one that
+listens for a press outside its element would hear every press), they are no stops for the tab
+key, hold no focus, are not among the frame's DevKit elements
+(`Window::devtools_frame_snapshot`), are not counted among the hitboxes of the elements around
+them, and have no bounds for tests to find them by. The rows the
+list shows are told row after row, in the tab order and among the DevKit elements, whichever of
+them the frame carried and whichever it rendered. Two things keep that true where rows reach
+outside the room their list gives them:
+
+- a row that draws above or below its room (a shadow under a card, glyphs taller than their
+  line) is held only while the list shows it, rendered when it comes into view and dropped when
+  it leaves, so that nothing of a row off screen shows over its neighbours;
+- a row that can be hit outside its room keeps its list on today's path. The frame holds the
+  hitboxes of the rows it carried before those of the rows it rendered, and a point under two
+  hitboxes hits the later one: rows hit only inside their own rooms are hit alike in any order.
+
+A list goes without a layer, counted `ineligible`, when it has rows that stick to its top
+(`ListState::with_sticky_items`, `UniformList::sticky_items`), is a uniform list drawn bottom up
+(`y_flipped`), has rows holding what no tile can (see the reasons above), or lies over no
+opaque background.
+
+`FastStats::list_rows_rendered` and `list_rows_kept` count the rows rendered into list layers
+and the rows kept without rendering. `Window::describe_rendered_frame` describes a frame shown
+from a list's layer by the rows its list shows, row after row, as it describes a scene
+compositing layers by their content. At a fractional scale factor the hitboxes carried with a
+row lie a few units in the last place from where laying the row out afresh puts them.
+
+The `fast::tests::list_layers` group checks all of it against a window drawing from scratch:
+what is rendered on each kind of frame, the frames' quads at scale factors 1 and 1.25, and
+whole frame descriptions over random histories of wheel turns, pointer moves and clicks. The
+layers oracle runs its histories over a uniform list and a list (`list_layers::oracle`), and
+lane A's parity group runs the catalog's list scenes with every mechanism on and off.
+
 ### Tiles in the renderers
 
 A frame that composites a layer carries the layer's content (`Scene::layers`) and one
@@ -263,7 +342,9 @@ rows at scales 1, 1.5 and 2, cards with shadows and gradients, shadowed cards cl
 than their blurs reach, paths, both axes, content that changes while scrolled) in a window with
 every mechanism on and in one with them off and the snapping forced on, and compares every
 frame's pixels: equal, but within a blur's reach of the viewport's top and bottom edges, where
-the layered frame may only be darker, and not on a card.
+the layered frame may only be darker, and not on a card. The same group scrolls a
+`uniform_list` and a `list` of text rows, at scales 1 and 1.5 and with rows that change while
+scrolled, whose frames are equal everywhere.
 
 ## Window composition
 
