@@ -1,12 +1,12 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 159,
-  "planRevision": 20,
+  "revision": 161,
+  "planRevision": 21,
   "specHashes": {
-    "requirements": "a431ab743ab540ad745f0dbce897c7e3f1667f036964119f97670f5c105a98bc",
+    "requirements": "b21da83ad9da89e3d0266ed9c1af86eaa6e25d22fa374bdc600b78f491cd14ac",
     "design": "406a087f7c2c86ca6724574db18be5629c5b99f961b1b6a781a669416f1e0138",
-    "plan": "f5e7879cb3aea332fce5b76d245121f83a4681d8f3132013c64d564e8ea98d94"
+    "plan": "c84febc0026cbc1fff6a8f53847622deb72e4aa7133e5c9fb664f1be74e5ba07"
   },
   "tasks": {
     "t01-fast-switches": {
@@ -4500,6 +4500,14 @@
       },
       "reviewHash": "fb077202eb9923b7b36c5f7c9fb08b3e57598a9351156c81d0ba7c4b4170daa6",
       "recordedAt": "2026-10-10T16:38:08Z"
+    },
+    "s11-layers-renderers": {
+      "snapshotId": "4a56736577fd95d8cfe0bcb8a1a5c975d653d29b3f687e9b51e94ffa772bc87e",
+      "commits": {
+        "gpux": "7a962466f32d3f4d970cf479e06e1dd5833d68fa"
+      },
+      "reviewHash": "67b752329376ae4e8ecfbcd39904572f1dd3e48b5a4c01473b1836aec5d4ca3e",
+      "recordedAt": "2026-10-10T18:46:36Z"
     }
   },
   "findings": [
