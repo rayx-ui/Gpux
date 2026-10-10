@@ -18,11 +18,11 @@ use raw_window_handle::HasWindowHandle;
 
 use crate::{WgpuContext, WgpuRenderer, WgpuSurfaceConfig, wgpu};
 
-/// The alpha mode of a transparent surface: `picked` from the surface's
-/// capabilities, except in the browser, where wgpu's WebGPU backend reports
-/// only `Opaque` although a canvas configures `premultiplied`, which a
-/// composition overlay over DOM content needs.
-pub(crate) fn transparent_alpha_mode(
+/// The alpha mode of a transparent overlay: the one the renderer `picked`
+/// from the surface's capabilities, except in the browser, where wgpu's
+/// WebGPU backend reports only `Opaque` although a canvas configures
+/// `premultiplied`, which an overlay over DOM content needs.
+fn overlay_alpha_mode(
     context: &WgpuContext,
     picked: wgpu::CompositeAlphaMode,
 ) -> wgpu::CompositeAlphaMode {
@@ -30,6 +30,18 @@ pub(crate) fn transparent_alpha_mode(
         wgpu::CompositeAlphaMode::PreMultiplied
     } else {
         picked
+    }
+}
+
+impl WgpuRenderer {
+    /// Reconfigures a transparent sharing renderer with its overlay alpha
+    /// mode, when that is not the one every transparent surface gets.
+    fn use_overlay_alpha_mode(&mut self, context: &WgpuContext) {
+        let alpha_mode = overlay_alpha_mode(context, self.transparent_alpha_mode);
+        if alpha_mode != self.transparent_alpha_mode {
+            self.transparent_alpha_mode = alpha_mode;
+            self.update_transparency(true);
+        }
     }
 }
 
@@ -63,6 +75,9 @@ impl WgpuRenderer {
             self.backend_policy,
             Some(self),
         )?;
+        if transparent {
+            renderer.use_overlay_alpha_mode(context);
+        }
         renderer.set_subpixel_layout(self.is_bgr);
         Ok(renderer)
     }
@@ -142,6 +157,9 @@ impl WgpuRenderer {
             self.backend_policy,
             Some(self),
         )?;
+        if transparent {
+            renderer.use_overlay_alpha_mode(context);
+        }
         renderer.set_subpixel_layout(self.is_bgr);
         Ok(renderer)
     }

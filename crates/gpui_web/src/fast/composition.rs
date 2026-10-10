@@ -155,7 +155,10 @@ impl Overlay {
         let listeners = FORWARDED_EVENTS
             .iter()
             .map(|name| forward(&shield, name, &target, false))
-            .chain([forward(&shield, "wheel", &target, true)])
+            .chain([
+                forward(&shield, "wheel", &target, true),
+                forward_leave(&shield, &target),
+            ])
             .collect();
         Ok(Self {
             canvas,
@@ -249,6 +252,54 @@ fn forward(
     } else {
         EventListenerHandle::add(shield.as_ref(), name, handler)
     }
+}
+
+/// Hands a `pointerleave` on `shield` to the window's canvas `target` when the
+/// pointer leaves the window, not when it moves onto the canvas or another of the
+/// window's shields: the canvas does not see its own leave onto a shield as one
+/// (see `stays_in_window`), so this leave is the window's.
+fn forward_leave(
+    shield: &web_sys::HtmlElement,
+    target: &web_sys::EventTarget,
+) -> EventListenerHandle {
+    let target = target.clone();
+    EventListenerHandle::add(shield.as_ref(), "pointerleave", move |event: JsValue| {
+        let event: web_sys::Event = event.unchecked_into();
+        let related = event
+            .unchecked_ref::<web_sys::MouseEvent>()
+            .related_target();
+        if related.as_ref() == Some(&target) || is_shield(related.as_ref()) {
+            return;
+        }
+        if let Some(copy) = copy_event(&event) {
+            target.dispatch_event(&copy).ok();
+        }
+    })
+}
+
+fn is_shield(target: Option<&web_sys::EventTarget>) -> bool {
+    target
+        .and_then(|target| target.dyn_ref::<web_sys::Element>())
+        .is_some_and(|element| element.has_attribute("data-gpux-composition-shield"))
+}
+
+/// Whether a `pointerleave` on `window`'s canvas towards `related` keeps the
+/// pointer over the window: it moved onto one of the window's own input
+/// shields, which hand its events back to the canvas. A leave forwarded from a
+/// shield (see `forward_leave`) carries a `related` outside the window.
+pub(crate) fn stays_in_window(
+    window: &crate::window::WebWindowInner,
+    related: Option<&web_sys::EventTarget>,
+) -> bool {
+    let Some(related) = related else {
+        return false;
+    };
+    window
+        .fast_composition
+        .borrow()
+        .overlays
+        .values()
+        .any(|overlay| AsRef::<web_sys::EventTarget>::as_ref(&overlay.shield) == related)
 }
 
 /// A new event of `event`'s own class and type, initialized from it.

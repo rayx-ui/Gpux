@@ -11,6 +11,8 @@ const BLUE: [number, number, number, number] = [0, 0, 255, 255];
 const ON_POPOVER = { x: 100, y: 80 };
 /** On the DOM block, beside the popover. */
 const BESIDE = { x: 30, y: 50 };
+/** On GPUI's own content, clear of the DOM block and the popover. */
+const ON_CANVAS = { x: 220, y: 140 };
 
 test('a popover draws over a DOM element on WebGPU @pr', async ({ gpux }) => {
   await gpux.open('web-composition', { backend: 'webgpu' });
@@ -35,6 +37,20 @@ test('the popover takes the pointer where it drew and the DOM element beside it 
   await page.mouse.click(BESIDE.x, BESIDE.y);
   await expect(block).toHaveAttribute('data-clicks', '1');
   await gpux.locate('role=status value="composition on clicks 1"');
+});
+
+test('moving between the canvas and the popover stays inside the window @pr', async ({
+  gpux,
+  page,
+}) => {
+  await gpux.open('web-composition', { backend: 'webgpu' });
+  await gpux.locate('role=status value="composition on clicks 0"');
+  await page.mouse.move(ON_CANVAS.x, ON_CANVAS.y);
+  await page.mouse.move(ON_POPOVER.x, ON_POPOVER.y);
+  await page.mouse.move(ON_CANVAS.x, ON_CANVAS.y);
+  await page.mouse.click(ON_POPOVER.x, ON_POPOVER.y);
+  await gpux.locate('role=status value="composition on clicks 1"');
+  await gpux.locate('role=status value="exits 0"');
 });
 
 test('forced WebGL2 reports composition unsupported and keeps the DOM overlay on top @pr', async ({

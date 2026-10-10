@@ -4,10 +4,11 @@
 //! conventions, so the Playwright driver runs them like any lane-B scene.
 
 use gpux::{
-    AnyElement, AnyView, App, AppContext as _, Context, ElementId, FocusHandle,
+    AnyElement, AnyView, App, AppContext as _, Context, DispatchPhase, ElementId, FocusHandle,
     HtmlElementContentFit, HtmlElementInputMode, HtmlElementLifetime, HtmlElementWheelBehavior,
-    HtmlIslandInputMode, IntoElement, KeyBinding, KeyContext, Keystroke, Render, Subscription,
-    Window, actions, anchored, canvas, deferred, div, point, prelude::*, px, rgb, svg,
+    HtmlIslandInputMode, IntoElement, KeyBinding, KeyContext, Keystroke, MouseExitEvent, Render,
+    Subscription, Window, actions, anchored, canvas, deferred, div, point, prelude::*, px, rgb,
+    svg,
 };
 use gpux_conformance::{
     Expect, Lane, SceneSpec, Step,
@@ -125,15 +126,38 @@ const DOM_BLOCK: &str = r#"<div id="gpux-dom-block" style="width:100%;height:100
 struct ComposedPage {
     composition: &'static str,
     popover_clicks: usize,
+    /// The pointer exits GPUI saw: moving between the canvas and an overlay's input
+    /// shield must not count as leaving the window.
+    exits: usize,
 }
 
 impl Render for ComposedPage {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let page = cx.entity();
         root()
             .child(status(format!(
                 "composition {} clicks {}",
                 self.composition, self.popover_clicks
             )))
+            .child(status(format!("exits {}", self.exits)))
+            .child(
+                canvas(
+                    |_, _, _| {},
+                    move |_, _, window, _| {
+                        let page = page.clone();
+                        window.on_mouse_event(move |_: &MouseExitEvent, phase, _, cx| {
+                            if phase == DispatchPhase::Bubble {
+                                page.update(cx, |page, cx| {
+                                    page.exits += 1;
+                                    cx.notify();
+                                });
+                            }
+                        });
+                    },
+                )
+                .absolute()
+                .size_0(),
+            )
             .child(
                 div()
                     .id("dom-host")
@@ -193,6 +217,7 @@ pub const COMPOSITION: SceneSpec = SceneSpec {
         cx.new(|_| ComposedPage {
             composition,
             popover_clicks: 0,
+            exits: 0,
         })
         .into()
     },

@@ -1254,7 +1254,7 @@ pub struct WgpuRenderer {
     pub(crate) is_bgr: bool,
     dual_source_blending: bool,
     adapter_info: wgpu::AdapterInfo,
-    transparent_alpha_mode: wgpu::CompositeAlphaMode,
+    pub(crate) transparent_alpha_mode: wgpu::CompositeAlphaMode,
     opaque_alpha_mode: wgpu::CompositeAlphaMode,
     max_texture_size: u32,
     last_error: Arc<Mutex<Option<String>>>,
@@ -1609,13 +1609,10 @@ impl WgpuRenderer {
                     })
             };
 
-        let transparent_alpha_mode = crate::fast::composition::transparent_alpha_mode(
-            context,
-            pick_alpha_mode(&[
-                wgpu::CompositeAlphaMode::PreMultiplied,
-                wgpu::CompositeAlphaMode::Inherit,
-            ])?,
-        );
+        let transparent_alpha_mode = pick_alpha_mode(&[
+            wgpu::CompositeAlphaMode::PreMultiplied,
+            wgpu::CompositeAlphaMode::Inherit,
+        ])?;
 
         let opaque_alpha_mode = pick_alpha_mode(&[
             wgpu::CompositeAlphaMode::Opaque,

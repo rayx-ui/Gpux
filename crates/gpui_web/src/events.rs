@@ -676,6 +676,9 @@ impl WebWindowInner {
         let this = Rc::clone(self);
         self.listen("pointerleave", move |event: JsValue| {
             let event: web_sys::PointerEvent = event.unchecked_into();
+            if crate::fast::composition::stays_in_window(&this, event.related_target().as_ref()) {
+                return;
+            }
 
             let position = pointer_position_in_canvas(&event, &this.canvas);
             let modifiers = modifiers_from_mouse_event(&event, this.is_mac);
