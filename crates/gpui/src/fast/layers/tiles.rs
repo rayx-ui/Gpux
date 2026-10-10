@@ -43,8 +43,12 @@ pub(crate) fn tile_hashes(
         match operation {
             PaintOperation::Primitive(primitive) => {
                 let visible = visible_bounds(primitive);
+                // A tile draws the content's primitives at the orders the
+                // content gave them (see `LayerFrame::tile_scene`).
+                let order = crate::fast::edge_shadows::order_of(primitive);
                 for_tiles(&mut hashers, visible, tile_size, |hasher, origin| {
                     hasher.write_u8(0);
+                    hasher.write_u32(order);
                     hash_primitive(&translate_primitive(primitive, origin), &tile, hasher);
                 });
             }
@@ -72,6 +76,9 @@ pub(crate) fn tile_hashes(
                     });
                 }
             }
+            // It draws nothing; what it does to the orders of what does is
+            // hashed with them.
+            PaintOperation::FastDropped(_) => {}
         }
     }
     hashers
@@ -114,6 +121,7 @@ pub(crate) fn part_tile_hashes(
             | PaintOperation::StartPositionedLayer(_)
             | PaintOperation::StartTopLayer(_) => hasher.write_u8(layer_kind(operation)),
             PaintOperation::EndLayer => hasher.write_u8(2),
+            PaintOperation::FastDropped(_) => {}
         }
     }
     let hash = hasher.finish();

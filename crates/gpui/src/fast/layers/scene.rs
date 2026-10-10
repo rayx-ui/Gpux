@@ -136,30 +136,44 @@ impl LayerFrame {
     /// The primitives of `content` that are visible over `tile`, translated
     /// into the tile's space (its top-left corner at the origin), in drawing
     /// order, finished and ready to batch.
+    ///
+    /// Each is drawn at the order it has in the content as a whole
+    /// ([`LayerContent::orders`]), not at one worked out among the
+    /// primitives over the tile: a shadow's blur falls on neighbours its box
+    /// does not overlap, over those of a lower order and under the others,
+    /// and an order worked out per tile changes at the tile's edge when what
+    /// lies under the shadow's box does not reach into the tile.
     pub fn tile_scene(&self, tile: TileCoord) -> Scene {
         let bounds = self.tile_bounds(tile);
         let delta = point(
             ScaledPixels(-bounds.origin.x.0),
             ScaledPixels(-bounds.origin.y.0),
         );
+        let orders = self.content.orders();
         let mut scene = Scene::default();
-        for operation in self.content.operations_over(bounds) {
-            match operation {
-                PaintOperation::Primitive(primitive) => {
-                    if visible_bounds(primitive).intersects(&bounds) {
-                        scene.insert_primitive(translate_primitive(primitive, delta));
-                    }
+        let mut first = 0;
+        for part in self.content.parts.iter() {
+            let operations = &part.scene.paint_operations;
+            let start = first;
+            first += operations.len();
+            if part.bounds.is_some_and(|part| !part.intersects(&bounds)) {
+                continue;
+            }
+            for (index, operation) in operations.iter().enumerate() {
+                let PaintOperation::Primitive(primitive) = operation else {
+                    continue;
+                };
+                if visible_bounds(primitive).intersects(&bounds) {
+                    let order = match &orders {
+                        Some(orders) => orders[start + index],
+                        None => crate::fast::edge_shadows::order_of(primitive),
+                    };
+                    crate::fast::edge_shadows::insert_at(
+                        &mut scene,
+                        translate_primitive(primitive, delta),
+                        order,
+                    );
                 }
-                PaintOperation::StartLayer(layer_bounds) => {
-                    scene.push_layer(translate_bounds(*layer_bounds, delta))
-                }
-                PaintOperation::StartPositionedLayer(layer_bounds) => {
-                    scene.push_positioned_layer(translate_bounds(*layer_bounds, delta))
-                }
-                PaintOperation::StartTopLayer(layer_bounds) => {
-                    scene.push_top_layer(translate_bounds(*layer_bounds, delta))
-                }
-                PaintOperation::EndLayer => scene.pop_layer(),
             }
         }
         scene.finish();
@@ -175,6 +189,9 @@ impl LayerFrame {
 #[derive(Clone, Default)]
 pub struct LayerContent {
     parts: Rc<[LayerPart]>,
+    /// The order of each paint operation of every part in the content as a
+    /// whole, once a tile asked for them. See [`LayerContent::orders`].
+    orders: Rc<std::cell::OnceCell<Vec<crate::DrawOrder>>>,
 }
 
 /// A part of a layer's content.
@@ -201,6 +218,7 @@ impl From<Rc<Scene>> for LayerContent {
                 bounds: None,
                 scene,
             }]),
+            orders: Rc::default(),
         }
     }
 }
@@ -210,7 +228,44 @@ impl LayerContent {
     pub(crate) fn from_parts(parts: impl IntoIterator<Item = LayerPart>) -> Self {
         LayerContent {
             parts: parts.into_iter().collect(),
+            orders: Rc::default(),
         }
+    }
+
+    /// The draw order of each paint operation of every part, part after
+    /// part, in the content as a whole; `None` for content of one part,
+    /// whose scene holds them.
+    ///
+    /// A part is a scene of its own, a list's row, ordered when it was
+    /// painted among whatever was painted with it. What the rows are to one
+    /// another is worked out here, once for the content: the order each
+    /// operation gets when all of them are painted one after another.
+    fn orders(&self) -> Option<&[crate::DrawOrder]> {
+        if self.parts.len() <= 1 {
+            return None;
+        }
+        Some(self.orders.get_or_init(|| {
+            let mut whole = Scene::default();
+            for part in self.parts.iter() {
+                let before = whole.paint_operations.len();
+                whole.replay(0..part.scene.paint_operations.len(), &part.scene);
+                // An operation replayed is an operation again.
+                debug_assert_eq!(
+                    whole.paint_operations.len() - before,
+                    part.scene.paint_operations.len()
+                );
+            }
+            whole
+                .paint_operations
+                .iter()
+                .map(|operation| match operation {
+                    PaintOperation::Primitive(primitive) => {
+                        crate::fast::edge_shadows::order_of(primitive)
+                    }
+                    _ => 0,
+                })
+                .collect()
+        }))
     }
 
     /// The content's scene, when it is one part, as a `div`'s is.
@@ -236,20 +291,6 @@ impl LayerContent {
     pub(crate) fn operations(&self) -> impl Iterator<Item = &PaintOperation> {
         self.parts
             .iter()
-            .flat_map(|part| part.scene.paint_operations.iter())
-    }
-
-    /// The paint operations of the parts that can draw over `bounds`, in
-    /// drawing order. Leaving out a part that draws nothing there changes
-    /// no pixel there: a layer it pushed only raises the draw orders of what
-    /// follows, keeping every overlapping pair in order.
-    pub(crate) fn operations_over(
-        &self,
-        bounds: Bounds<ScaledPixels>,
-    ) -> impl Iterator<Item = &PaintOperation> {
-        self.parts
-            .iter()
-            .filter(move |part| part.bounds.is_none_or(|part| part.intersects(&bounds)))
             .flat_map(|part| part.scene.paint_operations.iter())
     }
 }
