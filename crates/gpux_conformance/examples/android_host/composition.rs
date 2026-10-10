@@ -7,9 +7,9 @@
 use crate::android::{Screens, request};
 use gpui_mobile::android::jni as android_jni;
 use gpux::{
-    AnyWindowHandle, AppContext as _, AsyncApp, Context, Entity, IntoElement, Render, Window,
-    WindowCompositionSurface, WindowOptions, anchored, deferred, div, native_surface, point,
-    prelude::*, px, rgb,
+    AnyWindowHandle, AppContext as _, AsyncApp, Context, Entity, IntoElement, Render, ScrollHandle,
+    Window, WindowCompositionSurface, WindowOptions, anchored, deferred, div, native_surface,
+    point, prelude::*, px, rgb,
 };
 use gpux_conformance::{
     app_host,
@@ -32,6 +32,8 @@ struct Composed {
     base_taps: usize,
     /// Taps GPUI received on the menu.
     menu_taps: usize,
+    /// The menu scrolls: its content is taller than it is.
+    menu_scroll: ScrollHandle,
 }
 
 impl Render for Composed {
@@ -70,10 +72,13 @@ impl Render for Composed {
                             .h(px(MENU.3))
                             .bg(rgb(0xdddddd))
                             .shadow_lg()
+                            .overflow_y_scroll()
+                            .track_scroll(&self.menu_scroll)
                             .on_click(cx.listener(|this, _, _, cx| {
                                 this.menu_taps += 1;
                                 cx.notify();
-                            })),
+                            }))
+                            .child(div().w_full().h(px(MENU.3 * 8.))),
                     ),
                 ))
             })
@@ -126,6 +131,7 @@ async fn setup(cx: &mut AsyncApp) -> anyhow::Result<(AnyWindowHandle, Entity<Com
             menu_open: false,
             base_taps: 0,
             menu_taps: 0,
+            menu_scroll: ScrollHandle::new(),
         })
     })?;
     let root = handle.update(cx, |_, _, cx| cx.entity())?;
@@ -308,6 +314,64 @@ pub async fn input(cx: &mut AsyncApp, screens: &Screens) -> ResultLine {
                 "passes through to the native view when empty, taken by the open menu",
             )
         }
+    };
+    close(cx, window);
+    result
+}
+
+/// A swipe on the menu, over the native view, pans the menu's content: the
+/// touches the overlay (or, in cut-out mode, the native container) takes
+/// reach GPUI as a whole gesture.
+pub async fn pan(cx: &mut AsyncApp, screens: &Screens) -> ResultLine {
+    const ID: &str = "composition-android-pan";
+    let (window, root, scale) = match setup(cx).await {
+        Ok(setup) => setup,
+        Err(error) => return line(Outcome::Fail, ID, format!("{error:#}")),
+    };
+    open_menu(cx, &root);
+    // Wait for the panel window and the menu before swiping over them.
+    capture(cx, screens, window, scale).await.ok();
+    app_host::wait_frames(cx, window, 3).await.ok();
+    cx.background_executor()
+        .timer(Duration::from_millis(800))
+        .await;
+    let x = ((MENU.0 + MENU.2 / 2.) * scale) as i32;
+    let from = ((MENU.1 + MENU.3 - 8.) * scale) as i32;
+    let to = ((MENU.1 + 6.) * scale) as i32;
+    request(&format!("swipe {x} {from} {x} {to} 600"));
+    let scrolled = |cx: &mut AsyncApp| {
+        root.read_with(cx, |composed, _| -composed.menu_scroll.offset().y.as_f32())
+    };
+    let start = Instant::now();
+    while scrolled(cx) <= 0. && start.elapsed() < Duration::from_secs(10) {
+        cx.background_executor()
+            .timer(Duration::from_millis(100))
+            .await;
+    }
+    cx.background_executor()
+        .timer(Duration::from_millis(500))
+        .await;
+    let distance = scrolled(cx);
+    let (base_taps, menu_taps) =
+        root.read_with(cx, |composed, _| (composed.base_taps, composed.menu_taps));
+    let result = if distance < 10. {
+        line(
+            Outcome::Fail,
+            ID,
+            format!("a 36-pixel swipe on the menu scrolled it {distance} pixels"),
+        )
+    } else if base_taps != 0 || menu_taps != 0 {
+        line(
+            Outcome::Fail,
+            ID,
+            format!("the swipe arrived as {menu_taps} menu and {base_taps} base taps"),
+        )
+    } else {
+        line(
+            Outcome::Pass,
+            ID,
+            format!("a swipe on the menu over the native view scrolled it {distance} pixels"),
+        )
     };
     close(cx, window);
     result

@@ -489,11 +489,17 @@ pub async fn os_checks(cx: &mut AsyncApp, screens: &Screens) -> Vec<ResultLine> 
     if selected("composition-android-input") {
         lines.push(crate::composition::input(cx, screens).await);
     }
+    if selected("composition-android-pan") {
+        lines.push(crate::composition::pan(cx, screens).await);
+    }
     if selected("composition-android-shadow") {
         lines.push(crate::composition::shadow(cx, screens).await);
     }
     if selected("platform-view-android") {
         lines.push(crate::platform_views::platform_view(cx, screens).await);
+    }
+    if selected("platform-view-android-text") {
+        lines.push(crate::platform_views::text_input(cx, screens).await);
     }
     lines
 }

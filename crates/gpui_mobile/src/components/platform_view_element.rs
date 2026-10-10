@@ -9,7 +9,7 @@
 //! size, offset inside the surface, so a scroll area clips it. GPUI's base
 //! content draws below the view and its overlay content above it; the
 //! surface is hidden in frames that do not draw the element, or that clip all
-//! of it.
+//! of it, and leaves the composition when the view is disposed.
 //!
 //! ## Usage
 //!
@@ -29,10 +29,11 @@
 //! [`PlatformView::attach`]: crate::platform_view::PlatformView::attach
 
 use crate::platform_view::{PlatformViewBounds, PlatformViewHandle, PlatformViewId};
+use futures::channel::oneshot;
 use gpui::{
     AnyElement, App, AvailableSpace, Bounds, Element, ElementId, GlobalElementId,
-    InspectorElementId, IntoElement, LayoutId, Pixels, Refineable, Style, StyleRefinement, Styled,
-    Window, WindowCompositionSurface, WindowId, div, native_surface, px,
+    InspectorElementId, IntoElement, LayoutId, ParentElement, Pixels, Refineable, Style,
+    StyleRefinement, Styled, Window, WindowCompositionSurface, WindowId, div, native_surface, px,
 };
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -51,36 +52,62 @@ thread_local! {
         RefCell::new(HashMap::new());
 }
 
-/// Views disposed since their surfaces were last swept; a handle may be
-/// disposed on any thread, so the next layout on GPUI's thread removes them.
-static DISPOSED: Mutex<Vec<PlatformViewId>> = Mutex::new(Vec::new());
+/// What tells each placed view's watcher that the view was disposed; a
+/// handle may be disposed on any thread.
+static DISPOSED: Mutex<Option<HashMap<PlatformViewId, Vec<oneshot::Sender<()>>>>> =
+    Mutex::new(None);
 
-/// Called as a platform view is disposed: its native surface goes at the
-/// next layout of a platform view element.
+/// Called as a platform view is disposed: its native surfaces leave their
+/// windows' compositions, on GPUI's thread.
 pub(crate) fn forget(id: PlatformViewId) {
-    DISPOSED.lock().unwrap().push(id);
+    let watchers = DISPOSED
+        .lock()
+        .unwrap()
+        .as_mut()
+        .and_then(|watchers| watchers.remove(&id));
+    for watcher in watchers.into_iter().flatten() {
+        watcher.send(()).ok();
+    }
 }
 
-/// Removes the surfaces of disposed views from `window`'s composition.
-fn sweep(window: &Window) {
-    let disposed = std::mem::take(&mut *DISPOSED.lock().unwrap());
-    if disposed.is_empty() {
-        return;
+/// Removes `handle`'s surface from the composition of the window it was
+/// placed in once the view is disposed, whether or not a platform view
+/// element is ever laid out again.
+fn remove_when_disposed(
+    handle: &PlatformViewHandle,
+    key: (WindowId, PlatformViewId),
+    window: &Window,
+    cx: &mut App,
+) {
+    let (disposed, on_disposed) = oneshot::channel();
+    DISPOSED
+        .lock()
+        .unwrap()
+        .get_or_insert_with(HashMap::new)
+        .entry(key.1)
+        .or_default()
+        .push(disposed);
+    let window_handle = window.window_handle();
+    cx.spawn(async move |cx| {
+        if on_disposed.await.is_err() {
+            return;
+        }
+        let Some(placed) = SURFACES.with_borrow_mut(|surfaces| surfaces.remove(&key)) else {
+            return;
+        };
+        window_handle
+            .update(cx, |_, window, _| {
+                if let Ok(composition) = window.enable_window_composition() {
+                    composition.remove_surface(placed.surface.id()).ok();
+                }
+            })
+            .ok();
+    })
+    .detach();
+    // Disposed on another thread while this was set up.
+    if handle.inner().is_disposed() {
+        forget(key.1);
     }
-    let window_id = window.window_handle().window_id();
-    SURFACES.with_borrow_mut(|surfaces| {
-        surfaces.retain(|(surface_window, id), placed| {
-            if !disposed.contains(id) {
-                return true;
-            }
-            if *surface_window == window_id
-                && let Ok(composition) = window.enable_window_composition()
-            {
-                composition.remove_surface(placed.surface.id()).ok();
-            }
-            false
-        });
-    });
 }
 
 /// The native surface `handle`'s view is attached to in `window`, made the
@@ -88,6 +115,7 @@ fn sweep(window: &Window) {
 fn surface(
     handle: &PlatformViewHandle,
     window: &Window,
+    cx: &mut App,
 ) -> Result<WindowCompositionSurface, String> {
     let key = (window.window_handle().window_id(), handle.id());
     if let Some(surface) =
@@ -119,23 +147,28 @@ fn surface(
             },
         )
     });
+    remove_when_disposed(handle, key, window, cx);
     Ok(surface)
 }
 
 /// Create a GPUI element that hosts a native platform view.
 ///
-/// The element reserves layout space and places the view's native surface
-/// there on every frame that draws it. Style it with `.w()`, `.h()`,
+/// The returned `Div` reserves layout space and places the view's native
+/// surface there on every frame that draws it. Style it with `.w()`, `.h()`,
 /// `.size()`, `.flex_grow()`, etc. to control how much space it occupies.
-pub fn platform_view_element(handle: Arc<PlatformViewHandle>) -> PlatformViewElement {
-    PlatformViewElement {
-        handle,
-        style: StyleRefinement::default(),
-    }
+pub fn platform_view_element(handle: Arc<PlatformViewHandle>) -> gpui::Div {
+    div().child(
+        PlatformViewElement {
+            handle,
+            style: StyleRefinement::default(),
+        }
+        .size_full(),
+    )
 }
 
-/// An element a platform view is placed at: see [`platform_view_element`].
-pub struct PlatformViewElement {
+/// The element a platform view is placed at, filling the `Div` that
+/// [`platform_view_element`] returns.
+struct PlatformViewElement {
     handle: Arc<PlatformViewHandle>,
     style: StyleRefinement,
 }
@@ -194,7 +227,6 @@ impl Element for PlatformViewElement {
         window: &mut Window,
         cx: &mut App,
     ) -> (LayoutId, ()) {
-        sweep(window);
         let mut style = Style::default();
         style.refine(&self.style);
         (window.request_layout(style, [], cx), ())
@@ -210,10 +242,13 @@ impl Element for PlatformViewElement {
         cx: &mut App,
     ) -> Option<AnyElement> {
         let visible = bounds.intersect(&window.content_mask().bounds);
-        if visible.size.width <= px(0.) || visible.size.height <= px(0.) {
+        if self.handle.inner().is_disposed()
+            || visible.size.width <= px(0.)
+            || visible.size.height <= px(0.)
+        {
             return None;
         }
-        let surface = match surface(&self.handle, window) {
+        let surface = match surface(&self.handle, window, cx) {
             Ok(surface) => surface,
             Err(error) => {
                 log::error!("placing {}: {error}", self.handle.id());
@@ -316,12 +351,12 @@ impl ManagedPlatformView {
     /// Render the platform view element.
     ///
     /// Returns a div with an error message if the view fails to create.
-    pub fn render(&mut self) -> AnyElement {
+    pub fn render(&mut self) -> gpui::Div {
         match self.ensure_created() {
-            Ok(handle) => platform_view_element(handle).into_any_element(),
+            Ok(handle) => platform_view_element(handle),
             Err(e) => {
                 log::error!("Failed to create platform view '{}': {}", self.view_type, e);
-                div().into_any_element()
+                div()
             }
         }
     }

@@ -8,6 +8,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.SurfaceHolder;
@@ -15,7 +16,10 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.view.inputmethod.InputMethodManager;
+import android.webkit.WebView;
 import android.widget.FrameLayout;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,6 +33,11 @@ import java.util.List;
  * sub-panel window above every panel, holding a SurfaceView that GPUI renders into. This serves
  * the NativeActivity host and the embedded host alike.
  *
+ * <p>GPUI's coordinates are those of the surface it draws into. A NativeActivity's surface is
+ * the activity's window. An embedding host whose SurfaceView does not fill the window names that
+ * view with {@link #setHostView}, and panels, holes, the overlay and touches are offset by its
+ * position in the window.
+ *
  * <p>The overlay takes no touches while GPUI drew nothing on it, so they reach the native views
  * and the activity's window below; while it has content it takes them all and hands them to GPUI
  * as raw touches.
@@ -37,11 +46,20 @@ import java.util.List;
  * overlay window: GPUI draws its overlay content into the activity's window and each container
  * clips that content out of itself ({@link #setHoles}), handing touches in the holes to GPUI.
  *
+ * <p>Panels are not focusable, so the activity's window keeps the focus and GPUI stays active. A
+ * panel whose content takes text (a WebView, an EditText) becomes focusable when it is touched,
+ * so the soft keyboard reaches it, and gives the focus back on a touch outside it or the back
+ * key; GPUI is told ({@code nativePanelFocus}) and does not take that focus change for the
+ * activity going inactive.
+ *
  * <p>Rust calls every method from GPUI's thread; window changes are posted to the UI thread.
  * The native methods are registered by gpux when it loads this class. Consumers add these
  * sources to their build, as {@code gpux-testkit android build} does without Gradle.
  */
 public final class Composition {
+    /** The view GPUI draws into, when it is not the whole window. */
+    private static WeakReference<View> hostView = new WeakReference<>(null);
+
     private final Activity activity;
     /** The Rust state the native callbacks reach. */
     private final long handle;
@@ -49,11 +67,17 @@ public final class Composition {
     private final boolean overlayWindow;
     private final Handler ui = new Handler(Looper.getMainLooper());
     /** The panel windows mounted, bottom to top. */
-    private final List<FrameLayout> mounted = new ArrayList<>();
+    private final List<Container> mounted = new ArrayList<>();
     private FrameLayout overlay;
     private WindowManager.LayoutParams overlayParams;
     private boolean overlayTouchable;
+    /** The panel that took the window focus for text input. */
+    private Container focused;
     private boolean released;
+    /** The host view whose layout changes re-place the panels. */
+    private View watchedHost;
+    private final View.OnLayoutChangeListener hostMoved =
+            (view, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> placeAll();
 
     public Composition(Activity activity, long handle, boolean overlayWindow) {
         this.activity = activity;
@@ -62,26 +86,43 @@ public final class Composition {
     }
 
     /**
-     * A native surface's container: it clips its holes (window rectangles of GPUI content above
-     * it) out of what it draws, and hands touches that start in one to GPUI.
+     * Names the view GPUI draws into, for an embedding host whose SurfaceView does not fill the
+     * activity's window. Call it on the UI thread before GPUI composes; null means the window.
      */
-    static final class Container extends FrameLayout {
-        private final long handle;
+    public static void setHostView(View view) {
+        hostView = new WeakReference<>(view);
+    }
+
+    /** Where GPUI's surface starts in the activity's window, in pixels. */
+    private static int[] origin() {
+        int[] origin = new int[2];
+        View host = hostView.get();
+        if (host != null && host.isAttachedToWindow()) {
+            host.getLocationInWindow(origin);
+        }
+        return origin;
+    }
+
+    /**
+     * A native surface's container: it clips its holes (rectangles of GPUI content above it, in
+     * GPUI's coordinates) out of what it draws, and hands touches that start in one to GPUI.
+     */
+    final class Container extends FrameLayout {
+        /** The container's bounds in GPUI's coordinates. */
+        private int x;
+        private int y;
+        private int width = 1;
+        private int height = 1;
         private float[] holes = new float[0];
         private boolean forwarding;
 
-        Container(Context context, long handle) {
+        Container(Context context) {
             super(context);
-            this.handle = handle;
             setClipChildren(true);
         }
 
-        private int left() {
-            return ((WindowManager.LayoutParams) getLayoutParams()).x;
-        }
-
-        private int top() {
-            return ((WindowManager.LayoutParams) getLayoutParams()).y;
+        WindowManager.LayoutParams params() {
+            return (WindowManager.LayoutParams) getLayoutParams();
         }
 
         void setHoles(float[] holes) {
@@ -89,11 +130,14 @@ public final class Composition {
             invalidate();
         }
 
-        private boolean inHole(float x, float y) {
+        private boolean inHole(float px, float py) {
             for (int index = 0; index + 3 < holes.length; index += 4) {
-                float left = holes[index] - left();
-                float top = holes[index + 1] - top();
-                if (x >= left && y >= top && x < left + holes[index + 2] && y < top + holes[index + 3]) {
+                float left = holes[index] - x;
+                float top = holes[index + 1] - y;
+                if (px >= left
+                        && py >= top
+                        && px < left + holes[index + 2]
+                        && py < top + holes[index + 3]) {
                     return true;
                 }
             }
@@ -104,8 +148,8 @@ public final class Composition {
         protected void dispatchDraw(Canvas canvas) {
             canvas.save();
             for (int index = 0; index + 3 < holes.length; index += 4) {
-                float left = holes[index] - left();
-                float top = holes[index + 1] - top();
+                float left = holes[index] - x;
+                float top = holes[index + 1] - y;
                 canvas.clipOutRect(left, top, left + holes[index + 2], top + holes[index + 3]);
             }
             super.dispatchDraw(canvas);
@@ -114,15 +158,90 @@ public final class Composition {
 
         @Override
         public boolean dispatchTouchEvent(MotionEvent event) {
-            if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+            int action = event.getActionMasked();
+            if (action == MotionEvent.ACTION_OUTSIDE) {
+                // A touch elsewhere while this panel holds the focus: give it back.
+                unfocus();
+                return false;
+            }
+            if (action == MotionEvent.ACTION_DOWN) {
                 forwarding = inHole(event.getX(), event.getY());
+                if (!forwarding && wantsText(this)) {
+                    focus(this);
+                }
             }
             if (!forwarding) {
                 return super.dispatchTouchEvent(event);
             }
-            forwardTouches(handle, event, left(), top());
+            forwardTouches(handle, event, x, y);
             return true;
         }
+
+        @Override
+        public boolean dispatchKeyEvent(KeyEvent event) {
+            if (super.dispatchKeyEvent(event)) {
+                return true;
+            }
+            if (event.getKeyCode() == KeyEvent.KEYCODE_BACK && focused == this) {
+                if (event.getAction() == KeyEvent.ACTION_UP) {
+                    unfocus();
+                }
+                return true;
+            }
+            return false;
+        }
+    }
+
+    /** Whether {@code view} or a view in it takes text input. */
+    private static boolean wantsText(View view) {
+        if (view instanceof WebView || view.onCheckIsTextEditor()) {
+            return true;
+        }
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int index = 0; index < group.getChildCount(); index++) {
+                if (wantsText(group.getChildAt(index))) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /** Makes {@code container}'s panel focusable, so the soft keyboard reaches its views. */
+    private void focus(Container container) {
+        if (focused == container || !mounted.contains(container)) {
+            return;
+        }
+        unfocus();
+        focused = container;
+        // Before the focus moves: GPUI must not take it for the activity going inactive.
+        nativePanelFocus(handle, true);
+        WindowManager.LayoutParams params = container.params();
+        params.flags &= ~WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+        params.flags |= WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH;
+        windowManager().updateViewLayout(container, params);
+    }
+
+    /** Gives the window focus back to the activity's window. */
+    private void unfocus() {
+        Container container = focused;
+        if (container == null) {
+            return;
+        }
+        focused = null;
+        InputMethodManager keyboard =
+                (InputMethodManager) activity.getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (keyboard != null && container.getWindowToken() != null) {
+            keyboard.hideSoftInputFromWindow(container.getWindowToken(), 0);
+        }
+        WindowManager.LayoutParams params = container.params();
+        params.flags |= WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+        params.flags &= ~WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH;
+        if (mounted.contains(container)) {
+            windowManager().updateViewLayout(container, params);
+        }
+        nativePanelFocus(handle, false);
     }
 
     private WindowManager windowManager() {
@@ -135,7 +254,7 @@ public final class Composition {
 
     /** A container for native views, in a panel window once an order mounts it. */
     public FrameLayout createNativeSurface() {
-        Container container = new Container(activity, handle);
+        Container container = new Container(activity);
         WindowManager.LayoutParams params =
                 new WindowManager.LayoutParams(
                         1,
@@ -153,39 +272,82 @@ public final class Composition {
         return container;
     }
 
-    /** Places a container at {@code x, y, width, height} in window pixels. */
+    /** Sets a container's window position and size from its bounds and GPUI's origin. */
+    private void place(Container container, int[] origin) {
+        WindowManager.LayoutParams params = container.params();
+        params.x = origin[0] + container.x;
+        params.y = origin[1] + container.y;
+        params.width = container.width;
+        params.height = container.height;
+        if (mounted.contains(container)) {
+            windowManager().updateViewLayout(container, params);
+        } else {
+            container.setLayoutParams(params);
+        }
+    }
+
+    /** Places every panel and the overlay again: GPUI's surface moved in the window. */
+    private void placeAll() {
+        if (released) {
+            return;
+        }
+        int[] origin = origin();
+        for (Container container : mounted) {
+            place(container, origin);
+        }
+        placeOverlay();
+    }
+
+    /** Follows the host view's layout, once there is one. */
+    private void watchHost() {
+        View host = hostView.get();
+        if (host == watchedHost) {
+            return;
+        }
+        if (watchedHost != null) {
+            watchedHost.removeOnLayoutChangeListener(hostMoved);
+        }
+        watchedHost = host;
+        if (host != null) {
+            host.addOnLayoutChangeListener(hostMoved);
+        }
+    }
+
+    /** Places a container at {@code x, y, width, height} pixels in GPUI's coordinates. */
     public void setBounds(FrameLayout container, int x, int y, int width, int height) {
         ui.post(
                 () -> {
-                    WindowManager.LayoutParams params =
-                            (WindowManager.LayoutParams) container.getLayoutParams();
-                    params.x = x;
-                    params.y = y;
-                    params.width = Math.max(width, 1);
-                    params.height = Math.max(height, 1);
-                    if (mounted.contains(container)) {
-                        windowManager().updateViewLayout(container, params);
-                    } else {
-                        container.setLayoutParams(params);
-                    }
+                    Container placed = (Container) container;
+                    placed.x = x;
+                    placed.y = y;
+                    placed.width = Math.max(width, 1);
+                    placed.height = Math.max(height, 1);
+                    place(placed, origin());
                 });
     }
 
     /**
-     * Clips {@code holes}, window rectangles as {@code x, y, width, height} quadruples, out of a
-     * container, which hands touches in them to GPUI.
+     * Clips {@code holes}, rectangles in GPUI's coordinates as {@code x, y, width, height}
+     * quadruples, out of a container, which hands touches in them to GPUI.
      */
     public void setHoles(FrameLayout container, float[] holes) {
         ui.post(() -> ((Container) container).setHoles(holes));
     }
 
     public void setVisible(FrameLayout container, boolean visible) {
-        ui.post(() -> container.setVisibility(visible ? View.VISIBLE : View.GONE));
+        ui.post(
+                () -> {
+                    if (!visible && focused == container) {
+                        unfocus();
+                    }
+                    container.setVisibility(visible ? View.VISIBLE : View.GONE);
+                });
     }
 
     /**
-     * Mounts {@code containers}' panel windows bottom to top, and the overlay above them: panels
-     * mounted later stack above earlier ones, so a changed order mounts them again.
+     * Mounts {@code containers}' panel windows bottom to top, and the overlay above them. Panels
+     * mounted later stack above earlier ones, so the panels from the first changed position on
+     * are mounted again; the ones below it, and their views' windows, are left alone.
      */
     public void setOrder(FrameLayout[] containers) {
         ui.post(
@@ -193,22 +355,34 @@ public final class Composition {
                     if (released) {
                         return;
                     }
-                    List<FrameLayout> order = new ArrayList<>();
+                    watchHost();
+                    List<Container> order = new ArrayList<>();
                     for (FrameLayout container : containers) {
-                        order.add(container);
+                        order.add((Container) container);
                     }
-                    if (!order.equals(mounted)) {
-                        for (FrameLayout container : mounted) {
-                            windowManager().removeViewImmediate(container);
+                    int kept = 0;
+                    while (kept < mounted.size()
+                            && kept < order.size()
+                            && mounted.get(kept) == order.get(kept)) {
+                        kept++;
+                    }
+                    for (int index = mounted.size() - 1; index >= kept; index--) {
+                        Container container = mounted.get(index);
+                        if (focused == container && !order.contains(container)) {
+                            unfocus();
                         }
-                        mounted.clear();
-                        for (FrameLayout container : order) {
-                            WindowManager.LayoutParams params =
-                                    (WindowManager.LayoutParams) container.getLayoutParams();
-                            params.token = token();
-                            windowManager().addView(container, params);
-                            mounted.add(container);
-                        }
+                        windowManager().removeViewImmediate(container);
+                        mounted.remove(index);
+                    }
+                    int[] origin = origin();
+                    for (int index = kept; index < order.size(); index++) {
+                        Container container = order.get(index);
+                        WindowManager.LayoutParams params = container.params();
+                        params.token = token();
+                        params.x = origin[0] + container.x;
+                        params.y = origin[1] + container.y;
+                        windowManager().addView(container, params);
+                        mounted.add(container);
                     }
                     ensureOverlay();
                 });
@@ -261,7 +435,33 @@ public final class Composition {
                         PixelFormat.TRANSLUCENT);
         overlayParams.gravity = Gravity.TOP | Gravity.LEFT;
         overlayParams.token = token();
+        sizeOverlay();
         windowManager().addView(overlay, overlayParams);
+    }
+
+    /** The overlay covers GPUI's surface: the host view when there is one, else the window. */
+    private void sizeOverlay() {
+        View host = hostView.get();
+        if (host != null && host.isAttachedToWindow() && host.getWidth() > 0) {
+            int[] origin = origin();
+            overlayParams.x = origin[0];
+            overlayParams.y = origin[1];
+            overlayParams.width = host.getWidth();
+            overlayParams.height = host.getHeight();
+        } else {
+            overlayParams.x = 0;
+            overlayParams.y = 0;
+            overlayParams.width = WindowManager.LayoutParams.MATCH_PARENT;
+            overlayParams.height = WindowManager.LayoutParams.MATCH_PARENT;
+        }
+    }
+
+    private void placeOverlay() {
+        if (overlay == null) {
+            return;
+        }
+        sizeOverlay();
+        windowManager().updateViewLayout(overlay, overlayParams);
     }
 
     /** Takes touches while GPUI drew something on the overlay, and lets them through otherwise. */
@@ -281,10 +481,28 @@ public final class Composition {
                 });
     }
 
-    /** Hands each pointer of {@code event} to GPUI, offset to window coordinates. */
+    /**
+     * Hands each pointer of {@code event} to GPUI, offset by {@code dx, dy} into GPUI's
+     * coordinates. A move's batched samples go first, each with its own time, so GPUI's pan and
+     * fling see the whole motion of a fast gesture.
+     */
     private static void forwardTouches(long handle, MotionEvent event, float dx, float dy) {
         int action = event.getActionMasked();
         int changed = event.getActionIndex();
+        if (action == MotionEvent.ACTION_MOVE) {
+            for (int sample = 0; sample < event.getHistorySize(); sample++) {
+                long time = event.getHistoricalEventTime(sample);
+                for (int index = 0; index < event.getPointerCount(); index++) {
+                    nativeTouch(
+                            handle,
+                            MotionEvent.ACTION_MOVE,
+                            event.getPointerId(index),
+                            event.getHistoricalX(index, sample) + dx,
+                            event.getHistoricalY(index, sample) + dy,
+                            time);
+                }
+            }
+        }
         for (int index = 0; index < event.getPointerCount(); index++) {
             int pointerAction;
             switch (action) {
@@ -307,7 +525,8 @@ public final class Composition {
                     pointerAction,
                     event.getPointerId(index),
                     event.getX(index) + dx,
-                    event.getY(index) + dy);
+                    event.getY(index) + dy,
+                    event.getEventTime());
         }
     }
 
@@ -315,7 +534,12 @@ public final class Composition {
     public void release() {
         ui.post(
                 () -> {
+                    unfocus();
                     released = true;
+                    if (watchedHost != null) {
+                        watchedHost.removeOnLayoutChangeListener(hostMoved);
+                        watchedHost = null;
+                    }
                     for (FrameLayout container : mounted) {
                         windowManager().removeViewImmediate(container);
                     }
@@ -331,6 +555,13 @@ public final class Composition {
     private static native void nativeSurfaceChanged(
             long handle, Surface surface, int width, int height);
 
-    /** One pointer of a touch on the overlay; called on the UI thread. */
-    private static native void nativeTouch(long handle, int action, int pointerId, float x, float y);
+    /**
+     * One pointer of a touch on GPUI's content, at {@code time} on the {@code
+     * SystemClock.uptimeMillis()} timeline; called on the UI thread.
+     */
+    private static native void nativeTouch(
+            long handle, int action, int pointerId, float x, float y, long time);
+
+    /** A panel took ({@code true}) or gave back the window focus; called on the UI thread. */
+    private static native void nativePanelFocus(long handle, boolean focused);
 }

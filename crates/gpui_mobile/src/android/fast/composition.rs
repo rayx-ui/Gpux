@@ -14,9 +14,15 @@
 //! The helper's callbacks arrive on the UI thread: surface changes are held
 //! in a shared slot the next composed frame reads (an overlay draw holds the
 //! slot, so a destroyed surface waits for it to finish), and touches are
-//! handed to GPUI's thread as raw touches. The overlay takes touches while it
-//! drew something and lets them through to the native views otherwise.
-//! Android composes one GPUI overlay, the composition's default one.
+//! handed to GPUI's thread as raw touches, a move's batched samples each at
+//! its own time. The overlay takes touches while it drew something and lets
+//! them through to the native views otherwise. Android composes one GPUI
+//! overlay, the composition's default one.
+//!
+//! Panels are not focusable, so the activity keeps the window focus. A panel
+//! whose views take text becomes focusable when touched; the helper says so
+//! first (`panel_holds_focus`), and the NativeActivity loop then does not
+//! take the activity's lost focus for a pause.
 //!
 //! wgpu's GLES backend presents only opaque surfaces (an `R8G8B8X8` EGL
 //! config here), so with GL (emulators, whose software Vulkan gpux skips)
@@ -34,7 +40,7 @@ use std::{
     rc::{Rc, Weak},
     sync::{
         Arc,
-        atomic::{AtomicU64, Ordering},
+        atomic::{AtomicBool, AtomicU64, Ordering},
     },
 };
 
@@ -90,6 +96,7 @@ impl Drop for Composition {
     fn drop(&mut self) {
         // The overlay's surface draws into the helper's window: drop it first.
         self.renderer = None;
+        PANEL_HOLDS_FOCUS.store(false, Ordering::Release);
         if let Some(java) = self.java.take() {
             android_jni::with_env(|env| {
                 env.call_method(
@@ -256,7 +263,25 @@ extern "system" fn native_surface_changed(
     }
 }
 
-/// The helper's `nativeTouch(long, int, int, float, float)`.
+/// The instant a touch stamped `uptime_millis` occurred: Android stamps
+/// input on the `SystemClock.uptimeMillis()` timeline, which reads
+/// `CLOCK_MONOTONIC` like `Instant`, so a stamp converts by its age.
+fn touch_instant(uptime_millis: i64) -> Option<std::time::Instant> {
+    let mut now = libc::timespec {
+        tv_sec: 0,
+        tv_nsec: 0,
+    };
+    // SAFETY: `now` is a valid, writable timespec for the duration of the call.
+    if unsafe { libc::clock_gettime(libc::CLOCK_MONOTONIC, &mut now) } != 0 {
+        return None;
+    }
+    let now_millis = i128::from(now.tv_sec) * 1_000 + i128::from(now.tv_nsec) / 1_000_000;
+    let age = u64::try_from(now_millis - i128::from(uptime_millis)).unwrap_or(0);
+    std::time::Instant::now().checked_sub(std::time::Duration::from_millis(age))
+}
+
+/// The helper's `nativeTouch(long, int, int, float, float, long)`: one
+/// sample of a touch, a move's batched history included, at its own time.
 extern "system" fn native_touch(
     _env: *mut jni::sys::JNIEnv,
     _class: jni::sys::jclass,
@@ -265,6 +290,7 @@ extern "system" fn native_touch(
     pointer_id: jni::sys::jint,
     x: jni::sys::jfloat,
     y: jni::sys::jfloat,
+    time: jni::sys::jlong,
 ) {
     let Some(slot) = (unsafe { (handle as *const Slot).as_ref() }) else {
         return;
@@ -275,7 +301,7 @@ extern "system" fn native_touch(
         x,
         y,
         action: action as u32,
-        timestamp: Some(std::time::Instant::now()),
+        timestamp: touch_instant(time),
     };
     slot.dispatcher.dispatch_on_main_thread(move || {
         if let Some(window) = window.upgrade() {
@@ -284,9 +310,37 @@ extern "system" fn native_touch(
     });
 }
 
-/// The platform's dispatcher, which runs closures on GPUI's thread.
+/// Whether a native surface's panel window holds the window focus, for text
+/// input into its views.
+static PANEL_HOLDS_FOCUS: AtomicBool = AtomicBool::new(false);
+
+/// Whether the activity's window lost the focus to one of its own
+/// composition panels, which is not the activity going inactive.
+#[cfg_attr(not(feature = "android-native-activity"), allow(dead_code))]
+pub(crate) fn panel_holds_focus() -> bool {
+    PANEL_HOLDS_FOCUS.load(Ordering::Acquire)
+}
+
+/// The helper's `nativePanelFocus(long, boolean)`, called before the focus
+/// moves to a panel and after a panel gave it back.
+extern "system" fn native_panel_focus(
+    _env: *mut jni::sys::JNIEnv,
+    _class: jni::sys::jclass,
+    _handle: jni::sys::jlong,
+    focused: jni::sys::jboolean,
+) {
+    PANEL_HOLDS_FOCUS.store(focused, Ordering::Release);
+}
+
+/// The platform's dispatcher, which runs closures on GPUI's thread: the
+/// NativeActivity host's platform when that host is built in and running,
+/// else the embedded host's.
 fn dispatcher() -> Result<Arc<AndroidDispatcher>> {
-    let platform = android_jni::platform()
+    #[cfg(feature = "android-native-activity")]
+    let native_activity = android_jni::platform();
+    #[cfg(not(feature = "android-native-activity"))]
+    let native_activity = None;
+    let platform = native_activity
         .or_else(|| crate::android::embedded::PLATFORM.get())
         .context("the Android platform is not running")?;
     Ok(platform.state.lock().dispatcher.clone())
@@ -327,8 +381,13 @@ pub(crate) fn enable_window_composition(
                 ),
                 jni::NativeMethod::from_raw_parts(
                     jni::jni_str!("nativeTouch"),
-                    jni::jni_str!("(JIIFF)V"),
+                    jni::jni_str!("(JIIFFJ)V"),
                     native_touch as *mut c_void,
+                ),
+                jni::NativeMethod::from_raw_parts(
+                    jni::jni_str!("nativePanelFocus"),
+                    jni::jni_str!("(JZ)V"),
+                    native_panel_focus as *mut c_void,
                 ),
             ]
         };

@@ -990,6 +990,10 @@ fn handle_main_event(_app: &AndroidApp, event: MainEvent<'_>) {
             RESUME_PENDING.store(true, Ordering::Relaxed);
         }
 
+        MainEvent::LostFocus if crate::android::fast::composition::panel_holds_focus() => {
+            log::info!("MainEvent::LostFocus (to a composition panel)");
+        }
+
         MainEvent::LostFocus => {
             log::info!("MainEvent::LostFocus");
             PAUSE_PENDING.store(true, Ordering::Relaxed);

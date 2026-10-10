@@ -1,7 +1,7 @@
 //! Lane F's platform-view check (`platform-view-ios`): a `container`
 //! platform view placed by `platform_view_element` through window
 //! composition below a GPUI menu. It reads UIKit's view tree and hit
-//! testing; disposing the view takes it out of the container.
+//! testing; disposing the view takes it and its container away.
 
 use crate::composition::{MENU, NATIVE, Rect, class_name, hit, line, subviews};
 use gpui_mobile::{
@@ -117,23 +117,31 @@ pub async fn platform_view(cx: &mut AsyncApp) -> ResultLine {
     let result = match result {
         Err(detail) => line(Outcome::Fail, ID, detail),
         Ok(()) => {
+            let container = superview(native_view);
             view.dispose();
             root.update(cx, |placed, cx| {
                 placed.view = None;
                 cx.notify();
             });
             app_host::wait_frames(cx, window, 3).await.ok();
-            if superview(native_view).is_null() {
-                line(
-                    Outcome::Pass,
-                    ID,
-                    "in a clipping container below the overlay, at its visible bounds; out once disposed",
-                )
-            } else {
+            if !superview(native_view).is_null() {
                 line(
                     Outcome::Fail,
                     ID,
                     "once disposed, the view is still in a container",
+                )
+            } else if subviews(metal_view).contains(&container) {
+                line(
+                    Outcome::Fail,
+                    ID,
+                    "once disposed, the view's container is still under the Metal view",
+                )
+            } else {
+                line(
+                    Outcome::Pass,
+                    ID,
+                    "in a clipping container below the overlay, at its visible bounds; the view \
+                     and its container gone once disposed",
                 )
             }
         }
