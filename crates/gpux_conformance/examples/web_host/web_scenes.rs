@@ -7,7 +7,7 @@ use gpux::{
     AnyElement, AnyView, App, AppContext as _, Context, ElementId, FocusHandle,
     HtmlElementContentFit, HtmlElementInputMode, HtmlElementLifetime, HtmlElementWheelBehavior,
     HtmlIslandInputMode, IntoElement, KeyBinding, KeyContext, Keystroke, Render, Subscription,
-    Window, actions, canvas, div, prelude::*, px, rgb, svg,
+    Window, actions, anchored, canvas, deferred, div, point, prelude::*, px, rgb, svg,
 };
 use gpux_conformance::{
     Expect, Lane, SceneSpec, Step,
@@ -19,6 +19,7 @@ use gpux_conformance::{
 /// Every browser-only scene.
 pub static WEB_SCENES: &[SceneSpec] = &[
     HTML_ELEMENT,
+    COMPOSITION,
     HTML_ISLAND,
     SVG_ASSET,
     CURSORS,
@@ -115,6 +116,88 @@ pub const HTML_ELEMENT: SceneSpec = SceneSpec {
             Step::probe(24., 74., BLUE),
         ]
     },
+};
+
+/// A blue DOM block the `web-composition` overlay shows. It counts its own (DOM) clicks.
+const DOM_BLOCK: &str = r#"<div id="gpux-dom-block" style="width:100%;height:100%;background:#0000ff" onclick="this.dataset.clicks = String(Number(this.dataset.clicks || 0) + 1)"></div>"#;
+
+/// A DOM element under a GPUI popover, in a window that composes when it can.
+struct ComposedPage {
+    composition: &'static str,
+    popover_clicks: usize,
+}
+
+impl Render for ComposedPage {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        root()
+            .child(status(format!(
+                "composition {} clicks {}",
+                self.composition, self.popover_clicks
+            )))
+            .child(
+                div()
+                    .id("dom-host")
+                    .absolute()
+                    .top(px(40.))
+                    .left(px(20.))
+                    .w(px(160.))
+                    .h(px(80.))
+                    .child(
+                        canvas(
+                            |_, _, _| {},
+                            |bounds, _, window, _| {
+                                window.paint_html_element(
+                                    ElementId::from("gpux-dom-block"),
+                                    bounds,
+                                    HtmlElementInputMode::DomOwned,
+                                    HtmlElementLifetime::PruneWhenAbsent,
+                                    HtmlElementContentFit::Fill,
+                                    HtmlElementWheelBehavior::Browser,
+                                    1,
+                                    DOM_BLOCK.into(),
+                                    "".into(),
+                                );
+                            },
+                        )
+                        .size_full(),
+                    ),
+            )
+            .child(deferred(
+                anchored().position(point(px(60.), px(60.))).child(
+                    div()
+                        .id("popover")
+                        .w(px(80.))
+                        .h(px(40.))
+                        .bg(rgb(GREEN_HEX))
+                        .on_click(cx.listener(|this, _, _, cx| {
+                            this.popover_clicks += 1;
+                            cx.notify();
+                        })),
+                ),
+            ))
+    }
+}
+
+pub const COMPOSITION: SceneSpec = SceneSpec {
+    id: "web-composition",
+    areas: &[],
+    size: (240., 160.),
+    scales: &[1.],
+    lanes: &[Lane::B],
+    golden: false,
+    build: |window, cx| {
+        let composition = match window.enable_window_composition() {
+            Ok(_) => "on",
+            Err(_) => "unsupported",
+        };
+        cx.new(|_| ComposedPage {
+            composition,
+            popover_clicks: 0,
+        })
+        .into()
+    },
+    // The composition spec reads the page's pixels and drives its input.
+    script: || vec![Step::Expect(Expect::Exists(id("popover")))],
 };
 
 /// The trusted HTML an island shows: a blue block.

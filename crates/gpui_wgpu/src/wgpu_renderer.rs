@@ -1609,10 +1609,13 @@ impl WgpuRenderer {
                     })
             };
 
-        let transparent_alpha_mode = pick_alpha_mode(&[
-            wgpu::CompositeAlphaMode::PreMultiplied,
-            wgpu::CompositeAlphaMode::Inherit,
-        ])?;
+        let transparent_alpha_mode = crate::fast::composition::transparent_alpha_mode(
+            context,
+            pick_alpha_mode(&[
+                wgpu::CompositeAlphaMode::PreMultiplied,
+                wgpu::CompositeAlphaMode::Inherit,
+            ])?,
+        );
 
         let opaque_alpha_mode = pick_alpha_mode(&[
             wgpu::CompositeAlphaMode::Opaque,

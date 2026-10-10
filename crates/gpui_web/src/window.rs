@@ -165,6 +165,7 @@ pub(crate) struct WebWindowInner {
     pub(crate) touch_input: bool,
     pub(crate) renderer: RefCell<WgpuRenderer>,
     pub(crate) html_element_registry: Rc<RefCell<WebHtmlElementRegistry>>,
+    pub(crate) fast_composition: RefCell<crate::fast::composition::Composition>,
     pub(crate) html_island_registry: Rc<RefCell<WebHtmlIslandRegistry>>,
     pub(crate) state: RefCell<WebWindowMutableState>,
     pub(crate) callbacks: RefCell<WebWindowCallbacks>,
@@ -205,7 +206,7 @@ pub(crate) struct WebWindowInner {
 }
 
 pub struct WebWindow {
-    inner: Rc<WebWindowInner>,
+    pub(crate) inner: Rc<WebWindowInner>,
     display: Rc<dyn PlatformDisplay>,
     #[allow(dead_code)]
     handle: AnyWindowHandle,
@@ -363,6 +364,7 @@ impl WebWindow {
         let inner = Rc::new(WebWindowInner {
             browser_window,
             html_element_registry,
+            fast_composition: RefCell::default(),
             html_island_registry,
             canvas,
             ime_mirror,
@@ -1316,10 +1318,10 @@ impl PlatformWindow for WebWindow {
             .publish(&self.inner.canvas, false);
 
         let canvas_rect = self.inner.canvas.get_bounding_client_rect();
-        self.inner
-            .html_element_registry
-            .borrow_mut()
-            .sync_roots(&scene.html_elements, &canvas_rect);
+        self.inner.html_element_registry.borrow_mut().sync_roots(
+            &crate::fast::composition::html_elements(self, scene),
+            &canvas_rect,
+        );
         #[cfg(feature = "diagnostics")]
         write_html_element_diagnostics_to_global(
             &self.inner.html_element_registry.borrow().diagnostics(),
@@ -1431,6 +1433,21 @@ impl PlatformWindow for WebWindow {
             &self._html_in_canvas_paint_observer.snapshot(),
             Some(&self.inner.html_island_registry.borrow().diagnostics()),
         );
+    }
+
+    fn draw_composed(&self, scene: gpux::ComposedScene<'_>) {
+        crate::fast::composition::draw_composed(self, scene)
+    }
+
+    fn enable_window_composition(&self) -> anyhow::Result<()> {
+        crate::fast::composition::enable_window_composition(self)
+    }
+
+    fn set_composition_order(
+        &self,
+        fast_surfaces: &[gpux::PlatformCompositionSurface],
+    ) -> anyhow::Result<()> {
+        crate::fast::composition::set_composition_order(self, fast_surfaces)
     }
 
     fn effect_capabilities(&self) -> EffectCapabilities {

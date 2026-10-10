@@ -439,6 +439,7 @@ impl Platform for WebPlatform {
                 return Err(error);
             }
         };
+        crate::fast::composition::attach_context(&window, &self.wgpu_context);
         *self.active_window.borrow_mut() = Some(handle);
         Ok(Box::new(window))
     }

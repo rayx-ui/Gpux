@@ -10,14 +10,65 @@
 //! the same format. Overlays are transparent, premultiplied and cleared
 //! transparent; text painted onto them is grayscale (see `gpux::fast`).
 
-#![cfg(not(target_family = "wasm"))]
-
+#[cfg(not(target_family = "wasm"))]
 use std::rc::Rc;
 
+#[cfg(not(target_family = "wasm"))]
 use raw_window_handle::HasWindowHandle;
 
-use crate::{WgpuRenderer, WgpuSurfaceConfig, wgpu};
+use crate::{WgpuContext, WgpuRenderer, WgpuSurfaceConfig, wgpu};
 
+/// The alpha mode of a transparent surface: `picked` from the surface's
+/// capabilities, except in the browser, where wgpu's WebGPU backend reports
+/// only `Opaque` although a canvas configures `premultiplied`, which a
+/// composition overlay over DOM content needs.
+pub(crate) fn transparent_alpha_mode(
+    context: &WgpuContext,
+    picked: wgpu::CompositeAlphaMode,
+) -> wgpu::CompositeAlphaMode {
+    if context.backend() == crate::WgpuBackend::BrowserWebGpu {
+        wgpu::CompositeAlphaMode::PreMultiplied
+    } else {
+        picked
+    }
+}
+
+impl WgpuRenderer {
+    /// Creates a renderer for `surface`, another surface of the same window
+    /// made on `context`'s instance, sharing this renderer's device, sprite
+    /// atlas and, for the same format, its pipelines. A browser window's
+    /// renderer holds no context of its own, so the browser passes the
+    /// platform's; a `transparent` surface is configured premultiplied.
+    pub fn new_sharing_with_context(
+        &self,
+        context: &WgpuContext,
+        surface: wgpu::Surface<'static>,
+        mut config: WgpuSurfaceConfig,
+        transparent: bool,
+    ) -> anyhow::Result<Self> {
+        context.check_compatible_with_surface(&surface)?;
+        config.transparent = transparent;
+        let mut renderer = Self::new_internal(
+            None,
+            context,
+            surface,
+            config,
+            self.compositor_gpu,
+            self.atlas.clone(),
+            // The browser renderer keeps no backend policy; its context
+            // already chose the backend.
+            #[cfg(target_family = "wasm")]
+            wgpu::Backends::all(),
+            #[cfg(not(target_family = "wasm"))]
+            self.backend_policy,
+            Some(self),
+        )?;
+        renderer.set_subpixel_layout(self.is_bgr);
+        Ok(renderer)
+    }
+}
+
+#[cfg(not(target_family = "wasm"))]
 impl WgpuRenderer {
     /// Creates a renderer for another surface of the same window, sharing
     /// this renderer's GPU context, sprite atlas and, for the same format,
@@ -94,7 +145,10 @@ impl WgpuRenderer {
         renderer.set_subpixel_layout(self.is_bgr);
         Ok(renderer)
     }
+}
 
+#[cfg(not(target_family = "wasm"))]
+impl WgpuRenderer {
     /// Moves this renderer onto another surface of the same GPU context,
     /// keeping its pipelines and sprite atlas, which are much slower to create
     /// than a surface.

@@ -55,7 +55,7 @@ impl EventListenerHandle {
     /// Needed for events like `wheel` which are passive by default in modern
     /// browsers. Removal does not need to match the `passive` option, so
     /// `Drop` works the same as for [`EventListenerHandle::add`].
-    fn add_non_passive(
+    pub(crate) fn add_non_passive(
         target: &web_sys::EventTarget,
         event_name: &'static str,
         handler: impl FnMut(JsValue) + 'static,

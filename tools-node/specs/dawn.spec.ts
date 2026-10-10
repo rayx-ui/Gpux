@@ -9,6 +9,7 @@ import { expect, test } from '../fixtures/gpux';
 const scenes = [
   ...laneBScenes().map((scene) => scene.id),
   'web-html-element',
+  'web-composition',
   'web-html-island',
   'web-svg-asset',
   'web-cursors',
