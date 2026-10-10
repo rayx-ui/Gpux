@@ -830,7 +830,8 @@ thread_local! {
 /// Whether a pointer leave on `event_window`, at `root` in root-window device
 /// pixels, only crosses between `window` and its overlay window: from the
 /// window into the overlay's input shape, or from the overlay back onto the
-/// window. That is a move within the window, not an exit.
+/// window's own content (not onto a native surface, which GPUI's input does
+/// not reach). That is a move within the window, not an exit.
 pub(crate) fn crossing_within_window(
     window: &X11WindowStatePtr,
     event_window: xproto::Window,
@@ -850,13 +851,44 @@ pub(crate) fn crossing_within_window(
         DevicePixels(root.y - overlay.origin.y.0),
     );
     if event_window == overlay.x_window {
+        let natives = composition
+            .native_surfaces
+            .iter()
+            .filter_map(Weak::upgrade)
+            .filter_map(|surface| {
+                let surface = surface.borrow();
+                surface.mapped.then(|| {
+                    let cutouts = surface
+                        .applied_shape
+                        .as_ref()
+                        .map(|(_, cutouts)| cutouts.clone())
+                        .unwrap_or_default();
+                    (surface.bounds, cutouts)
+                })
+            })
+            .collect::<Vec<_>>();
         Bounds::new(Point::default(), overlay.size).contains(&local)
+            && lands_on_gpui_content(local, &natives)
     } else {
         overlay
             .input
             .as_ref()
             .is_some_and(|input| input.iter().any(|bounds| bounds.contains(&local)))
     }
+}
+
+/// Whether `point`, in window device pixels, lands on the window's own
+/// content rather than on one of the native surfaces mapped over it, given
+/// each one's window bounds and the cut-outs (in its own coordinates) that
+/// show the window through it.
+fn lands_on_gpui_content(
+    point: Point<DevicePixels>,
+    natives: &[(Bounds<DevicePixels>, Vec<Bounds<DevicePixels>>)],
+) -> bool {
+    !natives.iter().any(|(bounds, cutouts)| {
+        let local = Point::new(point.x - bounds.origin.x, point.y - bounds.origin.y);
+        bounds.contains(&point) && !cutouts.iter().any(|cutout| cutout.contains(&local))
+    })
 }
 
 /// Whether the pointer entering `window` comes from another of its surfaces
@@ -1305,7 +1337,7 @@ pub(crate) fn set_composition_order(
 
 #[cfg(test)]
 mod tests {
-    use super::scene_occluders;
+    use super::{lands_on_gpui_content, scene_occluders};
     use gpux::{
         Background, Bounds, ContentMask, DevicePixels, Quad, ScaledPixels, Scene, Shadow,
         TransformationMatrix, black, point, size,
@@ -1334,6 +1366,19 @@ mod tests {
             point(DevicePixels(x), DevicePixels(y)),
             size(DevicePixels(width), DevicePixels(height)),
         )
+    }
+
+    #[test]
+    fn a_crossing_onto_a_native_surface_leaves_gpui_content() {
+        let natives = [(device(40, 50, 160, 100), vec![device(70, 30, 80, 40)])];
+        let at = |x, y| point(DevicePixels(x), DevicePixels(y));
+        // Outside every native surface: the window's own content.
+        assert!(lands_on_gpui_content(at(10, 10), &natives));
+        // On the native surface: an exit from GPUI.
+        assert!(!lands_on_gpui_content(at(60, 60), &natives));
+        // Through a cut-out (the native surface's own coordinates): GPUI again.
+        assert!(lands_on_gpui_content(at(120, 90), &natives));
+        assert!(lands_on_gpui_content(at(60, 60), &[]));
     }
 
     #[test]
