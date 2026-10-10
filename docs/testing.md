@@ -255,14 +255,16 @@ back. Results, screenshots, logcat and the frames failing probes saved land in
 `artifacts-temp/testkit/e/`.
 
 `gpux-testkit android build [--abi x86_64|arm64-v8a]...` builds the APK on its own. It needs no
-Gradle: the host is a NativeActivity without Java code, so `aapt2` links
+Gradle: the host is a NativeActivity whose only Java is gpux's own helpers
+(`crates/gpui_mobile/java`, window composition and platform views), which `javac` and `d8` compile
+against the pinned `android.jar` into `classes.dex`; `aapt2` links
 [`tooling/android/AndroidManifest.xml`](../tooling/android/AndroidManifest.xml), the libraries go in
 uncompressed and 16 KB aligned, and `apksigner` signs with a local debug key. Prerequisites, each
 reported with the command that installs it:
 
 - `ANDROID_HOME` with the pinned packages: `sdkmanager "ndk;28.0.12674087" "build-tools;36.0.0"
   "platforms;android-36" "platform-tools"`;
-- a JDK 21 (`java`, `keytool`) and `cargo install cargo-ndk`;
+- a JDK 21 (`java`, `javac`, `keytool`) and `cargo install cargo-ndk`;
 - `rustup target add x86_64-linux-android aarch64-linux-android`.
 
 Without a device, create an emulator like CI's: API 34 with Google APIs and the small `Nexus 4`
@@ -297,6 +299,16 @@ repeats a screenshot request until the file arrives, and the testkit counts resu
 device's log buffer (`adb logcat -d`) when it kept more of them than the stream. Checks that read
 the screen after the app starts or returns capture again until the system's window animation
 (fade or scale in) has ended.
+
+The `composition-android-*` and `platform-view-android*` checks open a composed window with a
+native `View` and read the result as the others do: the screen for what shows where, taps and a
+swipe for who takes the touch, and the process's own window list
+(`WindowInspector.getGlobalWindowViews`) for which panel windows exist. The emulators render
+through GL, where the overlay is cut out of native views, so `composition-android-shadow` skips
+there; it runs where gpux renders through Vulkan. Lane E builds the NativeActivity host
+(`android-native-activity`); the embedded host is `gpux-mobile`'s default feature set, which the
+lane E workflow type-checks (`cargo check -p gpux-mobile --target x86_64-linux-android`) and no
+lane runs.
 
 Scenes that need exact animation timing or an input method stay out of lane E: the device runs on
 the real clock, and adb cannot drive the input method. The fling check is skipped on software

@@ -130,6 +130,10 @@ and its window token and so serves both hosts the same way. Panels are `FLAG_NOT
 focusable panel takes window focus from the activity and GPUI goes inactive), and a changed order
 re-adds them, since later panels stack above earlier ones.
 
+Only the NativeActivity host has a lane. For the embedded host gpux type-checks the build and
+offsets everything by the host view's position in the window (`Composition.setHostView`); no
+device run covers it yet.
+
 Lane E on the API 34 emulator (`composition-android-*`) then showed what the overlay can be:
 
 | GPUI's backend | Result |

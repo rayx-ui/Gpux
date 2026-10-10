@@ -162,7 +162,11 @@ NativeActivity host and the embedded host work alike; under Vulkan the overlay i
 sub-panel window holding a `SurfaceView` that GPUI renders into, touchable only while it has
 content; wgpu presents GLES surfaces only opaque, so under GL the whole scene is drawn into GPUI's
 window and each container clips the overlay content above it out of itself and hands touches there
-to GPUI, which leaves no shadow blending over native views). The Android side is gpux's Java
+to GPUI, which leaves no shadow blending over native views; a panel whose views take text, a
+`WebView` or an `EditText`, takes the window focus when touched so the soft keyboard reaches it,
+and gives it back on a touch outside or the back key, without GPUI going inactive; an embedding
+host whose `SurfaceView` does not fill the window names it with `Composition.setHostView`, and
+panels, cut-outs, the overlay and touches follow its position). The Android side is gpux's Java
 helper `dev.gpux.mobile` in `crates/gpui_mobile/java`: `gpux-testkit android build` compiles it
 with `javac` and `d8`, and apps add those sources to their Gradle build (and keep
 `dev.gpux.mobile.**` from R8). On
