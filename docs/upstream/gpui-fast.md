@@ -72,11 +72,41 @@ row is completed when it does).
 | `crates/gpui_linux/src/fast/composition/x11.rs` | `crates/gpui_linux/src/fast/composition/x11.rs` | Adopted: native child windows with SHAPE cut-outs, compositor detection and the override-redirect overlay window. Occluders follow gpux's baked primitive transforms; opacity reads `PreparedBackground::is_opaque`. Under a compositor only opaque quads, without their rounded corners, are cut out; the overlay's root origin is asked for only when the window is configured; a crossing between the window and its overlay window is a move, not an exit. `x11rb`'s `shape` feature is declared rather than unified in. |
 | `crates/gpux_conformance/examples/desktop_host/composition_linux.rs` | — | gpux's own: lane D's `composition-wayland-*` checks (the logged requests, accepted by the compositor) and `composition-x11-*` checks (the server's window tree, geometry, shapes and hit testing). |
 | `crates/gpui_windows/src/fast/composition.rs` | `crates/gpui_windows/src/fast/composition.rs` | gpux's own, modelled on it: gpui-fast moves Zed's DirectX renderer onto a composition swap chain; gpux keeps the wgpu DX12 HWND swap chain (`DXGI_SCALING_NONE`) under a gpux-owned topmost DirectComposition target (spike result below), with overlay swap chains from `SurfaceTargetUnsafe::CompositionVisual` (`WgpuRenderer::new_sharing_target`), a commit after every composed frame, and the device-lost message rebuilding the tree as well. `is_gpui_window` and the portal shape are gpui-fast's. |
-| `crates/gpui_web/src/fast/composition.rs` | — | gpux's own: overlay canvases above the `html_element` DOM overlay on the shared WebGPU device (`new_sharing_with_context`), input shields clipped to each overlay's input region forwarding pointer events to the window's canvas, premultiplied browser surfaces; WebGL2 reports unsupported. |
+| `crates/gpui_web/src/fast/composition.rs` | — | gpux's own: overlay canvases above the `html_element` DOM overlay on the shared WebGPU device (`new_sharing_with_context`), input shields clipped to each overlay's input region forwarding pointer events to the window's canvas (a crossing between the canvas and a shield is not a window exit), overlay surfaces alone configured premultiplied (`use_overlay_alpha_mode`; a transparent window's own canvas keeps the mode wgpu picks); WebGL2 reports unsupported. |
 | `crates/gpux_conformance/examples/desktop_host/composition_windows.rs`, `tools-node/specs/composition.spec.ts` | — | gpux's own: lane D's `composition-windows-*` (GDI screenshots of what DWM composed, the device-lost rebuild, accelerator pass-through, live resize) and lane B's composition spec. |
 | `crates/*/src/fast/layers`, other `crates/*/src/fast/composition` | the renderer and platform `fast/` modules | Pending (scroll-layer renderers, composition on mobile). |
 | — | the Direct3D 11 renderer | Excluded: gpux renders Windows through wgpu on DX12. |
 | — | `compat/` gpui-pre stand-ins, `script/check-upstream` | Excluded: gpux tracks Zed through its own import process. |
+
+## Windows base surface spike
+
+gpui-fast hosts the window's own content in a DirectComposition visual, because Zed's DirectX
+renderer presents through a composition swap chain. gpux renders Windows through wgpu on DX12,
+whose HWND swap chain already carries `DXGI_SCALING_NONE` (the one change of the wgpu fork). The
+spike compared the two places the base content can live once a window composes:
+
+| Option | Base content | What it would change |
+|---|---|---|
+| (a) | The existing wgpu HWND swap chain, below a gpux-owned topmost DirectComposition target that holds only native surfaces and overlays | Nothing for windows that never compose. |
+| (b) | A composition-visual swap chain (`SurfaceTargetUnsafe::CompositionVisual`) in the same tree as the native surfaces and overlays | Every composing window moves its base onto a second kind of swap chain, and resize behaviour then rests on DirectComposition's stretch rules instead of `DXGI_SCALING_NONE`. |
+
+`composition-windows-resize` (lane D, `desktop_host/composition_windows.rs`) grows a window by
+240 px in one step with no frame drawn in between and reads what DWM composed through GDI: the
+rows of a line drawn at rows 30..33 before and after, and the newly exposed rows. It measures
+(a) on the composed window and (b) on a window whose content is a visual-hosted swap chain. CI
+run 38050809476 (`lane D (windows-2025)`, commit `79eafd5`) reported:
+
+```
+(a) base rows Some(30)..Some(33) -> Some(30)..Some(33) after growing 240 px, newly exposed rows read [0, 0, 0];
+(b) visual-hosted line rows Some(30)..Some(33) -> Some(30)..Some(33), newly exposed rows read [0, 0, 0]
+```
+
+Neither option stretched the stale frame, and both left the newly exposed rows black until the
+next frame, so the resize evidence does not tell them apart. gpux keeps (a): it leaves the
+renderer path, the swap chain and the `DXGI_SCALING_NONE` behaviour of every window as they were,
+adds DirectComposition only above them, and needs no second base presentation path to keep in
+step with wgpu. The check keeps reporting both measurements, so a later wgpu or Windows change
+that separates them shows in lane D.
 
 ## Comparing a later gpui-fast fix
 

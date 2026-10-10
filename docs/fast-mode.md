@@ -152,7 +152,7 @@ from `SurfaceTargetUnsafe::CompositionVisual`; gpux commits after every composed
 device rebuilds the tree and calls `compositor_recreated`, and key downs of other windows are left
 to them). The browser on WebGPU (overlay canvases above the `html_element` DOM overlay, sharing the
 window's device, with an input shield clipped to each overlay's input region that hands pointer
-events to the window's canvas; native surfaces are `html_element`'s, and WebGL2 reports composition
+events to the window's canvas, the pointer staying inside the window as it crosses between them; native surfaces are `html_element`'s, and WebGL2 reports composition
 unsupported and keeps the single canvas). On
 Wayland the placements, geometry and input regions handed to the compositor are logged at debug
 level under `gpux::composition`.
