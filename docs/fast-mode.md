@@ -346,12 +346,30 @@ goldens did not change):
 - The gradient dither is seeded by the pixel within the quad, not by its position in the
   window, so a gradient dithers alike wherever it is drawn.
 
-One difference from a frame drawn without layers remains, and it is the layer that is right.
-gpux drops a shadow when its box leaves its clip, though its blur reaches three blur radii
-further, so a blur vanishes a few pixels early as its box scrolls out of a viewport. A layer's
-tiles hold the content as it was painted, every shadow whole: a frame drawn from them still
-shows that blur, under whatever the shadow lay under, within a blur's reach of the viewport's
-edge. A frame that draws the container without its layer (a refresh, a demotion) drops it again.
+A shadow draws three blur radii past its box, and a scene used to drop a primitive whose box
+had left its clip: a blur vanished a few pixels early as its element scrolled out of a
+viewport, and a layer's tiles, which hold the content as it was painted, kept showing it. The
+scene now keeps a shadow while what it draws reaches into its clip, with or without layers, and
+stacks it as it is while its box shows (`fast/edge_shadows.rs`):
+
+- over what was painted before it under its box and draws inside the clip: the backgrounds it
+  lies on;
+- under what is painted after it over its box: the element casting it, whose edge can show
+  while the shadow's box, offset away from it, does not;
+- among primitives its box does not overlap, as primitives of one draw order are drawn: by
+  kind, then in paint order.
+
+A primitive painted inside the shadow's clip is taken as it would lie were the clip not there;
+one painted outside it (the background behind a viewport, an overlay over it) lies under or over
+the shadow where it lies under or over the blur that shows. A scene that keeps no such shadow
+orders every primitive as it did before. This applies with fast mode off too: a blur at the
+edge of a scroll container, a clipped panel or the window no longer pops as its box crosses the
+edge.
+
+What a kept shadow lies on is what draws inside the clip. A background that is wholly out of
+view (a row's, beginning where the card casting the shadow does) is not counted, so the shadow
+is drawn level with the backgrounds of the rows around it rather than over them, until a pixel
+of its own row shows. A layer's tile orders a shadow by what draws in the tile, in the same way.
 
 The renderers' groups (`fast::layers::tests` in `gpui_wgpu`, `fast::layers` in `gpui_apple`)
 compare content drawn from tiles with the same content drawn directly, byte for byte: tiles of
@@ -360,8 +378,8 @@ tiles, eviction and release. Lane C's `lane_c_scroll_layers` group scrolls real 
 rows at scales 1, 1.5 and 2, cards with shadows and gradients, shadowed cards closer together
 than their blurs reach, paths, both axes, content that changes while scrolled) in a window with
 every mechanism on and in one with them off and the snapping forced on, and compares every
-frame's pixels: equal, but within a blur's reach of the viewport's top and bottom edges, where
-the layered frame may only be darker, and not on a card. The same group scrolls a
+frame's pixels: equal everywhere, at every one-pixel step of a shadow's box crossing the
+viewport's edge too. The same group scrolls a
 `uniform_list` and a `list` of text rows, at scales 1 and 1.5 and with rows that change while
 scrolled, whose frames are equal everywhere.
 
