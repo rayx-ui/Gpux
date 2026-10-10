@@ -181,8 +181,8 @@ pub(crate) fn expect_frames(mode: Mode, stats: &FastStats) -> Result<(), String>
             format!("{mode} claimed no kept layout node: {stats:?}")
         })?;
     }
-    // Layout and view retention have landed; the other mechanisms work as
-    // `off` does.
+    // Layout retention, view retention and splice have landed; scroll
+    // layers work as `off` does.
     let mut landed = 0;
     if layout_retention {
         landed += stats.layout_retention_total();
@@ -190,9 +190,27 @@ pub(crate) fn expect_frames(mode: Mode, stats: &FastStats) -> Result<(), String>
     if mode.fast_mode().view_retention {
         landed += stats.view_retention_total();
     }
+    if mode.fast_mode().splice {
+        landed += stats.splice_total();
+    }
     check(stats.mechanism_total() == landed, || {
         format!("{mode} made a fast-mode decision for a mechanism it does not run: {stats:?}")
     })
+}
+
+/// Requires at least `per_frame` views built on every drawn frame, the
+/// scenario root among them: with splice, the scenario root is spliced
+/// around the fixture's views instead, once a frame.
+pub(crate) fn views_built_at_least(
+    mode: Mode,
+    stats: &FastStats,
+    per_frame: u64,
+) -> Result<(), String> {
+    if mode.fast_mode().splice {
+        exactly_per_frame(stats, "views_spliced", 1)?;
+        return at_least_per_frame(stats, "views_built", per_frame - 1);
+    }
+    at_least_per_frame(stats, "views_built", per_frame)
 }
 
 /// Requires at least `per_frame` of a counter on every drawn frame.

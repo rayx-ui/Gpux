@@ -8,7 +8,7 @@ use crate::{
     animated_frame, div, hsla, prelude::*, px,
 };
 
-use super::{Fixture, Mode, Scenario, at_least_per_frame, drawn_per_frame, expect_frames};
+use super::{Fixture, Mode, Scenario, drawn_per_frame, expect_frames, views_built_at_least};
 
 /// Frames between the animation's target changes.
 const RETARGET_EVERY: usize = 12;
@@ -82,7 +82,7 @@ impl Fixture for Animating {
 
     fn expect(&self, mode: Mode, stats: &FastStats) -> Result<(), String> {
         expect_frames(mode, stats)?;
-        at_least_per_frame(stats, "views_built", 2)?;
+        views_built_at_least(mode, stats, 2)?;
         // The glyphs of the still rows.
         drawn_per_frame(stats, 40 * 9)
     }

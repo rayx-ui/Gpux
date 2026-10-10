@@ -113,7 +113,13 @@ impl Fixture for Stream {
     fn expect(&self, mode: Mode, stats: &FastStats) -> Result<(), String> {
         expect_frames(mode, stats)?;
         // Rows drawn from last frame lay nothing out.
-        let laid_out_rows = if mode.fast_mode().view_retention {
+        let laid_out_rows = if mode.fast_mode().splice {
+            // Only the ticking rows are built; the table and the scenario
+            // root are spliced around them.
+            exactly_per_frame(stats, "views_built", TICKING as u64)?;
+            exactly_per_frame(stats, "views_spliced", 2)?;
+            TICKING
+        } else if mode.fast_mode().view_retention {
             // The scenario root and the table are built around the ticking
             // rows; every other row is drawn from last frame.
             exactly_per_frame(stats, "views_built", TICKING as u64 + 2)?;

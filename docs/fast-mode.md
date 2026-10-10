@@ -80,6 +80,24 @@ AccessKit is active, or for a view whose id is drawn twice in a frame; each reas
 A view whose content has a sticky element pinned by a scroll container outside it is built rather
 than laid out from its record, so the container pins it from what this frame registered.
 
+### Splice
+
+With `splice` on (it needs view retention), a view that is dirty only because views nested in
+it changed is drawn from last frame around them. It must not have been notified, nothing it read
+itself may have changed, and what is drawn around the changed views must read and be hovered as
+it was. Each changed nested view is built again in its gap, where it was drawn, inheriting what
+it had there: element ids, text style, the content masks it was prepainted and painted under,
+element offset, rem size, opacity, transform, scroll and sticky contexts and hitbox behavior. The
+stretches between gaps are copied, their dispatch nodes and DevKit nodes mapped across the gaps
+so a node allocated before a gap and recorded after it still finds its parent.
+
+A gap laid out at another node changes the view around it, which is then built, taking over the
+nested views already built rather than building them twice (`views_prebuilt`). A gap laid out
+differently at the node it had keeps the splice only if the view's own nodes, and the gap's
+bounds, come out of layout as they were. A view that defers something outside its gaps is built,
+since what is deferred is drawn after it. Each view whose own reads changed is marked dirty at
+frame start, as if notified, so the views around it are spliced.
+
 ### Verify mode
 
 Under the `diagnostics` feature, `GPUX_RETENTION_VERIFY=1` or `Window::set_retention_verify(true)`

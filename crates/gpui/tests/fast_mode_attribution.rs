@@ -85,13 +85,17 @@ fn attribute(name: &str) -> Vec<(Mode, FastStats)> {
 ///   primitives; it claims, carries and measures no more than layout
 ///   retention, and writes and releases the same nodes, since a view drawn
 ///   from last frame keeps the nodes it laid out. Ordering is the same work.
-/// - Splice and scroll layers have not landed, and work as view retention
-///   does.
+/// - Splice builds no more views than view retention, and copies what it
+///   does not paint, so the frame shows as many primitives; its layout and
+///   text work is no more, and everything else (writes, releases, ordering)
+///   is the same.
+/// - Scroll layers have not landed, and work as splice does.
 fn modes_differ_only_by_landed_mechanisms(name: &str) {
     let modes = attribute(name);
     let (_, off) = modes[0];
     let (_, layout) = modes[1];
     let (_, views) = modes[2];
+    let (_, splice) = modes[3];
     assert!(
         layout.leaves_measured <= off.leaves_measured && layout.lines_shaped <= off.lines_shaped,
         "{name}: layout measured or shaped more text than off: measured {} shaped {} against {} {}",
@@ -159,10 +163,45 @@ fn modes_differ_only_by_landed_mechanisms(name: &str) {
         unchanged_by_views(layout),
         "{name}: views counted other work than layout beyond the views it drew from last frame"
     );
-    for (mode, stats) in &modes[3..] {
+    for (counter, more) in [
+        ("views_built", splice.views_built > views.views_built),
+        (
+            "leaves_measured",
+            splice.leaves_measured > views.leaves_measured,
+        ),
+        ("lines_shaped", splice.lines_shaped > views.lines_shaped),
+        ("nodes_claimed", splice.nodes_claimed > views.nodes_claimed),
+        (
+            "leaves_carried",
+            splice.leaves_carried > views.leaves_carried,
+        ),
+    ] {
+        assert!(
+            !more,
+            "{name}: splice counted more {counter} than views: {splice:?}"
+        );
+    }
+    assert_eq!(
+        splice.primitives_painted + splice.primitives_copied,
+        views.primitives_painted + views.primitives_copied,
+        "{name}: splice shows other primitives than views"
+    );
+    let unchanged_by_splice = |stats: FastStats| FastStats {
+        views_spliced: 0,
+        views_prebuilt: 0,
+        views_reused: 0,
+        views_built_at_retained_layout: 0,
+        ..unchanged_by_views(stats)
+    };
+    assert_eq!(
+        unchanged_by_splice(splice),
+        unchanged_by_splice(views),
+        "{name}: splice counted other work than views beyond the views it spliced"
+    );
+    for (mode, stats) in &modes[4..] {
         assert_eq!(
-            *stats, views,
-            "{name}: {mode} counted other work than views before its mechanism landed"
+            *stats, splice,
+            "{name}: {mode} counted other work than splice before its mechanism landed"
         );
     }
 }

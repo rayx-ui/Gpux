@@ -222,6 +222,22 @@ fn expect_one_toggled(mode: Mode, stats: &FastStats, views: usize) -> Result<(),
         return exactly_per_frame(stats, "views_built", views as u64 + 2);
     }
     let moved = stats.views_built_at_retained_layout;
+    if mode.fast_mode().splice {
+        // The scenario root is spliced around the list. The list's toggled
+        // view is built in its gap, but laid out differently enough that
+        // the list's own nodes move: the list is built at its retained
+        // layout after all, taking the toggled view over prebuilt, and the
+        // views below it move with it.
+        exactly_per_frame(stats, "views_spliced", 1)?;
+        exactly_per_frame(stats, "views_prebuilt", 1)?;
+        check(stats.views_built == stats.frames + moved, || {
+            format!("a view other than the toggled one was built afresh: {stats:?}")
+        })?;
+        return check(
+            stats.views_reused + moved == views as u64 * stats.frames,
+            || format!("a view that did not change was neither reused nor moved: {stats:?}"),
+        );
+    }
     check(stats.views_built == 3 * stats.frames + moved, || {
         format!("more than the toggled view and those that moved was built: {stats:?}")
     })?;

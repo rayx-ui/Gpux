@@ -145,7 +145,23 @@ impl Fixture for Dashboard {
             Changing::None => 0,
             Changing::Panels(count) => count,
         } as u64;
-        if mode.fast_mode().view_retention {
+        if mode.fast_mode().splice {
+            if changing == 0 {
+                // The notified dashboard is built, its panels drawn from
+                // last frame, and the scenario root spliced around it.
+                exactly_per_frame(stats, "views_built", 1)?;
+                exactly_per_frame(stats, "views_spliced", 1)?;
+                exactly_per_frame(stats, "views_reused", PANELS as u64)?;
+            } else {
+                // Only the changed panels are built: the dashboard and the
+                // scenario root are spliced around them, the other panels
+                // copied with the dashboard.
+                exactly_per_frame(stats, "views_built", changing)?;
+                exactly_per_frame(stats, "views_spliced", 2)?;
+                exactly_per_frame(stats, "views_reused", 0)?;
+            }
+            exactly_per_frame(stats, "views_prebuilt", 0)?;
+        } else if mode.fast_mode().view_retention {
             // The scenario root and the dashboard around the changed panels
             // are built with them; every other panel is drawn from last
             // frame where it was.

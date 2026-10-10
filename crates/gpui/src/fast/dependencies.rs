@@ -114,10 +114,24 @@ pub(crate) fn hover_area(
     if reads.is_empty() {
         return HoverArea::Own(None);
     }
-    let own = hitboxes
-        .iter()
-        .flat_map(|range| &window.next_frame.hitboxes[range.clone()])
-        .collect::<Vec<_>>();
+    hover_area_of(
+        hitboxes
+            .iter()
+            .flat_map(|range| &window.next_frame.hitboxes[range.clone()]),
+        reads,
+    )
+}
+
+/// Where the hovers in `reads` can change, for a view that inserted
+/// `hitboxes`.
+pub(crate) fn hover_area_of<'a>(
+    hitboxes: impl Iterator<Item = &'a crate::Hitbox>,
+    reads: &[(HitboxId, bool)],
+) -> HoverArea {
+    if reads.is_empty() {
+        return HoverArea::Own(None);
+    }
+    let own = hitboxes.collect::<Vec<_>>();
     let ids: FxHashSet<HitboxId> = own.iter().map(|hitbox| hitbox.id).collect();
     if reads.iter().any(|(hitbox, _)| !ids.contains(hitbox)) {
         return HoverArea::Foreign;

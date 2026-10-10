@@ -335,6 +335,25 @@ impl LayoutRetention {
             .collect()
     }
 
+    /// Claims the nodes under `keys`, claimed already this frame by a view
+    /// built for a splice that did not happen, for the view built around it
+    /// that takes it over: they are recorded as that view's own.
+    pub(crate) fn adopt_claimed(&mut self, keys: &[u64]) {
+        let frame = self.frame;
+        for key in keys {
+            let Some(node) = self.retained.get_mut(key) else {
+                continue;
+            };
+            if node.claimed_in_frame != frame {
+                node.claimed_in_frame = frame;
+                self.claimed_this_frame += 1;
+            }
+            if self.open_key_recordings > 0 {
+                self.claimed_key_log.push(*key);
+            }
+        }
+    }
+
     /// Undoes [`Self::try_keep_retained`] for `keys`, so the subtree can be
     /// laid out again this frame and claim its nodes itself.
     pub(crate) fn release_kept(&mut self, keys: &[u64]) {
@@ -997,6 +1016,39 @@ pub(crate) fn keep_retained_nodes(
         engine.retention.text_leaves.insert(id);
     }
     true
+}
+
+/// Whether computing layout at `root` lays `id` out. Element ancestry does
+/// not imply layout ancestry: list rows and other children laid out on their
+/// own are trees of their own.
+pub(crate) fn layout_reaches(engine: &TaffyLayoutEngine, root: LayoutId, id: LayoutId) -> bool {
+    reaches(&engine.taffy, root, id)
+}
+
+/// The layouts last computed for the kept nodes `keys`, to tell once layout
+/// is computed again whether they came out the same.
+pub(crate) fn retained_layouts(
+    engine: &TaffyLayoutEngine,
+    keys: &[u64],
+) -> Vec<(LayoutId, taffy::Layout)> {
+    keys.iter()
+        .filter_map(|key| engine.retention.retained.get(key))
+        .filter_map(|node| Some((node.id, *engine.taffy.layout(node.id.into()).ok()?)))
+        .collect()
+}
+
+/// Whether the nodes [`retained_layouts`] returned still have the layouts
+/// they had then.
+pub(crate) fn layouts_unchanged(
+    engine: &TaffyLayoutEngine,
+    layouts: &[(LayoutId, taffy::Layout)],
+) -> bool {
+    layouts.iter().all(|(id, layout)| {
+        engine
+            .taffy
+            .layout((*id).into())
+            .is_ok_and(|now| now == layout)
+    })
 }
 
 /// Runs a measured node's closure under these constraints, outside a layout

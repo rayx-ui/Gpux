@@ -259,7 +259,7 @@ impl DispatchTree {
         self.node_stack.pop();
     }
 
-    fn move_node(&mut self, source: &mut DispatchNode) {
+    pub(crate) fn move_node(&mut self, source: &mut DispatchNode) {
         self.push_node();
         if let Some(context) = source.context.clone() {
             self.set_key_context(context);

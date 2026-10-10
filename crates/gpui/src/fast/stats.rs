@@ -319,6 +319,11 @@ impl FastStats {
         self.views_built_at_retained_layout + self.views_reused + self.views_bypassed()
     }
 
+    /// The sum of splice's counters: zero on frames drawn with it off.
+    pub fn splice_total(&self) -> u64 {
+        self.views_spliced + self.views_prebuilt
+    }
+
     /// The views built for any [`ViewBypassReason`].
     pub fn views_bypassed(&self) -> u64 {
         self.views_bypassed_refreshing

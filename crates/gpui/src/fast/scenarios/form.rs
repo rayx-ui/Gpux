@@ -5,7 +5,7 @@ use crate::{
     SharedString, Window, div, hsla, prelude::*, px,
 };
 
-use super::{Fixture, Mode, Scenario, at_least_per_frame, drawn_per_frame, expect_frames};
+use super::{Fixture, Mode, Scenario, drawn_per_frame, expect_frames, views_built_at_least};
 
 const FIELDS: usize = 12;
 const TYPED: &str = "the quick brown fox jumps over the lazy dog ";
@@ -93,7 +93,7 @@ impl Fixture for Typing {
 
     fn expect(&self, mode: Mode, stats: &FastStats) -> Result<(), String> {
         expect_frames(mode, stats)?;
-        at_least_per_frame(stats, "views_built", 2)?;
+        views_built_at_least(mode, stats, 2)?;
         // A background and the glyphs of every field's label.
         drawn_per_frame(stats, (FIELDS * 6) as u64)
     }

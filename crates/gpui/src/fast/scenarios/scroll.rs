@@ -8,7 +8,7 @@ use crate::{
     div, effect_frame, hsla, list, point, prelude::*, px, uniform_list,
 };
 
-use super::{Fixture, Mode, Scenario, at_least_per_frame, drawn_per_frame, expect_frames};
+use super::{Fixture, Mode, Scenario, drawn_per_frame, expect_frames, views_built_at_least};
 
 /// Where every scroll container of these scenarios sits: its top left and size.
 const VIEWPORT: (f32, f32, f32, f32) = (0., 0., 400., 300.);
@@ -284,7 +284,7 @@ impl Fixture for Scrolling {
     fn expect(&self, mode: Mode, stats: &FastStats) -> Result<(), String> {
         expect_frames(mode, stats)?;
         // Until scroll layers land, every scrolled frame builds the scroller.
-        at_least_per_frame(stats, "views_built", 2)?;
+        views_built_at_least(mode, stats, 2)?;
         // The backgrounds and glyphs of the rows (or messages) in view, well
         // above the 31 backgrounds alone.
         drawn_per_frame(stats, 60)
@@ -337,7 +337,7 @@ impl Fixture for Pointer {
 
     fn expect(&self, mode: Mode, stats: &FastStats) -> Result<(), String> {
         expect_frames(mode, stats)?;
-        at_least_per_frame(stats, "views_built", 2)?;
+        views_built_at_least(mode, stats, 2)?;
         // A background and the glyphs of every row.
         drawn_per_frame(stats, 40 * 5)
     }

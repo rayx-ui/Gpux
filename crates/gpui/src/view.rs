@@ -42,7 +42,7 @@ impl AnyView {
     /// [Context::notify] was called on the backing entity since it was rendered
     /// (or [Window::refresh] is called, which ignores caching).
     pub fn cached(self, style: StyleRefinement) -> ViewElement<AnyView> {
-        ViewElement::new(self).cached(style)
+        crate::fast::splice::rebuildable(self.clone(), self).cached(style)
     }
 
     /// Convert this to a weak handle.
@@ -101,7 +101,8 @@ impl<V: 'static + Render> IntoElement for Entity<V> {
     type Element = ViewElement<Entity<V>>;
 
     fn into_element(self) -> Self::Element {
-        ViewElement::new(self)
+        let any = AnyView::from(self.clone());
+        crate::fast::splice::rebuildable(self, any)
     }
 
     #[inline(never)]
@@ -114,7 +115,7 @@ impl IntoElement for AnyView {
     type Element = ViewElement<AnyView>;
 
     fn into_element(self) -> Self::Element {
-        ViewElement::new(self)
+        crate::fast::splice::rebuildable(self.clone(), self)
     }
 }
 
@@ -254,7 +255,8 @@ impl<T: Render> Entity<T> {
     /// uncached case.
     #[track_caller]
     pub fn cached(self, style: StyleRefinement) -> ViewElement<Entity<T>> {
-        ViewElement::new(self).cached(style)
+        let any = AnyView::from(self.clone());
+        crate::fast::splice::rebuildable(self, any).cached(style)
     }
 }
 
@@ -262,13 +264,15 @@ impl<T: Render> Entity<T> {
 /// into layout, prepaint, and paint. Constructed via [`ViewElement::new`].
 #[doc(hidden)]
 pub struct ViewElement<V: View> {
-    view: Option<V>,
+    pub(crate) view: Option<V>,
     entity_id: Option<EntityId>,
-    cached_style: Option<StyleRefinement>,
+    pub(crate) cached_style: Option<StyleRefinement>,
     #[cfg(debug_assertions)]
     source: &'static core::panic::Location<'static>,
     /// How the view was drawn with view retention on.
-    fast_retention: crate::fast::retained::ViewRetention,
+    pub(crate) fast_retention: crate::fast::retained::ViewRetention,
+    /// The view, kept to be built again on its own by splice.
+    pub(crate) fast_rebuild: crate::fast::splice::RebuildHandle,
 }
 
 impl<V: View> ViewElement<V> {
@@ -283,6 +287,7 @@ impl<V: View> ViewElement<V> {
             #[cfg(debug_assertions)]
             source: core::panic::Location::caller(),
             fast_retention: Default::default(),
+            fast_rebuild: Default::default(),
         }
     }
 
@@ -362,6 +367,7 @@ impl<V: View> Element for ViewElement<V> {
                 entity_id,
                 self.cached_style.as_ref(),
                 id,
+                &self.fast_rebuild,
                 window,
                 cx,
                 &mut |window, cx| view.take().unwrap().render(window, cx).into_any_element(),
@@ -404,6 +410,8 @@ impl<V: View> Element for ViewElement<V> {
                 entity_id,
                 global_id,
                 bounds,
+                self.cached_style.as_ref(),
+                &self.fast_rebuild,
                 window,
                 cx,
                 &mut |window, cx| {

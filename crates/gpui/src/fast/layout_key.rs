@@ -156,6 +156,40 @@ pub(crate) fn push_layout_key(window: &mut Window, id: Option<&ElementId>) -> La
     LayoutKey(key)
 }
 
+/// The key the parent of the element currently requesting layout passes on
+/// to it: what [`with_parent_layout_key`] needs to key that element, and the
+/// nodes under it, as they are keyed here. `None` in a frame that does not
+/// key its layout.
+pub(crate) fn parent_layout_key(window: &Window) -> Option<u64> {
+    let layout = &window.fast_layout;
+    if !layout.active {
+        return None;
+    }
+    match layout.key_stack.len() {
+        0 => None,
+        1 => Some(mix(layout.prepaint_scope, LAYOUT_PREPAINT_SALT)),
+        len => Some(layout.key_stack[len - 2].key),
+    }
+}
+
+/// Runs `f` as though the element whose children are keyed under `parent`
+/// were requesting its layout, so that an element with an id requested in
+/// `f` is keyed as it was there: a nested view built again on its own.
+pub(crate) fn with_parent_layout_key<R>(
+    window: &mut Window,
+    parent: u64,
+    f: impl FnOnce(&mut Window) -> R,
+) -> R {
+    let saved = mem::take(&mut window.fast_layout.key_stack);
+    window.fast_layout.key_stack.push(LayoutKeyFrame {
+        key: parent,
+        next_unidentified_child: 0,
+    });
+    let result = f(window);
+    window.fast_layout.key_stack = saved;
+    result
+}
+
 /// Ends the element most recently begun by [`push_layout_key`].
 #[inline(always)]
 pub(crate) fn pop_layout_key(window: &mut Window) {

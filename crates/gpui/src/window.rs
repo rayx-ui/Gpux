@@ -1141,7 +1141,7 @@ pub(crate) struct WindowFrame {
     #[cfg(any(test, feature = "test-support"))]
     debug_bounds_records: Vec<(String, Bounds<Pixels>)>,
     pub(crate) devtools_nodes: Vec<DevtoolsFrameNode>,
-    devtools_node_indices: Vec<usize>,
+    pub(crate) devtools_node_indices: Vec<usize>,
     pub(crate) devtools_property_setters: FxHashMap<usize, Vec<DevtoolsPropertySetter>>,
     pub(crate) devtools_node_stack: Vec<usize>,
     pub(crate) next_devtools_node_id: usize,
@@ -1416,19 +1416,19 @@ pub struct DevtoolsElementSnapshot {
 }
 
 pub(crate) struct DevtoolsFrameNode {
-    devtools_node_id: usize,
-    parent_devtools_node_id: Option<usize>,
-    dispatch_node_id: usize,
-    parent_dispatch_node_id: Option<usize>,
-    type_name: &'static str,
-    global_id: Option<GlobalElementId>,
-    source: Option<&'static core::panic::Location<'static>>,
-    bounds: DevtoolsBounds,
-    semantics: Option<DevtoolsSemantics>,
-    hitbox_count: usize,
-    key_listener_count: usize,
-    action_listener_count: usize,
-    focused: bool,
+    pub(crate) devtools_node_id: usize,
+    pub(crate) parent_devtools_node_id: Option<usize>,
+    pub(crate) dispatch_node_id: usize,
+    pub(crate) parent_dispatch_node_id: Option<usize>,
+    pub(crate) type_name: &'static str,
+    pub(crate) global_id: Option<GlobalElementId>,
+    pub(crate) source: Option<&'static core::panic::Location<'static>>,
+    pub(crate) bounds: DevtoolsBounds,
+    pub(crate) semantics: Option<DevtoolsSemantics>,
+    pub(crate) hitbox_count: usize,
+    pub(crate) key_listener_count: usize,
+    pub(crate) action_listener_count: usize,
+    pub(crate) focused: bool,
 }
 
 impl DevtoolsFrameNode {
@@ -1944,7 +1944,7 @@ pub(crate) type StickyLayoutContextId = usize;
 type StickyOccurrenceId = usize;
 
 #[derive(Clone, Copy)]
-struct StickyLayoutContext {
+pub(crate) struct StickyLayoutContext {
     id: StickyLayoutContextId,
     overflow: Point<Overflow>,
 }
@@ -2021,8 +2021,8 @@ impl ScrollContainerContext {
 }
 
 #[derive(Default)]
-struct ScrollContainerContextStack {
-    stack: Vec<ScrollContainerContext>,
+pub(crate) struct ScrollContainerContextStack {
+    pub(crate) stack: Vec<ScrollContainerContext>,
 }
 
 impl ScrollContainerContextStack {
@@ -2401,7 +2401,7 @@ pub struct Window {
     ///
     /// This is used by `with_rem_size` to allow rendering an element tree with
     /// a given rem size.
-    rem_size_override_stack: SmallVec<[Pixels; 8]>,
+    pub(crate) rem_size_override_stack: SmallVec<[Pixels; 8]>,
     pub(crate) viewport_size: Size<Pixels>,
     pub(crate) layout_engine: Option<TaffyLayoutEngine>,
     pub(crate) fast_mode: crate::fast::mode::WindowFastMode,
@@ -2426,16 +2426,16 @@ pub struct Window {
     pub(crate) rendered_entity_stack: Vec<EntityId>,
     pub(crate) element_offset_stack: Vec<Point<Pixels>>,
     pub(crate) element_opacity: f32,
-    element_transform_stack: Vec<TransformationMatrix>,
+    pub(crate) element_transform_stack: Vec<TransformationMatrix>,
     pub(crate) content_mask_stack: Vec<ContentMask<Pixels>>,
-    scroll_container_context_stack: ScrollContainerContextStack,
-    sticky_layout_context_stack: Vec<StickyLayoutContext>,
+    pub(crate) scroll_container_context_stack: ScrollContainerContextStack,
+    pub(crate) sticky_layout_context_stack: Vec<StickyLayoutContext>,
     pub(crate) sticky_candidates: Vec<StickyCandidate>,
     sticky_plans: Vec<StickyCandidatePlan>,
     pub(crate) next_sticky_layout_context_id: StickyLayoutContextId,
-    paint_content_mask_stack: Vec<ContentMask<ScaledPixels>>,
-    hitbox_behavior_overrides: Vec<HitboxBehavior>,
-    pointer_semantics_suppressed: usize,
+    pub(crate) paint_content_mask_stack: Vec<ContentMask<ScaledPixels>>,
+    pub(crate) hitbox_behavior_overrides: Vec<HitboxBehavior>,
+    pub(crate) pointer_semantics_suppressed: usize,
     pub(crate) requested_autoscroll: Option<Bounds<Pixels>>,
     /// The [`TextInputConfiguration`] most recently forwarded to the platform
     /// window, so that only actual changes are forwarded (reconfiguring a live
@@ -2452,7 +2452,7 @@ pub struct Window {
     next_hitbox_id: HitboxId,
     /// How many fixed or sticky subtrees are prepainting. They paint in a
     /// positioned layer, so their hitboxes hit-test in that layer too.
-    positioned_hitbox_depth: usize,
+    pub(crate) positioned_hitbox_depth: usize,
     pub(crate) next_tooltip_id: TooltipId,
     pub(crate) tooltip_bounds: Option<TooltipBounds>,
     pub(crate) next_frame_callbacks: Rc<RefCell<Vec<FrameCallback>>>,
@@ -5434,6 +5434,7 @@ impl Window {
 
     fn invalidate_entities(&mut self) {
         let mut views = self.invalidator.take_views();
+        crate::fast::retained::note_notified(self, &views);
         for entity in views.drain() {
             self.mark_view_dirty(entity);
         }

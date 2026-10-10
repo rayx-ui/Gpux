@@ -202,7 +202,6 @@ impl WindowFastMode {
 
     /// Whether splice is on.
     #[inline(always)]
-    #[allow(dead_code, reason = "read by the splice hooks of a later sprint")]
     pub(crate) fn splice(&self) -> bool {
         self.mode.splice
     }
