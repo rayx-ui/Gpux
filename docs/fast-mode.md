@@ -117,19 +117,29 @@ scroll it are then drawn from those tiles, moved by the offset, without prepaint
 the content. `uniform_list` and `list` get layers of their own, with a record per row, in a
 later step.
 
-> The renderers' side of the tiles lands after this core. Until it does nothing rasterizes a
-> tile, so leave the switch off outside tests.
+A window runs scroll layers only where its renderer rasterizes their tiles
+(`PlatformWindow::rasterizes_layer_tiles`); in any other window the switch normalizes to off.
+
+> No renderer rasterizes tiles yet: that lands after this core. Until then only a test window
+> without a renderer runs scroll layers, and `GPUX_SCROLL_LAYERS=1` or `GPUX_FAST_MODE=1` leave
+> them off everywhere else.
+
+While no window of a thread has the switch on, a scroll container does none of the layers'
+bookkeeping.
 
 A frame only scrolls a container when:
 
-- nothing its content read changed and no view inside it was notified;
-- the view holding it was notified no more often than scroll state published: the notifications
-  a published offset or its metrics send the owner and the handle's dependent views
-  (`ScrollHandle::register_dependent_view`) are the scroll's. A wheel and a scrollbar
-  (`publish_scrollbar_offset`) publish at once and composite. An offset an application requests
-  (`request_offset`, `scroll_to`) is applied when the container is next prepainted, and the
-  notification that asks for that frame cannot be told from a change, so that frame paints the
-  layer again;
+- nothing its content read changed, no view inside it was notified, and none rendered: a view
+  inside the content is laid out from what the layer kept while nothing its render read
+  changed, and renders again when something did, a model it does not observe included;
+- the view holding it was not updated since it last rendered, and was notified no more often
+  than scroll state published. The notifications a published offset or its metrics send the
+  owner and the handle's dependent views (`ScrollHandle::register_dependent_view`) are the
+  scroll's. A wheel and a scrollbar (`publish_scrollbar_offset`) publish at once and composite.
+  gpux counts an entity updated without a notification as changed, so a scroll published from a
+  listener of the owner itself (`cx.listener`) paints the layer again, as does an offset an
+  application requests (`request_offset`, `scroll_to`) and notifies the owner for: it is applied
+  when the container is next prepainted, and that notification cannot be told from a change;
 - the owner's render did not read the offset or the metrics;
 - no container inside the content scrolled;
 - no hover the content read can have changed. Prepaint sees last frame's hit test, which the
@@ -140,12 +150,27 @@ A frame only scrolls a container when:
 
 On a composited frame the content's hitboxes, mouse and key listeners, focus, cursor styles,
 element state, tab stops and window-control areas are carried over, moved by the scroll and
-clipped to the viewport; tooltips are dropped once the layer moved. Input other than a wheel
-that reaches content shown where it was not painted (a press, a key with focus inside, a move
-onto it, a tap, a long press, a touch down) first paints the layer where it shows, in a frame
-drawn before the event is dispatched. A touch pan and the momentum of a fling scroll through the
-same wheel path and composite. `ScrollHandle::bounds` and `bounds_for_item` answer for where the
-content shows.
+clipped to the viewport; tooltips are dropped once the layer moved. `ScrollHandle::bounds` and
+`bounds_for_item` answer for where the content shows.
+
+Carried listeners still hold the bounds they were painted with. So input other than a scroll
+that reaches content shown away from where it was painted first paints the layer where it
+shows, in a frame drawn before the event is dispatched: a press or a release anywhere, a key
+with the focus inside the content, a tap, a long press, a touch down, and a move over the
+content where nothing covers it (not the moves of a drag begun elsewhere, such as a scrollbar's,
+nor moves while a hitbox outside the content holds the pointer). A touch pan and the momentum
+of a fling scroll through the wheel path and composite.
+
+Two things differ in time, not in what a frame shows:
+
+- The frame drawn before such an input also draws whatever else was pending, a scroll a wheel
+  just published for instance, where without layers the input would have been dispatched
+  against the frame before it. No layer leaves that frame showing content away from where it
+  was painted.
+- Opacity, a transform and the surface a container paints onto are applied while painting, and
+  an ancestor can change them after the container's prepaint decided to composite. That frame
+  shows the layer as it was painted and the next paints it again, as a view drawn from last
+  frame is built on the next.
 
 A container goes without a layer, counted by reason in `FastStats::layer_bypasses`, when:
 
@@ -165,6 +190,9 @@ A container goes without a layer, counted by reason in `FastStats::layer_bypasse
   while the content stays so;
 - `nested`: it is painted inside another container's layer;
 - `moved`: sticky or fixed positioning displaced it.
+
+Every scroll-container frame is counted once: `layers_composited`, `layers_repainted`, or a
+bypass reason.
 
 The switch also snaps scroll offsets to device pixels, quantizes glyph origins so that they
 shift by whole pixels, and snaps path vertices to 1/256 of a pixel, which tiles need to match a
@@ -272,12 +300,13 @@ and before any mechanism:
 | Machine | Apple Silicon Mac (`Darwin 25.6.0 arm64`), Metal headless renderer |
 | Run | `artifacts-temp/testkit/perf/baseline-s01/` (`run.txt` records the commit and machine) |
 
-The scroll scenarios changed after the baseline, when scroll layers landed: their scroll areas
-sit on an opaque panel, and the scrolling `div`s (`scroll-child-view`, `scroll-same-view`,
-`sticky-scroll`, `effect-scroll`) leave a 40 px gutter where the pointer rests, over no row. A
-window's pointer is also where the scenario puts it on every platform, where before a test
-window on macOS drew with the pointer at its top-left corner. Compare their `layers` timings
-with `off` of the same run, not with the baseline.
+The scroll scenarios changed after the baseline, when scroll layers landed. Their scroll areas
+sit on an opaque panel, and the scrolling `div`s leave a 40 px gutter beside their rows:
+`scroll-child-view`, `sticky-scroll` and `effect-scroll` wheel with the pointer resting there,
+over no row, and `scroll-same-view` with it over the rows, whose hover styles follow it, which
+is the case a `div`'s layer never composites. A window's pointer is also where the scenario puts
+it on every platform, where before a test window on macOS drew with the pointer at its top-left
+corner. Compare their `layers` timings with `off` of the same run, not with the baseline.
 
 The final comparison runs on the same machine:
 
