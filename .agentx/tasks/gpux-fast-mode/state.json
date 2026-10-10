@@ -1,12 +1,12 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 101,
-  "planRevision": 13,
+  "revision": 107,
+  "planRevision": 14,
   "specHashes": {
     "requirements": "9a032d1345bbc15ddac8a565144cc02934f65cee34ff9fbb7e0ef3453253fcf0",
     "design": "7f395940bdf1da3213a9e4b0ffd5ca1fec81099f3fddc09268c8d9761f890b00",
-    "plan": "d9752a2ce560e1a11bd75e3093aa4f33adbe21b882c0c8f776bd42e33050d9cd"
+    "plan": "d58af7dee0b302d6b52b5478cd412b0b0efaf9244cabc08817001d5382b4e06c"
   },
   "tasks": {
     "t01-fast-switches": {
@@ -196,13 +196,22 @@
       ]
     },
     "t32-composition-windows": {
-      "status": "pending"
+      "status": "implemented",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t33-composition-web": {
-      "status": "pending"
+      "status": "implemented",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t34-webview-examples": {
-      "status": "pending"
+      "status": "in_progress",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t35-layer-policy": {
       "status": "pending"

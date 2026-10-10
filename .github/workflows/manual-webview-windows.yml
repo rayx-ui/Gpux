@@ -1,0 +1,39 @@
+# Temporary: runs the manual WebView2 composition example once on a hosted Windows session and
+# uploads a desktop screenshot, for the manual verification CMP-9 asks for. Removed once read.
+name: Gpux manual WebView2 example
+
+on:
+  pull_request:
+
+jobs:
+  webview-windows:
+    name: webview_windows (windows-2025)
+    runs-on: windows-2025
+    env:
+      CARGO_PROFILE_DEV_DEBUG: line-tables-only
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@1.95.0
+      - name: Build the example
+        run: cargo build -p gpux-platform --features webview-examples --example webview_windows
+      - name: Run it and take a screenshot
+        shell: pwsh
+        run: |
+          $example = Start-Process -FilePath target\debug\examples\webview_windows.exe -ArgumentList '--open','menu,popover,dialog','--exit-after','40' -PassThru -RedirectStandardOutput example-out.txt -RedirectStandardError example-err.txt
+          Start-Sleep -Seconds 25
+          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+          $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+          $bitmap = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height
+          $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+          $graphics.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
+          $bitmap.Save("webview_windows.png")
+          $example | Wait-Process -Timeout 60 -ErrorAction SilentlyContinue
+          Get-Content example-out.txt, example-err.txt
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: webview-windows-screenshot
+          path: |
+            webview_windows.png
+            example-out.txt
+            example-err.txt

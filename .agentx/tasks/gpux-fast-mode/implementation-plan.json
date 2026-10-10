@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 13,
+  "revision": 14,
   "title": "gpux fast mode: retained layout and views, splice, scroll layers and window composition from gpui-fast",
   "validationMode": "sprint",
   "repositories": [
@@ -1133,21 +1133,15 @@
       "criterionIds": [
         "CMP-6"
       ],
-      "descriptionMarkdown": "New lane D platform checks `composition-windows-*`: visual tree order, portal bounds and clip, device-loss rebuild, and screenshot pixels. Runs on Windows (WARP or hardware).",
+      "descriptionMarkdown": "New lane D platform checks `composition-windows-*`: visual tree order, portal bounds and clip, device-loss rebuild, accelerator pass-through and live resize, through OS screenshots. Run by CI's `lane D (windows-2025)` job (WARP) on the pushed HEAD; this check reads that job's results.",
       "argv": [
-        "cargo",
-        "run",
-        "-p",
-        "gpux-testkit",
-        "--",
-        "lane",
-        "d",
-        "--grep",
-        "composition-windows"
+        "bash",
+        "-c",
+        "set -e\nsha=$(git rev-parse HEAD)\nif ! git diff --quiet HEAD -- crates tooling tools-node Cargo.toml Cargo.lock; then\n  echo \"uncommitted product changes: CI proves pushed commits only\"; exit 1\nfi\nif ! git branch -r --contains \"$sha\" | grep -q .; then\n  echo \"$sha is not pushed: CI has not run on it\"; exit 1\nfi\nrun=$(gh run list --repo rayx-ui/Gpux --workflow ci.yml --commit \"$sha\" --limit 1 --json databaseId -q '.[0].databaseId')\n[ -n \"$run\" ] || { echo \"no CI run for $sha\"; exit 1; }\njob=$(gh run view \"$run\" --repo rayx-ui/Gpux --json jobs -q '.jobs[] | select(.name==\"lane D (windows-2025)\") | \"\\(.databaseId) \\(.status)\"')\ncase \"$job\" in *\" completed\") ;; *) echo \"CI lane D (windows-2025) for $sha has not finished: $job\"; exit 1;; esac\ngh api --allow-escape-sequences \"repos/rayx-ui/Gpux/actions/jobs/${job%% *}/logs\" | sed 's/^[^ ]* //' | grep -a \"composition-windows\" > /tmp/gpux-composition-windows.log || true\ncat /tmp/gpux-composition-windows.log\npassed=$(grep -c \"PASS composition-windows\" /tmp/gpux-composition-windows.log || true)\nfailed=$(grep -c \"FAIL composition-windows\" /tmp/gpux-composition-windows.log || true)\necho \"CI run $run, commit $sha\"\necho \"gpux-testkit: $passed passed, $failed failed, 0 skipped\"\n[ \"$failed\" = 0 ]"
       ],
       "expected": {
         "exitCode": 0,
-        "minimumTests": 4,
+        "minimumTests": 5,
         "testCountPattern": "gpux-testkit: (\\d+) passed"
       },
       "reuse": false,
@@ -1169,15 +1163,9 @@
       ],
       "descriptionMarkdown": "New Playwright spec `tools-node/specs/composition.spec.ts`: a popover drawn over a DOM element on WebGPU, pointer routing, and forced WebGL2 reporting unsupported with the V1 overlay intact.",
       "argv": [
-        "cargo",
-        "run",
-        "-p",
-        "gpux-testkit",
-        "--",
-        "lane",
-        "b",
-        "--grep",
-        "composition"
+        "bash",
+        "-c",
+        "PATH=/opt/homebrew/opt/node@22/bin:$PATH cargo run -p gpux-testkit -- lane b --grep \"composition.spec|a popover draws|the popover takes|composition unsupported\""
       ],
       "expected": {
         "exitCode": 0,
