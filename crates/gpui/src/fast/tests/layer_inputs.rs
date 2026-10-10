@@ -220,6 +220,9 @@ fn content_in_parts_draws_each_tile_as_one_scene_does() {
     for operation in rows.iter().flatten() {
         match operation {
             PaintOperation::Primitive(primitive) => whole.insert_primitive(primitive.clone()),
+            PaintOperation::FastDropped(dropped) => {
+                crate::fast::edge_shadows::dropped(&mut whole, *dropped)
+            }
             PaintOperation::StartLayer(bounds) => whole.push_layer(*bounds),
             PaintOperation::StartPositionedLayer(bounds) => whole.push_positioned_layer(*bounds),
             PaintOperation::StartTopLayer(bounds) => whole.push_top_layer(*bounds),
@@ -242,6 +245,7 @@ fn content_in_parts_draws_each_tile_as_one_scene_does() {
                 }
                 PaintOperation::StartTopLayer(bounds) => PaintOperation::StartTopLayer(*bounds),
                 PaintOperation::EndLayer => PaintOperation::EndLayer,
+                PaintOperation::FastDropped(dropped) => PaintOperation::FastDropped(*dropped),
             })
             .collect();
         LayerPart {

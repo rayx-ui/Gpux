@@ -243,6 +243,9 @@ impl Scene {
         for operation in &prev_scene.paint_operations[range] {
             match operation {
                 PaintOperation::Primitive(primitive) => self.insert_primitive(primitive.clone()),
+                PaintOperation::FastDropped(dropped) => {
+                    crate::fast::edge_shadows::dropped(self, *dropped)
+                }
                 PaintOperation::StartLayer(bounds) => self.push_layer(*bounds),
                 PaintOperation::StartPositionedLayer(bounds) => self.push_positioned_layer(*bounds),
                 PaintOperation::StartTopLayer(bounds) => self.push_top_layer(*bounds),
@@ -431,6 +434,7 @@ pub(crate) enum PrimitiveKind {
 
 pub(crate) enum PaintOperation {
     Primitive(Primitive),
+    FastDropped(crate::fast::edge_shadows::Dropped),
     StartLayer(Bounds<ScaledPixels>),
     StartPositionedLayer(Bounds<ScaledPixels>),
     StartTopLayer(Bounds<ScaledPixels>),

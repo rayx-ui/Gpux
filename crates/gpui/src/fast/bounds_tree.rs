@@ -486,11 +486,39 @@ where
 
     /// Clears the tree and forgets what was inserted before, so the next fill
     /// is ordered from scratch rather than replayed.
-    #[cfg(any(test, feature = "test-support"))]
     pub fn forget(&mut self) {
         self.clear();
         self.previous.clear();
         self.replaying = false;
+    }
+
+    /// The greatest ordering among the bounds in the tree that `query`
+    /// meets, or 0 when it meets none. For a tree filled through
+    /// [`BoundsTree::insert_at`], which is never replayed.
+    pub(crate) fn max_over(&mut self, query: &Bounds<U>) -> u32 {
+        debug_assert!(!self.replaying);
+        self.find_max_ordering(query)
+    }
+
+    /// Sizes the grid to hold `bounds`, so that filling it with bounds
+    /// spread over them does not grow it step by step.
+    pub(crate) fn cover(&mut self, bounds: &Bounds<U>) {
+        debug_assert!(!self.replaying);
+        if let Some((columns, rows)) = self.grid.needs(bounds) {
+            self.grid.resize(columns, rows);
+            for (recorded, ordering) in &self.recorded {
+                self.grid.add(recorded, *ordering);
+            }
+        }
+    }
+
+    /// Adds `bounds` at `ordering`, which the caller worked out: the tree
+    /// then answers for it, without having ordered it. See
+    /// [`BoundsTree::max_over`].
+    pub(crate) fn insert_at(&mut self, bounds: Bounds<U>, ordering: u32) {
+        debug_assert!(!self.replaying);
+        self.add(&bounds, ordering);
+        self.recorded.push((bounds, ordering));
     }
 
     /// Inserts bounds into the tree and returns its assigned ordering.

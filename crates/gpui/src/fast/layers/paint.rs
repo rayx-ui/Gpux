@@ -808,6 +808,9 @@ pub(crate) fn lift_paths(
         match operation {
             PaintOperation::Primitive(Primitive::Path(_)) => {}
             PaintOperation::Primitive(primitive) => rest.insert_primitive(primitive.clone()),
+            PaintOperation::FastDropped(dropped) => {
+                crate::fast::edge_shadows::dropped(&mut rest, *dropped)
+            }
             PaintOperation::StartLayer(bounds) => rest.push_layer(*bounds),
             PaintOperation::StartPositionedLayer(bounds) => rest.push_positioned_layer(*bounds),
             PaintOperation::StartTopLayer(bounds) => rest.push_top_layer(*bounds),
@@ -979,6 +982,13 @@ pub(crate) fn replay_content<'a>(
                 }
                 scene.insert_primitive(primitive);
             }
+            PaintOperation::FastDropped(dropped) => {
+                // Dropped by the viewport now, as the primitives it clips
+                // away are.
+                let mut dropped = dropped.moved(delta);
+                dropped.mask = dropped.mask.intersect(&viewport);
+                crate::fast::edge_shadows::dropped(scene, dropped);
+            }
             PaintOperation::StartLayer(bounds)
             | PaintOperation::StartPositionedLayer(bounds)
             | PaintOperation::StartTopLayer(bounds) => {
@@ -1062,6 +1072,9 @@ pub(crate) fn expanded_scene(scene: &Scene) -> Scene {
         }
         match operation {
             PaintOperation::Primitive(primitive) => expanded.insert_primitive(primitive.clone()),
+            PaintOperation::FastDropped(dropped) => {
+                crate::fast::edge_shadows::dropped(&mut expanded, *dropped)
+            }
             PaintOperation::StartLayer(bounds) => expanded.push_layer(*bounds),
             PaintOperation::StartPositionedLayer(bounds) => expanded.push_positioned_layer(*bounds),
             PaintOperation::StartTopLayer(bounds) => expanded.push_top_layer(*bounds),
@@ -1353,6 +1366,9 @@ fn translated_scene(scene: &Scene, delta: Point<ScaledPixels>) -> Scene {
         match operation {
             PaintOperation::Primitive(primitive) => {
                 translated.insert_primitive(translate_primitive(primitive, delta))
+            }
+            PaintOperation::FastDropped(dropped) => {
+                crate::fast::edge_shadows::dropped(&mut translated, dropped.moved(delta))
             }
             PaintOperation::StartLayer(bounds) => translated.push_layer(Bounds {
                 origin: bounds.origin + delta,

@@ -1753,6 +1753,9 @@ fn drawn_alike(a: &Row, b: &Row) -> bool {
                     size: bounds.size,
                 }),
                 PaintOperation::EndLayer => PaintOperation::EndLayer,
+                PaintOperation::FastDropped(dropped) => {
+                    PaintOperation::FastDropped(dropped.moved(to_row))
+                }
             })
             .collect();
         let (tiles, _) = part_tile_hashes(&operations, paint::TILE_SIZE);
@@ -3584,6 +3587,7 @@ pub(crate) fn end_paint_rows(window: &mut Window, cx: &mut App, id: Option<&Glob
                 | PaintOperation::StartTopLayer(bounds) => {
                     bounds.origin = bounds.origin + to_content
                 }
+                PaintOperation::FastDropped(dropped) => *dropped = dropped.moved(to_content),
                 PaintOperation::EndLayer => {}
             }
         }

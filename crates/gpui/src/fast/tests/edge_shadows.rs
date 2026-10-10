@@ -206,9 +206,9 @@ fn a_kept_shadow_lies_over_what_its_box_lies_on() {
     let whole = unclipped(&primitives);
     assert_eq!(orders, self::orders(&scene_of(&whole), &whole));
 
-    // With the row out of view too, the shadow lies on the background
-    // alone, level with the neighbour: drawn before it, as shadows are
-    // before quads of their order.
+    // With the row out of view too, the shadow still lies over it, and so
+    // over the neighbour: the row the scene dropped keeps its place in the
+    // order.
     let primitives = [
         content_background(),
         quad(sp(40., 150., 320., 50.), viewport()),
@@ -218,7 +218,22 @@ fn a_kept_shadow_lies_over_what_its_box_lies_on() {
     let scene = scene_of(&primitives);
     assert_eq!(
         self::orders(&scene, &primitives),
-        [Some(1), Some(2), None, Some(2)]
+        [Some(1), Some(2), None, Some(3)]
+    );
+    // Rows straight on the background behind the viewport, painted outside
+    // its clip: the dropped row lies over that background as the rows in
+    // view do.
+    let primitives = [
+        quad(window(), window()),
+        quad(viewport(), window()),
+        quad(sp(20., 140., 360., 70.), viewport()),
+        quad(sp(20., 222., 360., 100.), viewport()),
+        shadow(sp(40., 225., 320., 60.), viewport(), 8.),
+    ];
+    let scene = scene_of(&primitives);
+    assert_eq!(
+        self::orders(&scene, &primitives),
+        [Some(1), Some(2), Some(3), None, Some(4)]
     );
 }
 
@@ -362,6 +377,22 @@ fn a_kept_shadow_in_a_layer_takes_its_band() {
     assert_eq!(layer, 2);
     assert_eq!(scene.shadows[0].order, layer);
     assert_eq!(scene.quads[2].order, layer);
+
+    // A layer painted after a kept shadow, holding what lies over the
+    // shadow's box (a line of text cut by the viewport's edge), is raised to
+    // the shadow's order, and all it holds from there on with it.
+    let mut scene = Scene::default();
+    scene.insert_primitive(content_background());
+    scene.insert_primitive(quad(sp(20., 210., 360., 200.), viewport()));
+    scene.insert_primitive(shadow(sp(40., 225., 320., 60.), viewport(), 8.));
+    assert_eq!(scene.shadows[0].order, 3);
+    scene.push_layer(sp(20., 100., 360., 20.));
+    scene.insert_primitive(quad(sp(300., 100., 30., 20.), viewport()));
+    scene.insert_primitive(quad(sp(60., 100., 30., 200.), viewport()));
+    scene.insert_primitive(quad(sp(100., 100., 30., 20.), viewport()));
+    scene.pop_layer();
+    let in_layer: Vec<_> = scene.quads[2..].iter().map(|quad| quad.order).collect();
+    assert_eq!(in_layer, [2, 3, 3]);
 }
 
 #[test]
@@ -421,14 +452,13 @@ fn random_scene(rng: &mut StdRng, blur: f32) -> Vec<Primitive> {
     primitives
 }
 
-/// A scene that keeps no shadow for its blur is the scene upstream's rule
-/// builds; one that keeps some drops nothing upstream keeps, lowers no
-/// order, and leaves any two primitives whose clipped bounds intersect in
-/// paint order.
+/// A scene drops no primitive upstream's rule keeps and lowers none, and
+/// any two whose clipped bounds intersect stay in paint order. A scene none
+/// of whose primitives a mask cuts or drops is upstream's, order for order.
 #[test]
-fn everything_else_is_ordered_as_before() {
+fn nothing_is_dropped_lowered_or_put_out_of_order() {
     let mut rng = StdRng::seed_from_u64(0x5eed_ed6e);
-    let (mut without, mut with, mut raised) = (0, 0, 0);
+    let (mut with, mut raised, mut as_before) = (0, 0, 0);
     for run in 0..600 {
         // A third of the scenes have shadows without blur, which none is
         // kept for.
@@ -437,12 +467,7 @@ fn everything_else_is_ordered_as_before() {
         let scene = scene_of(&primitives);
         let orders = orders(&scene, &primitives);
         let upstream = upstream_orders(&primitives);
-        if scene.fast_edge_shadows.len() == 0 {
-            without += 1;
-            assert_eq!(orders, upstream, "run {run}");
-            continue;
-        }
-        with += 1;
+        with += (scene.fast_edge_shadows.len() > 0) as usize;
         let clipped = |index: usize| {
             let primitive = &primitives[index];
             primitive
@@ -471,12 +496,95 @@ fn everything_else_is_ordered_as_before() {
             }
         }
     }
-    assert!(without >= 150, "{without} scenes kept no shadow");
     assert!(with >= 200, "{with} scenes kept a shadow");
+    assert!(raised >= 50, "{raised} primitives were raised");
+
+    // Quads and shadows all inside the window, in its mask.
+    for run in 0..200 {
+        let primitives: Vec<Primitive> = (0..rng.random_range(5..80))
+            .map(|_| {
+                let bounds = sp(
+                    rng.random_range(30.0..200.0f32).round(),
+                    rng.random_range(30.0..150.0f32).round(),
+                    rng.random_range(4.0..170.0f32).round(),
+                    rng.random_range(4.0..120.0f32).round(),
+                );
+                if rng.random_range(0..3) == 0 {
+                    shadow(bounds, window(), rng.random_range(0.0..24.0))
+                } else {
+                    quad(bounds, window())
+                }
+            })
+            .collect();
+        let scene = scene_of(&primitives);
+        assert_eq!(
+            orders(&scene, &primitives),
+            upstream_orders(&primitives),
+            "run {run}"
+        );
+        as_before += primitives.len();
+    }
     assert!(
-        raised >= 50,
-        "{raised} primitives were raised over a shadow"
+        as_before >= 5000,
+        "{as_before} primitives were ordered as before"
     );
+}
+
+/// Content scattered in and around the viewport, all of it in the
+/// viewport's clip.
+fn random_content(rng: &mut StdRng) -> Vec<Primitive> {
+    let count = rng.random_range(5..80);
+    let mut primitives = vec![content_background()];
+    for _ in 0..count {
+        let bounds = sp(
+            rng.random_range(-60.0..400.0f32).round(),
+            rng.random_range(-300.0..520.0f32).round(),
+            rng.random_range(4.0..220.0f32).round(),
+            rng.random_range(4.0..140.0f32).round(),
+        );
+        primitives.push(if rng.random_range(0..3) == 0 {
+            shadow(bounds, viewport(), rng.random_range(0.0..24.0))
+        } else {
+            quad(bounds, viewport())
+        });
+    }
+    primitives
+}
+
+/// A clip changes no order: every primitive a scene keeps of content in one
+/// clip has the order it has with the clip not there, wherever the clip
+/// lies over the content. That is what lets a layer's tiles, painted once,
+/// stand for the content at every scroll offset.
+#[test]
+fn content_is_ordered_as_with_its_clip_not_there() {
+    let mut rng = StdRng::seed_from_u64(0x00c1_1bed);
+    let (mut kept, mut shadows, mut raised) = (0, 0, 0);
+    for run in 0..400 {
+        let primitives = random_content(&mut rng);
+        let whole = unclipped(&primitives);
+        let expected = orders(&scene_of(&whole), &whole);
+        assert!(expected.iter().all(Option::is_some));
+        let scene = scene_of(&primitives);
+        let orders = orders(&scene, &primitives);
+        let upstream = upstream_orders(&primitives);
+        for (index, order) in orders.iter().enumerate() {
+            let Some(order) = order else {
+                continue;
+            };
+            assert_eq!(
+                Some(*order),
+                expected[index],
+                "run {run}, primitive {index} of {}",
+                primitives.len()
+            );
+            kept += 1;
+            raised += (upstream[index].is_some_and(|before| before < *order)) as usize;
+        }
+        shadows += scene.fast_edge_shadows.len();
+    }
+    assert!(kept >= 5000, "{kept} primitives were kept");
+    assert!(shadows >= 300, "{shadows} shadows were kept for their blur");
+    assert!(raised >= 300, "{raised} primitives were raised");
 }
 
 /// A kept shadow is a paint operation: a scene replayed from another's
@@ -597,4 +705,120 @@ fn a_viewport_stacks_a_kept_shadow_as_a_tile_does() {
             direct.fast_edge_shadows.len()
         );
     }
+}
+
+/// Rows with backgrounds of their own, each holding a card under a shadow
+/// that reaches over the row above, in the clip `mask`.
+fn shadowed_rows(mask: Bounds<ScaledPixels>) -> Vec<Vec<Primitive>> {
+    (0..8)
+        .map(|row| {
+            let top = 74. * row as f32;
+            vec![
+                quad(sp(0., top, 256., 74.), mask),
+                shadow(sp(12., top + 10., 232., 54.), mask, 16.),
+                quad(sp(12., top + 10., 232., 54.), mask),
+            ]
+        })
+        .collect()
+}
+
+/// A tile draws its primitives at the orders the content gave them as a
+/// whole. The shadow of the first row a tile does not hold reaches into it:
+/// among the primitives over that tile alone, nothing lies under the
+/// shadow's box, which would put it level with the row above and under it.
+#[test]
+fn a_tile_draws_its_primitives_at_the_orders_of_the_content() {
+    let painted = sp(0., -512., 256., 2048.);
+    let rows = shadowed_rows(painted);
+    // The fourth row begins at 222, 34 px above the first tile's bottom
+    // edge; moved down by 40, it begins below it.
+    let moved: Vec<Primitive> = rows
+        .iter()
+        .flatten()
+        .map(|primitive| {
+            crate::fast::layers::scene::translate_primitive(
+                primitive,
+                point(ScaledPixels(0.), ScaledPixels(40.)),
+            )
+        })
+        .collect();
+    let content = scene_of(&moved);
+    let in_content = orders(&content, &moved);
+    let frame = |content: LayerContent| LayerFrame {
+        key: LayerKey(1),
+        generation: 1,
+        background: paint_color(Hsla::white()),
+        tile_size: 256,
+        content,
+        dirty_tiles: Vec::new(),
+    };
+    let tile = frame(LayerContent::from(content)).tile_scene(TileCoord { x: 0, y: 0 });
+    // The shadow of the fourth row's card, whose box begins at 272.
+    let reaching = tile
+        .shadows
+        .iter()
+        .find(|shadow| shadow.bounds.origin.y == ScaledPixels(272.))
+        .expect("the tile draws the blur reaching into it");
+    assert_eq!(Some(reaching.order), in_content[10]);
+    // Over the third row's background, which it falls on.
+    let above = tile
+        .quads
+        .iter()
+        .find(|quad| quad.bounds == sp(0., 188., 256., 74.))
+        .unwrap();
+    assert!(reaching.order > above.order);
+    for primitive in tile.shadows.iter().map(|shadow| Primitive::Shadow(*shadow)) {
+        let index = moved
+            .iter()
+            .position(|other| other.bounds() == primitive.bounds())
+            .unwrap();
+        assert_eq!(Some(order_of(&primitive)), in_content[index]);
+    }
+
+    // A list's content is a scene a row: the rows are ordered as painted
+    // one after another.
+    let parts = rows
+        .iter()
+        .map(|row| crate::fast::layers::scene::LayerPart {
+            bounds: None,
+            scene: std::rc::Rc::new(scene_of(row)),
+        });
+    let whole: Vec<Primitive> = rows.iter().flatten().cloned().collect();
+    let in_whole = orders(&scene_of(&whole), &whole);
+    let listed = frame(LayerContent::from_parts(parts));
+    for coordinate in [TileCoord { x: 0, y: 0 }, TileCoord { x: 0, y: 1 }] {
+        let tile = listed.tile_scene(coordinate);
+        let origin = listed.tile_bounds(coordinate).origin;
+        assert!(!tile.shadows.is_empty());
+        for shadow in &tile.shadows {
+            let index = whole
+                .iter()
+                .position(|other| {
+                    matches!(other, Primitive::Shadow(_))
+                        && other.bounds().origin.y == shadow.bounds.origin.y + origin.y
+                })
+                .unwrap();
+            assert_eq!(Some(shadow.order), in_whole[index], "{coordinate:?}");
+        }
+    }
+}
+
+/// A table of clipped cells whose content runs past each: every cell's
+/// mask has entries of its own, a short list each, and what was painted
+/// behind a mask's edge is worked out for the first of them only.
+#[test]
+fn a_thousand_clips_cost_a_thousand_short_lists() {
+    let mut scene = Scene::default();
+    scene.insert_primitive(quad(window(), window()));
+    for cell in 0..2000 {
+        let (left, top) = ((cell % 40) as f32 * 10., (cell / 40) as f32 * 6.);
+        let mask = sp(left, top, 9., 5.);
+        // One primitive the cell cuts, and two it drops.
+        scene.insert_primitive(quad(sp(left, top, 14., 5.), mask));
+        scene.insert_primitive(quad(sp(left + 12., top, 6., 5.), mask));
+        scene.insert_primitive(quad(sp(left + 20., top, 6., 5.), mask));
+    }
+    assert_eq!(scene.quads.len(), 2001);
+    // Every cut quad lies over the window's background and nothing else.
+    assert!(scene.quads[1..].iter().all(|quad| quad.order == 2));
 }

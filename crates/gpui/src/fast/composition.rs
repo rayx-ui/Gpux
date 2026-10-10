@@ -344,7 +344,7 @@ fn split_top_layers(
                     | PaintOperation::StartPositionedLayer(_)
                     | PaintOperation::StartTopLayer(_) => depth += 1,
                     PaintOperation::EndLayer => depth -= 1,
-                    PaintOperation::Primitive(_) => {}
+                    PaintOperation::Primitive(_) | PaintOperation::FastDropped(_) => {}
                 }
                 end += 1;
                 if depth == 0 {
@@ -604,7 +604,7 @@ impl Scene {
                         "source scene closes a layer that is not open"
                     );
                 }
-                PaintOperation::Primitive(_) => {}
+                PaintOperation::Primitive(_) | PaintOperation::FastDropped(_) => {}
             }
         }
         crate::fast::layers::paint::replay_layers(self, range, previous_scene);
@@ -615,6 +615,9 @@ impl Scene {
         for operation in operations {
             match operation {
                 PaintOperation::Primitive(primitive) => self.insert_primitive(primitive.clone()),
+                PaintOperation::FastDropped(dropped) => {
+                    crate::fast::edge_shadows::dropped(self, *dropped)
+                }
                 PaintOperation::StartLayer(_)
                 | PaintOperation::StartPositionedLayer(_)
                 | PaintOperation::StartTopLayer(_) => {
@@ -642,7 +645,9 @@ impl Scene {
             PaintOperation::StartLayer(bounds) => self.push_layer(*bounds),
             PaintOperation::StartPositionedLayer(bounds) => self.push_positioned_layer(*bounds),
             PaintOperation::StartTopLayer(bounds) => self.push_top_layer(*bounds),
-            PaintOperation::EndLayer | PaintOperation::Primitive(_) => {}
+            PaintOperation::EndLayer
+            | PaintOperation::Primitive(_)
+            | PaintOperation::FastDropped(_) => {}
         }
     }
 
