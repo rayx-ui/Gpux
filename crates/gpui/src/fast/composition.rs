@@ -539,6 +539,22 @@ impl crate::Background {
     }
 }
 
+impl crate::PreparedBackground {
+    /// [`crate::Background::is_opaque`] for a background prepared for the GPU,
+    /// as a scene's quads hold it: premultiplied, so a stop is opaque when its
+    /// alpha is one.
+    pub fn is_opaque(&self) -> bool {
+        match self.tag {
+            crate::color::BackgroundTag::Solid => self.solid.a >= 1.0,
+            crate::color::BackgroundTag::LinearGradient => {
+                self.stops.iter().all(|stop| stop.color[3] >= 1.0)
+            }
+            crate::color::BackgroundTag::PatternSlash
+            | crate::color::BackgroundTag::Checkerboard => false,
+        }
+    }
+}
+
 impl Scene {
     /// Returns whether the scene contains no drawable primitives.
     ///

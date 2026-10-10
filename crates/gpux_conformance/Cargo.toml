@@ -50,6 +50,10 @@ gpui_platform = { workspace = true, features = ["font-kit", "x11", "wayland"] }
 raw-window-handle.workspace = true
 tempfile.workspace = true
 
+[target.'cfg(any(target_os = "linux", target_os = "freebsd"))'.dev-dependencies]
+log.workspace = true
+x11rb = { version = "0.13.1", features = ["shape"] }
+
 [target.'cfg(target_os = "windows")'.dev-dependencies]
 windows = { workspace = true, features = ["Win32_UI_Input_KeyboardAndMouse"] }
 

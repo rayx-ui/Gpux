@@ -127,6 +127,7 @@ x11rb = { version = "0.13.1", features = [
     "resource_manager",
     "sync",
     "dri3",
+    "shape",
 ], optional = true }
 xim = { features = [
     "x11rb-xcb",

@@ -8,9 +8,9 @@ mod system_notifications;
 #[cfg(any(feature = "wayland", feature = "x11"))]
 mod text_system;
 #[cfg(feature = "wayland")]
-mod wayland;
+pub(crate) mod wayland;
 #[cfg(feature = "x11")]
-mod x11;
+pub(crate) mod x11;
 
 #[cfg(any(feature = "wayland", feature = "x11"))]
 mod xdg_desktop_portal;

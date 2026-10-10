@@ -2760,6 +2760,7 @@ dependencies = [
  "wasm_thread",
  "web-sys",
  "windows 0.62.2",
+ "x11rb",
 ]
 
 [[package]]

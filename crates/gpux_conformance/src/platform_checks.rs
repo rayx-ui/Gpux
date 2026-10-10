@@ -52,6 +52,34 @@ pub const PLATFORM_CHECKS: &[PlatformCheck] = &[
         id: "composition-macos-shadow",
         description: "with window composition on macOS, an OS screenshot shows a GPUI menu's shadow blended over a solid-colour native view (skipped without screen-capture permission)",
     },
+    PlatformCheck {
+        id: "composition-wayland-order",
+        description: "with window composition on Wayland, native surfaces are subsurfaces stacked in composition order below the overlay, nested after a reparent, and the compositor accepts every placement (skipped outside a Wayland session)",
+    },
+    PlatformCheck {
+        id: "composition-wayland-geometry",
+        description: "with window composition on Wayland, a native subsurface is positioned and sized at its element's bounds in logical pixels and follows it (skipped outside a Wayland session)",
+    },
+    PlatformCheck {
+        id: "composition-wayland-input",
+        description: "with window composition on Wayland, the overlay's input region is empty without content and is the open menu's rectangle, not its shadow (skipped outside a Wayland session)",
+    },
+    PlatformCheck {
+        id: "composition-x11-order-bounds",
+        description: "with window composition on X11, native surfaces are mapped child windows stacked in composition order at their elements' bounds in device pixels (skipped outside X11)",
+    },
+    PlatformCheck {
+        id: "composition-x11-cutouts",
+        description: "with window composition on X11, an open GPUI menu is cut out of the native window's bounding shape while its shadow is not (skipped outside X11)",
+    },
+    PlatformCheck {
+        id: "composition-x11-input",
+        description: "with window composition on X11, the server's hit testing finds the native window over its area and the GPUI window under an open menu (skipped outside X11)",
+    },
+    PlatformCheck {
+        id: "composition-x11-overlay",
+        description: "with window composition on X11 under a compositing manager, the GPUI content above native surfaces is drawn into an override-redirect overlay window whose input shape is that content (skipped without a compositing manager)",
+    },
 ];
 
 /// The platform check with this id.

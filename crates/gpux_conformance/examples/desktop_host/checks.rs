@@ -35,6 +35,13 @@ pub async fn run(id: &str, cx: &mut AsyncApp) -> ResultLine {
         "composition-macos-order-bounds" => crate::composition::order_bounds(cx).await,
         "composition-macos-input" => crate::composition::input(cx).await,
         "composition-macos-shadow" => crate::composition::shadow(cx).await,
+        "composition-wayland-order" => crate::composition_linux::wayland_order(cx).await,
+        "composition-wayland-geometry" => crate::composition_linux::wayland_geometry(cx).await,
+        "composition-wayland-input" => crate::composition_linux::wayland_input(cx).await,
+        "composition-x11-order-bounds" => crate::composition_linux::x11_order_bounds(cx).await,
+        "composition-x11-cutouts" => crate::composition_linux::x11_cutouts(cx).await,
+        "composition-x11-input" => crate::composition_linux::x11_input(cx).await,
+        "composition-x11-overlay" => crate::composition_linux::x11_overlay(cx).await,
         other => Err(anyhow!("unknown platform check `{other}`")),
     };
     match result {

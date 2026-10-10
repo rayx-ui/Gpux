@@ -13,6 +13,7 @@
 
 mod checks;
 mod composition;
+mod composition_linux;
 mod os;
 
 use gpux::{
