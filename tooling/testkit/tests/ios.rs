@@ -118,10 +118,14 @@ fn the_host_launches_with_its_console_and_selection() {
 }
 
 #[test]
-fn host_requests_bring_another_app_forward_and_reopen_the_host() {
+fn host_requests_bring_another_app_forward_and_the_host_back() {
     assert_eq!(
         ios::request("2026-10-07 gpux-conformance-host: background"),
         Some(Request::Background)
+    );
+    assert_eq!(
+        ios::request("gpux-conformance-host: foreground"),
+        Some(Request::Foreground)
     );
     assert_eq!(
         ios::request("gpux-conformance-host: done"),
@@ -137,16 +141,15 @@ fn host_requests_bring_another_app_forward_and_reopen_the_host() {
         [["simctl", "io", "UDID", "screenshot", "/tmp/shot.png"].map(String::from)]
     );
     assert_eq!(ios::request("gpux-conformance: PASS ios-startup"), None);
-    let commands: Vec<String> = ios::simctl_commands(&Request::Background, "UDID")
-        .iter()
-        .map(|command| command.join(" "))
-        .collect();
     assert_eq!(
-        commands,
-        [
-            "simctl launch UDID com.apple.Preferences",
-            "simctl openurl UDID gpux-conformance://foreground",
-        ]
+        ios::simctl_commands(&Request::Background, "UDID"),
+        [["simctl", "launch", "UDID", "com.apple.Preferences"].map(String::from)]
+    );
+    // A launch of the running host brings it to the front; opening a URL of its own makes a
+    // fresh Simulator ask for confirmation first.
+    assert_eq!(
+        ios::simctl_commands(&Request::Foreground, "UDID"),
+        [["simctl", "launch", "UDID", "dev.gpux.conformance"].map(String::from)]
     );
 }
 

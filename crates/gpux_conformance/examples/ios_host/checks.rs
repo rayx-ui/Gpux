@@ -371,6 +371,13 @@ async fn lifecycle(cx: &mut AsyncApp) -> ResultLine {
             .update(cx, |view, _, _| view.changes.clone())
             .unwrap_or_default()
     };
+    // The host asks to come back once the other app took the front. Brought back sooner, on a
+    // Simulator still launching that app, it would end up behind it for good.
+    let start = Instant::now();
+    while start.elapsed() < ACTION_TIMEOUT && !changes(cx).contains(&false) {
+        sleep(cx, Duration::from_millis(50)).await;
+    }
+    request("foreground");
     let start = Instant::now();
     while start.elapsed() < ACTION_TIMEOUT && !changes(cx).ends_with(&[false, true]) {
         sleep(cx, Duration::from_millis(50)).await;

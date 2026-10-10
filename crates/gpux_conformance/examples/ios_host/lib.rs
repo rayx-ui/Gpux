@@ -8,8 +8,8 @@
 //! `--grep <pattern>`). Checks that need the operating system ask the testkit for it in a
 //! `gpux-conformance-host:` request line:
 //!
-//! - `background`: another app comes to the front, then the host is reopened through its
-//!   `gpux-conformance:` URL scheme.
+//! - `background` and `foreground`: another app comes to the front, and the host is launched
+//!   again, which brings the running one back.
 //!
 //! Pixel steps read frames back through the window's wgpu renderer; where the Simulator offers
 //! no Metal device the window has no renderer, and pixel steps report themselves skipped. The

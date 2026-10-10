@@ -24,8 +24,6 @@ use std::{
 
 /// The app's bundle identifier (`tooling/ios/project.yml`).
 pub const BUNDLE_ID: &str = "dev.gpux.conformance";
-/// The URL scheme that brings the host back to the front (`tooling/ios/Info.plist`).
-pub const URL_SCHEME: &str = "gpux-conformance";
 /// The Rust target of the Simulator build.
 pub const SIMULATOR_TARGET: &str = "aarch64-apple-ios-sim";
 /// The Simulator lane F runs on, created on first use.
@@ -89,8 +87,10 @@ pub fn tally(output: &str, selection: &Selection) -> Tally {
 /// What the host asks the testkit for.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Request {
-    /// Another app comes to the front, then the host is reopened through its URL scheme.
+    /// Another app comes to the front.
     Background,
+    /// The host comes back to the front.
+    Foreground,
     /// A screenshot of the Simulator's screen is written to this path, which the host reads
     /// back (a Simulator app's files are files of the Mac).
     Screenshot(String),
@@ -102,6 +102,7 @@ pub enum Request {
 pub fn request(line: &str) -> Option<Request> {
     match line.split_once(HOST_MARKER)?.1.trim() {
         "background" => Some(Request::Background),
+        "foreground" => Some(Request::Foreground),
         "done" => Some(Request::Done),
         other => other
             .strip_prefix("screenshot ")
@@ -122,19 +123,16 @@ pub fn fatal(line: &str) -> Option<String> {
     }
 }
 
-/// The `simctl` invocations that carry out a request on `udid`, with the pause between them.
+/// The `simctl` invocations that carry out a request on `udid`.
+///
+/// Launching the running host only brings it to the front. Opening a URL of its own would too,
+/// but a Simulator that has not opened one before asks "Open in …?" and waits for a tap that
+/// never comes, with the host suspended behind the other app.
 pub fn simctl_commands(request: &Request, udid: &str) -> Vec<Vec<String>> {
     let words = |words: &[&str]| words.iter().map(|word| word.to_string()).collect();
     match request {
-        Request::Background => vec![
-            words(&["simctl", "launch", udid, OTHER_APP]),
-            words(&[
-                "simctl",
-                "openurl",
-                udid,
-                &format!("{URL_SCHEME}://foreground"),
-            ]),
-        ],
+        Request::Background => vec![words(&["simctl", "launch", udid, OTHER_APP])],
+        Request::Foreground => vec![words(&["simctl", "launch", udid, BUNDLE_ID])],
         Request::Screenshot(path) => vec![words(&["simctl", "io", udid, "screenshot", path])],
         Request::Done => Vec::new(),
     }
@@ -441,11 +439,7 @@ fn run_on_simulator(
         match request(line) {
             Some(Request::Done) => return false,
             Some(request) => {
-                for (step, args) in simctl_commands(&request, &udid).into_iter().enumerate() {
-                    if step > 0 {
-                        // Let the other app come to the front before reopening the host.
-                        std::thread::sleep(Duration::from_secs(2));
-                    }
+                for args in simctl_commands(&request, &udid) {
                     if let Err(error) = xcrun_run("simctl-request", args, runner) {
                         failures.push(format!("could not carry out {request:?}: {error}"));
                     }

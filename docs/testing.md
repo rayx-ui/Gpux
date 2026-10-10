@@ -333,8 +333,10 @@ its console. The host runs five platform checks and every lane-F scene:
 - `ios-text-metrics`: CoreText measures the bundled IBM Plex Sans as its font file declares
   (ascent, descent and advances at 16 px), and shapes a line to its advances within kerning;
 - `ios-touch-tap`: a touch injected into the window taps the element under it;
-- `ios-lifecycle`: the testkit brings Settings to the front and reopens the host through its
-  `gpux-conformance://` URL; the window deactivates, reactivates and draws again.
+- `ios-lifecycle`: the testkit brings Settings to the front and, once the host saw its window
+  deactivate, launches the host again, which brings the running one back; the window reactivates
+  and draws again. (Reopening it through a URL of its own makes a fresh Simulator ask
+  "Open in …?" and wait for a tap.)
 
 Pixel steps read frames back through the window's wgpu renderer. The Simulator on Apple silicon
 offers Metal (lane F ran 30 of 30 on an M5 with iOS 26.5, Xcode 26.4). A Simulator without a Metal

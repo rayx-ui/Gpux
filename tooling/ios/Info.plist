@@ -31,17 +31,5 @@
     <array>
         <string>UIInterfaceOrientationPortrait</string>
     </array>
-    <!-- `gpux-testkit ios run` brings the host back to the front through this scheme. -->
-    <key>CFBundleURLTypes</key>
-    <array>
-        <dict>
-            <key>CFBundleURLName</key>
-            <string>dev.gpux.conformance</string>
-            <key>CFBundleURLSchemes</key>
-            <array>
-                <string>gpux-conformance</string>
-            </array>
-        </dict>
-    </array>
 </dict>
 </plist>

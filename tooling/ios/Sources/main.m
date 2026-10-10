@@ -19,14 +19,6 @@
     return YES;
 }
 
-// `gpux-testkit ios run` reopens the host through its URL scheme after sending it to the
-// background; coming to the front is all the URL asks for.
-- (BOOL)application:(UIApplication *)application
-            openURL:(NSURL *)url
-            options:(NSDictionary<UIApplicationOpenURLOptionsKey, id> *)options {
-    return YES;
-}
-
 - (void)applicationWillEnterForeground:(UIApplication *)application {
     gpui_ios_will_enter_foreground(NULL);
 }
