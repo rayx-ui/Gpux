@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 66,
+  "revision": 69,
   "planRevision": 12,
   "specHashes": {
     "requirements": "9a032d1345bbc15ddac8a565144cc02934f65cee34ff9fbb7e0ef3453253fcf0",
@@ -118,31 +118,31 @@
       ]
     },
     "t19-retained-records": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "claude-240e1cb7"
       ]
     },
     "t20-reuse-paths": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "claude-240e1cb7"
       ]
     },
     "t21-view-invalidation": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "claude-240e1cb7"
       ]
     },
     "t22-verify-mode": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "claude-240e1cb7"
       ]
     },
     "t23-oracle-views": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "claude-240e1cb7"
       ]
@@ -290,14 +290,14 @@
       },
       "recordedAt": "2026-10-09T22:46:11Z"
     },
-    "2c5cd4d83963260dd1fb32ac75e4d1f630cd4e03dc88cd1af68739b630306fb9": {
+    "5175143e9eb3480dccf94fb1c205f1c52678a06f1a61d443ad3e04911c539482": {
       "snapshot": {
         "specHash": "9cf17136f245c3f50c88e11f4534517bb42b808da4724e9a86a692865724e051",
         "repositories": {
-          "gpux": "9ba6a84a0c943e547ef90307d3f757f6f9521179989e9d8ed5382302d23c51a9"
+          "gpux": "372f48c7709f55c2b9e42680efc0dc5dbd2cfcdfc7c2e21afc7a1b4cef017a0b"
         }
       },
-      "recordedAt": "2026-10-09T23:46:29Z"
+      "recordedAt": "2026-10-10T00:06:23Z"
     }
   },
   "checkResults": {
@@ -679,103 +679,103 @@
       "checkId": "check-attribution",
       "boundaryId": "s05-view-retention",
       "phase": "final",
-      "batchId": "2c5cd4d83963260dd1fb32ac75e4d1f630cd4e03dc88cd1af68739b630306fb9",
+      "batchId": "5175143e9eb3480dccf94fb1c205f1c52678a06f1a61d443ad3e04911c539482",
       "definitionHash": "b82e7feef64210ed76175fef9ab5b0339af24962e55e46b6ea32da027de45969",
-      "basisHash": "8b2483720ccba287e95bf7b6cd5e31498c1b4cf6adfcd0451992f6fa78d9ec5d",
+      "basisHash": "38b15709f8e8de49ad4b59079bf9939a1aeb585cda67aba257ef43349f552a6d",
       "status": "passed",
       "exitCode": 0,
       "testCount": 19,
-      "durationSeconds": 26.3129,
-      "recordedAt": "2026-10-09T23:46:20Z",
+      "durationSeconds": 24.9262,
+      "recordedAt": "2026-10-10T00:05:57Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s05-view-retention-final-2287d14b4433.log",
-      "logSha256": "c7fce182c1704c109f90ad522f662afc944e3f7bd03c2c3d20eb1bcaa2151ef6",
-      "inputsHash": "7f0feb1f21084fd4bb3bed2da13a371060a307a997a9e62e97f5ac6df8bc3480"
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s05-view-retention-final-206ea31b1efb.log",
+      "logSha256": "9c9581bf08948cc305de8a023051dbdc383e9631b368fa2fa4d312195ccd0765",
+      "inputsHash": "430cf4dbc4aaacdd1c74623a8227cfe13a5e9edcc4292974403377933b554b66"
     },
     "s05-view-retention/check-retained-records/final": {
       "checkId": "check-retained-records",
       "boundaryId": "s05-view-retention",
       "phase": "final",
-      "batchId": "2c5cd4d83963260dd1fb32ac75e4d1f630cd4e03dc88cd1af68739b630306fb9",
+      "batchId": "5175143e9eb3480dccf94fb1c205f1c52678a06f1a61d443ad3e04911c539482",
       "definitionHash": "ef66e885585e34e28bb9f0d3dc07ff6dee714fa5c7e990d72e3c422082f67c19",
-      "basisHash": "bf4acf949abf9a93e11dccced46c2f98c6f657b5fe4b76b3e4230039cf76e040",
+      "basisHash": "3c44419586cf35438903f33d1d86008ce3c281cf9199b81dc69fc6525bf05d6e",
       "status": "passed",
       "exitCode": 0,
-      "testCount": 15,
-      "durationSeconds": 0.2505,
-      "recordedAt": "2026-10-09T23:46:20Z",
+      "testCount": 16,
+      "durationSeconds": 0.4899,
+      "recordedAt": "2026-10-10T00:05:58Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s05-view-retention-final-c3ad87d13bdd.log",
-      "logSha256": "a2ca159e83829ffd474299c906f038bad14b02396297df551de993640c4a3c33",
-      "inputsHash": "7f0feb1f21084fd4bb3bed2da13a371060a307a997a9e62e97f5ac6df8bc3480"
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s05-view-retention-final-840c3284eaba.log",
+      "logSha256": "fabc2dd7566a5fd73fac41588d371f8b01739b2ff1b89c5154e9f6b081b789e0",
+      "inputsHash": "430cf4dbc4aaacdd1c74623a8227cfe13a5e9edcc4292974403377933b554b66"
     },
     "s05-view-retention/check-reuse-paths/final": {
       "checkId": "check-reuse-paths",
       "boundaryId": "s05-view-retention",
       "phase": "final",
-      "batchId": "2c5cd4d83963260dd1fb32ac75e4d1f630cd4e03dc88cd1af68739b630306fb9",
+      "batchId": "5175143e9eb3480dccf94fb1c205f1c52678a06f1a61d443ad3e04911c539482",
       "definitionHash": "9ded5536fc4456af6eb17e02393914d31504bc1dad14cd9c93d86d07feb51832",
-      "basisHash": "b2e4129776dfa66d5f01f1bb57a7e3c61ac2489166a958bc666f4d7be5e1fdb9",
+      "basisHash": "ec41a19cc55475127ed600368af44d4c4d6143e24bad6d446727fcde9f765914",
       "status": "passed",
       "exitCode": 0,
       "testCount": 8,
-      "durationSeconds": 0.2469,
-      "recordedAt": "2026-10-09T23:46:20Z",
+      "durationSeconds": 0.2646,
+      "recordedAt": "2026-10-10T00:05:58Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s05-view-retention-final-418b7ecdc60a.log",
-      "logSha256": "56bcce2be73c709b5f976c0e7b1872c2fd0f02d1916b481c51db1afddc77ca3d",
-      "inputsHash": "7f0feb1f21084fd4bb3bed2da13a371060a307a997a9e62e97f5ac6df8bc3480"
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s05-view-retention-final-df54ea2b2d12.log",
+      "logSha256": "b12e2dc6913c20cd49c788fb772879c59a9be7ac6b86aedc2e24fa835424f84b",
+      "inputsHash": "430cf4dbc4aaacdd1c74623a8227cfe13a5e9edcc4292974403377933b554b66"
     },
     "s05-view-retention/check-view-invalidation/final": {
       "checkId": "check-view-invalidation",
       "boundaryId": "s05-view-retention",
       "phase": "final",
-      "batchId": "2c5cd4d83963260dd1fb32ac75e4d1f630cd4e03dc88cd1af68739b630306fb9",
+      "batchId": "5175143e9eb3480dccf94fb1c205f1c52678a06f1a61d443ad3e04911c539482",
       "definitionHash": "b6686c15f3976c1ff14d5696141a53533a75da3c57ddc16c9ed52a324caa65af",
-      "basisHash": "dfabe140bdefd4c1c8c94f74bed007863066cf744e1d44745450d4040915fd12",
+      "basisHash": "29c13b7d228b71eb266315066c254b949f2664787f5b7ba5fb1a47f235a9b7f7",
       "status": "passed",
       "exitCode": 0,
       "testCount": 17,
-      "durationSeconds": 0.2517,
-      "recordedAt": "2026-10-09T23:46:20Z",
+      "durationSeconds": 0.2573,
+      "recordedAt": "2026-10-10T00:05:58Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s05-view-retention-final-ec06f390933a.log",
-      "logSha256": "30d9b0965b31299b5bf9956e5373c0f22b2339f347bf7e77c9ca749bd57ee1e7",
-      "inputsHash": "7f0feb1f21084fd4bb3bed2da13a371060a307a997a9e62e97f5ac6df8bc3480"
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s05-view-retention-final-893b9f272acc.log",
+      "logSha256": "e10b3071a5680b549789dd97e0bf01db50583b8214c075f0cbe1e749b3b8b719",
+      "inputsHash": "430cf4dbc4aaacdd1c74623a8227cfe13a5e9edcc4292974403377933b554b66"
     },
     "s05-view-retention/check-verify-mode/final": {
       "checkId": "check-verify-mode",
       "boundaryId": "s05-view-retention",
       "phase": "final",
-      "batchId": "2c5cd4d83963260dd1fb32ac75e4d1f630cd4e03dc88cd1af68739b630306fb9",
+      "batchId": "5175143e9eb3480dccf94fb1c205f1c52678a06f1a61d443ad3e04911c539482",
       "definitionHash": "67c65c83e35c42fd53f21c8604ece45c0f68558a99f7b40d8f4e9b6f67bc78a6",
-      "basisHash": "70780dc2be3551d49d7c787208fb3fa9f558289cc9086a200fa71333807c78e6",
+      "basisHash": "2ae715c61aedc6dfa6e2832f5bc87a25e21efc2e126acf6350b50c1ec8c8d6b2",
       "status": "passed",
       "exitCode": 0,
       "testCount": 2,
-      "durationSeconds": 0.2465,
-      "recordedAt": "2026-10-09T23:46:21Z",
+      "durationSeconds": 15.9301,
+      "recordedAt": "2026-10-10T00:06:14Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s05-view-retention-final-1ac5d1331d5e.log",
-      "logSha256": "c63ca7a9a394bef7bedc93e63fbc7f95dd8aabafe2b2d8ea9ee530293492f940",
-      "inputsHash": "7f0feb1f21084fd4bb3bed2da13a371060a307a997a9e62e97f5ac6df8bc3480"
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s05-view-retention-final-1021b0ad77a0.log",
+      "logSha256": "95adb4dc37a7b4da86a84d7a84615d7d43de7dbcc3af3a6f33adbf746993894e",
+      "inputsHash": "430cf4dbc4aaacdd1c74623a8227cfe13a5e9edcc4292974403377933b554b66"
     },
     "s05-view-retention/check-oracle-views/final": {
       "checkId": "check-oracle-views",
       "boundaryId": "s05-view-retention",
       "phase": "final",
-      "batchId": "2c5cd4d83963260dd1fb32ac75e4d1f630cd4e03dc88cd1af68739b630306fb9",
+      "batchId": "5175143e9eb3480dccf94fb1c205f1c52678a06f1a61d443ad3e04911c539482",
       "definitionHash": "f9a918b5deddffa905e9e237a0db748afd6ff27c3638cbfa326a7c0c7c3135e1",
-      "basisHash": "8670af4896a53340b5b02b854bd0e8742005d4969c50017caf8aa58194ad0243",
+      "basisHash": "f541ec79b08f031228065872c64ffabd28fe5450a71d717477bc5efa4a0d1581",
       "status": "passed",
       "exitCode": 0,
       "testCount": 2,
-      "durationSeconds": 8.5015,
-      "recordedAt": "2026-10-09T23:46:29Z",
+      "durationSeconds": 9.037,
+      "recordedAt": "2026-10-10T00:06:23Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s05-view-retention-final-d4853536a30b.log",
-      "logSha256": "68844542252570bfbe48a8e7adb971e16373a116bf04b84ab64f99d748ee3147",
-      "inputsHash": "7f0feb1f21084fd4bb3bed2da13a371060a307a997a9e62e97f5ac6df8bc3480"
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s05-view-retention-final-e975d3088866.log",
+      "logSha256": "8d8408dc698a36038910ee1b49d2e05b83f32d39e0231cb3d89ec7ab62b2924b",
+      "inputsHash": "430cf4dbc4aaacdd1c74623a8227cfe13a5e9edcc4292974403377933b554b66"
     }
   },
   "reviews": {
@@ -1747,6 +1747,190 @@
         "s04-published-hover-untracked"
       ],
       "recordedAt": "2026-10-09T22:46:52Z"
+    },
+    "s05-view-retention": {
+      "reviewerId": "claude-reviewer-s05-7f3c91a2",
+      "snapshotId": "5175143e9eb3480dccf94fb1c205f1c52678a06f1a61d443ad3e04911c539482",
+      "criterionIds": [
+        "PERF-2",
+        "VIEW-1",
+        "VIEW-2",
+        "VIEW-3",
+        "VIEW-4",
+        "VIEW-5",
+        "VIEW-6",
+        "VIEW-7",
+        "VIEW-8"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/retained.rs",
+          "kind": "source",
+          "criterionIds": [
+            "VIEW-1",
+            "VIEW-2",
+            "VIEW-3",
+            "VIEW-4",
+            "VIEW-5",
+            "VIEW-7",
+            "VIEW-8"
+          ],
+          "sha256": "11854d860ce991857609d0726824e70327fdd86642c7da3862989bac94218b7e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/view.rs",
+          "kind": "source",
+          "criterionIds": [
+            "VIEW-1",
+            "VIEW-3"
+          ],
+          "sha256": "d89f312d1e941b0436231b8785b2ee0441d2194f97ccb26bf3ead10b0e43ae11"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "VIEW-1",
+            "VIEW-4",
+            "VIEW-6"
+          ],
+          "sha256": "3306e534a74fc6508c2d840775dbd2f1ff509c4cfd17879f974afb8617233a13"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layout.rs",
+          "kind": "source",
+          "criterionIds": [
+            "VIEW-1",
+            "VIEW-3"
+          ],
+          "sha256": "859ce7001582bea06ef3e1c96a95f32b1f4aa517d92d710938c8fd40542625a6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layout_key.rs",
+          "kind": "source",
+          "criterionIds": [
+            "VIEW-3"
+          ],
+          "sha256": "754d9c1e140ce62b4f88088036981122e89eb8571d06bcc85a0a10a9b76aefe5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/dependencies.rs",
+          "kind": "source",
+          "criterionIds": [
+            "VIEW-2",
+            "VIEW-8"
+          ],
+          "sha256": "455a094367e90f64a4c996f2fbdda72219b3d0192a8eca8ae437cc07c8e17f2c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/list.rs",
+          "kind": "source",
+          "criterionIds": [
+            "VIEW-2"
+          ],
+          "sha256": "aaef09eebcbea755ec11518b27b3e040e7e9223f898ff1d49cb47e9d87ed4e79"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/stats.rs",
+          "kind": "source",
+          "criterionIds": [
+            "VIEW-5",
+            "PERF-2"
+          ],
+          "sha256": "3fb70982b4e76441a7d6a852326817115d62517972f68b41d1f135bd95a6a0cc"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/verify.rs",
+          "kind": "source",
+          "criterionIds": [
+            "VIEW-6",
+            "VIEW-7"
+          ],
+          "sha256": "7f23823c812c5dec9734c4dd8db72a76b795d0363f85c9359341215778f5e4db"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/scenarios/panels.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-2"
+          ],
+          "sha256": "fe69212041eb683b04bc0a22b8fdb12292c59406de72204c9f5213ce298e80e4"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/retained_records.rs",
+          "kind": "test",
+          "criterionIds": [
+            "VIEW-4"
+          ],
+          "sha256": "19376c5504689fee26fc6e4407303608fc28e30902755b24b95512c3b5922243"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/reuse_paths.rs",
+          "kind": "test",
+          "criterionIds": [
+            "VIEW-1",
+            "VIEW-3"
+          ],
+          "sha256": "5301ba34223ba6f0975e0f49fd0c25113b4e017579439a727360e56f403150ad"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/view_invalidation.rs",
+          "kind": "test",
+          "criterionIds": [
+            "VIEW-2",
+            "VIEW-5",
+            "VIEW-8"
+          ],
+          "sha256": "fcc12a977956e4a63eec9aa78973ba46459ffebb442251546da07d46a8cbad90"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/verify_mode.rs",
+          "kind": "test",
+          "criterionIds": [
+            "VIEW-6"
+          ],
+          "sha256": "6e901d51e989d9e3e524bacd7a9bd096857bbe9e6358fc06c0044c56a855bab1"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/oracle_views.rs",
+          "kind": "test",
+          "criterionIds": [
+            "VIEW-7",
+            "VIEW-8"
+          ],
+          "sha256": "146f45a5d02519ab81935505b8edceec2dc1993a19ff9d2c140afb8b81e1f789"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/fast_mode_attribution.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PERF-2"
+          ],
+          "sha256": "3b1ffe974626d83628082dfff6181fd5bc5ffa5c093b0ffdbd5babedaa401541"
+        }
+      ],
+      "summaryMarkdown": "I verified the repair `40b4daf` against source. The six sprint checks passed again; I reused that evidence. I also reused my earlier views oracle run (1,000 seeds, at `ff77191`) and the coordinator's 100-seed run after the repair.\n\nThe one finding is resolved. Deferred draws copied with a reused view are credited to the rebuilt views around it, as when they were built. An unchanged window after an interaction renders no view again (VIEW-1).\n\nEverything the first review found sound still holds:\n- the selection paths and the record copying and shifting;\n- the write stamp at the reuse decision;\n- the tombstones and the sticky handling;\n- the bypass counters;\n- gpux's declared silent-update rule;\n- verify-mode isolation.",
+      "findingIds": [
+        "s05-replayed-deferred-loses-enclosing"
+      ],
+      "recordedAt": "2026-10-10T00:07:59Z"
     }
   },
   "checkpoints": {
@@ -2195,6 +2379,39 @@
           "repositoryId": "gpux",
           "path": "crates/gpui/src/elements/div.rs",
           "symbol": "Interactivity::hovered"
+        }
+      ]
+    },
+    {
+      "id": "s05-replayed-deferred-loses-enclosing",
+      "boundaryId": "s05-view-retention",
+      "criterionIds": [
+        "VIEW-1",
+        "VIEW-4"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved (40b4daf).**\n- **The copy.** `Window::reuse_prepaint` gives each copied deferred draw `fast_enclosing = enclosing_retained(self)`, the records open at the copy: the rebuilt views around the reused one.\n- **The replay.** `prepaint_deferred_draws` wraps both the built and the replayed branch in `begin_deferred`/`finish_deferred`, so a replayed deferred draw's hitbox range is credited to those records' `deferred_hitboxes`. The ancestors' hover area therefore stays `Own` and they are reused again.\n- **Nesting.** `RetainedState.deferred_enclosing`, set by `begin_deferred` and cleared by `finish_deferred`, makes draws deferred or copied from inside a deferred draw belong to the same records.\n- **The reused record itself.** It keeps the hover area it was built with, which already covers its deferred hitboxes.\n\n`retained_records::a_copied_deferred_draw_stays_a_part_of_the_views_around_it` encodes the reviewer's `Root > Outer > Inner` popover scenario: 0 views built at first, 2 on the interaction frame, 0 on every still frame after. Per the coordinator, it fails with the copy fix reverted.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "symbol": "Window::reuse_prepaint"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "symbol": "Window::prepaint_deferred_draws"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/retained.rs",
+          "symbol": "enclosing_retained"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/retained_records.rs",
+          "symbol": "a_copied_deferred_draw_stays_a_part_of_the_views_around_it"
         }
       ]
     }
