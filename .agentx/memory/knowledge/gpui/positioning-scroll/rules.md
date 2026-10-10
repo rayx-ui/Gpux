@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/gpui/positioning-scroll
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-06T03:20:00+02:00
+  updated: 2026-10-10T19:30:00+02:00
   topics:
     - fixed-positioning
     - sticky-positioning
@@ -34,3 +34,7 @@ agentx:
 - Use `ScrollHandle::ptr_eq` to tell idempotent reattachment from a real owner change; never infer identity from offsets, bounds, or copied metrics.
 - Bracket real thumb gestures with `begin_scrollbar_drag`/`end_scrollbar_drag`; intermediate offsets must not settle the owner before release.
 - Publish concrete thumb offsets in the pointer-input turn and invalidate the owner and unique dependents once; do not reintroduce a queued preview followed by a deferred acknowledgment frame.
+- Move a tracked scroll offset only through `ScrollHandle::publish_offset_inner`, and a handle-less div's through its wheel listener with `fast::layers::invalidate::note_scrolled`: scroll layers tell a scroll from a change of what the owner renders by the publishes they note, and a notification sent for a scroll on any other path paints the layer again.
+- Give every `ScrollHandle` getter that reads the offset, metrics or item positions `note_offset_read`, and every getter of tracked bounds `fast::layers::input::moved`: a retained owner must be built again when what it read moves, and bounds read on a composited frame must be where the content shows.
+- Read a scroll offset or its metrics in `render` only when the view's own elements depend on them; draw what merely follows the scroll (a scrollbar, an indicator) from prepaint or paint, or the owner's scroll layer is painted again on every scrolled frame.
+- Publish a scroll without updating the view that owns the container: from a scrollbar entity of its own or a listener that leases nothing. gpux counts an entity updated without a notification as changed, so a scroll published from a `cx.listener` of the owner repaints its scroll layer on every step.

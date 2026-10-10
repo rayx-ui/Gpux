@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 16,
+  "revision": 18,
   "title": "gpux fast mode: retained layout and views, splice, scroll layers and window composition from gpui-fast",
   "validationMode": "sprint",
   "repositories": [
@@ -172,7 +172,8 @@
       "repositoryId": "gpux",
       "kind": "test",
       "criterionIds": [
-        "OR-3"
+        "OR-3",
+        "PERF-7"
       ],
       "descriptionMarkdown": "New group `crates/gpux_conformance/tests/lane_a_fast_parity.rs`: every lane-A catalog scene with fast mode all on and all off, with equal captures.",
       "argv": [
@@ -208,7 +209,8 @@
       "repositoryId": "gpux",
       "kind": "test",
       "criterionIds": [
-        "OR-4"
+        "OR-4",
+        "PERF-7"
       ],
       "descriptionMarkdown": "New group `crates/gpux_conformance/tests/lane_c_fast_parity.rs`: every lane-C scene rendered on the host's lane-C renderer with fast mode all on and all off, with byte-identical pixels.",
       "argv": [
@@ -286,7 +288,8 @@
       "repositoryId": "gpux",
       "kind": "test",
       "criterionIds": [
-        "PERF-2"
+        "PERF-2",
+        "PERF-7"
       ],
       "descriptionMarkdown": "New group `crates/gpui/tests/fast_mode_attribution.rs`: exact counter shapes per scenario and mode. Modes not yet implemented assert that they equal `off`. Later sprints amend the expectations as each mechanism lands; that is the same group, not a new suite.",
       "argv": [
@@ -3474,9 +3477,10 @@
         {
           "id": "t38-oracle-layers",
           "title": "Layers oracle",
-          "descriptionMarkdown": "Port `fast/layers/verify.rs` expansion into `fast::verify`, and the layers oracle. Write `fast/tests/oracle_layers.rs`. Update the attribution expectations for `layers` (div scenarios).",
+          "descriptionMarkdown": "Port `fast/layers/verify.rs` expansion into `fast::verify`, and the layers oracle. Write `fast/tests/oracle_layers.rs`. Update the attribution expectations for `layers` (div scenarios). Keep both fast-mode parity groups green with layers on: lane A through the expanded frame description, lane C through the renderer capability.",
           "criterionIds": [
-            "LYR-4"
+            "LYR-4",
+            "PERF-7"
           ],
           "designIds": [
             "d-layers-core",
@@ -3487,7 +3491,9 @@
           ],
           "checkIds": [
             "check-oracle-layers",
-            "check-attribution"
+            "check-attribution",
+            "check-parity-a",
+            "check-parity-c"
           ],
           "supportingCriterionIds": [
             "PERF-2"

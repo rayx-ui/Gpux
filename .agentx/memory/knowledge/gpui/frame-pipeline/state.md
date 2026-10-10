@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/gpui/frame-pipeline
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-10T20:00:00+02:00
+  updated: 2026-10-10T19:30:00+02:00
   topics:
     - window
     - frame
@@ -62,6 +62,8 @@ DevKit inspection: `Window::devtools_frame_snapshot()` is a read-only surface po
 Under `diagnostics`, `gpui_wgpu` keeps a bounded latest-frame telemetry snapshot (primitive-family sizes, batches, buffer/atlas writes, bind groups, passes, restarts, submissions, sprite disorder, bounds-tree work, element-id depth, Taffy tree shape, style phases, text-cache tiers) that `gpui_web` publishes as numeric-only `__gpuxWgpuFrameDiagnostics` (and `__rayxWgpuFrameDiagnostics` under the `rayx_diagnostics` alias) for browser proof. Completed probes (deferred-intersection prune, element-state finish) were retired once their decision landed.
 
 Fast mode (`crates/gpui/src/fast/`, adapted from gpui-fast) holds a per-window `FastMode` (`Window::fast_mode`/`set_fast_mode`, environment `GPUX_FAST_MODE`, `GPUX_LAYOUT_RETENTION`, `GPUX_VIEW_RETENTION`, `GPUX_SCROLL_LAYERS`), every compiled default off until its mechanism is proven. Measurement-only `FastStats` (work counters in every mode, mechanism counters zero when off) and the frame description `Window::describe_rendered_frame` exist only under `test-support`/`bench-support`/`diagnostics` and `test-support`; the randomized oracle in `fast::tests` compares an incremental window with a from-scratch one after every step, with draw-on-flush off (`TestAppContext::set_draw_on_flush`).
+
+Scroll layers core (`fast/layers/`, see `gpui/positioning-scroll` for the scroll side): `Scene::layers` holds the `LayerFrame`s a frame composites (key, generation, baked background, content, dirty tiles); tile sprites are polychrome sprites with texture ids from `LAYER_TILE_TEXTURE_BASE`, inserted inside the viewport's layer, and `Scene::replay` copies the frames with them. A layer's content is painted into its own scene with the painted region as content mask and both mask stacks pushed, then translated into content space (every position and each primitive's transformation, `t + (I - R)·delta`); tile hashes take each primitive in tile space, transformation included. Paths nothing draws over are lifted and drawn over the tiles; content drawing over a path demotes the layer. Views inside a layer keep no retained record (the layer is their retention) and are laid out from kept layouts on composited frames (`ViewLayout::Kept`). Content painted onto another composition surface records its switches and is drawn into the frame with them; `paints_over_native_content` answers for the container's surface and band while a layer's scene is swapped in. The randomized layers oracle (`fast::tests::oracle_layers`) compares against a window with every mechanism off and layer snapping forced (`Window::force_layer_snapping`), runs each seed with the real policy and with layers kept (`WindowLayers::never_demote`), since the policy demotes under its constant content changes, draws the reference's pending frame before an input event exactly when the layered window drew one, and gives content masks to 1/1024 px (`layers::verify::settle_masks`). `describe_rendered_frame` describes a layered frame through `layers::paint::expanded_scene` and rounds nothing.
 
 ## Backlinks
 
