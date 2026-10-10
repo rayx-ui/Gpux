@@ -120,9 +120,9 @@ later step.
 A window runs scroll layers only where its renderer rasterizes their tiles
 (`PlatformWindow::rasterizes_layer_tiles`); in any other window the switch normalizes to off.
 
-> No renderer rasterizes tiles yet: that lands after this core. Until then only a test window
-> without a renderer runs scroll layers, and `GPUX_SCROLL_LAYERS=1` or `GPUX_FAST_MODE=1` leave
-> them off everywhere else.
+The wgpu renderer rasterizes tiles on Linux and Windows and the Metal renderer on macOS (see
+[Tiles in the renderers](#tiles-in-the-renderers)). The browser, Android and iOS follow; until
+then `GPUX_SCROLL_LAYERS=1` or `GPUX_FAST_MODE=1` leave scroll layers off there.
 
 While no window of a thread has the switch on, a scroll container does none of the layers'
 bookkeeping.
@@ -175,7 +175,10 @@ Two things differ in time, not in what a frame shows:
 A container goes without a layer, counted by reason in `FastStats::layer_bypasses`, when:
 
 - `inactive`: the frame is drawn from scratch, during a drag, with accessibility active, or
-  while the inspector picks;
+  while the inspector picks. A frame drawn from scratch (`Window::refresh`, as after the
+  renderer lost its sprite atlas, whose tiles the kept content would still name) also leaves no
+  layer content painted before it: the container is painted into its layer again the next time
+  it scrolls;
 - `not-promoted`: it has not scrolled on two frames in a row;
 - `demoted`: its content changed on 8 of the last 16 frames, painting it again cost more than
   the frames it composited saved, it draws over a path (paths are never rasterized into tiles),
@@ -203,6 +206,64 @@ oracle (`fast::tests::oracle_layers`), which expands each layer's tiles into its
 compares the two scenes exactly but for content masks, given to 1/1024 of a device pixel: a
 mask is scaled from logical pixels, and one a layer moved into content space and back can
 differ in its last bits. Pixel equality is the renderers' tests' to show.
+
+### Tiles in the renderers
+
+A frame that composites a layer carries the layer's content (`Scene::layers`) and one
+polychrome sprite per visible tile, whose texture id lies in a range no atlas allocates. The
+wgpu renderer (`gpui_wgpu`'s `fast::layers`) and the Metal renderer (`gpui_apple`'s) each keep
+a tile cache per renderer, so each surface of a composed window has its own:
+
+- A tile is a texture of the frame's own format, keyed by layer and tile and tagged with the
+  generation of the content it holds. A frame rasterizes the tiles it composites and the cache
+  lacks: new ones, the ones the content's new generation lists as dirty, and all of a layer
+  whose generation the cache skipped. A dirty tile no frame shows waits until one does.
+- Tiles are rasterized before the frame's first pass, in the same command encoder (wgpu) or
+  command buffer (Metal), by the renderer's own batch functions, with a viewport the size of the
+  tile and the layer's baked background as the clear colour. A tile never holds a path: the
+  core draws a layer's paths into the frame, over its tiles.
+- The sprite that composites a tile sets `PolychromeSprite::pad` to
+  `LAYER_TILE_PREMULTIPLIED`: the polychrome shaders multiply an atlas texture's colour by its
+  alpha, and a tile's is premultiplied already.
+- A renderer keeps at most `LAYER_TILE_BUDGET_BYTES` of tiles (64 MB; 32 MB in the browser and
+  on mobile), evicting the least recently composited, never one the frame being drawn uses. A
+  layer no frame composited for 120 frames is released.
+- Every tile is released when the drawable is resized, the alpha mode or transparency changes,
+  the renderer clears its sprite atlas after repeated GPU errors, a frame that was to rasterize
+  tiles fails, or the device is lost (the recovered renderer starts with an empty cache). A
+  change of scale drops the window's layers, so their tiles age out.
+
+A tile has to hold the bytes the frame would. Two things in the shaders make it so, with or
+without layers:
+
+- An untransformed quad, shadow, underline or sprite is shaded from the fragment's own
+  position, which is exact. The position interpolated from the vertices differs in its last
+  bits with what the rasterizer clips the primitive to, so a primitive crossing a tile's edge
+  shaded differently there than in the window (seen on Apple GPUs). Transformed primitives
+  keep the interpolated position.
+- The gradient dither is seeded by the pixel within the quad, not by its position in the
+  window, so a gradient dithers alike wherever it is drawn.
+
+And one in how a scene culls: a shadow is drawn while its blur reaches its content mask (three
+blur radii beyond its bounds; an inset shadow, while its element shows). It used to be dropped
+with its bounds, so a blur vanished a few pixels early as its box scrolled out of a viewport,
+which a layer's tiles, holding the shadow whole, do not do. Such a shadow is ordered as it was
+when the last pixel of its bounds showed.
+
+One limit remains. Where the blurs of two shadows overlap outside both boxes, the order they
+are blended in rounds the result, and that order follows the draw orders of what else is in the
+scene, as it does without layers. A tile is painted with both boxes in view; a frame drawn
+without the layer, at a scroll position where one box has just left the viewport and the
+other, closer to it than a blur reaches, is at its edge, draws the two in another order. The
+overlap can then differ by one level of one channel.
+
+The renderers' groups (`fast::layers::tests` in `gpui_wgpu`, `fast::layers` in `gpui_apple`)
+compare content drawn from tiles with the same content drawn directly, byte for byte: tiles of
+positive and negative coordinates, odd translations, a second frame from the cache, paths over
+tiles, eviction and release. Lane C's `lane_c_scroll_layers` group scrolls real views (text
+rows at scales 1, 1.5 and 2, cards with shadows and gradients, paths, both axes, content that
+changes while scrolled) in a window with every mechanism on and in one with them off and the
+snapping forced on, and compares every frame's pixels.
 
 ## Window composition
 
