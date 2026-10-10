@@ -40,7 +40,7 @@ pub const HOST_MARKER: &str = "gpux-conformance-host:";
 pub const RUN_TIMEOUT: Duration = Duration::from_secs(20 * 60);
 
 /// The ids of the iOS platform checks the host reports, in order.
-pub const PLATFORM_CHECKS: [&str; 8] = [
+pub const PLATFORM_CHECKS: [&str; 9] = [
     "ios-startup",
     "ios-metal",
     "ios-text-metrics",
@@ -49,6 +49,7 @@ pub const PLATFORM_CHECKS: [&str; 8] = [
     "composition-ios-order",
     "composition-ios-input",
     "composition-ios-shadow",
+    "platform-view-ios",
 ];
 
 /// Every result `ios run` expects for `selection`: the platform checks and the lane-F scenes it

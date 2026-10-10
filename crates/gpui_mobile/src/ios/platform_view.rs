@@ -1,9 +1,9 @@
 //! iOS platform view implementation.
 //!
-//! Embeds native iOS `UIView` instances in the GPUI render tree using
-//! hybrid composition. Native views are created here and can be inserted
-//! into the view hierarchy by the iOS window code when a platform view
-//! element is painted.
+//! Embeds native iOS `UIView` instances in the GPUI render tree through
+//! window composition: `platform_view_element` attaches the view to the
+//! container of a composition native surface, which GPUI sizes and places
+//! between its base content and its overlay.
 
 use crate::platform_view::{
     PlatformView, PlatformViewBounds, PlatformViewFactory, PlatformViewId, PlatformViewParams,
@@ -19,14 +19,8 @@ use super::cg_types::ObjcCGRect;
 
 /// iOS implementation of a platform view.
 ///
-/// Wraps a `UIView` instance. The view is created during construction but
-/// is NOT automatically added to the view hierarchy. Call
-/// `native_view_ptr()` to get the raw `*mut AnyObject` pointer, then insert
-/// it into the appropriate superview from the iOS window code.
-///
-/// TODO: The window/paint code should call `native_view_ptr()` and insert
-/// the view as a subview of the Metal view's superview (or another
-/// appropriate container) at the correct z-order position.
+/// Wraps a `UIView` instance, which fills the composition container it is
+/// attached to.
 pub struct IosPlatformView {
     id: PlatformViewId,
     view_type: String,
@@ -35,9 +29,6 @@ pub struct IosPlatformView {
     #[cfg(target_os = "ios")]
     native_view: std::sync::Mutex<*mut AnyObject>,
     disposed: AtomicBool,
-    /// Whether this view has been inserted into the window's view hierarchy.
-    inserted: AtomicBool,
-    bounds: std::sync::Mutex<PlatformViewBounds>,
 }
 
 // Safety: UIView operations are dispatched to the main thread.
@@ -47,9 +38,8 @@ unsafe impl Sync for IosPlatformView {}
 impl IosPlatformView {
     /// Create a new iOS platform view.
     ///
-    /// The UIView is allocated and initialized with the given bounds, but
-    /// is NOT added to any view hierarchy. The caller is responsible for
-    /// inserting the view by using `native_view_ptr()`.
+    /// The UIView is allocated and initialized with the given bounds; it
+    /// shows once attached to a composition container.
     #[cfg(target_os = "ios")]
     pub fn new(view_type: &str, params: &PlatformViewParams) -> Result<Self, String> {
         let id = PlatformViewId::next();
@@ -61,8 +51,6 @@ impl IosPlatformView {
             view_type: view_type.to_string(),
             native_view: std::sync::Mutex::new(native_view),
             disposed: AtomicBool::new(false),
-            inserted: AtomicBool::new(false),
-            bounds: std::sync::Mutex::new(params.bounds),
         })
     }
 
@@ -296,82 +284,6 @@ impl IosPlatformView {
     pub fn native_view_ptr(&self) -> *mut AnyObject {
         *self.native_view.lock().unwrap()
     }
-
-    /// Insert this view into the GPUI window's view hierarchy.
-    ///
-    /// Adds the UIView as a subview of the Metal view's superview (the
-    /// view controller's view), positioned below the Metal view so that
-    /// GPUI content renders on top.
-    ///
-    /// This should be called once after creation, typically from the
-    /// platform view element's first paint. Subsequent calls are no-ops.
-    #[cfg(target_os = "ios")]
-    pub fn insert_into_window(&self) -> Result<(), String> {
-        // Guard against double-insertion.
-        if self.inserted.swap(true, Ordering::Relaxed) {
-            return Ok(());
-        }
-
-        let native_view = *self.native_view.lock().unwrap();
-        if native_view.is_null() {
-            self.inserted.store(false, Ordering::Relaxed);
-            return Err("View is null (disposed?)".to_string());
-        }
-
-        unsafe {
-            if let Some(wrapper) = super::ffi::IOS_WINDOW_LIST.get() {
-                let windows = &*wrapper.0.get();
-                if let Some(&window_ptr) = windows.last() {
-                    if !window_ptr.is_null() {
-                        let window = &*window_ptr;
-                        // Get the view controller's view (parent of Metal view)
-                        let vc: *mut AnyObject = window.view_controller_ptr();
-                        let vc_view: *mut AnyObject = msg_send![vc, view];
-                        if !vc_view.is_null() {
-                            // Get the Metal view
-                            let metal_view = window.metal_view_ptr();
-                            if !metal_view.is_null() {
-                                // Insert below the Metal view so GPUI renders on top
-                                let _: () = msg_send![
-                                    vc_view,
-                                    insertSubview: native_view,
-                                    belowSubview: metal_view
-                                ];
-                            } else {
-                                // Fallback: just add as subview
-                                let _: () = msg_send![vc_view, addSubview: native_view];
-                            }
-                            log::info!(
-                                "IosPlatformView: inserted view {} into window hierarchy",
-                                self.id
-                            );
-                            return Ok(());
-                        }
-                    }
-                }
-            }
-        }
-        self.inserted.store(false, Ordering::Relaxed);
-        Err("No GPUI window available to host platform view".to_string())
-    }
-
-    /// Update the native view's frame.
-    #[cfg(target_os = "ios")]
-    fn update_native_frame(&self, bounds: &PlatformViewBounds) {
-        let view = *self.native_view.lock().unwrap();
-        if view.is_null() {
-            return;
-        }
-        unsafe {
-            let frame = ObjcCGRect::new(
-                bounds.x as f64,
-                bounds.y as f64,
-                bounds.width as f64,
-                bounds.height as f64,
-            );
-            let _: () = msg_send![view, setFrame: frame];
-        }
-    }
 }
 
 impl PlatformView for IosPlatformView {
@@ -383,14 +295,8 @@ impl PlatformView for IosPlatformView {
         &self.view_type
     }
 
-    fn set_bounds(&self, bounds: PlatformViewBounds) {
-        if self.disposed.load(Ordering::Relaxed) {
-            return;
-        }
-        *self.bounds.lock().unwrap() = bounds;
-        #[cfg(target_os = "ios")]
-        self.update_native_frame(&bounds);
-    }
+    /// The view fills its container, which composition places.
+    fn set_bounds(&self, _: PlatformViewBounds) {}
 
     fn set_visible(&self, visible: bool) {
         if self.disposed.load(Ordering::Relaxed) {
@@ -411,7 +317,8 @@ impl PlatformView for IosPlatformView {
         }
     }
 
-    fn set_z_index(&self, z_index: i32) {
+    /// The view's frame in its container, in points.
+    fn set_frame(&self, frame: PlatformViewBounds, _scale_factor: f32) {
         if self.disposed.load(Ordering::Relaxed) {
             return;
         }
@@ -419,18 +326,52 @@ impl PlatformView for IosPlatformView {
         {
             let view = *self.native_view.lock().unwrap();
             if !view.is_null() {
+                let frame = ObjcCGRect::new(
+                    frame.x as f64,
+                    frame.y as f64,
+                    frame.width as f64,
+                    frame.height as f64,
+                );
                 unsafe {
-                    let layer: *mut AnyObject = msg_send![view, layer];
-                    if !layer.is_null() {
-                        let z = z_index as f64;
-                        let _: () = msg_send![layer, setZPosition: z];
-                    }
+                    let _: () = msg_send![view, setFrame: frame];
                 }
             }
         }
         #[cfg(not(target_os = "ios"))]
         {
-            let _ = z_index;
+            let _ = frame;
+        }
+    }
+
+    /// Composition orders native surfaces; the view's own z-index is moot.
+    fn set_z_index(&self, _: i32) {}
+
+    /// Adds the view to `container`, a composition native surface's
+    /// `UIView*` (as a `usize`), which clips it.
+    fn attach(&self, container: &dyn std::any::Any) -> Result<(), String> {
+        let container = *container
+            .downcast_ref::<usize>()
+            .ok_or("the container is not a composition native surface's")?;
+        #[cfg(target_os = "ios")]
+        {
+            let view = *self.native_view.lock().unwrap();
+            if view.is_null() {
+                return Err(format!("{} is disposed", self.id));
+            }
+            let container = container as *mut AnyObject;
+            unsafe {
+                // `set_frame` places the view; until then it fills the container.
+                let bounds: ObjcCGRect = msg_send![container, bounds];
+                let _: () = msg_send![view, setFrame: bounds];
+                let _: () = msg_send![container, addSubview: view];
+            }
+            log::info!("IosPlatformView: attached view {}", self.id);
+            Ok(())
+        }
+        #[cfg(not(target_os = "ios"))]
+        {
+            let _ = container;
+            Err("iOS platform views are only available on iOS".to_string())
         }
     }
 

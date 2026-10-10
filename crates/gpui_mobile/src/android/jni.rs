@@ -464,47 +464,6 @@ fn process_input_events(app: &AndroidApp) {
                                 pointer_count,
                             );
 
-                            // Check if this touch lands on a platform view.
-                            //
-                            // On Android with NativeActivity, ALL touch events go
-                            // to the native surface first. Platform views are real
-                            // Java Views in a FrameLayout overlay, but they won't
-                            // receive touches unless we skip GPUI dispatch and let
-                            // Android's view hierarchy handle the event instead.
-                            //
-                            // We use the primary pointer for the hit-test on DOWN
-                            // actions. Physical pixel coordinates are converted to
-                            // logical pixels to match PlatformViewBounds.
-                            let hits_platform_view = {
-                                let registry = crate::platform_view::PlatformViewRegistry::global();
-                                if registry.active_view_count() > 0 {
-                                    let primary = motion_event.pointer_at_index(
-                                        match action {
-                                            MotionAction::PointerDown | MotionAction::PointerUp => {
-                                                motion_event.pointer_index()
-                                            }
-                                            _ => 0,
-                                        }
-                                    );
-                                    let scale = win.scale_factor();
-                                    let logical_x = primary.x() / scale;
-                                    let logical_y = primary.y() / scale;
-                                    registry.hit_test(logical_x, logical_y)
-                                } else {
-                                    false
-                                }
-                            };
-
-                            if hits_platform_view {
-                                log::debug!(
-                                    "process_input_events: touch hits platform view, skipping GPUI dispatch",
-                                );
-                                // Return Unhandled so android-activity can pass
-                                // the event back to the Java view hierarchy where
-                                // the platform view's FrameLayout lives.
-                                return android_activity::InputStatus::Unhandled;
-                            }
-
                             let timestamp = input_event_instant(motion_event.event_time());
                             for i in 0..pointer_count {
                                 let pointer = motion_event.pointer_at_index(i);
@@ -957,7 +916,7 @@ pub fn run_event_loop(app: &AndroidApp) {
 #[cfg(feature = "android-native-activity")]
 fn pause_platform_views() {
     let _ = with_env(|env| {
-        if let Ok(helper_class) = find_app_class(env, "dev.rayx.mobile.RayXPlatformView") {
+        if let Ok(helper_class) = find_app_class(env, "dev.gpux.mobile.PlatformViews") {
             let _ = env.call_static_method(
                 &helper_class,
                 jni::jni_str!("pauseAll"),
@@ -974,7 +933,7 @@ fn pause_platform_views() {
 #[cfg(feature = "android-native-activity")]
 fn resume_platform_views() {
     let _ = with_env(|env| {
-        if let Ok(helper_class) = find_app_class(env, "dev.rayx.mobile.RayXPlatformView") {
+        if let Ok(helper_class) = find_app_class(env, "dev.gpux.mobile.PlatformViews") {
             let _ = env.call_static_method(
                 &helper_class,
                 jni::jni_str!("resumeAll"),
@@ -991,7 +950,7 @@ fn resume_platform_views() {
 #[cfg(feature = "android-native-activity")]
 fn dispose_all_platform_views() {
     let _ = with_env(|env| {
-        if let Ok(helper_class) = find_app_class(env, "dev.rayx.mobile.RayXPlatformView") {
+        if let Ok(helper_class) = find_app_class(env, "dev.gpux.mobile.PlatformViews") {
             let _ = env.call_static_method(
                 &helper_class,
                 jni::jni_str!("disposeAll"),

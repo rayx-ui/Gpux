@@ -12,15 +12,13 @@
 //! 3. **`PlatformViewRegistry`** — global registry of view factories.
 //! 4. **`PlatformViewHandle`** — opaque handle for managing a platform view.
 //!
-//! ## Composition Modes
+//! ## Composition
 //!
-//! - **Hybrid Composition** (default): The native view is placed in the
-//!   platform's view hierarchy and positioned to match the GPUI element's
-//!   screen coordinates. Best compatibility, slight performance overhead.
-//!
-//! - **Texture-based** (future): The native view renders to an offscreen
-//!   texture that GPUI composites. Better performance but some input and
-//!   accessibility trade-offs.
+//! A platform view is placed through GPUI's window composition:
+//! `platform_view_element` makes a native surface for it, attaches the view
+//! to the surface's container ([`PlatformView::attach`]), and places the
+//! surface where the element is laid out. GPUI's base content draws below
+//! the view and its overlay content (popovers, menus, dialogs) above it.
 //!
 //! ## Usage
 //!
@@ -86,10 +84,10 @@ pub trait PlatformView: Send + Sync {
     /// Returns the view type string (e.g. "video_player", "map").
     fn view_type(&self) -> &str;
 
-    /// Update the view's position and size to match GPUI layout.
-    ///
-    /// Called on every frame where the element's bounds have changed.
-    /// Coordinates are in logical pixels relative to the window origin.
+    /// Tells the view where it shows in the window: the visible part of its
+    /// element, in logical pixels relative to the window origin. A view
+    /// attached to a composition container is placed by GPUI and by
+    /// [`Self::set_frame`], and needs nothing here.
     fn set_bounds(&self, bounds: PlatformViewBounds);
 
     /// Show or hide the native view.
@@ -103,6 +101,26 @@ pub trait PlatformView: Send + Sync {
     /// Higher values are drawn on top. GPUI content rendered after the
     /// platform view element can overlay it using this mechanism.
     fn set_z_index(&self, z_index: i32);
+
+    /// Puts the native view in `container`, the platform handle of a window
+    /// composition native surface (see `platform_view_element`), where it
+    /// fills the surface GPUI places.
+    fn attach(&self, container: &dyn std::any::Any) -> Result<(), String> {
+        let _ = container;
+        Err(format!(
+            "`{}` platform views cannot be attached to a native surface",
+            self.view_type()
+        ))
+    }
+
+    /// Places the native view inside the container it is attached to:
+    /// `frame` is in logical pixels relative to the container's origin, at
+    /// `scale_factor` device pixels each. The view keeps its element's full
+    /// size while the container shows only the part inside the element's
+    /// content mask, so the origin is negative where the view is clipped.
+    fn set_frame(&self, frame: PlatformViewBounds, scale_factor: f32) {
+        let _ = (frame, scale_factor);
+    }
 
     /// Dispose of the native view and release all resources.
     ///
@@ -173,6 +191,12 @@ impl PlatformViewHandle {
     /// Show or hide the view.
     pub fn set_visible(&self, visible: bool) {
         self.view.set_visible(visible);
+    }
+
+    /// Places the view inside the container it is attached to (see
+    /// [`PlatformView::set_frame`]).
+    pub fn set_frame(&self, frame: PlatformViewBounds, scale_factor: f32) {
+        self.view.set_frame(frame, scale_factor);
     }
 
     /// Set the z-order.
@@ -293,20 +317,16 @@ impl PlatformViewRegistry {
     /// bounds will no longer participate in hit-testing.
     pub fn remove_view(&self, id: PlatformViewId) {
         self.views.lock().unwrap().remove(&id);
+        crate::components::platform_view_element::forget(id);
     }
 
     /// Check if a point hits any active platform view.
     ///
     /// Returns `true` if the point (in logical pixels, relative to the
-    /// window origin) falls within any registered platform view's bounds.
-    ///
-    /// On Android with `NativeActivity`, all touch events go to the native
-    /// surface first rather than to the Java view hierarchy. This method
-    /// lets the input handler detect touches on platform views so it can
-    /// skip GPUI dispatch and let the native views handle them instead.
-    ///
-    /// On iOS the OS's `UIView` hit-testing handles this natively, but
-    /// this method is available as a consistent cross-platform check.
+    /// window origin) falls within the bounds a platform view last showed
+    /// at. Input does not depend on it: window composition gives a native
+    /// view the touches that land on it, and GPUI the ones on its own
+    /// content above the view.
     pub fn hit_test(&self, x: f32, y: f32) -> bool {
         let views = self.views.lock().unwrap();
         for bounds in views.values() {

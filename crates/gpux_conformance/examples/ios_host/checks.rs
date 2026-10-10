@@ -430,5 +430,8 @@ pub async fn platform_checks(cx: &mut AsyncApp) -> Vec<ResultLine> {
     if selected("composition-ios-shadow") {
         lines.push(crate::composition::shadow(cx).await);
     }
+    if selected("platform-view-ios") {
+        lines.push(crate::platform_views::platform_view(cx).await);
+    }
     lines
 }
