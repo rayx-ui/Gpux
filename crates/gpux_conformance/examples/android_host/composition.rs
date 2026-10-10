@@ -5,6 +5,7 @@
 //! tap through `adb shell input`, which the testkit performs on request.
 
 use crate::android::{Screens, request};
+use crate::checks::{SWIPE_FRAMES, frame_time};
 use gpui_mobile::android::jni as android_jni;
 use gpux::{
     AnyWindowHandle, AppContext as _, AsyncApp, Context, Entity, IntoElement, Render, ScrollHandle,
@@ -338,25 +339,34 @@ pub async fn pan(cx: &mut AsyncApp, screens: &Screens) -> ResultLine {
     let x = ((MENU.0 + MENU.2 / 2.) * scale) as i32;
     let from = ((MENU.1 + MENU.3 - 8.) * scale) as i32;
     let to = ((MENU.1 + 6.) * scale) as i32;
+    // `adb shell input swipe` sends only the moves its duration has time for after the app
+    // handled the press, so the swipe lasts several of the window's frames (see
+    // `checks::touch_swipe`).
+    let frame = frame_time(cx, window).await;
+    let swipe = Duration::from_millis(600).max(frame * SWIPE_FRAMES);
     let scrolled = |cx: &mut AsyncApp| {
         root.read_with(cx, |composed, _| -composed.menu_scroll.offset().y.as_f32())
     };
     // The request reaches the testkit through logcat, whose stream can drop a line while a
     // screenshot transfers: a swipe that never shows is asked for again.
     for _ in 0..3 {
-        request(&format!("swipe {x} {from} {x} {to} 600"));
-        let start = Instant::now();
-        while scrolled(cx) <= 0. && start.elapsed() < Duration::from_secs(5) {
+        let requested = Instant::now();
+        request(&format!("swipe {x} {from} {x} {to} {}", swipe.as_millis()));
+        while scrolled(cx) <= 0. && requested.elapsed() < swipe + Duration::from_secs(5) {
             cx.background_executor()
                 .timer(Duration::from_millis(100))
                 .await;
         }
         if scrolled(cx) > 0. {
+            // Let the swipe end and the offset rest before reading the distance.
+            cx.background_executor()
+                .timer(swipe.saturating_sub(requested.elapsed()))
+                .await;
             break;
         }
     }
     cx.background_executor()
-        .timer(Duration::from_millis(500))
+        .timer(Duration::from_millis(500).max(frame * 3))
         .await;
     let distance = scrolled(cx);
     let (base_taps, menu_taps) =

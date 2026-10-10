@@ -22,7 +22,7 @@ const ACTION_TIMEOUT: Duration = Duration::from_secs(30);
 /// How long the system's animation of an app starting or coming back to the front may take.
 const SYSTEM_TRANSITION: Duration = Duration::from_secs(10);
 /// How many of the window's frames a swipe that asserts no timing lasts at least.
-const SWIPE_FRAMES: u32 = 8;
+pub(crate) const SWIPE_FRAMES: u32 = 8;
 
 fn pass(id: &str, detail: impl Into<String>) -> ResultLine {
     ResultLine::new(Outcome::Pass, id.to_string(), detail.into())
@@ -65,7 +65,7 @@ async fn sleep(cx: &mut AsyncApp, duration: Duration) {
 }
 
 /// How long the window takes to draw a frame.
-async fn frame_time(cx: &mut AsyncApp, window: AnyWindowHandle) -> Duration {
+pub(crate) async fn frame_time(cx: &mut AsyncApp, window: AnyWindowHandle) -> Duration {
     const FRAMES: u32 = 2;
     let start = Instant::now();
     match app_host::wait_frames(cx, window, FRAMES as usize).await {
