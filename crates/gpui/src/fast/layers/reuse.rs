@@ -219,7 +219,8 @@ pub(crate) fn carry_paint_records(
 ///
 /// A `div`'s layer is painted again after such a frame instead: whether its
 /// content's hovers changed is told from the last frame's hit test, which a
-/// scroll since leaves behind, while a list's rows foretell theirs (see
+/// scroll since leaves behind, while a list keeps a row only where no
+/// hitbox can change the hovers it read (see
 /// [`crate::fast::layers::lists`]).
 pub(crate) fn follow_prepaint(
     window: &mut Window,

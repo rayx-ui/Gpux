@@ -388,6 +388,10 @@ struct Row {
     hitboxes: Vec<Hitbox>,
     /// The hovers the row was painted by.
     hovers: Vec<(HitboxId, bool)>,
+    /// Whether the row read the hover of a hitbox it did not insert, such
+    /// as a group around the list: nothing the row holds says where that
+    /// hover can change, and the row is rendered whenever it shows.
+    foreign_hovers: bool,
     /// What prepainting the row added to the frame last drawn.
     prepaint: Range<PrepaintStateIndex>,
     /// What painting the row added to the frame last drawn, the scene aside.
@@ -501,6 +505,20 @@ struct RowsFrame {
     placed: BTreeMap<usize, Pixels>,
     /// Whether the row being prepainted is one the list does not show.
     open_row_hidden: bool,
+    /// Whether the row being prepainted is prepainted in the rows' own
+    /// space (see [`rows_region`]), as all are but the one a `list` draws
+    /// off screen, which stays in the list's clip.
+    open_row_masked: bool,
+    /// The rows a `list` shows without laying them out, left to its layer
+    /// (see [`keeps_row`]). With those it places itself (`placed`) they are
+    /// the rows a list without a layer renders, whatever snapping the scroll
+    /// offset does to where they lie.
+    left_to_layer: BTreeSet<usize>,
+    /// The rows a `list` places outside the run of rows it shows: the row
+    /// holding the focus, drawn off screen after the others for the
+    /// keyboard to reach. The list draws it every frame, into the frame, and
+    /// the layer does not hold it.
+    loose: BTreeSet<usize>,
     /// Where a `list` places its rows from, and how far it is scrolled. See
     /// [`anchor_rows`].
     placement: Option<(Pixels, Pixels)>,
@@ -595,9 +613,9 @@ struct PaintState {
     /// Where the tab stops of the list's rows begin in the frame's, those of
     /// the rows carried included.
     tab_stops_start: usize,
-    /// The tab stops of the rows painted into the frame, not into the
-    /// layer, by row. See [`order_tab_stops`].
-    loose_tab_stops: Vec<(usize, Range<usize>)>,
+    /// What the rows painted into the frame, not into the layer, added to
+    /// its records, by row. See [`order_tab_stops`].
+    in_frame: Vec<(usize, Range<PaintIndex>)>,
 }
 
 /// What painting a row into the layer drew and added to the frame.
@@ -612,6 +630,9 @@ struct RowPaint {
     reads: Range<usize>,
     /// The row's [`Row::shown`], which its mouse listeners go by.
     shown: Rc<Cell<bool>>,
+    /// Whether the row, which the list does not show, is not to be held:
+    /// it asked to handle text input.
+    unheld: bool,
 }
 
 /// What a `uniform_list` does with its rows this frame: nothing new, or
@@ -673,8 +694,9 @@ struct RowSort {
     unrendered: BTreeSet<usize>,
     leaving: BTreeSet<usize>,
     /// The rows the list does not show that draw above or below their own
-    /// room, as a shadow under a row or glyphs taller than it do: neither
-    /// kept nor rendered. A list without a layer draws the rows it shows
+    /// room, as a shadow under a row or glyphs taller than it do, or that
+    /// lie across the viewport all the same (see [`hidden_in_view`]), and
+    /// the row a `list` draws off screen itself: neither kept nor rendered. A list without a layer draws the rows it shows
     /// and nothing of the others, so what such a row draws over its
     /// neighbours must not show from the layer once the row itself is off
     /// screen; it is rendered when the list shows it, and held while it
@@ -690,6 +712,7 @@ fn sort_rows(
     viewport: Bounds<Pixels>,
     visible: &Range<usize>,
     changed: &BTreeSet<usize>,
+    unheld: BTreeSet<usize>,
 ) -> RowSort {
     let rows = &layer.rows;
     // A row the layer holds without element states has none to drop.
@@ -701,12 +724,13 @@ fn sort_rows(
             .collect(),
         None => BTreeSet::new(),
     };
-    let spilling: BTreeSet<usize> = rows
+    let mut spilling: BTreeSet<usize> = rows
         .spilling
         .keys()
         .copied()
         .filter(|row| !visible.contains(row))
         .collect();
+    spilling.extend(unheld);
     match mode {
         Mode::Repaint => RowSort {
             stale: BTreeSet::new(),
@@ -755,110 +779,52 @@ fn sort_rows(
     }
 }
 
-/// The rows the layer `layer` holds whose hovers will have changed when the
+/// The rows the layer `layer` holds whose hovers may have changed when the
 /// frame being drawn paints, with the layer's content moved by
 /// `translation` and clipped to `viewport`: they are rendered again.
 ///
 /// A frame hit tests the pointer against its own hitboxes between its
 /// prepaint and its paint, and elements paint their hover styles by that.
-/// Which rows to render again is decided before, as the rows prepaint: the
-/// hit test is foretold from the last frame's hitboxes, those of the rows
-/// moved to where they show now. Hitboxes outside the list are taken to stay
-/// where they were; [`check_hovers`] catches a row whose hover the foretelling
-/// missed.
+/// Which rows to render again is decided before, as the rows prepaint, when
+/// the frame's other hitboxes are not known: a sheet another view lays over
+/// the list this frame takes the pointer from the row under it, and one it
+/// takes away gives it back. So a row is kept only while no hitbox of the
+/// frame can change what it read, whatever the frame holds besides: every
+/// hover it read was false and of a hitbox of its own, the pointer is over
+/// none of its hitboxes where the row shows now, and none of them holds the
+/// pointer captured. The row under the pointer is rendered on every frame,
+/// as a view the pointer is over is (`dependencies::may_replay_hovers`).
 fn stale_rows(
     window: &Window,
     layer: &crate::fast::layers::Layer,
     translation: Point<ScaledPixels>,
     viewport: Bounds<Pixels>,
 ) -> BTreeSet<usize> {
-    let rows = &layer.rows.rows;
-    if rows.values().all(|row| row.hovers.is_empty()) {
-        return BTreeSet::new();
-    }
-    let Some(record) = layer.record.as_ref() else {
-        return rows.keys().copied().collect();
-    };
-    let range = &record.prepaint_range;
-    let rows_at = range.start.hitboxes_index..range.end.hitboxes_index;
-    let hit = foretold_hit_test(window, rows, rows_at, translation, viewport);
-    let hovered = |id: HitboxId| {
-        window.captured_hitbox == Some(id) || (!window.last_input_was_keyboard() && hit.hovers(id))
-    };
-    rows.iter()
-        .filter(|(_, row)| row.hovers.iter().any(|(id, was)| hovered(*id) != *was))
-        .map(|(ix, _)| *ix)
-        .collect()
-}
-
-/// A hit test of the pointer, as [`crate::window::WindowFrame::hit_test`] does it: the
-/// hitboxes under it, topmost first, and how many of them are hovered.
-#[derive(Default)]
-struct ForetoldHitTest {
-    ids: SmallVec<[HitboxId; 8]>,
-    hover_count: Option<usize>,
-    blocked: bool,
-}
-
-impl ForetoldHitTest {
-    /// Takes in `hitbox`, the next one down.
-    fn visit(&mut self, hitbox: &Hitbox, position: Point<Pixels>) {
-        if self.blocked {
-            return;
-        }
-        let bounds = hitbox.bounds.intersect(&hitbox.content_mask.bounds);
-        if bounds.contains(&position) {
-            self.ids.push(hitbox.id);
-            if self.hover_count.is_none()
-                && hitbox.behavior == crate::HitboxBehavior::BlockMouseExceptScroll
-            {
-                self.hover_count = Some(self.ids.len());
-            }
-            if hitbox.behavior == crate::HitboxBehavior::BlockMouse {
-                self.blocked = true;
-            }
-        }
-    }
-
-    fn hovers(&self, id: HitboxId) -> bool {
-        let count = self.hover_count.unwrap_or(self.ids.len());
-        self.ids[..count].contains(&id)
-    }
-}
-
-/// The hit test of the pointer the frame being drawn will make: the last
-/// frame's hitboxes, those at `rows_at`, which the rows of `rows` inserted,
-/// replaced by the rows' hitboxes moved to where the rows show with the
-/// layer's content moved by `translation`, and clipped to `viewport`.
-fn foretold_hit_test(
-    window: &Window,
-    rows: &BTreeMap<usize, Row>,
-    rows_at: Range<usize>,
-    translation: Point<ScaledPixels>,
-    viewport: Bounds<Pixels>,
-) -> ForetoldHitTest {
     let position = window.mouse_position;
     let scale_factor = window.scale_factor();
-    let hitboxes = &window.rendered_frame.hitboxes;
-    let rows_at = rows_at.start.min(hitboxes.len())..rows_at.end.min(hitboxes.len());
-    let mut hit = ForetoldHitTest::default();
-    for hitbox in hitboxes[rows_at.end..].iter().rev() {
-        hit.visit(hitbox, position);
-    }
-    for row in rows.values().rev() {
-        let delta = row.delta(translation, scale_factor);
-        for hitbox in input::LayerInput::hitboxes_at(&row.hitboxes, delta, viewport)
-            .collect::<SmallVec<[Hitbox; 4]>>()
-            .iter()
-            .rev()
-        {
-            hit.visit(hitbox, position);
+    let stale = |row: &Row| {
+        if row.hovers.is_empty() {
+            return false;
         }
-    }
-    for hitbox in hitboxes[..rows_at.start].iter().rev() {
-        hit.visit(hitbox, position);
-    }
-    hit
+        if row.foreign_hovers
+            || row
+                .hovers
+                .iter()
+                .any(|(id, hovered)| *hovered || window.captured_hitbox == Some(*id))
+        {
+            return true;
+        }
+        let delta = row.delta(translation, scale_factor);
+        input::LayerInput::hitboxes_at(&row.hitboxes, delta, viewport).any(|hitbox| {
+            let hit = hitbox.bounds.intersect(&hitbox.content_mask.bounds);
+            hit.contains(&position)
+        })
+    };
+    let rows = &layer.rows.rows;
+    rows.iter()
+        .filter(|(_, row)| stale(row))
+        .map(|(ix, _)| *ix)
+        .collect()
 }
 
 /// The size of a uniform list's measured item: `measure`d, unless the
@@ -1013,6 +979,20 @@ pub(crate) fn begin_uniform_list(
     };
 
     let translation = paint::translation(window, scroll_offset);
+    let slot = |row: usize| Bounds {
+        origin: point(
+            viewport.origin.x,
+            padded_bounds.origin.y + scroll_offset.y + item_height * row,
+        ),
+        size: size(viewport.size.width, item_height),
+    };
+    let unheld = hidden_in_view(
+        needed
+            .clone()
+            .map(|row| (row, slot(row).top(), item_height)),
+        visible,
+        viewport,
+    );
     let RowSort {
         stale,
         unrendered,
@@ -1026,6 +1006,7 @@ pub(crate) fn begin_uniform_list(
         viewport,
         visible,
         &changed,
+        unheld,
     );
     let (retain, carried) = match mode {
         Mode::Extend => {
@@ -1036,13 +1017,6 @@ pub(crate) fn begin_uniform_list(
         Mode::Repaint => (needed.clone(), Vec::new()),
     };
     let plan = plan(&(&unrendered | &spilling), needed.clone());
-    let slot = |row: usize| Bounds {
-        origin: point(
-            viewport.origin.x,
-            padded_bounds.origin.y + scroll_offset.y + item_height * row,
-        ),
-        size: size(viewport.size.width, item_height),
-    };
     let slots: BTreeMap<usize, Bounds<Pixels>> = plan
         .render
         .iter()
@@ -1076,6 +1050,9 @@ pub(crate) fn begin_uniform_list(
         prepaint_range: window.prepaint_index()..window.prepaint_index(),
         placed: BTreeMap::new(),
         open_row_hidden: false,
+        open_row_masked: false,
+        left_to_layer: BTreeSet::new(),
+        loose: BTreeSet::new(),
         placement: None,
         vetted_at: cx.entities.fast_access_log.write_generation(),
         recording: Some(cx.begin_recording_dependencies()),
@@ -1359,7 +1336,13 @@ fn carry_paint_rows(window: &mut Window, id: &GlobalElementId) {
         };
         let element_states = !row.dropped && !leaving.contains(ix);
         row.paint = reuse::carry_paint_records(window, &row.paint, step, viewport, element_states);
-        if !visible.contains(ix) {
+        if visible.contains(ix) {
+            // What the row was painted by, the view holding the list is
+            // shown by: a view drawn again from its last frame is checked
+            // against the hovers its rows carried, as against those of the
+            // rows it painted (see `paint_row`).
+            crate::fast::dependencies::note_replayed_hovers(window, &row.hovers);
+        } else {
             hide_records(&mut window.next_frame, &row.paint);
         }
     }
@@ -1490,11 +1473,15 @@ fn begin_row(window: &mut Window, cx: &App, list: Option<usize>, ix: usize, plac
     // A row is prepainted in the rows' own space, as it is painted (see
     // `rows_region`): what it clips itself to moves with it, and the
     // list's own clip, which does not, is the viewport its hitboxes are
-    // clipped to wherever the layer shows them.
-    let region = rows_region(frame);
-    window
-        .content_mask_stack
-        .push(ContentMask::rectangular(region));
+    // clipped to wherever the layer shows them. The row a `list` draws off
+    // screen is no row of the layer's: it stays in the list's clip.
+    frame.open_row_masked = !frame.loose.contains(&ix);
+    if frame.open_row_masked {
+        let region = rows_region(frame);
+        window
+            .content_mask_stack
+            .push(ContentMask::rectangular(region));
+    }
     true
 }
 
@@ -1514,7 +1501,7 @@ pub(crate) fn row_clip(window: &Window, clip: ContentMask<Pixels>) -> Option<Con
                 .layers
                 .get(&painting.id)
                 .and_then(|layer| layer.rows.frame.as_ref())
-                .is_some_and(|frame| frame.open_row.is_some())
+                .is_some_and(|frame| frame.open_row.is_some() && frame.open_row_masked)
         });
     (!open).then_some(clip)
 }
@@ -1540,7 +1527,9 @@ fn end_row(window: &mut Window, cx: &App, list: Option<usize>) {
         return;
     };
     let hidden = mem::take(&mut frame.open_row_hidden);
-    window.content_mask_stack.pop();
+    if mem::take(&mut frame.open_row_masked) {
+        window.content_mask_stack.pop();
+    }
     if hidden {
         hide_focus(&mut window.next_frame, &(start.clone()..end.clone()));
         note_hidden_hitboxes(
@@ -1918,6 +1907,9 @@ pub(crate) fn begin_list(
         prepaint_range: window.prepaint_index()..window.prepaint_index(),
         placed: BTreeMap::new(),
         open_row_hidden: false,
+        open_row_masked: false,
+        left_to_layer: BTreeSet::new(),
+        loose: BTreeSet::new(),
         placement: None,
         vetted_at: cx.entities.fast_access_log.write_generation(),
         recording: Some(cx.begin_recording_dependencies()),
@@ -1992,10 +1984,11 @@ pub(crate) fn scrolled_to_end(state: &crate::StateInner) -> Option<bool> {
 /// `measured`: the frame only scrolled its layer, which holds the row as it
 /// is.
 pub(crate) fn keeps_row(
-    window: &Window,
+    window: &mut Window,
     version: &StateVersion,
     ix: usize,
     measured: bool,
+    shown: bool,
 ) -> bool {
     if !LIST_LAYERS {
         return false;
@@ -2006,43 +1999,57 @@ pub(crate) fn keeps_row(
     let Some(painting) = window.fast_layers.painting.as_ref() else {
         return false;
     };
-    let Some(layer) = window.fast_layers.layers.get(&painting.id) else {
+    let Some(layer) = window.fast_layers.layers.get_mut(&painting.id) else {
         return false;
     };
-    layer.rows.frame.as_ref().is_some_and(|frame| {
-        frame.list == Some(version.id())
-            && frame.skip_held
-            && layer.rows.rows.get(&ix).is_some_and(|row| !row.suspect)
-            && !frame.changed.contains(&ix)
-    })
+    let rows = &mut layer.rows;
+    let Some(frame) = rows.frame.as_mut() else {
+        return false;
+    };
+    let kept = frame.list == Some(version.id())
+        && frame.skip_held
+        && rows.rows.get(&ix).is_some_and(|row| !row.suspect)
+        && !frame.changed.contains(&ix);
+    // `shown`: the list would render the row for its viewport, not only to
+    // measure it.
+    if kept && shown {
+        frame.left_to_layer.insert(ix);
+    }
+    kept
 }
 
-/// `scroll_top`, how far a `list` of `state` about to place its rows is
-/// scrolled, moved to whole device pixels where layers are compiled, so that
-/// rows painted into a layer and rows drawn without one land on the same
-/// pixels (see [`paint::snap_scroll_offset`]). The list lays out its rows
-/// again after an autoscroll: what the frame noted of the rows placed so far
-/// is dropped.
-pub(crate) fn snap_scroll_top(
-    window: &mut Window,
-    state: &crate::StateInner,
-    scroll_top: Pixels,
-) -> Pixels {
-    // With the switch off nothing is snapped: output is today's.
-    if !LIST_LAYERS || !window.fast_mode.snapping() {
-        return scroll_top;
+/// Notes that a `list` of `state` is about to lay out and place its rows,
+/// as it does again after an autoscroll: what the frame noted of the rows
+/// laid out and placed so far is dropped.
+pub(crate) fn begin_placing(window: &mut Window, state: &crate::StateInner) {
+    if !LIST_LAYERS {
+        return;
     }
     if let Some(frame) = list_frame(window, &state.fast_version) {
         frame.anchor = None;
         frame.placement = None;
         frame.placed.clear();
+        frame.left_to_layer.clear();
+        frame.loose.clear();
         frame.prepainted.clear();
         frame.row_prepaints.clear();
         // The row an autoscroll left open, with the clip it was given.
         frame.open_row_hidden = false;
-        if frame.open_row.take().is_some() {
+        let masked = mem::take(&mut frame.open_row_masked);
+        if frame.open_row.take().is_some() && masked {
             window.content_mask_stack.pop();
         }
+    }
+}
+
+/// `scroll_top`, how far a `list` about to place its rows is scrolled, moved
+/// to whole device pixels where layers are compiled, so that rows painted
+/// into a layer and rows drawn without one land on the same pixels (see
+/// [`paint::snap_scroll_offset`]).
+pub(crate) fn snap_scroll_top(window: &Window, scroll_top: Pixels) -> Pixels {
+    // With the switch off nothing is snapped: output is today's.
+    if !LIST_LAYERS || !window.fast_mode.snapping() {
+        return scroll_top;
     }
     paint::snap_scroll_offset(window, point(px(0.), scroll_top)).y
 }
@@ -2099,11 +2106,55 @@ pub(crate) fn place_list_item(
         return;
     }
     end_row(window, cx, list);
-    begin_row(window, cx, list, ix, true);
     if let Some(frame) = frame_mut(window, &id) {
+        // The list places the rows it shows from the first on, but for
+        // those it leaves to the layer; a row it places anywhere else is
+        // the one it draws off screen.
+        let in_flow = frame.anchor.is_some_and(|(first, _)| {
+            ix >= first
+                && (first..ix).all(|row| {
+                    frame.placed.contains_key(&row) || frame.left_to_layer.contains(&row)
+                })
+        });
+        if in_flow {
+            frame.placed.insert(ix, origin.y);
+        } else {
+            frame.loose.insert(ix);
+        }
         frame.prepainted.push(ix);
-        frame.placed.insert(ix, origin.y);
     }
+    begin_row(window, cx, list, ix, true);
+}
+
+/// The rows the `list` of `frame` shows: those it placed in a run from the
+/// first, and those of the run it left to its layer.
+fn flow(frame: &RowsFrame) -> Range<usize> {
+    let Some((first, _)) = frame.anchor else {
+        return 0..0;
+    };
+    let mut end = first;
+    while frame.placed.contains_key(&end) || frame.left_to_layer.contains(&end) {
+        end += 1;
+    }
+    first..end
+}
+
+/// The rows of `slots` (each row's top and height) the list does not show
+/// that lie across `viewport` all the same: under the padding a list ends
+/// its rows at, or within what snapping the scroll offset moved. A list
+/// without a layer does not draw them, so its layer neither holds nor
+/// renders them, as it does not a row that draws outside its room.
+fn hidden_in_view(
+    slots: impl Iterator<Item = (usize, Pixels, Pixels)>,
+    visible: &Range<usize>,
+    viewport: Bounds<Pixels>,
+) -> BTreeSet<usize> {
+    slots
+        .filter(|(row, top, height)| {
+            !visible.contains(row) && *top < viewport.bottom() && *top + *height > viewport.top()
+        })
+        .map(|(row, ..)| row)
+        .collect()
 }
 
 /// The height of a `list`'s row `row`: as the list measured it, or as the
@@ -2130,7 +2181,7 @@ fn row_height(
 }
 
 /// Ends the layout and prepaint of the rows of the `list` of `state`, laid
-/// out at `bounds`: the rows around those it showed are rendered and
+/// out at `bounds` with `padding_top` above its rows: the rows around those it showed are rendered and
 /// prepainted into its layer with `render_item`, as far as the layer is to
 /// hold them, and the records of the rows it keeps are carried.
 pub(crate) fn end_list(
@@ -2139,6 +2190,7 @@ pub(crate) fn end_list(
     state: &crate::StateInner,
     render_item: &mut crate::RenderItemFn,
     bounds: Bounds<Pixels>,
+    padding_top: Pixels,
     scroll_context: Option<crate::ScrollContainerContext>,
 ) {
     if !LIST_LAYERS {
@@ -2148,7 +2200,7 @@ pub(crate) fn end_list(
     let id = match window.fast_layers.painting.as_ref() {
         Some(painting) => painting.id.clone(),
         None => {
-            note_shown_without_layer(window, state, bounds);
+            note_shown_without_layer(window, state, bounds, padding_top);
             return;
         }
     };
@@ -2176,6 +2228,8 @@ pub(crate) fn end_list(
     };
     let item_count = state.items.summary().count;
     let viewport = frame.viewport;
+    // The rows the list shows: those it renders without a layer.
+    let visible = flow(frame);
 
     // The rows the layer holds stay where they are only if the first row
     // shown lies at a whole number of device pixels from where the layer
@@ -2291,20 +2345,16 @@ pub(crate) fn end_list(
     }
     let needed = row..end;
 
-    // The rows the list shows: those it renders without a layer.
-    let visible = shown_rows(&tops, bounds);
     let layer = &window.fast_layers.layers[&id];
-    let mode = layer
-        .rows
-        .frame
-        .as_ref()
-        .map_or(Mode::Repaint, |frame| frame.mode);
-    let changed = layer
-        .rows
-        .frame
-        .as_ref()
-        .map(|frame| frame.changed.clone())
-        .unwrap_or_default();
+    let frame = layer.rows.frame.as_ref().unwrap();
+    let (mode, changed) = (frame.mode, frame.changed.clone());
+    let mut unheld = hidden_in_view(
+        tops.iter()
+            .map(|(row, (top, height))| (*row, *top, *height)),
+        &visible,
+        viewport,
+    );
+    unheld.extend(frame.loose.iter().copied());
     let sort = sort_rows(
         window,
         layer,
@@ -2313,6 +2363,7 @@ pub(crate) fn end_list(
         viewport,
         &visible,
         &changed,
+        unheld,
     );
     let layer = &mut window.fast_layers.layers.get_mut(&id).unwrap().rows;
     let due_for_repaint = layer.due_for_repaint(&needed);
@@ -2483,28 +2534,15 @@ fn held_rows_land_alike(
         })
 }
 
-/// The rows of `tops` (each row's top and height) that lie across `bounds`,
-/// the list's: those it shows.
-fn shown_rows(tops: &BTreeMap<usize, (Pixels, Pixels)>, bounds: Bounds<Pixels>) -> Range<usize> {
-    let shown = |(row, (top, height)): (&usize, &(Pixels, Pixels))| {
-        (*top < bounds.bottom() && *top + *height > bounds.top()).then_some(*row)
-    };
-    match (
-        tops.iter().find_map(shown),
-        tops.iter().rev().find_map(shown),
-    ) {
-        (Some(first), Some(last)) => first..last + 1,
-        _ => 0..0,
-    }
-}
-
-/// Notes which rows the `list` of `state`, laid out at `bounds`, showed on
-/// a frame that kept them off its layer, if it has one: as far down from
-/// its first row shown as its bounds reach.
+/// Notes which rows the `list` of `state`, laid out at `bounds` with
+/// `padding_top` above its rows, showed on a frame that kept them off its
+/// layer, if it has one: from its first row shown, each row that starts
+/// above the height of its bounds, as it lays them out.
 fn note_shown_without_layer(
     window: &mut Window,
     state: &crate::StateInner,
     bounds: Bounds<Pixels>,
+    padding_top: Pixels,
 ) {
     if !COMPILED || window.fast_layers.layers.is_empty() {
         return;
@@ -2517,7 +2555,7 @@ fn note_shown_without_layer(
     let top = state.logical_scroll_top();
     let mut cursor = state.items.cursor::<crate::Count>(());
     cursor.seek(&crate::Count(top.item_ix), sum_tree::Bias::Right);
-    let mut height = -top.offset_in_item;
+    let mut height = padding_top - top.offset_in_item;
     let mut end = top.item_ix;
     while let Some(item) = cursor.item()
         && height < bounds.size.height
@@ -2558,7 +2596,13 @@ pub(crate) fn end_paint_list(window: &mut Window, cx: &mut App, state: &crate::L
     if let Some(layer) = window.fast_layers.layers.get_mut(&id) {
         layer.rows.state_version = Some(version.get());
     }
-    let Some(frame) = frame_mut(window, &id) else {
+    finish_list_paint(window, cx, &id);
+}
+
+/// Paints the rows rendered for the layer of the list `id` alone, and ends
+/// painting its rows.
+fn finish_list_paint(window: &mut Window, cx: &mut App, id: &GlobalElementId) {
+    let Some(frame) = frame_mut(window, id) else {
         return;
     };
     let extra = mem::take(&mut frame.extra);
@@ -2567,7 +2611,7 @@ pub(crate) fn end_paint_list(window: &mut Window, cx: &mut App, state: &crate::L
             element.paint(window, cx)
         });
     }
-    end_paint_rows(window, cx, Some(&id));
+    end_paint_rows(window, cx, Some(id));
 }
 
 /// Starts painting the rows of the list `id` as its prepaint decided, and
@@ -2606,7 +2650,7 @@ pub(crate) fn begin_paint_rows(window: &mut Window, cx: &mut App, id: Option<&Gl
         spans: Vec::new(),
         painted_with: paint::PaintedWith::current(window),
         tab_stops_start: window.next_frame.tab_stops.paint_index(),
-        loose_tab_stops: Vec::new(),
+        in_frame: Vec::new(),
     };
     let mut onto = None;
     if state.swapped {
@@ -2639,10 +2683,9 @@ pub(crate) fn begin_paint_rows(window: &mut Window, cx: &mut App, id: Option<&Gl
 
 /// Asks for another frame if a row the layer of the list `id` keeps this
 /// frame was painted by a hover that the frame's hit test, made after its
-/// prepaint, finds changed: its hover was foretold from where the rows move
-/// (see [`stale_rows`]), and something outside the list moved too. The row
-/// is rendered again on the next frame, as a retained view whose hover
-/// changes the same way is.
+/// prepaint, finds changed. A row is kept only where no hitbox of the frame
+/// can change what it read (see [`stale_rows`]), so none is; were one, it
+/// would be rendered again on the next frame.
 fn check_hovers(window: &mut Window, id: &GlobalElementId) {
     let Some(layer) = window.fast_layers.layers.get(id) else {
         return;
@@ -2662,6 +2705,7 @@ fn check_hovers(window: &mut Window, id: &GlobalElementId) {
                 !crate::fast::dependencies::hovers_unchanged(window, &row.hovers)
             })
         });
+    debug_assert!(!changed, "a row was kept under a hover that changed");
     if changed {
         window.request_animation_frame();
     }
@@ -2669,7 +2713,8 @@ fn check_hovers(window: &mut Window, id: &GlobalElementId) {
 
 /// Paints a row of a list with `f`: into the list's layer if its prepaint
 /// rendered the row for it, not at all if the layer keeps the row, into the
-/// frame otherwise. `ix` is the row, or, for a uniform list, the next row it
+/// frame otherwise, as the row a `list` draws off screen is, once the layer
+/// is composited. `ix` is the row, or, for a uniform list, the next row it
 /// rendered.
 pub(crate) fn paint_row(
     window: &mut Window,
@@ -2686,7 +2731,6 @@ pub(crate) fn paint_row(
     let Some(layer) = window.fast_layers.layers.get_mut(&id) else {
         return f(window, cx);
     };
-    let held = &layer.rows.rows;
     let Some(frame) = layer.rows.frame.as_mut() else {
         return f(window, cx);
     };
@@ -2708,9 +2752,16 @@ pub(crate) fn paint_row(
             row
         }
     };
+    if frame.loose.contains(&row) {
+        // The row a `list` draws off screen is drawn after the rows it
+        // shows, over them: the layer, which holds those, is finished and
+        // composited first.
+        finish_list_paint(window, cx, &id);
+        return f(window, cx);
+    }
     let row_shown = shows_row(frame, row);
     if !frame.slots.contains_key(&row) {
-        if frame.mode == Mode::Extend && held.contains_key(&row) {
+        if frame.carried.binary_search(&row).is_ok() {
             // The layer keeps the row as it is.
             return;
         }
@@ -2743,6 +2794,15 @@ pub(crate) fn paint_row(
         f(window, cx);
     }
     set_current_row(window, &id, None);
+    // A row the list does not show handles no text input: a list without a
+    // layer does not draw it, and the platform would be handed the handler
+    // of an input nobody sees. The row is not held, so that it asks again
+    // once it shows.
+    let handlers = paint_start.input_handlers_index;
+    let unheld = !row_shown && window.next_frame.input_handlers.len() > handlers;
+    if unheld {
+        window.next_frame.input_handlers.truncate(handlers);
+    }
     let paint_end = window.paint_index();
     let end = window.next_frame.scene.paint_operations.len();
     // The reads stay in the log for the view holding the list, whose hovers
@@ -2768,6 +2828,7 @@ pub(crate) fn paint_row(
             hovers,
             reads: reads_start..reads_len(cx),
             shown,
+            unheld,
         });
     }
 }
@@ -2801,7 +2862,7 @@ fn rows_overflow(window: &Window, frame: &RowsFrame) -> bool {
 }
 
 /// Paints the row `row` of the list `id` into the frame with `f`, noting
-/// which of the frame's tab stops are its own (see [`order_tab_stops`]).
+/// which of the frame's records are its own (see [`order_tab_stops`]).
 fn paint_into_frame(
     window: &mut Window,
     cx: &mut App,
@@ -2809,11 +2870,11 @@ fn paint_into_frame(
     row: usize,
     f: impl FnOnce(&mut Window, &mut App),
 ) {
-    let start = window.next_frame.tab_stops.paint_index();
+    let start = window.paint_index();
     f(window, cx);
-    let end = window.next_frame.tab_stops.paint_index();
+    let end = window.paint_index();
     if let Some(paint) = frame_mut(window, id).and_then(|frame| frame.paint.as_mut()) {
-        paint.loose_tab_stops.push((row, start..end));
+        paint.in_frame.push((row, start..end));
     }
 }
 
@@ -2826,7 +2887,8 @@ fn paint_into_frame(
 /// rows out of order. The rows' stops lie one after another in the frame's
 /// (nothing else is painted between a list's rows), so they are laid out
 /// again by row, each row's as it painted them, and those of the rows the
-/// list does not show left out of the order (see [`hide_records`]).
+/// list does not show left out of the order (see [`hide_records`]). The row
+/// a `list` draws off screen comes after the others, as the list draws it.
 fn order_tab_stops(
     window: &mut Window,
     id: &GlobalElementId,
@@ -2843,19 +2905,20 @@ fn order_tab_stops(
         return;
     };
     // Each row's stops, where they lie now, and whether the list shows it.
-    let mut rows: BTreeMap<usize, (Range<usize>, bool)> = BTreeMap::new();
+    let mut rows: BTreeMap<(bool, usize), (Range<usize>, bool)> = BTreeMap::new();
     let stops =
         |paint: &Range<PaintIndex>| paint.start.tab_handle_index..paint.end.tab_handle_index;
+    let key = |row: usize| (frame.loose.contains(&row), row);
     for ix in &frame.carried {
         if let Some(row) = layer.rows.rows.get(ix) {
-            rows.insert(*ix, (stops(&row.paint), frame.visible.contains(ix)));
+            rows.insert(key(*ix), (stops(&row.paint), frame.visible.contains(ix)));
         }
     }
-    for (row, range) in &paint.loose_tab_stops {
-        rows.insert(*row, (range.clone(), true));
+    for (row, range) in &paint.in_frame {
+        rows.insert(key(*row), (stops(range), true));
     }
     for span in &paint.spans {
-        rows.insert(span.row, (stops(&span.paint), span.shown.get()));
+        rows.insert(key(span.row), (stops(&span.paint), span.shown.get()));
     }
     let covered: usize = rows.values().map(|(range, _)| range.len()).sum();
     let inside = rows
@@ -2882,7 +2945,7 @@ fn order_tab_stops(
         }
     }
     let mut moved: BTreeMap<usize, Range<usize>> = BTreeMap::new();
-    for (row, (range, shown)) in &rows {
+    for ((_, row), (range, shown)) in &rows {
         let start = tab_stops.paint_index();
         let own = &operations[range.start - region.start..range.end - region.start];
         if *shown {
@@ -2906,6 +2969,11 @@ fn order_tab_stops(
             place(&mut span.paint, stops);
         }
     }
+    for (row, range) in &mut paint.in_frame {
+        if let Some(stops) = moved.get(row) {
+            place(range, stops);
+        }
+    }
 }
 
 /// The row of a list's layer an element was drawn in, if it was drawn in one,
@@ -2918,6 +2986,8 @@ pub(crate) struct NodeRow {
     /// The layer's key and the row.
     row: Option<(u32, usize)>,
     hidden: bool,
+    /// The row a `list` draws off screen, after the rows it shows.
+    loose: bool,
 }
 
 /// The row of a list's layer the element being prepainted lies in.
@@ -2937,6 +3007,7 @@ pub(crate) fn node_row(window: &Window) -> NodeRow {
             Some(NodeRow {
                 row: Some((layer.key.0, row)),
                 hidden: frame.open_row_hidden,
+                loose: frame.loose.contains(&row),
             })
         })
         .unwrap_or_default()
@@ -2998,7 +3069,8 @@ pub(crate) fn hidden_hitboxes(window: &Window, hitboxes: &Range<usize>) -> usize
 
 /// The elements of `nodes` a frame tells of, in order: all but those drawn
 /// in rows a list's layer holds and the list does not show, and those of a
-/// list's rows by row, in whatever order the frame carried and drew them.
+/// list's rows by row, in whatever order the frame carried and drew them,
+/// the row it draws off screen last.
 pub(crate) fn shown_nodes(
     nodes: &[crate::window::DevtoolsFrameNode],
 ) -> impl Iterator<Item = &crate::window::DevtoolsFrameNode> {
@@ -3019,7 +3091,10 @@ pub(crate) fn shown_nodes(
             .iter()
             .filter(|node| !node.fast_row.hidden)
             .collect();
-        rows.sort_by_key(|node| node.fast_row.row.map(|(_, row)| row));
+        rows.sort_by_key(|node| {
+            let row = node.fast_row.row.map(|(_, row)| row);
+            (node.fast_row.loose, row)
+        });
         shown.extend(rows);
         rest = &rest[run..];
     }
@@ -3044,6 +3119,12 @@ pub(crate) struct ToldRow {
     )]
     pub(crate) row: usize,
     pub(crate) shown: bool,
+    /// The row a `list` draws off screen, after the rows it shows.
+    #[cfg_attr(
+        not(any(test, feature = "test-support", feature = "diagnostics")),
+        allow(dead_code, reason = "read where frames are described")
+    )]
+    pub(crate) loose: bool,
     pub(crate) prepaint: Range<PrepaintStateIndex>,
     /// What laying the row out added to the frame before it was prepainted,
     /// if the frame laid it out: the element states it reached.
@@ -3051,6 +3132,14 @@ pub(crate) struct ToldRow {
     /// `None` for a row that was not painted: with no background to bake
     /// under its rows, a list paints only those it shows.
     pub(crate) paint: Option<Range<PaintIndex>>,
+    /// What the row's mouse listeners listen by (see
+    /// [`listen_while_shown`]): `None` for a row painted into the frame,
+    /// whose listeners are as it added them.
+    #[cfg_attr(
+        not(any(test, feature = "test-support", feature = "diagnostics")),
+        allow(dead_code, reason = "read where frames are described")
+    )]
+    pub(crate) listens: Option<Rc<Cell<bool>>>,
 }
 
 /// The rows of each list's layer with records in the frame `window` last
@@ -3088,15 +3177,24 @@ fn note_told(window: &mut Window, id: &GlobalElementId, frame: &RowsFrame, paint
                 ToldRow {
                     row: *ix,
                     shown: frame.visible.contains(ix),
+                    loose: false,
                     prepaint: row.prepaint.clone(),
                     layout: None,
                     paint: Some(row.paint.clone()),
+                    listens: Some(row.shown.clone()),
                 },
             );
         }
     }
     for prepainted in &frame.row_prepaints {
         let span = paint.spans.iter().find(|span| span.row == prepainted.row);
+        let painted = span.map(|span| &span.paint).or_else(|| {
+            let in_frame = paint
+                .in_frame
+                .iter()
+                .find(|(row, _)| *row == prepainted.row);
+            in_frame.map(|(_, range)| range)
+        });
         let layout = frame
             .row_layouts
             .iter()
@@ -3107,9 +3205,11 @@ fn note_told(window: &mut Window, id: &GlobalElementId, frame: &RowsFrame, paint
             ToldRow {
                 row: prepainted.row,
                 shown: shows_row(frame, prepainted.row),
+                loose: frame.loose.contains(&prepainted.row),
                 prepaint: prepainted.range.clone(),
                 layout: layout.map(|layout| layout.records.clone()),
-                paint: span.map(|span| span.paint.clone()),
+                paint: painted.cloned(),
+                listens: span.map(|span| span.shown.clone()),
             },
         );
     }
@@ -3309,13 +3409,13 @@ pub(crate) fn end_paint_rows(window: &mut Window, cx: &mut App, id: Option<&Glob
         if let Some(record) = layer.record.take()
             && frame.mode == Mode::Extend
         {
-            let carried: BTreeSet<usize> = frame.carried.iter().copied().collect();
-            let kept: Vec<Rc<Scene>> = layer
-                .rows
-                .rows
+            // Those the list shows: it draws no other without a layer.
+            let kept: Vec<Rc<Scene>> = frame
+                .carried
                 .iter()
-                .filter(|(ix, _)| carried.contains(ix))
-                .map(|(_, row)| row.part.scene.clone())
+                .filter(|ix| frame.visible.contains(ix))
+                .filter_map(|ix| layer.rows.rows.get(ix))
+                .map(|row| row.part.scene.clone())
                 .collect();
             drop(record);
             for scene in kept {
@@ -3361,36 +3461,47 @@ pub(crate) fn end_paint_rows(window: &mut Window, cx: &mut App, id: Option<&Glob
     // painted onto another composition surface, is drawn into the frame as
     // it was painted, with the rows the layer kept, and the list goes back
     // to today's path for a while. So it does when a row can be hit outside
-    // the room the list gives it (see `rows_overflow`).
+    // the room the list gives it (see `rows_overflow`). Only the rows the
+    // list shows are drawn, as it draws them without a layer: a row off
+    // screen that draws outside its own room would show.
     if !surface_switches.is_empty()
         || paint::uncompositable(&painted)
         || rows_overflow(window, &frame)
     {
         let layer = window.fast_layers.layers.get_mut(id).unwrap();
         let kept: Vec<Rc<Scene>> = match (layer.record.take(), frame.mode) {
-            (Some(_), Mode::Extend) => {
-                let carried: BTreeSet<usize> = frame.carried.iter().copied().collect();
-                layer
-                    .rows
-                    .rows
-                    .iter()
-                    .filter(|(ix, _)| carried.contains(ix))
-                    .map(|(_, row)| row.part.scene.clone())
-                    .collect()
-            }
+            (Some(_), Mode::Extend) => frame
+                .carried
+                .iter()
+                .filter(|ix| frame.visible.contains(ix))
+                .filter_map(|ix| layer.rows.rows.get(ix))
+                .map(|row| row.part.scene.clone())
+                .collect(),
             _ => Vec::new(),
         };
         for scene in kept {
             paint::draw_into_frame(window, &scene.paint_operations, frame.translation);
         }
         let operations = &painted.paint_operations;
+        let mut hidden: Vec<Range<usize>> = paint
+            .spans
+            .iter()
+            .filter(|span| !span.shown.get())
+            .map(|span| span.operations.clone())
+            .collect();
+        hidden.sort_by_key(|range| range.start);
+        let mut draw = |window: &mut Window, range: Range<usize>| {
+            for shown in outside_spans(range, hidden.clone()) {
+                paint::draw_into_frame(window, &operations[shown], Point::default());
+            }
+        };
         let mut drawn = 0;
         for (at, surface) in &surface_switches {
-            paint::draw_into_frame(window, &operations[drawn..*at], Point::default());
+            draw(window, drawn..*at);
             crate::fast::composition::switch_surface(window, *surface);
             drawn = *at;
         }
-        paint::draw_into_frame(window, &operations[drawn..], Point::default());
+        draw(window, drawn..operations.len());
         clear_rows(window, id, &frame);
         policy::defer_unbaked(window, id);
         policy::count_bypass(window, policy::Bypass::Ineligible);
@@ -3483,7 +3594,7 @@ pub(crate) fn end_paint_rows(window: &mut Window, cx: &mut App, id: Option<&Glob
         let spills = reach.is_some_and(|reach| {
             reach.top().0 < slot.top().0.floor() || reach.bottom().0 > slot.bottom().0.ceil()
         });
-        if spills {
+        if spills || span.unheld {
             rows.spilling.insert(span.row, slot.size.height);
             if !span.shown.get() {
                 continue;
@@ -3550,6 +3661,10 @@ pub(crate) fn end_paint_rows(window: &mut Window, cx: &mut App, id: Option<&Glob
                 tile_hashes,
                 has_paths,
                 translation,
+                foreign_hovers: span
+                    .hovers
+                    .iter()
+                    .any(|(id, _)| !hitboxes.iter().any(|hitbox| hitbox.id == *id)),
                 hitboxes,
                 hovers: span.hovers,
                 has_states,

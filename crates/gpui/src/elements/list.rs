@@ -1734,6 +1734,7 @@ impl StateInner {
                     &self.fast_version,
                     scroll_top.item_ix + ix,
                     size.is_some(),
+                    visible_height < available_height,
                 )
             {
                 let item_index = scroll_top.item_ix + ix;
@@ -2029,6 +2030,7 @@ impl StateInner {
         cx: &mut App,
     ) -> Result<LayoutItemsResponse, ListOffset> {
         window.transact(|window| {
+            crate::fast::layers::lists::begin_placing(window, self);
             match self.measuring_behavior {
                 ListMeasuringBehavior::Measure(has_measured) if !has_measured => {
                     self.layout_all_items(bounds.size.width, render_item, window, cx);
@@ -2052,7 +2054,6 @@ impl StateInner {
             if bounds.size.height > padding.top + padding.bottom {
                 let scroll_top = crate::fast::layers::lists::snap_scroll_top(
                     window,
-                    self,
                     self.scroll_top(&layout_response.scroll_top),
                 );
                 let scroll_offset = point(px(0.), -scroll_top);
@@ -2070,11 +2071,10 @@ impl StateInner {
                 layout_response.scroll_context = Some(scroll_context);
 
                 window.with_scroll_container_context(scroll_context, |window| {
-                    let first_row = layout_response.scroll_top.item_ix;
                     crate::fast::layers::lists::anchor_rows(
                         window,
                         self,
-                        first_row,
+                        layout_response.scroll_top.item_ix,
                         point(bounds.origin.x, bounds.origin.y + padding.top),
                         scroll_top,
                     );
@@ -2474,6 +2474,7 @@ impl Element for List {
             &state,
             &mut self.render_item,
             bounds,
+            padding.top,
             layout.scroll_context,
         );
 
@@ -2525,10 +2526,9 @@ impl Element for List {
         cx: &mut App,
     ) {
         let current_view = window.current_view();
-        let state = &self.state;
         let mut paint_items = |window: &mut Window, cx: &mut App| {
             window.with_content_mask(Some(ContentMask::rectangular(bounds)), |window| {
-                crate::fast::layers::lists::begin_paint_list(window, cx, state);
+                crate::fast::layers::lists::begin_paint_list(window, cx, &self.state);
                 for item in &mut prepaint.layout.item_layouts {
                     crate::fast::layers::lists::paint_row(
                         window,
@@ -2537,7 +2537,7 @@ impl Element for List {
                         |window, cx| item.element.paint(window, cx),
                     );
                 }
-                crate::fast::layers::lists::end_paint_list(window, cx, state);
+                crate::fast::layers::lists::end_paint_list(window, cx, &self.state);
             });
         };
         if let Some(scroll_context) = prepaint.layout.scroll_context {
