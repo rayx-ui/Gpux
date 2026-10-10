@@ -162,6 +162,9 @@ pub(crate) struct RetainedState {
     /// anything rules that out for the whole frame; worked out when the
     /// first view asks, once the frame knows whether AccessKit is active.
     frame_bypass: Option<Option<Bypass>>,
+    /// The retained views the deferred draw being drawn was deferred from:
+    /// what it defers in turn, or copies from last frame, is theirs too.
+    deferred_enclosing: EnclosingRetained,
 }
 
 /// Why no view is drawn from last frame: see `ViewBypassReason`, which
@@ -1007,15 +1010,11 @@ pub(crate) fn enclosing_retained(window: &Window) -> EnclosingRetained {
     if !active(window) {
         return EnclosingRetained::default();
     }
-    EnclosingRetained(
-        window
-            .next_frame
-            .fast_retained
-            .open
-            .iter()
-            .copied()
-            .collect(),
-    )
+    let mut enclosing = window.fast_retained_state.deferred_enclosing.clone();
+    enclosing
+        .0
+        .extend(window.next_frame.fast_retained.open.iter().copied());
+    enclosing
 }
 
 /// Something deferred from retained views, being prepainted or painted.
@@ -1041,6 +1040,7 @@ pub(crate) fn begin_deferred(
     if enclosing.0.is_empty() || !active(window) {
         return None;
     }
+    window.fast_retained_state.deferred_enclosing = enclosing.clone();
     Some(DeferredRecording {
         enclosing: enclosing.clone(),
         dependencies: cx.begin_recording_dependencies(),
@@ -1062,6 +1062,7 @@ pub(crate) fn finish_deferred(
     let Some(recording) = recording else {
         return;
     };
+    window.fast_retained_state.deferred_enclosing = EnclosingRetained::default();
     let hovers = crate::fast::dependencies::finish_recording(window, recording.hovers);
     let dependencies = cx.finish_recording_dependencies(recording.dependencies);
     let hitboxes = recording

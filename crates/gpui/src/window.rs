@@ -5761,12 +5761,11 @@ impl Window {
                 self.next_frame.dispatch_tree.set_active_node(parent_node);
 
                 let prepaint_start = self.prepaint_index();
+                let enclosing = self.next_frame.deferred_draws[deferred_draw_ix]
+                    .fast_enclosing
+                    .clone();
+                let recording = crate::fast::retained::begin_deferred(self, &enclosing, None, cx);
                 if let Some(mut element) = element {
-                    let enclosing = self.next_frame.deferred_draws[deferred_draw_ix]
-                        .fast_enclosing
-                        .clone();
-                    let recording =
-                        crate::fast::retained::begin_deferred(self, &enclosing, None, cx);
                     self.with_rendered_view(current_view, |window| {
                         window.with_rem_size(Some(rem_size), |window| {
                             window.with_absolute_element_offset(absolute_offset, |window| {
@@ -5776,11 +5775,11 @@ impl Window {
                             });
                         });
                     });
-                    crate::fast::retained::finish_deferred(self, recording, cx);
                     self.next_frame.deferred_draws[deferred_draw_ix].element = Some(element);
                 } else {
                     self.reuse_prepaint(prepaint_range);
                 }
+                crate::fast::retained::finish_deferred(self, recording, cx);
                 let prepaint_end = self.prepaint_index();
                 self.next_frame.deferred_draws[deferred_draw_ix].prepaint_range =
                     prepaint_start..prepaint_end;
@@ -5965,6 +5964,7 @@ impl Window {
             }
         }
 
+        let fast_enclosing = crate::fast::retained::enclosing_retained(self);
         self.next_frame.deferred_draws.extend(
             self.rendered_frame.deferred_draws
                 [range.start.deferred_draws_index..range.end.deferred_draws_index]
@@ -5981,7 +5981,9 @@ impl Window {
                     absolute_offset: deferred_draw.absolute_offset,
                     prepaint_range: deferred_draw.prepaint_range.clone(),
                     paint_range: deferred_draw.paint_range.clone(),
-                    fast_enclosing: Default::default(),
+                    // Copied with the views it was deferred from, it is a
+                    // part of the views around them that are being drawn.
+                    fast_enclosing: fast_enclosing.clone(),
                 }),
         );
     }

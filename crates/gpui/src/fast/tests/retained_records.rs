@@ -751,3 +751,65 @@ fn sticky_candidates_of_an_outer_scroll_container_stay_pinned() {
         pair.draw(&format!("step {step}"));
     }
 }
+
+/// A view whose content defers a hover-styled overlay, as a menu does.
+struct Popover;
+
+impl Render for Popover {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        div().size(px(40.)).child(deferred(
+            anchored().child(
+                div()
+                    .id("pop")
+                    .size(px(20.))
+                    .bg(crate::red())
+                    .hover(|style| style.bg(crate::blue())),
+            ),
+        ))
+    }
+}
+
+struct Around {
+    popover: Entity<Popover>,
+    tick: usize,
+}
+
+impl Render for Around {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        div()
+            .size(px(100.))
+            .child(self.popover.clone())
+            .child(format!("tick {}", self.tick))
+    }
+}
+
+/// Found by review: a deferred draw copied with the view that deferred it
+/// lost the records around it, so their hovers named hitboxes outside them
+/// and they were never drawn from last frame again. Copied, it is still a
+/// part of them: after the view around the popover is built once, still
+/// frames build nothing.
+#[test]
+fn a_copied_deferred_draw_stays_a_part_of_the_views_around_it() {
+    let mut pair = host(|_, cx| Around {
+        popover: cx.new(|_| Popover),
+        tick: 0,
+    });
+    let stats = pair.draw("still");
+    assert_eq!(stats.views_built, 0, "{stats:?}");
+    pair.update_app(|host, cx| {
+        let around = host.read(cx).child.clone();
+        around.update(cx, |around, cx| {
+            around.tick += 1;
+            cx.notify();
+        });
+    });
+    let stats = pair.draw("around built");
+    assert_eq!(
+        stats.views_built, 2,
+        "the host and the view around: {stats:?}"
+    );
+    for step in 0..3 {
+        let stats = pair.draw(&format!("still {step}"));
+        assert_eq!(stats.views_built, 0, "still {step}: {stats:?}");
+    }
+}
