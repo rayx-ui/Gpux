@@ -35,7 +35,13 @@ pub(crate) struct Row {
 impl Render for Row {
     fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
         let widening = 10_usize.pow((self.widening % 4) as u32) + self.widening;
-        let steady = 10 + self.steady % 90;
+        // The same glyphs in another order, so the cell is as wide whatever
+        // the font makes of each digit.
+        let steady = if self.steady.is_multiple_of(2) {
+            "1221"
+        } else {
+            "2112"
+        };
         div()
             .flex()
             .flex_row()
@@ -50,11 +56,7 @@ impl Render for Row {
                     .w(px(80.))
                     .child(SharedString::from(widening.to_string())),
             )
-            .child(
-                div()
-                    .w(px(80.))
-                    .child(SharedString::from(steady.to_string())),
-            )
+            .child(div().w(px(80.)).child(SharedString::from(steady)))
             .children((2..COLUMNS).map(|column| {
                 div()
                     .w(px(80.))
