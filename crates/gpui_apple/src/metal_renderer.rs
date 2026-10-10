@@ -64,8 +64,8 @@ impl Default for InstanceBufferPool {
 }
 
 pub(crate) struct InstanceBuffer {
-    metal_buffer: metal::Buffer,
-    size: usize,
+    pub(crate) metal_buffer: metal::Buffer,
+    pub(crate) size: usize,
 }
 
 impl InstanceBufferPool {
@@ -119,9 +119,9 @@ pub struct MetalRenderer {
     quads_pipeline_state: metal::RenderPipelineState,
     underlines_pipeline_state: metal::RenderPipelineState,
     monochrome_sprites_pipeline_state: metal::RenderPipelineState,
-    polychrome_sprites_pipeline_state: metal::RenderPipelineState,
+    pub(crate) polychrome_sprites_pipeline_state: metal::RenderPipelineState,
     surfaces_pipeline_state: metal::RenderPipelineState,
-    unit_vertices: metal::Buffer,
+    pub(crate) unit_vertices: metal::Buffer,
     #[allow(clippy::arc_with_non_send_sync)]
     pub(crate) instance_buffer_pool: Arc<Mutex<InstanceBufferPool>>,
     pub(crate) sprite_atlas: Arc<MetalAtlas>,
@@ -129,6 +129,7 @@ pub struct MetalRenderer {
     path_intermediate_texture: Option<metal::Texture>,
     path_intermediate_msaa_texture: Option<metal::Texture>,
     path_sample_count: u32,
+    pub(crate) fast_layers: crate::fast::layers::TileCache,
 }
 
 #[derive(Clone, Copy)]
@@ -387,6 +388,7 @@ impl MetalRenderer {
             path_intermediate_texture: None,
             path_intermediate_msaa_texture: None,
             path_sample_count: PATH_SAMPLE_COUNT,
+            fast_layers: Default::default(),
         }
     }
 
@@ -413,6 +415,7 @@ impl MetalRenderer {
     }
 
     pub fn update_drawable_size(&mut self, size: Size<DevicePixels>) {
+        crate::fast::layers::TileCache::clear(&mut self.fast_layers);
         if let Some(layer) = &self.layer {
             layer.set_drawable_size(CGSize::new(size.width.0 as f64, size.height.0 as f64));
         }
@@ -458,6 +461,9 @@ impl MetalRenderer {
     }
 
     pub fn update_transparency(&mut self, transparent: bool) {
+        if self.opaque == transparent {
+            crate::fast::layers::TileCache::clear(&mut self.fast_layers);
+        }
         self.opaque = !transparent;
         if let Some(layer) = &self.layer {
             layer.set_opaque(!transparent);
@@ -789,6 +795,16 @@ impl MetalRenderer {
         let command_buffer = command_queue.new_command_buffer();
         let alpha = if self.opaque { 1. } else { 0. };
         let mut instance_offset = 0;
+        if !crate::fast::layers::raster::rasterize_tiles(
+            self,
+            scene,
+            command_buffer,
+            instance_buffer,
+            &mut instance_offset,
+            viewport_size,
+        ) {
+            anyhow::bail!("scene too large: its scroll layer tiles do not fit");
+        }
 
         let mut command_encoder = new_command_encoder_for_texture(
             command_buffer,
@@ -887,6 +903,7 @@ impl MetalRenderer {
             };
             if !ok {
                 command_encoder.end_encoding();
+                crate::fast::layers::raster::frame_failed(self);
                 anyhow::bail!(
                     "scene too large: {} paths, {} shadows, {} quads, {} underlines, {} mono, {} poly, {} surfaces",
                     scene.paths.len(),
@@ -1015,7 +1032,7 @@ impl MetalRenderer {
         true
     }
 
-    fn draw_shadows(
+    pub(crate) fn draw_shadows(
         &self,
         shadows: &[Shadow],
         instance_buffer: &mut InstanceBuffer,
@@ -1078,7 +1095,7 @@ impl MetalRenderer {
         true
     }
 
-    fn draw_quads(
+    pub(crate) fn draw_quads(
         &self,
         quads: &[Quad],
         instance_buffer: &mut InstanceBuffer,
@@ -1244,7 +1261,7 @@ impl MetalRenderer {
         true
     }
 
-    fn draw_underlines(
+    pub(crate) fn draw_underlines(
         &self,
         underlines: &[Underline],
         instance_buffer: &mut InstanceBuffer,
@@ -1307,7 +1324,7 @@ impl MetalRenderer {
         true
     }
 
-    fn draw_monochrome_sprites(
+    pub(crate) fn draw_monochrome_sprites(
         &self,
         texture_id: AtlasTextureId,
         sprites: &[MonochromeSprite],
@@ -1384,7 +1401,7 @@ impl MetalRenderer {
         true
     }
 
-    fn draw_polychrome_sprites(
+    pub(crate) fn draw_polychrome_sprites(
         &self,
         texture_id: AtlasTextureId,
         sprites: &[PolychromeSprite],
@@ -1395,6 +1412,17 @@ impl MetalRenderer {
     ) -> bool {
         if sprites.is_empty() {
             return true;
+        }
+        if crate::fast::layers::composite::is_layer_texture(texture_id) {
+            return crate::fast::layers::composite::draw_tiles(
+                self,
+                texture_id,
+                sprites,
+                instance_buffer,
+                instance_offset,
+                viewport_size,
+                command_encoder,
+            );
         }
         align_offset(instance_offset);
 
@@ -1566,7 +1594,7 @@ impl MetalRenderer {
     }
 }
 
-fn new_command_encoder_for_texture<'a>(
+pub(crate) fn new_command_encoder_for_texture<'a>(
     command_buffer: &'a metal::CommandBufferRef,
     texture: &'a metal::TextureRef,
     viewport_size: Size<DevicePixels>,
@@ -1773,7 +1801,7 @@ fn color_space_to_u32(color_space: ColorSpace) -> u32 {
 }
 
 // Align to multiples of 256 make Metal happy.
-fn align_offset(offset: &mut usize) {
+pub(crate) fn align_offset(offset: &mut usize) {
     *offset = (*offset).div_ceil(256) * 256;
 }
 
@@ -1800,7 +1828,7 @@ enum UnderlineInputIndex {
 }
 
 #[repr(C)]
-enum SpriteInputIndex {
+pub(crate) enum SpriteInputIndex {
     Vertices = 0,
     Sprites = 1,
     ViewportSize = 2,
@@ -1840,7 +1868,7 @@ pub struct SurfaceBounds {
 
 #[cfg(any(test, feature = "bench-support", feature = "test-support"))]
 pub struct MetalHeadlessRenderer {
-    renderer: MetalRenderer,
+    pub(crate) renderer: MetalRenderer,
 }
 
 #[cfg(any(test, feature = "bench-support", feature = "test-support"))]
@@ -1877,6 +1905,10 @@ impl gpux::PlatformHeadlessRenderer for MetalHeadlessRenderer {
 
     // gpux's Metal renderer has no shader-effect pipelines yet, so it keeps the default
     // `effect_capabilities()` (no effects) rather than claiming support it cannot render.
+
+    fn rasterizes_layer_tiles(&self) -> bool {
+        true
+    }
 
     fn gpu_specs(&self) -> Option<gpux::GpuSpecs> {
         Some(gpux::GpuSpecs {

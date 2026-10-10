@@ -2134,6 +2134,11 @@ impl PlatformWindow for MacWindow {
         crate::fast::composition::draw_composed(&self.0, scene)
     }
 
+    fn rasterizes_layer_tiles(&self) -> bool {
+        // The Metal renderer does (`gpui_apple`'s `fast::layers`).
+        true
+    }
+
     fn enable_window_composition(&self) -> anyhow::Result<()> {
         crate::fast::composition::enable_window_composition(&self.0)
     }

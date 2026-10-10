@@ -17,6 +17,13 @@ float4 premultiplied_oklab_to_srgb(float4 color);
 float4 to_device_position(float2 unit_vertex, Bounds_ScaledPixels bounds,
                           constant Size_DevicePixels *viewport_size);
 float2 transform_position(float2 position, TransformationMatrix transformation);
+bool transformation_is_unit(TransformationMatrix transformation);
+float2 local_fragment_position(float2 interpolated, float4 fragment_position,
+                               TransformationMatrix transformation);
+float2 local_tile_position(float2 interpolated, float2 local_position,
+                           Bounds_ScaledPixels bounds, AtlasTile tile,
+                           texture2d<float> atlas_texture,
+                           TransformationMatrix transformation);
 float4 to_device_position_transformed(float2 unit_vertex, Bounds_ScaledPixels bounds,
                           TransformationMatrix transformation,
                           constant Size_DevicePixels *input_viewport_size);
@@ -99,12 +106,14 @@ fragment float4 quad_fragment(QuadFragmentInput input [[stage_in]],
                               constant GradientStop *gradient_stops
                               [[buffer(QuadInputIndex_GradientStops)]]) {
   Quad quad = quads[input.quad_id];
-  if (content_mask_sdf(transform_position(input.local_position, quad.transformation), quad.content_mask) > 0.0) {
+  float2 local_position =
+      local_fragment_position(input.local_position, input.position, quad.transformation);
+  if (content_mask_sdf(transform_position(local_position, quad.transformation), quad.content_mask) > 0.0) {
     return float4(0.0);
   }
 
   float4 background_color =
-    fill_color(quad.background, input.local_position, quad.bounds, gradient_stops);
+    fill_color(quad.background, local_position, quad.bounds, gradient_stops);
 
   bool unrounded = quad.corner_radii.top_left == 0.0 &&
     quad.corner_radii.bottom_left == 0.0 &&
@@ -122,14 +131,14 @@ fragment float4 quad_fragment(QuadFragmentInput input [[stage_in]],
 
   float2 size = float2(quad.bounds.size.width, quad.bounds.size.height);
   float2 half_size = size / 2.0;
-  float2 point = input.local_position - float2(quad.bounds.origin.x, quad.bounds.origin.y);
+  float2 point = local_position - float2(quad.bounds.origin.x, quad.bounds.origin.y);
   float2 center_to_point = point - half_size;
 
   // Keep the feather width in screen space so rotated/scaled quads stay
   // antialiased instead of using a fixed local-space cutoff.
   const float antialias_threshold = 0.5 * max(
-    length(float2(dfdx(input.local_position.x), dfdy(input.local_position.x))),
-    length(float2(dfdx(input.local_position.y), dfdy(input.local_position.y))));
+    length(float2(dfdx(local_position.x), dfdy(local_position.x))),
+    length(float2(dfdx(local_position.y), dfdy(local_position.y))));
 
   // Radius of the nearest corner
   float corner_radius = pick_corner_radius(center_to_point, quad.corner_radii);
@@ -216,7 +225,7 @@ fragment float4 quad_fragment(QuadFragmentInput input [[stage_in]],
   float outer_coverage = saturate(antialias_threshold - outer_sdf);
   if (border_sdf < antialias_threshold) {
     float4 border_color =
-      fill_color(quad.border_color, input.local_position, quad.bounds, gradient_stops);
+      fill_color(quad.border_color, local_position, quad.bounds, gradient_stops);
     float3 border_straight_color = border_color.rgb / max(border_color.a, 0.000001);
 
     // Dashed border logic when border_style == 1
@@ -539,7 +548,9 @@ fragment float4 shadow_fragment(ShadowFragmentInput input [[stage_in]],
                                 constant Shadow *shadows
                                 [[buffer(ShadowInputIndex_Shadows)]]) {
   Shadow shadow = shadows[input.shadow_id];
-  if (content_mask_sdf(transform_position(input.local_position, shadow.transformation), shadow.content_mask) > 0.0) {
+  float2 local_position =
+      local_fragment_position(input.local_position, input.position, shadow.transformation);
+  if (content_mask_sdf(transform_position(local_position, shadow.transformation), shadow.content_mask) > 0.0) {
     return float4(0.0);
   }
 
@@ -547,7 +558,7 @@ fragment float4 shadow_fragment(ShadowFragmentInput input [[stage_in]],
   float2 size = float2(shadow.bounds.size.width, shadow.bounds.size.height);
   float2 half_size = size / 2.;
   float2 center = origin + half_size;
-  float2 point = input.local_position - center;
+  float2 point = local_position - center;
   float corner_radius;
   if (point.x < 0.) {
     if (point.y < 0.) {
@@ -565,7 +576,7 @@ fragment float4 shadow_fragment(ShadowFragmentInput input [[stage_in]],
 
   float alpha;
   if (shadow.blur_radius == 0.) {
-    float distance = quad_sdf(input.local_position, shadow.bounds, shadow.corner_radii);
+    float distance = quad_sdf(local_position, shadow.bounds, shadow.corner_radii);
     alpha = saturate(0.5 - distance);
   } else {
     // The signal is only non-zero in a limited range, so don't waste samples
@@ -590,7 +601,7 @@ fragment float4 shadow_fragment(ShadowFragmentInput input [[stage_in]],
     // An inset shadow is the complement of the blurred hole, clipped to the
     // rounded element bounds.
     alpha = 1. - alpha;
-    float element_distance = quad_sdf(input.local_position, shadow.element_bounds,
+    float element_distance = quad_sdf(local_position, shadow.element_bounds,
                                       shadow.element_corner_radii);
     alpha *= saturate(0.5 - element_distance);
   }
@@ -644,7 +655,9 @@ fragment float4 underline_fragment(UnderlineFragmentInput input [[stage_in]],
   const float WAVE_HEIGHT_RATIO = 0.8;
 
   Underline underline = underlines[input.underline_id];
-  if (content_mask_sdf(transform_position(input.local_position, underline.transformation), underline.content_mask) > 0.0) {
+  float2 local_position =
+      local_fragment_position(input.local_position, input.position, underline.transformation);
+  if (content_mask_sdf(transform_position(local_position, underline.transformation), underline.content_mask) > 0.0) {
     return float4(0.0);
   }
 
@@ -653,7 +666,7 @@ fragment float4 underline_fragment(UnderlineFragmentInput input [[stage_in]],
     float2 origin =
         float2(underline.bounds.origin.x, underline.bounds.origin.y);
 
-    float2 st = ((input.local_position - origin) / underline.bounds.size.height) -
+    float2 st = ((local_position - origin) / underline.bounds.size.height) -
                 float2(0., 0.5);
     float frequency = (M_PI_F * WAVE_FREQUENCY * underline.thickness) / underline.bounds.size.height;
     float amplitude = (underline.thickness * WAVE_HEIGHT_RATIO) / underline.bounds.size.height;
@@ -726,14 +739,18 @@ fragment float4 monochrome_sprite_fragment(
   }
 
   MonochromeSprite sprite = sprites[input.sprite_id];
-  if (content_mask_sdf(transform_position(input.local_position, sprite.transformation), sprite.content_mask) > 0.0) {
+  float2 local_position =
+      local_fragment_position(input.local_position, input.position, sprite.transformation);
+  float2 tile_position = local_tile_position(input.tile_position, local_position, sprite.bounds,
+                                             sprite.tile, atlas_texture, sprite.transformation);
+  if (content_mask_sdf(transform_position(local_position, sprite.transformation), sprite.content_mask) > 0.0) {
     return float4(0.0);
   }
 
   constexpr sampler atlas_texture_sampler(mag_filter::linear,
                                           min_filter::linear);
   float4 sample =
-      atlas_texture.sample(atlas_texture_sampler, input.tile_position);
+      atlas_texture.sample(atlas_texture_sampler, tile_position);
   return input.color * sample.a;
 }
 
@@ -783,16 +800,20 @@ fragment float4 polychrome_sprite_fragment(
     constant PolychromeSprite *sprites [[buffer(SpriteInputIndex_Sprites)]],
     texture2d<float> atlas_texture [[texture(SpriteInputIndex_AtlasTexture)]]) {
   PolychromeSprite sprite = sprites[input.sprite_id];
-  if (content_mask_sdf(transform_position(input.local_position, sprite.transformation), sprite.content_mask) > 0.0) {
+  float2 local_position =
+      local_fragment_position(input.local_position, input.position, sprite.transformation);
+  float2 tile_position = local_tile_position(input.tile_position, local_position, sprite.bounds,
+                                             sprite.tile, atlas_texture, sprite.transformation);
+  if (content_mask_sdf(transform_position(local_position, sprite.transformation), sprite.content_mask) > 0.0) {
     return float4(0.0);
   }
 
   constexpr sampler atlas_texture_sampler(mag_filter::linear,
                                           min_filter::linear);
   float4 sample =
-      atlas_texture.sample(atlas_texture_sampler, input.tile_position);
+      atlas_texture.sample(atlas_texture_sampler, tile_position);
   float distance =
-      quad_sdf(input.local_position, sprite.bounds, sprite.corner_radii);
+      quad_sdf(local_position, sprite.bounds, sprite.corner_radii);
 
   // The atlas holds straight alpha; premultiply like the rest of the paint.
   float3 straight_rgb = sample.rgb;
@@ -800,7 +821,10 @@ fragment float4 polychrome_sprite_fragment(
     float grayscale = 0.2126 * straight_rgb.r + 0.7152 * straight_rgb.g + 0.0722 * straight_rgb.b;
     straight_rgb = float3(grayscale);
   }
-  float4 color = float4(straight_rgb * sample.a, sample.a);
+  // A scroll layer tile (`pad` is `gpux::LAYER_TILE_PREMULTIPLIED`) holds what was
+  // drawn into it, which is premultiplied already.
+  float alpha = sprite.pad != 0 ? 1.0 : sample.a;
+  float4 color = float4(straight_rgb * alpha, sample.a);
   return color * (sprite.opacity * saturate(0.5 - distance));
 }
 
@@ -1070,6 +1094,44 @@ float2 transform_position(float2 position, TransformationMatrix transformation) 
   return transformed_position;
 }
 
+// Whether `transformation` leaves every position where it is.
+bool transformation_is_unit(TransformationMatrix transformation) {
+  return transformation.rotation_scale[0][0] == 1.0 &&
+         transformation.rotation_scale[0][1] == 0.0 &&
+         transformation.rotation_scale[1][0] == 0.0 &&
+         transformation.rotation_scale[1][1] == 1.0 &&
+         transformation.translation[0] == 0.0 &&
+         transformation.translation[1] == 0.0;
+}
+
+// The position within its primitive a fragment shades, before the primitive's
+// transformation. For an untransformed primitive that is the fragment's own
+// position, which is exact. The interpolated position is not: it differs in
+// its last bits with what the rasterizer clips the primitive to, so a
+// primitive would not shade alike in the window and in a scroll layer tile
+// whose edge it crosses.
+float2 local_fragment_position(float2 interpolated, float4 fragment_position,
+                               TransformationMatrix transformation) {
+  return transformation_is_unit(transformation) ? fragment_position.xy : interpolated;
+}
+
+// Where in its atlas texture a sprite's fragment samples: computed from the
+// fragment's own position for an untransformed sprite, as
+// `local_fragment_position` is.
+float2 local_tile_position(float2 interpolated, float2 local_position,
+                           Bounds_ScaledPixels bounds, AtlasTile tile,
+                           texture2d<float> atlas_texture,
+                           TransformationMatrix transformation) {
+  float2 atlas_size = float2(atlas_texture.get_width(), atlas_texture.get_height());
+  float2 unit_position =
+      (local_position - float2(bounds.origin.x, bounds.origin.y)) /
+      float2(bounds.size.width, bounds.size.height);
+  float2 tile_origin = float2(tile.bounds.origin.x, tile.bounds.origin.y);
+  float2 tile_size = float2(tile.bounds.size.width, tile.bounds.size.height);
+  float2 exact = (tile_origin + unit_position * tile_size) / atlas_size;
+  return transformation_is_unit(transformation) ? exact : interpolated;
+}
+
 float4 to_device_position_transformed(float2 unit_vertex, Bounds_ScaledPixels bounds,
                           TransformationMatrix transformation,
                           constant Size_DevicePixels *input_viewport_size) {
@@ -1315,7 +1377,12 @@ float4 fill_color(
       // ±2/255 of straight RGB (enough for dark-on-dark compositing), scaled by
       // alpha so the premultiplied color stays valid.
       {
-        float2 seed = position * 0.6180339887; // golden ratio spread
+        // Seeded by the pixel within the quad, so that a quad draws the same
+        // pixels wherever it is: in the window, or in a scroll layer tile. A
+        // quad's bounds lie on device pixels, so the pixel is a whole number
+        // however the position was rounded on its way here.
+        float2 seed = floor(position - float2(bounds.origin.x, bounds.origin.y)) *
+                      0.6180339887; // golden ratio spread
         float r1 = fract(sin(dot(seed, float2(12.9898, 78.233))) * 43758.5453);
         float r2 = fract(sin(dot(seed, float2(39.3460, 11.135))) * 24634.6345);
         float tri = r1 + r2 - 1.0; // triangular PDF, range [-1, +1]

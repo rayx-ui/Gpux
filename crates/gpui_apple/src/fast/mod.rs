@@ -2,3 +2,4 @@
 //! gpux (see `docs/upstream/gpui-fast.md`).
 
 pub mod composition;
+pub(crate) mod layers;
