@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 75,
+  "revision": 78,
   "planRevision": 12,
   "specHashes": {
     "requirements": "9a032d1345bbc15ddac8a565144cc02934f65cee34ff9fbb7e0ef3453253fcf0",
@@ -148,19 +148,19 @@
       ]
     },
     "t24-splice": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "claude-240e1cb7"
       ]
     },
     "t25-own-dirty": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "claude-240e1cb7"
       ]
     },
     "t26-oracle-splice": {
-      "status": "implemented",
+      "status": "done",
       "workerIds": [
         "claude-240e1cb7"
       ]
@@ -308,14 +308,14 @@
       },
       "recordedAt": "2026-10-10T00:06:23Z"
     },
-    "fbe2c325e5ce062241cf3d732442587a7d73c6bbb752d9291a1c5c15e187ab24": {
+    "e9cf1a59a11be36270d5a086a8fabccfaec65f8e7a18a368ae8621eb222ddf84": {
       "snapshot": {
         "specHash": "9cf17136f245c3f50c88e11f4534517bb42b808da4724e9a86a692865724e051",
         "repositories": {
-          "gpux": "929c1fbd4d9a0099895204f92093d5e41f4e62b07db3a416821d0b3fc503f858"
+          "gpux": "e7364ad22c016469306f47d8097b608af5969f81f88d072020abaadbe5f2e1a2"
         }
       },
-      "recordedAt": "2026-10-10T00:32:11Z"
+      "recordedAt": "2026-10-10T00:50:01Z"
     }
   },
   "checkResults": {
@@ -799,69 +799,69 @@
       "checkId": "check-attribution",
       "boundaryId": "s06-splice",
       "phase": "final",
-      "batchId": "fbe2c325e5ce062241cf3d732442587a7d73c6bbb752d9291a1c5c15e187ab24",
+      "batchId": "e9cf1a59a11be36270d5a086a8fabccfaec65f8e7a18a368ae8621eb222ddf84",
       "definitionHash": "b82e7feef64210ed76175fef9ab5b0339af24962e55e46b6ea32da027de45969",
-      "basisHash": "99a22ebfc78d26d4a6d7b266100d54729efa476b55a9bce07a8cc5ccc75dffcd",
+      "basisHash": "386bf63ec80ff61e7442a404446f9d27147fbc924b1d8fb947aa34ef26248ec4",
       "status": "passed",
       "exitCode": 0,
       "testCount": 19,
-      "durationSeconds": 25.0262,
-      "recordedAt": "2026-10-10T00:31:56Z",
+      "durationSeconds": 27.8671,
+      "recordedAt": "2026-10-10T00:49:50Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s06-splice-final-b65664dbfaa3.log",
-      "logSha256": "7d2e744e5ff2c10c49068c14222d1115ef93cb100dd80ffc32262872ba098f8e",
-      "inputsHash": "1f69e3f598de691d8cf400db3ab325f29b14f509ef847d425c9b5977a40ce597"
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s06-splice-final-b07c34b1e30a.log",
+      "logSha256": "5321c35487807e85774f24f627cc4f99692fac84e65c2d113428ce59af9f82ea",
+      "inputsHash": "b7f3810ae98279af687555d34d8783bc7c36391bd88b5dade8ce85898347580a"
     },
     "s06-splice/check-splice/final": {
       "checkId": "check-splice",
       "boundaryId": "s06-splice",
       "phase": "final",
-      "batchId": "fbe2c325e5ce062241cf3d732442587a7d73c6bbb752d9291a1c5c15e187ab24",
+      "batchId": "e9cf1a59a11be36270d5a086a8fabccfaec65f8e7a18a368ae8621eb222ddf84",
       "definitionHash": "7359b89c8ebac14074c587a3b89383cf099cd39e3d3d7b156cc690bd2ed47a34",
-      "basisHash": "474a8e8ad1b7a37d13636a3648c96d606ca1443daf24ceac0e78c59a0ffc56f4",
+      "basisHash": "d0bb58058c495fff8de9b1aaa8677f5c24992a2b8c3738ab9a8b42c292752b34",
       "status": "passed",
       "exitCode": 0,
-      "testCount": 7,
-      "durationSeconds": 6.4291,
-      "recordedAt": "2026-10-10T00:32:02Z",
+      "testCount": 8,
+      "durationSeconds": 0.7051,
+      "recordedAt": "2026-10-10T00:49:51Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s06-splice-final-73e2ae56042b.log",
-      "logSha256": "aee805f6d9de80340a73fe7aa0e72071f721ae9a8efcb7225ec21302b65f9d15",
-      "inputsHash": "1f69e3f598de691d8cf400db3ab325f29b14f509ef847d425c9b5977a40ce597"
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s06-splice-final-6b0425dcaff1.log",
+      "logSha256": "c5596630fedf091cd64a66cccb859a33d82dfc36073806740e104a1132c506d8",
+      "inputsHash": "b7f3810ae98279af687555d34d8783bc7c36391bd88b5dade8ce85898347580a"
     },
     "s06-splice/check-own-dirty/final": {
       "checkId": "check-own-dirty",
       "boundaryId": "s06-splice",
       "phase": "final",
-      "batchId": "fbe2c325e5ce062241cf3d732442587a7d73c6bbb752d9291a1c5c15e187ab24",
+      "batchId": "e9cf1a59a11be36270d5a086a8fabccfaec65f8e7a18a368ae8621eb222ddf84",
       "definitionHash": "2399a8fc42e331667d6c1bd53de6098300a46fd19207220aa3a4b46af0d7c6ea",
-      "basisHash": "24d6aec4fe75b7604091fc7851ce9a3e26f5d2eaf3f444427dd1b9cb3e492181",
+      "basisHash": "3bc38c898c22ca02f575e3fe840052b4984bcba7dc9d86b226eecc5f2feb4b8f",
       "status": "passed",
       "exitCode": 0,
       "testCount": 5,
-      "durationSeconds": 0.2627,
-      "recordedAt": "2026-10-10T00:32:03Z",
+      "durationSeconds": 0.2617,
+      "recordedAt": "2026-10-10T00:49:51Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s06-splice-final-18835959819b.log",
-      "logSha256": "98279f677fab68f2dc8f8235ef33f0b0abb12618b0ddd45c3352fe9efdb9a70d",
-      "inputsHash": "1f69e3f598de691d8cf400db3ab325f29b14f509ef847d425c9b5977a40ce597"
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s06-splice-final-04710cd2f6cd.log",
+      "logSha256": "734f963738a7c1621013ce01c29e0c41a1b171178097d7fbbeb43b25a71195fc",
+      "inputsHash": "b7f3810ae98279af687555d34d8783bc7c36391bd88b5dade8ce85898347580a"
     },
     "s06-splice/check-oracle-splice/final": {
       "checkId": "check-oracle-splice",
       "boundaryId": "s06-splice",
       "phase": "final",
-      "batchId": "fbe2c325e5ce062241cf3d732442587a7d73c6bbb752d9291a1c5c15e187ab24",
+      "batchId": "e9cf1a59a11be36270d5a086a8fabccfaec65f8e7a18a368ae8621eb222ddf84",
       "definitionHash": "882e7a5bc729b09d37ac17e960de37b39e816cc5061a4eb1a6b706fd0a5b0af8",
-      "basisHash": "d52a6f498491b4a85332416abc0df2be1e48d3bc30e3b664e4deeb23eef27c59",
+      "basisHash": "a3378f31cbfd0b76828aaf05f28238a15dcd864f0100e6e11be4e3cb1d9bc799",
       "status": "passed",
       "exitCode": 0,
       "testCount": 2,
-      "durationSeconds": 8.6114,
-      "recordedAt": "2026-10-10T00:32:11Z",
+      "durationSeconds": 9.1135,
+      "recordedAt": "2026-10-10T00:50:01Z",
       "messageMarkdown": "Expectation matched",
-      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s06-splice-final-3999d38b17b0.log",
-      "logSha256": "2674b2a99666268686dcbdbf8e998c8d0f2cb2033758a3b849434018eb7060f0",
-      "inputsHash": "1f69e3f598de691d8cf400db3ab325f29b14f509ef847d425c9b5977a40ce597"
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s06-splice-final-b9aaad471b01.log",
+      "logSha256": "3ea63ee532743fa922772968b30635c8f2e341c7da7c54f3dee6e21d17dc3544",
+      "inputsHash": "b7f3810ae98279af687555d34d8783bc7c36391bd88b5dade8ce85898347580a"
     }
   },
   "reviews": {
@@ -2017,6 +2017,127 @@
         "s05-replayed-deferred-loses-enclosing"
       ],
       "recordedAt": "2026-10-10T00:07:59Z"
+    },
+    "s06-splice": {
+      "reviewerId": "claude-reviewer-s06-7f3c91a2",
+      "snapshotId": "e9cf1a59a11be36270d5a086a8fabccfaec65f8e7a18a368ae8621eb222ddf84",
+      "criterionIds": [
+        "PERF-2",
+        "SPL-1",
+        "SPL-2",
+        "SPL-3"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/splice.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SPL-1",
+            "SPL-3"
+          ],
+          "sha256": "a0c7c32d02aae520cd8fbb0af5af2144e2ce4594abd245d4a3c09628941a9afa"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/retained.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SPL-1",
+            "SPL-2"
+          ],
+          "sha256": "4327cb38a6e025a1848d43fada90cf8a208d203d924b58c75e9f6b60a3919aea"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/view.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SPL-1"
+          ],
+          "sha256": "5b9759f90f93f1a8cd3f0399c06b07da25b0abfb258e48cc748bb9bbd19676f0"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SPL-1",
+            "SPL-2"
+          ],
+          "sha256": "7b7bd961913a7b1232bb50651388d68fc6e628586d6e0fb227e6ed45aa148ebe"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layout.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SPL-1"
+          ],
+          "sha256": "7a4f7637a3055c4c135ab2a7bea3b416647a220c5ccb76c3ba9e1078f83c08af"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layout_key.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SPL-1"
+          ],
+          "sha256": "e7f36169660918775366691dff2ec54ffe24f45190fce57c76fa376858c11c6f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/scenarios/panels.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-2"
+          ],
+          "sha256": "97b0b476b3a5b970acbb6a0557b63b09e37d6edb7e7cf8ace0b0e127c6898faf"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/splice.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SPL-1"
+          ],
+          "sha256": "d7980f3d934dc275dd64f585849af0b3bc481767021b1f7d0e64e6d0325ec7ef"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/own_dirty.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SPL-2"
+          ],
+          "sha256": "44a790ca12f768ce6e68f8dff4e9e5ddf5b7d1a995d9d00e22ae3bc6664df742"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/oracle_splice.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SPL-3"
+          ],
+          "sha256": "edce0abb1884456a7d8b954db023ecf667b11a56a650867da42766729c550e1d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/fast_mode_attribution.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PERF-2"
+          ],
+          "sha256": "8ee408f77e03591da00436a3b965b2fed1d1f324319a4eda315d776b4999b968"
+        }
+      ],
+      "summaryMarkdown": "I verified the repair `285de45` against source. The four sprint checks passed again; I reused that evidence. I also reused the coordinator's 300-seed splice oracle run with the new `LeafListener` change, and my earlier 1,000-seed run.\n\nBoth findings are resolved:\n- A gap's change in hitboxes now reaches every copied DevKit ancestor, so spliced DevKit trees equal the from-scratch ones.\n- Splice's rebuild handle and notified set cost nothing unless splice is on.\n\nEverything the first review found sound still holds: the splice conditions, the abandon path, gap inheritance, own-dirty marking and the attribution.",
+      "findingIds": [
+        "s06-stale-enclosing-devkit-hitbox-count",
+        "s06-off-path-rebuild-handle"
+      ],
+      "recordedAt": "2026-10-10T00:52:15Z"
     }
   },
   "checkpoints": {
@@ -2506,6 +2627,61 @@
           "repositoryId": "gpux",
           "path": "crates/gpui/src/fast/tests/retained_records.rs",
           "symbol": "a_copied_deferred_draw_stays_a_part_of_the_views_around_it"
+        }
+      ]
+    },
+    {
+      "id": "s06-stale-enclosing-devkit-hitbox-count",
+      "boundaryId": "s06-splice",
+      "criterionIds": [
+        "SPL-1",
+        "SPL-3"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved (285de45).** `splice_prepaint` computes each gap's change in hitboxes: this frame's gap record range minus last frame's. It adds the change to the gap element's DevKit node and to every parent of it whose id lies in a stretch the splice copied (`StretchCopy::copied_devtools_id`), up to the spliced view's root. Nodes outside the spliced view are drawn live and count correctly already.\n\n`splice::devkit_nodes_around_a_gap_count_its_new_hitboxes` reproduces the reviewer's wrapper plus toggled `on_click` scenario. The oracle gains `Change::LeafListener`, which toggles a click listener on the nested leaf without changing its layout key, so the splice oracle now exercises a gap whose hitbox count changes.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/splice.rs",
+          "symbol": "splice_prepaint"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/splice.rs",
+          "symbol": "devkit_nodes_around_a_gap_count_its_new_hitboxes"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/oracle_support.rs",
+          "symbol": "Change"
+        }
+      ]
+    },
+    {
+      "id": "s06-off-path-rebuild-handle",
+      "boundaryId": "s06-splice",
+      "criterionIds": [
+        "SPL-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved (285de45).** `ViewElement` now holds `fast::splice::Rebuildable<V>`. The `IntoElement` impls and `cached()` constructors set only a `fn(&V) -> AnyView` pointer. `splice::capture` makes the `AnyView` in `request_layout` only when the window's mode has splice on and view retention is active, so a frame with fast mode off takes no extra entity handle. `note_notified` keeps the notified set only with splice on.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/splice.rs",
+          "symbol": "capture"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/view.rs",
+          "symbol": "ViewElement"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/retained.rs",
+          "symbol": "note_notified"
         }
       ]
     }
