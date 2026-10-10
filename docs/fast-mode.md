@@ -138,9 +138,15 @@ external surface where it is laid out, handing it device-pixel bounds only when 
   unchanged. The first composed frame is drawn afresh.
 
 Platforms: macOS (overlay `NSView`s on `CAMetalLayer`s sharing the window renderer's device,
-instance buffers and atlas; the overlay takes mouse events only within its input region). wgpu
-platforms share the window's GPU context, atlas and pipelines through
-`WgpuRenderer::new_sharing`.
+instance buffers and atlas; the overlay takes mouse events only within its input region).
+Wayland (synchronized overlay subsurfaces and desynchronized native subsurfaces handing out
+`RawWindowHandle::Wayland`, sized through `wp_viewport`, the overlays committed before the base;
+an overlay's input region is its content). X11 (native child windows; GPUI content above them is
+cut out of their shape, or, under a compositing manager with an ARGB visual, drawn into a
+transparent override-redirect overlay window whose input shape is its content). wgpu platforms
+share the window's GPU context, atlas and pipelines through `WgpuRenderer::new_sharing`. On
+Wayland the placements, geometry and input regions handed to the compositor are logged at debug
+level under `gpux::composition`.
 
 ## Measuring
 
