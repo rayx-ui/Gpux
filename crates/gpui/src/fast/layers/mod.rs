@@ -147,17 +147,28 @@ pub(crate) fn active(window: &Window, cx: &App) -> bool {
         && !window.is_inspector_picking(cx)
 }
 
-/// Ends the frame being drawn: the scrolls before it are taken in, and the
+/// Ends the frame being drawn: the scrolls before it are taken in, the
 /// layers not composited for long, or painted for another window size or
-/// scale factor, are dropped.
+/// scale factor, are dropped, and a frame drawn from scratch leaves no layer
+/// content painted before it.
 pub(crate) fn finish_frame(window: &mut Window) {
     if !window.fast_mode.scroll_layers() {
         return;
     }
     policy::drop_layers_on_resize(window);
+    let refreshed = window.refreshing;
     let layers = &mut window.fast_layers;
     let frame = layers.frame;
     policy::finish_frame(layers);
+    if refreshed {
+        // The frame was drawn from scratch: for a change no dependency
+        // records, or because the renderer lost its sprite atlas, whose
+        // tiles the content kept would still name. No layer keeps content
+        // painted before it.
+        for layer in layers.layers.values_mut() {
+            policy::forget_content(layer);
+        }
+    }
     layers.layers.retain(|_, layer| policy::keep(layer, frame));
     let live = &layers.layers;
     layers

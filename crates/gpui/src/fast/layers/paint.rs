@@ -26,8 +26,8 @@ use crate::{
             policy::{self, Decision},
             record::LayerRecord,
             scene::{
-                LayerContent, LayerFrame, LayerKey, decode_layer_tile, layer_tile_id,
-                layer_tile_texture_id, translate_primitive, visible_bounds,
+                LAYER_TILE_PREMULTIPLIED, LayerContent, LayerFrame, LayerKey, decode_layer_tile,
+                layer_tile_id, layer_tile_texture_id, translate_primitive, visible_bounds,
             },
             tiles::{dirty_tiles, tile_hashes},
         },
@@ -683,7 +683,7 @@ pub(crate) fn insert_tile_quads(
             let tile = frame.tile_bounds(coord);
             scene.insert_primitive(PolychromeSprite {
                 order: 0,
-                pad: 0,
+                pad: LAYER_TILE_PREMULTIPLIED,
                 grayscale: false,
                 opacity: 1.,
                 bounds: Bounds {

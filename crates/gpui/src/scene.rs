@@ -161,13 +161,9 @@ impl Scene {
 
     pub fn insert_primitive(&mut self, primitive: impl Into<Primitive>) {
         let mut primitive = primitive.into();
-        let clipped_bounds = primitive
-            .bounds()
-            .intersect(&primitive.content_mask().bounds);
-
-        if clipped_bounds.is_empty() {
+        let Some(clipped_bounds) = crate::fast::layers::scene::shown_bounds(&primitive) else {
             return;
-        }
+        };
 
         let order = match self.layer_stack.last().copied() {
             Some(LayerOrder::Fixed(order)) => order,

@@ -125,8 +125,9 @@ pub use fast::composition::{
     WindowComposition, WindowCompositionSurface, native_surface,
 };
 pub use fast::layers::scene::{
-    LAYER_TILE_TEXTURE_BASE, LayerContent, LayerFrame, LayerKey, SceneLayers, TileCoord,
-    decode_layer_tile, layer_tile_id, layer_tile_texture_id,
+    LAYER_TILE_BUDGET_BYTES, LAYER_TILE_PREMULTIPLIED, LAYER_TILE_TEXTURE_BASE, LayerContent,
+    LayerFrame, LayerKey, SceneLayers, TileCoord, decode_layer_tile, layer_tile_id,
+    layer_tile_texture_id,
 };
 pub use fast::mode::FastMode;
 #[cfg(any(test, feature = "test-support"))]

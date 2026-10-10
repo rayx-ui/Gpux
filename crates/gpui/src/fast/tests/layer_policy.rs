@@ -63,7 +63,7 @@ fn the_compiled_scope_is_the_desktop_renderers() {
     );
     assert!(crate::FastMode::ALL.normalized_for(true).scroll_layers);
     assert!(!crate::FastMode::ALL.normalized_for(false).scroll_layers);
-    let budget = crate::fast::layers::policy::TILE_BUDGET_BYTES;
+    let budget = crate::LAYER_TILE_BUDGET_BYTES;
     assert_eq!(
         budget,
         if cfg!(any(

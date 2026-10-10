@@ -66,18 +66,6 @@ const RETRY_AFTER_INELIGIBLE_FRAMES: u64 = 8;
 const MAX_INELIGIBLE_DOUBLINGS: u32 = 8;
 /// A layer not composited for this many frames is dropped.
 const DROP_AFTER_FRAMES: u64 = 120;
-/// The tile textures a window's layers may use, in bytes: 64 MB on desktop,
-/// 32 MB in the browser and on mobile, where GPU memory is tighter and
-/// shared with the page or the system.
-pub(crate) const TILE_BUDGET_BYTES: u64 = if cfg!(any(
-    target_family = "wasm",
-    target_os = "android",
-    target_os = "ios"
-)) {
-    32 << 20
-} else {
-    64 << 20
-};
 /// The side of a tile, in device pixels (spec §3).
 const TILE_SIZE: u64 = 512;
 /// Layer keys stay below this, as tile texture ids require.
@@ -488,7 +476,8 @@ fn fits(window: &Window, record: &LayerRecord) -> bool {
     let viewport = record.viewport.size;
     let tile_bytes = TILE_SIZE * TILE_SIZE * 4;
     !record.has_paths
-        && tiles(viewport.width) * tiles(viewport.height) * tile_bytes <= TILE_BUDGET_BYTES
+        && tiles(viewport.width) * tiles(viewport.height) * tile_bytes
+            <= super::scene::LAYER_TILE_BUDGET_BYTES
 }
 
 /// Whether the content `record` holds of the scroll container `id` can be
@@ -522,6 +511,14 @@ pub(crate) fn drop_layers_on_resize(window: &mut Window) {
         layers.layers.clear();
         layers.window_size = Some(size);
     }
+}
+
+/// Drops the content `layer` holds, keeping its standing: the container is
+/// painted into its layer again the next time it scrolls enough.
+pub(crate) fn forget_content(layer: &mut Layer) {
+    layer.record = None;
+    layer.rows = lists::LayerRows::default();
+    layer.policy.painted_in = None;
 }
 
 /// Ends the frame being drawn for the layers painted in it: notes whether

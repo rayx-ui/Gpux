@@ -1578,9 +1578,11 @@ mod input {
         draw(cx, window);
         assert!(tooltip_requested(cx, window));
         // Scrolled from outside, which keeps the tooltip up on today's path.
+        // Showing the tooltip drew the window from scratch, which left the
+        // layer without content: the first scroll paints it again.
         let handle = page.read_with(cx, |page, _| page.handle.clone()).unwrap();
         let mut decisions = Vec::new();
-        for offset in [-110., -120.] {
+        for offset in [-110., -120., -130.] {
             crate::fast::tests::layer_support::set_offset(&handle, point(px(0.), px(offset)));
             draw(cx, window);
             decisions.push(crate::fast::tests::layer_support::decision(cx, window));

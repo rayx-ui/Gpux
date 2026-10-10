@@ -13,6 +13,7 @@ mod hover_dependencies;
 mod layer_carry;
 mod layer_inputs;
 mod layer_policy;
+mod layer_renderers;
 mod layer_support;
 mod layer_touch;
 mod layout_keys;

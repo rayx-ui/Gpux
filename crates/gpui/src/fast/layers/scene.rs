@@ -33,6 +33,26 @@ pub struct TileCoord {
 /// The first texture index of layer tiles; atlases allocate indices from 0.
 pub const LAYER_TILE_TEXTURE_BASE: u32 = 0xF000_0000;
 pub(crate) const LAYER_KEY_LIMIT: u32 = 0x0100_0000;
+
+/// What [`crate::PolychromeSprite::pad`] holds on the sprite of a layer tile:
+/// the tile's texture holds premultiplied colour, as everything drawn into a
+/// render target does, where an atlas texture holds straight colour. `0` on
+/// every other sprite.
+pub const LAYER_TILE_PREMULTIPLIED: u32 = 1;
+
+/// The tile textures a window's layers may use, in bytes: 64 MB on desktop,
+/// 32 MB in the browser and on mobile, where GPU memory is tighter and
+/// shared with the page or the system. The core keeps a layer only while
+/// the tiles over its viewport fit in it, and a renderer keeps no more.
+pub const LAYER_TILE_BUDGET_BYTES: u64 = if cfg!(any(
+    target_family = "wasm",
+    target_os = "android",
+    target_os = "ios"
+)) {
+    32 << 20
+} else {
+    64 << 20
+};
 const TILE_COORD_BIAS: i32 = 2048;
 
 /// The texture id the tiles of `layer` are composited with.
@@ -246,6 +266,75 @@ fn translate_bounds(
 /// transformed (`to_device_position_transformed`).
 pub(crate) fn visible_bounds(primitive: &Primitive) -> Bounds<ScaledPixels> {
     drawn_bounds(primitive).intersect(&primitive.content_mask().bounds)
+}
+
+/// The bounds a scene orders `primitive` by among what it overlaps, or `None`
+/// when its content mask leaves nothing of it to draw and the scene drops
+/// it: its bounds within its content mask, as upstream culls and orders by,
+/// or, for a shadow those leave nothing of while its shader still draws
+/// inside the mask ([`visible_bounds`]), the edge of the mask its bounds lie
+/// beyond.
+///
+/// A blurred shadow fades out over three blur radii beyond its bounds and
+/// an inset one fills its element around them, so one whose bounds lie just
+/// outside its mask still shows inside it. Dropping it with its bounds made
+/// it vanish a few pixels early as its box scrolled out of a viewport. A
+/// scroll layer's tiles hold the content as it was painted, shadows whole,
+/// and show the blur for as long as it reaches the viewport; the frame drawn
+/// without a layer has to show the same.
+///
+/// Such a shadow is ordered as it was when the last device pixel of its
+/// bounds showed: by the pixel-wide strip of the mask nearest its bounds. It
+/// is then drawn over what lies under it there and under what is painted
+/// over that strip after it, its own element first, and it leaves the order
+/// of everything else as it is when the shadow's bounds show, which is the
+/// order a layer's tiles hold the content in. Where two blurs overlap, the
+/// order they are blended in rounds the result.
+pub(crate) fn shown_bounds(primitive: &Primitive) -> Option<Bounds<ScaledPixels>> {
+    let mask = primitive.content_mask().bounds;
+    let bounds = primitive.bounds();
+    let clipped = bounds.intersect(&mask);
+    if !clipped.is_empty() {
+        return Some(clipped);
+    }
+    if let Primitive::Shadow(_) = primitive
+        && !bounds.is_empty()
+        && !drawn_bounds(primitive).intersect(&mask).is_empty()
+    {
+        return Some(nearest_strip(bounds, mask));
+    }
+    None
+}
+
+/// The part of `mask` nearest `bounds`, which lie outside it: `bounds`
+/// within `mask` along an axis they share with it, and the device pixel of
+/// `mask` on their side along one they do not.
+fn nearest_strip(bounds: Bounds<ScaledPixels>, mask: Bounds<ScaledPixels>) -> Bounds<ScaledPixels> {
+    let along = |start: f32, end: f32, mask_start: f32, mask_end: f32| {
+        if end <= mask_start {
+            (mask_start, (mask_start + 1.).min(mask_end))
+        } else if start >= mask_end {
+            ((mask_end - 1.).max(mask_start), mask_end)
+        } else {
+            (start.max(mask_start), end.min(mask_end))
+        }
+    };
+    let (left, right) = along(
+        bounds.left().0,
+        bounds.right().0,
+        mask.left().0,
+        mask.right().0,
+    );
+    let (top, bottom) = along(
+        bounds.top().0,
+        bounds.bottom().0,
+        mask.top().0,
+        mask.bottom().0,
+    );
+    Bounds::from_corners(
+        point(ScaledPixels(left), ScaledPixels(top)),
+        point(ScaledPixels(right), ScaledPixels(bottom)),
+    )
 }
 
 /// The part of window (or content) space `primitive` can draw into, its
