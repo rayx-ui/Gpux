@@ -187,10 +187,20 @@ mod windows_checks {
                 }))?;
             let caps = surface.get_capabilities(&adapter);
             let format = caps.formats.first().copied().context("no surface format")?;
+            // The line is copied into the frame, which then needs COPY_DST.
+            let usage = if line.is_some() {
+                anyhow::ensure!(
+                    caps.usages.contains(wgpu::TextureUsages::COPY_DST),
+                    "the surface takes no copies"
+                );
+                wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_DST
+            } else {
+                wgpu::TextureUsages::RENDER_ATTACHMENT
+            };
             surface.configure(
                 &device,
                 &wgpu::SurfaceConfiguration {
-                    usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+                    usage,
                     format,
                     width: size.0.max(1),
                     height: size.1.max(1),
