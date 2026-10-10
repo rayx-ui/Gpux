@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 91,
+  "revision": 95,
   "planRevision": 12,
   "specHashes": {
     "requirements": "9a032d1345bbc15ddac8a565144cc02934f65cee34ff9fbb7e0ef3453253fcf0",
@@ -184,10 +184,16 @@
       ]
     },
     "t30-composition-wayland": {
-      "status": "pending"
+      "status": "implemented",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t31-composition-x11": {
-      "status": "pending"
+      "status": "implemented",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t32-composition-windows": {
       "status": "pending"
