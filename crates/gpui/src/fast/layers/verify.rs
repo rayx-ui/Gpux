@@ -67,6 +67,11 @@ fn expand_layer(
     composited: &[TileCoord],
 ) -> Vec<Primitive> {
     let mut scratch = Scene::default();
+    // As `paint::replay_content` tells the viewport.
+    crate::fast::edge_shadows::clip(
+        &mut scratch,
+        crate::fast::edge_shadows::ClipOp::Push(*viewport),
+    );
     for operation in layer.content.operations() {
         match operation {
             PaintOperation::Primitive(primitive) => {

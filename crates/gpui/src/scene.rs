@@ -130,6 +130,7 @@ impl Scene {
     }
 
     pub fn push_layer(&mut self, bounds: Bounds<ScaledPixels>) {
+        crate::fast::edge_shadows::settle(self);
         let order = match self.layer_stack.last().copied() {
             Some(LayerOrder::Top) => {
                 TOP_LAYER_DRAW_ORDER_BASE + self.top_layer_primitive_bounds.insert(bounds)
@@ -170,6 +171,7 @@ impl Scene {
         if clipped_bounds.is_empty() {
             return crate::fast::edge_shadows::keep(self, primitive);
         }
+        crate::fast::edge_shadows::settle(self);
 
         let order = match self.layer_stack.last().copied() {
             Some(LayerOrder::Fixed(order)) => order,

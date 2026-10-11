@@ -71,6 +71,13 @@ enum Content {
     /// into the gaps, under a bar laid over the container's bottom edge and painted after
     /// it: where the bar lies over a gap, nothing it lies over is as high as the shadow.
     UnderABar,
+    /// The shadowed rows in a container laid over another just like it, with a veil painted
+    /// between the two: two clips alike, and something painted between them.
+    Stacked,
+    /// Rows of which every third holds a scrolling container of its own, with a shadowed card
+    /// and a label in it, and a shadowed bar laid over that container's bottom edge and
+    /// painted after it.
+    Nested,
     /// Rows that each draw a path, the last thing painted where it lies.
     Paths,
     /// Rows wider than the viewport: the container scrolls on both axes.
@@ -102,7 +109,9 @@ fn row_count(content: Content) -> usize {
         | Content::NoBackground
         | Content::AlternatingList
         | Content::BorderedRows
-        | Content::UnderABar => 40,
+        | Content::UnderABar
+        | Content::Stacked
+        | Content::Nested => 40,
         Content::Sections => 16,
         _ => 120,
     }
@@ -197,7 +206,68 @@ impl RowOf {
                     inset: false,
                 }])
                 .into_any_element(),
-            Content::ShadowedRows => div()
+            Content::Nested if index % 3 == 1 => div()
+                .relative()
+                .py(px(10.))
+                .bg(rgb(0xd5dde6))
+                .child(
+                    div()
+                        .id(("inner", index))
+                        .relative()
+                        .ml_3()
+                        .w(px(150.))
+                        .h(px(70.))
+                        .overflow_y_scroll()
+                        .bg(rgb(0xf4f1ea))
+                        // A card whose shadow's blur reaches the container's bottom edge,
+                        // and a label beside it, under nothing but the blurs around.
+                        .child(
+                            div()
+                                .absolute()
+                                .left(px(10.))
+                                .top(px(8.))
+                                .w(px(80.))
+                                .h(px(30.))
+                                .bg(if marked { rgb(0xffe9c9) } else { rgb(0xffffff) })
+                                .shadow(vec![BoxShadow {
+                                    color: rgba(0x00000080).into(),
+                                    offset: point(px(0.), px(0.)),
+                                    blur_radius: px(12.),
+                                    spread_radius: px(0.),
+                                    inset: false,
+                                }]),
+                        )
+                        .child(
+                            div()
+                                .absolute()
+                                .left(px(100.))
+                                .top(px(8.))
+                                .w(px(40.))
+                                .h(px(30.))
+                                .bg(rgb(0x9db8d9)),
+                        )
+                        .child(div().h(px(140.))),
+                )
+                // Painted after the container, over its bottom edge: a bar under a shadow
+                // of its own, which lies over the blur of the card's where the two meet.
+                .child(
+                    div()
+                        .absolute()
+                        .left(px(40.))
+                        .bottom(px(2.))
+                        .w(px(220.))
+                        .h(px(16.))
+                        .bg(rgb(0xb5432f))
+                        .shadow(vec![BoxShadow {
+                            color: rgba(0x00000080).into(),
+                            offset: point(px(0.), px(0.)),
+                            blur_radius: px(16.),
+                            spread_radius: px(0.),
+                            inset: false,
+                        }]),
+                )
+                .into_any_element(),
+            Content::ShadowedRows | Content::Stacked | Content::Nested => div()
                 .py(px(10.))
                 .bg(if index.is_multiple_of(2) {
                     rgb(0xe9e4d8)
@@ -484,6 +554,33 @@ impl Render for Page {
                             .overflow_y_scroll()
                             .children((0..rows).map(|index| self.row(index))),
                     );
+            }
+            Content::Stacked => {
+                let container = |id: &'static str| {
+                    div()
+                        .id(id)
+                        .absolute()
+                        .top(px(PADDING))
+                        .bottom(px(PADDING))
+                        .left(px(PADDING))
+                        .right(px(PADDING))
+                        .bg(rgb(0xf4f1ea))
+                        .overflow_y_scroll()
+                        .children((0..rows).map(|index| self.row(index)))
+                };
+                return panel
+                    .relative()
+                    .child(container("under"))
+                    .child(
+                        div()
+                            .absolute()
+                            .top(px(PADDING + 8.))
+                            .bottom(px(PADDING - 8.))
+                            .left(px(PADDING + 30.))
+                            .right(px(PADDING + 30.))
+                            .bg(rgb(0x35507a)),
+                    )
+                    .child(container("scroll"));
             }
             Content::UniformList | Content::AlternatingList => {
                 return panel.child(
@@ -830,6 +927,28 @@ fn shadows_far_down_the_content_scroll_from_tiles() {
 fn a_bar_painted_over_a_containers_edge_lies_over_its_shadows() {
     for scale in [1., 2.] {
         let totals = compare(Content::UnderABar, scale, &scrolls_and_single_pixels());
+        assert_composited(&totals, 90);
+    }
+}
+
+/// Two containers laid one over the other clip alike, and something is painted between them:
+/// the upper one's shadows are stacked by what it holds, not by what the lower one dropped
+/// where it stands.
+#[test]
+fn containers_laid_over_one_another_scroll_from_tiles() {
+    for scale in [1., 2.] {
+        let totals = compare(Content::Stacked, scale, &scrolls_and_single_pixels());
+        assert_composited(&totals, 90);
+    }
+}
+
+/// A scrolling container within the scrolled content, cut by the page's viewport as it comes
+/// and goes: the bar painted after it lies over the blurs of its shadows, where they show and
+/// where the page's viewport cuts them.
+#[test]
+fn a_scrolling_container_within_scrolled_content_scrolls_from_tiles() {
+    for scale in [1., 2.] {
+        let totals = compare(Content::Nested, scale, &scrolls_and_single_pixels());
         assert_composited(&totals, 90);
     }
 }

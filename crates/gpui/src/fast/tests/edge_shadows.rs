@@ -1008,12 +1008,14 @@ fn a_dropped_primitive_lies_over_what_is_behind_its_stretch_of_the_edge() {
 }
 
 /// Content in a viewport, with cards that clip what they hold, scattered
-/// in and around it.
-fn random_clipped_content(rng: &mut StdRng) -> Vec<Item> {
-    let mut items = vec![
-        Item::Push(viewport()),
-        Item::Quad(sp(20., -500., 360., 2000.)),
-    ];
+/// in and around it. With `scrolling`, the viewport and some of the cards
+/// are scrolling containers, as the window tells of them.
+fn random_content_in_clips(rng: &mut StdRng, scrolling: bool) -> Vec<Item> {
+    let mut items = vec![Item::Push(viewport())];
+    if scrolling {
+        items.push(Item::BeginScroll);
+    }
+    items.push(Item::Quad(sp(20., -500., 360., 2000.)));
     let scattered = |rng: &mut StdRng, around: Bounds<ScaledPixels>| {
         let bounds = sp(
             (around.left().0 + rng.random_range(-40.0..around.size.width.0)).round(),
@@ -1037,15 +1039,28 @@ fn random_clipped_content(rng: &mut StdRng) -> Vec<Item> {
                 rng.random_range(40.0..200.0f32).round(),
                 rng.random_range(30.0..160.0f32).round(),
             );
+            let scrolls = scrolling && rng.random_range(0..2) == 0;
             items.push(Item::Quad(card));
             items.push(Item::Push(card));
+            if scrolls {
+                items.push(Item::BeginScroll);
+            }
             for _ in 0..rng.random_range(1..6) {
                 items.push(scattered(rng, card));
             }
+            if scrolls {
+                items.push(Item::EndScroll);
+            }
             items.push(Item::Pop);
+        } else if rng.random_range(0..12) == 0 {
+            // Out of the viewport's reach: it leaves nothing.
+            items.push(Item::Quad(sp(40., 9000., 80., 30.)));
         } else {
             items.push(scattered(rng, everywhere));
         }
+    }
+    if scrolling {
+        items.push(Item::EndScroll);
     }
     items.push(Item::Pop);
     items
@@ -1057,8 +1072,11 @@ fn random_clipped_content(rng: &mut StdRng) -> Vec<Item> {
 fn content_with_clips_of_its_own_is_ordered_as_with_its_viewport_not_there() {
     let mut rng = StdRng::seed_from_u64(0x0c11_bbed);
     let (mut kept, mut shadows, mut dropped) = (0, 0, 0);
-    for run in 0..500 {
-        let items = random_clipped_content(&mut rng);
+    for run in 0..1000 {
+        // Half of them with scrolling containers told, the viewport and
+        // cards in it: what follows a card that scrolls lies over its
+        // blurs, in view or not.
+        let items = random_content_in_clips(&mut rng, run % 2 == 1);
         let (orders, edge) = painted_orders(&items);
         let (whole, _) = painted_orders(&without_the_viewport(&items));
         for (index, (order, whole)) in orders.iter().zip(&whole).enumerate() {
@@ -1076,9 +1094,9 @@ fn content_with_clips_of_its_own_is_ordered_as_with_its_viewport_not_there() {
         }
         shadows += edge;
     }
-    assert!(kept >= 3000, "{kept} primitives were kept");
-    assert!(dropped >= 1500, "{dropped} primitives were dropped");
-    assert!(shadows >= 100, "{shadows} shadows were kept for their blur");
+    assert!(kept >= 6000, "{kept} primitives were kept");
+    assert!(dropped >= 3000, "{dropped} primitives were dropped");
+    assert!(shadows >= 200, "{shadows} shadows were kept for their blur");
 }
 
 /// Clips are paint operations: a scene replayed from another's operations
@@ -1086,8 +1104,8 @@ fn content_with_clips_of_its_own_is_ordered_as_with_its_viewport_not_there() {
 #[test]
 fn replaying_a_scene_keeps_its_clips() {
     let mut rng = StdRng::seed_from_u64(0x0c11_95ed);
-    for run in 0..200 {
-        let items = random_clipped_content(&mut rng);
+    for run in 0..400 {
+        let items = random_content_in_clips(&mut rng, run % 2 == 1);
         let (scene, primitives) = paint(&items);
         let mut replayed = Scene::default();
         replayed.replay(0..scene.paint_operations.len(), &scene);
@@ -1163,8 +1181,8 @@ fn how_much_lies_above_a_viewport_changes_no_order() {
 fn ranges_replayed_one_after_another_share_their_clips_entries() {
     let mut rng = StdRng::seed_from_u64(0x5e9_a4a7e);
     let mut split_in_a_clip = 0;
-    for run in 0..300 {
-        let items = random_clipped_content(&mut rng);
+    for run in 0..600 {
+        let items = random_content_in_clips(&mut rng, run % 2 == 1);
         let (scene, primitives) = paint(&items);
         let count = scene.paint_operations.len();
         let middle = rng.random_range(1..count);
@@ -1179,7 +1197,7 @@ fn ranges_replayed_one_after_another_share_their_clips_entries() {
         );
     }
     assert!(
-        split_in_a_clip >= 200,
+        split_in_a_clip >= 400,
         "{split_in_a_clip} splits fell inside a clip"
     );
 }
@@ -1244,4 +1262,407 @@ fn what_is_painted_after_a_scrolling_container_lies_over_its_blurs() {
             Some(5)
         ]
     );
+}
+
+/// Two containers laid one over the other clip alike. What is painted
+/// between them lies behind the second, though not behind the first: a clip
+/// pushed where one was, after something else was painted, is another clip.
+#[test]
+fn a_clip_like_an_earlier_one_has_its_own_entries() {
+    let items = [
+        Item::Quad(window()),
+        Item::Push(viewport()),
+        Item::Quad(sp(20., 225., 360., 60.)),
+        Item::Pop,
+        // Laid over the first container before the second is painted.
+        Item::Quad(viewport()),
+        Item::Quad(sp(30., 30., 340., 190.)),
+        Item::Quad(sp(40., 40., 320., 180.)),
+        Item::Push(viewport()),
+        Item::Shadow(sp(60., 226., 280., 50.), 10.),
+        Item::Pop,
+    ];
+    let (orders, kept) = painted_orders(&items);
+    assert_eq!(kept, 1);
+    // Over the three quads laid between, not over the first container's
+    // dropped row.
+    assert_eq!(orders, [Some(1), None, Some(2), Some(3), Some(4), Some(5)]);
+
+    // With nothing painted between, it is the first clip going on: the
+    // shadow lies over what that clip dropped under its box.
+    let items = [
+        Item::Quad(window()),
+        Item::Push(viewport()),
+        Item::Quad(sp(20., 225., 360., 60.)),
+        Item::Pop,
+        Item::Push(viewport()),
+        Item::Shadow(sp(60., 226., 280., 50.), 10.),
+        Item::Pop,
+    ];
+    let (orders, _) = painted_orders(&items);
+    assert_eq!(orders, [Some(1), None, Some(3)]);
+}
+
+/// What is painted after a scrolling card lies over the card's blurs where
+/// the two meet outside the viewport as well as inside it: what lies over
+/// that, and shows, is stacked as with the viewport not there.
+#[test]
+fn what_follows_a_scrolling_container_lies_over_its_blurs_out_of_view_too() {
+    // A scrolling card across the viewport's bottom edge, and a shadow in it
+    // whose blur spreads down the card, below the viewport.
+    let card = sp(40., 150., 320., 200.);
+    let items = [
+        Item::Quad(window()),
+        Item::Push(viewport()),
+        Item::BeginScroll,
+        Item::Quad(sp(20., -500., 360., 2000.)),
+        Item::Quad(card),
+        Item::Push(card),
+        Item::BeginScroll,
+        Item::Quad(sp(60., 160., 280., 30.)),
+        Item::Quad(sp(60., 190., 280., 6.)),
+        Item::Shadow(sp(60., 192., 100., 40.), 12.),
+        Item::EndScroll,
+        Item::Pop,
+        // After the card: one over the blur below the shadow's box, out of
+        // view; and one beside the blur, in view, over the first.
+        Item::Quad(sp(150., 236., 200., 30.)),
+        Item::Quad(sp(300., 200., 40., 60.)),
+        Item::EndScroll,
+        Item::Pop,
+    ];
+    let (orders, _) = painted_orders(&items);
+    let (whole, _) = painted_orders(&without_the_viewport(&items));
+    assert_eq!(
+        whole,
+        [1, 2, 3, 4, 4, 5, 6, 7].map(Some),
+        "with the viewport not there"
+    );
+    // The one out of view is dropped; the one over it is where it would be.
+    assert_eq!(orders[6], None);
+    assert_eq!(orders[7], whole[7]);
+}
+
+/// Working out what lies behind a clip does not pass over all that was
+/// painted before it: a table of clipped cells over one background, each
+/// dropping a line that runs past it, costs a few steps a cell however many
+/// cells came before, and a table painted whole, most of it out of view,
+/// asks once for each column.
+#[test]
+fn what_lies_behind_a_clip_is_found_without_a_pass_over_the_scene() {
+    use crate::fast::edge_shadows::{ClipOp, clip_op};
+    let table = |cells: usize, told: bool| {
+        let mut scene = Scene::default();
+        scene.insert_primitive(quad(window(), window()));
+        for cell in 0..cells {
+            let (left, top) = ((cell % 100) as f32 * 30., (cell / 100) as f32 * 20.);
+            let mask = sp(left, top, 28., 18.);
+            if told {
+                clip_op(&mut scene, ClipOp::Push(mask));
+            }
+            // What the cell shows, and a line past its right edge.
+            scene.insert_primitive(quad(sp(left + 1., top, 20., 10.), mask));
+            scene.insert_primitive(quad(sp(left + 29., top, 6., 2.), mask));
+            if told {
+                clip_op(&mut scene, ClipOp::Pop);
+            }
+        }
+        assert_eq!(scene.quads.len(), cells + 1);
+        scene.fast_edge_shadows.behind_work
+    };
+    for told in [true, false] {
+        let (few, many) = (table(1000, told), table(16_000, told));
+        assert!(few >= 1000, "each cell asks what lies behind it: {few}");
+        // Not a pass a cell, which is 128 million bounds: what lies near.
+        assert!(
+            many <= 16_000 * 16 && many <= few * 32,
+            "{many} bounds looked at for 16 000 cells, {few} for 1000 (told: {told})"
+        );
+    }
+
+    // A table of 3000 rows of 8 clipped cells in a viewport showing ten of
+    // them, each cell cutting what it holds: the cells out of the viewport's
+    // reach leave nothing, and ask nothing.
+    let (mut scene, clip) = (Scene::default(), viewport());
+    scene.insert_primitive(quad(window(), window()));
+    clip_op(&mut scene, ClipOp::Push(clip));
+    clip_op(&mut scene, ClipOp::BeginScroll);
+    for row in 0..3000 {
+        let top = 20. * row as f32 - 30_000.;
+        for column in 0..8 {
+            let cell = sp(20. + 45. * column as f32, top, 44., 19.);
+            let mask = cell.intersect(&clip);
+            scene.insert_primitive(quad(cell, clip));
+            clip_op(&mut scene, ClipOp::Push(cell));
+            scene.insert_primitive(quad(sp(cell.left().0 + 4., top + 4., 60., 10.), mask));
+            clip_op(&mut scene, ClipOp::Pop);
+        }
+    }
+    clip_op(&mut scene, ClipOp::EndScroll);
+    clip_op(&mut scene, ClipOp::Pop);
+    let looked = scene.fast_edge_shadows.behind_work;
+    assert!(looked <= 64, "{looked} bounds looked at");
+}
+
+/// A primitive dropped out of reach of its clip leaves no paint operation,
+/// and changes nothing a scene holds: a scene replayed from the operations,
+/// which does not meet it, orders what follows as the scene that did.
+#[test]
+fn what_leaves_no_operation_changes_no_order() {
+    let items = |far: bool| {
+        let mut items = vec![
+            Item::Push(window()),
+            Item::Quad(window()),
+            Item::Push(viewport()),
+            Item::BeginScroll,
+            // Two rows below the viewport, one over the other.
+            Item::Quad(sp(20., 225., 360., 60.)),
+            Item::Quad(sp(20., 230., 360., 40.)),
+            Item::EndScroll,
+            Item::Pop,
+        ];
+        if far {
+            items.push(Item::Quad(sp(40., 9000., 80., 30.)));
+        }
+        // The viewport again, with nothing painted since: a shadow over
+        // both rows.
+        items.extend([
+            Item::Push(viewport()),
+            Item::BeginScroll,
+            Item::Shadow(sp(60., 236., 280., 30.), 10.),
+            Item::EndScroll,
+            Item::Pop,
+            Item::Pop,
+        ]);
+        items
+    };
+    let (scene, primitives) = paint(&items(true));
+    let (orders_with, kept) = (orders(&scene, &primitives), scene.fast_edge_shadows.len());
+    assert_eq!(kept, 1);
+    assert_eq!(orders_with, [Some(1), None, None, None, Some(4)]);
+    let mut replayed = Scene::default();
+    replayed.replay(0..scene.paint_operations.len(), &scene);
+    assert_eq!(orders(&replayed, &primitives), orders_with);
+    // Nor does it matter that it was painted at all.
+    let (mut without, _) = painted_orders(&items(false));
+    without.insert(3, None);
+    assert_eq!(orders_with, without);
+}
+
+/// What a tree held when so many bounds had been inserted is found as a
+/// pass over them all finds it, for bounds the tree ordered and bounds it
+/// was given an ordering for, without looking at more than lie near.
+#[test]
+fn what_a_tree_held_is_found_as_a_pass_over_it_finds_it() {
+    use crate::fast::bounds_tree::BoundsTree;
+    let mut rng = StdRng::seed_from_u64(0x0be_41bd);
+    for (count, spread) in [(40, 300.0f32), (700, 900.), (9000, 6000.), (9000, 400.)] {
+        let mut tree = BoundsTree::<ScaledPixels>::default();
+        let mut inserted = Vec::new();
+        let (mut asked, mut passed_over) = (0, 0);
+        for index in 0..count {
+            let bounds = sp(
+                rng.random_range(0.0..spread).round(),
+                rng.random_range(0.0..spread).round(),
+                rng.random_range(2.0..90.0f32).round(),
+                rng.random_range(2.0..90.0f32).round(),
+            );
+            let ordering = if rng.random_range(0..7) == 0 {
+                let ordering = rng.random_range(1..40);
+                tree.insert_at(bounds, ordering);
+                ordering
+            } else {
+                tree.insert(bounds)
+            };
+            inserted.push((bounds, ordering));
+            if index % 9 != 0 {
+                continue;
+            }
+            // Now and then, about any of what was inserted so far.
+            let first = rng.random_range(0..=inserted.len());
+            let query = sp(
+                rng.random_range(-20.0..spread).round(),
+                rng.random_range(-20.0..spread).round(),
+                rng.random_range(1.0..200.0f32).round(),
+                rng.random_range(1.0..30.0f32).round(),
+            );
+            let expected = inserted[..first]
+                .iter()
+                .filter(|(bounds, _)| bounds.intersects(&query))
+                .map(|(_, ordering)| *ordering)
+                .max()
+                .unwrap_or(0);
+            let (found, looked) = tree.max_behind(first, &query);
+            assert_eq!(
+                found, expected,
+                "{count} bounds over {spread}, the first {first}"
+            );
+            asked += first;
+            passed_over += looked;
+        }
+        if spread >= 6000. {
+            assert!(
+                passed_over * 50 < asked,
+                "{passed_over} looked at where a pass looks at {asked}"
+            );
+        }
+    }
+}
+
+/// The scene's tree replays the orderings of the last fill while the same
+/// bounds come in the same order. Bounds it was given an ordering for
+/// (`insert_at`) are part of that, and an ordering given last time is not
+/// taken for one the tree would give now, nor the other way round.
+#[test]
+fn the_tree_replays_orderings_it_was_given() {
+    use crate::fast::bounds_tree::BoundsTree;
+    let mut rng = StdRng::seed_from_u64(0x0a7_91e5);
+    let mut tree = BoundsTree::<ScaledPixels>::default();
+    let mut fill: Vec<(Bounds<ScaledPixels>, Option<u32>)> = (0..60)
+        .map(|_| {
+            let bounds = sp(
+                rng.random_range(0.0..300.0f32).round(),
+                rng.random_range(0.0..300.0f32).round(),
+                rng.random_range(4.0..120.0f32).round(),
+                rng.random_range(4.0..120.0f32).round(),
+            );
+            let given = (rng.random_range(0..5) == 0).then(|| rng.random_range(1..9));
+            (bounds, given)
+        })
+        .collect();
+    let (mut replayed, mut flipped) = (0, 0);
+    for frame in 0..400 {
+        // Now and then a position is given its ordering where the tree
+        // gave one before, or the other way round, or its ordering changes.
+        if frame % 3 == 1 {
+            let position = rng.random_range(0..fill.len());
+            fill[position].1 = match fill[position].1 {
+                Some(_) if rng.random_range(0..2) == 0 => None,
+                _ => Some(rng.random_range(1..9)),
+            };
+            flipped += 1;
+        }
+        let mut fresh = BoundsTree::<ScaledPixels>::default();
+        tree.clear();
+        for (position, (bounds, given)) in fill.iter().enumerate() {
+            let (ordering, expected) = match given {
+                Some(ordering) => {
+                    tree.insert_at(*bounds, *ordering);
+                    fresh.insert_at(*bounds, *ordering);
+                    (*ordering, *ordering)
+                }
+                None => (tree.insert(*bounds), fresh.insert(*bounds)),
+            };
+            assert_eq!(ordering, expected, "frame {frame}, position {position}");
+        }
+        replayed += tree.replayed;
+    }
+    assert!(flipped >= 100);
+    assert!(replayed >= 2000, "{replayed} orderings were replayed");
+}
+
+/// `items`, less the clip they begin and end with, painted in `region` as a
+/// layer's content is: a clip the content's operations do not tell of
+/// (`layers::paint::repaint`).
+fn content_in(region: Bounds<ScaledPixels>, items: &[Item]) -> Scene {
+    use crate::fast::edge_shadows::{ClipOp, clip, clip_op};
+    let mut content = Scene::default();
+    clip(&mut content, ClipOp::Push(region));
+    let mut masks = vec![region];
+    for item in &items[1..items.len() - 1] {
+        let mask = *masks.last().unwrap();
+        match item {
+            Item::Push(bounds) => {
+                masks.push(mask.intersect(bounds));
+                clip_op(&mut content, ClipOp::Push(*bounds));
+            }
+            Item::Pop => {
+                masks.pop();
+                clip_op(&mut content, ClipOp::Pop);
+            }
+            Item::Quad(bounds) => content.insert_primitive(quad(*bounds, mask)),
+            Item::Shadow(bounds, blur) => content.insert_primitive(shadow(*bounds, mask, *blur)),
+            Item::BeginScroll | Item::EndScroll => unreachable!(),
+        }
+    }
+    clip(&mut content, ClipOp::Pop);
+    content
+}
+
+/// A layer's content is painted in its painted region and replayed into a
+/// frame clipped to the viewport. What the replay leaves is ordered as the
+/// content painted in that viewport is: the replay tells the scene the
+/// viewport, which the content's operations know nothing of.
+#[test]
+fn content_replayed_in_a_viewport_is_ordered_as_content_painted_in_it() {
+    let mut rng = StdRng::seed_from_u64(0x1a7e_4ed);
+    let region = sp(-10_000., -10_000., 20_000., 20_000.);
+    let (mut kept, mut at_a_card) = (0, 0);
+    for run in 0..300 {
+        let items = random_content_in_clips(&mut rng, false);
+        let content = content_in(region, &items);
+        let mut replayed = Scene::default();
+        crate::fast::layers::paint::replay_content(
+            &mut replayed,
+            &content.paint_operations,
+            point(ScaledPixels(0.), ScaledPixels(0.)),
+            viewport(),
+            Bounds::default(),
+        );
+        let (painted, primitives) = paint(&items);
+        let expected = orders(&painted, &primitives);
+        assert_eq!(orders(&replayed, &primitives), expected, "run {run}");
+        kept += expected.iter().flatten().count();
+        at_a_card += primitives
+            .iter()
+            .zip(&expected)
+            .filter(|(primitive, order)| {
+                let mask = primitive.content_mask().bounds;
+                order.is_some()
+                    && mask != viewport()
+                    && primitive.bounds().intersect(&mask) != primitive.bounds()
+            })
+            .count();
+    }
+    assert!(kept >= 2000, "{kept} primitives were kept");
+    assert!(at_a_card >= 100, "{at_a_card} were cut by a card");
+}
+
+/// A layer's content is kept moved to where its tiles stand. Every
+/// primitive keeps the order it was painted at, in the region it was
+/// painted in, cards across the region's edge and all: nothing is ordered
+/// again by a scene that was not told of the region.
+#[test]
+fn content_moved_keeps_the_orders_it_was_painted_at() {
+    let mut rng = StdRng::seed_from_u64(0x70_c0de);
+    let delta = point(ScaledPixels(-37.), ScaledPixels(412.));
+    let mut kept = 0;
+    for run in 0..200 {
+        let items = random_content_in_clips(&mut rng, false);
+        // The viewport for a region, so that the region cuts what it holds.
+        let content = content_in(viewport(), &items);
+        let moved = crate::fast::layers::paint::translated_scene(&content, delta);
+        assert_eq!(
+            moved.paint_operations.len(),
+            content.paint_operations.len(),
+            "run {run}"
+        );
+        for (moved, painted) in moved.paint_operations.iter().zip(&content.paint_operations) {
+            match (moved, painted) {
+                (PaintOperation::Primitive(moved), PaintOperation::Primitive(painted)) => {
+                    assert_eq!(order_of(moved), order_of(painted), "run {run}");
+                    assert_eq!(moved.bounds().origin, painted.bounds().origin + delta);
+                    kept += 1;
+                }
+                (PaintOperation::FastDropped(moved), PaintOperation::FastDropped(painted)) => {
+                    assert_eq!(*moved, painted.moved(delta));
+                }
+                (PaintOperation::FastClip(moved), PaintOperation::FastClip(painted)) => {
+                    assert_eq!(*moved, painted.moved(delta));
+                }
+                _ => panic!("run {run}: an operation of another kind"),
+            }
+        }
+    }
+    assert!(kept >= 1500, "{kept} primitives were kept");
 }

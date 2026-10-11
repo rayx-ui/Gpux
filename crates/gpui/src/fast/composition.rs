@@ -620,11 +620,14 @@ impl Scene {
             }
         }
         crate::fast::layers::paint::replay_layers(self, range, previous_scene);
-        for layer in &active_layers {
-            self.open_layer(layer);
-        }
+        // The clips first: they are closed last, and a clip opened again
+        // where it was closed, before anything else, goes on with what it
+        // held.
         for clip in &active_clips {
             crate::fast::edge_shadows::clip_op(self, *clip);
+        }
+        for layer in &active_layers {
+            self.open_layer(layer);
         }
         let mut open = active_layers.len();
         for operation in operations {

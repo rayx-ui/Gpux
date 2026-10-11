@@ -89,6 +89,8 @@ const LISTED: usize = 24;
 pub(crate) struct Dropped {
     /// The primitive's whole bounds.
     pub(crate) bounds: Bounds<ScaledPixels>,
+    /// What it draws, its mask aside: its bounds, or more for a shadow.
+    pub(crate) drawn: Bounds<ScaledPixels>,
     /// The bounds of its content mask.
     pub(crate) mask: Bounds<ScaledPixels>,
 }
@@ -98,6 +100,7 @@ impl Dropped {
     pub(crate) fn moved(self, delta: crate::Point<ScaledPixels>) -> Dropped {
         Dropped {
             bounds: moved(self.bounds, delta),
+            drawn: moved(self.drawn, delta),
             mask: moved(self.mask, delta),
         }
     }
@@ -136,21 +139,6 @@ impl ClipOp {
     }
 }
 
-/// What a clip's entries are found by: its bounds and the mask of what is
-/// painted in it, bit for bit.
-fn key_of(clip: &Bounds<ScaledPixels>, mask: &Bounds<ScaledPixels>) -> [u32; 8] {
-    [
-        clip.origin.x.0.to_bits(),
-        clip.origin.y.0.to_bits(),
-        clip.size.width.0.to_bits(),
-        clip.size.height.0.to_bits(),
-        mask.origin.x.0.to_bits(),
-        mask.origin.y.0.to_bits(),
-        mask.size.width.0.to_bits(),
-        mask.size.height.0.to_bits(),
-    ]
-}
-
 fn moved(bounds: Bounds<ScaledPixels>, delta: crate::Point<ScaledPixels>) -> Bounds<ScaledPixels> {
     Bounds {
         origin: bounds.origin + delta,
@@ -170,6 +158,7 @@ fn band_index(base: DrawOrder) -> usize {
 const NONE: usize = usize::MAX;
 
 /// A clip the scene is painting in.
+#[derive(Clone, Copy)]
 struct Clip {
     bounds: Bounds<ScaledPixels>,
     /// The clips pushed so far, intersected: the mask of what is painted now.
@@ -183,6 +172,37 @@ struct Clip {
     pushed_at: usize,
 }
 
+/// The content of a scrolling container the scene is painting.
+#[derive(Clone, Copy)]
+struct Scrolling {
+    /// How many clips were pushed when the content began: those are around
+    /// it, and what is painted after it is painted in them.
+    clips: usize,
+    /// Where the blurs of the content's shadows begin in
+    /// [`EdgeShadows::blurs`].
+    blurs: usize,
+}
+
+/// What a shadow painted in a scrolling container's content draws past its
+/// box: what is painted after the content lies over it (see [`lay_over`]).
+struct Blur {
+    /// What the shadow draws, clipped to its mask.
+    visible: Bounds<ScaledPixels>,
+    order: DrawOrder,
+    /// The edges of the clips around the content it lies at, as a primitive
+    /// of its extent would.
+    at: SmallVec<[Edge; 1]>,
+}
+
+/// Something closed that the next operation may open again where it was: a
+/// range of paint operations replayed after another closes and reopens what
+/// lay open between them, and goes on as if it had not.
+#[derive(Clone, Copy)]
+enum Closed {
+    Clip(Clip),
+    Scrolling(Scrolling),
+}
+
 /// The primitives a scene meets at one clip's edges, in one band of draw
 /// orders: those the clip drops, those it cuts and the shadows kept at it,
 /// by the bounds they have with the clip not there, each with its order.
@@ -191,23 +211,27 @@ struct Lifted {
     clip: Bounds<ScaledPixels>,
     /// The band's first draw order, less one.
     base: DrawOrder,
-    /// For a clip the window told of: how many bounds the band's tree and
-    /// how many paint operations the scene held when it was first pushed.
-    pushed: Option<(usize, usize)>,
+    /// How many bounds the band's tree and how many paint operations the
+    /// scene held when the clip was pushed.
+    pushed: (usize, usize),
     /// How many paint operations the scene held when each entry was entered,
     /// entry by entry.
     entered_at: SmallVec<[usize; 4]>,
     /// The entries while they are few.
     listed: SmallVec<[(Bounds<ScaledPixels>, DrawOrder); 4]>,
     /// The entries once they are many.
-    tree: Option<BoundsTree<ScaledPixels>>,
-    /// The highest order among what was painted behind the clip, when one
-    /// thing behind it holds it whole and nothing behind it is higher: the
-    /// background of a scrolling container, say. `None` until asked.
-    behind_all: Option<Option<DrawOrder>>,
-    /// The highest order among what was painted behind the clip under each
-    /// stretch of its edges asked about so far, otherwise.
-    behind: SmallVec<[(Bounds<ScaledPixels>, DrawOrder); 2]>,
+    tree: Option<Box<BoundsTree<ScaledPixels>>>,
+}
+
+/// What a stretch of a clip's edge is found by in [`EdgeShadows::behind`],
+/// and a mask in [`EdgeShadows::untold_by_mask`]: its bits.
+fn key_of(stretch: &Bounds<ScaledPixels>) -> [u32; 4] {
+    [
+        stretch.origin.x.0.to_bits(),
+        stretch.origin.y.0.to_bits(),
+        stretch.size.width.0.to_bits(),
+        stretch.size.height.0.to_bits(),
+    ]
 }
 
 impl Lifted {
@@ -227,12 +251,13 @@ impl Lifted {
 
     /// The highest order among the entries entered before the scene held
     /// `operations` paint operations that `bounds` meet, or 0.
-    fn max_before(&self, operations: usize, bounds: &Bounds<ScaledPixels>) -> DrawOrder {
+    fn max_before(&mut self, operations: usize, bounds: &Bounds<ScaledPixels>) -> DrawOrder {
         let count = self
             .entered_at
             .partition_point(|entered| *entered < operations);
-        match &self.tree {
-            Some(tree) => tree.max_among_first(count, &self.in_tree(bounds)),
+        let moved = self.in_tree(bounds);
+        match &mut self.tree {
+            Some(tree) => tree.max_behind(count, &moved).0,
             None => self.listed[..count.min(self.listed.len())]
                 .iter()
                 .filter(|(entry, _)| entry.intersects(bounds))
@@ -263,20 +288,36 @@ impl Lifted {
 pub(crate) struct EdgeShadows {
     /// The clips the window pushed and has not popped.
     clips: Vec<Clip>,
+    /// The clips the window did not tell of: masks primitives came with
+    /// that are not what the clips pushed leave (see [`sight`]).
+    untold: Vec<Clip>,
+    /// Where each is in `untold`, by its mask.
+    untold_by_mask: FxHashMap<[u32; 4], usize>,
+    /// The one the last primitive with such a mask was painted in.
+    untold_last: usize,
+    /// The scrolling containers whose content is being painted.
+    scrolling: Vec<Scrolling>,
+    /// What was closed since the last primitive was painted, in the order
+    /// it was closed.
+    closed: Vec<Closed>,
+    /// The blurs of the shadows painted in the scrolling containers open
+    /// now, or closed and not yet laid under what follows.
+    blurs: Vec<Blur>,
     /// How many shadows were kept for what they draw inside their masks.
     kept: usize,
     lifted: Vec<Lifted>,
-    /// Where a clip's entries are in `lifted`, by its bounds, the mask of
-    /// what is painted in it and the band: a clip pushed again where it was
-    /// (a range of operations replayed after another, an element laid over
-    /// one that clips alike) goes on with the entries it had. A clip the
-    /// window did not tell of is found by the mask it shows as alone.
-    by_clip: FxHashMap<([u32; 8], DrawOrder), usize>,
-    /// Trees to fill again, kept from the scenes before.
-    spare: Vec<BoundsTree<ScaledPixels>>,
-    /// Where in the scene's shadows each scrolling container open now
-    /// began.
-    scrolling: Vec<usize>,
+    /// The highest order among what was painted behind a clip under each
+    /// stretch of its edges asked about so far, by the clip's entries in
+    /// `lifted`.
+    behind: FxHashMap<(usize, [u32; 4]), DrawOrder>,
+    /// Trees to fill again, kept from the scenes before: boxed as a
+    /// [`Lifted`] holds one, which is mostly none.
+    #[allow(clippy::vec_box)]
+    spare: Vec<Box<BoundsTree<ScaledPixels>>>,
+    /// How many bounds [`behind`] has looked at, for the tests that hold it
+    /// to a few a clip.
+    #[cfg(test)]
+    pub(crate) behind_work: usize,
 }
 
 impl EdgeShadows {
@@ -284,14 +325,23 @@ impl EdgeShadows {
     /// primitives.
     pub(crate) fn clear(&mut self) {
         self.clips.clear();
-        self.kept = 0;
-        self.by_clip.clear();
+        self.untold.clear();
+        self.untold_by_mask.clear();
+        self.untold_last = NONE;
         self.scrolling.clear();
+        self.closed.clear();
+        self.blurs.clear();
+        self.kept = 0;
+        self.behind.clear();
         for lifted in self.lifted.drain(..) {
             if let Some(mut tree) = lifted.tree {
                 tree.forget();
                 self.spare.push(tree);
             }
+        }
+        #[cfg(test)]
+        {
+            self.behind_work = 0;
         }
     }
 
@@ -306,7 +356,7 @@ impl EdgeShadows {
         &mut self,
         clip: Bounds<ScaledPixels>,
         base: DrawOrder,
-        pushed: Option<(usize, usize)>,
+        pushed: (usize, usize),
     ) -> usize {
         self.lifted.push(Lifted {
             clip,
@@ -315,8 +365,6 @@ impl EdgeShadows {
             entered_at: SmallVec::new(),
             listed: SmallVec::new(),
             tree: None,
-            behind_all: None,
-            behind: SmallVec::new(),
         });
         self.lifted.len() - 1
     }
@@ -329,30 +377,25 @@ impl EdgeShadows {
         if clip.entries[band] != NONE {
             return clip.entries[band];
         }
-        let key = (key_of(&clip.bounds, &clip.mask), base);
-        let index = match self.by_clip.get(&key) {
-            Some(index) => *index,
-            None => {
-                let pushed = (clip.before[band], clip.pushed_at);
-                let index = self.add(clip.bounds, base, Some(pushed));
-                self.by_clip.insert(key, index);
-                index
-            }
-        };
+        let pushed = (clip.before[band], clip.pushed_at);
+        let index = self.add(clip.bounds, base, pushed);
         self.clips[level].entries[band] = index;
         index
     }
 
-    /// The entries of a clip the window did not tell of, which shows as
-    /// `mask`, in the band of `base`.
-    fn of_mask(&mut self, mask: Bounds<ScaledPixels>, base: DrawOrder) -> usize {
-        let key = (key_of(&mask, &Bounds::default()), base);
-        if let Some(index) = self.by_clip.get(&key) {
-            return *index;
+    /// The entries of the clip the window did not tell of that the
+    /// primitive being taken in is painted in (see [`sight`]), in the band
+    /// of `base`.
+    fn of_untold(&mut self, base: DrawOrder) -> Option<usize> {
+        let band = band_index(base);
+        let clip = self.untold.get(self.untold_last)?;
+        if clip.entries[band] != NONE {
+            return Some(clip.entries[band]);
         }
-        let index = self.add(mask, base, None);
-        self.by_clip.insert(key, index);
-        index
+        let pushed = (clip.before[band], clip.pushed_at);
+        let index = self.add(clip.bounds, base, pushed);
+        self.untold[self.untold_last].entries[band] = index;
+        Some(index)
     }
 
     /// Enters `bounds` at `order` among the entries at `index`, in a scene
@@ -413,49 +456,6 @@ pub(crate) fn pop_clip(window: &mut Window) {
     clip_op(&mut window.next_frame.scene, ClipOp::Pop);
 }
 
-/// Takes in a clip pushed or popped, when the window paints and when paint
-/// operations are replayed.
-pub(crate) fn clip_op(scene: &mut Scene, op: ClipOp) {
-    clip(scene, op);
-    scene.paint_operations.push(PaintOperation::FastClip(op));
-}
-
-/// Pushes or pops a clip that is no part of what the scene replays: the
-/// region a layer's content is painted in, which is the content's clip
-/// while it is painted and nothing once it is drawn elsewhere.
-pub(crate) fn clip(scene: &mut Scene, op: ClipOp) {
-    let edges = &mut scene.fast_edge_shadows;
-    match op {
-        ClipOp::Push(bounds) => {
-            let mask = match edges.clips.last() {
-                Some(outer) => outer.mask.intersect(&bounds),
-                None => bounds,
-            };
-            edges.clips.push(Clip {
-                bounds,
-                mask,
-                entries: [NONE; 3],
-                before: [
-                    scene.primitive_bounds.inserted(),
-                    scene.positioned_primitive_bounds.inserted(),
-                    scene.top_layer_primitive_bounds.inserted(),
-                ],
-                pushed_at: scene.paint_operations.len(),
-            });
-        }
-        ClipOp::Pop => {
-            // A range of operations replayed on its own can pop what it did
-            // not push.
-            edges.clips.pop();
-        }
-        ClipOp::BeginScroll => edges.scrolling.push(scene.shadows.len()),
-        ClipOp::EndScroll => {
-            let began = edges.scrolling.pop().unwrap_or(scene.shadows.len());
-            lay_over_blurs(scene, began);
-        }
-    }
-}
-
 /// Tells the scene the window is painting into that the content of a
 /// scrolling container begins (`begins`) or has ended.
 pub(crate) fn scroll(window: &mut Window, painting: bool, begins: bool) {
@@ -469,10 +469,173 @@ pub(crate) fn scroll(window: &mut Window, painting: bool, begins: bool) {
     clip_op(&mut window.next_frame.scene, op);
 }
 
-/// Has what is painted from here on lie over the blurs of the scene's
-/// shadows from `began` on, those of a scrolling container whose content
-/// has just ended: an entry in the scene's tree, at each shadow's order,
-/// over what it draws past its box.
+/// Takes in a clip pushed or popped, when the window paints and when paint
+/// operations are replayed.
+pub(crate) fn clip_op(scene: &mut Scene, op: ClipOp) {
+    clip(scene, op);
+    scene.paint_operations.push(PaintOperation::FastClip(op));
+}
+
+/// Pushes or pops a clip that is no part of what the scene replays: the
+/// region a layer's content is painted in, which is the content's clip
+/// while it is painted and nothing once it is drawn elsewhere.
+pub(crate) fn clip(scene: &mut Scene, op: ClipOp) {
+    match op {
+        ClipOp::Push(bounds) => {
+            let edges = &mut scene.fast_edge_shadows;
+            let mask = match edges.clips.last() {
+                Some(outer) => outer.mask.intersect(&bounds),
+                None => bounds,
+            };
+            // A clip pushed again where it was just popped, with nothing
+            // painted between, is that clip going on.
+            if let Some(Closed::Clip(clip)) = edges.closed.last()
+                && clip.bounds == bounds
+                && clip.mask == mask
+            {
+                let Some(Closed::Clip(clip)) = edges.closed.pop() else {
+                    unreachable!()
+                };
+                edges.clips.push(clip);
+                return;
+            }
+            settle(scene);
+            let clip = pushed(scene, bounds, mask);
+            scene.fast_edge_shadows.clips.push(clip);
+        }
+        ClipOp::Pop => {
+            let edges = &mut scene.fast_edge_shadows;
+            // A range of operations replayed on its own can pop what it did
+            // not push.
+            if let Some(clip) = edges.clips.pop() {
+                edges.closed.push(Closed::Clip(clip));
+            }
+        }
+        ClipOp::BeginScroll => {
+            let edges = &mut scene.fast_edge_shadows;
+            // Content that ended and begins again at once, with nothing
+            // painted between, is that content going on.
+            if let Some(Closed::Scrolling(scrolling)) = edges.closed.last()
+                && scrolling.clips == edges.clips.len()
+            {
+                let scrolling = *scrolling;
+                edges.closed.pop();
+                edges.scrolling.push(scrolling);
+                return;
+            }
+            settle(scene);
+            let edges = &mut scene.fast_edge_shadows;
+            edges.scrolling.push(Scrolling {
+                clips: edges.clips.len(),
+                blurs: edges.blurs.len(),
+            });
+        }
+        ClipOp::EndScroll => {
+            let edges = &mut scene.fast_edge_shadows;
+            if let Some(scrolling) = edges.scrolling.pop() {
+                edges.closed.push(Closed::Scrolling(scrolling));
+            }
+        }
+    }
+}
+
+/// A clip of `bounds` pushed now, which leaves `mask` of what is painted in
+/// it.
+fn pushed(scene: &Scene, bounds: Bounds<ScaledPixels>, mask: Bounds<ScaledPixels>) -> Clip {
+    Clip {
+        bounds,
+        mask,
+        entries: [NONE; 3],
+        before: [
+            scene.primitive_bounds.inserted(),
+            scene.positioned_primitive_bounds.inserted(),
+            scene.top_layer_primitive_bounds.inserted(),
+        ],
+        pushed_at: scene.paint_operations.len(),
+    }
+}
+
+/// Whether `mask` is what the clips the window pushed leave.
+fn told(scene: &Scene, mask: &Bounds<ScaledPixels>) -> bool {
+    scene
+        .fast_edge_shadows
+        .clips
+        .last()
+        .is_some_and(|clip| clip.mask == *mask)
+}
+
+/// Takes in the mask of a primitive the scene keeps, or keeps an entry of.
+/// A mask that is not what the clips the window pushed leave was pushed some
+/// other way: the window's own bounds, which everything outside a clip is
+/// painted in, are one, and the region a layer's content is painted in when
+/// its operations are replayed. Such a mask is one clip more, innermost,
+/// pushed when a primitive first comes with it and not popped: what was
+/// painted before that is behind it, and everything that comes with the
+/// mask is painted in it.
+///
+/// `inserted`: the primitive's bounds are in the scene's tree already. They
+/// are not among what the clip found before it.
+#[inline]
+fn sight(scene: &mut Scene, mask: &Bounds<ScaledPixels>, inserted: bool) {
+    if told(scene, mask) {
+        return;
+    }
+    let edges = &scene.fast_edge_shadows;
+    if edges
+        .untold
+        .get(edges.untold_last)
+        .is_some_and(|clip| clip.mask == *mask)
+    {
+        return;
+    }
+    sight_another(scene, mask, inserted);
+}
+
+fn sight_another(scene: &mut Scene, mask: &Bounds<ScaledPixels>, inserted: bool) {
+    let key = key_of(mask);
+    if let Some(index) = scene.fast_edge_shadows.untold_by_mask.get(&key) {
+        scene.fast_edge_shadows.untold_last = *index;
+        return;
+    }
+    let mut clip = pushed(scene, *mask, *mask);
+    if inserted && let (base, None) = context(scene) {
+        clip.before[band_index(base)] -= 1;
+    }
+    let edges = &mut scene.fast_edge_shadows;
+    edges.untold_last = edges.untold.len();
+    edges.untold_by_mask.insert(key, edges.untold_last);
+    edges.untold.push(clip);
+}
+
+/// Settles what was closed since the last primitive was painted, before the
+/// next that leaves a paint operation is ordered: nothing is going on where
+/// it was, so the clips are done with, and what is painted from here on lies
+/// over the blurs of the scrolling containers whose content has ended.
+///
+/// A primitive that leaves no operation settles nothing: what replays the
+/// operations does not meet it.
+#[inline]
+pub(crate) fn settle(scene: &mut Scene) {
+    if !scene.fast_edge_shadows.closed.is_empty() {
+        settle_closed(scene);
+    }
+}
+
+fn settle_closed(scene: &mut Scene) {
+    let mut index = 0;
+    while let Some(closed) = scene.fast_edge_shadows.closed.get(index).copied() {
+        if let Closed::Scrolling(scrolling) = closed {
+            lay_over(scene, scrolling);
+        }
+        index += 1;
+    }
+    scene.fast_edge_shadows.closed.clear();
+}
+
+/// Has what is painted from here on lie over the blurs of the shadows of
+/// `scrolling`, a scrolling container whose content has ended: an entry at
+/// each shadow's order over what it draws past its box, in the scene's tree
+/// and at the edges of the clips around the content it lies at.
 ///
 /// The tree holds a shadow's box. A primitive painted later over its blur
 /// alone is not ordered by it, and is drawn under the blur where its order
@@ -480,18 +643,52 @@ pub(crate) fn scroll(window: &mut Window, painting: bool, begins: bool) {
 /// with or without a layer. What is painted after the container (a bar laid
 /// over its edge, its scrollbar) lies over all of it: over its layer when
 /// it has one, and so over every blur in it.
-fn lay_over_blurs(scene: &mut Scene, began: usize) {
-    for index in began..scene.shadows.len() {
-        let shadow = scene.shadows[index];
-        let mask = shadow.content_mask.bounds;
-        let primitive = Primitive::Shadow(shadow);
-        let drawn = drawn_bounds(&primitive).intersect(&mask);
-        if drawn.is_empty() || drawn == primitive.bounds().intersect(&mask) {
-            continue;
+fn lay_over(scene: &mut Scene, scrolling: Scrolling) {
+    let from = scrolling.blurs.min(scene.fast_edge_shadows.blurs.len());
+    let blurs: Vec<Blur> = scene.fast_edge_shadows.blurs.drain(from..).collect();
+    let operations = scene.paint_operations.len();
+    for blur in blurs {
+        let base = band(blur.order);
+        if !blur.visible.is_empty() {
+            tree(scene, base).insert_at(blur.visible, blur.order - base);
         }
-        let base = band(shadow.order);
-        tree(scene, base).insert_at(drawn, shadow.order - base);
+        for edge in blur.at {
+            scene
+                .fast_edge_shadows
+                .enter(edge.entries, edge.lifted, blur.order, operations);
+        }
     }
+}
+
+/// Notes what a shadow of `bounds`, painted in `mask` at `order` in the
+/// content of a scrolling container, draws past its box (`drawn`), for
+/// [`lay_over`].
+fn note_blur(
+    scene: &mut Scene,
+    bounds: Bounds<ScaledPixels>,
+    drawn: Bounds<ScaledPixels>,
+    mask: Bounds<ScaledPixels>,
+    order: DrawOrder,
+) {
+    let Some(scrolling) = scene.fast_edge_shadows.scrolling.last().copied() else {
+        return;
+    };
+    if drawn == bounds {
+        return;
+    }
+    let visible = drawn.intersect(&mask);
+    // At the clips around the content: inside it nothing is ordered by a
+    // blur.
+    let levels = levels(scene, drawn, mask, Some(scrolling.clips));
+    let at = edges(scene, &levels, band(order));
+    if visible.is_empty() && at.is_empty() {
+        return;
+    }
+    scene.fast_edge_shadows.blurs.push(Blur {
+        visible,
+        order,
+        at: at.into_iter().collect(),
+    });
 }
 
 /// The run of draw orders an order belongs to: normal content, positioned
@@ -629,88 +826,110 @@ fn within_reach(bounds: &Bounds<ScaledPixels>) -> Bounds<ScaledPixels> {
 struct Edge {
     /// The clip's entries, in [`EdgeShadows::lifted`].
     entries: usize,
-    /// Where the clip is among the clips pushed, for one the window told of.
-    level: Option<usize>,
+    /// How many clips the window pushed lie around the clip.
+    around: usize,
     /// The bounds the primitive has with the clip not there.
     lifted: Bounds<ScaledPixels>,
 }
 
-/// The clips a primitive of `bounds`, painted in `mask` and kept as
-/// `clipped`, lies at an edge of, innermost first: each with the bounds the
-/// primitive has with that clip not there, where they are not what it has
-/// with it. That is its bounds within the clips pushed inside that one and,
-/// of the clip itself, within [`REACH`] of it.
+/// The clips a primitive of `bounds`, painted in `mask`, lies at an edge
+/// of, innermost first: each with the bounds the primitive has with that
+/// clip not there. That is its bounds within the clips pushed inside that
+/// one and, of the clip itself, within [`REACH`] of it. A clip that leaves
+/// those bounds whole is none of them: lifting it shows nothing more. And a
+/// primitive some clip drops from further off than its reach lies at no
+/// clip's edge, those inside that one neither: nothing of it shows with any
+/// of them lifted.
 ///
-/// The clips are those the window told of; a mask that is not their
-/// intersection was pushed some other way, and stands for one clip more,
-/// innermost.
-fn edges(
-    scene: &mut Scene,
+/// Each is given as the clip's place among those the window pushed, or none
+/// for a mask the window did not tell of, which is one clip more, innermost
+/// (see [`sight`]).
+///
+/// With `outermost`, only the first so many clips the window pushed are
+/// looked at, the others still cutting the bounds: the clips around a
+/// scrolling container's content.
+fn levels(
+    scene: &Scene,
     bounds: Bounds<ScaledPixels>,
-    clipped: Bounds<ScaledPixels>,
     mask: Bounds<ScaledPixels>,
-    base: DrawOrder,
-) -> SmallVec<[Edge; 2]> {
+    outermost: Option<usize>,
+) -> SmallVec<[(Option<usize>, Bounds<ScaledPixels>); 2]> {
     let mut found = SmallVec::new();
-    let edges = &mut scene.fast_edge_shadows;
-    let lifts = |inner: &Bounds<ScaledPixels>, clip: &Bounds<ScaledPixels>| {
-        let lifted = bounds.intersect(inner).intersect(&within_reach(clip));
-        let differs = match clipped.is_empty() {
-            true => !lifted.is_empty(),
-            false => lifted != clipped,
-        };
-        differs.then_some(lifted)
-    };
+    let clips = &scene.fast_edge_shadows.clips;
     // What the clips inside the one being looked at leave of the bounds.
     let mut inner = bounds;
-    if edges.clips.last().is_none_or(|clip| clip.mask != mask) {
-        if let Some(lifted) = lifts(&inner, &mask) {
-            found.push(Edge {
-                entries: edges.of_mask(mask, base),
-                level: None,
-                lifted,
-            });
-        }
-        inner = inner.intersect(&mask);
-    }
-    for level in (0..edges.clips.len()).rev() {
+    let untold = (!told(scene, &mask)).then_some((None, mask));
+    let pushed = (0..clips.len())
+        .rev()
+        .map(|level| (Some(level), clips[level].bounds));
+    for (level, clip) in untold.into_iter().chain(pushed) {
         if inner.is_empty() {
             break;
         }
-        let clip = edges.clips[level].bounds;
-        if let Some(lifted) = lifts(&inner, &clip) {
-            found.push(Edge {
-                entries: edges.of_clip(level, base),
-                level: Some(level),
-                lifted,
-            });
+        if !within(&inner, &clip) {
+            let lifted = inner.intersect(&within_reach(&clip));
+            if lifted.is_empty() {
+                // Dropped, out of reach.
+                found.clear();
+                break;
+            }
+            let looked_at = match (level, outermost) {
+                (_, None) => true,
+                (Some(level), Some(outermost)) => level < outermost,
+                (None, Some(_)) => false,
+            };
+            if looked_at {
+                found.push((level, lifted));
+            }
         }
         inner = inner.intersect(&clip);
     }
     found
 }
 
+/// The clips' edges a primitive lies at (see [`levels`]), with the entries
+/// kept at each.
+fn edges(
+    scene: &mut Scene,
+    levels: &[(Option<usize>, Bounds<ScaledPixels>)],
+    base: DrawOrder,
+) -> SmallVec<[Edge; 2]> {
+    let edges = &mut scene.fast_edge_shadows;
+    let all = edges.clips.len();
+    levels
+        .iter()
+        .filter_map(|(level, lifted)| {
+            Some(match *level {
+                Some(level) => Edge {
+                    entries: edges.of_clip(level, base),
+                    around: level,
+                    lifted: *lifted,
+                },
+                None => Edge {
+                    entries: edges.of_untold(base)?,
+                    around: all,
+                    lifted: *lifted,
+                },
+            })
+        })
+        .collect()
+}
+
 /// The highest order among what was painted behind the clip at `edge`,
 /// where a primitive the clip drops would come into view: under the stretch
 /// of the clip's nearest edge its bounds lie along. Everything painted
-/// before the clip was pushed lies behind what it holds: what the scene's
-/// tree held then and, of what the clips around this one cut or dropped,
-/// what they had entered by then, since the clip may itself lie where they
-/// cut. For a clip the window did not tell of, it is what was painted
-/// outside its mask.
+/// before the clip was pushed lies behind what it holds.
 ///
-/// Most clips have one thing behind all of them, a background, and nothing
-/// higher behind any part: that is found once, in one pass over what was
-/// painted before the clip, and answers for every stretch. Otherwise each
-/// stretch asked about takes a pass. There is no limit to the passes: an
-/// answer that gave out after so many would depend on how much was painted
-/// before, which is how far the content is scrolled.
+/// That is what the scene's tree held then under the stretch
+/// ([`BoundsTree::max_behind`], which finds it without passing over all that
+/// was painted). The tree holds what shows. Where the stretch lies outside
+/// what the clips around leave, what those clips had dropped or cut there
+/// by then counts too. No count limits the search: an answer that gave out
+/// would depend on how much was painted before, which is how far the
+/// content is scrolled.
 fn behind(scene: &mut Scene, edge: &Edge) -> DrawOrder {
     let lifted = &scene.fast_edge_shadows.lifted[edge.entries];
-    let (clip, base, pushed) = (lifted.clip, lifted.base, lifted.pushed);
-    if let Some(Some(order)) = lifted.behind_all {
-        return order;
-    }
+    let (clip, base, (before, operations)) = (lifted.clip, lifted.base, lifted.pushed);
     let bounds = &edge.lifted;
     let one = ScaledPixels(1.);
     // The stretch: a pixel deep inside the clip, as long as the bounds are
@@ -742,62 +961,33 @@ fn behind(scene: &mut Scene, edge: &Edge) -> DrawOrder {
             size: size(one, height),
         }
     };
-    if let Some((_, order)) = lifted.behind.iter().find(|(asked, _)| *asked == stretch) {
+    let key = (edge.entries, key_of(&stretch));
+    if let Some(order) = scene.fast_edge_shadows.behind.get(&key) {
         return *order;
     }
-    let asked_all = lifted.behind_all.is_some();
-    let band_at = band_index(base);
-    // What the clips around this one had entered before it was pushed.
-    let around = |scene: &Scene, operations: usize, query: &Bounds<ScaledPixels>| {
-        let edges = &scene.fast_edge_shadows;
-        let level = edge.level.unwrap_or(0);
-        edges.clips[..level.min(edges.clips.len())]
-            .iter()
-            .filter(|around| around.entries[band_at] != NONE)
-            .map(|around| edges.lifted[around.entries[band_at]].max_before(operations, query))
-            .max()
-            .unwrap_or(0)
-    };
-    let highest = match pushed {
-        Some((before, operations)) => {
-            if !asked_all {
-                let (meeting, holding) = tree(scene, base).max_among_first_holding(before, &clip);
-                let all = (meeting == holding
-                    && around(scene, operations, &clip) <= base + holding)
-                    .then_some(base + holding);
-                scene.fast_edge_shadows.lifted[edge.entries].behind_all = Some(all);
-                if let Some(order) = all {
-                    return order;
-                }
+    let (highest, _looked) = tree(scene, base).max_behind(before, &stretch);
+    let mut highest = base + highest;
+    let edges = &mut scene.fast_edge_shadows;
+    #[cfg(test)]
+    {
+        edges.behind_work += _looked;
+    }
+    // What a clip around entered inside what the clips around leave is in
+    // the tree, at the order it was entered at.
+    let around = &edges.clips[..edge.around.min(edges.clips.len())];
+    if around
+        .last()
+        .is_some_and(|clip| !within(&stretch, &clip.mask))
+    {
+        let band_at = band_index(base);
+        for around in around {
+            if around.entries[band_at] != NONE {
+                let entries = &mut edges.lifted[around.entries[band_at]];
+                highest = highest.max(entries.max_before(operations, &stretch));
             }
-            (base + tree(scene, base).max_among_first(before, &stretch))
-                .max(around(scene, operations, &stretch))
         }
-        None => {
-            let mut highest = base;
-            for operation in &scene.paint_operations {
-                let PaintOperation::Primitive(primitive) = operation else {
-                    continue;
-                };
-                let order = order_of(primitive);
-                let painted_in = primitive.content_mask().bounds;
-                if order > highest
-                    && band(order) == base
-                    && !within(&painted_in, &clip)
-                    && primitive
-                        .bounds()
-                        .intersect(&painted_in)
-                        .intersects(&stretch)
-                {
-                    highest = order;
-                }
-            }
-            highest
-        }
-    };
-    scene.fast_edge_shadows.lifted[edge.entries]
-        .behind
-        .push((stretch, highest));
+    }
+    edges.behind.insert(key, highest);
     highest
 }
 
@@ -828,18 +1018,25 @@ fn order_at(scene: &mut Scene, at: &[Edge], base: DrawOrder) -> DrawOrder {
 pub(crate) fn keep(scene: &mut Scene, mut primitive: Primitive) {
     let bounds = primitive.bounds();
     let mask = primitive.content_mask().bounds;
-    let visible = match &primitive {
-        Primitive::Shadow(_) => drawn_bounds(&primitive).intersect(&mask),
-        _ => Bounds::default(),
+    let drawn = match &primitive {
+        Primitive::Shadow(_) => drawn_bounds(&primitive),
+        _ => bounds,
     };
-    let Primitive::Shadow(shadow) = &mut primitive else {
-        return dropped(scene, Dropped { bounds, mask });
-    };
-    if visible.is_empty() {
-        return dropped(scene, Dropped { bounds, mask });
+    if drawn.intersect(&mask).is_empty() {
+        return dropped(
+            scene,
+            Dropped {
+                bounds,
+                drawn,
+                mask,
+            },
+        );
     }
+    settle(scene);
+    sight(scene, &mask, false);
     let (base, fixed) = context(scene);
-    let at = edges(scene, bounds, Bounds::default(), mask, base);
+    let levels = levels(scene, bounds, mask, None);
+    let at = edges(scene, &levels, base);
     let order = match fixed {
         // Everything in the layer is drawn at its order.
         Some(order) => order,
@@ -852,6 +1049,10 @@ pub(crate) fn keep(scene: &mut Scene, mut primitive: Primitive) {
             .enter(edge.entries, edge.lifted, order, operations);
     }
     scene.fast_edge_shadows.kept += 1;
+    note_blur(scene, bounds, drawn, mask, order);
+    let Primitive::Shadow(shadow) = &mut primitive else {
+        unreachable!("only a shadow draws past its bounds")
+    };
     shadow.order = order;
     scene.shadows.push(*shadow);
     scene
@@ -862,15 +1063,24 @@ pub(crate) fn keep(scene: &mut Scene, mut primitive: Primitive) {
 /// Notes a primitive the scene dropped: an entry of its bounds, at each
 /// clip's edge it lies at, at the order it would have had, and an operation
 /// among the paint operations. One that lies at no clip's edge (further
-/// than [`REACH`] from the clip that drops it, or outside two clips at once)
-/// lies under nothing that shows, and leaves nothing.
+/// than [`REACH`] from the clip that drops it) lies under nothing that
+/// shows, and leaves nothing.
 pub(crate) fn dropped(scene: &mut Scene, dropped: Dropped) {
-    let Dropped { bounds, mask } = dropped;
-    let (base, fixed) = context(scene);
-    let at = edges(scene, bounds, Bounds::default(), mask, base);
-    if at.is_empty() {
+    let Dropped {
+        bounds,
+        drawn,
+        mask,
+    } = dropped;
+    // Only a primitive that leaves an operation changes what the scene
+    // holds: what replays the operations has to end up where this did.
+    let levels = levels(scene, bounds, mask, None);
+    if levels.is_empty() {
         return;
     }
+    settle(scene);
+    sight(scene, &mask, false);
+    let (base, fixed) = context(scene);
+    let at = edges(scene, &levels, base);
     let order = match fixed {
         Some(order) => order,
         None => order_at(scene, &at, base),
@@ -881,6 +1091,8 @@ pub(crate) fn dropped(scene: &mut Scene, dropped: Dropped) {
             .fast_edge_shadows
             .enter(edge.entries, edge.lifted, order, operations);
     }
+    // A shadow's blur may show with a clip around its container not there.
+    note_blur(scene, bounds, drawn, mask, order);
     scene
         .paint_operations
         .push(PaintOperation::FastDropped(dropped));
@@ -901,13 +1113,20 @@ pub(crate) fn raise(
     order: DrawOrder,
 ) -> DrawOrder {
     let whole = primitive.bounds();
+    let mask = primitive.content_mask().bounds;
+    sight(scene, &mask, true);
+    let shadow =
+        matches!(primitive, Primitive::Shadow(_)) && !scene.fast_edge_shadows.scrolling.is_empty();
     // A primitive wholly inside its mask meets nothing outside it.
     if whole == bounds {
+        if shadow {
+            note_blur(scene, whole, drawn_bounds(primitive), mask, order);
+        }
         return order;
     }
-    let mask = primitive.content_mask().bounds;
     let (base, fixed) = context(scene);
-    let at = edges(scene, whole, bounds, mask, base);
+    let levels = levels(scene, whole, mask, None);
+    let at = edges(scene, &levels, base);
     let mut under = 0;
     for edge in &at {
         under = under.max(scene.fast_edge_shadows.lifted[edge.entries].max_over(&edge.lifted));
@@ -940,6 +1159,9 @@ pub(crate) fn raise(
         scene
             .fast_edge_shadows
             .enter(edge.entries, edge.lifted, order, operations);
+    }
+    if shadow {
+        note_blur(scene, whole, drawn_bounds(primitive), mask, order);
     }
     order
 }

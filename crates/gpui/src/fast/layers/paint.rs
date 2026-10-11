@@ -803,19 +803,33 @@ pub(crate) fn lift_paths(
         }
     }
     let paths: Rc<[crate::Path<ScaledPixels>]> = content.paths.iter().cloned().collect();
+    // At the orders the content was painted at, as `translated_scene` keeps
+    // them.
     let mut rest = Scene::default();
     for operation in &content.paint_operations {
         match operation {
             PaintOperation::Primitive(Primitive::Path(_)) => {}
-            PaintOperation::Primitive(primitive) => rest.insert_primitive(primitive.clone()),
-            PaintOperation::FastDropped(dropped) => {
-                crate::fast::edge_shadows::dropped(&mut rest, *dropped)
+            PaintOperation::Primitive(primitive) => crate::fast::edge_shadows::insert_at(
+                &mut rest,
+                primitive.clone(),
+                crate::fast::edge_shadows::order_of(primitive),
+            ),
+            PaintOperation::FastDropped(dropped) => rest
+                .paint_operations
+                .push(PaintOperation::FastDropped(*dropped)),
+            PaintOperation::FastClip(clip) => {
+                rest.paint_operations.push(PaintOperation::FastClip(*clip))
             }
-            PaintOperation::FastClip(clip) => crate::fast::edge_shadows::clip_op(&mut rest, *clip),
-            PaintOperation::StartLayer(bounds) => rest.push_layer(*bounds),
-            PaintOperation::StartPositionedLayer(bounds) => rest.push_positioned_layer(*bounds),
-            PaintOperation::StartTopLayer(bounds) => rest.push_top_layer(*bounds),
-            PaintOperation::EndLayer => rest.pop_layer(),
+            PaintOperation::StartLayer(bounds) => rest
+                .paint_operations
+                .push(PaintOperation::StartLayer(*bounds)),
+            PaintOperation::StartPositionedLayer(bounds) => rest
+                .paint_operations
+                .push(PaintOperation::StartPositionedLayer(*bounds)),
+            PaintOperation::StartTopLayer(bounds) => rest
+                .paint_operations
+                .push(PaintOperation::StartTopLayer(*bounds)),
+            PaintOperation::EndLayer => rest.paint_operations.push(PaintOperation::EndLayer),
         }
     }
     rest.finish();
@@ -967,6 +981,10 @@ pub(crate) fn replay_content<'a>(
     viewport: Bounds<ScaledPixels>,
     logical_viewport: Bounds<Pixels>,
 ) {
+    // The viewport is a clip of what is replayed, around the content's own:
+    // told, so that what it cuts and drops is ordered as painting the
+    // content in it would have ordered it (see `crate::fast::edge_shadows`).
+    crate::fast::edge_shadows::clip(scene, crate::fast::edge_shadows::ClipOp::Push(viewport));
     // Whether each layer begun in the content was begun in the scene.
     let mut begun: SmallVec<[bool; 8]> = SmallVec::new();
     for operation in operations {
@@ -1019,6 +1037,7 @@ pub(crate) fn replay_content<'a>(
             }
         }
     }
+    crate::fast::edge_shadows::clip(scene, crate::fast::edge_shadows::ClipOp::Pop);
 }
 
 /// `scene` as a frame painting the content of every layer it composites
@@ -1383,36 +1402,39 @@ pub(crate) fn translation(window: &Window, scroll_offset: Point<Pixels>) -> Poin
     )
 }
 
-/// `scene` moved by `delta`, finished.
-fn translated_scene(scene: &Scene, delta: Point<ScaledPixels>) -> Scene {
+/// `scene` moved by `delta`, finished: every primitive at the order it was
+/// painted at. Where a primitive is stacked does not change with where the
+/// content stands, and the scene it was painted in knew the clips it was
+/// painted in, the painted region among them, which its operations do not
+/// tell of (see [`repaint`]).
+pub(crate) fn translated_scene(scene: &Scene, delta: Point<ScaledPixels>) -> Scene {
+    let moved = |bounds: &Bounds<ScaledPixels>| Bounds {
+        origin: bounds.origin + delta,
+        size: bounds.size,
+    };
     let mut translated = Scene::default();
     for operation in &scene.paint_operations {
-        match operation {
+        let operation = match operation {
             PaintOperation::Primitive(primitive) => {
-                translated.insert_primitive(translate_primitive(primitive, delta))
+                crate::fast::edge_shadows::insert_at(
+                    &mut translated,
+                    translate_primitive(primitive, delta),
+                    crate::fast::edge_shadows::order_of(primitive),
+                );
+                continue;
             }
             PaintOperation::FastDropped(dropped) => {
-                crate::fast::edge_shadows::dropped(&mut translated, dropped.moved(delta))
+                PaintOperation::FastDropped(dropped.moved(delta))
             }
-            PaintOperation::FastClip(clip) => {
-                crate::fast::edge_shadows::clip_op(&mut translated, clip.moved(delta))
-            }
-            PaintOperation::StartLayer(bounds) => translated.push_layer(Bounds {
-                origin: bounds.origin + delta,
-                size: bounds.size,
-            }),
+            PaintOperation::FastClip(clip) => PaintOperation::FastClip(clip.moved(delta)),
+            PaintOperation::StartLayer(bounds) => PaintOperation::StartLayer(moved(bounds)),
             PaintOperation::StartPositionedLayer(bounds) => {
-                translated.push_positioned_layer(Bounds {
-                    origin: bounds.origin + delta,
-                    size: bounds.size,
-                })
+                PaintOperation::StartPositionedLayer(moved(bounds))
             }
-            PaintOperation::StartTopLayer(bounds) => translated.push_top_layer(Bounds {
-                origin: bounds.origin + delta,
-                size: bounds.size,
-            }),
-            PaintOperation::EndLayer => translated.pop_layer(),
-        }
+            PaintOperation::StartTopLayer(bounds) => PaintOperation::StartTopLayer(moved(bounds)),
+            PaintOperation::EndLayer => PaintOperation::EndLayer,
+        };
+        translated.paint_operations.push(operation);
     }
     translated.finish();
     translated

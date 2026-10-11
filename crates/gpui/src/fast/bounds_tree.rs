@@ -6,7 +6,11 @@
 //! which `Scene` uses for all three draw-order bands (normal, positioned and
 //! top layer). gpux adds the counts fast mode's stats report (`replayed`) and
 //! the diagnostics its frame telemetry reads, and keeps upstream's R-tree as
-//! the reference the `fast::tests::bounds_grid` group compares with.
+//! the reference the `fast::tests::bounds_grid` group compares with. It adds
+//! what `crate::fast::edge_shadows` orders by at a clip's edge: bounds
+//! inserted at an ordering worked out elsewhere (`insert_at`), what the tree
+//! holds over some bounds (`max_over`), and what it held when so many bounds
+//! had been inserted (`max_behind`, [`History`]).
 
 use crate::{Bounds, Half};
 use std::{
@@ -55,6 +59,14 @@ where
     recorded: Vec<(Bounds<U>, u32)>,
     /// What `recorded` held when the tree was cleared.
     previous: Vec<(Bounds<U>, u32)>,
+    /// Which of `recorded` were inserted at an ordering the caller gave
+    /// ([`BoundsTree::insert_at`]), by position, ascending.
+    given: Vec<u32>,
+    /// What `given` held when the tree was cleared.
+    previous_given: Vec<u32>,
+    /// The first of `recorded`, as far as [`BoundsTree::max_behind`] has
+    /// been asked about them, by where they lie.
+    history: History<U>,
     /// Whether the tree is still being replayed rather than built: every
     /// ordering since it was cleared has been found without it, and it is
     /// built from `recorded` once that stops paying.
@@ -333,30 +345,38 @@ where
 
     /// Where `bounds` lies along each axis.
     fn spans(&self, bounds: &Bounds<U>) -> (Span, Span) {
+        Self::spans_in(self.columns, self.rows, bounds)
+    }
+
+    /// Where `bounds` lies along each axis of a grid of `columns` by `rows`.
+    fn spans_in(columns: usize, rows: usize, bounds: &Bounds<U>) -> (Span, Span) {
         let right = bounds.origin.x.clone() + bounds.size.width.clone();
         let bottom = bounds.origin.y.clone() + bounds.size.height.clone();
         (
-            Span::new(bounds.origin.x.clone().into(), right.into(), self.columns),
-            Span::new(bounds.origin.y.clone().into(), bottom.into(), self.rows),
+            Span::new(bounds.origin.x.clone().into(), right.into(), columns),
+            Span::new(bounds.origin.y.clone().into(), bottom.into(), rows),
         )
     }
 
     /// How many columns and rows a grid needs to hold `bounds` without
     /// keeping it in its last column or row, if more than it has.
     fn needs(&self, bounds: &Bounds<U>) -> Option<(usize, usize)> {
+        Self::needs_in(self.columns, self.rows, bounds)
+    }
+
+    /// How many columns and rows a grid of `columns` by `rows` needs to
+    /// hold `bounds` without keeping it in its last column or row, if more.
+    fn needs_in(columns: usize, rows: usize, bounds: &Bounds<U>) -> Option<(usize, usize)> {
         let right: f64 = (bounds.origin.x.clone() + bounds.size.width.clone()).into();
         let bottom: f64 = (bounds.origin.y.clone() + bounds.size.height.clone()).into();
-        if right <= self.columns as f64 * CELL_SIZE && bottom <= self.rows as f64 * CELL_SIZE {
+        if right <= columns as f64 * CELL_SIZE && bottom <= rows as f64 * CELL_SIZE {
             return None;
         }
         let needed = |end: f64| {
             ((end / CELL_SIZE).ceil() as isize).clamp(1, MAX_CELLS_PER_AXIS as isize) as usize
         };
-        let (columns, rows) = (
-            needed(right).max(self.columns),
-            needed(bottom).max(self.rows),
-        );
-        (columns > self.columns || rows > self.rows).then_some((columns, rows))
+        let (needed_columns, needed_rows) = (needed(right).max(columns), needed(bottom).max(rows));
+        (needed_columns > columns || needed_rows > rows).then_some((needed_columns, needed_rows))
     }
 
     /// Makes the grid `columns` by `rows` and empties it.
@@ -443,6 +463,174 @@ where
     }
 }
 
+/// The first bounds inserted into a tree, each with its place among them:
+/// what the tree held when so many had been inserted, for
+/// [`BoundsTree::max_behind`]. A grid as the tree's own is, except that a
+/// cell lists the bounds that cover it whole too, those that raised the
+/// greatest ordering among them, since which bounds cover a cell depends on
+/// how many are looked at.
+#[derive(Debug)]
+struct History<U>
+where
+    U: Clone + Debug + Default + PartialEq,
+{
+    columns: usize,
+    rows: usize,
+    /// Row by row: the newest entry of each cell's list, and the greatest
+    /// ordering among the bounds that cover the cell whole.
+    cells: Vec<(u32, u32)>,
+    entries: Vec<Past<U>>,
+    /// Bounds without a positive width and height, with their places.
+    degenerate: Vec<(u32, Bounds<U>, u32)>,
+    /// How many of the tree's bounds are held.
+    held: usize,
+}
+
+#[derive(Clone, Debug)]
+struct Past<U>
+where
+    U: Clone + Debug + Default + PartialEq,
+{
+    bounds: Bounds<U>,
+    order: u32,
+    /// The greatest ordering of this entry and every one after it in its
+    /// list.
+    rest_max: u32,
+    next: u32,
+    /// The bounds' place among those inserted.
+    position: u32,
+    /// Whether the bounds cover the cell whole.
+    covers: bool,
+}
+
+impl<U> History<U>
+where
+    U: Clone
+        + Debug
+        + PartialEq
+        + PartialOrd
+        + Add<U, Output = U>
+        + Sub<Output = U>
+        + Half
+        + Default
+        + Into<f64>,
+{
+    fn clear(&mut self) {
+        if self.held > 0 {
+            self.cells.fill((NONE, 0));
+            self.entries.clear();
+            self.degenerate.clear();
+            self.held = 0;
+        }
+    }
+
+    /// Takes in `recorded`, the first bounds inserted, those of them it
+    /// does not hold yet.
+    fn hold(&mut self, recorded: &[(Bounds<U>, u32)]) {
+        if recorded.len() <= self.held {
+            return;
+        }
+        let (mut columns, mut rows) = (self.columns, self.rows);
+        for (bounds, _) in &recorded[self.held..] {
+            if Grid::has_area(bounds)
+                && let Some(needed) = Grid::needs_in(columns, rows, bounds)
+            {
+                (columns, rows) = needed;
+            }
+        }
+        if (columns, rows) != (self.columns, self.rows) {
+            self.held = 0;
+            self.entries.clear();
+            self.degenerate.clear();
+            self.cells.clear();
+            self.cells.resize(columns * rows, (NONE, 0));
+            (self.columns, self.rows) = (columns, rows);
+        }
+        for (position, (bounds, order)) in recorded.iter().enumerate().skip(self.held) {
+            self.add(bounds, *order, position as u32);
+        }
+        self.held = recorded.len();
+    }
+
+    fn add(&mut self, bounds: &Bounds<U>, order: u32, position: u32) {
+        if !Grid::has_area(bounds) {
+            self.degenerate.push((position, bounds.clone(), order));
+            return;
+        }
+        let (x, y) = Grid::spans_in(self.columns, self.rows, bounds);
+        for row in y.first_cell..=y.last_cell {
+            let covers_row = y.covers(row, self.rows);
+            for column in x.first_cell..=x.last_cell {
+                let (head, cover) = &mut self.cells[row * self.columns + column];
+                let covers = covers_row && x.covers(column, self.columns);
+                if covers {
+                    // Under bounds that cover the cell too, and came first.
+                    if order <= *cover {
+                        continue;
+                    }
+                    *cover = order;
+                }
+                let rest_max = match self.entries.get(*head as usize) {
+                    Some(next) => next.rest_max.max(order),
+                    None => order,
+                };
+                let entry = self.entries.len() as u32;
+                self.entries.push(Past {
+                    bounds: bounds.clone(),
+                    order,
+                    rest_max,
+                    next: *head,
+                    position,
+                    covers,
+                });
+                *head = entry;
+            }
+        }
+    }
+
+    /// The greatest ordering among the first `count` bounds that intersect
+    /// `query`, which has a positive width and height, or 0; and how many
+    /// entries were looked at. See [`Grid::max_intersecting`].
+    fn max_among_first(&self, count: usize, query: &Bounds<U>) -> (u32, usize) {
+        let count = count as u32;
+        let mut max = self
+            .degenerate
+            .iter()
+            .filter(|(position, bounds, _)| *position < count && bounds.intersects(query))
+            .map(|(_, _, order)| *order)
+            .max()
+            .unwrap_or(0);
+        let mut looked = self.degenerate.len();
+        let (x, y) = Grid::spans_in(self.columns, self.rows, query);
+        for row in y.first_cell..=y.last_cell {
+            let enters_row = y.enters(row, self.rows);
+            for column in x.first_cell..=x.last_cell {
+                let enters = enters_row && x.enters(column, self.columns);
+                let mut entry_ix = self.cells[row * self.columns + column].0;
+                while let Some(entry) = self.entries.get(entry_ix as usize) {
+                    looked += 1;
+                    entry_ix = entry.next;
+                    // Inserted after those asked about.
+                    if entry.position >= count {
+                        continue;
+                    }
+                    if entry.rest_max <= max {
+                        break;
+                    }
+                    let meets = match entry.covers {
+                        true => enters,
+                        false => entry.bounds.intersects(query),
+                    };
+                    if entry.order > max && meets {
+                        max = entry.order;
+                    }
+                }
+            }
+        }
+        (max, looked)
+    }
+}
+
 impl<U> BoundsTree<U>
 where
     U: Clone
@@ -466,6 +654,9 @@ where
         self.max = None;
         std::mem::swap(&mut self.previous, &mut self.recorded);
         self.recorded.clear();
+        std::mem::swap(&mut self.previous_given, &mut self.given);
+        self.given.clear();
+        self.history.clear();
         self.replaying = true;
         self.changed.clear();
         self.replay_search_budget = REPLAY_SEARCH_BUDGET;
@@ -489,6 +680,7 @@ where
     pub fn forget(&mut self) {
         self.clear();
         self.previous.clear();
+        self.previous_given.clear();
         self.replaying = false;
     }
 
@@ -500,45 +692,40 @@ where
         self.find_max_ordering(query)
     }
 
-    /// How many bounds have been inserted since the tree was cleared.
-    pub(crate) fn inserted(&self) -> usize {
-        self.recorded.len()
+    /// Whether the bounds at `position` of the last fill were inserted at an
+    /// ordering the caller gave.
+    fn was_given(&self, position: usize) -> bool {
+        self.previous_given
+            .binary_search(&(position as u32))
+            .is_ok()
     }
 
     /// The greatest ordering among the first `count` bounds inserted that
-    /// `query` meets, or 0 when it meets none: what the tree answered
-    /// before the bounds after them were inserted.
-    pub(crate) fn max_among_first(&self, count: usize, query: &Bounds<U>) -> u32 {
-        self.recorded[..count.min(self.recorded.len())]
-            .iter()
-            .filter(|(bounds, _)| bounds.intersects(query))
-            .map(|(_, ordering)| *ordering)
-            .max()
-            .unwrap_or(0)
+    /// `query` meets, or 0 when it meets none: what the tree would have
+    /// answered before the bounds after them were inserted. With how many
+    /// bounds were looked at.
+    ///
+    /// The first `count` bounds are put in a grid of their own the first
+    /// time they are asked about, each with its place among them, so that
+    /// the answer costs what lies near `query` and not what was inserted.
+    pub(crate) fn max_behind(&mut self, count: usize, query: &Bounds<U>) -> (u32, usize) {
+        let count = count.min(self.recorded.len());
+        if !Grid::has_area(query) {
+            let max = self.recorded[..count]
+                .iter()
+                .filter(|(bounds, _)| bounds.intersects(query))
+                .map(|(_, ordering)| *ordering)
+                .max()
+                .unwrap_or(0);
+            return (max, count);
+        }
+        self.history.hold(&self.recorded[..count]);
+        self.history.max_among_first(count, query)
     }
 
-    /// Among the first `count` bounds inserted, the greatest ordering of
-    /// those `query` meets and the greatest of those that hold `query`
-    /// whole, 0 for none. When the two are equal, whatever part of `query`
-    /// is asked about, the answer is that ordering.
-    pub(crate) fn max_among_first_holding(&self, count: usize, query: &Bounds<U>) -> (u32, u32) {
-        let right = query.origin.x.clone() + query.size.width.clone();
-        let bottom = query.origin.y.clone() + query.size.height.clone();
-        let (mut meeting, mut holding) = (0, 0);
-        for (bounds, ordering) in &self.recorded[..count.min(self.recorded.len())] {
-            if !bounds.intersects(query) {
-                continue;
-            }
-            meeting = meeting.max(*ordering);
-            if bounds.origin.x <= query.origin.x
-                && bounds.origin.y <= query.origin.y
-                && bounds.origin.x.clone() + bounds.size.width.clone() >= right
-                && bounds.origin.y.clone() + bounds.size.height.clone() >= bottom
-            {
-                holding = holding.max(*ordering);
-            }
-        }
-        (meeting, holding)
+    /// How many bounds have been inserted since the tree was cleared.
+    pub(crate) fn inserted(&self) -> usize {
+        self.recorded.len()
     }
 
     /// Sizes the grid to hold `bounds`, so that filling it with bounds
@@ -557,12 +744,16 @@ where
     /// then answers for it, without having ordered it. See
     /// [`BoundsTree::max_over`].
     pub(crate) fn insert_at(&mut self, bounds: Bounds<U>, ordering: u32) {
+        let position = self.recorded.len();
+        self.given.push(position as u32);
         if self.replaying {
             // As an insertion replayed: what it met last time and what it
-            // meets now are compared by those that come after it.
-            match self.previous.get(self.recorded.len()) {
+            // meets now are compared by those that come after it. Bounds
+            // the tree ordered itself last time are not the same insertion.
+            let given_before = self.was_given(position);
+            match self.previous.get(position) {
                 Some((previous, previous_ordering))
-                    if *previous == bounds && *previous_ordering == ordering => {}
+                    if given_before && *previous == bounds && *previous_ordering == ordering => {}
                 Some((previous, _)) => {
                     let previous = previous.clone();
                     self.changed.push(&previous);
@@ -618,8 +809,11 @@ where
     /// from last time, the bounds join the ones that changed.
     fn replay(&mut self, bounds: &Bounds<U>) -> Option<u32> {
         let previous = self.previous.get(self.recorded.len());
+        // An ordering the caller gave last time is not one this insertion
+        // would be given.
         if let Some((previous_bounds, ordering)) = previous
             && previous_bounds == bounds
+            && !self.was_given(self.recorded.len())
         {
             let meets_changed = self.changed.might_meet(bounds) && {
                 self.replay_search_budget = self
@@ -757,6 +951,16 @@ where
             max: None,
             recorded: Vec::new(),
             previous: Vec::new(),
+            given: Vec::new(),
+            previous_given: Vec::new(),
+            history: History {
+                columns: 1,
+                rows: 1,
+                cells: vec![(NONE, 0)],
+                entries: Vec::new(),
+                degenerate: Vec::new(),
+                held: 0,
+            },
             replaying: false,
             changed: ChangedBounds {
                 bounds: Vec::new(),
