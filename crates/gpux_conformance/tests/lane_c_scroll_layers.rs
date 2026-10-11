@@ -64,6 +64,13 @@ enum Content {
     /// Rows of one height in a `uniform_list`, the background of every other one reaching
     /// 8 px up over the row before, each holding a shadowed card.
     AlternatingList,
+    /// Rows with a border all round and a background, each holding a bordered, shadowed
+    /// card: four clips a border, however far the content is scrolled.
+    BorderedRows,
+    /// Rows 30 px apart, each with a background and a shadowed card whose blur reaches
+    /// into the gaps, under a bar laid over the container's bottom edge and painted after
+    /// it: where the bar lies over a gap, nothing it lies over is as high as the shadow.
+    UnderABar,
     /// Rows that each draw a path, the last thing painted where it lies.
     Paths,
     /// Rows wider than the viewport: the container scrolls on both axes.
@@ -93,7 +100,9 @@ fn row_count(content: Content) -> usize {
         | Content::ClippedCards
         | Content::OverlappingRows
         | Content::NoBackground
-        | Content::AlternatingList => 40,
+        | Content::AlternatingList
+        | Content::BorderedRows
+        | Content::UnderABar => 40,
         Content::Sections => 16,
         _ => 120,
     }
@@ -269,6 +278,53 @@ impl RowOf {
                     spread_radius: px(0.),
                     inset: false,
                 }])
+                .into_any_element(),
+            Content::BorderedRows => div()
+                .py(px(10.))
+                .border_1()
+                .border_color(rgb(0x8a8272))
+                .bg(if index.is_multiple_of(2) {
+                    rgb(0xe9e4d8)
+                } else {
+                    rgb(0xd5dde6)
+                })
+                .child(
+                    div()
+                        .mx_3()
+                        .h(px(40.))
+                        .border_1()
+                        .border_color(rgb(0x8a8272))
+                        .bg(if marked { rgb(0xffe9c9) } else { rgb(0xffffff) })
+                        .shadow(vec![BoxShadow {
+                            color: rgba(0x00000080).into(),
+                            offset: point(px(0.), px(0.)),
+                            blur_radius: px(16.),
+                            spread_radius: px(0.),
+                            inset: false,
+                        }]),
+                )
+                .into_any_element(),
+            Content::UnderABar => div()
+                .mt(px(30.))
+                .py(px(10.))
+                .bg(if index.is_multiple_of(2) {
+                    rgb(0xe9e4d8)
+                } else {
+                    rgb(0xd5dde6)
+                })
+                .child(
+                    div()
+                        .mx_3()
+                        .h(px(40.))
+                        .bg(if marked { rgb(0xffe9c9) } else { rgb(0xffffff) })
+                        .shadow(vec![BoxShadow {
+                            color: rgba(0x00000080).into(),
+                            offset: point(px(0.), px(0.)),
+                            blur_radius: px(16.),
+                            spread_radius: px(0.),
+                            inset: false,
+                        }]),
+                )
                 .into_any_element(),
             Content::AlternatingList => div()
                 .h(px(74.))
@@ -455,19 +511,32 @@ impl Render for Page {
             }
             _ => {}
         }
-        panel.child(
-            div()
-                .id("scroll")
-                .size_full()
-                .bg(rgb(0xf4f1ea))
-                .when(matches!(self.content, Content::Wide), |container| {
-                    container.overflow_scroll()
-                })
-                .when(!matches!(self.content, Content::Wide), |container| {
-                    container.overflow_y_scroll()
-                })
-                .children((0..rows).map(|index| self.row(index))),
-        )
+        panel
+            .relative()
+            .child(
+                div()
+                    .id("scroll")
+                    .size_full()
+                    .bg(rgb(0xf4f1ea))
+                    .when(matches!(self.content, Content::Wide), |container| {
+                        container.overflow_scroll()
+                    })
+                    .when(!matches!(self.content, Content::Wide), |container| {
+                        container.overflow_y_scroll()
+                    })
+                    .children((0..rows).map(|index| self.row(index))),
+            )
+            .when(matches!(self.content, Content::UnderABar), |panel| {
+                panel.child(
+                    div()
+                        .absolute()
+                        .left(px(60.))
+                        .bottom(px(PADDING - 6.))
+                        .w(px(200.))
+                        .h(px(30.))
+                        .bg(rgb(0xb5432f)),
+                )
+            })
     }
 }
 
@@ -738,6 +807,30 @@ fn shadows_at_clips_within_clips_scroll_from_tiles() {
                 assert_composited(&totals, 90);
             }
         }
+    }
+}
+
+/// However far the content is scrolled, and however many clips were painted above the
+/// viewport on the way (a border is four), the shadows at its edges are stacked alike.
+#[test]
+fn shadows_far_down_the_content_scroll_from_tiles() {
+    for content in [Content::BorderedRows, Content::Cards] {
+        for scale in [1., 2.] {
+            let mut script = vec![Step::Wheel(0., -700.), Step::Wheel(0., -800.)];
+            script.extend(scrolls_and_single_pixels());
+            let totals = compare(content, scale, &script);
+            assert_composited(&totals, 90);
+        }
+    }
+}
+
+/// What is painted after a scrolling container, over its edge, lies over everything in it,
+/// the blurs of its shadows too, drawn from tiles or without them.
+#[test]
+fn a_bar_painted_over_a_containers_edge_lies_over_its_shadows() {
+    for scale in [1., 2.] {
+        let totals = compare(Content::UnderABar, scale, &scrolls_and_single_pixels());
+        assert_composited(&totals, 90);
     }
 }
 

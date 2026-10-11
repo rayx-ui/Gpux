@@ -815,6 +815,9 @@ fn a_thousand_clips_cost_a_thousand_short_lists() {
 enum Item {
     Push(Bounds<ScaledPixels>),
     Pop,
+    /// The content of a scrolling container begins, and ends.
+    BeginScroll,
+    EndScroll,
     Quad(Bounds<ScaledPixels>),
     Shadow(Bounds<ScaledPixels>, f32),
 }
@@ -839,6 +842,14 @@ fn paint(items: &[Item]) -> (Scene, Vec<Primitive>) {
             Item::Pop => {
                 masks.pop();
                 clip_op(&mut scene, ClipOp::Pop);
+                continue;
+            }
+            Item::BeginScroll => {
+                clip_op(&mut scene, ClipOp::BeginScroll);
+                continue;
+            }
+            Item::EndScroll => {
+                clip_op(&mut scene, ClipOp::EndScroll);
                 continue;
             }
             Item::Quad(bounds) => quad(*bounds, mask),
@@ -1091,4 +1102,146 @@ fn replaying_a_scene_keeps_its_clips() {
             "run {run}"
         );
     }
+}
+
+/// A row with a border all round, as an element paints one: its
+/// background, then the border as four quads, each in a clip of its own
+/// along one edge; and a shadowed card.
+fn bordered_row(top: f32) -> Vec<Item> {
+    let row = sp(20., top, 360., 60.);
+    let mut items = vec![Item::Quad(row)];
+    for edge in [
+        sp(20., top, 360., 1.),
+        sp(20., top + 59., 360., 1.),
+        sp(20., top, 1., 60.),
+        sp(379., top, 1., 60.),
+    ] {
+        items.extend([Item::Push(edge), Item::Quad(row), Item::Pop]);
+    }
+    items.extend([
+        Item::Shadow(sp(40., top + 10., 320., 40.), 14.),
+        Item::Quad(sp(40., top + 10., 320., 40.)),
+    ]);
+    items
+}
+
+/// What is painted above a viewport changes nothing below it: however many
+/// bordered rows, each with clips of its own, are out of view above, the
+/// shadow kept at the bottom edge is ordered as with them all in view.
+#[test]
+fn how_much_lies_above_a_viewport_changes_no_order() {
+    for above in [0, 1, 15, 16, 17, 64, 65, 300] {
+        // The last row is the first out of view below; its card's shadow
+        // reaches in.
+        let rows = above + 4;
+        let first = 221. - 60. * (rows - 1) as f32;
+        let mut items = vec![Item::Quad(window()), Item::Push(viewport())];
+        for row in 0..rows {
+            items.extend(bordered_row(first + 60. * row as f32));
+        }
+        items.push(Item::Pop);
+        let (orders, kept) = painted_orders(&items);
+        let (whole, _) = painted_orders(&without_the_viewport(&items));
+        assert_eq!(kept, 1, "{above} rows above");
+        for (index, (order, whole)) in orders.iter().zip(&whole).enumerate() {
+            assert!(
+                order.is_none() || order == whole,
+                "{above} rows above, primitive {index} of {}: {order:?} against {whole:?}",
+                orders.len()
+            );
+        }
+        // The kept shadow: over the window, its row and nothing else.
+        let shadow = orders.len() - 2;
+        assert_eq!(orders[shadow], Some(3), "{above} rows above");
+    }
+}
+
+/// A scene replayed as two ranges that share open clips, as the scenes of
+/// a window's surfaces are put together, orders what it holds as the whole
+/// scene does: a clip pushed again where it was goes on with its entries.
+#[test]
+fn ranges_replayed_one_after_another_share_their_clips_entries() {
+    let mut rng = StdRng::seed_from_u64(0x5e9_a4a7e);
+    let mut split_in_a_clip = 0;
+    for run in 0..300 {
+        let items = random_clipped_content(&mut rng);
+        let (scene, primitives) = paint(&items);
+        let count = scene.paint_operations.len();
+        let middle = rng.random_range(1..count);
+        let mut replayed = Scene::default();
+        replayed.replay_balanced(0..middle, &scene).unwrap();
+        split_in_a_clip += (replayed.paint_operations.len() > middle) as usize;
+        replayed.replay_balanced(middle..count, &scene).unwrap();
+        assert_eq!(
+            orders(&replayed, &primitives),
+            orders(&scene, &primitives),
+            "run {run}, split at {middle} of {count}"
+        );
+    }
+    assert!(
+        split_in_a_clip >= 200,
+        "{split_in_a_clip} splits fell inside a clip"
+    );
+}
+
+/// What is painted after a scrolling container lies over all of it, the
+/// blurs of its shadows too, as it lies over the container's layer when it
+/// has one. Inside the container a neighbour beside a shadow is ordered as
+/// it always was.
+#[test]
+fn what_is_painted_after_a_scrolling_container_lies_over_its_blurs() {
+    let card = sp(40., 150., 320., 50.);
+    let items = |scrolling: bool| {
+        let mut items = vec![Item::Quad(window()), Item::Push(viewport())];
+        if scrolling {
+            items.push(Item::BeginScroll);
+        }
+        items.extend([
+            Item::Quad(sp(20., -500., 360., 2000.)),
+            Item::Quad(sp(20., 140., 360., 70.)),
+            Item::Shadow(card, 12.),
+            Item::Quad(card),
+            // A neighbour under the blur, beside the shadow's box.
+            Item::Quad(sp(40., 205., 50., 10.)),
+        ]);
+        if scrolling {
+            items.push(Item::EndScroll);
+        }
+        items.extend([
+            Item::Pop,
+            // A bar over the viewport's bottom edge, under the blur too.
+            Item::Quad(sp(100., 212., 200., 30.)),
+        ]);
+        items
+    };
+    // By their boxes alone the bar is level with the row and under the
+    // card's shadow.
+    let (orders, _) = painted_orders(&items(false));
+    assert_eq!(
+        orders,
+        [
+            Some(1),
+            Some(2),
+            Some(3),
+            Some(4),
+            Some(5),
+            Some(4),
+            Some(3)
+        ]
+    );
+    // After the container, it lies over the shadow; the neighbour inside
+    // stays where it was.
+    let (orders, _) = painted_orders(&items(true));
+    assert_eq!(
+        orders,
+        [
+            Some(1),
+            Some(2),
+            Some(3),
+            Some(4),
+            Some(5),
+            Some(4),
+            Some(5)
+        ]
+    );
 }

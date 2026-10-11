@@ -595,14 +595,15 @@ impl Scene {
             .get(range.clone())
             .context("scene replay range ends past the scene")?;
         let mut active_layers = Vec::new();
-        // The clips open at the range's start, which what it paints is
-        // ordered by (see `crate::fast::edge_shadows`).
+        // The clips and scrolling containers open at the range's start,
+        // which what it paints is ordered by (see
+        // `crate::fast::edge_shadows`).
         let mut active_clips = Vec::new();
         for operation in prefix {
             match operation {
-                PaintOperation::FastClip(clip) => match clip {
-                    crate::fast::edge_shadows::ClipOp::Push(_) => active_clips.push(*clip),
-                    crate::fast::edge_shadows::ClipOp::Pop => {
+                PaintOperation::FastClip(clip) => match clip.closing() {
+                    Some(_) => active_clips.push(*clip),
+                    None => {
                         active_clips.pop();
                     }
                 },
@@ -622,18 +623,17 @@ impl Scene {
         for layer in &active_layers {
             self.open_layer(layer);
         }
-        let mut open_clips = active_clips.len();
-        for clip in active_clips {
-            crate::fast::edge_shadows::clip_op(self, clip);
+        for clip in &active_clips {
+            crate::fast::edge_shadows::clip_op(self, *clip);
         }
         let mut open = active_layers.len();
         for operation in operations {
             match operation {
                 PaintOperation::FastClip(clip) => {
-                    match clip {
-                        crate::fast::edge_shadows::ClipOp::Push(_) => open_clips += 1,
-                        crate::fast::edge_shadows::ClipOp::Pop => {
-                            open_clips = open_clips.saturating_sub(1)
+                    match clip.closing() {
+                        Some(_) => active_clips.push(*clip),
+                        None => {
+                            active_clips.pop();
                         }
                     }
                     crate::fast::edge_shadows::clip_op(self, *clip);
@@ -661,8 +661,10 @@ impl Scene {
         for _ in 0..open {
             self.pop_layer();
         }
-        for _ in 0..open_clips {
-            crate::fast::edge_shadows::clip_op(self, crate::fast::edge_shadows::ClipOp::Pop);
+        for clip in active_clips.iter().rev() {
+            if let Some(closing) = clip.closing() {
+                crate::fast::edge_shadows::clip_op(self, closing);
+            }
         }
         Ok(())
     }

@@ -517,6 +517,30 @@ where
             .unwrap_or(0)
     }
 
+    /// Among the first `count` bounds inserted, the greatest ordering of
+    /// those `query` meets and the greatest of those that hold `query`
+    /// whole, 0 for none. When the two are equal, whatever part of `query`
+    /// is asked about, the answer is that ordering.
+    pub(crate) fn max_among_first_holding(&self, count: usize, query: &Bounds<U>) -> (u32, u32) {
+        let right = query.origin.x.clone() + query.size.width.clone();
+        let bottom = query.origin.y.clone() + query.size.height.clone();
+        let (mut meeting, mut holding) = (0, 0);
+        for (bounds, ordering) in &self.recorded[..count.min(self.recorded.len())] {
+            if !bounds.intersects(query) {
+                continue;
+            }
+            meeting = meeting.max(*ordering);
+            if bounds.origin.x <= query.origin.x
+                && bounds.origin.y <= query.origin.y
+                && bounds.origin.x.clone() + bounds.size.width.clone() >= right
+                && bounds.origin.y.clone() + bounds.size.height.clone() >= bottom
+            {
+                holding = holding.max(*ordering);
+            }
+        }
+        (meeting, holding)
+    }
+
     /// Sizes the grid to hold `bounds`, so that filling it with bounds
     /// spread over them does not grow it step by step.
     pub(crate) fn cover(&mut self, bounds: &Bounds<U>) {
@@ -533,7 +557,22 @@ where
     /// then answers for it, without having ordered it. See
     /// [`BoundsTree::max_over`].
     pub(crate) fn insert_at(&mut self, bounds: Bounds<U>, ordering: u32) {
-        debug_assert!(!self.replaying);
+        if self.replaying {
+            // As an insertion replayed: what it met last time and what it
+            // meets now are compared by those that come after it.
+            match self.previous.get(self.recorded.len()) {
+                Some((previous, previous_ordering))
+                    if *previous == bounds && *previous_ordering == ordering => {}
+                Some((previous, _)) => {
+                    let previous = previous.clone();
+                    self.changed.push(&previous);
+                    self.changed.push(&bounds);
+                }
+                None => self.changed.push(&bounds),
+            }
+            self.recorded.push((bounds, ordering));
+            return;
+        }
         self.add(&bounds, ordering);
         self.recorded.push((bounds, ordering));
     }

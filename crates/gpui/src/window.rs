@@ -6217,7 +6217,9 @@ impl Window {
     ) -> R {
         self.invalidator.debug_assert_paint_or_prepaint();
         self.scroll_container_context_stack.push(context);
+        crate::fast::edge_shadows::scroll(self, self.is_paint_phase(), true);
         let result = f(self);
+        crate::fast::edge_shadows::scroll(self, self.is_paint_phase(), false);
         self.scroll_container_context_stack.pop();
         result
     }
