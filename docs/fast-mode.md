@@ -502,12 +502,15 @@ Where these hold, and where they do not:
   pixels from a container's origin at fractional scale factors. A `div` of 5000 clipped cards or
   shadowed rows is equal to the reference at 20 000 and 50 000 px down at 1.1, 1.3333, 1.5, 1.75,
   2.5 and 3 (and at 1.25). Past it the layered frame differs from the reference by a level along
-  the edge row of every card in view, in most frames: from 70 000 px at every scale but 1.5, and
-  from 100 000 at 1.25 (6 to 8 of 25 steps, up to about 1 900 pixels a frame; 18 of 25 at
-  200 000), and by a whole row of a clipped card (77 levels) from 300 000. A `uniform_list` and
-  a `list`, which position their rows from a small offset, stay equal to 250 000 px, and content
-  scrolling sideways to 50 000. Applying the offset in device pixels, after scaling, would
-  remove the limit. At about 1.05
+  the edge row of every card in view, in a share of the frames that depends on the scale: of 25
+  steps at 70 000 px, 2 to 3 at 1.1, 13 to 15 at 1.3333, none at 1.5, 19 to 20 at 1.75, 19 to 22
+  at 2.5 and 15 to 17 at 3 (at 100 000: 0 to 1 at 1.1, 3 to 8 at 1.3333, none at 1.5; at 1.25,
+  first measured at 100 000, 6 to 8 of 25 steps, up to about 1 900 pixels a frame, and 18 of 25
+  at 200 000). A clipped card loses a whole row (77 levels) from 300 000, measured at 1.25. A
+  `uniform_list` stays equal to 250 000 px (measured at 1.1, 1.3333, 1.75, 2.5 and 3; to 300 000
+  at 1.25), a `list` to 250 000 (at 1.1, 1.75, 2.5 and 3), both positioning their rows from a
+  small offset, and content scrolling sideways to 50 000 (at 1.25, 1.3333, 1.75 and 2.5).
+  Applying the offset in device pixels, after scaling, would remove the limit. At about 1.05
   million device pixels (2048 tiles) a layer's tile ids run out: `layer_tile_id` asserts in a
   debug build.
 - **Against a window that does not snap.** Snapping alone (scroll layers on, in the window and in
