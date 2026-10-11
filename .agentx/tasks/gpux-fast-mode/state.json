@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 214,
+  "revision": 215,
   "planRevision": 36,
   "specHashes": {
     "requirements": "b1b67b9bb707bf8a3373710fa4fe7db3e75a86713c13035007223b9a55f058e1",
@@ -5463,6 +5463,14 @@
       },
       "reviewHash": "e9897a36d5fcd1f028828f3bbdfa0fc8db156a911df21b66d4cf58f34d79b48f",
       "recordedAt": "2026-10-11T08:40:40Z"
+    },
+    "s12d-tile-corrections": {
+      "snapshotId": "e665899acf516455f572ebc2ea7fae88f81efed12cb5ec4c0e507ee69ec73191",
+      "commits": {
+        "gpux": "6befa5f69969cd0c101d603d527b51807dd77f6f"
+      },
+      "reviewHash": "eb0c37e49508d70e28e499b2e86db1517d15a47fafc65bc838e9dcebc343a98f",
+      "recordedAt": "2026-10-11T13:31:51Z"
     }
   },
   "findings": [
