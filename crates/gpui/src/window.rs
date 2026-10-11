@@ -4801,6 +4801,9 @@ impl Window {
     /// Floors the near edge and ceils the far edge, producing a strict superset of the raw region.
     #[inline]
     pub(crate) fn cover_bounds(&self, bounds: Bounds<Pixels>) -> Bounds<ScaledPixels> {
+        if self.fast_mode.snapping() {
+            return crate::fast::layers::paint::cover_bounds(bounds, self.scale_factor());
+        }
         Self::cover_bounds_at_scale(bounds, self.scale_factor())
     }
 
@@ -6871,6 +6874,9 @@ impl Window {
         if content_mask.bounds.is_empty() {
             return content_mask;
         }
+        if self.fast_mode.snapping() {
+            return crate::fast::layers::paint::cover_mask(content_mask);
+        }
         ContentMask {
             bounds: Bounds::from_corners(
                 point(
@@ -7245,7 +7251,10 @@ impl Window {
             self.next_frame.scene.insert_primitive(Shadow {
                 order: 0,
                 blur_radius: shadow.blur_radius.scale(scale_factor),
-                bounds: shadow_bounds.scale(scale_factor),
+                bounds: crate::fast::layers::paint::shadow_bounds(
+                    self,
+                    shadow_bounds.scale(scale_factor),
+                ),
                 content_mask,
                 corner_radii: corner_radii.scale(scale_factor),
                 color: prepare_color_with_opacity(&shadow.color, opacity),

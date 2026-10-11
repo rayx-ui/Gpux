@@ -884,9 +884,16 @@ pub(crate) fn snap_path(mut path: crate::Path<ScaledPixels>) -> crate::Path<Scal
 /// tile can hold, which is drawn into the frame instead: gpux's visual
 /// effects (which sample what is under them), screen-effect regions and
 /// requests, HTML islands and elements (which the DOM draws), surfaces
-/// (whose pixels come from outside the scene), and whatever is painted in
+/// (whose pixels come from outside the scene), whatever is painted in
 /// the positioned or top layer (fixed and sticky content, which does not
-/// scroll with the rest, and chrome above it).
+/// scroll with the rest, and chrome above it), and whatever is painted
+/// transformed.
+///
+/// A transformed primitive is shaded from positions the rasterizer
+/// interpolates, which differ in their last bits between a tile and the
+/// window, and its transformation is about a point of the window: a card
+/// moved or turned by a few pixels came out of its tiles up to 54 levels
+/// from where painting it puts it, in nearly every frame.
 pub(crate) fn uncompositable(scene: &Scene) -> bool {
     !scene.visual_effects.is_empty()
         || !scene.html_islands.is_empty()
@@ -895,12 +902,16 @@ pub(crate) fn uncompositable(scene: &Scene) -> bool {
         || !scene.surfaces.is_empty()
         || !scene.active_screen_effects.is_empty()
         || !scene.active_screen_effect_snapshots.is_empty()
-        || scene.paint_operations.iter().any(|operation| {
-            matches!(
-                operation,
-                PaintOperation::StartPositionedLayer(_) | PaintOperation::StartTopLayer(_)
-            )
-        })
+        || scene
+            .paint_operations
+            .iter()
+            .any(|operation| match operation {
+                PaintOperation::StartPositionedLayer(_) | PaintOperation::StartTopLayer(_) => true,
+                PaintOperation::Primitive(primitive) => {
+                    crate::fast::layers::scene::transformed(primitive)
+                }
+                _ => false,
+            })
 }
 
 /// Moves what `from`, a layer's scene, holds besides its paint operations
@@ -1438,6 +1449,98 @@ pub(crate) fn translated_scene(scene: &Scene, delta: Point<ScaledPixels>) -> Sce
     }
     translated.finish();
     translated
+}
+
+/// How far past a device pixel's edge an edge may be worked out and still be
+/// taken to lie on it, in device pixels (see [`cover_bounds`]).
+const EDGE_SLACK: f32 = 1. / 64.;
+
+/// `bounds` in device pixels, grown to whole ones, as `Window::cover_bounds`
+/// grows a clip, except that an edge worked out a hair past a pixel's edge
+/// lies on that edge.
+///
+/// An element's edges lie on device pixels: layout puts them there. What a
+/// clip is worked out from is such an edge with the scroll offset added, in
+/// logical pixels, where neither need be a number a `f32` holds: at a scale
+/// factor of 1.25 an edge 114 device pixels up is 91.2 logical ones. The sum
+/// comes out a few millionths of a pixel to one side of the edge or the
+/// other, by how far the content is scrolled, and flooring it takes in a
+/// whole row of pixels more on the one side than on the other. Content
+/// painted into a layer at one scroll offset and shown at another then
+/// differs from content painted where it is shown by that row: what a
+/// clipped card holds shows a row further, or a blur's last row does.
+pub(crate) fn cover_bounds(bounds: Bounds<Pixels>, scale_factor: f32) -> Bounds<ScaledPixels> {
+    if bounds.is_empty() {
+        return bounds.scale(scale_factor);
+    }
+    cover(
+        bounds.left().0 * scale_factor,
+        bounds.top().0 * scale_factor,
+        bounds.right().0 * scale_factor,
+        bounds.bottom().0 * scale_factor,
+    )
+}
+
+/// `mask`, a clip that is not empty, in device pixels, grown to whole ones
+/// as [`cover_bounds`] grows one: what an underline is clipped to
+/// (`Window::snapped_paint_content_mask`).
+pub(crate) fn cover_mask(
+    mask: crate::ContentMask<ScaledPixels>,
+) -> crate::ContentMask<ScaledPixels> {
+    crate::ContentMask {
+        bounds: cover(
+            mask.bounds.left().0,
+            mask.bounds.top().0,
+            mask.bounds.right().0,
+            mask.bounds.bottom().0,
+        ),
+        corner_radii: mask.corner_radii,
+    }
+}
+
+fn cover(left: f32, top: f32, right: f32, bottom: f32) -> Bounds<ScaledPixels> {
+    let left = (left + EDGE_SLACK).floor();
+    let top = (top + EDGE_SLACK).floor();
+    let right = (right - EDGE_SLACK).ceil().max(left);
+    let bottom = (bottom - EDGE_SLACK).ceil().max(top);
+    Bounds::from_corners(
+        point(ScaledPixels(left), ScaledPixels(top)),
+        point(ScaledPixels(right), ScaledPixels(bottom)),
+    )
+}
+
+/// How finely [`shadow_bounds`] places a shadow's edges: 64 steps a device
+/// pixel.
+const SHADOW_GRID: f32 = 64.;
+
+/// `bounds`, a drop shadow's box in device pixels, as `window` paints it:
+/// with its edges moved to the nearest 1/64 of a device pixel while the
+/// window's scroll layers snap, and it is not transformed.
+///
+/// A shadow's box is its element's, which lies on device pixels, moved by
+/// the shadow's offset and spread, which need not. It is not snapped, since
+/// a blur hides where exactly it begins. But it is worked out from the
+/// element's edge with the scroll offset added in logical pixels, a few
+/// millionths of a pixel to one side or the other by how far the content is
+/// scrolled (see [`cover_bounds`]), and a blur worked out from a box that
+/// far off comes out a level off in a pixel or two: content painted into a
+/// layer at one scroll offset and shown at another differed there from
+/// content painted where it is shown, at every scale factor that is not a
+/// whole number. A sixty-fourth of a pixel is finer than a blur shows and
+/// far coarser than the error, and a box on that grid moves by whole pixels
+/// exactly.
+#[inline]
+pub(crate) fn shadow_bounds(window: &Window, bounds: Bounds<ScaledPixels>) -> Bounds<ScaledPixels> {
+    if !window.fast_mode.snapping()
+        || window.current_element_transform() != crate::scene::TransformationMatrix::unit()
+    {
+        return bounds;
+    }
+    let snap = |value: ScaledPixels| ScaledPixels((value.0 * SHADOW_GRID).round() / SHADOW_GRID);
+    Bounds::from_corners(
+        point(snap(bounds.left()), snap(bounds.top())),
+        point(snap(bounds.right()), snap(bounds.bottom())),
+    )
 }
 
 /// `offset`, a scroll offset about to be applied, moved to whole device

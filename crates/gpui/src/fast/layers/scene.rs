@@ -890,6 +890,26 @@ pub(crate) fn move_primitive(primitive: &mut Primitive, delta: Point<ScaledPixel
     }
 }
 
+/// Whether `primitive` is painted moved, turned or scaled by a
+/// transformation of its own.
+pub(crate) fn transformed(primitive: &Primitive) -> bool {
+    let unit = TransformationMatrix::unit();
+    match primitive {
+        Primitive::Shadow(shadow) => shadow.transformation != unit,
+        Primitive::Quad(quad) => quad.transformation != unit,
+        Primitive::Underline(underline) => underline.transformation != unit,
+        Primitive::MonochromeSprite(sprite) => sprite.transformation != unit,
+        Primitive::SubpixelSprite(sprite) => sprite.transformation != unit,
+        Primitive::PolychromeSprite(sprite) => sprite.transformation != unit,
+        Primitive::VisualEffect(effect) => effect.transformation != unit,
+        Primitive::ScreenEffectRegion(region) => region.transformation != unit,
+        Primitive::Path(_)
+        | Primitive::Surface(_)
+        | Primitive::HtmlIsland(_)
+        | Primitive::HtmlElement(_) => false,
+    }
+}
+
 /// A primitive's transformation applies to window positions (`R·p + t`, see
 /// `to_device_position_transformed` in the shaders), so for the primitive to
 /// move by `delta` with it, `t` becomes `t + (I − R)·delta`. The unit
