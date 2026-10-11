@@ -50,7 +50,7 @@ fn the_build_links_the_simulator_library_into_an_unsigned_app() {
     let root = Path::new("/repo");
     assert_eq!(
         ios::cargo_build().join(" "),
-        "build -p gpux-conformance --no-default-features --features app-host --example ios_host \
+        "build -p gpux-conformance --no-default-features --features app-host,diagnostics --example ios_host \
          --target aarch64-apple-ios-sim"
     );
     let library = ios::host_library(root);

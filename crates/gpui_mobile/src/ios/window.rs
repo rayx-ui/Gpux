@@ -1703,6 +1703,25 @@ impl PlatformWindow for IosWindow {
         }
     }
 
+    fn rasterizes_layer_tiles(&self) -> bool {
+        // The wgpu renderer does (`gpui_wgpu`'s `fast::layers`), where Metal gave the window one.
+        self.renderer.lock().is_some()
+    }
+
+    fn release_layer_tiles(&self) {
+        if let Some(renderer) = self.renderer.lock().as_mut() {
+            renderer.release_layer_tiles();
+        }
+    }
+
+    #[cfg(feature = "diagnostics")]
+    fn layer_tile_counters(&self) -> Option<gpui::LayerTileCounters> {
+        self.renderer
+            .lock()
+            .as_ref()
+            .map(|renderer| renderer.layer_tile_counters())
+    }
+
     fn draw_composed(&self, scene: gpui::ComposedScene<'_>) {
         crate::ios::fast::composition::draw_composed(self, scene)
     }

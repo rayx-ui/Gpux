@@ -21,6 +21,8 @@ mod checks;
 #[cfg(target_os = "ios")]
 mod composition;
 mod platform_views;
+#[cfg(target_os = "ios")]
+mod scroll_layers;
 
 #[cfg(target_os = "ios")]
 mod ios {

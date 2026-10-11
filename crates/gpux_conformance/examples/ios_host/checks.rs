@@ -437,6 +437,15 @@ pub async fn platform_checks(cx: &mut AsyncApp) -> Vec<ResultLine> {
     if selected("composition-ios-shadow") {
         lines.push(crate::composition::shadow(cx).await);
     }
+    if selected("scroll-layers-ios-div") {
+        lines.push(crate::scroll_layers::div(cx).await);
+    }
+    if selected("scroll-layers-ios-list") {
+        lines.push(crate::scroll_layers::list(cx).await);
+    }
+    if selected("scroll-layers-ios-resume") {
+        lines.push(crate::scroll_layers::resume(cx).await);
+    }
     if selected("platform-view-ios") {
         lines.push(crate::platform_views::platform_view(cx).await);
     }

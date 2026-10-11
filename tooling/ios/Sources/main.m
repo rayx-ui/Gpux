@@ -35,6 +35,10 @@
     gpui_ios_did_enter_background(NULL);
 }
 
+- (void)applicationDidReceiveMemoryWarning:(UIApplication *)application {
+    gpui_ios_did_receive_memory_warning(NULL);
+}
+
 - (void)applicationWillTerminate:(UIApplication *)application {
     gpui_ios_will_terminate(NULL);
 }

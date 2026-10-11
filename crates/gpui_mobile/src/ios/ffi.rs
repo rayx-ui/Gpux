@@ -250,6 +250,29 @@ pub extern "C" fn gpui_ios_did_enter_background(_app_ptr: *mut c_void) {
                     let window = &*window_ptr;
                     window.notify_active_status_change(false);
                     window.notify_visibility_change(gpui::WindowVisibility::Hidden);
+                    // A backgrounded app gives its scroll-layer tiles back.
+                    gpui::PlatformWindow::release_layer_tiles(window);
+                }
+            }
+        }
+    }
+}
+
+/// Called when the iOS app received a memory warning.
+///
+/// This should be called from `applicationDidReceiveMemoryWarning:` in the app delegate (or from
+/// a view controller's `didReceiveMemoryWarning`). The windows give their scroll-layer tiles
+/// back; the next frame that composites a layer rasterizes them again.
+#[unsafe(no_mangle)]
+pub extern "C" fn gpui_ios_did_receive_memory_warning(_app_ptr: *mut c_void) {
+    log::warn!("GPUI iOS: Received a memory warning");
+
+    if let Some(wrapper) = IOS_WINDOW_LIST.get() {
+        unsafe {
+            let windows = &*wrapper.0.get();
+            for &window_ptr in windows.iter() {
+                if !window_ptr.is_null() {
+                    gpui::PlatformWindow::release_layer_tiles(&*window_ptr);
                 }
             }
         }
