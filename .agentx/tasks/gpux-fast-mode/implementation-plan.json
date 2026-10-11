@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 31,
+  "revision": 36,
   "title": "gpux fast mode: retained layout and views, splice, scroll layers and window composition from gpui-fast",
   "validationMode": "sprint",
   "repositories": [
@@ -2269,9 +2269,10 @@
       "repositoryId": "gpux",
       "kind": "test",
       "criterionIds": [
-        "LYR-14"
+        "LYR-14",
+        "LYR-15"
       ],
-      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/edge_shadows.rs`: a shadow kept for its blur and one dropped; its order over what its box lies on, in view or dropped; under the element casting it; beside a neighbour its blur reaches; with a background or an overlay painted outside its clip; in positioned and fixed layers, and a fixed layer raised over it; an inset shadow; random scenes against upstream's rule (nothing dropped, lowered or reordered; a scene nothing cuts unchanged); random content against the same content with its clip not there, order for order; replayed operations; a tile's scene. After the second review: clips told one by one (a card clipping content taller than itself, a border in a mask of its own, what lies behind a stretch of a clip's edge), random content with clips of its own against the same with its viewport not there, and clips replayed. After the third review: up to 300 bordered rows above a viewport change no order below it; a scene replayed as two balanced ranges; what is painted after a scrolling container over a blur. After the fourth review: a clip like an earlier one after something was painted; what follows a scrolling container over its blurs out of view; random content with scrolling containers told against the same with its viewport not there, replayed whole and as two ranges; a primitive that leaves no operation; what lies behind 16 000 cells and a table without a pass over the scene; `max_behind` against a pass over the bounds; a tree replaying orderings it was given; a layer's content moved and replayed in a viewport. After the fifth review: random rows, reaching over one another or not, ordered with the rows they meet against the whole content painted in one scene; a row scrolled in costs its own ordering, 2 400 000 px down a list; a `uniform_list` scrolled a row a frame orders no more than the rows that come, at its top and 100 000 px down; `max_behind` far from the origin and left of it. After the sixth review: the window test drives a `list` as well as a `uniform_list`, down and back up, and checks every frame's orders against the rows painted one after another; rows painted in one scene keep its orders unless they met something the content does not hold; `max_behind` among bounds of any size. After the seventh review: the comparisons a content of 200 rows, of 2000 rows down a list and of 2000 side by side takes, and those of a frame of both lists in a window; the pass's rows moved into the content as `end_paint_rows` moves them; bounds with an infinite edge.",
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/edge_shadows.rs`: a shadow kept for its blur and one dropped; its order over what its box lies on, in view or dropped; under the element casting it; beside a neighbour its blur reaches; with a background or an overlay painted outside its clip; in positioned and fixed layers, and a fixed layer raised over it; an inset shadow; random scenes against upstream's rule (nothing dropped, lowered or reordered; a scene nothing cuts unchanged); random content against the same content with its clip not there, order for order; replayed operations; a tile's scene. After the second review: clips told one by one (a card clipping content taller than itself, a border in a mask of its own, what lies behind a stretch of a clip's edge), random content with clips of its own against the same with its viewport not there, and clips replayed. After the third review: up to 300 bordered rows above a viewport change no order below it; a scene replayed as two balanced ranges; what is painted after a scrolling container over a blur. After the fourth review: a clip like an earlier one after something was painted; what follows a scrolling container over its blurs out of view; random content with scrolling containers told against the same with its viewport not there, replayed whole and as two ranges; a primitive that leaves no operation; what lies behind 16 000 cells and a table without a pass over the scene; `max_behind` against a pass over the bounds; a tree replaying orderings it was given; a layer's content moved and replayed in a viewport. After the fifth review: random rows, reaching over one another or not, ordered with the rows they meet against the whole content painted in one scene; a row scrolled in costs its own ordering, 2 400 000 px down a list; a `uniform_list` scrolled a row a frame orders no more than the rows that come, at its top and 100 000 px down; `max_behind` far from the origin and left of it. After the sixth review: the window test drives a `list` as well as a `uniform_list`, down and back up, and checks every frame's orders against the rows painted one after another; rows painted in one scene keep its orders unless they met something the content does not hold; `max_behind` among bounds of any size. After the seventh review: the comparisons a content of 200 rows, of 2000 rows down a list and of 2000 side by side takes, and those of a frame of both lists in a window; the pass's rows moved into the content as `end_paint_rows` moves them; bounds with an infinite edge. An empty mask off the grid is the clips told.",
       "argv": [
         "cargo",
         "test",
@@ -2284,7 +2285,115 @@
       ],
       "expected": {
         "exitCode": 0,
-        "minimumTests": 34
+        "minimumTests": 35
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-layer-scales",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "LYR-15"
+      ],
+      "descriptionMarkdown": "New group `crates/gpux_conformance/tests/lane_c_layer_scales.rs`: the shadowed, clipped (cards, underlined text, a nested scrolling container) and listed views of the lane, and text, paths and content scrolling on both axes, scrolled from tiles at 1.25, 1.5 and 1.75 by the scripted scroll and single pixels; translated and rotated cards at 1, 1.5 and 2, painted and not composited; every frame against the layers-off reference, byte for byte. A scrolling container out of view within a scrolling container, under a shadowed bar, at 1.3333 and 2.625.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-conformance",
+        "--test",
+        "lane_c_layer_scales"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 6
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpux_conformance/**",
+        "crates/gpui_platform/**",
+        "crates/gpui_wgpu/**",
+        "crates/gpui_apple/**",
+        "crates/gpux_fonts/**"
+      ]
+    },
+    {
+      "id": "check-list-hover-lane-c",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "LYR-16"
+      ],
+      "descriptionMarkdown": "New group `crates/gpux_conformance/tests/lane_c_list_hover.rs`: a `uniform_list` and a `list` whose rows have a hover style, the pointer moved over them with and without scrolling, every frame against the layers-off reference, byte for byte.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-conformance",
+        "--test",
+        "lane_c_list_hover"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpux_conformance/**",
+        "crates/gpui_platform/**",
+        "crates/gpui_wgpu/**",
+        "crates/gpui_apple/**",
+        "crates/gpux_fonts/**"
+      ]
+    },
+    {
+      "id": "check-list-hover",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "LYR-16"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/list_hover.rs`: after every move of the pointer and turn of the wheel over a `uniform_list` and a `list` with hover-styled rows, a window with every mechanism, one with scroll layers alone and the reference each show hovered the row under the pointer, and the same row; a move back onto a row after a scroll draws a frame in each; a move within a row draws none.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::list_hover::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3
       },
       "inputs": [
         "crates/gpui/**",
@@ -3826,11 +3935,109 @@
       ]
     },
     {
+      "id": "s12d-tile-corrections",
+      "title": "Tiles at fractional scales, and a list's hover in its frame",
+      "dependsOn": [
+        "s12c-edge-shadows"
+      ],
+      "memoryScopes": [
+        "gpui/frame-pipeline",
+        "gpui/positioning-scroll"
+      ],
+      "tasks": [
+        {
+          "id": "t53-layer-scales",
+          "title": "Tiles equal direct drawing at fractional scales and under transforms",
+          "descriptionMarkdown": "Reproduce each fractional-scale and transform difference the reviews of s12c named (their probes are the starting point), find the primitive and the step it arises at, and close it at its cause. Write `lane_c_layer_scales`.",
+          "criterionIds": [
+            "LYR-15"
+          ],
+          "designIds": [
+            "d-tile-corrections"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-edge-shadows",
+            "check-layer-scales",
+            "check-parity-a"
+          ],
+          "supportingCriterionIds": [
+            "OR-3"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/layers/paint.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_conformance/tests/lane_c_scroll_layers.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/layers/scene.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_conformance/tests/lane_c_layer_scales.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "tooling/testkit/src/lanes.rs"
+            }
+          ]
+        },
+        {
+          "id": "t54-list-hover",
+          "title": "A list's row shows its frame's hover",
+          "descriptionMarkdown": "Reproduce the `uniform_list` frame that shows the last frame's hover after a pointer move without a scroll, find why the row was kept or painted from the old hit test, and have it rendered in the frame whose hit test changes it. Write `fast::tests::list_hover` and `lane_c_list_hover`.",
+          "criterionIds": [
+            "LYR-16"
+          ],
+          "designIds": [
+            "d-tile-corrections"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-list-hover",
+            "check-list-hover-lane-c",
+            "check-parity-a"
+          ],
+          "supportingCriterionIds": [
+            "OR-3"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/layers/lists.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/hover.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/elements/div.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_conformance/tests/lane_c_list_hover.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "s12b-layers-web-mobile",
       "title": "Scroll layers in the browser, on Android and on iOS",
       "dependsOn": [
         "s12-list-layers",
-        "s12c-edge-shadows"
+        "s12c-edge-shadows",
+        "s12d-tile-corrections"
       ],
       "memoryScopes": [
         "platform/web",

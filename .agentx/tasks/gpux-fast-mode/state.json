@@ -1,12 +1,12 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 197,
-  "planRevision": 31,
+  "revision": 214,
+  "planRevision": 36,
   "specHashes": {
-    "requirements": "fa6cfcfe632f4a7ab9abfa4c529ae6d732ac88cf9e1739a8854f0b139b54caa3",
-    "design": "04b114ade859332282e3edc1f115af320fc1e3cd18cb2f38a04ed4819861eb72",
-    "plan": "bf835072bbe2d00b3e1e069eb75e255c58a5e538fd0c69e9a48be97ad7c74903"
+    "requirements": "b1b67b9bb707bf8a3373710fa4fe7db3e75a86713c13035007223b9a55f058e1",
+    "design": "2fc763459054c74315b45419a35a857145efda008dd245483efb01e93329f7bd",
+    "plan": "b30399febf0155b5a69feecce5a66f1259cc7fb4168b0f34034c1dfe1c97be42"
   },
   "tasks": {
     "t01-fast-switches": {
@@ -314,6 +314,18 @@
       "workerIds": [
         "claude-240e1cb7"
       ]
+    },
+    "t53-layer-scales": {
+      "status": "done",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
+    },
+    "t54-list-hover": {
+      "status": "done",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     }
   },
   "validationBatches": {
@@ -451,6 +463,24 @@
         }
       },
       "recordedAt": "2026-10-11T07:59:55Z"
+    },
+    "1615ba50bc9f472157e0c1c7bbf412dfdaa3091f23da10a223ecd42a0d14c599": {
+      "snapshot": {
+        "specHash": "b75e2882157ee87d99b1a4779692a55c6e1f47f223ee7fb2d15ff7604b2ba36c",
+        "repositories": {
+          "gpux": "021983c1912bd5796b323d88038677953c18df2f2fdd19a9fb15914350aa1e4d"
+        }
+      },
+      "recordedAt": "2026-10-11T11:15:16Z"
+    },
+    "2af6de6f4dfa2de88e735432c1427680d5efdfb115843f9a7d614016f4414e52": {
+      "snapshot": {
+        "specHash": "f81630cca5d77d7c019f50b13b1f9ab9f0b208a9bffa63979e46c3fd5dc58537",
+        "repositories": {
+          "gpux": "834c966c47212b2edc98c32fcfcdb5e635332aa452f0a258016dc640b8e026bc"
+        }
+      },
+      "recordedAt": "2026-10-11T13:29:25Z"
     }
   },
   "checkResults": {
@@ -1575,6 +1605,91 @@
       "logPath": "artifacts-temp/agentx/gpux-fast-mode/s12c-edge-shadows-final-6b656a32297b.log",
       "logSha256": "29c60784f85be8014bd3266f5a10a49a09899d201d4068ab5ba0ab112bbc358e",
       "inputsHash": "a08b420a15c962664067a810e7090b58245790964e9ddb30e35ed35edac017a4"
+    },
+    "s12d-tile-corrections/check-parity-a/final": {
+      "checkId": "check-parity-a",
+      "boundaryId": "s12d-tile-corrections",
+      "phase": "final",
+      "batchId": "1615ba50bc9f472157e0c1c7bbf412dfdaa3091f23da10a223ecd42a0d14c599",
+      "definitionHash": "fa2a6c37c33f236da90188c21241c323bf5546009bfdb63ca19a5b684a5a283e",
+      "basisHash": "8235132284d29eddca2300bb166b4aa5c84253ee26c8b3acc96bf59199db53b3",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 39,
+      "durationSeconds": 3.7211,
+      "recordedAt": "2026-10-11T11:11:52Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s12d-tile-corrections-final-624ff0af1138.log",
+      "logSha256": "42aebbe18f202ddd5070981737878e0d6837f9a8c1940904438245d6afeb93f3",
+      "inputsHash": "b64461add97937773db366dec6485088998e8351fda1da83b9407b825c02a1bd"
+    },
+    "s12d-tile-corrections/check-layer-scales/final": {
+      "checkId": "check-layer-scales",
+      "boundaryId": "s12d-tile-corrections",
+      "phase": "final",
+      "batchId": "1615ba50bc9f472157e0c1c7bbf412dfdaa3091f23da10a223ecd42a0d14c599",
+      "definitionHash": "38d405da25a7635c976c152a90a4837738decc3206b4ea07b6300a660f98edc7",
+      "basisHash": "27d724a43774983836c9f8ff9b91ab1c2331f4ffb6b8f63d41000c6dc9ac8919",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 6,
+      "durationSeconds": 168.0971,
+      "recordedAt": "2026-10-11T11:14:40Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s12d-tile-corrections-final-18ac7e6d75d2.log",
+      "logSha256": "cddc5177da42d88017eae8ff94e39d77f84b7cab077d9c8648f9dd039706608b",
+      "inputsHash": "d678cd5bb7677d30a50e62b33cff02d49dd788b77a63eec185bfc622194a819c"
+    },
+    "s12d-tile-corrections/check-list-hover-lane-c/final": {
+      "checkId": "check-list-hover-lane-c",
+      "boundaryId": "s12d-tile-corrections",
+      "phase": "final",
+      "batchId": "1615ba50bc9f472157e0c1c7bbf412dfdaa3091f23da10a223ecd42a0d14c599",
+      "definitionHash": "2eb53f549c2627025b8f8dd8c876cfb86b30366e10d062a15dab8c5166033d78",
+      "basisHash": "85e5c16ebb8417352a776a1854bc1d91a5bea0ec307884c686a10f43a12e99e1",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 34.2237,
+      "recordedAt": "2026-10-11T11:15:15Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s12d-tile-corrections-final-25cc67cbd996.log",
+      "logSha256": "545c44879236c5bde19bb3c9d891216baeb80cfe2dc8ddc64ec8be80ebedac03",
+      "inputsHash": "d678cd5bb7677d30a50e62b33cff02d49dd788b77a63eec185bfc622194a819c"
+    },
+    "s12d-tile-corrections/check-list-hover/final": {
+      "checkId": "check-list-hover",
+      "boundaryId": "s12d-tile-corrections",
+      "phase": "final",
+      "batchId": "1615ba50bc9f472157e0c1c7bbf412dfdaa3091f23da10a223ecd42a0d14c599",
+      "definitionHash": "0b60fb5b570167f8e3006aec6959ab249c6f9b141f5e232e85f641a350d98dab",
+      "basisHash": "617d97438c5e2208a2b498e07cea9268167d1277a0524ce43d279539dab1a40c",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 1.7718,
+      "recordedAt": "2026-10-11T11:15:16Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s12d-tile-corrections-final-999af64408c6.log",
+      "logSha256": "6218397c948a6e8f445c7f05be80ba54d5eceda315970edacf4d6b10440e46d4",
+      "inputsHash": "8639f044c02f8da34e740c51afb05096e575d49a081b8c98108637ac4fc9a1ef"
+    },
+    "s12d-tile-corrections/check-edge-shadows/final": {
+      "checkId": "check-edge-shadows",
+      "boundaryId": "s12d-tile-corrections",
+      "phase": "final",
+      "batchId": "2af6de6f4dfa2de88e735432c1427680d5efdfb115843f9a7d614016f4414e52",
+      "definitionHash": "6108f8502a2d4dcba0dd2e226b83fc36147a4f47bfea8ecca3459bb0af02ad7f",
+      "basisHash": "11159b72e0b8349349fbf42ac81a876e8ccac55090f1e7b7da0e63dcbdcbbb7a",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 35,
+      "durationSeconds": 11.7225,
+      "recordedAt": "2026-10-11T13:29:25Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s12d-tile-corrections-final-78c23b99232a.log",
+      "logSha256": "5ceb3c7943183e85859a0fb09257ee25f8d7e4778cf83e8831ce18e18afe2db6",
+      "inputsHash": "8639f044c02f8da34e740c51afb05096e575d49a081b8c98108637ac4fc9a1ef"
     }
   },
   "reviews": {
@@ -5035,6 +5150,205 @@
         "s12c-what-is-left-out-is-noted-where-it-was-painted"
       ],
       "recordedAt": "2026-10-11T08:39:42Z"
+    },
+    "s12d-tile-corrections": {
+      "reviewerId": "claude-reviewer-s12d4-7f3c91a2",
+      "snapshotId": "e665899acf516455f572ebc2ea7fae88f81efed12cb5ec4c0e507ee69ec73191",
+      "criterionIds": [
+        "LYR-15",
+        "LYR-16",
+        "OR-3"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/paint.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-15",
+            "OR-3"
+          ],
+          "sha256": "8c8b0305909ee331da4a42be079193e5d3a63ef3c89535f87975f3bf1695d680"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-15",
+            "LYR-16",
+            "OR-3"
+          ],
+          "sha256": "910ff14e5dff4199f47942b294a0f275132119e5878dc8e9dcebc63b1f883bf3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/edge_shadows.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-15"
+          ],
+          "sha256": "d08b76fb589f8d41d50dc1c8777511c1d846c1cd9655e7d9d40a4252ec59e461"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/scene.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-15"
+          ],
+          "sha256": "62f3a046b322046db00ad1e9d68934d2c24234e07ca616074ec0475909f49a57"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/hover.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-16"
+          ],
+          "sha256": "d053809881d62c2d5dca49633185c2afaebea7019146afbdfab4516f8add0eca"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-16"
+          ],
+          "sha256": "25c60d432d463397a0ac3ff3aec16f725e9823748e3ef35d62089a8dee201793"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/edge_shadows.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-15"
+          ],
+          "sha256": "87f39bc8759dc2841e6f766ad96715976f39a5f55064ac66b2a10e1fa1a95a19"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/list_hover.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-16"
+          ],
+          "sha256": "1611c56ce8c16bf49e9b57c37fcd3a2eff00faebdb3b8f97e238857aade70420"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_layer_scales.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-15"
+          ],
+          "sha256": "15e1f397d956dc295ee903b9459e64123258737f4cfc9476c35766613b5eb4f1"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_list_hover.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-16"
+          ],
+          "sha256": "af55b0638a8b4d6f33fc16267ec04e9ed5fdc630bf9491284387b66031811570"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_a_fast_parity.rs",
+          "kind": "test",
+          "criterionIds": [
+            "OR-3"
+          ],
+          "sha256": "ab7b2be4370aab3a63a560d98f780764ad0cf858301139f78b66ab9c3bdf2439"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s12d-tile-corrections-final-18ac7e6d75d2.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "LYR-15"
+          ],
+          "sha256": "cddc5177da42d88017eae8ff94e39d77f84b7cab077d9c8648f9dd039706608b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s12d-tile-corrections-final-999af64408c6.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "LYR-16"
+          ],
+          "sha256": "6218397c948a6e8f445c7f05be80ba54d5eceda315970edacf4d6b10440e46d4"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s12d-tile-corrections-final-25cc67cbd996.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "LYR-16"
+          ],
+          "sha256": "545c44879236c5bde19bb3c9d891216baeb80cfe2dc8ddc64ec8be80ebedac03"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s12d-tile-corrections-final-624ff0af1138.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "OR-3"
+          ],
+          "sha256": "42aebbe18f202ddd5070981737878e0d6837f9a8c1940904438245d6afeb93f3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s12d-lima2.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "LYR-15",
+            "LYR-16",
+            "OR-3"
+          ],
+          "sha256": "f9f641fc08a0705a7b94fa27e2827817a29d7b61b08a9ecea2753e16370024f2"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s12d-tile-corrections-final-78c23b99232a.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "LYR-15"
+          ],
+          "sha256": "5ceb3c7943183e85859a0fb09257ee25f8d7e4778cf83e8831ce18e18afe2db6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-15",
+            "LYR-16"
+          ],
+          "sha256": "697c324af333b93c9cac19ea54f296c880132d87e30eb1d2ab0159a7f2c0be73"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/gpui/frame-pipeline/rules.md",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-15",
+            "LYR-16"
+          ],
+          "sha256": "bea187ccdbeda55768a4b5de11b772454d021488956db6386aba2bbfc6262cd9"
+        }
+      ],
+      "summaryMarkdown": "**Verdict: passed at revision 213 (snapshot e665899a), the fourth review.** The code is that of the second review (`418a867`), unchanged and not re-run; the text corrections of the third were checked against my numbers, figure by figure, and hold.\n\nLYR-15: clips are grown to the grid with the 1/64 slack, drop shadows lie on a 1/64 grid, empty masks are the clips told (the first review's major finding: `PNestedBar` and content built to make empty masks equal to the reference at ten scales, a 20 000-scene fuzz orders identically, reverting the rule fails 33 scenes and the unit test), transformed content stays off tiles, and the limits are stated: about 50 000 device px at fractional scales, the share of frames past it by scale, `uniform_list` and `list` to 250 000, sideways to 50 000, snapping alone differing from no snapping by a row at a clip's edge. LYR-16: every hovered row with an id shows the hover its frame's hit test finds in all three modes (0 frames differ from a window drawn afresh, nine variants, scales 1 and 2); an element needs an id, stated. OR-3: lane A parity 39 of 39 at revision 207 and 210. Cost against 49690f7: equal within noise. The earlier battery (33 tests, 339 comparisons) has 0 differing steps.\n\nNo finding is open. No tracked file touched; nothing built or run in this review.",
+      "findingIds": [
+        "s12d-empty-clips-escape-the-cover",
+        "s12d-limit-of-the-sixty-fourth-is-unstated",
+        "s12d-rows-without-an-id-keep-the-late-frame",
+        "s12d-snapping-alone-moves-still-frames",
+        "s12d-stated-limits-misdescribe-what-was-measured"
+      ],
+      "recordedAt": "2026-10-11T13:31:51Z"
     }
   },
   "checkpoints": {
@@ -6912,6 +7226,114 @@
           "symbol": "rows_painted_in_one_scene_keep_the_orders_it_gave_them"
         }
       ]
+    },
+    {
+      "id": "s12d-empty-clips-escape-the-cover",
+      "boundaryId": "s12d-tile-corrections",
+      "criterionIds": [
+        "LYR-15"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/edge_shadows.rs",
+          "symbol": "told"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/edge_shadows.rs",
+          "symbol": "an_empty_mask_off_the_grid_is_the_clips_told"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_layer_scales.rs",
+          "symbol": "a_container_out_of_view_within_a_container_scrolls_from_tiles_at_fractional_scales"
+        }
+      ],
+      "descriptionMarkdown": "**Resolved at `418a867` (`ad1fbdb`).** `told` takes an empty mask for the clips told, so `sight` makes no untold clip of it and `levels` goes on through the clips pushed. Pixels, layered with every mechanism against the reference with snapping forced, one pixel a step, `PNestedBar`: 0 of 200 steps differ at 1, 1.1, 1.25, 1.3333, 1.5, 1.75, 2, 2.5, 2.625 and 3 (30 of 200 at 1.3333 and 2.625 at `fa3267d`). New contents built to make empty masks (a zero-height clip with a fractional margin, a scrolling container whose card lies above its box, one wholly right of the viewport, a container holding a zero-height clip and a card, all under a bar), in a `div`, a `uniform_list` and a `list`, ten scales, 496 steps each: 0 differ (the deferred and absolute kind is ineligible for a layer; its two windows agree at 1.3333, 1.75 and 2.625). Scene fuzz, 20 000 random nests of clips, scrolling containers, positioned and top layers, shadows and quads, empty masks moved off the grid by 3e-5, -3e-5 and 0.004: orders equal to the exact masks' in all; with `told` reverted 33 scenes differ, 18 042 differ in untold clips, and `an_empty_mask_off_the_grid_is_the_clips_told` fails, so the probe sees the defect. The rule does not hide a real untold clip: with a region no clip tells of as every primitive's base mask (20 000 scenes), orders differ from the region told in 199 scenes (209 orders) with the rule and without it, identically (the approximation the memory records for list rows). An empty mask draws nothing, and the clips pushed still find what it lies under."
+    },
+    {
+      "id": "s12d-limit-of-the-sixty-fourth-is-unstated",
+      "boundaryId": "s12d-tile-corrections",
+      "criterionIds": [
+        "LYR-15"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/paint.rs",
+          "symbol": "cover_bounds"
+        }
+      ],
+      "descriptionMarkdown": "**Resolved at `418a867`: the limit is stated** in LYR-15, `docs/fast-mode.md` and the frame-pipeline rules, and about 50 000 device pixels is right (conservative). Measured at `418a867`, a `div` of 2000 clipped cards or shadowed rows scrolled 50 000 logical px (55 000 to 150 000 device px) is equal at 1.1, 1.3333, 1.5, 1.75, 2.5 and 3, also at 50 000 device px (45 455 logical at 1.1 to 16 667 at 3); at 70 000 logical px 2 to 22 of 25 steps differ by a level at 1.1, 1.3333, 1.75, 2.5 and 3 (1.5 holds to 100 000 by luck of its binary fraction). `uniform_list` and `list` of clipped or shadowed rows hold to 250 000 logical px at 1.1, 1.3333, 1.75, 2.5 and 3 (at 1.3333 and 2.625 a `list` only takes a layer in a window whose size is whole device pixels, as at the base); a container scrolled to the right holds to 50 000 px at 1.25, 1.3333, 1.75 and 2.5. How the statements describe what lies past the limit is another matter: see `s12d-stated-limits-misdescribe-what-was-measured`."
+    },
+    {
+      "id": "s12d-rows-without-an-id-keep-the-late-frame",
+      "boundaryId": "s12d-tile-corrections",
+      "criterionIds": [
+        "LYR-16"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/hover.rs",
+          "symbol": "painted"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs",
+          "symbol": "paint_mouse_listeners"
+        }
+      ],
+      "descriptionMarkdown": "**Resolved at `418a867` as a stated limit, which I hold to be acceptable and not a defect against LYR-16.** The window with every mechanism is wrong in 1 frame of 190 and the reference in 43 for a `uniform_list` of hover-styled rows without an id, at scales 1 and 2, identical at 49690f7 and upstream's code: the layered window is closer to what a window drawn afresh every frame shows than the reference is, so fast mode does not widen the gap, and the state that would carry the comparison does not exist for an element without an id. Every id-ed variant (list, uniform list, content changing, group hover in both, nested, overlay) has 0 frames differing from a window drawn afresh, in all three modes, at both scales. The statement in LYR-16 and in the docs is plain. A wrong provenance in it is part of `s12d-stated-limits-misdescribe-what-was-measured`."
+    },
+    {
+      "id": "s12d-snapping-alone-moves-still-frames",
+      "boundaryId": "s12d-tile-corrections",
+      "criterionIds": [
+        "LYR-15"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/paint.rs",
+          "symbol": "cover_mask"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/paint.rs",
+          "symbol": "shadow_bounds"
+        }
+      ],
+      "descriptionMarkdown": "**Resolved at `418a867` as a stated limit, which I hold to be acceptable.** The difference is the unsnapped window's: its flooring takes a row in for an edge a few millionths of a pixel short of a pixel's edge, which the grown clip does not; a still frame of clipped cards at 2.625 differs in one row of 914 px (the clip's last row, 80 levels) between snapping and none, and at 49690f7 the same frames were identical, so \"has always moved what is drawn by device pixels\" is true of the switch in general, not of these frames. With snapping off nothing changes (`fast_mode.snapping()` gates `Window::cover_bounds` and `snapped_paint_content_mask`)."
+    },
+    {
+      "id": "s12d-stated-limits-misdescribe-what-was-measured",
+      "boundaryId": "s12d-tile-corrections",
+      "criterionIds": [
+        "LYR-15"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/gpui/frame-pipeline/rules.md"
+        }
+      ],
+      "descriptionMarkdown": "**Resolved at `157b0a9` (revision 213); no source or test changed since `418a867`.** (1) The 43 of 190 frames are credited to the first review of s12d, rows with an id to the seventh review of s12c's 6 of 60 moves. (2) \"In most frames\" is gone from LYR-15 \"How far it holds\", `docs/fast-mode.md` \"Far down a container\" and the frame-pipeline rule; each gives the share by scale, and every figure matches my probes: of 25 steps at 70 000 px 2 to 3 at 1.1 (3 and 2), 13 to 15 at 1.3333, none at 1.5, 19 to 20 at 1.75, 19 to 22 at 2.5, 15 to 17 at 3; at 100 000, 0 to 1 at 1.1 (0 and 1), 3 to 8 at 1.3333 (8 and 3), none at 1.5; at 1.25 from 100 000, 6 to 8 steps (6 and 8), up to about 1 900 pixels a frame (946 and 1 898), 18 at 200 000 (18 and 18); the clipped card's row (77 levels) from 300 000 at 1.25 only; `uniform_list` to 250 000 at 1.1, 1.3333, 1.75, 2.5 and 3 and to 300 000 at 1.25; `list` at 1.1, 1.75, 2.5 and 3; sideways to 50 000 at 1.25, 1.3333, 1.75 and 2.5. The rule's \"15 to 22 at 1.75, 2.5 and 3\" is the same figures pooled. (3) `check-edge-shadows` carries LYR-15, is a check of `t53-layer-scales`, and its log shows 35 of 35. A grep of the criteria, tasks, checks, docs, memory and source finds no \"most frames\", \"few frames\", \"few pixels\" or misattributed 43 of 190 left. One immaterial looseness remains and does not block: the docs say \"a `div` of 5000 clipped cards or shadowed rows\" where all but the 1.25 measurements used 2000 rows."
     }
   ],
   "handoffMarkdown": "",

@@ -791,6 +791,59 @@
           "symbol": "LayerContent::orders"
         }
       ]
+    },
+    {
+      "id": "d-tile-corrections",
+      "requirementIds": [
+        "LYR"
+      ],
+      "descriptionMarkdown": "Two defects of scroll layers that the reviews of s12c found while comparing frames, neither of that sprint's making, each diagnosed and closed where it arises.\n\n**Fractional scales (LYR-15).** Layout puts an element's edges on device pixels, and keeps them in logical ones; the scroll offset is snapped to device pixels and applied in logical ones (`paint::snap_offset`). At a scale factor of 1.25 an offset of 114 device pixels is 91.2 logical ones, which no `f32` holds, so an edge with the offset added and scaled back comes out a few millionths of a device pixel to one side of the pixel's edge or the other, by the offset. A layer's content is painted at one offset and shown at others, shifted by whole device pixels, so wherever that error is turned into a pixel, tiles and painting differ. A survey of the lane's views at 1.25, 1.5 and 1.75 found two places:\n\n- `Window::cover_bounds` floors and ceils a clip's edges: an edge a hair short of a pixel takes in a row more. `Window::snapped_paint_content_mask` does the same for underlines. While scroll layers snap, both go through `layers::paint::cover_bounds` / `cover_mask`, which take an edge within 1/64 px past a pixel's edge to lie on it. A clip is thus at most 1/64 px short of covering what it is given, where it was a superset: nothing lies that close to a pixel's edge but by this error.\n- `Window::paint_drop_shadows` scales a shadow's box without snapping it. `layers::paint::shadow_bounds` puts its edges on a grid of 1/64 device px while scroll layers snap and the shadow is not transformed: far coarser than the error, finer than a blur shows, and a box on that grid moves by whole pixels exactly in an `f32`.\n\nAn empty mask is not grown to the grid (`cover_bounds` returns it scaled), and the clips told the scene are: at 1.3333 and 2.625 they differ by a few millionths of a pixel, the scene took the mask for a clip the window did not tell of, and `levels` stopped at it (the first review of s12d: a bar painted after an out-of-view container not raised past the next row's blur, 30 of 200 steps). `edge_shadows::told` takes an empty mask for the clips told.\n\nQuads, underlines, sprites and paths are snapped already, to whole pixels or 1/256, and rounding absorbs the error (their true values are not at a half). The alternative, applying the scroll offset in device pixels after scaling, would remove the error at its source but changes how every element offset is applied; it is noted in memory.\n\nBoth are part of the snapping the scroll-layers switch enables, which the reference window shares (`Window::force_layer_snapping`): the correctness contract allows it.\n\n**Transformations (LYR-15).** A primitive with a transformation is shaded from interpolated positions (sprint 11 made only untransformed ones exact), and its transformation is about a point of the window, which `scene::translate_transformation` moves with it. Translated and rotated cards drawn from tiles differed from the reference in 435 of 436 frames. `paint::uncompositable` now counts a transformed primitive (`scene::transformed`) among what no tile can hold: the container is painted, as it is for a visual effect.\n\n**Hover (LYR-16).** `Interactivity::paint_mouse_listeners` registers, for an element with a hover style, a listener that notifies the element's view when a move of the pointer finds its hover other than `ElementHoverState::element`, and writes it then. Nothing else writes it. A hover changes without a move when the wheel brings another row under the pointer: that frame paints the new row hovered by its own hit test, and the state still names the old row. A move back onto the old row then finds both rows as the state has them, and nothing is notified. This is upstream's and gpui-fast's code. `fast/hover.rs` writes the state where the listener is registered, from the hit test the element is being painted by (`painted`, `painted_group`), so a move is compared with what the window shows. The hitbox is asked only when the element has the state, since asking is a hover read and what is retained is painted again for hover reads (asking for every element with a cursor style took a scrolling `div` off its layer in two tests of list layers).",
+      "invariantsMarkdown": "- While scroll layers snap, a clip takes in the same rows of device pixels, and an untransformed drop shadow has the same box to the bit, wherever the content they belong to is scrolled.\n- Content holding a transformed primitive is never drawn from tiles.\n- After a frame is painted, an element's hover state says what the frame painted.\n- With scroll layers off and snapping not forced, clips and shadows are as before.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/renderer/wgpu/2026-09-30-renderer-wgpu-srgb-compositing.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/renderer/wgpu/2026-08-07-renderer-wgpu-browser-backend-fallback.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/renderer/wgpu/2026-07-04-renderer-wgpu-shader-effects-backend-capabilities.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/paint.rs",
+          "symbol": "cover_bounds"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/paint.rs",
+          "symbol": "shadow_bounds"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/paint.rs",
+          "symbol": "uncompositable"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/hover.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "symbol": "cover_bounds"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs",
+          "symbol": "paint_mouse_listeners"
+        }
+      ]
     }
   ],
   "memoryDecisionsConsidered": [
