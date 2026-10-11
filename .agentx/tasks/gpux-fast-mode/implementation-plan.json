@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 23,
+  "revision": 31,
   "title": "gpux fast mode: retained layout and views, splice, scroll layers and window composition from gpui-fast",
   "validationMode": "sprint",
   "repositories": [
@@ -172,6 +172,7 @@
       "repositoryId": "gpux",
       "kind": "test",
       "criterionIds": [
+        "LYR-14",
         "LYR-7",
         "OR-3",
         "PERF-7"
@@ -1366,11 +1367,12 @@
       "kind": "test",
       "criterionIds": [
         "LYR-12",
+        "LYR-14",
         "LYR-5",
         "LYR-6",
         "LYR-7"
       ],
-      "descriptionMarkdown": "New group `crates/gpux_conformance/tests/lane_c_scroll_layers.rs`: views scrolled from tiles (text rows at scales 1, 1.5 and 2, cards with shadows and gradients, shadowed cards closer together than their blurs reach, paths, both axes, content that changes while scrolled, small scrolls from the top of content with a margin) against the layers-off, snapping-on reference on the lane-C renderer, frame for frame: pixel-identical, but within a shadow blur's reach of the viewport's top and bottom edges, where the layered frame may only be darker and never on a card. Metal on a Mac, the software wgpu adapter on Linux and Windows. A `uniform_list` and a `list` of text rows scroll from tiles too, at scales 1 and 1.5 and with rows that change while scrolled, pixel-identical everywhere.",
+      "descriptionMarkdown": "New group `crates/gpux_conformance/tests/lane_c_scroll_layers.rs`: views scrolled from tiles (text rows at scales 1, 1.5 and 2, cards with shadows and gradients, shadowed cards closer together than their blurs reach, paths, both axes, content that changes while scrolled, small scrolls from the top of content with a margin) against the layers-off, snapping-on reference on the lane-C renderer, frame for frame: pixel-identical, but within a shadow blur's reach of the viewport's top and bottom edges, where the layered frame may only be darker and never on a card. Metal on a Mac, the software wgpu adapter on Linux and Windows. A `uniform_list` and a `list` of text rows scroll from tiles too, at scales 1 and 1.5 and with rows that change while scrolled, pixel-identical everywhere. Since LYR-14 the shadowed scenes are pixel-identical everywhere too: the allowance at the viewport's edges is gone. Rows and sections with backgrounds of their own under shadows reaching past them scroll one pixel at a time past the viewport's and the tiles' edges. So do rows holding a shadowed card that clips taller content, bordered rows reaching over one another, rows in a container with no background, and a `uniform_list` whose rows reach over one another. Bordered rows and the gradient cards scroll from 1500 px down, and rows scroll under a bar painted over the container's edge. Two shadowed containers laid one over the other with a veil between them, and a page whose rows hold scrolling containers under a shadowed bar painted over each one's edge.",
       "argv": [
         "cargo",
         "test",
@@ -1381,7 +1383,7 @@
       ],
       "expected": {
         "exitCode": 0,
-        "minimumTests": 10
+        "minimumTests": 18
       },
       "inputs": [
         "crates/gpui/**",
@@ -2249,6 +2251,40 @@
       "expected": {
         "exitCode": 0,
         "minimumTests": 2
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-edge-shadows",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "LYR-14"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/edge_shadows.rs`: a shadow kept for its blur and one dropped; its order over what its box lies on, in view or dropped; under the element casting it; beside a neighbour its blur reaches; with a background or an overlay painted outside its clip; in positioned and fixed layers, and a fixed layer raised over it; an inset shadow; random scenes against upstream's rule (nothing dropped, lowered or reordered; a scene nothing cuts unchanged); random content against the same content with its clip not there, order for order; replayed operations; a tile's scene. After the second review: clips told one by one (a card clipping content taller than itself, a border in a mask of its own, what lies behind a stretch of a clip's edge), random content with clips of its own against the same with its viewport not there, and clips replayed. After the third review: up to 300 bordered rows above a viewport change no order below it; a scene replayed as two balanced ranges; what is painted after a scrolling container over a blur. After the fourth review: a clip like an earlier one after something was painted; what follows a scrolling container over its blurs out of view; random content with scrolling containers told against the same with its viewport not there, replayed whole and as two ranges; a primitive that leaves no operation; what lies behind 16 000 cells and a table without a pass over the scene; `max_behind` against a pass over the bounds; a tree replaying orderings it was given; a layer's content moved and replayed in a viewport. After the fifth review: random rows, reaching over one another or not, ordered with the rows they meet against the whole content painted in one scene; a row scrolled in costs its own ordering, 2 400 000 px down a list; a `uniform_list` scrolled a row a frame orders no more than the rows that come, at its top and 100 000 px down; `max_behind` far from the origin and left of it. After the sixth review: the window test drives a `list` as well as a `uniform_list`, down and back up, and checks every frame's orders against the rows painted one after another; rows painted in one scene keep its orders unless they met something the content does not hold; `max_behind` among bounds of any size. After the seventh review: the comparisons a content of 200 rows, of 2000 rows down a list and of 2000 side by side takes, and those of a frame of both lists in a window; the pass's rows moved into the content as `end_paint_rows` moves them; bounds with an infinite edge.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::edge_shadows::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 34
       },
       "inputs": [
         "crates/gpui/**",
@@ -3708,10 +3744,93 @@
       ]
     },
     {
+      "id": "s12c-edge-shadows",
+      "title": "Shadows whose box has left its clip",
+      "dependsOn": [
+        "s12-list-layers"
+      ],
+      "memoryScopes": [
+        "gpui/frame-pipeline"
+      ],
+      "tasks": [
+        {
+          "id": "t52-edge-shadows",
+          "title": "Keep a shadow while its blur reaches into its clip",
+          "descriptionMarkdown": "Write `fast/edge_shadows.rs` and its two hooks in `Scene::insert_primitive`: keep a shadow whose box left its content mask while what it draws reaches in, ordered over what lies under its box and no higher than what is painted later over it. Write `fast/tests/edge_shadows.rs`. Remove the edge allowance from `lane_c_scroll_layers`, the documented difference from `docs/fast-mode.md`, and the memory rule that told to leave the cull alone. Regenerate any lane C golden a clipped shadow's blur now shows in, and say which. After the first review: order primitives at a clip's edge as with the clip not there (entries for dropped primitives, cut primitives raised over them, fixed layers raised), draw a tile's primitives at the content's orders, and add rows and sections with their own backgrounds to `lane_c_scroll_layers`. After the second review: have the window tell the scene each clip, so that a primitive is taken through one clip at a time within the clips inside it; order a dropped primitive over what was painted before its clip where it would come into view; hash a list's rows with their orders. After the third review: no limit on what `behind` passes over, and one question per dropped primitive; a clip pushed again where it was keeps its entries; what is painted after a scrolling container is ordered over the blurs in it. After the fourth review: a clip popped is parked and goes on only if pushed again before anything is painted; a blur is entered at the edges of the clips around its container too; `behind` asks a grid of what the tree held, and a primitive dropped out of reach leaves nothing at any clip; a mask the window did not tell of is a clip from the first primitive that comes with it; a layer's content keeps the orders it was painted at, and a replay tells the scene its viewport. After the fifth review: a list's rows are ordered with the rows they meet and keep their orders, near the origin; the grid `max_behind` asks begins where its bounds do and spans them. After the sixth review: rows a list paints in one scene keep the orders it gave them. After the seventh review: sets found by runs along an axis; what a pass leaves out noted in the content's space.",
+          "criterionIds": [
+            "LYR-14"
+          ],
+          "designIds": [
+            "d-edge-shadows"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-edge-shadows",
+            "check-layers-lane-c",
+            "check-parity-a"
+          ],
+          "supportingCriterionIds": [
+            "OR-3"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/scene.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/layers/scene.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpux_conformance/tests/lane_c_scroll_layers.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/bounds_tree.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/layers/tiles.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/layers/lists.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/layers/paint.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/layers/verify.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/composition.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/layers/scene.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/layers/lists.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "s12b-layers-web-mobile",
       "title": "Scroll layers in the browser, on Android and on iOS",
       "dependsOn": [
-        "s12-list-layers"
+        "s12-list-layers",
+        "s12c-edge-shadows"
       ],
       "memoryScopes": [
         "platform/web",

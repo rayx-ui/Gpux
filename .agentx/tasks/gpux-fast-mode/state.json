@@ -1,12 +1,12 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 170,
-  "planRevision": 23,
+  "revision": 196,
+  "planRevision": 31,
   "specHashes": {
-    "requirements": "26899f26fce2cc622c86a9e78fecf3c925fe0458bd187d18b89d94737d2d43b1",
-    "design": "ddf820af9ddc88aaef89adcf5e2026bace0b69fe1061c3a535bc1c170d2dada3",
-    "plan": "78d39f851c8a65a5dba31be7d6d42d381a8ff46972a9a3a1879ec0ee3bc0d5a6"
+    "requirements": "fa6cfcfe632f4a7ab9abfa4c529ae6d732ac88cf9e1739a8854f0b139b54caa3",
+    "design": "04b114ade859332282e3edc1f115af320fc1e3cd18cb2f38a04ed4819861eb72",
+    "plan": "bf835072bbe2d00b3e1e069eb75e255c58a5e538fd0c69e9a48be97ad7c74903"
   },
   "tasks": {
     "t01-fast-switches": {
@@ -308,6 +308,12 @@
       "workerIds": [
         "claude-240e1cb7"
       ]
+    },
+    "t52-edge-shadows": {
+      "status": "done",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     }
   },
   "validationBatches": {
@@ -436,6 +442,15 @@
         }
       },
       "recordedAt": "2026-10-10T22:14:18Z"
+    },
+    "47deb5bc10cbdfc8b5181874cf08665c65f6b75b4153b95d7de909bdb79be575": {
+      "snapshot": {
+        "specHash": "0812f044caa82095d818309e6f2d87ac53cd41134e533b7da00fd8d612a3d8e3",
+        "repositories": {
+          "gpux": "32ea876ec25c1aa7ea447336472b1b39ee5d790ab019b22a9c84bcaad0b676bb"
+        }
+      },
+      "recordedAt": "2026-10-11T07:59:55Z"
     }
   },
   "checkResults": {
@@ -1509,6 +1524,57 @@
       "logPath": "artifacts-temp/agentx/gpux-fast-mode/s12-list-layers-final-b4b936a4424c.log",
       "logSha256": "c6771c2f6ae6312a170c8ebbaaceba9effd95d9c83eb4cdbdd939b290d11d2a8",
       "inputsHash": "570fd1a7954fdb31dab7d342ebe4078c1fd672005c3386e40acf7f56ed54e597"
+    },
+    "s12c-edge-shadows/check-parity-a/final": {
+      "checkId": "check-parity-a",
+      "boundaryId": "s12c-edge-shadows",
+      "phase": "final",
+      "batchId": "47deb5bc10cbdfc8b5181874cf08665c65f6b75b4153b95d7de909bdb79be575",
+      "definitionHash": "fa2a6c37c33f236da90188c21241c323bf5546009bfdb63ca19a5b684a5a283e",
+      "basisHash": "be9905aaa31374c9956c0781d5d38323cb7483711caf8d61d846337713f55eb0",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 39,
+      "durationSeconds": 3.3953,
+      "recordedAt": "2026-10-11T07:58:55Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s12c-edge-shadows-final-41e3a81fd078.log",
+      "logSha256": "4884965f1614d04d052242cd21a5c13fbd80d23610244c77f78bbbdaad93b240",
+      "inputsHash": "ba3c78ff4da18707e0c600d727ee1619ea0c57aaa9b4f699a7dc884db45715d6"
+    },
+    "s12c-edge-shadows/check-layers-lane-c/final": {
+      "checkId": "check-layers-lane-c",
+      "boundaryId": "s12c-edge-shadows",
+      "phase": "final",
+      "batchId": "47deb5bc10cbdfc8b5181874cf08665c65f6b75b4153b95d7de909bdb79be575",
+      "definitionHash": "4dc40b77728454e23b06f8192691c7cf46fb2288f5425f7d8cdaeedaf545373e",
+      "basisHash": "35206b249202b56b6be17d7f1122ba290c0e8492253ef66d88cf6aa79098518f",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 18,
+      "durationSeconds": 47.9358,
+      "recordedAt": "2026-10-11T07:59:43Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s12c-edge-shadows-final-d6797b5b07c0.log",
+      "logSha256": "f30ba4d328511e6afefc296d3d1de12b1663f5c2791570bb904f525109a265be",
+      "inputsHash": "f67e6ff5b7453367aebf6428a8b34942506b23c86b792349f713d5eb49f181fd"
+    },
+    "s12c-edge-shadows/check-edge-shadows/final": {
+      "checkId": "check-edge-shadows",
+      "boundaryId": "s12c-edge-shadows",
+      "phase": "final",
+      "batchId": "47deb5bc10cbdfc8b5181874cf08665c65f6b75b4153b95d7de909bdb79be575",
+      "definitionHash": "65216eb34b2dbebfdbfdbce99a6854be2e462d39a8dbb2210ca27b6ff9da9cbf",
+      "basisHash": "7779f55dae10f6ecbeb3b2218935c0d9a206fa6f0513a47650518fddb9ad04c8",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 34,
+      "durationSeconds": 12.5547,
+      "recordedAt": "2026-10-11T07:59:55Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s12c-edge-shadows-final-6b656a32297b.log",
+      "logSha256": "29c60784f85be8014bd3266f5a10a49a09899d201d4068ab5ba0ab112bbc358e",
+      "inputsHash": "a08b420a15c962664067a810e7090b58245790964e9ddb30e35ed35edac017a4"
     }
   },
   "reviews": {
@@ -4738,6 +4804,237 @@
         "s12-description-omits-records-that-still-answer"
       ],
       "recordedAt": "2026-10-10T22:25:45Z"
+    },
+    "s12c-edge-shadows": {
+      "reviewerId": "claude-reviewer-s12c8-7f3c91a2",
+      "snapshotId": "47deb5bc10cbdfc8b5181874cf08665c65f6b75b4153b95d7de909bdb79be575",
+      "criterionIds": [
+        "LYR-14",
+        "OR-3"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/scene.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-14"
+          ],
+          "sha256": "b675b3ae2c3980167ccedd5ef66819a8bedc4de22d35094ca4e9e5829586ccca"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-14"
+          ],
+          "sha256": "3e633ee48322fcfe353d11b209688cea3ddef0f5975bf21d18c71964fbb55834"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/bounds_tree.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-14"
+          ],
+          "sha256": "f1af6c04e6816b7d6d95ccd316d13dfaa492c8ce4f14a35cf35d899f661bcfbd"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/edge_shadows.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-14"
+          ],
+          "sha256": "cb317dc30eac4381bf75b89f81b5baa2bdef7cc6dd713bc0de9335d8052bbab7"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/scene.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-14"
+          ],
+          "sha256": "2b73004ba25655525226b04399632fef213b14aa2113f18abdc2830d5208821c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-14"
+          ],
+          "sha256": "4b1797b345c01dbc410dafd86a0fb82a74370005b96b55507ad1f4454f3d165a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/composition.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-14"
+          ],
+          "sha256": "3f3192287487a6d8f01094890b23bbd12de11684326022fc15123dee48230df3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/paint.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-14"
+          ],
+          "sha256": "9c993bd018aff2e71cae96f56f5cc551dbd58dc3b362ae01722fbace7bed922a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/tiles.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-14"
+          ],
+          "sha256": "6c0985e81fd9addfe2dc615b9d48640a15278c68a0aab5e36e8abc2c190a1c02"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/list.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-14"
+          ],
+          "sha256": "c46b99f4eae5cbf27f2d3af5896fc236bbe91474a93552cebd3082ee54d341c7"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/uniform_list.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-14"
+          ],
+          "sha256": "6280e35026bae1b909686e838a079cf5ad08434fc7ceba7d2296da5e498fd27d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-14"
+          ],
+          "sha256": "dbf43cf5e2291b3c0ef95254f50e517dbeac589123ad61b774b0d9e57f61e6f5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/test_host.rs",
+          "kind": "source",
+          "criterionIds": [
+            "OR-3"
+          ],
+          "sha256": "88985a698d4eb6f537f173e3be0c116ab23f661ef99842411e1b7be033518d8e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scenes/paint.rs",
+          "kind": "source",
+          "criterionIds": [
+            "OR-3"
+          ],
+          "sha256": "260985f9e077ad9309dcbb5845257c371145ccc96784ce48b96453b2ef063002"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/edge_shadows.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-14"
+          ],
+          "sha256": "3211e9adee9e8b0a1645422dd87a3749138cb19e8524107a7e5b82f615333de8"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/list_layers.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-14"
+          ],
+          "sha256": "4ec58ea12933692c06cbcebd274298bfc6008dff1bf7ec102a57901cb78384d9"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_scroll_layers.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-14"
+          ],
+          "sha256": "e7e999ed095176b597929660c3d9f099a02b41c56d66208d7f63ecbb0e021c1f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_a_fast_parity.rs",
+          "kind": "test",
+          "criterionIds": [
+            "OR-3",
+            "LYR-14"
+          ],
+          "sha256": "ab7b2be4370aab3a63a560d98f780764ad0cf858301139f78b66ab9c3bdf2439"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s12c-edge-shadows-final-6b656a32297b.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "LYR-14"
+          ],
+          "sha256": "29c60784f85be8014bd3266f5a10a49a09899d201d4068ab5ba0ab112bbc358e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s12c-edge-shadows-final-d6797b5b07c0.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "LYR-14"
+          ],
+          "sha256": "f30ba4d328511e6afefc296d3d1de12b1663f5c2791570bb904f525109a265be"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s12c-edge-shadows-final-41e3a81fd078.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "OR-3"
+          ],
+          "sha256": "4884965f1614d04d052242cd21a5c13fbd80d23610244c77f78bbbdaad93b240"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s12c-lima8.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "LYR-14"
+          ],
+          "sha256": "73f2d5d0f725f7aae36560ca0510679107a7dcbca39e65042037873e171c37a5"
+        }
+      ],
+      "summaryMarkdown": "**Verdict: passed.** Both findings of the seventh review are resolved at `67e55b2` (snapshot `47deb5bc…`, revision 195) and I found nothing new to hold against LYR-14 or OR-3. The three sprint checks at revision 195 were reused (edge shadows 34, lane C scroll layers 18, lane A parity 39) with the Linux log `s12c-lima8.log` (34, 18, lane D 3 passed and 1 skipped).\n\n**Orders.** Every probe compares each part's orders with the whole content painted into one scene, and checks that a part ordered as its operations are has no orders and hash 0 and any other part the hash of its orders with the low bit set. Nine kinds of untidy content (13 500 contents), parts apart (21 000), contents frame after frame with stale, returning, reordered and late-asked parts (62 600), passes frame after frame (35 800 with rows only; 23 900 with something among the rows): 0 differ. With an assertion in a scratch copy of `keep_painted` that the kept orders are those ordering gives: no mismatch in some 100 000 kept sets at scene level and on the real path (the list layer group, the sprint's real-path tests, every list pixel probe).\n\n**Pixels, lane C renderer.** 112 comparisons with tiles have 0 differing frames: 64 on the list paths (rows over one another in both lists at scales 1, 2 and 1.5, down and up; rows taken out, put back and resized; lists 9000 and 160 000 px down; two lists in one window; a list in a scrolling page and in a deferred box; a `list` with hovered rows; bars over lists; changes while scrolled) and 48 on the earlier layouts, with 66 runs without pops. What still differs is what was set aside: the one-level and one-row differences at scale 1.25, translated and rotated cards, and the one stale hover frame of a `uniform_list` (LYR-13, also at the base).\n\n**Cost, optimized, against `8285288`.** `uniform_list`: 24 px rows 0.34 and 0.44 ms (0.32 and 0.42), bordered the same, cards 0.24 ms (0.24); dense rows 0.75 and 0.78 ms (0.74 and 0.80); 907 and 1339 rows held as in the resolved finding; runs as stated (0.55 ms for rows of forty quads casting over the next, 1.6 ms for rows of 143 operations, against 0.24 and 0.75 at the base). `list`: plain 1.37 ms (1.36), bordered 1.45 (1.44), casting down 1.35 (1.35), dense 4.42 (4.44), dense casting down 4.47 and 4.41 (4.41); nothing ordered in any frame. A `list` of 6 px rows takes 2.35 ms from tiles and 1.44 ms without; I have no base figure for it.\n\n**History.** 0 wrong answers in about 400 000 questions, now also with bounds that have infinite or not-a-number edges among those held (5264 of 37 249 wrong before).\n\n**Observations, none of them a finding.**\n- Bounds that are no number, or absurdly far off, in a row that meets its neighbours. A quad with a top or left that is not a number, or beginning at minus infinity, leaves 2 to 4 of 4 such rows with other orders than the whole content painted into one scene (the row's extent no longer meets what the row meets); one beginning at -1e9 px leaves 2 (the set is moved to the origin by its first part's extent, and positions that far apart round); one at -1e30 px in the set's first row trips the debug assertion at `crates/gpui/src/fast/layers/scene.rs:756` in a debug build. Beginning at -3e7 px, with an infinite width or height, or with a width that is not a number: 0 differ. No layout I know makes such bounds; leaving non-finite bounds out of `ordering_extent`, as the history does, would close the first.\n- `keep_painted` passes over everything its pass made for each set (`:658`), so a `list` showing n rows compares n squared extents a frame, outside `COMPARED_EXTENTS`: about 30 000 for 173 rows, a few hundredths of a millisecond.\n- Parts whose stretches overlap along both axes without the parts meeting defeat the runs (a grid of forty columns: 42 961 comparisons for 2000 parts, 0.13 ms). A list's rows are not laid out so.\n- A range cut inside a fixed-order layer is ordered again by `replay_balanced`, as before the sprint (323 of 4000 wild scenes).\n\n**Method.** Scratch worktree at `67e55b2` built into the main checkout's `target` under two profiles of its own (`target/probe`, `target/probeopt`), removed with the worktree; base figures are those of the seventh round, taken on this machine with the same probe. Timings on clean sources; the assertion and three log lines went into the scratch copy afterwards. No tracked file was touched. Sources and logs are in the reviewer's scratchpad: `probe_s12c8_scene.rs`, `probe_s12c8_lists.rs`, `probe_s12c8_pixels.rs`, `probe-s12c8-*.log`.\n\n**Not covered.** Verify mode, a composed window on screen, Windows and WebGPU renders of the probe layouts, CI on `67e55b2`, lane G timings.",
+      "findingIds": [
+        "s12c-shadow-level-with-neighbouring-backgrounds",
+        "s12c-tile-seam-hides-a-blur",
+        "s12c-fixed-layer-not-raised-over-kept-shadow",
+        "s12c-inner-clip-taken-through-the-outer-edge",
+        "s12c-declared-limits-show-as-pops",
+        "s12c-list-tile-hash-misses-orders",
+        "s12c-behind-budget-spent-by-border-clips",
+        "s12c-ranges-of-one-surface-reorder-at-clip-edges",
+        "s12c-blur-over-a-later-neighbour-differs-from-tiles",
+        "s12c-clips-alike-share-what-was-behind-the-first",
+        "s12c-blurs-laid-over-only-where-they-show",
+        "s12c-a-pass-over-the-scene-for-every-clip",
+        "s12c-tree-replay-trusts-an-ordering-it-was-given",
+        "s12c-a-lists-content-is-ordered-again-for-every-row",
+        "s12c-a-list-orders-every-row-it-repaints",
+        "s12c-every-row-is-compared-with-every-set",
+        "s12c-what-is-left-out-is-noted-where-it-was-painted"
+      ],
+      "recordedAt": "2026-10-11T08:39:42Z"
     }
   },
   "checkpoints": {
@@ -6147,6 +6444,464 @@
           "repositoryId": "gpux",
           "path": "crates/gpui/src/fast/tests/list_layers.rs",
           "symbol": "gpux::list_frames_shown_from_a_layer_describe_themselves_alike"
+        }
+      ]
+    },
+    {
+      "id": "s12c-shadow-level-with-neighbouring-backgrounds",
+      "boundaryId": "s12c-edge-shadows",
+      "criterionIds": [
+        "LYR-14"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved (a35bdd3, 630e35b).**\n\n- A primitive its clip drops now leaves an entry of its whole bounds (`dropped`, `PaintOperation::FastDropped`), and a kept shadow is ordered over the entries under its box. The scene-level case reads 1, 2, 3 for content, row 1 and the shadow of row 2's card, where it read 1, 2, 2.\n- Re-probed on the lane C renderer with one-pixel steps: rows with opaque backgrounds, rows with the shadow cast down, rows with translucent backgrounds, the lane's sections and mine, at scale factors 1 and 2: 0 of 436 steps differ and 0 of 170 frames pop in direct drawing, for each. Rows and sections at 1.5 agree too; rows at 1.25 differ by one level in 4 pixels in 31 of 120 steps.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/edge_shadows.rs",
+          "symbol": "dropped"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/edge_shadows.rs",
+          "symbol": "content_is_ordered_as_with_its_clip_not_there"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_scroll_layers.rs",
+          "symbol": "shadows_reaching_over_other_backgrounds_scroll_from_tiles"
+        }
+      ]
+    },
+    {
+      "id": "s12c-tile-seam-hides-a-blur",
+      "boundaryId": "s12c-edge-shadows",
+      "criterionIds": [
+        "LYR-14"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved (f5f5fc3, 630e35b).**\n\n- `LayerFrame::tile_scene` inserts a tile's primitives at the content's orders. At the frame where the layered window read 167 then 190 across the tile boundary, it now reads 167 then 168, as the reference does, and my sections layout agrees in all 436 steps at scale factors 1 and 2.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/scene.rs",
+          "symbol": "LayerFrame::tile_scene"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_scroll_layers.rs",
+          "symbol": "shadows_reaching_over_other_backgrounds_scroll_from_tiles"
+        }
+      ]
+    },
+    {
+      "id": "s12c-fixed-layer-not-raised-over-kept-shadow",
+      "boundaryId": "s12c-edge-shadows",
+      "criterionIds": [
+        "LYR-14"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved (a35bdd3).**\n\n- `raise` raises a layer of fixed order to what a primitive it holds lies over and resets `LayerOrder::Fixed`. In the same 1500 random scenes, 1 of 65 primitives in a fixed layer painted over a kept shadow's box is still drawn under it (8 before): one lying wholly outside its layer's bounds, which a line of text's glyphs do not. In that case the tree's answer for the primitive's bounds is below the layer's order and the layer is lowered to it; taking the higher of the two would close it.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/edge_shadows.rs",
+          "symbol": "raise"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/edge_shadows.rs"
+        }
+      ]
+    },
+    {
+      "id": "s12c-inner-clip-taken-through-the-outer-edge",
+      "boundaryId": "s12c-edge-shadows",
+      "criterionIds": [
+        "LYR-14"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved at `fbc37e1`.** The window tells the scene each clip, and `edges` takes a primitive through one clip at a time within the clips pushed inside it. Re-probed on the lane C renderer with one-pixel steps: a shadowed card clipping a child taller than itself, and the same nest inside rows, at scales 1 and 2: 0 of 436 steps differ from tiles and neither the direct nor the layered window pops. The lane's `ClippedCards` scene also agrees 600 and 1500 px down.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/edge_shadows.rs",
+          "symbol": "edges"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/edge_shadows.rs",
+          "symbol": "a_clip_inside_a_viewport_ends_where_it_ends"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/edge_shadows.rs",
+          "symbol": "content_with_clips_of_its_own_is_ordered_as_with_its_viewport_not_there"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_scroll_layers.rs",
+          "symbol": "shadows_at_clips_within_clips_scroll_from_tiles"
+        }
+      ]
+    },
+    {
+      "id": "s12c-declared-limits-show-as-pops",
+      "boundaryId": "s12c-edge-shadows",
+      "criterionIds": [
+        "LYR-14"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved at `fbc37e1` for the two layouts it named.** A border's quads are entered among the entries of the clip around their strip, and `behind` asks under the dropped primitive's own stretch of the edge. Re-probed: bordered rows reaching over one another with shadowed cards, 0 of 436 steps differ at scales 1 and 2 and no pops; narrow rows in a container with no background over a panel and a nest of backgrounds, 0 of 436 steps differ and no pops over the rows. The budget that `behind` now works under breaks bordered content scrolled further (see `s12c-behind-budget-spent-by-border-clips`).",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/edge_shadows.rs",
+          "symbol": "behind"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/edge_shadows.rs",
+          "symbol": "what_is_painted_in_a_mask_of_its_own_is_among_its_clips_entries"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/edge_shadows.rs",
+          "symbol": "a_dropped_primitive_lies_over_what_is_behind_its_stretch_of_the_edge"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_scroll_layers.rs",
+          "symbol": "shadows_at_clips_within_clips_scroll_from_tiles"
+        }
+      ]
+    },
+    {
+      "id": "s12c-list-tile-hash-misses-orders",
+      "boundaryId": "s12c-edge-shadows",
+      "criterionIds": [
+        "LYR-14"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved at `fbc37e1`.** A list's rows are hashed with the orders the content gives them (`LayerContent::part_order_hashes`). Re-probed: the `uniform_list` whose every other row reaches over the row before, 0 of 904 steps differ at scales 1 and 2 (43 of 704 before).",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/scene.rs",
+          "symbol": "LayerContent::part_order_hashes"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_scroll_layers.rs",
+          "symbol": "shadowed_list_rows_reaching_over_one_another_scroll_from_tiles"
+        }
+      ]
+    },
+    {
+      "id": "s12c-behind-budget-spent-by-border-clips",
+      "boundaryId": "s12c-edge-shadows",
+      "criterionIds": [
+        "LYR-14"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved at `7cde94c`.** The budget is gone and a dropped primitive asks `behind` once, at the outermost clip it lies at. Re-probed: with the sprint's `Item` helpers, 0 to 40 bordered rows above the viewport change no kept order; on the lane C renderer the bordered rows with bordered shadowed cards give 0 of 436 differing steps, 0 of 113 started 600 and 1500 px down, and no pops; the lane's `Cards` started 1500 px down agrees and does not pop. What the unbounded passes cost is `s12c-a-pass-over-the-scene-for-every-clip`.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/edge_shadows.rs",
+          "symbol": "order_at"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/edge_shadows.rs",
+          "symbol": "how_much_lies_above_a_viewport_changes_no_order"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_scroll_layers.rs",
+          "symbol": "shadows_far_down_the_content_scroll_from_tiles"
+        }
+      ]
+    },
+    {
+      "id": "s12c-ranges-of-one-surface-reorder-at-clip-edges",
+      "boundaryId": "s12c-edge-shadows",
+      "criterionIds": [
+        "LYR-14"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved at `f9fb332`.** Clips and scrolling content closed and opened again at once go on as they were, and only what leaves an operation changes the state. Re-probed: 3000 scenes as two ranges with no scrolling told, with the viewport scrolling and with scrolling cards inside: 0 with other orders each (2, 358 and 291 before); 4000 wild scenes of clips from a small palette, scrolling containers and out-of-reach primitives replayed whole, as two and as four ranges, painted twice into one scene and painted after another scene: 0 differ. With layers, ranges cut inside a positioned or top layer agree too; a cut inside a fixed-order layer orders that layer again (323 of 4000), which is how `replay_balanced` reopened such a layer before the sprint.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/edge_shadows.rs",
+          "symbol": "clip"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/edge_shadows.rs",
+          "symbol": "ranges_replayed_one_after_another_share_their_clips_entries"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/edge_shadows.rs",
+          "symbol": "what_leaves_no_operation_changes_no_order"
+        }
+      ]
+    },
+    {
+      "id": "s12c-blur-over-a-later-neighbour-differs-from-tiles",
+      "boundaryId": "s12c-edge-shadows",
+      "criterionIds": [
+        "LYR-14"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved at `7cde94c` for the layout it named.** What is painted after a scrolling container is ordered over the blurs in it (`lay_over_blurs`). Re-probed on the lane C renderer: rows apart under a bar painted after the container, 0 of 436 steps differ at scales 1 and 2; the same bar over a `uniform_list` and over a `list`, 0 of 436 at scales 1 and 2. A single container's own content is not reordered: in 2000 random scenes no primitive's order changes when only the viewport's content is told as scrolling. The rule's reach inside another container is `s12c-blurs-laid-over-only-where-they-show`.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/edge_shadows.rs",
+          "symbol": "lay_over_blurs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/edge_shadows.rs",
+          "symbol": "what_is_painted_after_a_scrolling_container_lies_over_its_blurs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_scroll_layers.rs",
+          "symbol": "a_bar_painted_over_a_containers_edge_lies_over_its_shadows"
+        }
+      ]
+    },
+    {
+      "id": "s12c-clips-alike-share-what-was-behind-the-first",
+      "boundaryId": "s12c-edge-shadows",
+      "criterionIds": [
+        "LYR-14"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved at `f9fb332`.** A clip popped is parked and settled by the next primitive that leaves an operation; a push after that is a new clip. Re-probed: the clip pushed again after three quads now orders its kept shadow over them (6 for 2); two panels with backgrounds give the upper panel's kept shadow the order of its other shadows in all four variants; on the lane C renderer two `absolute` scrolling containers of equal bounds give 0 of 436 differing steps at scales 1 and 2 and no pops (216 of 436 before).",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/edge_shadows.rs",
+          "symbol": "settle"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/edge_shadows.rs",
+          "symbol": "a_clip_like_an_earlier_one_has_its_own_entries"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_scroll_layers.rs",
+          "symbol": "containers_laid_over_one_another_scroll_from_tiles"
+        }
+      ]
+    },
+    {
+      "id": "s12c-blurs-laid-over-only-where-they-show",
+      "boundaryId": "s12c-edge-shadows",
+      "criterionIds": [
+        "LYR-14"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved at `f9fb332`.** A blur is noted with the edges of the clips around its container and entered there too. Re-probed: in 2000 random viewports holding scrolling cards, 0 of 25 305 kept primitives differ from the viewport not there (316 before), 0 of 27 620 when the cards clip one axis; on the lane C renderer the bar over a scrolling container inside the scrolled page gives 0 of 450 differing steps at scales 1 and 2 and no pops (35 of 450 before).",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/edge_shadows.rs",
+          "symbol": "note_blur"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/edge_shadows.rs",
+          "symbol": "what_follows_a_scrolling_container_lies_over_its_blurs_out_of_view_too"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_scroll_layers.rs",
+          "symbol": "a_scrolling_container_within_scrolled_content_scrolls_from_tiles"
+        }
+      ]
+    },
+    {
+      "id": "s12c-a-pass-over-the-scene-for-every-clip",
+      "boundaryId": "s12c-edge-shadows",
+      "criterionIds": [
+        "LYR-14"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved at `f9fb332` for the scenes it named.** `behind` asks `BoundsTree::max_behind`, and a primitive dropped from out of reach leaves nothing. 115 395 random questions over 1500 fills (covering bounds, bounds without area, bounds given an ordering, bounds on cell lines, far off and left of the origin, trees replaying and new) are all answered as a pass over what was inserted answers them. Optimized, this machine, `7cde94c` to `f9fb332`: 16 000 cells in view each dropping a line 182.9 to 16.2 ms (15.8 at `fbc37e1`); a table of 2000 rows by 20 cells painted whole 183.2 to 22.6 ms; 2000 bordered rows painted whole 10.4 to 3.5 ms; 16 000 scattered clips each dropping a quad 11.0 ms; 10 000 cells over 1600 tiles with no background of their own 7.9 ms. Past the grid's 16 384 px the history keeps everything in its last row: see `s12c-a-lists-content-is-ordered-again-for-every-row`.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/bounds_tree.rs",
+          "symbol": "BoundsTree::max_behind"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/edge_shadows.rs",
+          "symbol": "what_lies_behind_a_clip_is_found_without_a_pass_over_the_scene"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/edge_shadows.rs",
+          "symbol": "what_a_tree_held_is_found_as_a_pass_over_it_finds_it"
+        }
+      ]
+    },
+    {
+      "id": "s12c-tree-replay-trusts-an-ordering-it-was-given",
+      "boundaryId": "s12c-edge-shadows",
+      "criterionIds": [
+        "LYR-14"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved at `f9fb332`.** The tree records which positions were given their ordering. Re-probed: 12 000 random frames with positions turning from `insert_at` into `insert` and back, 0 orderings differ from a tree filled from scratch (1336 before).",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/bounds_tree.rs",
+          "symbol": "BoundsTree::insert_at"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/edge_shadows.rs",
+          "symbol": "the_tree_replays_orderings_it_was_given"
+        }
+      ]
+    },
+    {
+      "id": "s12c-a-lists-content-is-ordered-again-for-every-row",
+      "boundaryId": "s12c-edge-shadows",
+      "criterionIds": [
+        "LYR-14"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved at `9c1e4c6` for a `uniform_list`, which is what it measured.** A part keeps its orders while the parts it was ordered after stay, only parts whose extents meet are painted together, and they are painted near the origin. Same probe, optimized, this machine (a `uniform_list` of 20 000 rows of 41 operations in a window at scale 2, a row a frame), median frame from tiles: 0.43 ms at the top and 0.46 ms 5000, 12 000 and 100 000 px down (2.89, 5.48, 13.7 and 13.9 ms at `f9fb332`; 0.34 and 0.46 ms at the base `8285288`); rows of 81 operations 0.62 to 0.89 ms (5.2 to 24.7 before; 0.64 to 0.89 at the base); without layers 1.35 and 2.65 ms. One row's operations are ordered in a frame (41), scrolling down and up. With borders, cards, clipping rows, at scales 2, 1.5 and 1.25 and with rows of 24.3 px: 0.24 to 0.50 ms against 0.23 to 0.46 ms at the base. The history's grid limit is gone with it: 16 000 clipped cells each dropping a line laid out 48 000 px tall 245 to 14.7 ms, standing 100 000 px down 40.8 to 14.6 ms. What is left for a `list` is `s12c-a-list-orders-every-row-it-repaints`.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/scene.rs",
+          "symbol": "stack"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/edge_shadows.rs",
+          "symbol": "a_row_scrolled_in_costs_its_own_ordering"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/edge_shadows.rs",
+          "symbol": "a_list_scrolled_a_row_a_frame_orders_the_rows_that_come"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/edge_shadows.rs",
+          "symbol": "rows_ordered_with_the_rows_they_meet_are_ordered_as_the_whole_content_is"
+        }
+      ]
+    },
+    {
+      "id": "s12c-a-list-orders-every-row-it-repaints",
+      "boundaryId": "s12c-edge-shadows",
+      "criterionIds": [
+        "LYR-14"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved at `df18d0b`.** Rows a list paints in one frame keep the orders that frame's scene gave them. Same probe, optimized, this machine, a `list` scrolled a row a frame, median frame from tiles, `8285288` to `df18d0b`: plain rows 1.36 to 1.37 ms; bordered 1.44 to 1.46; rows casting a shadow down 1.35 to 1.33; rows of 143 operations 4.44 to 4.46 ms, and 4.41 to 4.39 when each casts over the next; at scale 1.25 1.40 to 1.42. No operation is ordered again in any of the 40 frames, runs included. With the claim checked where it is used (an assertion in a scratch copy of `keep_painted` that the kept orders are those `order_together` gives): no mismatch in some 35 000 sets kept across `fast::tests::list_layers` (56 tests), the sprint's two tests of the real path and every list in my pixel probes.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/scene.rs",
+          "symbol": "keep_painted"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/edge_shadows.rs",
+          "symbol": "rows_painted_in_one_scene_keep_the_orders_it_gave_them"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/edge_shadows.rs",
+          "symbol": "a_list_scrolled_a_row_a_frame_orders_the_rows_that_come"
+        }
+      ]
+    },
+    {
+      "id": "s12c-every-row-is-compared-with-every-set",
+      "boundaryId": "s12c-edge-shadows",
+      "criterionIds": [
+        "LYR-14"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved at `67e55b2`.** `stack` sees in one pass that a list's rows follow one another, and otherwise compares only the parts of one run. Same probe, optimized, this machine, a `uniform_list` scrolled a row a frame, median frame from tiles, base `8285288`, `df18d0b`, `67e55b2`: 907 rows held, at the top 0.51, 0.72, 0.48 ms and 100 000 px down 0.76, 1.30, 0.80 ms; 1339 rows held 0.66, 1.10, 0.69 ms and 1.17, 2.29, 1.24 ms; 149 rows held 0.32, 0.34, 0.34 ms and 0.42, 0.46, 0.44 ms. A content of 2000 rows with one new is gathered in 0.013 ms with 2000 extents compared (0.075 ms shuffled, 0.034 ms as one chain). What is left over the base at 1339 rows, 0.03 to 0.07 ms, grows with the rows held, not their square. Orders are unchanged by it: nine kinds of content that are no tidy list (shuffled, across, across and shuffled, two columns, a grid, all on one place, a chain, with empty parts, scattered anywhere), 1500 contents each, and the sixth and seventh rounds' probes (21 000, 62 600 and 35 800 contents) all agree with every part painted into one scene.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/scene.rs",
+          "symbol": "gather"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/scene.rs",
+          "symbol": "apart_in_order"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/edge_shadows.rs",
+          "symbol": "a_row_scrolled_in_costs_its_own_ordering"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/edge_shadows.rs",
+          "symbol": "a_list_scrolled_a_row_a_frame_orders_the_rows_that_come"
+        }
+      ]
+    },
+    {
+      "id": "s12c-what-is-left-out-is-noted-where-it-was-painted",
+      "boundaryId": "s12c-edge-shadows",
+      "criterionIds": [
+        "LYR-14"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved at `67e55b2`.** `PaintPass::leave_out` takes how far the parts were moved, and the two notes made before the move pass `to_content`. My simulation of `end_paint_rows` with something painted among the rows and the rows moved to content: 0 of 11 959 contents differ from every part painted into one scene when what is left out is noted as `end_paint_rows` now notes it, 0 when a moved copy is noted, and 1326 when the move is ignored, as before. On the real path the two branches still never ran in my probes: only spilling rows not shown were left out (some 2700 times).",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/scene.rs",
+          "symbol": "PaintPass::leave_out"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "symbol": "end_paint_rows"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/edge_shadows.rs",
+          "symbol": "rows_painted_in_one_scene_keep_the_orders_it_gave_them"
         }
       ]
     }
