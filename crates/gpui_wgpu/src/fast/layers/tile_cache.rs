@@ -114,6 +114,12 @@ impl TileCache {
             .map(|texture| &texture.view)
     }
 
+    /// How many tiles hold content.
+    #[cfg(feature = "diagnostics")]
+    pub(crate) fn held(&self) -> usize {
+        self.tiles.values().filter(|tile| tile.valid).count()
+    }
+
     #[cfg(test)]
     pub(crate) fn holds(&self, layer: LayerKey, tile: TileCoord) -> bool {
         self.tiles

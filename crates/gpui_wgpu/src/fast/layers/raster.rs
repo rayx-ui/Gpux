@@ -127,6 +127,11 @@ pub(crate) fn rasterize(
             .fast_layers
             .rasterized
             .set(renderer.fast_layers.rasterized.get() + 1);
+        #[cfg(feature = "diagnostics")]
+        renderer
+            .fast_layers
+            .rasterized_total
+            .set(renderer.fast_layers.rasterized_total.get() + 1);
     }
     true
 }

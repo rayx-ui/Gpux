@@ -124,6 +124,8 @@ pub use fast::composition::{
     PlatformCompositionSurface, PlatformCompositionSurfaceContent, PlatformSurfaceAttachment,
     WindowComposition, WindowCompositionSurface, native_surface,
 };
+#[cfg(feature = "diagnostics")]
+pub use fast::layers::scene::LayerTileCounters;
 pub use fast::layers::scene::{
     LAYER_TILE_BUDGET_BYTES, LAYER_TILE_PREMULTIPLIED, LAYER_TILE_TEXTURE_BASE, LayerContent,
     LayerFrame, LayerKey, SceneLayers, TileCoord, decode_layer_tile, layer_tile_id,

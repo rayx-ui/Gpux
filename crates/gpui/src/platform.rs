@@ -1230,6 +1230,20 @@ pub trait PlatformWindow: HasWindowHandle + HasDisplayHandle {
     fn rasterizes_layer_tiles(&self) -> bool {
         false
     }
+    /// Receives the fast-mode counters of the frame just presented and of every frame since the
+    /// window opened, for a platform that publishes them (the browser's `__gpuxFastStats`).
+    /// Releases the renderer's scroll-layer tiles, for a platform that hears of memory pressure,
+    /// of the app going to the background or of its surface being lost. The next frame that
+    /// composites a layer rasterizes its tiles again from the layer's content, which the frame
+    /// carries: a released tile is never composited stale.
+    fn release_layer_tiles(&self) {}
+    /// What the renderer did with scroll-layer tiles, when it can say.
+    #[cfg(feature = "diagnostics")]
+    fn layer_tile_counters(&self) -> Option<crate::LayerTileCounters> {
+        None
+    }
+    #[cfg(feature = "diagnostics")]
+    fn publish_fast_stats(&self, _frame: &[(String, u64)], _run: &[(String, u64)]) {}
     /// Starts presenting the window through a composition of surfaces.
     fn enable_window_composition(&self) -> anyhow::Result<()> {
         crate::fast::composition::unsupported("window composition")

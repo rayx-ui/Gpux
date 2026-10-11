@@ -31,6 +31,11 @@ pub(crate) struct RendererLayers {
     /// How many tiles were rasterized, for tests.
     #[cfg(test)]
     pub(crate) rasterized: Cell<usize>,
+    /// How many tiles were rasterized and how many times the tiles were released.
+    #[cfg(feature = "diagnostics")]
+    pub(crate) rasterized_total: Cell<u64>,
+    #[cfg(feature = "diagnostics")]
+    pub(crate) released_total: Cell<u64>,
 }
 
 /// The globals the batch being drawn is drawn with: those of the tile being
@@ -49,4 +54,9 @@ pub(crate) fn globals_bind_group(renderer: &WgpuRenderer) -> &wgpu::BindGroup {
 /// rasterize the planned ones was not drawn.
 pub(crate) fn release(renderer: &mut WgpuRenderer) {
     renderer.fast_layers.cache.clear();
+    #[cfg(feature = "diagnostics")]
+    renderer
+        .fast_layers
+        .released_total
+        .set(renderer.fast_layers.released_total.get() + 1);
 }

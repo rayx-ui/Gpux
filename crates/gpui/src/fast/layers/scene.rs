@@ -102,6 +102,21 @@ impl SceneLayers {
     }
 }
 
+/// What a renderer did with scroll-layer tiles, for hosts that report it: `held` tiles are in
+/// the renderer now, `rasterized` and `released` count since it was created.
+#[cfg(feature = "diagnostics")]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct LayerTileCounters {
+    /// Tiles whose content the renderer holds.
+    pub held: u64,
+    /// Tiles rasterized.
+    pub rasterized: u64,
+    /// Times the tiles were released
+    /// ([`PlatformWindow::release_layer_tiles`](crate::PlatformWindow::release_layer_tiles) and
+    /// what resets the renderer).
+    pub released: u64,
+}
+
 /// A layer the frame composites: the content its tiles are rasterized from.
 #[derive(Clone)]
 pub struct LayerFrame {

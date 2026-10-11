@@ -36,7 +36,10 @@ pub(crate) const COMPILED: bool = cfg!(any(
     target_os = "linux",
     target_os = "freebsd",
     target_os = "macos",
-    target_os = "windows"
+    target_os = "windows",
+    target_os = "android",
+    target_os = "ios",
+    target_family = "wasm"
 ));
 
 thread_local! {

@@ -5467,6 +5467,11 @@ impl Window {
         #[cfg(feature = "profiler")]
         let present_start = Instant::now();
         crate::fast::composition::present(self);
+        #[cfg(feature = "diagnostics")]
+        self.platform_window.publish_fast_stats(
+            &self.fast_stats.frame.counters(),
+            &self.fast_stats.run.counters(),
+        );
         #[cfg(feature = "profiler")]
         self.window_profiler.record_present(
             present_start,

@@ -477,6 +477,12 @@ impl Window {
         self.fast_stats.frame
     }
 
+    /// What the window's renderer did with scroll-layer tiles, when it can say.
+    #[cfg(feature = "diagnostics")]
+    pub fn layer_tile_counters(&self) -> Option<crate::LayerTileCounters> {
+        self.platform_window.layer_tile_counters()
+    }
+
     /// Zeroes the counters [`Window::fast_stats`] accumulates.
     pub fn reset_fast_stats(&mut self) {
         self.fast_stats.run = FastStats::default();

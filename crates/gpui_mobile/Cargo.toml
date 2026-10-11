@@ -17,6 +17,8 @@ workspace = true
 
 [features]
 default = []
+# Counters hosts report (`PlatformWindow::layer_tile_counters`).
+diagnostics = ["gpui/diagnostics", "gpui_wgpu/diagnostics"]
 android-native-activity = ["android-activity/native-activity"]
 audio = []
 battery = []

@@ -4843,6 +4843,24 @@ impl WgpuRenderer {
         }
     }
 
+    /// Releases every scroll-layer tile (memory pressure, the app in the background, a lost
+    /// surface). A frame that composites a layer afterwards rasterizes its tiles again from
+    /// the content the frame carries.
+    pub fn release_layer_tiles(&mut self) {
+        crate::fast::layers::release(self);
+    }
+
+    /// What this renderer did with scroll-layer tiles.
+    #[cfg(feature = "diagnostics")]
+    pub fn layer_tile_counters(&self) -> gpux::LayerTileCounters {
+        let layers = &self.fast_layers;
+        gpux::LayerTileCounters {
+            held: layers.cache.held() as u64,
+            rasterized: layers.rasterized_total.get(),
+            released: layers.released_total.get(),
+        }
+    }
+
     /// Replace the wgpu surface with a new one (e.g. after Android destroys
     /// and recreates the native window).  Keeps the device, queue, atlas, and
     /// all pipelines intact so cached `AtlasTextureId`s remain valid.

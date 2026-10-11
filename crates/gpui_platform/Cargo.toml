@@ -23,6 +23,8 @@ default = []
 bench-support = ["gpux/bench-support", "gpui_macos/bench-support", "gpui_wgpu/bench-support", "font-kit"]
 font-kit = ["gpui_macos/font-kit"]
 inspector = ["gpux/inspector"]
+# Publishes the browser's diagnostics globals (`__gpuxFastStats` among them).
+diagnostics = ["gpux/diagnostics", "gpui_web/diagnostics", "gpui_mobile/diagnostics"]
 test-support = [
     "gpux/test-support",
     "gpui_macos/test-support",
