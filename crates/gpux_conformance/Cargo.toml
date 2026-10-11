@@ -26,6 +26,8 @@ default = ["test-host"]
 # The in-app host: scenes in real windows of a running application (lane D, and the browser
 # and mobile hosts).
 app-host = ["dep:gpux_fonts"]
+# The browser host's diagnostics globals, which the browser specs read (`__gpuxFastStats`).
+diagnostics = ["gpux/diagnostics", "gpui_platform/diagnostics"]
 test-host = [
     "dep:gpui_platform",
     "dep:gpui_wgpu",

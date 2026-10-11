@@ -102,7 +102,7 @@ pub fn cargo_build(toolchain: &str, paths: &WebPaths) -> Invocation {
             "gpux-conformance".into(),
             "--no-default-features".into(),
             "--features".into(),
-            "app-host".into(),
+            "app-host,diagnostics".into(),
             "--example".into(),
             "web_host".into(),
             "--target".into(),

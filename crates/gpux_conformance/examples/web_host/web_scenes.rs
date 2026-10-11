@@ -6,15 +6,16 @@
 use gpux::{
     AnyElement, AnyView, App, AppContext as _, Context, DispatchPhase, ElementId, FocusHandle,
     HtmlElementContentFit, HtmlElementInputMode, HtmlElementLifetime, HtmlElementWheelBehavior,
-    HtmlIslandInputMode, IntoElement, KeyBinding, KeyContext, Keystroke, MouseExitEvent, Render,
-    Subscription, Window, actions, anchored, canvas, deferred, div, point, prelude::*, px, rgb,
-    svg,
+    HtmlIslandInputMode, IntoElement, KeyBinding, KeyContext, Keystroke, ListAlignment, ListState,
+    MouseExitEvent, Render, ScrollHandle, Subscription, Window, actions, anchored, canvas,
+    deferred, div, list, point, prelude::*, px, rgb, svg,
 };
 use gpux_conformance::{
     Expect, Lane, SceneSpec, Step,
     scenes::common::{
         BLUE, BLUE_HEX, GRAY_HEX, GREEN_HEX, WHITE, id, root, static_view, status, status_is,
     },
+    scroll_layers::{ScrollStatus, card_row},
 };
 
 /// Every browser-only scene.
@@ -27,6 +28,8 @@ pub static WEB_SCENES: &[SceneSpec] = &[
     LIFECYCLE,
     SAFE_AREA,
     SHORTCUT_MODIFIER,
+    SCROLL_LAYERS,
+    SCROLL_LAYERS_HTML,
 ];
 
 /// The browser-only scene with this id.
@@ -495,4 +498,124 @@ pub const SHORTCUT_MODIFIER: SceneSpec = SceneSpec {
             Step::Expect(Expect::Exists(id("status"))),
         ]
     },
+};
+
+/// A scrolling `div` and a `list` side by side, each of cards with borders and shadows.
+struct ScrollLayersPage {
+    scroll: ScrollHandle,
+    list: ListState,
+    status: gpux::Entity<ScrollStatus>,
+}
+
+impl Render for ScrollLayersPage {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        root()
+            .child(self.status.clone())
+            .child(
+                div()
+                    .id("scroller")
+                    .absolute()
+                    .top(px(40.))
+                    .left(px(20.))
+                    .w(px(400.))
+                    .h(px(600.))
+                    .bg(rgb(0xf4f1ea))
+                    .overflow_y_scroll()
+                    .track_scroll(&self.scroll)
+                    .children((0..300).map(card_row)),
+            )
+            .child(
+                div()
+                    .id("rows")
+                    .absolute()
+                    .top(px(40.))
+                    .left(px(460.))
+                    .w(px(400.))
+                    .h(px(600.))
+                    .bg(rgb(0xf4f1ea))
+                    .child(list(self.list.clone(), |index, _, _| card_row(index)).size_full()),
+            )
+    }
+}
+
+pub const SCROLL_LAYERS: SceneSpec = SceneSpec {
+    id: "web-scroll-layers",
+    areas: &[],
+    size: (900., 660.),
+    scales: &[1.],
+    lanes: &[Lane::B],
+    golden: false,
+    build: |_, cx| {
+        let scroll = ScrollHandle::new();
+        let list = ListState::new(300, ListAlignment::Top, px(64.)).measure_all();
+        let status = cx.new(|_| ScrollStatus::new(scroll.clone(), Some(list.clone())));
+        cx.new(|_| ScrollLayersPage {
+            scroll,
+            list,
+            status,
+        })
+        .into()
+    },
+    // The scroll-layers spec drives the wheel and reads the page's pixels and counters.
+    script: || vec![Step::Expect(Expect::Exists(id("scroller")))],
+};
+
+/// A scrolling `div` that holds a DOM element: its content cannot be tiled.
+struct ScrollLayersHtmlPage {
+    scroll: ScrollHandle,
+    status: gpux::Entity<ScrollStatus>,
+}
+
+impl Render for ScrollLayersHtmlPage {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        root().child(self.status.clone()).child(
+            div()
+                .id("scroller")
+                .absolute()
+                .top(px(40.))
+                .left(px(20.))
+                .w(px(400.))
+                .h(px(400.))
+                .bg(rgb(0xf4f1ea))
+                .overflow_y_scroll()
+                .track_scroll(&self.scroll)
+                .child(
+                    div().id("dom-host").h(px(64.)).w(px(160.)).child(
+                        canvas(
+                            |_, _, _| {},
+                            |bounds, _, window, _| {
+                                window.paint_html_element(
+                                    ElementId::from("gpux-dom-button"),
+                                    bounds,
+                                    HtmlElementInputMode::DomOwned,
+                                    HtmlElementLifetime::PruneWhenAbsent,
+                                    HtmlElementContentFit::Fill,
+                                    HtmlElementWheelBehavior::Browser,
+                                    1,
+                                    DOM_BUTTON.into(),
+                                    "".into(),
+                                );
+                            },
+                        )
+                        .size_full(),
+                    ),
+                )
+                .children((0..200).map(card_row)),
+        )
+    }
+}
+
+pub const SCROLL_LAYERS_HTML: SceneSpec = SceneSpec {
+    id: "web-scroll-layers-html",
+    areas: &[],
+    size: (460., 460.),
+    scales: &[1.],
+    lanes: &[Lane::B],
+    golden: false,
+    build: |_, cx| {
+        let scroll = ScrollHandle::new();
+        let status = cx.new(|_| ScrollStatus::new(scroll.clone(), None));
+        cx.new(|_| ScrollLayersHtmlPage { scroll, status }).into()
+    },
+    script: || vec![Step::Expect(Expect::Exists(id("scroller")))],
 };

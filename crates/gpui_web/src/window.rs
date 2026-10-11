@@ -1308,6 +1308,25 @@ impl PlatformWindow for WebWindow {
         self.inner.callbacks.borrow_mut().appearance_changed = Some(callback);
     }
 
+    fn rasterizes_layer_tiles(&self) -> bool {
+        // The wgpu renderer does, on WebGPU and on the WebGL2 transport alike.
+        true
+    }
+
+    fn release_layer_tiles(&self) {
+        self.inner.renderer.borrow_mut().release_layer_tiles();
+    }
+
+    #[cfg(feature = "diagnostics")]
+    fn layer_tile_counters(&self) -> Option<gpux::LayerTileCounters> {
+        Some(self.inner.renderer.borrow().layer_tile_counters())
+    }
+
+    #[cfg(feature = "diagnostics")]
+    fn publish_fast_stats(&self, frame: &[(String, u64)], run: &[(String, u64)]) {
+        write_fast_stats_to_global(frame, run, self.layer_tile_counters());
+    }
+
     fn draw(&self, scene: &Scene) {
         if let Some((width, height)) = self.inner.pending_physical_size.take() {
             self.inner.apply_physical_size(width, height);
@@ -1492,6 +1511,36 @@ impl PlatformWindow for WebWindow {
     }
 
     fn set_client_inset(&self, _inset: Pixels) {}
+}
+
+/// Publishes the fast-mode counters of the last frame and of the run as `__gpuxFastStats`:
+/// `{ frame: { <counter>: n, .. }, run: { <counter>: n, .. }, tiles: { held, rasterized,
+/// released } }`, the last what the renderer did with scroll-layer tiles.
+#[cfg(feature = "diagnostics")]
+fn write_fast_stats_to_global(
+    frame: &[(String, u64)],
+    run: &[(String, u64)],
+    tiles: Option<gpux::LayerTileCounters>,
+) {
+    let object = |counters: &[(String, u64)]| {
+        let object = js_sys::Object::new();
+        for (name, value) in counters {
+            let _ = js_sys::Reflect::set(&object, &name.as_str().into(), &(*value as f64).into());
+        }
+        object
+    };
+    let target = js_sys::Object::new();
+    let _ = js_sys::Reflect::set(&target, &"frame".into(), &object(frame));
+    let _ = js_sys::Reflect::set(&target, &"run".into(), &object(run));
+    if let Some(tiles) = tiles {
+        let tiles = object(&[
+            ("held".to_string(), tiles.held),
+            ("rasterized".to_string(), tiles.rasterized),
+            ("released".to_string(), tiles.released),
+        ]);
+        let _ = js_sys::Reflect::set(&target, &"tiles".into(), &tiles);
+    }
+    gpui_wgpu::web_globals::publish("FastStats", &target);
 }
 
 #[cfg(feature = "diagnostics")]

@@ -1,0 +1,197 @@
+import type { Page } from '@playwright/test';
+import { SOFTWARE_PROFILES } from '../fixtures/catalog';
+import { expect, test, type Backend, type Bounds, type Gpux } from '../fixtures/gpux';
+
+// Scroll layers in the browser (fast mode's `scroll_layers`): a scrolled div and a list draw from
+// tiles the renderer rasterized once, on WebGPU and on the WebGL2 transport. The web host's
+// `?layers=1|0` switch turns every fast-mode mechanism on or off, so a page with layers is
+// compared with the same page without them. `__gpuxFastStats` (published under `diagnostics`)
+// says which frames came from tiles.
+
+interface FastStats {
+  frame: Record<string, number>;
+  run: Record<string, number>;
+}
+
+const BACKENDS: Backend[] = ['webgpu', 'webgl'];
+const NAMES: Record<Backend, string> = { webgpu: 'WebGPU', webgl: 'WebGL2' };
+
+/** The fast-mode counters of the last frame and of the run so far. */
+async function stats(page: Page): Promise<FastStats> {
+  const published = await page.evaluate(
+    () => (globalThis as unknown as { __gpuxFastStats?: FastStats }).__gpuxFastStats ?? null,
+  );
+  expect(published, 'the host publishes __gpuxFastStats under diagnostics').not.toBeNull();
+  return published!;
+}
+
+/** The status line's text. */
+async function statusOf(gpux: Gpux, query: string): Promise<Bounds> {
+  return gpux.locate(query);
+}
+
+/** Turns the wheel `steps` times by `delta` over `at`, one presented frame each. */
+async function scroll(gpux: Gpux, at: { x: number; y: number }, steps: number, delta: number) {
+  await gpux.page.mouse.move(at.x, at.y);
+  for (let step = 0; step < steps; step++) {
+    await gpux.page.mouse.wheel(0, delta);
+    await gpux.frames(2);
+  }
+}
+
+/**
+ * Scrolls the div and the list of `web-scroll-layers` the same way and returns what shows. The
+ * browser divides a synthesized wheel delta by the device pixel ratio, so the delta is scaled
+ * back and the page scrolls 40 CSS pixels a step at any ratio.
+ */
+async function scrolled(gpux: Gpux) {
+  const ratio = await gpux.page.evaluate(() => globalThis.devicePixelRatio);
+  const div = await gpux.center('id=scroller');
+  await scroll(gpux, div, 12, 40 * ratio);
+  await statusOf(gpux, 'role=status value="div 480 list 0"');
+  const list = await gpux.center('id=rows');
+  await scroll(gpux, list, 9, 40 * ratio);
+  await expect
+    .poll(async () => (await gpux.find('role=status value="div 480 list 5"')) !== null, {
+      message: 'the list scrolled to its sixth row',
+    })
+    .toBe(true);
+  await gpux.frames(3);
+  return gpux.capture({ x: 0, y: 0, width: 900, height: 660 });
+}
+
+for (const backend of BACKENDS) {
+  test(`scroll-layers: a scrolled div and list composite their tiles on ${NAMES[backend]} @pr`, async ({
+    gpux,
+    page,
+  }) => {
+    await gpux.open('web-scroll-layers', { backend, params: { layers: '1' } });
+    await gpux.locate('role=status value="div 0 list 0"');
+    const before = (await stats(page)).run;
+    await scrolled(gpux);
+    const after = (await stats(page)).run;
+    expect(
+      after.tiles_rasterized - before.tiles_rasterized,
+      'tiles rasterized while the page scrolled',
+    ).toBeGreaterThan(0);
+    expect(
+      after.layers_composited - before.layers_composited,
+      'scroll-container frames drawn from tiles',
+    ).toBeGreaterThanOrEqual(10);
+    expect(
+      after.tiles_composited - before.tiles_composited,
+      'tiles composited into frames',
+    ).toBeGreaterThan(0);
+  });
+
+  test(`scroll-layers: a page with layers looks like the page without them on ${NAMES[backend]} @pr`, async ({
+    gpux,
+    page,
+  }) => {
+    await gpux.open('web-scroll-layers', { backend, params: { layers: '1' } });
+    await gpux.locate('role=status value="div 0 list 0"');
+    const withLayers = await scrolled(gpux);
+    expect((await stats(page)).run.layers_composited, 'the page composited').toBeGreaterThan(0);
+
+    await gpux.open('web-scroll-layers', { backend, params: { layers: '0' } });
+    await gpux.locate('role=status value="div 0 list 0"');
+    const without = await scrolled(gpux);
+    const off = (await stats(page)).run;
+    expect(off.layers_composited, 'the layers-off page never composites').toBe(0);
+    expect(off.tiles_rasterized, 'the layers-off page rasterizes no tiles').toBe(0);
+
+    expect([withLayers.width, withLayers.height]).toEqual([without.width, without.height]);
+    const differing = withLayers.data.reduce(
+      (count, byte, index) => count + (byte === without.data[index] ? 0 : 1),
+      0,
+    );
+    expect(differing, 'bytes that differ between the page with layers and without').toBe(0);
+  });
+
+  test(`scroll-layers: a scroller holding a DOM element is drawn without tiles on ${NAMES[backend]} @pr`, async ({
+    gpux,
+    page,
+  }) => {
+    await gpux.open('web-scroll-layers-html', { backend, params: { layers: '1' } });
+    await gpux.locate('role=status value="div 0"');
+    const div = await gpux.center('id=scroller');
+    await scroll(gpux, div, 12, 40);
+    await gpux.locate('role=status value="div 480"');
+    const run = (await stats(page)).run;
+    expect(run.layers_composited, 'no frame came from tiles').toBe(0);
+    expect(run.tiles_rasterized, 'no tile was rasterized').toBe(0);
+    expect(run['layer_bypasses.ineligible'], 'the scroller was found ineligible').toBeGreaterThan(0);
+  });
+}
+
+test.describe('at device pixel ratio 2', () => {
+  test.use({ deviceScaleFactor: 2 });
+  for (const backend of BACKENDS) {
+    test(`scroll-layers: a page with layers looks like the page without them at DPR 2 on ${NAMES[backend]} @dpr2`, async ({
+      gpux,
+      page,
+    }) => {
+      await gpux.open('web-scroll-layers', { backend, params: { layers: '1' } });
+      await gpux.locate('role=status value="div 0 list 0"');
+      const withLayers = await scrolled(gpux);
+      expect((await stats(page)).run.layers_composited, 'the page composited').toBeGreaterThan(0);
+
+      await gpux.open('web-scroll-layers', { backend, params: { layers: '0' } });
+      await gpux.locate('role=status value="div 0 list 0"');
+      const without = await scrolled(gpux);
+      const differing = withLayers.data.reduce(
+        (count, byte, index) => count + (byte === without.data[index] ? 0 : 1),
+        0,
+      );
+      expect(differing, 'bytes that differ between the page with layers and without').toBe(0);
+    });
+  }
+});
+
+/** The 60 Hz frame budget, in milliseconds. */
+const FRAME_BUDGET_MS = 1000 / 60;
+
+test('@timing scrolling cards from tiles keeps frame work within the 60 Hz budget', async ({
+  gpux,
+  page,
+}, testInfo) => {
+  test.skip(SOFTWARE_PROFILES.includes(testInfo.project.name), 'software renderers make timing meaningless');
+  await gpux.open('web-scroll-layers', { params: { layers: '1' } });
+  await gpux.locate('role=status value="div 0 list 0"');
+  const at = await gpux.center('id=scroller');
+  await page.mouse.move(at.x, at.y);
+  // gpux requests every frame with the same function, which tells its callbacks from the spec's.
+  await page.evaluate(() => {
+    const durations = new Map<FrameRequestCallback, number[]>();
+    (globalThis as unknown as { __gpuxFrameWork: typeof durations }).__gpuxFrameWork = durations;
+    const original = window.requestAnimationFrame.bind(window);
+    window.requestAnimationFrame = (callback) =>
+      original((time) => {
+        const start = performance.now();
+        try {
+          callback(time);
+        } finally {
+          if (!durations.has(callback)) durations.set(callback, []);
+          durations.get(callback)!.push(performance.now() - start);
+        }
+      });
+  });
+  const before = (await stats(page)).run.layers_composited;
+  for (let step = 0; step < 60; step++) {
+    await page.mouse.wheel(0, 20);
+    await gpux.frames(1);
+  }
+  const composited = (await stats(page)).run.layers_composited - before;
+  const durations = await page.evaluate(() => {
+    const work = (globalThis as unknown as { __gpuxFrameWork: Map<unknown, number[]> }).__gpuxFrameWork;
+    return [...work.values()].reduce((most, next) => (next.length > most.length ? next : most), []);
+  });
+  expect(durations.length, 'frames recorded while scrolling').toBeGreaterThanOrEqual(30);
+  expect(composited, 'frames drawn from tiles while scrolling').toBeGreaterThanOrEqual(30);
+  const sorted = [...durations].sort((a, b) => a - b);
+  const p95 = sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.95))];
+  console.log(
+    `gpux-timing: scroll layers scroll frame work p95 ${p95.toFixed(2)} ms, max ${sorted[sorted.length - 1].toFixed(2)} ms over ${durations.length} frames`,
+  );
+  expect(p95, 'p95 frame work while scrolling from tiles (ms)').toBeLessThan(FRAME_BUDGET_MS);
+});

@@ -8,7 +8,9 @@
 //!   bounds and probe screenshots;
 //! - `?scene=<id>&run=1` also runs the scene's script in-app and logs its
 //!   `gpux-conformance:` result line; `?run=all` runs every lane-B scene;
-//! - `?backend=webgpu|webgl` forces a backend (WebGPU first with a WebGL2 fallback otherwise).
+//! - `?backend=webgpu|webgl` forces a backend (WebGPU first with a WebGL2 fallback otherwise);
+//! - `?layers=1|0` sets the shown scene's [`FastMode`]: every mechanism on (scroll layers among
+//!   them) or all off. Without it the window keeps its default.
 //!
 //! It publishes `globalThis.__gpuxConformance`: `ready`, `backend`, `scene`, `results`, `done`,
 //! `lastError`, `probes` (the scene's pixel expectations for its first frame, as
@@ -37,7 +39,8 @@ mod web_scenes;
 mod web {
     use crate::bridge::Bridge;
     use gpux::{
-        AnyWindowHandle, AppContext as _, AsyncApp, WindowOptions, point, px, semantic_query::Query,
+        AnyWindowHandle, AppContext as _, AsyncApp, FastMode, WindowOptions, point, px,
+        semantic_query::Query,
     };
     use gpux_conformance::{
         CATALOG, Lane, SceneSpec, Step,
@@ -61,6 +64,7 @@ mod web {
         scene: Option<String>,
         run: Option<String>,
         backend: Option<String>,
+        layers: Option<String>,
     }
 
     impl Params {
@@ -74,6 +78,7 @@ mod web {
                 scene: get("scene"),
                 run: get("run"),
                 backend: get("backend"),
+                layers: get("layers"),
             }
         }
     }
@@ -274,13 +279,22 @@ mod web {
         }
     }
 
-    async fn show(cx: &mut AsyncApp, scene: &'static SceneSpec) {
-        let window = match cx.open_window(WindowOptions::default(), |window, cx| {
-            cx.new(|cx| SceneFrame::new(scene, window, cx))
-        }) {
+    async fn show(cx: &mut AsyncApp, scene: &'static SceneSpec, layers: Option<&str>) {
+        let window: AnyWindowHandle = match cx
+            .open_window(WindowOptions::default(), |window, cx| {
+                cx.new(|cx| SceneFrame::new(scene, window, cx))
+            }) {
             Ok(window) => window.into(),
             Err(error) => return fail(format!("could not open {}: {error:#}", scene.id)),
         };
+        let mode = match layers {
+            Some("1") => Some(FastMode::ALL),
+            Some("0") => Some(FastMode::OFF),
+            _ => None,
+        };
+        if let Some(mode) = mode {
+            let _ = window.update(cx, |_, window, _| window.set_fast_mode(mode));
+        }
         if let Err(error) = app_host::wait_frames(cx, window, 2).await {
             return fail(format!("{} never drew: {error:#}", scene.id));
         }
@@ -365,7 +379,7 @@ mod web {
                     run_scripts(&mut cx, scenes).await;
                 }
                 (Some(_), Some(Ok(scene))) => run_scripts(&mut cx, vec![scene]).await,
-                (None, Some(Ok(scene))) => show(&mut cx, scene).await,
+                (None, Some(Ok(scene))) => show(&mut cx, scene, params.layers.as_deref()).await,
                 (_, Some(Err(error))) => fail(error),
                 (_, None) => {
                     fail("name a scene with `?scene=<id>`, or run every scene with `?run=all`")
