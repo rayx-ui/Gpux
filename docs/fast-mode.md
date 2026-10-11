@@ -373,7 +373,11 @@ primitive covers its bounds within the clips pushed inside that one: a child of 
 clips its content, cut by the viewport the card scrolls in, reaches as far as the card, and a
 row's border, drawn in a mask of its own, as far as the border. What was painted before a clip
 was pushed lies behind everything in it: a dropped primitive with nothing of the clip's under
-it is ordered over what was painted, before the clip, where it would come into view.
+it is ordered over what was painted, before the clip, where it would come into view. A clip
+pushed where one was, after something else was painted, is another clip, though it clips
+alike: two containers laid one over the other each keep what they hold apart. Only a clip
+pushed again at once, with nothing painted since it was popped, goes on as the clip it was,
+which is how a scene replayed range after range for a window's surfaces stays one scene.
 
 Content in a clip has, primitive for primitive, the draw orders it has with the clip not there,
 wherever the clip lies over it. A primitive wholly inside its mask meets nothing outside it and
@@ -391,16 +395,34 @@ What is painted after a scrolling container lies over all of it, as it lies over
 container's layer when it has one: a bar laid over the container's edge, or its scrollbar, is
 drawn over the blurs of the shadows inside, whatever their draw orders. The window tells the
 scene where a scrolling container's content begins and ends, and the scene orders what follows
-over what each shadow in it draws past its box. Inside the content, a primitive beside a
-shadow that does not lie over its box is not ordered by it, kept or not: a blur and such a
-neighbour are drawn by their draw orders, as they always were.
+over what each shadow in it draws past its box, where that shows and, at the edges of the
+clips around the container, where they cut it: a scrolling container inside scrolled content
+is followed alike wherever the page's viewport lies over it. Inside the content, a primitive
+beside a shadow that does not lie over its box is not ordered by it, kept or not: a blur and
+such a neighbour are drawn by their draw orders, as they always were.
 
-The rule has bounds. A dropped primitive further than 2048 device pixels from a clip leaves no
-entry there, so a blur reaching further than that is ordered without what lies under its box. A
-primitive is raised past what it lies over by at most 256 orders at a time, which content whose
-rows each overlap the one before for hundreds of rows exceeds. And a clip pushed some other way
-than `Window::with_content_mask` is known to the scene only as the mask it leaves, and is taken
-whole.
+A layer's content is painted in its painted region, a clip of its own. The content is then
+kept moved to where its tiles stand, every primitive at the order it was painted at, and
+where it is drawn into a frame instead of composited, the replay tells the scene the viewport
+it is clipped to: nothing orders the content again without knowing a clip it was painted in.
+
+Only what leaves a paint operation changes what a scene holds of its clips, so a scene
+replayed from another's operations ends where that one did. What lies behind a clip is found
+from where it lies, in a grid of what had been painted by then, built when first asked: a
+table of thousands of clipped cells costs what lies near each cell, not a pass over the
+scene for each (in a release build 16 000 cells that each drop a line take 9.0 ms to insert
+against 4.6 ms for the same cells dropping nothing, and 9.8 ms scattered at random; a table of
+2000 rows of 20 clipped cells takes 19.3 ms against 20.5 ms with no clips told).
+
+The rule has bounds. A primitive a clip drops from further off than 2048 device pixels leaves
+no entry, at that clip or at the clips inside it, so a blur reaching further than that is
+ordered without what lies under its box. A primitive is raised past what it lies over by at
+most 256 orders at a time, which content whose rows each overlap the one before for hundreds
+of rows exceeds. And a mask that is not what the clips the window pushed leave (the window's
+own bounds, which everything outside a clip is painted in, is one) is one clip more,
+innermost, taken as pushed when a primitive first comes with it and never popped. A list's
+rows are painted in the regions of the frames that painted them, which their operations do
+not tell of: where rows meet at a region's edge they are ordered by that rule.
 
 The renderers' groups (`fast::layers::tests` in `gpui_wgpu`, `fast::layers` in `gpui_apple`)
 compare content drawn from tiles with the same content drawn directly, byte for byte: tiles of
@@ -410,7 +432,9 @@ rows at scales 1, 1.5 and 2, cards with shadows and gradients, shadowed cards cl
 than their blurs reach, paths, both axes, content that changes while scrolled) in a window with
 every mechanism on and in one with them off and the snapping forced on, and compares every
 frame's pixels: equal everywhere, at every one-pixel step of a shadow's box crossing the
-viewport's edge too. The same group scrolls a
+viewport's edge too. So are two shadowed containers laid one over the other with a veil
+between them, and a page whose rows hold scrolling containers of their own under a shadowed
+bar painted over each one's edge. The same group scrolls a
 `uniform_list` and a `list` of text rows, at scales 1 and 1.5 and with rows that change while
 scrolled, whose frames are equal everywhere.
 
