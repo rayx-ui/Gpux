@@ -388,8 +388,15 @@ panel or the window no longer pops as its box crosses the edge.
 A layer's tiles draw the content's primitives at the orders the content gave them as a whole,
 not at orders worked out among the primitives over each tile, which changed at a tile's edge
 when what lay under a shadow's box did not reach into the tile, and left a step in the blur
-there. A list's rows are scenes of their own, ordered as the content is put together, and a
-tile is drawn again when those orders change.
+there. A list's rows are scenes of their own, ordered as painted one after another, and a
+tile is drawn again when those orders change. Only the rows whose bounds meet are painted
+together to find those orders out, near the origin wherever they stand in the list; a row that
+meets no other is ordered as it is alone, and every row keeps its orders while the rows it
+was ordered after stay. So a row scrolled into a list costs its own ordering: ordering the
+whole content for every row made a frame that scrolled a row in cost 13.7 ms far down a list
+of rows of forty quads, where the list painted without a layer takes 1.3 ms and such a frame
+now takes 0.5 ms. Rows that each reach over the one before are one run, ordered again
+together when a row joins or leaves it.
 
 What is painted after a scrolling container lies over all of it, as it lies over the
 container's layer when it has one: a bar laid over the container's edge, or its scrollbar, is
@@ -408,7 +415,8 @@ it is clipped to: nothing orders the content again without knowing a clip it was
 
 Only what leaves a paint operation changes what a scene holds of its clips, so a scene
 replayed from another's operations ends where that one did. What lies behind a clip is found
-from where it lies, in a grid of what had been painted by then, built when first asked: a
+from where it lies, in a grid of what had been painted by then, built when first asked,
+which begins where those bounds do and has cells as large as it takes to span them: a
 table of thousands of clipped cells costs what lies near each cell, not a pass over the
 scene for each (in a release build 16 000 cells that each drop a line take 9.0 ms to insert
 against 4.6 ms for the same cells dropping nothing, and 9.8 ms scattered at random; a table of

@@ -3660,10 +3660,7 @@ pub(crate) fn end_paint_rows(window: &mut Window, cx: &mut App, id: Option<&Glob
             span.row,
             Row {
                 slot,
-                part: LayerPart {
-                    bounds: Some(reach.unwrap_or_default()),
-                    scene: Rc::new(scene),
-                },
+                part: LayerPart::new(Some(reach.unwrap_or_default()), Rc::new(scene)),
                 tile_hashes,
                 has_paths,
                 translation,

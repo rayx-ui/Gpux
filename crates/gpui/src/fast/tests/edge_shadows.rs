@@ -763,12 +763,9 @@ fn a_tile_draws_its_primitives_at_the_orders_of_the_content() {
 
     // A list's content is a scene a row: the rows are ordered as painted
     // one after another.
-    let parts = rows
-        .iter()
-        .map(|row| crate::fast::layers::scene::LayerPart {
-            bounds: None,
-            scene: std::rc::Rc::new(scene_of(row)),
-        });
+    let parts = rows.iter().map(|row| {
+        crate::fast::layers::scene::LayerPart::new(None, std::rc::Rc::new(scene_of(row)))
+    });
     let whole: Vec<Primitive> = rows.iter().flatten().cloned().collect();
     let in_whole = orders(&scene_of(&whole), &whole);
     let listed = frame(LayerContent::from_parts(parts));
@@ -1351,11 +1348,11 @@ fn what_follows_a_scrolling_container_lies_over_its_blurs_out_of_view_too() {
 #[test]
 fn what_lies_behind_a_clip_is_found_without_a_pass_over_the_scene() {
     use crate::fast::edge_shadows::{ClipOp, clip_op};
-    let table = |cells: usize, told: bool| {
+    let table = |cells: usize, told: bool, down: f32| {
         let mut scene = Scene::default();
         scene.insert_primitive(quad(window(), window()));
         for cell in 0..cells {
-            let (left, top) = ((cell % 100) as f32 * 30., (cell / 100) as f32 * 20.);
+            let (left, top) = ((cell % 100) as f32 * 30., down + (cell / 100) as f32 * 20.);
             let mask = sp(left, top, 28., 18.);
             if told {
                 clip_op(&mut scene, ClipOp::Push(mask));
@@ -1371,12 +1368,19 @@ fn what_lies_behind_a_clip_is_found_without_a_pass_over_the_scene() {
         scene.fast_edge_shadows.behind_work
     };
     for told in [true, false] {
-        let (few, many) = (table(1000, told), table(16_000, told));
+        let (few, many) = (table(1000, told, 0.), table(16_000, told, 0.));
         assert!(few >= 1000, "each cell asks what lies behind it: {few}");
         // Not a pass a cell, which is 128 million bounds: what lies near.
         assert!(
             many <= 16_000 * 16 && many <= few * 32,
             "{many} bounds looked at for 16 000 cells, {few} for 1000 (told: {told})"
+        );
+        // Nor further down than a grid of the tree's cells spans, where a
+        // list's rows stand in their content.
+        let far = table(16_000, told, 300_000.);
+        assert!(
+            far <= 16_000 * 64,
+            "{far} bounds looked at for 16 000 cells far down (told: {told})"
         );
     }
 
@@ -1456,14 +1460,24 @@ fn what_leaves_no_operation_changes_no_order() {
 fn what_a_tree_held_is_found_as_a_pass_over_it_finds_it() {
     use crate::fast::bounds_tree::BoundsTree;
     let mut rng = StdRng::seed_from_u64(0x0be_41bd);
-    for (count, spread) in [(40, 300.0f32), (700, 900.), (9000, 6000.), (9000, 400.)] {
+    // Near the origin, left of and above it, far from it, and spread wider
+    // than a grid of the tree's cells spans.
+    for (count, spread, from) in [
+        (40, 300.0f32, 0.0f32),
+        (700, 900., -5000.),
+        (9000, 6000., 0.),
+        (9000, 400., 0.),
+        (3000, 3000., 3_000_000.),
+        (3000, 200_000., -100_000.),
+        (9000, 6000., 700_000.),
+    ] {
         let mut tree = BoundsTree::<ScaledPixels>::default();
         let mut inserted = Vec::new();
         let (mut asked, mut passed_over) = (0, 0);
         for index in 0..count {
             let bounds = sp(
-                rng.random_range(0.0..spread).round(),
-                rng.random_range(0.0..spread).round(),
+                from + rng.random_range(0.0..spread).round(),
+                from + rng.random_range(0.0..spread).round(),
                 rng.random_range(2.0..90.0f32).round(),
                 rng.random_range(2.0..90.0f32).round(),
             );
@@ -1481,8 +1495,8 @@ fn what_a_tree_held_is_found_as_a_pass_over_it_finds_it() {
             // Now and then, about any of what was inserted so far.
             let first = rng.random_range(0..=inserted.len());
             let query = sp(
-                rng.random_range(-20.0..spread).round(),
-                rng.random_range(-20.0..spread).round(),
+                from + rng.random_range(-20.0..spread).round(),
+                from + rng.random_range(-20.0..spread).round(),
                 rng.random_range(1.0..200.0f32).round(),
                 rng.random_range(1.0..30.0f32).round(),
             );
@@ -1495,12 +1509,12 @@ fn what_a_tree_held_is_found_as_a_pass_over_it_finds_it() {
             let (found, looked) = tree.max_behind(first, &query);
             assert_eq!(
                 found, expected,
-                "{count} bounds over {spread}, the first {first}"
+                "{count} bounds over {spread} from {from}, the first {first}"
             );
             asked += first;
             passed_over += looked;
         }
-        if spread >= 6000. {
+        if spread == 6000. {
             assert!(
                 passed_over * 50 < asked,
                 "{passed_over} looked at where a pass looks at {asked}"
@@ -1665,4 +1679,333 @@ fn content_moved_keeps_the_orders_it_was_painted_at() {
         }
     }
     assert!(kept >= 1500, "{kept} primitives were kept");
+}
+
+/// A row of a list as its layer keeps it: a scene of its own, painted in
+/// the list's region, which no clip tells of.
+fn row_part(items: &[Item]) -> crate::fast::layers::scene::LayerPart {
+    use crate::fast::edge_shadows::{ClipOp, clip_op};
+    let region = sp(-4_000_000., -4_000_000., 8_000_000., 8_000_000.);
+    let mut scene = Scene::default();
+    let mut masks = vec![region];
+    for item in items {
+        let mask = *masks.last().unwrap();
+        match item {
+            Item::Push(bounds) => {
+                masks.push(mask.intersect(bounds));
+                clip_op(&mut scene, ClipOp::Push(*bounds));
+            }
+            Item::Pop => {
+                masks.pop();
+                clip_op(&mut scene, ClipOp::Pop);
+            }
+            Item::BeginScroll => clip_op(&mut scene, ClipOp::BeginScroll),
+            Item::EndScroll => clip_op(&mut scene, ClipOp::EndScroll),
+            Item::Quad(bounds) => scene.insert_primitive(quad(*bounds, mask)),
+            Item::Shadow(bounds, blur) => scene.insert_primitive(shadow(*bounds, mask, *blur)),
+        }
+    }
+    crate::fast::layers::scene::LayerPart::new(None, std::rc::Rc::new(scene))
+}
+
+/// The order of each paint operation of `parts` painted one after another
+/// into one scene, part by part: what a list's content is ordered as.
+fn painted_together(parts: &[crate::fast::layers::scene::LayerPart]) -> Vec<Vec<DrawOrder>> {
+    let mut whole = Scene::default();
+    parts
+        .iter()
+        .map(|part| {
+            let before = whole.paint_operations.len();
+            whole.replay(0..part.scene.paint_operations.len(), &part.scene);
+            whole.paint_operations[before..]
+                .iter()
+                .map(|operation| match operation {
+                    PaintOperation::Primitive(primitive) => order_of(primitive),
+                    _ => 0,
+                })
+                .collect()
+        })
+        .collect()
+}
+
+/// A list's rows are ordered as painted one after another, but only the
+/// rows that meet are painted together to find it out: every row, whether
+/// it reaches over its neighbours or lies clear of them, cards that clip
+/// and scroll and shadows whose blurs fall on the rows around, has the
+/// orders it has when the whole content is painted in one scene.
+#[test]
+fn rows_ordered_with_the_rows_they_meet_are_ordered_as_the_whole_content_is() {
+    use crate::fast::layers::scene::{LayerContent, ORDERED_OPERATIONS};
+    let mut rng = StdRng::seed_from_u64(0x0707_11e5);
+    let (mut alone, mut together) = (0, 0);
+    for run in 0..300 {
+        // Rows 80 px apart from a place far down the list; most keep to
+        // themselves, some reach up or down, and now and then one is laid
+        // back over rows painted long before it.
+        let down = rng.random_range(0..40_000) as f32 * 80.;
+        let count = rng.random_range(2..14);
+        let parts: Vec<_> = (0..count)
+            .map(|index| {
+                let top = match rng.random_range(0..9) {
+                    0 => down + rng.random_range(0..count) as f32 * 80.,
+                    _ => down + index as f32 * 80.,
+                };
+                let reach = match rng.random_range(0..3) {
+                    0 => rng.random_range(1.0..60.0f32).round(),
+                    _ => 0.,
+                };
+                let row = sp(20., top - reach, 360., 76. + reach);
+                let mut items = vec![Item::Quad(row)];
+                for _ in 0..rng.random_range(1..5) {
+                    let card = sp(
+                        rng.random_range(30.0..250.0f32).round(),
+                        top + rng.random_range(4.0..40.0f32).round(),
+                        rng.random_range(30.0..120.0f32).round(),
+                        rng.random_range(10.0..30.0f32).round(),
+                    );
+                    match rng.random_range(0..4) {
+                        // A shadowed card: its blur falls on the rows
+                        // around, which orders nothing.
+                        0 => items.extend([Item::Shadow(card, 14.), Item::Quad(card)]),
+                        // A card that clips what it holds, scrolling or not.
+                        1 => {
+                            let scrolls = rng.random_range(0..2) == 0;
+                            items.extend([Item::Quad(card), Item::Push(card)]);
+                            items.extend(scrolls.then_some(Item::BeginScroll));
+                            items.push(Item::Shadow(
+                                sp(card.left().0 + 4., card.top().0 + 4., 20., 40.),
+                                4.,
+                            ));
+                            items.push(Item::Quad(sp(
+                                card.left().0 - 10.,
+                                card.top().0 + 2.,
+                                60.,
+                                8.,
+                            )));
+                            items.extend(scrolls.then_some(Item::EndScroll));
+                            items.extend([Item::Pop, Item::Quad(card)]);
+                        }
+                        _ => items.push(Item::Quad(card)),
+                    }
+                }
+                row_part(&items)
+            })
+            .collect();
+        let expected = painted_together(&parts);
+        let before = ORDERED_OPERATIONS.get();
+        let content = LayerContent::from_parts(parts.clone());
+        let orders = content.orders().unwrap();
+        let ordered = ORDERED_OPERATIONS.get() - before;
+        for (index, ((orders, _), expected)) in orders.iter().zip(&expected).enumerate() {
+            assert_eq!(
+                &orders[..],
+                &expected[..],
+                "run {run}, row {index} of {count}"
+            );
+        }
+        // Every row was ordered once, with the rows it meets.
+        let operations: usize = parts
+            .iter()
+            .map(|part| part.scene.paint_operations.len())
+            .sum();
+        assert_eq!(ordered, operations, "run {run}");
+        let reaching =
+            expected
+                .iter()
+                .zip(&parts)
+                .filter(|(orders, part)| {
+                    let mut on_its_own = Scene::default();
+                    on_its_own.replay(0..part.scene.paint_operations.len(), &part.scene);
+                    on_its_own.paint_operations.iter().zip(orders.iter()).any(
+                        |(operation, order)| match operation {
+                            PaintOperation::Primitive(primitive) => order_of(primitive) != *order,
+                            _ => false,
+                        },
+                    )
+                })
+                .count();
+        together += reaching;
+        alone += count - reaching;
+    }
+    assert!(alone >= 1000, "{alone} rows were ordered as they are alone");
+    assert!(together >= 100, "{together} rows were ordered over others");
+}
+
+/// A row scrolled into a list costs its own ordering: the rows that stay
+/// keep the orders they had, however many they are and however far down the
+/// list they stand. A row that reaches over the row before is ordered with
+/// that one, and no other.
+#[test]
+fn a_row_scrolled_in_costs_its_own_ordering() {
+    use crate::fast::layers::scene::{LayerContent, ORDERED_OPERATIONS};
+    let rows = |reaching: bool| {
+        (0..201)
+            .map(|index| {
+                let top = 2_400_000. + index as f32 * 80.;
+                // Every other row's background reaches 8 px up over the row
+                // before, when rows reach.
+                let up = if reaching && index % 2 == 1 { 8. } else { 0. };
+                let card = sp(40., top + 10., 300., 50.);
+                let mut items = vec![
+                    Item::Quad(sp(20., top - up, 360., 80. + up)),
+                    // Its blur falls on the rows above and below.
+                    Item::Shadow(card, 16.),
+                    Item::Quad(card),
+                ];
+                items
+                    .extend((0..20).map(|glyph| {
+                        Item::Quad(sp(50. + glyph as f32 * 12., top + 30., 10., 14.))
+                    }));
+                row_part(&items)
+            })
+            .collect::<Vec<_>>()
+    };
+    for reaching in [false, true] {
+        let rows = rows(reaching);
+        let each = rows[0].scene.paint_operations.len();
+        assert_eq!(each, 23);
+        let first = LayerContent::from_parts(rows[..200].iter().cloned());
+        let before = ORDERED_OPERATIONS.get();
+        let kept: Vec<_> = first.orders().unwrap().to_vec();
+        assert_eq!(ORDERED_OPERATIONS.get() - before, 200 * each);
+
+        // The first row leaves and one comes at the end.
+        let next = LayerContent::from_parts(rows[1..].iter().cloned());
+        let before = ORDERED_OPERATIONS.get();
+        let orders = next.orders().unwrap();
+        let ordered = ORDERED_OPERATIONS.get() - before;
+        match reaching {
+            // The row that left lay under the second, which is ordered
+            // again, on its own now; and the row that came.
+            true => assert_eq!(ordered, 2 * each),
+            false => assert_eq!(ordered, each),
+        }
+        // The rows that stayed, and were not ordered again, hold the very
+        // orders they held.
+        let unchanged = kept[1..]
+            .iter()
+            .zip(orders.iter())
+            .filter(|((before, _), (after, _))| std::rc::Rc::ptr_eq(before, after))
+            .count();
+        assert!(unchanged >= 198, "{unchanged} rows kept their orders");
+        assert_eq!(painted_together(&rows[1..]).len(), orders.len());
+        for ((orders, _), expected) in orders.iter().zip(painted_together(&rows[1..])) {
+            assert_eq!(&orders[..], &expected[..]);
+        }
+
+        // The same content asked again costs nothing.
+        let before = ORDERED_OPERATIONS.get();
+        let again = LayerContent::from_parts(rows[1..].iter().cloned());
+        again.orders().unwrap();
+        assert_eq!(ORDERED_OPERATIONS.get(), before);
+    }
+}
+
+/// A long `uniform_list` of rows of forty quads.
+struct LongList;
+
+impl crate::Render for LongList {
+    fn render(
+        &mut self,
+        _: &mut crate::Window,
+        cx: &mut crate::Context<Self>,
+    ) -> impl crate::IntoElement {
+        use crate::{ParentElement as _, Styled as _, div, px, rgb};
+        div().size_full().bg(rgb(0xffffff)).child(
+            crate::uniform_list(
+                "list",
+                20_000,
+                cx.processor(|_, range: std::ops::Range<usize>, _, _| {
+                    range
+                        .map(|row| {
+                            div()
+                                .w(px(900.))
+                                .h(px(24.))
+                                .flex()
+                                .bg(if row % 2 == 0 {
+                                    rgb(0xf4f1ea)
+                                } else {
+                                    rgb(0xe9e4d8)
+                                })
+                                .children((0..40).map(|_| {
+                                    div().w(px(8.)).h(px(12.)).ml(px(2.)).bg(rgb(0x224466))
+                                }))
+                        })
+                        .collect::<Vec<_>>()
+                }),
+            )
+            .w(px(900.))
+            .h(px(700.))
+            .bg(rgb(0xffffff)),
+        )
+    }
+}
+
+/// A list scrolled a row a frame from its layer's tiles orders the row that
+/// comes into the layer and no other, at its top and far down it: ordering
+/// the layer's whole content for every row, in the content's coordinates,
+/// made such a frame thirty times as dear far down a list as it had been,
+/// and ten times as dear as painting the list without a layer.
+#[crate::test]
+fn a_list_scrolled_a_row_a_frame_orders_the_rows_that_come(cx: &mut crate::TestAppContext) {
+    use crate::fast::layers::scene::ORDERED_OPERATIONS;
+    use crate::{AppContext as _, ScrollDelta, ScrollWheelEvent, TouchPhase, px};
+    let window = crate::fast::tests::layer_support::add_window(cx, |_, _| LongList);
+    let any: crate::AnyWindowHandle = window.into();
+    cx.test_window(any).simulate_scale_factor_change(2.);
+    let draw = |cx: &mut crate::TestAppContext| {
+        cx.update_window(any, |_, window, cx| window.draw(cx).clear(cx))
+            .unwrap();
+    };
+    let wheel = |cx: &mut crate::TestAppContext, dy: f32| {
+        let frame = cx
+            .update_window(any, |_, window, _| window.fast_layers.frame)
+            .unwrap();
+        cx.update_window(any, |_, window, cx| {
+            window.dispatch_event(
+                crate::PlatformInput::ScrollWheel(ScrollWheelEvent {
+                    position: crate::point(px(20.), px(20.)),
+                    delta: ScrollDelta::Pixels(crate::point(px(0.), px(dy))),
+                    modifiers: Default::default(),
+                    touch_phase: TouchPhase::Moved,
+                }),
+                cx,
+            );
+        })
+        .unwrap();
+        let drawn = cx
+            .update_window(any, |_, window, _| window.fast_layers.frame)
+            .unwrap();
+        if drawn == frame {
+            draw(cx);
+        }
+    };
+    draw(cx);
+    draw(cx);
+    // A row: its background and forty quads.
+    let row = 41;
+    for far in [0., 100_000.] {
+        if far > 0. {
+            wheel(cx, -far);
+        }
+        for _ in 0..6 {
+            wheel(cx, -24.);
+        }
+        let mut most = 0;
+        for _ in 0..40 {
+            let before = ORDERED_OPERATIONS.get();
+            wheel(cx, -24.);
+            most = most.max(ORDERED_OPERATIONS.get() - before);
+        }
+        let composited = cx
+            .update_window(any, |_, window, _| {
+                !window.rendered_frame.scene.layers.frames.is_empty()
+            })
+            .unwrap();
+        assert!(composited, "the list is drawn from its layer");
+        assert!(
+            most <= 3 * row,
+            "{most} operations ordered in a frame that scrolled one row in, {far} px down"
+        );
+    }
 }

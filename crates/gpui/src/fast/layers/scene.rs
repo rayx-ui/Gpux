@@ -151,21 +151,19 @@ impl LayerFrame {
         );
         let orders = self.content.orders();
         let mut scene = Scene::default();
-        let mut first = 0;
-        for part in self.content.parts.iter() {
+        for (part_index, part) in self.content.parts.iter().enumerate() {
             let operations = &part.scene.paint_operations;
-            let start = first;
-            first += operations.len();
             if part.bounds.is_some_and(|part| !part.intersects(&bounds)) {
                 continue;
             }
+            let orders = orders.map(|orders| &orders[part_index].0);
             for (index, operation) in operations.iter().enumerate() {
                 let PaintOperation::Primitive(primitive) = operation else {
                     continue;
                 };
                 if visible_bounds(primitive).intersects(&bounds) {
-                    let order = match &orders {
-                        Some(orders) => orders[start + index],
+                    let order = match orders {
+                        Some(orders) => orders[index],
                         None => crate::fast::edge_shadows::order_of(primitive),
                     };
                     crate::fast::edge_shadows::insert_at(
@@ -189,10 +187,15 @@ impl LayerFrame {
 #[derive(Clone, Default)]
 pub struct LayerContent {
     parts: Rc<[LayerPart]>,
-    /// The order of each paint operation of every part in the content as a
-    /// whole, once a tile asked for them. See [`LayerContent::orders`].
-    orders: Rc<std::cell::OnceCell<Vec<crate::DrawOrder>>>,
+    /// The orders of each part's paint operations in the content, and a
+    /// hash of them, once they were asked for. See
+    /// [`LayerContent::orders`].
+    orders: Rc<std::cell::OnceCell<Vec<PartOrders>>>,
 }
+
+/// The order of each of a part's paint operations among the parts it is
+/// ordered with, and a hash of them.
+type PartOrders = (Rc<[crate::DrawOrder]>, u64);
 
 /// A part of a layer's content.
 #[derive(Clone)]
@@ -203,6 +206,77 @@ pub(crate) struct LayerPart {
     /// The part's paint operations, in drawing order. A row's scene holds
     /// nothing else.
     pub(crate) scene: Rc<Scene>,
+    /// What tells the part from every other there is or was.
+    id: u64,
+    /// Where anything of the part can meet anything of another part so
+    /// that one is ordered by the other (see [`ordering_extent`]).
+    extent: Bounds<ScaledPixels>,
+    /// The part's orders as they were last worked out, kept with the part
+    /// and shared by its copies: a row keeps them from one content to the
+    /// next while the rows it is ordered after stay.
+    stacked: Rc<std::cell::RefCell<Option<Stacked>>>,
+}
+
+/// A part's orders, and what they were worked out after.
+struct Stacked {
+    /// A hash of the parts ordered before this one, in order: those whose
+    /// orders its own follow from.
+    after: u64,
+    orders: PartOrders,
+}
+
+thread_local! {
+    static NEXT_PART: std::cell::Cell<u64> = const { std::cell::Cell::new(1) };
+    /// How many paint operations [`LayerContent::orders`] has ordered, for
+    /// the tests that hold a row scrolled in to its own cost.
+    #[cfg(test)]
+    pub(crate) static ORDERED_OPERATIONS: std::cell::Cell<usize> =
+        const { std::cell::Cell::new(0) };
+}
+
+impl LayerPart {
+    pub(crate) fn new(bounds: Option<Bounds<ScaledPixels>>, scene: Rc<Scene>) -> Self {
+        let id = NEXT_PART.with(|next| next.replace(next.get() + 1));
+        LayerPart {
+            bounds,
+            extent: ordering_extent(&scene),
+            scene,
+            id,
+            stacked: Rc::default(),
+        }
+    }
+}
+
+/// Where the paint operations of `scene` reach as far as draw orders go:
+/// two scenes whose extents lie clear of one another are ordered, painted
+/// one after the other, each as it is ordered alone.
+///
+/// An order follows from the bounds a primitive meets: its own, a clip's or
+/// a layer's, and those of a primitive a clip dropped (see
+/// `crate::fast::edge_shadows`). A blur orders nothing but what follows the
+/// scrolling container its shadow is painted in, where it shows, which is
+/// inside that container's clip.
+fn ordering_extent(scene: &Scene) -> Bounds<ScaledPixels> {
+    use crate::fast::edge_shadows::ClipOp;
+    let mut extent: Option<Bounds<ScaledPixels>> = None;
+    let mut reach = |bounds: Bounds<ScaledPixels>| {
+        extent = Some(match extent {
+            Some(extent) => extent.union(&bounds),
+            None => bounds,
+        });
+    };
+    for operation in &scene.paint_operations {
+        match operation {
+            PaintOperation::Primitive(primitive) => reach(primitive.bounds()),
+            PaintOperation::FastDropped(dropped) => reach(dropped.bounds),
+            PaintOperation::FastClip(ClipOp::Push(bounds))
+            | PaintOperation::StartLayer(bounds)
+            | PaintOperation::StartPositionedLayer(bounds)
+            | PaintOperation::StartTopLayer(bounds) => reach(*bounds),
+            PaintOperation::FastClip(_) | PaintOperation::EndLayer => {}
+        }
+    }
+    extent.unwrap_or_default()
 }
 
 impl From<Scene> for LayerContent {
@@ -214,10 +288,7 @@ impl From<Scene> for LayerContent {
 impl From<Rc<Scene>> for LayerContent {
     fn from(scene: Rc<Scene>) -> Self {
         LayerContent {
-            parts: Rc::new([LayerPart {
-                bounds: None,
-                scene,
-            }]),
+            parts: Rc::new([LayerPart::new(None, scene)]),
             orders: Rc::default(),
         }
     }
@@ -232,63 +303,37 @@ impl LayerContent {
         }
     }
 
-    /// The draw order of each paint operation of every part, part after
-    /// part, in the content as a whole; `None` for content of one part,
-    /// whose scene holds them.
+    /// The draw order of each paint operation of every part, part by part,
+    /// in the content as a whole, with a hash of each part's; `None` for
+    /// content of one part, whose scene holds them.
     ///
     /// A part is a scene of its own, a list's row, ordered when it was
     /// painted among whatever was painted with it. What the rows are to one
-    /// another is worked out here, once for the content: the order each
-    /// operation gets when all of them are painted one after another.
-    pub(crate) fn orders(&self) -> Option<&[crate::DrawOrder]> {
+    /// another is worked out here: the order each operation gets when the
+    /// parts are painted one after another.
+    ///
+    /// Parts that meet nothing of one another are ordered each as it is
+    /// alone, so only the parts whose extents meet are painted together
+    /// ([`ordering_extent`]), and a part keeps its orders while the parts
+    /// it was ordered after are the same. A row scrolled into a list costs
+    /// its own ordering, and that of the rows it reaches over or under, not
+    /// the content's: ordering the whole content for every row cost more
+    /// than painting the list without a layer.
+    pub(crate) fn orders(&self) -> Option<&[PartOrders]> {
         if self.parts.len() <= 1 {
             return None;
         }
-        Some(self.orders.get_or_init(|| {
-            let mut whole = Scene::default();
-            for part in self.parts.iter() {
-                let before = whole.paint_operations.len();
-                whole.replay(0..part.scene.paint_operations.len(), &part.scene);
-                // An operation replayed is an operation again.
-                debug_assert_eq!(
-                    whole.paint_operations.len() - before,
-                    part.scene.paint_operations.len()
-                );
-            }
-            whole
-                .paint_operations
-                .iter()
-                .map(|operation| match operation {
-                    PaintOperation::Primitive(primitive) => {
-                        crate::fast::edge_shadows::order_of(primitive)
-                    }
-                    _ => 0,
-                })
-                .collect()
-        }))
+        Some(self.orders.get_or_init(|| stack(&self.parts)))
     }
 
     /// A hash of the orders each part's paint operations have in the
     /// content as a whole, part by part: what a part draws does not change
     /// when another comes or goes, but where its primitives are stacked can.
     pub(crate) fn part_order_hashes(&self) -> Vec<u64> {
-        use std::hash::Hasher as _;
-        let orders = self.orders();
-        let mut first = 0;
-        self.parts
-            .iter()
-            .map(|part| {
-                let count = part.scene.paint_operations.len();
-                let mut hasher = collections::FxHasher::default();
-                if let Some(orders) = orders {
-                    for order in &orders[first..first + count] {
-                        hasher.write_u32(*order);
-                    }
-                }
-                first += count;
-                hasher.finish()
-            })
-            .collect()
+        match self.orders() {
+            Some(orders) => orders.iter().map(|(_, hash)| *hash).collect(),
+            None => vec![0; self.parts.len()],
+        }
     }
 
     /// The content's scene, when it is one part, as a `div`'s is.
@@ -315,6 +360,164 @@ impl LayerContent {
         self.parts
             .iter()
             .flat_map(|part| part.scene.paint_operations.iter())
+    }
+}
+
+/// The orders of `parts`, part by part (see [`LayerContent::orders`]).
+fn stack(parts: &[LayerPart]) -> Vec<PartOrders> {
+    use std::hash::Hasher as _;
+    // The parts that are ordered together: each set by its first part, with
+    // the box around the extents of them all. A part whose extent lies
+    // clear of that box meets none of them.
+    let mut set_of: Vec<usize> = (0..parts.len()).collect();
+    let mut sets: Vec<(usize, Bounds<ScaledPixels>)> = Vec::new();
+    for (index, part) in parts.iter().enumerate() {
+        let mut joined: Option<usize> = None;
+        let mut at = 0;
+        while at < sets.len() {
+            if !sets[at].1.intersects(&part.extent) {
+                at += 1;
+                continue;
+            }
+            match joined {
+                None => {
+                    sets[at].1 = sets[at].1.union(&part.extent);
+                    set_of[index] = sets[at].0;
+                    joined = Some(at);
+                    at += 1;
+                }
+                Some(first) => {
+                    // The part joins two sets into one.
+                    let (other, extent) = sets.remove(at);
+                    sets[first].1 = sets[first].1.union(&extent);
+                    let into = sets[first].0.min(other);
+                    let from = sets[first].0.max(other);
+                    sets[first].0 = into;
+                    for set in &mut set_of[..=index] {
+                        if *set == from {
+                            *set = into;
+                        }
+                    }
+                }
+            }
+        }
+        if joined.is_none() {
+            sets.push((index, part.extent));
+        }
+    }
+
+    let mut members: Vec<usize> = Vec::new();
+    for first in 0..parts.len() {
+        if set_of[first] != first {
+            continue;
+        }
+        members.clear();
+        members.extend((first..parts.len()).filter(|index| set_of[*index] == first));
+        // Each part's orders follow from the parts before it in its set.
+        let mut after = collections::FxHasher::default();
+        let mut kept = true;
+        for index in &members {
+            let part = &parts[*index];
+            kept &= part
+                .stacked
+                .borrow()
+                .as_ref()
+                .is_some_and(|stacked| stacked.after == after.finish());
+            after.write_u64(part.id);
+        }
+        if !kept {
+            order_together(parts, &members);
+        }
+    }
+    parts
+        .iter()
+        .map(|part| {
+            let stacked = part.stacked.borrow();
+            let (orders, hash) = &stacked.as_ref().expect("every part was ordered").orders;
+            (orders.clone(), *hash)
+        })
+        .collect()
+}
+
+/// Orders the parts at `members` of `parts`, painted one after another, and
+/// keeps each one's orders with it.
+///
+/// They are painted near the origin, wherever they stand in the content:
+/// where a primitive is stacked does not change with where the content
+/// stands, and a scene's trees keep everything further than their grids
+/// span, some sixteen thousand pixels, in their last cells, where rows far
+/// down a list would all lie.
+fn order_together(parts: &[LayerPart], members: &[usize]) {
+    use std::hash::Hasher as _;
+    let origin = parts[members[0]].extent.origin;
+    let delta = point(
+        ScaledPixels(-origin.x.0.floor()),
+        ScaledPixels(-origin.y.0.floor()),
+    );
+    let mut whole = Scene::default();
+    let mut after = collections::FxHasher::default();
+    for index in members {
+        let part = &parts[*index];
+        let operations = &part.scene.paint_operations;
+        let before = whole.paint_operations.len();
+        for operation in operations {
+            match operation {
+                PaintOperation::Primitive(primitive) => {
+                    whole.insert_primitive(translate_primitive(primitive, delta))
+                }
+                PaintOperation::FastDropped(dropped) => {
+                    crate::fast::edge_shadows::dropped(&mut whole, dropped.moved(delta))
+                }
+                PaintOperation::FastClip(clip) => {
+                    crate::fast::edge_shadows::clip_op(&mut whole, clip.moved(delta))
+                }
+                PaintOperation::StartLayer(bounds) => {
+                    whole.push_layer(translate_bounds(*bounds, delta))
+                }
+                PaintOperation::StartPositionedLayer(bounds) => {
+                    whole.push_positioned_layer(translate_bounds(*bounds, delta))
+                }
+                PaintOperation::StartTopLayer(bounds) => {
+                    whole.push_top_layer(translate_bounds(*bounds, delta))
+                }
+                PaintOperation::EndLayer => whole.pop_layer(),
+            }
+        }
+        #[cfg(test)]
+        ORDERED_OPERATIONS.with(|ordered| ordered.set(ordered.get() + operations.len()));
+        let ordered = &whole.paint_operations[before..];
+        // An operation painted again is an operation again.
+        debug_assert_eq!(ordered.len(), operations.len());
+        let orders: Rc<[crate::DrawOrder]> = if ordered.len() == operations.len() {
+            ordered
+                .iter()
+                .map(|operation| match operation {
+                    PaintOperation::Primitive(primitive) => {
+                        crate::fast::edge_shadows::order_of(primitive)
+                    }
+                    _ => 0,
+                })
+                .collect()
+        } else {
+            operations
+                .iter()
+                .map(|operation| match operation {
+                    PaintOperation::Primitive(primitive) => {
+                        crate::fast::edge_shadows::order_of(primitive)
+                    }
+                    _ => 0,
+                })
+                .collect()
+        };
+        let mut hasher = collections::FxHasher::default();
+        for order in orders.iter() {
+            hasher.write_u32(*order);
+        }
+        *part.stacked.borrow_mut() = Some(Stacked {
+            after: after.finish(),
+            orders: (orders, hasher.finish()),
+        });
+        after.write_u64(part.id);
     }
 }
 

@@ -250,10 +250,7 @@ fn content_in_parts_draws_each_tile_as_one_scene_does() {
                 PaintOperation::FastClip(clip) => PaintOperation::FastClip(*clip),
             })
             .collect();
-        LayerPart {
-            bounds: Some(reach.unwrap_or_default()),
-            scene: Rc::new(scene),
-        }
+        LayerPart::new(Some(reach.unwrap_or_default()), Rc::new(scene))
     });
     let whole = layer(whole);
     let in_parts = LayerFrame {

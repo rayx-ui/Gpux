@@ -468,7 +468,10 @@ where
 /// [`BoundsTree::max_behind`]. A grid as the tree's own is, except that a
 /// cell lists the bounds that cover it whole too, those that raised the
 /// greatest ordering among them, since which bounds cover a cell depends on
-/// how many are looked at.
+/// how many are looked at; and that it begins where the bounds it holds
+/// do, with cells as large as it takes to span them all: bounds past a
+/// grid's last cells all lie in them, and content is ordered where it
+/// stands, which can be far from the origin.
 #[derive(Debug)]
 struct History<U>
 where
@@ -484,7 +487,24 @@ where
     degenerate: Vec<(u32, Bounds<U>, u32)>,
     /// How many of the tree's bounds are held.
     held: usize,
+    /// How many times [`CELL_SIZE`] a cell is across: a power of two.
+    scale: f64,
+    /// Where the grid begins: no further right or down than the bounds
+    /// held do. `None` while it holds none.
+    near: Option<(f64, f64)>,
+    /// The furthest right and bottom edges among the bounds held.
+    far: (f64, f64),
 }
+
+/// What a [`History`] begins at a multiple of, so that bounds coming a
+/// little left of or above those it holds do not move it each time.
+const HISTORY_ANCHOR: f64 = 2048.;
+
+/// The most cells a [`History`] has: content is mostly much taller than it
+/// is wide, or the other way round, so its grid may span far along one axis
+/// where the tree's own, which a window's frame fills, spans as far along
+/// both.
+const HISTORY_CELLS: usize = 1 << 18;
 
 #[derive(Clone, Debug)]
 struct Past<U>
@@ -521,7 +541,29 @@ where
             self.entries.clear();
             self.degenerate.clear();
             self.held = 0;
+            self.scale = 1.;
+            self.near = None;
+            self.far = (0., 0.);
         }
+    }
+
+    /// Where `bounds` lies along each axis, in cells.
+    fn spans(&self, bounds: &Bounds<U>) -> (Span, Span) {
+        let right = bounds.origin.x.clone() + bounds.size.width.clone();
+        let bottom = bounds.origin.y.clone() + bounds.size.height.clone();
+        let per_cell = 1. / self.scale;
+        let near = self.near.unwrap_or_default();
+        let along = |start: U, end: U, near: f64, cells: usize| {
+            Span::new(
+                (Into::<f64>::into(start) - near) * per_cell,
+                (Into::<f64>::into(end) - near) * per_cell,
+                cells,
+            )
+        };
+        (
+            along(bounds.origin.x.clone(), right, near.0, self.columns),
+            along(bounds.origin.y.clone(), bottom, near.1, self.rows),
+        )
     }
 
     /// Takes in `recorded`, the first bounds inserted, those of them it
@@ -530,22 +572,56 @@ where
         if recorded.len() <= self.held {
             return;
         }
-        let (mut columns, mut rows) = (self.columns, self.rows);
+        let mut far = self.far;
+        let mut near = self.near;
         for (bounds, _) in &recorded[self.held..] {
-            if Grid::has_area(bounds)
-                && let Some(needed) = Grid::needs_in(columns, rows, bounds)
-            {
-                (columns, rows) = needed;
+            if !Grid::has_area(bounds) {
+                continue;
             }
+            let (left, top): (f64, f64) = (
+                bounds.origin.x.clone().into(),
+                bounds.origin.y.clone().into(),
+            );
+            let right: f64 = (bounds.origin.x.clone() + bounds.size.width.clone()).into();
+            let bottom: f64 = (bounds.origin.y.clone() + bounds.size.height.clone()).into();
+            if !(left.is_finite() && top.is_finite() && right.is_finite() && bottom.is_finite()) {
+                continue;
+            }
+            far = (far.0.max(right), far.1.max(bottom));
+            let anchor = |at: f64| (at / HISTORY_ANCHOR).floor() * HISTORY_ANCHOR;
+            near = Some(match near {
+                Some(near) if near.0 <= left && near.1 <= top => near,
+                Some(near) => (near.0.min(anchor(left)), near.1.min(anchor(top))),
+                None => {
+                    far = (right, bottom);
+                    (anchor(left), anchor(top))
+                }
+            });
         }
-        if (columns, rows) != (self.columns, self.rows) {
+        // Cells large enough for the grid to span them all.
+        let begins = near.unwrap_or_default();
+        let (across, down) = (far.0 - begins.0, far.1 - begins.1);
+        let cells = |extent: f64, scale: f64| ((extent / (CELL_SIZE * scale)).ceil()).max(1.);
+        let mut scale = self.scale;
+        while cells(across, scale) * cells(down, scale) > HISTORY_CELLS as f64
+            && scale < (1u64 << 40) as f64
+        {
+            scale *= 2.;
+        }
+        let needed = |extent: f64| (cells(extent, scale) as usize).clamp(1, HISTORY_CELLS);
+        let (mut columns, mut rows) = (needed(across), needed(down));
+        if scale == self.scale && near == self.near {
+            (columns, rows) = (columns.max(self.columns), rows.max(self.rows));
+        }
+        if (columns, rows, scale, near) != (self.columns, self.rows, self.scale, self.near) {
             self.held = 0;
             self.entries.clear();
             self.degenerate.clear();
             self.cells.clear();
             self.cells.resize(columns * rows, (NONE, 0));
-            (self.columns, self.rows) = (columns, rows);
+            (self.columns, self.rows, self.scale, self.near) = (columns, rows, scale, near);
         }
+        self.far = far;
         for (position, (bounds, order)) in recorded.iter().enumerate().skip(self.held) {
             self.add(bounds, *order, position as u32);
         }
@@ -557,7 +633,7 @@ where
             self.degenerate.push((position, bounds.clone(), order));
             return;
         }
-        let (x, y) = Grid::spans_in(self.columns, self.rows, bounds);
+        let (x, y) = self.spans(bounds);
         for row in y.first_cell..=y.last_cell {
             let covers_row = y.covers(row, self.rows);
             for column in x.first_cell..=x.last_cell {
@@ -601,7 +677,7 @@ where
             .max()
             .unwrap_or(0);
         let mut looked = self.degenerate.len();
-        let (x, y) = Grid::spans_in(self.columns, self.rows, query);
+        let (x, y) = self.spans(query);
         for row in y.first_cell..=y.last_cell {
             let enters_row = y.enters(row, self.rows);
             for column in x.first_cell..=x.last_cell {
@@ -960,6 +1036,9 @@ where
                 entries: Vec::new(),
                 degenerate: Vec::new(),
                 held: 0,
+                scale: 1.,
+                near: None,
+                far: (0., 0.),
             },
             replaying: false,
             changed: ChangedBounds {
