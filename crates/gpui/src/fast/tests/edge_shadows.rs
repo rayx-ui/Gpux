@@ -19,7 +19,7 @@ use crate::{
 
 type RTree = crate::bounds_tree::BoundsTree<ScaledPixels>;
 
-fn sp(x: f32, y: f32, width: f32, height: f32) -> Bounds<ScaledPixels> {
+pub(super) fn sp(x: f32, y: f32, width: f32, height: f32) -> Bounds<ScaledPixels> {
     Bounds {
         origin: point(ScaledPixels(x), ScaledPixels(y)),
         size: size(ScaledPixels(width), ScaledPixels(height)),
@@ -30,15 +30,15 @@ fn sp(x: f32, y: f32, width: f32, height: f32) -> Bounds<ScaledPixels> {
 const WINDOW: (f32, f32, f32, f32) = (0., 0., 400., 300.);
 const VIEWPORT: (f32, f32, f32, f32) = (20., 20., 360., 200.);
 
-fn window() -> Bounds<ScaledPixels> {
+pub(super) fn window() -> Bounds<ScaledPixels> {
     sp(WINDOW.0, WINDOW.1, WINDOW.2, WINDOW.3)
 }
 
-fn viewport() -> Bounds<ScaledPixels> {
+pub(super) fn viewport() -> Bounds<ScaledPixels> {
     sp(VIEWPORT.0, VIEWPORT.1, VIEWPORT.2, VIEWPORT.3)
 }
 
-fn quad(bounds: Bounds<ScaledPixels>, mask: Bounds<ScaledPixels>) -> Primitive {
+pub(super) fn quad(bounds: Bounds<ScaledPixels>, mask: Bounds<ScaledPixels>) -> Primitive {
     Quad {
         bounds,
         content_mask: ContentMask::rectangular(mask),
@@ -48,7 +48,11 @@ fn quad(bounds: Bounds<ScaledPixels>, mask: Bounds<ScaledPixels>) -> Primitive {
     .into()
 }
 
-fn shadow(bounds: Bounds<ScaledPixels>, mask: Bounds<ScaledPixels>, blur: f32) -> Primitive {
+pub(super) fn shadow(
+    bounds: Bounds<ScaledPixels>,
+    mask: Bounds<ScaledPixels>,
+    blur: f32,
+) -> Primitive {
     Shadow {
         transformation: TransformationMatrix::unit(),
         order: 0,
@@ -75,7 +79,7 @@ fn scene_of(primitives: &[Primitive]) -> Scene {
 
 /// The order the scene gave each of `primitives`, in turn; `None` for one it
 /// dropped.
-fn orders(scene: &Scene, primitives: &[Primitive]) -> Vec<Option<DrawOrder>> {
+pub(super) fn orders(scene: &Scene, primitives: &[Primitive]) -> Vec<Option<DrawOrder>> {
     let mut kept = scene.paint_operations.iter().filter_map(|operation| {
         let PaintOperation::Primitive(primitive) = operation else {
             return None;
@@ -809,7 +813,7 @@ fn a_thousand_clips_cost_a_thousand_short_lists() {
 /// What is painted, a clip pushed or popped, or a primitive in the clips
 /// open then.
 #[derive(Clone)]
-enum Item {
+pub(super) enum Item {
     Push(Bounds<ScaledPixels>),
     Pop,
     /// The content of a scrolling container begins, and ends.
@@ -817,13 +821,50 @@ enum Item {
     EndScroll,
     Quad(Bounds<ScaledPixels>),
     Shadow(Bounds<ScaledPixels>, f32),
+    /// A border of `width` round an element of the bounds, as `Style::paint` paints one with
+    /// corners of `radius`: four quads of the bounds, each in one side's strip.
+    Border(Bounds<ScaledPixels>, f32, f32),
 }
 
 /// Paints `items` as a window does, one large enough to hold them all:
 /// each clip is told to the scene, and each primitive's mask is the clips
 /// open around it, intersected. Returns the scene and the primitives as
 /// they were handed to it.
-fn paint(items: &[Item]) -> (Scene, Vec<Primitive>) {
+pub(super) fn paint(items: &[Item]) -> (Scene, Vec<Primitive>) {
+    paint_with(items, true)
+}
+
+/// The strips `Style::paint` paints a border's quads in (top, right, bottom, left) round an
+/// element of `bounds`, for a border of `width` and corners of `radius`.
+pub(super) fn border_strips(
+    bounds: Bounds<ScaledPixels>,
+    width: f32,
+    radius: f32,
+) -> [Bounds<ScaledPixels>; 4] {
+    let at = |x: f32, y: f32| point(ScaledPixels(x), ScaledPixels(y));
+    let (left, top, right, bottom) = (
+        bounds.left().0,
+        bounds.top().0,
+        bounds.right().0,
+        bounds.bottom().0,
+    );
+    let reach = width.max(radius);
+    let top_strip = Bounds::from_corners(at(left, top), at(right, top + reach));
+    let bottom_strip = Bounds::from_corners(at(left, bottom - reach), at(right, bottom));
+    let left_strip = Bounds::from_corners(
+        at(left, top_strip.bottom().0),
+        at(bottom_strip.left().0 + width, bottom_strip.top().0),
+    );
+    let right_strip = Bounds::from_corners(
+        at(top_strip.right().0 - width, top_strip.bottom().0),
+        at(right, bottom_strip.top().0),
+    );
+    [top_strip, right_strip, bottom_strip, left_strip]
+}
+
+/// [`paint`], a border's four quads each under a clip of its own told to the scene as they
+/// were before (`one_clip` false), or under the one clip a border is told as (`one_clip`).
+pub(super) fn paint_with(items: &[Item], one_clip: bool) -> (Scene, Vec<Primitive>) {
     use crate::fast::edge_shadows::{ClipOp, clip_op};
     let mut scene = Scene::default();
     let mut masks = vec![sp(-10_000., -10_000., 20_000., 20_000.)];
@@ -849,6 +890,33 @@ fn paint(items: &[Item]) -> (Scene, Vec<Primitive>) {
                 clip_op(&mut scene, ClipOp::EndScroll);
                 continue;
             }
+            Item::Border(bounds, width, radius) => {
+                let strips = border_strips(*bounds, *width, *radius);
+                if one_clip {
+                    clip_op(
+                        &mut scene,
+                        ClipOp::Border {
+                            bounds: *bounds,
+                            strips,
+                        },
+                    );
+                }
+                for strip in strips {
+                    if !one_clip {
+                        clip_op(&mut scene, ClipOp::Push(strip));
+                    }
+                    let primitive = quad(*bounds, mask.intersect(&strip));
+                    scene.insert_primitive(primitive.clone());
+                    primitives.push(primitive);
+                    if !one_clip {
+                        clip_op(&mut scene, ClipOp::Pop);
+                    }
+                }
+                if one_clip {
+                    clip_op(&mut scene, ClipOp::Pop);
+                }
+                continue;
+            }
             Item::Quad(bounds) => quad(*bounds, mask),
             Item::Shadow(bounds, blur) => shadow(*bounds, mask, *blur),
         };
@@ -859,7 +927,7 @@ fn paint(items: &[Item]) -> (Scene, Vec<Primitive>) {
 }
 
 /// The order of each primitive of `items`, painted, in turn.
-fn painted_orders(items: &[Item]) -> (Vec<Option<DrawOrder>>, usize) {
+pub(super) fn painted_orders(items: &[Item]) -> (Vec<Option<DrawOrder>>, usize) {
     let (scene, primitives) = paint(items);
     (orders(&scene, &primitives), scene.fast_edge_shadows.len())
 }
@@ -1651,7 +1719,7 @@ fn content_in(region: Bounds<ScaledPixels>, items: &[Item]) -> Scene {
             }
             Item::Quad(bounds) => content.insert_primitive(quad(*bounds, mask)),
             Item::Shadow(bounds, blur) => content.insert_primitive(shadow(*bounds, mask, *blur)),
-            Item::BeginScroll | Item::EndScroll => unreachable!(),
+            Item::BeginScroll | Item::EndScroll | Item::Border(..) => unreachable!(),
         }
     }
     clip(&mut content, ClipOp::Pop);
@@ -1758,6 +1826,7 @@ fn row_part(items: &[Item]) -> crate::fast::layers::scene::LayerPart {
             Item::EndScroll => clip_op(&mut scene, ClipOp::EndScroll),
             Item::Quad(bounds) => scene.insert_primitive(quad(*bounds, mask)),
             Item::Shadow(bounds, blur) => scene.insert_primitive(shadow(*bounds, mask, *blur)),
+            Item::Border(..) => unreachable!(),
         }
     }
     crate::fast::layers::scene::LayerPart::new(None, std::rc::Rc::new(scene))

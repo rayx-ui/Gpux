@@ -93,7 +93,14 @@ pub(crate) struct Dropped {
     pub(crate) drawn: Bounds<ScaledPixels>,
     /// The bounds of its content mask.
     pub(crate) mask: Bounds<ScaledPixels>,
+    /// For a border's quad, which of the border's four strips it was painted
+    /// in (`NO_STRIP` for any other primitive): a quad a clip drops has an
+    /// empty mask, which does not say.
+    pub(crate) strip: u8,
 }
+
+/// [`Dropped::strip`] of a primitive that is no border's quad.
+pub(crate) const NO_STRIP: u8 = u8::MAX;
 
 impl Dropped {
     /// The entry moved by `delta`, its mask with it.
@@ -102,6 +109,7 @@ impl Dropped {
             bounds: moved(self.bounds, delta),
             drawn: moved(self.drawn, delta),
             mask: moved(self.mask, delta),
+            strip: self.strip,
         }
     }
 }
@@ -112,6 +120,15 @@ impl Dropped {
 pub(crate) enum ClipOp {
     /// The clip's bounds, as the masks of what is painted in it hold them.
     Push(Bounds<ScaledPixels>),
+    /// The one clip a border's four side quads are painted in: the element's
+    /// bounds, and the four strips (top, right, bottom, left, in the order
+    /// the quads are painted) each of which is the mask of one quad. The
+    /// strips are masks inside this clip, not clips of their own: see
+    /// [`crate::fast::border_clips`].
+    Border {
+        bounds: Bounds<ScaledPixels>,
+        strips: [Bounds<ScaledPixels>; 4],
+    },
     Pop,
     /// The content of a scrolling container begins.
     BeginScroll,
@@ -124,7 +141,7 @@ impl ClipOp {
     /// What closes what this operation opens, if it opens something.
     pub(crate) fn closing(self) -> Option<ClipOp> {
         match self {
-            ClipOp::Push(_) => Some(ClipOp::Pop),
+            ClipOp::Push(_) | ClipOp::Border { .. } => Some(ClipOp::Pop),
             ClipOp::BeginScroll => Some(ClipOp::EndScroll),
             ClipOp::Pop | ClipOp::EndScroll => None,
         }
@@ -134,6 +151,10 @@ impl ClipOp {
     pub(crate) fn moved(self, delta: crate::Point<ScaledPixels>) -> ClipOp {
         match self {
             ClipOp::Push(clip) => ClipOp::Push(moved(clip, delta)),
+            ClipOp::Border { bounds, strips } => ClipOp::Border {
+                bounds: moved(bounds, delta),
+                strips: strips.map(|strip| moved(strip, delta)),
+            },
             other => other,
         }
     }
@@ -170,6 +191,17 @@ struct Clip {
     before: [usize; 3],
     /// How many paint operations the scene held when the clip was pushed.
     pushed_at: usize,
+    /// For a border's clip (`ClipOp::Border`), the strips its quads are
+    /// painted in, and how many quads were painted so far.
+    strips: Option<Strips>,
+}
+
+/// The strips a border's four quads are painted in.
+#[derive(Clone, Copy, PartialEq)]
+struct Strips {
+    bounds: [Bounds<ScaledPixels>; 4],
+    /// How many quads were painted in the clip, each leaving one operation.
+    painted: u8,
 }
 
 /// The content of a scrolling container the scene is painting.
@@ -345,6 +377,13 @@ impl EdgeShadows {
         }
     }
 
+    /// How many sets of entries the scene has made, for the tests that hold
+    /// a border to none of its own.
+    #[cfg(test)]
+    pub(crate) fn sets(&self) -> usize {
+        self.lifted.len()
+    }
+
     /// How many clips the window did not tell of the scene has taken in.
     #[cfg(test)]
     pub(crate) fn untold_count(&self) -> usize {
@@ -445,15 +484,30 @@ pub(crate) fn push_clip(window: &mut Window, painting: bool, mask: &ContentMask<
     if !painting {
         return;
     }
-    let transformation = window.current_element_transform();
-    // As the masks of what is painted in it hold it (see
-    // `Window::snapped_content_mask`, `Window::paint_content_mask`).
-    let clip = if transformation == TransformationMatrix::unit() {
-        window.cover_bounds(mask.bounds)
-    } else {
-        transformation.apply_to_scaled_bounds(mask.bounds.scale(window.scale_factor()))
-    };
+    let clip = told_bounds(window, mask.bounds);
     clip_op(&mut window.next_frame.scene, ClipOp::Push(clip));
+}
+
+/// `bounds` as the masks of what is painted in a clip of them hold them (see
+/// `Window::snapped_content_mask`, `Window::paint_content_mask`).
+pub(crate) fn told_bounds(window: &Window, bounds: Bounds<Pixels>) -> Bounds<ScaledPixels> {
+    let transformation = window.current_element_transform();
+    if transformation == TransformationMatrix::unit() {
+        window.cover_bounds(bounds)
+    } else {
+        transformation.apply_to_scaled_bounds(bounds.scale(window.scale_factor()))
+    }
+}
+
+/// Tells the scene the window is painting into the one clip a border's four
+/// quads are painted in, with the strips they are painted in (top, right,
+/// bottom, left); closed by [`pop_clip`].
+pub(crate) fn border(window: &mut Window, bounds: Bounds<Pixels>, strips: &[Bounds<Pixels>; 4]) {
+    let op = ClipOp::Border {
+        bounds: told_bounds(window, bounds),
+        strips: strips.map(|strip| told_bounds(window, strip)),
+    };
+    clip_op(&mut window.next_frame.scene, op);
 }
 
 /// Tells the scene the window is painting into that it popped the mask it
@@ -487,28 +541,8 @@ pub(crate) fn clip_op(scene: &mut Scene, op: ClipOp) {
 /// while it is painted and nothing once it is drawn elsewhere.
 pub(crate) fn clip(scene: &mut Scene, op: ClipOp) {
     match op {
-        ClipOp::Push(bounds) => {
-            let edges = &mut scene.fast_edge_shadows;
-            let mask = match edges.clips.last() {
-                Some(outer) => outer.mask.intersect(&bounds),
-                None => bounds,
-            };
-            // A clip pushed again where it was just popped, with nothing
-            // painted between, is that clip going on.
-            if let Some(Closed::Clip(clip)) = edges.closed.last()
-                && clip.bounds == bounds
-                && clip.mask == mask
-            {
-                let Some(Closed::Clip(clip)) = edges.closed.pop() else {
-                    unreachable!()
-                };
-                edges.clips.push(clip);
-                return;
-            }
-            settle(scene);
-            let clip = pushed(scene, bounds, mask);
-            scene.fast_edge_shadows.clips.push(clip);
-        }
+        ClipOp::Push(bounds) => push(scene, bounds, None),
+        ClipOp::Border { bounds, strips } => push(scene, bounds, Some(strips)),
         ClipOp::Pop => {
             let edges = &mut scene.fast_edge_shadows;
             // A range of operations replayed on its own can pop what it did
@@ -545,6 +579,38 @@ pub(crate) fn clip(scene: &mut Scene, op: ClipOp) {
     }
 }
 
+/// Pushes a clip of `bounds`, a border's with its `strips`, or goes on with
+/// the one just popped.
+fn push(
+    scene: &mut Scene,
+    bounds: Bounds<ScaledPixels>,
+    strips: Option<[Bounds<ScaledPixels>; 4]>,
+) {
+    let edges = &mut scene.fast_edge_shadows;
+    let mask = match edges.clips.last() {
+        Some(outer) => outer.mask.intersect(&bounds),
+        None => bounds,
+    };
+    // A clip pushed again where it was just popped, with nothing painted
+    // between, is that clip going on; a border's, with the quads it had
+    // painted counted.
+    if let Some(Closed::Clip(clip)) = edges.closed.last()
+        && clip.bounds == bounds
+        && clip.mask == mask
+        && clip.strips.map(|strips| strips.bounds) == strips
+    {
+        let Some(Closed::Clip(clip)) = edges.closed.pop() else {
+            unreachable!()
+        };
+        edges.clips.push(clip);
+        return;
+    }
+    settle(scene);
+    let mut clip = pushed(scene, bounds, mask);
+    clip.strips = strips.map(|bounds| Strips { bounds, painted: 0 });
+    scene.fast_edge_shadows.clips.push(clip);
+}
+
 /// A clip of `bounds` pushed now, which leaves `mask` of what is painted in
 /// it.
 fn pushed(scene: &Scene, bounds: Bounds<ScaledPixels>, mask: Bounds<ScaledPixels>) -> Clip {
@@ -558,6 +624,7 @@ fn pushed(scene: &Scene, bounds: Bounds<ScaledPixels>, mask: Bounds<ScaledPixels
             scene.top_layer_primitive_bounds.inserted(),
         ],
         pushed_at: scene.paint_operations.len(),
+        strips: None,
     }
 }
 
@@ -571,13 +638,38 @@ fn pushed(scene: &Scene, bounds: Bounds<ScaledPixels>, mask: Bounds<ScaledPixels
 /// pixel (2.625: an empty mask of 623.99994 against 624): taken for a clip
 /// the window did not tell of, it stopped `levels` at once, and what the
 /// primitive dropped under went unnoticed.
+///
+/// So is a mask inside a border's clip, whatever its strip: the strips are
+/// masks inside the one clip told (see [`ClipOp::Border`]).
 fn told(scene: &Scene, mask: &Bounds<ScaledPixels>) -> bool {
     mask.is_empty()
-        || scene
-            .fast_edge_shadows
-            .clips
-            .last()
-            .is_some_and(|clip| clip.mask == *mask)
+        || scene.fast_edge_shadows.clips.last().is_some_and(|clip| {
+            clip.mask == *mask || (clip.strips.is_some() && within(mask, &clip.mask))
+        })
+}
+
+/// Which of a border's four strips the quad of `mask`, painted now, belongs
+/// to, if the clip the window pushed last is a border's, and takes it in:
+/// the k-th quad painted is painted in the k-th strip. A quad with a mask
+/// that does not lie in the k-th strip (the scene was handed the quads some
+/// other way, or a replay of some of them) is taken to lie in the first strip
+/// that holds it, and in none if none does. A quad a clip drops has an empty
+/// mask, which holds in every strip: its strip is the count, which
+/// [`Dropped::strip`] keeps for the replay of the operation.
+fn take_strip(scene: &mut Scene, mask: &Bounds<ScaledPixels>) -> Option<usize> {
+    let strips = scene.fast_edge_shadows.clips.last_mut()?.strips.as_mut()?;
+    let counted = strips.painted as usize;
+    strips.painted = strips.painted.saturating_add(1);
+    match strips.bounds.get(counted) {
+        Some(strip) if mask.is_empty() || within(mask, strip) => Some(counted),
+        _ => strips.bounds.iter().position(|strip| within(mask, strip)),
+    }
+}
+
+/// The strip `index` of the border the window pushed last.
+fn strip_bounds(scene: &Scene, index: u8) -> Option<Bounds<ScaledPixels>> {
+    let strips = scene.fast_edge_shadows.clips.last()?.strips.as_ref()?;
+    strips.bounds.get(index as usize).copied()
 }
 
 /// Takes in the mask of a primitive the scene keeps, or keeps an entry of.
@@ -695,7 +787,7 @@ fn note_blur(
     let visible = drawn.intersect(&mask);
     // At the clips around the content: inside it nothing is ordered by a
     // blur.
-    let levels = levels(scene, drawn, mask, Some(scrolling.clips));
+    let levels = levels(scene, drawn, mask, Some(scrolling.clips), None);
     let at = edges(scene, &levels, band(order));
     if visible.is_empty() && at.is_empty() {
         return;
@@ -864,16 +956,24 @@ struct Edge {
 /// With `outermost`, only the first so many clips the window pushed are
 /// looked at, the others still cutting the bounds: the clips around a
 /// scrolling container's content.
+///
+/// A border's quad is painted in a strip inside the border's clip (`strip`):
+/// what the clips around leave of it is what they leave of its bounds within
+/// the strip, as with the strip a clip of its own.
 fn levels(
     scene: &Scene,
     bounds: Bounds<ScaledPixels>,
     mask: Bounds<ScaledPixels>,
     outermost: Option<usize>,
+    strip: Option<Bounds<ScaledPixels>>,
 ) -> SmallVec<[(Option<usize>, Bounds<ScaledPixels>); 2]> {
     let mut found = SmallVec::new();
     let clips = &scene.fast_edge_shadows.clips;
     // What the clips inside the one being looked at leave of the bounds.
-    let mut inner = bounds;
+    let mut inner = match strip {
+        Some(strip) => bounds.intersect(&strip),
+        None => bounds,
+    };
     let untold = (!told(scene, &mask)).then_some((None, mask));
     let pushed = (0..clips.len())
         .rev()
@@ -1039,19 +1139,21 @@ pub(crate) fn keep(scene: &mut Scene, mut primitive: Primitive) {
         _ => bounds,
     };
     if drawn.intersect(&mask).is_empty() {
+        let strip = take_strip(scene, &mask).map_or(NO_STRIP, |index| index as u8);
         return dropped(
             scene,
             Dropped {
                 bounds,
                 drawn,
                 mask,
+                strip,
             },
         );
     }
     settle(scene);
     sight(scene, &mask, false);
     let (base, fixed) = context(scene);
-    let levels = levels(scene, bounds, mask, None);
+    let levels = levels(scene, bounds, mask, None, None);
     let at = edges(scene, &levels, base);
     let order = match fixed {
         // Everything in the layer is drawn at its order.
@@ -1086,10 +1188,12 @@ pub(crate) fn dropped(scene: &mut Scene, dropped: Dropped) {
         bounds,
         drawn,
         mask,
+        strip,
     } = dropped;
+    let strip = strip_bounds(scene, strip);
     // Only a primitive that leaves an operation changes what the scene
     // holds: what replays the operations has to end up where this did.
-    let levels = levels(scene, bounds, mask, None);
+    let levels = levels(scene, bounds, mask, None, strip);
     if levels.is_empty() {
         return;
     }
@@ -1130,6 +1234,7 @@ pub(crate) fn raise(
 ) -> DrawOrder {
     let whole = primitive.bounds();
     let mask = primitive.content_mask().bounds;
+    let strip = take_strip(scene, &mask).and_then(|index| strip_bounds(scene, index as u8));
     sight(scene, &mask, true);
     let shadow =
         matches!(primitive, Primitive::Shadow(_)) && !scene.fast_edge_shadows.scrolling.is_empty();
@@ -1141,7 +1246,7 @@ pub(crate) fn raise(
         return order;
     }
     let (base, fixed) = context(scene);
-    let levels = levels(scene, whole, mask, None);
+    let levels = levels(scene, whole, mask, None, strip);
     let at = edges(scene, &levels, base);
     let mut under = 0;
     for edge in &at {

@@ -325,7 +325,7 @@ fn ordering_extent(operations: &[PaintOperation]) -> Bounds<ScaledPixels> {
         match operation {
             PaintOperation::Primitive(primitive) => reach(primitive.bounds()),
             PaintOperation::FastDropped(dropped) => reach(dropped.bounds),
-            PaintOperation::FastClip(ClipOp::Push(bounds))
+            PaintOperation::FastClip(ClipOp::Push(bounds) | ClipOp::Border { bounds, .. })
             | PaintOperation::StartLayer(bounds)
             | PaintOperation::StartPositionedLayer(bounds)
             | PaintOperation::StartTopLayer(bounds) => reach(*bounds),

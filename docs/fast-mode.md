@@ -392,7 +392,12 @@ The window tells the scene each clip as it pushes and pops it, so the scene know
 primitive is painted in one by one, not only their intersection. With a clip not there a
 primitive covers its bounds within the clips pushed inside that one: a child of a card that
 clips its content, cut by the viewport the card scrolls in, reaches as far as the card, and a
-row's border, drawn in a mask of its own, as far as the border. What was painted before a clip
+row's border, drawn in a mask of its own, as far as the border. A border is painted as four
+quads, one in each side's strip, inside one clip told to the scene (`ClipOp::Border`, with the
+four strips): the strips are masks inside that clip, not clips of their own, and a quad's
+bounds are taken within its strip when a clip around it is lifted, as they were with a clip for
+each strip. That is two paint operations and no set of entries of a border's own, where there
+were eight and four, and the scene it leaves is the same (`fast/border_clips.rs`). What was painted before a clip
 was pushed lies behind everything in it: a dropped primitive with nothing of the clip's under
 it is ordered over what was painted, before the clip, where it would come into view. A clip
 pushed where one was, after something else was painted, is another clip, though it clips

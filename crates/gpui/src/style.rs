@@ -861,29 +861,13 @@ impl Style {
                         self.border_style,
                     );
 
-                    window.with_content_mask(
-                        Some(ContentMask::rectangular(top_bounds)),
-                        |window| {
-                            window.paint_quad(quad.clone());
-                        },
-                    );
-                    window.with_content_mask(
-                        Some(ContentMask::rectangular(right_bounds)),
-                        |window| {
-                            window.paint_quad(quad.clone());
-                        },
-                    );
-                    window.with_content_mask(
-                        Some(ContentMask::rectangular(bottom_bounds)),
-                        |window| {
-                            window.paint_quad(quad.clone());
-                        },
-                    );
-                    window.with_content_mask(
-                        Some(ContentMask::rectangular(left_bounds)),
-                        |window| {
-                            window.paint_quad(quad);
-                        },
+                    // One clip told to the scene for the four sides, each quad in
+                    // its side's strip.
+                    crate::fast::border_clips::paint(
+                        window,
+                        bounds,
+                        [top_bounds, right_bounds, bottom_bounds, left_bounds],
+                        quad,
                     );
                 }
 

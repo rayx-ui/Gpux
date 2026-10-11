@@ -13,6 +13,7 @@
 //! every switch off, a hook costs a branch on a `bool` and the frame is the
 //! one gpux draws without fast mode.
 
+pub(crate) mod border_clips;
 pub(crate) mod bounds_tree;
 pub(crate) mod composition;
 pub(crate) mod dependencies;

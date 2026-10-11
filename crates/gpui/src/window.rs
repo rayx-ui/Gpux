@@ -6186,10 +6186,34 @@ impl Window {
         mask: Option<ContentMask<Pixels>>,
         f: impl FnOnce(&mut Self) -> R,
     ) -> R {
+        self.with_content_mask_telling(mask, true, f)
+    }
+
+    /// [`Self::with_content_mask`] without telling the scene the clip: for a
+    /// mask the scene was told of with the clip around it (see
+    /// `crate::fast::border_clips`).
+    #[inline]
+    pub(crate) fn with_untold_content_mask<R>(
+        &mut self,
+        mask: Option<ContentMask<Pixels>>,
+        f: impl FnOnce(&mut Self) -> R,
+    ) -> R {
+        self.with_content_mask_telling(mask, false, f)
+    }
+
+    #[inline]
+    fn with_content_mask_telling<R>(
+        &mut self,
+        mask: Option<ContentMask<Pixels>>,
+        tell: bool,
+        f: impl FnOnce(&mut Self) -> R,
+    ) -> R {
         self.invalidator.debug_assert_paint_or_prepaint();
         if let Some(mask) = mask {
             let is_paint = self.is_paint_phase();
-            crate::fast::edge_shadows::push_clip(self, is_paint, &mask);
+            if tell {
+                crate::fast::edge_shadows::push_clip(self, is_paint, &mask);
+            }
             let mask = mask.intersect(&self.content_mask());
             let transformed_mask = is_paint.then(|| {
                 self.intersect_paint_content_mask(
@@ -6203,7 +6227,9 @@ impl Window {
             let result = f(self);
             if transformed_mask.is_some() {
                 self.paint_content_mask_stack.pop();
-                crate::fast::edge_shadows::pop_clip(self);
+                if tell {
+                    crate::fast::edge_shadows::pop_clip(self);
+                }
             }
             self.content_mask_stack.pop();
             result
@@ -6831,7 +6857,7 @@ impl Window {
     }
 
     #[inline]
-    fn is_paint_phase(&self) -> bool {
+    pub(crate) fn is_paint_phase(&self) -> bool {
         matches!(self.invalidator.inner.borrow().draw_phase, DrawPhase::Paint)
     }
 
