@@ -31,6 +31,19 @@ window is created:
 
 Splice has no variable, as in gpui-fast; set it through `Window::set_fast_mode`.
 
+### Hover after a scroll
+
+An element with a hover style repaints when a move of the pointer changes whether it is
+hovered, and what the move is compared with was written only when a move changed it. A hover
+changes without a move too: the wheel brings another row under the pointer, and the frame that
+follows paints that row hovered. When the pointer then moved back onto the row it had been
+over, neither row differed from what had been written, nothing was repainted, and the window
+went on showing the row the wheel had brought hovered. What is compared is now what was
+painted (`fast/hover.rs`, two hooks in `elements/div.rs`), with fast mode on or off. Fast
+mode's retained rows were already painted again by the hovers they read, so a list drawn from
+its layer showed the right row where the same list without layers did not:
+`lane_c_list_hover` and `fast::tests::list_hover` hold the two to each other after every move.
+
 ### Cached views and hovers
 
 One piece of fast mode's groundwork is gpux behaviour in every mode: cached views
@@ -189,7 +202,8 @@ A container goes without a layer, counted by reason in `FastStats::layer_bypasse
 - `ineligible`: its content holds what no tile can: a deferred or anchored element, a
   children-prepainted listener, a focused text input, an animation-frame request, a visual
   effect, a screen-effect region, an HTML island or element, a native surface, content painted
-  onto another composition surface, or fixed, sticky or top-layer content; or the container is
+  onto another composition surface, anything painted with a transformation of its own, or
+  fixed, sticky or top-layer content; or the container is
   under a rounded clip, a transform or a clip that is not on device pixels, or over a background
   that is not one opaque solid quad. It is tried again after 8 frames, doubling up to 2,048
   while the content stays so;
@@ -455,6 +469,30 @@ between them, and a page whose rows hold scrolling containers of their own under
 bar painted over each one's edge. The same group scrolls a
 `uniform_list` and a `list` of text rows, at scales 1 and 1.5 and with rows that change while
 scrolled, whose frames are equal everywhere.
+
+At a scale factor that is not a whole number a logical pixel is not a whole number of device
+pixels, and what is painted is worked out from the scroll offset in logical pixels: at 1.25 an
+offset of 114 device pixels is 91.2 logical ones, which no `f32` holds. An edge that lies on a
+device pixel comes out a few millionths of a pixel to one side of it or the other, by how far
+the content is scrolled. A layer's content is painted at one scroll offset and shown at
+others, so where that showed, tiles differed from painting. Two things made it show, and while
+scroll layers snap (in a window with them, and in the reference they are held to) neither
+does:
+
+- a clip is grown to whole device pixels, and flooring an edge a hair short of a pixel takes
+  in a row more: what a clipped card holds showed a row further in one frame than the other,
+  and so did an underline. An edge within a sixty-fourth of a pixel past a pixel's edge now
+  lies on it (`paint::cover_bounds`, `cover_mask`);
+- a drop shadow's box is not snapped, since a blur hides where it begins, but a box a few
+  millionths of a pixel off gives a blur a level off in a pixel or two. Its edges are put on a
+  grid of sixty-fourths of a device pixel, which moves by whole pixels exactly
+  (`paint::shadow_bounds`).
+
+Content painted with a transformation of its own (an element moved, turned or scaled by
+`translate`, `rotate` or `scale`) is shaded from positions the rasterizer interpolates, which
+no tile reproduces to the last bit: its container is painted, not drawn from tiles.
+`lane_c_layer_scales` scrolls the shadowed, clipped and listed views at 1.25, 1.5 and 1.75,
+and the transformed ones, and every frame equals the reference's.
 
 ## Window composition
 

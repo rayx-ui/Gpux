@@ -245,7 +245,9 @@ fn libtest_lanes_list_every_target_they_run() {
             "lane_c",
             "lane_g",
             "lane_c_fast_parity",
-            "lane_c_scroll_layers"
+            "lane_c_scroll_layers",
+            "lane_c_layer_scales",
+            "lane_c_list_hover"
         ]
     );
     assert!(
@@ -257,7 +259,8 @@ fn libtest_lanes_list_every_target_they_run() {
     assert_eq!(
         lane_c.invocations[0].command_line(),
         "cargo test -p gpux-conformance --test lane_c --test lane_g --test lane_c_fast_parity \
-         --test lane_c_scroll_layers --no-fail-fast -- --test-threads=1"
+         --test lane_c_scroll_layers --test lane_c_layer_scales --test lane_c_list_hover \
+         --no-fail-fast -- --test-threads=1"
     );
     assert!(lane_c.tests.contains(&"lane_g::*".to_string()));
     assert!(

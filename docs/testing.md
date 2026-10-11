@@ -202,8 +202,11 @@ region that changed since a capture), and the golden subset is compared with the
 goldens of the backend. Scenes render one at a time: they share one cached device, which keeps
 DX12 stable. The full run also runs the `lane_g` group, which checks lane G's probes-only mode
 on the same renderer, `lane_c_fast_parity`, which renders every scene with fast mode on and off
-and compares the pixels, and `lane_c_scroll_layers`, which scrolls views from the renderer's
-tiles and compares every frame with a window drawn without scroll layers. Without a Vulkan adapter, Linux falls back to llvmpipe over GL, where the
+and compares the pixels, and three groups that compare every frame of a window drawing from
+the renderer's tiles with a window drawn without scroll layers: `lane_c_scroll_layers` scrolls
+views at whole scale factors, `lane_c_layer_scales` at 1.25, 1.5 and 1.75 and with content
+painted transformed, and `lane_c_list_hover` moves the pointer over lists whose rows have a
+hover style. Without a Vulkan adapter, Linux falls back to llvmpipe over GL, where the
 renderer's effects pipeline does not validate yet, so lane C fails there: select lavapipe with
 `VK_DRIVER_FILES`.
 
