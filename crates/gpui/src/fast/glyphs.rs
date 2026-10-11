@@ -215,7 +215,10 @@ impl LineGlyphPainter {
             scale_factor: window.scale_factor(),
             run: None,
             layers: window.fast_mode.snapping(),
-            mask: window.content_mask().bounds,
+            // A transformed line's glyphs are culled against the mask the window without a
+            // layer has, the viewport's, not the region a layer's content is painted into.
+            mask: crate::fast::layers::paint::transformed_clip(window, window.content_mask())
+                .bounds,
             reach: GlyphReach::UNSET,
         }
     }
@@ -250,7 +253,10 @@ impl LineGlyphPainter {
         if !self.layers {
             return line_glyph.intersects(mask);
         }
-        debug_assert_eq!(*mask, self.mask);
+        debug_assert!(
+            *mask == self.mask || self.transformation != TransformationMatrix::unit(),
+            "the line's mask is the window's, but for a transformed line a layer paints"
+        );
         if !self.reach.is_for(line_glyph.size) {
             self.reach = GlyphReach::new(line_glyph.size, &self.mask);
         }

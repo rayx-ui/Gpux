@@ -67,6 +67,9 @@ pub enum Content {
     /// Rows holding a card that clips four lines of underlined text taller than itself: the
     /// card's clip cuts glyphs and underlines.
     ClippedText,
+    /// Rows holding a bordered card that clips a line of text and is turned a little: glyphs
+    /// painted under a transformation.
+    RotatedText,
     /// The shadowed rows, each card moved a few pixels by a transformation of its own.
     TranslatedCards,
     /// The shadowed rows, each card turned a little.
@@ -107,6 +110,7 @@ pub fn row_count(content: Content) -> usize {
         | Content::Nested
         | Content::ClippedText
         | Content::TransformedBorders
+        | Content::RotatedText
         | Content::TranslatedCards
         | Content::RotatedCards => 40,
         Content::Sections => 16,
@@ -318,6 +322,30 @@ impl RowOf {
                                 "Row {index:02}, line {line}: jackdaws love my big sphinx"
                             ))
                         })),
+                )
+                .into_any_element(),
+            Content::RotatedText => div()
+                .py(px(8.))
+                .bg(if index.is_multiple_of(2) {
+                    rgb(0xe9e4d8)
+                } else {
+                    rgb(0xd5dde6)
+                })
+                .child(
+                    div()
+                        .mx_3()
+                        .h(px(44.))
+                        .px_2()
+                        .bg(if marked { rgb(0xffe9c9) } else { rgb(0xffffff) })
+                        .border_1()
+                        .border_color(rgb(0x555555))
+                        .overflow_hidden()
+                        .text_color(rgb(0x1e2430))
+                        .text_size(px(12.))
+                        .rotate(0.03)
+                        .child(SharedString::from(format!(
+                            "Row {index:02}: jackdaws love my big sphinx of quartz"
+                        ))),
                 )
                 .into_any_element(),
             Content::TranslatedCards | Content::RotatedCards => div()

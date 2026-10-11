@@ -133,3 +133,12 @@ fn transformed_bordered_content_is_equal_to_the_reference() {
         compare(Content::TransformedBorders, scale, &script);
     }
 }
+
+/// Text painted under a transformation: a card that clips a line of text and is turned shows,
+/// glyph for glyph, what the reference shows.
+#[test]
+fn rotated_text_is_equal_to_the_reference() {
+    for scale in [1., 1.5, 2.] {
+        compare(Content::RotatedText, scale, &scrolls_and_single_pixels());
+    }
+}
