@@ -62,6 +62,8 @@ pub enum Content {
     /// and a label in it, and a shadowed bar laid over that container's bottom edge and
     /// painted after it.
     Nested,
+    /// Rows of rounded bordered shadowed cards, each turned, moved or scaled.
+    TransformedBorders,
     /// Rows holding a card that clips four lines of underlined text taller than itself: the
     /// card's clip cuts glyphs and underlines.
     ClippedText,
@@ -104,6 +106,7 @@ pub fn row_count(content: Content) -> usize {
         | Content::Stacked
         | Content::Nested
         | Content::ClippedText
+        | Content::TransformedBorders
         | Content::TranslatedCards
         | Content::RotatedCards => 40,
         Content::Sections => 16,
@@ -261,6 +264,37 @@ impl RowOf {
                         }]),
                 )
                 .into_any_element(),
+            Content::TransformedBorders => {
+                let card = div()
+                    .mx_3()
+                    .h(px(44.))
+                    .bg(rgb(0xffffff))
+                    .rounded(px(6.))
+                    .border_2()
+                    .border_color(rgb(0x555555))
+                    .shadow(vec![BoxShadow {
+                        color: rgba(0x00000080).into(),
+                        offset: point(px(0.), px(0.)),
+                        blur_radius: px(14.),
+                        spread_radius: px(0.),
+                        inset: false,
+                    }]);
+                let card = match index % 3 {
+                    0 => card.rotate(0.03),
+                    1 => card.translate(point(px(3.), px(5.))),
+                    _ => card.scale(1.05),
+                };
+                div()
+                    .h(px(60.))
+                    .py(px(8.))
+                    .bg(if index.is_multiple_of(2) {
+                        rgb(0xe9e4d8)
+                    } else {
+                        rgb(0xd5dde6)
+                    })
+                    .child(card)
+                    .into_any_element()
+            }
             Content::ClippedText => div()
                 .py(px(7.))
                 .bg(if index.is_multiple_of(2) {

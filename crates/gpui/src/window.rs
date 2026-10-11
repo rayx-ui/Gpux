@@ -6216,6 +6216,7 @@ impl Window {
             }
             let mask = mask.intersect(&self.content_mask());
             let transformed_mask = is_paint.then(|| {
+                let mask = crate::fast::layers::paint::transformed_clip(self, mask);
                 self.intersect_paint_content_mask(
                     self.transform_content_mask(mask.scale(self.scale_factor())),
                 )

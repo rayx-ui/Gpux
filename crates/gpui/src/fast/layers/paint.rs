@@ -384,6 +384,32 @@ pub(crate) fn unlayered_content_mask(window: &Window) -> ContentMask<Pixels> {
     }
 }
 
+/// `mask`, the content mask a clip leaves, as the mask of what is painted
+/// transformed is made from it.
+///
+/// A transformed element's mask is the bounding box of what its
+/// transformation makes of the clip's rectangle (`Window::transform_content_mask`),
+/// and the bounding box of a turned rectangle cut by the viewport is smaller
+/// than that of the rectangle cut by the viewport once it is turned. While a
+/// layer's content is painted the content mask is the painted region, the
+/// viewport and its overscan, so the mask came out as the looser box, and a
+/// border painted in four strips let through of the ring what the viewport's
+/// clip would have held back. The viewport's it is, for what is transformed:
+/// transformed content is no tile's to hold, and is drawn clipped to the
+/// viewport in any case.
+#[inline]
+pub(crate) fn transformed_clip(window: &Window, mask: ContentMask<Pixels>) -> ContentMask<Pixels> {
+    match window.fast_layers.painting.as_ref() {
+        Some(painting) if window.current_element_transform() != TransformationMatrix::unit() => {
+            ContentMask {
+                bounds: mask.bounds.intersect(&painting.viewport),
+                corner_radii: mask.corner_radii,
+            }
+        }
+        _ => mask,
+    }
+}
+
 /// Whether the edges of `bounds` lie on device pixels at `scale_factor`.
 ///
 /// gpux clips quads to the device pixels covering a content mask and

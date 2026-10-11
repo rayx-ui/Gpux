@@ -532,6 +532,17 @@ Where these hold, and where they do not:
   pixels the two differ by a few millionths of a pixel, and the scene takes an empty mask for the
   clips told (`edge_shadows::told`).
 
+A transformed element's clip mask is the bounding box of what its transformation makes of the
+clip's rectangle. While a layer's content is painted the clip is cut by the layer's painted
+region, the viewport and its overscan, so the box of a turned strip came out looser than the
+one the reference makes (cut by the viewport first), and a border painted in four strips, each
+the whole ring under one strip's mask, let through of the ring what the reference holds back,
+in the frames in which a container that holds transformed content is tried again for a layer.
+A transformed element's clip is now cut by the viewport while a layer's content is painted
+(`paint::transformed_clip`): culling, and every mask that is not transformed, keep the painted
+region, which tiles need for their overscan. `fast::tests::transformed_masks` and
+`lane_c_layer_scales` hold the frames equal.
+
 Content painted with a transformation of its own (an element moved, turned or scaled by
 `translate`, `rotate` or `scale`) is shaded from positions the rasterizer interpolates, which
 no tile reproduces to the last bit: its container is painted, not drawn from tiles.

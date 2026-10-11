@@ -117,3 +117,19 @@ fn transformed_content_is_painted_and_not_drawn_from_tiles() {
         }
     }
 }
+
+/// Rounded, bordered, shadowed cards turned, moved or scaled, in rows of a container that is
+/// tried again for a layer every so often and found to hold what no tile can. A transformed
+/// element's clip mask is the bounding box of what its transformation makes of the clip's
+/// rectangle, and while a layer's content is painted the clip was cut by the painted region,
+/// not the viewport: the box came out looser, and a border painted in four strips let through
+/// of its ring what the reference holds back, in the frames of the retry.
+#[test]
+fn transformed_bordered_content_is_equal_to_the_reference() {
+    let mut script = scrolls_and_single_pixels();
+    script.extend([Step::Wheel(0., -300.), Step::Wheel(0., -211.)]);
+    script.extend((0..170).map(|_| Step::Wheel(0., -1.)));
+    for scale in [1., 1.5, 2.] {
+        compare(Content::TransformedBorders, scale, &script);
+    }
+}

@@ -36,6 +36,7 @@ mod splice;
 mod stats;
 mod switches;
 mod text_carry;
+mod transformed_masks;
 #[cfg(feature = "diagnostics")]
 mod verify_mode;
 mod view_invalidation;
