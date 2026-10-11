@@ -47,8 +47,9 @@ its layer showed the right row where the same list without layers did not:
 The state lives in the element's state, which an element without an id does not have: a hover
 style on an element with no id is compared with nothing, as upstream's is, and a move that
 changes which such row is hovered asks for no frame. Give a row that looks different under the
-pointer an id. (The seventh review of s12c found 43 of 190 frames wrong in a window without
-layers for a `uniform_list` of such rows, the same at the sprint's base.)
+pointer an id. (The first review of s12d measured 43 of 190 frames wrong in a window without
+layers for a `uniform_list` of such rows, the same at the sprint's base; rows with an id, which
+the seventh review of s12c found 6 of 60 moves wrong for, are right.)
 
 ### Cached views and hovers
 
@@ -498,11 +499,15 @@ Where these hold, and where they do not:
 
 - **Far down a container.** An edge is the container's origin plus the offset, in logical `f32`
   pixels, and the error grows with the sum: the 1/64 px absorbs it up to about 50 000 device
-  pixels from a container's origin at fractional scale factors (a `div` of 5000 clipped cards or
-  shadowed rows is equal to the reference at 20 000 and 50 000 px down, differs by a level in a
-  few pixels of a few frames from 100 000, and by a whole row of a clipped card from 300 000).
-  A `uniform_list`, which positions its rows from a small offset, stays equal to 300 000 px.
-  Applying the offset in device pixels, after scaling, would remove the limit. At about 1.05
+  pixels from a container's origin at fractional scale factors. A `div` of 5000 clipped cards or
+  shadowed rows is equal to the reference at 20 000 and 50 000 px down at 1.1, 1.3333, 1.5, 1.75,
+  2.5 and 3 (and at 1.25). Past it the layered frame differs from the reference by a level along
+  the edge row of every card in view, in most frames: from 70 000 px at every scale but 1.5, and
+  from 100 000 at 1.25 (6 to 8 of 25 steps, up to about 1 900 pixels a frame; 18 of 25 at
+  200 000), and by a whole row of a clipped card (77 levels) from 300 000. A `uniform_list` and
+  a `list`, which position their rows from a small offset, stay equal to 250 000 px, and content
+  scrolling sideways to 50 000. Applying the offset in device pixels, after scaling, would
+  remove the limit. At about 1.05
   million device pixels (2048 tiles) a layer's tile ids run out: `layer_tile_id` asserts in a
   debug build.
 - **Against a window that does not snap.** Snapping alone (scroll layers on, in the window and in
