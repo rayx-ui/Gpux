@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 40,
+  "revision": 42,
   "title": "gpux fast mode: retained layout and views, splice, scroll layers and window composition from gpui-fast",
   "validationMode": "sprint",
   "repositories": [
@@ -2441,6 +2441,78 @@
         "Cargo.toml",
         "Cargo.lock"
       ]
+    },
+    {
+      "id": "check-transformed-masks",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "LYR-18"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/transformed_masks.rs`: a scrolling `div` of rounded, bordered cards turned, moved or scaled, scrolled with every mechanism and with none, step by step (286 steps down and up): the frames' primitives, bounds, masks and orders are equal.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::transformed_masks::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-transformed-pixels",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "LYR-18"
+      ],
+      "descriptionMarkdown": "`lane_c_layer_scales::transformed_bordered_content_is_equal_to_the_reference`: rounded, bordered, shadowed cards turned, moved or scaled, scrolled by the scripted scroll, single pixels and a long scroll, at scales 1, 1.5 and 2, against the layers-off reference, byte for byte.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-conformance",
+        "--test",
+        "lane_c_layer_scales",
+        "transformed_bordered_content_is_equal_to_the_reference"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 1
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpux_conformance/**",
+        "crates/gpui_platform/**",
+        "crates/gpui_wgpu/**",
+        "crates/gpui_apple/**",
+        "crates/gpux_fonts/**"
+      ]
     }
   ],
   "finalCheckIds": [
@@ -4109,12 +4181,55 @@
       ]
     },
     {
+      "id": "s12f-transformed-masks",
+      "title": "A transformed clip's mask painted into a layer's region",
+      "dependsOn": [
+        "s12e-border-clips"
+      ],
+      "memoryScopes": [
+        "gpui/frame-pipeline"
+      ],
+      "tasks": [
+        {
+          "id": "t56-transformed-masks",
+          "title": "Make a transformed element's mask the same with and without a layer's region",
+          "descriptionMarkdown": "Cut a transformed element's clip by the viewport, before the transformation, while a layer's content is painted (`layers::paint::transformed_clip`, a hook in `Window::with_content_mask`). Write `fast::tests::transformed_masks` and the lane C test.",
+          "criterionIds": [
+            "LYR-18"
+          ],
+          "designIds": [
+            "d-transformed-masks"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-transformed-masks",
+            "check-transformed-pixels",
+            "check-parity-a"
+          ],
+          "supportingCriterionIds": [
+            "OR-3"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/layers/paint.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "s12b-layers-web-mobile",
       "title": "Scroll layers in the browser, on Android and on iOS",
       "dependsOn": [
         "s12-list-layers",
         "s12c-edge-shadows",
-        "s12d-tile-corrections"
+        "s12d-tile-corrections",
+        "s12f-transformed-masks"
       ],
       "memoryScopes": [
         "platform/web",

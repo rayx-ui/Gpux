@@ -1,12 +1,12 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 228,
-  "planRevision": 40,
+  "revision": 234,
+  "planRevision": 42,
   "specHashes": {
-    "requirements": "0d5fd9b8e1e8098a8277bbabc7bc5463f6e2bf994d2da857870a0aae327afed2",
-    "design": "589f33355f86c06cba177a80fac3b3da1421f728ab65c5275e63562d1992936f",
-    "plan": "a38a30c2ee1cbb206231963e338f9d7d8569fffd0dfaa45ccb23e56d3ef87445"
+    "requirements": "a30c0eaf821ffaf2564b773402da87e17605930f3c4b0a76336f153374fdc4c5",
+    "design": "00c3ecd2f8c8d1405a2a213109a1c5ffeb479aca56795dcff431b6d811c03fe6",
+    "plan": "ebaf8b98fb5558fdc0c8cc8174672d37be94a41cb122721e3846149d9ee5db64"
   },
   "tasks": {
     "t01-fast-switches": {
@@ -332,6 +332,12 @@
       "workerIds": [
         "claude-240e1cb7"
       ]
+    },
+    "t56-transformed-masks": {
+      "status": "done",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     }
   },
   "validationBatches": {
@@ -496,6 +502,15 @@
         }
       },
       "recordedAt": "2026-10-11T16:59:19Z"
+    },
+    "4d9d947aa012aac5b7ae8f0d441a2044a1643624782b9c322cbf42248ffe9bdb": {
+      "snapshot": {
+        "specHash": "08fa3b71f98754265922278c93fede0d2c610ca455209954bb13ada733ff9b1c",
+        "repositories": {
+          "gpux": "a59ef56ceb07df43591311eb6f104acae5c086419edb6932a9ebe88e1142ddec"
+        }
+      },
+      "recordedAt": "2026-10-11T18:06:20Z"
     }
   },
   "checkResults": {
@@ -1739,6 +1754,57 @@
       "logPath": "artifacts-temp/agentx/gpux-fast-mode/s12e-border-clips-final-efbb8de4f308.log",
       "logSha256": "7e0cd12b34918656dc7be58da26118c2b2dd8c474ad05c407eaa297e2b35e2b1",
       "inputsHash": "637e349e5e16f53830579468b929de08f2fa2e63e1bf7d4e7c4838b9a54289aa"
+    },
+    "s12f-transformed-masks/check-parity-a/final": {
+      "checkId": "check-parity-a",
+      "boundaryId": "s12f-transformed-masks",
+      "phase": "final",
+      "batchId": "4d9d947aa012aac5b7ae8f0d441a2044a1643624782b9c322cbf42248ffe9bdb",
+      "definitionHash": "fa2a6c37c33f236da90188c21241c323bf5546009bfdb63ca19a5b684a5a283e",
+      "basisHash": "3cadf74fddd692af9135f0efe37df7a4782cb2804a2310622a54e7aa0ab896cb",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 39,
+      "durationSeconds": 3.5153,
+      "recordedAt": "2026-10-11T18:05:42Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s12f-transformed-masks-final-5f9bff0d092b.log",
+      "logSha256": "324371d8e71082889d909bff60d0aff056ab81a0b19c0626f6828e96528cc29f",
+      "inputsHash": "14418d388c6219f219a3c84ac09db3ef0b4f5c08b7ff8ec20e65d42981523748"
+    },
+    "s12f-transformed-masks/check-transformed-masks/final": {
+      "checkId": "check-transformed-masks",
+      "boundaryId": "s12f-transformed-masks",
+      "phase": "final",
+      "batchId": "4d9d947aa012aac5b7ae8f0d441a2044a1643624782b9c322cbf42248ffe9bdb",
+      "definitionHash": "0a139c8320a5d9ce3159895f5e7c218541fb97519f564ade00c106142edb14ca",
+      "basisHash": "8bdcf20b95143e55d4684d953d641ee6ca9912b6585fd5e9c60b33e765e9d90b",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 1.5679,
+      "recordedAt": "2026-10-11T18:05:44Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s12f-transformed-masks-final-63f29311abc7.log",
+      "logSha256": "d1fa5b20fe958869f103186afefd5836cb40c338088e8dad0893994a4a9ec469",
+      "inputsHash": "1f0acf841559354718a497eb5b237ba36082d423b81ed25f72013cb04818160f"
+    },
+    "s12f-transformed-masks/check-transformed-pixels/final": {
+      "checkId": "check-transformed-pixels",
+      "boundaryId": "s12f-transformed-masks",
+      "phase": "final",
+      "batchId": "4d9d947aa012aac5b7ae8f0d441a2044a1643624782b9c322cbf42248ffe9bdb",
+      "definitionHash": "e952b4886bb4bf8f0fcf30adfb06ac651be3d4a29c82052ae8bf24586a974a56",
+      "basisHash": "93db01e4471e646b722b115d83fb2f5248e01164b194586d6c0cf97f5a906cfb",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 36.4192,
+      "recordedAt": "2026-10-11T18:06:20Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s12f-transformed-masks-final-bed7d3cd608e.log",
+      "logSha256": "599f987988a22163b364d887a33ea324835fcfaaf6336787ff5af58c4be18447",
+      "inputsHash": "9a58f930fd2d9a2f0ab9b01746384ec85c1fe41aa70e7edcc58529cd03156bd8"
     }
   },
   "reviews": {
@@ -5497,6 +5563,112 @@
         "s12e-strips-that-overlap-replay-otherwise-than-painted"
       ],
       "recordedAt": "2026-10-11T17:44:25Z"
+    },
+    "s12f-transformed-masks": {
+      "reviewerId": "claude-reviewer-s12f1-7f3c91a2",
+      "snapshotId": "4d9d947aa012aac5b7ae8f0d441a2044a1643624782b9c322cbf42248ffe9bdb",
+      "criterionIds": [
+        "LYR-18",
+        "OR-3"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/paint.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-18"
+          ],
+          "sha256": "ddde1cfdfbee6936037057680cdb56817a8b129e062304b44cdbeb4de7da0d9b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-18",
+            "OR-3"
+          ],
+          "sha256": "186c37ffc35df878d307eea297aa337848f0f5e70bef3bd27e70818408bd5054"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/transformed_masks.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-18"
+          ],
+          "sha256": "b52bf541f6be986e2fdfd31b6a72ec70a8d7086a597178019d66d071fa889bbb"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_layer_scales.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-18"
+          ],
+          "sha256": "a2fd710141b630cd50f57e8d427c9e1b5dd4c00b60593627bc92a2dcbbc157d6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/scroll_layers_support/mod.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-18"
+          ],
+          "sha256": "6210de9e4759ffbc3c24692facdbc3f994bf32057e35fa0c280160c17e620cab"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_a_fast_parity.rs",
+          "kind": "test",
+          "criterionIds": [
+            "OR-3"
+          ],
+          "sha256": "ab7b2be4370aab3a63a560d98f780764ad0cf858301139f78b66ab9c3bdf2439"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s12f-transformed-masks-final-63f29311abc7.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "LYR-18"
+          ],
+          "sha256": "d1fa5b20fe958869f103186afefd5836cb40c338088e8dad0893994a4a9ec469"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s12f-transformed-masks-final-bed7d3cd608e.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "LYR-18"
+          ],
+          "sha256": "599f987988a22163b364d887a33ea324835fcfaaf6336787ff5af58c4be18447"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s12f-transformed-masks-final-5f9bff0d092b.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "OR-3"
+          ],
+          "sha256": "324371d8e71082889d909bff60d0aff056ab81a0b19c0626f6828e96528cc29f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s12f-lima1.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "LYR-18",
+            "OR-3"
+          ],
+          "sha256": "ac2e2371185756042059184cc67a1d7010dea89370908a28969faec5269d8ea3"
+        }
+      ],
+      "summaryMarkdown": "**Verdict: passed at revision 233 (snapshot 4d9d947a), first review of `s12f-transformed-masks`.** The cause is as the coordinator found it, I confirmed it independently, and the fix is the right cut. No finding.\n\n**Cause, independently.** In my second s12e review's bisection the difference needed scroll layers together with retained layout and views (mechanism bits 1011 and 1111), never without scroll layers. At this head the same ten combinations (`p103`, a bordered transformed row, scale 2) all show 0 differing steps. The mask arithmetic: a transformed element's clip mask is the bounding box of its transformation of `clip intersected with content mask`; the layered content mask is the painted region (viewport plus overscan), so the box of the turned strip was looser than the reference's box of the strip cut by the viewport. `transformed_clip` cuts the logical clip by the painting's viewport first, which is the reference's mask: the viewport is `window.content_mask()` when the container begins (the container's own clip with everything above it), and what is inside the container is cut by `with_content_mask` as before, so nested containers, nested and ancestor transformed elements and intermediate clips reproduce `clip, viewport and everything above`. The hook sits in `with_content_mask_telling`, which `with_untold_content_mask` and the border path share; culling (`content_mask_stack`) and every untransformed mask are untouched, and the reference window is not affected (`painting` is `None`).\n\n**What I ran** (probes in the scratchpad, this head against its base `538edae`; layered window with every mechanism against the reference with snapping forced, 476 steps of single pixels, wheel runs and mixed steps unless noted).\n- Matrix of transformed content, 95 reports at scales 1, 1.25, 1.3333, 2 and 2.625 (the first three kinds also at 1.25): bordered rounded shadowed rows turned, moved and scaled (each kind alone and mixed); a rotated, moved or scaled *ancestor* holding bordered children; a transformed card clipping underlined text and a path; a transformed bordered child inside an `overflow_hidden` card; in a `div`, nested scrolling containers, a `uniform_list` and a `list`: 0 of 95 differ at the head, 73 of 95 differ at the base (up to 170 levels), the same kinds as the report and more (text, underline and path rows, ancestor-transformed rows, the nested child). A transformed container itself (never layered): equal at both. Cards moved 70 px out of their rows, so that rows in the overscan show in view, with and without a border: equal at the head (the border ones differed at the base). Culling holds: the viewport cut leaves what is outside the viewport out.\n- Transformed, then not, then promoted again: 246 steps with the transform toggled every 30 and 362 steps with it going away: 0 differ at the head (3 to 4 and 2 differed at the base); after it goes the container is composited again, 298 composited steps, the same count at the base.\n- Frames across commits: 45 315 frame pairs of transformed content: the reference window is identical at both commits in all, and the layered window differs from the base in 191 (the repair) and from its own reference in 0; 19 080 frame pairs of untransformed bordered, tiny, rounded, clipped and one pixel rows (`div`, nested, `uniform_list`, `list`, scales 1.25 and 2): identical at both in both windows.\n- Regression: `p80`, `p81`, `p86`, `p83` (221 comparisons at 8 scales, transformed groups of LYR-15 among them) 0 differing steps; the lane C groups at the head (`lane_c_scroll_layers` 18, `lane_c_layer_scales` 7 with the new group, `lane_c_list_hover` 2) pass; `fast::` unit tests 424 of 424; the sprint's checks (39 lane A scenes, the new unit test, the new pixel group) and Linux log pass. The new unit test fails with the hook removed and with its condition inverted.\n\n**Not blocking.** The shipped tests hold one content (rounded bordered cards turned, moved and scaled). The fix is general and my probes show text, underline, path, ancestor-transformed and nested transformed rows were broken at the base and are right at the head, but a change that kept only the border case would pass the shipped tests; the criterion names those groups. A second content of a transformed card clipping underlined text and a path (my variant 7) would guard the rest.\n\nNo tracked file touched; scratch worktrees and probe profiles removed.",
+      "findingIds": [],
+      "recordedAt": "2026-10-11T19:28:30Z"
     }
   },
   "checkpoints": {

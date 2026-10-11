@@ -887,6 +887,40 @@
           "path": "crates/gpui/src/fast/border_clips.rs"
         }
       ]
+    },
+    {
+      "id": "d-transformed-masks",
+      "requirementIds": [
+        "LYR"
+      ],
+      "descriptionMarkdown": "Builds on d-tile-corrections (a container holding a transformed primitive stays off its layer) and d-border-clips (a transformed border keeps a clip for each strip).\n\n`Window::with_content_mask` makes a clip's paint mask from the clip's rectangle cut by the content mask so far (`mask.intersect(&self.content_mask())`), transforms it (`transform_content_mask`: the bounding box of the transformed rectangle), and cuts that by the paint mask so far. While a scroll layer's content is painted, the content mask so far is the layer's painted region (`begin_scrolling_children` pushes it, so that culling works in the region), larger than the viewport. For an element without a transformation the two ways of cutting agree once the viewport clips the drawing (`replay_content`'s `clip_primitive`). For a transformed one the bounding box of a turned rectangle that was cut is not the cut of the bounding box of the turned rectangle: the layered window's mask was the looser box, and a border painted in four strips (each strip a mask over the same ring quad) drew pieces of the ring under another strip's mask.\n\nThe fix is in the mask and only for what is transformed: `layers::paint::transformed_clip` cuts the clip by the layer's viewport when a layer's content is painted and the element is transformed, before the transformation. `content_mask_stack` (culling) is untouched, and so is every untransformed mask: a tile holds the region's overscan.\n\nIt matters only in frames where a container is painted into its layer region and found uncompositable (a container holding a transformed primitive is `Ineligible` and bypassed, and tried again after 8 frames, doubling up to 2048): in the others the container paints in the viewport's mask.",
+      "invariantsMarkdown": "- A transformed element's clip leaves the same mask painted into a layer's region as painted without a layer.\n- The mask of anything not transformed, and culling, are what they were.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/renderer/wgpu/2026-09-30-renderer-wgpu-srgb-compositing.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/renderer/wgpu/2026-08-07-renderer-wgpu-browser-backend-fallback.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/renderer/wgpu/2026-07-04-renderer-wgpu-shader-effects-backend-capabilities.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/paint.rs",
+          "symbol": "transformed_clip"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "symbol": "with_content_mask"
+        }
+      ]
     }
   ],
   "memoryDecisionsConsidered": [
