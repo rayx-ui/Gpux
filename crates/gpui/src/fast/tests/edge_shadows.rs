@@ -892,6 +892,15 @@ pub(super) fn paint_with(items: &[Item], one_clip: bool) -> (Scene, Vec<Primitiv
             }
             Item::Border(bounds, width, radius) => {
                 let strips = border_strips(*bounds, *width, *radius);
+                // As `fast::border_clips::paint` does: an element thinner than its border has
+                // strips that reach past it, and each is a clip.
+                let one_clip = one_clip
+                    && strips.iter().all(|strip| {
+                        strip.left() >= bounds.left()
+                            && strip.top() >= bounds.top()
+                            && strip.right() <= bounds.right()
+                            && strip.bottom() <= bounds.bottom()
+                    });
                 if one_clip {
                     clip_op(
                         &mut scene,

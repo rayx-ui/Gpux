@@ -397,7 +397,9 @@ quads, one in each side's strip, inside one clip told to the scene (`ClipOp::Bor
 four strips): the strips are masks inside that clip, not clips of their own, and a quad's
 bounds are taken within its strip when a clip around it is lifted, as they were with a clip for
 each strip. That is two paint operations and no set of entries of a border's own, where there
-were eight and four, and the scene it leaves is the same (`fast/border_clips.rs`). What was painted before a clip
+were eight and four, and the scene it leaves is the same (`fast/border_clips.rs`). A transformed
+element, whose masks are what its transformation makes of them and not what the clips told leave,
+and an element thinner than its border, whose strips reach past it, keep a clip for each strip. What was painted before a clip
 was pushed lies behind everything in it: a dropped primitive with nothing of the clip's under
 it is ordered over what was painted, before the clip, where it would come into view. A clip
 pushed where one was, after something else was painted, is another clip, though it clips

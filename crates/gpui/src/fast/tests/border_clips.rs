@@ -96,18 +96,26 @@ fn random_bordered_content(rng: &mut StdRng, scrolling: bool) -> Vec<Item> {
     }
     items.push(Item::Quad(sp(20., -500., 360., 2000.)));
     let element = |rng: &mut StdRng, items: &mut Vec<Item>, around: Bounds<ScaledPixels>| {
-        // Large enough that a strip is a strip: elements as small as a border is wide
-        // overlap their own strips.
+        // Now and then as thin as a line, thinner than its border: its strips reach past it.
         let (width, radius) = (
             rng.random_range(1..5) as f32,
             rng.random_range(0..10) as f32,
         );
         let reach = 2. * width.max(radius) + 4.;
+        let thin = rng.random_range(0..6) == 0;
         let bounds = sp(
             (around.left().0 + rng.random_range(-40.0..around.size.width.0)).round(),
             (around.top().0 + rng.random_range(-40.0..around.size.height.0)).round(),
-            rng.random_range(reach..200.0f32).round(),
-            rng.random_range(reach..120.0f32).round(),
+            if thin {
+                rng.random_range(1.0..60.0f32).round()
+            } else {
+                rng.random_range(reach..200.0f32).round()
+            },
+            if thin {
+                rng.random_range(1.0..reach).round()
+            } else {
+                rng.random_range(reach..120.0f32).round()
+            },
         );
         items.push(Item::Quad(bounds));
         items.push(Item::Border(bounds, width, radius));
@@ -187,6 +195,11 @@ fn bordered_content_is_ordered_as_with_a_clip_for_each_strip() {
         let (expected, got) = (orders(&each, &primitives), orders(&one, &primitives));
         assert_eq!(got, expected, "run {run}");
         assert_eq!(quads(&one), quads(&each), "run {run}");
+        // A strip is never a clip the window did not tell of.
+        assert!(
+            one.fast_edge_shadows.untold_count() <= each.fast_edge_shadows.untold_count(),
+            "run {run}"
+        );
         assert_eq!(one.shadows.len(), each.shadows.len(), "run {run}");
         for (a, b) in one.shadows.iter().zip(&each.shadows) {
             assert_eq!(a.order, b.order, "run {run}");
@@ -269,10 +282,22 @@ fn a_border_replayed_gives_the_same_scene() {
     assert!(inside >= 20, "{inside} splits fell inside a border");
 }
 
+/// How a page's bordered elements are painted.
+#[derive(Clone, Copy)]
+enum Kind {
+    /// Without a border.
+    Plain,
+    Bordered,
+    /// Turned a little.
+    Rotated,
+    /// Moved a few pixels.
+    Translated,
+}
+
 /// A page of bordered elements.
 struct Page {
     rows: usize,
-    bordered: bool,
+    kind: Kind,
 }
 
 impl Render for Page {
@@ -286,13 +311,37 @@ impl Render for Page {
                     .w(px(100.))
                     .h(px(20.))
                     .bg(rgb(0xe9e4d8));
-                if self.bordered {
-                    element.border_1().border_color(rgb(0x8a8272))
-                } else {
-                    element
+                match self.kind {
+                    Kind::Plain => element,
+                    Kind::Bordered => element.border_1().border_color(rgb(0x8a8272)),
+                    Kind::Rotated => element.border_1().border_color(rgb(0x8a8272)).rotate(0.03),
+                    Kind::Translated => element
+                        .border_1()
+                        .border_color(rgb(0x8a8272))
+                        .translate(crate::point(px(3.), px(5.))),
                 }
             }))
     }
+}
+
+/// What a window tells the scene of a page of `rows` elements of `kind`: the clips pushed, the
+/// borders told, the clips popped, the sets of entries and the quads kept.
+fn painted(
+    cx: &mut TestAppContext,
+    rows: usize,
+    kind: Kind,
+) -> ((usize, usize, usize), usize, usize) {
+    let window = add_window(cx, move |_, _| Page { rows, kind });
+    with_window(cx, window.into(), |window, cx| {
+        window.draw(cx).clear(cx);
+        window.draw(cx).clear(cx);
+        let scene = &window.rendered_frame.scene;
+        (
+            told(scene),
+            scene.fast_edge_shadows.sets(),
+            scene.quads.len(),
+        )
+    })
 }
 
 /// A window tells the scene one clip for each bordered element it paints, and the border's
@@ -300,21 +349,8 @@ impl Render for Page {
 #[crate::test]
 fn a_window_tells_the_scene_one_clip_for_a_border(cx: &mut TestAppContext) {
     let rows = 5;
-    let paint = |cx: &mut TestAppContext, bordered: bool| {
-        let window = add_window(cx, move |_, _| Page { rows, bordered });
-        with_window(cx, window.into(), |window, cx| {
-            window.draw(cx).clear(cx);
-            window.draw(cx).clear(cx);
-            let scene = &window.rendered_frame.scene;
-            (
-                told(scene),
-                scene.fast_edge_shadows.sets(),
-                scene.quads.len(),
-            )
-        })
-    };
-    let (plain, plain_sets, plain_quads) = paint(cx, false);
-    let (bordered, sets, quad_count) = paint(cx, true);
+    let (plain, plain_sets, plain_quads) = painted(cx, rows, Kind::Plain);
+    let (bordered, sets, quad_count) = painted(cx, rows, Kind::Bordered);
     // Each border: one clip, with its pop, and its four quads.
     assert_eq!(bordered.0, plain.0, "clips pushed for a strip each");
     assert_eq!(bordered.1, plain.1 + rows, "border clips");
@@ -324,6 +360,22 @@ fn a_window_tells_the_scene_one_clip_for_a_border(cx: &mut TestAppContext) {
         sets <= plain_sets + rows,
         "{sets} sets of entries for {rows} borders"
     );
+}
+
+/// A transformed element's masks are not what the clips told leave of them: each strip is a
+/// clip told to the scene, as it was, and not the one clip a border is told as. The scene is
+/// the one a clip for each strip leaves.
+#[crate::test]
+fn a_transformed_border_tells_a_clip_for_each_strip(cx: &mut TestAppContext) {
+    let rows = 5;
+    let (plain, _, _) = painted(cx, rows, Kind::Plain);
+    for kind in [Kind::Rotated, Kind::Translated] {
+        let (told, _, quads) = painted(cx, rows, kind);
+        assert_eq!(told.1, plain.1, "no border clip");
+        assert_eq!(told.0, plain.0 + 4 * rows, "a clip told for each strip");
+        assert_eq!(told.2, plain.2 + 4 * rows, "clips popped");
+        assert!(quads >= 4 * rows);
+    }
 }
 
 #[test]
@@ -338,4 +390,130 @@ fn a_border_tells_the_clip_it_was_given() {
     );
     assert_eq!(told(&scene), (0, 1, 1));
     assert_eq!(scene.quads.len(), 5);
+}
+
+/// An element thinner than its border has strips that reach past it, which is a border told
+/// as a clip for each strip (layout gives an element room for its border, so only bounds a
+/// custom element hands `Style::paint` can be so thin).
+#[test]
+fn strips_that_reach_past_the_element_are_not_inside_it() {
+    use crate::fast::border_clips::inside;
+    use crate::{Bounds, point, size};
+    let strips = |bounds: Bounds<crate::Pixels>, width: f32, radius: f32| {
+        // As `Style::paint` makes them.
+        let reach = px(width.max(radius));
+        let (left, top, right, bottom) =
+            (bounds.left(), bounds.top(), bounds.right(), bounds.bottom());
+        let top_strip = Bounds::from_corners(point(left, top), point(right, top + reach));
+        let bottom_strip = Bounds::from_corners(point(left, bottom - reach), point(right, bottom));
+        let left_strip = Bounds::from_corners(
+            top_strip.bottom_left(),
+            bottom_strip.origin + point(px(width), px(0.)),
+        );
+        let right_strip = Bounds::from_corners(
+            top_strip.bottom_right() - point(px(width), px(0.)),
+            bottom_strip.top_right(),
+        );
+        [top_strip, right_strip, bottom_strip, left_strip]
+    };
+    let element = |height: f32| Bounds {
+        origin: point(px(10.), px(10.)),
+        size: size(px(100.), px(height)),
+    };
+    for (height, width, radius, inside_it) in [
+        (20., 1., 0., true),
+        (20., 2., 8., true),
+        (4., 2., 0., true),
+        (3., 2., 0., true),
+        (1., 2., 0., false),
+        (10., 1., 8., true),
+        (5., 1., 8., false),
+    ] {
+        let bounds = element(height);
+        assert_eq!(
+            inside(&bounds, &strips(bounds, width, radius)),
+            inside_it,
+            "{height} tall, border {width}, radius {radius}"
+        );
+    }
+}
+
+/// A border painted by something that hands `border_clips::paint` bounds thinner than the
+/// border (an element a frame into an animation, a custom element) is told as a clip for each
+/// strip, where one for an element of its own size is told as one.
+#[crate::test]
+fn a_border_thinner_than_its_strips_tells_a_clip_for_each_strip(cx: &mut TestAppContext) {
+    struct Thin(f32);
+    impl Render for Thin {
+        fn render(
+            &mut self,
+            _: &mut crate::Window,
+            _: &mut crate::Context<Self>,
+        ) -> impl IntoElement {
+            let height = self.0;
+            crate::canvas(
+                |_, _, _| {},
+                move |_, _, window, _| {
+                    use crate::{Bounds, point, size};
+                    let bounds = Bounds {
+                        origin: point(px(10.), px(10.)),
+                        size: size(px(100.), px(height)),
+                    };
+                    // As `Style::paint` makes them, for a border 2 px wide.
+                    let reach = px(2.);
+                    let top = Bounds::from_corners(
+                        bounds.origin,
+                        bounds.top_right() + point(px(0.), reach),
+                    );
+                    let bottom = Bounds::from_corners(
+                        bounds.bottom_left() - point(px(0.), reach),
+                        bounds.bottom_right(),
+                    );
+                    let left = Bounds::from_corners(
+                        top.bottom_left(),
+                        bottom.origin + point(px(2.), px(0.)),
+                    );
+                    let right = Bounds::from_corners(
+                        top.bottom_right() - point(px(2.), px(0.)),
+                        bottom.top_right(),
+                    );
+                    let quad = crate::quad(
+                        bounds,
+                        crate::Corners::default(),
+                        crate::transparent_black(),
+                        crate::Edges::all(px(2.)),
+                        rgb(0x8a8272),
+                        crate::BorderStyle::default(),
+                    );
+                    crate::fast::border_clips::paint(
+                        window,
+                        bounds,
+                        [top, right, bottom, left],
+                        quad,
+                    );
+                },
+            )
+            .size_full()
+        }
+    }
+    let told_for = |cx: &mut TestAppContext, height: f32| {
+        let window = add_window(cx, move |_, _| Thin(height));
+        with_window(cx, window.into(), |window, cx| {
+            window.draw(cx).clear(cx);
+            window.draw(cx).clear(cx);
+            told(&window.rendered_frame.scene)
+        })
+    };
+    let whole = told_for(cx, 20.);
+    let thin = told_for(cx, 1.);
+    assert_eq!(
+        whole.1, 1,
+        "one clip for a border of its own size: {whole:?}"
+    );
+    assert_eq!(thin.1, 0, "no border clip for a thin one: {thin:?}");
+    assert_eq!(
+        thin.0,
+        whole.0 + 4,
+        "a clip told for each strip: {thin:?} against {whole:?}"
+    );
 }
