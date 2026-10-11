@@ -357,32 +357,44 @@ on neighbours its shadow's box never overlaps, over those of a lower draw order 
 others, and a draw order worked out from what a clip leaves in view changes as rows enter and
 leave it: the shadow of a card in the next row lies over its own row's background, and so over
 the row above; with its row out of view it would be level with that row instead, and hidden
-under it. So at a clip's edge a scene orders primitives as it would were the clip not there:
+under it. So at a clip's edge a scene orders primitives as it would were that clip not there,
+every other clip staying where it is:
 
-- a primitive the clip drops keeps an entry of its whole bounds, at the order it would have had;
+- a primitive the clip drops keeps an entry of its bounds, at the order it would have had;
 - a primitive the clip cuts is ordered over the dropped ones, and the other cut ones, that its
-  whole bounds lie over;
+  bounds lie over;
 - a kept shadow is ordered over what lies under its box, dropped or drawn, and what is painted
   after it over its box is ordered past it: the element casting it, whose edge can show while
   the shadow's box, offset away from it, does not.
 
-Content in one clip has, primitive for primitive, the draw orders it has with the clip not
-there, wherever the clip lies over it. A primitive wholly inside its clip meets nothing outside
-it and is ordered as before, and a scene none of whose primitives a clip cuts or drops is the
-scene it was. This applies with fast mode off too: a blur at the edge of a scroll container, a
-clipped panel or the window no longer pops as its box crosses the edge.
+The window tells the scene each clip as it pushes and pops it, so the scene knows the clips a
+primitive is painted in one by one, not only their intersection. With a clip not there a
+primitive covers its bounds within the clips pushed inside that one: a child of a card that
+clips its content, cut by the viewport the card scrolls in, reaches as far as the card, and a
+row's border, drawn in a mask of its own, as far as the border. What was painted before a clip
+was pushed lies behind everything in it: a dropped primitive with nothing of the clip's under
+it is ordered over what was painted, before the clip, where it would come into view.
+
+Content in a clip has, primitive for primitive, the draw orders it has with the clip not there,
+wherever the clip lies over it. A primitive wholly inside its mask meets nothing outside it and
+is ordered as before, and a scene none of whose primitives a clip cuts or drops is the scene it
+was. This applies with fast mode off too: a blur at the edge of a scroll container, a clipped
+panel or the window no longer pops as its box crosses the edge.
 
 A layer's tiles draw the content's primitives at the orders the content gave them as a whole,
 not at orders worked out among the primitives over each tile, which changed at a tile's edge
 when what lay under a shadow's box did not reach into the tile, and left a step in the blur
-there.
+there. A list's rows are scenes of their own, ordered as the content is put together, and a
+tile is drawn again when those orders change.
 
-The entries are kept by clip: primitives of one content mask are ordered against each other,
-not against what another clip dropped where they happen to lie in the window. What is painted
-outside a clip (the background behind a viewport, an overlay over it) lies under or over a kept
-shadow where it lies under or over the blur that shows. A dropped primitive further than 2048
-device pixels from its clip leaves no entry, and a primitive is raised past what it lies over at
-most 256 orders at a time.
+The rule has bounds. A dropped primitive further than 2048 device pixels from a clip leaves no
+entry there, so a blur reaching further than that is ordered without what lies under its box. A
+primitive is raised past what it lies over by at most 256 orders at a time, which content whose
+rows each overlap the one before for hundreds of rows exceeds. A primitive painted beside a
+shadow, not over its box, is not ordered by the shadow, kept or not: a blur and such a
+neighbour are drawn by their draw orders, as they always were. And a clip pushed some other way
+than `Window::with_content_mask` is known to the scene only as the mask it leaves, and is taken
+whole.
 
 The renderers' groups (`fast::layers::tests` in `gpui_wgpu`, `fast::layers` in `gpui_apple`)
 compare content drawn from tiles with the same content drawn directly, byte for byte: tiles of
