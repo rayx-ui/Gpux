@@ -395,8 +395,14 @@ meets no other is ordered as it is alone, and every row keeps its orders while t
 was ordered after stay. So a row scrolled into a list costs its own ordering: ordering the
 whole content for every row made a frame that scrolled a row in cost 13.7 ms far down a list
 of rows of forty quads, where the list painted without a layer takes 1.3 ms and such a frame
-now takes 0.5 ms. Rows that each reach over the one before are one run, ordered again
-together when a row joins or leaves it.
+now takes 0.5 ms. A `list` paints the rows it shows in every frame, one after another in one
+scene, which orders them as the content wants them: rows painted together that met nothing
+else painted there keep the orders they were painted at, and are not painted again to find
+them out (a frame scrolling a `list` of plain rows a row takes 1.35 ms, as before the kept
+shadows, where painting them again made it 1.46 ms). Rows that each reach over the one before
+are one run, ordered again together when a row joins or leaves it: a `uniform_list` of such
+rows of forty quads takes 0.5 ms a frame, where it took 0.24 ms before and takes 1.35 ms
+without a layer.
 
 What is painted after a scrolling container lies over all of it, as it lies over the
 container's layer when it has one: a bar laid over the container's edge, or its scrollbar, is

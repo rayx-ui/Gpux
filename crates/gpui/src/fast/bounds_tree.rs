@@ -603,8 +603,7 @@ where
         let (across, down) = (far.0 - begins.0, far.1 - begins.1);
         let cells = |extent: f64, scale: f64| ((extent / (CELL_SIZE * scale)).ceil()).max(1.);
         let mut scale = self.scale;
-        while cells(across, scale) * cells(down, scale) > HISTORY_CELLS as f64
-            && scale < (1u64 << 40) as f64
+        while cells(across, scale) * cells(down, scale) > HISTORY_CELLS as f64 && scale.is_finite()
         {
             scale *= 2.;
         }
@@ -612,6 +611,10 @@ where
         let (mut columns, mut rows) = (needed(across), needed(down));
         if scale == self.scale && near == self.near {
             (columns, rows) = (columns.max(self.columns), rows.max(self.rows));
+        }
+        if columns.saturating_mul(rows) > HISTORY_CELLS {
+            // Grown along one axis and then the other, within one scale.
+            (columns, rows) = (needed(across), needed(down));
         }
         if (columns, rows, scale, near) != (self.columns, self.rows, self.scale, self.near) {
             self.held = 0;

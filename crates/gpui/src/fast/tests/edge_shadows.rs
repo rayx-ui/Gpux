@@ -1523,6 +1523,54 @@ fn what_a_tree_held_is_found_as_a_pass_over_it_finds_it() {
     }
 }
 
+/// Bounds too large for any window are held too, in a grid no larger than
+/// any other: the cells grow with what they have to span.
+#[test]
+fn what_a_tree_held_is_found_among_bounds_of_any_size() {
+    use crate::fast::bounds_tree::BoundsTree;
+    let mut rng = StdRng::seed_from_u64(0xb16_b0d5);
+    for huge in [1e7f32, 1e17, 1e30, f32::MAX / 4.] {
+        let mut tree = BoundsTree::<ScaledPixels>::default();
+        let mut inserted = Vec::new();
+        for index in 0..400 {
+            let bounds = match index % 50 {
+                7 => sp(-huge, -huge, 2. * huge, 2. * huge),
+                23 => sp(
+                    rng.random_range(0.0..500.0f32).round(),
+                    -huge,
+                    40.,
+                    2. * huge,
+                ),
+                _ => sp(
+                    rng.random_range(0.0..900.0f32).round(),
+                    rng.random_range(0.0..900.0f32).round(),
+                    rng.random_range(2.0..90.0f32).round(),
+                    rng.random_range(2.0..90.0f32).round(),
+                ),
+            };
+            inserted.push((bounds, tree.insert(bounds)));
+            let first = rng.random_range(0..=inserted.len());
+            let query = sp(
+                rng.random_range(-20.0..900.0f32).round(),
+                rng.random_range(-20.0..900.0f32).round(),
+                rng.random_range(1.0..200.0f32).round(),
+                rng.random_range(1.0..30.0f32).round(),
+            );
+            let expected = inserted[..first]
+                .iter()
+                .filter(|(bounds, _)| bounds.intersects(&query))
+                .map(|(_, ordering)| *ordering)
+                .max()
+                .unwrap_or(0);
+            assert_eq!(
+                tree.max_behind(first, &query).0,
+                expected,
+                "bounds of {huge}, the first {first}"
+            );
+        }
+    }
+}
+
 /// The scene's tree replays the orderings of the last fill while the same
 /// bounds come in the same order. Bounds it was given an ordering for
 /// (`insert_at`) are part of that, and an ordering given last time is not
@@ -1901,8 +1949,23 @@ fn a_row_scrolled_in_costs_its_own_ordering() {
     }
 }
 
-/// A long `uniform_list` of rows of forty quads.
-struct LongList;
+/// A long list of rows of forty quads: a `uniform_list`, or a `list` when
+/// it has a state for one.
+struct LongList(Option<crate::ListState>);
+
+fn long_list_row(row: usize) -> crate::Div {
+    use crate::{ParentElement as _, Styled as _, div, px, rgb};
+    div()
+        .w(px(900.))
+        .h(px(24.))
+        .flex()
+        .bg(if row.is_multiple_of(2) {
+            rgb(0xf4f1ea)
+        } else {
+            rgb(0xe9e4d8)
+        })
+        .children((0..40).map(|_| div().w(px(8.)).h(px(12.)).ml(px(2.)).bg(rgb(0x224466))))
+}
 
 impl crate::Render for LongList {
     fn render(
@@ -1910,102 +1973,228 @@ impl crate::Render for LongList {
         _: &mut crate::Window,
         cx: &mut crate::Context<Self>,
     ) -> impl crate::IntoElement {
-        use crate::{ParentElement as _, Styled as _, div, px, rgb};
-        div().size_full().bg(rgb(0xffffff)).child(
-            crate::uniform_list(
+        use crate::{IntoElement as _, ParentElement as _, Styled as _, div, px, rgb};
+        let list = match &self.0 {
+            Some(state) => crate::list(state.clone(), |row, _, _| {
+                long_list_row(row).into_any_element()
+            })
+            .w(px(900.))
+            .h(px(700.))
+            .bg(rgb(0xffffff))
+            .into_any_element(),
+            None => crate::uniform_list(
                 "list",
                 20_000,
                 cx.processor(|_, range: std::ops::Range<usize>, _, _| {
-                    range
-                        .map(|row| {
-                            div()
-                                .w(px(900.))
-                                .h(px(24.))
-                                .flex()
-                                .bg(if row % 2 == 0 {
-                                    rgb(0xf4f1ea)
-                                } else {
-                                    rgb(0xe9e4d8)
-                                })
-                                .children((0..40).map(|_| {
-                                    div().w(px(8.)).h(px(12.)).ml(px(2.)).bg(rgb(0x224466))
-                                }))
-                        })
-                        .collect::<Vec<_>>()
+                    range.map(long_list_row).collect::<Vec<_>>()
                 }),
             )
             .w(px(900.))
             .h(px(700.))
-            .bg(rgb(0xffffff)),
-        )
+            .bg(rgb(0xffffff))
+            .into_any_element(),
+        };
+        div().size_full().bg(rgb(0xffffff)).child(list)
     }
 }
 
 /// A list scrolled a row a frame from its layer's tiles orders the row that
 /// comes into the layer and no other, at its top and far down it: ordering
 /// the layer's whole content for every row, in the content's coordinates,
-/// made such a frame thirty times as dear far down a list as it had been,
-/// and ten times as dear as painting the list without a layer.
+/// made such a frame thirty times as dear far down a `uniform_list` as it
+/// had been, and ten times as dear as painting the list without a layer. A
+/// `list` paints the rows it shows every frame, in one scene, and they keep
+/// the orders that scene gave them.
 #[crate::test]
 fn a_list_scrolled_a_row_a_frame_orders_the_rows_that_come(cx: &mut crate::TestAppContext) {
     use crate::fast::layers::scene::ORDERED_OPERATIONS;
     use crate::{AppContext as _, ScrollDelta, ScrollWheelEvent, TouchPhase, px};
-    let window = crate::fast::tests::layer_support::add_window(cx, |_, _| LongList);
-    let any: crate::AnyWindowHandle = window.into();
-    cx.test_window(any).simulate_scale_factor_change(2.);
-    let draw = |cx: &mut crate::TestAppContext| {
-        cx.update_window(any, |_, window, cx| window.draw(cx).clear(cx))
-            .unwrap();
-    };
-    let wheel = |cx: &mut crate::TestAppContext, dy: f32| {
-        let frame = cx
-            .update_window(any, |_, window, _| window.fast_layers.frame)
-            .unwrap();
-        cx.update_window(any, |_, window, cx| {
-            window.dispatch_event(
-                crate::PlatformInput::ScrollWheel(ScrollWheelEvent {
-                    position: crate::point(px(20.), px(20.)),
-                    delta: ScrollDelta::Pixels(crate::point(px(0.), px(dy))),
-                    modifiers: Default::default(),
-                    touch_phase: TouchPhase::Moved,
-                }),
-                cx,
-            );
-        })
-        .unwrap();
-        let drawn = cx
-            .update_window(any, |_, window, _| window.fast_layers.frame)
-            .unwrap();
-        if drawn == frame {
-            draw(cx);
-        }
-    };
-    draw(cx);
-    draw(cx);
-    // A row: its background and forty quads.
-    let row = 41;
-    for far in [0., 100_000.] {
-        if far > 0. {
-            wheel(cx, -far);
-        }
-        for _ in 0..6 {
-            wheel(cx, -24.);
-        }
-        let mut most = 0;
-        for _ in 0..40 {
-            let before = ORDERED_OPERATIONS.get();
-            wheel(cx, -24.);
-            most = most.max(ORDERED_OPERATIONS.get() - before);
-        }
-        let composited = cx
-            .update_window(any, |_, window, _| {
-                !window.rendered_frame.scene.layers.frames.is_empty()
+    for uniform in [true, false] {
+        let window = crate::fast::tests::layer_support::add_window(cx, move |_, _| {
+            LongList(
+                (!uniform)
+                    .then(|| crate::ListState::new(20_000, crate::ListAlignment::Top, px(0.))),
+            )
+        });
+        let any: crate::AnyWindowHandle = window.into();
+        cx.test_window(any).simulate_scale_factor_change(2.);
+        let draw = |cx: &mut crate::TestAppContext| {
+            cx.update_window(any, |_, window, cx| window.draw(cx).clear(cx))
+                .unwrap();
+        };
+        let wheel = |cx: &mut crate::TestAppContext, dy: f32| {
+            let frame = cx
+                .update_window(any, |_, window, _| window.fast_layers.frame)
+                .unwrap();
+            cx.update_window(any, |_, window, cx| {
+                window.dispatch_event(
+                    crate::PlatformInput::ScrollWheel(ScrollWheelEvent {
+                        position: crate::point(px(20.), px(20.)),
+                        delta: ScrollDelta::Pixels(crate::point(px(0.), px(dy))),
+                        modifiers: Default::default(),
+                        touch_phase: TouchPhase::Moved,
+                    }),
+                    cx,
+                );
             })
             .unwrap();
-        assert!(composited, "the list is drawn from its layer");
-        assert!(
-            most <= 3 * row,
-            "{most} operations ordered in a frame that scrolled one row in, {far} px down"
-        );
+            let drawn = cx
+                .update_window(any, |_, window, _| window.fast_layers.frame)
+                .unwrap();
+            if drawn == frame {
+                draw(cx);
+            }
+        };
+        draw(cx);
+        draw(cx);
+        // A row: its background and forty quads.
+        let row = 41;
+        for far in [0., 100_000.] {
+            if far > 0. {
+                wheel(cx, -far);
+            }
+            for _ in 0..6 {
+                wheel(cx, -24.);
+            }
+            let (mut most, mut composited, mut rows) = (0, 0, 0);
+            for step in 0..60 {
+                let before = ORDERED_OPERATIONS.get();
+                // Down, and back up.
+                wheel(cx, if step < 40 { -24. } else { 24. });
+                most = most.max(ORDERED_OPERATIONS.get() - before);
+                // The orders the layer's content holds, kept or found again,
+                // are those of its rows painted one after another.
+                rows += cx
+                    .update_window(any, |_, window, _| {
+                        let Some(record) = (window.fast_layers.layers.values().next())
+                            .and_then(|layer| layer.record.as_ref())
+                        else {
+                            return 0;
+                        };
+                        let content = &record.content;
+                        let expected = painted_together(content.parts());
+                        let Some(orders) = content.orders() else {
+                            return 0;
+                        };
+                        for ((orders, _), expected) in orders.iter().zip(&expected) {
+                            assert_eq!(&orders[..], &expected[..], "{far} px down, step {step}");
+                        }
+                        orders.len()
+                    })
+                    .unwrap();
+                composited += cx
+                    .update_window(any, |_, window, _| {
+                        !window.rendered_frame.scene.layers.frames.is_empty()
+                    })
+                    .unwrap() as usize;
+            }
+            // A `list` paints its rows again every other frame or so.
+            assert!(
+                composited >= if uniform { 50 } else { 20 },
+                "{composited} of 60 frames were drawn from the list's layer (uniform: {uniform})"
+            );
+            assert!(rows >= 400, "{rows} rows were checked (uniform: {uniform})");
+            assert!(
+                most <= 3 * row,
+                "{most} operations ordered in a frame that scrolled one row in, {far} px down \
+                 (uniform: {uniform})"
+            );
+        }
     }
+}
+
+/// The rows a list paints in one frame are painted one after another in one
+/// scene, which orders them as the content wants them: rows of one such
+/// pass keep the orders they were painted at, and are not painted again to
+/// find them out. A row that met something painted in the scene that became
+/// no part of the content is ordered again, with the rows it meets.
+#[test]
+fn rows_painted_in_one_scene_keep_the_orders_it_gave_them() {
+    use crate::fast::edge_shadows::{ClipOp, clip_op};
+    use crate::fast::layers::scene::{LayerContent, LayerPart, ORDERED_OPERATIONS, PaintPass};
+    let mut rng = StdRng::seed_from_u64(0x9a55_0e5);
+    let region = sp(-4_000_000., -4_000_000., 8_000_000., 8_000_000.);
+    let (mut kept, mut again) = (0, 0);
+    for run in 0..300 {
+        let down = rng.random_range(0..40_000) as f32 * 80.;
+        let count = rng.random_range(3..12);
+        // Now and then a row is painted that the content does not keep:
+        // one that became no part, or a part the content does not hold.
+        let left_out = (rng.random_range(0..3) == 0).then(|| rng.random_range(0..count));
+        let as_a_part = rng.random_range(0..2) == 0;
+        let mut scene = Scene::default();
+        let mut ranges = Vec::new();
+        for index in 0..count {
+            let top = down + index as f32 * 80.;
+            let reach = match rng.random_range(0..3) {
+                0 => rng.random_range(1.0..60.0f32).round(),
+                _ => 0.,
+            };
+            let start = scene.paint_operations.len();
+            scene.insert_primitive(quad(sp(20., top - reach, 360., 76. + reach), region));
+            for _ in 0..rng.random_range(1..5) {
+                let card = sp(
+                    rng.random_range(30.0..250.0f32).round(),
+                    top + rng.random_range(4.0..40.0f32).round(),
+                    rng.random_range(30.0..120.0f32).round(),
+                    rng.random_range(10.0..30.0f32).round(),
+                );
+                scene.insert_primitive(shadow(card, region, 14.));
+                scene.insert_primitive(quad(card, region));
+                if rng.random_range(0..2) == 0 {
+                    // What the card clips, and cuts.
+                    clip_op(&mut scene, ClipOp::Push(card));
+                    let mask = card.intersect(&region);
+                    scene.insert_primitive(quad(
+                        sp(card.left().0 - 10., card.top().0 + 2., 60., 8.),
+                        mask,
+                    ));
+                    clip_op(&mut scene, ClipOp::Pop);
+                }
+            }
+            ranges.push(start..scene.paint_operations.len());
+        }
+        let pass = std::rc::Rc::new(PaintPass::default());
+        let copy = |range: &std::ops::Range<usize>| -> Vec<PaintOperation> {
+            scene.paint_operations[range.clone()]
+                .iter()
+                .map(|operation| match operation {
+                    PaintOperation::Primitive(primitive) => {
+                        PaintOperation::Primitive(primitive.clone())
+                    }
+                    PaintOperation::FastDropped(dropped) => PaintOperation::FastDropped(*dropped),
+                    PaintOperation::FastClip(clip) => PaintOperation::FastClip(*clip),
+                    _ => unreachable!(),
+                })
+                .collect()
+        };
+        let mut parts = Vec::new();
+        for (index, range) in ranges.iter().enumerate() {
+            if left_out == Some(index) && !as_a_part {
+                pass.leave_out(&scene.paint_operations[range.clone()]);
+                continue;
+            }
+            let mut row = Scene::default();
+            row.paint_operations = copy(range);
+            let part = LayerPart::painted(None, std::rc::Rc::new(row), &pass);
+            if left_out != Some(index) {
+                parts.push(part);
+            }
+        }
+        let expected = painted_together(&parts);
+        let before = ORDERED_OPERATIONS.get();
+        let content = LayerContent::from_parts(parts.clone());
+        let orders = content.orders().unwrap();
+        let ordered = ORDERED_OPERATIONS.get() - before;
+        for (index, ((orders, _), expected)) in orders.iter().zip(&expected).enumerate() {
+            assert_eq!(&orders[..], &expected[..], "run {run}, row {index}");
+        }
+        match left_out {
+            None => assert_eq!(ordered, 0, "run {run}: every row keeps its painted orders"),
+            Some(_) => again += (ordered > 0) as usize,
+        }
+        kept += (ordered == 0) as usize;
+    }
+    assert!(kept >= 200, "{kept} contents kept their painted orders");
+    assert!(again >= 20, "{again} contents had rows ordered again");
 }

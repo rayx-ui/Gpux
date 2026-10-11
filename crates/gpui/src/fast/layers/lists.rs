@@ -85,7 +85,7 @@ use crate::{
             policy::{self, Decision},
             record::LayerRecord,
             reuse,
-            scene::{LayerContent, LayerPart, move_primitive},
+            scene::{LayerContent, LayerPart, PaintPass, move_primitive},
             tiles::{combine_tile_hashes, dirty_tiles, part_tile_hashes},
         },
     },
@@ -3566,8 +3566,17 @@ pub(crate) fn end_paint_rows(window: &mut Window, cx: &mut App, id: Option<&Glob
         }
     }
     let mut operations = painted.paint_operations;
+    // The rows were painted one after another in one scene, which ordered
+    // them as the content wants them ordered (see `scene::PaintPass`).
+    let pass = Rc::new(PaintPass::default());
+    let in_rows: usize = paint.spans.iter().map(|span| span.operations.len()).sum();
+    if in_rows != operations.len() {
+        // Something was painted among the rows that is none of them.
+        pass.leave_out(&operations);
+    }
     for span in paint.spans {
         let Some(slot) = frame.slots.get(&span.row) else {
+            pass.leave_out(&operations[span.operations.clone()]);
             continue;
         };
         let slot = slot.scale(scale_factor);
@@ -3603,6 +3612,7 @@ pub(crate) fn end_paint_rows(window: &mut Window, cx: &mut App, id: Option<&Glob
         if spills || span.unheld {
             rows.spilling.insert(span.row, slot.size.height);
             if !span.shown.get() {
+                pass.leave_out(&row_operations);
                 continue;
             }
         } else {
@@ -3660,7 +3670,7 @@ pub(crate) fn end_paint_rows(window: &mut Window, cx: &mut App, id: Option<&Glob
             span.row,
             Row {
                 slot,
-                part: LayerPart::new(Some(reach.unwrap_or_default()), Rc::new(scene)),
+                part: LayerPart::painted(Some(reach.unwrap_or_default()), Rc::new(scene), &pass),
                 tile_hashes,
                 has_paths,
                 translation,
