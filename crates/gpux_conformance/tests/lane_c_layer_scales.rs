@@ -64,6 +64,18 @@ fn clipped_content_scrolls_from_tiles_at_fractional_scales() {
     }
 }
 
+/// A scrolling container inside a scrolling container, out of view for part of the scroll,
+/// under a shadowed bar painted after it: at 1.3333 and 2.625 what the clips leave of what is
+/// out of view is empty, and not the empty box the clips told of (an edge falls between device
+/// pixels), which the scene still has to take for them.
+#[test]
+fn a_container_out_of_view_within_a_container_scrolls_from_tiles_at_fractional_scales() {
+    for scale in [1.3333, 2.625] {
+        let totals = compare(Content::Nested, scale, &scrolls_and_single_pixels());
+        assert_composited(&totals, 90);
+    }
+}
+
 /// Lists, whose rows are kept one by one.
 #[test]
 fn lists_scroll_from_tiles_at_fractional_scales() {

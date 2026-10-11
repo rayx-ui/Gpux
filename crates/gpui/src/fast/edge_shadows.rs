@@ -345,6 +345,12 @@ impl EdgeShadows {
         }
     }
 
+    /// How many clips the window did not tell of the scene has taken in.
+    #[cfg(test)]
+    pub(crate) fn untold_count(&self) -> usize {
+        self.untold.len()
+    }
+
     /// How many shadows the scene kept for what they draw inside their
     /// masks.
     #[cfg(test)]
@@ -556,12 +562,22 @@ fn pushed(scene: &Scene, bounds: Bounds<ScaledPixels>, mask: Bounds<ScaledPixels
 }
 
 /// Whether `mask` is what the clips the window pushed leave.
+///
+/// An empty mask is: what the clips leave of a primitive's bounds is empty
+/// as well, the primitive is dropped by them, and what it lies under is
+/// found through the clips told, one by one. Where edges fall between device
+/// pixels an empty mask is not grown to the grid (`paint::cover_bounds`)
+/// while the clips told are, so the two differ by a few millionths of a
+/// pixel (2.625: an empty mask of 623.99994 against 624): taken for a clip
+/// the window did not tell of, it stopped `levels` at once, and what the
+/// primitive dropped under went unnoticed.
 fn told(scene: &Scene, mask: &Bounds<ScaledPixels>) -> bool {
-    scene
-        .fast_edge_shadows
-        .clips
-        .last()
-        .is_some_and(|clip| clip.mask == *mask)
+    mask.is_empty()
+        || scene
+            .fast_edge_shadows
+            .clips
+            .last()
+            .is_some_and(|clip| clip.mask == *mask)
 }
 
 /// Takes in the mask of a primitive the scene keeps, or keeps an entry of.

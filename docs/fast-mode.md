@@ -44,6 +44,12 @@ mode's retained rows were already painted again by the hovers they read, so a li
 its layer showed the right row where the same list without layers did not:
 `lane_c_list_hover` and `fast::tests::list_hover` hold the two to each other after every move.
 
+The state lives in the element's state, which an element without an id does not have: a hover
+style on an element with no id is compared with nothing, as upstream's is, and a move that
+changes which such row is hovered asks for no frame. Give a row that looks different under the
+pointer an id. (The seventh review of s12c found 43 of 190 frames wrong in a window without
+layers for a `uniform_list` of such rows, the same at the sprint's base.)
+
 ### Cached views and hovers
 
 One piece of fast mode's groundwork is gpux behaviour in every mode: cached views
@@ -487,6 +493,28 @@ does:
   millionths of a pixel off gives a blur a level off in a pixel or two. Its edges are put on a
   grid of sixty-fourths of a device pixel, which moves by whole pixels exactly
   (`paint::shadow_bounds`).
+
+Where these hold, and where they do not:
+
+- **Far down a container.** An edge is the container's origin plus the offset, in logical `f32`
+  pixels, and the error grows with the sum: the 1/64 px absorbs it up to about 50 000 device
+  pixels from a container's origin at fractional scale factors (a `div` of 5000 clipped cards or
+  shadowed rows is equal to the reference at 20 000 and 50 000 px down, differs by a level in a
+  few pixels of a few frames from 100 000, and by a whole row of a clipped card from 300 000).
+  A `uniform_list`, which positions its rows from a small offset, stays equal to 300 000 px.
+  Applying the offset in device pixels, after scaling, would remove the limit. At about 1.05
+  million device pixels (2048 tiles) a layer's tile ids run out: `layer_tile_id` asserts in a
+  debug build.
+- **Against a window that does not snap.** Snapping alone (scroll layers on, in the window and in
+  the reference) can differ from a window with none: a clip edge within 1/64 px past a pixel's
+  boundary lies on it, and takes in or leaves out a row that flooring would not (at 2.625 a
+  clipped card differs by a row, 80 levels, in a still frame). This is part of the snapping
+  exception, which has always moved what is drawn by device pixels; with snapping off nothing
+  changes.
+- **Empty clips.** The mask of a primitive wholly outside a clip is empty and is not grown to the
+  grid; the clips the window told the scene are. At a scale factor whose edges fall between
+  pixels the two differ by a few millionths of a pixel, and the scene takes an empty mask for the
+  clips told (`edge_shadows::told`).
 
 Content painted with a transformation of its own (an element moved, turned or scaled by
 `translate`, `rotate` or `scale`) is shaded from positions the rasterizer interpolates, which

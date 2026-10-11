@@ -2257,3 +2257,46 @@ fn rows_painted_in_one_scene_keep_the_orders_it_gave_them() {
     assert!(kept >= 200, "{kept} contents kept their painted orders");
     assert!(again >= 20, "{again} contents had rows ordered again");
 }
+
+/// What the clips told leave of a primitive that lies wholly outside one of
+/// them is empty. Where edges fall between device pixels the mask such a
+/// primitive carries is the empty box of the logical clips, not grown to the
+/// grid, and differs from the clips told by a few millionths of a pixel: it
+/// is still the clips told, not a clip the window did not tell of, and the
+/// shadow it drops leaves its edge at the clips, so what is painted after it
+/// is raised over the blur.
+#[test]
+fn an_empty_mask_off_the_grid_is_the_clips_told() {
+    use crate::fast::edge_shadows::{ClipOp, clip_op};
+    let outer = sp(20., 20., 360., 200.);
+    let card = sp(40., 400., 320., 100.);
+    let run = |off: f32| {
+        let mut scene = Scene::default();
+        scene.insert_primitive(quad(window(), window()));
+        clip_op(&mut scene, ClipOp::Push(outer));
+        clip_op(&mut scene, ClipOp::BeginScroll);
+        scene.insert_primitive(quad(sp(20., -500., 360., 2000.), outer));
+        clip_op(&mut scene, ClipOp::Push(card));
+        // The card is out of view: the mask it paints in is empty, and
+        // off by `off` from what the two clips told leave.
+        let told = outer.intersect(&card);
+        assert!(told.is_empty());
+        let mask = Bounds {
+            origin: point(told.origin.x + ScaledPixels(off), told.origin.y),
+            size: size(told.size.width - ScaledPixels(2. * off), told.size.height),
+        };
+        scene.insert_primitive(shadow(sp(60., 380., 280., 40.), mask, 12.));
+        clip_op(&mut scene, ClipOp::Pop);
+        clip_op(&mut scene, ClipOp::EndScroll);
+        clip_op(&mut scene, ClipOp::Pop);
+        scene.insert_primitive(quad(sp(100., 200., 200., 60.), window()));
+        (
+            scene.fast_edge_shadows.untold_count(),
+            scene.quads.last().unwrap().order,
+        )
+    };
+    let (exact, exact_order) = run(0.);
+    let (off, off_order) = run(0.00003);
+    assert_eq!(exact, off, "clips the window did not tell of");
+    assert_eq!(exact_order, off_order, "the order of what is painted after");
+}
