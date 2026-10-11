@@ -387,12 +387,18 @@ when what lay under a shadow's box did not reach into the tile, and left a step 
 there. A list's rows are scenes of their own, ordered as the content is put together, and a
 tile is drawn again when those orders change.
 
+What is painted after a scrolling container lies over all of it, as it lies over the
+container's layer when it has one: a bar laid over the container's edge, or its scrollbar, is
+drawn over the blurs of the shadows inside, whatever their draw orders. The window tells the
+scene where a scrolling container's content begins and ends, and the scene orders what follows
+over what each shadow in it draws past its box. Inside the content, a primitive beside a
+shadow that does not lie over its box is not ordered by it, kept or not: a blur and such a
+neighbour are drawn by their draw orders, as they always were.
+
 The rule has bounds. A dropped primitive further than 2048 device pixels from a clip leaves no
 entry there, so a blur reaching further than that is ordered without what lies under its box. A
 primitive is raised past what it lies over by at most 256 orders at a time, which content whose
-rows each overlap the one before for hundreds of rows exceeds. A primitive painted beside a
-shadow, not over its box, is not ordered by the shadow, kept or not: a blur and such a
-neighbour are drawn by their draw orders, as they always were. And a clip pushed some other way
+rows each overlap the one before for hundreds of rows exceeds. And a clip pushed some other way
 than `Window::with_content_mask` is known to the scene only as the mask it leaves, and is taken
 whole.
 
