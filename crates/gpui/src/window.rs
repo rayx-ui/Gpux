@@ -4800,7 +4800,7 @@ impl Window {
 
     /// Floors the near edge and ceils the far edge, producing a strict superset of the raw region.
     #[inline]
-    fn cover_bounds(&self, bounds: Bounds<Pixels>) -> Bounds<ScaledPixels> {
+    pub(crate) fn cover_bounds(&self, bounds: Bounds<Pixels>) -> Bounds<ScaledPixels> {
         Self::cover_bounds_at_scale(bounds, self.scale_factor())
     }
 
@@ -6186,6 +6186,7 @@ impl Window {
         self.invalidator.debug_assert_paint_or_prepaint();
         if let Some(mask) = mask {
             let is_paint = self.is_paint_phase();
+            crate::fast::edge_shadows::push_clip(self, is_paint, &mask);
             let mask = mask.intersect(&self.content_mask());
             let transformed_mask = is_paint.then(|| {
                 self.intersect_paint_content_mask(
@@ -6199,6 +6200,7 @@ impl Window {
             let result = f(self);
             if transformed_mask.is_some() {
                 self.paint_content_mask_stack.pop();
+                crate::fast::edge_shadows::pop_clip(self);
             }
             self.content_mask_stack.pop();
             result

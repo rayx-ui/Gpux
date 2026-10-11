@@ -344,7 +344,9 @@ fn split_top_layers(
                     | PaintOperation::StartPositionedLayer(_)
                     | PaintOperation::StartTopLayer(_) => depth += 1,
                     PaintOperation::EndLayer => depth -= 1,
-                    PaintOperation::Primitive(_) | PaintOperation::FastDropped(_) => {}
+                    PaintOperation::Primitive(_)
+                    | PaintOperation::FastDropped(_)
+                    | PaintOperation::FastClip(_) => {}
                 }
                 end += 1;
                 if depth == 0 {
@@ -593,8 +595,17 @@ impl Scene {
             .get(range.clone())
             .context("scene replay range ends past the scene")?;
         let mut active_layers = Vec::new();
+        // The clips open at the range's start, which what it paints is
+        // ordered by (see `crate::fast::edge_shadows`).
+        let mut active_clips = Vec::new();
         for operation in prefix {
             match operation {
+                PaintOperation::FastClip(clip) => match clip {
+                    crate::fast::edge_shadows::ClipOp::Push(_) => active_clips.push(*clip),
+                    crate::fast::edge_shadows::ClipOp::Pop => {
+                        active_clips.pop();
+                    }
+                },
                 PaintOperation::StartLayer(_)
                 | PaintOperation::StartPositionedLayer(_)
                 | PaintOperation::StartTopLayer(_) => active_layers.push(operation),
@@ -611,9 +622,22 @@ impl Scene {
         for layer in &active_layers {
             self.open_layer(layer);
         }
+        let mut open_clips = active_clips.len();
+        for clip in active_clips {
+            crate::fast::edge_shadows::clip_op(self, clip);
+        }
         let mut open = active_layers.len();
         for operation in operations {
             match operation {
+                PaintOperation::FastClip(clip) => {
+                    match clip {
+                        crate::fast::edge_shadows::ClipOp::Push(_) => open_clips += 1,
+                        crate::fast::edge_shadows::ClipOp::Pop => {
+                            open_clips = open_clips.saturating_sub(1)
+                        }
+                    }
+                    crate::fast::edge_shadows::clip_op(self, *clip);
+                }
                 PaintOperation::Primitive(primitive) => self.insert_primitive(primitive.clone()),
                 PaintOperation::FastDropped(dropped) => {
                     crate::fast::edge_shadows::dropped(self, *dropped)
@@ -637,6 +661,9 @@ impl Scene {
         for _ in 0..open {
             self.pop_layer();
         }
+        for _ in 0..open_clips {
+            crate::fast::edge_shadows::clip_op(self, crate::fast::edge_shadows::ClipOp::Pop);
+        }
         Ok(())
     }
 
@@ -647,7 +674,8 @@ impl Scene {
             PaintOperation::StartTopLayer(bounds) => self.push_top_layer(*bounds),
             PaintOperation::EndLayer
             | PaintOperation::Primitive(_)
-            | PaintOperation::FastDropped(_) => {}
+            | PaintOperation::FastDropped(_)
+            | PaintOperation::FastClip(_) => {}
         }
     }
 

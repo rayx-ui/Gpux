@@ -500,6 +500,23 @@ where
         self.find_max_ordering(query)
     }
 
+    /// How many bounds have been inserted since the tree was cleared.
+    pub(crate) fn inserted(&self) -> usize {
+        self.recorded.len()
+    }
+
+    /// The greatest ordering among the first `count` bounds inserted that
+    /// `query` meets, or 0 when it meets none: what the tree answered
+    /// before the bounds after them were inserted.
+    pub(crate) fn max_among_first(&self, count: usize, query: &Bounds<U>) -> u32 {
+        self.recorded[..count.min(self.recorded.len())]
+            .iter()
+            .filter(|(bounds, _)| bounds.intersects(query))
+            .map(|(_, ordering)| *ordering)
+            .max()
+            .unwrap_or(0)
+    }
+
     /// Sizes the grid to hold `bounds`, so that filling it with bounds
     /// spread over them does not grow it step by step.
     pub(crate) fn cover(&mut self, bounds: &Bounds<U>) {

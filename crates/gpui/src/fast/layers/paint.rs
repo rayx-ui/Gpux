@@ -811,6 +811,7 @@ pub(crate) fn lift_paths(
             PaintOperation::FastDropped(dropped) => {
                 crate::fast::edge_shadows::dropped(&mut rest, *dropped)
             }
+            PaintOperation::FastClip(clip) => crate::fast::edge_shadows::clip_op(&mut rest, *clip),
             PaintOperation::StartLayer(bounds) => rest.push_layer(*bounds),
             PaintOperation::StartPositionedLayer(bounds) => rest.push_positioned_layer(*bounds),
             PaintOperation::StartTopLayer(bounds) => rest.push_top_layer(*bounds),
@@ -989,6 +990,9 @@ pub(crate) fn replay_content<'a>(
                 dropped.mask = dropped.mask.intersect(&viewport);
                 crate::fast::edge_shadows::dropped(scene, dropped);
             }
+            PaintOperation::FastClip(clip) => {
+                crate::fast::edge_shadows::clip_op(scene, clip.moved(delta))
+            }
             PaintOperation::StartLayer(bounds)
             | PaintOperation::StartPositionedLayer(bounds)
             | PaintOperation::StartTopLayer(bounds) => {
@@ -1075,6 +1079,9 @@ pub(crate) fn expanded_scene(scene: &Scene) -> Scene {
             PaintOperation::FastDropped(dropped) => {
                 crate::fast::edge_shadows::dropped(&mut expanded, *dropped)
             }
+            PaintOperation::FastClip(clip) => {
+                crate::fast::edge_shadows::clip_op(&mut expanded, *clip)
+            }
             PaintOperation::StartLayer(bounds) => expanded.push_layer(*bounds),
             PaintOperation::StartPositionedLayer(bounds) => expanded.push_positioned_layer(*bounds),
             PaintOperation::StartTopLayer(bounds) => expanded.push_top_layer(*bounds),
@@ -1150,6 +1157,19 @@ fn repaint(
         in_top_layer: window.next_frame.scene.in_top_layer(),
     });
     mem::swap(&mut window.next_frame.scene, &mut painting.scene);
+    // The painted region is the content's clip, as the viewport is the
+    // clip of content painted without a layer: what it cuts and drops is
+    // ordered as with it not there (see `crate::fast::edge_shadows`).
+    let region = window.cover_bounds(
+        window
+            .content_mask_stack
+            .last()
+            .map_or(Bounds::default(), |mask| mask.bounds),
+    );
+    crate::fast::edge_shadows::clip(
+        &mut window.next_frame.scene,
+        crate::fast::edge_shadows::ClipOp::Push(region),
+    );
     let paint_start = window.paint_index();
     let hovers_start = crate::fast::dependencies::begin_recording(window);
     let recording = cx.begin_recording_dependencies();
@@ -1167,6 +1187,10 @@ fn repaint(
     // hovers they are too.
     let hovers: Rc<[_]> = crate::fast::dependencies::finish_recording(window, hovers_start).into();
     let paint_end = window.paint_index();
+    crate::fast::edge_shadows::clip(
+        &mut window.next_frame.scene,
+        crate::fast::edge_shadows::ClipOp::Pop,
+    );
     mem::swap(&mut window.next_frame.scene, &mut painting.scene);
     window.paint_content_mask_stack.pop();
     window.content_mask_stack.pop();
@@ -1369,6 +1393,9 @@ fn translated_scene(scene: &Scene, delta: Point<ScaledPixels>) -> Scene {
             }
             PaintOperation::FastDropped(dropped) => {
                 crate::fast::edge_shadows::dropped(&mut translated, dropped.moved(delta))
+            }
+            PaintOperation::FastClip(clip) => {
+                crate::fast::edge_shadows::clip_op(&mut translated, clip.moved(delta))
             }
             PaintOperation::StartLayer(bounds) => translated.push_layer(Bounds {
                 origin: bounds.origin + delta,

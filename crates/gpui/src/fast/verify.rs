@@ -173,7 +173,9 @@ fn describe_scene(scene: &crate::Scene, lines: &mut Vec<String>) {
     }
     for operation in &scene.paint_operations {
         match operation {
-            PaintOperation::Primitive(_) | PaintOperation::FastDropped(_) => {}
+            PaintOperation::Primitive(_)
+            | PaintOperation::FastDropped(_)
+            | PaintOperation::FastClip(_) => {}
             PaintOperation::StartLayer(bounds) => lines.push(format!("layer {bounds:?}")),
             PaintOperation::StartPositionedLayer(bounds) => {
                 lines.push(format!("positioned layer {bounds:?}"))
@@ -828,6 +830,7 @@ pub(crate) mod retention {
                     crate::scene::PaintOperation::FastDropped(dropped) => {
                         format!("dropped {dropped:?}")
                     }
+                    crate::scene::PaintOperation::FastClip(clip) => format!("{clip:?}"),
                     crate::scene::PaintOperation::StartLayer(bounds) => format!("layer {bounds:?}"),
                     crate::scene::PaintOperation::StartPositionedLayer(bounds) => {
                         format!("positioned layer {bounds:?}")

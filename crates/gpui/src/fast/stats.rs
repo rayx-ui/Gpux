@@ -551,7 +551,7 @@ fn scene_work(scene: &crate::Scene) -> (u64, u64) {
             PaintOperation::EndLayer => {
                 fixed.pop();
             }
-            PaintOperation::FastDropped(_) => {}
+            PaintOperation::FastDropped(_) | PaintOperation::FastClip(_) => {}
         }
     }
     (primitives, orders)

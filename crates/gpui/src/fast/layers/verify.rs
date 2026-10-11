@@ -80,6 +80,9 @@ fn expand_layer(
                 dropped.mask = dropped.mask.intersect(viewport);
                 crate::fast::edge_shadows::dropped(&mut scratch, dropped);
             }
+            PaintOperation::FastClip(clip) => {
+                crate::fast::edge_shadows::clip_op(&mut scratch, clip.moved(translation))
+            }
             PaintOperation::StartLayer(bounds) => scratch.push_layer(Bounds {
                 origin: bounds.origin + translation,
                 size: bounds.size,

@@ -240,7 +240,7 @@ impl LayerContent {
     /// painted among whatever was painted with it. What the rows are to one
     /// another is worked out here, once for the content: the order each
     /// operation gets when all of them are painted one after another.
-    fn orders(&self) -> Option<&[crate::DrawOrder]> {
+    pub(crate) fn orders(&self) -> Option<&[crate::DrawOrder]> {
         if self.parts.len() <= 1 {
             return None;
         }
@@ -266,6 +266,29 @@ impl LayerContent {
                 })
                 .collect()
         }))
+    }
+
+    /// A hash of the orders each part's paint operations have in the
+    /// content as a whole, part by part: what a part draws does not change
+    /// when another comes or goes, but where its primitives are stacked can.
+    pub(crate) fn part_order_hashes(&self) -> Vec<u64> {
+        use std::hash::Hasher as _;
+        let orders = self.orders();
+        let mut first = 0;
+        self.parts
+            .iter()
+            .map(|part| {
+                let count = part.scene.paint_operations.len();
+                let mut hasher = collections::FxHasher::default();
+                if let Some(orders) = orders {
+                    for order in &orders[first..first + count] {
+                        hasher.write_u32(*order);
+                    }
+                }
+                first += count;
+                hasher.finish()
+            })
+            .collect()
     }
 
     /// The content's scene, when it is one part, as a `div`'s is.

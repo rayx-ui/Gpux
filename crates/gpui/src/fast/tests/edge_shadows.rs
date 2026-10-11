@@ -293,7 +293,7 @@ fn a_neighbour_a_kept_shadow_only_reaches_is_not_ordered_by_it() {
 }
 
 #[test]
-fn what_is_painted_outside_a_clip_lies_under_or_over_the_blur_that_shows() {
+fn what_is_painted_behind_a_clip_lies_under_the_shadows_kept_in_it() {
     let kept = shadow(sp(40., 225., 320., 60.), viewport(), 8.);
     // The window's background and the viewport's own, painted outside the
     // viewport's clip, lie behind it; a footer below the viewport, under
@@ -312,31 +312,17 @@ fn what_is_painted_outside_a_clip_lies_under_or_over_the_blur_that_shows() {
         [Some(1), Some(2), Some(3), Some(2), Some(3)]
     );
 
-    // An overlay painted afterwards over the viewport's bottom edge lies
-    // over the blur; one over its top edge is ordered as it was.
+    // What is painted afterwards beside the shadow's box, over its blur or
+    // elsewhere, is ordered as it was: a shadow orders what lies over its
+    // box, kept or not, and a blur and a neighbour are drawn by their draw
+    // orders.
     let over = quad(sp(100., 200., 200., 40.), window());
     let elsewhere = quad(sp(100., 10., 200., 40.), window());
     primitives.extend([over, elsewhere]);
     let scene = scene_of(&primitives);
     let orders = orders(&scene, &primitives);
     let upstream = upstream_orders(&primitives);
-    // Level with the shadow by what it lies on, and raised past it.
-    assert_eq!(upstream[5], Some(3));
-    assert_eq!(orders[5], Some(4));
-    assert_eq!(orders[6], upstream[6]);
-    // The overlay would come out level with the shadow over the viewport's
-    // background alone.
-    let primitives = [
-        quad(viewport(), window()),
-        shadow(sp(40., 225., 320., 60.), viewport(), 8.),
-        quad(sp(100., 200., 200., 15.), window()),
-    ];
-    let scene = scene_of(&primitives);
-    assert_eq!(upstream_orders(&primitives)[2], Some(2));
-    assert_eq!(
-        self::orders(&scene, &primitives),
-        [Some(1), Some(2), Some(3)]
-    );
+    assert_eq!(orders[5..], upstream[5..]);
 }
 
 #[test]
@@ -821,4 +807,288 @@ fn a_thousand_clips_cost_a_thousand_short_lists() {
     assert_eq!(scene.quads.len(), 2001);
     // Every cut quad lies over the window's background and nothing else.
     assert!(scene.quads[1..].iter().all(|quad| quad.order == 2));
+}
+
+/// What is painted, a clip pushed or popped, or a primitive in the clips
+/// open then.
+#[derive(Clone)]
+enum Item {
+    Push(Bounds<ScaledPixels>),
+    Pop,
+    Quad(Bounds<ScaledPixels>),
+    Shadow(Bounds<ScaledPixels>, f32),
+}
+
+/// Paints `items` as a window does, one large enough to hold them all:
+/// each clip is told to the scene, and each primitive's mask is the clips
+/// open around it, intersected. Returns the scene and the primitives as
+/// they were handed to it.
+fn paint(items: &[Item]) -> (Scene, Vec<Primitive>) {
+    use crate::fast::edge_shadows::{ClipOp, clip_op};
+    let mut scene = Scene::default();
+    let mut masks = vec![sp(-10_000., -10_000., 20_000., 20_000.)];
+    let mut primitives = Vec::new();
+    for item in items {
+        let mask = *masks.last().unwrap();
+        let primitive = match item {
+            Item::Push(clip) => {
+                masks.push(mask.intersect(clip));
+                clip_op(&mut scene, ClipOp::Push(*clip));
+                continue;
+            }
+            Item::Pop => {
+                masks.pop();
+                clip_op(&mut scene, ClipOp::Pop);
+                continue;
+            }
+            Item::Quad(bounds) => quad(*bounds, mask),
+            Item::Shadow(bounds, blur) => shadow(*bounds, mask, *blur),
+        };
+        scene.insert_primitive(primitive.clone());
+        primitives.push(primitive);
+    }
+    (scene, primitives)
+}
+
+/// The order of each primitive of `items`, painted, in turn.
+fn painted_orders(items: &[Item]) -> (Vec<Option<DrawOrder>>, usize) {
+    let (scene, primitives) = paint(items);
+    (orders(&scene, &primitives), scene.fast_edge_shadows.len())
+}
+
+/// `items` with the first clip pushed, the viewport's, not there: grown to
+/// hold everything.
+fn without_the_viewport(items: &[Item]) -> Vec<Item> {
+    let mut items = items.to_vec();
+    let first = items
+        .iter_mut()
+        .find(|item| matches!(item, Item::Push(_)))
+        .unwrap();
+    *first = Item::Push(sp(-10_000., -10_000., 20_000., 20_000.));
+    items
+}
+
+/// A card that clips its content, cut by the viewport's bottom edge, holds
+/// a child taller than itself. With the viewport not there the child
+/// reaches as far as the card, not as far as its own bounds: it does not lie
+/// under the shadow of the card below, whose box begins past the card.
+#[test]
+fn a_clip_inside_a_viewport_ends_where_it_ends() {
+    let card = sp(40., 170., 320., 60.);
+    let next = sp(40., 242., 320., 60.);
+    let items = [
+        Item::Quad(window()),
+        Item::Push(viewport()),
+        Item::Quad(sp(20., -500., 360., 2000.)),
+        // The card, its shadow before it, and the child it clips.
+        Item::Shadow(card, 14.),
+        Item::Quad(card),
+        Item::Push(card),
+        Item::Quad(sp(48., 178., 304., 200.)),
+        Item::Quad(sp(60., 190., 100., 180.)),
+        Item::Pop,
+        // The card below, out of view; its shadow reaches in.
+        Item::Shadow(next, 14.),
+        Item::Quad(next),
+        Item::Pop,
+    ];
+    let (orders, kept) = painted_orders(&items);
+    assert_eq!(kept, 1);
+    // The window, the content, the card's shadow, the card, its children;
+    // then the next card's shadow, over the content alone.
+    assert_eq!(
+        orders,
+        [
+            Some(1),
+            Some(2),
+            Some(3),
+            Some(4),
+            Some(5),
+            Some(6),
+            Some(3),
+            None
+        ]
+    );
+    let (whole, _) = painted_orders(&without_the_viewport(&items));
+    for (order, whole) in orders.iter().zip(&whole) {
+        assert!(order.is_none() || order == whole);
+    }
+
+    // A child that does reach under the next card's shadow, the card not
+    // clipping it, lies under it.
+    let mut unclipped = items.to_vec();
+    unclipped.remove(8);
+    unclipped.remove(5);
+    let (orders, _) = painted_orders(&unclipped);
+    assert_eq!(orders[6], Some(7));
+}
+
+/// A row's border is drawn in a mask of its own, the border's edge. A row
+/// that reaches up over the row before lies over that row's border too,
+/// in view or dropped: clips are told one by one, so what a border covers
+/// with the viewport not there is known.
+#[test]
+fn what_is_painted_in_a_mask_of_its_own_is_among_its_clips_entries() {
+    // Rows 70 px tall, each beginning 8 px above the end of the row before,
+    // bordered below, each holding a shadowed card.
+    let row = |index: usize| {
+        let top = 62. * index as f32 - 40.;
+        let border = sp(20., top + 68., 360., 2.);
+        vec![
+            Item::Quad(sp(20., top, 360., 70.)),
+            Item::Push(border),
+            Item::Quad(sp(20., top, 360., 70.)),
+            Item::Pop,
+            Item::Shadow(sp(40., top + 14., 320., 40.), 16.),
+            Item::Quad(sp(40., top + 14., 320., 40.)),
+        ]
+    };
+    let mut items = vec![Item::Quad(window()), Item::Push(viewport())];
+    items.extend((0..7).flat_map(row));
+    items.push(Item::Pop);
+    let (orders, kept) = painted_orders(&items);
+    let (whole, _) = painted_orders(&without_the_viewport(&items));
+    assert!(kept >= 1, "a shadow below the viewport reaches into it");
+    assert!(orders.iter().any(Option::is_none), "rows are out of view");
+    for (index, (order, whole)) in orders.iter().zip(&whole).enumerate() {
+        assert!(
+            order.is_none() || order == whole,
+            "primitive {index}: {order:?} against {whole:?}"
+        );
+    }
+    // Each row lies over the border of the row before: the orders climb
+    // down the rows.
+    let backgrounds: Vec<_> = (0..7).map(|row| whole[1 + row * 4].unwrap()).collect();
+    assert!(backgrounds.windows(2).all(|pair| pair[0] < pair[1]));
+}
+
+/// What was painted before a clip was pushed lies behind what the clip
+/// holds, where it is: a row the clip drops, with nothing of the clip's
+/// under it, lies over what is behind the stretch of the clip's edge it
+/// would come into view at, as the rows in view lie over what is behind
+/// them.
+#[test]
+fn a_dropped_primitive_lies_over_what_is_behind_its_stretch_of_the_edge() {
+    let items = |left: f32| {
+        vec![
+            Item::Quad(window()),
+            // A nest of backgrounds behind the viewport's right half.
+            Item::Quad(sp(200., 20., 180., 200.)),
+            Item::Quad(sp(206., 26., 168., 188.)),
+            Item::Quad(sp(212., 32., 156., 176.)),
+            Item::Push(viewport()),
+            // A row in view and the next, out of view, with its card's
+            // shadow reaching in.
+            Item::Quad(sp(left, 150., 150., 60.)),
+            Item::Quad(sp(left, 226., 150., 60.)),
+            Item::Shadow(sp(left + 10., 230., 130., 50.), 12.),
+            Item::Pop,
+        ]
+    };
+    // On the left, over the window alone. On the right the row in view
+    // lies over the whole nest, and the one below, when it comes into view
+    // at the viewport's bottom edge, over the outermost of it, which alone
+    // reaches there.
+    let (left, kept) = painted_orders(&items(30.));
+    assert_eq!(kept, 1);
+    assert_eq!(left[4..], [Some(2), None, Some(3)]);
+    let (right, _) = painted_orders(&items(220.));
+    assert_eq!(right[4..], [Some(5), None, Some(4)]);
+}
+
+/// Content in a viewport, with cards that clip what they hold, scattered
+/// in and around it.
+fn random_clipped_content(rng: &mut StdRng) -> Vec<Item> {
+    let mut items = vec![
+        Item::Push(viewport()),
+        Item::Quad(sp(20., -500., 360., 2000.)),
+    ];
+    let scattered = |rng: &mut StdRng, around: Bounds<ScaledPixels>| {
+        let bounds = sp(
+            (around.left().0 + rng.random_range(-40.0..around.size.width.0)).round(),
+            (around.top().0 + rng.random_range(-40.0..around.size.height.0)).round(),
+            rng.random_range(4.0..160.0f32).round(),
+            rng.random_range(4.0..160.0f32).round(),
+        );
+        if rng.random_range(0..3) == 0 {
+            Item::Shadow(bounds, rng.random_range(0.0..24.0))
+        } else {
+            Item::Quad(bounds)
+        }
+    };
+    let everywhere = sp(-20., -200., 440., 640.);
+    for _ in 0..rng.random_range(4..30) {
+        if rng.random_range(0..4) == 0 {
+            // A card: its background, and what it clips.
+            let card = sp(
+                rng.random_range(-20.0..340.0f32).round(),
+                rng.random_range(-200.0..400.0f32).round(),
+                rng.random_range(40.0..200.0f32).round(),
+                rng.random_range(30.0..160.0f32).round(),
+            );
+            items.push(Item::Quad(card));
+            items.push(Item::Push(card));
+            for _ in 0..rng.random_range(1..6) {
+                items.push(scattered(rng, card));
+            }
+            items.push(Item::Pop);
+        } else {
+            items.push(scattered(rng, everywhere));
+        }
+    }
+    items.push(Item::Pop);
+    items
+}
+
+/// Content whose cards clip what they hold has, primitive for primitive,
+/// the orders it has with its viewport not there: the cards' clips stay.
+#[test]
+fn content_with_clips_of_its_own_is_ordered_as_with_its_viewport_not_there() {
+    let mut rng = StdRng::seed_from_u64(0x0c11_bbed);
+    let (mut kept, mut shadows, mut dropped) = (0, 0, 0);
+    for run in 0..500 {
+        let items = random_clipped_content(&mut rng);
+        let (orders, edge) = painted_orders(&items);
+        let (whole, _) = painted_orders(&without_the_viewport(&items));
+        for (index, (order, whole)) in orders.iter().zip(&whole).enumerate() {
+            let Some(order) = order else {
+                dropped += 1;
+                continue;
+            };
+            assert_eq!(
+                Some(*order),
+                *whole,
+                "run {run}, primitive {index} of {}",
+                orders.len()
+            );
+            kept += 1;
+        }
+        shadows += edge;
+    }
+    assert!(kept >= 3000, "{kept} primitives were kept");
+    assert!(dropped >= 1500, "{dropped} primitives were dropped");
+    assert!(shadows >= 100, "{shadows} shadows were kept for their blur");
+}
+
+/// Clips are paint operations: a scene replayed from another's operations
+/// knows the clips its primitives were painted in, and orders them alike.
+#[test]
+fn replaying_a_scene_keeps_its_clips() {
+    let mut rng = StdRng::seed_from_u64(0x0c11_95ed);
+    for run in 0..200 {
+        let items = random_clipped_content(&mut rng);
+        let (scene, primitives) = paint(&items);
+        let mut replayed = Scene::default();
+        replayed.replay(0..scene.paint_operations.len(), &scene);
+        assert_eq!(
+            orders(&replayed, &primitives),
+            orders(&scene, &primitives),
+            "run {run}"
+        );
+        assert_eq!(
+            replayed.paint_operations.len(),
+            scene.paint_operations.len(),
+            "run {run}"
+        );
+    }
 }

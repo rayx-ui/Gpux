@@ -223,6 +223,7 @@ fn content_in_parts_draws_each_tile_as_one_scene_does() {
             PaintOperation::FastDropped(dropped) => {
                 crate::fast::edge_shadows::dropped(&mut whole, *dropped)
             }
+            PaintOperation::FastClip(clip) => crate::fast::edge_shadows::clip_op(&mut whole, *clip),
             PaintOperation::StartLayer(bounds) => whole.push_layer(*bounds),
             PaintOperation::StartPositionedLayer(bounds) => whole.push_positioned_layer(*bounds),
             PaintOperation::StartTopLayer(bounds) => whole.push_top_layer(*bounds),
@@ -246,6 +247,7 @@ fn content_in_parts_draws_each_tile_as_one_scene_does() {
                 PaintOperation::StartTopLayer(bounds) => PaintOperation::StartTopLayer(*bounds),
                 PaintOperation::EndLayer => PaintOperation::EndLayer,
                 PaintOperation::FastDropped(dropped) => PaintOperation::FastDropped(*dropped),
+                PaintOperation::FastClip(clip) => PaintOperation::FastClip(*clip),
             })
             .collect();
         LayerPart {

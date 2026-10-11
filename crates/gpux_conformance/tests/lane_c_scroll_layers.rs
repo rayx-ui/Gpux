@@ -52,6 +52,18 @@ enum Content {
     /// Sections with backgrounds of their own, each holding three shadowed cards: the first
     /// and the last card's shadows reach into the sections around.
     Sections,
+    /// Rows holding a shadowed card that clips content taller than itself, as a preview of
+    /// a long text does.
+    ClippedCards,
+    /// Bordered rows with backgrounds, each reaching 8 px up over the row before, holding a
+    /// shadowed card.
+    OverlappingRows,
+    /// Narrow shadowed rows in a container with no background of its own: behind it lie
+    /// the panel on the left and a nest of backgrounds on the right.
+    NoBackground,
+    /// Rows of one height in a `uniform_list`, the background of every other one reaching
+    /// 8 px up over the row before, each holding a shadowed card.
+    AlternatingList,
     /// Rows that each draw a path, the last thing painted where it lies.
     Paths,
     /// Rows wider than the viewport: the container scrolls on both axes.
@@ -74,7 +86,14 @@ struct Page {
 /// How many rows the content has.
 fn row_count(content: Content) -> usize {
     match content {
-        Content::Cards | Content::TightCards | Content::HeavyShadows | Content::ShadowedRows => 40,
+        Content::Cards
+        | Content::TightCards
+        | Content::HeavyShadows
+        | Content::ShadowedRows
+        | Content::ClippedCards
+        | Content::OverlappingRows
+        | Content::NoBackground
+        | Content::AlternatingList => 40,
         Content::Sections => 16,
         _ => 120,
     }
@@ -190,6 +209,100 @@ impl RowOf {
                         }]),
                 )
                 .into_any_element(),
+            Content::ClippedCards => div()
+                .py(px(6.))
+                .bg(if index.is_multiple_of(2) {
+                    rgb(0xe9e4d8)
+                } else {
+                    rgb(0xd5dde6)
+                })
+                .child(
+                    div()
+                        .mx_3()
+                        .h(px(60.))
+                        .bg(if marked { rgb(0xffe9c9) } else { rgb(0xffffff) })
+                        .overflow_hidden()
+                        .shadow(vec![BoxShadow {
+                            color: rgba(0x00000080).into(),
+                            offset: point(px(0.), px(0.)),
+                            blur_radius: px(14.),
+                            spread_radius: px(0.),
+                            inset: false,
+                        }])
+                        .child(div().m(px(8.)).h(px(200.)).bg(rgb(0xdfe6d8))),
+                )
+                .into_any_element(),
+            Content::OverlappingRows => div()
+                .mt(px(-8.))
+                .py(px(10.))
+                .border_1()
+                .border_color(rgb(0x8a8272))
+                .bg(if index.is_multiple_of(2) {
+                    rgb(0xe9e4d8)
+                } else {
+                    rgb(0xd5dde6)
+                })
+                .child(
+                    div()
+                        .mx_3()
+                        .h(px(40.))
+                        .bg(if marked { rgb(0xffe9c9) } else { rgb(0xffffff) })
+                        .shadow(vec![BoxShadow {
+                            color: rgba(0x00000080).into(),
+                            offset: point(px(0.), px(0.)),
+                            blur_radius: px(16.),
+                            spread_radius: px(0.),
+                            inset: false,
+                        }]),
+                )
+                .into_any_element(),
+            Content::NoBackground => div()
+                .w(px(180.))
+                .mt(px(14.))
+                .ml(px(if index.is_multiple_of(3) { 12. } else { 150. }))
+                .h(px(44.))
+                .bg(if marked { rgb(0xffe9c9) } else { rgb(0xfbfaf7) })
+                .shadow(vec![BoxShadow {
+                    color: rgba(0x00000080).into(),
+                    offset: point(px(0.), px(0.)),
+                    blur_radius: px(14.),
+                    spread_radius: px(0.),
+                    inset: false,
+                }])
+                .into_any_element(),
+            Content::AlternatingList => div()
+                .h(px(74.))
+                .relative()
+                .child(
+                    div()
+                        .absolute()
+                        .top(px(if index.is_multiple_of(2) { 0. } else { -8. }))
+                        .left_0()
+                        .right_0()
+                        .bottom_0()
+                        .bg(if index.is_multiple_of(2) {
+                            rgb(0xe9e4d8)
+                        } else {
+                            rgb(0xd5dde6)
+                        }),
+                )
+                .child(
+                    div()
+                        .absolute()
+                        .top(px(10.))
+                        .left(px(12.))
+                        .right(px(12.))
+                        .h(px(54.))
+                        .bg(if marked { rgb(0xffe9c9) } else { rgb(0xffffff) })
+                        .shadow(vec![BoxShadow {
+                            color: rgba(0x00000080).into(),
+                            offset: point(px(0.), px(0.)),
+                            blur_radius: px(16.),
+                            spread_radius: px(0.),
+                            inset: false,
+                        }]),
+                )
+                .into_any_element(),
             Content::Sections => div()
                 .pt(px(4.))
                 .pb(px(12.))
@@ -286,7 +399,37 @@ impl Render for Page {
         let panel = div().size_full().bg(rgb(0x1e2430)).p(px(PADDING));
         let (content, tick) = (self.content, self.tick);
         match content {
-            Content::UniformList => {
+            Content::NoBackground => {
+                return panel
+                    .relative()
+                    .child(
+                        div()
+                            .absolute()
+                            .top(px(PADDING))
+                            .bottom(px(PADDING))
+                            .left(px(210.))
+                            .right(px(PADDING))
+                            .bg(rgb(0x2a3a5a))
+                            .p(px(6.))
+                            .child(
+                                div().size_full().bg(rgb(0x35507a)).p(px(6.)).child(
+                                    div()
+                                        .size_full()
+                                        .bg(rgb(0x4a6a9a))
+                                        .p(px(6.))
+                                        .child(div().size_full().bg(rgb(0x6a8aba))),
+                                ),
+                            ),
+                    )
+                    .child(
+                        div()
+                            .id("scroll")
+                            .size_full()
+                            .overflow_y_scroll()
+                            .children((0..rows).map(|index| self.row(index))),
+                    );
+            }
+            Content::UniformList | Content::AlternatingList => {
                 return panel.child(
                     uniform_list(
                         "scroll",
@@ -572,6 +715,44 @@ fn shadows_reaching_over_other_backgrounds_scroll_from_tiles() {
             let totals = compare(content, scale, &script);
             assert_composited(&totals, 150);
         }
+    }
+}
+
+/// What the scene knows of clips one by one, not only their intersection: a card that clips
+/// content taller than itself, cut by the viewport, holds nothing under the next card's
+/// shadow; a row's border, drawn in a mask of its own, lies under the next row, which reaches
+/// over it; and a container with no background lies over the panel on one side and a nest of
+/// backgrounds on the other, each behind the rows on its own side.
+#[test]
+fn shadows_at_clips_within_clips_scroll_from_tiles() {
+    for content in [
+        Content::ClippedCards,
+        Content::OverlappingRows,
+        Content::NoBackground,
+    ] {
+        for scale in [1., 2.] {
+            let totals = compare(content, scale, &scrolls_and_single_pixels());
+            // A container with no background has none to bake under its tiles, and keeps
+            // today's path: its frames are compared all the same.
+            if !matches!(content, Content::NoBackground) {
+                assert_composited(&totals, 90);
+            }
+        }
+    }
+}
+
+/// A list's rows are scenes of their own, ordered when the content is put together: a
+/// change of those orders alone, as a row whose background reaches over the row before
+/// comes and goes, draws the tiles it reaches again.
+#[test]
+fn shadowed_list_rows_reaching_over_one_another_scroll_from_tiles() {
+    for scale in [1., 2.] {
+        let totals = compare(
+            Content::AlternatingList,
+            scale,
+            &scrolls_and_single_pixels(),
+        );
+        assert!(totals.composited + totals.repainted > 0);
     }
 }
 

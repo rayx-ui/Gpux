@@ -76,9 +76,9 @@ pub(crate) fn tile_hashes(
                     });
                 }
             }
-            // It draws nothing; what it does to the orders of what does is
+            // They draw nothing; what they do to the orders of what does is
             // hashed with them.
-            PaintOperation::FastDropped(_) => {}
+            PaintOperation::FastDropped(_) | PaintOperation::FastClip(_) => {}
         }
     }
     hashers
@@ -121,7 +121,7 @@ pub(crate) fn part_tile_hashes(
             | PaintOperation::StartPositionedLayer(_)
             | PaintOperation::StartTopLayer(_) => hasher.write_u8(layer_kind(operation)),
             PaintOperation::EndLayer => hasher.write_u8(2),
-            PaintOperation::FastDropped(_) => {}
+            PaintOperation::FastDropped(_) | PaintOperation::FastClip(_) => {}
         }
     }
     let hash = hasher.finish();

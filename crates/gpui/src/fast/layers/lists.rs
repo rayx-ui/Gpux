@@ -1756,6 +1756,7 @@ fn drawn_alike(a: &Row, b: &Row) -> bool {
                 PaintOperation::FastDropped(dropped) => {
                     PaintOperation::FastDropped(dropped.moved(to_row))
                 }
+                PaintOperation::FastClip(clip) => PaintOperation::FastClip(clip.moved(to_row)),
             })
             .collect();
         let (tiles, _) = part_tile_hashes(&operations, paint::TILE_SIZE);
@@ -3588,6 +3589,7 @@ pub(crate) fn end_paint_rows(window: &mut Window, cx: &mut App, id: Option<&Glob
                     bounds.origin = bounds.origin + to_content
                 }
                 PaintOperation::FastDropped(dropped) => *dropped = dropped.moved(to_content),
+                PaintOperation::FastClip(clip) => *clip = clip.moved(to_content),
                 PaintOperation::EndLayer => {}
             }
         }
@@ -3719,11 +3721,20 @@ pub(crate) fn end_paint_rows(window: &mut Window, cx: &mut App, id: Option<&Glob
     for row in rows.rows.values() {
         region = region.union(&row.slot);
     }
-    let hashes = combine_tile_hashes(
-        rows.rows.values().map(|row| row.tile_hashes.as_slice()),
-        paint::TILE_SIZE,
-        region,
-    );
+    // A row's hash is of what it draws, taken once when it is painted;
+    // where the content stacks it among the other rows is hashed with it.
+    let stacked: Vec<Vec<_>> = rows
+        .rows
+        .values()
+        .zip(content.part_order_hashes())
+        .map(|(row, orders)| {
+            row.tile_hashes
+                .iter()
+                .map(|(tile, hash)| (*tile, hash.rotate_left(17) ^ orders))
+                .collect()
+        })
+        .collect();
+    let hashes = combine_tile_hashes(stacked.iter().map(Vec::as_slice), paint::TILE_SIZE, region);
     let has_paths = rows.rows.values().any(|row| row.has_paths);
 
     let old = layer.record.take();
