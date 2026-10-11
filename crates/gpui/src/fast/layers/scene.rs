@@ -156,7 +156,7 @@ impl LayerFrame {
             if part.bounds.is_some_and(|part| !part.intersects(&bounds)) {
                 continue;
             }
-            let orders = orders.map(|orders| &orders[part_index].0);
+            let orders = orders.and_then(|orders| orders[part_index].0.as_deref());
             for (index, operation) in operations.iter().enumerate() {
                 let PaintOperation::Primitive(primitive) = operation else {
                     continue;
@@ -194,8 +194,9 @@ pub struct LayerContent {
 }
 
 /// The order of each of a part's paint operations among the parts it is
-/// ordered with, and a hash of them.
-type PartOrders = (Rc<[crate::DrawOrder]>, u64);
+/// ordered with, and a hash of them; none, and no hash, where those are the
+/// orders the operations hold, as they are for a part that meets no other.
+type PartOrders = (Option<Rc<[crate::DrawOrder]>>, u64);
 
 /// A part of a layer's content.
 #[derive(Clone)]
@@ -234,6 +235,11 @@ thread_local! {
     /// the tests that hold a row scrolled in to its own cost.
     #[cfg(test)]
     pub(crate) static ORDERED_OPERATIONS: std::cell::Cell<usize> =
+        const { std::cell::Cell::new(0) };
+    /// How many times [`LayerContent::orders`] has compared a part's extent
+    /// with others', for the tests that hold it to a few a part.
+    #[cfg(test)]
+    pub(crate) static COMPARED_EXTENTS: std::cell::Cell<usize> =
         const { std::cell::Cell::new(0) };
 }
 
@@ -285,9 +291,14 @@ pub(crate) struct PaintPass {
 
 impl PaintPass {
     /// Notes `operations`, painted in the pass, which become no part.
-    pub(crate) fn leave_out(&self, operations: &[PaintOperation]) {
+    /// `moved`: how far the pass's parts were moved from where they were
+    /// painted and these were not, since a part's extent is where the part
+    /// stands in the content.
+    pub(crate) fn leave_out(&self, operations: &[PaintOperation], moved: Point<ScaledPixels>) {
         if !operations.is_empty() {
-            self.apart.borrow_mut().push(ordering_extent(operations));
+            self.apart
+                .borrow_mut()
+                .push(translate_bounds(ordering_extent(operations), moved));
         }
     }
 }
@@ -389,6 +400,22 @@ impl LayerContent {
         }
     }
 
+    /// [`LayerContent::orders`], spelled out for every part.
+    #[cfg(test)]
+    pub(crate) fn orders_in_full(&self) -> Option<Vec<Vec<crate::DrawOrder>>> {
+        let orders = self.orders()?;
+        Some(
+            self.parts
+                .iter()
+                .zip(orders)
+                .map(|(part, (orders, _))| match orders {
+                    Some(orders) => orders.to_vec(),
+                    None => orders_of(&part.scene.paint_operations).collect(),
+                })
+                .collect(),
+        )
+    }
+
     /// The content's parts, in order.
     #[cfg(test)]
     pub(crate) fn parts(&self) -> &[LayerPart] {
@@ -416,74 +443,15 @@ impl LayerContent {
 
 /// The orders of `parts`, part by part (see [`LayerContent::orders`]).
 fn stack(parts: &[LayerPart]) -> Vec<PartOrders> {
-    use std::hash::Hasher as _;
-    // The parts that are ordered together: each set by its first part, with
-    // the box around the extents of them all. A part whose extent lies
-    // clear of that box meets none of them.
-    let mut set_of: Vec<usize> = (0..parts.len()).collect();
-    let mut sets: Vec<(usize, Bounds<ScaledPixels>)> = Vec::new();
-    for (index, part) in parts.iter().enumerate() {
-        let mut joined: Option<usize> = None;
-        let mut at = 0;
-        while at < sets.len() {
-            if !sets[at].1.intersects(&part.extent) {
-                at += 1;
-                continue;
-            }
-            match joined {
-                None => {
-                    sets[at].1 = sets[at].1.union(&part.extent);
-                    set_of[index] = sets[at].0;
-                    joined = Some(at);
-                    at += 1;
-                }
-                Some(first) => {
-                    // The part joins two sets into one.
-                    let (other, extent) = sets.remove(at);
-                    sets[first].1 = sets[first].1.union(&extent);
-                    let into = sets[first].0.min(other);
-                    let from = sets[first].0.max(other);
-                    sets[first].0 = into;
-                    for set in &mut set_of[..=index] {
-                        if *set == from {
-                            *set = into;
-                        }
-                    }
-                }
-            }
+    if apart_in_order(parts) {
+        // Each part is a set of its own, as a list's rows mostly are.
+        for (index, part) in parts.iter().enumerate() {
+            settle(parts, std::slice::from_ref(&index), &part.extent);
         }
-        if joined.is_none() {
-            sets.push((index, part.extent));
-        }
-    }
-
-    let mut members: Vec<usize> = Vec::new();
-    for first in 0..parts.len() {
-        if set_of[first] != first {
-            continue;
-        }
-        members.clear();
-        members.extend((first..parts.len()).filter(|index| set_of[*index] == first));
-        // Each part's orders follow from the parts before it in its set.
-        let mut after = collections::FxHasher::default();
-        let mut kept = true;
-        for index in &members {
-            let part = &parts[*index];
-            kept &= part
-                .stacked
-                .borrow()
-                .as_ref()
-                .is_some_and(|stacked| stacked.after == after.finish());
-            after.write_u64(part.id);
-        }
-        if !kept {
-            let extent = sets
-                .iter()
-                .find(|(set, _)| *set == first)
-                .map_or(parts[first].extent, |(_, extent)| *extent);
-            if !keep_painted(parts, &members, &extent) {
-                order_together(parts, &members);
-            }
+    } else {
+        let (gathered, sets) = gather(parts);
+        for (members, extent) in &sets {
+            settle(parts, &gathered[members.clone()], extent);
         }
     }
     parts
@@ -496,36 +464,187 @@ fn stack(parts: &[LayerPart]) -> Vec<PartOrders> {
         .collect()
 }
 
+/// Sees that the parts at `members` of `parts`, a set ordered together
+/// whose extents `extent` holds, each hold their orders in it: those they
+/// held, if the parts before each in the set are the parts they were
+/// ordered after, or orders found now.
+fn settle(parts: &[LayerPart], members: &[usize], extent: &Bounds<ScaledPixels>) {
+    use std::hash::Hasher as _;
+    // Each part's orders follow from the parts before it in its set.
+    let mut after = collections::FxHasher::default();
+    let mut kept = true;
+    for index in members {
+        let part = &parts[*index];
+        kept &= part
+            .stacked
+            .borrow()
+            .as_ref()
+            .is_some_and(|stacked| stacked.after == after.finish());
+        after.write_u64(part.id);
+    }
+    if !kept && !keep_painted(parts, members, extent) {
+        order_together(parts, members);
+    }
+}
+
+/// Whether `parts` stand one after another down the content, or across it,
+/// each beginning no earlier than the one before it ends: none meets
+/// another, then, and nothing has to be put in order to see it.
+fn apart_in_order(parts: &[LayerPart]) -> bool {
+    #[cfg(test)]
+    COMPARED_EXTENTS.with(|compared| compared.set(compared.get() + parts.len()));
+    let in_order = |begins: fn(&Bounds<ScaledPixels>) -> ScaledPixels,
+                    ends: fn(&Bounds<ScaledPixels>) -> ScaledPixels| {
+        parts
+            .windows(2)
+            .all(|pair| begins(&pair[1].extent) >= ends(&pair[0].extent))
+    };
+    in_order(|extent| extent.top(), |extent| extent.bottom())
+        || in_order(|extent| extent.left(), |extent| extent.right())
+}
+
+/// The sets of parts that are ordered together: the places of `parts`, set
+/// by set and in the content's order within each, and for each set its
+/// stretch of them with the box around its parts' extents. Parts of
+/// different sets have extents that lie clear of one another.
+///
+/// A list's rows come one after another along the axis it scrolls on, so
+/// the parts are first taken in runs along an axis: put in order of where
+/// they begin on it, a part that begins no earlier than everything before it
+/// ends meets none of them. Only the parts of one run, which are few, are
+/// compared with one another. Comparing every row with every set made a
+/// frame of a list of thirteen hundred rows cost twice what it had.
+fn gather(
+    parts: &[LayerPart],
+) -> (
+    Vec<usize>,
+    Vec<(std::ops::Range<usize>, Bounds<ScaledPixels>)>,
+) {
+    let runs = |down: bool| {
+        let begins = |index: usize| match down {
+            true => parts[index].extent.top().0,
+            false => parts[index].extent.left().0,
+        };
+        let ends = |index: usize| match down {
+            true => parts[index].extent.bottom().0,
+            false => parts[index].extent.right().0,
+        };
+        let mut order: Vec<usize> = (0..parts.len()).collect();
+        order.sort_by(|a, b| begins(*a).total_cmp(&begins(*b)));
+        let mut stops = Vec::new();
+        let mut reach = f32::NEG_INFINITY;
+        for (at, index) in order.iter().enumerate() {
+            if at > 0 && begins(*index) >= reach {
+                stops.push(at);
+                reach = f32::NEG_INFINITY;
+            }
+            reach = reach.max(ends(*index));
+        }
+        stops.push(parts.len());
+        (order, stops)
+    };
+    let (mut order, mut stops) = runs(true);
+    if stops.len() * 2 < parts.len() {
+        // Rows laid side by side share the lines they lie on.
+        let across = runs(false);
+        if across.1.len() > stops.len() {
+            (order, stops) = across;
+        }
+    }
+    #[cfg(test)]
+    COMPARED_EXTENTS.with(|compared| compared.set(compared.get() + parts.len()));
+
+    let mut gathered = Vec::with_capacity(parts.len());
+    let mut sets = Vec::with_capacity(stops.len());
+    let mut start = 0;
+    for stop in stops {
+        let run = &mut order[start..stop];
+        start = stop;
+        if let [index] = run {
+            gathered.push(*index);
+            sets.push((gathered.len() - 1..gathered.len(), parts[*index].extent));
+            continue;
+        }
+        // The parts of a run that meet, by the box around those that met so
+        // far: a part whose extent lies clear of that box meets none of
+        // them.
+        run.sort_unstable();
+        let mut met: Vec<(Vec<usize>, Bounds<ScaledPixels>)> = Vec::new();
+        for index in run.iter() {
+            let extent = parts[*index].extent;
+            let mut joined: Option<usize> = None;
+            let mut at = 0;
+            while at < met.len() {
+                #[cfg(test)]
+                COMPARED_EXTENTS.with(|compared| compared.set(compared.get() + 1));
+                if !met[at].1.intersects(&extent) {
+                    at += 1;
+                    continue;
+                }
+                match joined {
+                    None => {
+                        met[at].0.push(*index);
+                        met[at].1 = met[at].1.union(&extent);
+                        joined = Some(at);
+                        at += 1;
+                    }
+                    Some(first) => {
+                        // The part joins two sets into one.
+                        let (members, extent) = met.remove(at);
+                        met[first].0.extend(members);
+                        met[first].1 = met[first].1.union(&extent);
+                    }
+                }
+            }
+            if joined.is_none() {
+                met.push((vec![*index], extent));
+            }
+        }
+        for (mut members, extent) in met {
+            members.sort_unstable();
+            let first = gathered.len();
+            gathered.extend(members);
+            sets.push((first..gathered.len(), extent));
+        }
+    }
+    (gathered, sets)
+}
+
 /// The order of each paint operation in `operations`: a primitive's, and
 /// none for the rest.
-fn orders_of(operations: &[PaintOperation]) -> Rc<[crate::DrawOrder]> {
-    operations
-        .iter()
-        .map(|operation| match operation {
-            PaintOperation::Primitive(primitive) => crate::fast::edge_shadows::order_of(primitive),
-            _ => 0,
-        })
-        .collect()
+fn orders_of(operations: &[PaintOperation]) -> impl Iterator<Item = crate::DrawOrder> + '_ {
+    operations.iter().map(|operation| match operation {
+        PaintOperation::Primitive(primitive) => crate::fast::edge_shadows::order_of(primitive),
+        _ => 0,
+    })
 }
 
 /// Keeps `orders` with each of the parts at `members` of `parts`, a set
-/// ordered together, in turn.
+/// ordered together, in turn: none for a part ordered as its operations
+/// are.
 fn keep_orders(
     parts: &[LayerPart],
     members: &[usize],
-    orders: impl IntoIterator<Item = Rc<[crate::DrawOrder]>>,
+    orders: impl IntoIterator<Item = Option<Rc<[crate::DrawOrder]>>>,
 ) {
     use std::hash::Hasher as _;
     let mut after = collections::FxHasher::default();
     for (index, orders) in members.iter().zip(orders) {
         let part = &parts[*index];
-        let mut hasher = collections::FxHasher::default();
-        for order in orders.iter() {
-            hasher.write_u32(*order);
-        }
+        let hash = match &orders {
+            Some(orders) => {
+                let mut hasher = collections::FxHasher::default();
+                for order in orders.iter() {
+                    hasher.write_u32(*order);
+                }
+                // Never that of a part ordered as its operations are.
+                hasher.finish() | 1
+            }
+            None => 0,
+        };
         *part.stacked.borrow_mut() = Some(Stacked {
             after: after.finish(),
-            orders: (orders, hasher.finish()),
+            orders: (orders, hash),
         });
         after.write_u64(part.id);
     }
@@ -572,13 +691,7 @@ fn keep_painted(parts: &[LayerPart], members: &[usize], extent: &Bounds<ScaledPi
             return false;
         }
     }
-    keep_orders(
-        parts,
-        members,
-        members
-            .iter()
-            .map(|index| orders_of(&parts[*index].scene.paint_operations)),
-    );
+    keep_orders(parts, members, members.iter().map(|_| None));
     true
 }
 
@@ -604,7 +717,7 @@ fn order_together(parts: &[LayerPart], members: &[usize]) {
 /// stands, and a scene's trees keep everything further than their grids
 /// span, some sixteen thousand pixels, in their last cells, where rows far
 /// down a list would all lie.
-fn ordered_together(parts: &[LayerPart], members: &[usize]) -> Vec<Rc<[crate::DrawOrder]>> {
+fn ordered_together(parts: &[LayerPart], members: &[usize]) -> Vec<Option<Rc<[crate::DrawOrder]>>> {
     let origin = parts[members[0]].extent.origin;
     let delta = point(
         ScaledPixels(-origin.x.0.floor()),
@@ -641,11 +754,11 @@ fn ordered_together(parts: &[LayerPart], members: &[usize]) -> Vec<Rc<[crate::Dr
         let ordered = &whole.paint_operations[before..];
         // An operation painted again is an operation again.
         debug_assert_eq!(ordered.len(), operations.len());
-        orders.push(if ordered.len() == operations.len() {
-            orders_of(ordered)
-        } else {
-            orders_of(operations)
-        });
+        // Mostly the orders the part was painted at, which need no keeping.
+        orders.push(
+            (ordered.len() == operations.len() && !orders_of(ordered).eq(orders_of(operations)))
+                .then(|| orders_of(ordered).collect()),
+        );
     }
     orders
 }

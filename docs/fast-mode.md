@@ -400,7 +400,11 @@ scene, which orders them as the content wants them: rows painted together that m
 else painted there keep the orders they were painted at, and are not painted again to find
 them out (a frame scrolling a `list` of plain rows a row takes 1.35 ms, as before the kept
 shadows, where painting them again made it 1.46 ms). Rows that each reach over the one before
-are one run, ordered again together when a row joins or leaves it: a `uniform_list` of such
+are one run, ordered again together when a row joins or leaves it. Which rows meet is found
+without comparing each with all: rows that follow one another down or across the content are
+seen in one pass, and otherwise rows are taken in runs along an axis and compared within a
+run (6.5 µs for a list holding 1339 rows, where comparing every row with every set had
+doubled such a list's frame). A `uniform_list` of such
 rows of forty quads takes 0.5 ms a frame, where it took 0.24 ms before and takes 1.35 ms
 without a layer.
 

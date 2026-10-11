@@ -1524,7 +1524,9 @@ fn what_a_tree_held_is_found_as_a_pass_over_it_finds_it() {
 }
 
 /// Bounds too large for any window are held too, in a grid no larger than
-/// any other: the cells grow with what they have to span.
+/// any other: the cells grow with what they have to span. Bounds with an
+/// edge that is no finite number have no place in a grid, and are found by
+/// looking at every bounds.
 #[test]
 fn what_a_tree_held_is_found_among_bounds_of_any_size() {
     use crate::fast::bounds_tree::BoundsTree;
@@ -1541,6 +1543,11 @@ fn what_a_tree_held_is_found_among_bounds_of_any_size() {
                     40.,
                     2. * huge,
                 ),
+                // An edge that is no number of pixels at all.
+                41 if huge == 1e17 => sp(100., 300., f32::INFINITY, 20.),
+                42 if huge == 1e17 => sp(300., 100., 20., f32::INFINITY),
+                43 if huge == 1e17 => sp(-f32::MAX, 400., f32::INFINITY, f32::INFINITY),
+                44 if huge == 1e17 => sp(f32::NEG_INFINITY, 500., f32::INFINITY, 30.),
                 _ => sp(
                     rng.random_range(0.0..900.0f32).round(),
                     rng.random_range(0.0..900.0f32).round(),
@@ -1842,9 +1849,9 @@ fn rows_ordered_with_the_rows_they_meet_are_ordered_as_the_whole_content_is() {
         let expected = painted_together(&parts);
         let before = ORDERED_OPERATIONS.get();
         let content = LayerContent::from_parts(parts.clone());
-        let orders = content.orders().unwrap();
+        let orders = content.orders_in_full().unwrap();
         let ordered = ORDERED_OPERATIONS.get() - before;
-        for (index, ((orders, _), expected)) in orders.iter().zip(&expected).enumerate() {
+        for (index, (orders, expected)) in orders.iter().zip(&expected).enumerate() {
             assert_eq!(
                 &orders[..],
                 &expected[..],
@@ -1885,7 +1892,7 @@ fn rows_ordered_with_the_rows_they_meet_are_ordered_as_the_whole_content_is() {
 /// that one, and no other.
 #[test]
 fn a_row_scrolled_in_costs_its_own_ordering() {
-    use crate::fast::layers::scene::{LayerContent, ORDERED_OPERATIONS};
+    use crate::fast::layers::scene::{COMPARED_EXTENTS, LayerContent, ORDERED_OPERATIONS};
     let rows = |reaching: bool| {
         (0..201)
             .map(|index| {
@@ -1921,6 +1928,7 @@ fn a_row_scrolled_in_costs_its_own_ordering() {
         let next = LayerContent::from_parts(rows[1..].iter().cloned());
         let before = ORDERED_OPERATIONS.get();
         let orders = next.orders().unwrap();
+        let in_full = next.orders_in_full().unwrap();
         let ordered = ORDERED_OPERATIONS.get() - before;
         match reaching {
             // The row that left lay under the second, which is ordered
@@ -1933,19 +1941,50 @@ fn a_row_scrolled_in_costs_its_own_ordering() {
         let unchanged = kept[1..]
             .iter()
             .zip(orders.iter())
-            .filter(|((before, _), (after, _))| std::rc::Rc::ptr_eq(before, after))
+            .filter(|((before, was), (after, is))| {
+                was == is
+                    && match (before, after) {
+                        (Some(before), Some(after)) => std::rc::Rc::ptr_eq(before, after),
+                        (before, after) => before.is_none() && after.is_none(),
+                    }
+            })
             .count();
         assert!(unchanged >= 198, "{unchanged} rows kept their orders");
         assert_eq!(painted_together(&rows[1..]).len(), orders.len());
-        for ((orders, _), expected) in orders.iter().zip(painted_together(&rows[1..])) {
+        for (orders, expected) in in_full.iter().zip(painted_together(&rows[1..])) {
             assert_eq!(&orders[..], &expected[..]);
         }
 
-        // The same content asked again costs nothing.
+        // The same content asked again costs nothing, and finding which
+        // rows meet compares each with the few beside it, not with them
+        // all.
         let before = ORDERED_OPERATIONS.get();
+        let compared = COMPARED_EXTENTS.get();
         let again = LayerContent::from_parts(rows[1..].iter().cloned());
         again.orders().unwrap();
         assert_eq!(ORDERED_OPERATIONS.get(), before);
+        let compared = COMPARED_EXTENTS.get() - compared;
+        assert!(compared <= 3 * 200, "{compared} comparisons for 200 rows");
+    }
+
+    // Two thousand rows, down a list and side by side.
+    for sideways in [false, true] {
+        let rows: Vec<_> = (0..2000)
+            .map(|index| {
+                let along = 1_000_000. + index as f32 * 8.;
+                row_part(&[Item::Quad(match sideways {
+                    false => sp(20., along, 360., 8.),
+                    true => sp(along, 20., 8., 360.),
+                })])
+            })
+            .collect();
+        let compared = COMPARED_EXTENTS.get();
+        LayerContent::from_parts(rows).orders().unwrap();
+        let compared = COMPARED_EXTENTS.get() - compared;
+        assert!(
+            compared <= 2 * 2000,
+            "{compared} comparisons for 2000 rows (side by side: {sideways})"
+        );
     }
 }
 
@@ -2007,7 +2046,7 @@ impl crate::Render for LongList {
 /// the orders that scene gave them.
 #[crate::test]
 fn a_list_scrolled_a_row_a_frame_orders_the_rows_that_come(cx: &mut crate::TestAppContext) {
-    use crate::fast::layers::scene::ORDERED_OPERATIONS;
+    use crate::fast::layers::scene::{COMPARED_EXTENTS, ORDERED_OPERATIONS};
     use crate::{AppContext as _, ScrollDelta, ScrollWheelEvent, TouchPhase, px};
     for uniform in [true, false] {
         let window = crate::fast::tests::layer_support::add_window(cx, move |_, _| {
@@ -2057,11 +2096,14 @@ fn a_list_scrolled_a_row_a_frame_orders_the_rows_that_come(cx: &mut crate::TestA
                 wheel(cx, -24.);
             }
             let (mut most, mut composited, mut rows) = (0, 0, 0);
+            let mut compared = 0;
             for step in 0..60 {
                 let before = ORDERED_OPERATIONS.get();
+                let compared_before = COMPARED_EXTENTS.get();
                 // Down, and back up.
                 wheel(cx, if step < 40 { -24. } else { 24. });
                 most = most.max(ORDERED_OPERATIONS.get() - before);
+                compared = compared.max(COMPARED_EXTENTS.get() - compared_before);
                 // The orders the layer's content holds, kept or found again,
                 // are those of its rows painted one after another.
                 rows += cx
@@ -2073,15 +2115,16 @@ fn a_list_scrolled_a_row_a_frame_orders_the_rows_that_come(cx: &mut crate::TestA
                         };
                         let content = &record.content;
                         let expected = painted_together(content.parts());
-                        let Some(orders) = content.orders() else {
+                        let Some(orders) = content.orders_in_full() else {
                             return 0;
                         };
-                        for ((orders, _), expected) in orders.iter().zip(&expected) {
+                        for (orders, expected) in orders.iter().zip(&expected) {
                             assert_eq!(&orders[..], &expected[..], "{far} px down, step {step}");
                         }
                         orders.len()
                     })
                     .unwrap();
+
                 composited += cx
                     .update_window(any, |_, window, _| {
                         !window.rendered_frame.scene.layers.frames.is_empty()
@@ -2094,6 +2137,11 @@ fn a_list_scrolled_a_row_a_frame_orders_the_rows_that_come(cx: &mut crate::TestA
                 "{composited} of 60 frames were drawn from the list's layer (uniform: {uniform})"
             );
             assert!(rows >= 400, "{rows} rows were checked (uniform: {uniform})");
+            // Which rows meet is found without comparing each with all.
+            assert!(
+                compared <= 4 * 200,
+                "{compared} comparisons of rows in a frame (uniform: {uniform})"
+            );
             assert!(
                 most <= 3 * row,
                 "{most} operations ordered in a frame that scrolled one row in, {far} px down \
@@ -2116,7 +2164,13 @@ fn rows_painted_in_one_scene_keep_the_orders_it_gave_them() {
     let region = sp(-4_000_000., -4_000_000., 8_000_000., 8_000_000.);
     let (mut kept, mut again) = (0, 0);
     for run in 0..300 {
-        let down = rng.random_range(0..40_000) as f32 * 80.;
+        // The rows are painted where the window shows them, and moved to
+        // where they stand in the content, as `lists::end_paint_rows` moves
+        // them.
+        let to_content = point(
+            ScaledPixels(0.),
+            ScaledPixels(rng.random_range(0..40_000) as f32 * 80.),
+        );
         let count = rng.random_range(3..12);
         // Now and then a row is painted that the content does not keep:
         // one that became no part, or a part the content does not hold.
@@ -2125,7 +2179,7 @@ fn rows_painted_in_one_scene_keep_the_orders_it_gave_them() {
         let mut scene = Scene::default();
         let mut ranges = Vec::new();
         for index in 0..count {
-            let top = down + index as f32 * 80.;
+            let top = 40. + index as f32 * 80.;
             let reach = match rng.random_range(0..3) {
                 0 => rng.random_range(1.0..60.0f32).round(),
                 _ => 0.,
@@ -2159,11 +2213,15 @@ fn rows_painted_in_one_scene_keep_the_orders_it_gave_them() {
             scene.paint_operations[range.clone()]
                 .iter()
                 .map(|operation| match operation {
-                    PaintOperation::Primitive(primitive) => {
-                        PaintOperation::Primitive(primitive.clone())
+                    PaintOperation::Primitive(primitive) => PaintOperation::Primitive(
+                        crate::fast::layers::scene::translate_primitive(primitive, to_content),
+                    ),
+                    PaintOperation::FastDropped(dropped) => {
+                        PaintOperation::FastDropped(dropped.moved(to_content))
                     }
-                    PaintOperation::FastDropped(dropped) => PaintOperation::FastDropped(*dropped),
-                    PaintOperation::FastClip(clip) => PaintOperation::FastClip(*clip),
+                    PaintOperation::FastClip(clip) => {
+                        PaintOperation::FastClip(clip.moved(to_content))
+                    }
                     _ => unreachable!(),
                 })
                 .collect()
@@ -2171,7 +2229,8 @@ fn rows_painted_in_one_scene_keep_the_orders_it_gave_them() {
         let mut parts = Vec::new();
         for (index, range) in ranges.iter().enumerate() {
             if left_out == Some(index) && !as_a_part {
-                pass.leave_out(&scene.paint_operations[range.clone()]);
+                // Noted as it was painted, with how far the rest moved.
+                pass.leave_out(&scene.paint_operations[range.clone()], to_content);
                 continue;
             }
             let mut row = Scene::default();
@@ -2184,9 +2243,9 @@ fn rows_painted_in_one_scene_keep_the_orders_it_gave_them() {
         let expected = painted_together(&parts);
         let before = ORDERED_OPERATIONS.get();
         let content = LayerContent::from_parts(parts.clone());
-        let orders = content.orders().unwrap();
+        let orders = content.orders_in_full().unwrap();
         let ordered = ORDERED_OPERATIONS.get() - before;
-        for (index, ((orders, _), expected)) in orders.iter().zip(&expected).enumerate() {
+        for (index, (orders, expected)) in orders.iter().zip(&expected).enumerate() {
             assert_eq!(&orders[..], &expected[..], "run {run}, row {index}");
         }
         match left_out {

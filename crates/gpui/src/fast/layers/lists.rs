@@ -3572,11 +3572,11 @@ pub(crate) fn end_paint_rows(window: &mut Window, cx: &mut App, id: Option<&Glob
     let in_rows: usize = paint.spans.iter().map(|span| span.operations.len()).sum();
     if in_rows != operations.len() {
         // Something was painted among the rows that is none of them.
-        pass.leave_out(&operations);
+        pass.leave_out(&operations, to_content);
     }
     for span in paint.spans {
         let Some(slot) = frame.slots.get(&span.row) else {
-            pass.leave_out(&operations[span.operations.clone()]);
+            pass.leave_out(&operations[span.operations.clone()], to_content);
             continue;
         };
         let slot = slot.scale(scale_factor);
@@ -3612,7 +3612,8 @@ pub(crate) fn end_paint_rows(window: &mut Window, cx: &mut App, id: Option<&Glob
         if spills || span.unheld {
             rows.spilling.insert(span.row, slot.size.height);
             if !span.shown.get() {
-                pass.leave_out(&row_operations);
+                // Moved to the content already.
+                pass.leave_out(&row_operations, Point::default());
                 continue;
             }
         } else {

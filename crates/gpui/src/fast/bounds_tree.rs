@@ -494,6 +494,9 @@ where
     near: Option<(f64, f64)>,
     /// The furthest right and bottom edges among the bounds held.
     far: (f64, f64),
+    /// Whether a bounds with an edge that is no finite number came, which
+    /// has no place in a grid: every bounds is looked at, then.
+    endless: bool,
 }
 
 /// What a [`History`] begins at a multiple of, so that bounds coming a
@@ -544,6 +547,7 @@ where
             self.scale = 1.;
             self.near = None;
             self.far = (0., 0.);
+            self.endless = false;
         }
     }
 
@@ -585,6 +589,7 @@ where
             let right: f64 = (bounds.origin.x.clone() + bounds.size.width.clone()).into();
             let bottom: f64 = (bounds.origin.y.clone() + bounds.size.height.clone()).into();
             if !(left.is_finite() && top.is_finite() && right.is_finite() && bottom.is_finite()) {
+                self.endless = true;
                 continue;
             }
             far = (far.0.max(right), far.1.max(bottom));
@@ -789,7 +794,7 @@ where
     /// the answer costs what lies near `query` and not what was inserted.
     pub(crate) fn max_behind(&mut self, count: usize, query: &Bounds<U>) -> (u32, usize) {
         let count = count.min(self.recorded.len());
-        if !Grid::has_area(query) {
+        if !Grid::has_area(query) || self.history.endless {
             let max = self.recorded[..count]
                 .iter()
                 .filter(|(bounds, _)| bounds.intersects(query))
@@ -799,6 +804,9 @@ where
             return (max, count);
         }
         self.history.hold(&self.recorded[..count]);
+        if self.history.endless {
+            return self.max_behind(count, query);
+        }
         self.history.max_among_first(count, query)
     }
 
@@ -1042,6 +1050,7 @@ where
                 scale: 1.,
                 near: None,
                 far: (0., 0.),
+                endless: false,
             },
             replaying: false,
             changed: ChangedBounds {
