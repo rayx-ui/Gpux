@@ -22,6 +22,8 @@ mod checks;
 #[cfg(target_os = "android")]
 mod composition;
 mod platform_views;
+#[cfg(target_os = "android")]
+mod scroll_layers;
 
 #[cfg(target_os = "android")]
 mod android {
@@ -103,6 +105,13 @@ mod android {
             window: AnyWindowHandle,
         ) -> anyhow::Result<image::RgbaImage> {
             app_host::wait_frames(cx, window, 2).await?;
+            self.fetch(cx).await
+        }
+
+        /// The screen as it is, without drawing the window again first: what the frame the
+        /// window last presented shows, whatever drew it (a frame composited from a scroll
+        /// layer, which a refresh would draw from scratch instead).
+        pub async fn fetch(&self, cx: &mut AsyncApp) -> anyhow::Result<image::RgbaImage> {
             let number = self.taken.get() + 1;
             self.taken.set(number);
             let path = self.dir.join(format!("{number}.png"));

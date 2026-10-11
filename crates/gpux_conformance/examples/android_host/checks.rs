@@ -18,26 +18,26 @@ use gpux_conformance::{
 use std::time::{Duration, Instant};
 
 /// How long a check waits for the testkit's action to take effect.
-const ACTION_TIMEOUT: Duration = Duration::from_secs(30);
+pub(crate) const ACTION_TIMEOUT: Duration = Duration::from_secs(30);
 /// How long the system's animation of an app starting or coming back to the front may take.
 const SYSTEM_TRANSITION: Duration = Duration::from_secs(10);
 /// How many of the window's frames a swipe that asserts no timing lasts at least.
 pub(crate) const SWIPE_FRAMES: u32 = 8;
 
-fn pass(id: &str, detail: impl Into<String>) -> ResultLine {
+pub(crate) fn pass(id: &str, detail: impl Into<String>) -> ResultLine {
     ResultLine::new(Outcome::Pass, id.to_string(), detail.into())
 }
 
-fn fail(id: &str, detail: impl Into<String>) -> ResultLine {
+pub(crate) fn fail(id: &str, detail: impl Into<String>) -> ResultLine {
     ResultLine::new(Outcome::Fail, id.to_string(), detail.into())
 }
 
-fn skip(id: &str, detail: impl Into<String>) -> ResultLine {
+pub(crate) fn skip(id: &str, detail: impl Into<String>) -> ResultLine {
     ResultLine::new(Outcome::Skip, id.to_string(), detail.into())
 }
 
 /// Whether the window renders in software (emulators without a host GPU).
-fn software_rendered(cx: &mut AsyncApp, window: AnyWindowHandle) -> bool {
+pub(crate) fn software_rendered(cx: &mut AsyncApp, window: AnyWindowHandle) -> bool {
     window
         .update(cx, |_, window, _| window.gpu_specs())
         .ok()
@@ -45,7 +45,10 @@ fn software_rendered(cx: &mut AsyncApp, window: AnyWindowHandle) -> bool {
         .is_some_and(|specs| specs.is_software_emulated)
 }
 
-async fn open(cx: &mut AsyncApp, scene: &'static SceneSpec) -> anyhow::Result<AnyWindowHandle> {
+pub(crate) async fn open(
+    cx: &mut AsyncApp,
+    scene: &'static SceneSpec,
+) -> anyhow::Result<AnyWindowHandle> {
     let window = cx.open_window(WindowOptions::default(), |window, cx| {
         cx.new(|cx| SceneFrame::new(scene, window, cx))
     })?;
@@ -54,13 +57,13 @@ async fn open(cx: &mut AsyncApp, scene: &'static SceneSpec) -> anyhow::Result<An
     Ok(window)
 }
 
-fn close(cx: &mut AsyncApp, window: AnyWindowHandle) {
+pub(crate) fn close(cx: &mut AsyncApp, window: AnyWindowHandle) {
     window
         .update(cx, |_, window, _| window.remove_window())
         .ok();
 }
 
-async fn sleep(cx: &mut AsyncApp, duration: Duration) {
+pub(crate) async fn sleep(cx: &mut AsyncApp, duration: Duration) {
     cx.background_executor().timer(duration).await;
 }
 
@@ -75,7 +78,7 @@ pub(crate) async fn frame_time(cx: &mut AsyncApp, window: AnyWindowHandle) -> Du
 }
 
 /// The element `query` matches in the latest frame.
-fn find(
+pub(crate) fn find(
     cx: &mut AsyncApp,
     window: AnyWindowHandle,
     query: &Query,
@@ -92,7 +95,7 @@ fn find(
 }
 
 /// The center of the element `query` matches, in the display's physical pixels.
-fn physical_center(
+pub(crate) fn physical_center(
     cx: &mut AsyncApp,
     window: AnyWindowHandle,
     query: &Query,
@@ -107,7 +110,7 @@ fn physical_center(
 }
 
 /// The scroll offset a scrolling scene's status line reports (`offset <n>`).
-fn offset(cx: &mut AsyncApp, window: AnyWindowHandle) -> Option<f32> {
+pub(crate) fn offset(cx: &mut AsyncApp, window: AnyWindowHandle) -> Option<f32> {
     let status = find(cx, window, &Query::role("status"))?;
     status
         .semantics
@@ -118,7 +121,7 @@ fn offset(cx: &mut AsyncApp, window: AnyWindowHandle) -> Option<f32> {
 }
 
 /// Waits until `done` holds, polling every frame, for at most [`ACTION_TIMEOUT`].
-async fn wait_for(
+pub(crate) async fn wait_for(
     cx: &mut AsyncApp,
     window: AnyWindowHandle,
     mut done: impl FnMut(&mut AsyncApp) -> bool,
@@ -151,19 +154,19 @@ fn known_pixel(scene: &SceneSpec) -> Option<(f32, f32, [u8; 4])> {
     })
 }
 
-fn scale_factor(cx: &mut AsyncApp, window: AnyWindowHandle) -> f32 {
+pub(crate) fn scale_factor(cx: &mut AsyncApp, window: AnyWindowHandle) -> f32 {
     window
         .update(cx, |_, window, _| window.scale_factor())
         .unwrap_or(1.)
 }
 
 /// Whether a capture failed because the window's surface is gone (the app is in the background).
-fn surface_lost(error: &anyhow::Error) -> bool {
+pub(crate) fn surface_lost(error: &anyhow::Error) -> bool {
     format!("{error:#}").contains("unconfigured")
 }
 
 /// Captures the window's frame once, without retrying: whether its surface is there.
-fn capture_state(
+pub(crate) fn capture_state(
     cx: &mut AsyncApp,
     window: AnyWindowHandle,
 ) -> Option<anyhow::Result<image::RgbaImage>> {
@@ -533,6 +536,15 @@ pub async fn os_checks(cx: &mut AsyncApp, screens: &Screens) -> Vec<ResultLine> 
     }
     if selected("composition-android-shadow") {
         lines.push(crate::composition::shadow(cx, screens).await);
+    }
+    if selected("scroll-layers-android-div") {
+        lines.push(crate::scroll_layers::div(cx, screens).await);
+    }
+    if selected("scroll-layers-android-list") {
+        lines.push(crate::scroll_layers::list(cx, screens).await);
+    }
+    if selected("scroll-layers-android-resume") {
+        lines.push(crate::scroll_layers::resume(cx, screens).await);
     }
     if selected("platform-view-android") {
         lines.push(crate::platform_views::platform_view(cx, screens).await);

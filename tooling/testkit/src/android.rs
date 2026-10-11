@@ -197,7 +197,7 @@ pub fn cargo_ndk(abi: Abi, sdk: &Sdk) -> Invocation {
             "gpux-conformance",
             "--no-default-features",
             "--features",
-            "app-host",
+            "app-host,diagnostics",
             "--example",
             LIBRARY,
             "--release",
@@ -639,7 +639,7 @@ pub fn signed_with_another_key(install_output: &str) -> bool {
 }
 
 /// The ids of the Android platform checks the host reports, in order.
-pub const PLATFORM_CHECKS: [&str; 11] = [
+pub const PLATFORM_CHECKS: [&str; 14] = [
     "android-startup",
     "android-touch-tap",
     "android-touch-pan",
@@ -649,6 +649,9 @@ pub const PLATFORM_CHECKS: [&str; 11] = [
     "composition-android-input",
     "composition-android-pan",
     "composition-android-shadow",
+    "scroll-layers-android-div",
+    "scroll-layers-android-list",
+    "scroll-layers-android-resume",
     "platform-view-android",
     "platform-view-android-text",
 ];

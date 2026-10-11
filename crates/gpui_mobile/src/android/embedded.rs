@@ -87,6 +87,8 @@ enum EmbeddedEvent {
     },
     SurfaceDestroyed,
     Active(bool),
+    /// Android's `onTrimMemory`.
+    TrimMemory,
     Touch(TouchPoint),
     Quit,
 }
@@ -171,6 +173,11 @@ pub fn surface_destroyed() {
 
 pub fn set_active(active: bool) {
     EventQueue::global().push(EmbeddedEvent::Active(active));
+}
+
+/// The managed Activity's `onTrimMemory`: the window gives its scroll-layer tiles back.
+pub fn trim_memory() {
+    EventQueue::global().push(EmbeddedEvent::TrimMemory);
 }
 
 pub fn touch(pointer_id: i32, x: f32, y: f32, action: u32) {
@@ -293,6 +300,14 @@ fn process_event(
             }
             if let Some(window) = platform.primary_window() {
                 window.set_active(active);
+                if !active {
+                    window.release_layer_tiles();
+                }
+            }
+        }
+        EmbeddedEvent::TrimMemory => {
+            if let Some(window) = platform.primary_window() {
+                window.release_layer_tiles();
             }
         }
         EmbeddedEvent::Touch(point) => {

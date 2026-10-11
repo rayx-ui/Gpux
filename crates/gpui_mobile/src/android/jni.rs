@@ -849,6 +849,8 @@ pub fn run_event_loop(app: &AndroidApp) {
                 platform.did_enter_background();
                 if let Some(win) = platform.primary_window() {
                     win.set_active(false);
+                    // A backgrounded app gives its scroll-layer tiles back.
+                    win.release_layer_tiles();
                 }
             }
             // Pause platform views
@@ -1036,7 +1038,13 @@ fn handle_main_event(_app: &AndroidApp, event: MainEvent<'_>) {
         }
 
         MainEvent::LowMemory => {
-            log::warn!("MainEvent::LowMemory — consider releasing cached resources");
+            log::warn!("MainEvent::LowMemory — releasing scroll-layer tiles");
+            if let Some(win) = PLATFORM
+                .get()
+                .and_then(|platform| platform.primary_window())
+            {
+                win.release_layer_tiles();
+            }
         }
 
         MainEvent::Destroy => {

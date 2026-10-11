@@ -277,7 +277,7 @@ fn the_build_targets_every_abi_at_the_minimum_api_level() {
         for part in [
             ndk.as_str(),
             "--example android_host",
-            "--features app-host",
+            "--features app-host,diagnostics",
             "--release",
             "ANDROID_NDK_HOME=/sdk/ndk/28",
         ] {

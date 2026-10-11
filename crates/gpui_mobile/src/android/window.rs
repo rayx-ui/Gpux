@@ -326,6 +326,12 @@ pub struct AndroidWindow {
     /// fired yet. The event loop keeps at most one, so the request-frame
     /// callback runs once per vsync.
     frame_callback_pending: AtomicBool,
+    /// Whether the window has a renderer to rasterize scroll-layer tiles: not a headless one.
+    renders: bool,
+    /// Set when the renderer's scroll-layer tiles are to be released and the renderer was not
+    /// there to release them (a frame has it, or the surface is lost): the next frame takes
+    /// the release before it draws. See [`AndroidWindow::release_layer_tiles`].
+    release_tiles_pending: AtomicBool,
 }
 
 // SAFETY: `WindowState` is protected by a `Mutex`.
@@ -409,6 +415,8 @@ impl AndroidWindow {
             active: Arc::new(AtomicBool::new(true)),
             force_next_frame_render: Arc::new(AtomicBool::new(true)),
             frame_callback_pending: AtomicBool::new(false),
+            renders: true,
+            release_tiles_pending: AtomicBool::new(false),
         }))
     }
 
@@ -444,6 +452,8 @@ impl AndroidWindow {
             active: Arc::new(AtomicBool::new(false)),
             force_next_frame_render: Arc::new(AtomicBool::new(false)),
             frame_callback_pending: AtomicBool::new(false),
+            renders: false,
+            release_tiles_pending: AtomicBool::new(false),
         })
     }
 
@@ -531,7 +541,11 @@ impl AndroidWindow {
         // texture IDs) survives across the background/foreground cycle.
         if let Some(ref mut renderer) = state.renderer {
             renderer.unconfigure_surface();
+            // The tiles are GPU memory a window without a surface has no use for.
+            renderer.release_layer_tiles();
             log::info!("AndroidWindow::term_window — surface unconfigured (renderer kept alive)");
+        } else {
+            self.release_tiles_pending.store(true, Ordering::Release);
         }
 
         // Release our reference on the native window.
@@ -705,11 +719,35 @@ impl AndroidWindow {
             }
         };
 
+        self.take_pending_release(&mut renderer);
         renderer.draw(scene);
 
         // Put the renderer back.
         let mut state = self.state.lock();
         state.renderer = Some(renderer);
+    }
+
+    /// Releases the renderer's scroll-layer tiles (Android's `onTrimMemory`, the app going to the
+    /// background, the surface being lost). The next frame that composites a layer rasterizes
+    /// its tiles again, from the content the frame carries.
+    ///
+    /// A frame holds the renderer outside the state lock while it draws and the lock may be held
+    /// by another thread, so a release that finds either the lock or the renderer taken leaves
+    /// the work to the next frame instead of waiting for it.
+    pub fn release_layer_tiles(&self) {
+        self.release_tiles_pending.store(true, Ordering::Release);
+        if let Some(mut state) = self.state.try_lock()
+            && let Some(renderer) = state.renderer.as_mut()
+        {
+            self.release_tiles_pending.store(false, Ordering::Release);
+            renderer.release_layer_tiles();
+        }
+    }
+
+    fn take_pending_release(&self, renderer: &mut WgpuRenderer) {
+        if self.release_tiles_pending.swap(false, Ordering::AcqRel) {
+            renderer.release_layer_tiles();
+        }
     }
 
     /// Renders `scene` into the surface and reads the frame back, for conformance probes.
@@ -723,6 +761,7 @@ impl AndroidWindow {
             .renderer
             .take()
             .context("the window has no surface to render into")?;
+        self.take_pending_release(&mut renderer);
         let image = renderer.render_to_image(scene);
         self.state.lock().renderer = Some(renderer);
         image
@@ -1797,6 +1836,25 @@ impl PlatformWindow for AndroidPlatformWindow {
             let mut cb = send_callback.lock();
             cb();
         });
+    }
+
+    fn rasterizes_layer_tiles(&self) -> bool {
+        // The wgpu renderer does (`gpui_wgpu`'s `fast::layers`), once the window has one.
+        self.window.renders
+    }
+
+    fn release_layer_tiles(&self) {
+        self.window.release_layer_tiles();
+    }
+
+    #[cfg(feature = "diagnostics")]
+    fn layer_tile_counters(&self) -> Option<gpui::LayerTileCounters> {
+        self.window
+            .state
+            .lock()
+            .renderer
+            .as_ref()
+            .map(|renderer| renderer.layer_tile_counters())
     }
 
     fn draw(&self, scene: &gpui::Scene) {
