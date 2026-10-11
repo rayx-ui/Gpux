@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 36,
+  "revision": 40,
   "title": "gpux fast mode: retained layout and views, splice, scroll layers and window composition from gpui-fast",
   "validationMode": "sprint",
   "repositories": [
@@ -2270,7 +2270,8 @@
       "kind": "test",
       "criterionIds": [
         "LYR-14",
-        "LYR-15"
+        "LYR-15",
+        "LYR-17"
       ],
       "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/edge_shadows.rs`: a shadow kept for its blur and one dropped; its order over what its box lies on, in view or dropped; under the element casting it; beside a neighbour its blur reaches; with a background or an overlay painted outside its clip; in positioned and fixed layers, and a fixed layer raised over it; an inset shadow; random scenes against upstream's rule (nothing dropped, lowered or reordered; a scene nothing cuts unchanged); random content against the same content with its clip not there, order for order; replayed operations; a tile's scene. After the second review: clips told one by one (a card clipping content taller than itself, a border in a mask of its own, what lies behind a stretch of a clip's edge), random content with clips of its own against the same with its viewport not there, and clips replayed. After the third review: up to 300 bordered rows above a viewport change no order below it; a scene replayed as two balanced ranges; what is painted after a scrolling container over a blur. After the fourth review: a clip like an earlier one after something was painted; what follows a scrolling container over its blurs out of view; random content with scrolling containers told against the same with its viewport not there, replayed whole and as two ranges; a primitive that leaves no operation; what lies behind 16 000 cells and a table without a pass over the scene; `max_behind` against a pass over the bounds; a tree replaying orderings it was given; a layer's content moved and replayed in a viewport. After the fifth review: random rows, reaching over one another or not, ordered with the rows they meet against the whole content painted in one scene; a row scrolled in costs its own ordering, 2 400 000 px down a list; a `uniform_list` scrolled a row a frame orders no more than the rows that come, at its top and 100 000 px down; `max_behind` far from the origin and left of it. After the sixth review: the window test drives a `list` as well as a `uniform_list`, down and back up, and checks every frame's orders against the rows painted one after another; rows painted in one scene keep its orders unless they met something the content does not hold; `max_behind` among bounds of any size. After the seventh review: the comparisons a content of 200 rows, of 2000 rows down a list and of 2000 side by side takes, and those of a frame of both lists in a window; the pass's rows moved into the content as `end_paint_rows` moves them; bounds with an infinite edge. An empty mask off the grid is the clips told.",
       "argv": [
@@ -2394,6 +2395,40 @@
       "expected": {
         "exitCode": 0,
         "minimumTests": 3
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-border-clips",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "LYR-17"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/src/fast/tests/border_clips.rs`: a bordered element tells one clip and makes at most one set of entries (work counters, deterministic); random bordered content, clipped and scrolled, has primitive for primitive the bounds, masks and draw orders it has on the commit before the change; replayed paint operations give the same scene. After the first review: thin elements in the random scenes; a transformed border and a border thinner than its strips told a clip for each strip, in a window; the strips inside the element. Overlapping strips: `inside` for elements under twice their border across.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--features",
+        "test-support",
+        "--lib",
+        "fast::tests::border_clips::"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 8
       },
       "inputs": [
         "crates/gpui/**",
@@ -4032,6 +4067,48 @@
       ]
     },
     {
+      "id": "s12e-border-clips",
+      "title": "A border tells the scene one clip",
+      "dependsOn": [
+        "s12c-edge-shadows"
+      ],
+      "memoryScopes": [
+        "gpui/frame-pipeline"
+      ],
+      "tasks": [
+        {
+          "id": "t55-border-clips",
+          "title": "Paint a border's four sides in one told clip",
+          "descriptionMarkdown": "Implement d-border-clips: have `Style::paint` tell the scene one clip for a border's four side quads, each keeping its strip as its content mask, without the strips being taken as clips the window did not tell of. Write `fast/tests/border_clips.rs`. Measure 8000 bordered rows painted whole as the eighth review of s12c did; if the figure misses 15.7 ms, take the fallback. After the sprint, update the frame-pipeline memory: the hypotheses on border clips and the cost figure, and the edge-shadows rule.",
+          "criterionIds": [
+            "LYR-17"
+          ],
+          "designIds": [
+            "d-border-clips"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-border-clips",
+            "check-edge-shadows"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/style.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/fast/edge_shadows.rs"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "s12b-layers-web-mobile",
       "title": "Scroll layers in the browser, on Android and on iOS",
       "dependsOn": [
@@ -4134,7 +4211,8 @@
       "id": "s13-defaults-docs-comparison",
       "title": "Defaults on, documentation, and the final comparison",
       "dependsOn": [
-        "s12b-layers-web-mobile"
+        "s12b-layers-web-mobile",
+        "s12e-border-clips"
       ],
       "memoryScopes": [
         "gpui",
@@ -4193,7 +4271,7 @@
         {
           "id": "t44-final-comparison",
           "title": "Lane G comparison and the benefit summary",
-          "descriptionMarkdown": "Run `gpux-testkit lane g` on macOS and on a wgpu desktop, including the browser `@timing` layers comparison. Run the Android and iOS hosts' layers-on and layers-off scroll scenes on devices. Compare against the s01 baseline and write the per-mechanism summary in `docs/fast-mode.md`.",
+          "descriptionMarkdown": "Run `gpux-testkit lane g` on macOS and on a wgpu desktop, including the browser `@timing` layers comparison. Run the Android and iOS hosts' layers-on and layers-off scroll scenes on devices. Compare against the s01 baseline and write the per-mechanism summary in `docs/fast-mode.md`. Report what telling clips costs scenes painted whole: 8000 bordered rows and a table of 2000 rows by 20 cells, before s12c (`8285288`), after it, and after t55.",
           "criterionIds": [
             "PERF-4",
             "PERF-6"

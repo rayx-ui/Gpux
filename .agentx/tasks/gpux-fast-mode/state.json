@@ -1,12 +1,12 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 215,
-  "planRevision": 36,
+  "revision": 227,
+  "planRevision": 40,
   "specHashes": {
-    "requirements": "b1b67b9bb707bf8a3373710fa4fe7db3e75a86713c13035007223b9a55f058e1",
-    "design": "2fc763459054c74315b45419a35a857145efda008dd245483efb01e93329f7bd",
-    "plan": "b30399febf0155b5a69feecce5a66f1259cc7fb4168b0f34034c1dfe1c97be42"
+    "requirements": "0d5fd9b8e1e8098a8277bbabc7bc5463f6e2bf994d2da857870a0aae327afed2",
+    "design": "589f33355f86c06cba177a80fac3b3da1421f728ab65c5275e63562d1992936f",
+    "plan": "a38a30c2ee1cbb206231963e338f9d7d8569fffd0dfaa45ccb23e56d3ef87445"
   },
   "tasks": {
     "t01-fast-switches": {
@@ -326,6 +326,12 @@
       "workerIds": [
         "claude-240e1cb7"
       ]
+    },
+    "t55-border-clips": {
+      "status": "done",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     }
   },
   "validationBatches": {
@@ -481,6 +487,15 @@
         }
       },
       "recordedAt": "2026-10-11T13:29:25Z"
+    },
+    "5adaeaa19d1c44de1c09866a143f8e0c9a7cd9d12b13c1f564774eecc321d27c": {
+      "snapshot": {
+        "specHash": "1f24565fbbaed5ef69694e913ec531ae8700455a929b09973465c3b1b84d6ca0",
+        "repositories": {
+          "gpux": "d8a11283a2aa26b851e32df3fde6bcb2db20f067f33459cd53f4b23c67ea8766"
+        }
+      },
+      "recordedAt": "2026-10-11T16:59:19Z"
     }
   },
   "checkResults": {
@@ -1690,6 +1705,40 @@
       "logPath": "artifacts-temp/agentx/gpux-fast-mode/s12d-tile-corrections-final-78c23b99232a.log",
       "logSha256": "5ceb3c7943183e85859a0fb09257ee25f8d7e4778cf83e8831ce18e18afe2db6",
       "inputsHash": "8639f044c02f8da34e740c51afb05096e575d49a081b8c98108637ac4fc9a1ef"
+    },
+    "s12e-border-clips/check-edge-shadows/final": {
+      "checkId": "check-edge-shadows",
+      "boundaryId": "s12e-border-clips",
+      "phase": "final",
+      "batchId": "5adaeaa19d1c44de1c09866a143f8e0c9a7cd9d12b13c1f564774eecc321d27c",
+      "definitionHash": "6821a228ad2bb4aee5c66bb2d14fbaeb0c0408a1150d1730565e3a1837aa444f",
+      "basisHash": "d2f0147dbb2a10afd714f8d4baaa9dc233e0f8613017438ce1022e217e71665b",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 35,
+      "durationSeconds": 11.7558,
+      "recordedAt": "2026-10-11T16:59:17Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s12e-border-clips-final-a835e8b899e4.log",
+      "logSha256": "228adedea79c3c3d8db8a4588690b7173c08473f9e839753604e967fb8268245",
+      "inputsHash": "637e349e5e16f53830579468b929de08f2fa2e63e1bf7d4e7c4838b9a54289aa"
+    },
+    "s12e-border-clips/check-border-clips/final": {
+      "checkId": "check-border-clips",
+      "boundaryId": "s12e-border-clips",
+      "phase": "final",
+      "batchId": "5adaeaa19d1c44de1c09866a143f8e0c9a7cd9d12b13c1f564774eecc321d27c",
+      "definitionHash": "7d1bf072eaf07441b9eece50d42592f78600ff740faca84834b7909acf78211d",
+      "basisHash": "6cdf0095de637545f3960c0c4ef60712e7bf4311fa0bb722dae19d5e679b91a3",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 8,
+      "durationSeconds": 2.2875,
+      "recordedAt": "2026-10-11T16:59:19Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s12e-border-clips-final-efbb8de4f308.log",
+      "logSha256": "7e0cd12b34918656dc7be58da26118c2b2dd8c474ad05c407eaa297e2b35e2b1",
+      "inputsHash": "637e349e5e16f53830579468b929de08f2fa2e63e1bf7d4e7c4838b9a54289aa"
     }
   },
   "reviews": {
@@ -5349,6 +5398,105 @@
         "s12d-stated-limits-misdescribe-what-was-measured"
       ],
       "recordedAt": "2026-10-11T13:31:51Z"
+    },
+    "s12e-border-clips": {
+      "reviewerId": "claude-reviewer-s12e3-7f3c91a2",
+      "snapshotId": "5adaeaa19d1c44de1c09866a143f8e0c9a7cd9d12b13c1f564774eecc321d27c",
+      "criterionIds": [
+        "LYR-17"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/border_clips.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-17"
+          ],
+          "sha256": "576bb26083c61a2716c76620a42b2eafc94362316f96287edd955f66f877b758"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/edge_shadows.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-17"
+          ],
+          "sha256": "becb882479e9afa69014a48d1580f28787f45008fd6b7ecb095957de283fd3fb"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/style.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-17"
+          ],
+          "sha256": "eafebdc1ae7812a0133108b69d7a0c6907a4ef805d1351b8e23b0e5d2486dcf0"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-17"
+          ],
+          "sha256": "3fdc5dfc0cce19df934f4c6b11938a52beb7b74000a2cbb56acd6d8f2cbf17c5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/scene.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-17"
+          ],
+          "sha256": "73ae6e5412baa1521d5499971270ba86e595b870034cd03be65f035eb1549d4b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/border_clips.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-17"
+          ],
+          "sha256": "1f92d1bba544e22edb270d8c4dcc9d5b6f7b2700b744735d839f5d5fb7e6d2df"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/edge_shadows.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-17"
+          ],
+          "sha256": "b8c60e360d02a4de2b05f17bf5f2cad0022f57274bc4fd11b8fcd96ff2bfe21d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s12e-border-clips-final-efbb8de4f308.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "LYR-17"
+          ],
+          "sha256": "7e0cd12b34918656dc7be58da26118c2b2dd8c474ad05c407eaa297e2b35e2b1"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s12e-border-clips-final-a835e8b899e4.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "LYR-17"
+          ],
+          "sha256": "228adedea79c3c3d8db8a4588690b7173c08473f9e839753604e967fb8268245"
+        }
+      ],
+      "summaryMarkdown": "**Verdict: passed at revision 226 (snapshot 5adaeaa1), third review.** The last open finding is resolved; no finding is open.\n\nLYR-17 holds as worded: a bordered element costs the scene one told clip, except an element with a transformation, one thinner than its border, or one less than twice as thick, whose strips overlap, which keep a clip for each strip and so leave the scene exactly as it was. Checked at this head against the s12d head `157b0a9` with my probes: the window-level scene dump (bounds, masks, orders of every primitive, 108 combinations, eight settings) identical; 8 586 frame pairs in the renderer identical, in both the window with every mechanism and the reference; scene fuzz of painted and replayed scenes (whole and cut inside a border) with no difference in any of eight size regimes; the lane C groups pass (`lane_c_scroll_layers` 18, `lane_c_layer_scales` 6, `lane_c_list_hover` 2); `p80`, `p81`, `p86` (207 comparisons at 8 scales) 0 differing steps; `fast::` unit tests 430 pass (the two that fail are my own probe tests, which need environment variables); the sprint's checks (8 and 35 tests) pass. Cost is unchanged by this commit (the scene code is that of the second review); the criterion's figures are mine.\n\n**Not blocking.** (1) A fully rounded element (radius half its height, `rounded_full` with a border) at a layout position that is not a binary fraction takes the clip for each strip in about 12 % of cases (11.8 % of 40 000 pills 24 to 40 px tall, 11.6 % of circles, 0 of 40 000 rows with radius 8): its top and bottom strips touch, and a last-bit error in `top + reach` against `bottom - reach` makes them overlap by an ulp. The scene is the same and the cost is the old one; a tolerance of a hundredth of a pixel in `inside` would take them, if the cost matters. The text says \"less than twice as thick\", where it is also exactly twice at times. (2) No Linux log for this head yet (`s12e-lima2.log` is the previous one); the change is in `border_clips.rs` and tests that ran on Linux before.\n\nNo tracked file touched; scratch worktrees and probe profiles removed.",
+      "findingIds": [
+        "s12e-a-transformed-border-is-not-the-same-scene",
+        "s12e-elements-thinner-than-their-border-leave-the-told-clip",
+        "s12e-the-cost-figure-cannot-fail-and-its-premise-is-gone",
+        "s12e-strips-that-overlap-replay-otherwise-than-painted"
+      ],
+      "recordedAt": "2026-10-11T17:44:25Z"
     }
   },
   "checkpoints": {
@@ -7342,6 +7490,87 @@
         }
       ],
       "descriptionMarkdown": "**Resolved at `157b0a9` (revision 213); no source or test changed since `418a867`.** (1) The 43 of 190 frames are credited to the first review of s12d, rows with an id to the seventh review of s12c's 6 of 60 moves. (2) \"In most frames\" is gone from LYR-15 \"How far it holds\", `docs/fast-mode.md` \"Far down a container\" and the frame-pipeline rule; each gives the share by scale, and every figure matches my probes: of 25 steps at 70 000 px 2 to 3 at 1.1 (3 and 2), 13 to 15 at 1.3333, none at 1.5, 19 to 20 at 1.75, 19 to 22 at 2.5, 15 to 17 at 3; at 100 000, 0 to 1 at 1.1 (0 and 1), 3 to 8 at 1.3333 (8 and 3), none at 1.5; at 1.25 from 100 000, 6 to 8 steps (6 and 8), up to about 1 900 pixels a frame (946 and 1 898), 18 at 200 000 (18 and 18); the clipped card's row (77 levels) from 300 000 at 1.25 only; `uniform_list` to 250 000 at 1.1, 1.3333, 1.75, 2.5 and 3 and to 300 000 at 1.25; `list` at 1.1, 1.75, 2.5 and 3; sideways to 50 000 at 1.25, 1.3333, 1.75 and 2.5. The rule's \"15 to 22 at 1.75, 2.5 and 3\" is the same figures pooled. (3) `check-edge-shadows` carries LYR-15, is a check of `t53-layer-scales`, and its log shows 35 of 35. A grep of the criteria, tasks, checks, docs, memory and source finds no \"most frames\", \"few frames\", \"few pixels\" or misattributed 43 of 190 left. One immaterial looseness remains and does not block: the docs say \"a `div` of 5000 clipped cards or shadowed rows\" where all but the 1.25 measurements used 2000 rows."
+    },
+    {
+      "id": "s12e-a-transformed-border-is-not-the-same-scene",
+      "boundaryId": "s12e-border-clips",
+      "criterionIds": [
+        "LYR-17"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/border_clips.rs",
+          "symbol": "paint"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/border_clips.rs",
+          "symbol": "a_transformed_border_tells_a_clip_for_each_strip"
+        }
+      ],
+      "descriptionMarkdown": "**Resolved at `077a02f` (`ddd2d46`).** `border_clips::paint` paints under a clip for each strip when the element is transformed. The window-level scene dump (six kinds of bordered row, a `div`, a `uniform_list` and nested containers, scales 1, 1.25, 1.3333, 1.5, 2, 2.625, 13 scrolled frames each, fast mode off and with every mechanism but scroll layers; rotate, translate, scale and mixed kinds): the bounds, masks and orders of every quad, shadow, sprite and underline are identical to `157b0a9` in all 108 combinations of all eight settings (the first review's 18 of 18 differing are 0). Pixels in the real renderer, transformed, tiny and mixed rows, `div`, nested containers and `uniform_list`, scales 1.25 and 2, 476 steps each: 8 586 frame pairs, in both windows, 0 differ from `157b0a9` (13 did). The test fails with the fallback removed."
+    },
+    {
+      "id": "s12e-elements-thinner-than-their-border-leave-the-told-clip",
+      "boundaryId": "s12e-border-clips",
+      "criterionIds": [
+        "LYR-17"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/border_clips.rs",
+          "symbol": "inside"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/border_clips.rs",
+          "symbol": "a_border_thinner_than_its_strips_tells_a_clip_for_each_strip"
+        }
+      ],
+      "descriptionMarkdown": "**Resolved at `077a02f` for elements thinner than their border, painted and replayed in the cases that class has.** `border_clips::inside` sends an element whose strips leave its bounds back to a clip for each strip; my scene fuzz (20 000 scenes, elements from nothing to 90 px, borders 0.5 to 6 px, fractional edges): 0 differing orders, 0 differing masks, 0 more untold clips, and all eight regimes 0; the window-level dump identical to `157b0a9` for the tiny and one-pixel rows. The test fails with the fallback removed. A different class, strips that overlap each other inside the element, still replays otherwise than it was painted: `s12e-strips-that-overlap-replay-otherwise-than-painted`."
+    },
+    {
+      "id": "s12e-the-cost-figure-cannot-fail-and-its-premise-is-gone",
+      "boundaryId": "s12e-border-clips",
+      "criterionIds": [
+        "LYR-17"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md"
+        }
+      ],
+      "descriptionMarkdown": "**Resolved at `077a02f`.** LYR-17's cost bullet states the measurement, and the figures are mine: before the kept shadows 10.7 ms (masks only), the s12d head 13.2 ms with each strip a told clip and 64 770 operations, this head 12.55 ms with 16 770, 1.17 against 15.7 / 12.3 = 1.28, a quarter of the operations, about 5 % of the time (0.65 of 13.2 ms). The scene code the probes exercise is unchanged since (`ddd2d46` touches `border_clips.rs` and tests only); the decision it adds is a transform comparison and four comparisons a border. The 19.1 ms is credited to the defect s12d closed and the 6.8 ms is gone from the text. The text departs from the criterion as the user wrote it, which the coordinator tells them."
+    },
+    {
+      "id": "s12e-strips-that-overlap-replay-otherwise-than-painted",
+      "boundaryId": "s12e-border-clips",
+      "criterionIds": [
+        "LYR-17"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/border_clips.rs",
+          "symbol": "inside"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/border_clips.rs"
+        }
+      ],
+      "descriptionMarkdown": "**Resolved at `538edae` (`048e52e`).** `inside` also sends a border whose strips overlap otherwise than equal back to a clip for each strip, the rule I verified. Replay, my fuzz at this head, the eight regimes of painted scenes (20 000 scenes and 6000 each): 0 differing orders, masks or untold clips; replayed whole and split (8000 scenes, 3 509 and 5 336 cuts inside a border): 0. A regime that guards the rule, which the shipped random scenes do not: elements 3 to 7 px tall and 20 to 90 px wide, a border as wide as 2 to 6 px but no wider than the element, no fractional edges, 12 000 scenes replayed whole and in two ranges (5 720 cuts inside a border): 0 differ with the rule and 37 without (27 of 12 000 for 3 to 7 px squares; 3 to 7 px wide and tall elements do not meet it). Production against the helper: the same decision on 280 000 random elements. Ordinary borders are not sent back: plain rows 16 to 48 px tall with a 1 or 2 px border 40 000 of 40 000 one clip, cards 32 to 300 px with 1 to 3 px and radius to 16 39 696 of 40 000, buttons 39 993, boxes 8 to 16 px, one pixel lines and dots 40 000; in windows (`div`, `uniform_list`, nested containers, five scales) 1 475 plain rows, 1 420 rounded cards with a 2 px border and 2 800 clipped cards were each one clip, none a clip for each strip. Scenes and pixels: the window-level dump (108 combinations, eight settings including all three transformations) 0 lines differ from `157b0a9`; 8 586 frame pairs of transformed, tiny and mixed rows 0 differ."
     }
   ],
   "handoffMarkdown": "",

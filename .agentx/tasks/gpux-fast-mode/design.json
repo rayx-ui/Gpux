@@ -844,6 +844,49 @@
           "symbol": "paint_mouse_listeners"
         }
       ]
+    },
+    {
+      "id": "d-border-clips",
+      "requirementIds": [
+        "LYR"
+      ],
+      "descriptionMarkdown": "Builds on d-edge-shadows, which has the window tell the scene each clip it pushes (`Window::with_content_mask`, `PaintOperation::FastClip`) and keeps, per told clip, the entries of what the clip cuts or drops.\n\n`Style::paint` paints a visible border as four quads of the element's bounds, each inside `Window::with_content_mask` of one side's strip (top, bottom, left, right), so that each side is drawn once and the corners are not blended twice. Every strip is a told clip: a push and a pop among the paint operations, a clip record, and, since the quad is cut by its strip, a set of entries holding that one quad.\n\n**One clip for the four.** The border's four quads are painted inside one told clip, the box around the four strips (the element's bounds), and each quad carries its strip as its content mask without the strip being pushed as a clip of its own. A hook in `style.rs` calls into `crates/gpui/src/fast/` for this; the code that tells the clip and sets the masks lives there.\n\n**Strips are not untold clips.** A primitive whose mask is not what the told clips leave is taken to be painted in one clip more that the window did not tell of (`edge_shadows::sight`), kept by mask from the first primitive that comes with it: four strips would be four such clips per border, each with a record and a set of entries, which costs more than today. The scene is told that the masks of what is painted in the border's clip are strips inside it, so `sight` and `levels` take a side quad as painted in the told clip, cut to its strip.\n\n**As built.** `fast/border_clips.rs::paint` tells one `ClipOp::Border { bounds, strips }` (a paint operation like `Push`, closed by `Pop`) and paints the four quads, each inside `Window::with_untold_content_mask` of its strip (the window's own masks are what they were; only the telling is left out). In `edge_shadows`, a border's clip record holds the strips and a count of the quads painted in it. `told` takes a mask inside a border's clip for the clips told, so `sight` makes no untold clip of a strip. Which strip a quad lies in is the k-th by the count, or the first strip holding its non-empty mask (`take_strip`); a quad a clip drops has an empty mask, so `Dropped::strip` keeps the strip it was painted in, and a replay of the operation does not count. `levels` takes the quad's bounds within its strip before the clips are looked at, as it did with the strip a clip of its own; the strip edge, whose set held nothing but the quad, is gone. A closed border's clip pushed again at once goes on with its count (`Scene::replay_balanced` between ranges).\n\n**When it does not apply.** `border_clips::paint` paints a border under a clip for each strip, as before, when the element is painted with a transformation (a transformed element's masks are what its transformation makes of them, `Window::paint_content_mask`, the bounding boxes of the clips: they are never what the clips told leave, so with a clip for each strip each was an untold clip, and with one clip each was taken for the clips told and the scene was ordered otherwise: 49 of 234 frames, and a pixel up to 45 levels at a rotated corner, in the first review of s12e), and when a strip is not within the element's bounds (`border_clips::inside`: a strip is as tall as the widest border or the largest radius from the element's edge, so an element thinner than that has strips outside its clip, which `told` would not take; layout gives an element room for its border, but a custom element or a frame of an animation can hand `Style::paint` such bounds), and when two strips overlap without being the same (an element less than twice as thick as its border: its top and bottom strips reach over each other, and a replay of the operations, which is what a layer's content and a list's rows are, cannot tell which strip a quad was painted in: 6 of 8000 scenes ordered otherwise by a replay, the second review of s12e).\n\n**What stays.** The bounds the scene's tree holds for a side quad are its bounds clipped to its strip, as today, so its draw order, its batch and its pixels are unchanged. With a clip around the element lifted (LYR-14), a border quad reaches as far as its strip: the entry it leaves at an outer clip's edge is its strip within that clip's reach, as today.\n\n**Fallback.** If the measurement misses LYR-17's figure: keep a clip's first entry in the clip record and make its set of entries only for a second (frame-pipeline hypotheses), which spares a border's sets of entries without changing what is told.",
+      "invariantsMarkdown": "- A border's four side quads are painted in one told clip.\n- A side quad's bounds in the scene's tree, its content mask, its draw order and its pixels are what they were with four clips.\n- A strip is never a clip the window did not tell of.\n- Every invariant of d-edge-shadows holds.\n- A transformed border, and one thinner than its strips, are told as they were.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/renderer/wgpu/2026-09-30-renderer-wgpu-srgb-compositing.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/renderer/wgpu/2026-08-07-renderer-wgpu-browser-backend-fallback.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/renderer/wgpu/2026-07-04-renderer-wgpu-shader-effects-backend-capabilities.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/style.rs",
+          "symbol": "paint"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "symbol": "with_content_mask"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/edge_shadows.rs",
+          "symbol": "sight"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/border_clips.rs"
+        }
+      ]
     }
   ],
   "memoryDecisionsConsidered": [
