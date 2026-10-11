@@ -134,11 +134,44 @@ fn transformed_bordered_content_is_equal_to_the_reference() {
     }
 }
 
-/// Text painted under a transformation: a card that clips a line of text and is turned shows,
-/// glyph for glyph, what the reference shows.
+/// Text painted under a transformation: a card that clips a line of text and is turned or
+/// scaled shows, glyph for glyph, what the reference shows, at every scale. Each scale is
+/// compared on its own, so a failure names every scale it fails at.
 #[test]
 fn rotated_text_is_equal_to_the_reference() {
+    let failures: Vec<String> = [1., 1.5, 2.]
+        .into_iter()
+        .filter_map(|scale| {
+            std::panic::catch_unwind(|| {
+                compare(Content::RotatedText, scale, &scrolls_and_single_pixels());
+            })
+            .err()
+            .map(|error| {
+                let message = error
+                    .downcast_ref::<String>()
+                    .cloned()
+                    .or_else(|| error.downcast_ref::<&str>().map(|text| text.to_string()))
+                    .unwrap_or_default();
+                format!("{scale}x: {message}")
+            })
+        })
+        .collect();
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
+/// Text whose turn goes away and comes back, in a container that composites while it is
+/// straight and is painted while it is turned.
+#[test]
+fn text_turned_again_after_a_straight_phase_is_equal_to_the_reference() {
+    let mut script = Vec::new();
+    for round in 0..4 {
+        script.push(Step::Tick);
+        script
+            .extend((0..40).map(|i| Step::Wheel(0., if (i + round) % 7 == 0 { -3. } else { -1. })));
+    }
+    script.push(Step::Tick);
+    script.extend((0..300).map(|i| Step::Wheel(0., if i % 11 == 0 { -3. } else { -1. })));
     for scale in [1., 1.5, 2.] {
-        compare(Content::RotatedText, scale, &scrolls_and_single_pixels());
+        compare(Content::TurnedAndStraightText, scale, &script);
     }
 }

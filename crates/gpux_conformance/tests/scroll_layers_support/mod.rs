@@ -70,6 +70,9 @@ pub enum Content {
     /// Rows holding a bordered card that clips a line of text and is turned a little: glyphs
     /// painted under a transformation.
     RotatedText,
+    /// The same cards, turned only after an odd number of ticks: the turn comes and goes with
+    /// the content scrolled.
+    TurnedAndStraightText,
     /// The shadowed rows, each card moved a few pixels by a transformation of its own.
     TranslatedCards,
     /// The shadowed rows, each card turned a little.
@@ -111,6 +114,7 @@ pub fn row_count(content: Content) -> usize {
         | Content::ClippedText
         | Content::TransformedBorders
         | Content::RotatedText
+        | Content::TurnedAndStraightText
         | Content::TranslatedCards
         | Content::RotatedCards => 40,
         Content::Sections => 16,
@@ -324,7 +328,7 @@ impl RowOf {
                         })),
                 )
                 .into_any_element(),
-            Content::RotatedText => div()
+            Content::RotatedText | Content::TurnedAndStraightText => div()
                 .py(px(8.))
                 .bg(if index.is_multiple_of(2) {
                     rgb(0xe9e4d8)
@@ -342,7 +346,17 @@ impl RowOf {
                         .overflow_hidden()
                         .text_color(rgb(0x1e2430))
                         .text_size(px(12.))
-                        .rotate(0.03)
+                        // Every other card of `RotatedText` is scaled, not turned; the turn of
+                        // `TurnedAndStraightText` comes and goes with the ticks.
+                        .when(
+                            matches!(self.content, Content::RotatedText) && index % 2 == 1,
+                            |card| card.scale(1.05),
+                        )
+                        .when(
+                            (matches!(self.content, Content::RotatedText) && index % 2 == 0)
+                                || self.tick % 2 == 1,
+                            |card| card.rotate(0.03),
+                        )
                         .child(SharedString::from(format!(
                             "Row {index:02}: jackdaws love my big sphinx of quartz"
                         ))),

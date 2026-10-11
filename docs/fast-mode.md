@@ -398,7 +398,7 @@ byte for byte; the counters of the first say how many frames came from tiles. A 
 refreshes draws from scratch, with no layer, so these checks wait for the frames a scroll asks
 for and read the frame the window last drew rather than drawing another for the capture.
 
-A tile has to hold the bytes the frame would. Two things in the shaders make it so. They apply
+A tile has to hold the bytes the frame would. Three things in the shaders make it so. They apply
 in every mode, so a frame's last bits can differ from those of gpux before them (the committed
 goldens did not change):
 
@@ -409,6 +409,14 @@ goldens did not change):
   keep the interpolated position.
 - The gradient dither is seeded by the pixel within the quad, not by its position in the
   window, so a gradient dithers alike wherever it is drawn.
+- A transformed sprite (a turned or scaled glyph or image) samples within its own atlas tile,
+  held half a texel in from the tile's edges (`local_tile_position`). The atlas packs tiles
+  without a gutter, so a fragment at a transformed sprite's edge used to filter in a texel of
+  the tile next to it, and the faint ink a turned glyph showed there depended on which glyphs
+  the atlas held beside it: a window that paints more glyphs than another (a layer's region
+  does, in the frames where a container holding transformed content is tried again for a
+  layer) drew a few edge pixels of turned text differently, and went on doing so. An
+  untransformed sprite is sampled where its fragment lies, as before.
 
 A shadow draws three blur radii past its box, and a scene used to drop a primitive whose box
 had left its clip: a blur vanished a few pixels early as its element scrolled out of a

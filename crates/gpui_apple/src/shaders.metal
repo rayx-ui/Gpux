@@ -1129,7 +1129,14 @@ float2 local_tile_position(float2 interpolated, float2 local_position,
   float2 tile_origin = float2(tile.bounds.origin.x, tile.bounds.origin.y);
   float2 tile_size = float2(tile.bounds.size.width, tile.bounds.size.height);
   float2 exact = (tile_origin + unit_position * tile_size) / atlas_size;
-  return transformation_is_unit(transformation) ? exact : interpolated;
+  // A transformed sprite samples where the rasterizer interpolates, held within its tile's
+  // texel centers: a fragment at the sprite's edge would otherwise filter in a texel of the
+  // neighbouring tile, so what a turned or scaled glyph or image showed at its edge depended
+  // on what else the atlas held.
+  float2 first = (tile_origin + float2(0.5)) / atlas_size;
+  float2 last = (tile_origin + tile_size - float2(0.5)) / atlas_size;
+  float2 held = clamp(interpolated, min(first, last), max(first, last));
+  return transformation_is_unit(transformation) ? exact : held;
 }
 
 float4 to_device_position_transformed(float2 unit_vertex, Bounds_ScaledPixels bounds,

@@ -221,7 +221,10 @@ fn local_fragment_position(
 }
 
 // Where in its atlas texture a sprite's fragment samples: computed from the fragment's own
-// position for an untransformed sprite, as `local_fragment_position` is.
+// position for an untransformed sprite, as `local_fragment_position` is. A transformed sprite
+// samples where the rasterizer interpolates, held within its tile's texel centers: a fragment
+// at the sprite's edge would otherwise filter in a texel of the neighbouring tile, so what a
+// turned or scaled glyph or image showed at its edge depended on what else the atlas held.
 fn local_tile_position(
     interpolated: vec2<f32>,
     local_position: vec2<f32>,
@@ -232,7 +235,10 @@ fn local_tile_position(
     let atlas_size = vec2<f32>(textureDimensions(t_sprite, 0));
     let unit_position = (local_position - bounds.origin) / bounds.size;
     let exact = (vec2<f32>(tile.bounds.origin) + unit_position * vec2<f32>(tile.bounds.size)) / atlas_size;
-    return select(interpolated, exact, transformation_is_unit(transform));
+    let first = (vec2<f32>(tile.bounds.origin) + vec2<f32>(0.5)) / atlas_size;
+    let last = (vec2<f32>(tile.bounds.origin) + vec2<f32>(tile.bounds.size) - vec2<f32>(0.5)) / atlas_size;
+    let held = clamp(interpolated, min(first, last), max(first, last));
+    return select(held, exact, transformation_is_unit(transform));
 }
 
 fn to_device_position_transformed(unit_vertex: vec2<f32>, bounds: Bounds, transform: TransformationMatrix) -> vec4<f32> {
