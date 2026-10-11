@@ -150,6 +150,13 @@ The specs:
   (`shortcut-modifier.spec.ts`: Command in Apple browsers and Control elsewhere, presented as a
   Mac and as a Windows browser, so it answers the same on every host). Browser-only scenes for these live in
   `web_host`, because the shared catalog runs every scene in lane A.
+- `scroll-layers.spec.ts` scrolls a `div` and a `list` of cards (`web-scroll-layers`) with trusted
+  wheel input on WebGPU and on forced WebGL2, with every fast-mode mechanism (`?layers=1`) and
+  with none (`?layers=0`). It reads `__gpuxFastStats` (published under `diagnostics`, which the
+  testkit builds the host with) for the frames composited from tiles and compares the pixels of
+  the two pages byte for byte (`@pr` at DPR 1, `@dpr2` at DPR 2); a scroller holding a DOM
+  element is drawn without tiles; its `@timing` test holds p95 frame work of a scroll from tiles
+  under the 60 Hz budget, in lane G only. Select its other tests with `--grep "scroll-layers: "`.
 - `dawn.spec.ts` renders every scene and fails on any WebGPU validation error. Every spec also
   fails on console errors, uncaught exceptions and crashes, and checks that the page is
   cross-origin isolated and renders through WebGPU unless a spec forces WebGL2.
@@ -315,6 +322,15 @@ there; it runs where gpux renders through Vulkan. Lane E builds the NativeActivi
 lane E workflow type-checks (`cargo check -p gpux-mobile --target x86_64-linux-android`) and no
 lane runs.
 
+The `scroll-layers-android-div`, `-list` and `-resume` checks scroll the pages of
+`gpux_conformance::scroll_layers` with every fast-mode mechanism and with none: touch pans
+injected into the window and a swipe through `adb shell input swipe` (a slow one on a software
+renderer, as above) must come from tiles in most of their frames; wheel steps of whole device
+pixels must show the same screen pixels, byte for byte, in the two windows; and a page sent to the
+background and brought back must have given its tiles back (the renderer holds none) and
+rasterize them again. The host reports the counters in the result line, so the build carries
+`diagnostics`.
+
 Scenes that need exact animation timing or an input method stay out of lane E: the device runs on
 the real clock, and adb cannot drive the input method. `adb shell input swipe` injects each event
 once the app handled the one before and sends only the moves its duration has time left for, and
@@ -331,7 +347,7 @@ Xcode project of [`tooling/ios`](../tooling/ios) with XcodeGen, and builds the a
 `xcodebuild`, unsigned; `ios build --simulator` stops there. It then boots its own Simulator,
 `gpux-conformance`, created on first use as an iPhone 16 on the newest installed iOS runtime,
 installs the app, and launches it with `simctl launch --console-pty`, reading the result lines from
-its console. The host runs five platform checks and every lane-F scene:
+its console. The host runs its platform checks and every lane-F scene:
 
 - `ios-startup`: a window opens and draws;
 - `ios-metal`: wgpu renders through Metal and reads its frames back;
@@ -342,6 +358,13 @@ its console. The host runs five platform checks and every lane-F scene:
   deactivate, launches the host again, which brings the running one back; the window reactivates
   and draws again. (Reopening it through a URL of its own makes a fresh Simulator ask
   "Open in …?" and wait for a tap.)
+
+The `scroll-layers-ios-div`, `-list` and `-resume` checks do the same on Metal: touch pans
+injected into the window come from tiles, wheel steps of whole device pixels show the same pixels
+with every mechanism and with none, and a page whose app received a memory warning
+(`gpui_ios_did_receive_memory_warning`, which the shell's `applicationDidReceiveMemoryWarning:`
+calls) and then went to the background and came back gave its tiles back each time and
+rasterized them again. They skip where the Simulator has no Metal device.
 
 Pixel steps read frames back through the window's wgpu renderer. The Simulator on Apple silicon
 offers Metal (lane F ran 30 of 30 on an M5 with iOS 26.5, Xcode 26.4). A Simulator without a Metal
@@ -359,8 +382,8 @@ flags (`-Wl,-U`) are not enough: dyld binds them at launch and the app never sta
 
 Devices need a signing team, so the testkit leaves them to you:
 
-1. `cargo build -p gpux-conformance --no-default-features --features app-host --example ios_host
-   --target aarch64-apple-ios` (after `rustup target add aarch64-apple-ios`).
+1. `cargo build -p gpux-conformance --no-default-features --features app-host,diagnostics
+   --example ios_host --target aarch64-apple-ios` (after `rustup target add aarch64-apple-ios`).
 2. `xcodegen generate --spec tooling/ios/project.yml`.
 3. `xcodebuild -project tooling/ios/GpuxConformance.xcodeproj -target GpuxConformance
    -configuration Debug -sdk iphoneos -allowProvisioningUpdates DEVELOPMENT_TEAM=<team id>

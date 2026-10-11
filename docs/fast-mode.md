@@ -140,9 +140,9 @@ the content. `uniform_list` and `list` get layers of their own, with a record pe
 A window runs scroll layers only where its renderer rasterizes their tiles
 (`PlatformWindow::rasterizes_layer_tiles`); in any other window the switch normalizes to off.
 
-The wgpu renderer rasterizes tiles on Linux and Windows and the Metal renderer on macOS (see
-[Tiles in the renderers](#tiles-in-the-renderers)). The browser, Android and iOS follow; until
-then `GPUX_SCROLL_LAYERS=1` or `GPUX_FAST_MODE=1` leave scroll layers off there.
+The wgpu renderer rasterizes tiles on Linux, Windows, in the browser, on Android and on iOS, and
+the Metal renderer on macOS (see [Tiles in the renderers](#tiles-in-the-renderers) and
+[In the browser and on mobile](#in-the-browser-and-on-mobile)).
 
 While no window of a thread has the switch on, a scroll container does none of the layers'
 bookkeeping.
@@ -354,6 +354,42 @@ a tile cache per renderer, so each surface of a composed window has its own:
   device raised), a frame that was to rasterize tiles is not drawn, or the device is lost (the
   recovered renderer starts with an empty cache). A change of scale drops the window's layers,
   so their tiles age out.
+
+### In the browser and on mobile
+
+The browser, Android and iOS run the wgpu tiles as they are: no platform has a tile format or a
+compositing path of its own. A platform window says it rasterizes tiles
+(`PlatformWindow::rasterizes_layer_tiles`) and adapts what lifecycle gives the renderer.
+
+- **Browser.** WebGPU and the forced WebGL2 transport draw tiles through the renderer's own
+  pipelines (the transport carries full records, tile sprites included). The browser budget
+  (32 MB) applies. A container holding HTML islands or elements keeps today's path. The web host
+  (`gpux-conformance`'s `web_host`) takes `?layers=1` or `?layers=0` and sets the shown scene's
+  `FastMode` to every mechanism or none; under `diagnostics` the window publishes the fast-mode
+  counters of the last frame and of the run as `globalThis.__gpuxFastStats`
+  (`{ frame, run, tiles }`, the last what the renderer holds, has rasterized and has released).
+- **Release.** `PlatformWindow::release_layer_tiles` drops every tile of the window's renderer. A
+  frame carries each layer's content next to the tiles it composites, so the next frame that
+  composites a layer rasterizes the tiles it lacks again before it draws them: a released tile
+  is never composited stale, and the core needs no word of it.
+- **Android.** Windows with a surface rasterize tiles, Vulkan or the GL fallback. The tiles go
+  with `onTrimMemory` (`MainEvent::LowMemory`, and `trim_memory` of the embedded host), when the
+  app pauses or the activity deactivates, and when the surface is destroyed (`term_window`). The
+  hook never waits: a frame holds the renderer outside the window's lock while it draws, so a
+  release that finds it taken is done by the next frame before it draws.
+- **iOS.** A window with a Metal renderer rasterizes tiles. The tiles go with
+  `gpui_ios_did_receive_memory_warning` (the shell forwards `applicationDidReceiveMemoryWarning:`)
+  and with `gpui_ios_did_enter_background`.
+- **Touch.** A touch pan and the fling after it scroll like a wheel does, so mobile scrolling
+  composites.
+
+Lane B's `scroll-layers.spec.ts`, lane E's `scroll-layers-android-*` and lane F's
+`scroll-layers-ios-*` check what the browser and the devices draw (see
+[testing](testing.md)): each runs a page of cards, a scrolling `div` and a `list`, with every
+mechanism and with none, scrolled by whole device pixels, and compares the pixels the two show
+byte for byte; the counters of the first say how many frames came from tiles. A window that
+refreshes draws from scratch, with no layer, so these checks wait for the frames a scroll asks
+for and read the frame the window last drew rather than drawing another for the capture.
 
 A tile has to hold the bytes the frame would. Two things in the shaders make it so. They apply
 in every mode, so a frame's last bits can differ from those of gpux before them (the committed

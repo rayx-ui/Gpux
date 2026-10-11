@@ -288,6 +288,16 @@ fn listing_lane_g_shows_the_benchmarks_and_the_hardware_runs() {
                 code: Some(0),
                 output: "text_rows_scroll_from_tiles: test\n".into(),
             },
+            RunOutput {
+                success: true,
+                code: Some(0),
+                output: "transformed_bordered_content_is_equal_to_the_reference: test\n".into(),
+            },
+            RunOutput {
+                success: true,
+                code: Some(0),
+                output: "a_list_shows_each_frames_hover: test\n".into(),
+            },
         ],
         ..FakeRunner::default()
     };
@@ -311,7 +321,7 @@ fn listing_lane_g_shows_the_benchmarks_and_the_hardware_runs() {
         text.contains("  lane_c_scroll_layers::text_rows_scroll_from_tiles"),
         "{text}"
     );
-    assert_eq!(runner.ran.len(), 4, "{:?}", runner.ran);
+    assert_eq!(runner.ran.len(), 6, "{:?}", runner.ran);
     assert!(
         runner
             .ran
