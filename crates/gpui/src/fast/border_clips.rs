@@ -24,17 +24,25 @@
 
 use crate::{Bounds, ContentMask, PaintQuad, Pixels, TransformationMatrix, Window};
 
-/// Whether a border's four `strips` lie within the element's `bounds`.
+/// Whether a border's four `strips` lie within the element's `bounds`, and
+/// none overlaps another but where they are the same.
 ///
 /// A strip is as tall (or wide) as the border's widest border or the largest
 /// corner radius, from the element's edge, whatever the element's size: an
-/// element thinner than that has strips that reach past it.
+/// element thinner than that has strips that reach past it, and one less than
+/// twice as thick has strips that reach over each other, which the scene
+/// could not tell apart again where it only has the operations to go by (a
+/// replay of a layer's content or a list's rows).
 pub(crate) fn inside(bounds: &Bounds<Pixels>, strips: &[Bounds<Pixels>; 4]) -> bool {
     strips.iter().all(|strip| {
         strip.left() >= bounds.left()
             && strip.top() >= bounds.top()
             && strip.right() <= bounds.right()
             && strip.bottom() <= bounds.bottom()
+    }) && strips.iter().enumerate().all(|(index, strip)| {
+        strips[index + 1..]
+            .iter()
+            .all(|other| strip == other || strip.intersect(other).is_empty())
     })
 }
 

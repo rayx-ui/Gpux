@@ -900,6 +900,11 @@ pub(super) fn paint_with(items: &[Item], one_clip: bool) -> (Scene, Vec<Primitiv
                             && strip.top() >= bounds.top()
                             && strip.right() <= bounds.right()
                             && strip.bottom() <= bounds.bottom()
+                    })
+                    && strips.iter().enumerate().all(|(index, strip)| {
+                        strips[index + 1..]
+                            .iter()
+                            .all(|other| strip == other || strip.intersect(other).is_empty())
                     });
                 if one_clip {
                     clip_op(

@@ -106,13 +106,15 @@ fn random_bordered_content(rng: &mut StdRng, scrolling: bool) -> Vec<Item> {
         let bounds = sp(
             (around.left().0 + rng.random_range(-40.0..around.size.width.0)).round(),
             (around.top().0 + rng.random_range(-40.0..around.size.height.0)).round(),
+            // From a line to twice the border's reach: strips that reach past the
+            // element, that overlap, and that only touch.
             if thin {
-                rng.random_range(1.0..60.0f32).round()
+                rng.random_range(1.0..2. * reach.max(30.)).round()
             } else {
                 rng.random_range(reach..200.0f32).round()
             },
             if thin {
-                rng.random_range(1.0..reach).round()
+                rng.random_range(1.0..2. * reach).round()
             } else {
                 rng.random_range(reach..120.0f32).round()
             },
@@ -227,7 +229,7 @@ fn bordered_content_is_ordered_as_with_a_clip_for_each_strip() {
 fn a_border_replayed_gives_the_same_scene() {
     let mut rng = StdRng::seed_from_u64(0xb0_4d3f);
     let mut inside = 0;
-    for run in 0..400 {
+    for run in 0..1500 {
         let items = random_bordered_content(&mut rng, run % 2 == 1);
         let (scene, primitives) = paint_with(&items, true);
         let expected = orders(&scene, &primitives);
@@ -392,11 +394,11 @@ fn a_border_tells_the_clip_it_was_given() {
     assert_eq!(scene.quads.len(), 5);
 }
 
-/// An element thinner than its border has strips that reach past it, which is a border told
-/// as a clip for each strip (layout gives an element room for its border, so only bounds a
+/// An element thinner than its border has strips that reach past it, and one less than twice as
+/// thick has strips that overlap, which is a border told as a clip for each strip (layout gives an element room for its border, so only bounds a
 /// custom element hands `Style::paint` can be so thin).
 #[test]
-fn strips_that_reach_past_the_element_are_not_inside_it() {
+fn strips_that_reach_past_the_element_or_over_each_other_are_not_inside_it() {
     use crate::fast::border_clips::inside;
     use crate::{Bounds, point, size};
     let strips = |bounds: Bounds<crate::Pixels>, width: f32, radius: f32| {
@@ -424,9 +426,12 @@ fn strips_that_reach_past_the_element_are_not_inside_it() {
         (20., 1., 0., true),
         (20., 2., 8., true),
         (4., 2., 0., true),
-        (3., 2., 0., true),
+        // Strips that overlap: the top and bottom strips 4 px tall over 5 px.
+        (5., 4., 0., false),
+        (3., 2., 0., false),
         (1., 2., 0., false),
-        (10., 1., 8., true),
+        (20., 1., 8., true),
+        (10., 1., 8., false),
         (5., 1., 8., false),
     ] {
         let bounds = element(height);
