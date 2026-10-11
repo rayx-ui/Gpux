@@ -18,6 +18,9 @@ use gpux::{
 };
 use image::RgbaImage;
 
+/// The bytes of tiles a window on a phone may keep: 32 MiB, half the desktop's.
+pub const MOBILE_TILE_BUDGET: u64 = 32 << 20;
+
 /// The logical size of the pages, in the top-left corner of a host's window.
 pub const PAGE: (f32, f32) = (320., 520.);
 
@@ -185,6 +188,8 @@ pub struct Counters {
     pub renderer: Option<Renderer>,
     /// Frames the window drew.
     pub frames: u64,
+    /// The bytes of tiles a window may keep ([`gpux::LAYER_TILE_BUDGET_BYTES`]).
+    pub budget: u64,
     /// Scroll-container frames drawn on the ordinary path, by reason (inactive, not promoted,
     /// demoted, ineligible, nested, moved), for reports.
     pub bypasses: [u64; 6],
@@ -205,13 +210,14 @@ impl std::fmt::Display for Counters {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "{} frames composited, {} repainted, {} tiles rasterized, {} composited of {} frames; bypassed {:?}",
+            "{} frames composited, {} repainted, {} tiles rasterized, {} composited of {} frames; bypassed {:?}; budget {} MiB",
             self.composited,
             self.repainted,
             self.tiles_rasterized,
             self.tiles_composited,
             self.frames,
-            self.bypasses
+            self.bypasses,
+            self.budget >> 20
         )?;
         if let Some(renderer) = self.renderer {
             write!(
@@ -243,6 +249,7 @@ pub fn counters(cx: &mut AsyncApp, window: AnyWindowHandle) -> Result<Counters> 
             tiles_composited: stats.tiles_composited,
             renderer,
             frames: stats.frames,
+            budget: gpux::LAYER_TILE_BUDGET_BYTES,
             bypasses: stats.layer_bypasses,
         }
     })

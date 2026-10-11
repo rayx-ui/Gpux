@@ -11,7 +11,12 @@ import { expect, test, type Backend, type Bounds, type Gpux } from '../fixtures/
 interface FastStats {
   frame: Record<string, number>;
   run: Record<string, number>;
+  /** What the renderer did with tiles, and the bytes of tiles a window may keep. */
+  tiles?: { held: number; rasterized: number; released: number; budget: number };
 }
+
+/** The browser's budget of tiles per window: 32 MiB (64 MiB on desktop). */
+const BROWSER_TILE_BUDGET = 32 << 20;
 
 const BACKENDS: Backend[] = ['webgpu', 'webgl'];
 const NAMES: Record<Backend, string> = { webgpu: 'WebGPU', webgl: 'WebGL2' };
@@ -69,7 +74,10 @@ for (const backend of BACKENDS) {
     await gpux.locate('role=status value="div 0 list 0"');
     const before = (await stats(page)).run;
     await scrolled(gpux);
-    const after = (await stats(page)).run;
+    const published = await stats(page);
+    const after = published.run;
+    expect(published.tiles?.budget, 'the browser tile budget applies').toBe(BROWSER_TILE_BUDGET);
+    expect(published.tiles?.held, 'tiles the renderer holds').toBeGreaterThan(0);
     expect(
       after.tiles_rasterized - before.tiles_rasterized,
       'tiles rasterized while the page scrolled',

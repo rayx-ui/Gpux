@@ -228,6 +228,15 @@ async fn page(cx: &mut AsyncApp, id: &str, scene: &'static SceneSpec, list: bool
         Ok(touched) => touched,
         Err(reason) => return fail(id, reason),
     };
+    if touch.budget != scroll_layers::MOBILE_TILE_BUDGET {
+        return fail(
+            id,
+            format!(
+                "the window may keep {} bytes of tiles, not the mobile budget ({touch})",
+                touch.budget
+            ),
+        );
+    }
     if touch.composited < PAN_COMPOSITED {
         return fail(
             id,

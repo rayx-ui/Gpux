@@ -236,6 +236,15 @@ async fn page(
         Ok(touched) => touched,
         Err(reason) => return fail(id, reason),
     };
+    if touch.budget != scroll_layers::MOBILE_TILE_BUDGET {
+        return fail(
+            id,
+            format!(
+                "the window may keep {} bytes of tiles, not the mobile budget ({touch})",
+                touch.budget
+            ),
+        );
+    }
     if touch.composited < SWIPE_COMPOSITED {
         return fail(
             id,

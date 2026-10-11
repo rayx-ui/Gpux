@@ -1515,7 +1515,8 @@ impl PlatformWindow for WebWindow {
 
 /// Publishes the fast-mode counters of the last frame and of the run as `__gpuxFastStats`:
 /// `{ frame: { <counter>: n, .. }, run: { <counter>: n, .. }, tiles: { held, rasterized,
-/// released } }`, the last what the renderer did with scroll-layer tiles.
+/// released, budget } }`, the last what the renderer did with scroll-layer tiles and the bytes
+/// of tiles a window may keep.
 #[cfg(feature = "diagnostics")]
 fn write_fast_stats_to_global(
     frame: &[(String, u64)],
@@ -1537,6 +1538,7 @@ fn write_fast_stats_to_global(
             ("held".to_string(), tiles.held),
             ("rasterized".to_string(), tiles.rasterized),
             ("released".to_string(), tiles.released),
+            ("budget".to_string(), gpux::LAYER_TILE_BUDGET_BYTES),
         ]);
         let _ = js_sys::Reflect::set(&target, &"tiles".into(), &tiles);
     }
