@@ -1163,7 +1163,61 @@ pub fn init_platform(app: &AndroidApp) -> &'static Arc<AndroidPlatform> {
 
     let platform = PLATFORM.set(Arc::new(AndroidPlatform::new(false)));
     log::info!("init_platform: AndroidPlatform created");
+    register_trim_memory();
     platform
+}
+
+/// The helper activity whose `onTrimMemory` reaches the platform (`GpuxNativeActivity`).
+#[cfg(feature = "android-native-activity")]
+const TRIM_MEMORY_ACTIVITY: &str = "dev.gpux.mobile.GpuxNativeActivity";
+
+/// `GpuxNativeActivity.nativeTrimMemory(int)`: the activity's `onTrimMemory`, on the UI thread.
+/// The window gives its scroll-layer tiles back at any level; the release never waits.
+#[cfg(feature = "android-native-activity")]
+extern "system" fn native_trim_memory(
+    _env: *mut jni::sys::JNIEnv,
+    _class: jni::sys::jclass,
+    level: jni::sys::jint,
+) {
+    log::info!("onTrimMemory({level}) — releasing scroll-layer tiles");
+    if let Some(win) = PLATFORM
+        .get()
+        .and_then(|platform| platform.primary_window())
+    {
+        win.release_layer_tiles();
+    }
+}
+
+/// Registers [`native_trim_memory`] when the host's activity is `GpuxNativeActivity`; a host with
+/// another activity gets `MainEvent::LowMemory`, pause and surface loss.
+#[cfg(feature = "android-native-activity")]
+fn register_trim_memory() {
+    let registered = with_env(|env| {
+        let class = find_app_class(env, TRIM_MEMORY_ACTIVITY)?;
+        // SAFETY: the function pointer matches the Java declaration.
+        let methods = unsafe {
+            [jni::NativeMethod::from_raw_parts(
+                jni::jni_str!("nativeTrimMemory"),
+                jni::jni_str!("(I)V"),
+                native_trim_memory as *mut std::ffi::c_void,
+            )]
+        };
+        // SAFETY: as above.
+        unsafe { env.register_native_methods(&class, &methods) }
+            .map_err(|error| format!("registering nativeTrimMemory: {error}"))?;
+        env.set_static_field(
+            &class,
+            jni::jni_str!("nativesReady"),
+            jni::jni_sig!("Z"),
+            jni::JValue::Bool(true),
+        )
+        .map_err(|error| format!("setting nativesReady: {error}"))?;
+        Ok(())
+    });
+    match registered {
+        Ok(()) => log::info!("onTrimMemory reaches the platform through {TRIM_MEMORY_ACTIVITY}"),
+        Err(error) => log::debug!("{TRIM_MEMORY_ACTIVITY} is not the activity: {error}"),
+    }
 }
 
 // ── system chrome (status bar / navigation bar) ───────────────────────────────

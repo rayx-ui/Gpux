@@ -64,6 +64,16 @@ fn host_requests_parse_from_logcat_lines() {
         android::request("gpux-conformance-host: foreground"),
         Some(Request::Foreground)
     );
+    // The system's `onTrimMemory`, at one of the levels `am send-trim-memory` knows.
+    assert_eq!(
+        android::request("gpux-conformance-host: trim-memory RUNNING_LOW"),
+        Some(Request::TrimMemory("RUNNING_LOW".into()))
+    );
+    assert_eq!(
+        android::request("gpux-conformance-host: trim-memory SEVERE"),
+        None
+    );
+    assert_eq!(android::request("gpux-conformance-host: trim-memory"), None);
     assert_eq!(
         android::request("x gpux-conformance-host: done"),
         Some(Request::Done)
@@ -93,10 +103,39 @@ fn requests_become_adb_shell_commands() {
             "am",
             "start",
             "-n",
-            "dev.gpux.conformance/android.app.NativeActivity"
+            "dev.gpux.conformance/dev.gpux.mobile.GpuxNativeActivity"
+        ]]
+    );
+    assert_eq!(
+        android::shell_commands(&Request::TrimMemory("RUNNING_LOW".into())),
+        [[
+            "am",
+            "send-trim-memory",
+            "dev.gpux.conformance",
+            "RUNNING_LOW"
         ]]
     );
     assert!(android::shell_commands(&Request::Done).is_empty());
+}
+
+#[test]
+fn the_host_may_pick_the_emulators_software_vulkan_only_when_asked() {
+    let mut environment = FakeEnvironment {
+        vars: HashMap::new(),
+        programs: Vec::new(),
+    };
+    // Unset, an earlier run's choice is cleared.
+    assert_eq!(
+        android::software_vulkan_property(&environment),
+        ["setprop", "debug.gpux.software_vulkan", "''"]
+    );
+    environment
+        .vars
+        .insert("GPUX_ANDROID_SOFTWARE_VULKAN", "1".into());
+    assert_eq!(
+        android::software_vulkan_property(&environment),
+        ["setprop", "debug.gpux.software_vulkan", "1"]
+    );
 }
 
 #[test]

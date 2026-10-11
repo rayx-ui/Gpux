@@ -6,6 +6,20 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use wgpu::TextureFormat;
 
+/// Whether Android may pick a software Vulkan adapter (SwiftShader on an emulator). It may not by
+/// default: a Vulkan surface keeps the window connected until it is destroyed, so a software
+/// Vulkan that cannot present would keep the window from the GL fallback. A conformance host that
+/// proves the Vulkan path on an emulator turns it on ([`allow_android_software_vulkan`]).
+#[cfg(target_os = "android")]
+static ANDROID_SOFTWARE_VULKAN: AtomicBool = AtomicBool::new(false);
+
+/// Lets Android pick a software Vulkan adapter, for hosts that prove the Vulkan path on an
+/// emulator. Call it before the first window opens.
+#[cfg(target_os = "android")]
+pub fn allow_android_software_vulkan(allow: bool) {
+    ANDROID_SOFTWARE_VULKAN.store(allow, Ordering::Relaxed);
+}
+
 #[derive(Clone)]
 pub struct WgpuContext {
     pub instance: wgpu::Instance,
@@ -670,7 +684,10 @@ impl WgpuContext {
             }
 
             #[cfg(target_os = "android")]
-            if info.backend == wgpu::Backend::Vulkan && info.device_type == wgpu::DeviceType::Cpu {
+            if info.backend == wgpu::Backend::Vulkan
+                && info.device_type == wgpu::DeviceType::Cpu
+                && !ANDROID_SOFTWARE_VULKAN.load(Ordering::Relaxed)
+            {
                 log::info!(
                     "Skipping Android software Vulkan adapter: {} ({:?})",
                     info.name,

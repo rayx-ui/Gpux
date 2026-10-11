@@ -51,7 +51,7 @@ mod android {
     }
 
     /// A system property, or `None` when it is unset or empty.
-    fn property(name: &str) -> Option<String> {
+    pub fn property(name: &str) -> Option<String> {
         let name = std::ffi::CString::new(name).ok()?;
         let mut value = [0 as std::ffi::c_char; 92];
         // SAFETY: `value` has room for PROP_VALUE_MAX (92) bytes, as the call requires.

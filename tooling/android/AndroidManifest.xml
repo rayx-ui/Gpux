@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Lane E's conformance host: a NativeActivity that loads libandroid_host.so, the `android_host`
-  example of gpux-conformance, with gpux's Java helper (`dev.gpux.mobile`, compiled into
-  classes.dex). `gpux-testkit android build` links this manifest with aapt2, adds the dex and the
+  Lane E's conformance host: a NativeActivity (gpux's `GpuxNativeActivity`, which forwards
+  onTrimMemory) that loads libandroid_host.so, the `android_host` example of gpux-conformance,
+  with gpux's Java helpers (`dev.gpux.mobile`, compiled into classes.dex). `gpux-testkit android build` links this manifest with aapt2, adds the dex and the
   native libraries uncompressed (so they load in place, 16 KB aligned), and signs the APK with a
   local debug key.
 
@@ -18,7 +18,7 @@
         android:debuggable="true"
         android:extractNativeLibs="false">
         <activity
-            android:name="android.app.NativeActivity"
+            android:name="dev.gpux.mobile.GpuxNativeActivity"
             android:exported="true"
             android:launchMode="singleTask"
             android:screenOrientation="portrait"

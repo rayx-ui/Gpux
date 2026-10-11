@@ -21,8 +21,8 @@ use std::path::{Path, PathBuf};
 
 /// The APK's package name.
 pub const PACKAGE: &str = "dev.gpux.conformance";
-/// The activity `am start` launches.
-pub const ACTIVITY: &str = "android.app.NativeActivity";
+/// The activity `am start` launches: gpux's NativeActivity, which forwards `onTrimMemory`.
+pub const ACTIVITY: &str = "dev.gpux.mobile.GpuxNativeActivity";
 /// The library NativeActivity loads, `lib<name>.so`.
 pub const LIBRARY: &str = "android_host";
 /// The lowest Android API level the host runs on (Vulkan and `libnativewindow`).
@@ -546,6 +546,8 @@ pub enum Request {
     Tap(i32, i32),
     /// `adb shell input swipe <x1> <y1> <x2> <y2> <ms>`.
     Swipe(i32, i32, i32, i32, u32),
+    /// `adb shell am send-trim-memory <package> <level>`: the system's `onTrimMemory`.
+    TrimMemory(String),
     /// The home key.
     Background,
     /// The activity relaunched.
@@ -574,6 +576,20 @@ pub fn request(line: &str) -> Option<Request> {
             )),
             _ => None,
         },
+        "trim-memory" => {
+            let level = words.next()?;
+            let known = [
+                "HIDDEN",
+                "RUNNING_MODERATE",
+                "BACKGROUND",
+                "RUNNING_LOW",
+                "MODERATE",
+                "RUNNING_CRITICAL",
+                "COMPLETE",
+            ];
+            (known.contains(&level) && words.next().is_none())
+                .then(|| Request::TrimMemory(level.to_string()))
+        }
         "background" => Some(Request::Background),
         "foreground" => Some(Request::Foreground),
         "screenshot" => match numbers(words)?.as_slice() {
@@ -604,6 +620,7 @@ pub fn shell_commands(request: &Request) -> Vec<Vec<String>> {
             &y2.to_string(),
             &ms.to_string(),
         ])],
+        Request::TrimMemory(level) => vec![words(&["am", "send-trim-memory", PACKAGE, level])],
         Request::Background => vec![words(&["input", "keyevent", "KEYCODE_HOME"])],
         Request::Foreground => vec![words(&[
             "am",
@@ -673,6 +690,21 @@ pub fn expected_results(selection: &Selection) -> Vec<String> {
         })
         .map(str::to_string)
         .collect()
+}
+
+/// The environment variable that lets the host pick the emulator's software Vulkan adapter, which
+/// it skips otherwise: lane E then proves the Vulkan path where no hardware Vulkan is at hand.
+pub const SOFTWARE_VULKAN_VAR: &str = "GPUX_ANDROID_SOFTWARE_VULKAN";
+
+/// The `adb shell setprop` that carries [`SOFTWARE_VULKAN_VAR`] to the host: `1`, or empty so an
+/// earlier run's setting does not linger.
+pub fn software_vulkan_property(environment: &dyn Environment) -> Vec<String> {
+    let on = environment.var(SOFTWARE_VULKAN_VAR).as_deref() == Some("1");
+    vec![
+        "setprop".into(),
+        "debug.gpux.software_vulkan".into(),
+        if on { "1" } else { "''" }.into(),
+    ]
 }
 
 /// The system properties that carry `selection` to the host, as `adb shell setprop` arguments.
@@ -774,7 +806,8 @@ fn run_on_device(
     selection: &Selection,
     out: &mut dyn Write,
 ) -> Result<Tally, String> {
-    let properties = selection_properties(selection)?;
+    let mut properties = selection_properties(selection)?;
+    properties.push(software_vulkan_property(environment));
     let sdk = find_sdk(environment)?;
     let windows = environment.os() == crate::Os::Windows;
     let adb = sdk.adb(windows);

@@ -225,6 +225,26 @@ pub struct TouchPoint {
 /// Initialise `android_logger` so that `log::*` macros route to logcat.
 ///
 /// Safe to call multiple times — subsequent calls are no-ops.
+/// The system property that lets Android pick a software Vulkan adapter (SwiftShader on an
+/// emulator), which gpux skips otherwise: `1` for a conformance host that proves the Vulkan path
+/// where no hardware Vulkan is at hand (`gpux-testkit` sets it for
+/// `GPUX_ANDROID_SOFTWARE_VULKAN=1`).
+pub(crate) const SOFTWARE_VULKAN_PROPERTY: &str = "debug.gpux.software_vulkan";
+
+/// A system property, or `None` when it is unset or empty.
+pub(crate) fn system_property(name: &str) -> Option<String> {
+    let name = std::ffi::CString::new(name).ok()?;
+    let mut value = [0 as std::ffi::c_char; 92];
+    // SAFETY: `value` has room for PROP_VALUE_MAX (92) bytes, as the call requires.
+    let length = unsafe { libc::__system_property_get(name.as_ptr(), value.as_mut_ptr()) };
+    if length <= 0 {
+        return None;
+    }
+    // SAFETY: the call wrote a NUL-terminated string into `value`.
+    let value = unsafe { std::ffi::CStr::from_ptr(value.as_ptr()) };
+    Some(value.to_string_lossy().into_owned()).filter(|value| !value.is_empty())
+}
+
 pub fn init_logger() {
     use std::sync::OnceLock;
     static INIT: OnceLock<()> = OnceLock::new();

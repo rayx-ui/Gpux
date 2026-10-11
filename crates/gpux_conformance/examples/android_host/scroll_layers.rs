@@ -8,7 +8,7 @@
 use crate::android::{Screens, request};
 use crate::checks::{
     ACTION_TIMEOUT, SWIPE_FRAMES, capture_state, close, fail, find, frame_time, open, pass,
-    scale_factor, skip, sleep, surface_lost, wait_for,
+    scale_factor, sleep, surface_lost, wait_for,
 };
 use gpux::semantic_query::Query;
 use gpux::{AnyWindowHandle, AsyncApp};
@@ -225,6 +225,16 @@ async fn swiped(
     Ok((distance, counters))
 }
 
+/// Opens the page once to read the backend it renders through.
+async fn probe_backend(cx: &mut AsyncApp, scene: &'static SceneSpec) -> Result<String, String> {
+    let window = open(cx, scene)
+        .await
+        .map_err(|error| format!("the page never drew: {error:#}"))?;
+    let backend = backend_of(cx, window);
+    close(cx, window);
+    backend
+}
+
 async fn page(
     cx: &mut AsyncApp,
     screens: &Screens,
@@ -232,6 +242,10 @@ async fn page(
     scene: &'static SceneSpec,
     list: bool,
 ) -> ResultLine {
+    let backend = match probe_backend(cx, scene).await {
+        Ok(backend) => backend,
+        Err(error) => return fail(id, error),
+    };
     let (distance, touch) = match touched(cx, scene, list).await {
         Ok(touched) => touched,
         Err(reason) => return fail(id, reason),
@@ -267,7 +281,7 @@ async fn page(
         Ok(wheel) if wheel.composited >= SWIPE_COMPOSITED => pass(
             id,
             format!(
-                "touch pans scrolled by {distance} with {touch}; a swipe through the system scrolled by {} with {}; the wheel's pans show the same pixels with and without layers ({wheel})",
+                "on {backend}: touch pans scrolled by {distance} with {touch}; a swipe through the system scrolled by {} with {}; the wheel's pans show the same pixels with and without layers ({wheel})",
                 swipe.0, swipe.1
             ),
         ),
@@ -286,114 +300,239 @@ pub async fn list(cx: &mut AsyncApp, screens: &Screens) -> ResultLine {
     page(cx, screens, "scroll-layers-android-list", &LIST, true).await
 }
 
-/// A page that goes to the background (the system takes its surface and the app gives its tiles
-/// back) and comes back rasterizes its tiles again and shows what a page that never left shows.
-pub async fn resume(cx: &mut AsyncApp, screens: &Screens) -> ResultLine {
-    const ID: &str = "scroll-layers-android-resume";
-    let half = PAN.len() / 2;
-    let window = match open_scrolled(cx, &DIV, true, 0..half).await {
-        Ok(window) => window,
-        Err(error) => return fail(ID, format!("the page never drew: {error:#}")),
-    };
-    let before = match scroll_layers::counters(cx, window) {
-        Ok(counters) => counters,
-        Err(error) => return fail(ID, format!("{error:#}")),
-    };
-    let Some(held) = before.renderer.map(|renderer| renderer.held) else {
-        close(cx, window);
-        return skip(ID, "this build reports no renderer counters");
-    };
-    if held == 0 || before.composited == 0 {
-        close(cx, window);
-        return fail(
-            ID,
-            format!("the page held no tiles before going away ({before})"),
-        );
-    }
-    request("background");
+/// What the renderer holds and how often it released its tiles, as the counters say.
+fn tiles(counters: &Counters) -> (u64, u64, u64) {
+    counters
+        .renderer
+        .map_or((0, 0, 0), |r| (r.held, r.rasterized, r.released))
+}
+
+/// Waits until the renderer released its tiles once more than `released` times, and returns the
+/// counters and whether the window still had its surface then. Polls every 50 ms for
+/// [`ACTION_TIMEOUT`].
+async fn released_after(
+    cx: &mut AsyncApp,
+    window: AnyWindowHandle,
+    released: u64,
+) -> Option<(Counters, bool)> {
     let start = Instant::now();
-    let mut lost = false;
+    while start.elapsed() < ACTION_TIMEOUT {
+        let counters = scroll_layers::counters(cx, window).ok()?;
+        if tiles(&counters).2 > released {
+            let surface = matches!(capture_state(cx, window), Some(Ok(_)));
+            return Some((counters, surface));
+        }
+        sleep(cx, Duration::from_millis(50)).await;
+    }
+    None
+}
+
+/// Waits until the window's surface is gone.
+async fn surface_gone(cx: &mut AsyncApp, window: AnyWindowHandle) -> bool {
+    let start = Instant::now();
     while start.elapsed() < ACTION_TIMEOUT {
         if let Some(Err(error)) = capture_state(cx, window)
             && surface_lost(&error)
         {
-            lost = true;
-            break;
+            return true;
         }
         sleep(cx, Duration::from_millis(50)).await;
     }
-    if !lost {
-        close(cx, window);
-        return fail(ID, "the surface was never taken away in the background");
-    }
-    let away = match scroll_layers::counters(cx, window) {
-        Ok(counters) => counters,
+    false
+}
+
+/// A page whose app is trimmed by the system, goes to the background (the activity pauses, and the
+/// system takes its surface) and comes back gives its tiles back each time, rasterizes them again
+/// and shows what a page that never lost them shows.
+///
+/// Each release is told apart: `onTrimMemory` through `am send-trim-memory` (the host's activity
+/// is `GpuxNativeActivity`), the pause the home key brings (the surface is still there while the
+/// system stops the activity), and the loss of the surface.
+pub async fn resume(cx: &mut AsyncApp, screens: &Screens) -> ResultLine {
+    const ID: &str = "scroll-layers-android-resume";
+    let third = PAN.len() / 3;
+    let window = match open_scrolled(cx, &DIV, true, 0..third).await {
+        Ok(window) => window,
+        Err(error) => return fail(ID, format!("the page never drew: {error:#}")),
+    };
+    let backend = match backend_of(cx, window) {
+        Ok(backend) => backend,
+        Err(error) => {
+            close(cx, window);
+            return fail(ID, error);
+        }
+    };
+    let result = resume_phases(cx, window, third).await;
+    let phases = match result {
+        Ok(phases) => phases,
+        Err(error) => {
+            close(cx, window);
+            return fail(ID, format!("{error:#}"));
+        }
+    };
+    let scale = scale_factor(cx, window);
+    let shown = shown_settled(cx, screens, window, scale).await;
+    close(cx, window);
+    let with = match shown {
+        Ok(with) => with,
         Err(error) => return fail(ID, format!("{error:#}")),
     };
-    let released = away.renderer.is_some_and(|renderer| {
-        renderer.held == 0 && renderer.released > before.renderer.map_or(0, |r| r.released)
-    });
+    let plain = match open_scrolled(cx, &DIV, false, 0..PAN.len()).await {
+        Ok(window) => window,
+        Err(error) => return fail(ID, format!("{error:#}")),
+    };
+    let without = shown_plain(cx, screens, plain).await;
+    close(cx, plain);
+    match without.map(|without| same_pixels(&with, &without, scroller_pixels(scale))) {
+        Ok(Ok(())) => pass(
+            ID,
+            format!("on {backend}: {phases}; showing what a page that kept its tiles shows"),
+        ),
+        Ok(Err(error)) => fail(ID, format!("after resuming the page differs: {error:#}")),
+        Err(error) => fail(ID, format!("{error:#}")),
+    }
+}
+
+/// [`shown`] for a window that just came back to the front: the system fades and scales it in
+/// over the launcher, so the screen is captured again until two captures in a row are the same
+/// and the page shows (the left margin of the scroller's first row is no longer white).
+async fn shown_settled(
+    cx: &mut AsyncApp,
+    screens: &Screens,
+    window: AnyWindowHandle,
+    scale: f32,
+) -> anyhow::Result<RgbaImage> {
+    let (x, y, ..) = SCROLLER;
+    let (px, py) = (((x + 2.) * scale) as u32, ((y + 5.) * scale) as u32);
+    let begun = Instant::now();
+    let mut previous: Option<RgbaImage> = None;
+    loop {
+        let (frame, _) = shown(cx, screens, window).await?;
+        let showing = frame
+            .get_pixel_checked(px, py)
+            .is_some_and(|pixel| pixel.0[..3].iter().any(|channel| *channel < 250));
+        if showing && previous.as_ref() == Some(&frame) {
+            return Ok(frame);
+        }
+        anyhow::ensure!(
+            begun.elapsed() < ACTION_TIMEOUT,
+            "the screen never settled on the page after the app came back"
+        );
+        previous = Some(frame);
+        sleep(cx, Duration::from_millis(500)).await;
+    }
+}
+
+async fn shown_plain(
+    cx: &mut AsyncApp,
+    screens: &Screens,
+    window: AnyWindowHandle,
+) -> anyhow::Result<RgbaImage> {
+    Ok(shown(cx, screens, window).await?.0)
+}
+
+/// The three releases and the rebuilds between them; says what each did.
+async fn resume_phases(
+    cx: &mut AsyncApp,
+    window: AnyWindowHandle,
+    third: usize,
+) -> anyhow::Result<String> {
+    let start = scroll_layers::counters(cx, window)?;
+    anyhow::ensure!(
+        start.renderer.is_some(),
+        "this build reports no renderer counters"
+    );
+    anyhow::ensure!(
+        tiles(&start).0 > 0 && start.composited > 0,
+        "the page held no tiles before the trim ({start})"
+    );
+
+    // The system trims the app's memory.
+    request("trim-memory RUNNING_LOW");
+    let (trimmed, _) = released_after(cx, window, tiles(&start).2)
+        .await
+        .ok_or_else(|| anyhow::anyhow!("onTrimMemory never released the tiles ({start})"))?;
+    anyhow::ensure!(
+        tiles(&trimmed).0 == 0,
+        "the renderer kept tiles after onTrimMemory ({trimmed})"
+    );
+    pan(cx, window, third..2 * third).await?;
+    let rebuilt = scroll_layers::counters(cx, window)?;
+    anyhow::ensure!(
+        tiles(&rebuilt).0 > 0 && tiles(&rebuilt).1 > tiles(&start).1,
+        "the tiles were not rasterized again after onTrimMemory ({rebuilt})"
+    );
+
+    // The app goes to the background: the activity pauses first, and the system takes the surface
+    // once it has stopped it.
+    request("background");
+    let (paused, surface_present) = released_after(cx, window, tiles(&rebuilt).2)
+        .await
+        .ok_or_else(|| anyhow::anyhow!("the pause never released the tiles ({rebuilt})"))?;
+    anyhow::ensure!(
+        surface_present,
+        "the tiles went only with the surface, not with the pause ({paused})"
+    );
+    anyhow::ensure!(
+        tiles(&paused).0 == 0,
+        "the renderer kept tiles after the pause ({paused})"
+    );
+    anyhow::ensure!(
+        surface_gone(cx, window).await,
+        "the surface was never taken away in the background"
+    );
+    let away = scroll_layers::counters(cx, window)?;
+    anyhow::ensure!(
+        tiles(&away).0 == 0,
+        "the renderer held tiles without a surface ({away})"
+    );
     request("foreground");
-    let start = Instant::now();
+    let begun = Instant::now();
     let mut asked = Instant::now();
-    let mut recovered = false;
-    while start.elapsed() < ACTION_TIMEOUT {
+    loop {
         if let Some(Ok(_)) = capture_state(cx, window) {
-            recovered = true;
             break;
         }
+        anyhow::ensure!(
+            begun.elapsed() < ACTION_TIMEOUT,
+            "the surface never came back after the app returned"
+        );
         if asked.elapsed() >= crate::android::REQUEST_REPEAT {
             request("foreground");
             asked = Instant::now();
         }
         sleep(cx, Duration::from_millis(50)).await;
     }
-    if !recovered {
-        close(cx, window);
-        return fail(ID, "the surface never came back after the app returned");
-    }
     // Back in front the page scrolls on, from tiles it rasterized again.
-    let result = async {
-        pan(cx, window, half..PAN.len()).await?;
-        let (with, after) = shown(cx, screens, window).await?;
-        let scale = scale_factor(cx, window);
-        Ok::<_, anyhow::Error>((with, after, scale))
+    pan(cx, window, 2 * third..PAN.len()).await?;
+    let after = scroll_layers::counters(cx, window)?;
+    anyhow::ensure!(
+        tiles(&after).0 > 0
+            && tiles(&after).1 > tiles(&away).1
+            && after.composited > start.composited,
+        "the tiles were not rasterized again after the app came back ({after})"
+    );
+    Ok(format!(
+        "tiles released by onTrimMemory ({} released, none held), rebuilt ({} rasterized), released by the pause with the surface still there, released with it, and rebuilt after the app came back ({after})",
+        tiles(&trimmed).2,
+        tiles(&rebuilt).1,
+    ))
+}
+
+/// The backend the window renders through: `vulkan` or `gl`. A host asked for the emulator's
+/// software Vulkan (`debug.gpux.software_vulkan`) must render through it.
+fn backend_of(cx: &mut AsyncApp, window: AnyWindowHandle) -> Result<String, String> {
+    let backend = window
+        .update(cx, |_, window, _| window.gpu_specs())
+        .ok()
+        .flatten()
+        .map(|specs| specs.backend.to_ascii_lowercase())
+        .unwrap_or_default();
+    let asked = crate::android::property("debug.gpux.software_vulkan").as_deref() == Some("1");
+    if asked && !backend.contains("vulkan") {
+        return Err(format!(
+            "the host asked for Vulkan but the window renders through {backend:?}"
+        ));
     }
-    .await;
-    close(cx, window);
-    let (with, after, scale) = match result {
-        Ok(result) => result,
-        Err(error) => return fail(ID, format!("{error:#}")),
-    };
-    let rebuilt = after.renderer.is_some_and(|renderer| {
-        renderer.held > 0 && renderer.rasterized > before.renderer.map_or(0, |r| r.rasterized)
-    });
-    if !released {
-        return fail(
-            ID,
-            format!("the renderer still held tiles in the background ({away})"),
-        );
-    }
-    if !rebuilt || after.composited <= before.composited {
-        return fail(
-            ID,
-            format!("the tiles were not rebuilt after the app came back ({after})"),
-        );
-    }
-    let plain = match open_scrolled(cx, &DIV, false, 0..PAN.len()).await {
-        Ok(window) => window,
-        Err(error) => return fail(ID, format!("{error:#}")),
-    };
-    let without = shown(cx, screens, plain).await;
-    close(cx, plain);
-    match without.map(|(without, _)| same_pixels(&with, &without, scroller_pixels(scale))) {
-        Ok(Ok(())) => pass(
-            ID,
-            format!(
-                "tiles released in the background ({away}) and rebuilt after it ({after}), showing what a page that stayed shows"
-            ),
-        ),
-        Ok(Err(error)) => fail(ID, format!("after resuming the page differs: {error:#}")),
-        Err(error) => fail(ID, format!("{error:#}")),
-    }
+    Ok(backend)
 }

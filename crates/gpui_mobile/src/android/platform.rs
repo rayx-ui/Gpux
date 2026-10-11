@@ -266,6 +266,13 @@ impl AndroidPlatform {
     /// (i.e. `ALooper_forThread()` returns null) — unless `headless` is `true`.
     pub fn new(headless: bool) -> Self {
         crate::android::init_logger();
+        if !headless
+            && crate::android::system_property(crate::android::SOFTWARE_VULKAN_PROPERTY).as_deref()
+                == Some("1")
+        {
+            log::info!("software Vulkan adapters are allowed");
+            gpui_wgpu::allow_android_software_vulkan(true);
+        }
 
         // Build a dispatcher appropriate for the current context.
         let dispatcher = if headless {
