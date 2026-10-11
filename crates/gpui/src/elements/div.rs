@@ -3446,6 +3446,7 @@ impl Interactivity {
                     .cloned()
             });
             let current_view = window.current_view();
+            crate::fast::hover::painted(hover_state.as_ref(), &hitbox, window);
 
             window.on_mouse_event(move |_: &MouseMoveEvent, phase, window, cx| {
                 let hovered = hitbox.is_hovered(window);
@@ -3468,6 +3469,7 @@ impl Interactivity {
                     .and_then(|element| element.hover_state.as_ref())
                     .cloned();
                 let current_view = window.current_view();
+                crate::fast::hover::painted_group(hover_state.as_ref(), group_hitbox_id, window);
 
                 window.on_mouse_event(move |_: &MouseMoveEvent, phase, window, cx| {
                     let group_hovered = group_hitbox_id.is_hovered(window);
