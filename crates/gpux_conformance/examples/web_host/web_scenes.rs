@@ -30,6 +30,7 @@ pub static WEB_SCENES: &[SceneSpec] = &[
     SHORTCUT_MODIFIER,
     SCROLL_LAYERS,
     SCROLL_LAYERS_HTML,
+    SCROLL_LAYERS_ISLAND,
 ];
 
 /// The browser-only scene with this id.
@@ -560,10 +561,12 @@ pub const SCROLL_LAYERS: SceneSpec = SceneSpec {
     script: || vec![Step::Expect(Expect::Exists(id("scroller")))],
 };
 
-/// A scrolling `div` that holds a DOM element: its content cannot be tiled.
+/// A scrolling `div` that holds a DOM element or an HTML island: its content cannot be tiled.
 struct ScrollLayersHtmlPage {
     scroll: ScrollHandle,
     status: gpux::Entity<ScrollStatus>,
+    /// Holds an island (`Window::paint_html_island`) rather than an element.
+    island: bool,
 }
 
 impl Render for ScrollLayersHtmlPage {
@@ -579,27 +582,38 @@ impl Render for ScrollLayersHtmlPage {
                 .bg(rgb(0xf4f1ea))
                 .overflow_y_scroll()
                 .track_scroll(&self.scroll)
-                .child(
+                .child({
+                    let island = self.island;
                     div().id("dom-host").h(px(64.)).w(px(160.)).child(
                         canvas(
                             |_, _, _| {},
-                            |bounds, _, window, _| {
-                                window.paint_html_element(
-                                    ElementId::from("gpux-dom-button"),
-                                    bounds,
-                                    HtmlElementInputMode::DomOwned,
-                                    HtmlElementLifetime::PruneWhenAbsent,
-                                    HtmlElementContentFit::Fill,
-                                    HtmlElementWheelBehavior::Browser,
-                                    1,
-                                    DOM_BUTTON.into(),
-                                    "".into(),
-                                );
+                            move |bounds, _, window, _| {
+                                if island {
+                                    window.paint_html_island(
+                                        ElementId::from("gpux-island"),
+                                        bounds,
+                                        HtmlIslandInputMode::GpuiOwned,
+                                        1,
+                                        ISLAND_HTML.into(),
+                                    );
+                                } else {
+                                    window.paint_html_element(
+                                        ElementId::from("gpux-dom-button"),
+                                        bounds,
+                                        HtmlElementInputMode::DomOwned,
+                                        HtmlElementLifetime::PruneWhenAbsent,
+                                        HtmlElementContentFit::Fill,
+                                        HtmlElementWheelBehavior::Browser,
+                                        1,
+                                        DOM_BUTTON.into(),
+                                        "".into(),
+                                    );
+                                }
                             },
                         )
                         .size_full(),
-                    ),
-                )
+                    )
+                })
                 .children((0..200).map(card_row)),
         )
     }
@@ -615,7 +629,32 @@ pub const SCROLL_LAYERS_HTML: SceneSpec = SceneSpec {
     build: |_, cx| {
         let scroll = ScrollHandle::new();
         let status = cx.new(|_| ScrollStatus::new(scroll.clone(), None));
-        cx.new(|_| ScrollLayersHtmlPage { scroll, status }).into()
+        cx.new(|_| ScrollLayersHtmlPage {
+            scroll,
+            status,
+            island: false,
+        })
+        .into()
+    },
+    script: || vec![Step::Expect(Expect::Exists(id("scroller")))],
+};
+
+pub const SCROLL_LAYERS_ISLAND: SceneSpec = SceneSpec {
+    id: "web-scroll-layers-island",
+    areas: &[],
+    size: (460., 460.),
+    scales: &[1.],
+    lanes: &[Lane::B],
+    golden: false,
+    build: |_, cx| {
+        let scroll = ScrollHandle::new();
+        let status = cx.new(|_| ScrollStatus::new(scroll.clone(), None));
+        cx.new(|_| ScrollLayersHtmlPage {
+            scroll,
+            status,
+            island: true,
+        })
+        .into()
     },
     script: || vec![Step::Expect(Expect::Exists(id("scroller")))],
 };

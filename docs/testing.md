@@ -155,7 +155,7 @@ The specs:
   with none (`?layers=0`). It reads `__gpuxFastStats` (published under `diagnostics`, which the
   testkit builds the host with) for the frames composited from tiles and compares the pixels of
   the two pages byte for byte (`@pr` at DPR 1, `@dpr2` at DPR 2); a scroller holding a DOM
-  element is drawn without tiles; its `@timing` test holds p95 frame work of a scroll from tiles
+  element and one holding an HTML island are drawn without tiles; its `@timing` test holds p95 frame work of a scroll from tiles
   under the 60 Hz budget, in lane G only. Select its other tests with `--grep "scroll-layers: "`.
 - `dawn.spec.ts` renders every scene and fails on any WebGPU validation error. Every spec also
   fails on console errors, uncaught exceptions and crashes, and checks that the page is
@@ -326,10 +326,19 @@ The `scroll-layers-android-div`, `-list` and `-resume` checks scroll the pages o
 `gpux_conformance::scroll_layers` with every fast-mode mechanism and with none: touch pans
 injected into the window and a swipe through `adb shell input swipe` (a slow one on a software
 renderer, as above) must come from tiles in most of their frames; wheel steps of whole device
-pixels must show the same screen pixels, byte for byte, in the two windows; and a page sent to the
-background and brought back must have given its tiles back (the renderer holds none) and
-rasterize them again. The host reports the counters in the result line, so the build carries
-`diagnostics`.
+pixels must show the same screen pixels, byte for byte, in the two windows; and the resume check
+tells apart the three ways an app gives its tiles back, each followed by the renderer
+rasterizing them again: `adb shell am send-trim-memory` (`onTrimMemory`, which the host's
+`GpuxNativeActivity` forwards), the pause the home key brings (the release is seen while the
+surface is still there), and the loss of the surface. The host reports the counters in the result
+line, so the build carries `diagnostics`. The checks run on the GL fallback, which an emulator
+offers by default, and again with `GPUX_ANDROID_SOFTWARE_VULKAN=1`, which lets the host pick the
+emulator's SwiftShader Vulkan (gpux skips it otherwise) and makes each check fail unless its
+window renders through Vulkan.
+
+```bash
+GPUX_ANDROID_SOFTWARE_VULKAN=1 cargo run -p gpux-testkit -- lane e --grep scroll-layers
+```
 
 Scenes that need exact animation timing or an input method stay out of lane E: the device runs on
 the real clock, and adb cannot drive the input method. `adb shell input swipe` injects each event

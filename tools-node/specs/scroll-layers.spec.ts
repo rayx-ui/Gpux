@@ -116,20 +116,25 @@ for (const backend of BACKENDS) {
     expect(differing, 'bytes that differ between the page with layers and without').toBe(0);
   });
 
-  test(`scroll-layers: a scroller holding a DOM element is drawn without tiles on ${NAMES[backend]} @pr`, async ({
-    gpux,
-    page,
-  }) => {
-    await gpux.open('web-scroll-layers-html', { backend, params: { layers: '1' } });
-    await gpux.locate('role=status value="div 0"');
-    const div = await gpux.center('id=scroller');
-    await scroll(gpux, div, 12, 40);
-    await gpux.locate('role=status value="div 480"');
-    const run = (await stats(page)).run;
-    expect(run.layers_composited, 'no frame came from tiles').toBe(0);
-    expect(run.tiles_rasterized, 'no tile was rasterized').toBe(0);
-    expect(run['layer_bypasses.ineligible'], 'the scroller was found ineligible').toBeGreaterThan(0);
-  });
+  for (const [scene, content] of [
+    ['web-scroll-layers-html', 'a DOM element'],
+    ['web-scroll-layers-island', 'an HTML island'],
+  ] as const) {
+    test(`scroll-layers: a scroller holding ${content} is drawn without tiles on ${NAMES[backend]} @pr`, async ({
+      gpux,
+      page,
+    }) => {
+      await gpux.open(scene, { backend, params: { layers: '1' } });
+      await gpux.locate('role=status value="div 0"');
+      const div = await gpux.center('id=scroller');
+      await scroll(gpux, div, 12, 40);
+      await gpux.locate('role=status value="div 480"');
+      const run = (await stats(page)).run;
+      expect(run.layers_composited, 'no frame came from tiles').toBe(0);
+      expect(run.tiles_rasterized, 'no tile was rasterized').toBe(0);
+      expect(run['layer_bypasses.ineligible'], 'the scroller was found ineligible').toBeGreaterThan(0);
+    });
+  }
 }
 
 test.describe('at device pixel ratio 2', () => {

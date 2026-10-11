@@ -372,11 +372,18 @@ compositing path of its own. A platform window says it rasterizes tiles
   frame carries each layer's content next to the tiles it composites, so the next frame that
   composites a layer rasterizes the tiles it lacks again before it draws them: a released tile
   is never composited stale, and the core needs no word of it.
-- **Android.** Windows with a surface rasterize tiles, Vulkan or the GL fallback. The tiles go
-  with `onTrimMemory` (`MainEvent::LowMemory`, and `trim_memory` of the embedded host), when the
-  app pauses or the activity deactivates, and when the surface is destroyed (`term_window`). The
-  hook never waits: a frame holds the renderer outside the window's lock while it draws, so a
-  release that finds it taken is done by the next frame before it draws.
+- **Android.** Windows with a surface rasterize tiles, on Vulkan and on the GL fallback. The tiles
+  go with `onTrimMemory`, when the app pauses or the activity deactivates, and when the surface is
+  destroyed (`term_window`). `android-activity` forwards only `onLowMemory`
+  (`MainEvent::LowMemory`), so a NativeActivity host that wants every trim level names gpux's
+  `dev.gpux.mobile.GpuxNativeActivity` as its activity (lane E's manifest does), whose
+  `onTrimMemory` calls the hook; the embedded host calls `embedded::trim_memory`, which its
+  application's own glue calls from `onTrimMemory`. The hook never waits: a frame holds the
+  renderer outside the window's lock while it draws, so a release that finds it taken is done by
+  the next frame before it draws. gpux skips an emulator's software Vulkan (a Vulkan surface keeps
+  the window connected until it is destroyed, so one that cannot present would keep it from the
+  GL fallback); `debug.gpux.software_vulkan=1` (lane E sets it for `GPUX_ANDROID_SOFTWARE_VULKAN=1`)
+  lets the host pick it, which is how lane E proves Vulkan without a hardware driver.
 - **iOS.** A window with a Metal renderer rasterizes tiles. The tiles go with
   `gpui_ios_did_receive_memory_warning` (the shell forwards `applicationDidReceiveMemoryWarning:`)
   and with `gpui_ios_did_enter_background`.
