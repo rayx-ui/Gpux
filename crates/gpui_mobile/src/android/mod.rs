@@ -220,11 +220,8 @@ pub struct TouchPoint {
     pub timestamp: Option<std::time::Instant>,
 }
 
-// ── shared logging helper ─────────────────────────────────────────────────────
+// ── system properties ─────────────────────────────────────────────────────────
 
-/// Initialise `android_logger` so that `log::*` macros route to logcat.
-///
-/// Safe to call multiple times — subsequent calls are no-ops.
 /// The system property that lets Android pick a software Vulkan adapter (SwiftShader on an
 /// emulator), which gpux skips otherwise: `1` for a conformance host that proves the Vulkan path
 /// where no hardware Vulkan is at hand (`gpux-testkit` sets it for
@@ -245,6 +242,11 @@ pub(crate) fn system_property(name: &str) -> Option<String> {
     Some(value.to_string_lossy().into_owned()).filter(|value| !value.is_empty())
 }
 
+// ── shared logging helper ─────────────────────────────────────────────────────
+
+/// Initialise `android_logger` so that `log::*` macros route to logcat.
+///
+/// Safe to call multiple times — subsequent calls are no-ops.
 pub fn init_logger() {
     use std::sync::OnceLock;
     static INIT: OnceLock<()> = OnceLock::new();

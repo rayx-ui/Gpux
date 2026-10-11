@@ -345,9 +345,11 @@ async fn surface_gone(cx: &mut AsyncApp, window: AnyWindowHandle) -> bool {
 /// system takes its surface) and comes back gives its tiles back each time, rasterizes them again
 /// and shows what a page that never lost them shows.
 ///
-/// Each release is told apart: `onTrimMemory` through `am send-trim-memory` (the host's activity
-/// is `GpuxNativeActivity`), the pause the home key brings (the surface is still there while the
-/// system stops the activity), and the loss of the surface.
+/// The releases are told apart where a device allows: `onTrimMemory` through `am send-trim-memory`
+/// (the host's activity is `GpuxNativeActivity`), and the pause the home key brings (the surface
+/// is still there while the system stops the activity). The loss of the surface comes with the
+/// system's own trim as the app is hidden, so what the check shows of it is an empty cache once
+/// the surface is gone; `term_window`'s own release is by inspection.
 pub async fn resume(cx: &mut AsyncApp, screens: &Screens) -> ResultLine {
     const ID: &str = "scroll-layers-android-resume";
     let third = PAN.len() / 3;
@@ -482,6 +484,9 @@ async fn resume_phases(
         "the surface was never taken away in the background"
     );
     let away = scroll_layers::counters(cx, window)?;
+    // A device sends `onTrimMemory` as it hides and stops the app, so the surface loss's own
+    // release (`term_window`) cannot be told from them here; the renderer holds nothing once the
+    // surface is gone, whichever released it.
     anyhow::ensure!(
         tiles(&away).0 == 0,
         "the renderer held tiles without a surface ({away})"

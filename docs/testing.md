@@ -327,10 +327,12 @@ The `scroll-layers-android-div`, `-list` and `-resume` checks scroll the pages o
 injected into the window and a swipe through `adb shell input swipe` (a slow one on a software
 renderer, as above) must come from tiles in most of their frames; wheel steps of whole device
 pixels must show the same screen pixels, byte for byte, in the two windows; and the resume check
-tells apart the three ways an app gives its tiles back, each followed by the renderer
-rasterizing them again: `adb shell am send-trim-memory` (`onTrimMemory`, which the host's
-`GpuxNativeActivity` forwards), the pause the home key brings (the release is seen while the
-surface is still there), and the loss of the surface. The host reports the counters in the result
+tells apart the releases a device lets it tell apart, each followed by the renderer rasterizing
+the tiles again: `adb shell am send-trim-memory` (`onTrimMemory`, which the host's
+`GpuxNativeActivity` forwards) and the pause the home key brings (the release is seen while the
+surface is still there). The surface is taken after that, with a trim of the system's own, so
+all the check shows of the surface loss is an empty cache once it is gone: `term_window`'s own
+release is by inspection, as is the embedded host's `trim_memory`. The host reports the counters in the result
 line, so the build carries `diagnostics`. The checks run on the GL fallback, which an emulator
 offers by default, and again with `GPUX_ANDROID_SOFTWARE_VULKAN=1`, which lets the host pick the
 emulator's SwiftShader Vulkan (gpux skips it otherwise) and makes each check fail unless its
