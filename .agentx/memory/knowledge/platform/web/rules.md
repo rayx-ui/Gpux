@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/platform/web
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-10T16:30:00+02:00
+  updated: 2026-10-11T14:00:00+02:00
   topics:
     - wasm
     - multithreading
@@ -39,3 +39,4 @@ agentx:
 - Run lane B with Node 22 or later first on PATH (`/opt/homebrew/opt/node@22/bin` on the macOS dev machine, where nvm puts Node 17 first); Playwright refuses older Node.
 - Keep GPUI's own helper elements above the canvas (the IME mirror textarea) `pointer-events: none`: a hit-testable one takes the pointer where it sits, which GPUI sees as the pointer leaving the window.
 - Treat a browser window's canvas and its composition input shields as one pointer target: enter and leave between them must not reach GPUI as window hover changes.
+- Select the scroll-layers specs by title (`--grep "scroll-layers: "`): `scroll-layers` also matches the spec's file name and would run its `@timing` test, which only lane G runs. Scale a synthesized wheel delta by `devicePixelRatio`: Chromium divides it by the ratio.

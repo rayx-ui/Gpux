@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 42,
+  "revision": 45,
   "title": "gpux fast mode: retained layout and views, splice, scroll layers and window composition from gpui-fast",
   "validationMode": "sprint",
   "repositories": [
@@ -1745,7 +1745,7 @@
       "criterionIds": [
         "LYR-9"
       ],
-      "descriptionMarkdown": "New Playwright spec `tools-node/specs/scroll-layers.spec.ts` (its non-`@timing` tests): composited frames through `__gpuxFastStats`, and screenshot equality with a layers-off load, on WebGPU and forced WebGL2.",
+      "descriptionMarkdown": "New Playwright spec `tools-node/specs/scroll-layers.spec.ts`, its tests whose titles start `scroll-layers: ` (the `@timing` test, which only lane G runs, does not): on WebGPU and forced WebGL2 a scrolled div and list composite their tiles and the browser budget applies (`__gpuxFastStats`), the page with layers looks like the page without them byte for byte, and a scroller holding a DOM element and one holding an HTML island are drawn without tiles; and both backends again at DPR 2 (`@dpr2`). Ten tests.",
       "argv": [
         "cargo",
         "run",
@@ -1755,11 +1755,11 @@
         "lane",
         "b",
         "--grep",
-        "scroll-layers"
+        "scroll-layers: "
       ],
       "expected": {
         "exitCode": 0,
-        "minimumTests": 2,
+        "minimumTests": 10,
         "testCountPattern": "gpux-testkit: (\\d+) passed"
       },
       "reuse": false,
@@ -1779,8 +1779,44 @@
       "criterionIds": [
         "LYR-10"
       ],
-      "descriptionMarkdown": "New lane E scenes `scroll-layers-*`: swiped div and list, composited counters, `adb screencap` equality with layers off, and tiles rebuilt after background and resume.",
+      "descriptionMarkdown": "New lane E checks `scroll-layers-android-div`, `-list` and `-resume` on the GL fallback: touch pans injected into the window and a swipe through `adb shell input swipe` come from tiles (counters in the result line), wheel steps of whole device pixels show the same `adb screencap` pixels with layers and without, and tiles are released by `onTrimMemory` and by the pause, are gone with the surface, and are rasterized again each time.",
       "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "e",
+        "--grep",
+        "scroll-layers"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tooling/testkit/**",
+        "tools-node/specs/**",
+        "tools-node/package.json",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "check-layers-android-vulkan",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "LYR-10"
+      ],
+      "descriptionMarkdown": "The same lane E checks on Vulkan: `GPUX_ANDROID_SOFTWARE_VULKAN=1` lets the host pick the emulator's SwiftShader Vulkan, and each check fails unless its window renders through Vulkan.",
+      "argv": [
+        "env",
+        "GPUX_ANDROID_SOFTWARE_VULKAN=1",
         "cargo",
         "run",
         "-p",
@@ -1813,7 +1849,7 @@
       "criterionIds": [
         "LYR-11"
       ],
-      "descriptionMarkdown": "New lane F scenes `scroll-layers-*`: panned div and list, composited counters, pixel equality with layers off where a Metal device exists, and tiles rebuilt after background and resume.",
+      "descriptionMarkdown": "New lane F checks `scroll-layers-ios-div`, `-list` and `-resume`: touch pans injected into the window come from tiles, wheel steps of whole device pixels show the same pixels with layers and without where the Simulator has a Metal device (skipped with the reason otherwise), and tiles are released by a memory warning and by the background and rasterized again each time.",
       "argv": [
         "cargo",
         "run",
@@ -4278,7 +4314,8 @@
           ],
           "dependsOn": [],
           "checkIds": [
-            "check-layers-android"
+            "check-layers-android",
+            "check-layers-android-vulkan"
           ],
           "sourceRefs": [
             {
@@ -4292,6 +4329,10 @@
             {
               "repositoryId": "gpux",
               "path": "crates/gpux_conformance/examples/android_host"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_mobile/java/dev/gpux/mobile/GpuxNativeActivity.java"
             }
           ]
         },

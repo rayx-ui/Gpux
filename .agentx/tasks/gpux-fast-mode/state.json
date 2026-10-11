@@ -1,12 +1,12 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 235,
-  "planRevision": 42,
+  "revision": 250,
+  "planRevision": 45,
   "specHashes": {
-    "requirements": "a30c0eaf821ffaf2564b773402da87e17605930f3c4b0a76336f153374fdc4c5",
-    "design": "00c3ecd2f8c8d1405a2a213109a1c5ffeb479aca56795dcff431b6d811c03fe6",
-    "plan": "ebaf8b98fb5558fdc0c8cc8174672d37be94a41cb122721e3846149d9ee5db64"
+    "requirements": "058ffeecf4d4a88ba8087600062681f6da42eb8f43de9bd6c9089016214e43f2",
+    "design": "524779b12dfb2a6dd95602ccb36d3f4365a688b6c020a8510720311ba162b925",
+    "plan": "872c54e3f7de60fd2ac3121c89a94392a9e6aa0de545c18d2d84955d1d4a4a88"
   },
   "tasks": {
     "t01-fast-switches": {
@@ -289,13 +289,22 @@
       ]
     },
     "t49-layers-web": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t50-layers-android": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t51-layers-ios": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t08b-hover-area": {
       "status": "done",
@@ -511,6 +520,15 @@
         }
       },
       "recordedAt": "2026-10-11T18:06:20Z"
+    },
+    "524830c65b6bedc56179fa65dbfbf02f282ab0f7d330d80a6cbe32fd61c4da56": {
+      "snapshot": {
+        "specHash": "efaf863b8e9da33c424176142003ddc03eb607a3e3f131698f7b8710aad5a097",
+        "repositories": {
+          "gpux": "249c9e0de2443c34bc5bac161e7c82837d02719373bd0c6c7802dad2c416df3d"
+        }
+      },
+      "recordedAt": "2026-10-11T21:11:09Z"
     }
   },
   "checkResults": {
@@ -1805,6 +1823,74 @@
       "logPath": "artifacts-temp/agentx/gpux-fast-mode/s12f-transformed-masks-final-bed7d3cd608e.log",
       "logSha256": "599f987988a22163b364d887a33ea324835fcfaaf6336787ff5af58c4be18447",
       "inputsHash": "9a58f930fd2d9a2f0ab9b01746384ec85c1fe41aa70e7edcc58529cd03156bd8"
+    },
+    "s12b-layers-web-mobile/check-layers-web/final": {
+      "checkId": "check-layers-web",
+      "boundaryId": "s12b-layers-web-mobile",
+      "phase": "final",
+      "batchId": "524830c65b6bedc56179fa65dbfbf02f282ab0f7d330d80a6cbe32fd61c4da56",
+      "definitionHash": "939fd52535b1beaa6b45fa11b7ba5d996f97cfb1c68bf99a792ab409a1293bda",
+      "basisHash": "bdff378efa69f9c88dc75267ccdf4d0d097aca63e5ab9fbbc1a15ebc19faa18d",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 10,
+      "durationSeconds": 12.7525,
+      "recordedAt": "2026-10-11T21:09:47Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s12b-layers-web-mobile-final-9638316a4293.log",
+      "logSha256": "68141fa52a846c51b2d90782f748fc7b040fb2d0d2b17d441ca3afaa89685e60",
+      "inputsHash": "998010aa1ec35840e254dc4a7acdbee28d11b38941de070b7bbcae16b8a4ebb9"
+    },
+    "s12b-layers-web-mobile/check-layers-android/final": {
+      "checkId": "check-layers-android",
+      "boundaryId": "s12b-layers-web-mobile",
+      "phase": "final",
+      "batchId": "524830c65b6bedc56179fa65dbfbf02f282ab0f7d330d80a6cbe32fd61c4da56",
+      "definitionHash": "1afcd5667c64dd47c934ba62a152aeac2c6a98fd41f3f068b46529f0dae610d5",
+      "basisHash": "beb26553d63c23298dba44a0858c8f31a4b685ab5df654e0006e17552582902a",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 30.0233,
+      "recordedAt": "2026-10-11T21:10:17Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s12b-layers-web-mobile-final-c3dbcf1467c3.log",
+      "logSha256": "4cb37ee6a25a00332903b2a05e37c10424ac818060d28743e4aee98aab5c50de",
+      "inputsHash": "998010aa1ec35840e254dc4a7acdbee28d11b38941de070b7bbcae16b8a4ebb9"
+    },
+    "s12b-layers-web-mobile/check-layers-ios/final": {
+      "checkId": "check-layers-ios",
+      "boundaryId": "s12b-layers-web-mobile",
+      "phase": "final",
+      "batchId": "524830c65b6bedc56179fa65dbfbf02f282ab0f7d330d80a6cbe32fd61c4da56",
+      "definitionHash": "6bfa98a4c85eb988f5925a9da08ba717ea5df007b667bac64580ff479fb5da18",
+      "basisHash": "28c0507f9171660ed03f60b7be04f9084d1a0d3ee3c44b23df1d4c8578f1e9cc",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 30.9303,
+      "recordedAt": "2026-10-11T21:11:09Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s12b-layers-web-mobile-final-07b38541b2b5.log",
+      "logSha256": "f8b4d7fa10d5c6c03ee106982db737b25f2d21d59bf2a75aff0460dde80cfa83",
+      "inputsHash": "998010aa1ec35840e254dc4a7acdbee28d11b38941de070b7bbcae16b8a4ebb9"
+    },
+    "s12b-layers-web-mobile/check-layers-android-vulkan/final": {
+      "checkId": "check-layers-android-vulkan",
+      "boundaryId": "s12b-layers-web-mobile",
+      "phase": "final",
+      "batchId": "524830c65b6bedc56179fa65dbfbf02f282ab0f7d330d80a6cbe32fd61c4da56",
+      "definitionHash": "16bad849a0c924c7b84259c7263d24a26f7a74b1059fa6f2514c4b01420c4301",
+      "basisHash": "fa2965d6f5176cfdec82abad054b21f634b1d9b06dd55099ace9c8a95704331e",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 20.9198,
+      "recordedAt": "2026-10-11T21:10:38Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s12b-layers-web-mobile-final-c2edf61d3649.log",
+      "logSha256": "6a5cdc764a51b50d5b0b69cf97dafb49902041918daa9f1bba98d716a4c21dfa",
+      "inputsHash": "998010aa1ec35840e254dc4a7acdbee28d11b38941de070b7bbcae16b8a4ebb9"
     }
   },
   "reviews": {
@@ -5669,6 +5755,231 @@
       "summaryMarkdown": "**Verdict: passed at revision 233 (snapshot 4d9d947a), first review of `s12f-transformed-masks`.** The cause is as the coordinator found it, I confirmed it independently, and the fix is the right cut. No finding.\n\n**Cause, independently.** In my second s12e review's bisection the difference needed scroll layers together with retained layout and views (mechanism bits 1011 and 1111), never without scroll layers. At this head the same ten combinations (`p103`, a bordered transformed row, scale 2) all show 0 differing steps. The mask arithmetic: a transformed element's clip mask is the bounding box of its transformation of `clip intersected with content mask`; the layered content mask is the painted region (viewport plus overscan), so the box of the turned strip was looser than the reference's box of the strip cut by the viewport. `transformed_clip` cuts the logical clip by the painting's viewport first, which is the reference's mask: the viewport is `window.content_mask()` when the container begins (the container's own clip with everything above it), and what is inside the container is cut by `with_content_mask` as before, so nested containers, nested and ancestor transformed elements and intermediate clips reproduce `clip, viewport and everything above`. The hook sits in `with_content_mask_telling`, which `with_untold_content_mask` and the border path share; culling (`content_mask_stack`) and every untransformed mask are untouched, and the reference window is not affected (`painting` is `None`).\n\n**What I ran** (probes in the scratchpad, this head against its base `538edae`; layered window with every mechanism against the reference with snapping forced, 476 steps of single pixels, wheel runs and mixed steps unless noted).\n- Matrix of transformed content, 95 reports at scales 1, 1.25, 1.3333, 2 and 2.625 (the first three kinds also at 1.25): bordered rounded shadowed rows turned, moved and scaled (each kind alone and mixed); a rotated, moved or scaled *ancestor* holding bordered children; a transformed card clipping underlined text and a path; a transformed bordered child inside an `overflow_hidden` card; in a `div`, nested scrolling containers, a `uniform_list` and a `list`: 0 of 95 differ at the head, 73 of 95 differ at the base (up to 170 levels), the same kinds as the report and more (text, underline and path rows, ancestor-transformed rows, the nested child). A transformed container itself (never layered): equal at both. Cards moved 70 px out of their rows, so that rows in the overscan show in view, with and without a border: equal at the head (the border ones differed at the base). Culling holds: the viewport cut leaves what is outside the viewport out.\n- Transformed, then not, then promoted again: 246 steps with the transform toggled every 30 and 362 steps with it going away: 0 differ at the head (3 to 4 and 2 differed at the base); after it goes the container is composited again, 298 composited steps, the same count at the base.\n- Frames across commits: 45 315 frame pairs of transformed content: the reference window is identical at both commits in all, and the layered window differs from the base in 191 (the repair) and from its own reference in 0; 19 080 frame pairs of untransformed bordered, tiny, rounded, clipped and one pixel rows (`div`, nested, `uniform_list`, `list`, scales 1.25 and 2): identical at both in both windows.\n- Regression: `p80`, `p81`, `p86`, `p83` (221 comparisons at 8 scales, transformed groups of LYR-15 among them) 0 differing steps; the lane C groups at the head (`lane_c_scroll_layers` 18, `lane_c_layer_scales` 7 with the new group, `lane_c_list_hover` 2) pass; `fast::` unit tests 424 of 424; the sprint's checks (39 lane A scenes, the new unit test, the new pixel group) and Linux log pass. The new unit test fails with the hook removed and with its condition inverted.\n\n**Not blocking.** The shipped tests hold one content (rounded bordered cards turned, moved and scaled). The fix is general and my probes show text, underline, path, ancestor-transformed and nested transformed rows were broken at the base and are right at the head, but a change that kept only the border case would pass the shipped tests; the criterion names those groups. A second content of a transformed card clipping underlined text and a path (my variant 7) would guard the rest.\n\nNo tracked file touched; scratch worktrees and probe profiles removed.",
       "findingIds": [],
       "recordedAt": "2026-10-11T19:28:30Z"
+    },
+    "s12b-layers-web-mobile": {
+      "reviewerId": "claude-reviewer-s12b3-7f3c91a2",
+      "snapshotId": "524830c65b6bedc56179fa65dbfbf02f282ab0f7d330d80a6cbe32fd61c4da56",
+      "criterionIds": [
+        "LYR-9",
+        "LYR-10",
+        "LYR-11"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-9"
+          ],
+          "sha256": "32f356979b72055deb66f0820a142dd3f77d1c262f9a64a74a3c72f3366734a1"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-9",
+            "LYR-10",
+            "LYR-11"
+          ],
+          "sha256": "6ce6d9141327523a895e0ffaab8d6510ec2bf895bfb0491023561a03016d8868"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/wgpu_renderer.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-9",
+            "LYR-10",
+            "LYR-11"
+          ],
+          "sha256": "68eaeb5bf82018146037773d00ebc5355fb3aa6999f794e6e825c623c044aa77"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/fast/layers/tile_cache.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-9",
+            "LYR-10",
+            "LYR-11"
+          ],
+          "sha256": "c6a518af605b66ead62c8220bc8879b827a2b8e23ecb27b74a7dadd437cf0cd2"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-10"
+          ],
+          "sha256": "56838e8a144584e759bf47b1e9d7f2fa6a75a7683a8c291356534c13c1e8d1b0"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/jni.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-10"
+          ],
+          "sha256": "7fd881c5d9c1ec0c47f4dce468ce58f557a55035febb91156238803fc25f13c7"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/embedded.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-10"
+          ],
+          "sha256": "9f6c5444f0c1df96c5a4eae72513e89039225eef45cbad395a6cfbaafda45307"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/ios/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-11"
+          ],
+          "sha256": "3580753182ea9ef6af0693c6c85fb90736e7bd0c698c0dce930f2ed4d13d3074"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/ios/ffi.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-11"
+          ],
+          "sha256": "f3dc49dd5f462618efc80ca148553b362a6a09f74c0ccdec51cbbbf263810604"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/scroll-layers.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-9"
+          ],
+          "sha256": "971aa0aac5bca18ae5ce98ab87cd83d08214a4d0ac4f505814cb05f2831ac7e3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scroll_layers.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-9",
+            "LYR-10",
+            "LYR-11"
+          ],
+          "sha256": "40dbcd87224eb54d993fe6f837512c3dd995b37868208b93cbfd2c96e9bd6364"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/android_host/scroll_layers.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-10"
+          ],
+          "sha256": "6790675906d29dd971b4b1097cfad7c00372156066c56ce27153f9050a726d98"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/ios_host/scroll_layers.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-11"
+          ],
+          "sha256": "85219f3e848c6a260d03378c54ec887b7b411e2793460e87d89f4d18274bddab"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/java/dev/gpux/mobile/GpuxNativeActivity.java",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-10"
+          ],
+          "sha256": "9bf343ce048580cd3a753d14f0f93807f1d4f9a1e9f05c96c13259acfca5260b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/wgpu_context.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-10"
+          ],
+          "sha256": "e170aee6e678ad82016e868c5b00dbe5a3842b7dfb19ae0f82ff4aa9a7067323"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/platform.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-10"
+          ],
+          "sha256": "5f5185e91d8799ab46dab860d073da93481feca98bd0ae610c05845e86b64091"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/android.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-10"
+          ],
+          "sha256": "cdb5622b11d2fdb20437f415a3009abeb889d88241bb29c2bf176a65fd427356"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/tests/android.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-10"
+          ],
+          "sha256": "0469844ade29769202ae8b4e1f85002c96c3f4a08698dbd90ec06dcf4a397755"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s12b-layers-web-mobile-final-9638316a4293.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "LYR-9"
+          ],
+          "sha256": "68141fa52a846c51b2d90782f748fc7b040fb2d0d2b17d441ca3afaa89685e60"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s12b-layers-web-mobile-final-c3dbcf1467c3.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "LYR-10"
+          ],
+          "sha256": "4cb37ee6a25a00332903b2a05e37c10424ac818060d28743e4aee98aab5c50de"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s12b-layers-web-mobile-final-c2edf61d3649.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "LYR-10"
+          ],
+          "sha256": "6a5cdc764a51b50d5b0b69cf97dafb49902041918daa9f1bba98d716a4c21dfa"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s12b-layers-web-mobile-final-189ffe93e893.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "LYR-11"
+          ],
+          "sha256": "99f0fcd555b19371c589a052e6ceb377d7c8d5793ac02755faf84c0e77025bea"
+        }
+      ],
+      "summaryMarkdown": "**Verdict: passed at `3a340dc` (revision 249, snapshot 524830c6), third review of `s12b-layers-web-mobile`.** No finding is open.\n\nLYR-9: lane B 10 of 10 on WebGPU and forced WebGL2 at DPR 1 and 2, counters through `__gpuxFastStats`, byte equality with a layers-off load, the budget, and a scroller holding an element and one holding an island both off their layer (not vacuous: the island gate removed fails exactly those two). LYR-10: lane E 3 of 3 on the GL fallback and 3 of 3 on the emulator's SwiftShader Vulkan, named in each result and enforced; touch and `adb shell input swipe` composite, pixels equal, trim and pause releases each told apart by mutation, the surface loss shown by an empty cache and its own release stated as by inspection, as the embedded host's trim. LYR-11: lane F 3 of 3 on Metal (unchanged code), the hook removed fails the resume check. Desktop lane C passes at the first review's head (`lane_c_scroll_layers` 18, `lane_c_layer_scales` 7). The sprint's check logs and the testkit's tests pass.\n\nAccepted and unchanged: touch injected for the Simulator, the FFI memory-warning call, byte equality in place of the 16-bit tolerance, software Vulkan named in the criterion. No tracked file touched; scratch worktree removed.",
+      "findingIds": [
+        "s12b-android-vulkan-is-not-proved",
+        "s12b-android-trim-memory-and-the-pause-release-are-not-proved",
+        "s12b-html-islands-are-not-checked"
+      ],
+      "recordedAt": "2026-10-11T21:13:51Z"
     }
   },
   "checkpoints": {
@@ -7759,6 +8070,64 @@
         }
       ],
       "descriptionMarkdown": "**Resolved at `538edae` (`048e52e`).** `inside` also sends a border whose strips overlap otherwise than equal back to a clip for each strip, the rule I verified. Replay, my fuzz at this head, the eight regimes of painted scenes (20 000 scenes and 6000 each): 0 differing orders, masks or untold clips; replayed whole and split (8000 scenes, 3 509 and 5 336 cuts inside a border): 0. A regime that guards the rule, which the shipped random scenes do not: elements 3 to 7 px tall and 20 to 90 px wide, a border as wide as 2 to 6 px but no wider than the element, no fractional edges, 12 000 scenes replayed whole and in two ranges (5 720 cuts inside a border): 0 differ with the rule and 37 without (27 of 12 000 for 3 to 7 px squares; 3 to 7 px wide and tall elements do not meet it). Production against the helper: the same decision on 280 000 random elements. Ordinary borders are not sent back: plain rows 16 to 48 px tall with a 1 or 2 px border 40 000 of 40 000 one clip, cards 32 to 300 px with 1 to 3 px and radius to 16 39 696 of 40 000, buttons 39 993, boxes 8 to 16 px, one pixel lines and dots 40 000; in windows (`div`, `uniform_list`, nested containers, five scales) 1 475 plain rows, 1 420 rounded cards with a 2 px border and 2 800 clipped cards were each one clip, none a clip for each strip. Scenes and pixels: the window-level dump (108 combinations, eight settings including all three transformations) 0 lines differ from `157b0a9`; 8 586 frame pairs of transformed, tiny and mixed rows 0 differ."
+    },
+    {
+      "id": "s12b-android-vulkan-is-not-proved",
+      "boundaryId": "s12b-layers-web-mobile",
+      "criterionIds": [
+        "LYR-10"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/wgpu_context.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/android.rs",
+          "symbol": "software_vulkan_property"
+        }
+      ],
+      "descriptionMarkdown": "**Resolved at `440328e`, and the claim is honest as LYR-10 words it.** `GPUX_ANDROID_SOFTWARE_VULKAN=1` sets `debug.gpux.software_vulkan`, `AndroidPlatform::new` (not headless) allows software adapters, and the checks name the backend and fail if Vulkan was asked for and the window renders through another. My runs, `lane e --grep scroll-layers`: default 3 of 3 `on gl` (ANGLE over SwiftShader, the software Vulkan adapter skipped as before: `Skipping Android software Vulkan adapter`); with the variable 3 of 3 `on vulkan` (`software Vulkan adapters are allowed`, `Selected GPU adapter: \"SwiftShader Device (LLVM 10.0.0)\" (Vulkan)`); div 4 439 and list 58 rows scrolled, 167 and 158 frames composited, pixels equal with and without layers. LYR-10 says so (\"Vulkan is proved on a software Vulkan driver\"), which is what it is: a hardware Vulkan driver is not exercised and cannot be here. The default build is unchanged: `wgpu_context.rs` still skips software Vulkan unless the flag is set, and the flag is read only on Android. Checked: `cargo check -p gpux-mobile --target aarch64-linux-android` builds with and without `android-native-activity`."
+    },
+    {
+      "id": "s12b-android-trim-memory-and-the-pause-release-are-not-proved",
+      "boundaryId": "s12b-layers-web-mobile",
+      "criterionIds": [
+        "LYR-10"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/android_host/scroll_layers.rs",
+          "symbol": "resume_phases"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/mod.rs"
+        }
+      ],
+      "descriptionMarkdown": "**Resolved at `3a340dc` (revision 249) by saying what is shown, which I accept.** I tried the counter fix myself (`tiles(&away).2 > tiles(&paused).2`) with `term_window`'s release removed, on GL: the check passes (`released 4 times`), and the log shows why: `onTrimMemory(10)` for the check's trim, then `onTrimMemory(20)` and, a millisecond later, `AndroidWindow::term_window — surface unconfigured`. The system's own trim as the app is hidden raises `released` with no help from `term_window`, so no counter on a device separates the surface loss's release; a resize (`wm size`) would not either (the renderer releases on its own then). LYR-10, `docs/testing.md` and the check's comments now say the check shows an empty cache once the surface is gone and that `term_window`'s own release and the embedded host's `trim_memory` are by inspection; the claims of the earlier text (\"tells apart ... the loss of the surface\") are gone. The `SOFTWARE_VULKAN_PROPERTY` block has its own section above `init_logger`, and `init_logger` has its doc comment back. What the check does tell apart, by mutation (second review): the trim hook, `native_trim_memory`'s release and the deferred pause's release each fail their own phase."
+    },
+    {
+      "id": "s12b-html-islands-are-not-checked",
+      "boundaryId": "s12b-layers-web-mobile",
+      "criterionIds": [
+        "LYR-9"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/scroll-layers.spec.ts"
+        }
+      ],
+      "descriptionMarkdown": "**Resolved at `440328e`.** `web-scroll-layers-island` is checked on WebGPU and WebGL2: lane B 10 of 10 (the two island specs among them: 0 frames composited, 0 tiles rasterized, `layer_bypasses.ineligible` > 0). Not vacuous: with `|| !scene.html_islands.is_empty()` removed from `paint::uncompositable` exactly the two island specs fail (8 passed, 2 failed) and the element specs still pass, so the island primitive is in the scene and the gate is what holds it off its layer."
     }
   ],
   "handoffMarkdown": "",

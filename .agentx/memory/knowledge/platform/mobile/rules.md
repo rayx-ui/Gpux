@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/platform/mobile
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-10T15:00:00+02:00
+  updated: 2026-10-11T14:00:00+02:00
   topics:
     - android
     - ios
@@ -36,3 +36,4 @@ agentx:
 - Place a platform view through `platform_view_element` (a composition native surface), never by adding it to the activity's or view controller's hierarchy; the element clips it to its content mask.
 - Do not route NativeActivity touches by platform-view bounds: a view's panel window takes its own touches, and GPUI gets the ones on its content.
 - Ship Android Java that gpux calls through JNI in `crates/gpui_mobile/java` under `dev.gpux.mobile`; consumers compile those sources and keep the package from R8.
+- Give a window's scroll-layer tiles back through `PlatformWindow::release_layer_tiles` on memory pressure (`onTrimMemory`, `didReceiveMemoryWarning`), in the background and on surface loss, in every host mode; never wait for the renderer or its lock to do it (leave the work to the next frame). A released tile is rasterized again from the content the frame carries and never composited stale. Checks of layered frames must not refresh the window (`app_host::wait_frames` draws from scratch, with no layer): wait for the frames a scroll asks for and read the frame as last drawn.

@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/platform/web
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-10T16:30:00+02:00
+  updated: 2026-10-11T14:00:00+02:00
   topics:
     - gpui-web
     - wasm
@@ -48,6 +48,8 @@ HTML elements: gpux owns `HtmlElementPrimitive`, the window paint hook, and the 
 Lane B proves this crate: one Playwright spec per area (backend fallback, viewport and resize, window close, pointer, wheel delta modes, keyboard, touch, IME, clipboard and its fallback, HTML elements and islands, canvas text fallback, worker threads, fetched assets, cursors, page lifecycle, safe areas, shortcut modifier) plus every lane-B conformance scene with trusted CDP input. The Playwright config keeps the browser's own user agent; Playwright's desktop Chrome device reports Windows on every host. Lane B passed 164/164 on an Apple M5 (2026-10-09).
 
 Browser window composition (`gpui_web/src/fast/composition.rs`, gpux's own): on WebGPU, every GPUI surface above the base gets a canvas above the `html_element` overlay root (re-layered to z-index 2147483646), drawn by a renderer sharing the window's device, atlas and pipelines (`WgpuRenderer::new_sharing_with_context` on the platform's context), and an input shield whose `clip-path` is the overlay's input region and which re-dispatches pointer events onto the window's canvas. The base draw places the whole composed frame's DOM elements; HTML islands inside overlays are not supported. Overlay surfaces alone configure premultiplied alpha, which wgpu's WebGPU backend accepts but does not report. The shields are siblings above the canvas, so the canvas ignores a `pointerleave` onto one of its window's shields (`stays_in_window`) and a shield forwards a leave that goes anywhere else: crossing onto a popover is not a window exit. The cursor needs nothing: GPUI sets it on `body`, which the shields inherit. WebGL2 reports composition unsupported. Lane B: `specs/composition.spec.ts` and the `web-composition` scene (also in the Dawn smoke).
+
+Scroll layers in the browser (fast mode, `gpui_web/src/window.rs`): `WebWindow` answers `rasterizes_layer_tiles()` and `COMPILED` includes wasm32, so the shared wgpu tiles run on WebGPU and on the full-record WebGL2 transport with no second implementation; the 32 MB browser budget applies (`LAYER_TILE_BUDGET_BYTES`) and a container holding HTML islands or elements keeps today's path (`Ineligible`). Under `diagnostics` `PlatformWindow::publish_fast_stats` (called from `Window::present`) publishes `__gpuxFastStats` = `{ frame, run, tiles }` (`FastStats::counters()` of the last frame and the run, and the renderer's held, rasterized, released and budget) through `web_globals`. `gpux-testkit` builds `web_host` with `app-host,diagnostics`, and the host takes `?layers=1|0` (all mechanisms, or none) for the shown scene. `scroll-layers.spec.ts` (`web-scroll-layers`, `web-scroll-layers-html`) scrolls a div and a list with trusted wheel input on both backends, asserts the composited frames and the budget through the global, and compares the page with layers to the one without byte for byte at DPR 1 and 2 (Chromium divides a synthesized wheel delta by the device pixel ratio, so the spec scales it back); its `@timing` test is lane G's. Select its other tests with `--grep "scroll-layers: "`: a bare `scroll-layers` also matches the file name.
 
 ## Backlinks
 
