@@ -358,7 +358,7 @@ impl RowOf {
                             |card| card.rotate(0.03),
                         )
                         .child(SharedString::from(format!(
-                            "Row {index:02}: jackdaws love my big sphinx of quartz"
+                            "Row {index:02}: jackdaws 😀 love my big sphinx of quartz"
                         ))),
                 )
                 .into_any_element(),
