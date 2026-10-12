@@ -5,8 +5,11 @@ Fast mode is gpux's set of incremental-rendering mechanisms, adapted from
 window composition. Each can be switched per window at runtime. With every switch off a window
 draws exactly as gpux draws without fast mode.
 
-> Fast mode is landing mechanism by mechanism. Every switch defaults **off** until the last
-> mechanism has its proof; this page grows with each one.
+**Layout retention, view retention, splice and scroll layers are on by default**, wherever the
+target compiles them (scroll layers need a renderer that rasterizes their tiles: every gpux
+renderer does, a test window without a renderer reports them off). Window composition stays opt-in
+per window. `GPUX_FAST_MODE=0` turns everything off for a process; [Switches](#switches) lists
+the finer variables.
 
 ## Switches
 
@@ -29,7 +32,20 @@ window is created:
 | `GPUX_VIEW_RETENTION=0\|1` | View retention. gpui-fast's `GPUI_VIEW_RETENTION` is read when this is unset. |
 | `GPUX_SCROLL_LAYERS=0\|1` | Scroll layers. gpui-fast's `GPUI_SCROLL_LAYERS` is read when this is unset. |
 
-Splice has no variable, as in gpui-fast; set it through `Window::set_fast_mode`.
+Splice has no variable, as in gpui-fast; it is on with view retention by default, and
+`Window::set_fast_mode` turns it off. A mode a variable cannot express (splice off and everything
+else on) is set the same way, right after the window opens.
+
+Because the defaults are on, a window an application opens, and every window of a test that does
+not say otherwise, draws with the mechanisms. A test that is of stock behaviour (upstream's cached
+views, or what a frame that paints everything does) opens its window with
+`window.set_fast_mode(FastMode::OFF)`; `fast::tests::defaults` pins what a new window gets and what
+each variable turns off. `Window::fast_mode()` says what a window runs.
+
+What a retained scene replays is what was painted: a change of the application's text rendering
+mode, of a window's background appearance, or of what its renderer supports (subpixel text) makes
+the next frame draw from scratch, where frames drawn without fast mode follow it by painting
+everything again.
 
 ### Hover after a scroll
 

@@ -77,12 +77,19 @@ command that installs a missing one. Platform setup is in
 | `GPUX_ARTIFACTS_DIR` | lanes C and D | Where failure images go instead of `artifacts-temp/testkit/<lane>/`. |
 | `VK_DRIVER_FILES` | Linux | Points Vulkan at one driver, for example lavapipe: `/usr/share/vulkan/icd.d/lvp_icd.json` (`lvp_icd.x86_64.json` before Mesa 25.2). A path that does not exist leaves no Vulkan adapter, and rendering falls back to llvmpipe over GL. |
 | `GPUX_OS_INPUT` | lane D | `optional` reports the OS-input check skipped when the session delivers no synthetic input (hosted Windows runners). |
+| `GPUX_FAST_MODE`, `GPUX_LAYOUT_RETENTION`, `GPUX_VIEW_RETENTION`, `GPUX_SCROLL_LAYERS` | every window | The fast-mode switches ([fast-mode.md](fast-mode.md#switches)), read when a window opens. Fast mode is on by default, so every lane runs with it; `GPUX_FAST_MODE=0` reproduces a failure without it. Tests that compare modes set them with `Window::set_fast_mode`. |
 | `ZED_DEVICE_ID` | windowed renderers | Pins a GPU by its PCI device id on machines with several. |
 | `GPUX_WEB_PROFILE` | lane B | The Playwright profile `lane b` runs (`local-gpu` by default). |
 | `GPUX_WEB_TOOLCHAIN` | lanes B and G | The nightly toolchain of the threaded WASM build (default `nightly-2026-06-23`). |
 | `ANDROID_HOME`, `ANDROID_SERIAL` | lane E | The SDK, and the device to run on. |
 | `CI` | lane G | Lane G refuses to run when it is set. |
 | `SEED`, `ITERATIONS`, `BENCH_MEASUREMENT` | `#[gpux::test]`, `#[gpux::bench]` | Seeds and iterations of randomized tests and benchmarks, and what benchmarks measure (`wall-time`, `instructions`, `allocations`, ...). |
+
+Fast mode is on in every lane, because it is on by default. What proves it is the groups that
+compare it with itself off: the oracle and counter groups in lane A (`fast::tests::*`,
+`lane_a_fast_parity`, `fast_mode_attribution`), `lane_c_fast_parity` and the scroll-layer groups
+in lane C, the `scroll-layers` specs in lane B and the scroll-layer scenes of lanes E and F; the
+timings are lane G's (`gpux-testkit perf fast-mode`, [fast-mode.md](fast-mode.md#measuring)).
 
 ## Goldens
 

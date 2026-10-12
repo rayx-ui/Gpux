@@ -30,6 +30,7 @@ RayX memory records only RayX's consumer view. For RayX-side work, read the narr
 - For macOS, Linux, or WASM/browser setup, also read [references/macos-linux-wasm-prerequisites.md](references/macos-linux-wasm-prerequisites.md).
 - For creating, fixing, or validating browser gpux apps, read [references/multithreaded-wasm-apps.md](references/multithreaded-wasm-apps.md). Browser apps, RayX's included, use multithreaded `gpui_web` by default.
 - For fixed/sticky positioning, keyed sticky stacks, `StickyStacking`, ordinary `div()` candidates, or low-level List/UniformList candidates, read [references/sticky-positioning.md](references/sticky-positioning.md).
+- For fast mode (layout and view retention, splice, scroll layers, window composition: their switches, the `fast/` modules, the oracle and parity tests, measuring, or syncing a gpui-fast fix), read [references/fast-mode.md](references/fast-mode.md).
 - For `ScrollActivity`, `ScrollBehavior`, programmatic Div/List/UniformList scrolling, retargeting, or direct-input cancellation, read [references/programmatic-scroll.md](references/programmatic-scroll.md).
 - For upstream updates from `zed-industries/zed`, read [references/update-from-zed-gpui-closure.md](references/update-from-zed-gpui-closure.md).
 - For importing a specific upstream Zed pull request into gpux, read [references/update-from-zed-pr.md](references/update-from-zed-pr.md) first, then use the GPUI closure update reference for the full import mechanics.

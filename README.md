@@ -78,6 +78,14 @@ fn main() {
 | `tooling/testkit` | `gpux-testkit` | `gpux_testkit` | The `gpux-testkit` test-lane runner |
 | `vendor/wgpu/...` | `gpux-wgpu`, `gpux-wgpu-core`, `gpux-wgpu-hal`, `gpux-wgpu-core-deps-*` | `wgpu`, ... | Temporary wgpu fork, see below |
 
+## Fast mode
+
+gpux carries the incremental-rendering work of [gpui-fast](docs/upstream/gpui-fast.md): layout
+retention, view retention, splice, scroll layers (scrolled content drawn once into GPU tiles) and
+opt-in native window composition. The first four are on by default; `GPUX_FAST_MODE=0` turns them
+off. [docs/fast-mode.md](docs/fast-mode.md) describes the switches, what each mechanism costs and
+saves, and how it is measured.
+
 ## The wgpu fork
 
 `vendor/wgpu` contains `gpux-wgpu`, upstream wgpu 30.0.1's `wgpu`, `wgpu-core`, `wgpu-hal` and
