@@ -168,14 +168,13 @@ test.describe('at device pixel ratio 2', () => {
 /** The 60 Hz frame budget, in milliseconds. */
 const FRAME_BUDGET_MS = 1000 / 60;
 
-test('@timing scrolling cards from tiles keeps frame work within the 60 Hz budget', async ({
-  gpux,
-  page,
-}, testInfo) => {
-  test.skip(SOFTWARE_PROFILES.includes(testInfo.project.name), 'software renderers make timing meaningless');
-  await gpux.open('web-scroll-layers', { params: { layers: '1' } });
-  await gpux.locate('role=status value="div 0 list 0"');
-  const at = await gpux.center('id=scroller');
+/**
+ * Wheels `steps` times by `delta` over the element `target` of `web-scroll-layers` and returns
+ * how long gpux's frame work (layout, paint and submission in its animation-frame callback) took
+ * in each frame, and how many frames came from tiles.
+ */
+async function frameWork(gpux: Gpux, page: Page, target: string) {
+  const at = await gpux.center(target);
   await page.mouse.move(at.x, at.y);
   // gpux requests every frame with the same function, which tells its callbacks from the spec's.
   await page.evaluate(() => {
@@ -203,12 +202,41 @@ test('@timing scrolling cards from tiles keeps frame work within the 60 Hz budge
     const work = (globalThis as unknown as { __gpuxFrameWork: Map<unknown, number[]> }).__gpuxFrameWork;
     return [...work.values()].reduce((most, next) => (next.length > most.length ? next : most), []);
   });
-  expect(durations.length, 'frames recorded while scrolling').toBeGreaterThanOrEqual(30);
-  expect(composited, 'frames drawn from tiles while scrolling').toBeGreaterThanOrEqual(30);
   const sorted = [...durations].sort((a, b) => a - b);
-  const p95 = sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.95))];
-  console.log(
-    `gpux-timing: scroll layers scroll frame work p95 ${p95.toFixed(2)} ms, max ${sorted[sorted.length - 1].toFixed(2)} ms over ${durations.length} frames`,
-  );
-  expect(p95, 'p95 frame work while scrolling from tiles (ms)').toBeLessThan(FRAME_BUDGET_MS);
-});
+  return {
+    frames: sorted.length,
+    composited,
+    p95: sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.95))] ?? 0,
+    max: sorted[sorted.length - 1] ?? 0,
+  };
+}
+
+// The same page scrolled with every mechanism and with none, on both backends: what the layers
+// save per frame is what the second line of each pair says against the first. Lane G copies the
+// `gpux-timing:` lines into its timing summary.
+for (const backend of BACKENDS) {
+  for (const [scene, target] of [
+    ['cards in a scrolling div', 'id=scroller'],
+    ['rows of a list', 'id=rows'],
+  ] as const) {
+    test(`@timing scrolling ${scene} keeps frame work within the 60 Hz budget with layers on ${NAMES[backend]}`, async ({
+      gpux,
+      page,
+    }, testInfo) => {
+      test.skip(SOFTWARE_PROFILES.includes(testInfo.project.name), 'software renderers make timing meaningless');
+      const measured: Record<string, Awaited<ReturnType<typeof frameWork>>> = {};
+      for (const layers of ['1', '0']) {
+        await gpux.open('web-scroll-layers', { backend, params: { layers } });
+        await gpux.locate('role=status value="div 0 list 0"');
+        measured[layers] = await frameWork(gpux, page, target);
+        console.log(
+          `gpux-timing: scroll layers ${scene} on ${NAMES[backend]} with layers ${layers === '1' ? 'on' : 'off'}: frame work p95 ${measured[layers].p95.toFixed(2)} ms, max ${measured[layers].max.toFixed(2)} ms over ${measured[layers].frames} frames, ${measured[layers].composited} from tiles`,
+        );
+      }
+      expect(measured['1'].frames, 'frames recorded while scrolling').toBeGreaterThanOrEqual(30);
+      expect(measured['1'].composited, 'frames drawn from tiles while scrolling').toBeGreaterThanOrEqual(30);
+      expect(measured['0'].composited, 'frames drawn from tiles with layers off').toBe(0);
+      expect(measured['1'].p95, 'p95 frame work while scrolling from tiles (ms)').toBeLessThan(FRAME_BUDGET_MS);
+    });
+  }
+}

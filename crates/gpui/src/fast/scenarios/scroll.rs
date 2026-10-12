@@ -387,7 +387,17 @@ impl Scrolling {
                 check(stats.views_built == frames, || {
                     format!("other views were built than the scroller: {stats:?}")
                 })?;
-                drawn_per_frame(stats, 60)
+                // The frames that painted the layer's content hold it in tiles,
+                // which the window's own primitives do not count; the others
+                // draw it as without a layer.
+                let direct = frames - stats.layers_repainted;
+                let drawn = stats.primitives_painted + stats.primitives_copied;
+                check(drawn >= 60 * direct, || {
+                    format!(
+                        "{drawn} primitives over {direct} frames drawn without the layer, \
+                         below 60 a frame: the text drew no glyphs? {stats:?}"
+                    )
+                })
             }
             // Sticky headers are painted where they stick, above the rows
             // and not with them, and a backdrop blur samples what is under
