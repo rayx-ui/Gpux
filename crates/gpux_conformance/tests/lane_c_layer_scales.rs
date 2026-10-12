@@ -18,6 +18,7 @@
 
 mod scroll_layers_support;
 
+use gpux::prelude::FluentBuilder as _;
 use gpux::{
     AnyWindowHandle, AppContext as _, Context, FastMode, IntoElement, ParentElement, Render,
     RenderImage, Styled, TestAppContext, TestWindowOptions, VisualTestContext, Window, div, img,
@@ -241,10 +242,30 @@ fn gradient_image(side: u32) -> Arc<RenderImage> {
 static SMALL_IMAGE: LazyLock<Arc<RenderImage>> = LazyLock::new(|| gradient_image(16));
 static LARGE_IMAGE: LazyLock<Arc<RenderImage>> = LazyLock::new(|| gradient_image(64));
 
+static BRIGHT_SMALL: [LazyLock<Arc<RenderImage>>; 2] = [
+    LazyLock::new(|| solid_image(16, [255, 240, 0, 255])),
+    LazyLock::new(|| solid_image(16, [0, 255, 255, 255])),
+];
+static BRIGHT_LARGE: [LazyLock<Arc<RenderImage>>; 2] = [
+    LazyLock::new(|| solid_image(64, [255, 255, 255, 255])),
+    LazyLock::new(|| solid_image(64, [255, 0, 255, 255])),
+];
+
+fn solid_image(side: u32, color: [u8; 4]) -> Arc<RenderImage> {
+    let mut pixels = image::RgbaImage::new(side, side);
+    for pixel in pixels.pixels_mut() {
+        *pixel = image::Rgba(color);
+    }
+    Arc::new(RenderImage::new([image::Frame::new(pixels)]))
+}
+
 /// Two images, one shown at four times its size and one at a third, each laid out where it
-/// shows or moved there by a transformation of its own (a whole number of device pixels).
+/// shows or moved there by a transformation of its own (a whole number of device pixels). With
+/// `neighbours`, bright opaque images of the same sizes are painted before them and after them,
+/// elsewhere in the window, so that the atlas holds them beside the two.
 struct ImageStrip {
     moved: bool,
+    neighbours: bool,
 }
 
 impl ImageStrip {
@@ -265,6 +286,16 @@ impl ImageStrip {
                 .into_any_element()
         }
     }
+
+    /// A bright image of the neighbours, laid out where it shows.
+    fn bright(&self, x: f32, y: f32, side: f32, image: &Arc<RenderImage>) -> gpux::AnyElement {
+        div()
+            .absolute()
+            .left(px(x))
+            .top(px(y))
+            .child(img(image.clone()).w(px(side)).h(px(side)))
+            .into_any_element()
+    }
 }
 
 /// Where the images show, in logical pixels: (left, top, side).
@@ -276,6 +307,10 @@ impl Render for ImageStrip {
         div()
             .size_full()
             .bg(rgb(0xffffff))
+            .when(self.neighbours, |root| {
+                root.child(self.bright(110., 70., 16., &BRIGHT_SMALL[0]))
+                    .child(self.bright(20., 100., 64., &BRIGHT_LARGE[0]))
+            })
             .child(self.place(
                 small.0,
                 small.1,
@@ -286,7 +321,65 @@ impl Render for ImageStrip {
                 large.1,
                 img(LARGE_IMAGE.clone()).w(px(large.2)).h(px(large.2)),
             ))
+            .when(self.neighbours, |root| {
+                root.child(self.bright(140., 70., 16., &BRIGHT_SMALL[1]))
+                    .child(self.bright(100., 100., 64., &BRIGHT_LARGE[1]))
+            })
     }
+}
+
+/// A window of `ImageStrip` at `scale`, and its frame.
+fn strip_frame(
+    cx: &mut TestAppContext,
+    scale: f32,
+    moved: bool,
+    neighbours: bool,
+) -> image::RgbaImage {
+    let handle = cx.add_window_with_options(
+        TestWindowOptions::new(size(px(200.), px(180.))).scale_factor(scale),
+        move |_, _| ImageStrip { moved, neighbours },
+    );
+    let window: AnyWindowHandle = handle.into();
+    cx.update_window(window, |_, window, _| {
+        window.set_fast_mode(FastMode::OFF);
+        window.activate_window();
+    })
+    .expect("the window is open");
+    cx.run_until_parked();
+    VisualTestContext::from_window(window, cx)
+        .capture_screenshot()
+        .expect("the window rendered")
+}
+
+/// The most levels the pixels of `rect` (logical left, top, width, height) differ by between
+/// two frames, `margin` device pixels in from its edges.
+fn worst_difference(
+    a: &image::RgbaImage,
+    b: &image::RgbaImage,
+    scale: f32,
+    (left, top, side): (f32, f32, f32),
+    margin: f32,
+) -> u8 {
+    let (x0, y0) = (
+        (left * scale + margin) as u32,
+        (top * scale + margin) as u32,
+    );
+    let (x1, y1) = (
+        ((left + side) * scale - margin) as u32,
+        ((top + side) * scale - margin) as u32,
+    );
+    (y0..y1)
+        .flat_map(|y| (x0..x1).map(move |x| (x, y)))
+        .map(|(x, y)| {
+            let (a, b) = (a.get_pixel(x, y).0, b.get_pixel(x, y).0);
+            a.iter()
+                .zip(b)
+                .map(|(a, b)| a.abs_diff(b))
+                .max()
+                .unwrap_or(0)
+        })
+        .max()
+        .unwrap_or(0)
 }
 
 /// A transformed image (a polychrome sprite, magnified and minified) moved by a whole number of
@@ -299,60 +392,51 @@ impl Render for ImageStrip {
 fn translated_images_are_the_images_laid_out_there() {
     for scale in [1., 2.] {
         let mut cx = app();
-        let mut open = |moved: bool| -> AnyWindowHandle {
-            let handle = cx.add_window_with_options(
-                TestWindowOptions::new(size(px(140.), px(100.))).scale_factor(scale),
-                move |_, _| ImageStrip { moved },
-            );
-            let window: AnyWindowHandle = handle.into();
-            cx.update_window(window, |_, window, _| {
-                window.set_fast_mode(FastMode::OFF);
-                window.activate_window();
-            })
-            .expect("the window is open");
-            cx.run_until_parked();
-            window
-        };
-        let (native, moved) = (open(false), open(true));
-        let frame = |cx: &TestAppContext, window| {
-            VisualTestContext::from_window(window, cx)
-                .capture_screenshot()
-                .expect("the window rendered")
-        };
-        let (expected, actual) = (frame(&cx, native), frame(&cx, moved));
+        let expected = strip_frame(&mut cx, scale, false, false);
+        let actual = strip_frame(&mut cx, scale, true, false);
         assert_eq!(actual.dimensions(), expected.dimensions());
-        for (left, top, side) in IMAGES {
+        for image in IMAGES {
             // The outer half texel of the source is `side / texels / 2` logical pixels wide
             // at most: two logical pixels for the magnified image, none for the minified.
-            let margin = if side > 32. {
+            let margin = if image.2 > 32. {
                 2. * scale + 1.
             } else {
                 scale + 1.
             };
-            let (x0, y0) = (
-                (left * scale + margin) as u32,
-                (top * scale + margin) as u32,
-            );
-            let (x1, y1) = (
-                ((left + side) * scale - margin) as u32,
-                ((top + side) * scale - margin) as u32,
-            );
-            let worst = (y0..y1)
-                .flat_map(|y| (x0..x1).map(move |x| (x, y)))
-                .map(|(x, y)| {
-                    let (a, e) = (actual.get_pixel(x, y).0, expected.get_pixel(x, y).0);
-                    a.iter()
-                        .zip(e)
-                        .map(|(a, e)| a.abs_diff(e))
-                        .max()
-                        .unwrap_or(0)
-                })
-                .max()
-                .unwrap_or(0);
+            let worst = worst_difference(&actual, &expected, scale, image, margin);
             assert!(
                 worst <= 3,
-                "at {scale}x the image at ({left}, {top}) of {side} moved by a transformation \
-                 differs from the image laid out there by {worst} levels"
+                "at {scale}x the image at ({}, {}) of {} moved by a transformation differs from \
+                 the image laid out there by {worst} levels",
+                image.0,
+                image.1,
+                image.2
+            );
+        }
+        cx.quit();
+    }
+}
+
+/// A transformed image looks the same whatever the atlas holds beside it, its outermost texels
+/// included: the filter by hand reads only its own tile (the sampler read the tile next to it
+/// at the edge). The same moved images, once alone in the atlas and once with bright images
+/// painted before and after them, differ by nothing.
+#[test]
+fn a_transformed_image_does_not_depend_on_what_the_atlas_holds_beside_it() {
+    for scale in [1., 2.] {
+        let mut cx = app();
+        let alone = strip_frame(&mut cx, scale, true, false);
+        let crowded = strip_frame(&mut cx, scale, true, true);
+        assert_eq!(alone.dimensions(), crowded.dimensions());
+        for image in IMAGES {
+            let worst = worst_difference(&crowded, &alone, scale, image, 0.);
+            assert!(
+                worst <= 1,
+                "at {scale}x the image at ({}, {}) of {} moved by a transformation differs by \
+                 {worst} levels with bright images in the atlas beside it",
+                image.0,
+                image.1,
+                image.2
             );
         }
         cx.quit();
