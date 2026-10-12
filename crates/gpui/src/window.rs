@@ -788,8 +788,8 @@ fn resolve_cursor_style(
 /// The opacity and transform that painting applies to primitives at some point of the tree.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct ElementPaintContext {
-    opacity: f32,
-    transformation: TransformationMatrix,
+    pub(crate) opacity: f32,
+    pub(crate) transformation: TransformationMatrix,
 }
 
 #[derive(Default, Eq, PartialEq)]
@@ -2405,7 +2405,7 @@ pub struct Window {
     is_minimizable: bool,
     pub(crate) sprite_atlas: Arc<dyn PlatformAtlas>,
     pub(crate) text_system: Arc<WindowTextSystem>,
-    text_rendering_mode: Rc<Cell<TextRenderingMode>>,
+    pub(crate) text_rendering_mode: Rc<Cell<TextRenderingMode>>,
     rem_size: Pixels,
     /// The stack of override values for the window's rem size.
     ///
@@ -5224,6 +5224,7 @@ impl Window {
             // Whole-window: The platform asked for a full frame (surface lost or reconfigured).
             self.refresh();
         }
+        self.refresh_for_text_policy();
         self.invalidate_entities();
         cx.entities.clear_accessed();
         debug_assert!(self.rendered_entity_stack.is_empty());

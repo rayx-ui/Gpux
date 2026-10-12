@@ -761,6 +761,14 @@ struct SynchronizedSurface {
 /// The [`Window`] field holding its composition.
 pub(crate) struct WindowCompositionHandle(Rc<RefCell<WindowCompositionState>>);
 
+#[cfg(test)]
+impl WindowCompositionHandle {
+    /// Whether the window enabled composition, for tests.
+    pub(crate) fn is_enabled(&self) -> bool {
+        self.0.borrow().enabled
+    }
+}
+
 impl Default for WindowCompositionHandle {
     fn default() -> Self {
         let mut tree = CompositionTree::new();

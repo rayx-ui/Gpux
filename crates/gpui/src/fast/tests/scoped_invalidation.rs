@@ -221,6 +221,12 @@ impl Pair {
             .map(|_| {
                 let mut cx = oracle_app(0);
                 let window = cx.add_window(|_, cx| Scoped::new(cx));
+                // These tests are of upstream's cached views, which fast
+                // mode's retention replaces where it is on.
+                cx.update_window(window.into(), |_, window, _| {
+                    window.set_fast_mode(crate::FastMode::OFF)
+                })
+                .unwrap();
                 cx.simulate_window_resize(window.into(), size(px(400.), px(400.)));
                 cx.set_draw_on_flush(false);
                 (cx, window)

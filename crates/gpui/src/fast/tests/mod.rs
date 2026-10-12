@@ -6,6 +6,7 @@ mod border_clips;
 mod bounds_grid;
 mod composition;
 mod composition_overlay;
+mod defaults;
 mod dependencies;
 mod dependency_nesting;
 mod draw_order;

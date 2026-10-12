@@ -5261,7 +5261,11 @@ impl ScrollHandle {
             return false;
         };
         state.scrollbar_drag_active = true;
+        // The activity is part of the metrics a frame publishes: a view that
+        // retention would replay must be drawn again for it to be.
+        let was_direct = state.activity.borrow().is_direct();
         state.activity.borrow_mut().begin_direct();
+        state.fast_version.bump_if(!was_direct);
         true
     }
 
@@ -5275,6 +5279,7 @@ impl ScrollHandle {
         if was_direct {
             state.activity.borrow_mut().stop();
         }
+        state.fast_version.bump_if(was_direct);
         true
     }
 

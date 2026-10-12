@@ -41,15 +41,15 @@ pub struct FastMode {
 }
 
 /// Whether layout retention is on in a window the environment says nothing
-/// about. Every compiled default stays `false` until fast mode's final sprint,
-/// so mechanisms land dark.
-pub(crate) const DEFAULT_LAYOUT_RETENTION: bool = false;
+/// about. Every mechanism is on by default; normalization turns off what a
+/// target does not compile, and the variables below turn each one off.
+pub(crate) const DEFAULT_LAYOUT_RETENTION: bool = true;
 /// See [`DEFAULT_LAYOUT_RETENTION`].
-pub(crate) const DEFAULT_VIEW_RETENTION: bool = false;
+pub(crate) const DEFAULT_VIEW_RETENTION: bool = true;
 /// See [`DEFAULT_LAYOUT_RETENTION`].
-pub(crate) const DEFAULT_SPLICE: bool = false;
+pub(crate) const DEFAULT_SPLICE: bool = true;
 /// See [`DEFAULT_LAYOUT_RETENTION`].
-pub(crate) const DEFAULT_SCROLL_LAYERS: bool = false;
+pub(crate) const DEFAULT_SCROLL_LAYERS: bool = true;
 
 /// Turns every mechanism off when `0`; when `1`, every mechanism starts on
 /// before the per-mechanism variables apply.
@@ -131,10 +131,20 @@ impl FastMode {
     ///   gpui-fast, any value other than `0` turns them on.
     /// - Splice has no variable, as in gpui-fast.
     pub(crate) fn from_environment(lookup: impl Fn(&str) -> Option<String>) -> FastMode {
+        Self::from_environment_over(FastMode::compiled_default(), lookup)
+    }
+
+    /// [`Self::from_environment`] for a window whose compiled default is
+    /// `default`, which lets tests of the variables' precedence stand apart
+    /// from what the defaults are.
+    pub(crate) fn from_environment_over(
+        default: FastMode,
+        lookup: impl Fn(&str) -> Option<String>,
+    ) -> FastMode {
         let base = match lookup(FAST_MODE_VAR).as_deref().map(str::trim) {
             Some("0") => return FastMode::OFF,
             Some("1") => FastMode::ALL,
-            _ => FastMode::compiled_default(),
+            _ => default,
         };
         let switch = |name: &str, alias: Option<&str>, default: bool| {
             match lookup(name).as_deref().map(str::trim) {
@@ -172,6 +182,19 @@ pub(crate) struct WindowFastMode {
     /// window drawn as the reference of one with them on.
     #[cfg(any(test, feature = "test-support"))]
     snapping_forced: bool,
+    /// What decided the kind of sprite text was painted as in the last frame
+    /// drawn with a retention mechanism on. See [`Window::refresh_for_text_policy`].
+    text_policy: Option<TextPolicy>,
+}
+
+/// What decides whether a window paints text as subpixel or grayscale
+/// sprites: scenes a retention mechanism replays carry the choice made when
+/// they were painted.
+#[derive(Clone, Copy, PartialEq)]
+struct TextPolicy {
+    mode: crate::TextRenderingMode,
+    background: crate::WindowBackgroundAppearance,
+    subpixel_supported: bool,
 }
 
 impl WindowFastMode {
@@ -186,6 +209,7 @@ impl WindowFastMode {
             ),
             #[cfg(any(test, feature = "test-support"))]
             snapping_forced: false,
+            text_policy: None,
         }
     }
 
@@ -284,6 +308,30 @@ fn release_disabled(window: &mut Window, previous: FastMode, current: FastMode) 
 }
 
 impl Window {
+    /// Draws the frame about to be drawn from scratch when what decides the
+    /// kind of sprite text is painted as changed since the last frame: the
+    /// application's text rendering mode, the window's background appearance,
+    /// or what its renderer can do. Frames gpux draws without fast mode paint
+    /// every element again and follow such a change by themselves; a scene
+    /// that retention replays would keep the old kind of sprite until its
+    /// content changed.
+    pub(crate) fn refresh_for_text_policy(&mut self) {
+        if !self.fast_mode.layout_retention() {
+            self.fast_mode.text_policy = None;
+            return;
+        }
+        let policy = TextPolicy {
+            mode: self.text_rendering_mode.get(),
+            background: self.platform_window.background_appearance(),
+            subpixel_supported: self.platform_window.is_subpixel_rendering_supported(),
+        };
+        if let Some(previous) = self.fast_mode.text_policy.replace(policy)
+            && previous != policy
+        {
+            self.refresh();
+        }
+    }
+
     /// The fast-mode mechanisms this window uses.
     ///
     /// A window starts with the compiled defaults, overridden by the

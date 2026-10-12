@@ -12,6 +12,9 @@ fn open<V: Render>(
     let mut cx = oracle_app(0);
     let window = cx.add_window(build);
     cx.update_window(window.into(), |_, window, cx| {
+        // These tests are of upstream's cached views, which fast mode's
+        // retention replaces where it is on.
+        window.set_fast_mode(crate::FastMode::OFF);
         window.refresh();
         window.draw(cx).clear(cx);
     })

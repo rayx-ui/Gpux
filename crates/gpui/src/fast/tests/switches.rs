@@ -8,13 +8,15 @@ use rand::{Rng as _, SeedableRng as _, rngs::StdRng};
 use super::oracle_support::{Change, OracleWindow};
 use crate::{AppContext as _, FastMode};
 
-/// The mode the environment `vars` gives a window.
+/// The mode the environment `vars` gives a window whose compiled defaults are
+/// all off, so that what a variable does is read apart from the defaults
+/// (see the `defaults` group for those).
 fn from(vars: &[(&str, &str)]) -> FastMode {
     let vars: HashMap<String, String> = vars
         .iter()
         .map(|(name, value)| (name.to_string(), value.to_string()))
         .collect();
-    FastMode::from_environment(|name| vars.get(name).cloned())
+    FastMode::from_environment_over(FastMode::OFF, |name| vars.get(name).cloned())
 }
 
 fn mode(
@@ -31,12 +33,8 @@ fn mode(
     }
 }
 
-/// Every mechanism lands dark: until the final sprint flips them, the
-/// compiled defaults are off, and a window the environment says nothing
-/// about draws as gpux does without fast mode.
 #[test]
-fn compiled_defaults_are_off() {
-    assert_eq!(FastMode::compiled_default(), FastMode::OFF);
+fn off_and_all_are_the_ends_of_the_scale() {
     assert_eq!(from(&[]), FastMode::OFF);
     assert!(FastMode::OFF.is_off());
     assert!(!FastMode::ALL.is_off());
@@ -393,6 +391,7 @@ fn a_window_without_scroll_layers_keeps_none_of_their_books(cx: &mut crate::Test
     let window = page.into();
     cx.set_draw_on_flush(false);
     with_window(cx, window, |window, _| {
+        window.set_fast_mode(FastMode::OFF);
         assert!(!window.fast_mode().scroll_layers);
     });
     assert!(!crate::fast::layers::on_thread());
@@ -406,6 +405,9 @@ fn a_window_without_scroll_layers_keeps_none_of_their_books(cx: &mut crate::Test
             )
         })
     };
+    // The window drew its first frame with the defaults, scroll layers on
+    // where there are any; what counts is that it counts none after them.
+    let drawn = books(cx).0;
     draw(cx, window);
     draw(cx, window);
     let version = page
@@ -430,7 +432,7 @@ fn a_window_without_scroll_layers_keeps_none_of_their_books(cx: &mut crate::Test
     draw(cx, window);
     let offset = page.read_with(cx, |page, _| page.handle.offset()).unwrap();
     assert_eq!(offset.y, crate::px(-70.), "the page scrolled");
-    assert_eq!(books(cx), (0, 0, 0, 0));
+    assert_eq!(books(cx), (drawn, 0, 0, 0));
     assert_eq!(
         page.read_with(cx, |page, _| page.handle.fast_version().get())
             .unwrap(),

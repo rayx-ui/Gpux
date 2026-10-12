@@ -32,9 +32,9 @@ use collections::FxHashSet;
 use smallvec::SmallVec;
 
 use crate::{
-    AnyView, App, Bounds, ContentMask, ElementId, EntityId, GlobalElementId, HitboxBehavior,
-    IntoElement as _, LayoutId, Pixels, Point, ScaledPixels, StyleRefinement, TextStyleRefinement,
-    TransformationMatrix, View, ViewElement, Window,
+    AnyView, App, Bounds, ContentMask, ElementId, ElementPaintContext, EntityId, GlobalElementId,
+    HitboxBehavior, IntoElement as _, LayoutId, Pixels, Point, ScaledPixels, StyleRefinement,
+    TextStyleRefinement, TransformationMatrix, View, ViewElement, Window,
     fast::{
         dependencies::RenderDependencies,
         layout_key::LayoutKey,
@@ -124,6 +124,10 @@ pub(crate) struct Rebuild {
     rem_size: Pixels,
     element_opacity: f32,
     transform: TransformationMatrix,
+    /// The opacity and transform prepaint saw, which a view painted under
+    /// an ancestor that applies others only while painting was not painted
+    /// with (see [`splice_layout`]).
+    prepaint_paint_context: ElementPaintContext,
     scroll_contexts: Vec<ScrollContainerContext>,
     sticky_contexts: Vec<StickyLayoutContext>,
     hitbox_behavior: Option<HitboxBehavior>,
@@ -153,6 +157,10 @@ pub(crate) fn rebuild_here(
         rem_size: window.rem_size(),
         element_opacity: window.element_opacity,
         transform: window.current_element_transform(),
+        prepaint_paint_context: ElementPaintContext {
+            opacity: window.element_opacity,
+            transformation: window.current_element_transform(),
+        },
         scroll_contexts: window.scroll_container_context_stack.stack.clone(),
         sticky_contexts: window.sticky_layout_context_stack.clone(),
         hitbox_behavior: window.hitbox_behavior_overrides.last().copied(),
@@ -395,6 +403,12 @@ pub(crate) fn splice_layout(
             };
             if nested.rebuild.is_none()
                 || !matches!(nested.paint, PaintStatus::Painted { .. })
+                // An ancestor that applies opacity or a transform only while
+                // painting is not copied around the gap, where the nested
+                // view would be painted without it.
+                || nested.rebuild.as_ref().is_some_and(|rebuild| {
+                    rebuild.prepaint_paint_context != nested.context.paint_context
+                })
                 || window.rendered_frame.fast_retained.is_duplicated(&nested.id)
                 // A splice skips the view's prepaint. A nested view laid
                 // out apart from it (a list row) would be laid out where
@@ -806,6 +820,15 @@ pub(crate) fn splice_prepaint(
 
     let start = window.prepaint_index();
     let mut copy = StretchCopy::default();
+    for gap in &gaps {
+        if let Some(layout) = window.rendered_frame.fast_retained.records[gap.record]
+            .layout
+            .as_ref()
+        {
+            copy.gap_states
+                .extend(layout.element_states.iter().cloned());
+        }
+    }
     let mut copied = Vec::new();
     let mut cursor = prepaint_range.start.clone();
     let mut next_record = previous + 1;
@@ -1078,6 +1101,12 @@ struct StretchCopy {
     nodes: Vec<(Range<usize>, usize)>,
     /// Each stretch of DevKit ids copied, and where it landed.
     devtools_ids: Vec<(Range<usize>, usize)>,
+    /// The element states the gaps used last frame. The stretch before a
+    /// gap holds the accesses its view's layout made for everything nested
+    /// in it, the gaps included: a gap built again uses what it needs
+    /// anew, and a state it no longer uses (its element is gone) must not
+    /// be carried into the frame by the copy.
+    gap_states: FxHashSet<(GlobalElementId, TypeId)>,
 }
 
 impl StretchCopy {
@@ -1103,9 +1132,22 @@ impl StretchCopy {
         );
         let states = &rendered.accessed_element_states
             [range.start.accessed_element_states_index..range.end.accessed_element_states_index];
+        // The entries stay where they are, for the ranges recorded around
+        // them to stand: the states of the gaps become stand-ins that
+        // transfer nothing.
+        let released = TypeId::of::<crate::fast::retained::ReleasedElementState>();
+        let states: Vec<_> = states
+            .iter()
+            .map(|state| {
+                if self.gap_states.contains(state) {
+                    (state.0.clone(), released)
+                } else {
+                    state.clone()
+                }
+            })
+            .collect();
         next.accessed_element_states.extend(states.iter().cloned());
-        next.pending_element_state_transfers
-            .extend(states.iter().cloned());
+        next.pending_element_state_transfers.extend(states);
         window
             .text_system()
             .reuse_layouts(range.start.line_layout_index..range.end.line_layout_index);

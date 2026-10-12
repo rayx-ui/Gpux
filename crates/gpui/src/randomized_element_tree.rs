@@ -1445,7 +1445,14 @@ mod tests {
                     .rendered_frame
                     .element_states
                     .keys()
-                    .filter_map(|(global_id, _)| {
+                    .filter_map(|(global_id, type_id)| {
+                        // What fast mode leaves in the place of a released
+                        // state for the frame is not an element's state.
+                        if *type_id
+                            == std::any::TypeId::of::<crate::fast::retained::ReleasedElementState>()
+                        {
+                            return None;
+                        }
                         let ElementId::NamedInteger(name, element_id) = global_id.last()? else {
                             return None;
                         };
@@ -1650,31 +1657,70 @@ mod tests {
         ..Default::default()
     })]
     fn randomized_element_tree_matches_full_render(cx: &mut TestAppContext, seed: u64) {
+        matches_full_render(cx, seed, crate::FastMode::OFF);
+    }
+
+    /// The same as [`randomized_element_tree_matches_full_render`] in
+    /// windows with every fast-mode mechanism on, which the compiled
+    /// defaults give a window.
+    #[gpux::property_test(config = ProptestConfig {
+        cases: 4,
+        ..Default::default()
+    })]
+    fn randomized_element_tree_matches_full_render_in_fast_mode(
+        cx: &mut TestAppContext,
+        seed: u64,
+    ) {
+        matches_full_render(cx, seed, crate::FastMode::ALL);
+    }
+
+    /// Found by the test above: a view drawn again from last frame around a
+    /// nested view carried the nested view's element states on from the
+    /// stretch it copied, so that the state of an element removed from the
+    /// nested view outlived it.
+    #[gpux::test]
+    fn removed_elements_drop_their_state_in_spliced_views(cx: &mut TestAppContext) {
+        let config = RandomizedElementTreeConfig::new(9336152351750851233, ELEMENT_COUNT)
+            .with_entity_density(0.2)
+            .with_handler_density(0.2);
+        run_render_equivalence_case(cx, config, crate::FastMode::ALL);
+    }
+
+    fn matches_full_render(cx: &mut TestAppContext, seed: u64, mode: crate::FastMode) {
         for topology in 0..4 {
             let topology_seed = (seed & !3) | topology;
             let config = RandomizedElementTreeConfig::new(topology_seed, ELEMENT_COUNT)
                 .with_entity_density(0.2)
                 .with_handler_density(0.2);
-            run_render_equivalence_case(cx, config);
+            run_render_equivalence_case(cx, config, mode);
         }
         run_render_equivalence_case(
             cx,
             RandomizedElementTreeConfig::new(seed, 0)
                 .with_entity_density(0.2)
                 .with_handler_density(0.2),
+            mode,
         );
     }
 
-    fn run_render_equivalence_case(cx: &mut TestAppContext, config: RandomizedElementTreeConfig) {
+    fn run_render_equivalence_case(
+        cx: &mut TestAppContext,
+        config: RandomizedElementTreeConfig,
+        mode: crate::FastMode,
+    ) {
         let persistent_window = cx.open_window(WINDOW_SIZE, move |_, cx| {
             RandomizedElementTree::new_with_config(config, cx)
         });
+        cx.update_window(persistent_window.into(), |_, window, _| {
+            window.set_fast_mode(mode)
+        })
+        .unwrap();
         let persistent_root = persistent_window
             .root(cx)
             .expect("randomized tree window should have a root");
         let persistent_window = AnyWindowHandle::from(persistent_window);
 
-        assert_matches_reference(&persistent_root, persistent_window, cx, config, None);
+        assert_matches_reference(&persistent_root, persistent_window, cx, config, None, mode);
 
         for mutation_index in 0..MUTATION_COUNT {
             let mutation = persistent_root.update(cx, |tree, cx| match mutation_index {
@@ -1689,6 +1735,7 @@ mod tests {
                 cx,
                 config,
                 Some((mutation_index, mutation)),
+                mode,
             );
         }
 
@@ -1702,6 +1749,7 @@ mod tests {
         cx: &mut TestAppContext,
         config: RandomizedElementTreeConfig,
         mutation: Option<(usize, RandomizedElementTreeMutation)>,
+        mode: crate::FastMode,
     ) {
         let snapshot = persistent_root.read_with(cx, |tree, _| tree.snapshot());
         let expected_element_ids = snapshot.element_ids().into_iter().collect::<BTreeSet<_>>();
@@ -1711,7 +1759,7 @@ mod tests {
             "persistent frame element IDs diverged from the model for config {config:?}, after \
              mutation {mutation:?}"
         );
-        let reference_scene = draw_fresh_reference(snapshot, cx);
+        let reference_scene = draw_fresh_reference(snapshot, cx, mode);
 
         assert_eq!(
             persistent_scene, reference_scene,
@@ -1722,10 +1770,15 @@ mod tests {
     fn draw_fresh_reference(
         snapshot: RandomizedElementTreeSnapshot,
         cx: &mut TestAppContext,
+        mode: crate::FastMode,
     ) -> SceneSnapshot {
         let reference_window = cx.open_window(WINDOW_SIZE, move |_, cx| {
             RandomizedElementTree::from_snapshot_with_entities(snapshot, cx)
         });
+        cx.update_window(reference_window.into(), |_, window, _| {
+            window.set_fast_mode(mode)
+        })
+        .unwrap();
         let reference_window = AnyWindowHandle::from(reference_window);
         let scene = draw_window(reference_window, cx);
         cx.update_window(reference_window, |_, window, _| window.remove_window())

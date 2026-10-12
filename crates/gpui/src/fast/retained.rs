@@ -123,7 +123,7 @@ pub(crate) struct RetainedContext {
     text_style: TextStyle,
     /// The opacity and transform it was painted with, which cached views key
     /// on too (`Window::with_element_paint_context`).
-    paint_context: ElementPaintContext,
+    pub(super) paint_context: ElementPaintContext,
 }
 
 impl RetainedContext {
@@ -1133,12 +1133,21 @@ fn reuse_paint(window: &mut Window, index: usize) {
     // An ancestor that applies opacity or a transform only while painting
     // can change after prepaint drew this view again, so this frame shows
     // what it painted before: it is built on the next, as a cached view is.
-    if painted_with != window.element_paint_context()
+    let paint_context = window.element_paint_context();
+    if painted_with != paint_context
         && let Some(entity) = entity
     {
         window.on_next_frame(move |_, cx| cx.notify(entity));
     }
     let record = &mut window.next_frame.fast_retained.records[index];
+    if painted_with != paint_context {
+        // Keyed on the context it is now seen under, the view is not drawn
+        // again from last frame around a nested view, which would leave the
+        // ancestor's paint-only context out, and is built whole next frame.
+        let mut context = RetainedContext::clone(&record.context);
+        context.paint_context = paint_context;
+        record.context = Rc::new(context);
+    }
     record.paint_range = start..end;
     record.paint = PaintStatus::Painted {
         source: copied_whole.then_some(source.start),
