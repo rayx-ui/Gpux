@@ -162,8 +162,10 @@ The specs:
   with none (`?layers=0`). It reads `__gpuxFastStats` (published under `diagnostics`, which the
   testkit builds the host with) for the frames composited from tiles and compares the pixels of
   the two pages byte for byte (`@pr` at DPR 1, `@dpr2` at DPR 2); a scroller holding a DOM
-  element and one holding an HTML island are drawn without tiles; its `@timing` test holds p95 frame work of a scroll from tiles
-  under the 60 Hz budget, in lane G only. Select its other tests with `--grep "scroll-layers: "`.
+  element and one holding an HTML island are drawn without tiles; its `@timing` tests scroll the cards and the list on WebGPU and on WebGL2 with
+  layers on and off, print each p95 of gpux's frame work (`gpux-timing:` lines, which lane G copies into its
+  summary) and hold the one from tiles under the 60 Hz budget, in lane G only. Select its other tests with
+  `--grep "scroll-layers: "`.
 - `dawn.spec.ts` renders every scene and fails on any WebGPU validation error. Every spec also
   fails on console errors, uncaught exceptions and crashes, and checks that the page is
   cross-origin isolated and renders through WebGPU unless a spec forces WebGL2.
@@ -329,7 +331,7 @@ there; it runs where gpux renders through Vulkan. Lane E builds the NativeActivi
 lane E workflow type-checks (`cargo check -p gpux-mobile --target x86_64-linux-android`) and no
 lane runs.
 
-The `scroll-layers-android-div`, `-list` and `-resume` checks scroll the pages of
+The `scroll-layers-android-div`, `-list`, `-resume` and `-timing` checks scroll the pages of
 `gpux_conformance::scroll_layers` with every fast-mode mechanism and with none: touch pans
 injected into the window and a swipe through `adb shell input swipe` (a slow one on a software
 renderer, as above) must come from tiles in most of their frames; wheel steps of whole device
@@ -344,6 +346,12 @@ line, so the build carries `diagnostics`. The checks run on the GL fallback, whi
 offers by default, and again with `GPUX_ANDROID_SOFTWARE_VULKAN=1`, which lets the host pick the
 emulator's SwiftShader Vulkan (gpux skips it otherwise) and makes each check fail unless its
 window renders through Vulkan.
+
+`scroll-layers-android-timing` scrolls each page down and up four times with layers on and off and
+reports the median, 95th percentile and slowest frame work (drawing and presenting a frame, from the
+window's `take_frame_work_micros`, which `diagnostics` compiles) and how many frames came from tiles,
+as `gpux-timing:` lines in its result. It holds the counters (frames from tiles with layers on, none
+with them off), not the times: an emulator's are of the machine it runs on.
 
 ```bash
 GPUX_ANDROID_SOFTWARE_VULKAN=1 cargo run -p gpux-testkit -- lane e --grep scroll-layers
@@ -377,7 +385,8 @@ its console. The host runs its platform checks and every lane-F scene:
   and draws again. (Reopening it through a URL of its own makes a fresh Simulator ask
   "Open in …?" and wait for a tap.)
 
-The `scroll-layers-ios-div`, `-list` and `-resume` checks do the same on Metal: touch pans
+The `scroll-layers-ios-div`, `-list`, `-resume` and `-timing` checks do the same on Metal (the
+timing check as `scroll-layers-android-timing` does): touch pans
 injected into the window come from tiles, wheel steps of whole device pixels show the same pixels
 with every mechanism and with none, and a page whose app received a memory warning
 (`gpui_ios_did_receive_memory_warning`, which the shell's `applicationDidReceiveMemoryWarning:`

@@ -736,6 +736,146 @@ cargo run -p gpux-testkit -- perf fast-mode --name final --compare artifacts-tem
 
 ## Measurements
 
+### The final comparison
+
+Run on the baseline's machine, an Apple silicon Mac (`Darwin 25.6.0 arm64`, macOS 26.6), at `9e216c9`
+with only the AgentX state file changed:
+
+```bash
+cargo run -p gpux-testkit -- perf fast-mode --name final --compare artifacts-temp/testkit/perf/baseline-s01
+```
+
+The run is `artifacts-temp/testkit/perf/final/` (`fast-mode.md` is the report, `run.txt` names the
+commit and machine). The suite draws each frame of a scenario and presents it to the headless Metal
+renderer, so the frame's encoding and submission are in the median and the GPU's own execution is
+not, and every frame has a floor of about 8 ms and 90 M instructions (`animated-frame`, a control no
+mechanism can speed up, costs 8.2 ms in every mode). Each cell is the change of the median against `off` of the same run; a regression is a
+slowdown beyond both confidence intervals and over 3%.
+
+| Scenario | Off | Layout retention | View retention | Splice | Scroll layers |
+|---|---|---|---|---|---|
+| still-frame | 23.8 ms | -3.9% | -32.7% | -32.5% | -32.9% |
+| one-panel | 24.3 ms | -3.3% | -31.9% | -30.1% | -30.6% |
+| six-panels | 24.6 ms | -3.0% | -29.1% | -26.6% | -27.1% |
+| **all-panels** | 25.4 ms | **+10.7%** | **+11.7%** | **+13.2%** | **+14.6%** |
+| table-stream | 10.5 ms | -3.1% | -5.9% | -5.4% | -5.9% |
+| settings-toggle | 8.5 ms | -1.5% | -2.5% | -1.9% | -1.1% |
+| tree-expand | 8.8 ms | -0.4% | -0.5% | +0.6% | -0.6% |
+| form-typing | 8.3 ms | +0.6% | -0.8% | -0.3% | +0.7% |
+| hover-sweep | 9.4 ms | -0.4% | -0.3% | -0.5% | -0.5% |
+| scroll-child-view | 11.4 ms | -4.1% | -4.8% | -3.5% | **-15.9%** |
+| scroll-same-view | 11.1 ms | -1.6% | -1.2% | -1.0% | -0.9% |
+| scroll-uniform-list | 9.3 ms | +0.2% | -0.7% | +0.5% | +0.9% |
+| scroll-list | 9.2 ms | +0.3% | +1.4% | +0.9% | +1.5% |
+| chat-scroll | 9.5 ms | -1.6% | -1.5% | -1.0% | +4.0% |
+| sticky-scroll | 11.6 ms | -4.3% | -2.7% | -2.8% | -3.2% |
+| effect-scroll | 11.3 ms | -2.0% | -3.3% | -1.9% | -1.1% |
+| animated-frame | 8.2 ms | -1.0% | -1.4% | -1.5% | +0.3% |
+
+The columns are cumulative (each mode has the mechanisms before it on), so a mechanism's own
+benefit is the step from the column before it:
+
+| Mechanism | Pays off | Neutral | Costs, and why |
+|---|---|---|---|
+| Layout retention | Every scenario that lays out unchanged text: 3.0–3.9% on the panel scenes (-8 to -10% instructions, -29 to -34% allocations), 3.1% on `table-stream`, 4.1–4.3% on the scrolling `div`s. | Lists, hover, typing and the controls: within ±1.6%. | `all-panels` **+10.7%** (+9.6% instructions, +15% allocations): every one of 60 panels changes every frame, so no node, measurement or view is reused, and the frame still pays a keyed claim for each of its 7861 nodes and a record of each text measurement. The baseline had no mechanism to cost this; the standalone optimizations since made `off` 8.6% cheaper and retention could not share that. An application that rebuilds nearly every view every frame pays this: set `GPUX_FAST_MODE=0`, or `window.set_fast_mode` for the windows that do. |
+| View retention | Whole views reused: 27–30% over layout retention on `still-frame`, `one-panel` and `six-panels` (60 panels in the page, 0 to 6 changed; against `off`, -46 to -41% instructions and -83 to -72% allocations), 2.9% on `table-stream`, 1.1% on `settings-toggle`. | Everything that changes most of what it draws. | `all-panels` +0.9% over layout retention: records are made for views that are never reused. |
+| Splice | Builds one view instead of three in `one-panel` and two fewer in `six-panels`, and copies the board around them. | `still-frame`, `table-stream`, the lists. | **+2.6% on `one-panel`, +3.5% on `six-panels`** over view retention. The board is a flat row of 60 panels, so copying it around one gap costs more than building the board's own few elements again; splice pays where a view is dirty only because something deep in it is and its own layout is large. No scenario of this suite is that shape (`oracle_splice` and `splice` hold what splice does), so none shows a gain. |
+| Scroll layers | `scroll-child-view` **-12.8%** over splice (-15.9% over `off`; -26% instructions, -88% allocations): a scrolling `div` of 120 cards is composited from tiles on every frame. | `scroll-same-view` (its rows' hover styles follow the pointer, so no frame only scrolls: the layer is given up and the frame is today's), `sticky-scroll` and `effect-scroll` (their content cannot be tiled: counted as ineligible), `form-typing`, `hover-sweep`, `animated-frame`. | `scroll-uniform-list` +0.4%, `scroll-list` +0.6%, `chat-scroll` +5.1% over splice (+0.9%, +1.5% and +4.0% over `off`; none beyond the intervals). A virtual list's frame paints 400 primitives of its own without layers and 5 with (`chat-scroll`), and the suite's 8 ms floor hides the rest; what is left is the layer's own bookkeeping (the rows it keeps, the ordering of rows that meet; not timed apart), which the frames of this suite have little to set against. What tiles save is draws and fragments, which a renderer shows: see the browser and mobile measurements below. |
+
+Against the baseline (`baseline-s01`, `24d413c`) `off` of the panel scenes is 7–10% faster (-8 to
+-10% instructions): the standalone optimizations of the next section, which every mode shares. The
+scrolling scenes' times are 13–17% higher in every mode of this run, `off` included, with the
+instructions unchanged (±1%): they changed after the baseline (see the baseline's note on the
+scenes), so compare their modes with `off` of the same run, as above.
+
+### The cost of telling clips
+
+Telling the scene each clip, so that a shadow at a clip's edge is kept and ordered as it is without
+the clip (LYR-14), costs scenes that are painted whole. Scene-level probes build the scene such a
+page makes, 25 rows in view of 8000 bordered rows or of 2000 rows by 20 cells, and time its
+construction and `finish` in an optimized build (`opt-level` 3, debug assertions on; best of 9 and 5
+rounds). Each row is a background, a line and four border quads; each cell a background and two lines, one
+dropped by the cell's mask. They ran on the machine of the comparison above, at three commits
+(`artifacts-temp/cost-probe.log`):
+
+| Scene | Before s12c (`8285288`: no clip told) | After s12c (`49690f7`: a clip told for each strip of a border, for each cell) | After t55 (`86d1be3`, at head: one clip a border) |
+|---|---|---|---|
+| 8000 bordered rows | 12.05 ms, 151 operations | 14.7 ms (1.22×), 64 770 operations | 14.5 ms (1.20×), 16 770 operations |
+| table of 2000 rows by 20 cells | 30.15 ms, 1001 operations | 44.3 ms (1.47×), 125 123 operations | 44.0 ms (1.46×), 125 123 operations |
+| the same scene with nothing told, at head | 13.8 ms (1.15×), 771 operations | | 34.3 ms (1.14×), 3561 operations |
+
+What s12c cost the bordered rows t55 gave back only in operations (a quarter as many, and a border's
+own set of entries); the time is 1.5% under what four told clips cost, because the entries of a
+border's strips were already kept in one pass. LYR-17's bound (at most 1.28 times what the scene
+cost before the kept shadows) holds at 1.20. The table is not a border's scene: each cell tells one
+clip of its own, which t55 does not change, and that is where its 1.46× stays. A scene that is not
+painted whole (a list's rows, a scrolled `div` in tiles) pays only for the rows in view. The scene
+the eighth review of s12c measured on the real path (empty masks taken for untold clips) cost
+12.3 to 19.1 ms; s12d closed that.
+
+### In the browser
+
+Lane G's `@timing` tests of `scroll-layers.spec.ts` scroll the page of `web-scroll-layers` (a 440 by
+340 canvas) by 60 wheel steps with every mechanism on and off, and print the 95th percentile of
+gpux's frame work in its animation-frame callback, on Chromium on the Mac's GPU (Metal), WebGPU and
+forced WebGL2. Three runs (`artifacts-temp/lane-b-timing.log` and the two after it), the p95 in
+milliseconds, layers on against off:
+
+| Scene | WebGPU | WebGL2 |
+|---|---|---|
+| cards in a scrolling `div` | 2.80 / 3.18 · 2.66 / 3.18 · 2.73 / 3.15 (-12 to -16%) | 3.12 / 3.33 · 3.12 / 3.25 · 2.97 / 3.34 (-4 to -11%) |
+| rows of a `list` | 3.53 / 2.87 · 3.56 / 3.07 · 3.55 / 3.10 (+15 to +23%) | 4.16 / 3.42 · 3.88 / 3.13 · 4.00 / 3.26 (+22 to +24%) |
+
+The slowest frame is longer with layers on in both scenes (5.6–8.9 ms against 3.2–5.5): it is the
+frame that rasterizes tiles. A list's rows are composited from tiles in 58 of 60 frames, and the
+frame work, which is CPU time (encoding the frame and submitting it), is not lower: the page is
+small, so each frame's fixed cost is most of it, and what tiles save is draw calls and fragment
+work, which the animation-frame callback does not time. The list's layer keeps its rows one by one
+(`list_rows_kept`), and the rows the pointer's hover changes are rendered every frame. On a page
+with a lot more on screen the balance would change; this one was chosen small so a software renderer
+could run it.
+
+### On a phone
+
+The Android and iOS hosts run the same pages with every mechanism and with none
+(`scroll-layers-android-timing`, `scroll-layers-ios-timing`): each page scrolled down and up four
+times through the shared pan steps (128 frames), reporting the median, 95th percentile and slowest
+of the frame work (drawing and presenting a frame) and the frames that came from tiles. **No
+physical device was available: both runs are an emulator and a Simulator,** and the numbers are
+those of the Mac they run on.
+
+| Host | Scene | Layers on (p50 / p95) | Layers off (p50 / p95) |
+|---|---|---|---|
+| Android emulator (arm64, API 34, 320 by 640), GL | `div` | 20.5 / 21.8 ms | 34.8 / 39.0 ms (-41%, -44%) |
+| | `list` | 20.5 / 23.9 ms | 34.8 / 39.7 ms (-41%, -40%) |
+| Android emulator, software Vulkan (SwiftShader) | `div` | 6.1 / 8.6 ms | 10.3 / 19.0 ms (-41%, -55%) |
+| | `list` | 7.7 / 9.9 ms | 10.6 / 16.6 ms (-28%, -41%) |
+| iPhone Simulator (iOS 26.5), Metal | `div` | 5.2 / 6.2 ms | 8.0 / 8.2 ms (-35%, -25%) |
+| | `list` | 4.3 / 5.0 ms | 4.6 / 5.3 ms (-7%, -5%) |
+
+Every layers-on frame came from tiles (128 of 128) and none with layers off.
+
+### On a wgpu desktop
+
+PERF-4 asks for lane G on a wgpu desktop as well (Windows DirectX 12 or Linux Vulkan on a GPU). **This
+was not run: no machine with such a GPU was at hand.** What exists instead:
+
+- Windows (DX12 on WARP, a software adapter) and Linux (lavapipe) run lanes A to E in CI, which prove
+  the behaviour and the pixels of every mechanism there, not their timing; lane G refuses to run
+  under CI because software adapters make timing meaningless.
+- The `fast_mode` suite did not run in the Linux VM (lavapipe): its scenarios stop at their own check
+  (the harness's windows drew no glyphs there, 60 primitives where 3900 are expected), and a machine
+  without a GPU adapter cannot open the bench's windows at all. The suite is macOS-only until its Linux
+  harness draws text.
+- The wgpu renderer's tiles did run on a GPU in this comparison, through Metal: the iPhone Simulator
+  above is wgpu on Metal (`gpui_wgpu` through `GPUIMetalView`), and Chromium's WebGPU and WebGL2
+  are the browser's.
+
+To close this on a Windows or Linux machine with a GPU, run `cargo run -p gpux-testkit -- lane g`
+there and compare its `artifacts-temp/testkit/g/timing.md` and `fast-mode.md` with the tables above
+(the `@timing` specs are the part that needs the GPU; `gpux-testkit lane g --headed` shows the
+browser).
+
 ### Standalone scene and text optimizations
 
 Each optimization was committed on its own and measured on the baseline machine with
