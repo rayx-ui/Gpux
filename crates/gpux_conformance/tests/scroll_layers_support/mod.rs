@@ -421,14 +421,14 @@ impl RowOf {
                                 matches!(
                                     self.content,
                                     Content::RotatedText | Content::NestedRotatedText
-                                ) && index % 2 == 1,
+                                ) && !index.is_multiple_of(2),
                                 |card| card.scale(1.05),
                             )
                             .when(
                                 (matches!(
                                     self.content,
                                     Content::RotatedText | Content::NestedRotatedText
-                                ) && index % 2 == 0)
+                                ) && index.is_multiple_of(2))
                                     || self.tick % 2 == 1,
                                 |card| card.rotate(0.03),
                             )
