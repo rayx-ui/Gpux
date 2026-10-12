@@ -855,6 +855,15 @@ those of the Mac they run on.
 
 Every layers-on frame came from tiles (128 of 128) and none with layers off.
 
+### Lane G on this Mac
+
+`gpux-testkit lane g` ran on the Mac: lane B in the `local-gpu` profile (184 specs passed) and lane C on
+the Metal adapter (probes only; 77 and 77 passed, the layer-scale, scroll-layer and list-hover groups
+included). Its lane D part (real desktop windows) did not complete: with the display asleep every
+window reported "no frame within 10s", and the rerun with the display held awake (`caffeinate -d -u`)
+was stopped before it reached lane D. Lane D is proved in CI (`ci.yml`, three platforms); no lane G
+desktop-window or benchmark result is recorded here.
+
 ### On a wgpu desktop
 
 PERF-4 asks for lane G on a wgpu desktop as well (Windows DirectX 12 or Linux Vulkan on a GPU). **This
