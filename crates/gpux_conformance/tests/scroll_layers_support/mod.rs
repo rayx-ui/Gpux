@@ -19,7 +19,7 @@ pub const WINDOW: (f32, f32) = (420., 360.);
 pub const PADDING: f32 = 16.;
 
 /// What the scrolled content is made of.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum Content {
     /// Rows of text on alternating backgrounds, with borders.
     Text,
@@ -70,6 +70,9 @@ pub enum Content {
     /// Rows holding a bordered card that clips a line of text and is turned a little: glyphs
     /// painted under a transformation.
     RotatedText,
+    /// The turned and scaled text rows, every third row holding a scrolling container of its
+    /// own with a turned card of text in it.
+    NestedRotatedText,
     /// The same cards, turned only after an odd number of ticks: the turn comes and goes with
     /// the content scrolled.
     TurnedAndStraightText,
@@ -114,6 +117,7 @@ pub fn row_count(content: Content) -> usize {
         | Content::ClippedText
         | Content::TransformedBorders
         | Content::RotatedText
+        | Content::NestedRotatedText
         | Content::TurnedAndStraightText
         | Content::TranslatedCards
         | Content::RotatedCards => 40,
@@ -328,40 +332,78 @@ impl RowOf {
                         })),
                 )
                 .into_any_element(),
-            Content::RotatedText | Content::TurnedAndStraightText => div()
+            Content::NestedRotatedText if index % 3 == 1 => div()
                 .py(px(8.))
-                .bg(if index.is_multiple_of(2) {
-                    rgb(0xe9e4d8)
-                } else {
-                    rgb(0xd5dde6)
-                })
+                .bg(rgb(0xd5dde6))
                 .child(
                     div()
-                        .mx_3()
-                        .h(px(44.))
-                        .px_2()
-                        .bg(if marked { rgb(0xffe9c9) } else { rgb(0xffffff) })
-                        .border_1()
-                        .border_color(rgb(0x555555))
-                        .overflow_hidden()
-                        .text_color(rgb(0x1e2430))
-                        .text_size(px(12.))
-                        // Every other card of `RotatedText` is scaled, not turned; the turn of
-                        // `TurnedAndStraightText` comes and goes with the ticks.
-                        .when(
-                            matches!(self.content, Content::RotatedText) && index % 2 == 1,
-                            |card| card.scale(1.05),
+                        .id(("inner", index))
+                        .ml_3()
+                        .w(px(300.))
+                        .h(px(70.))
+                        .overflow_y_scroll()
+                        .bg(rgb(0xf4f1ea))
+                        .child(
+                            div()
+                                .m(px(8.))
+                                .h(px(40.))
+                                .px_2()
+                                .bg(rgb(0xffffff))
+                                .border_1()
+                                .border_color(rgb(0x555555))
+                                .overflow_hidden()
+                                .text_color(rgb(0x1e2430))
+                                .text_size(px(12.))
+                                .rotate(0.03)
+                                .child(SharedString::from(format!(
+                                    "Inner {index:02}: jackdaws 😀 love my big sphinx"
+                                ))),
                         )
-                        .when(
-                            (matches!(self.content, Content::RotatedText) && index % 2 == 0)
-                                || self.tick % 2 == 1,
-                            |card| card.rotate(0.03),
-                        )
-                        .child(SharedString::from(format!(
-                            "Row {index:02}: jackdaws 😀 love my big sphinx of quartz"
-                        ))),
+                        .child(div().h(px(120.))),
                 )
                 .into_any_element(),
+            Content::RotatedText | Content::NestedRotatedText | Content::TurnedAndStraightText => {
+                div()
+                    .py(px(8.))
+                    .bg(if index.is_multiple_of(2) {
+                        rgb(0xe9e4d8)
+                    } else {
+                        rgb(0xd5dde6)
+                    })
+                    .child(
+                        div()
+                            .mx_3()
+                            .h(px(44.))
+                            .px_2()
+                            .bg(if marked { rgb(0xffe9c9) } else { rgb(0xffffff) })
+                            .border_1()
+                            .border_color(rgb(0x555555))
+                            .overflow_hidden()
+                            .text_color(rgb(0x1e2430))
+                            .text_size(px(12.))
+                            // Every other card of `RotatedText` is scaled, not turned; the turn of
+                            // `TurnedAndStraightText` comes and goes with the ticks.
+                            .when(
+                                matches!(
+                                    self.content,
+                                    Content::RotatedText | Content::NestedRotatedText
+                                ) && index % 2 == 1,
+                                |card| card.scale(1.05),
+                            )
+                            .when(
+                                (matches!(
+                                    self.content,
+                                    Content::RotatedText | Content::NestedRotatedText
+                                ) && index % 2 == 0)
+                                    || self.tick % 2 == 1,
+                                |card| card.rotate(0.03),
+                            )
+                            .child(SharedString::from(format!(
+                                "Row {index:02}: jackdaws 😀 love my big sphinx of quartz"
+                            ))),
+                    )
+                    .into_any_element()
+            }
             Content::TranslatedCards | Content::RotatedCards => div()
                 .py(px(10.))
                 .bg(if index.is_multiple_of(2) {

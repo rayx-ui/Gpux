@@ -141,9 +141,12 @@ fn transformed_bordered_content_is_equal_to_the_reference() {
 fn rotated_text_is_equal_to_the_reference() {
     let failures: Vec<String> = [1., 1.5, 2.]
         .into_iter()
-        .filter_map(|scale| {
+        .flat_map(|scale| {
+            [Content::RotatedText, Content::NestedRotatedText].map(move |content| (content, scale))
+        })
+        .filter_map(|(content, scale)| {
             std::panic::catch_unwind(|| {
-                compare(Content::RotatedText, scale, &scrolls_and_single_pixels());
+                compare(content, scale, &scrolls_and_single_pixels());
             })
             .err()
             .map(|error| {
@@ -152,7 +155,7 @@ fn rotated_text_is_equal_to_the_reference() {
                     .cloned()
                     .or_else(|| error.downcast_ref::<&str>().map(|text| text.to_string()))
                     .unwrap_or_default();
-                format!("{scale}x: {message}")
+                format!("{content:?} at {scale}x: {message}")
             })
         })
         .collect();

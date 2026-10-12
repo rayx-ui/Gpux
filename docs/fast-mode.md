@@ -409,14 +409,16 @@ goldens did not change):
   keep the interpolated position.
 - The gradient dither is seeded by the pixel within the quad, not by its position in the
   window, so a gradient dithers alike wherever it is drawn.
-- A transformed sprite (a turned or scaled glyph or image) samples within its own atlas tile,
-  held half a texel in from the tile's edges (`local_tile_position`). The atlas packs tiles
-  without a gutter, so a fragment at a transformed sprite's edge used to filter in a texel of
-  the tile next to it, and the faint ink a turned glyph showed there depended on which glyphs
-  the atlas held beside it: a window that paints more glyphs than another (a layer's region
-  does, in the frames where a container holding transformed content is tried again for a
-  layer) drew a few edge pixels of turned text differently, and went on doing so. An
-  untransformed sprite is sampled where its fragment lies, as before.
+- A transformed sprite (a turned or scaled glyph or image) is filtered by hand, within its own
+  atlas tile (`sample_tile`): the four texels around its position, clamped to the tile, are
+  read by index and mixed in floating point, from the position within the tile alone. The
+  sampler would filter at the tile's edge in a texel of the tile next to it (the atlas packs
+  tiles without a gutter) and round its weights by where the atlas placed the tile and how
+  large the atlas is, so the faint ink at a turned glyph's edge depended on which glyphs the
+  atlas held beside it: a window that paints more glyphs than another (a layer's region does,
+  in the frames where a container holding transformed content is tried again for a layer)
+  drew a few edge pixels of turned text differently, and went on doing so. An untransformed
+  sprite is sampled where its fragment lies, by the sampler, as before.
 
 A shadow draws three blur radii past its box, and a scene used to drop a primitive whose box
 had left its clip: a blur vanished a few pixels early as its element scrolled out of a

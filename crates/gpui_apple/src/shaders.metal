@@ -24,6 +24,9 @@ float2 local_tile_position(float2 interpolated, float2 local_position,
                            Bounds_ScaledPixels bounds, AtlasTile tile,
                            texture2d<float> atlas_texture,
                            TransformationMatrix transformation);
+float4 sample_tile(float2 tile_position, float2 local_position, Bounds_ScaledPixels bounds,
+                   AtlasTile tile, texture2d<float> atlas_texture,
+                   TransformationMatrix transformation);
 float4 to_device_position_transformed(float2 unit_vertex, Bounds_ScaledPixels bounds,
                           TransformationMatrix transformation,
                           constant Size_DevicePixels *input_viewport_size);
@@ -747,10 +750,8 @@ fragment float4 monochrome_sprite_fragment(
     return float4(0.0);
   }
 
-  constexpr sampler atlas_texture_sampler(mag_filter::linear,
-                                          min_filter::linear);
-  float4 sample =
-      atlas_texture.sample(atlas_texture_sampler, tile_position);
+  float4 sample = sample_tile(tile_position, local_position, sprite.bounds, sprite.tile,
+                              atlas_texture, sprite.transformation);
   return input.color * sample.a;
 }
 
@@ -808,10 +809,8 @@ fragment float4 polychrome_sprite_fragment(
     return float4(0.0);
   }
 
-  constexpr sampler atlas_texture_sampler(mag_filter::linear,
-                                          min_filter::linear);
-  float4 sample =
-      atlas_texture.sample(atlas_texture_sampler, tile_position);
+  float4 sample = sample_tile(tile_position, local_position, sprite.bounds, sprite.tile,
+                              atlas_texture, sprite.transformation);
   float distance =
       quad_sdf(local_position, sprite.bounds, sprite.corner_radii);
 
@@ -1129,14 +1128,42 @@ float2 local_tile_position(float2 interpolated, float2 local_position,
   float2 tile_origin = float2(tile.bounds.origin.x, tile.bounds.origin.y);
   float2 tile_size = float2(tile.bounds.size.width, tile.bounds.size.height);
   float2 exact = (tile_origin + unit_position * tile_size) / atlas_size;
-  // A transformed sprite samples where the rasterizer interpolates, held within its tile's
-  // texel centers: a fragment at the sprite's edge would otherwise filter in a texel of the
-  // neighbouring tile, so what a turned or scaled glyph or image showed at its edge depended
-  // on what else the atlas held.
-  float2 first = (tile_origin + float2(0.5)) / atlas_size;
-  float2 last = (tile_origin + tile_size - float2(0.5)) / atlas_size;
-  float2 held = clamp(interpolated, min(first, last), max(first, last));
-  return transformation_is_unit(transformation) ? exact : held;
+  return transformation_is_unit(transformation) ? exact : interpolated;
+}
+
+// What a sprite's fragment samples of its atlas tile. An untransformed sprite is sampled where
+// its fragment lies, by the sampler. A transformed one (a turned or scaled glyph or image) is
+// filtered here, within its own tile: the sampler would filter at a tile's edge in a texel of
+// the tile next to it, and its weights are rounded in a way that depends on where the atlas
+// placed the tile and how large the atlas is, so what a turned glyph showed at its edge
+// depended on what else the atlas held, and a window that painted more glyphs than another drew
+// a few of those pixels differently. The four texels around the position, clamped to the
+// tile, are read by index and mixed in floating point, from the position within the tile
+// alone.
+float4 sample_tile(float2 tile_position, float2 local_position, Bounds_ScaledPixels bounds,
+                   AtlasTile tile, texture2d<float> atlas_texture,
+                   TransformationMatrix transformation) {
+  constexpr sampler atlas_texture_sampler(mag_filter::linear, min_filter::linear);
+  float4 by_sampler = atlas_texture.sample(atlas_texture_sampler, tile_position);
+  if (transformation_is_unit(transformation)) {
+    return by_sampler;
+  }
+  float2 unit_position =
+      (local_position - float2(bounds.origin.x, bounds.origin.y)) /
+      float2(bounds.size.width, bounds.size.height);
+  float2 tile_size = float2(tile.bounds.size.width, tile.bounds.size.height);
+  float2 texel = unit_position * tile_size - float2(0.5);
+  float2 floor_texel = floor(texel);
+  float2 weight = texel - floor_texel;
+  int2 last = int2(tile.bounds.size.width, tile.bounds.size.height) - int2(1);
+  int2 first_index = clamp(int2(floor_texel), int2(0), last);
+  int2 second_index = clamp(int2(floor_texel) + int2(1), int2(0), last);
+  uint2 origin = uint2(tile.bounds.origin.x, tile.bounds.origin.y);
+  float4 top_left = atlas_texture.read(origin + uint2(first_index.x, first_index.y));
+  float4 top_right = atlas_texture.read(origin + uint2(second_index.x, first_index.y));
+  float4 bottom_left = atlas_texture.read(origin + uint2(first_index.x, second_index.y));
+  float4 bottom_right = atlas_texture.read(origin + uint2(second_index.x, second_index.y));
+  return mix(mix(top_left, top_right, weight.x), mix(bottom_left, bottom_right, weight.x), weight.y);
 }
 
 float4 to_device_position_transformed(float2 unit_vertex, Bounds_ScaledPixels bounds,

@@ -221,10 +221,7 @@ fn local_fragment_position(
 }
 
 // Where in its atlas texture a sprite's fragment samples: computed from the fragment's own
-// position for an untransformed sprite, as `local_fragment_position` is. A transformed sprite
-// samples where the rasterizer interpolates, held within its tile's texel centers: a fragment
-// at the sprite's edge would otherwise filter in a texel of the neighbouring tile, so what a
-// turned or scaled glyph or image showed at its edge depended on what else the atlas held.
+// position for an untransformed sprite, as `local_fragment_position` is.
 fn local_tile_position(
     interpolated: vec2<f32>,
     local_position: vec2<f32>,
@@ -235,10 +232,42 @@ fn local_tile_position(
     let atlas_size = vec2<f32>(textureDimensions(t_sprite, 0));
     let unit_position = (local_position - bounds.origin) / bounds.size;
     let exact = (vec2<f32>(tile.bounds.origin) + unit_position * vec2<f32>(tile.bounds.size)) / atlas_size;
-    let first = (vec2<f32>(tile.bounds.origin) + vec2<f32>(0.5)) / atlas_size;
-    let last = (vec2<f32>(tile.bounds.origin) + vec2<f32>(tile.bounds.size) - vec2<f32>(0.5)) / atlas_size;
-    let held = clamp(interpolated, min(first, last), max(first, last));
-    return select(held, exact, transformation_is_unit(transform));
+    return select(interpolated, exact, transformation_is_unit(transform));
+}
+
+// What a sprite's fragment samples of its atlas tile. An untransformed sprite is sampled where
+// its fragment lies, by the sampler. A transformed one (a turned or scaled glyph or image) is
+// filtered here, within its own tile: the sampler would filter at a tile's edge in a texel of
+// the tile next to it, and its weights are rounded in a way that depends on where the atlas
+// placed the tile and how large the atlas is, so what a turned glyph showed at its edge
+// depended on what else the atlas held, and a window that painted more glyphs than another drew
+// a few of those pixels differently. The four texels around the position, clamped to the tile,
+// are read by index and mixed in floating point, from the position within the tile alone. The
+// sampler's result is chosen last, not returned early: some GL ES drivers drop every fragment
+// of a shader that returns early after sampling a texture.
+fn sample_tile(
+    tile_position: vec2<f32>,
+    local_position: vec2<f32>,
+    bounds: Bounds,
+    tile: AtlasTile,
+    transform: TransformationMatrix,
+) -> vec4<f32> {
+    let by_sampler = textureSample(t_sprite, s_sprite, tile_position);
+    let unit_position = (local_position - bounds.origin) / bounds.size;
+    let tile_size = vec2<f32>(tile.bounds.size);
+    let texel = unit_position * tile_size - vec2<f32>(0.5);
+    let floor_texel = floor(texel);
+    let weight = texel - floor_texel;
+    let last = vec2<i32>(tile.bounds.size) - vec2<i32>(1);
+    let first_index = clamp(vec2<i32>(floor_texel), vec2<i32>(0), last);
+    let second_index = clamp(vec2<i32>(floor_texel) + vec2<i32>(1), vec2<i32>(0), last);
+    let origin = vec2<i32>(tile.bounds.origin);
+    let top_left = textureLoad(t_sprite, origin + vec2<i32>(first_index.x, first_index.y), 0);
+    let top_right = textureLoad(t_sprite, origin + vec2<i32>(second_index.x, first_index.y), 0);
+    let bottom_left = textureLoad(t_sprite, origin + vec2<i32>(first_index.x, second_index.y), 0);
+    let bottom_right = textureLoad(t_sprite, origin + vec2<i32>(second_index.x, second_index.y), 0);
+    let by_hand = mix(mix(top_left, top_right, weight.x), mix(bottom_left, bottom_right, weight.x), weight.y);
+    return select(by_hand, by_sampler, transformation_is_unit(transform));
 }
 
 fn to_device_position_transformed(unit_vertex: vec2<f32>, bounds: Bounds, transform: TransformationMatrix) -> vec4<f32> {
@@ -1337,7 +1366,7 @@ fn fs_mono_sprite(input: MonoSpriteVarying) -> @location(0) vec4<f32> {
     let sprite = load_mono_sprite(input.sprite_id);
     let local_position = local_fragment_position(input.local_position, input.position, sprite.transformation);
     let tile_position = local_tile_position(input.tile_position, local_position, sprite.bounds, sprite.tile, sprite.transformation);
-    let sample = textureSample(t_sprite, s_sprite, tile_position).r;
+    let sample = sample_tile(tile_position, local_position, sprite.bounds, sprite.tile, sprite.transformation).r;
     var coverage = sample;
     if (sprite.kind == 0u) {
         let straight_color = input.color.rgb / max(input.color.a, 0.000001);
@@ -1400,7 +1429,7 @@ fn fs_poly_sprite(input: PolySpriteVarying) -> @location(0) vec4<f32> {
     let sprite = load_poly_sprite(input.sprite_id);
     let local_position = local_fragment_position(input.local_position, input.position, sprite.transformation);
     let tile_position = local_tile_position(input.tile_position, local_position, sprite.bounds, sprite.tile, sprite.transformation);
-    let sample = textureSample(t_sprite, s_sprite, tile_position);
+    let sample = sample_tile(tile_position, local_position, sprite.bounds, sprite.tile, sprite.transformation);
     let visible = visible_if(
         !any(input.clip_distances < vec4<f32>(0.0))
             && content_mask_sdf(transform_position(local_position, sprite.transformation), sprite.content_mask) <= 0.0
