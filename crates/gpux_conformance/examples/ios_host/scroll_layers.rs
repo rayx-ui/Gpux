@@ -14,6 +14,7 @@ use gpux_conformance::{
     report::{Outcome, ResultLine},
     scroll_layers::{
         self, Counters, DIV, LIST, PAN, SCROLLER, same_pixels, scroller_pixels, set_layers,
+        timed_scroll,
     },
 };
 use image::RgbaImage;
@@ -265,6 +266,65 @@ pub async fn div(cx: &mut AsyncApp) -> ResultLine {
 /// A scrolled `list`.
 pub async fn list(cx: &mut AsyncApp) -> ResultLine {
     page(cx, "scroll-layers-ios-list", &LIST, true).await
+}
+
+/// How many times the timed scrolls go down and up over the page: 32 frames each.
+const TIMED_ROUNDS: usize = 4;
+
+/// What scrolling costs per frame with scroll layers on and off, for the page of each scene: the
+/// frame work (drawing and presenting a frame) at its median, 95th percentile and slowest, and
+/// the frames that came from tiles. The numbers are of the machine the host runs on, a Simulator
+/// included, which shares the Mac's CPU and runs Metal through it. The check holds the counters:
+/// frames come from tiles with layers on and none does with them off.
+pub async fn timing(cx: &mut AsyncApp) -> ResultLine {
+    const ID: &str = "scroll-layers-ios-timing";
+    let mut report = Vec::new();
+    for (name, scene) in [("div", &DIV), ("list", &LIST)] {
+        for layers in [true, false] {
+            let window = match open(cx, scene).await {
+                Ok(window) => window,
+                Err(error) => return fail(ID, format!("the page never drew: {error:#}")),
+            };
+            if !has_renderer(cx, window) {
+                close(cx, window);
+                return skip(
+                    ID,
+                    "the window has no renderer: this Simulator offers no Metal device",
+                );
+            }
+            if let Err(error) = set_layers(cx, window, layers) {
+                return fail(ID, format!("{error:#}"));
+            }
+            scroll_layers::next_frame(cx, window, FRAME_LIMIT).await;
+            let measured = timed_scroll(cx, window, TIMED_ROUNDS, FRAME_LIMIT).await;
+            close(cx, window);
+            let (work, counters) = match measured {
+                Ok(measured) => measured,
+                Err(error) => return fail(ID, format!("{error:#}")),
+            };
+            if layers && counters.composited < PAN_COMPOSITED {
+                return fail(
+                    ID,
+                    format!(
+                        "the {name} scrolled with layers on, few frames from tiles ({counters})"
+                    ),
+                );
+            }
+            if !layers && (counters.composited != 0 || counters.tiles_composited != 0) {
+                return fail(
+                    ID,
+                    format!("the {name} scrolled with layers off, from tiles ({counters})"),
+                );
+            }
+            report.push(format!(
+                "gpux-timing: scroll layers {name} on Metal with layers {}: {work}, {} of {} frames from tiles",
+                if layers { "on" } else { "off" },
+                counters.composited,
+                counters.frames,
+            ));
+        }
+    }
+    pass(ID, report.join("; "))
 }
 
 /// Whether the window is the active one.

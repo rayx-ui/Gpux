@@ -465,7 +465,54 @@ impl WindowFastStats {
     }
 }
 
+/// How long each frame took to draw and present, for hosts that report what
+/// scrolling costs with and without fast mode. Counted under `diagnostics`.
+#[cfg(feature = "diagnostics")]
+#[derive(Default)]
+pub(crate) struct FrameWork {
+    drawing: Option<scheduler::Instant>,
+    drawn: std::time::Duration,
+    /// Microseconds of each frame drawn and presented, the oldest dropped
+    /// past [`FRAME_WORK_SAMPLES`].
+    micros: std::collections::VecDeque<u32>,
+}
+
+/// The frames [`Window::take_frame_work_micros`] can hold.
+#[cfg(feature = "diagnostics")]
+const FRAME_WORK_SAMPLES: usize = 4096;
+
+#[cfg(feature = "diagnostics")]
+impl FrameWork {
+    pub(crate) fn begin_draw(&mut self) {
+        self.drawing = Some(scheduler::Instant::now());
+    }
+
+    pub(crate) fn end_draw(&mut self) {
+        if let Some(started) = self.drawing.take() {
+            self.drawn = started.elapsed();
+        }
+    }
+
+    /// Adds the presented frame: what drawing it took and what presenting it
+    /// did since `present_started`.
+    pub(crate) fn end_present(&mut self, present_started: scheduler::Instant) {
+        let work = std::mem::take(&mut self.drawn) + present_started.elapsed();
+        if self.micros.len() == FRAME_WORK_SAMPLES {
+            self.micros.pop_front();
+        }
+        self.micros
+            .push_back(work.as_micros().min(u128::from(u32::MAX)) as u32);
+    }
+}
+
 impl Window {
+    /// The microseconds each frame took to draw and present since the last
+    /// call, at most the last 4096 frames.
+    #[cfg(feature = "diagnostics")]
+    pub fn take_frame_work_micros(&mut self) -> Vec<u32> {
+        self.fast_frame_work.micros.drain(..).collect()
+    }
+
     /// The fast-mode counters accumulated over every frame drawn since the
     /// window opened or [`Window::reset_fast_stats`] was called.
     pub fn fast_stats(&self) -> FastStats {

@@ -546,6 +546,9 @@ pub async fn os_checks(cx: &mut AsyncApp, screens: &Screens) -> Vec<ResultLine> 
     if selected("scroll-layers-android-resume") {
         lines.push(crate::scroll_layers::resume(cx, screens).await);
     }
+    if selected("scroll-layers-android-timing") {
+        lines.push(crate::scroll_layers::timing(cx).await);
+    }
     if selected("platform-view-android") {
         lines.push(crate::platform_views::platform_view(cx, screens).await);
     }

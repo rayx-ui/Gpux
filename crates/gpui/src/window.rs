@@ -2431,6 +2431,8 @@ pub struct Window {
         feature = "diagnostics"
     ))]
     pub(crate) fast_stats: crate::fast::stats::WindowFastStats,
+    #[cfg(feature = "diagnostics")]
+    pub(crate) fast_frame_work: crate::fast::stats::FrameWork,
     pub(crate) root: Option<AnyView>,
     pub(crate) element_id_stack: ElementIdStack,
     pub(crate) text_style_stack: Vec<TextStyleRefinement>,
@@ -3412,6 +3414,8 @@ impl Window {
                 feature = "diagnostics"
             ))]
             fast_stats: crate::fast::stats::WindowFastStats::default(),
+            #[cfg(feature = "diagnostics")]
+            fast_frame_work: Default::default(),
             root: None,
             element_id_stack: ElementIdStack::default(),
             text_style_stack: Vec::new(),
@@ -5204,6 +5208,8 @@ impl Window {
     /// the contents of the new [`Scene`], use [`Self::present`].
     #[profiling::function]
     pub fn draw(&mut self, cx: &mut App) -> ArenaClearNeeded {
+        #[cfg(feature = "diagnostics")]
+        self.fast_frame_work.begin_draw();
         // Drain every draw in profiler builds so a previous frame's
         // first-invalidation timestamp can't be attributed to this one.
         #[cfg(feature = "profiler")]
@@ -5424,6 +5430,8 @@ impl Window {
             self.refresh();
         }
         self.needs_present.set(true);
+        #[cfg(feature = "diagnostics")]
+        self.fast_frame_work.end_draw();
 
         #[cfg(feature = "profiler")]
         {
@@ -5467,7 +5475,11 @@ impl Window {
         let _foreground_turn = profiler::journal::foreground_turn();
         #[cfg(feature = "profiler")]
         let present_start = Instant::now();
+        #[cfg(feature = "diagnostics")]
+        let work_start = Instant::now();
         crate::fast::composition::present(self);
+        #[cfg(feature = "diagnostics")]
+        self.fast_frame_work.end_present(work_start);
         #[cfg(feature = "diagnostics")]
         self.platform_window.publish_fast_stats(
             &self.fast_stats.frame.counters(),

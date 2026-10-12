@@ -263,6 +263,97 @@ pub fn counters(cx: &mut AsyncApp, window: AnyWindowHandle) -> Result<Counters> 
     })
 }
 
+/// What a frame cost to draw and present, over the frames scrolled.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct FrameWork {
+    /// Frames sampled.
+    pub frames: usize,
+    /// The median, in milliseconds.
+    pub p50: f64,
+    /// The 95th percentile, in milliseconds.
+    pub p95: f64,
+    /// The slowest frame, in milliseconds.
+    pub max: f64,
+}
+
+impl FrameWork {
+    /// The percentiles of `micros`, the microseconds frames took.
+    pub fn of(mut micros: Vec<u32>) -> Self {
+        if micros.is_empty() {
+            return Self::default();
+        }
+        micros.sort_unstable();
+        let at = |fraction: f64| {
+            let index = ((micros.len() as f64 * fraction) as usize).min(micros.len() - 1);
+            f64::from(micros[index]) / 1000.
+        };
+        Self {
+            frames: micros.len(),
+            p50: at(0.5),
+            p95: at(0.95),
+            max: f64::from(micros[micros.len() - 1]) / 1000.,
+        }
+    }
+}
+
+impl std::fmt::Display for FrameWork {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "frame work p50 {:.2} ms, p95 {:.2} ms, max {:.2} ms over {} frames",
+            self.p50, self.p95, self.max, self.frames
+        )
+    }
+}
+
+/// The frame work of the frames the window drew and presented since the last call.
+pub fn take_frame_work(cx: &mut AsyncApp, window: AnyWindowHandle) -> Result<FrameWork> {
+    window.update(cx, |_, window, _| {
+        FrameWork::of(window.take_frame_work_micros())
+    })
+}
+
+/// Scrolls the page down and back up `rounds` times through [`PAN`] over its container, a frame
+/// a step, and returns the frame work of those frames and the counters they added to the
+/// window's. The page scrolls the same way whatever the fast-mode switches are.
+pub async fn timed_scroll(
+    cx: &mut AsyncApp,
+    window: AnyWindowHandle,
+    rounds: usize,
+    limit: std::time::Duration,
+) -> Result<(FrameWork, Counters)> {
+    // The page is promoted and its tiles rasterized before the frames that are timed.
+    scroll_down_and_up(cx, window, limit).await?;
+    take_frame_work(cx, window)?;
+    let before = counters(cx, window)?;
+    for _ in 0..rounds {
+        scroll_down_and_up(cx, window, limit).await?;
+    }
+    let work = take_frame_work(cx, window)?;
+    let mut after = counters(cx, window)?;
+    after.composited -= before.composited;
+    after.repainted -= before.repainted;
+    after.tiles_rasterized -= before.tiles_rasterized;
+    after.tiles_composited -= before.tiles_composited;
+    after.frames -= before.frames;
+    Ok((work, after))
+}
+
+async fn scroll_down_and_up(
+    cx: &mut AsyncApp,
+    window: AnyWindowHandle,
+    limit: std::time::Duration,
+) -> Result<()> {
+    let at = pan_position();
+    for sign in [1., -1.] {
+        for step in PAN {
+            wheel(cx, window, at, sign * step)?;
+            next_frame(cx, window, limit).await;
+        }
+    }
+    Ok(())
+}
+
 /// Waits for the window's next frame, or `limit` when none is coming. Unlike
 /// [`crate::app_host::wait_frames`] it does not refresh the window, which draws the frame from
 /// scratch, with no layer: it waits for the frame whatever drew it last (a scroll, a promotion).

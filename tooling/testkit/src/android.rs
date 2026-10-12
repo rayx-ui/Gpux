@@ -656,7 +656,7 @@ pub fn signed_with_another_key(install_output: &str) -> bool {
 }
 
 /// The ids of the Android platform checks the host reports, in order.
-pub const PLATFORM_CHECKS: [&str; 14] = [
+pub const PLATFORM_CHECKS: [&str; 15] = [
     "android-startup",
     "android-touch-tap",
     "android-touch-pan",
@@ -669,6 +669,7 @@ pub const PLATFORM_CHECKS: [&str; 14] = [
     "scroll-layers-android-div",
     "scroll-layers-android-list",
     "scroll-layers-android-resume",
+    "scroll-layers-android-timing",
     "platform-view-android",
     "platform-view-android-text",
 ];

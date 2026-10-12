@@ -446,6 +446,9 @@ pub async fn platform_checks(cx: &mut AsyncApp) -> Vec<ResultLine> {
     if selected("scroll-layers-ios-resume") {
         lines.push(crate::scroll_layers::resume(cx).await);
     }
+    if selected("scroll-layers-ios-timing") {
+        lines.push(crate::scroll_layers::timing(cx).await);
+    }
     if selected("platform-view-ios") {
         lines.push(crate::platform_views::platform_view(cx).await);
     }
