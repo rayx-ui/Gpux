@@ -18,7 +18,13 @@
 
 mod scroll_layers_support;
 
+use gpux::{
+    AnyWindowHandle, AppContext as _, Context, FastMode, IntoElement, ParentElement, Render,
+    RenderImage, Styled, TestAppContext, TestWindowOptions, VisualTestContext, Window, div, img,
+    point, px, rgb, size,
+};
 use scroll_layers_support::*;
+use std::sync::{Arc, LazyLock};
 
 const SCALES: [f32; 3] = [1.25, 1.5, 1.75];
 
@@ -212,6 +218,143 @@ fn translated_text_is_the_text_drawn_where_it_lands() {
             "at {scale}x a line moved by a transformation differs from the line laid out there \
              by {worst} levels"
         );
+        cx.quit();
+    }
+}
+
+/// An image of 16 by 16 texels with alpha, and one of 64 by 64: a gradient with a ring of
+/// transparent texels.
+fn gradient_image(side: u32) -> Arc<RenderImage> {
+    let mut pixels = image::RgbaImage::new(side, side);
+    for (x, y, pixel) in pixels.enumerate_pixels_mut() {
+        let alpha = if (x + y) % 7 == 0 { 96 } else { 255 };
+        *pixel = image::Rgba([
+            (x * 255 / (side - 1)) as u8,
+            (y * 255 / (side - 1)) as u8,
+            200,
+            alpha,
+        ]);
+    }
+    Arc::new(RenderImage::new([image::Frame::new(pixels)]))
+}
+
+static SMALL_IMAGE: LazyLock<Arc<RenderImage>> = LazyLock::new(|| gradient_image(16));
+static LARGE_IMAGE: LazyLock<Arc<RenderImage>> = LazyLock::new(|| gradient_image(64));
+
+/// Two images, one shown at four times its size and one at a third, each laid out where it
+/// shows or moved there by a transformation of its own (a whole number of device pixels).
+struct ImageStrip {
+    moved: bool,
+}
+
+impl ImageStrip {
+    fn place(&self, x: f32, y: f32, image: gpux::Img) -> gpux::AnyElement {
+        if self.moved {
+            div()
+                .absolute()
+                .left(px(x - 3.))
+                .top(px(y - 5.))
+                .child(image.translate(point(px(3.), px(5.))))
+                .into_any_element()
+        } else {
+            div()
+                .absolute()
+                .left(px(x))
+                .top(px(y))
+                .child(image)
+                .into_any_element()
+        }
+    }
+}
+
+/// Where the images show, in logical pixels: (left, top, side).
+const IMAGES: [(f32, f32, f32); 2] = [(20., 20., 64.), (110., 20., 24.)];
+
+impl Render for ImageStrip {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        let (small, large) = (IMAGES[0], IMAGES[1]);
+        div()
+            .size_full()
+            .bg(rgb(0xffffff))
+            .child(self.place(
+                small.0,
+                small.1,
+                img(SMALL_IMAGE.clone()).w(px(small.2)).h(px(small.2)),
+            ))
+            .child(self.place(
+                large.0,
+                large.1,
+                img(LARGE_IMAGE.clone()).w(px(large.2)).h(px(large.2)),
+            ))
+    }
+}
+
+/// A transformed image (a polychrome sprite, magnified and minified) moved by a whole number of
+/// device pixels shows the image laid out there, to a few levels (the filter's zero weights are
+/// zero to the last bits of a float, and a software rasterizer's blend of a half transparent
+/// texel can turn that into two or three), inside the outermost texel, where the untransformed
+/// sampler bleeds into the tile next to it and the filter by hand does not. A wrong tile size
+/// or position differs by about two hundred.
+#[test]
+fn translated_images_are_the_images_laid_out_there() {
+    for scale in [1., 2.] {
+        let mut cx = app();
+        let mut open = |moved: bool| -> AnyWindowHandle {
+            let handle = cx.add_window_with_options(
+                TestWindowOptions::new(size(px(140.), px(100.))).scale_factor(scale),
+                move |_, _| ImageStrip { moved },
+            );
+            let window: AnyWindowHandle = handle.into();
+            cx.update_window(window, |_, window, _| {
+                window.set_fast_mode(FastMode::OFF);
+                window.activate_window();
+            })
+            .expect("the window is open");
+            cx.run_until_parked();
+            window
+        };
+        let (native, moved) = (open(false), open(true));
+        let frame = |cx: &TestAppContext, window| {
+            VisualTestContext::from_window(window, cx)
+                .capture_screenshot()
+                .expect("the window rendered")
+        };
+        let (expected, actual) = (frame(&cx, native), frame(&cx, moved));
+        assert_eq!(actual.dimensions(), expected.dimensions());
+        for (left, top, side) in IMAGES {
+            // The outer half texel of the source is `side / texels / 2` logical pixels wide
+            // at most: two logical pixels for the magnified image, none for the minified.
+            let margin = if side > 32. {
+                2. * scale + 1.
+            } else {
+                scale + 1.
+            };
+            let (x0, y0) = (
+                (left * scale + margin) as u32,
+                (top * scale + margin) as u32,
+            );
+            let (x1, y1) = (
+                ((left + side) * scale - margin) as u32,
+                ((top + side) * scale - margin) as u32,
+            );
+            let worst = (y0..y1)
+                .flat_map(|y| (x0..x1).map(move |x| (x, y)))
+                .map(|(x, y)| {
+                    let (a, e) = (actual.get_pixel(x, y).0, expected.get_pixel(x, y).0);
+                    a.iter()
+                        .zip(e)
+                        .map(|(a, e)| a.abs_diff(e))
+                        .max()
+                        .unwrap_or(0)
+                })
+                .max()
+                .unwrap_or(0);
+            assert!(
+                worst <= 3,
+                "at {scale}x the image at ({left}, {top}) of {side} moved by a transformation \
+                 differs from the image laid out there by {worst} levels"
+            );
+        }
         cx.quit();
     }
 }
