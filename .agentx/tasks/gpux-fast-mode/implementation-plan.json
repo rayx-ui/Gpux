@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 45,
+  "revision": 55,
   "title": "gpux fast mode: retained layout and views, splice, scroll layers and window composition from gpui-fast",
   "validationMode": "sprint",
   "repositories": [
@@ -2549,6 +2549,83 @@
         "crates/gpui_apple/**",
         "crates/gpux_fonts/**"
       ]
+    },
+    {
+      "id": "check-transformed-text",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "LYR-19"
+      ],
+      "descriptionMarkdown": "`lane_c_layer_scales::rotated_text_is_equal_to_the_reference` and `text_turned_again_after_a_straight_phase_is_equal_to_the_reference`: turned and scaled bordered cards that clip a line of text (in a scrolling `div` and with scrolling containers in it), scrolled by the scripted scroll, single pixels and a long scroll (and with the turn going away and coming back), at scales 1, 1.5 and 2, against the layers-off reference, byte for byte. And `translated_text_is_the_text_drawn_where_it_lands`: a line moved by a whole number of device pixels through a transformation of its own is the line laid out there, to a level. And `translated_images_are_the_images_laid_out_there`: the same for an image with alpha, magnified and minified, inside its outermost texel. And `a_transformed_image_does_not_depend_on_what_the_atlas_holds_beside_it`: the same moved images alone in the atlas and with bright images beside them, whole.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-conformance",
+        "--test",
+        "lane_c_layer_scales",
+        "--",
+        "rotated_text_is_equal_to_the_reference",
+        "text_turned_again_after_a_straight_phase_is_equal_to_the_reference",
+        "translated_text_is_the_text_drawn_where_it_lands",
+        "translated_images_are_the_images_laid_out_there",
+        "a_transformed_image_does_not_depend_on_what_the_atlas_holds_beside_it"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 5
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/gpux_conformance/**",
+        "crates/gpui_platform/**",
+        "crates/gpui_wgpu/**",
+        "crates/gpui_apple/**",
+        "crates/gpux_fonts/**"
+      ]
+    },
+    {
+      "id": "check-transformed-text-web",
+      "repositoryId": "gpux",
+      "kind": "runtime",
+      "criterionIds": [
+        "LYR-19"
+      ],
+      "descriptionMarkdown": "The changed shaders in the browser: every scene renders without a WebGPU validation error (`dawn.spec.ts`), the forced WebGL2 backend renders (`backend.spec.ts`), and the scroll-layers spec draws text and cards on both backends.",
+      "argv": [
+        "cargo",
+        "run",
+        "-p",
+        "gpux-testkit",
+        "--",
+        "lane",
+        "b",
+        "--grep",
+        "scroll-layers: |renders without a WebGPU validation error|forcing WebGL2 renders"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 40,
+        "testCountPattern": "gpux-testkit: (\\d+) passed"
+      },
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tooling/testkit/**",
+        "tools-node/specs/**",
+        "tools-node/package.json",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
     }
   ],
   "finalCheckIds": [
@@ -4259,6 +4336,48 @@
       ]
     },
     {
+      "id": "s12g-transformed-text",
+      "title": "A transformed sprite filtered within its own atlas tile",
+      "dependsOn": [
+        "s12f-transformed-masks"
+      ],
+      "memoryScopes": [
+        "gpui/frame-pipeline"
+      ],
+      "tasks": [
+        {
+          "id": "t57-transformed-text",
+          "title": "Filter a transformed sprite within its own atlas tile",
+          "descriptionMarkdown": "Filter a transformed sprite by hand within its tile (`sample_tile`) in `shaders.wgsl` and `shaders.metal`. Write the lane C tests; run lane C on Metal and on wgpu, and lane B for the shaders.",
+          "criterionIds": [
+            "LYR-19"
+          ],
+          "designIds": [
+            "d-transformed-text"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-transformed-text",
+            "check-transformed-text-web",
+            "check-parity-a"
+          ],
+          "supportingCriterionIds": [
+            "OR-3"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_wgpu/src/shaders.wgsl"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_apple/src/shaders.metal"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "s12b-layers-web-mobile",
       "title": "Scroll layers in the browser, on Android and on iOS",
       "dependsOn": [
@@ -4368,7 +4487,8 @@
       "title": "Defaults on, documentation, and the final comparison",
       "dependsOn": [
         "s12b-layers-web-mobile",
-        "s12e-border-clips"
+        "s12e-border-clips",
+        "s12g-transformed-text"
       ],
       "memoryScopes": [
         "gpui",

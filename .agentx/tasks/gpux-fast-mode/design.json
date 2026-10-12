@@ -921,6 +921,40 @@
           "symbol": "with_content_mask"
         }
       ]
+    },
+    {
+      "id": "d-transformed-text",
+      "requirementIds": [
+        "LYR"
+      ],
+      "descriptionMarkdown": "Builds on d-transformed-masks (a transformed element's clip is cut by the viewport while a layer's content is painted).\n\nA transformed sprite's fragment sampled its atlas tile at the position the rasterizer interpolates, through the sampler with linear filtering, and the atlas packs tiles without a gutter, so at the sprite's edge the filter reached into the neighbouring tile, and the weights it rounds depend on where the atlas placed the tile and on the atlas's size. The result was a function of what the atlas held, and where: a window that paints more glyphs than another (as a window with layers does while a container is tried again for a layer) drew a turned glyph's edge pixels differently. The atlases have no gutter and keep none: a tile is the glyph's own bitmap.\n\nThe fix is in the sampling, and only for what is transformed: `sample_tile` filters a transformed sprite by hand, with four `textureLoad`s by index clamped to the tile, mixed in floating point from the position within the tile alone (`unit position * tile size - 0.5`), in `shaders.wgsl` (wgpu, WebGPU, the WebGL2 transport) and `shaders.metal`. An untransformed sprite and a layer's tile sprites (untransformed) keep the sampler at their fragment's own position. The sampler's result is chosen after the loads, not returned early (some GL ES drivers drop the fragments of a shader that returns early after sampling). No record, binding or batch changes.",
+      "invariantsMarkdown": "- A transformed sprite's pixels are a function of its tile and its position within it, not of the atlas around it.\n- An untransformed sprite and a layer's tile sprites are sampled as before.",
+      "memoryDecisionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/renderer/wgpu/2026-09-30-renderer-wgpu-srgb-compositing.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/renderer/wgpu/2026-08-07-renderer-wgpu-browser-backend-fallback.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/decisions/renderer/wgpu/2026-07-04-renderer-wgpu-shader-effects-backend-capabilities.md"
+        }
+      ],
+      "sourceRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/shaders.wgsl",
+          "symbol": "sample_tile"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_apple/src/shaders.metal",
+          "symbol": "sample_tile"
+        }
+      ]
     }
   ],
   "memoryDecisionsConsidered": [

@@ -1,12 +1,12 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 251,
-  "planRevision": 45,
+  "revision": 278,
+  "planRevision": 55,
   "specHashes": {
-    "requirements": "058ffeecf4d4a88ba8087600062681f6da42eb8f43de9bd6c9089016214e43f2",
-    "design": "524779b12dfb2a6dd95602ccb36d3f4365a688b6c020a8510720311ba162b925",
-    "plan": "872c54e3f7de60fd2ac3121c89a94392a9e6aa0de545c18d2d84955d1d4a4a88"
+    "requirements": "34fe5a788cae7586ec55ec23f3293238a0860a20173264724341c6e48bb93c4c",
+    "design": "74a56aad4c81f8065f21a53ac25892dca980f4985029acaf8b381afd4e7678a3",
+    "plan": "c75dcbbd536b1886ca6bdf998a799feaf223504ab763677ca1ab98d385eaa462"
   },
   "tasks": {
     "t01-fast-switches": {
@@ -347,6 +347,12 @@
       "workerIds": [
         "claude-240e1cb7"
       ]
+    },
+    "t57-transformed-text": {
+      "status": "done",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     }
   },
   "validationBatches": {
@@ -529,6 +535,15 @@
         }
       },
       "recordedAt": "2026-10-11T21:11:09Z"
+    },
+    "010336169ee77af0e83ad3982b5c21be5cdfbb2d29bf152e45df2030f666791f": {
+      "snapshot": {
+        "specHash": "7979ba94da9cf1007a81d4852c1b6cc1d9b69506bd027943c028aec2b73f7202",
+        "repositories": {
+          "gpux": "6bf9524389e3840d724d42d29f2e651b50b389041c47713b0747de936d779614"
+        }
+      },
+      "recordedAt": "2026-10-12T07:10:53Z"
     }
   },
   "checkResults": {
@@ -1891,6 +1906,57 @@
       "logPath": "artifacts-temp/agentx/gpux-fast-mode/s12b-layers-web-mobile-final-c2edf61d3649.log",
       "logSha256": "6a5cdc764a51b50d5b0b69cf97dafb49902041918daa9f1bba98d716a4c21dfa",
       "inputsHash": "998010aa1ec35840e254dc4a7acdbee28d11b38941de070b7bbcae16b8a4ebb9"
+    },
+    "s12g-transformed-text/check-parity-a/final": {
+      "checkId": "check-parity-a",
+      "boundaryId": "s12g-transformed-text",
+      "phase": "final",
+      "batchId": "010336169ee77af0e83ad3982b5c21be5cdfbb2d29bf152e45df2030f666791f",
+      "definitionHash": "fa2a6c37c33f236da90188c21241c323bf5546009bfdb63ca19a5b684a5a283e",
+      "basisHash": "6f81b3c00b49f81453b4c98eacfe187e0eca22e9a2b42d7b053167a1de904735",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 39,
+      "durationSeconds": 4.8798,
+      "recordedAt": "2026-10-12T07:09:42Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s12g-transformed-text-final-dab3be01189e.log",
+      "logSha256": "cbc6caf956f2176e83b8770994694693fbf8bcbf77bfd24fadeab10d462a6397",
+      "inputsHash": "1d22b2a76686254358730cd5efc4505258feee05174034e2dbad00ec5fa8c3c0"
+    },
+    "s12g-transformed-text/check-transformed-text/final": {
+      "checkId": "check-transformed-text",
+      "boundaryId": "s12g-transformed-text",
+      "phase": "final",
+      "batchId": "010336169ee77af0e83ad3982b5c21be5cdfbb2d29bf152e45df2030f666791f",
+      "definitionHash": "d8baf8bdb3cb3e239c49ff5ae2b290ebf3be3130bfc786cb3a5ddb8ccdbe3aab",
+      "basisHash": "326734e5eac543cdc2c49ebf6b5a2f9e08594be4d98d616e15e0c28c5af42fce",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 54.284,
+      "recordedAt": "2026-10-12T07:10:36Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s12g-transformed-text-final-aa559b247b8c.log",
+      "logSha256": "11a5938a00e41276be399c9d56c3139d7b2b65b00b8dfb2be108a4238f115c3e",
+      "inputsHash": "e0b39e25045b16489a05c48bcddf5fdaf5a2208938c7e46866491f71eb12b3d2"
+    },
+    "s12g-transformed-text/check-transformed-text-web/final": {
+      "checkId": "check-transformed-text-web",
+      "boundaryId": "s12g-transformed-text",
+      "phase": "final",
+      "batchId": "010336169ee77af0e83ad3982b5c21be5cdfbb2d29bf152e45df2030f666791f",
+      "definitionHash": "e139907a39944237da26d4e0ec9052f5565773fa35bc676af758c534a441e715",
+      "basisHash": "84d792415a7ce5c6bcc5191d0c4009e98ecbad6dbd9ce4d69665732b665f9593",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 52,
+      "durationSeconds": 17.2595,
+      "recordedAt": "2026-10-12T07:10:53Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s12g-transformed-text-final-f565050b75d2.log",
+      "logSha256": "55899c5cfd5cba9a71c8fe5f4e9d31428c7c0fa8cbb5821372d5c5a1b267a562",
+      "inputsHash": "1373c8ca3af5b504d3dd159dd43e33ef0132d3c76dbe3d4982a5349441e4a586"
     }
   },
   "reviews": {
@@ -5980,6 +6046,123 @@
         "s12b-html-islands-are-not-checked"
       ],
       "recordedAt": "2026-10-11T21:13:51Z"
+    },
+    "s12g-transformed-text": {
+      "reviewerId": "claude-reviewer-s12g8-7f3c91a2",
+      "snapshotId": "010336169ee77af0e83ad3982b5c21be5cdfbb2d29bf152e45df2030f666791f",
+      "criterionIds": [
+        "LYR-19",
+        "OR-3"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/shaders.wgsl",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-19",
+            "OR-3"
+          ],
+          "sha256": "c94e4ccc8bee8dba627a0bd3c4be6ac85520cf3cec18ae259690044f8cd680ac"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/shaders_subpixel.wgsl",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-19"
+          ],
+          "sha256": "1e4d1fc1bf681872091c5b617c2498aec339d2d239ab71294587c4d8373ea800"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_apple/src/shaders.metal",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-19",
+            "OR-3"
+          ],
+          "sha256": "57d453ab724e2782c4083552560a11c6779249a0e552e912ee2680bd710fc3c2"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_layer_scales.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-19"
+          ],
+          "sha256": "c54bc9b48f4fd84af839394c12edd266eba66a2a9b5a4f90366b8e52e61c3a86"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/scroll_layers_support/mod.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-19"
+          ],
+          "sha256": "a61fb2b6409bcb95fb1307dfce46c59896c7c9505e3e24b6b2757758086d1620"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_a_fast_parity.rs",
+          "kind": "test",
+          "criterionIds": [
+            "OR-3"
+          ],
+          "sha256": "ab7b2be4370aab3a63a560d98f780764ad0cf858301139f78b66ab9c3bdf2439"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/glyphs.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-19"
+          ],
+          "sha256": "e50c91e2341b3a9e2446ac072b8764c762a702bb61a032654447d8231ca5e4cc"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s12g-transformed-text-final-aa559b247b8c.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "LYR-19"
+          ],
+          "sha256": "11a5938a00e41276be399c9d56c3139d7b2b65b00b8dfb2be108a4238f115c3e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s12g-transformed-text-final-f565050b75d2.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "LYR-19"
+          ],
+          "sha256": "55899c5cfd5cba9a71c8fe5f4e9d31428c7c0fa8cbb5821372d5c5a1b267a562"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/agentx/gpux-fast-mode/s12g-transformed-text-final-dab3be01189e.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "OR-3"
+          ],
+          "sha256": "cbc6caf956f2176e83b8770994694693fbf8bcbf77bfd24fadeab10d462a6397"
+        }
+      ],
+      "summaryMarkdown": "**Verdict: passed at `147a42e` (revision 277, snapshot 01033616), nothing open.** The clamp in y, the last finding, is guarded now; every mutation of the filter's clamp, indices, position, tile size or weights that I tried fails at least one of the five transformed groups, on Metal and in WGSL on lavapipe.\n\n**Run at the head:** Metal `lane_c_layer_scales` 12 of 12, `lane_c_scroll_layers` 18, `lane_c_list_hover` 2, `lane_a_fast_parity` 39, lane C in full 188 of 188; lane B (the sprint's grep) 52 of 52; lane E `scroll-layers` 3 of 3 on GL and 3 of 3 on SwiftShader Vulkan; the five groups pass on lavapipe. **Search against the head:** 240 runs of random neighbour sets, 0 levels. No shader or `glyphs.rs` change since my fifth review, so its battery (370 reports, none differ) stands.\n\n**Mutations** (each of 15 against the five groups: rotated-text, turn-again, text pin, image pin, atlas test; fails listed): lower clamp out in both axes, x, y: atlas test; upper clamp one too far in both axes and x: atlas, rotated-text, turn-again; in y alone: atlas; `last = size` in both axes and x: atlas, rotated-text, turn-again; in y alone: atlas; tile origin one off in y: image pin, text pin, atlas (both renderers); half texel in x alone or in y alone: image pin and text pin; `tile_size.y = bounds.size.y`: image pin only; no vertical interpolation: image and text pins; no horizontal interpolation: image pin only on Metal, image and text pins in WGSL. Every one fails at least one group on both renderers; the clamp ones are what the atlas test is for.\n\n**Text and memory.** LYR-19's \"50 to 100 levels\" now holds for both axes (54 to 96 observed); the check argv is the five tests; `rules.md` line 58 names the atlas test. Nothing else open. No tracked file touched; scratch worktrees and the Lima clone removed.",
+      "findingIds": [
+        "s12g-text-turned-again-after-a-straight-phase-still-differs",
+        "s12g-the-test-does-not-fail-at-all-three-scales-without-the-fix",
+        "s12g-the-docs-still-say-culling-keeps-the-painted-region",
+        "s12g-a-one-level-difference-remains-in-nested-emoji-text",
+        "s12g-without-the-clamp-only-the-turn-again-test-fails-now",
+        "s12g-the-cull-has-no-test-that-fails-without-it",
+        "s12g-no-test-pins-the-hand-filter-to-the-sampler-picture",
+        "s12g-no-test-draws-a-transformed-image-or-a-polychrome-sprite",
+        "s12g-memory-says-the-result-is-selected-after-sampling",
+        "s12g-no-test-guards-the-clamp-at-a-tiles-first-row-and-column"
+      ],
+      "recordedAt": "2026-10-12T07:42:51Z"
     }
   },
   "checkpoints": {
@@ -8136,6 +8319,219 @@
         }
       ],
       "descriptionMarkdown": "**Resolved at `440328e`.** `web-scroll-layers-island` is checked on WebGPU and WebGL2: lane B 10 of 10 (the two island specs among them: 0 frames composited, 0 tiles rasterized, `layer_bypasses.ineligible` > 0). Not vacuous: with `|| !scene.html_islands.is_empty()` removed from `paint::uncompositable` exactly the two island specs fail (8 passed, 2 failed) and the element specs still pass, so the island primitive is in the scene and the gate is what holds it off its layer."
+    },
+    {
+      "id": "s12g-text-turned-again-after-a-straight-phase-still-differs",
+      "boundaryId": "s12g-transformed-text",
+      "criterionIds": [
+        "LYR-19"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/shaders.wgsl",
+          "symbol": "sample_tile"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_apple/src/shaders.metal",
+          "symbol": "sample_tile"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_layer_scales.rs",
+          "symbol": "text_turned_again_after_a_straight_phase_is_equal_to_the_reference"
+        }
+      ],
+      "descriptionMarkdown": "**Resolved at `f39ec36`.** The turn-again group passes at the head at 1, 1.5 and 2 on Metal (9 of 9 in `lane_c_layer_scales` on Metal, and the two groups on lavapipe in 97 s), and fails at 2x, step 89, once the hand filter is taken out (finding `s12g-without-the-clamp-only-the-turn-again-test-fails-now` for what the criterion says of it)."
+    },
+    {
+      "id": "s12g-the-test-does-not-fail-at-all-three-scales-without-the-fix",
+      "boundaryId": "s12g-transformed-text",
+      "criterionIds": [
+        "LYR-19"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_layer_scales.rs"
+        }
+      ],
+      "descriptionMarkdown": "**Resolved at `e596b29`.** LYR-19 now says the groups fail \"without the clamp on Metal, at scales 1 and 2\", which is what I measured (the three failures above; 1.5x passes either way)."
+    },
+    {
+      "id": "s12g-the-docs-still-say-culling-keeps-the-painted-region",
+      "boundaryId": "s12g-transformed-text",
+      "criterionIds": [
+        "LYR-19"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md"
+        }
+      ],
+      "descriptionMarkdown": "**Resolved at `271eb2c`.** The cull is out (`git diff 3f7850d^ HEAD -- crates/gpui` is empty), so line 595 of `docs/fast-mode.md` (\"culling, and every mask that is not transformed, keep the painted region\") is true again; `rules.md` and LYR-19 no longer describe a cull."
+    },
+    {
+      "id": "s12g-a-one-level-difference-remains-in-nested-emoji-text",
+      "boundaryId": "s12g-transformed-text",
+      "criterionIds": [
+        "LYR-19"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/shaders.wgsl",
+          "symbol": "sample_tile"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_apple/src/shaders.metal",
+          "symbol": "sample_tile"
+        }
+      ],
+      "descriptionMarkdown": "**Resolved at `f39ec36`.** The one-level difference of nested emoji text at 1.5x is gone, and so is the sentence that claimed the cut removed it. Run at the head: the nested emoji 1.5x report first in a fresh process (`p135`, the script of `p134`: pixel steps and 40 mixed ones), three runs: 0 of 476 steps each; with the cut removed, two runs: 0 of 476. My matrix at the head: 409 reports (the whole `p120` family, `p121`, `p124`, `p80`, `p81`, `p83`, `p86`, `p134` in a fresh process and in the battery's order), 0 differ; with the cut removed: 104 reports (`p120`, `p121`, `p124`, `p134`), 0 differ; the warmed-reference probe (two windows with no layer, one having painted the whole page first) is 0 of 476 at 1, 1.5 and 2 for the rotated and the scaled card, with and without the cut. LYR-19 now says the weights' rounding is part of the cause, which is what the hand filter removes."
+    },
+    {
+      "id": "s12g-without-the-clamp-only-the-turn-again-test-fails-now",
+      "boundaryId": "s12g-transformed-text",
+      "criterionIds": [
+        "LYR-19"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_layer_scales.rs",
+          "symbol": "text_turned_again_after_a_straight_phase_is_equal_to_the_reference"
+        }
+      ],
+      "descriptionMarkdown": "**Resolved at `271eb2c`.** LYR-19 now says the rotated-text group fails at 1x and 2x and the turn-again group at 2x without the filter on Metal. At the head with `sample_tile` returning the sampler's result: `rotated_text_is_equal_to_the_reference` fails at `RotatedText` 1x (step 11, 1 pixel, 197 against 198), `RotatedText` 2x (step 3, 5 pixels) and `NestedRotatedText` 2x (step 4, 3 pixels), 1.5x equal; the turn-again group fails at 2x only (step 35, 1 pixel at (154, 687)), 1x and 1.5x equal (each scale compared on its own)."
+    },
+    {
+      "id": "s12g-the-cull-has-no-test-that-fails-without-it",
+      "boundaryId": "s12g-transformed-text",
+      "criterionIds": [
+        "LYR-19"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/glyphs.rs",
+          "symbol": "LineGlyphPainter"
+        }
+      ],
+      "descriptionMarkdown": "**Resolved at `271eb2c`** by taking the cull out: `glyphs.rs` is as before `3f7850d`, the relaxed assertion is `debug_assert_eq!(*mask, self.mask)` again, and LYR-19 has no cull paragraph. My battery at the head, which runs with no cull, is clean (see the summary)."
+    },
+    {
+      "id": "s12g-no-test-pins-the-hand-filter-to-the-sampler-picture",
+      "boundaryId": "s12g-transformed-text",
+      "criterionIds": [
+        "LYR-19",
+        "OR-3"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_layer_scales.rs",
+          "symbol": "translated_text_is_the_text_drawn_where_it_lands"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/shaders.wgsl",
+          "symbol": "sample_tile"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_apple/src/shaders.metal",
+          "symbol": "sample_tile"
+        }
+      ],
+      "descriptionMarkdown": "**Resolved for text at `271eb2c`; what the pin leaves out is `s12g-no-test-draws-a-transformed-image-or-a-polychrome-sprite`.** `translated_text_is_the_text_drawn_where_it_lands` fails by dozens of levels for a wrong filter. Mutations of `sample_tile`, run on Metal and in WGSL on lavapipe: half texel `- 0.0` for `- 0.5` 166 / 167 levels; swapped axis (`unit_position.yx`) 225 / 225; tile origin +1 221 / 221; the two weights swapped 225 / 225; the second texel on the wrong side 217 / 225; weights rounded to quarters 56 / 80. All at 1x, the first scale. The weight and second-texel mutations are caught through float noise (a texel centre's weights are zero only to the last bits, so a few pixels have a weight near one), not by design. A tile's `last` index one too far is not caught by the pin but by `rotated_text_is_equal_to_the_reference` and the turn-again group on both renderers. One level is the right tolerance: Metal is exact (0 levels), lavapipe 1."
+    },
+    {
+      "id": "s12g-no-test-draws-a-transformed-image-or-a-polychrome-sprite",
+      "boundaryId": "s12g-transformed-text",
+      "criterionIds": [
+        "LYR-19"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_layer_scales.rs",
+          "symbol": "translated_images_are_the_images_laid_out_there"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_apple/src/shaders.metal",
+          "symbol": "sample_tile"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/shaders.wgsl",
+          "symbol": "sample_tile"
+        }
+      ],
+      "descriptionMarkdown": "**Resolved at `0ea410e`, for what a translation can show.** `translated_images_are_the_images_laid_out_there` fails, on Metal and in WGSL on lavapipe, for: the polychrome call given a position shifted by 5 px (130 levels), 1 px (60), 0.5 px (35, WGSL too), 0.2 px (13), a swapped axis in the polychrome call (250 / 249); `tile_size = bounds.size` (198 on both); a half texel (102), a swapped axis (230), a tile origin one off (143), swapped weights (13), the second texel on the wrong side (142), nearest instead of bilinear (142), weights in quarters (34) and in sixteenths (11, Metal). It passes at the head on both and passes with the last index one too far (that one the rotated-text and turn-again groups catch). What the image test cannot see, because its margin leaves the outermost texel out, is the filter's clamp at a tile's lower edge: `s12g-no-test-guards-the-clamp-at-a-tiles-first-row-and-column`."
+    },
+    {
+      "id": "s12g-memory-says-the-result-is-selected-after-sampling",
+      "boundaryId": "s12g-transformed-text",
+      "criterionIds": [
+        "LYR-19"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/memory/knowledge/renderer/wgpu/state.md"
+        }
+      ],
+      "descriptionMarkdown": "**Resolved.** `state.md` line 51 now says the four loads sit in a branch that only transformed fragments take and assign, the one return comes last, and Metal returns early (no GL ES path), which is what the shader does. LYR-19 and the check description no longer say 'emoji'."
+    },
+    {
+      "id": "s12g-no-test-guards-the-clamp-at-a-tiles-first-row-and-column",
+      "boundaryId": "s12g-transformed-text",
+      "criterionIds": [
+        "LYR-19"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_layer_scales.rs",
+          "symbol": "a_transformed_image_does_not_depend_on_what_the_atlas_holds_beside_it"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_apple/src/shaders.metal",
+          "symbol": "sample_tile"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/shaders.wgsl",
+          "symbol": "sample_tile"
+        }
+      ],
+      "descriptionMarkdown": "**Resolved at `147a42e`.** `a_transformed_image_does_not_depend_on_what_the_atlas_holds_beside_it` now compares one window with the images alone against four crowded ones (`CROWDS`), and fails for every clamp mutation I tried, on Metal and in WGSL on lavapipe: lower clamp out in both axes (95 levels, crowd 0), in x alone (54, crowd 2), in y alone (96, crowd 0); upper clamp one too far in both axes, x alone (60, crowd 1; the rotated-text and turn-again groups fail too) and y alone (60, crowd 2); `last = size` in both axes, x alone (the same three) and y alone (60, crowd 2). At the head it passes on both renderers and over my random search of neighbours (60 neighbour sets x 16 and 64 px sources x 1x and 2x = 240 runs: 0 levels, none above one)."
     }
   ],
   "handoffMarkdown": "",
