@@ -10,6 +10,7 @@
 
 use crate::scene::{Lane, SceneSpec};
 use anyhow::{Result, ensure};
+use gpux::prelude::FluentBuilder as _;
 use gpux::{
     AnyElement, AnyWindowHandle, AppContext as _, AsyncApp, BoxShadow, Context, Entity,
     IntoElement, ListAlignment, ListState, ParentElement as _, PlatformInput, Render, ScrollDelta,
@@ -40,11 +41,14 @@ pub fn pan_position() -> (f32, f32) {
     (SCROLLER.0 + SCROLLER.2 / 2., SCROLLER.1 + SCROLLER.3 / 2.)
 }
 
-const CARDS: usize = 300;
+const CARDS: usize = 120;
 
-/// A card in a scroll container: alternating row colors, a border, rounded corners and a soft
-/// shadow, so tiles hold what a page of cards holds.
-pub fn card_row(index: usize) -> AnyElement {
+/// A card in a scroll container: alternating row colors, a border, rounded corners and, with
+/// `shadow`, a soft shadow, so tiles hold what a page of cards holds. The mobile pages go
+/// without the shadow: an emulator draws every frame in software, and a blur over a whole
+/// screen of them is what a check of lifecycles and counters does not need (lane C scrolls
+/// shadows).
+pub fn card(index: usize, shadow: bool) -> AnyElement {
     div()
         .id(("card", index))
         .h(px(64.))
@@ -63,16 +67,23 @@ pub fn card_row(index: usize) -> AnyElement {
                 .rounded(px(6.))
                 .border_1()
                 .border_color(rgb(0x555555))
-                .shadow(vec![BoxShadow {
-                    color: rgba(0x00000066).into(),
-                    offset: point(px(0.), px(2.)),
-                    blur_radius: px(6.),
-                    spread_radius: px(0.),
-                    inset: false,
-                }])
+                .when(shadow, |card| {
+                    card.shadow(vec![BoxShadow {
+                        color: rgba(0x00000066).into(),
+                        offset: point(px(0.), px(2.)),
+                        blur_radius: px(6.),
+                        spread_radius: px(0.),
+                        inset: false,
+                    }])
+                })
                 .child(format!("Row {index}")),
         )
         .into_any_element()
+}
+
+/// [`card`] with its shadow, as the browser pages show it.
+pub fn card_row(index: usize) -> AnyElement {
+    card(index, true)
 }
 
 /// The scroll positions of a page, in a view of their own: a view that reads an offset is built
@@ -127,14 +138,14 @@ impl Render for Page {
                 None => container
                     .overflow_y_scroll()
                     .track_scroll(&self.scroll)
-                    .children((0..CARDS).map(card_row))
+                    .children((0..CARDS).map(|index| card(index, false)))
                     .into_any_element(),
             })
     }
 }
 
 fn list_of_cards(state: ListState) -> impl IntoElement {
-    list(state, |index, _, _| card_row(index)).size_full()
+    list(state, |index, _, _| card(index, false)).size_full()
 }
 
 fn build(with_list: bool, cx: &mut gpux::App) -> gpux::AnyView {
@@ -234,14 +245,11 @@ impl std::fmt::Display for Counters {
 pub fn counters(cx: &mut AsyncApp, window: AnyWindowHandle) -> Result<Counters> {
     window.update(cx, |_, window, _| {
         let stats = window.fast_stats();
-        #[cfg(feature = "diagnostics")]
         let renderer = window.layer_tile_counters().map(|tiles| Renderer {
             held: tiles.held,
             rasterized: tiles.rasterized,
             released: tiles.released,
         });
-        #[cfg(not(feature = "diagnostics"))]
-        let renderer = None;
         Counters {
             composited: stats.layers_composited,
             repainted: stats.layers_repainted,

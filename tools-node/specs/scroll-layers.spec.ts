@@ -8,6 +8,10 @@ import { expect, test, type Backend, type Bounds, type Gpux } from '../fixtures/
 // compared with the same page without them. `__gpuxFastStats` (published under `diagnostics`)
 // says which frames came from tiles.
 
+// The pages are small and so is the window: a software renderer (the CI profiles) draws every
+// frame of the canvas, and the canvas fills the viewport.
+test.use({ viewport: { width: 440, height: 340 } });
+
 interface FastStats {
   frame: Record<string, number>;
   run: Record<string, number>;
@@ -52,17 +56,17 @@ async function scroll(gpux: Gpux, at: { x: number; y: number }, steps: number, d
 async function scrolled(gpux: Gpux) {
   const ratio = await gpux.page.evaluate(() => globalThis.devicePixelRatio);
   const div = await gpux.center('id=scroller');
-  await scroll(gpux, div, 12, 40 * ratio);
-  await statusOf(gpux, 'role=status value="div 480 list 0"');
+  await scroll(gpux, div, 8, 40 * ratio);
+  await statusOf(gpux, 'role=status value="div 320 list 0"');
   const list = await gpux.center('id=rows');
-  await scroll(gpux, list, 9, 40 * ratio);
+  await scroll(gpux, list, 6, 40 * ratio);
   await expect
-    .poll(async () => (await gpux.find('role=status value="div 480 list 5"')) !== null, {
-      message: 'the list scrolled to its sixth row',
+    .poll(async () => (await gpux.find('role=status value="div 320 list 3"')) !== null, {
+      message: 'the list scrolled to its fourth row',
     })
     .toBe(true);
   await gpux.frames(3);
-  return gpux.capture({ x: 0, y: 0, width: 900, height: 660 });
+  return gpux.capture({ x: 0, y: 0, width: 440, height: 340 });
 }
 
 for (const backend of BACKENDS) {
@@ -85,7 +89,7 @@ for (const backend of BACKENDS) {
     expect(
       after.layers_composited - before.layers_composited,
       'scroll-container frames drawn from tiles',
-    ).toBeGreaterThanOrEqual(10);
+    ).toBeGreaterThanOrEqual(8);
     expect(
       after.tiles_composited - before.tiles_composited,
       'tiles composited into frames',
@@ -127,8 +131,8 @@ for (const backend of BACKENDS) {
       await gpux.open(scene, { backend, params: { layers: '1' } });
       await gpux.locate('role=status value="div 0"');
       const div = await gpux.center('id=scroller');
-      await scroll(gpux, div, 12, 40);
-      await gpux.locate('role=status value="div 480"');
+      await scroll(gpux, div, 8, 40);
+      await gpux.locate('role=status value="div 320"');
       const run = (await stats(page)).run;
       expect(run.layers_composited, 'no frame came from tiles').toBe(0);
       expect(run.tiles_rasterized, 'no tile was rasterized').toBe(0);

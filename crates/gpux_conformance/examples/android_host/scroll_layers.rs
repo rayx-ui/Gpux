@@ -8,7 +8,7 @@
 use crate::android::{Screens, request};
 use crate::checks::{
     ACTION_TIMEOUT, SWIPE_FRAMES, capture_state, close, fail, find, frame_time, open, pass,
-    scale_factor, sleep, surface_lost, wait_for,
+    scale_factor, sleep, surface_lost,
 };
 use gpux::semantic_query::Query;
 use gpux::{AnyWindowHandle, AsyncApp};
@@ -25,6 +25,9 @@ use std::time::{Duration, Instant};
 /// How many frames of a swipe through the system must come from tiles: the finger moves a
 /// few times between a slow renderer's frames.
 const SWIPE_COMPOSITED_OS: u64 = 2;
+
+/// How long a swipe through the system may take to scroll the page.
+const SWIPE_PATIENCE: Duration = Duration::from_secs(120);
 
 /// How long a pan step waits for the frame it asks for.
 const FRAME_LIMIT: Duration = Duration::from_secs(2);
@@ -212,7 +215,17 @@ async fn swiped(
             "swipe {from_x} {from_y} {from_x} {to_y} {duration}"
         ));
         let before = scrolled(cx, window, list);
-        let moved = wait_for(cx, window, |cx| scrolled(cx, window, list) > before).await;
+        // A software renderer on a large screen draws a frame in seconds, and the swipe lasts
+        // eight of them.
+        let begun = Instant::now();
+        let mut moved = false;
+        while begun.elapsed() < SWIPE_PATIENCE {
+            if scrolled(cx, window, list) > before {
+                moved = true;
+                break;
+            }
+            sleep(cx, Duration::from_millis(100)).await;
+        }
         sleep(cx, Duration::from_millis(u64::from(duration) + 300)).await;
         if !moved {
             close(cx, window);

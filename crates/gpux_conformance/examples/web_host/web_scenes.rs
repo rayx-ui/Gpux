@@ -516,10 +516,10 @@ impl Render for ScrollLayersPage {
                 div()
                     .id("scroller")
                     .absolute()
-                    .top(px(40.))
-                    .left(px(20.))
-                    .w(px(400.))
-                    .h(px(600.))
+                    .top(px(30.))
+                    .left(px(10.))
+                    .w(px(200.))
+                    .h(px(300.))
                     .bg(rgb(0xf4f1ea))
                     .overflow_y_scroll()
                     .track_scroll(&self.scroll)
@@ -529,10 +529,10 @@ impl Render for ScrollLayersPage {
                 div()
                     .id("rows")
                     .absolute()
-                    .top(px(40.))
-                    .left(px(460.))
-                    .w(px(400.))
-                    .h(px(600.))
+                    .top(px(30.))
+                    .left(px(230.))
+                    .w(px(200.))
+                    .h(px(300.))
                     .bg(rgb(0xf4f1ea))
                     .child(list(self.list.clone(), |index, _, _| card_row(index)).size_full()),
             )
@@ -542,7 +542,7 @@ impl Render for ScrollLayersPage {
 pub const SCROLL_LAYERS: SceneSpec = SceneSpec {
     id: "web-scroll-layers",
     areas: &[],
-    size: (900., 660.),
+    size: (440., 340.),
     scales: &[1.],
     lanes: &[Lane::B],
     golden: false,
@@ -575,10 +575,10 @@ impl Render for ScrollLayersHtmlPage {
             div()
                 .id("scroller")
                 .absolute()
-                .top(px(40.))
-                .left(px(20.))
-                .w(px(400.))
-                .h(px(400.))
+                .top(px(30.))
+                .left(px(10.))
+                .w(px(200.))
+                .h(px(300.))
                 .bg(rgb(0xf4f1ea))
                 .overflow_y_scroll()
                 .track_scroll(&self.scroll)
@@ -622,7 +622,7 @@ impl Render for ScrollLayersHtmlPage {
 pub const SCROLL_LAYERS_HTML: SceneSpec = SceneSpec {
     id: "web-scroll-layers-html",
     areas: &[],
-    size: (460., 460.),
+    size: (440., 340.),
     scales: &[1.],
     lanes: &[Lane::B],
     golden: false,
@@ -642,7 +642,7 @@ pub const SCROLL_LAYERS_HTML: SceneSpec = SceneSpec {
 pub const SCROLL_LAYERS_ISLAND: SceneSpec = SceneSpec {
     id: "web-scroll-layers-island",
     areas: &[],
-    size: (460., 460.),
+    size: (440., 340.),
     scales: &[1.],
     lanes: &[Lane::B],
     golden: false,

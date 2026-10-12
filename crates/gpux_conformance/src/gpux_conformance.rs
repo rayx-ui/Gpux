@@ -24,7 +24,7 @@ pub mod probe;
 pub mod report;
 pub mod scene;
 pub mod scenes;
-#[cfg(feature = "app-host")]
+#[cfg(all(feature = "app-host", feature = "diagnostics"))]
 pub mod scroll_layers;
 #[cfg(all(feature = "test-host", not(target_family = "wasm")))]
 pub mod test_host;
