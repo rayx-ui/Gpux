@@ -242,17 +242,42 @@ fn gradient_image(side: u32) -> Arc<RenderImage> {
 static SMALL_IMAGE: LazyLock<Arc<RenderImage>> = LazyLock::new(|| gradient_image(16));
 static LARGE_IMAGE: LazyLock<Arc<RenderImage>> = LazyLock::new(|| gradient_image(64));
 
-static BRIGHT_SMALL: [LazyLock<Arc<RenderImage>>; 2] = [
-    LazyLock::new(|| solid_image(16, [255, 240, 0, 255])),
-    LazyLock::new(|| solid_image(16, [0, 255, 255, 255])),
-];
-static BRIGHT_LARGE: [LazyLock<Arc<RenderImage>>; 2] = [
-    LazyLock::new(|| solid_image(64, [255, 255, 255, 255])),
-    LazyLock::new(|| solid_image(64, [255, 0, 255, 255])),
+type Neighbours = &'static [(u32, u32, [u8; 4])];
+
+/// Bright opaque images painted beside the two under test, before them and after them, in
+/// sizes that put them next to the images in the atlas on every side (the allocator packs
+/// images of one height in a row, and rows above and below): (before, after) of each window.
+const CROWDS: [(Neighbours, Neighbours); 4] = [
+    // One flat image before: it can sit above the 16 by 16 source.
+    (&[(16, 8, [0, 255, 0, 255])], &[]),
+    // Wide and tall images after: they can sit below it, and to its right.
+    (
+        &[],
+        &[(48, 16, [255, 128, 0, 255]), (32, 32, [0, 128, 255, 255])],
+    ),
+    // Squares of the sources' sizes on both sides.
+    (
+        &[(16, 16, [255, 240, 0, 255]), (64, 64, [255, 255, 255, 255])],
+        &[(16, 16, [0, 255, 255, 255]), (64, 64, [255, 0, 255, 255])],
+    ),
+    // All of them.
+    (
+        &[
+            (16, 16, [255, 240, 0, 255]),
+            (64, 64, [255, 255, 255, 255]),
+            (16, 8, [0, 255, 0, 255]),
+        ],
+        &[
+            (16, 16, [0, 255, 255, 255]),
+            (64, 64, [255, 0, 255, 255]),
+            (48, 16, [255, 128, 0, 255]),
+            (32, 32, [0, 128, 255, 255]),
+        ],
+    ),
 ];
 
-fn solid_image(side: u32, color: [u8; 4]) -> Arc<RenderImage> {
-    let mut pixels = image::RgbaImage::new(side, side);
+fn solid_image(width: u32, height: u32, color: [u8; 4]) -> Arc<RenderImage> {
+    let mut pixels = image::RgbaImage::new(width, height);
     for pixel in pixels.pixels_mut() {
         *pixel = image::Rgba(color);
     }
@@ -261,11 +286,11 @@ fn solid_image(side: u32, color: [u8; 4]) -> Arc<RenderImage> {
 
 /// Two images, one shown at four times its size and one at a third, each laid out where it
 /// shows or moved there by a transformation of its own (a whole number of device pixels). With
-/// `neighbours`, bright opaque images of the same sizes are painted before them and after them,
-/// elsewhere in the window, so that the atlas holds them beside the two.
+/// `crowd`, the bright opaque images of that entry of [`CROWDS`] are painted before them and
+/// after them, elsewhere in the window, so that the atlas holds them beside the two.
 struct ImageStrip {
     moved: bool,
-    neighbours: bool,
+    crowd: Option<usize>,
 }
 
 impl ImageStrip {
@@ -287,13 +312,25 @@ impl ImageStrip {
         }
     }
 
-    /// A bright image of the neighbours, laid out where it shows.
-    fn bright(&self, x: f32, y: f32, side: f32, image: &Arc<RenderImage>) -> gpux::AnyElement {
+    /// The bright images of `sizes`, laid out in a row from (`x`, `y`) in the window's lower
+    /// part, a fresh image each time.
+    fn bright(&self, x: f32, y: f32, sizes: &[(u32, u32, [u8; 4])]) -> gpux::AnyElement {
+        let mut at = x;
         div()
-            .absolute()
-            .left(px(x))
-            .top(px(y))
-            .child(img(image.clone()).w(px(side)).h(px(side)))
+            .children(sizes.iter().map(|&(width, height, color)| {
+                let element = div()
+                    .absolute()
+                    .left(px(at))
+                    .top(px(y))
+                    .child(
+                        img(solid_image(width, height, color))
+                            .w(px(width as f32))
+                            .h(px(height as f32)),
+                    )
+                    .into_any_element();
+                at += width as f32 + 4.;
+                element
+            }))
             .into_any_element()
     }
 }
@@ -307,9 +344,8 @@ impl Render for ImageStrip {
         div()
             .size_full()
             .bg(rgb(0xffffff))
-            .when(self.neighbours, |root| {
-                root.child(self.bright(110., 70., 16., &BRIGHT_SMALL[0]))
-                    .child(self.bright(20., 100., 64., &BRIGHT_LARGE[0]))
+            .when_some(self.crowd, |root, crowd| {
+                root.child(self.bright(10., 96., CROWDS[crowd].0))
             })
             .child(self.place(
                 small.0,
@@ -321,9 +357,8 @@ impl Render for ImageStrip {
                 large.1,
                 img(LARGE_IMAGE.clone()).w(px(large.2)).h(px(large.2)),
             ))
-            .when(self.neighbours, |root| {
-                root.child(self.bright(140., 70., 16., &BRIGHT_SMALL[1]))
-                    .child(self.bright(100., 100., 64., &BRIGHT_LARGE[1]))
+            .when_some(self.crowd, |root, crowd| {
+                root.child(self.bright(10., 170., CROWDS[crowd].1))
             })
     }
 }
@@ -333,11 +368,11 @@ fn strip_frame(
     cx: &mut TestAppContext,
     scale: f32,
     moved: bool,
-    neighbours: bool,
+    crowd: Option<usize>,
 ) -> image::RgbaImage {
     let handle = cx.add_window_with_options(
-        TestWindowOptions::new(size(px(200.), px(180.))).scale_factor(scale),
-        move |_, _| ImageStrip { moved, neighbours },
+        TestWindowOptions::new(size(px(300.), px(250.))).scale_factor(scale),
+        move |_, _| ImageStrip { moved, crowd },
     );
     let window: AnyWindowHandle = handle.into();
     cx.update_window(window, |_, window, _| {
@@ -392,8 +427,8 @@ fn worst_difference(
 fn translated_images_are_the_images_laid_out_there() {
     for scale in [1., 2.] {
         let mut cx = app();
-        let expected = strip_frame(&mut cx, scale, false, false);
-        let actual = strip_frame(&mut cx, scale, true, false);
+        let expected = strip_frame(&mut cx, scale, false, None);
+        let actual = strip_frame(&mut cx, scale, true, None);
         assert_eq!(actual.dimensions(), expected.dimensions());
         for image in IMAGES {
             // The outer half texel of the source is `side / texels / 2` logical pixels wide
@@ -425,19 +460,21 @@ fn translated_images_are_the_images_laid_out_there() {
 fn a_transformed_image_does_not_depend_on_what_the_atlas_holds_beside_it() {
     for scale in [1., 2.] {
         let mut cx = app();
-        let alone = strip_frame(&mut cx, scale, true, false);
-        let crowded = strip_frame(&mut cx, scale, true, true);
-        assert_eq!(alone.dimensions(), crowded.dimensions());
-        for image in IMAGES {
-            let worst = worst_difference(&crowded, &alone, scale, image, 0.);
-            assert!(
-                worst <= 1,
-                "at {scale}x the image at ({}, {}) of {} moved by a transformation differs by \
-                 {worst} levels with bright images in the atlas beside it",
-                image.0,
-                image.1,
-                image.2
-            );
+        let alone = strip_frame(&mut cx, scale, true, None);
+        for crowd in 0..CROWDS.len() {
+            let crowded = strip_frame(&mut cx, scale, true, Some(crowd));
+            assert_eq!(alone.dimensions(), crowded.dimensions());
+            for image in IMAGES {
+                let worst = worst_difference(&crowded, &alone, scale, image, 0.);
+                assert!(
+                    worst <= 1,
+                    "at {scale}x the image at ({}, {}) of {} moved by a transformation differs \
+                     by {worst} levels with the images of crowd {crowd} in the atlas beside it",
+                    image.0,
+                    image.1,
+                    image.2
+                );
+            }
         }
         cx.quit();
     }
