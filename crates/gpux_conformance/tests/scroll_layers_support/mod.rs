@@ -70,6 +70,11 @@ pub enum Content {
     /// Rows holding a bordered card that clips a line of text and is turned a little: glyphs
     /// painted under a transformation.
     RotatedText,
+    /// Rows of text in a white strip, each line in its place.
+    TextNative,
+    /// The same rows, each line moved to its place by a transformation of its own (a whole
+    /// number of device pixels at scale 1 and 2): the same pixels, through the filter by hand.
+    TextTranslated,
     /// The turned and scaled text rows, every third row holding a scrolling container of its
     /// own with a turned card of text in it.
     NestedRotatedText,
@@ -118,6 +123,8 @@ pub fn row_count(content: Content) -> usize {
         | Content::TransformedBorders
         | Content::RotatedText
         | Content::NestedRotatedText
+        | Content::TextNative
+        | Content::TextTranslated
         | Content::TurnedAndStraightText
         | Content::TranslatedCards
         | Content::RotatedCards => 40,
@@ -332,6 +339,33 @@ impl RowOf {
                         })),
                 )
                 .into_any_element(),
+            Content::TextNative | Content::TextTranslated => {
+                let line = SharedString::from(format!(
+                    "Row {index:02}: jackdaws 😀 love my big sphinx of quartz"
+                ));
+                let text = div()
+                    .text_color(rgb(0x1e2430))
+                    .text_size(px(12.))
+                    .child(line);
+                div()
+                    .h(px(30.))
+                    .px_2()
+                    .bg(if index.is_multiple_of(2) {
+                        rgb(0xffffff)
+                    } else {
+                        rgb(0xeef2f7)
+                    })
+                    .child(match self.content {
+                        Content::TextTranslated => div()
+                            .relative()
+                            .left(px(-3.))
+                            .top(px(-5.))
+                            .child(text.translate(point(px(3.), px(5.))))
+                            .into_any_element(),
+                        _ => div().relative().child(text).into_any_element(),
+                    })
+                    .into_any_element()
+            }
             Content::NestedRotatedText if index % 3 == 1 => div()
                 .py(px(8.))
                 .bg(rgb(0xd5dde6))

@@ -242,9 +242,9 @@ fn local_tile_position(
 // placed the tile and how large the atlas is, so what a turned glyph showed at its edge
 // depended on what else the atlas held, and a window that painted more glyphs than another drew
 // a few of those pixels differently. The four texels around the position, clamped to the tile,
-// are read by index and mixed in floating point, from the position within the tile alone. The
-// sampler's result is chosen last, not returned early: some GL ES drivers drop every fragment
-// of a shader that returns early after sampling a texture.
+// are read by index and mixed in floating point, from the position within the tile alone.
+// Some GL ES drivers drop every fragment of a shader that returns early after sampling a
+// texture, so the loads are in a branch that assigns and the one return is the last statement.
 fn sample_tile(
     tile_position: vec2<f32>,
     local_position: vec2<f32>,
@@ -253,21 +253,24 @@ fn sample_tile(
     transform: TransformationMatrix,
 ) -> vec4<f32> {
     let by_sampler = textureSample(t_sprite, s_sprite, tile_position);
-    let unit_position = (local_position - bounds.origin) / bounds.size;
-    let tile_size = vec2<f32>(tile.bounds.size);
-    let texel = unit_position * tile_size - vec2<f32>(0.5);
-    let floor_texel = floor(texel);
-    let weight = texel - floor_texel;
-    let last = vec2<i32>(tile.bounds.size) - vec2<i32>(1);
-    let first_index = clamp(vec2<i32>(floor_texel), vec2<i32>(0), last);
-    let second_index = clamp(vec2<i32>(floor_texel) + vec2<i32>(1), vec2<i32>(0), last);
-    let origin = vec2<i32>(tile.bounds.origin);
-    let top_left = textureLoad(t_sprite, origin + vec2<i32>(first_index.x, first_index.y), 0);
-    let top_right = textureLoad(t_sprite, origin + vec2<i32>(second_index.x, first_index.y), 0);
-    let bottom_left = textureLoad(t_sprite, origin + vec2<i32>(first_index.x, second_index.y), 0);
-    let bottom_right = textureLoad(t_sprite, origin + vec2<i32>(second_index.x, second_index.y), 0);
-    let by_hand = mix(mix(top_left, top_right, weight.x), mix(bottom_left, bottom_right, weight.x), weight.y);
-    return select(by_hand, by_sampler, transformation_is_unit(transform));
+    var result = by_sampler;
+    if (!transformation_is_unit(transform)) {
+        let unit_position = (local_position - bounds.origin) / bounds.size;
+        let tile_size = vec2<f32>(tile.bounds.size);
+        let texel = unit_position * tile_size - vec2<f32>(0.5);
+        let floor_texel = floor(texel);
+        let weight = texel - floor_texel;
+        let last = vec2<i32>(tile.bounds.size) - vec2<i32>(1);
+        let first_index = clamp(vec2<i32>(floor_texel), vec2<i32>(0), last);
+        let second_index = clamp(vec2<i32>(floor_texel) + vec2<i32>(1), vec2<i32>(0), last);
+        let origin = vec2<i32>(tile.bounds.origin);
+        let top_left = textureLoad(t_sprite, origin + vec2<i32>(first_index.x, first_index.y), 0);
+        let top_right = textureLoad(t_sprite, origin + vec2<i32>(second_index.x, first_index.y), 0);
+        let bottom_left = textureLoad(t_sprite, origin + vec2<i32>(first_index.x, second_index.y), 0);
+        let bottom_right = textureLoad(t_sprite, origin + vec2<i32>(second_index.x, second_index.y), 0);
+        result = mix(mix(top_left, top_right, weight.x), mix(bottom_left, bottom_right, weight.x), weight.y);
+    }
+    return result;
 }
 
 fn to_device_position_transformed(unit_vertex: vec2<f32>, bounds: Bounds, transform: TransformationMatrix) -> vec4<f32> {

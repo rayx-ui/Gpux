@@ -178,3 +178,40 @@ fn text_turned_again_after_a_straight_phase_is_equal_to_the_reference() {
         compare(Content::TurnedAndStraightText, scale, &script);
     }
 }
+
+/// A line of text moved to its place by a transformation of its own, a whole number of device
+/// pixels, is filtered by hand within its tile where the same line laid out there is sampled:
+/// at texel centres the two give the same pixels, to a level (the filter's weights at a texel
+/// centre are zero to the last bits of a float, which a software rasterizer's arithmetic can
+/// turn into one level where the coverage meets a rounding boundary). This pins the filter to
+/// the sampler's picture (its origin, its half texel and its axes), which the layer tests,
+/// comparing two windows that both run it, cannot: a half texel off differs by dozens of levels.
+#[test]
+fn translated_text_is_the_text_drawn_where_it_lands() {
+    for scale in [1., 2.] {
+        let mut cx = app();
+        let native = Run::open(&mut cx, Content::TextNative, scale, false);
+        let translated = Run::open(&mut cx, Content::TextTranslated, scale, false);
+        let (expected, _) = native.frame(&mut cx);
+        let (actual, _) = translated.frame(&mut cx);
+        assert_eq!(actual.dimensions(), expected.dimensions());
+        let worst = actual
+            .pixels()
+            .zip(expected.pixels())
+            .map(|(a, e)| {
+                a.0.iter()
+                    .zip(e.0)
+                    .map(|(a, e)| a.abs_diff(e))
+                    .max()
+                    .unwrap_or(0)
+            })
+            .max()
+            .unwrap_or(0);
+        assert!(
+            worst <= 1,
+            "at {scale}x a line moved by a transformation differs from the line laid out there \
+             by {worst} levels"
+        );
+        cx.quit();
+    }
+}
