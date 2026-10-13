@@ -130,7 +130,6 @@ jobs:
         env:
           GPUX_BASE_URL: http://127.0.0.1:8000/
           GPUX_DIST: ${{ github.workspace }}/target/gpux-web/dist
-        env:
           GREP: ${{ needs.plan.outputs.grep }}
         run: |
           if [ -n "$GREP" ]; then
