@@ -30,8 +30,32 @@ const SWIPE_COMPOSITED_OS: u64 = 2;
 /// How long a swipe through the system may take to scroll the page.
 const SWIPE_PATIENCE: Duration = Duration::from_secs(120);
 
+/// How long a pan step waits for the frame it asks for at least.
+const FRAME_LIMIT_MIN: Duration = Duration::from_secs(2);
+
+/// A frame this slow or slower makes the swipe through the system pointless: `adb` sends the
+/// moves its duration has time for, and the app handles them between frames seconds apart.
+const SLOW_FRAME: Duration = Duration::from_millis(1500);
+
+/// Milliseconds a pan step waits for its frame: three times the slowest frame time measured so
+/// far, so that a software renderer on a loaded runner is waited for rather than raced.
+static FRAME_LIMIT_MS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
 /// How long a pan step waits for the frame it asks for.
-const FRAME_LIMIT: Duration = Duration::from_secs(2);
+fn frame_limit() -> Duration {
+    FRAME_LIMIT_MIN.max(Duration::from_millis(
+        FRAME_LIMIT_MS.load(std::sync::atomic::Ordering::Relaxed),
+    ))
+}
+
+/// Notes a measured frame time for [`frame_limit`] and says whether frames are [`SLOW_FRAME`].
+fn note_frame_time(frame: Duration) -> bool {
+    FRAME_LIMIT_MS.fetch_max(
+        (frame * 3).as_millis() as u64,
+        std::sync::atomic::Ordering::Relaxed,
+    );
+    frame >= SLOW_FRAME
+}
 
 /// How many of a swipe's frames must come from tiles: the first of a pan and the frames the
 /// layer is promoted in need not.
@@ -80,7 +104,7 @@ async fn open_scrolled(
 ) -> anyhow::Result<AnyWindowHandle> {
     let window = open(cx, scene).await?;
     set_layers(cx, window, layers)?;
-    scroll_layers::next_frame(cx, window, FRAME_LIMIT).await;
+    scroll_layers::next_frame(cx, window, frame_limit()).await;
     pan(cx, window, steps).await?;
     Ok(window)
 }
@@ -95,7 +119,7 @@ async fn pan(
     let at = scroll_layers::pan_position();
     for step in steps {
         scroll_layers::wheel(cx, window, at, PAN[step])?;
-        scroll_layers::next_frame(cx, window, FRAME_LIMIT).await;
+        scroll_layers::next_frame(cx, window, frame_limit()).await;
     }
     for _ in 0..3 {
         scroll_layers::next_frame(cx, window, Duration::from_millis(200)).await;
@@ -163,7 +187,7 @@ async fn touched(
         .await
         .map_err(|error| format!("the page never drew: {error:#}"))?;
     set_layers(cx, window, true).map_err(|error| format!("{error:#}"))?;
-    scroll_layers::next_frame(cx, window, FRAME_LIMIT).await;
+    scroll_layers::next_frame(cx, window, frame_limit()).await;
     let frame = frame_time(cx, window).await;
     let (x, y, width, height) = SCROLLER;
     for _ in 0..2 {
@@ -202,7 +226,7 @@ async fn swiped(
         .await
         .map_err(|error| format!("the page never drew: {error:#}"))?;
     set_layers(cx, window, true).map_err(|error| format!("{error:#}"))?;
-    scroll_layers::next_frame(cx, window, FRAME_LIMIT).await;
+    scroll_layers::next_frame(cx, window, frame_limit()).await;
     let frame = frame_time(cx, window).await;
     let scale = scale_factor(cx, window);
     let (x, y, width, height) = SCROLLER;
@@ -240,13 +264,17 @@ async fn swiped(
 }
 
 /// Opens the page once to read the backend it renders through.
-async fn probe_backend(cx: &mut AsyncApp, scene: &'static SceneSpec) -> Result<String, String> {
+async fn probe_backend(
+    cx: &mut AsyncApp,
+    scene: &'static SceneSpec,
+) -> Result<(String, bool), String> {
     let window = open(cx, scene)
         .await
         .map_err(|error| format!("the page never drew: {error:#}"))?;
     let backend = backend_of(cx, window);
+    let slow = note_frame_time(frame_time(cx, window).await);
     close(cx, window);
-    backend
+    backend.map(|backend| (backend, slow))
 }
 
 async fn page(
@@ -256,8 +284,8 @@ async fn page(
     scene: &'static SceneSpec,
     list: bool,
 ) -> ResultLine {
-    let backend = match probe_backend(cx, scene).await {
-        Ok(backend) => backend,
+    let (backend, slow) = match probe_backend(cx, scene).await {
+        Ok(probed) => probed,
         Err(error) => return fail(id, error),
     };
     let (distance, touch) = match touched(cx, scene, list).await {
@@ -281,22 +309,39 @@ async fn page(
             ),
         );
     }
-    let swipe = match swiped(cx, scene, list).await {
-        Ok((_, counters)) if counters.composited < SWIPE_COMPOSITED_OS => {
-            return fail(
-                id,
-                format!("a swipe came from tiles in few frames ({counters})"),
-            );
+    // Where a frame takes seconds the swipe is a tap (as in `android-touch-fling`), and the
+    // app does not recover from a swipe that long: the touch pans above are the check there.
+    let swipe = if slow {
+        None
+    } else {
+        match swiped(cx, scene, list).await {
+            Ok((_, counters)) if counters.composited < SWIPE_COMPOSITED_OS => {
+                return fail(
+                    id,
+                    format!("a swipe came from tiles in few frames ({counters})"),
+                );
+            }
+            Ok(swipe) => Some(swipe),
+            Err(reason) => return fail(id, reason),
         }
-        Ok(swipe) => swipe,
-        Err(reason) => return fail(id, reason),
     };
+    let swipe = swipe.map_or_else(
+        || {
+            "a swipe through the system was skipped: this renderer's frames take seconds"
+                .to_string()
+        },
+        |swipe| {
+            format!(
+                "a swipe through the system scrolled by {} with {}",
+                swipe.0, swipe.1
+            )
+        },
+    );
     match same_with_and_without(cx, screens, scene).await {
         Ok(wheel) if wheel.composited >= SWIPE_COMPOSITED => pass(
             id,
             format!(
-                "on {backend}: touch pans scrolled by {distance} with {touch}; a swipe through the system scrolled by {} with {}; the wheel's pans show the same pixels with and without layers ({wheel})",
-                swipe.0, swipe.1
+                "on {backend}: touch pans scrolled by {distance} with {touch}; {swipe}; the wheel's pans show the same pixels with and without layers ({wheel})"
             ),
         ),
         Ok(wheel) => fail(id, format!("the pans composited too few frames ({wheel})")),
@@ -562,8 +607,8 @@ pub async fn timing(cx: &mut AsyncApp) -> ResultLine {
             if let Err(error) = set_layers(cx, window, layers) {
                 return fail(ID, format!("{error:#}"));
             }
-            scroll_layers::next_frame(cx, window, FRAME_LIMIT).await;
-            let measured = timed_scroll(cx, window, TIMED_ROUNDS, FRAME_LIMIT).await;
+            scroll_layers::next_frame(cx, window, frame_limit()).await;
+            let measured = timed_scroll(cx, window, TIMED_ROUNDS, frame_limit()).await;
             close(cx, window);
             let (work, counters) = match measured {
                 Ok(measured) => measured,

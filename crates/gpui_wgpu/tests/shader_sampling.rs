@@ -49,7 +49,12 @@ fn no_fragment_shader_returns_early_after_sampling() {
         let source = std::fs::read_to_string(dir.join(name)).unwrap();
         for (function, body) in fragment_functions(&source) {
             // `textureSampleLevel` needs no derivatives and is not affected.
-            let Some(sample) = body.find("textureSample(") else {
+            // `sample_tile` is the sprite shaders' way to sample: it holds a `textureSample`.
+            let Some(sample) = ["textureSample(", "sample_tile("]
+                .iter()
+                .filter_map(|call| body.find(call))
+                .min()
+            else {
                 continue;
             };
             checked += 1;

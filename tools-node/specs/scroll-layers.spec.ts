@@ -99,7 +99,9 @@ for (const backend of BACKENDS) {
   test(`scroll-layers: a page with layers looks like the page without them on ${NAMES[backend]} @pr`, async ({
     gpux,
     page,
-  }) => {
+  }, testInfo) => {
+    // A software renderer draws each of the 30 frames of the two pages in seconds.
+    if (SOFTWARE_PROFILES.includes(testInfo.project.name)) test.setTimeout(600_000);
     await gpux.open('web-scroll-layers', { backend, params: { layers: '1' } });
     await gpux.locate('role=status value="div 0 list 0"');
     const withLayers = await scrolled(gpux);
@@ -147,7 +149,9 @@ test.describe('at device pixel ratio 2', () => {
     test(`scroll-layers: a page with layers looks like the page without them at DPR 2 on ${NAMES[backend]} @dpr2`, async ({
       gpux,
       page,
-    }) => {
+    }, testInfo) => {
+    // A software renderer draws each of the 30 frames of the two pages in seconds.
+    if (SOFTWARE_PROFILES.includes(testInfo.project.name)) test.setTimeout(600_000);
       await gpux.open('web-scroll-layers', { backend, params: { layers: '1' } });
       await gpux.locate('role=status value="div 0 list 0"');
       const withLayers = await scrolled(gpux);
