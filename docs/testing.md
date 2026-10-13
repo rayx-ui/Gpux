@@ -350,9 +350,6 @@ line, so the build carries `diagnostics`. The checks run on the GL fallback, whi
 offers by default, and again with `GPUX_ANDROID_SOFTWARE_VULKAN=1`, which lets the host pick the
 emulator's SwiftShader Vulkan (gpux skips it otherwise) and makes each check fail unless its
 window renders through Vulkan.
-Where a frame takes seconds (the hosted CI emulator draws in software at about 5 s a frame) the
-system swipe and the timing check skip, with that reason in their result line: touch pans and wheel
-steps injected into the window carry the check there, and the host gets 45 minutes to finish.
 
 `scroll-layers-android-timing` scrolls each page down and up four times with layers on and off and
 reports the median, 95th percentile and slowest frame work (drawing and presenting a frame, from the
