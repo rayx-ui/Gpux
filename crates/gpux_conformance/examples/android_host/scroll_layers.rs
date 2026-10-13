@@ -8,7 +8,7 @@
 use crate::android::{Screens, request};
 use crate::checks::{
     ACTION_TIMEOUT, SWIPE_FRAMES, capture_state, close, fail, find, frame_time, open, pass,
-    scale_factor, sleep, surface_lost,
+    scale_factor, skip, sleep, surface_lost,
 };
 use gpux::semantic_query::Query;
 use gpux::{AnyWindowHandle, AsyncApp};
@@ -593,6 +593,18 @@ const TIMED_ROUNDS: usize = 4;
 /// frames come from tiles with layers on and none does with them off.
 pub async fn timing(cx: &mut AsyncApp) -> ResultLine {
     const ID: &str = "scroll-layers-android-timing";
+    // Where a frame takes seconds (a software renderer on a loaded runner) the 512 frames of the
+    // four timed scrolls take the better part of an hour and their times say nothing.
+    match probe_backend(cx, &DIV).await {
+        Ok((_, true)) => {
+            return skip(
+                ID,
+                "frames take seconds on this renderer: timing them says nothing and takes an hour",
+            );
+        }
+        Ok(_) => {}
+        Err(error) => return fail(ID, error),
+    }
     let mut report = Vec::new();
     for (name, scene) in [("div", &DIV), ("list", &LIST)] {
         for layers in [true, false] {

@@ -55,6 +55,9 @@ jobs:
   lane-e:
     needs: plan
     if: contains(fromJSON(needs.plan.outputs.jobs), 'lane-e')
+    # The emulator draws in software: a frame takes seconds on a loaded runner and the host runs
+    # for the better part of an hour (RUN_TIMEOUT in tooling/testkit/src/android.rs is 45 minutes).
+    timeout-minutes: 90
     name: lane E (emulator)
     runs-on: ubuntu-24.04
     steps:

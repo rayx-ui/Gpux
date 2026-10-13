@@ -781,7 +781,7 @@ pub fn pick_device(devices_output: &str, serial: Option<&str>) -> Result<String,
 }
 
 /// How long `android run` follows the host before giving up on it.
-pub const RUN_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(20 * 60);
+pub const RUN_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(45 * 60);
 
 /// Installs the host on a device (the first attached one, or `serial`), runs it, carries out
 /// its requests, pulls the frames failing probes saved, and counts its results.
