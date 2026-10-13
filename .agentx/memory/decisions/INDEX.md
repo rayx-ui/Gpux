@@ -4,7 +4,7 @@ agentx:
   scope: decisions
   status: current
   created: 2026-10-05T23:00:00+02:00
-  updated: 2026-10-13T10:00:00+02:00
+  updated: 2026-10-09T17:00:00+02:00
   topics:
     - decisions
     - gpux
@@ -45,10 +45,6 @@ Durable architecture choices for gpux. Current source remains the first evidence
   - [Use Zed GPUI's input model unchanged and delete the gpux pointer layer](gpui/input/2026-10-05-gpui-input-upstream-input-model.md)
   - [Split lightweight frame geometry from shader effects](gpui/frame-effects/2026-07-06-gpui-frame-effects-frame-effects-elements.md)
   - [Use frame-family naming for child-operating lightweight elements](gpui/frame-effects/2026-07-07-gpui-frame-effects-frame-family-naming.md)
-  - [Fast mode: per-window runtime switches, on by default, off is stock gpux](gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-fast-mode-switches.md)
-  - [Hold every fast-mode frame equal to a frame drawn from scratch](gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-fast-mode-oracle.md)
-  - [Scroll layers composite tiles the renderer rasterizes once and never change the pixels](gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-scroll-layers.md)
-  - [Window composition is an opt-in surface tree with a base and an overlay](gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-window-composition.md)
 
 - renderer
   - [WGPU owns first shader-effect support and non-WGPU backends stay capability-false](renderer/wgpu/2026-07-04-renderer-wgpu-shader-effects-backend-capabilities.md)
@@ -56,7 +52,6 @@ Durable architecture choices for gpux. Current source remains the first evidence
   - [Prefer WebGPU and fall back to a full-ABI WebGL2 transport](renderer/wgpu/2026-08-07-renderer-wgpu-browser-backend-fallback.md)
   - [Keep RayX browser rendering WebGPU-only](renderer/wgpu/2026-08-07-renderer-wgpu-webgpu-only-browser-renderer.md) (superseded)
   - [Composite WGPU paint in encoded sRGB, like Figma, CSS and the Metal renderer](renderer/wgpu/2026-09-30-renderer-wgpu-srgb-compositing.md)
-  - [Filter transformed sprites by hand within their tile, shade untransformed primitives from the fragment position](renderer/wgpu/2026-10-13-renderer-wgpu-transformed-sprites-filtered-by-hand.md)
 
 - platform
   - [RayX gpux browser apps are multithreaded by default](platform/web/2026-06-24-platform-web-multithreaded-wasm.md)
@@ -84,4 +79,3 @@ Durable architecture choices for gpux. Current source remains the first evidence
   - [gpux owns its runtime proof; RayX is only a consumer](repository/validation/2026-10-07-repository-validation-gpux-owns-runtime-proof.md)
   - [`gpux-testkit` is the single entry point for every lane](repository/validation/2026-10-07-repository-validation-gpux-testkit.md)
   - [Real-GPU and timing proof run locally in lane G](repository/validation/2026-10-07-repository-validation-local-gpu-lane-g.md)
-  - [Fast mode is proved in its own lanes; timings are lane G's and macOS-only](repository/validation/2026-10-13-repository-validation-fast-mode-proof-and-timing.md)
