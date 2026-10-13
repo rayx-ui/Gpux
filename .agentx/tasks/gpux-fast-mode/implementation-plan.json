@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 56,
+  "revision": 57,
   "title": "gpux fast mode: retained layout and views, splice, scroll layers and window composition from gpui-fast",
   "validationMode": "sprint",
   "repositories": [
@@ -2007,7 +2007,8 @@
         "minimumTests": 10,
         "testCountPattern": "gpux-testkit: (\\d+) passed"
       },
-      "reuse": false
+      "reuse": false,
+      "timeoutSeconds": 2400
     },
     {
       "id": "final-lane-d",

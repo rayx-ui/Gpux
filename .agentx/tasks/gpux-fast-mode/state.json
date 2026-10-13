@@ -1,12 +1,12 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 289,
-  "planRevision": 56,
+  "revision": 297,
+  "planRevision": 57,
   "specHashes": {
     "requirements": "c7ad1ff00a3415e3ef67fca36a4b809eedd0f52b85739550ac5b2f67c34cf080",
     "design": "74a56aad4c81f8065f21a53ac25892dca980f4985029acaf8b381afd4e7678a3",
-    "plan": "da5ca53b482629de88afdf2949126f21bda6cef68a8d6715f612208a00200f5d"
+    "plan": "b8f2dbf1757c88ee71f5afa0fe569fd9c0e9cc8a274b0a02d082b8171b3c879c"
   },
   "tasks": {
     "t01-fast-switches": {
@@ -561,7 +561,25 @@
           "gpux": "ced56f36d3bd2bd4ad1bd1e9c91ce434d3eb31ea382dcf0953d07b49caf1642e"
         }
       },
-      "recordedAt": "2026-10-13T16:23:21Z"
+      "recordedAt": "2026-10-13T16:46:56Z"
+    },
+    "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031": {
+      "snapshot": {
+        "specHash": "c33f9227e08096ab3693a4be619f1207f98c76c9b3e4c37a808aa142e750f656",
+        "repositories": {
+          "gpux": "3da8765cafcb75afe9712b2221e9199816b4263d7d95d060978d2abd1e78a754"
+        }
+      },
+      "recordedAt": "2026-10-13T21:35:02Z"
+    },
+    "d87d97bf4773edd3a7bbd47bea564d8abff2a093924775075d07a10fa0d8cb57": {
+      "snapshot": {
+        "specHash": "b514094707e24ccd5f6ae7c4b71f6fe4ad51196d7d7abf0bb36d5a11908d341c",
+        "repositories": {
+          "gpux": "3da8765cafcb75afe9712b2221e9199816b4263d7d95d060978d2abd1e78a754"
+        }
+      },
+      "recordedAt": "2026-10-13T21:54:12Z"
     }
   },
   "checkResults": {
@@ -2043,6 +2061,1354 @@
       "logPath": "artifacts-temp/agentx/gpux-fast-mode/s13-defaults-docs-comparison-final-9a79e7ee98e8.log",
       "logSha256": "a1cfb46e934d1d4b819d94f70a65abc8abbb7874e79bde86081b98f3c13c6cfe",
       "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-switches/final": {
+      "checkId": "check-switches",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "fa29d5becd58e046a4fba2229b3c449b36de423b61133493ee1af3564409c165",
+      "basisHash": "d4100d769b8fbfad4b00e8012550f90fae6c2794611048a7a1608cf876afb854",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 13,
+      "durationSeconds": 11.4666,
+      "recordedAt": "2026-10-13T19:34:01Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-b225fd948500.log",
+      "logSha256": "cfc4a80345b0c790045d18530eb8c3660243e3f98fd67ab8244da6a4bbf4847e",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-stats/final": {
+      "checkId": "check-stats",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "a64212dd138f63c954853986f031adb81243bcff3da55e141c7ebbef336493ed",
+      "basisHash": "f0547705d70db7d264211a57b214b365038d9a9f55ace6ff1c68901d165e1ea5",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 0.5577,
+      "recordedAt": "2026-10-13T19:34:02Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-0bb403bb43ab.log",
+      "logSha256": "f7d23f39a67a89bff40b1d0b34655aa663a7267eb70975730b039072c8fdb4d5",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-gpux-default-build/final": {
+      "checkId": "check-gpux-default-build",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "4d7521a0238752613b78013c894a1c54bd5ab420e5be1edfd4a5c2241fc12ec7",
+      "basisHash": "018cd08bf54fa3205d5faf3cc4a6543249f0445fac9b6d5d42724814e5f6d479",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.238,
+      "recordedAt": "2026-10-13T19:34:02Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-7da6dd9ac663.log",
+      "logSha256": "732186322402325172940531d8d6d7cfac85dc902585b2bef6715ad6839dacfd",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-oracle/final": {
+      "checkId": "check-oracle",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "842a0a9e6d7a51c90a81b669ca4c523231b1ce385c6edea58850d76e0124897c",
+      "basisHash": "63a730046b3d1d3c82040d2a035dbca669679c50629fdfa263f7b9b635944d9c",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 10.4398,
+      "recordedAt": "2026-10-13T19:34:13Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-b90ca9a1cfc2.log",
+      "logSha256": "bf229a5b93ec0c48dfe4bde5cba88a19cb6d4b1ddbe37619b75fb5a4e023804f",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-parity-a/final": {
+      "checkId": "check-parity-a",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "fa2a6c37c33f236da90188c21241c323bf5546009bfdb63ca19a5b684a5a283e",
+      "basisHash": "621686917937fc8f80fdca71ff7136aaae99622d6c5042253b83e328c722aff9",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 39,
+      "durationSeconds": 0.8287,
+      "recordedAt": "2026-10-13T19:34:14Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-bc1fd3ef543a.log",
+      "logSha256": "5a6d02a53c0c6258bf3de91db83e2752efa9d9de8c4127b977a5518110666e85",
+      "inputsHash": "664c4ce8cce3d75b9cdde460e6d3ea11b4d85fda4e3a74a8bf3621e77fde0960"
+    },
+    "final/check-parity-c/final": {
+      "checkId": "check-parity-c",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "fa4dea1973422fd594fe213244c4ca6aafdb2bf5d4190d944ac3184b1861bcc1",
+      "basisHash": "906c0ded1116c7cb2e5dc404479902b5187dc6c0132244ccf23ae65a166981f0",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 77,
+      "durationSeconds": 4.6271,
+      "recordedAt": "2026-10-13T19:34:18Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-91d907847d25.log",
+      "logSha256": "fc8a16e5e03ff7308c3229dc03b40693e08383d271b36704d3638428957fa8e1",
+      "inputsHash": "065af96de7511dbe89ec4110a462e487093464a181ce88d452855018a98ac1eb"
+    },
+    "final/check-bench-smoke/final": {
+      "checkId": "check-bench-smoke",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "b8f122e189cda4d5bb658e38ae1dd36cd4a818802c8c2b29b55becc8c0f80d23",
+      "basisHash": "2154f0cd111101c6f9b736e23dc4491b663dc87e7b6f53729a76d154073b6980",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 7.9456,
+      "recordedAt": "2026-10-13T19:34:26Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-19afb01fe19b.log",
+      "logSha256": "ea76bbd61c7d7bdea26a2463d8e37abf071d6e6da50d30e2a674b49f56ce8ffe",
+      "inputsHash": "478988419246b8b7734fc1a20f11ef04d4afe9853c30f8e08ceed8cb987cd00e"
+    },
+    "final/check-attribution/final": {
+      "checkId": "check-attribution",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "80c9398e75ebaa48c924a0e73fa456211b2fdfff46be5daecc5ec837f963218b",
+      "basisHash": "12104d2fc898cd1f752408f58f7b32691a6ac85dad7970bfb4e7bae91a40f9cf",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 19,
+      "durationSeconds": 20.3024,
+      "recordedAt": "2026-10-13T19:34:46Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-24dd2083c192.log",
+      "logSha256": "6767e0091f3d5737c71154300b2cec5267815c12680616cfe9580e8c6ec34f07",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-report/final": {
+      "checkId": "check-report",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "8f9ab8ac639dbf354d4edfa3ecb5a02debc068fc759081ff1ad5906b6438d3f1",
+      "basisHash": "ec16ed77c986fccb9ec3f10b4b92e2565c938407083bf059462a5f4f2d877e34",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 8,
+      "durationSeconds": 2.274,
+      "recordedAt": "2026-10-13T19:34:49Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-ebf5877135e1.log",
+      "logSha256": "f81528964ed85ff1d5b6d17ae7adb20b0816642c88408ac90c58571dda59176e",
+      "inputsHash": "4d457795127e2dfa0e26ce08b418bd6acf9b60f88b41402e04c86103ff226ddf"
+    },
+    "final/check-scoped-invalidation/final": {
+      "checkId": "check-scoped-invalidation",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "b136850406646d7c6b9e9f46e87883792f75c2daa04b197224c0cec5ff604722",
+      "basisHash": "0b58e5a21d36f8ad965b33aa5c1176a813b87e20b42964c7e68001b894db62be",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 6,
+      "durationSeconds": 0.9768,
+      "recordedAt": "2026-10-13T19:34:50Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-75d271643721.log",
+      "logSha256": "649f6ec9887837e4ab2d627c2fa9ef4e62ee121f5055d835aa67bed097bad872",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-bounds-grid/final": {
+      "checkId": "check-bounds-grid",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "244e67afa8b06d17bd7f5b4b740b5973fbf4b3f5b728c71f6d1d052ca336b8f2",
+      "basisHash": "f70c416539fa7f2b72e018b69eeb3b7aeb211bd50dc1872a235b0f2eeec57253",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 7,
+      "durationSeconds": 1.4754,
+      "recordedAt": "2026-10-13T19:34:51Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-b72123dfb06c.log",
+      "logSha256": "81a2f679a22aa884154b22d034b27f60fa8d090b8cc74d9972d29b50b842e989",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-draw-order/final": {
+      "checkId": "check-draw-order",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "b6784434dda648628ab1afd5e897acef694437dfe1e57dad82aa170fa964a5d0",
+      "basisHash": "d1707e8a6a70db380bb69acc10a0557b44ffd66c3e7105984aa5b035b393aa91",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 0.7221,
+      "recordedAt": "2026-10-13T19:34:52Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-9eb6e2be7e6d.log",
+      "logSha256": "6dda560be45802bfae77875decfae7b0aa64571c1079dea22fd35be6b7beec63",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-text-path/final": {
+      "checkId": "check-text-path",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "322f9225f9a8ba8a11c4a92977331acc11a76c73199327ed78d6dd9bb06ae94c",
+      "basisHash": "c94b62a44b5f59a774037385f76a7d3e57b190032ddb4bb3532e1c3ca19641e1",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 0.6081,
+      "recordedAt": "2026-10-13T19:34:53Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-4c5a29fcb902.log",
+      "logSha256": "5465f58574ee49efd5d6ce33d13956fee74aa458b587a7671fd54b4fc2df001b",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-layout-keys/final": {
+      "checkId": "check-layout-keys",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "f5e7767de580e5164c56b0c36d2ac11fef3c54ffab13b405eef8fa339ef6de6f",
+      "basisHash": "6c5141fe024bba90516d3b355173721729031a74b95fcfabf8a1ac9991552852",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 9,
+      "durationSeconds": 0.5086,
+      "recordedAt": "2026-10-13T19:34:53Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-1b3ce4d6a5f2.log",
+      "logSha256": "315ec6ed159b213c658edca9bfcf33b60684b60c49a7da8b216a3e4646d455ba",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-write-elision/final": {
+      "checkId": "check-write-elision",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "28d7f105a3fd319591575a03e0e691cf4b2f7b1342f3484d3dbdf02835c99bdc",
+      "basisHash": "535a6b258164f7425911158c81d1e3f6b682b491a6d65681ac9679ca5986d6b9",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 0.2337,
+      "recordedAt": "2026-10-13T19:34:53Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-0bd7a4ee3b47.log",
+      "logSha256": "a0640d140568d24f7f7c27b60add7df07c48509379e2ab5025993dd46de2a308",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-text-carry/final": {
+      "checkId": "check-text-carry",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "bca42d3d0e151cbee0d9d22a05675f103df0537da8d3ebc87f53383ba5ee43a7",
+      "basisHash": "0df4250ffed087c16ce760acf488a8810d3f7520550ada0e398dcce65ce41f93",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 12,
+      "durationSeconds": 0.2871,
+      "recordedAt": "2026-10-13T19:34:54Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-42841aa20819.log",
+      "logSha256": "f7802f2d2f18a74b59442a6cdd3049c854b4eac93834fc27ab003fb940dc291c",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-oracle-layout/final": {
+      "checkId": "check-oracle-layout",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "1c359dc2ed7c4c3fe66a8dacce2434b6f07cd41263bfcd335c316511acd7e1a7",
+      "basisHash": "c4e66ee87ac3fef0d818c528150729072b651e8375abb904fa1975386e782e6b",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 10.1177,
+      "recordedAt": "2026-10-13T19:35:04Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-dc0b28727596.log",
+      "logSha256": "92932762b4562ce34ce3c435904440a5cb97cdbb8a7feda3297e68972ef4b03d",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-dependencies/final": {
+      "checkId": "check-dependencies",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "72c4e5bead8233d79bd231daa73739bf10f2bd92b19d492faf1ec9e384f71937",
+      "basisHash": "372250d55bcd72b0a448e97e1c4fc4d58683f3af4d0daad36c3301742b554b70",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 14,
+      "durationSeconds": 0.2367,
+      "recordedAt": "2026-10-13T19:35:04Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-ab3d9e159c13.log",
+      "logSha256": "29218347a79d8b68bf4aae06b0d4bce04d24801c151f0aa1dc79a5b247248acc",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-dependency-nesting/final": {
+      "checkId": "check-dependency-nesting",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "8de48771fc9d7ad2fbf78f740c8435c9df2ce895b856515e29fb6e40bb896a8c",
+      "basisHash": "ff43a3ad0e096e038f790b42906075376a1311693446ed58c8add7493aba0b56",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 0.2866,
+      "recordedAt": "2026-10-13T19:35:04Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-53ca97f84236.log",
+      "logSha256": "ef576c13dfbdbd5d990463fcfa6d94af0f72ba930c701c6bdecdb9a7deb59c7f",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-retained-records/final": {
+      "checkId": "check-retained-records",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "ef66e885585e34e28bb9f0d3dc07ff6dee714fa5c7e990d72e3c422082f67c19",
+      "basisHash": "117999afc73117dde7c66deda3c1d4b1886cc151280d7035b617c204c6bb9798",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 16,
+      "durationSeconds": 0.2938,
+      "recordedAt": "2026-10-13T19:35:05Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-3f8e564e8d1f.log",
+      "logSha256": "a8a706613bf97726a7911e4eb6fe9779e9f02e7d59b1fa8b6e6e73aed3954f5d",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-reuse-paths/final": {
+      "checkId": "check-reuse-paths",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "9ded5536fc4456af6eb17e02393914d31504bc1dad14cd9c93d86d07feb51832",
+      "basisHash": "eaa7c3ae9ab0a040e33fce630c543785cd9b00b574e8904fd6fee798615a5569",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 8,
+      "durationSeconds": 0.2884,
+      "recordedAt": "2026-10-13T19:35:05Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-d23e987b8cea.log",
+      "logSha256": "e240ff2cf7a737c2c7baef5f8bbbb82a92c81f2032b3c43141a3319b890247e8",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-view-invalidation/final": {
+      "checkId": "check-view-invalidation",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "b6686c15f3976c1ff14d5696141a53533a75da3c57ddc16c9ed52a324caa65af",
+      "basisHash": "e79db57119fa3ac040b0ab7e70a449c6c4f1594a38388c6875897c22f982b2b6",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 17,
+      "durationSeconds": 0.2921,
+      "recordedAt": "2026-10-13T19:35:05Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-054df4861253.log",
+      "logSha256": "7c321263791fed6e447e64f838c5563078b5a4a5492f948ee87746288457becb",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-verify-mode/final": {
+      "checkId": "check-verify-mode",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "67c65c83e35c42fd53f21c8604ece45c0f68558a99f7b40d8f4e9b6f67bc78a6",
+      "basisHash": "7c69f5e29be6ba27b2ef3b21f4b65f95385a7202bfd1b28fcc413c8956b04f64",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 0.3393,
+      "recordedAt": "2026-10-13T19:35:06Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-b0c87782e61c.log",
+      "logSha256": "08d0eb3a53263a9685f498f665ae7d215d2f9a29b6a3fd0c14fc2bf3ee40764f",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-oracle-views/final": {
+      "checkId": "check-oracle-views",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "f9a918b5deddffa905e9e237a0db748afd6ff27c3638cbfa326a7c0c7c3135e1",
+      "basisHash": "c03873391f2a142aeaa0560874aaa77d59ca386b3c97cdc19532acaee7427d5d",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 10.3956,
+      "recordedAt": "2026-10-13T19:35:16Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-2cef5641d446.log",
+      "logSha256": "33fd27655ef34ddd22fd236e654c5acc64af74ca6d3628fbe79f2a321e4e8fcc",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-splice/final": {
+      "checkId": "check-splice",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "7359b89c8ebac14074c587a3b89383cf099cd39e3d3d7b156cc690bd2ed47a34",
+      "basisHash": "d7266edb4e32b37eba20e5f82905ce4945581408869d95d3889dd39ca3040ed3",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 8,
+      "durationSeconds": 0.7231,
+      "recordedAt": "2026-10-13T19:35:17Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-ee60880860f9.log",
+      "logSha256": "5c5334741020aba1e3e3d3a85b9d10d2d1075bd3a22f27bf78866eb5e5cd489d",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-own-dirty/final": {
+      "checkId": "check-own-dirty",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "2399a8fc42e331667d6c1bd53de6098300a46fd19207220aa3a4b46af0d7c6ea",
+      "basisHash": "5bb3a59e70e961fe5393545f18187166c4a1fdf937193a64d3e97fbb824cf676",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 0.2364,
+      "recordedAt": "2026-10-13T19:35:17Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-650c6b867bb0.log",
+      "logSha256": "74e5880d2f728a579efd443cfae7b2df8850174f1e81a7a84a9ad34eb1ee816a",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-oracle-splice/final": {
+      "checkId": "check-oracle-splice",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "882e7a5bc729b09d37ac17e960de37b39e816cc5061a4eb1a6b706fd0a5b0af8",
+      "basisHash": "936142d12f1113d66e84a48104f7cd8308a187931a470dd8a1fe907eca489dab",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 10.4698,
+      "recordedAt": "2026-10-13T19:35:27Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-3021ee578f50.log",
+      "logSha256": "1fcc32214880ae15cb29ac19136d1bbdc21d84dbdccc8b2565f627cfab5417d5",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-composition-core/final": {
+      "checkId": "check-composition-core",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "d9a4a54361afff4cf2ec7df958fec4cecc78b66dea8c88a45f37a8cfe92a0231",
+      "basisHash": "f080ffd551ec59b5f89cdf6f54dd20ab92913ed09be72c5af5d4db6e1c0f7527",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 12,
+      "durationSeconds": 0.2927,
+      "recordedAt": "2026-10-13T19:35:28Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-678b7db54b7d.log",
+      "logSha256": "8afdd7d301682865e470dcfbf52bd87554cb32e1d78bca8093105449e21a6e6e",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-composition-overlay/final": {
+      "checkId": "check-composition-overlay",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "0cc4d80db92f708b8c5a9a7527a945a09686c37e5ce34a9838a0816f1fe30461",
+      "basisHash": "f935f3fbc3f3a384d588e573b00c28d18f993331bdc87cc9c39c19c1a1c1397c",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 0.2327,
+      "recordedAt": "2026-10-13T19:35:28Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-c2111db39e77.log",
+      "logSha256": "03828b90eae0ea954cc298a3d052e0c1ab762cd6ec52fd3844fe9b654faac8bb",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-composition-macos/final": {
+      "checkId": "check-composition-macos",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "d87d97bf4773edd3a7bbd47bea564d8abff2a093924775075d07a10fa0d8cb57",
+      "definitionHash": "e26c6bf3d7b646e1f32e2a4267fd5c408e6e6f5e182422022a6d584b2fe32bb5",
+      "basisHash": "28af6c68db42065c4b0450aab31ae5e4339ab51f99e3fb539f4ffcafb58e1657",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 2.7094,
+      "recordedAt": "2026-10-13T21:35:41Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-022e063de664.log",
+      "logSha256": "b757b1b04ba262eea316d57f4516fb766c98c54c1886e53c39e13be6d2790799",
+      "inputsHash": "1292b0a83dd69d30b7d9ee8a9a611b2dc8c78b059bbd147de090e9361b9ea80b"
+    },
+    "final/check-composition-wayland/final": {
+      "checkId": "check-composition-wayland",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "d87d97bf4773edd3a7bbd47bea564d8abff2a093924775075d07a10fa0d8cb57",
+      "definitionHash": "e93c5d3d747a1c334b584110e3ca077b74374cf50605869f6f64db9e3ba4aab2",
+      "basisHash": "687b0cf07938d7da8ad827ba4f871324cb866fb913ff040a777bc107f3f386c1",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 5.2344,
+      "recordedAt": "2026-10-13T21:35:46Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-1c6b7f69cdae.log",
+      "logSha256": "bb12cd216e3d33012362cd0c59b0c0fc88e9ef6f8ff6f6bfbb71daac5fd3ce2b",
+      "inputsHash": "1292b0a83dd69d30b7d9ee8a9a611b2dc8c78b059bbd147de090e9361b9ea80b"
+    },
+    "final/check-composition-x11/final": {
+      "checkId": "check-composition-x11",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "d87d97bf4773edd3a7bbd47bea564d8abff2a093924775075d07a10fa0d8cb57",
+      "definitionHash": "351f31a2655bbde949ad039c45b623895a06f9ae4dd5ca4d8f0b23f597a3075b",
+      "basisHash": "00476023b4777241b3b73cea8bc61db2d50e51c9619a901e2e3bbbe8a458e0fd",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 3.5398,
+      "recordedAt": "2026-10-13T21:35:49Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-ae3115b484f5.log",
+      "logSha256": "2a6d77cb52eab302952e1dca7a779c8b9a8344dd5c9aa370192a6df0f79bef15",
+      "inputsHash": "1292b0a83dd69d30b7d9ee8a9a611b2dc8c78b059bbd147de090e9361b9ea80b"
+    },
+    "final/check-composition-windows/final": {
+      "checkId": "check-composition-windows",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "d87d97bf4773edd3a7bbd47bea564d8abff2a093924775075d07a10fa0d8cb57",
+      "definitionHash": "2f79fd659b663873635e943a28f54692c055e316b0f993d70a5375a193658d42",
+      "basisHash": "6d8902f7d6dff7267d00281af481737038ddafc4f9011109847fb1c71c626f25",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 4.2081,
+      "recordedAt": "2026-10-13T21:35:54Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-72870a513d87.log",
+      "logSha256": "c9eeaae57a7b92fbf813dcd9581f82b920c4bf7ebefd60d2171b696dd087f41a",
+      "inputsHash": "1292b0a83dd69d30b7d9ee8a9a611b2dc8c78b059bbd147de090e9361b9ea80b"
+    },
+    "final/check-composition-web/final": {
+      "checkId": "check-composition-web",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "d87d97bf4773edd3a7bbd47bea564d8abff2a093924775075d07a10fa0d8cb57",
+      "definitionHash": "83ef5c638e8ab1e18b784659d773b6f77cf8a317b86419e8b645b8205539bfc3",
+      "basisHash": "cbb6f86e050512fa1acd8afc1bef38fc8922e5a68a249725c28f9a4dc2cfc801",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 5.7619,
+      "recordedAt": "2026-10-13T21:35:59Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-29c3978b27f6.log",
+      "logSha256": "fcc41a71780ae896fce27f4c6f65e44777e0e1d0749f7a8f5bb5ae9a4b2fb2b7",
+      "inputsHash": "1292b0a83dd69d30b7d9ee8a9a611b2dc8c78b059bbd147de090e9361b9ea80b"
+    },
+    "final/check-layer-policy/final": {
+      "checkId": "check-layer-policy",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "d18bc8e74ff7c1a042d75df5ec7f05afaa6660033dc6986a07508e11af7a0832",
+      "basisHash": "998b4a0fc0f30168ee903069a758ea8e6eb577620a2cc5e7864ae67f150bdd12",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 18,
+      "durationSeconds": 1.0979,
+      "recordedAt": "2026-10-13T19:35:54Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-05a9908ea6b3.log",
+      "logSha256": "f651181847e257adcc935320810167d845d9822d366dc6df127356dd2796d566",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-layer-carry/final": {
+      "checkId": "check-layer-carry",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "abbff03d919c6fdcca9068ad795cb937aff36916681e1473afafea9af90d0cfb",
+      "basisHash": "dd2321898dfd6bf5bc17ed24ad7df16265eb455393c73ef260cb6f3af49fd450",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 41,
+      "durationSeconds": 0.3432,
+      "recordedAt": "2026-10-13T19:35:54Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-3f143a4c0175.log",
+      "logSha256": "9edbf4561fe37294ac356ae5d9eafc64136287b8578a905662575969862913df",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-layer-inputs/final": {
+      "checkId": "check-layer-inputs",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "e161374729a4a41732bf3d86a82e7518322fdbf8491761276f1cd24f3ec70985",
+      "basisHash": "816f1669906918efa703194aa201bf8d763dab416a023bedfaaa11f6d52e4cdc",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 63,
+      "durationSeconds": 0.4503,
+      "recordedAt": "2026-10-13T19:35:54Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-815a36854d4e.log",
+      "logSha256": "4c9ab069f9e08b05bdcd4602ca360c228756d2a111bade69cfec2910381f55e2",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-oracle-layers/final": {
+      "checkId": "check-oracle-layers",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "8d28fb7627a2f1da1f21c9ef8d1837cf3f7df039b51613083b926b5dee7b148f",
+      "basisHash": "cd01d49cf7ccde99da47a291ea0f4fd4a970d9100968f838953fd194dcbebfb6",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 34.6343,
+      "recordedAt": "2026-10-13T19:36:29Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-e2f853350454.log",
+      "logSha256": "84a04c41e2d20b993f902df5c17535fcfbac5e68e8090f38ef8f5419c7b6fdae",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-wgpu-tiles/final": {
+      "checkId": "check-wgpu-tiles",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "7d4fde35acc116b6f947497d82543f8ed42924a60dfe4bccfb5a0019680f3c7e",
+      "basisHash": "8ff7eeb92a417602d2a0a238039186f452f4ca26e80c9797d5423199c07a73f9",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 13,
+      "durationSeconds": 0.8785,
+      "recordedAt": "2026-10-13T19:36:30Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-e400a9a18b11.log",
+      "logSha256": "529473db5205e101396a59ae0deaa79297aa7f8c17f2e663e8284446c25f1281",
+      "inputsHash": "708799e29d7e85aba9a2305431e91cc8d176707774d4dd41010483be9471869e"
+    },
+    "final/check-layers-lane-c/final": {
+      "checkId": "check-layers-lane-c",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "4dc40b77728454e23b06f8192691c7cf46fb2288f5425f7d8cdaeedaf545373e",
+      "basisHash": "ca942f222b1ee0f51a215192da0fed43b60f202f22ee401b59ee51c0c44a3c19",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 18,
+      "durationSeconds": 44.8645,
+      "recordedAt": "2026-10-13T19:37:15Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-9dcac01c82ba.log",
+      "logSha256": "5f2cd358b3b7bb7c7d07507cc5cb7b6552117f029cda5f5332ac206a1897e56a",
+      "inputsHash": "065af96de7511dbe89ec4110a462e487093464a181ce88d452855018a98ac1eb"
+    },
+    "final/check-wgpu-abi-lane-b/final": {
+      "checkId": "check-wgpu-abi-lane-b",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "d87d97bf4773edd3a7bbd47bea564d8abff2a093924775075d07a10fa0d8cb57",
+      "definitionHash": "ae1bf01e51c87c72751edcec71aa056bb86a05d380d7848aaf091b027edd949e",
+      "basisHash": "cc0f36643d0f84feabc9751444a6bf5b9bb8dbb771f4d4f1c3cc8884658a87da",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 45,
+      "durationSeconds": 10.8098,
+      "recordedAt": "2026-10-13T21:36:10Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-f69c072b5240.log",
+      "logSha256": "f7c8fa4d71211bbcdc13f036f9cc3715a5dd4181a5cd59bdbbea5723596a3925",
+      "inputsHash": "1292b0a83dd69d30b7d9ee8a9a611b2dc8c78b059bbd147de090e9361b9ea80b"
+    },
+    "final/check-metal-tiles/final": {
+      "checkId": "check-metal-tiles",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "cf62fa873dfd713772e33d37beb043e16504ea6300a4dc5379f46a2403edc292",
+      "basisHash": "4b600279f59117435fb5e1a0afdc47b95274f1656c4d2d5f2741ebcb0338c72c",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 12,
+      "durationSeconds": 0.9355,
+      "recordedAt": "2026-10-13T19:37:28Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-a7b1ae1f8614.log",
+      "logSha256": "747ed68f0294e429234baf7500aecea43c7d09bf4664b93ae29264a26de38e99",
+      "inputsHash": "3d920450f4fd37ecf397e838e1f2cafba4bdeafe007a122a54902d9961a5af68"
+    },
+    "final/check-list-layers/final": {
+      "checkId": "check-list-layers",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "72db22c6f28b7d6fdf6d3f19acd26d2398d189ff8a75caed4616a43ccaaf12f8",
+      "basisHash": "bf113e8d0f4a2c8701052fcbc5d3f5320594f55b710e6994b078f8ed356c6a35",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 64,
+      "durationSeconds": 34.052,
+      "recordedAt": "2026-10-13T19:38:02Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-1afe00d4ba3a.log",
+      "logSha256": "9655e3a9f8dd32d2c6e8222aec41b6154969556b814c75a96408b6a0b0bbb7b4",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-defaults/final": {
+      "checkId": "check-defaults",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "c088cc3269833d9aa3042ffe66b8bee6e752a6d4ff056a802654de900efa512d",
+      "basisHash": "7750a818578a4f77e0c6164c27c0a40dc307530f704f504f75d8a12325cb1a28",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 7,
+      "durationSeconds": 0.236,
+      "recordedAt": "2026-10-13T19:38:02Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-83dcec822708.log",
+      "logSha256": "9273e0c857475ba47b24721aa505c050c8628e5853479cd110f1c47c5758b9c8",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-composition-ios/final": {
+      "checkId": "check-composition-ios",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "d87d97bf4773edd3a7bbd47bea564d8abff2a093924775075d07a10fa0d8cb57",
+      "definitionHash": "1d36f9299e2d374c6caaa99643202887d428683d18574e4b87dc55ca3a88575f",
+      "basisHash": "16b12c5109aff0fa041d9d7430afe4c0d22309cf5f692f89a52a1805e43c2d0a",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 5.2059,
+      "recordedAt": "2026-10-13T21:36:15Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-7891222498a8.log",
+      "logSha256": "9f0117f99ea9653c9665d3500b04236fed0814b4a84ff70e91523bb0b2fbb625",
+      "inputsHash": "1292b0a83dd69d30b7d9ee8a9a611b2dc8c78b059bbd147de090e9361b9ea80b"
+    },
+    "final/check-android-java-build/final": {
+      "checkId": "check-android-java-build",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "ea25cda55bfd436544570d4771198a87d2d764955f87b219153e397e2c00dc52",
+      "basisHash": "6fc07d25c9b121e7e8c4adc487e7f6abc858476e28ac09911a0579fe431f247a",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 1.5756,
+      "recordedAt": "2026-10-13T19:38:14Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-d4c1f33bb119.log",
+      "logSha256": "17dce0e34347eb29562bd83790b494c83f09d8c6f7a253db0d0b47d1eb8246b0",
+      "inputsHash": "0e139fc429389f679b0728594bd4166626013ef3811f72793aa2bbb5c20946dc"
+    },
+    "final/check-composition-android/final": {
+      "checkId": "check-composition-android",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "d87d97bf4773edd3a7bbd47bea564d8abff2a093924775075d07a10fa0d8cb57",
+      "definitionHash": "f6b803e7065124455305fcabfe410b27c06699089217e91c7a8a70ef2fb34552",
+      "basisHash": "b1fb8c7bd9fecb5a48b302e54a771270a688db71a759ffca329cb9cd8b47c821",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 13.6183,
+      "recordedAt": "2026-10-13T21:36:29Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-22323fcd43d8.log",
+      "logSha256": "d09d86e4b966742438d7c652a00934724904824768d7dd1e096fb3facb2c3e0f",
+      "inputsHash": "1292b0a83dd69d30b7d9ee8a9a611b2dc8c78b059bbd147de090e9361b9ea80b"
+    },
+    "final/check-platform-views-e/final": {
+      "checkId": "check-platform-views-e",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "d87d97bf4773edd3a7bbd47bea564d8abff2a093924775075d07a10fa0d8cb57",
+      "definitionHash": "194a0e8ead0b4a5b23b120f97792953d4d4098e29b97d17c903bda924b85f780",
+      "basisHash": "c1d7b200811d2ebc73925258abcc59d8713ef8a892c8f006985ae866f2b537c9",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 6.1183,
+      "recordedAt": "2026-10-13T21:36:35Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-a82e22fd5fa4.log",
+      "logSha256": "fd58648c0072cdb147babb04cc20dfea2b85524e17f5156915df21dd89b8f3c6",
+      "inputsHash": "1292b0a83dd69d30b7d9ee8a9a611b2dc8c78b059bbd147de090e9361b9ea80b"
+    },
+    "final/check-platform-views-f/final": {
+      "checkId": "check-platform-views-f",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "d87d97bf4773edd3a7bbd47bea564d8abff2a093924775075d07a10fa0d8cb57",
+      "definitionHash": "626d58c9330458a84ebd721af479846da5eae3ca8b52b7c5e4ab66a281ebd5fc",
+      "basisHash": "8f73b0a89384d3103b4f6a96bb9f202cd0b970429e5cf98b2d3d8951a48c9035",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 3.5873,
+      "recordedAt": "2026-10-13T21:36:39Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-36f2ae611c02.log",
+      "logSha256": "e542cbdba5ddae0b202ed82142f3c8347bde4e212938f80e252c239c29b52c57",
+      "inputsHash": "1292b0a83dd69d30b7d9ee8a9a611b2dc8c78b059bbd147de090e9361b9ea80b"
+    },
+    "final/check-layer-touch/final": {
+      "checkId": "check-layer-touch",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "e4ebdf4021eb25893c292503050d9dbad789f7b1d11f03e077c75b419139e6df",
+      "basisHash": "015e9dbf14a38845abd9ab2316046212e52359e1cf9e79f8f6342b7bf451cb50",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 0.7199,
+      "recordedAt": "2026-10-13T19:38:44Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-9927e9fe2025.log",
+      "logSha256": "9705bc8a6d2b709ecea72b3a4041e27b35e8043acc7e39cb52f3eacc10f481f7",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-layers-web/final": {
+      "checkId": "check-layers-web",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "d87d97bf4773edd3a7bbd47bea564d8abff2a093924775075d07a10fa0d8cb57",
+      "definitionHash": "939fd52535b1beaa6b45fa11b7ba5d996f97cfb1c68bf99a792ab409a1293bda",
+      "basisHash": "bc49081abad2a6561da8c18a5e4bc294a11153dfe5094d0882d78891a128efa1",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 10,
+      "durationSeconds": 9.2569,
+      "recordedAt": "2026-10-13T21:36:48Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-66bb44ba85ae.log",
+      "logSha256": "d3d07ab0c69042fae09f4e1dbbe7e858056938072241393489f748120d0d944b",
+      "inputsHash": "1292b0a83dd69d30b7d9ee8a9a611b2dc8c78b059bbd147de090e9361b9ea80b"
+    },
+    "final/check-layers-android/final": {
+      "checkId": "check-layers-android",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "d87d97bf4773edd3a7bbd47bea564d8abff2a093924775075d07a10fa0d8cb57",
+      "definitionHash": "1afcd5667c64dd47c934ba62a152aeac2c6a98fd41f3f068b46529f0dae610d5",
+      "basisHash": "958cb30adf6871acd3bc7def90cafba1bdec610386683758f5a9ca2962ca8f20",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 49.9973,
+      "recordedAt": "2026-10-13T21:37:38Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-f1549117512c.log",
+      "logSha256": "db47cffe8757f461535317ff1662509d8130c7844bdd04c3fecc8c0591d2be4f",
+      "inputsHash": "1292b0a83dd69d30b7d9ee8a9a611b2dc8c78b059bbd147de090e9361b9ea80b"
+    },
+    "final/check-layers-android-vulkan/final": {
+      "checkId": "check-layers-android-vulkan",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "d87d97bf4773edd3a7bbd47bea564d8abff2a093924775075d07a10fa0d8cb57",
+      "definitionHash": "16bad849a0c924c7b84259c7263d24a26f7a74b1059fa6f2514c4b01420c4301",
+      "basisHash": "2e728ac6e1abee9f0894d3ecce40c478f24ab590a84cffb0d1917875d3c33061",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 33.0652,
+      "recordedAt": "2026-10-13T21:38:11Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-b8f81b912c2d.log",
+      "logSha256": "a4eec1ef4245443a039095711f83f7c08e2a552df37a921ce39f4ccf2d921636",
+      "inputsHash": "1292b0a83dd69d30b7d9ee8a9a611b2dc8c78b059bbd147de090e9361b9ea80b"
+    },
+    "final/check-layers-ios/final": {
+      "checkId": "check-layers-ios",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "d87d97bf4773edd3a7bbd47bea564d8abff2a093924775075d07a10fa0d8cb57",
+      "definitionHash": "6bfa98a4c85eb988f5925a9da08ba717ea5df007b667bac64580ff479fb5da18",
+      "basisHash": "caf26e2d2f8cb6f455eb2f7bed59b74af9d4d7d170b694a283fdcdbf54e3c73e",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 32.1025,
+      "recordedAt": "2026-10-13T21:38:43Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-70e1a92f2846.log",
+      "logSha256": "cbd1a9cffdb050b2ef44a80317c7a76541a1dffe6a21ee7313f88448e7410e32",
+      "inputsHash": "1292b0a83dd69d30b7d9ee8a9a611b2dc8c78b059bbd147de090e9361b9ea80b"
+    },
+    "final/check-hover-dependencies/final": {
+      "checkId": "check-hover-dependencies",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "2601bc00ca31c200fb917400337af656f52edb1672b08d48a07d38c64e48c248",
+      "basisHash": "d7b297b86a128c1720555f173dac94c0b1a102d5d728eeccc614491397cd4e28",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 7,
+      "durationSeconds": 0.7566,
+      "recordedAt": "2026-10-13T19:40:50Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-3dc0ae71facc.log",
+      "logSha256": "139b18f38b49d8caf078702708d853c07f447790759b48b52c495291540a0fc0",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-hover-read-scope/final": {
+      "checkId": "check-hover-read-scope",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "7719c1fe9521876935ffab12e41049ad22c5acc62796650f3792b5bf227fb913",
+      "basisHash": "4a8756d0e7c83b1aa79e6d79f09004cd53f6b7e9c4a7e4244794f23b069b6c07",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 0.3025,
+      "recordedAt": "2026-10-13T19:40:51Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-2f154fc56692.log",
+      "logSha256": "194a8abfbaf8eec9a8eebc86579a557df79a9785b4fd691881b9c6a50018ad37",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-android-embedded-build/final": {
+      "checkId": "check-android-embedded-build",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "25365fb6c3aa081693189cef87a1d0db497cfe2c86e2cdf6651908f74aec28b4",
+      "basisHash": "492a01fc91cfca71d2a63b2f15dc6851e0ca6d2036e939a7c8a509aaf3e05603",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.3486,
+      "recordedAt": "2026-10-13T19:40:51Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-e0da5f080d95.log",
+      "logSha256": "9d892c5778d0c975f64a671e66ea5a753502353da3addd1dfdf3825225e406a2",
+      "inputsHash": "7055c02480e3ed438c6832a5b1c430096e885e036077a90d3cb84b2ed9fc0117"
+    },
+    "final/check-layer-renderers/final": {
+      "checkId": "check-layer-renderers",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "97d64235371580725dcf405e43980af06ba799fbc0ca8d91560996479e7a5d2e",
+      "basisHash": "173728abcf8e57aa553ed6e2d1893a98f687341e8a99172d708f7cc6a8e82c86",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 0.3027,
+      "recordedAt": "2026-10-13T19:40:51Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-53e85526cf81.log",
+      "logSha256": "48c6f48a65224bde85d6ce6088c3ac157c1f6b78a267fd7ceb200ab25b5ba44b",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-layer-extent/final": {
+      "checkId": "check-layer-extent",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "b4ea3477f3a0729eec26d06b442acde57e3f124eb178ea610acd4c5dc20e30df",
+      "basisHash": "767fe4f2fa5712c3880edff734e30bd25942604a5d15ad38f13f97ec57053a7a",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 0.5337,
+      "recordedAt": "2026-10-13T19:40:52Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-d25f88c05836.log",
+      "logSha256": "3b7b4f8934b75c2c4e155f2168348ca168850a5b24125d974e569f4070ba75fd",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-edge-shadows/final": {
+      "checkId": "check-edge-shadows",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "6821a228ad2bb4aee5c66bb2d14fbaeb0c0408a1150d1730565e3a1837aa444f",
+      "basisHash": "4e9b6c421cb0389241fcf21bd6a9f33ff219483bac57d36088367e0ef5c2be2c",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 35,
+      "durationSeconds": 11.3289,
+      "recordedAt": "2026-10-13T19:41:03Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-c019ddd109b6.log",
+      "logSha256": "30abfd45bd8958378ce3d5e854caf9523927a15972ba13bdc51ea75bd26865ad",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-layer-scales/final": {
+      "checkId": "check-layer-scales",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "38d405da25a7635c976c152a90a4837738decc3206b4ea07b6300a660f98edc7",
+      "basisHash": "bb8b204739bb1568fa35e2eb77d491abc1e799928fae8f1714edd4b4a1b7f8e2",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 12,
+      "durationSeconds": 150.2945,
+      "recordedAt": "2026-10-13T19:43:33Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-a8b01f7c6b9b.log",
+      "logSha256": "9ffc6a1d8b8754ce2161cae43d1fcb1d8ccd05f6078795b1718aad813e754ec1",
+      "inputsHash": "065af96de7511dbe89ec4110a462e487093464a181ce88d452855018a98ac1eb"
+    },
+    "final/check-list-hover-lane-c/final": {
+      "checkId": "check-list-hover-lane-c",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "2eb53f549c2627025b8f8dd8c876cfb86b30366e10d062a15dab8c5166033d78",
+      "basisHash": "033c241185d566404df396df1eff194a0ad4cee1a4d27a827e54e87fa35eec83",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 27.0725,
+      "recordedAt": "2026-10-13T19:44:00Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-3068e34c833f.log",
+      "logSha256": "eaa58ea1a21811d92975796c767fd93425b399557e020d5b88325bee87de9c16",
+      "inputsHash": "065af96de7511dbe89ec4110a462e487093464a181ce88d452855018a98ac1eb"
+    },
+    "final/check-list-hover/final": {
+      "checkId": "check-list-hover",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "0b60fb5b570167f8e3006aec6959ab249c6f9b141f5e232e85f641a350d98dab",
+      "basisHash": "ef3ca892cbd86b9a57264796a1cdee22b41145d08f9f4c25e83a5e0cd823b9b8",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 1.4939,
+      "recordedAt": "2026-10-13T19:44:02Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-1cb392989beb.log",
+      "logSha256": "bc535b37b19bb3916dd684e06c4e5a1925bbdd4af06375766d3fc119025ff23c",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-border-clips/final": {
+      "checkId": "check-border-clips",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "7d1bf072eaf07441b9eece50d42592f78600ff740faca84834b7909acf78211d",
+      "basisHash": "0b7451d27e760384261ceb8ffe8a0da6913b80fdeb9a43d290e550b0ae647282",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 8,
+      "durationSeconds": 2.2412,
+      "recordedAt": "2026-10-13T19:44:04Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-a99cc1d448c5.log",
+      "logSha256": "bce680efe52caa5f2ab3a54ee1f15c1339ed349101d234d20c614722c11412fd",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-transformed-masks/final": {
+      "checkId": "check-transformed-masks",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "0a139c8320a5d9ce3159895f5e7c218541fb97519f564ade00c106142edb14ca",
+      "basisHash": "351ab27a6975ae6bd7d8554f666ab309dbf476cd032a80f1d00d7bdf8cdb50f5",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 1.4621,
+      "recordedAt": "2026-10-13T19:44:06Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-41c50e4a5638.log",
+      "logSha256": "baa5d44c1673dbbcd5410eaf404ba73eec4374d52df587a1ae49063333a71a1b",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "final/check-transformed-pixels/final": {
+      "checkId": "check-transformed-pixels",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "e952b4886bb4bf8f0fcf30adfb06ac651be3d4a29c82052ae8bf24586a974a56",
+      "basisHash": "9602bacecf2cfa080e0e9dfb528e7f786827b36848cc347c8713963dbd63eec1",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 35.7776,
+      "recordedAt": "2026-10-13T19:44:42Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-3dccfaa14541.log",
+      "logSha256": "1d3effeef6fd4a4a14e123ffee23200a9a8a2dbbaed142265766b288232b117f",
+      "inputsHash": "065af96de7511dbe89ec4110a462e487093464a181ce88d452855018a98ac1eb"
+    },
+    "final/check-transformed-text/final": {
+      "checkId": "check-transformed-text",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "72a28d94e6f4037f5df3742df9d8fc5565381863d6ff035f943318a786466031",
+      "definitionHash": "d8baf8bdb3cb3e239c49ff5ae2b290ebf3be3130bfc786cb3a5ddb8ccdbe3aab",
+      "basisHash": "4c487f15fabbc0c8e6652bdd09f231581c0f1eea177b0fca64ee0add52f7306d",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 54.5698,
+      "recordedAt": "2026-10-13T19:45:36Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-daf8ed4c48b9.log",
+      "logSha256": "c20386034ed0a84432acb6148ff0772146e78f2463e879fd689264d811103d1c",
+      "inputsHash": "065af96de7511dbe89ec4110a462e487093464a181ce88d452855018a98ac1eb"
+    },
+    "final/check-transformed-text-web/final": {
+      "checkId": "check-transformed-text-web",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "d87d97bf4773edd3a7bbd47bea564d8abff2a093924775075d07a10fa0d8cb57",
+      "definitionHash": "e139907a39944237da26d4e0ec9052f5565773fa35bc676af758c534a441e715",
+      "basisHash": "2b8649b0eab0f18c06a06cd704f487b3849dd7ca863b4595db5750fc68a995c3",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 52,
+      "durationSeconds": 15.4087,
+      "recordedAt": "2026-10-13T21:38:59Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-5dfbe7d5c45f.log",
+      "logSha256": "ce87abc6f2ae40f068d297e26ca10e4eff175654a4e120129e7f626da260bc4e",
+      "inputsHash": "1292b0a83dd69d30b7d9ee8a9a611b2dc8c78b059bbd147de090e9361b9ea80b"
+    },
+    "final/final-fmt/final": {
+      "checkId": "final-fmt",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "d87d97bf4773edd3a7bbd47bea564d8abff2a093924775075d07a10fa0d8cb57",
+      "definitionHash": "576d5fd9ca0c30c33ccdbcf783b82ef12f7c82399bde927fc9b595587f05466a",
+      "basisHash": "ad4ef67c29e602a08954773fcfb8873d9a1186b516a77b316165f69144f17532",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 2.3505,
+      "recordedAt": "2026-10-13T21:39:01Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-33af8f958554.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "final/final-clippy/final": {
+      "checkId": "final-clippy",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "d87d97bf4773edd3a7bbd47bea564d8abff2a093924775075d07a10fa0d8cb57",
+      "definitionHash": "41236ca52610f75d072c5b93cd3e58f07cf7fa59005bd26c01918ab96e8c269d",
+      "basisHash": "6c93b9fc5ace6958b9fba0d7a1ac2b8974c94f2907d7ed76f444a91328febbe1",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.8929,
+      "recordedAt": "2026-10-13T21:39:02Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-cf99099a334e.log",
+      "logSha256": "d9533554809e0846c6113df1671caf5d74f2a7b9763b0232786a0b652704164a"
+    },
+    "final/final-web-check/final": {
+      "checkId": "final-web-check",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "d87d97bf4773edd3a7bbd47bea564d8abff2a093924775075d07a10fa0d8cb57",
+      "definitionHash": "52c569c8915a03881dacc0eee25021aa359f704886df72db3b3bc8d4d6be1b4f",
+      "basisHash": "160a3d6ddea9db6b7b39e5ff08d11917f9e16fab19e76de5159ffcde25b27810",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.293,
+      "recordedAt": "2026-10-13T21:39:02Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-5b2214479f0a.log",
+      "logSha256": "f591e097f22f91dd5c31fbbf7e587d80c0a4e0ed594f9c9012a544f38c52d926"
+    },
+    "final/final-package/final": {
+      "checkId": "final-package",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "d87d97bf4773edd3a7bbd47bea564d8abff2a093924775075d07a10fa0d8cb57",
+      "definitionHash": "227c3c3752182d2dec3bc5fe2941dba70b8e5c9787ee5de2c3cd3f2db2ecafda",
+      "basisHash": "0882019b948eef2b37c9f83016b598c68d74b87010ca12577b17b756856fff16",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 89.4165,
+      "recordedAt": "2026-10-13T21:40:32Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-d1e4694597cd.log",
+      "logSha256": "82ba2257a491dbecdbe4f59000420d1eb56d37c5f958aee0286a1f026609adda"
+    },
+    "final/final-mobile-android-check/final": {
+      "checkId": "final-mobile-android-check",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "d87d97bf4773edd3a7bbd47bea564d8abff2a093924775075d07a10fa0d8cb57",
+      "definitionHash": "ada516de62af969e696b53a5ecd2ef1f3ec20f1d64b84facf6b3b1d0f03089ac",
+      "basisHash": "9c0ada96a997c74561639dd8523d2ccc01566d08ecc3412a477d6b8d8a24437d",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.3515,
+      "recordedAt": "2026-10-13T21:40:32Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-124350101936.log",
+      "logSha256": "9a4cf93419355325119730499685e1859bdc14563007357f9247f9df4d91038c"
+    },
+    "final/final-mobile-ios-check/final": {
+      "checkId": "final-mobile-ios-check",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "d87d97bf4773edd3a7bbd47bea564d8abff2a093924775075d07a10fa0d8cb57",
+      "definitionHash": "6659e8d6879d1321c9c78715932c3e0dcdbe73860a6cd3289600d72962fa637d",
+      "basisHash": "bce0eddaabd026978d091450c38e8e1be49fe2add4908eeedfc9a0f109654580",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.2954,
+      "recordedAt": "2026-10-13T21:40:32Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-abab8d09335e.log",
+      "logSha256": "52298bcffa2e784d367da3df793258be51ee34d39bc82f6cd54d16aaaf6913dc"
+    },
+    "final/final-lane-a/final": {
+      "checkId": "final-lane-a",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "d87d97bf4773edd3a7bbd47bea564d8abff2a093924775075d07a10fa0d8cb57",
+      "definitionHash": "74a5317831de5f6345737d245f85455fb7d606964d8a0243a44ae845672e04bb",
+      "basisHash": "ed3911b8023c257854c5cf9b9eee7d0c0b3d3cdf63b4015b8f293649aa44084b",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 111,
+      "durationSeconds": 2.3321,
+      "recordedAt": "2026-10-13T21:40:35Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-63f82642cff1.log",
+      "logSha256": "a6205ebf442bf0c5864762c0385aee500014ffce1a53c0328484383582b69552"
+    },
+    "final/final-lane-c/final": {
+      "checkId": "final-lane-c",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "d87d97bf4773edd3a7bbd47bea564d8abff2a093924775075d07a10fa0d8cb57",
+      "definitionHash": "3bfb56dec41cb529deda41df36fc2cafce873a10b9e57cbecd050ad0baf333bf",
+      "basisHash": "7524ab484712a7bf40b1ed001b3cb4cd9c8f610111f38ffddedd796c6ed2e96f",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 188,
+      "durationSeconds": 651.6448,
+      "recordedAt": "2026-10-13T21:51:26Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-a76058861d8e.log",
+      "logSha256": "61e4cc648bbf98cc09526635aba3d1528dd3cba0516f616fc33249c2937013f3"
+    },
+    "final/final-lane-d/final": {
+      "checkId": "final-lane-d",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "d87d97bf4773edd3a7bbd47bea564d8abff2a093924775075d07a10fa0d8cb57",
+      "definitionHash": "257c13776f0883cb414772b6f9624eaae96d89741db5f25ad3ea88c5b8c4cdf5",
+      "basisHash": "2be424955dd4dc5ac8c89495d669e643c5ffda6376435b9a7ec564b34625952c",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 41,
+      "durationSeconds": 10.0404,
+      "recordedAt": "2026-10-13T21:51:36Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-5fa96c0eb94a.log",
+      "logSha256": "85b9111b84bb6d402649dadb3c41d10792ebd9a7ecbc5605a10d2b067bf16a63"
+    },
+    "final/final-lane-b/final": {
+      "checkId": "final-lane-b",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "d87d97bf4773edd3a7bbd47bea564d8abff2a093924775075d07a10fa0d8cb57",
+      "definitionHash": "ab9d0fe79b7e03150e3a39673119834f4384a3f460a2a4391ea7c6045ec1a12d",
+      "basisHash": "0ca20b9c0c2831c1fa7756b1622d4e8e9d6b80c64a2863483ef09c61b37a489d",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 141,
+      "durationSeconds": 29.9139,
+      "recordedAt": "2026-10-13T21:52:06Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-b20e4c877629.log",
+      "logSha256": "f836a2cf570b0e4bbad5240da82f7b61d347e4e7ab02fe39b9121f2c8536091e"
+    },
+    "final/final-lane-e/final": {
+      "checkId": "final-lane-e",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "d87d97bf4773edd3a7bbd47bea564d8abff2a093924775075d07a10fa0d8cb57",
+      "definitionHash": "63dfc480a1dd1b764a26eb935bb342989889f50047de298b119398bd4d1598f5",
+      "basisHash": "b4008eb34784426acade6a4b3175d5000763433a406c573a743aa23b3411ecf6",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 38,
+      "durationSeconds": 78.1487,
+      "recordedAt": "2026-10-13T21:53:24Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-833be2a57e0b.log",
+      "logSha256": "e52474965d4f7c542d15fce6ae5fc2863f10e44626cf1977fe61b48cd8ac3c49"
+    },
+    "final/final-lane-f/final": {
+      "checkId": "final-lane-f",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "d87d97bf4773edd3a7bbd47bea564d8abff2a093924775075d07a10fa0d8cb57",
+      "definitionHash": "266a51c498262e8ae4c99a354205282272290e2cdf66e97a35da5abf1aaee97e",
+      "basisHash": "824fa4d16053f8ace2ed38d0cfd35b97a390e932456f9488bfb34d7b3759b1a2",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 38,
+      "durationSeconds": 47.2257,
+      "recordedAt": "2026-10-13T21:54:12Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-de1563fbe213.log",
+      "logSha256": "d9e8072b07de990271c927dbea1145c505d9b942b5dd6ea12eacca9108efbebf"
     }
   },
   "reviews": {
@@ -6545,6 +7911,1306 @@
         "s13-fin1-testing-md-lane-g-omits-fast-mode"
       ],
       "recordedAt": "2026-10-13T16:23:26Z"
+    },
+    "final": {
+      "reviewerId": "claude-reviewer-epic-final-5c1e93a7",
+      "snapshotId": "d87d97bf4773edd3a7bbd47bea564d8abff2a093924775075d07a10fa0d8cb57",
+      "criterionIds": [
+        "FM-1",
+        "FM-2",
+        "FM-3",
+        "FM-4",
+        "FM-5",
+        "FM-6",
+        "PERF-1",
+        "PERF-2",
+        "PERF-3",
+        "PERF-4",
+        "PERF-6",
+        "PERF-5",
+        "PERF-7",
+        "OR-1",
+        "OR-2",
+        "OR-3",
+        "OR-4",
+        "PRE-1",
+        "SC-1",
+        "SC-2",
+        "SC-3",
+        "SC-4",
+        "LAY-1",
+        "LAY-2",
+        "LAY-3",
+        "LAY-4",
+        "LAY-5",
+        "DEP-1",
+        "DEP-2",
+        "VIEW-1",
+        "VIEW-2",
+        "VIEW-3",
+        "VIEW-4",
+        "VIEW-5",
+        "VIEW-6",
+        "VIEW-7",
+        "VIEW-8",
+        "SPL-1",
+        "SPL-2",
+        "SPL-3",
+        "CMP-1",
+        "CMP-2",
+        "CMP-3",
+        "CMP-4",
+        "CMP-5",
+        "CMP-6",
+        "CMP-7",
+        "CMP-8",
+        "CMP-9",
+        "CMP-10",
+        "CMP-11",
+        "CMP-12",
+        "LYR-1",
+        "LYR-2",
+        "LYR-3",
+        "LYR-4",
+        "LYR-5",
+        "LYR-6",
+        "LYR-7",
+        "LYR-8",
+        "LYR-9",
+        "LYR-10",
+        "LYR-11",
+        "LYR-12",
+        "LYR-13",
+        "LYR-14",
+        "LYR-15",
+        "LYR-16",
+        "LYR-17",
+        "LYR-18",
+        "LYR-19",
+        "FIN-1",
+        "FIN-2"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/mode.rs",
+          "kind": "source",
+          "criterionIds": [
+            "FM-1",
+            "FM-2",
+            "FM-4"
+          ],
+          "sha256": "9677222133742c081f73048e678d4e9d1f4084189b4ae176ba68d6626c7d4702"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "FM-1",
+            "OR-2"
+          ],
+          "sha256": "a1fe7a790fd8ea8b816d5fb368e8d641378880c60ae4e17debd038bc63173bfe"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/switches.rs",
+          "kind": "test",
+          "criterionIds": [
+            "FM-1",
+            "FM-2"
+          ],
+          "sha256": "c1129a8778e2847fe17ce83a5002ca5bbc2fcb8e40931ee0d38f30eedd768ab3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/retained.rs",
+          "kind": "source",
+          "criterionIds": [
+            "FM-2",
+            "VIEW-1",
+            "VIEW-2",
+            "VIEW-3",
+            "VIEW-4",
+            "VIEW-5",
+            "VIEW-8"
+          ],
+          "sha256": "864ee947cddbcacba6e576853f559d4a45fc844c6ec0fc083551607bf1cfc8e3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/stats.rs",
+          "kind": "source",
+          "criterionIds": [
+            "FM-3"
+          ],
+          "sha256": "67bf884b143c1db258c5aa678f46aab2f4ea0360044f0b3e965367900fe6ef88"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/stats.rs",
+          "kind": "test",
+          "criterionIds": [
+            "FM-3"
+          ],
+          "sha256": "af03a4f07c2c64b3dc678ec3ea534d05d6a05dd872fbe9112bc874a979c37cbe"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/defaults.rs",
+          "kind": "test",
+          "criterionIds": [
+            "FM-4"
+          ],
+          "sha256": "64dbc710eb85568e4699548c5608870fb2050fc50370c949c76b4ef5f2875914"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_a_fast_parity.rs",
+          "kind": "test",
+          "criterionIds": [
+            "FM-4",
+            "OR-3",
+            "LYR-19"
+          ],
+          "sha256": "ab7b2be4370aab3a63a560d98f780764ad0cf858301139f78b66ab9c3bdf2439"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/dependencies.rs",
+          "kind": "source",
+          "criterionIds": [
+            "FM-5",
+            "FM-6",
+            "DEP-1",
+            "DEP-2"
+          ],
+          "sha256": "c2b10d851cf8caf8d25b194b26de855fde8540c96bf1177d1ccbc7c83fe17b3a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/view.rs",
+          "kind": "source",
+          "criterionIds": [
+            "FM-5",
+            "OR-1",
+            "VIEW-1",
+            "VIEW-3"
+          ],
+          "sha256": "5b9759f90f93f1a8cd3f0399c06b07da25b0abfb258e48cc748bb9bbd19676f0"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/hover_dependencies.rs",
+          "kind": "test",
+          "criterionIds": [
+            "FM-5",
+            "FM-6"
+          ],
+          "sha256": "e18827978877b166cfcfaec3dfd03af0b73bf384eea2274cc61fc57813dbefbf"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs",
+          "kind": "source",
+          "criterionIds": [
+            "FM-6",
+            "PRE-1"
+          ],
+          "sha256": "e7608a24ab3bf1ffe125b685bba60aa3c98591eebdbaec67ff740d54fb70310d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/verify.rs",
+          "kind": "source",
+          "criterionIds": [
+            "OR-1",
+            "OR-2",
+            "VIEW-6",
+            "VIEW-7"
+          ],
+          "sha256": "9976a18713e366a624a915c196aab03f6c6b9977e6c15de7f2d287f0a1bf5265"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/oracle.rs",
+          "kind": "test",
+          "criterionIds": [
+            "OR-1",
+            "OR-2"
+          ],
+          "sha256": "0b9e22cf9e04403698ed9b067ab0ee5740ae6e34534203229252e45f03c6f85c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/oracle_support.rs",
+          "kind": "test",
+          "criterionIds": [
+            "OR-2"
+          ],
+          "sha256": "bb960e149cf76918711f946fc6a28eaa5c3308b1c5b7e2d061a44a77681648b8"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/test_host.rs",
+          "kind": "source",
+          "criterionIds": [
+            "OR-3",
+            "OR-4"
+          ],
+          "sha256": "88985a698d4eb6f537f173e3be0c116ab23f661ef99842411e1b7be033518d8e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_fast_parity.rs",
+          "kind": "test",
+          "criterionIds": [
+            "OR-4"
+          ],
+          "sha256": "a1aa076dea3c48a16030c03e7c3e59fb6c57e7e323b801d9c8bb724972f8a963"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/benches/fast_mode.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-1"
+          ],
+          "sha256": "037d366b0a158da50b708fb956700aa91cb279c0112e2062f0a3a2fbb57a99b6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/scenarios/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-1"
+          ],
+          "sha256": "cc39a3eee28777562d608f818b3cdb46f1375140414282cd75c2e1f56ad6135d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/fast_mode_attribution.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PERF-1",
+            "PERF-2",
+            "PERF-7",
+            "LAY-4"
+          ],
+          "sha256": "7800ea0f18368cd3db06a24b0dfc878e0f8992cc883b0cbe2ace2421a12123fc"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/randomized_element_tree.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-2"
+          ],
+          "sha256": "29e083000d4ece178c728e1f658921ae41aa9a58f764c6ac97c3a604fb652b5a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/fast_mode.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-3",
+            "PERF-5"
+          ],
+          "sha256": "2285e94d8c43bc3e7ab514e8dd0862b63d1b6c0276153772d4b6c8fd853afa16"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/tests/fast_mode_report.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PERF-3",
+            "PERF-5"
+          ],
+          "sha256": "a4652eac56f0cd4b83680e6ee9f4b78dd9bf6749fd1ebfa6f36e06140af6f12f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-5",
+            "PERF-4",
+            "PERF-6",
+            "FIN-1",
+            "SC-4"
+          ],
+          "sha256": "0ad489dcbba6fc3a4e7f49350388d73f151fb96a0833e83f61584016d2a0ea65"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/testkit/perf/baseline-s01/run.txt",
+          "kind": "runtime",
+          "criterionIds": [
+            "PERF-5"
+          ],
+          "sha256": "5f8ee27bbadaead96afd669fb85367bfbcd2f4d018114d94bdcd263873bb0dfc"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/tasks/gpux-fast-mode/requirements.json",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-4"
+          ],
+          "sha256": "c0d2e16eb4225a9be3b406e10cbbeab52e4b1840d780388d7b59498c4ed3132c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/testkit/perf/final/fast-mode.md",
+          "kind": "runtime",
+          "criterionIds": [
+            "PERF-4"
+          ],
+          "sha256": "8e2fccf79e2b2ebedb77751150ecc2a88e535278113d621fecabc44f4ca880bb"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/scroll-layers.spec.ts",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-6"
+          ],
+          "sha256": "5964f2466bb82d18dd90a8f71bb9a6bb2536342edf03389127aac00a6f4c46ef"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/browser-timing-run1.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "PERF-6"
+          ],
+          "sha256": "8a1b96f610f813dbfa32dd7086ed460038ad3c5cd8151a980f6d4696e09b4c36"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/browser-timing-run2.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "PERF-6"
+          ],
+          "sha256": "c657be0f926cf282a028afedf80f6a5e4c2697b29d4f28e3bf042e937ce478dd"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/browser-timing-run3.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "PERF-6"
+          ],
+          "sha256": "a3bc4885ae7039ca19eb9653354e1a4672d8b4fe43727c9f53b9d3dca9c6656f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/verify.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-7",
+            "LYR-4"
+          ],
+          "sha256": "5cca233ed9ffec2d19acb9c33e6ed96a2f7b5026aeb7a76702032869a001e606"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/oracle_layers.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PERF-7",
+            "LYR-4"
+          ],
+          "sha256": "f3741cd59d0b11f9773b9dc88d1d92e0ea3c911676923d8105c6207e2f36cfb6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/testing.md",
+          "kind": "source",
+          "criterionIds": [
+            "FIN-1"
+          ],
+          "sha256": "dbc5fa05beb710aeaa05b984442462fdd984b67519472228d325b22591fd5d9f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "README.md",
+          "kind": "source",
+          "criterionIds": [
+            "FIN-1"
+          ],
+          "sha256": "f5939811d16423b9cf8b519941660fb7e9a25f07a2c8cbd67ca32d65eb65c142"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/references/fast-mode.md",
+          "kind": "source",
+          "criterionIds": [
+            "FIN-1"
+          ],
+          "sha256": "6a50acd2b85cb20a6aa0b6fa509e473d20d857fa6f144055de393d7e6405cec9"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/upstream/gpui-fast.md",
+          "kind": "source",
+          "criterionIds": [
+            "FIN-2"
+          ],
+          "sha256": "76a20ed1c1f003ccf7b59168779e6d2392badd8eb6433fdff276b27cd5dd7432"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "LICENSE-APACHE",
+          "kind": "source",
+          "criterionIds": [
+            "FIN-2"
+          ],
+          "sha256": "19182332d041e03f92bd9a9eaca52181e21184f2215528834b2cd329c540d18b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/list.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PRE-1",
+            "LYR-7"
+          ],
+          "sha256": "c46b99f4eae5cbf27f2d3af5896fc236bbe91474a93552cebd3082ee54d341c7"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/scoped_invalidation.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PRE-1"
+          ],
+          "sha256": "46c6aa24fd00bae668a78aa05840584cb5b26f38e24ad14ae5375270636f5efc"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/bounds_tree.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SC-1"
+          ],
+          "sha256": "f1af6c04e6816b7d6d95ccd316d13dfaa492c8ce4f14a35cf35d899f661bcfbd"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/bounds_grid.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SC-1"
+          ],
+          "sha256": "e48e7de4224cc17432ea5c661d7437609eb1fd27a5f46aa238533183d386d35a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/scene.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SC-2"
+          ],
+          "sha256": "5dc423eb67c8b96de065f23033ddf3302ea84e4f54ba6ff8128ecdafa19d02e6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/draw_order.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SC-2"
+          ],
+          "sha256": "7dd4cca79652658da6536db54b11d2acd25944a6090f31be7435bb5f2787c8c3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/glyphs.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SC-3"
+          ],
+          "sha256": "e50c91e2341b3a9e2446ac072b8764c762a702bb61a032654447d8231ca5e4cc"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/glyph_runs.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SC-3"
+          ],
+          "sha256": "fb96f4f075fcdb173eb1d281f5605a5abc328c1058be75fc11f9f760724a82f8"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/testkit/perf/sc1-grid/run.txt",
+          "kind": "runtime",
+          "criterionIds": [
+            "SC-4"
+          ],
+          "sha256": "31d1950a102d1a1803c21d8fae2f438a346335129af6969b415c9143d280f242"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/testkit/perf/sc3-numbers/run.txt",
+          "kind": "runtime",
+          "criterionIds": [
+            "SC-4"
+          ],
+          "sha256": "76af5b3df700b97392cede3f478475fca32f2b00b2845ebba33de0a248619685"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layout_key.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LAY-1",
+            "LAY-4"
+          ],
+          "sha256": "ae13cbb1d9c074701321e6293b95f5ca2b3178332175f736bdbcdfaebd90f631"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layout.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LAY-1",
+            "LAY-2",
+            "LAY-5"
+          ],
+          "sha256": "5d2a230b08e3232a4e6402c60aef8433b773ef30302399f33b067fc9d0a1412c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/layout_keys.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LAY-1",
+            "LAY-4"
+          ],
+          "sha256": "18e8b03b9574d4718933bcd486aad0f17abd12dddf4c5a09c2ad592f55394bed"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/style.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LAY-2",
+            "LYR-17"
+          ],
+          "sha256": "eafebdc1ae7812a0133108b69d7a0c6907a4ef805d1351b8e23b0e5d2486dcf0"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/write_elision.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LAY-2"
+          ],
+          "sha256": "e6b693d76a5de9c69786176f3b6313e48d9bc04cf3efe0f8fb910e66a65ba924"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/text.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LAY-3"
+          ],
+          "sha256": "e4308f238631501a7ce3975ca982ff3d8e71f9220cdaafbcbc5bbfc2202a85ff"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/text.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LAY-3"
+          ],
+          "sha256": "3e49fc56fe3c1b22e4bda3724549c10c8896d47304d45dcc7fd7cf9942ef1cd9"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/text_carry.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LAY-3"
+          ],
+          "sha256": "02f27ee462c180be3dac77e84a7bba9d01445b74ba3aaca1ee419da686aeb75b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/oracle_layout.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LAY-5"
+          ],
+          "sha256": "a2da6fa2f529df02f9ba27f577b3a74e3a294a96ad7a8c5c4ff6ac7ca41c34fe"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/dependencies.rs",
+          "kind": "test",
+          "criterionIds": [
+            "DEP-1"
+          ],
+          "sha256": "a6df996339efef1a67cfd6f8cc93edaa8bbdde93513909213b4c151a87571619"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/dependency_nesting.rs",
+          "kind": "test",
+          "criterionIds": [
+            "DEP-2"
+          ],
+          "sha256": "87253ee131ee06f2bef67796cb81418c4dc60c7aa57d201b6a8c52e183c36aa9"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/reuse_paths.rs",
+          "kind": "test",
+          "criterionIds": [
+            "VIEW-1",
+            "VIEW-3"
+          ],
+          "sha256": "5301ba34223ba6f0975e0f49fd0c25113b4e017579439a727360e56f403150ad"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/view_invalidation.rs",
+          "kind": "test",
+          "criterionIds": [
+            "VIEW-2",
+            "VIEW-5",
+            "VIEW-8"
+          ],
+          "sha256": "fcc12a977956e4a63eec9aa78973ba46459ffebb442251546da07d46a8cbad90"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/retained_records.rs",
+          "kind": "test",
+          "criterionIds": [
+            "VIEW-4"
+          ],
+          "sha256": "19376c5504689fee26fc6e4407303608fc28e30902755b24b95512c3b5922243"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/verify_mode.rs",
+          "kind": "test",
+          "criterionIds": [
+            "VIEW-6"
+          ],
+          "sha256": "6e901d51e989d9e3e524bacd7a9bd096857bbe9e6358fc06c0044c56a855bab1"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/oracle_views.rs",
+          "kind": "test",
+          "criterionIds": [
+            "VIEW-7"
+          ],
+          "sha256": "146f45a5d02519ab81935505b8edceec2dc1993a19ff9d2c140afb8b81e1f789"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/splice.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SPL-1",
+            "SPL-2",
+            "SPL-3"
+          ],
+          "sha256": "7d41e671d48e36405458cd8841ee64eb8170a84f0f54120fa4ab8373f77fc972"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/splice.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SPL-1"
+          ],
+          "sha256": "d7980f3d934dc275dd64f585849af0b3bc481767021b1f7d0e64e6d0325ec7ef"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/own_dirty.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SPL-2"
+          ],
+          "sha256": "44a790ca12f768ce6e68f8dff4e9e5ddf5b7d1a995d9d00e22ae3bc6664df742"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/oracle_splice.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SPL-3"
+          ],
+          "sha256": "edce0abb1884456a7d8b954db023ecf667b11a56a650867da42766729c550e1d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/composition.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-1",
+            "CMP-2"
+          ],
+          "sha256": "c3c958e4bfa4a739aef116e28d5bb73355cb5e4b1f9fe952ee21b2a40c5454a5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/composition.rs",
+          "kind": "test",
+          "criterionIds": [
+            "CMP-1",
+            "CMP-2"
+          ],
+          "sha256": "51171e7142a5734e5fb5b2b4d982efc6b5f88f23c3ebeb77d0a3d59b7c542be5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_macos/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-3"
+          ],
+          "sha256": "1dc1e7d392895ac8b78cf3cba1ccab13456035b91c3ce96e8b64c99631c7ba13"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/platform_checks.rs",
+          "kind": "test",
+          "criterionIds": [
+            "CMP-3"
+          ],
+          "sha256": "c3175047de837ddac0ad381c5209d563672f02f2e8a2a947daefe3f5f28e69c2"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_linux/src/linux/wayland/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-4"
+          ],
+          "sha256": "63cbedb7f1e46ec0ae918dced70bf5587b6696760b4ddbb8844c9298d7ebfabc"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/desktop_host/composition_linux.rs",
+          "kind": "test",
+          "criterionIds": [
+            "CMP-4",
+            "CMP-5"
+          ],
+          "sha256": "c6c41d9a2db65520465e4efe87fcbb6bd9f26d6c42d99492df2c989c0b7e7780"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_linux/src/linux/x11/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-5"
+          ],
+          "sha256": "471d2171d614683d9fc4d88c1a7e7fcf36ba8c350075697cd9241adc9db64824"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_windows/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-6"
+          ],
+          "sha256": "bba5b84d949a3554e9be51e00baa7ce2b020d548f8e49115b9325ad4ffff3e1b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/desktop_host/composition_windows.rs",
+          "kind": "test",
+          "criterionIds": [
+            "CMP-6"
+          ],
+          "sha256": "a709d6cdb6b0d97dd64d2d2f013db90faab77f1e81684fcc4d11c58bafcd903b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_web/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-7",
+            "LYR-9"
+          ],
+          "sha256": "32f356979b72055deb66f0820a142dd3f77d1c262f9a64a74a3c72f3366734a1"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/composition.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "CMP-7"
+          ],
+          "sha256": "753bcf2b31b287dc121484f6017ff2c079dfa0414919ecb0cec19adf4fca1447"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/wgpu_renderer.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-8",
+            "LYR-5",
+            "LYR-12"
+          ],
+          "sha256": "68eaeb5bf82018146037773d00ebc5355fb3aa6999f794e6e825c623c044aa77"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_apple/src/metal_renderer.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-8",
+            "LYR-6"
+          ],
+          "sha256": "c8f5d81d4c88eb394bf081f7c4aa8cbba633948fede6279ea4a05b4e5832794a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/composition_overlay.rs",
+          "kind": "test",
+          "criterionIds": [
+            "CMP-8"
+          ],
+          "sha256": "5243e2cc9e1f766dbf4c5ad2976b7bedfdc197ce0bef0e74da34be8e242361d0"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/examples/webview_macos.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-9"
+          ],
+          "sha256": "4123ca8b0b07f7bc04791a7d65dfe213fdc76f77f8ad7ffc1352cd8bcea834f7"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/examples/webview_windows.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-9"
+          ],
+          "sha256": "f1c3f6099121630197f33ec452549acbc51c7b94add387215516dabc8ab86ef7"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/examples/webview_gtk.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-9"
+          ],
+          "sha256": "a960f169489da8ba4d378d3495a8963d767c8034df1bc42a8d63d855704aee43"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_platform/examples/wayland_surface.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-9"
+          ],
+          "sha256": "9491d9caf1a9d674885c871fe0bd1ff84432236ded50fb62cdef7a6518d5421f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/ios/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-10",
+            "LYR-11"
+          ],
+          "sha256": "3580753182ea9ef6af0693c6c85fb90736e7bd0c698c0dce930f2ed4d13d3074"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/ios_host/composition.rs",
+          "kind": "test",
+          "criterionIds": [
+            "CMP-10"
+          ],
+          "sha256": "5382822d1db7d73b76ef385d574bf7d7f81390c9cc53405b5eae275d89a356e1"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/android/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-11",
+            "LYR-10"
+          ],
+          "sha256": "56838e8a144584e759bf47b1e9d7f2fa6a75a7683a8c291356534c13c1e8d1b0"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/android_host/composition.rs",
+          "kind": "test",
+          "criterionIds": [
+            "CMP-11"
+          ],
+          "sha256": "87a234b3806fa6af6042de31dfc74423ca61c89be13614ea72b51d0f9b1aea5d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_mobile/src/platform_view.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-12"
+          ],
+          "sha256": "274654e49072d8574c006f079aa51426969c5f8296831913f0efc66f509c2372"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/android_host/platform_views.rs",
+          "kind": "test",
+          "criterionIds": [
+            "CMP-12"
+          ],
+          "sha256": "888e77a2601ec67c04c930b92a6f8c9dd49c437c51b1b07765e5456f8d793319"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/ios_host/platform_views.rs",
+          "kind": "test",
+          "criterionIds": [
+            "CMP-12"
+          ],
+          "sha256": "49749b86e6ae7197299ca6ac5aad3a2361537d242bbafb8a2a8679e8782e89d5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/policy.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-1"
+          ],
+          "sha256": "38bc42256f19eb7b8f37bb4d5ce9ed984a47a06d0da1c4ca30c1160e88e25d91"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/layer_policy.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-1"
+          ],
+          "sha256": "40998f469322e9158b7032adcacb08b3ee6612fde1a74c3d1e6e828745150ecf"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/reuse.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-2"
+          ],
+          "sha256": "2886814f847b510b59c8ffa756ef2ebf7b2b0dd1f1192e1c7ea19fb3df803e7a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/record.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-2"
+          ],
+          "sha256": "4ea52829f12a21b0423380b6c086a5b08f396f78d3916765a3d601186330f7f8"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/layer_carry.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-2"
+          ],
+          "sha256": "48b742a25de8cbb34a5d7df57a5af9aae4076ee54e455b4e3c057fdaec633ac1"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/input.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-3"
+          ],
+          "sha256": "4749d90775d264277d96c06cdd8f676fa7aadd1e51abf4ba7e3a4a82378b1908"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/layer_inputs.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-3"
+          ],
+          "sha256": "c78e211a2292b33e853421e85e5b72b6004dfc139935b620265b471b1e2c0afe"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/shaders.wgsl",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-5",
+            "LYR-19"
+          ],
+          "sha256": "c94e4ccc8bee8dba627a0bd3c4be6ac85520cf3cec18ae259690044f8cd680ac"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/fast/layers/tests.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-5",
+            "LYR-12"
+          ],
+          "sha256": "d2ab1f6db4d5be04f2011b92baa8bf7da729014bbd9532130e6d24548aab4c8d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/layer_renderers.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-5"
+          ],
+          "sha256": "fb868ddf8a88e6200494e6e68b6fb25a4b87b276a4ac345d0754b69a450ad456"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_apple/src/shaders.metal",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-6",
+            "LYR-19"
+          ],
+          "sha256": "57d453ab724e2782c4083552560a11c6779249a0e552e912ee2680bd710fc3c2"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_apple/src/fast/layers/tests.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-6"
+          ],
+          "sha256": "5b23e31173432cc00a88323d2890b9ca6bf624420a53bd28e4bd5d0fb9953eb3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-7",
+            "LYR-13",
+            "LYR-16"
+          ],
+          "sha256": "3e633ee48322fcfe353d11b209688cea3ddef0f5975bf21d18c71964fbb55834"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/list_layers.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-7",
+            "LYR-13"
+          ],
+          "sha256": "4ec58ea12933692c06cbcebd274298bfc6008dff1bf7ec102a57901cb78384d9"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/gestures.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-8"
+          ],
+          "sha256": "d186f4c5161e766d58372e9e25608fb3465f1cfe57c19acfb4cd39717414953b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/layer_touch.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-8"
+          ],
+          "sha256": "126bebc00f529e7cd7178658bcf6bb1cac04d08bcfff88c6915b8889c684837e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/scroll-layers.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-9"
+          ],
+          "sha256": "5964f2466bb82d18dd90a8f71bb9a6bb2536342edf03389127aac00a6f4c46ef"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/android_host/scroll_layers.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-10"
+          ],
+          "sha256": "90441f099c746fb3f23391b113861a9613faff5a5e51cc44ac4e7a82f1867e75"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/ios_host/scroll_layers.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-11"
+          ],
+          "sha256": "f5b8d86ed496241f5544abc36bb1b36dc1ac068108aa74835302caa497aa7ffd"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/layer_extent.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-12"
+          ],
+          "sha256": "744bd975c305b51e0620fcbe32feeb68854f718204a8e9a7806a31deb3cc2a7c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/uniform_list.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-13"
+          ],
+          "sha256": "6280e35026bae1b909686e838a079cf5ad08434fc7ceba7d2296da5e498fd27d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/edge_shadows.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-14"
+          ],
+          "sha256": "becb882479e9afa69014a48d1580f28787f45008fd6b7ecb095957de283fd3fb"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/scene.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-14"
+          ],
+          "sha256": "f64a7dc09bcabaace5f9ff6d9fcfa8aa0834be7c519cf0042f84f7efc73a0f6b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/edge_shadows.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-14"
+          ],
+          "sha256": "b8c60e360d02a4de2b05f17bf5f2cad0022f57274bc4fd11b8fcd96ff2bfe21d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_scroll_layers.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-14"
+          ],
+          "sha256": "b541f7a4623b0c34f2495fe9227d619913df853b2ca1fdb4f15f9762977219e2"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/paint.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-15",
+            "LYR-18"
+          ],
+          "sha256": "ddde1cfdfbee6936037057680cdb56817a8b129e062304b44cdbeb4de7da0d9b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_layer_scales.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-15"
+          ],
+          "sha256": "c54bc9b48f4fd84af839394c12edd266eba66a2a9b5a4f90366b8e52e61c3a86"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/hover.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-16"
+          ],
+          "sha256": "d053809881d62c2d5dca49633185c2afaebea7019146afbdfab4516f8add0eca"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/list_hover.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-16"
+          ],
+          "sha256": "1611c56ce8c16bf49e9b57c37fcd3a2eff00faebdb3b8f97e238857aade70420"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_list_hover.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-16"
+          ],
+          "sha256": "af55b0638a8b4d6f33fc16267ec04e9ed5fdc630bf9491284387b66031811570"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/border_clips.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LYR-17"
+          ],
+          "sha256": "576bb26083c61a2716c76620a42b2eafc94362316f96287edd955f66f877b758"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/border_clips.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-17"
+          ],
+          "sha256": "1f92d1bba544e22edb270d8c4dcc9d5b6f7b2700b744735d839f5d5fb7e6d2df"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/cost-probe.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "LYR-17"
+          ],
+          "sha256": "2e8fe185e1d99aa28cfbe92650d8182a85d75db35b5a43b631ab57005918251d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/transformed_masks.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-18"
+          ],
+          "sha256": "b52bf541f6be986e2fdfd31b6a72ec70a8d7086a597178019d66d071fa889bbb"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/tests/shader_sampling.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LYR-19"
+          ],
+          "sha256": "1b17c236931faa16d0a981fdc3121c6b4a876e1173710bd6bd258ad3ccce8aeb"
+        }
+      ],
+      "summaryMarkdown": "**Verdict: passed.** All 73 criteria are owned by a done, checkpointed task; `check --epic` passed at revision 296 (80 checks) and the sealed sprint reviews are current. Source and test anchors are listed per criterion.\n\n- **Stated limits are documented, not hidden.** `docs/fast-mode.md` records the application contract, the bypass reasons, the cost of telling clips (LYR-17 held at 1.20x against its 1.28 bound), the `all-panels` regression (+10.7..14.6%) and the splice and layer-bookkeeping costs with their reasons, the emulator and Simulator labelling of the phone numbers, 'Lane G on this Mac' (lane D part did not complete), and 'On a wgpu desktop' (PERF-4 amendment, recorded in the criterion text, run not done). I spot-checked the final table against `artifacts-temp/testkit/perf/final/fast-mode.md` and the browser table against `browser-timing-run1.log`; they agree.\n- **Commits since the last sealed review** (`9dc03cc..HEAD`): the shader_sampling guard now also finds `sample_tile(` (correct, the sprite shaders sample through it); the Android host's slow-frame handling is sound (frame limit = 3x the slowest frame seen, swipe and timing skipped when a probe frame takes 1.5 s or more, the skip says so in the result line); `RUN_TIMEOUT` 45 min sits inside the lane E job's 90 min; the plan job's `plan.sh` behaves as `docs/ci.md` says (I ran it for a docs-only diff, labels, dispatch inputs and an unknown job name).\n- **Non-blocking observations** (not findings): (a) `docs/testing.md` Lane E still says the swipe through the system 'must come from tiles' and does not mention that it and the timing check skip where frames take 1.5 s or more (the CI emulator); the skip is visible in the result line. (b) `lane-e.yml` interpolates the dispatch `grep` into the emulator script text instead of an env var as the other lanes do (writers only; documented as 'no spaces'). (c) two `test.setTimeout` lines in `scroll-layers.spec.ts` are mis-indented.\n- Not checked: any test, build, lane or benchmark (relied on the recorded passing evidence); the fixes and defaults of FM-4 already reviewed at s13; physical-device and wgpu-desktop behaviour (documented as not run).",
+      "findingIds": [],
+      "recordedAt": "2026-10-13T21:56:46Z"
     }
   },
   "checkpoints": {
