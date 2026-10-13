@@ -86,6 +86,8 @@ Every new feature or behavior change gets its own new, separately selectable tes
 
 For standalone changes, run relevant validation after completing the requested change, without repeating it after each intermediate edit.
 
+Fix a failing test, check, review finding or CI job through AgentX's repair loop (`references/repair-loop.md` of the agentx skill): collect every failure once, reproduce and reprove each with its narrowest selector, push once per batch, and ask CI for only the failed jobs and platforms ([docs/ci.md](docs/ci.md): `ci:<job>` / `ci-os:<platform>` labels, or a manual run's `jobs`, `platforms` and `grep`). Epic closing (`check --epic`, one complete CI run, the final review) starts only when `agentx_repair.py close-gate` passes.
+
 Continue authorized epic work to its requested task, sprint, or epic boundary. Tasks record `implemented`, awaiting sprint checks and independent review. Source checkpoints and a current final review establish completion. A progress message or running command is not completion.
 
 Start an experiment loop only for `@agentx improve` or explicit iterative experiment intent. Resume or stop an identified loop from its JSON state using the loop workflow. Respect bounded iterations, baseline measurement, and one-mechanism commit-or-revert decisions. An unrelated task does not resume a loop just because its state exists.
