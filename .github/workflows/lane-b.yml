@@ -15,6 +15,9 @@ on:
         description: Run the nightly selection (every spec except @timing) instead of @canary and @pr
         type: boolean
         default: false
+      grep:
+        description: Run only the specs whose title matches this Playwright --grep (no spaces), over the other selection
+        default: ''
 
 # A new push to a pull request cancels its superseded run; scheduled and manual runs always finish.
 concurrency:
@@ -31,8 +34,27 @@ env:
   SHARDS: 4
 
 jobs:
+  plan:
+    name: plan
+    runs-on: ubuntu-24.04
+    outputs:
+      jobs: ${{ steps.plan.outputs.jobs }}
+      grep: ${{ steps.plan.outputs.grep }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: plan
+        uses: ./.github/actions/plan
+        with:
+          # The dispatch input `all-specs` and `grep` pick the specs; this workflow is the job.
+          jobs: lane-b
+          grep: ${{ inputs.grep }}
+
   build:
     name: lane B build
+    needs: plan
+    if: contains(fromJSON(needs.plan.outputs.jobs), 'lane-b')
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -68,7 +90,7 @@ jobs:
 
   e2e:
     name: lane B e2e (shard ${{ matrix.shard }})
-    needs: build
+    needs: [plan, build]
     strategy:
       fail-fast: false
       matrix:
@@ -108,8 +130,12 @@ jobs:
         env:
           GPUX_BASE_URL: http://127.0.0.1:8000/
           GPUX_DIST: ${{ github.workspace }}/target/gpux-web/dist
+        env:
+          GREP: ${{ needs.plan.outputs.grep }}
         run: |
-          if [ "${{ github.event_name }}" = schedule ] || [ "${{ inputs.all-specs }}" = true ]; then
+          if [ -n "$GREP" ]; then
+            selection=(--grep "$GREP")
+          elif [ "${{ github.event_name }}" = schedule ] || [ "${{ inputs.all-specs }}" = true ]; then
             selection=(--grep-invert @timing)
           else
             selection=(--grep "@canary|@pr")
@@ -134,8 +160,8 @@ jobs:
 
   report:
     name: lane B report
-    needs: e2e
-    if: ${{ !cancelled() }}
+    needs: [plan, e2e]
+    if: ${{ !cancelled() && contains(fromJSON(needs.plan.outputs.jobs), 'lane-b') }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7

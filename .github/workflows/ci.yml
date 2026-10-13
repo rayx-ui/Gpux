@@ -4,6 +4,17 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
+      jobs:
+        description: >-
+          Jobs to run: all, or a comma-separated list of check, test, lane-a, lane-c, lane-d,
+          package
+        default: all
+      platforms:
+        description: 'Platforms to run on: all, or a comma-separated list of ubuntu, windows, macos'
+        default: all
+      grep:
+        description: Select the tests of lanes A, C and D by name (`gpux-testkit --grep`; no spaces)
+        default: ''
       update-goldens:
         description: Regenerate the lane C goldens of each backend and upload them as artifacts
         type: boolean
@@ -28,12 +39,35 @@ env:
     libvulkan1 mesa-vulkan-drivers
 
 jobs:
+  # Chooses what runs: the manual inputs, or on a pull request its `ci:<job>` and `ci-os:<platform>`
+  # labels and the files it changes (docs/ci.md).
+  plan:
+    name: plan
+    runs-on: ubuntu-24.04
+    outputs:
+      jobs: ${{ steps.plan.outputs.jobs }}
+      os: ${{ steps.plan.outputs.os }}
+      lane_c: ${{ steps.plan.outputs.lane_c }}
+      grep: ${{ steps.plan.outputs.grep }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: plan
+        uses: ./.github/actions/plan
+        with:
+          jobs: ${{ inputs.jobs }}
+          platforms: ${{ inputs.platforms }}
+          grep: ${{ inputs.grep }}
+
   check:
     name: check (${{ matrix.os }})
+    needs: plan
+    if: contains(fromJSON(needs.plan.outputs.jobs), 'check')
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, windows-2025, macos-15]
+        os: ${{ fromJSON(needs.plan.outputs.os) }}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
@@ -63,10 +97,12 @@ jobs:
 
   test:
     name: test (${{ matrix.os }})
+    needs: plan
+    if: contains(fromJSON(needs.plan.outputs.jobs), 'test')
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, windows-2025, macos-15]
+        os: ${{ fromJSON(needs.plan.outputs.os) }}
     runs-on: ${{ matrix.os }}
     steps:
       - name: Free disk space
@@ -90,10 +126,12 @@ jobs:
 
   lane-a:
     name: lane A (${{ matrix.os }})
+    needs: plan
+    if: contains(fromJSON(needs.plan.outputs.jobs), 'lane-a')
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, windows-2025, macos-15]
+        os: ${{ fromJSON(needs.plan.outputs.os) }}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
@@ -105,20 +143,19 @@ jobs:
           sudo apt-get install -y $LINUX_PACKAGES
       # The testkit runs lane A with every conformance group that needs no renderer.
       - name: Lane A and the conformance catalog
-        run: cargo run -p gpux-testkit -- lane a
+        env:
+          GREP: ${{ needs.plan.outputs.grep }}
+        run: cargo run -p gpux-testkit -- lane a ${GREP:+--grep "$GREP"}
+        shell: bash
 
   lane-c:
     name: lane C (${{ matrix.backend }})
+    needs: plan
+    if: contains(fromJSON(needs.plan.outputs.jobs), 'lane-c')
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-24.04
-            backend: lavapipe
-          - os: windows-2025
-            backend: warp
-          - os: macos-15
-            backend: metal
+        include: ${{ fromJSON(needs.plan.outputs.lane_c) }}
     runs-on: ${{ matrix.os }}
     env:
       GPUX_WGPU_ADAPTER: software
@@ -137,7 +174,10 @@ jobs:
         if: runner.os == 'Linux'
         run: echo "VK_DRIVER_FILES=$(ls /usr/share/vulkan/icd.d/lvp_icd*.json | head -n 1)" >> "$GITHUB_ENV"
       - name: Lane C
-        run: cargo run -p gpux-testkit -- lane c
+        env:
+          GREP: ${{ needs.plan.outputs.grep }}
+        run: cargo run -p gpux-testkit -- lane c ${GREP:+--grep "$GREP"}
+        shell: bash
       - name: Upload failure artifacts
         if: failure()
         uses: actions/upload-artifact@v7
@@ -155,10 +195,12 @@ jobs:
 
   lane-d:
     name: lane D (${{ matrix.os }})
+    needs: plan
+    if: contains(fromJSON(needs.plan.outputs.jobs), 'lane-d')
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, windows-2025, macos-15]
+        os: ${{ fromJSON(needs.plan.outputs.os) }}
     runs-on: ${{ matrix.os }}
     env:
       # A hosted Windows session may not deliver SendInput; the OS-input check then reports
@@ -177,10 +219,15 @@ jobs:
         run: echo "VK_DRIVER_FILES=$(ls /usr/share/vulkan/icd.d/lvp_icd*.json | head -n 1)" >> "$GITHUB_ENV"
       - name: Lane D (X11 under Xvfb)
         if: runner.os == 'Linux'
-        run: env -u WAYLAND_DISPLAY xvfb-run -a -s "-screen 0 1280x1024x24" cargo run -p gpux-testkit -- lane d
+        env:
+          GREP: ${{ needs.plan.outputs.grep }}
+        run: env -u WAYLAND_DISPLAY xvfb-run -a -s "-screen 0 1280x1024x24" cargo run -p gpux-testkit -- lane d ${GREP:+--grep "$GREP"}
       - name: Lane D
         if: runner.os != 'Linux'
-        run: cargo run -p gpux-testkit -- lane d
+        env:
+          GREP: ${{ needs.plan.outputs.grep }}
+        run: cargo run -p gpux-testkit -- lane d ${GREP:+--grep "$GREP"}
+        shell: bash
       - name: Upload failure artifacts
         if: failure()
         uses: actions/upload-artifact@v7
@@ -191,6 +238,8 @@ jobs:
 
   package:
     name: package
+    needs: plan
+    if: contains(fromJSON(needs.plan.outputs.jobs), 'package')
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7

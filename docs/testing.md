@@ -30,6 +30,8 @@ an API RayX uses ships with the matching RayX change, but RayX's tests are not g
 
 ### CI and cadence
 
+What a run executes is chosen by its `plan` job from the manual inputs, the pull request's `ci:` labels and its changed files: see [ci.md](ci.md).
+
 | Lane | Workflow job | Runner | Cadence |
 |---|---|---|---|
 | A | `ci.yml` lane A | `ubuntu-24.04`, `windows-2025`, `macos-15` | every pull request |

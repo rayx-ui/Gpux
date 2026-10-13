@@ -17,6 +17,10 @@ on:
   schedule:
     - cron: '7 4 * * *'
   workflow_dispatch:
+    inputs:
+      grep:
+        description: Select the checks and scenes by name (`gpux-testkit --grep`; no spaces)
+        default: ''
 
 # A new push to a pull request cancels its superseded run; scheduled and manual runs always finish.
 concurrency:
@@ -27,7 +31,25 @@ env:
   CARGO_PROFILE_DEV_DEBUG: line-tables-only
 
 jobs:
+  plan:
+    name: plan
+    runs-on: ubuntu-24.04
+    outputs:
+      jobs: ${{ steps.plan.outputs.jobs }}
+      grep: ${{ steps.plan.outputs.grep }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: plan
+        uses: ./.github/actions/plan
+        with:
+          jobs: lane-f
+          grep: ${{ inputs.grep }}
+
   lane-f:
+    needs: plan
+    if: contains(fromJSON(needs.plan.outputs.jobs), 'lane-f')
     name: lane F (Simulator)
     runs-on: macos-15
     steps:
@@ -38,7 +60,9 @@ jobs:
       - name: Install XcodeGen
         run: brew install xcodegen
       - name: Lane F
-        run: cargo run -p gpux-testkit -- lane f
+        env:
+          GREP: ${{ needs.plan.outputs.grep }}
+        run: cargo run -p gpux-testkit -- lane f ${GREP:+--grep "$GREP"}
       - name: Upload the console and failure frames
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7

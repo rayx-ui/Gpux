@@ -1,0 +1,50 @@
+name: Plan the run
+description: >-
+  Chooses which jobs, platforms and tests a workflow run executes, from the manual inputs, the
+  pull request's labels and the files it changes. See docs/ci.md.
+inputs:
+  jobs:
+    description: Manual run only. Comma-separated job names, or `all`.
+    default: all
+  platforms:
+    description: Manual run only. Comma-separated of ubuntu, windows, macos, or `all`.
+    default: all
+  grep:
+    description: Manual run only. The test selector a lane passes to its runner (`--grep`).
+    default: ''
+outputs:
+  jobs:
+    description: JSON array of the job names to run.
+    value: ${{ steps.plan.outputs.jobs }}
+  os:
+    description: JSON array of the runner images to run on.
+    value: ${{ steps.plan.outputs.os }}
+  lane_c:
+    description: JSON matrix `include` for lane C, limited to the chosen platforms.
+    value: ${{ steps.plan.outputs.lane_c }}
+  grep:
+    description: The test selector, empty for the lane's own selection.
+    value: ${{ steps.plan.outputs.grep }}
+runs:
+  using: composite
+  steps:
+    - id: plan
+      shell: bash
+      env:
+        EVENT_NAME: ${{ github.event_name }}
+        DISPATCH_JOBS: ${{ inputs.jobs }}
+        DISPATCH_PLATFORMS: ${{ inputs.platforms }}
+        DISPATCH_GREP: ${{ inputs.grep }}
+        # The labels are read when the plan runs, so a re-run sees the labels as they are now.
+        GH_TOKEN: ${{ github.token }}
+        REPO: ${{ github.repository }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        EVENT_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      run: |
+        if [ -n "${PR_NUMBER:-}" ]; then
+          PR_LABELS=$(gh api "repos/$REPO/pulls/$PR_NUMBER" --jq '[.labels[].name]' 2>/dev/null || echo "$EVENT_LABELS")
+          export PR_LABELS
+        fi
+        bash "${{ github.action_path }}/plan.sh"
