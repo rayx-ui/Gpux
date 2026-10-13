@@ -1,12 +1,12 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 279,
-  "planRevision": 55,
+  "revision": 289,
+  "planRevision": 56,
   "specHashes": {
-    "requirements": "34fe5a788cae7586ec55ec23f3293238a0860a20173264724341c6e48bb93c4c",
+    "requirements": "c7ad1ff00a3415e3ef67fca36a4b809eedd0f52b85739550ac5b2f67c34cf080",
     "design": "74a56aad4c81f8065f21a53ac25892dca980f4985029acaf8b381afd4e7678a3",
-    "plan": "c75dcbbd536b1886ca6bdf998a799feaf223504ab763677ca1ab98d385eaa462"
+    "plan": "da5ca53b482629de88afdf2949126f21bda6cef68a8d6715f612208a00200f5d"
   },
   "tasks": {
     "t01-fast-switches": {
@@ -256,13 +256,22 @@
       ]
     },
     "t42-defaults-on": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t43-docs": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t44-final-comparison": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "claude-240e1cb7"
+      ]
     },
     "t45-composition-ios": {
       "status": "done",
@@ -544,6 +553,15 @@
         }
       },
       "recordedAt": "2026-10-12T07:10:53Z"
+    },
+    "b3ad9eceefb752432e3ad779615a47af6eb2da2525a789945710a5f32c3507c4": {
+      "snapshot": {
+        "specHash": "c33f9227e08096ab3693a4be619f1207f98c76c9b3e4c37a808aa142e750f656",
+        "repositories": {
+          "gpux": "ced56f36d3bd2bd4ad1bd1e9c91ce434d3eb31ea382dcf0953d07b49caf1642e"
+        }
+      },
+      "recordedAt": "2026-10-13T16:23:21Z"
     }
   },
   "checkResults": {
@@ -1957,6 +1975,74 @@
       "logPath": "artifacts-temp/agentx/gpux-fast-mode/s12g-transformed-text-final-f565050b75d2.log",
       "logSha256": "55899c5cfd5cba9a71c8fe5f4e9d31428c7c0fa8cbb5821372d5c5a1b267a562",
       "inputsHash": "1373c8ca3af5b504d3dd159dd43e33ef0132d3c76dbe3d4982a5349441e4a586"
+    },
+    "s13-defaults-docs-comparison/check-parity-a/final": {
+      "checkId": "check-parity-a",
+      "boundaryId": "s13-defaults-docs-comparison",
+      "phase": "final",
+      "batchId": "b3ad9eceefb752432e3ad779615a47af6eb2da2525a789945710a5f32c3507c4",
+      "definitionHash": "fa2a6c37c33f236da90188c21241c323bf5546009bfdb63ca19a5b684a5a283e",
+      "basisHash": "4117d4a173483b0fc85c97ffef9e1f299451397c96f3ed2e50ae86f532220dc9",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 39,
+      "durationSeconds": 0.7118,
+      "recordedAt": "2026-10-13T16:22:59Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s13-defaults-docs-comparison-final-6456db766389.log",
+      "logSha256": "686d8e47553e2d0400441c20b2f7e3d16873d029f07b2010668a6d0c12afaf99",
+      "inputsHash": "2b8586cbf531996f8bffbe989787cbb2141ace55a328643d61780be2efb4d758"
+    },
+    "s13-defaults-docs-comparison/check-parity-c/final": {
+      "checkId": "check-parity-c",
+      "boundaryId": "s13-defaults-docs-comparison",
+      "phase": "final",
+      "batchId": "b3ad9eceefb752432e3ad779615a47af6eb2da2525a789945710a5f32c3507c4",
+      "definitionHash": "fa4dea1973422fd594fe213244c4ca6aafdb2bf5d4190d944ac3184b1861bcc1",
+      "basisHash": "5efbdb9f78d05ebb941250909959ed63944ddb9d67ae5896be2b91dbcd4d87f0",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 77,
+      "durationSeconds": 4.0791,
+      "recordedAt": "2026-10-13T16:23:03Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s13-defaults-docs-comparison-final-5e3a4482a037.log",
+      "logSha256": "85434800f700e018a1c450ac96a8b3b2bd97e32cad8a67e09f8eb7ba44b6ac74",
+      "inputsHash": "33da8ec53ccd0c95261ad21466c59e07231a514abba1bb710292079dabb23bf3"
+    },
+    "s13-defaults-docs-comparison/check-attribution/final": {
+      "checkId": "check-attribution",
+      "boundaryId": "s13-defaults-docs-comparison",
+      "phase": "final",
+      "batchId": "b3ad9eceefb752432e3ad779615a47af6eb2da2525a789945710a5f32c3507c4",
+      "definitionHash": "80c9398e75ebaa48c924a0e73fa456211b2fdfff46be5daecc5ec837f963218b",
+      "basisHash": "5c77d6dfa42974d2f1dceeeb5bbe98440d99d7376390030dd4d02bba6e79f404",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 19,
+      "durationSeconds": 18.3431,
+      "recordedAt": "2026-10-13T16:23:21Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s13-defaults-docs-comparison-final-24e91d3a20aa.log",
+      "logSha256": "97201daa474e0ff03828d96748f9e6e0e5d71343562ae4a9656fe2a66b65371c",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
+    },
+    "s13-defaults-docs-comparison/check-defaults/final": {
+      "checkId": "check-defaults",
+      "boundaryId": "s13-defaults-docs-comparison",
+      "phase": "final",
+      "batchId": "b3ad9eceefb752432e3ad779615a47af6eb2da2525a789945710a5f32c3507c4",
+      "definitionHash": "c088cc3269833d9aa3042ffe66b8bee6e752a6d4ff056a802654de900efa512d",
+      "basisHash": "9215fba60d2e063ba08d626c92de0d0366c25a00e74683984ec3a90aa897a03e",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 7,
+      "durationSeconds": 0.258,
+      "recordedAt": "2026-10-13T16:23:21Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s13-defaults-docs-comparison-final-9a79e7ee98e8.log",
+      "logSha256": "a1cfb46e934d1d4b819d94f70a65abc8abbb7874e79bde86081b98f3c13c6cfe",
+      "inputsHash": "7cd312a85dc4d387bf101034e748120e597052099583749e9a3a7d5a935e2c6d"
     }
   },
   "reviews": {
@@ -6163,6 +6249,302 @@
         "s12g-no-test-guards-the-clamp-at-a-tiles-first-row-and-column"
       ],
       "recordedAt": "2026-10-12T07:42:51Z"
+    },
+    "s13-defaults-docs-comparison": {
+      "reviewerId": "claude-reviewer-s13b-9d4a7e20",
+      "snapshotId": "b3ad9eceefb752432e3ad779615a47af6eb2da2525a789945710a5f32c3507c4",
+      "criterionIds": [
+        "FM-4",
+        "PERF-4",
+        "PERF-6",
+        "FIN-1",
+        "PERF-2",
+        "OR-3",
+        "OR-4"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/mode.rs",
+          "kind": "source",
+          "criterionIds": [
+            "FM-4"
+          ],
+          "sha256": "9677222133742c081f73048e678d4e9d1f4084189b4ae176ba68d6626c7d4702"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/defaults.rs",
+          "kind": "test",
+          "criterionIds": [
+            "FM-4"
+          ],
+          "sha256": "64dbc710eb85568e4699548c5608870fb2050fc50370c949c76b4ef5f2875914"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/switches.rs",
+          "kind": "test",
+          "criterionIds": [
+            "FM-4"
+          ],
+          "sha256": "c1129a8778e2847fe17ce83a5002ca5bbc2fcb8e40931ee0d38f30eedd768ab3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/splice.rs",
+          "kind": "source",
+          "criterionIds": [
+            "FM-4"
+          ],
+          "sha256": "7d41e671d48e36405458cd8841ee64eb8170a84f0f54120fa4ab8373f77fc972"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/retained.rs",
+          "kind": "source",
+          "criterionIds": [
+            "FM-4"
+          ],
+          "sha256": "864ee947cddbcacba6e576853f559d4a45fc844c6ec0fc083551607bf1cfc8e3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs",
+          "kind": "source",
+          "criterionIds": [
+            "FM-4"
+          ],
+          "sha256": "e7608a24ab3bf1ffe125b685bba60aa3c98591eebdbaec67ff740d54fb70310d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/randomized_element_tree.rs",
+          "kind": "test",
+          "criterionIds": [
+            "FM-4"
+          ],
+          "sha256": "29e083000d4ece178c728e1f658921ae41aa9a58f764c6ac97c3a604fb652b5a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-4",
+            "PERF-6",
+            "FIN-1"
+          ],
+          "sha256": "0ad489dcbba6fc3a4e7f49350388d73f151fb96a0833e83f61584016d2a0ea65"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/testkit/perf/final/fast-mode.md",
+          "kind": "runtime",
+          "criterionIds": [
+            "PERF-4"
+          ],
+          "sha256": "8e2fccf79e2b2ebedb77751150ecc2a88e535278113d621fecabc44f4ca880bb"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/lane-b-timing.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "PERF-6"
+          ],
+          "sha256": "67f95afae7e2c2533bebe4b4bbcaa0dbbee104460abf5495019e3ddc5eb57896"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/lane-e-timing.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "PERF-6"
+          ],
+          "sha256": "bdf3a12b60cd5861eb7a21be85d04b8794bbb2ff121b046572d35635ec41e8f0"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/lane-f-timing.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "PERF-6"
+          ],
+          "sha256": "dc1777c33629c66b14a46ba9c4a4c0ef38d6a0e1232e23e32bd1f10178ea03d1"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scroll_layers.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-6"
+          ],
+          "sha256": "3b102f7af0b59034e145c74e6f934bbcd43a1fb2136e98bb5a2c10588267eee9"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/stats.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-6"
+          ],
+          "sha256": "67bf884b143c1db258c5aa678f46aab2f4ea0360044f0b3e965367900fe6ef88"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/scroll-layers.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "PERF-6"
+          ],
+          "sha256": "3a3b8944df2ddbc0df79d6a9831bd4602fa02c73dad8cc43e23a7f7c7fff259a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/testing.md",
+          "kind": "source",
+          "criterionIds": [
+            "FIN-1"
+          ],
+          "sha256": "4d5f0b47c20dd6959189f7508a114b68745301faef8c35f5780ebcd4871521f1"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "README.md",
+          "kind": "source",
+          "criterionIds": [
+            "FIN-1"
+          ],
+          "sha256": "f5939811d16423b9cf8b519941660fb7e9a25f07a2c8cbd67ca32d65eb65c142"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/upstream/gpui-fast.md",
+          "kind": "source",
+          "criterionIds": [
+            "FIN-1"
+          ],
+          "sha256": "76a20ed1c1f003ccf7b59168779e6d2392badd8eb6433fdff276b27cd5dd7432"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/references/fast-mode.md",
+          "kind": "source",
+          "criterionIds": [
+            "FIN-1"
+          ],
+          "sha256": "6a50acd2b85cb20a6aa0b6fa509e473d20d857fa6f144055de393d7e6405cec9"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/scenarios/scroll.rs",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-2"
+          ],
+          "sha256": "0e3187364a19146f6984465b00cd17dc27803f81b43bf9585cdb97a94b55613f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/fast_mode_attribution.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PERF-2"
+          ],
+          "sha256": "7800ea0f18368cd3db06a24b0dfc878e0f8992cc883b0cbe2ace2421a12123fc"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/shaders.wgsl",
+          "kind": "source",
+          "criterionIds": [
+            "OR-3"
+          ],
+          "sha256": "c94e4ccc8bee8dba627a0bd3c4be6ac85520cf3cec18ae259690044f8cd680ac"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_apple/src/shaders.metal",
+          "kind": "source",
+          "criterionIds": [
+            "OR-3"
+          ],
+          "sha256": "57d453ab724e2782c4083552560a11c6779249a0e552e912ee2680bd710fc3c2"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_a_fast_parity.rs",
+          "kind": "test",
+          "criterionIds": [
+            "OR-3"
+          ],
+          "sha256": "ab7b2be4370aab3a63a560d98f780764ad0cf858301139f78b66ab9c3bdf2439"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui_wgpu/src/shaders.wgsl",
+          "kind": "source",
+          "criterionIds": [
+            "OR-4"
+          ],
+          "sha256": "c94e4ccc8bee8dba627a0bd3c4be6ac85520cf3cec18ae259690044f8cd680ac"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_fast_parity.rs",
+          "kind": "test",
+          "criterionIds": [
+            "OR-4"
+          ],
+          "sha256": "a1aa076dea3c48a16030c03e7c3e59fb6c57e7e323b801d9c8bb724972f8a963"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/browser-timing-run1.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "PERF-6"
+          ],
+          "sha256": "8a1b96f610f813dbfa32dd7086ed460038ad3c5cd8151a980f6d4696e09b4c36"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/browser-timing-run2.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "PERF-6"
+          ],
+          "sha256": "c657be0f926cf282a028afedf80f6a5e4c2697b29d4f28e3bf042e937ce478dd"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/browser-timing-run3.log",
+          "kind": "runtime",
+          "criterionIds": [
+            "PERF-6"
+          ],
+          "sha256": "a3bc4885ae7039ca19eb9653354e1a4672d8b4fe43727c9f53b9d3dca9c6656f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/tasks/gpux-fast-mode/requirements.json",
+          "kind": "source",
+          "criterionIds": [
+            "PERF-4"
+          ],
+          "sha256": "c0d2e16eb4225a9be3b406e10cbbeab52e4b1840d780388d7b59498c4ed3132c"
+        }
+      ],
+      "summaryMarkdown": "**Verdict: passed at `0d53c57` (revision 289), nothing open.** The four s13 findings are repaired: PERF-4 narrowed by an amendment the user agreed to, the browser table rebuilt from three saved runs and recomputed cell by cell, the application contract written and linked from the skill reference, and `docs/testing.md` naming the `fast_mode` bench, lane G's `fast-mode.md` and `fast::tests::defaults`. FM-4, PERF-2, OR-3 and OR-4 are unchanged from the first review (no source change since `9dc03cc`, only docs and memory). Not run: benchmarks, builds, lanes.",
+      "findingIds": [
+        "s13-perf4-no-wgpu-desktop-lane-g",
+        "s13-perf6-browser-runs-not-in-the-logs",
+        "s13-fin1-no-application-contract",
+        "s13-fin1-testing-md-lane-g-omits-fast-mode"
+      ],
+      "recordedAt": "2026-10-13T16:23:26Z"
     }
   },
   "checkpoints": {
@@ -6317,6 +6699,14 @@
       },
       "reviewHash": "58c65349ec6f21def9f8a0fd48b369590d32a424e193a73de6bfc6df7d122837",
       "recordedAt": "2026-10-12T07:42:56Z"
+    },
+    "s13-defaults-docs-comparison": {
+      "snapshotId": "b3ad9eceefb752432e3ad779615a47af6eb2da2525a789945710a5f32c3507c4",
+      "commits": {
+        "gpux": "0d53c5788119ec2a34b3eb785cb79fedcda761da"
+      },
+      "reviewHash": "ba36480fcedb015d6a9d8f74c8f5ef37de1aff0a51a5e809ba8dc7924ff97977",
+      "recordedAt": "2026-10-13T16:23:31Z"
     }
   },
   "findings": [
@@ -8540,6 +8930,95 @@
         }
       ],
       "descriptionMarkdown": "**Resolved at `147a42e`.** `a_transformed_image_does_not_depend_on_what_the_atlas_holds_beside_it` now compares one window with the images alone against four crowded ones (`CROWDS`), and fails for every clamp mutation I tried, on Metal and in WGSL on lavapipe: lower clamp out in both axes (95 levels, crowd 0), in x alone (54, crowd 2), in y alone (96, crowd 0); upper clamp one too far in both axes, x alone (60, crowd 1; the rotated-text and turn-again groups fail too) and y alone (60, crowd 2); `last = size` in both axes, x alone (the same three) and y alone (60, crowd 2). At the head it passes on both renderers and over my random search of neighbours (60 neighbour sets x 16 and 64 px sources x 1x and 2x = 240 runs: 0 levels, none above one)."
+    },
+    {
+      "id": "s13-perf4-no-wgpu-desktop-lane-g",
+      "boundaryId": "s13-defaults-docs-comparison",
+      "criterionIds": [
+        "PERF-4"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved at `0d53c57`.** PERF-4 was amended (revision 288, with the user's agreement) to lane G on macOS plus the wgpu tiles timed through the Simulator and the browser, and the wgpu-desktop run is left to the user; 'On a wgpu desktop' still says it was not run. The document claims nothing it did not run.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md",
+          "symbol": "On a wgpu desktop"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".agentx/tasks/gpux-fast-mode/requirements.json",
+          "symbol": "PERF-4"
+        }
+      ]
+    },
+    {
+      "id": "s13-perf6-browser-runs-not-in-the-logs",
+      "boundaryId": "s13-defaults-docs-comparison",
+      "criterionIds": [
+        "PERF-6"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved at `0d53c57`.** The table is rebuilt from `browser-timing-run1.log` to `run3.log`; I recomputed all 12 cells and the changes (div WebGPU -13/-10/-18%, WebGL2 -13/-7/-18%, list WebGPU +15/+15/+12%, WebGL2 +27/+28/+19%), the slowest-frame ranges (5.8-8.7 on, 3.6-6.1 off) and the frame counts (244-269 recorded, 56 and 58 from tiles) against the logs; the lane G runs are named with their +32%.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md",
+          "symbol": "In the browser"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/browser-timing-run1.log"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/browser-timing-run2.log"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "artifacts-temp/browser-timing-run3.log"
+        }
+      ]
+    },
+    {
+      "id": "s13-fin1-no-application-contract",
+      "boundaryId": "s13-defaults-docs-comparison",
+      "criterionIds": [
+        "FIN-1"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved at `0d53c57`.** 'The application contract' has the three rules, the verify mode as the way to find a violation, and the skill reference links it. One imprecision, not a finding: rule 3 says scroll requests 'notify its owner'; `request_offset` bumps the handle's version, which rebuilds the views that read it, without a notify of an owner.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md",
+          "symbol": "The application contract"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/references/fast-mode.md"
+        }
+      ]
+    },
+    {
+      "id": "s13-fin1-testing-md-lane-g-omits-fast-mode",
+      "boundaryId": "s13-defaults-docs-comparison",
+      "criterionIds": [
+        "FIN-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**Resolved at `0d53c57`.** The lane G benchmark list names `fast_mode`, lane G's `fast-mode.md` is listed, and `fast::tests::defaults` has its select command.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/testing.md",
+          "symbol": "Lane G: the local real GPU"
+        }
+      ]
     }
   ],
   "handoffMarkdown": "",
