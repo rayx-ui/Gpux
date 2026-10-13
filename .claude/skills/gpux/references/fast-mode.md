@@ -32,3 +32,4 @@ maps every gpux file to the gpui-fast file it adapts and says how to compare a l
   the oracle. Retained scenes replay what was painted, so anything that changes how a primitive is
   produced without invalidating a view (text rendering mode, background appearance) has to make the
   window draw from scratch (`Window::refresh_for_text_policy` is the hook for text).
+- The three rules an application follows with view retention on are in [the application contract](../../../../docs/fast-mode.md#the-application-contract): state outside entities needs `cx.notify()`, notify and write globals only on change, scroll through `ScrollHandle`/`ListState`.

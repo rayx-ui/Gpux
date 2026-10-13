@@ -90,6 +90,8 @@ compare it with itself off: the oracle and counter groups in lane A (`fast::test
 `lane_a_fast_parity`, `fast_mode_attribution`), `lane_c_fast_parity` and the scroll-layer groups
 in lane C, the `scroll-layers` specs in lane B and the scroll-layer scenes of lanes E and F; the
 timings are lane G's (`gpux-testkit perf fast-mode`, [fast-mode.md](fast-mode.md#measuring)).
+What a new window gets with the defaults on, and what each variable turns off, is
+`cargo test -p gpux --features test-support --lib fast::tests::defaults::`.
 
 ## Goldens
 
@@ -439,11 +441,13 @@ runs on the developer's machine and refuses to run when `CI` is set:
    `desktop-backend` result fails when they render on a software rasterizer instead (macOS
    windows name no adapter and report it skipped).
 4. **The benchmarks**: `cargo bench -p gpux-platform --features bench-support` runs the
-   `#[gpux::bench]` Criterion suites `randomized_element_tree` and `inspector_render` on the GPU.
+   `#[gpux::bench]` Criterion suites `randomized_element_tree`, `inspector_render` and `fast_mode`
+   (every fast-mode scenario in every cumulative mode, macOS only; `gpux-testkit perf fast-mode`
+   runs it alone and can `--compare` an earlier run) on the GPU.
    Benchmarks run on a thread with an 8 MiB stack on every platform, so deep trees fit on
    Windows too. They run only for the whole selection, not with `--scene` or `--grep`.
 
-Lane G writes `artifacts-temp/testkit/g/timing.md`: each part's results and duration, the GPU
+Lane G writes `artifacts-temp/testkit/g/fast-mode.md` (the `fast_mode` report) and `artifacts-temp/testkit/g/timing.md`: each part's results and duration, the GPU
 the windows rendered on, the `@timing` specs' measurements (the `gpux-timing:` lines they print),
 and every benchmark's estimate with its confidence interval. Raw logs stay in
 `artifacts-temp/testkit/g/` (lanes C and D, the benchmarks) and `artifacts-temp/testkit/b/` (the

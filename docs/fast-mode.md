@@ -134,6 +134,32 @@ bounds, come out of layout as they were. A view that defers something outside it
 since what is deferred is drawn after it. Each view whose own reads changed is marked dirty at
 frame start, as if notified, so the views around it are spliced.
 
+### The application contract
+
+With view retention on (the default), a view that read nothing that changed is not rendered again,
+so a view must show what its dependencies can see. Three rules follow.
+
+1. **State that lives outside an entity needs `cx.notify()`.** A view reads entities, globals,
+   scroll and list state and the window's ambient input, and a frame knows only those changed. An
+   `Rc<RefCell<_>>`, a thread-local, an atomic or a field of a struct the view borrows does not
+   register as a read: change it and the view that shows it keeps its last frame until something it
+   did read changes. Keep the state in an entity, or call `cx.notify()` on the view's entity after
+   changing it (updating an entity without a notify is also seen, and shows).
+2. **Notify, and write globals, only on change.** Every notify builds the view and the views
+   around it again, and every write to a global (`cx.set_global`, `update_global`, `remove_global`)
+   builds every view that read it; a per-frame `cx.notify()` or a global rewritten with the same
+   value every frame takes back everything retention saves. Compare before writing, and notify when
+   the thing the view shows changed.
+3. **Scroll through `ScrollHandle` and `ListState`.** Scroll offsets, list measurements and
+   whether a list sits at its end are state a view reads through those handles; a scroll offset
+   kept anywhere else is rule 1. Request scrolls with `request_offset`, `scroll_to` and
+   `ListState`'s methods, which move the handle's version and notify its owner.
+
+A view that breaks a rule shows a frame that differs from the one drawn from scratch, which is how
+to find it: [verify mode](#verify-mode) draws that frame beside it and names the innermost view that
+differs. A window that cannot follow the rules (a render with side effects the frame must repeat)
+turns retention off with `Window::set_fast_mode`.
+
 ### Verify mode
 
 Under the `diagnostics` feature, `GPUX_RETENTION_VERIFY=1` or `Window::set_retention_verify(true)`
@@ -818,18 +844,21 @@ the eighth review of s12c measured on the real path (empty masks taken for untol
 Lane G's `@timing` tests of `scroll-layers.spec.ts` scroll the page of `web-scroll-layers` (a 440 by
 340 canvas) by 60 wheel steps with every mechanism on and off, and print the 95th percentile of
 gpux's frame work in its animation-frame callback, on Chromium on the Mac's GPU (Metal), WebGPU and
-forced WebGL2. Three runs (`artifacts-temp/lane-b-timing.log` and the two after it), the p95 in
-milliseconds, layers on against off:
+forced WebGL2. Three runs on an otherwise idle machine
+(`artifacts-temp/browser-timing-run1.log` to `run3.log`), the p95 in milliseconds, layers on against
+off, each run's change in brackets:
 
 | Scene | WebGPU | WebGL2 |
 |---|---|---|
-| cards in a scrolling `div` | 2.80 / 3.18 · 2.66 / 3.18 · 2.73 / 3.15 (-12 to -16%) | 3.12 / 3.33 · 3.12 / 3.25 · 2.97 / 3.34 (-4 to -11%) |
-| rows of a `list` | 3.53 / 2.87 · 3.56 / 3.07 · 3.55 / 3.10 (+15 to +23%) | 4.16 / 3.42 · 3.88 / 3.13 · 4.00 / 3.26 (+22 to +24%) |
+| cards in a scrolling `div` | 2.75 / 3.15 · 2.82 / 3.13 · 2.75 / 3.34 (-13%, -10%, -18%) | 3.08 / 3.56 · 3.07 / 3.29 · 2.97 / 3.63 (-13%, -7%, -18%) |
+| rows of a `list` | 3.73 / 3.25 · 3.82 / 3.32 · 3.70 / 3.30 (+15%, +15%, +12%) | 4.20 / 3.31 · 4.27 / 3.34 · 3.99 / 3.36 (+27%, +28%, +19%) |
 
-The slowest frame is longer with layers on in both scenes (5.6–8.9 ms against 3.2–5.5): it is the
-frame that rasterizes tiles. A list's rows are composited from tiles in 58 of 60 frames, and the
-frame work, which is CPU time (encoding the frame and submitting it), is not lower: the page is
-small, so each frame's fixed cost is most of it, and what tiles save is draw calls and fragment
+The two runs inside lane G, with other lane parts before and after them, gave the same direction with
+a wider spread (the list on WebGL2 up to +32%). The slowest frame is longer with layers on in both
+scenes (5.8–8.7 ms against 3.6–6.1): it is the frame that rasterizes tiles. Of the 245–270 frames
+recorded for 60 wheel steps, 56 (the `div`) and 58 (the list) were drawn from tiles, and the frame
+work, which is CPU time (encoding the frame and submitting it), is not lower for the list: the page
+is small, so each frame's fixed cost is most of it, and what tiles save is draw calls and fragment
 work, which the animation-frame callback does not time. The list's layer keeps its rows one by one
 (`list_rows_kept`), and the rows the pointer's hover changes are rendered every frame. On a page
 with a lot more on screen the balance would change; this one was chosen small so a software renderer
