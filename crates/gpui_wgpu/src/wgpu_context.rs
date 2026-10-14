@@ -355,7 +355,7 @@ impl WgpuContext {
         let backend_policy = native_backend_policy();
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: backend_policy,
-            flags: wgpu::InstanceFlags::default(),
+            flags: native_instance_flags(),
             backend_options: wgpu::BackendOptions::default(),
             memory_budget_thresholds: wgpu::MemoryBudgetThresholds::default(),
             display: None,
@@ -598,7 +598,7 @@ impl WgpuContext {
     ) -> wgpu::Instance {
         wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: backend_policy,
-            flags: wgpu::InstanceFlags::default(),
+            flags: native_instance_flags(),
             backend_options: wgpu::BackendOptions::default(),
             memory_budget_thresholds: wgpu::MemoryBudgetThresholds::default(),
             display: Some(display),
@@ -973,9 +973,65 @@ fn parse_pci_id(id: &str) -> anyhow::Result<u32> {
     u32::from_str_radix(id, 16).context("parsing PCI ID as hex")
 }
 
+/// The environment variable wgpu documents for exposing adapters whose driver does not claim Vulkan
+/// conformance (Mesa's `dzn`, Vulkan on D3D12, the only Vulkan driver of a GPU under WSL).
+#[cfg(not(target_family = "wasm"))]
+const ALLOW_NONCOMPLIANT_ADAPTER_ENV: &str = "WGPU_ALLOW_UNDERLYING_NONCOMPLIANT_ADAPTER";
+
+/// The instance flags of a native renderer: wgpu's defaults, plus
+/// [`ALLOW_NONCOMPLIANT_ADAPTER_ENV`] when it is set to anything but `0`. No other `WGPU_*`
+/// variable is read.
+#[cfg(not(target_family = "wasm"))]
+fn native_instance_flags() -> wgpu::InstanceFlags {
+    instance_flags(
+        std::env::var(ALLOW_NONCOMPLIANT_ADAPTER_ENV)
+            .ok()
+            .as_deref(),
+    )
+}
+
+#[cfg(not(target_family = "wasm"))]
+fn instance_flags(allow_noncompliant: Option<&str>) -> wgpu::InstanceFlags {
+    let mut flags = wgpu::InstanceFlags::default();
+    if allow_noncompliant.is_some_and(|value| value.trim() != "0") {
+        flags |= wgpu::InstanceFlags::ALLOW_UNDERLYING_NONCOMPLIANT_ADAPTER;
+    }
+    flags
+}
+
 #[cfg(all(test, not(target_family = "wasm")))]
 mod tests {
     use super::parse_pci_id;
+
+    mod instance_flags {
+        use super::super::instance_flags;
+
+        const ALLOW: wgpu::InstanceFlags =
+            wgpu::InstanceFlags::ALLOW_UNDERLYING_NONCOMPLIANT_ADAPTER;
+
+        #[test]
+        fn noncompliant_adapters_stay_hidden_by_default() {
+            assert!(!instance_flags(None).contains(ALLOW));
+            assert!(!instance_flags(Some("0")).contains(ALLOW));
+            assert!(!instance_flags(Some(" 0 ")).contains(ALLOW));
+        }
+
+        #[test]
+        fn any_other_value_exposes_them() {
+            assert!(instance_flags(Some("1")).contains(ALLOW));
+            assert!(instance_flags(Some("true")).contains(ALLOW));
+            assert!(instance_flags(Some("")).contains(ALLOW));
+        }
+
+        #[test]
+        fn the_variable_changes_only_that_flag() {
+            assert_eq!(
+                instance_flags(Some("1")) - ALLOW,
+                instance_flags(None),
+                "the default flags are unchanged otherwise",
+            );
+        }
+    }
 
     #[test]
     fn test_parse_device_id() {
