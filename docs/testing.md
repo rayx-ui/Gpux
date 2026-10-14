@@ -227,7 +227,9 @@ and compares the pixels, and three groups that compare every frame of a window d
 the renderer's tiles with a window drawn without scroll layers: `lane_c_scroll_layers` scrolls
 views at whole scale factors, `lane_c_layer_scales` at 1.25, 1.5 and 1.75 and with content
 painted transformed, and `lane_c_list_hover` moves the pointer over lists whose rows have a
-hover style. Without a Vulkan adapter, Linux falls back to llvmpipe over GL, where the
+hover style; `lane_c_profile` checks that the optimized test build keeps debug assertions and
+overflow checks on (`cargo test` builds at `opt-level = 1`, see
+[docs/measurements/lane-c-timings.md](measurements/lane-c-timings.md)). Without a Vulkan adapter, Linux falls back to llvmpipe over GL, where the
 renderer's effects pipeline does not validate yet, so lane C fails there: select lavapipe with
 `VK_DRIVER_FILES`.
 

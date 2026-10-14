@@ -197,13 +197,15 @@ const LANE_A_GROUPS: [&str; 8] = [
 
 /// The lane-C groups besides the scenes, which need the renderer: lane G's probes-only mode,
 /// fast-mode parity, and scroll layers drawn from the renderer's tiles (at whole scale
-/// factors, at fractional ones, and under a pointer that hovers a list's rows).
-const LANE_C_GROUPS: [&str; 5] = [
+/// factors, at fractional ones, and under a pointer that hovers a list's rows), and the checks
+/// that the test build keeps debug assertions and overflow checks on.
+const LANE_C_GROUPS: [&str; 6] = [
     "lane_g",
     "lane_c_fast_parity",
     "lane_c_scroll_layers",
     "lane_c_layer_scales",
     "lane_c_list_hover",
+    "lane_c_profile",
 ];
 
 /// Plans `lane` for `selection`.
