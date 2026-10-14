@@ -167,6 +167,6 @@ used through DX12 directly. It is not a native Linux Vulkan driver.
    a GPU. The `fast_mode` suite fails on both platforms at its own check (the same one as on lavapipe), so
    the per-mode comparison is absent and `randomized_element_tree` and `inspector_render` have no numbers
    anywhere. What stays open: the browser timings on a Linux GPU, and the per-mode comparison off the Mac.
-4. **gpux needed one change to see a Vulkan GPU under WSL** (`862a1c3`, not part of this branch): honouring
+4. **gpux needed one change to see a Vulkan GPU under WSL** (`862a1c3`, merged into this branch with this document): honouring
    `WGPU_ALLOW_UNDERLYING_NONCOMPLIANT_ADAPTER`. Lane C's and lane D's result there is for `dzn`, Vulkan over
    D3D12, not for a native Linux Vulkan driver.

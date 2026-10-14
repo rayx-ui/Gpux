@@ -70,7 +70,7 @@ What depends on them:
 - `clang` and `llvm` (`llvm-ar`): C dependencies of the RayX WASM builds, including Lab.
 - `libclang-dev`: RocksDB bindings, which `cargo test --workspace --all-features` builds.
 - `mesa-vulkan-drivers`: lavapipe, the Vulkan driver the native Linux build and gpux's lanes C and
-  D render through. WSL has no hardware Vulkan driver.
+  D render through. WSL has no hardware Vulkan driver; section 6 shows how to build one (`dzn`).
 - `xvfb` and `xdotool`: the X server and the OS input of gpux's lane D under X11.
 
 Node.js 22 or later is also required. Ubuntu 24.04's own `nodejs` package is version 18, so install
@@ -210,8 +210,87 @@ GPUX_WEB_PROFILE=ci-linux-swiftshader cargo run -p gpux-testkit -- lane b
 WSL has no hardware GPU for WebGPU, so lane B runs in the `ci-linux-swiftshader` profile (WebGPU and
 ANGLE on SwiftShader), like CI; the default `local-gpu` profile expects a real GPU. Add
 `--grep <pattern>` or `--scene <id>` to narrow the run. Software rendering is slow, and specs that
-time delays on the real clock skip themselves on this profile. Lane G needs a hardware GPU, so it
-does not run on WSL.
+time delays on the real clock skip themselves on this profile. Lane G needs a hardware GPU and
+Chromium on one; Chromium on WSL gets no GPU, so lane G does not run on WSL (lanes C and D can use the
+GPU, see below).
+
+### Lanes C and D on the GPU through dzn (optional)
+
+WSL exposes the Windows GPU to Linux through `/dev/dxg`, but only as D3D12 and CUDA: there is no Vulkan
+driver for it, and Ubuntu 24.04's `mesa-vulkan-drivers` does not include Mesa's `dzn` (Vulkan on D3D12).
+Build `dzn` once, point Vulkan at it, and lanes C and D render on the GPU. Verified on 2026-10-14 with
+Ubuntu 24.04.4, WSL 2.6.3, an NVIDIA GeForce RTX 4080 SUPER (Windows driver 610.88), Mesa 25.2.8 and gpux
+`862a1c3`: lane C 188 of 188 and lane D 43 of 43 passed (the rest skipped for other platforms).
+
+What this is and is not: Vulkan translated to D3D12, through a driver that says it is not conformant. It
+shows that lanes C and D work on the GPU; it is not a native Linux Vulkan result and it is no timing
+proof. Lane B, lane G's browser timings and the `fast_mode` suite do not work on it (below).
+
+1. The build tools and libraries **(sudo)**. Ubuntu's Meson is 1.3.2 and Mesa 25.2 needs 1.4, so Meson
+   comes from a clone in step 2, not from apt:
+
+   ```bash
+   sudo apt-get update
+   sudo apt-get install -y ninja-build glslang-tools python3-mako python3-ply bison flex bindgen \
+       libdrm-dev libx11-xcb-dev libxcb-dri3-dev libxcb-present-dev libxcb-randr0-dev \
+       libxcb-sync-dev libxcb-xfixes0-dev libxcb-glx0-dev libxshmfence-dev libxxf86vm-dev libelf-dev \
+       libclc-18-dev libclang-cpp18-dev llvm-spirv-18 libllvmspirvlib-18-dev spirv-tools spirv-headers \
+       directx-headers-dev libvulkan-dev vulkan-tools
+   ```
+
+   `directx-headers-dev` is the D3D12 headers `dzn` is built against (the package is not called
+   `libdirectx-headers-dev`), and `vulkan-tools` gives `vulkaninfo`.
+
+2. Meson, and Mesa at the version Ubuntu ships (`dpkg -s mesa-vulkan-drivers` prints it), installed
+   under `~/mesa-dzn` so the system Mesa stays as it is:
+
+   ```bash
+   mkdir -p ~/src ~/bin && cd ~/src
+   git clone --depth 1 --branch 1.5.2 https://github.com/mesonbuild/meson.git
+   printf '#!/bin/sh\nexec python3 %s/src/meson/meson.py "$@"\n' "$HOME" > ~/bin/meson
+   chmod +x ~/bin/meson
+   export PATH="$HOME/bin:$PATH"
+   git clone --depth 1 --branch mesa-25.2.8 https://gitlab.freedesktop.org/mesa/mesa.git
+   cd mesa
+   meson setup build -Dprefix="$HOME/mesa-dzn" -Dbuildtype=release \
+       -Dvulkan-drivers=microsoft-experimental -Dgallium-drivers= -Dplatforms=x11,wayland \
+       -Dllvm=enabled -Dmicrosoft-clc=enabled -Dglx=disabled -Degl=disabled -Dgbm=disabled \
+       -Dgles1=disabled -Dgles2=disabled -Dopengl=false -Dvulkan-layers= -Dtools= -Dvideo-codecs= \
+       -Dlmsensors=disabled -Dvalgrind=disabled
+   ninja -C build -j"$(nproc)" && ninja -C build install
+   ```
+
+   The build takes minutes, and Meson may download subprojects, so it needs network access.
+
+3. Check that Vulkan sees the GPU, and only through `dzn`:
+
+   ```bash
+   export VK_DRIVER_FILES="$HOME/mesa-dzn/share/vulkan/icd.d/dzn_icd.x86_64.json"
+   vulkaninfo --summary
+   ```
+
+   The device is `Microsoft Direct3D12 (NVIDIA GeForce RTX 4080 SUPER)` (your GPU's name), type
+   `DISCRETE_GPU`, driver `Dozen`, with the warning that `dzn` is not conformant. If it lists `llvmpipe`
+   instead, `VK_DRIVER_FILES` points at the wrong file.
+
+4. Run the lanes. wgpu hides non-conformant adapters unless it is told otherwise, and gpux passes the
+   variable on to it (`WGPU_ALLOW_UNDERLYING_NONCOMPLIANT_ADAPTER`, see
+   [docs/testing.md](docs/testing.md#environment-variables)); `GPUX_WGPU_ADAPTER=hardware` and
+   `GPUX_EXPECT_BACKEND=hardware` make a run on any other adapter fail instead of passing quietly:
+
+   ```bash
+   export WGPU_ALLOW_UNDERLYING_NONCOMPLIANT_ADAPTER=1 GPUX_WGPU_ADAPTER=hardware GPUX_EXPECT_BACKEND=hardware
+   GPUX_PROBES_ONLY=1 cargo run -p gpux-testkit -- lane c
+   env -u WAYLAND_DISPLAY xvfb-run -a -s "-screen 0 1280x1024x24" cargo run -p gpux-testkit -- lane d
+   ```
+
+   Lane C skips the goldens (they are for lavapipe and Metal) and keeps the probes; lane D's
+   `desktop-backend` result names the GPU its windows rendered on.
+
+What does not work on this GPU: Chromium on WSL gets only software adapters (SwiftShader and llvmpipe),
+so lane B has no GPU and lane G's `@timing` specs cannot run; and the `fast_mode` suite and the
+`gpux-platform` benchmarks stop at their own glyph check (`the text drew no glyphs?`), as they do on
+Windows and on lavapipe. Run `lane g` on a Windows or macOS machine with a GPU for timings.
 
 ## 7. RayX validation (consumer-only)
 
