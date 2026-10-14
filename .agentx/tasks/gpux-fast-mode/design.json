@@ -955,6 +955,24 @@
           "symbol": "sample_tile"
         }
       ]
+    },
+    {
+      "id": "d-wgpu-desktop-evidence",
+      "requirementIds": [
+        "PERF"
+      ],
+      "descriptionMarkdown": "The wgpu-desktop half of PERF-4 is recorded in `docs/measurements/wgpu-desktop-timings.md` (the run, its machines and logs) and summarized in `docs/fast-mode.md` next to the Mac numbers. Timing quoted anywhere comes from that document. The WSL run proves pixels and windows through a non-conformant `dzn`, never timing.",
+      "invariantsMarkdown": "- Mac numbers are kept, Windows numbers sit beside them.\n- The open gaps (browser timings on a Linux GPU; the `fast_mode` per-mode comparison off macOS) are stated.",
+      "rationaleMarkdown": "PERF-4 was amended at s13 to leave the wgpu-desktop run to the user; this records what that run showed without weakening any criterion."
+    },
+    {
+      "id": "d-wgpu-env",
+      "requirementIds": [
+        "WENV"
+      ],
+      "descriptionMarkdown": "`native_instance_flags()` maps `WGPU_ALLOW_UNDERLYING_NONCOMPLIANT_ADAPTER` (any value but `0`) to `InstanceFlags::ALLOW_UNDERLYING_NONCOMPLIANT_ADAPTER` on top of `InstanceFlags::default()`, and both instance constructors of `gpux-wgpu-renderer` use it.",
+      "invariantsMarkdown": "- No other `WGPU_*` variable is read: backend and adapter choice stay with `GPUX_WGPU_*`.\n- Metal, DX12 and the browser paths are unchanged when the variable is unset.",
+      "rationaleMarkdown": "wgpu hides non-conformant adapters unless the flag is set, and gpux built its instances with the defaults, which never read the variable; WSL's `dzn` was therefore invisible and the lane C processes died."
     }
   ],
   "memoryDecisionsConsidered": [
@@ -973,6 +991,30 @@
     {
       "repositoryId": "gpux",
       "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-drop-z-crates.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-fast-mode-oracle.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-fast-mode-switches.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-scroll-layers.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-window-composition.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/renderer/wgpu/2026-10-13-renderer-wgpu-transformed-sprites-filtered-by-hand.md"
+    },
+    {
+      "repositoryId": "gpux",
+      "path": ".agentx/memory/decisions/repository/validation/2026-10-13-repository-validation-fast-mode-proof-and-timing.md"
     }
   ]
 }

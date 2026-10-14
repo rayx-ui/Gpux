@@ -1,7 +1,7 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 57,
+  "revision": 58,
   "title": "gpux fast mode: retained layout and views, splice, scroll layers and window composition from gpui-fast",
   "validationMode": "sprint",
   "repositories": [
@@ -2627,6 +2627,32 @@
         "Cargo.toml",
         "Cargo.lock"
       ]
+    },
+    {
+      "id": "check-instance-flags",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "WENV-1"
+      ],
+      "descriptionMarkdown": "New group `wgpu_context::tests::instance_flags` in `crates/gpui_wgpu/src/wgpu_context.rs`: the flag is set for `1`, unset for `0` and when the variable is absent, and no other `WGPU_*` variable changes the flags.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux-wgpu-renderer",
+        "--lib",
+        "instance_flags"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 3
+      },
+      "inputs": [
+        "crates/gpui_wgpu/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
     }
   ],
   "finalCheckIds": [
@@ -4562,6 +4588,53 @@
             "t42-defaults-on"
           ],
           "checkIds": []
+        }
+      ]
+    },
+    {
+      "id": "s14-wgpu-desktop-evidence",
+      "title": "The wgpu-desktop run and the WGPU environment variable",
+      "dependsOn": [
+        "s13-defaults-docs-comparison"
+      ],
+      "memoryScopes": [
+        "renderer",
+        "repository/validation"
+      ],
+      "tasks": [
+        {
+          "id": "t58-wgpu-desktop-evidence",
+          "title": "Record the user-done wgpu-desktop run and honour the noncompliant-adapter variable",
+          "descriptionMarkdown": "Commit `862a1c3` (`native_instance_flags()` and its three tests) and the Windows documents (`docs/measurements/wgpu-desktop-timings.md`, `LINUX-WSL.md`, the `docs/testing.md` row) were produced on the Windows machine. This task validates the change on the Mac (fmt, check, the new group, clippy, lane C narrowed and lane D once on Metal) and rewrites `docs/fast-mode.md` 'On a wgpu desktop' from the measurements document.",
+          "criterionIds": [
+            "PERF-8",
+            "WENV-1"
+          ],
+          "designIds": [
+            "d-wgpu-desktop-evidence",
+            "d-wgpu-env"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-instance-flags"
+          ],
+          "supportingCriterionIds": [
+            "PERF-4"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui_wgpu/src/wgpu_context.rs"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "docs/measurements/wgpu-desktop-timings.md"
+            },
+            {
+              "repositoryId": "gpux",
+              "path": "docs/fast-mode.md"
+            }
+          ]
         }
       ]
     }

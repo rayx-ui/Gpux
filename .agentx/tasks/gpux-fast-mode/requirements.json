@@ -80,6 +80,11 @@
           "id": "PERF-7",
           "verification": "automated",
           "descriptionMarkdown": "Once scroll layers land, the div scroll scenarios show both sides of them, on an opaque panel a layer's tiles can be cleared with:\n\n- `scroll-child-view` wheels with the pointer in a gutter beside its rows: `layers` composites on every scrolled frame after promotion and renders only the view holding the container, never the content's view (this refines PERF-2's example, whose \"renders no view\" meant the content's);\n- `scroll-same-view` wheels with the pointer over its hover-styled rows: no frame composites, the layer is demoted, and the frames are counted as repainted or bypassed;\n- `sticky-scroll` and `effect-scroll` are counted as ineligible on every frame.\n\nA scenario puts the test platform's pointer where its events are, so the counters are the same on every platform. Both fast-mode parity groups (OR-3, OR-4) stay green with scroll layers on: lane A describes a frame compositing layers as painting their content into the frame would have left it, and lane C keeps layers off until its renderer rasterizes tiles.\n\nVerified by `crates/gpui/tests/fast_mode_attribution.rs` and the two parity groups."
+        },
+        {
+          "id": "PERF-8",
+          "verification": "manual",
+          "descriptionMarkdown": "The wgpu-desktop half of PERF-4, which the user ran (2026-10-14), is recorded and its limits stay stated. `docs/measurements/wgpu-desktop-timings.md` holds the run (Windows DirectX 12 on an NVIDIA GeForce RTX 4080 SUPER, commit `f8add89`; WSL 2 on Vulkan through Mesa `dzn`, commit `862a1c3`) and names the logs each figure comes from. `docs/fast-mode.md` ('On a wgpu desktop') summarizes it next to the Mac's numbers without replacing them.\n\nWindows lane G: 418 passed, 1 failed, 10 skipped (lane B 184/184, lane C 188/188, lane D 46/46 with 10 skipped for other platforms). The one failure is the `gpux-platform` benches: the `fast_mode` bench stops at its own check on its first scenario (60 primitives where 3900 are expected, `lines_shaped` 0), as does `perf fast-mode --name final-windows`; the check was not weakened, and `randomized_element_tree` and `inspector_render` never ran. Browser p95 over three runs, layers on against off: the scrolling `div` wins 25% to 39% on WebGPU and WebGL2 (Mac: 7% to 18%); the `list` is +0%, -5%, +3% on WebGPU (no clear loss) and +8%, +8%, +4% on WebGL2 (a loss, smaller than the Mac's +19% to +28%). WSL: lane C 188/188 and lane D 43/43 (13 skipped) on the GPU, which is Vulkan over D3D12 on a non-conformant driver (pixels and windows, not timing); lane B and the browser timings cannot run there because Chromium gets only software adapters.\n\nTwo gaps stay open and are stated, not hidden: (a) browser timings on a Linux GPU, impossible on WSL; (b) the `fast_mode` per-mode comparison off macOS, because the bench harness draws no glyphs on Windows or Linux. (b) is a follow-up outside this epic. Verified by review of the measurements document and 'On a wgpu desktop'."
         }
       ]
     },
@@ -450,6 +455,18 @@
           "id": "FIN-2",
           "descriptionMarkdown": "Provenance is recorded:\n\n- `docs/upstream/gpui-fast.md` records the source repository and commit (`b8f0c02`, v0.1.6). It maps each gpux `fast/` module to its gpui-fast origin, marked adopted, adapted (with what changed for gpux) or excluded (with why).\n- It describes how to compare later gpui-fast fixes.\n- `LICENSE-APACHE` carries Longbridge's copyright line.\n\nVerified by review.",
           "verification": "manual"
+        }
+      ]
+    },
+    {
+      "id": "WENV",
+      "title": "Native renderers honour one WGPU environment variable",
+      "descriptionMarkdown": "Native wgpu renderers read exactly one `WGPU_*` variable, so a non-conformant Vulkan adapter (WSL's `dzn`) can be used where the user opts in.",
+      "criteria": [
+        {
+          "id": "WENV-1",
+          "verification": "automated",
+          "descriptionMarkdown": "`native_instance_flags()` in `crates/gpui_wgpu/src/wgpu_context.rs` sets `InstanceFlags::ALLOW_UNDERLYING_NONCOMPLIANT_ADAPTER` when `WGPU_ALLOW_UNDERLYING_NONCOMPLIANT_ADAPTER` is set to anything but `0`, leaves the flags at their defaults when it is unset or `0`, and reads no other `WGPU_*` variable. `create_headless` and `instance_with_backend_policy` use it. The new test group `wgpu_context::tests::instance_flags` (3 tests) proves it."
         }
       ]
     }

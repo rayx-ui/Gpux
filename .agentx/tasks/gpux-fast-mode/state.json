@@ -1,12 +1,12 @@
 {
   "schemaVersion": 6,
   "epicId": "gpux-fast-mode",
-  "revision": 297,
-  "planRevision": 57,
+  "revision": 303,
+  "planRevision": 58,
   "specHashes": {
-    "requirements": "c7ad1ff00a3415e3ef67fca36a4b809eedd0f52b85739550ac5b2f67c34cf080",
-    "design": "74a56aad4c81f8065f21a53ac25892dca980f4985029acaf8b381afd4e7678a3",
-    "plan": "b8f2dbf1757c88ee71f5afa0fe569fd9c0e9cc8a274b0a02d082b8171b3c879c"
+    "requirements": "75763dbad9c64823224f9a1810205aaa4365943f5ceabd3d887868962b0139f8",
+    "design": "9d6b8aac8561dee1f5608864d37b83247dfe46a10abbc6575c08571b58362cca",
+    "plan": "4c25dec4f8b26e1d88d69c08251ec0b979aa4c36e3e03230902709c84842a264"
   },
   "tasks": {
     "t01-fast-switches": {
@@ -362,6 +362,12 @@
       "workerIds": [
         "claude-240e1cb7"
       ]
+    },
+    "t58-wgpu-desktop-evidence": {
+      "status": "done",
+      "workerIds": [
+        "claude-mac-close"
+      ]
     }
   },
   "validationBatches": {
@@ -580,6 +586,15 @@
         }
       },
       "recordedAt": "2026-10-13T21:54:12Z"
+    },
+    "44ab446c7a5ab3f6ea7dab120ee340e6a9c829bb43b370def8f2fa1a1caf2ac7": {
+      "snapshot": {
+        "specHash": "1af4b7ade456cd54391cf3f1a766854238a2c397baf2e39a755c886daf51020c",
+        "repositories": {
+          "gpux": "552c232ece3f46b701302f2dd0cc7c7148ad422308bab2e06a2dbef6be19730c"
+        }
+      },
+      "recordedAt": "2026-10-14T12:10:58Z"
     }
   },
   "checkResults": {
@@ -3409,6 +3424,23 @@
       "messageMarkdown": "Expectation matched",
       "logPath": "artifacts-temp/agentx/gpux-fast-mode/final-final-de1563fbe213.log",
       "logSha256": "d9e8072b07de990271c927dbea1145c505d9b942b5dd6ea12eacca9108efbebf"
+    },
+    "s14-wgpu-desktop-evidence/check-instance-flags/final": {
+      "checkId": "check-instance-flags",
+      "boundaryId": "s14-wgpu-desktop-evidence",
+      "phase": "final",
+      "batchId": "44ab446c7a5ab3f6ea7dab120ee340e6a9c829bb43b370def8f2fa1a1caf2ac7",
+      "definitionHash": "78a9af3d786b1edb315be09340c75636fd834d0e194b057729a60e97dd3ff192",
+      "basisHash": "9ed0a806839538d4719dff4176edc6d9e6d0dbe3dbf6cc33d8381855471cc0d0",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 0.2398,
+      "recordedAt": "2026-10-14T12:10:57Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-fast-mode/s14-wgpu-desktop-evidence-final-33233cc5eaad.log",
+      "logSha256": "3a6ea2c9d71c636072d0dfec3f3a0d8a669e630cf60040aee48bbd8002e6f5e0",
+      "inputsHash": "abe9dea777e1f7b40777303b53eb1dc1a6fbe9f7ca3ae6dedafd1685b6da3569"
     }
   },
   "reviews": {
@@ -7912,1305 +7944,66 @@
       ],
       "recordedAt": "2026-10-13T16:23:26Z"
     },
-    "final": {
-      "reviewerId": "claude-reviewer-epic-final-5c1e93a7",
-      "snapshotId": "d87d97bf4773edd3a7bbd47bea564d8abff2a093924775075d07a10fa0d8cb57",
+    "s14-wgpu-desktop-evidence": {
+      "reviewerId": "claude-reviewer-s14-c7088dd762af",
+      "snapshotId": "44ab446c7a5ab3f6ea7dab120ee340e6a9c829bb43b370def8f2fa1a1caf2ac7",
       "criterionIds": [
-        "FM-1",
-        "FM-2",
-        "FM-3",
-        "FM-4",
-        "FM-5",
-        "FM-6",
-        "PERF-1",
-        "PERF-2",
-        "PERF-3",
         "PERF-4",
-        "PERF-6",
-        "PERF-5",
-        "PERF-7",
-        "OR-1",
-        "OR-2",
-        "OR-3",
-        "OR-4",
-        "PRE-1",
-        "SC-1",
-        "SC-2",
-        "SC-3",
-        "SC-4",
-        "LAY-1",
-        "LAY-2",
-        "LAY-3",
-        "LAY-4",
-        "LAY-5",
-        "DEP-1",
-        "DEP-2",
-        "VIEW-1",
-        "VIEW-2",
-        "VIEW-3",
-        "VIEW-4",
-        "VIEW-5",
-        "VIEW-6",
-        "VIEW-7",
-        "VIEW-8",
-        "SPL-1",
-        "SPL-2",
-        "SPL-3",
-        "CMP-1",
-        "CMP-2",
-        "CMP-3",
-        "CMP-4",
-        "CMP-5",
-        "CMP-6",
-        "CMP-7",
-        "CMP-8",
-        "CMP-9",
-        "CMP-10",
-        "CMP-11",
-        "CMP-12",
-        "LYR-1",
-        "LYR-2",
-        "LYR-3",
-        "LYR-4",
-        "LYR-5",
-        "LYR-6",
-        "LYR-7",
-        "LYR-8",
-        "LYR-9",
-        "LYR-10",
-        "LYR-11",
-        "LYR-12",
-        "LYR-13",
-        "LYR-14",
-        "LYR-15",
-        "LYR-16",
-        "LYR-17",
-        "LYR-18",
-        "LYR-19",
-        "FIN-1",
-        "FIN-2"
+        "PERF-8",
+        "WENV-1"
       ],
       "verdict": "passed",
       "anchors": [
         {
           "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/mode.rs",
+          "path": "crates/gpui_wgpu/src/wgpu_context.rs",
           "kind": "source",
           "criterionIds": [
-            "FM-1",
-            "FM-2",
-            "FM-4"
+            "WENV-1"
           ],
-          "sha256": "9677222133742c081f73048e678d4e9d1f4084189b4ae176ba68d6626c7d4702"
+          "sha256": "c275a02fe5c3812991509590d01f48094d62f7d2114ce34f9e7a4d24e7bdc661"
         },
         {
           "repositoryId": "gpux",
-          "path": "crates/gpui/src/window.rs",
-          "kind": "source",
-          "criterionIds": [
-            "FM-1",
-            "OR-2"
-          ],
-          "sha256": "a1fe7a790fd8ea8b816d5fb368e8d641378880c60ae4e17debd038bc63173bfe"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/switches.rs",
+          "path": "crates/gpui_wgpu/src/wgpu_context.rs",
           "kind": "test",
           "criterionIds": [
-            "FM-1",
-            "FM-2"
+            "WENV-1"
           ],
-          "sha256": "c1129a8778e2847fe17ce83a5002ca5bbc2fcb8e40931ee0d38f30eedd768ab3"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/retained.rs",
-          "kind": "source",
-          "criterionIds": [
-            "FM-2",
-            "VIEW-1",
-            "VIEW-2",
-            "VIEW-3",
-            "VIEW-4",
-            "VIEW-5",
-            "VIEW-8"
-          ],
-          "sha256": "864ee947cddbcacba6e576853f559d4a45fc844c6ec0fc083551607bf1cfc8e3"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/stats.rs",
-          "kind": "source",
-          "criterionIds": [
-            "FM-3"
-          ],
-          "sha256": "67bf884b143c1db258c5aa678f46aab2f4ea0360044f0b3e965367900fe6ef88"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/stats.rs",
-          "kind": "test",
-          "criterionIds": [
-            "FM-3"
-          ],
-          "sha256": "af03a4f07c2c64b3dc678ec3ea534d05d6a05dd872fbe9112bc874a979c37cbe"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/defaults.rs",
-          "kind": "test",
-          "criterionIds": [
-            "FM-4"
-          ],
-          "sha256": "64dbc710eb85568e4699548c5608870fb2050fc50370c949c76b4ef5f2875914"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpux_conformance/tests/lane_a_fast_parity.rs",
-          "kind": "test",
-          "criterionIds": [
-            "FM-4",
-            "OR-3",
-            "LYR-19"
-          ],
-          "sha256": "ab7b2be4370aab3a63a560d98f780764ad0cf858301139f78b66ab9c3bdf2439"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/dependencies.rs",
-          "kind": "source",
-          "criterionIds": [
-            "FM-5",
-            "FM-6",
-            "DEP-1",
-            "DEP-2"
-          ],
-          "sha256": "c2b10d851cf8caf8d25b194b26de855fde8540c96bf1177d1ccbc7c83fe17b3a"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/view.rs",
-          "kind": "source",
-          "criterionIds": [
-            "FM-5",
-            "OR-1",
-            "VIEW-1",
-            "VIEW-3"
-          ],
-          "sha256": "5b9759f90f93f1a8cd3f0399c06b07da25b0abfb258e48cc748bb9bbd19676f0"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/hover_dependencies.rs",
-          "kind": "test",
-          "criterionIds": [
-            "FM-5",
-            "FM-6"
-          ],
-          "sha256": "e18827978877b166cfcfaec3dfd03af0b73bf384eea2274cc61fc57813dbefbf"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/elements/div.rs",
-          "kind": "source",
-          "criterionIds": [
-            "FM-6",
-            "PRE-1"
-          ],
-          "sha256": "e7608a24ab3bf1ffe125b685bba60aa3c98591eebdbaec67ff740d54fb70310d"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/verify.rs",
-          "kind": "source",
-          "criterionIds": [
-            "OR-1",
-            "OR-2",
-            "VIEW-6",
-            "VIEW-7"
-          ],
-          "sha256": "9976a18713e366a624a915c196aab03f6c6b9977e6c15de7f2d287f0a1bf5265"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/oracle.rs",
-          "kind": "test",
-          "criterionIds": [
-            "OR-1",
-            "OR-2"
-          ],
-          "sha256": "0b9e22cf9e04403698ed9b067ab0ee5740ae6e34534203229252e45f03c6f85c"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/oracle_support.rs",
-          "kind": "test",
-          "criterionIds": [
-            "OR-2"
-          ],
-          "sha256": "bb960e149cf76918711f946fc6a28eaa5c3308b1c5b7e2d061a44a77681648b8"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpux_conformance/src/test_host.rs",
-          "kind": "source",
-          "criterionIds": [
-            "OR-3",
-            "OR-4"
-          ],
-          "sha256": "88985a698d4eb6f537f173e3be0c116ab23f661ef99842411e1b7be033518d8e"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpux_conformance/tests/lane_c_fast_parity.rs",
-          "kind": "test",
-          "criterionIds": [
-            "OR-4"
-          ],
-          "sha256": "a1aa076dea3c48a16030c03e7c3e59fb6c57e7e323b801d9c8bb724972f8a963"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui_platform/benches/fast_mode.rs",
-          "kind": "source",
-          "criterionIds": [
-            "PERF-1"
-          ],
-          "sha256": "037d366b0a158da50b708fb956700aa91cb279c0112e2062f0a3a2fbb57a99b6"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/scenarios/mod.rs",
-          "kind": "source",
-          "criterionIds": [
-            "PERF-1"
-          ],
-          "sha256": "cc39a3eee28777562d608f818b3cdb46f1375140414282cd75c2e1f56ad6135d"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/tests/fast_mode_attribution.rs",
-          "kind": "test",
-          "criterionIds": [
-            "PERF-1",
-            "PERF-2",
-            "PERF-7",
-            "LAY-4"
-          ],
-          "sha256": "7800ea0f18368cd3db06a24b0dfc878e0f8992cc883b0cbe2ace2421a12123fc"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/randomized_element_tree.rs",
-          "kind": "source",
-          "criterionIds": [
-            "PERF-2"
-          ],
-          "sha256": "29e083000d4ece178c728e1f658921ae41aa9a58f764c6ac97c3a604fb652b5a"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "tooling/testkit/src/fast_mode.rs",
-          "kind": "source",
-          "criterionIds": [
-            "PERF-3",
-            "PERF-5"
-          ],
-          "sha256": "2285e94d8c43bc3e7ab514e8dd0862b63d1b6c0276153772d4b6c8fd853afa16"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "tooling/testkit/tests/fast_mode_report.rs",
-          "kind": "test",
-          "criterionIds": [
-            "PERF-3",
-            "PERF-5"
-          ],
-          "sha256": "a4652eac56f0cd4b83680e6ee9f4b78dd9bf6749fd1ebfa6f36e06140af6f12f"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "docs/fast-mode.md",
-          "kind": "source",
-          "criterionIds": [
-            "PERF-5",
-            "PERF-4",
-            "PERF-6",
-            "FIN-1",
-            "SC-4"
-          ],
-          "sha256": "0ad489dcbba6fc3a4e7f49350388d73f151fb96a0833e83f61584016d2a0ea65"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "artifacts-temp/testkit/perf/baseline-s01/run.txt",
-          "kind": "runtime",
-          "criterionIds": [
-            "PERF-5"
-          ],
-          "sha256": "5f8ee27bbadaead96afd669fb85367bfbcd2f4d018114d94bdcd263873bb0dfc"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": ".agentx/tasks/gpux-fast-mode/requirements.json",
-          "kind": "source",
-          "criterionIds": [
-            "PERF-4"
-          ],
-          "sha256": "c0d2e16eb4225a9be3b406e10cbbeab52e4b1840d780388d7b59498c4ed3132c"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "artifacts-temp/testkit/perf/final/fast-mode.md",
-          "kind": "runtime",
-          "criterionIds": [
-            "PERF-4"
-          ],
-          "sha256": "8e2fccf79e2b2ebedb77751150ecc2a88e535278113d621fecabc44f4ca880bb"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "tools-node/specs/scroll-layers.spec.ts",
-          "kind": "source",
-          "criterionIds": [
-            "PERF-6"
-          ],
-          "sha256": "5964f2466bb82d18dd90a8f71bb9a6bb2536342edf03389127aac00a6f4c46ef"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "artifacts-temp/browser-timing-run1.log",
-          "kind": "runtime",
-          "criterionIds": [
-            "PERF-6"
-          ],
-          "sha256": "8a1b96f610f813dbfa32dd7086ed460038ad3c5cd8151a980f6d4696e09b4c36"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "artifacts-temp/browser-timing-run2.log",
-          "kind": "runtime",
-          "criterionIds": [
-            "PERF-6"
-          ],
-          "sha256": "c657be0f926cf282a028afedf80f6a5e4c2697b29d4f28e3bf042e937ce478dd"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "artifacts-temp/browser-timing-run3.log",
-          "kind": "runtime",
-          "criterionIds": [
-            "PERF-6"
-          ],
-          "sha256": "a3bc4885ae7039ca19eb9653354e1a4672d8b4fe43727c9f53b9d3dca9c6656f"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/layers/verify.rs",
-          "kind": "source",
-          "criterionIds": [
-            "PERF-7",
-            "LYR-4"
-          ],
-          "sha256": "5cca233ed9ffec2d19acb9c33e6ed96a2f7b5026aeb7a76702032869a001e606"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/oracle_layers.rs",
-          "kind": "test",
-          "criterionIds": [
-            "PERF-7",
-            "LYR-4"
-          ],
-          "sha256": "f3741cd59d0b11f9773b9dc88d1d92e0ea3c911676923d8105c6207e2f36cfb6"
+          "sha256": "c275a02fe5c3812991509590d01f48094d62f7d2114ce34f9e7a4d24e7bdc661"
         },
         {
           "repositoryId": "gpux",
           "path": "docs/testing.md",
           "kind": "source",
           "criterionIds": [
-            "FIN-1"
+            "WENV-1"
           ],
-          "sha256": "dbc5fa05beb710aeaa05b984442462fdd984b67519472228d325b22591fd5d9f"
+          "sha256": "59ce7a48e04d0137aca11f7cd9bf3a9743b4916645ebc76818f213186c9175b3"
         },
         {
           "repositoryId": "gpux",
-          "path": "README.md",
+          "path": "docs/fast-mode.md",
           "kind": "source",
           "criterionIds": [
-            "FIN-1"
+            "PERF-4",
+            "PERF-8"
           ],
-          "sha256": "f5939811d16423b9cf8b519941660fb7e9a25f07a2c8cbd67ca32d65eb65c142"
+          "sha256": "183e4f66ec539e418c5c59fd58e13e9591440974e6dc992b84a300686e569379"
         },
         {
           "repositoryId": "gpux",
-          "path": ".claude/skills/gpux/references/fast-mode.md",
+          "path": "docs/measurements/wgpu-desktop-timings.md",
           "kind": "source",
           "criterionIds": [
-            "FIN-1"
+            "PERF-8"
           ],
-          "sha256": "6a50acd2b85cb20a6aa0b6fa509e473d20d857fa6f144055de393d7e6405cec9"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "docs/upstream/gpui-fast.md",
-          "kind": "source",
-          "criterionIds": [
-            "FIN-2"
-          ],
-          "sha256": "76a20ed1c1f003ccf7b59168779e6d2392badd8eb6433fdff276b27cd5dd7432"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "LICENSE-APACHE",
-          "kind": "source",
-          "criterionIds": [
-            "FIN-2"
-          ],
-          "sha256": "19182332d041e03f92bd9a9eaca52181e21184f2215528834b2cd329c540d18b"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/elements/list.rs",
-          "kind": "source",
-          "criterionIds": [
-            "PRE-1",
-            "LYR-7"
-          ],
-          "sha256": "c46b99f4eae5cbf27f2d3af5896fc236bbe91474a93552cebd3082ee54d341c7"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/scoped_invalidation.rs",
-          "kind": "test",
-          "criterionIds": [
-            "PRE-1"
-          ],
-          "sha256": "46c6aa24fd00bae668a78aa05840584cb5b26f38e24ad14ae5375270636f5efc"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/bounds_tree.rs",
-          "kind": "source",
-          "criterionIds": [
-            "SC-1"
-          ],
-          "sha256": "f1af6c04e6816b7d6d95ccd316d13dfaa492c8ce4f14a35cf35d899f661bcfbd"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/bounds_grid.rs",
-          "kind": "test",
-          "criterionIds": [
-            "SC-1"
-          ],
-          "sha256": "e48e7de4224cc17432ea5c661d7437609eb1fd27a5f46aa238533183d386d35a"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/scene.rs",
-          "kind": "source",
-          "criterionIds": [
-            "SC-2"
-          ],
-          "sha256": "5dc423eb67c8b96de065f23033ddf3302ea84e4f54ba6ff8128ecdafa19d02e6"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/draw_order.rs",
-          "kind": "test",
-          "criterionIds": [
-            "SC-2"
-          ],
-          "sha256": "7dd4cca79652658da6536db54b11d2acd25944a6090f31be7435bb5f2787c8c3"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/glyphs.rs",
-          "kind": "source",
-          "criterionIds": [
-            "SC-3"
-          ],
-          "sha256": "e50c91e2341b3a9e2446ac072b8764c762a702bb61a032654447d8231ca5e4cc"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/glyph_runs.rs",
-          "kind": "test",
-          "criterionIds": [
-            "SC-3"
-          ],
-          "sha256": "fb96f4f075fcdb173eb1d281f5605a5abc328c1058be75fc11f9f760724a82f8"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "artifacts-temp/testkit/perf/sc1-grid/run.txt",
-          "kind": "runtime",
-          "criterionIds": [
-            "SC-4"
-          ],
-          "sha256": "31d1950a102d1a1803c21d8fae2f438a346335129af6969b415c9143d280f242"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "artifacts-temp/testkit/perf/sc3-numbers/run.txt",
-          "kind": "runtime",
-          "criterionIds": [
-            "SC-4"
-          ],
-          "sha256": "76af5b3df700b97392cede3f478475fca32f2b00b2845ebba33de0a248619685"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/layout_key.rs",
-          "kind": "source",
-          "criterionIds": [
-            "LAY-1",
-            "LAY-4"
-          ],
-          "sha256": "ae13cbb1d9c074701321e6293b95f5ca2b3178332175f736bdbcdfaebd90f631"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/layout.rs",
-          "kind": "source",
-          "criterionIds": [
-            "LAY-1",
-            "LAY-2",
-            "LAY-5"
-          ],
-          "sha256": "5d2a230b08e3232a4e6402c60aef8433b773ef30302399f33b067fc9d0a1412c"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/layout_keys.rs",
-          "kind": "test",
-          "criterionIds": [
-            "LAY-1",
-            "LAY-4"
-          ],
-          "sha256": "18e8b03b9574d4718933bcd486aad0f17abd12dddf4c5a09c2ad592f55394bed"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/style.rs",
-          "kind": "source",
-          "criterionIds": [
-            "LAY-2",
-            "LYR-17"
-          ],
-          "sha256": "eafebdc1ae7812a0133108b69d7a0c6907a4ef805d1351b8e23b0e5d2486dcf0"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/write_elision.rs",
-          "kind": "test",
-          "criterionIds": [
-            "LAY-2"
-          ],
-          "sha256": "e6b693d76a5de9c69786176f3b6313e48d9bc04cf3efe0f8fb910e66a65ba924"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/text.rs",
-          "kind": "source",
-          "criterionIds": [
-            "LAY-3"
-          ],
-          "sha256": "e4308f238631501a7ce3975ca982ff3d8e71f9220cdaafbcbc5bbfc2202a85ff"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/elements/text.rs",
-          "kind": "source",
-          "criterionIds": [
-            "LAY-3"
-          ],
-          "sha256": "3e49fc56fe3c1b22e4bda3724549c10c8896d47304d45dcc7fd7cf9942ef1cd9"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/text_carry.rs",
-          "kind": "test",
-          "criterionIds": [
-            "LAY-3"
-          ],
-          "sha256": "02f27ee462c180be3dac77e84a7bba9d01445b74ba3aaca1ee419da686aeb75b"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/oracle_layout.rs",
-          "kind": "test",
-          "criterionIds": [
-            "LAY-5"
-          ],
-          "sha256": "a2da6fa2f529df02f9ba27f577b3a74e3a294a96ad7a8c5c4ff6ac7ca41c34fe"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/dependencies.rs",
-          "kind": "test",
-          "criterionIds": [
-            "DEP-1"
-          ],
-          "sha256": "a6df996339efef1a67cfd6f8cc93edaa8bbdde93513909213b4c151a87571619"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/dependency_nesting.rs",
-          "kind": "test",
-          "criterionIds": [
-            "DEP-2"
-          ],
-          "sha256": "87253ee131ee06f2bef67796cb81418c4dc60c7aa57d201b6a8c52e183c36aa9"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/reuse_paths.rs",
-          "kind": "test",
-          "criterionIds": [
-            "VIEW-1",
-            "VIEW-3"
-          ],
-          "sha256": "5301ba34223ba6f0975e0f49fd0c25113b4e017579439a727360e56f403150ad"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/view_invalidation.rs",
-          "kind": "test",
-          "criterionIds": [
-            "VIEW-2",
-            "VIEW-5",
-            "VIEW-8"
-          ],
-          "sha256": "fcc12a977956e4a63eec9aa78973ba46459ffebb442251546da07d46a8cbad90"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/retained_records.rs",
-          "kind": "test",
-          "criterionIds": [
-            "VIEW-4"
-          ],
-          "sha256": "19376c5504689fee26fc6e4407303608fc28e30902755b24b95512c3b5922243"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/verify_mode.rs",
-          "kind": "test",
-          "criterionIds": [
-            "VIEW-6"
-          ],
-          "sha256": "6e901d51e989d9e3e524bacd7a9bd096857bbe9e6358fc06c0044c56a855bab1"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/oracle_views.rs",
-          "kind": "test",
-          "criterionIds": [
-            "VIEW-7"
-          ],
-          "sha256": "146f45a5d02519ab81935505b8edceec2dc1993a19ff9d2c140afb8b81e1f789"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/splice.rs",
-          "kind": "source",
-          "criterionIds": [
-            "SPL-1",
-            "SPL-2",
-            "SPL-3"
-          ],
-          "sha256": "7d41e671d48e36405458cd8841ee64eb8170a84f0f54120fa4ab8373f77fc972"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/splice.rs",
-          "kind": "test",
-          "criterionIds": [
-            "SPL-1"
-          ],
-          "sha256": "d7980f3d934dc275dd64f585849af0b3bc481767021b1f7d0e64e6d0325ec7ef"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/own_dirty.rs",
-          "kind": "test",
-          "criterionIds": [
-            "SPL-2"
-          ],
-          "sha256": "44a790ca12f768ce6e68f8dff4e9e5ddf5b7d1a995d9d00e22ae3bc6664df742"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/oracle_splice.rs",
-          "kind": "test",
-          "criterionIds": [
-            "SPL-3"
-          ],
-          "sha256": "edce0abb1884456a7d8b954db023ecf667b11a56a650867da42766729c550e1d"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/composition.rs",
-          "kind": "source",
-          "criterionIds": [
-            "CMP-1",
-            "CMP-2"
-          ],
-          "sha256": "c3c958e4bfa4a739aef116e28d5bb73355cb5e4b1f9fe952ee21b2a40c5454a5"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/composition.rs",
-          "kind": "test",
-          "criterionIds": [
-            "CMP-1",
-            "CMP-2"
-          ],
-          "sha256": "51171e7142a5734e5fb5b2b4d982efc6b5f88f23c3ebeb77d0a3d59b7c542be5"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui_macos/src/window.rs",
-          "kind": "source",
-          "criterionIds": [
-            "CMP-3"
-          ],
-          "sha256": "1dc1e7d392895ac8b78cf3cba1ccab13456035b91c3ce96e8b64c99631c7ba13"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpux_conformance/src/platform_checks.rs",
-          "kind": "test",
-          "criterionIds": [
-            "CMP-3"
-          ],
-          "sha256": "c3175047de837ddac0ad381c5209d563672f02f2e8a2a947daefe3f5f28e69c2"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui_linux/src/linux/wayland/window.rs",
-          "kind": "source",
-          "criterionIds": [
-            "CMP-4"
-          ],
-          "sha256": "63cbedb7f1e46ec0ae918dced70bf5587b6696760b4ddbb8844c9298d7ebfabc"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpux_conformance/examples/desktop_host/composition_linux.rs",
-          "kind": "test",
-          "criterionIds": [
-            "CMP-4",
-            "CMP-5"
-          ],
-          "sha256": "c6c41d9a2db65520465e4efe87fcbb6bd9f26d6c42d99492df2c989c0b7e7780"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui_linux/src/linux/x11/window.rs",
-          "kind": "source",
-          "criterionIds": [
-            "CMP-5"
-          ],
-          "sha256": "471d2171d614683d9fc4d88c1a7e7fcf36ba8c350075697cd9241adc9db64824"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui_windows/src/window.rs",
-          "kind": "source",
-          "criterionIds": [
-            "CMP-6"
-          ],
-          "sha256": "bba5b84d949a3554e9be51e00baa7ce2b020d548f8e49115b9325ad4ffff3e1b"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpux_conformance/examples/desktop_host/composition_windows.rs",
-          "kind": "test",
-          "criterionIds": [
-            "CMP-6"
-          ],
-          "sha256": "a709d6cdb6b0d97dd64d2d2f013db90faab77f1e81684fcc4d11c58bafcd903b"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui_web/src/window.rs",
-          "kind": "source",
-          "criterionIds": [
-            "CMP-7",
-            "LYR-9"
-          ],
-          "sha256": "32f356979b72055deb66f0820a142dd3f77d1c262f9a64a74a3c72f3366734a1"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "tools-node/specs/composition.spec.ts",
-          "kind": "test",
-          "criterionIds": [
-            "CMP-7"
-          ],
-          "sha256": "753bcf2b31b287dc121484f6017ff2c079dfa0414919ecb0cec19adf4fca1447"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui_wgpu/src/wgpu_renderer.rs",
-          "kind": "source",
-          "criterionIds": [
-            "CMP-8",
-            "LYR-5",
-            "LYR-12"
-          ],
-          "sha256": "68eaeb5bf82018146037773d00ebc5355fb3aa6999f794e6e825c623c044aa77"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui_apple/src/metal_renderer.rs",
-          "kind": "source",
-          "criterionIds": [
-            "CMP-8",
-            "LYR-6"
-          ],
-          "sha256": "c8f5d81d4c88eb394bf081f7c4aa8cbba633948fede6279ea4a05b4e5832794a"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/composition_overlay.rs",
-          "kind": "test",
-          "criterionIds": [
-            "CMP-8"
-          ],
-          "sha256": "5243e2cc9e1f766dbf4c5ad2976b7bedfdc197ce0bef0e74da34be8e242361d0"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui_platform/examples/webview_macos.rs",
-          "kind": "source",
-          "criterionIds": [
-            "CMP-9"
-          ],
-          "sha256": "4123ca8b0b07f7bc04791a7d65dfe213fdc76f77f8ad7ffc1352cd8bcea834f7"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui_platform/examples/webview_windows.rs",
-          "kind": "source",
-          "criterionIds": [
-            "CMP-9"
-          ],
-          "sha256": "f1c3f6099121630197f33ec452549acbc51c7b94add387215516dabc8ab86ef7"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui_platform/examples/webview_gtk.rs",
-          "kind": "source",
-          "criterionIds": [
-            "CMP-9"
-          ],
-          "sha256": "a960f169489da8ba4d378d3495a8963d767c8034df1bc42a8d63d855704aee43"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui_platform/examples/wayland_surface.rs",
-          "kind": "source",
-          "criterionIds": [
-            "CMP-9"
-          ],
-          "sha256": "9491d9caf1a9d674885c871fe0bd1ff84432236ded50fb62cdef7a6518d5421f"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui_mobile/src/ios/window.rs",
-          "kind": "source",
-          "criterionIds": [
-            "CMP-10",
-            "LYR-11"
-          ],
-          "sha256": "3580753182ea9ef6af0693c6c85fb90736e7bd0c698c0dce930f2ed4d13d3074"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpux_conformance/examples/ios_host/composition.rs",
-          "kind": "test",
-          "criterionIds": [
-            "CMP-10"
-          ],
-          "sha256": "5382822d1db7d73b76ef385d574bf7d7f81390c9cc53405b5eae275d89a356e1"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui_mobile/src/android/window.rs",
-          "kind": "source",
-          "criterionIds": [
-            "CMP-11",
-            "LYR-10"
-          ],
-          "sha256": "56838e8a144584e759bf47b1e9d7f2fa6a75a7683a8c291356534c13c1e8d1b0"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpux_conformance/examples/android_host/composition.rs",
-          "kind": "test",
-          "criterionIds": [
-            "CMP-11"
-          ],
-          "sha256": "87a234b3806fa6af6042de31dfc74423ca61c89be13614ea72b51d0f9b1aea5d"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui_mobile/src/platform_view.rs",
-          "kind": "source",
-          "criterionIds": [
-            "CMP-12"
-          ],
-          "sha256": "274654e49072d8574c006f079aa51426969c5f8296831913f0efc66f509c2372"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpux_conformance/examples/android_host/platform_views.rs",
-          "kind": "test",
-          "criterionIds": [
-            "CMP-12"
-          ],
-          "sha256": "888e77a2601ec67c04c930b92a6f8c9dd49c437c51b1b07765e5456f8d793319"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpux_conformance/examples/ios_host/platform_views.rs",
-          "kind": "test",
-          "criterionIds": [
-            "CMP-12"
-          ],
-          "sha256": "49749b86e6ae7197299ca6ac5aad3a2361537d242bbafb8a2a8679e8782e89d5"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/layers/policy.rs",
-          "kind": "source",
-          "criterionIds": [
-            "LYR-1"
-          ],
-          "sha256": "38bc42256f19eb7b8f37bb4d5ce9ed984a47a06d0da1c4ca30c1160e88e25d91"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/layer_policy.rs",
-          "kind": "test",
-          "criterionIds": [
-            "LYR-1"
-          ],
-          "sha256": "40998f469322e9158b7032adcacb08b3ee6612fde1a74c3d1e6e828745150ecf"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/layers/reuse.rs",
-          "kind": "source",
-          "criterionIds": [
-            "LYR-2"
-          ],
-          "sha256": "2886814f847b510b59c8ffa756ef2ebf7b2b0dd1f1192e1c7ea19fb3df803e7a"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/layers/record.rs",
-          "kind": "source",
-          "criterionIds": [
-            "LYR-2"
-          ],
-          "sha256": "4ea52829f12a21b0423380b6c086a5b08f396f78d3916765a3d601186330f7f8"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/layer_carry.rs",
-          "kind": "test",
-          "criterionIds": [
-            "LYR-2"
-          ],
-          "sha256": "48b742a25de8cbb34a5d7df57a5af9aae4076ee54e455b4e3c057fdaec633ac1"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/layers/input.rs",
-          "kind": "source",
-          "criterionIds": [
-            "LYR-3"
-          ],
-          "sha256": "4749d90775d264277d96c06cdd8f676fa7aadd1e51abf4ba7e3a4a82378b1908"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/layer_inputs.rs",
-          "kind": "test",
-          "criterionIds": [
-            "LYR-3"
-          ],
-          "sha256": "c78e211a2292b33e853421e85e5b72b6004dfc139935b620265b471b1e2c0afe"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui_wgpu/src/shaders.wgsl",
-          "kind": "source",
-          "criterionIds": [
-            "LYR-5",
-            "LYR-19"
-          ],
-          "sha256": "c94e4ccc8bee8dba627a0bd3c4be6ac85520cf3cec18ae259690044f8cd680ac"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui_wgpu/src/fast/layers/tests.rs",
-          "kind": "test",
-          "criterionIds": [
-            "LYR-5",
-            "LYR-12"
-          ],
-          "sha256": "d2ab1f6db4d5be04f2011b92baa8bf7da729014bbd9532130e6d24548aab4c8d"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/layer_renderers.rs",
-          "kind": "test",
-          "criterionIds": [
-            "LYR-5"
-          ],
-          "sha256": "fb868ddf8a88e6200494e6e68b6fb25a4b87b276a4ac345d0754b69a450ad456"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui_apple/src/shaders.metal",
-          "kind": "source",
-          "criterionIds": [
-            "LYR-6",
-            "LYR-19"
-          ],
-          "sha256": "57d453ab724e2782c4083552560a11c6779249a0e552e912ee2680bd710fc3c2"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui_apple/src/fast/layers/tests.rs",
-          "kind": "test",
-          "criterionIds": [
-            "LYR-6"
-          ],
-          "sha256": "5b23e31173432cc00a88323d2890b9ca6bf624420a53bd28e4bd5d0fb9953eb3"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/layers/lists.rs",
-          "kind": "source",
-          "criterionIds": [
-            "LYR-7",
-            "LYR-13",
-            "LYR-16"
-          ],
-          "sha256": "3e633ee48322fcfe353d11b209688cea3ddef0f5975bf21d18c71964fbb55834"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/list_layers.rs",
-          "kind": "test",
-          "criterionIds": [
-            "LYR-7",
-            "LYR-13"
-          ],
-          "sha256": "4ec58ea12933692c06cbcebd274298bfc6008dff1bf7ec102a57901cb78384d9"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/gestures.rs",
-          "kind": "source",
-          "criterionIds": [
-            "LYR-8"
-          ],
-          "sha256": "d186f4c5161e766d58372e9e25608fb3465f1cfe57c19acfb4cd39717414953b"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/layer_touch.rs",
-          "kind": "test",
-          "criterionIds": [
-            "LYR-8"
-          ],
-          "sha256": "126bebc00f529e7cd7178658bcf6bb1cac04d08bcfff88c6915b8889c684837e"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "tools-node/specs/scroll-layers.spec.ts",
-          "kind": "test",
-          "criterionIds": [
-            "LYR-9"
-          ],
-          "sha256": "5964f2466bb82d18dd90a8f71bb9a6bb2536342edf03389127aac00a6f4c46ef"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpux_conformance/examples/android_host/scroll_layers.rs",
-          "kind": "test",
-          "criterionIds": [
-            "LYR-10"
-          ],
-          "sha256": "90441f099c746fb3f23391b113861a9613faff5a5e51cc44ac4e7a82f1867e75"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpux_conformance/examples/ios_host/scroll_layers.rs",
-          "kind": "test",
-          "criterionIds": [
-            "LYR-11"
-          ],
-          "sha256": "f5b8d86ed496241f5544abc36bb1b36dc1ac068108aa74835302caa497aa7ffd"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/layer_extent.rs",
-          "kind": "test",
-          "criterionIds": [
-            "LYR-12"
-          ],
-          "sha256": "744bd975c305b51e0620fcbe32feeb68854f718204a8e9a7806a31deb3cc2a7c"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/elements/uniform_list.rs",
-          "kind": "source",
-          "criterionIds": [
-            "LYR-13"
-          ],
-          "sha256": "6280e35026bae1b909686e838a079cf5ad08434fc7ceba7d2296da5e498fd27d"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/edge_shadows.rs",
-          "kind": "source",
-          "criterionIds": [
-            "LYR-14"
-          ],
-          "sha256": "becb882479e9afa69014a48d1580f28787f45008fd6b7ecb095957de283fd3fb"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/layers/scene.rs",
-          "kind": "source",
-          "criterionIds": [
-            "LYR-14"
-          ],
-          "sha256": "f64a7dc09bcabaace5f9ff6d9fcfa8aa0834be7c519cf0042f84f7efc73a0f6b"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/edge_shadows.rs",
-          "kind": "test",
-          "criterionIds": [
-            "LYR-14"
-          ],
-          "sha256": "b8c60e360d02a4de2b05f17bf5f2cad0022f57274bc4fd11b8fcd96ff2bfe21d"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpux_conformance/tests/lane_c_scroll_layers.rs",
-          "kind": "test",
-          "criterionIds": [
-            "LYR-14"
-          ],
-          "sha256": "b541f7a4623b0c34f2495fe9227d619913df853b2ca1fdb4f15f9762977219e2"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/layers/paint.rs",
-          "kind": "source",
-          "criterionIds": [
-            "LYR-15",
-            "LYR-18"
-          ],
-          "sha256": "ddde1cfdfbee6936037057680cdb56817a8b129e062304b44cdbeb4de7da0d9b"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpux_conformance/tests/lane_c_layer_scales.rs",
-          "kind": "test",
-          "criterionIds": [
-            "LYR-15"
-          ],
-          "sha256": "c54bc9b48f4fd84af839394c12edd266eba66a2a9b5a4f90366b8e52e61c3a86"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/hover.rs",
-          "kind": "source",
-          "criterionIds": [
-            "LYR-16"
-          ],
-          "sha256": "d053809881d62c2d5dca49633185c2afaebea7019146afbdfab4516f8add0eca"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/list_hover.rs",
-          "kind": "test",
-          "criterionIds": [
-            "LYR-16"
-          ],
-          "sha256": "1611c56ce8c16bf49e9b57c37fcd3a2eff00faebdb3b8f97e238857aade70420"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpux_conformance/tests/lane_c_list_hover.rs",
-          "kind": "test",
-          "criterionIds": [
-            "LYR-16"
-          ],
-          "sha256": "af55b0638a8b4d6f33fc16267ec04e9ed5fdc630bf9491284387b66031811570"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/border_clips.rs",
-          "kind": "source",
-          "criterionIds": [
-            "LYR-17"
-          ],
-          "sha256": "576bb26083c61a2716c76620a42b2eafc94362316f96287edd955f66f877b758"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/border_clips.rs",
-          "kind": "test",
-          "criterionIds": [
-            "LYR-17"
-          ],
-          "sha256": "1f92d1bba544e22edb270d8c4dcc9d5b6f7b2700b744735d839f5d5fb7e6d2df"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "artifacts-temp/cost-probe.log",
-          "kind": "runtime",
-          "criterionIds": [
-            "LYR-17"
-          ],
-          "sha256": "2e8fe185e1d99aa28cfbe92650d8182a85d75db35b5a43b631ab57005918251d"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui/src/fast/tests/transformed_masks.rs",
-          "kind": "test",
-          "criterionIds": [
-            "LYR-18"
-          ],
-          "sha256": "b52bf541f6be986e2fdfd31b6a72ec70a8d7086a597178019d66d071fa889bbb"
-        },
-        {
-          "repositoryId": "gpux",
-          "path": "crates/gpui_wgpu/tests/shader_sampling.rs",
-          "kind": "test",
-          "criterionIds": [
-            "LYR-19"
-          ],
-          "sha256": "1b17c236931faa16d0a981fdc3121c6b4a876e1173710bd6bd258ad3ccce8aeb"
+          "sha256": "764dbd93ba290ba16e09e2487886fdb784ff9369c648ad4fec3088c6d1aab504"
         }
       ],
-      "summaryMarkdown": "**Verdict: passed.** All 73 criteria are owned by a done, checkpointed task; `check --epic` passed at revision 296 (80 checks) and the sealed sprint reviews are current. Source and test anchors are listed per criterion.\n\n- **Stated limits are documented, not hidden.** `docs/fast-mode.md` records the application contract, the bypass reasons, the cost of telling clips (LYR-17 held at 1.20x against its 1.28 bound), the `all-panels` regression (+10.7..14.6%) and the splice and layer-bookkeeping costs with their reasons, the emulator and Simulator labelling of the phone numbers, 'Lane G on this Mac' (lane D part did not complete), and 'On a wgpu desktop' (PERF-4 amendment, recorded in the criterion text, run not done). I spot-checked the final table against `artifacts-temp/testkit/perf/final/fast-mode.md` and the browser table against `browser-timing-run1.log`; they agree.\n- **Commits since the last sealed review** (`9dc03cc..HEAD`): the shader_sampling guard now also finds `sample_tile(` (correct, the sprite shaders sample through it); the Android host's slow-frame handling is sound (frame limit = 3x the slowest frame seen, swipe and timing skipped when a probe frame takes 1.5 s or more, the skip says so in the result line); `RUN_TIMEOUT` 45 min sits inside the lane E job's 90 min; the plan job's `plan.sh` behaves as `docs/ci.md` says (I ran it for a docs-only diff, labels, dispatch inputs and an unknown job name).\n- **Non-blocking observations** (not findings): (a) `docs/testing.md` Lane E still says the swipe through the system 'must come from tiles' and does not mention that it and the timing check skip where frames take 1.5 s or more (the CI emulator); the skip is visible in the result line. (b) `lane-e.yml` interpolates the dispatch `grep` into the emulator script text instead of an env var as the other lanes do (writers only; documented as 'no spaces'). (c) two `test.setTimeout` lines in `scroll-layers.spec.ts` are mis-indented.\n- Not checked: any test, build, lane or benchmark (relied on the recorded passing evidence); the fixes and defaults of FM-4 already reviewed at s13; physical-device and wgpu-desktop behaviour (documented as not run).",
+      "summaryMarkdown": "WENV-1: native_instance_flags() reads only WGPU_ALLOW_UNDERLYING_NONCOMPLIANT_ADAPTER (default flags plus the one flag for any value but 0), create_headless and instance_with_backend_policy use it, the web and test-only instance sites are untouched, and the three instance_flags tests drive the pure mapping with explicit values (no process env, so no race) and check that only that flag differs; the docs/testing.md row matches. PERF-8: 'On a wgpu desktop' agrees number for number with docs/measurements/wgpu-desktop-timings.md (418/1/10, 184/188/46, three-run p95 table, percentages, WSL 188 and 43/13, glyph-check failure), the Mac figures in 'In the browser' are unchanged in git diff, links and anchors resolve, and both open gaps are stated without overclaiming (WSL is pixels and windows, not timing). PERF-4 (supporting): its Mac tables and per-mechanism summary in docs/fast-mode.md are untouched; its amended wording 'records it as not run' is superseded by PERF-8, which records the run.",
       "findingIds": [],
-      "recordedAt": "2026-10-13T21:56:46Z"
+      "recordedAt": "2026-10-14T12:12:03Z"
     }
   },
   "checkpoints": {
@@ -9373,6 +8166,14 @@
       },
       "reviewHash": "ba36480fcedb015d6a9d8f74c8f5ef37de1aff0a51a5e809ba8dc7924ff97977",
       "recordedAt": "2026-10-13T16:23:31Z"
+    },
+    "s14-wgpu-desktop-evidence": {
+      "snapshotId": "44ab446c7a5ab3f6ea7dab120ee340e6a9c829bb43b370def8f2fa1a1caf2ac7",
+      "commits": {
+        "gpux": "184e699406d72bcd9ef0eac91e2ea5cd13042e3a"
+      },
+      "reviewHash": "9e00d4bb39b2e47e1a7cd12e06b0c85aa0090b493766fc9f560d1632795ed14a",
+      "recordedAt": "2026-10-14T12:12:15Z"
     }
   },
   "findings": [
