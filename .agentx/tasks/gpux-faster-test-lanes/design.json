@@ -1,0 +1,348 @@
+{
+ "schemaVersion": 7,
+ "epicId": "gpux-faster-test-lanes",
+ "decisions": [
+  {
+   "id": "d-timings",
+   "requirementIds": [
+    "TIME"
+   ],
+   "descriptionMarkdown": "The testkit's libtest parser (`tooling/testkit/src/results.rs`) timestamps each completion line as it streams, so a serial run's durations are the deltas between completions (the first is measured from the start of the test process's output). The report is a `timings.md` beside the lane's other artifacts: tests sorted by duration, the share of the lane, and the slowest groups. No unstable libtest flag (`--report-time`, `--format json`) is used.",
+   "invariantsMarkdown": "- Reports stay in ignored `artifacts-temp/`.\n- With concurrent processes (d-jobs) each block carries its own deltas.",
+   "memoryDecisionRefs": [
+    {
+     "repositoryId": "gpux",
+     "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-test-lanes.md"
+    },
+    {
+     "repositoryId": "gpux",
+     "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-gpux-testkit.md"
+    },
+    {
+     "repositoryId": "gpux",
+     "path": ".agentx/memory/decisions/repository/validation/2026-10-13-repository-validation-fast-mode-proof-and-timing.md"
+    }
+   ],
+   "sourceRefs": [
+    {
+     "repositoryId": "gpux",
+     "path": "tooling/testkit/src/results.rs"
+    },
+    {
+     "repositoryId": "gpux",
+     "path": "tooling/testkit/src/run.rs"
+    },
+    {
+     "repositoryId": "gpux",
+     "path": "tooling/testkit/src/summary.rs"
+    }
+   ]
+  },
+  {
+   "id": "d-profile",
+   "requirementIds": [
+    "OPT"
+   ],
+   "descriptionMarkdown": "An optimization level of 1 for the code the lane C groups run, set in the workspace manifest. The scope is the output of the first task's measurements; the candidates are `[profile.dev] opt-level = 1`, `[profile.test]`, a package override for `image`, `gpux`, the renderers and `gpux-conformance`, and a dedicated profile the testkit selects. Whatever is chosen keeps `debug-assertions` and `overflow-checks` on and keeps debug info at the current setting. The measured example: one scroll-layer test 10.9 s at `opt-level = 0`, 1.14 s at 1 for the whole profile, 8.3 s for `image` plus the test crate only.",
+   "invariantsMarkdown": "- Rendering output is unchanged (lane C goldens stay byte identical).\n- RayX's own profiles govern RayX builds; a dependency's profile settings are not read from a path dependency's manifest.",
+   "rationaleMarkdown": "The cost is the debug build of std and `image` code running per pixel: more than half of the busy samples of a Metal run are `ub_checks` and `precondition_check` frames. Level 1 removes most of it for about 80 seconds of extra compile time on a 10-core Mac; a slower runner pays more, which the CI measurement in the last sprint records.",
+   "memoryDecisionRefs": [
+    {
+     "repositoryId": "gpux",
+     "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-test-lanes.md"
+    },
+    {
+     "repositoryId": "gpux",
+     "path": ".agentx/memory/decisions/repository/validation/2026-10-13-repository-validation-fast-mode-proof-and-timing.md"
+    }
+   ],
+   "sourceRefs": [
+    {
+     "repositoryId": "gpux",
+     "path": "Cargo.toml"
+    }
+   ]
+  },
+  {
+   "id": "d-compare",
+   "requirementIds": [
+    "CMP"
+   ],
+   "descriptionMarkdown": "`assert_same` in `crates/gpux_conformance/tests/scroll_layers_support/mod.rs` first compares `actual.as_raw() == expected.as_raw()` (after the dimension check) and only then builds the list of differing pixels, with the message it has today. `lane_c_list_hover` and `lane_c_layer_scales` reach the same helper.",
+   "invariantsMarkdown": "- The failure message keeps its fields.\n- No tolerance is introduced.",
+   "memoryDecisionRefs": [
+    {
+     "repositoryId": "gpux",
+     "path": ".agentx/memory/decisions/repository/validation/2026-10-13-repository-validation-fast-mode-proof-and-timing.md"
+    }
+   ],
+   "sourceRefs": [
+    {
+     "repositoryId": "gpux",
+     "path": "crates/gpux_conformance/tests/scroll_layers_support/mod.rs"
+    }
+   ]
+  },
+  {
+   "id": "d-sampling",
+   "requirementIds": [
+    "SAMP"
+   ],
+   "descriptionMarkdown": "The mode is read once from `GPUX_LANE_C_FULL` by the support module. A `Sampling` value turns a script into the steps drawn and the steps compared: in full mode both are all steps; in sampled mode the one-pixel stretches keep their first and last 4 frames and every 4th frame between, the layered window draws every step it keeps, and the reference is drawn and compared at the kept subset. The composited-frame minimums (`assert_composited`) scale by the kept share. The sampled subset and the seeds it does not cover are tabulated in the support module and asserted by a test (SAMP-2). The testkit sets the variable from `--full`, prints the mode line, and lane G and CI's nightly set it.",
+   "invariantsMarkdown": "- Full mode equals the pre-epic scripts and comparisons.\n- Sampled mode never compares fewer than the first and last frames of each stretch.\n- The mode is always reported.",
+   "rationaleMarkdown": "120 of a script's 135 steps are one-pixel scrolls whose frames differ from their neighbours by a single device pixel; keeping every 4th frame still crosses every blur phase of a shadow at the fractional scales while cutting most of the cost.",
+   "memoryDecisionRefs": [
+    {
+     "repositoryId": "gpux",
+     "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-test-lanes.md"
+    },
+    {
+     "repositoryId": "gpux",
+     "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-local-gpu-lane-g.md"
+    },
+    {
+     "repositoryId": "gpux",
+     "path": ".agentx/memory/decisions/repository/validation/2026-10-13-repository-validation-fast-mode-proof-and-timing.md"
+    }
+   ],
+   "sourceRefs": [
+    {
+     "repositoryId": "gpux",
+     "path": "crates/gpux_conformance/tests/scroll_layers_support/mod.rs"
+    },
+    {
+     "repositoryId": "gpux",
+     "path": "crates/gpux_conformance/tests/lane_c_layer_scales.rs"
+    },
+    {
+     "repositoryId": "gpux",
+     "path": "crates/gpux_conformance/tests/lane_c_scroll_layers.rs"
+    },
+    {
+     "repositoryId": "gpux",
+     "path": "crates/gpux_conformance/tests/lane_c_list_hover.rs"
+    },
+    {
+     "repositoryId": "gpux",
+     "path": "tooling/testkit/src/lanes.rs"
+    }
+   ]
+  },
+  {
+   "id": "d-jobs",
+   "requirementIds": [
+    "PAR"
+   ],
+   "descriptionMarkdown": "`plan_c` in `tooling/testkit/src/lanes.rs` produces one invocation per test group instead of one cargo invocation for all groups when `--jobs` is greater than 1, assigns groups to at most `n` workers by weight (the weights are measured durations kept in the testkit, refreshed from `timings.md` by hand), and the runner executes the workers concurrently, buffering each worker's output into one block. Each worker still passes `--test-threads=1` and builds its own cached device because it is its own process. Cargo builds once before the workers start so they do not contend on the build directory. `--jobs 1` is today's plan.",
+   "invariantsMarkdown": "- Threads inside a process stay serial; only processes run side by side.\n- The summary and exit status are the lane's, not a worker's.",
+   "rationaleMarkdown": "The device cache is per process and DX12 hangs on concurrent device creation inside one; separate processes avoid the shared state, which is an assumption CI proves (PAR-2).",
+   "memoryDecisionRefs": [
+    {
+     "repositoryId": "gpux",
+     "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-test-lanes.md"
+    },
+    {
+     "repositoryId": "gpux",
+     "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-gpux-testkit.md"
+    },
+    {
+     "repositoryId": "gpux",
+     "path": ".agentx/memory/decisions/repository/validation/2026-10-14-repository-validation-wsl-gpu-lanes-c-d.md"
+    }
+   ],
+   "sourceRefs": [
+    {
+     "repositoryId": "gpux",
+     "path": "tooling/testkit/src/lanes.rs"
+    },
+    {
+     "repositoryId": "gpux",
+     "path": "tooling/testkit/src/run.rs"
+    }
+   ]
+  },
+  {
+   "id": "d-ci-cadence",
+   "requirementIds": [
+    "CI"
+   ],
+   "descriptionMarkdown": "`plan.sh` gains `full` and `jobs` outputs and a `schedule` case, drops the `windows` entry from `lane_c` on a pull request unless `ci-os:windows` or `ci:all` is set, and `ci.yml` gets a nightly `schedule:` trigger, a `full` dispatch input and lane C's `GPUX_LANE_C_FULL` and `--jobs` wiring. The platform default is one variable in the script. `docs/ci.md` and `docs/testing.md` describe it.",
+   "invariantsMarkdown": "- Every other job's selection is unchanged.\n- Jobs and step names the repair loop uses stay.\n- Hosted CI still never runs on pushes to main (decision of 2026-10-09).",
+   "rationaleMarkdown": "Sampling and optimization may already bring WARP's lane C under the budget, but WARP's rendering is software and its cost was never separated from the debug-build cost; moving it off the per-push path first is the lever the owner approved, and the measurement in the last sprint says whether the default can return to every push.",
+   "memoryDecisionRefs": [
+    {
+     "repositoryId": "gpux",
+     "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-test-lanes.md"
+    },
+    {
+     "repositoryId": "gpux",
+     "path": ".agentx/memory/decisions/repository/validation/2026-10-13-repository-validation-fast-mode-proof-and-timing.md"
+    },
+    {
+     "repositoryId": "gpux",
+     "path": ".agentx/memory/decisions/repository/validation/2026-10-14-repository-validation-wgpu-desktop-perf-4.md"
+    }
+   ],
+   "sourceRefs": [
+    {
+     "repositoryId": "gpux",
+     "path": ".github/actions/plan/plan.sh"
+    },
+    {
+     "repositoryId": "gpux",
+     "path": ".github/workflows/ci.yml"
+    },
+    {
+     "repositoryId": "gpux",
+     "path": "docs/ci.md"
+    }
+   ]
+  }
+ ],
+ "memoryDecisionsConsidered": [
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/repository/validation/2026-10-07-repository-validation-gpux-owns-runtime-proof.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/gpui/frame-effects/2026-07-06-gpui-frame-effects-frame-effects-elements.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/gpui/frame-effects/2026-07-07-gpui-frame-effects-frame-family-naming.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-06-29-gpui-frame-pipeline-unclipped-deferred-overlays.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-07-24-gpui-frame-pipeline-cached-thermal-frame-throttling.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-05-gpui-frame-pipeline-frame-demand-follow-up.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-fast-mode-oracle.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-fast-mode-switches.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-scroll-layers.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/gpui/frame-pipeline/2026-10-13-gpui-frame-pipeline-window-composition.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/gpui/input/2026-10-05-gpui-input-upstream-input-model.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-30-gpui-layout-style-registry-taffy-0-14.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-conditional-prepaint-style-recompute.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-disable-taffy-content-size.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-frame-bounded-prepaint-style-handoff.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-measured-layout-invalidation.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-request-style-handoff.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/gpui/layout-style/2026-08-31-gpui-layout-style-text-measurement-scope.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-fixed-sticky-positioned-scene-order.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-fixed-sticky-positioning.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-04-gpui-positioning-scroll-nested-scroll-wheel-propagation.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-06-gpui-positioning-scroll-fixed-containing-block.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-opaque-scroll-capture-owner.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-sticky-hierarchy-traversal-order.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-07-31-gpui-positioning-scroll-universal-sticky-push-out.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/gpui/positioning-scroll/2026-08-21-gpui-positioning-scroll-immediate-scrollbar-publication.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/renderer/wgpu/2026-07-04-renderer-wgpu-shader-effects-backend-capabilities.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/renderer/wgpu/2026-08-07-renderer-wgpu-browser-backend-fallback.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/renderer/wgpu/2026-09-30-renderer-wgpu-srgb-compositing.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/renderer/wgpu/2026-10-13-renderer-wgpu-transformed-sprites-filtered-by-hand.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/renderer/wgpu/2026-10-14-renderer-wgpu-noncompliant-adapter-variable.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/repository/agentx-memory/2026-10-05-repository-agentx-memory-taxonomy-transplant.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-crates-io-packaging.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-drop-z-crates.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/repository/packaging/2026-10-05-repository-packaging-gpux-wgpu-fork.md"
+  },
+  {
+   "repositoryId": "gpux",
+   "path": ".agentx/memory/decisions/repository/upstream-sync/2026-08-07-repository-upstream-sync-self-contained-upstream-provenance.md"
+  }
+ ]
+}

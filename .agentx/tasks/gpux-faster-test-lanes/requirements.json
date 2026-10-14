@@ -1,0 +1,115 @@
+{
+ "schemaVersion": 7,
+ "epicId": "gpux-faster-test-lanes",
+ "scopeMarkdown": "Make gpux's test lanes fast enough for agentic iteration: a pull request's lane C used to take 3 hours on WARP (Windows software DirectX 12), 39 minutes on lavapipe and 25 on Metal, and the whole CI run was bounded by that one job. This epic delivers the five optimizations the owner approved on 2026-10-14, in order of expected gain.\n\n## Measured starting point (from `gpux-fast-mode`'s CI run 38474614288 and Mac profiling; raw numbers in `artifacts-temp/lane-c-profile.md`)\n- 20 tests of `lane_c_layer_scales`, `lane_c_scroll_layers` and `lane_c_list_hover` are 98% of the summed test time on WARP (10035 s of 10289 s), and dominate lavapipe and Metal as well. The 154 scene tests take 2m40s on WARP.\n- Each of those tests renders a 420 by 360 window 272 times per content and scale (135 script steps in a layered and a reference window, plus the first frames), 120 of the 135 steps being one-pixel scrolls. WARP spends about 270 ms per frame, lavapipe 56 ms, Metal 31 ms.\n- On Metal the test is CPU bound (9.8 s user in 11.5 s real): more than half of its busy samples are Rust debug-assertion checks in unoptimized std and `image` code. `profile.dev.opt-level=1` took one test from 10.9 s to 1.14 s; optimizing only `image` and the test crate gave 8.3 s. How much of WARP's 270 ms is that CPU overhead and how much WARP's own rasterization is not measured; the plan measures it first.\n- Lane C runs with `--test-threads=1` because scenes share one cached device and concurrent device creation hangs DX12.\n\n## The five optimizations\n1. Build the lane C test binaries and their dependencies at `opt-level = 1` (scope chosen by measurement).\n2. Cut frames: a sampled mode for the scroll-layer pixel suites in pull-request runs, with the full mode kept for nightly runs, manual runs and lane G.\n3. Cheaper image comparison: byte-slice equality first, pixel location only on a mismatch.\n4. Parallelism across processes (each with its own device), not threads.\n5. WARP's lane C off the per-push pull-request path: it runs on the `ci-os:windows` label, `ci:all`, manual dispatch and a new nightly schedule; lavapipe and Metal stay on every push.\n\n## Assumptions and recorded product decisions\n- Sampling never weakens the assertion: an assertion that runs is the same assertion, and the full mode is today's behaviour frame for frame. A sampled run says so in its output (the lanes rule: nothing degrades silently).\n- The sampled mode is the default for local runs (agentic iteration); `GPUX_LANE_C_FULL=1` or `gpux-testkit lane c --full` selects the full mode, which nightly runs, dispatches that ask for it, and lane G set.\n- Process-level parallelism is opt-in (`--jobs <n>`, default 1) until proven stable on DX12 by CI; CI sets it per platform from the measurements.\n- A pull request without the `ci-os:windows` label no longer runs WARP's lane C. Merging a change to the renderer, the platforms or the scroll-layer code should carry that label or `ci:all` (documented in `docs/ci.md`); the nightly run covers everything else. Flipping the default is one variable in `.github/actions/plan/plan.sh`.\n- No product behaviour changes. Goldens, scenes and assertions stay as they are; lane C output on Metal is byte identical before and after.\n\n## Excluded scope\n- The other slow jobs (`test (windows)` 32 min, lane E 41 min, lane B, lane F), and splitting lane D.\n- The `fast_mode` bench harness drawing no glyphs on Windows and Linux (a recorded follow-up of `gpux-fast-mode`).\n- Self-hosted or larger runners.",
+ "constraintsMarkdown": "- Keep gpux independent of RayX; do not touch `../RayX`.\n- Dependencies come from crates.io; no Git dependencies or `[patch]` entries.\n- A check must be able to fail (rules.md): every reduced or reorganized comparison has a test that seeds a difference and watches it fail.\n- Never silently degrade: a sampled run, a skipped platform and a concurrency level are all reported in the run's output.\n- Timing thresholds exist only in lane G; this epic's proof of speed is measured numbers recorded in a document and the CI run, never a threshold in a test.\n- Never commit goldens from a hardware GPU; no golden changes.\n- Debug assertions and overflow checks stay on in the test profile.",
+ "requirements": [
+  {
+   "id": "TIME",
+   "title": "Per-test timing of a lane",
+   "descriptionMarkdown": "Where a lane's time goes can be read from its own output.",
+   "criteria": [
+    {
+     "id": "TIME-1",
+     "verification": "automated",
+     "descriptionMarkdown": "`gpux-testkit lane c` (and every lane that streams libtest output) records each test's duration, measured as the time between consecutive completion lines of a serial run, and writes the slowest tests with their share of the lane's time to `artifacts-temp/testkit/<lane>/timings.md`; with `--jobs`, durations are per process. A run with no completed test writes no table and says why. The report is derived from the output the testkit already parses, without unstable libtest flags."
+    },
+    {
+     "id": "TIME-2",
+     "verification": "manual",
+     "descriptionMarkdown": "`docs/measurements/lane-c-timings.md` records, with machine, commit and CI run, lane C's per-backend durations before the epic (the baseline above) and after each optimization where it can be measured, the share of the 20 slow tests, the per-frame cost per backend, how much of WARP's time the optimized test build removed, and anything that did not pay off with the reason. The documents cited in `docs/testing.md` and `docs/ci.md` link to it. Verified by review of the document against the CI run logs."
+    }
+   ]
+  },
+  {
+   "id": "OPT",
+   "title": "Optimized test builds",
+   "descriptionMarkdown": "Lane C and the other test runs spend their CPU on rendering and pixel comparison, not on debug-build overhead.",
+   "criteria": [
+    {
+     "id": "OPT-1",
+     "verification": "manual",
+     "descriptionMarkdown": "The test builds (`cargo test` and the testkit's lane runs) compile the code the lane C groups run, `image` and the test crate included, with an optimization level of at least 1, through a Cargo profile setting whose scope was chosen from measurements: the whole `dev`/`test` profile, a package override for the hot crates, or a dedicated profile. The chosen scope, the measured lane C test time before and after on this Mac (the same test that took 10.9 s), the clean and incremental build cost, and why the other scopes lost are recorded in `docs/measurements/lane-c-timings.md`. Contributors' `cargo run` and debugging of examples are not made unusable, and RayX, which sets its own profiles, is unaffected. Verified by review of the measurements and the manifest."
+    },
+    {
+     "id": "OPT-2",
+     "verification": "automated",
+     "descriptionMarkdown": "Debug assertions and overflow checks are still enabled in the lane C test builds: a test in the lane C helper crate fails if `cfg!(debug_assertions)` is false in that build, and a second test fails if an unchecked-looking integer addition that overflows (a `std::hint::black_box` `u8` sum) does not panic."
+    }
+   ]
+  },
+  {
+   "id": "CMP",
+   "title": "Cheaper image comparison",
+   "descriptionMarkdown": "The per-frame pixel comparison is a memory compare on success.",
+   "criteria": [
+    {
+     "id": "CMP-1",
+     "verification": "automated",
+     "descriptionMarkdown": "The scroll-layer support's `assert_same` compares the two images' bytes first and returns when they are equal; only on a mismatch does it locate the differing pixels, and then it reports exactly what it reported before (the scale, the step, the count of differing pixels, the bounding box of the differing pixels and the first differing pair of pixels, in the same message). Tests: equal images pass; one differing pixel, a differing corner and a differing row fail with the old message's fields; images of different dimensions fail as before. The same helper is used by `lane_c_layer_scales`, `lane_c_scroll_layers` and `lane_c_list_hover`."
+    }
+   ]
+  },
+  {
+   "id": "SAMP",
+   "title": "Sampled and full scroll-layer comparison",
+   "descriptionMarkdown": "Pull-request runs do a fraction of the frames; full runs do all of them.",
+   "criteria": [
+    {
+     "id": "SAMP-1",
+     "verification": "automated",
+     "descriptionMarkdown": "The scroll-layer pixel suites (`lane_c_layer_scales`, `lane_c_scroll_layers`, `lane_c_list_hover`) run in two modes. **Full**, selected by `GPUX_LANE_C_FULL=1` or `gpux-testkit lane c --full` (which sets it), is today's behaviour frame for frame: the same scripts, contents, scales, comparisons and assertions. **Sampled**, the default otherwise, keeps every content, every scale and the whole scripted scroll, reduces the one-pixel stretches and the frames compared by documented rules (the layered window still draws every frame it is scrolled through, so tile carry is exercised; the reference is drawn and compared at a deterministic subset that always includes the first and last frames of each stretch), and applies the same assertions to what it compares, including the composited-frame minimums, which sampled mode scales by the share of frames kept. Tests assert the number of frames compared in each mode for representative scripts and that full mode's script and comparisons equal the pre-epic ones."
+    },
+    {
+     "id": "SAMP-2",
+     "verification": "automated",
+     "descriptionMarkdown": "A sampled run still fails on a defect: a test seeds a difference into the reference (a one-pixel offset at one step inside a one-pixel stretch, and a difference at one step of a long scroll) and the sampled comparison of the layered window against it fails, for a seed the sampled subset covers and a documented list of seeds it does not (those are what the full mode and the nightly run exist for); the test asserts both lists so the coverage claim cannot drift."
+    },
+    {
+     "id": "SAMP-3",
+     "verification": "automated",
+     "descriptionMarkdown": "A run says which mode it is in: `gpux-testkit lane c` prints a line before it starts (`lane c: sampled scroll-layer suites (GPUX_LANE_C_FULL=1 or --full runs every frame)` or `lane c: full scroll-layer suites`), repeats the mode in its summary, and the CI workflow sets the mode explicitly for each trigger. Lane G's lane C part and the nightly schedule run full."
+    }
+   ]
+  },
+  {
+   "id": "PAR",
+   "title": "Process-level parallelism",
+   "descriptionMarkdown": "The slow groups of a lane run at the same time on a multi-core runner without sharing a device.",
+   "criteria": [
+    {
+     "id": "PAR-1",
+     "verification": "automated",
+     "descriptionMarkdown": "`gpux-testkit lane c --jobs <n>` runs the lane's test groups (separate test binaries, and the scenes of `lane_c`) as up to `n` concurrent cargo-built test processes, each with `--test-threads=1` and its own device, partitions them by recorded weights so the slowest tests do not share a process when `n` allows, prints each process's output as one block in a fixed order, and reports one summary with the same `gpux-testkit: <passed> passed, <failed> failed, <skipped> skipped` line, failing when any process fails or when no test ran. `--jobs 1` (the default) runs exactly the invocations the lane runs today. `--jobs` combines with `--scene`, `--grep` and `--full`, and a selection that fits in fewer processes uses fewer. Tests cover the partition, ordering of output, failure propagation and the one-job equivalence with the existing plan."
+    },
+    {
+     "id": "PAR-2",
+     "verification": "manual",
+     "descriptionMarkdown": "Concurrent processes are stable on DX12: a complete lane C run on `windows-2025` (WARP) with `--jobs` greater than 1, repeated at least three times, completes without a hang or a device-lost error, or, if it does not, the epic's CI settings keep Windows at one job and the document records the failure evidence. The per-platform `--jobs` CI uses (ubuntu, macos, windows) is the value those runs support. Verified by the CI run logs linked from `docs/measurements/lane-c-timings.md`."
+    }
+   ]
+  },
+  {
+   "id": "CI",
+   "title": "What CI runs on a pull request",
+   "descriptionMarkdown": "The per-push pull-request run no longer waits on WARP's lane C, and the full run still happens.",
+   "criteria": [
+    {
+     "id": "CI-1",
+     "verification": "automated",
+     "descriptionMarkdown": "`.github/actions/plan/plan.sh` chooses lane C's platforms and mode: on a pull request without labels lane C runs on lavapipe and Metal only, sampled; with the `ci-os:windows` label or `ci:all` it adds WARP; a manual dispatch honours its `platforms` and a `full` input (default false) and a nightly schedule runs every platform in full mode; `ci-os:` labels still restrict every other job as before; the new `full` and `jobs` outputs feed lane C's step. The skipped platform is reported in the plan's output. A test runs the script with representative environments (no labels, each label, dispatch inputs, schedule, docs-only change) and asserts the outputs."
+    },
+    {
+     "id": "CI-2",
+     "verification": "automated",
+     "descriptionMarkdown": "`ci.yml` has a `schedule` trigger (nightly) and lane C's step passes the plan's mode and `--jobs` to the testkit; the workflow still parses and its `lane-c` matrix, job names and step names that the repair loop and `docs/ci.md` refer to keep their names. The test of the plan script also parses `ci.yml` and checks the trigger, the mode and the jobs wiring."
+    },
+    {
+     "id": "CI-3",
+     "verification": "manual",
+     "descriptionMarkdown": "`docs/ci.md` and `docs/testing.md` describe the new cadence: what a pull request runs by default, which label adds WARP, the nightly full run, `--full` and `--jobs`, the sampled mode's trade-off (what it covers and what only the full mode proves) and when a change should carry `ci-os:windows` or `ci:all` before merging. Verified by review against the plan script and workflow."
+    }
+   ]
+  }
+ ]
+}
