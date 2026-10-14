@@ -19,6 +19,7 @@ pub mod results;
 pub mod run;
 pub mod serve;
 pub mod summary;
+pub mod timings;
 pub mod wasm_verify;
 pub mod web;
 
@@ -489,6 +490,7 @@ fn run_plan(
         return tally;
     }
     let artifacts = run::artifacts_dir(root, lane.as_str());
+    let mut timelines = Vec::new();
     for invocation in &plan.invocations {
         let Some(program) = environment.find_program(&invocation.program) else {
             tally.add(Tally::failure(format!(
@@ -507,6 +509,13 @@ fn run_plan(
                 continue;
             }
         };
+        let timeline = runner.take_timeline();
+        if invocation.output == OutputKind::Libtest {
+            timelines.push(timings::ProcessTimeline {
+                label: invocation.label.clone(),
+                lines: timeline,
+            });
+        }
         let mut counted = match invocation.output {
             OutputKind::Libtest | OutputKind::Listing => results::tally_libtest(&result.output),
             OutputKind::ResultLines => results::tally_result_lines(&result.output),
@@ -556,6 +565,23 @@ fn run_plan(
             }
         }
         tally.add(counted);
+    }
+    if !timelines.is_empty() {
+        let path = artifacts.join("timings.md");
+        let report = timings::report(lane.as_str(), &timelines);
+        match std::fs::create_dir_all(&artifacts).and_then(|()| std::fs::write(&path, report)) {
+            Ok(()) => {
+                writeln!(out, "lane {lane}: test timings in {}", path.display()).ok();
+            }
+            Err(error) => {
+                writeln!(
+                    out,
+                    "lane {lane}: could not write {}: {error}",
+                    path.display()
+                )
+                .ok();
+            }
+        }
     }
     tally
 }

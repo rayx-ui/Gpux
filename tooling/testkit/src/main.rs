@@ -4,7 +4,7 @@ fn main() {
     let code = gpux_testkit::execute(
         std::env::args().skip(1),
         &gpux_testkit::SystemEnvironment,
-        &mut gpux_testkit::run::ProcessRunner,
+        &mut gpux_testkit::run::ProcessRunner::default(),
         &mut std::io::stdout(),
     );
     std::process::exit(code);
