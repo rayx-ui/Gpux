@@ -2,6 +2,9 @@ name: Gpux
 
 on:
   pull_request:
+  # The nightly run covers what a pull request leaves out: every platform, lane C in full mode.
+  schedule:
+    - cron: '17 3 * * *'
   workflow_dispatch:
     inputs:
       jobs:
@@ -15,6 +18,13 @@ on:
       grep:
         description: Select the tests of lanes A, C and D by name (`gpux-testkit --grep`; no spaces)
         default: ''
+      full:
+        description: Run lane C's scroll-layer suites frame for frame instead of sampled
+        type: boolean
+        default: false
+      lane-c-jobs:
+        description: Concurrent test processes of lane C on every platform (empty uses each platform's default)
+        default: ''
       update-goldens:
         description: Regenerate the lane C goldens of each backend and upload them as artifacts
         type: boolean
@@ -22,7 +32,7 @@ on:
 
 # A new push to a pull request cancels its superseded run; scheduled and manual runs always finish.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}${{ github.event_name == 'schedule' && '-nightly' || '' }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
@@ -49,6 +59,8 @@ jobs:
       os: ${{ steps.plan.outputs.os }}
       lane_c: ${{ steps.plan.outputs.lane_c }}
       grep: ${{ steps.plan.outputs.grep }}
+      full: ${{ steps.plan.outputs.full }}
+      skipped: ${{ steps.plan.outputs.skipped }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -59,6 +71,13 @@ jobs:
           jobs: ${{ inputs.jobs }}
           platforms: ${{ inputs.platforms }}
           grep: ${{ inputs.grep }}
+          full: ${{ inputs.full }}
+          lane_c_jobs: ${{ inputs.lane-c-jobs }}
+      - name: Report what lane C leaves out
+        if: steps.plan.outputs.skipped != ''
+        env:
+          SKIPPED: ${{ steps.plan.outputs.skipped }}
+        run: echo "::notice title=Lane C::$SKIPPED"
 
   check:
     name: check (${{ matrix.os }})
@@ -176,7 +195,15 @@ jobs:
       - name: Lane C
         env:
           GREP: ${{ needs.plan.outputs.grep }}
-        run: cargo run -p gpux-testkit -- lane c ${GREP:+--grep "$GREP"}
+          FULL: ${{ needs.plan.outputs.full }}
+          JOBS: ${{ matrix.jobs }}
+        # The testkit prints the mode (sampled or full) and the number of concurrent processes;
+        # `--jobs` only applies to the whole lane, so a selection runs as one process.
+        run: |
+          args=()
+          [ "$FULL" = true ] && args+=(--full)
+          if [ -n "$GREP" ]; then args+=(--grep "$GREP"); else args+=(--jobs "$JOBS"); fi
+          cargo run -p gpux-testkit -- lane c "${args[@]}"
         shell: bash
       - name: Upload failure artifacts
         if: failure()

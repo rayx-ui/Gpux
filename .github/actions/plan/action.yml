@@ -12,6 +12,12 @@ inputs:
   grep:
     description: Manual run only. The test selector a lane passes to its runner (`--grep`).
     default: ''
+  full:
+    description: Manual run only. Run lane C's scroll-layer suites frame for frame (`true`).
+    default: 'false'
+  lane_c_jobs:
+    description: Manual run only. Concurrent test processes of lane C on every platform; empty uses each platform's default.
+    default: ''
 outputs:
   jobs:
     description: JSON array of the job names to run.
@@ -20,11 +26,19 @@ outputs:
     description: JSON array of the runner images to run on.
     value: ${{ steps.plan.outputs.os }}
   lane_c:
-    description: JSON matrix `include` for lane C, limited to the chosen platforms.
+    description: >-
+      JSON matrix `include` for lane C: the chosen platforms where lane C runs (WARP only when the
+      rules allow), each with its `--jobs`.
     value: ${{ steps.plan.outputs.lane_c }}
   grep:
     description: The test selector, empty for the lane's own selection.
     value: ${{ steps.plan.outputs.grep }}
+  full:
+    description: '`true` when lane C runs its scroll-layer suites in full mode, `false` sampled.'
+    value: ${{ steps.plan.outputs.full }}
+  skipped:
+    description: Lane C platforms the plan left out and why, empty when none.
+    value: ${{ steps.plan.outputs.skipped }}
 runs:
   using: composite
   steps:
@@ -35,6 +49,8 @@ runs:
         DISPATCH_JOBS: ${{ inputs.jobs }}
         DISPATCH_PLATFORMS: ${{ inputs.platforms }}
         DISPATCH_GREP: ${{ inputs.grep }}
+        DISPATCH_FULL: ${{ inputs.full }}
+        DISPATCH_LANE_C_JOBS: ${{ inputs.lane_c_jobs }}
         # The labels are read when the plan runs, so a re-run sees the labels as they are now.
         GH_TOKEN: ${{ github.token }}
         REPO: ${{ github.repository }}

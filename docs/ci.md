@@ -10,7 +10,17 @@ platform. The rules, in order:
 | Pull request with a `ci:<job>` label | Only the labelled jobs (several labels add up). `ci:all` runs everything. |
 | Pull request with a `ci-os:<platform>` label | Only on those platforms: `ci-os:ubuntu`, `ci-os:windows`, `ci-os:macos` (several add up). |
 | Pull request without `ci:` labels that changes only `docs/`, `.agentx/`, `.claude/` or the top-level markdown and licence files | Only `check` (format, `cargo check`). |
-| Any other pull request, or the nightly schedule | Everything, as before (lanes B, E and F keep their own path filters). |
+| Any other pull request | Everything, as before (lanes B, E and F keep their own path filters), except lane C on WARP (below). |
+| Nightly schedule (03:17 UTC) | Everything, on every platform, with lane C's scroll-layer suites in full mode. |
+
+Lane C on WARP (Windows' software DirectX 12) is the slowest job, so a pull request leaves it out:
+lane C runs on lavapipe (ubuntu) and Metal (macos) on every push, and on WARP only with the
+`ci-os:windows` label or `ci:all`, in a manual run that includes `windows`, and in the nightly
+run. The `plan` job prints the platform it left out (`skipped`). Lane C also runs its
+scroll-layer suites *sampled* except in the nightly run and a manual run with `full` set; see
+[testing.md](testing.md#lane-c-offscreen-pixels). Change `LANE_C_WARP_ON_PULL_REQUEST` in
+`.github/actions/plan/plan.sh` to flip the default, and `lane_c_jobs` there to change a
+platform's `--jobs`.
 
 Jobs: `check`, `test`, `lane-a`, `lane-c`, `lane-d`, `package` (workflow *Gpux*), `lane-b`
 (*Gpux lane B*), `lane-e` (*Gpux lane E*), `lane-f` (*Gpux lane F*).
@@ -21,6 +31,10 @@ label change alone starts nothing. Examples:
 - iterating on the scroll-layer shaders: label the pull request `ci:lane-c` and `ci-os:macos`;
 - a Windows-only fix: `ci-os:windows` (every job, on Windows only);
 - one failing lane-E check: run *Gpux lane E* manually with `grep` = `scroll-layers-android`.
+
+`full` (manual runs only) runs lane C's scroll-layer suites frame for frame, and `lane-c-jobs` sets
+the number of concurrent test processes of lane C on every platform (each platform's default is
+`lane_c_jobs` in `plan.sh`, 1 until a measurement shows more is stable and faster).
 
 `grep` is the testkit's own selector (`gpux-testkit lane <x> --grep <pattern>`; lane B passes it to
 Playwright), applies to lanes A, B, C, D, E and F, and takes no spaces. The `test` job runs the
