@@ -1,7 +1,7 @@
 # Fast-mode timings on a wgpu desktop
 
 PERF-4 asks for lane G on a wgpu desktop with a GPU. This records what ran on a Windows DirectX 12
-machine, and why the Linux Vulkan half could not run under WSL on the same machine. The macOS tables
+machine and what ran under WSL (Vulkan through `dzn`) on the same one. The macOS tables
 it is compared with are in [fast-mode.md](../fast-mode.md#measurements). Every number below comes from a
 log saved in `artifacts-temp/windows-lane-g/` or `artifacts-temp/wsl-lane-g/` (git-ignored; the log's name
 follows each figure).
@@ -10,12 +10,12 @@ follows each figure).
 
 | | Windows (native, DX12) | WSL 2 (Vulkan) |
 |---|---|---|
-| GPU | NVIDIA GeForce RTX 4080 SUPER | the same GPU, seen through `/dev/dxg` (`nvidia-smi -L`) |
-| Driver | 32.0.16.1088 (NVIDIA 610.88; `Get-CimInstance Win32_VideoController`) | 610.88 (`nvidia-smi` in WSL) |
+| GPU | NVIDIA GeForce RTX 4080 SUPER | the same GPU, as `Microsoft Direct3D12 (NVIDIA GeForce RTX 4080 SUPER)`, a discrete Vulkan 1.2.318 device from Mesa's `dzn` (Vulkan on D3D12; `vulkan-enum-dzn.log`) |
+| Driver | 32.0.16.1088 (NVIDIA 610.88; `Get-CimInstance Win32_VideoController`) | 610.88 (`nvidia-smi` in WSL), Mesa dzn 25.2.8 |
 | OS | Windows 11 Pro 10.0.26300.9457 | Ubuntu 24.04.4 LTS, kernel 6.6.87.2-microsoft-standard-WSL2 |
 | WSL | | WSL 2.6.3.0, WSLg 1.0.71, Direct3D 1.611.1, DXCore 10.0.26100.1 |
-| Commit | `f8add89`, clean tree (`perf-final-windows/run.txt`) | not run |
-| Lane G | ran (below) | **not run: no physical Vulkan adapter** |
+| Commit | `f8add89`, clean tree (`perf-final-windows/run.txt`) | `862a1c3` (`f8add89` plus the one change below), clean tree |
+| Lane G | ran (below) | ran, lanes C and D only (below) |
 
 Both machines are one computer. Lane G ran with `GPUX_WGPU_ADAPTER=hardware` and
 `GPUX_EXPECT_BACKEND=hardware`, `CI` unset, nothing else running. The Windows power plan (display off
@@ -100,22 +100,60 @@ perf fast-mode: the bench reported no id; see ...\perf\final-windows\fast_mode.l
 The check was not weakened. It is the failure `fast-mode.md` records for the Linux VM; the suite
 is macOS-only until its harness draws text elsewhere, and it does not here either.
 
-## WSL (Linux, Vulkan)
+## WSL (Linux, Vulkan through `dzn`)
 
-Stopped at step 1 of Part 2: Vulkan under this WSL sees only llvmpipe.
+### Getting a Vulkan GPU
 
-- The GPU is in WSL: `/dev/dxg` exists, `nvidia-smi -L` lists the RTX 4080 SUPER, driver 610.88, and
-  `/usr/lib/wsl/lib` holds `libd3d12.so`, `libdxcore.so` and `libnvwgf2umx.so` (D3D12 and CUDA, not Vulkan)
-  (`wsl-version.log`).
-- Vulkan ICDs installed (`/usr/share/vulkan/icd.d`, mesa-vulkan-drivers 25.2.8): `asahi`, `gfxstream`,
-  `intel_hasvk`, `intel`, `lvp`, `nouveau`, `radeon`, `virtio`. There is no `dzn` (Vulkan on D3D12) driver
-  and no NVIDIA one.
-- `vulkaninfo` is not installed (it needs sudo), so the loader was queried directly
-  (`vk_enum.py`, `vulkan-enum.log`): `vkCreateInstance` 0, `physical devices: 1`,
-  `llvmpipe (LLVM 20.1.2, 256 bits)`, type CPU.
+WSL has no Vulkan driver for the GPU as installed. NVIDIA's WSL stack is D3D12 and CUDA only
+(`/usr/lib/wsl/lib`: `libd3d12.so`, `libdxcore.so`, `libnvwgf2umx.so`), and Ubuntu 24.04's
+`mesa-vulkan-drivers` 25.2.8 ships no `dzn` (`asahi`, `gfxstream`, `intel_hasvk`, `intel`, `lvp`,
+`nouveau`, `radeon`, `virtio` only), so Vulkan listed one device, `llvmpipe` (`vulkan-enum.log`,
+`wsl-version.log`). A GPU needed:
 
-So no WSL lane G run exists: `GPUX_EXPECT_BACKEND=hardware` would fail every scene. A Vulkan result needs
-a dzn-enabled Mesa or a Vulkan driver for the GPU inside WSL, or a Linux machine with one.
+1. Mesa 25.2.8 built from source with only `-Dvulkan-drivers=microsoft-experimental` into `~/mesa-dzn`
+   (Meson 1.5.2 from a clone, as Ubuntu's is 1.3.2; the apt build dependencies were the only `sudo`;
+   `mesa-build.log`), selected with `VK_DRIVER_FILES=~/mesa-dzn/share/vulkan/icd.d/dzn_icd.x86_64.json`.
+   `vulkaninfo` then reports `Microsoft Direct3D12 (NVIDIA GeForce RTX 4080 SUPER)`, discrete, Vulkan 1.2.318,
+   driver `Dozen`; `dzn` prints that it is not a conformant implementation.
+2. A change to gpux, `862a1c3` on `fix/wgpu-env-noncompliant-adapter`. wgpu hides non-conformant
+   adapters (`Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (NVIDIA GeForce RTX 4080
+   SUPER)`, `wgpu-probe-noncompliant-hidden.log`) unless `WGPU_ALLOW_UNDERLYING_NONCOMPLIANT_ADAPTER` is
+   set, and gpux built its instances with `InstanceFlags::default()`, which never reads it. Without the
+   change gpux saw only `llvmpipe (Gl, Cpu)` and the lane C and bench processes died with SIGSEGV (observed
+   in the first, unfixed run; its logs were not kept). With it and the variable set to `1`, none did.
+
+What ran is therefore **Vulkan translated to D3D12 on a non-conformant driver**, on the GPU the Windows run
+used through DX12 directly. It is not a native Linux Vulkan driver.
+
+### Lane G
+
+`lane-g-stdout.log`, `timing.md`, run under `xvfb-run` (X11) with `GPUX_WGPU_ADAPTER=hardware`,
+`GPUX_EXPECT_BACKEND=hardware`, `WGPU_ALLOW_UNDERLYING_NONCOMPLIANT_ADAPTER=1`:
+**231 passed, 185 failed, 13 skipped.**
+
+| Part | Passed | Failed | Skipped | Duration |
+|---|---|---|---|---|
+| lane B in `local-gpu` | 0 | 184 | 0 | 304.1 s |
+| lane C on the GPU, probes only | 188 | 0 | 0 | 1884.8 s |
+| lane D on the GPU | 43 | 0 | 13 | 47.9 s |
+| `gpux-platform` benchmarks | 0 | 1 | 0 | 68.0 s |
+
+- **Lane C and lane D pass on the GPU.** Lane D's `desktop-backend` result: `windows render on hardware
+  (Microsoft Direct3D12 (NVIDIA GeForce RTX 4080 SUPER))` (`hardware-lane-d.log`). Its skips are 3 macOS
+  and 5 Windows composition checks, 3 Wayland ones (not a Wayland session), `composition-x11-overlay` (no
+  compositing manager under Xvfb) and `platform-scale-change` (Linux windows take their scale from the
+  display server).
+- **Lane B fails in every spec**, the first one with `could not open web-svg-asset: WebGPU context not
+  initialized` (`lane-b-logs/web-e2e.log`). Chromium on WSL gets no GPU adapter: with the `local-gpu` flags
+  (and Playwright's headless Chromium 1217) neither WebGPU nor WebGL2 exists; with `--use-angle=gl-egl` WebGPU
+  is SwiftShader and WebGL2 is `ANGLE (Mesa, llvmpipe ...)`, both software; with the Vulkan flags
+  (`--use-angle=vulkan --use-vulkan=native`) again neither. The three timing runs
+  (`browser-timing-run1.log` to `run3.log`) fail the same way, 0 passed, 5 failed each: **there is no
+  browser p95 for WSL.**
+- The benchmarks fail in the same `fast_mode` check as on Windows (`benches.log`:
+  `fast/still-frame/off: 60 primitives over 1 frames, below 3900 a frame: the text drew no glyphs?`), and
+  `perf fast-mode --name final-wsl` stops on it too (`perf-fast-mode-final-wsl.log`): **no `fast_mode`
+  table and no benchmark estimate for WSL.**
 
 ## Findings
 
@@ -124,7 +162,11 @@ a dzn-enabled Mesa or a Vulkan driver for the GPU inside WSL, or a Linux machine
 2. **For the list it is not a clear loss on WebGPU and still a loss on WebGL2.** WebGPU: +0%, -5%, +3% in
    three runs and -6% in lane G, within the spread. WebGL2: +8%, +8%, +4% and +6% in lane G, in all
    four runs (Mac: +19% to +28% on WebGL2, up to +32% in lane G, and +12% to +15% on WebGPU).
-3. **Nothing regressed that the Mac did not show, but half of PERF-4 is unmeasured.** Lane B, C and D pass in full on the
-   GPU. The `fast_mode` suite does not run on this platform (same failure as lavapipe), so the per-mode
-   comparison is absent and `randomized_element_tree` and `inspector_render` have no Windows numbers;
-   the Linux Vulkan half could not run under WSL.
+3. **Nothing regressed that the Mac did not show, but PERF-4 is only partly measured.** On Windows lanes B, C
+   and D pass in full on the GPU; on WSL (Vulkan through `dzn`) lanes C and D pass and lane B cannot reach
+   a GPU. The `fast_mode` suite fails on both platforms at its own check (the same one as on lavapipe), so
+   the per-mode comparison is absent and `randomized_element_tree` and `inspector_render` have no numbers
+   anywhere. What stays open: the browser timings on a Linux GPU, and the per-mode comparison off the Mac.
+4. **gpux needed one change to see a Vulkan GPU under WSL** (`862a1c3`, not part of this branch): honouring
+   `WGPU_ALLOW_UNDERLYING_NONCOMPLIANT_ADAPTER`. Lane C's and lane D's result there is for `dzn`, Vulkan over
+   D3D12, not for a native Linux Vulkan driver.
