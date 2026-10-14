@@ -891,28 +891,74 @@ the Metal adapter (probes only; 77 and 77 passed, the layer-scale, scroll-layer 
 included). Its lane D part (real desktop windows) did not complete: with the display asleep every
 window reported "no frame within 10s", and the rerun with the display held awake (`caffeinate -d -u`)
 was stopped before it reached lane D. Lane D is proved in CI (`ci.yml`, three platforms); no lane G
-desktop-window or benchmark result is recorded here.
+desktop-window or benchmark result is recorded here. The Windows and WSL runs are in
+[On a wgpu desktop](#on-a-wgpu-desktop).
 
 ### On a wgpu desktop
 
-PERF-4 asks for lane G on a wgpu desktop as well (Windows DirectX 12 or Linux Vulkan on a GPU). **This
-was not run: no machine with such a GPU was at hand.** What exists instead:
+PERF-4 asks for lane G on a wgpu desktop as well. It ran on a Windows DirectX 12 machine (NVIDIA
+GeForce RTX 4080 SUPER, driver 32.0.16.1088, Windows 11, commit `f8add89`) and, on the same computer, under
+WSL 2 on Vulkan. The machines, the logs each figure comes from (kept in git-ignored `artifacts-temp/`,
+named in the document) and the findings are in
+[measurements/wgpu-desktop-timings.md](measurements/wgpu-desktop-timings.md); only the outcome is here.
+This run was done by the user, not by the implementer; the Mac's tables above stay as they are, and the
+numbers below sit next to them, not in their place.
 
-- Windows (DX12 on WARP, a software adapter) and Linux (lavapipe) run lanes A to E in CI, which prove
-  the behaviour and the pixels of every mechanism there, not their timing; lane G refuses to run
-  under CI because software adapters make timing meaningless.
-- The `fast_mode` suite did not run in the Linux VM (lavapipe): its scenarios stop at their own check
-  (the harness's windows drew no glyphs there, 60 primitives where 3900 are expected), and a machine
-  without a GPU adapter cannot open the bench's windows at all. The suite is macOS-only until its Linux
-  harness draws text.
-- The wgpu renderer's tiles did run on a GPU in this comparison, through Metal: the iPhone Simulator
-  above is wgpu on Metal (`gpui_wgpu` through `GPUIMetalView`), and Chromium's WebGPU and WebGL2
-  are the browser's.
+**Windows (DX12), lane G: 418 passed, 1 failed, 10 skipped.**
 
-To close this on a Windows or Linux machine with a GPU, run `cargo run -p gpux-testkit -- lane g`
-there and compare its `artifacts-temp/testkit/g/timing.md` and `fast-mode.md` with the tables above
-(the `@timing` specs are the part that needs the GPU; `gpux-testkit lane g --headed` shows the
-browser).
+| Part | Passed | Failed | Skipped |
+|---|---|---|---|
+| lane B in `local-gpu` (every spec, `@timing` included) | 184 | 0 | 0 |
+| lane C on the GPU, probes only | 188 | 0 | 0 |
+| lane D on the GPU (`windows render on hardware`) | 46 | 0 | 10 (the macOS, Wayland and X11 composition checks) |
+| `gpux-platform` benchmarks | 0 | 1 | 0 |
+
+Lane B's Chromium used the GPU (WebGPU adapter `nvidia`/`lovelace`, not a fallback; WebGL2 on ANGLE over
+Direct3D 11), so the timing below is a GPU's. The one failure is the `fast_mode` bench, which stops at its
+own check on its first scenario (`60 primitives over 1 frames, below 3900 a frame: the text drew no
+glyphs?`, `lines_shaped` 0); `perf fast-mode --name final-windows` stops on it too. The check was not
+weakened, and since cargo stops at the first failing bench, `randomized_element_tree` and
+`inspector_render` never ran.
+
+**In the browser, on Windows.** The same `@timing` tests and page as "In the browser" above (60 wheel
+steps on a 440 by 340 canvas), three separate runs, the p95 of gpux's frame work in milliseconds, layers
+on against off, each run's change in brackets:
+
+| Scene | WebGPU | WebGL2 |
+|---|---|---|
+| cards in a scrolling `div` | 7.38 / 11.25 · 6.94 / 11.33 · 7.72 / 10.52 (-34%, -39%, -27%) | 7.36 / 10.08 · 7.25 / 9.70 · 6.97 / 11.15 (-27%, -25%, -37%) |
+| rows of a `list` | 11.45 / 11.43 · 11.04 / 11.58 · 11.37 / 11.02 (+0%, -5%, +3%) | 11.85 / 10.97 · 11.19 / 10.38 · 11.59 / 11.12 (+8%, +8%, +4%) |
+
+The two runs inside lane G agree in direction (`div`: -34% on WebGPU, -35% on WebGL2; list: -6% on
+WebGPU, +6% on WebGL2). Against the Mac:
+
+- The scrolling `div` wins more than on the Mac: 25% to 39% on both APIs, against 7% to 18%.
+- The list is no clear loss on WebGPU (+0%, -5%, +3%, within the spread; the Mac's +12% to +15%) and still a
+  loss on WebGL2, smaller (+4% to +8%, against +19% to +28%).
+- Tiles drew 56 (`div`) and 58 (list) of 276 to 322 frames, none with layers off, the Mac's counts.
+- The slowest frame is longer with layers on in all 12 on/off pairs, the frame that rasterizes tiles,
+  as on the Mac. The absolute p95 is 2 to 3 times the Mac's with layers on and off alike; this was not
+  investigated.
+
+**WSL 2 (Linux Vulkan through Mesa `dzn`, commit `862a1c3`).** WSL has no native Vulkan driver for the
+GPU. The GPU was reached through a Mesa `dzn` built from source (Vulkan translated to D3D12, a
+non-conformant driver) and the `WGPU_ALLOW_UNDERLYING_NONCOMPLIANT_ADAPTER` variable, which the native
+renderers now honour (see [Environment variables](testing.md#environment-variables)). Lane C passed 188 of 188 and lane D 43 of
+43 (13 skipped) on that GPU, which proves the pixels and the windows on Vulkan, **not timing**: it is
+not a native Linux driver. Lane B cannot run (Chromium on WSL gets only software adapters, so every spec
+fails with `WebGPU context not initialized`), and `fast_mode` fails at the same glyph check as on
+Windows.
+
+**Still open.**
+
+- Browser timings on a Linux GPU: impossible on WSL, so there are none.
+- The `fast_mode` per-mode comparison and the `randomized_element_tree` and `inspector_render`
+  benchmarks off macOS: the bench harness's windows draw no glyphs on Windows or Linux (nor on the Linux
+  VM's lavapipe, where it first showed), so the suite is macOS-only until its harness draws text there.
+  A known gap, not fixed in this epic.
+- Windows (DX12 on WARP) and Linux (lavapipe) still run lanes A to E in CI, which prove behaviour and
+  pixels, not timing; lane G refuses to run under CI.
+- On a phone and on the wgpu renderer's tiles through Metal, the iPhone Simulator above stands.
 
 ### Standalone scene and text optimizations
 
