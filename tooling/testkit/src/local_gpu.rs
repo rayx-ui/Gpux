@@ -134,6 +134,7 @@ pub fn bench_plan(os: Os) -> LanePlan {
             .map(|bench| format!("bench::{bench}"))
             .collect(),
         listings: Vec::new(),
+        prebuild: None,
     }
 }
 

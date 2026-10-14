@@ -26,6 +26,7 @@ fn lane_commands_parse_lanes_and_selection() {
             },
             headed: false,
             full: false,
+            jobs: 1,
         })
     );
     assert_eq!(
@@ -39,6 +40,7 @@ fn lane_commands_parse_lanes_and_selection() {
             },
             headed: false,
             full: false,
+            jobs: 1,
         })
     );
 }

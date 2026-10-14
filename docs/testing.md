@@ -221,7 +221,17 @@ renderer: wgpu on the software adapter on Windows (WARP) and Linux (lavapipe), M
 Scenes check relative probes (a color at a point, a uniform region, two regions that differ, a
 region that changed since a capture), and the golden subset is compared with the committed
 goldens of the backend. Scenes render one at a time: they share one cached device, which keeps
-DX12 stable. The full run also runs the `lane_g` group, which checks lane G's probes-only mode
+DX12 stable. `--jobs <n>` runs the lane's test groups (the scenes of `lane_c` and each `lane_c_*`
+group) in up to `n` concurrent processes, each with `--test-threads=1` and its own device; cargo
+builds once before they start, the groups are spread over the processes by recorded weights
+(`LANE_C_WEIGHTS` in `tooling/testkit/src/lanes.rs`, refreshed by hand from a `timings.md`), each
+process's output is printed as one block in a fixed order, and the lane still ends with one
+summary. `--jobs` applies to the full lane c only: a narrowed lane c (`--scene`, `--grep`) and every other
+lane (lane g's lane c part measures timing, so it stays one process) run as usual and say so. The
+default is one process, which runs exactly what the lane always ran; a concurrency
+level above 1 is opt-in until CI proves it stable on every platform. Every lane run that streams
+libtest output writes `artifacts-temp/testkit/<lane>/timings.md`, the slowest tests and groups of
+the run, with one block per process. The full run also runs the `lane_g` group, which checks lane G's probes-only mode
 on the same renderer, `lane_c_fast_parity`, which renders every scene with fast mode on and off
 and compares the pixels, and three groups that compare every frame of a window drawing from
 the renderer's tiles with a window drawn without scroll layers: `lane_c_scroll_layers` scrolls
