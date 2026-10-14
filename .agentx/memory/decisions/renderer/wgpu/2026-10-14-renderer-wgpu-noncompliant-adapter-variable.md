@@ -25,6 +25,6 @@ agentx:
 
 ### Reasoning: `native_instance_flags()` in `crates/gpui_wgpu/src/wgpu_context.rs` adds the one flag when the variable is set to anything but `0`, used by `create_headless` and `instance_with_backend_policy`. Backend and adapter choice stay with gpux's own `GPUX_WGPU_*` variables, so a stray `WGPU_BACKEND` cannot move a run; an opt-in keeps a non-conformant adapter out of every default run. Tests: `cargo test -p gpux-wgpu-renderer --lib instance_flags`.
 
-### Trade-offs accepted: A user who sets the variable gets whatever the non-conformant driver does; the browser paths and the windowed instance sites keep default flags.
+### Trade-offs accepted: A user who sets the variable gets whatever the non-conformant driver does; the browser path (`new_web`) and the atlas test instance keep default flags; the windowed path goes through `instance_with_backend_policy` and honours the variable.
 
 ### Supersedes: None.
