@@ -85,6 +85,8 @@ pub fn hardware_plans(selection: &Selection, os: Os) -> Result<Vec<LanePlan>, Pl
         invocation.label = format!("hardware-{}", invocation.label);
         invocation.env.extend(c_env.iter().cloned());
     }
+    // Lane G runs the scroll-layer suites in full, never sampled.
+    lanes::set_full(&mut c);
     c.lane = LaneId::G;
 
     // Desktop windows never compare goldens; their own adapter choice prefers the GPU, and the

@@ -19,6 +19,9 @@ use gpux::{
 };
 use gpux_conformance::test_host::lane_c_renderer;
 use image::RgbaImage;
+use scroll_layers_support::{Sampling, difference, sample_runs};
+
+mod scroll_layers_support;
 
 const WINDOW: (f32, f32) = (420., 360.);
 const ROWS: usize = 60;
@@ -141,9 +144,16 @@ enum Act {
     Move(f32, f32),
 }
 
-/// Runs `acts` in a layered window and in the reference, comparing every frame, and returns
-/// how many frames the layered window composited from its layer.
+/// Runs `acts` in a layered window and in the reference, comparing frames as the mode of the
+/// run says (`GPUX_LANE_C_FULL=1` compares every frame; see `scroll_layers_support::Sampling`),
+/// and returns how many frames the layered window composited from its layer. The layered window
+/// is drawn after every act.
 fn compare(uniform: bool, scale: f32, acts: &[Act]) -> u64 {
+    let wheel: Vec<bool> = acts
+        .iter()
+        .map(|act| matches!(act, Act::Wheel(..)))
+        .collect();
+    let compared = sample_runs(&wheel, Sampling::from_environment());
     let mut cx = app();
     let layered = Run::open(&mut cx, uniform, scale, true);
     let reference = Run::open(&mut cx, uniform, scale, false);
@@ -164,9 +174,11 @@ fn compare(uniform: bool, scale: f32, acts: &[Act]) -> u64 {
             }
         }
         let (actual, stats) = layered.frame(&mut cx);
-        let (expected, _) = reference.frame(&mut cx);
         composited += stats.layers_composited;
-        assert_same(&actual, &expected, index, act, scale, &stats);
+        if compared[index] {
+            let (expected, _) = reference.frame(&mut cx);
+            assert_same(&actual, &expected, index, act, scale, &stats);
+        }
     }
     cx.quit();
     composited
@@ -181,25 +193,17 @@ fn assert_same(
     scale: f32,
     stats: &FastStats,
 ) {
-    assert_eq!(actual.dimensions(), expected.dimensions());
-    let differing: Vec<(u32, u32)> = actual
-        .enumerate_pixels()
-        .filter(|(x, y, pixel)| *pixel != expected.get_pixel(*x, *y))
-        .map(|(x, y, _)| (x, y))
-        .collect();
-    let Some(&(x, y)) = differing.first() else {
+    let Some(difference) = difference(actual, expected) else {
         return;
     };
-    let (max_x, max_y) = differing
-        .iter()
-        .fold((0, 0), |(mx, my), (x, y)| (mx.max(*x), my.max(*y)));
+    let ((x, y), (max_x, max_y)) = (difference.first, difference.last);
     panic!(
         "at {scale}x, after act {index} ({act:?}): {} pixels differ from the reference, within \
          ({x}, {y})..=({max_x}, {max_y}); first {:?} against {:?}; the layered frame composited \
          {} layers and repainted {}",
-        differing.len(),
-        actual.get_pixel(x, y),
-        expected.get_pixel(x, y),
+        difference.count,
+        difference.actual,
+        difference.expected,
         stats.layers_composited,
         stats.layers_repainted,
     );

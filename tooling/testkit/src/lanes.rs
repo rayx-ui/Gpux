@@ -197,16 +197,43 @@ const LANE_A_GROUPS: [&str; 8] = [
 
 /// The lane-C groups besides the scenes, which need the renderer: lane G's probes-only mode,
 /// fast-mode parity, and scroll layers drawn from the renderer's tiles (at whole scale
-/// factors, at fractional ones, and under a pointer that hovers a list's rows), and the checks
-/// that the test build keeps debug assertions and overflow checks on.
-const LANE_C_GROUPS: [&str; 6] = [
+/// factors, at fractional ones, and under a pointer that hovers a list's rows), the checks
+/// that the test build keeps debug assertions and overflow checks on, the frame comparison
+/// the scroll-layer groups share, and the sampled and full modes of those groups.
+const LANE_C_GROUPS: [&str; 8] = [
     "lane_g",
     "lane_c_fast_parity",
     "lane_c_scroll_layers",
     "lane_c_layer_scales",
     "lane_c_list_hover",
     "lane_c_profile",
+    "lane_c_compare",
+    "lane_c_sampling",
 ];
+
+/// The variable that makes lane C's scroll-layer suites run frame for frame.
+pub const FULL_VARIABLE: &str = "GPUX_LANE_C_FULL";
+
+/// What a lane C run says about the scroll-layer suites, when it runs them.
+pub fn mode_line(full: bool) -> &'static str {
+    if full {
+        "lane c: full scroll-layer suites"
+    } else {
+        "lane c: sampled scroll-layer suites (GPUX_LANE_C_FULL=1 or --full runs every frame)"
+    }
+}
+
+/// Whether an environment value of `GPUX_LANE_C_FULL` asks for the full mode.
+pub fn full_requested(value: Option<&str>) -> bool {
+    value.is_some_and(|value| !value.is_empty() && value != "0")
+}
+
+/// Makes lane C's test processes run the scroll-layer suites in full.
+pub fn set_full(plan: &mut LanePlan) {
+    for invocation in &mut plan.invocations {
+        invocation.env.push((FULL_VARIABLE.into(), "1".into()));
+    }
+}
 
 /// Plans `lane` for `selection`.
 pub fn plan(lane: LaneId, selection: &Selection) -> Result<LanePlan, PlanError> {

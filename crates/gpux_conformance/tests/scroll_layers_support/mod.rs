@@ -913,7 +913,7 @@ impl Run {
 }
 
 /// A step of a test's script.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Step {
     Wheel(f32, f32),
     /// Changes what some rows show.
@@ -929,9 +929,142 @@ pub struct Totals {
     pub tiles_rasterized: u64,
 }
 
-/// Runs `script` in a layered window and in the reference, comparing every frame, and returns
-/// what the layered window's layers did.
+/// Which frames the scroll-layer suites compare.
+///
+/// `Full` compares every frame of the script: nightly runs, dispatches that ask for it and lane G
+/// set `GPUX_LANE_C_FULL=1` (`gpux-testkit lane c --full`). `Sampled`, the default, keeps every
+/// content, every scale and the whole scripted scroll, and the layered window still draws every
+/// step (its tiles carry from frame to frame as they do for a user); what it saves is drawing
+/// and comparing the reference at every step of a long run of one-pixel scrolls (see
+/// [`Sampling::plan`]). An assertion that runs is the same assertion in both.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Sampling {
+    Full,
+    Sampled,
+}
+
+/// The variable that selects [`Sampling::Full`].
+pub const FULL_VARIABLE: &str = "GPUX_LANE_C_FULL";
+
+/// A run of identical one-pixel wheel steps shorter than this is compared whole.
+pub const MIN_STRETCH: usize = 16;
+
+/// Which steps of a script the reference is drawn at and the two windows compared. Both windows
+/// are given every step and the layered window is drawn after every step.
+#[derive(Debug, PartialEq)]
+pub struct Plan {
+    /// Whether the reference is drawn, and the two windows compared, after each step.
+    pub compared: Vec<bool>,
+}
+
+impl Plan {
+    /// The steps whose frames the layered window draws but nothing compares.
+    pub fn uncovered(&self) -> Vec<usize> {
+        (0..self.compared.len())
+            .filter(|&index| !self.compared[index])
+            .collect()
+    }
+
+    /// How many steps are compared.
+    pub fn compared_count(&self) -> usize {
+        self.compared.iter().filter(|&&compared| compared).count()
+    }
+}
+
+fn single_pixel(step: Step) -> Option<f32> {
+    match step {
+        Step::Wheel(dx, dy) if dx == 0. && dy.abs() == 1. => Some(dy),
+        _ => None,
+    }
+}
+
+impl Sampling {
+    /// `Full` when `GPUX_LANE_C_FULL` is set to anything but empty or `0`.
+    pub fn from_environment() -> Sampling {
+        Sampling::from_value(std::env::var(FULL_VARIABLE).ok().as_deref())
+    }
+
+    /// The mode a `GPUX_LANE_C_FULL` of `value` selects.
+    pub fn from_value(value: Option<&str>) -> Sampling {
+        match value {
+            Some(value) if !value.is_empty() && value != "0" => Sampling::Full,
+            _ => Sampling::Sampled,
+        }
+    }
+
+    /// The steps of `script` that are compared.
+    ///
+    /// `Full` compares every step. `Sampled` compares every step except in a *stretch* (a run of
+    /// at least [`MIN_STRETCH`] identical one-pixel wheel steps): of a stretch of `n` steps it
+    /// compares those at positions `p` where `p < 4`, `p >= n - 4` or `p % 4 == 0`, so the first
+    /// and last 4 frames of a stretch are always compared.
+    pub fn plan(self, script: &[Step]) -> Plan {
+        let mut compared = Vec::new();
+        let mut index = 0;
+        while index < script.len() {
+            let run = single_pixel(script[index]).map_or(1, |dy| {
+                script[index..]
+                    .iter()
+                    .take_while(|next| single_pixel(**next) == Some(dy))
+                    .count()
+            });
+            for p in 0..run {
+                compared.push(
+                    self == Sampling::Full
+                        || run < MIN_STRETCH
+                        || p < 4
+                        || p + 4 >= run
+                        || p % 4 == 0,
+                );
+            }
+            index += run;
+        }
+        Plan { compared }
+    }
+}
+
+/// Which acts of a script the reference is drawn and compared after, for suites whose acts are
+/// not all wheel steps (pointer moves). `wheel[i]` says act `i` is a wheel turn. `Full` compares
+/// every act. `Sampled` compares every act that is not a wheel turn, and in a run of `n`
+/// consecutive wheel turns those at positions `q` where `q == 0`, `q == n - 1` or `q % 3 == 0`;
+/// the layered window is drawn after every act either way.
+pub fn sample_runs(wheel: &[bool], sampling: Sampling) -> Vec<bool> {
+    let mut compared = vec![true; wheel.len()];
+    if sampling == Sampling::Full {
+        return compared;
+    }
+    let mut index = 0;
+    while index < wheel.len() {
+        if !wheel[index] {
+            index += 1;
+            continue;
+        }
+        let run = wheel[index..].iter().take_while(|&&w| w).count();
+        for q in 0..run {
+            compared[index + q] = q == 0 || q + 1 == run || q % 3 == 0;
+        }
+        index += run;
+    }
+    compared
+}
+
+/// Runs `script` in a layered window and in the reference, comparing frames as the mode of the
+/// run says ([`Sampling::from_environment`]), and returns what the layered window's layers did.
 pub fn compare(content: Content, scale: f32, script: &[Step]) -> Totals {
+    compare_with(content, scale, script, Sampling::from_environment(), None)
+}
+
+/// [`compare`] in `sampling`. With `seed`, the reference shows a difference at that step of the
+/// script and only there (one pixel of scroll that is taken back right after): the step's
+/// frame differs from the layered window's if it is compared, and nothing does if it is not.
+pub fn compare_with(
+    content: Content,
+    scale: f32,
+    script: &[Step],
+    sampling: Sampling,
+    seed: Option<usize>,
+) -> Totals {
+    let plan = sampling.plan(script);
     let mut cx = app();
     let layered = Run::open(&mut cx, content, scale, true);
     let reference = Run::open(&mut cx, content, scale, false);
@@ -946,14 +1079,22 @@ pub fn compare(content: Content, scale: f32, script: &[Step]) -> Totals {
                 Step::Tick => run.tick(&mut cx),
             }
         }
+        if seed == Some(index) {
+            reference.wheel(&cx, 0., -1.);
+        }
         let (actual, stats) = layered.frame(&mut cx);
-        let (expected, reference_stats) = reference.frame(&mut cx);
-        assert_eq!(
-            reference_stats.layers_composited + reference_stats.layers_repainted,
-            0,
-            "the reference has no layers"
-        );
-        assert_same(&actual, &expected, index + 1, scale);
+        if plan.compared[index] {
+            let (expected, reference_stats) = reference.frame(&mut cx);
+            assert_eq!(
+                reference_stats.layers_composited + reference_stats.layers_repainted,
+                0,
+                "the reference has no layers"
+            );
+            assert_same(&actual, &expected, index + 1, scale);
+        }
+        if seed == Some(index) {
+            reference.wheel(&cx, 0., 1.);
+        }
         totals.composited += stats.layers_composited;
         totals.repainted += stats.layers_repainted;
         totals.tiles_composited += stats.tiles_composited;
@@ -963,27 +1104,57 @@ pub fn compare(content: Content, scale: f32, script: &[Step]) -> Totals {
     totals
 }
 
-/// Checks `actual`, drawn from tiles, against `expected`, the reference: the same bytes.
+/// Where two images of one size differ.
+pub struct Difference {
+    /// How many pixels differ.
+    pub count: usize,
+    /// The first differing pixel, in row order.
+    pub first: (u32, u32),
+    /// The bottom right corner of the box around every differing pixel.
+    pub last: (u32, u32),
+    /// The first differing pixel in `actual`.
+    pub actual: image::Rgba<u8>,
+    /// The same pixel in `expected`.
+    pub expected: image::Rgba<u8>,
+}
+
+/// How `actual` differs from `expected`, or `None` when they are the same bytes. Equal images
+/// cost one slice comparison; the pixels are only walked to locate a mismatch.
 #[track_caller]
-pub fn assert_same(actual: &RgbaImage, expected: &RgbaImage, step: usize, scale: f32) {
+pub fn difference(actual: &RgbaImage, expected: &RgbaImage) -> Option<Difference> {
     assert_eq!(actual.dimensions(), expected.dimensions());
+    if actual.as_raw() == expected.as_raw() {
+        return None;
+    }
     let differing: Vec<(u32, u32)> = actual
         .enumerate_pixels()
         .filter(|(x, y, pixel)| *pixel != expected.get_pixel(*x, *y))
         .map(|(x, y, _)| (x, y))
         .collect();
-    let Some(&(x, y)) = differing.first() else {
-        return;
-    };
-    let (max_x, max_y) = differing
+    let &(x, y) = differing.first()?;
+    let last = differing
         .iter()
         .fold((0, 0), |(mx, my), (x, y)| (mx.max(*x), my.max(*y)));
+    Some(Difference {
+        count: differing.len(),
+        first: (x, y),
+        last,
+        actual: *actual.get_pixel(x, y),
+        expected: *expected.get_pixel(x, y),
+    })
+}
+
+/// Checks `actual`, drawn from tiles, against `expected`, the reference: the same bytes.
+#[track_caller]
+pub fn assert_same(actual: &RgbaImage, expected: &RgbaImage, step: usize, scale: f32) {
+    let Some(difference) = difference(actual, expected) else {
+        return;
+    };
+    let ((x, y), (max_x, max_y)) = (difference.first, difference.last);
     panic!(
         "at {scale}x, after step {step}: {} pixels differ from the reference, within \
          ({x}, {y})..=({max_x}, {max_y}); first {:?} against {:?}",
-        differing.len(),
-        actual.get_pixel(x, y),
-        expected.get_pixel(x, y),
+        difference.count, difference.actual, difference.expected,
     );
 }
 
@@ -997,6 +1168,8 @@ pub fn scrolls() -> Vec<Step> {
     .collect()
 }
 
+/// Checks that the layered window composited at least `at_least` frames from tiles. The layered
+/// window is drawn after every step in both modes, so the minimum is the same in both.
 #[track_caller]
 pub fn assert_composited(totals: &Totals, at_least: u64) {
     assert!(
@@ -1009,6 +1182,18 @@ pub fn assert_composited(totals: &Totals, at_least: u64) {
         totals.tiles_rasterized,
     );
 }
+
+/// The steps of [`scrolls_and_single_pixels`] (135) that a [`Sampling::Sampled`] run draws in the
+/// layered window and does not compare: the positions 5 to 75 of the 80-step stretch (steps 20 to
+/// 90) and 5 to 35 of the 40-step stretch (steps 100 to 130) that are not multiples of 4. A difference
+/// that shows only at one of these frames passes a sampled run; `GPUX_LANE_C_FULL=1` and the
+/// nightly run compare it. `lane_c_sampling` asserts this list against the rule.
+pub const UNCOVERED_BY_SAMPLED: [usize; 78] = [
+    20, 21, 22, 24, 25, 26, 28, 29, 30, 32, 33, 34, 36, 37, 38, 40, 41, 42, 44, 45, 46, 48, 49, 50,
+    52, 53, 54, 56, 57, 58, 60, 61, 62, 64, 65, 66, 68, 69, 70, 72, 73, 74, 76, 77, 78, 80, 81, 82,
+    84, 85, 86, 88, 89, 90, 100, 101, 102, 104, 105, 106, 108, 109, 110, 112, 113, 114, 116, 117,
+    118, 120, 121, 122, 124, 125, 126, 128, 129, 130,
+];
 
 /// The scripted scroll, and then one pixel at a time, down the content and back up: every step
 /// of a card's shadow on its way across the viewport's top and bottom edges.

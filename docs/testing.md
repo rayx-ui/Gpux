@@ -227,7 +227,14 @@ and compares the pixels, and three groups that compare every frame of a window d
 the renderer's tiles with a window drawn without scroll layers: `lane_c_scroll_layers` scrolls
 views at whole scale factors, `lane_c_layer_scales` at 1.25, 1.5 and 1.75 and with content
 painted transformed, and `lane_c_list_hover` moves the pointer over lists whose rows have a
-hover style; `lane_c_profile` checks that the optimized test build keeps debug assertions and
+hover style. Those three run **sampled** by default: every content, scale and scripted scroll runs and the
+layered window is drawn after every step, but the reference window is drawn and compared only at
+a subset: every step that is not in a run of at least 16 identical one-pixel scrolls, and of such
+a run its first and last 4 steps and every 4th between (a pointer move in the hover suite is
+always compared, and a run of wheel turns keeps its first, its last and every 3rd). `GPUX_LANE_C_FULL=1` or `gpux-testkit lane c --full` runs every frame; lane G
+and the nightly run do. `lane_c_compare` covers the byte-first frame comparison all three share
+and `lane_c_sampling` the two modes, including seeded differences. The lane prints which mode it
+ran, before it starts and beside its summary. `lane_c_profile` checks that the optimized test build keeps debug assertions and
 overflow checks on (`cargo test` builds at `opt-level = 1`, see
 [docs/measurements/lane-c-timings.md](measurements/lane-c-timings.md)). Without a Vulkan adapter, Linux falls back to llvmpipe over GL, where the
 renderer's effects pipeline does not validate yet, so lane C fails there: select lavapipe with

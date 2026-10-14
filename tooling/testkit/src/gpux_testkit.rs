@@ -290,6 +290,7 @@ fn lane(
 ) -> i32 {
     let mut tally = Tally::default();
     let mut listed = 0;
+    let mut mode = None;
     let root = environment.workspace_root();
     for &lane in &args.lanes {
         if lane == LaneId::G {
@@ -379,7 +380,7 @@ fn lane(
             }
             continue;
         }
-        let plan = match lanes::plan(lane, &args.selection) {
+        let mut plan = match lanes::plan(lane, &args.selection) {
             Ok(plan) => plan,
             Err(error) => {
                 writeln!(out, "lane {lane}: {error}").ok();
@@ -411,7 +412,22 @@ fn lane(
             }
             continue;
         }
+        if lane == LaneId::C && args.selection.is_everything() {
+            // The scroll-layer suites run with the full lane; say which mode they are in.
+            let full = args.full
+                || lanes::full_requested(environment.var(lanes::FULL_VARIABLE).as_deref());
+            if full {
+                lanes::set_full(&mut plan);
+            }
+            let line = lanes::mode_line(full);
+            writeln!(out, "{line}").ok();
+            mode = Some(line);
+        }
         tally.add(run_plan(&plan, root, environment, runner, out));
+    }
+    if let Some(line) = mode {
+        // The mode is repeated beside the summary: a log read from its end still says it.
+        writeln!(out, "{line}").ok();
     }
     finish(&tally, listed, out)
 }
