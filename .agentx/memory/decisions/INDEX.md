@@ -4,7 +4,7 @@ agentx:
   scope: decisions
   status: current
   created: 2026-10-05T23:00:00+02:00
-  updated: 2026-10-13T10:00:00+02:00
+  updated: 2026-10-14T12:00:00+02:00
   topics:
     - decisions
     - gpux
@@ -57,6 +57,7 @@ Durable architecture choices for gpux. Current source remains the first evidence
   - [Keep RayX browser rendering WebGPU-only](renderer/wgpu/2026-08-07-renderer-wgpu-webgpu-only-browser-renderer.md) (superseded)
   - [Composite WGPU paint in encoded sRGB, like Figma, CSS and the Metal renderer](renderer/wgpu/2026-09-30-renderer-wgpu-srgb-compositing.md)
   - [Filter transformed sprites by hand within their tile, shade untransformed primitives from the fragment position](renderer/wgpu/2026-10-13-renderer-wgpu-transformed-sprites-filtered-by-hand.md)
+  - [Native renderers read `WGPU_ALLOW_UNDERLYING_NONCOMPLIANT_ADAPTER` and no other `WGPU_*` variable](renderer/wgpu/2026-10-14-renderer-wgpu-noncompliant-adapter-variable.md)
 
 - platform
   - [RayX gpux browser apps are multithreaded by default](platform/web/2026-06-24-platform-web-multithreaded-wasm.md)
@@ -85,3 +86,5 @@ Durable architecture choices for gpux. Current source remains the first evidence
   - [`gpux-testkit` is the single entry point for every lane](repository/validation/2026-10-07-repository-validation-gpux-testkit.md)
   - [Real-GPU and timing proof run locally in lane G](repository/validation/2026-10-07-repository-validation-local-gpu-lane-g.md)
   - [Fast mode is proved in its own lanes; timings are lane G's and macOS-only](repository/validation/2026-10-13-repository-validation-fast-mode-proof-and-timing.md)
+  - [Under WSL only lanes C and D use the GPU, through a locally built Mesa dzn, and prove no timing](repository/validation/2026-10-14-repository-validation-wsl-gpu-lanes-c-d.md)
+  - [PERF-4's wgpu-desktop half is closed with stated limits](repository/validation/2026-10-14-repository-validation-wgpu-desktop-perf-4.md)

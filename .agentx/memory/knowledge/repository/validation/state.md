@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/repository/validation
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-13T10:00:00+02:00
+  updated: 2026-10-14T12:00:00+02:00
   topics:
     - validation
     - focused-checks
@@ -43,7 +43,7 @@ Performance work measures on a real GPU through lane G: the `gpux-platform` benc
 
 List layers are proved by `fast::tests::list_layers` (gpui-fast's uniform, list and row groups against a reference window; `gpux`, which compares quads, DevKit elements, debug bounds, tab order, listeners and whole frame descriptions, with what a pointer hits down two columns of the rows, over scripted and random histories (wheel turns by whole and fractional pixels, moves, clicks, presses and releases without a move, a sheet from another view, notifications, focus changes; lists plain, padded, told of their rows' focus, with rows handling text input), in a scrolling `div` too; `oracle`, the layers oracle over a uniform list and a list), by the list tests of `lane_c_scroll_layers` (pixels) and by the list scenes of `lane_a_fast_parity`, which is what first showed overscan rows in the element tree.
 
-Lane G on macOS needs the display awake: with it asleep every lane D window reports `no frame within 10s` (hold it with `caffeinate -d -u`). `perf fast-mode` (the `fast_mode` bench) runs only on macOS: in the Linux VM its scenarios stop at their own check because the harness's windows draw no glyphs, and it needs a GPU adapter to open its windows. Lane G was not run on a Windows or Linux GPU for the fast-mode epic (2026-10-12); the final comparison is in `docs/fast-mode.md`.
+Lane G on macOS needs the display awake: with it asleep every lane D window reports `no frame within 10s` (hold it with `caffeinate -d -u`). `perf fast-mode` (the `fast_mode` bench) runs only on macOS: in the Linux VM its scenarios stop at their own check because the harness's windows draw no glyphs, and it needs a GPU adapter to open its windows. Lane G ran on Windows DX12 (RTX 4080 SUPER) for the fast-mode epic (2026-10-14; browser p95, lanes B, C and D in full, `fast_mode` failing at the same glyph check), and under WSL only lanes C and D ran on the GPU, through a locally built Mesa `dzn` (Vulkan on D3D12, not timing proof; lane B and browser timings cannot run there; setup in `LINUX-WSL.md`): [WSL decision](../../../decisions/repository/validation/2026-10-14-repository-validation-wsl-gpu-lanes-c-d.md), [PERF-4 decision](../../../decisions/repository/validation/2026-10-14-repository-validation-wgpu-desktop-perf-4.md), [measurements](../../../../../docs/measurements/wgpu-desktop-timings.md). No Linux GPU timing and no `fast_mode` table off the Mac exist. The final comparison is in `docs/fast-mode.md`.
 
 ## Backlinks
 
@@ -58,6 +58,8 @@ Lane G on macOS needs the display awake: with it asleep every lane D window repo
 - 2026-10-07 current [Seven test lanes](../../../decisions/repository/validation/2026-10-07-repository-validation-test-lanes.md)
 - 2026-10-07 current [gpux owns its runtime proof](../../../decisions/repository/validation/2026-10-07-repository-validation-gpux-owns-runtime-proof.md)
 - 2026-10-07 current [gpux-testkit entry point](../../../decisions/repository/validation/2026-10-07-repository-validation-gpux-testkit.md)
+- 2026-10-14 current [WSL lanes C and D on the GPU](../../../decisions/repository/validation/2026-10-14-repository-validation-wsl-gpu-lanes-c-d.md)
+- 2026-10-14 current [PERF-4 wgpu-desktop half](../../../decisions/repository/validation/2026-10-14-repository-validation-wgpu-desktop-perf-4.md)
 - 2026-10-07 current [Local lane G](../../../decisions/repository/validation/2026-10-07-repository-validation-local-gpu-lane-g.md)
 - 2026-10-07 current [Browser lane B](../../../decisions/platform/web/2026-10-07-platform-web-browser-lane-b.md)
 - 2026-10-07 current [Android lane E](../../../decisions/platform/mobile/2026-10-07-platform-mobile-android-lane-e.md)

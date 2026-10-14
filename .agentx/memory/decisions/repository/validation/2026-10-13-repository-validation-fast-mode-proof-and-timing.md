@@ -24,6 +24,6 @@ agentx:
 
 ### Reasoning: Correctness is lane A (oracle, counters, parity), lane C (pixel parity and tile groups), lane B (`scroll-layers` specs on WebGPU and WebGL2), lane D (composition and windows), lanes E and F (devices, resume, memory release). Timing is lane G only (`gpux-testkit perf fast-mode`, the `@timing` specs, the `scroll-layers-*-timing` host checks); CI asserts deterministic counters instead. The `fast_mode` suite presents to the headless Metal renderer and runs on macOS only; the final comparison is `docs/fast-mode.md`.
 
-### Trade-offs accepted: No Windows or Linux GPU timing exists; mobile figures come from an emulator and a Simulator. Lane G on macOS needs the display awake.
+### Trade-offs accepted: No Linux GPU timing exists (Windows DX12 was timed later: [PERF-4 wgpu-desktop](2026-10-14-repository-validation-wgpu-desktop-perf-4.md)); mobile figures come from an emulator and a Simulator. Lane G on macOS needs the display awake.
 
 ### Supersedes: None.
