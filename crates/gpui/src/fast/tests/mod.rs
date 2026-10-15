@@ -16,6 +16,7 @@ mod hover_dependencies;
 mod layer_carry;
 mod layer_extent;
 mod layer_inputs;
+mod layer_memory;
 mod layer_policy;
 mod layer_renderers;
 mod layer_support;

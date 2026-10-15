@@ -25,8 +25,13 @@ use crate::wgpu_renderer::GlobalParams;
 /// drops such a layer after as many.
 const LAYER_KEEP_FRAMES: u64 = 120;
 
+/// Frames a tile no frame composites keeps its texture for: a scroll moves
+/// the tiles it leaves behind out of the viewport for good, unless it turns
+/// back right away, and the budget alone would keep every tile it passed.
+pub(crate) const TILE_IDLE_FRAMES: u64 = 4;
+
 /// Textures of released tiles kept for new tiles to reuse.
-const POOL_LIMIT: usize = 8;
+const POOL_LIMIT: usize = 4;
 
 /// A renderer's scroll layer tiles, and what rasterizing them takes.
 pub(crate) struct TileCache {
@@ -220,7 +225,26 @@ impl TileCache {
         }
 
         self.drop_unseen_layers();
+        self.release_idle_tiles();
         planned
+    }
+
+    /// Releases the tiles no frame composited for [`TILE_IDLE_FRAMES`],
+    /// keeping their textures in the pool for new tiles.
+    fn release_idle_tiles(&mut self) {
+        let frame = self.frame;
+        let pool = &mut self.pool;
+        self.tiles.retain(|_, tile| {
+            if tile.last_used + TILE_IDLE_FRAMES >= frame {
+                return true;
+            }
+            if let Some(texture) = tile.texture.take()
+                && pool.len() < POOL_LIMIT
+            {
+                pool.push(texture);
+            }
+            false
+        });
     }
 
     /// Releases the tiles of layers no frame has composited for a while.

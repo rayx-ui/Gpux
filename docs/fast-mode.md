@@ -277,13 +277,19 @@ differ in its last bits. Pixel equality is the renderers' tests' to show.
 A `uniform_list` or a `list` renders only the rows it shows. Its layer holds those and the rows
 around them, each painted once at its place and kept by row with everything it handed the
 frame: its part of the layer's scene, the hashes of the tiles it reaches, its hitboxes, the
-hovers it was painted by, its prepaint and paint records, its layout nodes and what it read. A
-frame that only scrolls the list renders the rows the layer lacks and no other:
+hovers it was painted by, its prepaint and paint records, its layout keys and what it read. The
+layout nodes of the rows the list shows stay claimed; those of the rows it does not show linger
+as the nodes of any row a list no longer lays out do: for up to 240 frames, the most recently
+claimed first, and no more of them than half the nodes the frame's rows claim (at least 256).
+A frame that only scrolls the list renders the rows the layer lacks and no other:
 
-- the rows the scroll brings within reach. A `uniform_list` holds `ceil(2 · viewport / item)`
-  rows on either side of those it shows. A `list` holds two viewports of rows on either side
+- the rows the scroll brings within reach. A `uniform_list` holds `ceil(0.5 · viewport / item)`
+  rows on either side of those it shows. A `list` holds half a viewport of rows on either side
   when it is first painted, only the rows it shows after a change of its content painted them
-  again, and half a viewport more on each frame that keeps them;
+  again, and half a viewport again on the next frame that keeps them. A list's layer is
+  extended by as many rows a frame whatever it holds, so a wider overscan would only hold more
+  memory (`LIST_OVERSCAN_VIEWPORTS`); rows past it are dropped a batch at a time, once they are
+  more than a quarter of the rows the layer is to hold;
 - the row under the pointer, and a row that was drawn hovered. A frame hit tests the pointer
   against its own hitboxes after its rows are prepainted, and another view can lay a sheet over
   the list, or take one away, in that very frame: a row that read hovers is kept only where no
@@ -390,7 +396,9 @@ a tile cache per renderer, so each surface of a composed window has its own:
   alpha, and a tile's is premultiplied already.
 - A renderer keeps at most `LAYER_TILE_BUDGET_BYTES` of tiles (64 MB; 32 MB in the browser and
   on mobile), evicting the least recently composited, never one the frame being drawn uses. A
-  layer no frame composited for 120 frames is released.
+  tile no frame composited for 4 frames is released, its texture kept in a pool of 4 for the
+  tiles a scroll brings: a scroll leaves the tiles behind it for good, and the budget alone
+  would keep every tile it passed. A layer no frame composited for 120 frames is released.
 - Every tile is released when the drawable is resized, the alpha mode or transparency changes,
   a GPU error is reported for a frame (a Metal command buffer that failed, any error the wgpu
   device raised), a frame that was to rasterize tiles is not drawn, or the device is lost (the
