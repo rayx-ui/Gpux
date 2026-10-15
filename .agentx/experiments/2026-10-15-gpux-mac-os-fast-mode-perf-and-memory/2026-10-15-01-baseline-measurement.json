@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "id": "91cd654b-6c55-4cc1-8506-486e19f9fbc6",
+  "loopId": "93c0b7e1-2b73-4272-a15b-436864754725",
+  "index": 1,
+  "type": "baseline",
+  "name": "Baseline Measurement",
+  "slug": "baseline-measurement",
+  "path": "2026-10-15-01-baseline-measurement.json",
+  "createdAt": "2026-10-15T16:29:33Z",
+  "startedAt": "2026-10-15T16:29:33Z",
+  "finishedAt": null,
+  "state": "running",
+  "status": "",
+  "checkpointCommit": "d5cb2e15fbd2ffd9fb63ab2e468d9526ac3ffa08",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard d5cb2e15fbd2ffd9fb63ab2e468d9526ac3ffa08",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "d5cb2e15fbd2ffd9fb63ab2e468d9526ac3ffa08",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard d5cb2e15fbd2ffd9fb63ab2e468d9526ac3ffa08",
+      "status": ""
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal) through benchmark/run.py --target macos; web, Android and iOS are out of scope for this loop",
+  "hypothesisMarkdown": "## Baseline Measurement\n\nMeasure and document the starting point for this improvement loop before making optimization changes.",
+  "measurementPlanMarkdown": "### Measurement Plan\n\n`python3 benchmark/run.py --target macos --reps 3 --name agentx-baseline` (all 15 scenarios, fast mode off and on, 600 measured frames after 120 warm-up). Work counters: `CARGO_TARGET_DIR=benchmark/target-stats cargo build --release --features fast-stats`, then `gpux-bench --scenario <id> --fast on --frames 300`. Profiles: macOS `sample` on the running benchmark (main thread inclusive tree).",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nBaseline metrics are captured and stored so later experiments compare against a known starting point.",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [
+      "dashboard-clock on, per frame: 43 primitives painted, 1,966 copied, 930 draw orders replayed, 3 layout nodes claimed",
+      "scroll-div-cards on: 6,802 nodes claimed and 2,800 leaves carried per frame; 293 of 300 frames composited from layers",
+      "scroll-data-table on, per frame: 91 style writes, 47 children writes, 133 leaves measured, 361 nodes lingering, 78 kept rows",
+      "hover-grid on: 11,040 primitives painted and 11,200 draw orders replayed per frame",
+      "tree-toggle on: 3,581 nodes claimed per frame, 420 of 1,000 leaves remeasured, layers not promoted in all frames",
+      "text-relabel: 1,190 lines shaped per frame in both modes",
+      "profile dashboard-clock on (main thread, inclusive): Window::draw 778 samples = StretchCopy::prepaint 208 (memmove 100), request_layout 200 (lay_out_gap 164, text shaping 51, keep_retained_nodes 84), paint 154 (Scene::replay 128), edge_shadows::dropped 55, DevtoolsFrameNode drop 54"
+    ],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "CPU ms/frame geomean on/off",
+      "before": "",
+      "after": "0.781",
+      "delta": "-21.9%",
+      "source": "agentx-baseline report"
+    },
+    {
+      "metric": "draw p50 ms on (clock / one-panel / cards / data-table / hover / typing)",
+      "before": "",
+      "after": "2.98 / 2.85 / 4.37 / 2.68 / 6.16 / 2.66",
+      "delta": "",
+      "source": "agentx-baseline"
+    },
+    {
+      "metric": "footprint end MB on vs off (uniform / variable / cards / data-table)",
+      "before": "126/134/149/135 off",
+      "after": "168/176/216/201 on",
+      "delta": "+34% / +31% / +45% / +49%",
+      "source": "agentx-baseline"
+    },
+    {
+      "metric": "heap peak MB on vs off (uniform / variable / cards / data-table)",
+      "before": "13.2/18.2/49.7/24.9 off",
+      "after": "21.3/23.6/68.8/48.7 on",
+      "delta": "+61% / +30% / +38% / +96%",
+      "source": "agentx-baseline"
+    },
+    {
+      "metric": "allocations per frame on (clock / cards / data-table / log-stream)",
+      "before": "27949/104062/9604/4468 off",
+      "after": "2811/27444/4656/5306 on",
+      "delta": "",
+      "source": "agentx-baseline"
+    }
+  ],
+  "reportMarkdown": "## Baseline Measurement Finished\n\nFast mode on beats off on 10 of 15 scenarios on macOS; one loss (text-log-stream +3.5% CPU, draw p95 +10%), tree-toggle p95 +34%, scroll-data-table p95 +10% with 5 missed frames. Memory: scroll scenarios +31..49% footprint, heap peak up to +96%.\n\n### Ranked candidate backlog\n1. `StretchCopy::prepaint` copies (dashboard-clock, text-typing, table-stream): primitives_copied 1,966/frame; memmove and per-node devtools copies dominate draw. Mechanism: cheaper copy of unchanged stretches (devtools node footprint, bulk copy).\n2. Frame-end work: `edge_shadows::dropped` and `DevtoolsFrameNode` drop each frame (about 14% of draw in the clock).\n3. scroll-div-cards: layout/prepaint walk of 6,800 nodes inside a composited layer on scroll-only frames.\n4. scroll-data-table: list layer keeps/re-lays out rows (style writes 91/frame, nodes lingering 361/frame) and its memory (tiles, kept rows).\n5. Layout retention that reuses nothing (tree-toggle, text-log-stream, text-relabel, hover-grid): adaptive per-view policy.\n6. hover-grid: one hover repaints 11k primitives.\n7. text-relabel: 1,190 shaped lines per frame; shaping cache for short numeric strings.\n8. Allocations in scroll frames: pool layer bookkeeping.\n\nAlready fine: effects-cards (2.2 ms), scroll-variable-list (1.6 ms), animated-dots.\n\n### Scope Lock\nTested mechanism: measurement only. Out-of-scope changes: none. Attempt Count: 1.",
+  "decisionMarkdown": "### Decision\n\nBaseline recorded. Work through the backlog one mechanism at a time, each measured with benchmark/run.py --target macos on the affected scenarios (3 reps).",
+  "notes": ""
+}

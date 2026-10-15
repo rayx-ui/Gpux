@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "93c0b7e1-2b73-4272-a15b-436864754725",
+  "name": "gpux macOS fast-mode perf and memory",
+  "objective": "Minimize CPU time and memory for gpux on native macOS in both fast-mode off and on, using benchmark/run.py --target macos. Targets: scroll footprint <=1.3x off (data-table), clock draw p50 <1ms, scroll-div-cards <2ms, fewer allocations per scroll frame, no regressions on retention scenarios.",
+  "metric": "",
+  "target": "",
+  "maxIterations": 50,
+  "maxExperiments": 50,
+  "state": "running",
+  "status": "",
+  "createdAt": "2026-10-15T16:29:33Z",
+  "finishedAt": null,
+  "lastStableCommit": "d5cb2e15fbd2ffd9fb63ab2e468d9526ac3ffa08",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "lastStableCommit": "d5cb2e15fbd2ffd9fb63ab2e468d9526ac3ffa08"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "currentExperimentId": "91cd654b-6c55-4cc1-8506-486e19f9fbc6",
+  "nextExperimentIndex": 2,
+  "experiments": [
+    {
+      "id": "91cd654b-6c55-4cc1-8506-486e19f9fbc6",
+      "index": 1,
+      "type": "baseline",
+      "name": "Baseline Measurement",
+      "path": "2026-10-15-01-baseline-measurement.json",
+      "startedAt": "2026-10-15T16:29:33Z",
+      "finishedAt": null,
+      "state": "running",
+      "status": ""
+    }
+  ]
+}
