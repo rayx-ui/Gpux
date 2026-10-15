@@ -28,8 +28,8 @@
     "successfulAttemptRequiresCommitBeforeNextExperiment": true,
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
-  "currentExperimentId": null,
-  "nextExperimentIndex": 9,
+  "currentExperimentId": "b1ed61c5-1c45-4104-9440-24181f372552",
+  "nextExperimentIndex": 10,
   "experiments": [
     {
       "id": "91cd654b-6c55-4cc1-8506-486e19f9fbc6",
@@ -123,6 +123,17 @@
       "state": "done",
       "status": "success",
       "resultCommit": "c05d5bd32262c7c7281d27bfdbcb08597706e1d0"
+    },
+    {
+      "id": "b1ed61c5-1c45-4104-9440-24181f372552",
+      "index": 9,
+      "type": "hypothesis",
+      "name": "Cache sized CoreText fonts",
+      "path": "2026-10-15-09-cache-sized-core-text-fonts.json",
+      "startedAt": "2026-10-15T17:56:50Z",
+      "finishedAt": null,
+      "state": "running",
+      "status": ""
     }
   ]
 }
