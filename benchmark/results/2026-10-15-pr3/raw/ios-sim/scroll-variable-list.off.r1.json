@@ -1,0 +1,67 @@
+{
+  "scenario": "scroll-variable-list",
+  "group": "scroll",
+  "label": "off",
+  "target": "ios-sim",
+  "fast_mode": "FastMode { layout_retention: false, view_retention: false, splice: false, scroll_layers: false }",
+  "fast_stats": null,
+  "viewport": [
+    402.0,
+    874.0
+  ],
+  "scale_factor": 3.0,
+  "frames": 600.0,
+  "warmup": 120,
+  "wall_s": 10.000023042,
+  "fps": 59.99986174831856,
+  "vsync_ms": 16.646291,
+  "janky_frames": 0,
+  "inactive_frames": 0,
+  "open_to_first_present_ms": 64.469375,
+  "first_draw_ms": 7.360511,
+  "draw_ms": {
+    "count": 600,
+    "mean": 1.5962908799999986,
+    "p50": 1.803263,
+    "p95": 2.572287,
+    "p99": 2.815999,
+    "max": 3.211263
+  },
+  "frame_ms": {
+    "count": 600,
+    "mean": 3.2950796800000006,
+    "p50": 3.661823,
+    "p95": 4.648959,
+    "p99": 5.005311,
+    "max": 5.283839
+  },
+  "main_cpu_ms": {
+    "mean": 3.052531540000003,
+    "p50": 3.446917,
+    "p95": 4.329000000000001,
+    "p99": 4.64125,
+    "max": 4.869625
+  },
+  "interval_ms": {
+    "mean": 16.666697083333332,
+    "p50": 16.665834,
+    "p95": 16.698334,
+    "p99": 16.720708000000002,
+    "max": 16.732916
+  },
+  "process_cpu_ms_per_frame": 4.462938333333333,
+  "process_cpu_pct": 26.777568299127125,
+  "allocations_per_frame": 660.8783333333333,
+  "allocated_kb_per_frame": 289.7262223307292,
+  "heap_live_mb": 15.43392562866211,
+  "heap_peak_mb": 15.520718574523926,
+  "footprint_mb": {
+    "after_open": 30.97076416015625,
+    "after_first_frame": 31.22076416015625,
+    "after_warmup": 32.86138916015625,
+    "end": 33.43951416015625,
+    "peak": 33.43951416015625
+  },
+  "resident_mb": 217.859375,
+  "device": "iPhone 17 Pro (iOS-26-5)"
+}

@@ -1,0 +1,66 @@
+{
+  "scenario": "effects-cards",
+  "group": "animation",
+  "label": "on",
+  "target": "macos",
+  "fast_mode": "FastMode { layout_retention: true, view_retention: true, splice: true, scroll_layers: true }",
+  "fast_stats": "gpux-fast-stats: frames frames=600 views_built=600 cached_views_replayed=0 style_writes=600 children_writes=0 leaves_measured=0 lines_shaped=0 primitives_painted=1198 primitives_copied=931800 draw_orders_computed=3542 draw_orders_replayed=439856 nodes_claimed=1200 nodes_released=0 nodes_lingering=0 leaves_carried=0 leaves_replayed=0 leaves_remeasured=0 views_built_at_retained_layout=0 views_reused=0 views_bypassed_refreshing=0 views_bypassed_drag=0 views_bypassed_inspector=0 views_bypassed_accessibility=0 views_bypassed_duplicate=0 views_spliced=1200 views_prebuilt=0 layers_composited=0 layers_repainted=0 tiles_rasterized=0 tiles_composited=0 list_rows_rendered=0 list_rows_kept=0 layer_bypasses.inactive=0 layer_bypasses.not-promoted=0 layer_bypasses.demoted=0 layer_bypasses.ineligible=0 layer_bypasses.nested=0 layer_bypasses.moved=0",
+  "viewport": [
+    1280.0,
+    801.0
+  ],
+  "scale_factor": 2.0,
+  "frames": 600.0,
+  "warmup": 120,
+  "wall_s": 4.999949917,
+  "fps": 120.00120200403998,
+  "vsync_ms": 7.6515,
+  "janky_frames": 1,
+  "inactive_frames": 0,
+  "open_to_first_present_ms": 73.88829199999999,
+  "first_draw_ms": 9.142271,
+  "draw_ms": {
+    "count": 600,
+    "mean": 2.49839616,
+    "p50": 2.648063,
+    "p95": 3.012607,
+    "p99": 3.131391,
+    "max": 3.362815
+  },
+  "frame_ms": {
+    "count": 600,
+    "mean": 4.56254976,
+    "p50": 4.431871,
+    "p95": 5.283839,
+    "p99": 5.402623,
+    "max": 12.591103
+  },
+  "main_cpu_ms": {
+    "mean": 2.783359945000003,
+    "p50": 2.927292,
+    "p95": 3.331792,
+    "p99": 3.4536670000000003,
+    "max": 3.614667
+  },
+  "interval_ms": {
+    "mean": 8.333247153333343,
+    "p50": 8.32775,
+    "p95": 9.208459000000001,
+    "p99": 9.332999999999998,
+    "max": 12.678583
+  },
+  "process_cpu_ms_per_frame": 3.2395666666666667,
+  "process_cpu_pct": 38.875189397222115,
+  "allocations_per_frame": 2079.0316666666668,
+  "allocated_kb_per_frame": 665.4265494791666,
+  "heap_live_mb": 22.828227043151855,
+  "heap_peak_mb": 23.584223747253418,
+  "footprint_mb": {
+    "after_open": 32.96961975097656,
+    "after_first_frame": 33.54774475097656,
+    "after_warmup": 147.15718841552734,
+    "end": 143.39156341552734,
+    "peak": 143.39156341552734
+  },
+  "resident_mb": 95.359375
+}
