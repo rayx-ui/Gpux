@@ -29,7 +29,7 @@
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
   "currentExperimentId": null,
-  "nextExperimentIndex": 15,
+  "nextExperimentIndex": 16,
   "experiments": [
     {
       "id": "91cd654b-6c55-4cc1-8506-486e19f9fbc6",
@@ -193,6 +193,17 @@
       "state": "done",
       "status": "success",
       "resultCommit": "5bed3382f2c6c94b5b6d00ae775bdb66feb351a9"
+    },
+    {
+      "id": "12cc524f-8c20-4bc2-aa47-783d2ee62858",
+      "index": 15,
+      "type": "hypothesis",
+      "name": "Box the div interactivity",
+      "path": "2026-10-15-15-box-the-div-interactivity.json",
+      "startedAt": "2026-10-15T21:43:28Z",
+      "finishedAt": "2026-10-15T21:53:36Z",
+      "state": "done",
+      "status": "failure"
     }
   ]
 }
