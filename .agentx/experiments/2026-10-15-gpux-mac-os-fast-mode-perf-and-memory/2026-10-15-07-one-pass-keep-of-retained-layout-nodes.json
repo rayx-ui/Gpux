@@ -9,11 +9,11 @@
   "path": "2026-10-15-07-one-pass-keep-of-retained-layout-nodes.json",
   "createdAt": "2026-10-15T17:29:08Z",
   "startedAt": "2026-10-15T17:29:08Z",
-  "finishedAt": null,
-  "state": "running",
-  "status": "",
+  "finishedAt": "2026-10-15T17:37:24Z",
+  "state": "done",
+  "status": "success",
   "checkpointCommit": "161bc4e2474f75ed455a4d5af2278ec082d5dd2b",
-  "resultCommit": "",
+  "resultCommit": "c1ca4f429f005e3d8529064005b2d35d24975267",
   "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 161bc4e2474f75ed455a4d5af2278ec082d5dd2b",
   "repositories": [
     {
@@ -21,12 +21,19 @@
       "path": ".",
       "role": "main",
       "checkpointCommit": "161bc4e2474f75ed455a4d5af2278ec082d5dd2b",
-      "resultCommit": "",
+      "resultCommit": "c1ca4f429f005e3d8529064005b2d35d24975267",
       "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 161bc4e2474f75ed455a4d5af2278ec082d5dd2b",
-      "status": ""
+      "status": "success"
     }
   ],
-  "repositoryCommits": [],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "c1ca4f429f005e3d8529064005b2d35d24975267"
+    }
+  ],
   "atomicDiscipline": {
     "oneHypothesisOnly": true,
     "singleImplementationAttempt": true,
