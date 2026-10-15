@@ -29,7 +29,7 @@
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
   "currentExperimentId": null,
-  "nextExperimentIndex": 13,
+  "nextExperimentIndex": 14,
   "experiments": [
     {
       "id": "91cd654b-6c55-4cc1-8506-486e19f9fbc6",
@@ -170,6 +170,17 @@
       "state": "done",
       "status": "success",
       "resultCommit": "69eece6620e0957e6e7437162a80f42fd5718dca"
+    },
+    {
+      "id": "270acb4f-cd7e-4fe8-9d3f-cd3cf93c3982",
+      "index": 13,
+      "type": "hypothesis",
+      "name": "Sized font cache regression check",
+      "path": "2026-10-15-13-sized-font-cache-regression-check.json",
+      "startedAt": "2026-10-15T21:21:02Z",
+      "finishedAt": "2026-10-15T21:31:38Z",
+      "state": "done",
+      "status": "failure"
     }
   ]
 }

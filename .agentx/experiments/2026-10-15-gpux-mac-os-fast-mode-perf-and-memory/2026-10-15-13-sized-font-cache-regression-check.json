@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "id": "270acb4f-cd7e-4fe8-9d3f-cd3cf93c3982",
+  "loopId": "93c0b7e1-2b73-4272-a15b-436864754725",
+  "index": 13,
+  "type": "hypothesis",
+  "name": "Sized font cache regression check",
+  "slug": "sized-font-cache-regression-check",
+  "path": "2026-10-15-13-sized-font-cache-regression-check.json",
+  "createdAt": "2026-10-15T21:21:02Z",
+  "startedAt": "2026-10-15T21:21:02Z",
+  "finishedAt": "2026-10-15T21:31:38Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "42e4d2204424a827b26e9451a87957f62ebc2c71",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 42e4d2204424a827b26e9451a87957f62ebc2c71",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "42e4d2204424a827b26e9451a87957f62ebc2c71",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 42e4d2204424a827b26e9451a87957f62ebc2c71",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal) via benchmark/run.py --target macos",
+  "hypothesisMarkdown": "## Sized font cache regression check\n\nQuestion, not a change: the checkpoint run shows scroll-data-table (fast on) at 3.4 ms against 3.0 before experiment 9. Is the sized CoreText font cache the cause? Method: one binary with an environment switch, alternating cache and no-cache runs, plus a timer inside layout_line.",
+  "measurementPlanMarkdown": "Alternate GPUX_NO_FONT_CACHE on and off, 4 runs each for data-table, 2-3 for eight other scenarios, caffeinate, same binary.",
+  "expectedOutcomeMarkdown": "",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "scroll-data-table on CPU, cache vs no cache",
+      "before": "3.37 vs 3.06",
+      "after": "",
+      "delta": "+10% with the cache (p95 draw 3.8 vs 3.3)",
+      "source": "gpux-bench x4 alternating"
+    },
+    {
+      "metric": "text-relabel on CPU",
+      "before": "6.3 vs 10.3",
+      "after": "",
+      "delta": "-39% with the cache",
+      "source": "x3"
+    },
+    {
+      "metric": "scroll-uniform-list on CPU",
+      "before": "1.87 vs 2.06",
+      "after": "",
+      "delta": "-9%",
+      "source": "x2"
+    },
+    {
+      "metric": "table-stream / text-typing / tree-toggle / clock / log-stream",
+      "before": "",
+      "after": "",
+      "delta": "within +-3%",
+      "source": "x2"
+    },
+    {
+      "metric": "time inside layout_line per call, data-table",
+      "before": "9.2 us vs 17.2 us",
+      "after": "",
+      "delta": "-47%, yet process CPU is higher (user 5.5 s vs 5.1 s per 1,500 frames)",
+      "source": "timer + /usr/bin/time"
+    },
+    {
+      "metric": "sample profile main thread, data-table",
+      "before": "draw 1272 vs 954",
+      "after": "",
+      "delta": "-25% samples with the cache",
+      "source": "sample"
+    }
+  ],
+  "reportMarkdown": "## Sized font cache regression check Finished\n\nNo code change; recorded as an investigation. The cache is a net win (text-relabel -39%, uniform list -9%, shaping per call -47%) but scroll-data-table with fast mode on reads about 10% higher main-thread CPU with it (p95 draw +15%) although the sampler and the in-code timer show less work. The extra CPU is not in layout_line or the draw tree; cause unknown (not kernel time: sys is +10% too, in proportion). Left in place; revisit if a later experiment finds where it goes.\n\nAttempt Count: 1. Out-of-scope changes: none (instrumentation reverted).",
+  "decisionMarkdown": "### Decision\n\nNo change. Open item: scroll-data-table fast-on CPU is 3.4 ms (3.0 before experiment 9).",
+  "notes": ""
+}
