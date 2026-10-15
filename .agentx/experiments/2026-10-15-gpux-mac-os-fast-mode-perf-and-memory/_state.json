@@ -11,13 +11,13 @@
   "status": "",
   "createdAt": "2026-10-15T16:29:33Z",
   "finishedAt": null,
-  "lastStableCommit": "5bed3382f2c6c94b5b6d00ae775bdb66feb351a9",
+  "lastStableCommit": "0a7d869fc7500cb7f534f7bf994137d4dc5dd810",
   "repositories": [
     {
       "name": "main",
       "path": ".",
       "role": "main",
-      "lastStableCommit": "5bed3382f2c6c94b5b6d00ae775bdb66feb351a9"
+      "lastStableCommit": "0a7d869fc7500cb7f534f7bf994137d4dc5dd810"
     }
   ],
   "atomicDiscipline": {
@@ -28,7 +28,7 @@
     "successfulAttemptRequiresCommitBeforeNextExperiment": true,
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
-  "currentExperimentId": "4f6ebc53-0259-4bfd-8cf9-d21ba87390d8",
+  "currentExperimentId": null,
   "nextExperimentIndex": 18,
   "experiments": [
     {
@@ -223,9 +223,10 @@
       "name": "Two drawables",
       "path": "2026-10-15-17-two-drawables.json",
       "startedAt": "2026-10-15T22:09:19Z",
-      "finishedAt": null,
-      "state": "running",
-      "status": ""
+      "finishedAt": "2026-10-15T22:20:04Z",
+      "state": "done",
+      "status": "success",
+      "resultCommit": "0a7d869fc7500cb7f534f7bf994137d4dc5dd810"
     }
   ]
 }

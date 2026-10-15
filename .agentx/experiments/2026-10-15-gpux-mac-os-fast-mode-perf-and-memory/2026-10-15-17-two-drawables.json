@@ -9,11 +9,11 @@
   "path": "2026-10-15-17-two-drawables.json",
   "createdAt": "2026-10-15T22:09:19Z",
   "startedAt": "2026-10-15T22:09:19Z",
-  "finishedAt": null,
-  "state": "running",
-  "status": "",
+  "finishedAt": "2026-10-15T22:20:04Z",
+  "state": "done",
+  "status": "success",
   "checkpointCommit": "bae3b3b43506bc7633bad063a6b147aa149713c3",
-  "resultCommit": "",
+  "resultCommit": "0a7d869fc7500cb7f534f7bf994137d4dc5dd810",
   "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard bae3b3b43506bc7633bad063a6b147aa149713c3",
   "repositories": [
     {
@@ -21,12 +21,19 @@
       "path": ".",
       "role": "main",
       "checkpointCommit": "bae3b3b43506bc7633bad063a6b147aa149713c3",
-      "resultCommit": "",
+      "resultCommit": "0a7d869fc7500cb7f534f7bf994137d4dc5dd810",
       "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard bae3b3b43506bc7633bad063a6b147aa149713c3",
-      "status": ""
+      "status": "success"
     }
   ],
-  "repositoryCommits": [],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "0a7d869fc7500cb7f534f7bf994137d4dc5dd810"
+    }
+  ],
   "atomicDiscipline": {
     "oneHypothesisOnly": true,
     "singleImplementationAttempt": true,
