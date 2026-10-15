@@ -229,7 +229,9 @@ process's output is printed as one block in a fixed order, and the lane still en
 summary. `--jobs` applies to the full lane c only: a narrowed lane c (`--scene`, `--grep`) and every other
 lane (lane g's lane c part measures timing, so it stays one process) run as usual and say so. The
 default is one process, which runs exactly what the lane always ran; a concurrency
-level above 1 is opt-in until CI proves it stable on every platform. Every lane run that streams
+level above 1 is the CI default only on WARP (three processes, measured stable in three complete runs);
+locally and on lavapipe and Metal the default stays one process
+([measurements](measurements/lane-c-timings.md#concurrent-processes---jobs)). Every lane run that streams
 libtest output writes `artifacts-temp/testkit/<lane>/timings.md`, the slowest tests and groups of
 the run, with one block per process. The full run also runs the `lane_g` group, which checks lane G's probes-only mode
 on the same renderer, `lane_c_fast_parity`, which renders every scene with fast mode on and off

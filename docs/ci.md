@@ -33,8 +33,10 @@ label change alone starts nothing. Examples:
 - one failing lane-E check: run *Gpux lane E* manually with `grep` = `scroll-layers-android`.
 
 `full` (manual runs only) runs lane C's scroll-layer suites frame for frame, and `lane-c-jobs` sets
-the number of concurrent test processes of lane C on every platform (each platform's default is
-`lane_c_jobs` in `plan.sh`, 1 until a measurement shows more is stable and faster).
+the number of concurrent test processes of lane C on every platform. Each platform's default is
+`lane_c_jobs` in `plan.sh`: three on WARP (three complete runs on `windows-2025` passed without a
+hang or a lost device and were faster), one on lavapipe and Metal, where two processes did not pay
+([measurements](measurements/lane-c-timings.md#concurrent-processes---jobs)).
 
 `grep` is the testkit's own selector (`gpux-testkit lane <x> --grep <pattern>`; lane B passes it to
 Playwright), applies to lanes A, B, C, D, E and F, and takes no spaces. The `test` job runs the
