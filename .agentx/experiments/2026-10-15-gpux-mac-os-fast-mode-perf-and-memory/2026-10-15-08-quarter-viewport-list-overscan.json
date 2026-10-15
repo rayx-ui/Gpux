@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "id": "f049b6f4-cc44-42c6-a44c-4db686ef6818",
+  "loopId": "93c0b7e1-2b73-4272-a15b-436864754725",
+  "index": 8,
+  "type": "hypothesis",
+  "name": "Quarter-viewport list overscan",
+  "slug": "quarter-viewport-list-overscan",
+  "path": "2026-10-15-08-quarter-viewport-list-overscan.json",
+  "createdAt": "2026-10-15T17:39:54Z",
+  "startedAt": "2026-10-15T17:39:54Z",
+  "finishedAt": null,
+  "state": "running",
+  "status": "",
+  "checkpointCommit": "b7d9c8c872563eeb4cea7d67f3315f82b603e5cf",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard b7d9c8c872563eeb4cea7d67f3315f82b603e5cf",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "b7d9c8c872563eeb4cea7d67f3315f82b603e5cf",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard b7d9c8c872563eeb4cea7d67f3315f82b603e5cf",
+      "status": ""
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal) via benchmark/run.py --target macos",
+  "hypothesisMarkdown": "## Smaller list layer overscan\n\nMechanism: a list's layer holds 0.15 viewports of rows on each side of those shown (was 0.5), so fewer rows keep scenes, records and layout nodes. Rows still enter the layer as the scroll reveals them, so steady scrolling paints as many rows per frame as before. Allowed: the constant, its test-only override. Forbidden: div layers, tiles.",
+  "measurementPlanMarkdown": "bm.sh over scroll-uniform-list, scroll-variable-list, scroll-data-table, 3 reps, against a fresh run of HEAD (also tried 0.25 and 0.1). Pass: heap peak down at least 5% on the three, CPU not worse, list-layer, memory and oracle tests green.",
+  "expectedOutcomeMarkdown": "",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "scroll-data-table on heap peak / footprint MB",
+      "before": "45.0 / 192.5",
+      "after": "39.2 / 186.0",
+      "delta": "-13% / -3%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "scroll-uniform-list on heap peak / footprint MB",
+      "before": "20.4 / 170.1",
+      "after": "18.0 / 162.8",
+      "delta": "-12% / -4%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "scroll-variable-list on heap peak / footprint MB",
+      "before": "23.4 / 176.4",
+      "after": "22.0 / 171.4",
+      "delta": "-6% / -3%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "CPU, the three on",
+      "before": "3.18 / 2.11 / 1.53",
+      "after": "3.05 / 2.05 / 1.45",
+      "delta": "-4% / -3% / -5%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "draw p95, the three on",
+      "before": "3.73 / 2.36 / 2.13",
+      "after": "3.34 / 2.12 / 1.77",
+      "delta": "-10% / -10% / -17%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "0.25 and 0.1 tried",
+      "before": "",
+      "after": "",
+      "delta": "0.25: heap -10% data-table; 0.1: -18% but variable-list draw p50 +12%",
+      "source": "run.py macos"
+    }
+  ],
+  "reportMarkdown": "## Smaller list layer overscan Finished\n\nPassed: true at 0.15, a balance: 0.25 gains less memory, 0.1 slows `scroll-variable-list`. The overscan was a pure memory cost in steady scrolling, as rows come into the layer as they are revealed; it only pays a scroll that turns back. The scripted list-layer tests spell out a six-row viewport with three rows of overscan, so under `cfg(test)` they keep 0.5 through `list_overscan_viewports()`, and the memory tests (`fast::tests::layer_memory`) run at the shipped value. Tests: list_layers (64), layer_memory (4), oracle (17) pass; fmt and clippy clean.\n\nAttempt Count: 1. Out-of-scope changes: none (a test-only override in paint.rs).",
+  "decisionMarkdown": "### Decision\n\nCommitted success. Remaining footprint above 1.3x is the tile textures (about 26 MB) and the third drawable (16 MB) at 120 fps.",
+  "notes": ""
+}

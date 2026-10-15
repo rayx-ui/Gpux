@@ -332,9 +332,9 @@ const REACH_STEP_VIEWPORTS: f32 = 0.5;
 /// keeping the rows after it grow the overscan back a step at a time.
 fn overscan_reach(mode: Mode, reach: f32, had_record: bool) -> f32 {
     match mode {
-        Mode::Extend => (reach + REACH_STEP_VIEWPORTS).min(paint::LIST_OVERSCAN_VIEWPORTS),
+        Mode::Extend => (reach + REACH_STEP_VIEWPORTS).min(paint::list_overscan_viewports()),
         Mode::Repaint if had_record => 0.,
-        Mode::Repaint => paint::LIST_OVERSCAN_VIEWPORTS,
+        Mode::Repaint => paint::list_overscan_viewports(),
     }
 }
 
@@ -966,7 +966,7 @@ pub(crate) fn begin_uniform_list(
         }
         return Rows(None);
     }
-    let overscan = (viewport.size.height * paint::LIST_OVERSCAN_VIEWPORTS / item_height)
+    let overscan = (viewport.size.height * paint::list_overscan_viewports() / item_height)
         .ceil()
         .max(1.) as usize;
     let needed = needed_rows(visible, overscan, item_count);

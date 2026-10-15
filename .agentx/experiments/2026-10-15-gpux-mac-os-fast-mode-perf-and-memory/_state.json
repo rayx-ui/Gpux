@@ -28,8 +28,8 @@
     "successfulAttemptRequiresCommitBeforeNextExperiment": true,
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
-  "currentExperimentId": null,
-  "nextExperimentIndex": 8,
+  "currentExperimentId": "f049b6f4-cc44-42c6-a44c-4db686ef6818",
+  "nextExperimentIndex": 9,
   "experiments": [
     {
       "id": "91cd654b-6c55-4cc1-8506-486e19f9fbc6",
@@ -111,6 +111,17 @@
       "state": "done",
       "status": "success",
       "resultCommit": "c1ca4f429f005e3d8529064005b2d35d24975267"
+    },
+    {
+      "id": "f049b6f4-cc44-42c6-a44c-4db686ef6818",
+      "index": 8,
+      "type": "hypothesis",
+      "name": "Quarter-viewport list overscan",
+      "path": "2026-10-15-08-quarter-viewport-list-overscan.json",
+      "startedAt": "2026-10-15T17:39:54Z",
+      "finishedAt": null,
+      "state": "running",
+      "status": ""
     }
   ]
 }

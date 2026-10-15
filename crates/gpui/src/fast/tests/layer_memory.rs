@@ -48,6 +48,8 @@ impl Render for Table {
 }
 
 fn open(cx: &mut TestAppContext, mode: FastMode) -> AnyWindowHandle {
+    // What a layer holds is measured at the overscan lists ship with.
+    crate::fast::layers::paint::run_at_shipped_list_overscan();
     let window: AnyWindowHandle = cx.add_window(|_, _| Table).into();
     with_window(cx, window, |window, _| window.set_fast_mode(mode));
     cx.set_draw_on_flush(false);
