@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "ac3f425c-d667-4761-8769-5cceb3812807",
+  "name": "gpux macOS fast-mode perf and memory, part 2",
+  "objective": "Continue reducing CPU and memory on native macOS, both fast modes: skip the owner view's render and the content layout on scroll-only frames (scroll-div-cards under 2 ms), cheaper reuse of retained views (dashboard-clock draw under 1 ms), scroll footprint at most 1.3x off, no regressions elsewhere.",
+  "metric": "",
+  "target": "",
+  "maxIterations": 31,
+  "maxExperiments": 31,
+  "state": "running",
+  "status": "",
+  "createdAt": "2026-10-15T23:56:32Z",
+  "finishedAt": null,
+  "lastStableCommit": "48e5fc6cfadd03e08e344ef580020bcbae6f78d3",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "lastStableCommit": "48e5fc6cfadd03e08e344ef580020bcbae6f78d3"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "currentExperimentId": "fc7ccdb3-19de-436f-bf0b-77ff3a23d552",
+  "nextExperimentIndex": 2,
+  "experiments": [
+    {
+      "id": "fc7ccdb3-19de-436f-bf0b-77ff3a23d552",
+      "index": 1,
+      "type": "baseline",
+      "name": "Baseline Measurement",
+      "path": "2026-10-15-01-baseline-measurement.json",
+      "startedAt": "2026-10-15T23:56:32Z",
+      "finishedAt": null,
+      "state": "running",
+      "status": ""
+    }
+  ]
+}
