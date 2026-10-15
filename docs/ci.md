@@ -43,3 +43,25 @@ workspace's cargo tests and has no selector: select it by job and platform.
 A job a run skips shows as *skipped*, which counts as passing for branch protection; if a branch
 protection rule requires a check by name, require the `plan` job and the jobs that must always run.
 Run everything (`ci:all`, or no labels on a code change) before merging.
+
+### What a pull request leaves out of lane C
+
+A pull request without `ci-os:windows` or `ci:all` runs lane C on lavapipe and Metal, in the
+sampled mode. Two things are therefore only proved later:
+
+- **WARP** (Windows' software DirectX 12) is proved by the nightly run, or by a pull request
+  carrying `ci-os:windows` or `ci:all`. Add one of them before merging a change to the renderer
+  (`gpui_wgpu`), the platforms (`gpui_windows`, `gpui_platform`), shaders, text or glyph
+  rasterization, or the scroll-layer code (`gpui` fast mode): those are the changes whose pixels
+  can differ per backend.
+- **Every frame of the scroll-layer suites** is proved by the nightly run, a manual run with
+  `full` set, and lane G. A sampled run still renders every content, scale and scripted scroll,
+  draws every frame of the layered window and compares the first and last frames of each
+  one-pixel stretch, but compares only some frames inside a long stretch (the steps the
+  `lane_c_sampling` group lists as uncovered). A change to tile carry, one-pixel snapping or
+  scroll-offset handling should run `full` once before merging (manual run, `jobs` = `lane-c`,
+  `full` ticked).
+
+The nightly run (03:17 UTC) runs everything on every platform with `full`, and a failure there
+names the commit range since the last green night. Measurements of what each choice costs are in
+[measurements/lane-c-timings.md](measurements/lane-c-timings.md).

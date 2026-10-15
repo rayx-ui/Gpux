@@ -244,7 +244,9 @@ a run its first and last 4 steps and every 4th between (a pointer move in the ho
 always compared, and a run of wheel turns keeps its first, its last and every 3rd). `GPUX_LANE_C_FULL=1` or `gpux-testkit lane c --full` runs every frame; lane G
 and the nightly run do. `lane_c_compare` covers the byte-first frame comparison all three share
 and `lane_c_sampling` the two modes, including seeded differences. The lane prints which mode it
-ran, before it starts and beside its summary. `lane_c_profile` checks that the optimized test build keeps debug assertions and
+ran, before it starts and beside its summary. A sampled run compares fewer frames inside a long
+run of one-pixel scrolls (the steps `lane_c_sampling` lists as uncovered), so a defect that shows
+only at one of those offsets passes it and fails the full run: [what CI proves when](ci.md#what-a-pull-request-leaves-out-of-lane-c). `lane_c_profile` checks that the optimized test build keeps debug assertions and
 overflow checks on (`cargo test` builds at `opt-level = 1`, see
 [docs/measurements/lane-c-timings.md](measurements/lane-c-timings.md)). Without a Vulkan adapter, Linux falls back to llvmpipe over GL, where the
 renderer's effects pipeline does not validate yet, so lane C fails there: select lavapipe with

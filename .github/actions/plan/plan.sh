@@ -19,12 +19,13 @@ set -euo pipefail
 
 # Whether a pull request without `ci-os:windows` or `ci:all` still runs lane C on WARP.
 LANE_C_WARP_ON_PULL_REQUEST=false
-# The `--jobs` lane C passes to the testkit on each platform (concurrent test processes). Windows
-# and every other platform stay at 1 until a CI measurement shows more is stable and faster
-# (docs/measurements/lane-c-timings.md).
+# The `--jobs` lane C passes to the testkit on each platform (concurrent test processes). WARP runs
+# three: three complete runs on windows-2025 passed without a hang or a lost device and were 7% to 41%
+# faster than the 1h46m of one process (1h03m, 1h38m, 1h12m). lavapipe (2 processes: 22 min against 14) and Metal (2: no gain) stay
+# at 1. docs/measurements/lane-c-timings.md has the numbers.
 lane_c_jobs() { # a manual run's DISPATCH_LANE_C_JOBS overrides the platform's value
   if [ -n "${DISPATCH_LANE_C_JOBS:-}" ]; then echo "$DISPATCH_LANE_C_JOBS"; return; fi
-  case "$1" in ubuntu) echo 1 ;; windows) echo 1 ;; macos) echo 1 ;; esac
+  case "$1" in ubuntu) echo 1 ;; windows) echo 3 ;; macos) echo 1 ;; esac
 }
 
 ALL_JOBS=(check test lane-a lane-c lane-d package lane-b lane-e lane-f)

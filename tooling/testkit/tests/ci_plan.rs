@@ -225,12 +225,12 @@ fn the_nightly_schedule_runs_every_platform_in_full_mode() {
     windows,
     ignore = "plan.sh needs bash and jq; the Unix runners run this test"
 )]
-fn concurrency_per_platform_comes_from_one_place_and_windows_starts_at_one() {
+fn concurrency_per_platform_comes_from_one_place_and_follows_the_measurements() {
     let Some(nightly) = plan(&[("EVENT_NAME", "schedule")]) else {
         return;
     };
-    assert_eq!(nightly.lane_c_jobs("warp"), 1);
-    // Every platform starts at one process until a CI measurement shows more is stable and faster.
+    // Three concurrent processes ran stably on WARP and were faster; two did not pay on lavapipe.
+    assert_eq!(nightly.lane_c_jobs("warp"), 3);
     assert!(nightly.lane_c_jobs("lavapipe") == 1 && nightly.lane_c_jobs("metal") == 1);
     // A manual run can try another level on every platform.
     let more = plan(&[
