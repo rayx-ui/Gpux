@@ -6,7 +6,7 @@ platform. The rules, in order:
 
 | Trigger | What runs |
 |---|---|
-| Manual run (Actions → the workflow → *Run workflow*) | The inputs choose: `jobs`, `platforms`, `grep`. `all` is everything. |
+| Manual run (Actions → the workflow → *Run workflow*) | The inputs choose: `jobs`, `platforms`, `grep`; `full` runs lane C's scroll-layer suites frame for frame and `lane-c-jobs` sets its concurrent processes. `all` is everything. |
 | Pull request with a `ci:<job>` label | Only the labelled jobs (several labels add up). `ci:all` runs everything. |
 | Pull request with a `ci-os:<platform>` label | Only on those platforms: `ci-os:ubuntu`, `ci-os:windows`, `ci-os:macos` (several add up). |
 | Pull request without `ci:` labels that changes only `docs/`, `.agentx/`, `.claude/` or the top-level markdown and licence files | Only `check` (format, `cargo check`). |
