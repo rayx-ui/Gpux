@@ -657,6 +657,7 @@ pub fn plan(os: Os) -> LanePlan {
         invocations: vec![bench_invocation(os)],
         tests: vec![format!("bench::{BENCH}")],
         listings: Vec::new(),
+        prebuild: None,
     }
 }
 

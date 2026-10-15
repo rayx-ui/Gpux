@@ -225,6 +225,19 @@ codegen-units = 16
 split-debuginfo = "unpacked"
 debug = "limited"
 
+# `cargo test` (and so every lane the testkit runs) builds at level 1: lane C renders and compares
+# hundreds of thousands of frames, and at level 0 more than half of that time goes to unoptimized
+# std and `image` debug-assertion checks. The checks themselves stay on. The scope is measured in
+# docs/measurements/lane-c-timings.md; `cargo run` and debugging keep `[profile.dev]`.
+[profile.test]
+opt-level = 1
+debug-assertions = true
+overflow-checks = true
+split-debuginfo = "unpacked"
+incremental = true
+codegen-units = 16
+debug = "limited"
+
 [profile.release]
 debug = "limited"
 lto = "thin"

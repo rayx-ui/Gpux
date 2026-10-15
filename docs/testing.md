@@ -221,13 +221,34 @@ renderer: wgpu on the software adapter on Windows (WARP) and Linux (lavapipe), M
 Scenes check relative probes (a color at a point, a uniform region, two regions that differ, a
 region that changed since a capture), and the golden subset is compared with the committed
 goldens of the backend. Scenes render one at a time: they share one cached device, which keeps
-DX12 stable. The full run also runs the `lane_g` group, which checks lane G's probes-only mode
+DX12 stable. `--jobs <n>` runs the lane's test groups (the scenes of `lane_c` and each `lane_c_*`
+group) in up to `n` concurrent processes, each with `--test-threads=1` and its own device; cargo
+builds once before they start, the groups are spread over the processes by recorded weights
+(`LANE_C_WEIGHTS` in `tooling/testkit/src/lanes.rs`, refreshed by hand from a `timings.md`), each
+process's output is printed as one block in a fixed order, and the lane still ends with one
+summary. `--jobs` applies to the full lane c only: a narrowed lane c (`--scene`, `--grep`) and every other
+lane (lane g's lane c part measures timing, so it stays one process) run as usual and say so. The
+default is one process, which runs exactly what the lane always ran; a concurrency
+level above 1 is opt-in until CI proves it stable on every platform. Every lane run that streams
+libtest output writes `artifacts-temp/testkit/<lane>/timings.md`, the slowest tests and groups of
+the run, with one block per process. The full run also runs the `lane_g` group, which checks lane G's probes-only mode
 on the same renderer, `lane_c_fast_parity`, which renders every scene with fast mode on and off
 and compares the pixels, and three groups that compare every frame of a window drawing from
 the renderer's tiles with a window drawn without scroll layers: `lane_c_scroll_layers` scrolls
 views at whole scale factors, `lane_c_layer_scales` at 1.25, 1.5 and 1.75 and with content
 painted transformed, and `lane_c_list_hover` moves the pointer over lists whose rows have a
-hover style. Without a Vulkan adapter, Linux falls back to llvmpipe over GL, where the
+hover style. Those three run **sampled** by default: every content, scale and scripted scroll runs and the
+layered window is drawn after every step, but the reference window is drawn and compared only at
+a subset: every step that is not in a run of at least 16 identical one-pixel scrolls, and of such
+a run its first and last 4 steps and every 4th between (a pointer move in the hover suite is
+always compared, and a run of wheel turns keeps its first, its last and every 3rd). `GPUX_LANE_C_FULL=1` or `gpux-testkit lane c --full` runs every frame; lane G
+and the nightly run do. `lane_c_compare` covers the byte-first frame comparison all three share
+and `lane_c_sampling` the two modes, including seeded differences. The lane prints which mode it
+ran, before it starts and beside its summary. A sampled run compares fewer frames inside a long
+run of one-pixel scrolls (the steps `lane_c_sampling` lists as uncovered), so a defect that shows
+only at one of those offsets passes it and fails the full run: [what CI proves when](ci.md#what-a-pull-request-leaves-out-of-lane-c). `lane_c_profile` checks that the optimized test build keeps debug assertions and
+overflow checks on (`cargo test` builds at `opt-level = 1`, see
+[docs/measurements/lane-c-timings.md](measurements/lane-c-timings.md)). Without a Vulkan adapter, Linux falls back to llvmpipe over GL, where the
 renderer's effects pipeline does not validate yet, so lane C fails there: select lavapipe with
 `VK_DRIVER_FILES`.
 

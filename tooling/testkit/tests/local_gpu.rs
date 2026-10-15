@@ -298,6 +298,21 @@ fn listing_lane_g_shows_the_benchmarks_and_the_hardware_runs() {
                 code: Some(0),
                 output: "a_list_shows_each_frames_hover: test\n".into(),
             },
+            RunOutput {
+                success: true,
+                code: Some(0),
+                output: "debug_assertions_are_on_in_the_lane_c_test_build: test\n".into(),
+            },
+            RunOutput {
+                success: true,
+                code: Some(0),
+                output: "equal_images_pass: test\n".into(),
+            },
+            RunOutput {
+                success: true,
+                code: Some(0),
+                output: "full_mode_compares_every_frame_of_the_script: test\n".into(),
+            },
         ],
         ..FakeRunner::default()
     };
@@ -321,7 +336,11 @@ fn listing_lane_g_shows_the_benchmarks_and_the_hardware_runs() {
         text.contains("  lane_c_scroll_layers::text_rows_scroll_from_tiles"),
         "{text}"
     );
-    assert_eq!(runner.ran.len(), 6, "{:?}", runner.ran);
+    assert!(
+        text.contains("  lane_c_sampling::full_mode_compares_every_frame_of_the_script"),
+        "{text}"
+    );
+    assert_eq!(runner.ran.len(), 9, "{:?}", runner.ran);
     assert!(
         runner
             .ran

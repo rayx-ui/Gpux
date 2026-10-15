@@ -19,13 +19,14 @@ pub mod results;
 pub mod run;
 pub mod serve;
 pub mod summary;
+pub mod timings;
 pub mod wasm_verify;
 pub mod web;
 
 use cli::{AndroidCommand, Command, IosCommand, LaneArgs, PerfCommand, WebCommand};
-use lanes::{LaneId, LanePlan, OutputKind};
+use lanes::{Invocation, LaneId, LanePlan, OutputKind};
 use results::Tally;
-use run::Runner;
+use run::{RunOutput, Runner};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use summary::{EXIT_USAGE, Summary};
@@ -289,8 +290,18 @@ fn lane(
 ) -> i32 {
     let mut tally = Tally::default();
     let mut listed = 0;
+    let mut mode = None;
     let root = environment.workspace_root();
     for &lane in &args.lanes {
+        if args.jobs > 1 && lane != LaneId::C {
+            writeln!(
+                out,
+                "lane {lane}: --jobs {} applies to the full lane c only; lane {lane} runs as \
+                 usual",
+                args.jobs
+            )
+            .ok();
+        }
         if lane == LaneId::G {
             // The local-GPU lane runs lanes B, C and D and the benchmarks on the hardware GPU.
             let Some(root) = root.as_deref() else {
@@ -378,7 +389,7 @@ fn lane(
             }
             continue;
         }
-        let plan = match lanes::plan(lane, &args.selection) {
+        let mut plan = match lanes::plan_with_jobs(lane, &args.selection, args.jobs) {
             Ok(plan) => plan,
             Err(error) => {
                 writeln!(out, "lane {lane}: {error}").ok();
@@ -410,7 +421,31 @@ fn lane(
             }
             continue;
         }
+        if lane == LaneId::C && args.jobs > 1 && plan.prebuild.is_none() {
+            writeln!(
+                out,
+                "lane c: --jobs {} applies to the full lane c only; this selection runs as one \
+                 process",
+                args.jobs
+            )
+            .ok();
+        }
+        if lane == LaneId::C && args.selection.is_everything() {
+            // The scroll-layer suites run with the full lane; say which mode they are in.
+            let full = args.full
+                || lanes::full_requested(environment.var(lanes::FULL_VARIABLE).as_deref());
+            if full {
+                lanes::set_full(&mut plan);
+            }
+            let line = lanes::mode_line(full);
+            writeln!(out, "{line}").ok();
+            mode = Some(line);
+        }
         tally.add(run_plan(&plan, root, environment, runner, out));
+    }
+    if let Some(line) = mode {
+        // The mode is repeated beside the summary: a log read from its end still says it.
+        writeln!(out, "{line}").ok();
     }
     finish(&tally, listed, out)
 }
@@ -489,6 +524,20 @@ fn run_plan(
         return tally;
     }
     let artifacts = run::artifacts_dir(root, lane.as_str());
+    let mut timelines = Vec::new();
+    if plan.prebuild.is_some() {
+        run_concurrently(
+            plan,
+            root,
+            environment,
+            runner,
+            out,
+            &mut tally,
+            &mut timelines,
+        );
+        write_timings(lane, &artifacts, &timelines, out);
+        return tally;
+    }
     for invocation in &plan.invocations {
         let Some(program) = environment.find_program(&invocation.program) else {
             tally.add(Tally::failure(format!(
@@ -507,57 +556,206 @@ fn run_plan(
                 continue;
             }
         };
-        let mut counted = match invocation.output {
-            OutputKind::Libtest | OutputKind::Listing => results::tally_libtest(&result.output),
-            OutputKind::ResultLines => results::tally_result_lines(&result.output),
-            OutputKind::Criterion => {
-                let mut benches = local_gpu::tally_benches(&result.output);
-                if result.success && benches.passed == 0 {
-                    benches.add(Tally::failure(format!(
-                        "lane {lane}: `{}` reported no benchmark results; see {}",
-                        invocation.command_line(),
-                        log.display()
-                    )));
-                }
-                benches
-            }
-        };
-        let reported_failure = counted.failed > 0;
-        let mut missing = 0;
-        if invocation.output == OutputKind::ResultLines {
-            // A host that stops early must not pass for one that ran less.
-            let reported: Vec<String> = results::result_lines(&result.output)
-                .into_iter()
-                .map(|line| line.scene)
-                .collect();
-            for test in &plan.tests {
-                let id = test.rsplit("::").next().unwrap_or(test);
-                if !reported.iter().any(|scene| scene == id) {
-                    counted.add(Tally::failure(format!("{test}: no result was reported")));
-                    missing += 1;
-                }
-            }
+        let timeline = runner.take_timeline();
+        if invocation.output == OutputKind::Libtest {
+            timelines.push(timings::ProcessTimeline {
+                label: invocation.label.clone(),
+                lines: timeline,
+            });
         }
-        if !result.success && !reported_failure {
-            // The process failed without reporting a failed test: a build error or a crash.
-            // Its unreported tests already count as failures; otherwise the run itself does.
-            let message = format!(
-                "lane {lane}: `{}` exited with {} before reporting its results; see {}",
-                invocation.command_line(),
-                result
-                    .code
-                    .map_or_else(|| "a signal".to_string(), |code| format!("code {code}")),
-                log.display()
-            );
-            if missing > 0 {
-                counted.failures.push(message);
-            } else {
-                counted.add(Tally::failure(message));
-            }
-        }
-        tally.add(counted);
+        tally.add(account(plan, invocation, &result, &log));
     }
+    write_timings(lane, &artifacts, &timelines, out);
     tally
+}
+
+/// Runs a plan's workers side by side after its one build, and prints each worker's output as one
+/// block, in worker order.
+fn run_concurrently(
+    plan: &LanePlan,
+    root: &Path,
+    environment: &dyn Environment,
+    runner: &mut dyn Runner,
+    out: &mut dyn Write,
+    tally: &mut Tally,
+    timelines: &mut Vec<timings::ProcessTimeline>,
+) {
+    let lane = plan.lane;
+    let artifacts = run::artifacts_dir(root, lane.as_str());
+    let mut programs = Vec::new();
+    for invocation in plan.prebuild.iter().chain(&plan.invocations) {
+        match environment.find_program(&invocation.program) {
+            Some(program) => programs.push(program),
+            None => {
+                tally.add(Tally::failure(format!(
+                    "lane {lane}: `{}` is not on PATH",
+                    invocation.program
+                )));
+                return;
+            }
+        }
+    }
+    let count = plan.invocations.len();
+    writeln!(
+        out,
+        "lane {lane}: {count} concurrent processes (--jobs), each with --test-threads=1 and its \
+         own device"
+    )
+    .ok();
+    if let Some(build) = &plan.prebuild {
+        writeln!(out, "lane {lane}: {}", build.command_line()).ok();
+        out.flush().ok();
+        let log = artifacts.join(format!("{}.log", build.label));
+        match runner.run(build, &programs[0], root, &log) {
+            Ok(result) if result.success => {}
+            Ok(result) => {
+                tally.add(Tally::failure(format!(
+                    "lane {lane}: `{}` exited with {} before the workers started; see {}",
+                    build.command_line(),
+                    result
+                        .code
+                        .map_or_else(|| "a signal".to_string(), |code| format!("code {code}")),
+                    log.display()
+                )));
+                return;
+            }
+            Err(error) => {
+                tally.add(Tally::failure(format!("lane {lane}: {error:#}")));
+                return;
+            }
+        }
+        runner.take_timeline();
+    }
+    let jobs: Vec<run::RunJob<'_>> = plan
+        .invocations
+        .iter()
+        .zip(&programs[usize::from(plan.prebuild.is_some())..])
+        .map(|(invocation, program)| run::RunJob {
+            invocation,
+            program,
+            workdir: root,
+            log: artifacts.join(format!("{}.log", invocation.label)),
+        })
+        .collect();
+    for (index, job) in jobs.iter().enumerate() {
+        writeln!(
+            out,
+            "lane {lane}: job {}/{count}: {}",
+            index + 1,
+            job.invocation.command_line()
+        )
+        .ok();
+    }
+    out.flush().ok();
+    let results = runner.run_concurrently(&jobs);
+    for (index, (job, (result, timeline))) in jobs.iter().zip(results).enumerate() {
+        writeln!(
+            out,
+            "lane {lane}: ---- job {}/{count} ({}) ----",
+            index + 1,
+            job.invocation.label
+        )
+        .ok();
+        match result {
+            Ok(result) => {
+                writeln!(out, "{}", result.output.trim_end()).ok();
+                timelines.push(timings::ProcessTimeline {
+                    label: job.invocation.label.clone(),
+                    lines: timeline,
+                });
+                tally.add(account(plan, job.invocation, &result, &job.log));
+            }
+            Err(error) => {
+                writeln!(out, "{error:#}").ok();
+                tally.add(Tally::failure(format!(
+                    "lane {lane}: job {}/{count}: {error:#}",
+                    index + 1
+                )));
+            }
+        }
+    }
+}
+
+/// What `result` of `invocation` counts for the lane: its reported tests, and a failure for a
+/// process that stopped without reporting one.
+fn account(plan: &LanePlan, invocation: &Invocation, result: &RunOutput, log: &Path) -> Tally {
+    let lane = plan.lane;
+    let mut counted = match invocation.output {
+        OutputKind::Libtest | OutputKind::Listing => results::tally_libtest(&result.output),
+        OutputKind::ResultLines => results::tally_result_lines(&result.output),
+        OutputKind::Criterion => {
+            let mut benches = local_gpu::tally_benches(&result.output);
+            if result.success && benches.passed == 0 {
+                benches.add(Tally::failure(format!(
+                    "lane {lane}: `{}` reported no benchmark results; see {}",
+                    invocation.command_line(),
+                    log.display()
+                )));
+            }
+            benches
+        }
+    };
+    let reported_failure = counted.failed > 0;
+    let mut missing = 0;
+    if invocation.output == OutputKind::ResultLines {
+        // A host that stops early must not pass for one that ran less.
+        let reported: Vec<String> = results::result_lines(&result.output)
+            .into_iter()
+            .map(|line| line.scene)
+            .collect();
+        for test in &plan.tests {
+            let id = test.rsplit("::").next().unwrap_or(test);
+            if !reported.iter().any(|scene| scene == id) {
+                counted.add(Tally::failure(format!("{test}: no result was reported")));
+                missing += 1;
+            }
+        }
+    }
+    if !result.success && !reported_failure {
+        // The process failed without reporting a failed test: a build error or a crash.
+        // Its unreported tests already count as failures; otherwise the run itself does.
+        let message = format!(
+            "lane {lane}: `{}` exited with {} before reporting its results; see {}",
+            invocation.command_line(),
+            result
+                .code
+                .map_or_else(|| "a signal".to_string(), |code| format!("code {code}")),
+            log.display()
+        );
+        if missing > 0 {
+            counted.failures.push(message);
+        } else {
+            counted.add(Tally::failure(message));
+        }
+    }
+    counted
+}
+
+/// Writes `timings.md` beside a lane's artifacts when libtest processes ran.
+fn write_timings(
+    lane: LaneId,
+    artifacts: &Path,
+    timelines: &[timings::ProcessTimeline],
+    out: &mut dyn Write,
+) {
+    if timelines.is_empty() {
+        return;
+    }
+    let path = artifacts.join("timings.md");
+    let report = timings::report(lane.as_str(), timelines);
+    match std::fs::create_dir_all(artifacts).and_then(|()| std::fs::write(&path, report)) {
+        Ok(()) => {
+            writeln!(out, "lane {lane}: test timings in {}", path.display()).ok();
+        }
+        Err(error) => {
+            writeln!(
+                out,
+                "lane {lane}: could not write {}: {error}",
+                path.display()
+            )
+            .ok();
+        }
+    }
 }
 
 /// The lanes `gpux-testkit lane` accepts, for documentation and tests.

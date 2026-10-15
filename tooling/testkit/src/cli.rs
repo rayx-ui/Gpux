@@ -5,7 +5,7 @@ use std::fmt;
 
 /// The usage text printed by `--help` and after usage errors.
 pub const USAGE: &str = "\
-usage: gpux-testkit lane <lane>... [--list] [--scene <id>] [--grep <pattern>] [--headed]
+usage: gpux-testkit lane <lane>... [--list] [--scene <id>] [--grep <pattern>] [--headed] [--full] [--jobs <n>]
        gpux-testkit web build [--verify]
        gpux-testkit web serve [--port <port>]
        gpux-testkit web e2e [--profile <profile>] [--grep <pattern>] [--headed]
@@ -30,6 +30,10 @@ options:
   --scene <id>      select one conformance scene
   --grep <pattern>  select the tests whose names contain the pattern
   --headed          show the browser of lanes b and g
+  --full            lane c: run every frame of the scroll-layer suites (the default samples them;
+                    GPUX_LANE_C_FULL=1 does the same); lane g always runs them in full
+  --jobs <n>        lane c: run its test groups in up to n concurrent processes, each with
+                    its own device (default 1)
 
 web (lane b's browser host):
   build    build the threaded `web_host` WASM app into target/gpux-web/dist;
@@ -152,6 +156,10 @@ pub struct LaneArgs {
     pub selection: Selection,
     /// Runs the browser specs of lanes B and G headed.
     pub headed: bool,
+    /// Runs lane C's scroll-layer suites frame for frame instead of sampled.
+    pub full: bool,
+    /// How many concurrent processes lane C's test groups run in (1 runs them as one).
+    pub jobs: usize,
 }
 
 /// Which tests of a lane to run.
@@ -401,11 +409,21 @@ fn parse_lane(mut args: impl Iterator<Item = String>) -> Result<LaneArgs, UsageE
     let mut lanes = Vec::new();
     let mut list = false;
     let mut headed = false;
+    let mut full = false;
+    let mut jobs = 1;
     let mut selection = Selection::default();
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--list" => list = true,
             "--headed" => headed = true,
+            "--full" => full = true,
+            "--jobs" => {
+                jobs = args
+                    .next()
+                    .and_then(|value| value.parse::<usize>().ok())
+                    .filter(|&jobs| jobs >= 1)
+                    .ok_or_else(|| UsageError("`--jobs` needs a number of at least 1".into()))?;
+            }
             "--scene" | "--grep" => {
                 let value = args
                     .next()
@@ -441,5 +459,7 @@ fn parse_lane(mut args: impl Iterator<Item = String>) -> Result<LaneArgs, UsageE
         list,
         selection,
         headed,
+        full,
+        jobs,
     })
 }

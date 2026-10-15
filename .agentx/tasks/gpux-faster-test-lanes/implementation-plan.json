@@ -1,0 +1,701 @@
+{
+ "schemaVersion": 7,
+ "epicId": "gpux-faster-test-lanes",
+ "revision": 1,
+ "title": "gpux faster test lanes: optimized test builds, sampled and parallel lane C, and a lighter pull-request path",
+ "validationMode": "sprint",
+ "repositories": [
+  {
+   "id": "gpux",
+   "path": ".",
+   "role": "execution"
+  }
+ ],
+ "boundaries": {
+  "repositoryIds": [
+   "gpux"
+  ],
+  "forbiddenPaths": [
+   "gpux:.agentx/experiments/**",
+   "gpux:.agentx/tasks/frame-effects-navigation-transitions/**",
+   "gpux:.agentx/tasks/frame-family-component-transitions/**",
+   "gpux:.agentx/tasks/gpux-cross-platform-test-lanes/**",
+   "gpux:.agentx/tasks/gpux-fast-mode/**",
+   "gpux:.agentx/tasks/gpux-fixed-sticky-positioning/**",
+   "gpux:.agentx/tasks/gpux-text-rendering-quality-performance/**",
+   "gpux:.agentx/tasks/gpux-wgpu-platform-renderers/**",
+   "gpux:.agentx/tasks/high-quality-wasm-text-rendering/**",
+   "gpux:.agentx/tasks/html-element-dom-overlay/**",
+   "gpux:.agentx/tasks/html-island-wasm/**",
+   "gpux:.agentx/tasks/keyed-sticky-stacking/**",
+   "gpux:.agentx/tasks/macos-only-metal-port-and-ci-repair/**",
+   "gpux:.agentx/tasks/shader-effects-and-screen-transitions/**",
+   "gpux:ToFix/**",
+   "gpux:vendor/wgpu/**"
+  ]
+ },
+ "checks": [
+  {
+   "id": "check-lane-timings",
+   "repositoryId": "gpux",
+   "kind": "test",
+   "criterionIds": [
+    "TIME-1"
+   ],
+   "descriptionMarkdown": "New group `tooling/testkit/tests/lane_timings.rs`: durations as deltas between completion lines of a fixture libtest stream, the slowest-first table and shares, the empty-run message, per-process blocks.",
+   "argv": [
+    "cargo",
+    "test",
+    "-p",
+    "gpux-testkit",
+    "--test",
+    "lane_timings"
+   ],
+   "expected": {
+    "exitCode": 0,
+    "minimumTests": 4
+   },
+   "inputs": [
+    "tooling/testkit/**",
+    "crates/gpux_conformance/**",
+    "Cargo.toml",
+    "Cargo.lock"
+   ]
+  },
+  {
+   "id": "check-lane-profile",
+   "repositoryId": "gpux",
+   "kind": "test",
+   "criterionIds": [
+    "OPT-2"
+   ],
+   "descriptionMarkdown": "New group `crates/gpux_conformance/tests/lane_c_profile.rs`: debug assertions and overflow checks are on in the lane C test build.",
+   "argv": [
+    "cargo",
+    "test",
+    "-p",
+    "gpux-conformance",
+    "--test",
+    "lane_c_profile"
+   ],
+   "expected": {
+    "exitCode": 0,
+    "minimumTests": 2
+   },
+   "inputs": [
+    "crates/gpui/**",
+    "crates/gpui_macros/**",
+    "crates/collections/**",
+    "crates/sum_tree/**",
+    "crates/scheduler/**",
+    "crates/gpui_util/**",
+    "crates/refineable/**",
+    "Cargo.toml",
+    "Cargo.lock",
+    "crates/gpux_conformance/**",
+    "crates/gpui_platform/**",
+    "crates/gpui_wgpu/**",
+    "crates/gpui_apple/**",
+    "crates/gpux_fonts/**"
+   ]
+  },
+  {
+   "id": "check-lane-compare",
+   "repositoryId": "gpux",
+   "kind": "test",
+   "criterionIds": [
+    "CMP-1"
+   ],
+   "descriptionMarkdown": "New group `crates/gpux_conformance/tests/lane_c_compare.rs`: `assert_same` passes equal images, fails a differing pixel, corner and row with the old message's fields, and fails differing dimensions.",
+   "argv": [
+    "cargo",
+    "test",
+    "-p",
+    "gpux-conformance",
+    "--test",
+    "lane_c_compare"
+   ],
+   "expected": {
+    "exitCode": 0,
+    "minimumTests": 5
+   },
+   "inputs": [
+    "crates/gpui/**",
+    "crates/gpui_macros/**",
+    "crates/collections/**",
+    "crates/sum_tree/**",
+    "crates/scheduler/**",
+    "crates/gpui_util/**",
+    "crates/refineable/**",
+    "Cargo.toml",
+    "Cargo.lock",
+    "crates/gpux_conformance/**",
+    "crates/gpui_platform/**",
+    "crates/gpui_wgpu/**",
+    "crates/gpui_apple/**",
+    "crates/gpux_fonts/**"
+   ]
+  },
+  {
+   "id": "check-lane-sampling",
+   "repositoryId": "gpux",
+   "kind": "test",
+   "criterionIds": [
+    "SAMP-1",
+    "SAMP-2"
+   ],
+   "descriptionMarkdown": "New group `crates/gpux_conformance/tests/lane_c_sampling.rs`: frames compared and drawn per mode for representative scripts, full mode's script equal to the pre-epic one, the seeded-difference tests and the lists of covered and uncovered seeds.",
+   "argv": [
+    "cargo",
+    "test",
+    "-p",
+    "gpux-conformance",
+    "--test",
+    "lane_c_sampling"
+   ],
+   "expected": {
+    "exitCode": 0,
+    "minimumTests": 6
+   },
+   "inputs": [
+    "crates/gpui/**",
+    "crates/gpui_macros/**",
+    "crates/collections/**",
+    "crates/sum_tree/**",
+    "crates/scheduler/**",
+    "crates/gpui_util/**",
+    "crates/refineable/**",
+    "Cargo.toml",
+    "Cargo.lock",
+    "crates/gpux_conformance/**",
+    "crates/gpui_platform/**",
+    "crates/gpui_wgpu/**",
+    "crates/gpui_apple/**",
+    "crates/gpux_fonts/**"
+   ]
+  },
+  {
+   "id": "check-lane-modes",
+   "repositoryId": "gpux",
+   "kind": "test",
+   "criterionIds": [
+    "SAMP-1",
+    "SAMP-3"
+   ],
+   "descriptionMarkdown": "New group `tooling/testkit/tests/lane_modes.rs`: `--full` and `GPUX_LANE_C_FULL` reach the test process, the mode line before the run and in the summary.",
+   "argv": [
+    "cargo",
+    "test",
+    "-p",
+    "gpux-testkit",
+    "--test",
+    "lane_modes"
+   ],
+   "expected": {
+    "exitCode": 0,
+    "minimumTests": 4
+   },
+   "inputs": [
+    "tooling/testkit/**",
+    "crates/gpux_conformance/**",
+    "Cargo.toml",
+    "Cargo.lock"
+   ]
+  },
+  {
+   "id": "check-lane-jobs",
+   "repositoryId": "gpux",
+   "kind": "test",
+   "criterionIds": [
+    "PAR-1"
+   ],
+   "descriptionMarkdown": "New group `tooling/testkit/tests/lane_jobs.rs`: the partition by weights, one block per process in fixed order, failure and empty-run propagation, one-job equivalence with today's plan, combination with `--scene`, `--grep` and `--full`.",
+   "argv": [
+    "cargo",
+    "test",
+    "-p",
+    "gpux-testkit",
+    "--test",
+    "lane_jobs"
+   ],
+   "expected": {
+    "exitCode": 0,
+    "minimumTests": 6
+   },
+   "inputs": [
+    "tooling/testkit/**",
+    "crates/gpux_conformance/**",
+    "Cargo.toml",
+    "Cargo.lock"
+   ]
+  },
+  {
+   "id": "check-ci-plan",
+   "repositoryId": "gpux",
+   "kind": "test",
+   "criterionIds": [
+    "CI-1",
+    "CI-2"
+   ],
+   "descriptionMarkdown": "New group `tooling/testkit/tests/ci_plan.rs`: runs `.github/actions/plan/plan.sh` under representative environments and parses `ci.yml` for the schedule trigger, the mode and the jobs wiring.",
+   "argv": [
+    "cargo",
+    "test",
+    "-p",
+    "gpux-testkit",
+    "--test",
+    "ci_plan"
+   ],
+   "expected": {
+    "exitCode": 0,
+    "minimumTests": 8
+   },
+   "inputs": [
+    "tooling/testkit/**",
+    "crates/gpux_conformance/**",
+    "Cargo.toml",
+    "Cargo.lock",
+    ".github/actions/plan/**",
+    ".github/workflows/ci.yml"
+   ]
+  },
+  {
+   "id": "final-fmt",
+   "repositoryId": "gpux",
+   "kind": "static",
+   "criterionIds": [],
+   "descriptionMarkdown": "Formatting of the whole workspace (a cheap, whole-tree tool).",
+   "argv": [
+    "cargo",
+    "fmt",
+    "--check"
+   ],
+   "expected": {
+    "exitCode": 0
+   }
+  },
+  {
+   "id": "final-clippy",
+   "repositoryId": "gpux",
+   "kind": "static",
+   "criterionIds": [],
+   "descriptionMarkdown": "Clippy on the two packages the epic touches.",
+   "argv": [
+    "cargo",
+    "clippy",
+    "-p",
+    "gpux-testkit",
+    "-p",
+    "gpux-conformance",
+    "--all-targets",
+    "--no-deps",
+    "--",
+    "-D",
+    "warnings"
+   ],
+   "expected": {
+    "exitCode": 0
+   }
+  },
+  {
+   "id": "final-workspace-check",
+   "repositoryId": "gpux",
+   "kind": "build",
+   "criterionIds": [],
+   "descriptionMarkdown": "`cargo check --workspace --all-targets`. **Whole-codebase reason:** the epic changes a Cargo profile in the root manifest, which every build in the workspace reads.",
+   "argv": [
+    "cargo",
+    "check",
+    "--workspace",
+    "--all-targets"
+   ],
+   "expected": {
+    "exitCode": 0
+   },
+   "timeoutSeconds": 3600
+  },
+  {
+   "id": "final-package",
+   "repositoryId": "gpux",
+   "kind": "build",
+   "criterionIds": [],
+   "descriptionMarkdown": "`cargo package --workspace`. A root manifest change needs it (CLAUDE.md).",
+   "argv": [
+    "cargo",
+    "package",
+    "--workspace"
+   ],
+   "expected": {
+    "exitCode": 0
+   },
+   "timeoutSeconds": 3600
+  },
+  {
+   "id": "final-testkit",
+   "repositoryId": "gpux",
+   "kind": "test",
+   "criterionIds": [],
+   "descriptionMarkdown": "The whole `gpux-testkit` package's tests: the epic changes its lane planning, runner, results and summary, which its other test groups also cover.",
+   "argv": [
+    "cargo",
+    "test",
+    "-p",
+    "gpux-testkit"
+   ],
+   "expected": {
+    "exitCode": 0,
+    "minimumTests": 30
+   },
+   "reuse": false,
+   "timeoutSeconds": 1800
+  },
+  {
+   "id": "final-lane-c-full",
+   "repositoryId": "gpux",
+   "kind": "runtime",
+   "criterionIds": [],
+   "descriptionMarkdown": "All of lane C on the Metal adapter in full mode: the same 188 tests and assertions as before the epic, proving the optimized build and the refactored comparison changed no rendering result.",
+   "argv": [
+    "env",
+    "GPUX_EXPECT_BACKEND=metal",
+    "cargo",
+    "run",
+    "-p",
+    "gpux-testkit",
+    "--",
+    "lane",
+    "c",
+    "--full"
+   ],
+   "expected": {
+    "exitCode": 0,
+    "minimumTests": 180,
+    "testCountPattern": "gpux-testkit: (\\d+) passed"
+   },
+   "reuse": false,
+   "timeoutSeconds": 3000
+  },
+  {
+   "id": "final-lane-c-sampled-jobs",
+   "repositoryId": "gpux",
+   "kind": "runtime",
+   "criterionIds": [],
+   "descriptionMarkdown": "All of lane C on Metal in the default sampled mode with three concurrent processes: the path a pull request and a developer take.",
+   "argv": [
+    "env",
+    "GPUX_EXPECT_BACKEND=metal",
+    "cargo",
+    "run",
+    "-p",
+    "gpux-testkit",
+    "--",
+    "lane",
+    "c",
+    "--jobs",
+    "3"
+   ],
+   "expected": {
+    "exitCode": 0,
+    "minimumTests": 180,
+    "testCountPattern": "gpux-testkit: (\\d+) passed"
+   },
+   "reuse": false,
+   "timeoutSeconds": 3000
+  }
+ ],
+ "finalCheckIds": [
+  "final-fmt",
+  "final-clippy",
+  "final-workspace-check",
+  "final-package",
+  "final-testkit",
+  "final-lane-c-full",
+  "final-lane-c-sampled-jobs"
+ ],
+ "sprints": [
+  {
+   "id": "s01-timings",
+   "title": "Per-test timing in the testkit",
+   "dependsOn": [],
+   "memoryScopes": [
+    "repository/validation"
+   ],
+   "tasks": [
+    {
+     "id": "t01-lane-timings",
+     "title": "Record and report per-test durations",
+     "descriptionMarkdown": "Timestamp each completion line in the libtest parser and write `timings.md` (slowest first, share of the lane) beside the lane's artifacts; with the run's own output the Mac profile of lane C can be repeated by anyone. New group `tooling/testkit/tests/lane_timings.rs`.",
+     "criterionIds": [
+      "TIME-1"
+     ],
+     "designIds": [
+      "d-timings"
+     ],
+     "dependsOn": [],
+     "checkIds": [
+      "check-lane-timings"
+     ],
+     "sourceRefs": [
+      {
+       "repositoryId": "gpux",
+       "path": "tooling/testkit/src/results.rs"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": "tooling/testkit/src/run.rs"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": "tooling/testkit/src/summary.rs"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "s02-test-profile",
+   "title": "Optimized test builds",
+   "dependsOn": [
+    "s01-timings"
+   ],
+   "memoryScopes": [
+    "repository/validation"
+   ],
+   "tasks": [
+    {
+     "id": "t02-test-profile",
+     "title": "Choose and set the test profile's optimization",
+     "descriptionMarkdown": "Measure one slow scroll-layer test and a clean and an incremental build under: `[profile.dev]` at level 1, `[profile.test]`, package overrides for `image`, `gpux`, the renderers and the test crate, and a dedicated profile; pick the cheapest scope that reaches within about 25% of the whole-profile test time; set it in `Cargo.toml` with debug assertions and overflow checks on; write the measurements to `docs/measurements/lane-c-timings.md` (the first section). New group `crates/gpux_conformance/tests/lane_c_profile.rs`, registered in the testkit's lane C groups.",
+     "criterionIds": [
+      "OPT-1",
+      "OPT-2"
+     ],
+     "designIds": [
+      "d-profile"
+     ],
+     "dependsOn": [],
+     "checkIds": [
+      "check-lane-profile"
+     ],
+     "sourceRefs": [
+      {
+       "repositoryId": "gpux",
+       "path": "Cargo.toml"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": "tooling/testkit/src/lanes.rs"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": "docs/measurements/lane-c-timings.md"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "s03-compare-and-sampling",
+   "title": "Cheaper comparison and the sampled mode",
+   "dependsOn": [
+    "s02-test-profile"
+   ],
+   "memoryScopes": [
+    "repository/validation"
+   ],
+   "tasks": [
+    {
+     "id": "t03-fast-compare",
+     "title": "Compare image bytes first",
+     "descriptionMarkdown": "Rewrite `assert_same` as described; new group `crates/gpux_conformance/tests/lane_c_compare.rs`, registered in the lane C groups.",
+     "criterionIds": [
+      "CMP-1"
+     ],
+     "designIds": [
+      "d-compare"
+     ],
+     "dependsOn": [],
+     "checkIds": [
+      "check-lane-compare"
+     ],
+     "sourceRefs": [
+      {
+       "repositoryId": "gpux",
+       "path": "crates/gpux_conformance/tests/scroll_layers_support/mod.rs"
+      }
+     ]
+    },
+    {
+     "id": "t04-sampling-modes",
+     "title": "Full and sampled scroll-layer suites",
+     "descriptionMarkdown": "Add `Sampling` to the support module, use it in the three slow suites, scale `assert_composited`, add the seeded-difference tests (new group `lane_c_sampling.rs`) and the testkit's `--full`, mode line and summary (new group `tooling/testkit/tests/lane_modes.rs`); lane G's lane C part sets full.",
+     "criterionIds": [
+      "SAMP-1",
+      "SAMP-2",
+      "SAMP-3"
+     ],
+     "designIds": [
+      "d-sampling"
+     ],
+     "dependsOn": [
+      "t03-fast-compare"
+     ],
+     "checkIds": [
+      "check-lane-sampling",
+      "check-lane-modes"
+     ],
+     "sourceRefs": [
+      {
+       "repositoryId": "gpux",
+       "path": "crates/gpux_conformance/tests/scroll_layers_support/mod.rs"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": "crates/gpux_conformance/tests/lane_c_layer_scales.rs"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": "crates/gpux_conformance/tests/lane_c_scroll_layers.rs"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": "crates/gpux_conformance/tests/lane_c_list_hover.rs"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": "tooling/testkit/src/lanes.rs"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": "tooling/testkit/src/local_gpu.rs"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "s04-parallel",
+   "title": "Concurrent test processes",
+   "dependsOn": [
+    "s03-compare-and-sampling"
+   ],
+   "memoryScopes": [
+    "repository/validation"
+   ],
+   "tasks": [
+    {
+     "id": "t05-lane-jobs",
+     "title": "`--jobs` for lane C",
+     "descriptionMarkdown": "Weights from the timings of s01 and s02, the partition, the concurrent runner with one block per process, the summary; new group `tooling/testkit/tests/lane_jobs.rs`. Cargo builds once before the workers start.",
+     "criterionIds": [
+      "PAR-1"
+     ],
+     "designIds": [
+      "d-jobs"
+     ],
+     "dependsOn": [],
+     "checkIds": [
+      "check-lane-jobs"
+     ],
+     "sourceRefs": [
+      {
+       "repositoryId": "gpux",
+       "path": "tooling/testkit/src/lanes.rs"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": "tooling/testkit/src/run.rs"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": "tooling/testkit/src/cli.rs"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "s05-ci-cadence",
+   "title": "What a pull request runs",
+   "dependsOn": [
+    "s04-parallel"
+   ],
+   "memoryScopes": [
+    "repository/validation"
+   ],
+   "tasks": [
+    {
+     "id": "t06-ci-plan",
+     "title": "Plan script, schedule and lane C wiring",
+     "descriptionMarkdown": "`plan.sh` outputs, the nightly schedule and the dispatch input in `ci.yml`, lane C's `GPUX_LANE_C_FULL` and `--jobs`; new group `tooling/testkit/tests/ci_plan.rs`. The per-platform `--jobs` starts at 1 for Windows until the final sprint proves more.",
+     "criterionIds": [
+      "CI-1",
+      "CI-2"
+     ],
+     "designIds": [
+      "d-ci-cadence"
+     ],
+     "dependsOn": [],
+     "checkIds": [
+      "check-ci-plan"
+     ],
+     "sourceRefs": [
+      {
+       "repositoryId": "gpux",
+       "path": ".github/actions/plan/plan.sh"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": ".github/workflows/ci.yml"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "s06-proof-and-docs",
+   "title": "Measured result and documentation",
+   "dependsOn": [
+    "s05-ci-cadence"
+   ],
+   "memoryScopes": [
+    "repository/validation"
+   ],
+   "tasks": [
+    {
+     "id": "t07-measure-and-docs",
+     "title": "Record the result in CI and write the documents",
+     "descriptionMarkdown": "Push once; the pull request's complete CI run (and one `workflow_dispatch` of lane C on Windows with `--jobs` greater than 1, repeated three times, and one with the `full` input) supplies the numbers; fill `docs/measurements/lane-c-timings.md`, update `docs/ci.md` and `docs/testing.md`, set the per-platform `--jobs`. If WARP stays over the budget or `--jobs` is unstable on DX12, record it and keep the safe setting; do not weaken a check.",
+     "criterionIds": [
+      "TIME-2",
+      "PAR-2",
+      "CI-3"
+     ],
+     "designIds": [
+      "d-ci-cadence",
+      "d-jobs"
+     ],
+     "dependsOn": [],
+     "checkIds": [],
+     "supportingCriterionIds": [
+      "OPT-1"
+     ],
+     "sourceRefs": [
+      {
+       "repositoryId": "gpux",
+       "path": "docs/measurements/lane-c-timings.md"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": "docs/ci.md"
+      },
+      {
+       "repositoryId": "gpux",
+       "path": "docs/testing.md"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -130,6 +130,9 @@ pub struct LanePlan {
     /// For libtest lanes, one `--list` invocation per test target: `--list` asks libtest for the
     /// exact tests the run executes rather than trusting the plan.
     pub listings: Vec<Listing>,
+    /// For a plan whose invocations run side by side, the build that runs once before them so
+    /// that they do not contend on the build directory.
+    pub prebuild: Option<Invocation>,
 }
 
 /// Lists the tests of one libtest target without running them.
@@ -197,20 +200,59 @@ const LANE_A_GROUPS: [&str; 8] = [
 
 /// The lane-C groups besides the scenes, which need the renderer: lane G's probes-only mode,
 /// fast-mode parity, and scroll layers drawn from the renderer's tiles (at whole scale
-/// factors, at fractional ones, and under a pointer that hovers a list's rows).
-const LANE_C_GROUPS: [&str; 5] = [
+/// factors, at fractional ones, and under a pointer that hovers a list's rows), the checks
+/// that the test build keeps debug assertions and overflow checks on, the frame comparison
+/// the scroll-layer groups share, and the sampled and full modes of those groups.
+const LANE_C_GROUPS: [&str; 8] = [
     "lane_g",
     "lane_c_fast_parity",
     "lane_c_scroll_layers",
     "lane_c_layer_scales",
     "lane_c_list_hover",
+    "lane_c_profile",
+    "lane_c_compare",
+    "lane_c_sampling",
 ];
 
-/// Plans `lane` for `selection`.
+/// The variable that makes lane C's scroll-layer suites run frame for frame.
+pub const FULL_VARIABLE: &str = "GPUX_LANE_C_FULL";
+
+/// What a lane C run says about the scroll-layer suites, when it runs them.
+pub fn mode_line(full: bool) -> &'static str {
+    if full {
+        "lane c: full scroll-layer suites"
+    } else {
+        "lane c: sampled scroll-layer suites (GPUX_LANE_C_FULL=1 or --full runs every frame)"
+    }
+}
+
+/// Whether an environment value of `GPUX_LANE_C_FULL` asks for the full mode.
+pub fn full_requested(value: Option<&str>) -> bool {
+    value.is_some_and(|value| !value.is_empty() && value != "0")
+}
+
+/// Makes lane C's test processes run the scroll-layer suites in full.
+pub fn set_full(plan: &mut LanePlan) {
+    for invocation in &mut plan.invocations {
+        invocation.env.push((FULL_VARIABLE.into(), "1".into()));
+    }
+}
+
+/// Plans `lane` for `selection`, run by one process.
 pub fn plan(lane: LaneId, selection: &Selection) -> Result<LanePlan, PlanError> {
+    plan_with_jobs(lane, selection, 1)
+}
+
+/// Plans `lane` for `selection`, run by up to `jobs` concurrent processes where the lane can
+/// split (lane C's groups; every other lane is one process).
+pub fn plan_with_jobs(
+    lane: LaneId,
+    selection: &Selection,
+    jobs: usize,
+) -> Result<LanePlan, PlanError> {
     match lane {
         LaneId::A => plan_a(selection),
-        LaneId::C => plan_c(selection),
+        LaneId::C => plan_c(selection, jobs),
         LaneId::D => plan_d(selection),
         LaneId::B => Err(PlanError(
             "lane b runs Playwright specs, not cargo targets: `gpux-testkit lane b` runs them \
@@ -323,10 +365,68 @@ fn plan_a(selection: &Selection) -> Result<LanePlan, PlanError> {
         invocations: if empty { Vec::new() } else { vec![invocation] },
         tests,
         listings,
+        prebuild: None,
     })
 }
 
-fn plan_c(selection: &Selection) -> Result<LanePlan, PlanError> {
+/// The lane C units a run is made of, with their relative cost in milliseconds: the scenes of
+/// `lane_c` and each group of [`LANE_C_GROUPS`]. Measured on an Apple M5 on Metal, in the sampled
+/// mode, from the `timings.md` of `gpux-testkit lane c`; only the ratios matter, and a unit
+/// missing here makes `lane_jobs` fail. Refresh them by hand from a new `timings.md`.
+const LANE_C_WEIGHTS: [(&str, u64); 9] = [
+    ("lane_c", 880),
+    ("lane_g", 580),
+    ("lane_c_fast_parity", 1_980),
+    ("lane_c_scroll_layers", 7_470),
+    ("lane_c_layer_scales", 20_460),
+    ("lane_c_list_hover", 2_710),
+    ("lane_c_profile", 10),
+    ("lane_c_compare", 10),
+    ("lane_c_sampling", 2_020),
+];
+
+/// The weight of lane C unit `unit`.
+pub fn weight(unit: &str) -> Option<u64> {
+    LANE_C_WEIGHTS
+        .iter()
+        .find(|(name, _)| *name == unit)
+        .map(|(_, weight)| *weight)
+}
+
+/// Splits `units` over at most `workers` processes, heaviest first onto the least loaded one
+/// (ties go to the lowest worker), so the slowest units never share a process while there are
+/// processes to spare. Each worker keeps its units in their given order, workers come in the
+/// order of their first unit, and no worker is empty.
+pub fn partition(units: &[(String, u64)], workers: usize) -> Vec<Vec<String>> {
+    let workers = workers.clamp(1, units.len().max(1));
+    let mut by_weight: Vec<usize> = (0..units.len()).collect();
+    by_weight.sort_by(|&a, &b| units[b].1.cmp(&units[a].1).then(a.cmp(&b)));
+    let mut loads = vec![0u64; workers];
+    let mut assigned: Vec<Vec<usize>> = vec![Vec::new(); workers];
+    for unit in by_weight {
+        let lightest = (0..workers)
+            .min_by_key(|&worker| (loads[worker], worker))
+            .unwrap();
+        loads[lightest] += units[unit].1;
+        assigned[lightest].push(unit);
+    }
+    let mut result: Vec<Vec<usize>> = assigned.into_iter().filter(|w| !w.is_empty()).collect();
+    for worker in &mut result {
+        worker.sort_unstable();
+    }
+    result.sort_by_key(|worker| worker[0]);
+    result
+        .into_iter()
+        .map(|worker| {
+            worker
+                .into_iter()
+                .map(|unit| units[unit].0.clone())
+                .collect()
+        })
+        .collect()
+}
+
+fn plan_c(selection: &Selection, jobs: usize) -> Result<LanePlan, PlanError> {
     let scenes = scenes(Lane::C, selection)?;
     let names: Vec<String> = scenes
         .iter()
@@ -357,6 +457,9 @@ fn plan_c(selection: &Selection) -> Result<LanePlan, PlanError> {
         invocation.args.push("--exact".into());
         invocation.args.extend(names.iter().cloned());
     }
+    if jobs > 1 && selection.is_everything() && !names.is_empty() {
+        return Ok(plan_c_jobs(jobs, tests, listings));
+    }
     Ok(LanePlan {
         lane: LaneId::C,
         invocations: if names.is_empty() {
@@ -366,7 +469,60 @@ fn plan_c(selection: &Selection) -> Result<LanePlan, PlanError> {
         },
         tests,
         listings,
+        prebuild: None,
     })
+}
+
+/// The whole lane C as up to `jobs` processes of whole test groups, each with its own device.
+fn plan_c_jobs(jobs: usize, tests: Vec<String>, listings: Vec<Listing>) -> LanePlan {
+    let units: Vec<(String, u64)> = std::iter::once("lane_c")
+        .chain(LANE_C_GROUPS)
+        .map(|unit| (unit.to_string(), weight(unit).unwrap_or(0)))
+        .collect();
+    let workers = partition(&units, jobs);
+    let invocations = workers
+        .iter()
+        .enumerate()
+        .map(|(index, groups)| {
+            let mut args = vec!["test".to_string(), "-p".into(), "gpux-conformance".into()];
+            for group in groups {
+                args.extend(["--test".to_string(), group.clone()]);
+            }
+            // A failing target must not keep the later ones from reporting; scenes of a process
+            // share its one cached device, so they render one at a time.
+            args.extend([
+                "--no-fail-fast".into(),
+                "--".into(),
+                "--test-threads=1".into(),
+            ]);
+            Invocation {
+                label: format!("lane-c-job-{}", index + 1),
+                program: "cargo".into(),
+                args,
+                env: Vec::new(),
+                output: OutputKind::Libtest,
+            }
+        })
+        .collect();
+    let mut build = vec!["test".to_string(), "-p".into(), "gpux-conformance".into()];
+    for (unit, _) in &units {
+        build.extend(["--test".to_string(), unit.clone()]);
+    }
+    build.push("--no-run".into());
+    LanePlan {
+        lane: LaneId::C,
+        invocations,
+        tests,
+        listings,
+        prebuild: Some(Invocation {
+            label: "lane-c-build".into(),
+            program: "cargo".into(),
+            args: build,
+            env: Vec::new(),
+            // Echoed like any lane run: a cold build takes minutes and a failure must show.
+            output: OutputKind::Libtest,
+        }),
+    }
 }
 
 fn plan_d(selection: &Selection) -> Result<LanePlan, PlanError> {
@@ -418,5 +574,6 @@ fn plan_d(selection: &Selection) -> Result<LanePlan, PlanError> {
         },
         tests,
         listings: Vec::new(),
+        prebuild: None,
     })
 }
