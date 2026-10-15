@@ -42,8 +42,9 @@ browser; the chat `list` up to −39%). It does not help when one view rebuilds 
 `scroll-data-table`** (+8% CPU on macOS, +20% on WebGPU) and on `text-typing` on macOS (+10%,
 while every other target gains 17–22%). Its price is **memory**: −4% to +11% footprint in the
 other scenarios, and **+10% to +240% in the four scrolling scenarios** (+55% to +124% on macOS),
-held by scroll layers' tiles and kept rows, with the footprint still growing during the measured
-frames in `scroll-data-table` (+38 to +68 MB in 600 frames).
+held by scroll layers' tiles and kept rows. That memory is bounded: in runs of 600, 3,000 and
+9,000 frames it levels off at about +180 MB of footprint for `scroll-data-table` and +100 MB for
+`scroll-uniform-list` on macOS ([Long-run memory check](#long-run-memory-check)).
 
 ## Summary
 
@@ -1205,6 +1206,37 @@ One untimed run per scenario in a build with gpux's diagnostics counters (`--sta
 | `effects-cards` | off | 3.0 | 0.0 | 0.0 | 0.0 | 1.0 | 0.0 | 0.0 | 1555 | 0.0 | 0.0 |
 | `effects-cards` | on | 1.0 | 0.0 | 2.0 | 0.0 | 1.0 | 2.0 | 0.0 | 2.0 | 1553 | 0.0 |
 
+## Long-run memory check
+
+In the 600-frame runs, fast mode's footprint was still growing in `scroll-data-table` and
+`scroll-uniform-list`. To find out whether it is bounded, both ran on macOS with fast mode off and
+on for 600, 3,000 and 9,000 measured frames (the same build as above, `main` at `0d343b5`, run
+later the same morning; raw reports in
+[results/2026-10-15-pr3/long-run/](results/2026-10-15-pr3/long-run/)). The 9,000-frame run of
+`scroll-uniform-list` was not taken.
+
+| Scenario | mode | measured frames | footprint after warm-up (MB) | footprint at end (MB) | footprint peak (MB) | live heap at end (MB) | peak heap (MB) | CPU per frame (ms) |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| `scroll-data-table` | off | 600 | 136 | 136 | 136 | 23.9 | 24.9 | 3.03 |
+| `scroll-data-table` | off | 3,000 | 136 | 135 | 135 | 24.0 | 24.9 | 2.96 |
+| `scroll-data-table` | off | 9,000 | 137 | 136 | 136 | 24.0 | 25.0 | 2.56 |
+| `scroll-data-table` | on | 600 | 265 | 321 | 321 | 116.3 | 142.6 | 3.18 |
+| `scroll-data-table` | on | 3,000 | 264 | 326 | 326 | 120.2 | 144.2 | 3.19 |
+| `scroll-data-table` | on | 9,000 | 262 | 311 | 311 | 120.4 | 144.5 | 2.93 |
+| `scroll-uniform-list` | off | 600 | 126 | 126 | 126 | 12.9 | 13.2 | 3.04 |
+| `scroll-uniform-list` | off | 3,000 | 126 | 126 | 126 | 12.9 | 13.3 | 1.79 |
+| `scroll-uniform-list` | on | 600 | 214 | 232 | 232 | 40.2 | 49.9 | 2.51 |
+| `scroll-uniform-list` | on | 3,000 | 219 | 227 | 227 | 41.2 | 50.5 | 1.18 |
+
+**The memory is bounded.** With fast mode on, `scroll-data-table` holds about 310–326 MB of
+footprint and a 143–145 MB peak heap whether it runs 600, 3,000 or 9,000 frames, and
+`scroll-uniform-list` 227–233 MB and 50 MB. The growth the 600-frame runs show is the layers
+filling during the first pass over the scrolled range, not a leak. It is a fixed cost: about
++180 MB of footprint and +120 MB of heap over fast mode off for the data table, and +100 MB and
++37 MB for the uniform list. The scenarios scroll back and forth over 30,000 px and 20,000 px of
+content, so what was measured is the bound for that range; a scroll that keeps reaching new rows
+over the whole list was not measured.
+
 ## Conclusions
 
 1. **Non-fast mode did not regress.** Across 60 scenario-target pairs, the worst `off` cell is
@@ -1222,9 +1254,10 @@ One untimed run per scenario in a build with gpux's diagnostics counters (`--sta
 3. **Scroll layers are the biggest single win and the biggest cost.** A plain scrolling `div`
    drops from 13–18 ms to 5–6 ms per frame and holds 120 fps, but every scrolling scenario pays
    for tiles and kept rows in memory (macOS `scroll-data-table`: 142 → 317 MB footprint, 25 →
-   143 MB peak heap), and `scroll-data-table` gets slower with them on two targets. The memory
-   keeps growing during the measured frames there, so it is not yet known whether it is bounded
-   (see the first opportunity below).
+   143 MB peak heap), and `scroll-data-table` gets slower with them on two targets. The long runs
+   show that memory is bounded (it levels off within the first pass over the scrolled range and
+   stays flat to 9,000 frames), so it is a fixed price per scrolling view rather than a leak, but
+   a high one.
 4. **Fast mode cannot help a view that changes everything each frame** (animations, a log whose
    lines all move, 1,500 labels that all change, a tree whose rows shift). It costs little there
    (−8% to +8%), but its bookkeeping (thousands of layout nodes claimed per frame) is visible in
@@ -1247,13 +1280,14 @@ One untimed run per scenario in a build with gpux's diagnostics counters (`--sta
 Ordered by expected value. Each names the scenario and metric an AgentX improvement loop can use
 as its measurement (`python3 benchmark/run.py --target <target> --scenarios <id> --configs off,on`).
 
-1. **Bound scroll layers' memory.** Footprint +55% to +240% in `scroll-uniform-list`,
-   `scroll-variable-list`, `scroll-div-cards` and `scroll-data-table`, still growing over 600
-   frames in `scroll-data-table` (+38 to +68 MB) and `scroll-uniform-list` (+9 to +19 MB).
-   First run 3,000- and 9,000-frame runs of both to see whether it plateaus (this was planned
-   here and blocked by the screen locking), then cap the tiles and kept rows a list layer holds
-   (evict rows far from the viewport, budget tiles per layer). Measure: `footprint_mb.end`,
-   growth and `heap_peak_mb`; target ≤1.3× `off` and no growth after warm-up.
+1. **Shrink scroll layers' memory.** Footprint +55% to +124% on macOS (+10% to +240% across
+   targets) in `scroll-uniform-list`, `scroll-variable-list`, `scroll-div-cards` and
+   `scroll-data-table`. The long runs show it is bounded, but at about +180 MB and +120 MB of heap
+   for one data table, which an application with several scrolling views multiplies. Budget the
+   tiles and kept rows a list layer holds (evict rows and tiles far from the viewport, cap per
+   window), and check a scroll that keeps reaching new rows across a whole 50k-row list, which
+   these runs did not cover. Measure: `footprint_mb.end` and `heap_peak_mb` of the scroll group;
+   target at most 1.3× `off` without losing the CPU win.
 2. **Make a spliced frame cost what changed, not what was copied.** In `dashboard-clock` with fast
    mode on, 43 primitives are painted and 1,966 copied per frame (counters), and that copy is most
    of the remaining 2.9 ms on macOS. Replay retained subtrees by reference (keep their primitive
