@@ -29,7 +29,7 @@
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
   "currentExperimentId": null,
-  "nextExperimentIndex": 10,
+  "nextExperimentIndex": 11,
   "experiments": [
     {
       "id": "91cd654b-6c55-4cc1-8506-486e19f9fbc6",
@@ -135,6 +135,17 @@
       "state": "done",
       "status": "success",
       "resultCommit": "80a4f49d90d9cfbff9aeff9b48993dba931f5ac5"
+    },
+    {
+      "id": "adc55629-c36e-43e3-bf54-e3b38629dacd",
+      "index": 10,
+      "type": "hypothesis",
+      "name": "Digit lines from a glyph table",
+      "path": "2026-10-15-10-digit-lines-from-a-glyph-table.json",
+      "startedAt": "2026-10-15T18:20:23Z",
+      "finishedAt": "2026-10-15T19:00:28Z",
+      "state": "done",
+      "status": "failure"
     }
   ]
 }
