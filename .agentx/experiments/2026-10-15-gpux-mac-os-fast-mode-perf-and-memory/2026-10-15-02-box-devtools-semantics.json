@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "id": "13e2a44b-721e-4e29-98ab-bf8a81cc107c",
+  "loopId": "93c0b7e1-2b73-4272-a15b-436864754725",
+  "index": 2,
+  "type": "hypothesis",
+  "name": "Box devtools semantics",
+  "slug": "box-devtools-semantics",
+  "path": "2026-10-15-02-box-devtools-semantics.json",
+  "createdAt": "2026-10-15T16:44:59Z",
+  "startedAt": "2026-10-15T16:44:59Z",
+  "finishedAt": "2026-10-15T16:50:30Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "82109c4c7b1df14effc21cf4f8ecbad6983abb8d",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 82109c4c7b1df14effc21cf4f8ecbad6983abb8d",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "82109c4c7b1df14effc21cf4f8ecbad6983abb8d",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 82109c4c7b1df14effc21cf4f8ecbad6983abb8d",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal)",
+  "hypothesisMarkdown": "## Box devtools semantics\n\nMechanism: store `DevtoolsFrameNode.semantics` as `Option<Box<DevtoolsSemantics>>` so the roughly 500-byte node shrinks and the spliced-stretch copy and frame-end drop move less memory. Allowed: crates/gpui/src/window.rs. Forbidden: any change to splice logic, devtools behaviour or other fields.",
+  "measurementPlanMarkdown": "bm.sh e02: dashboard-clock, dashboard-one-panel, table-stream, text-typing, scroll-data-table, hover-grid, 3 reps. Pass: CPU/draw p50 at least -5% on dashboard-clock and table-stream with no allocation increase.",
+  "expectedOutcomeMarkdown": "",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "dashboard-clock on CPU / draw p50 / allocs",
+      "before": "3.24 / 2.98 / 2811",
+      "after": "3.23 / 3.08 / 3678",
+      "delta": "-0% / +4% / +31%",
+      "source": "benchmark/run.py --target macos"
+    },
+    {
+      "metric": "table-stream on CPU / allocs",
+      "before": "3.01 / 4725",
+      "after": "3.13 / 5518",
+      "delta": "+4% / +17%",
+      "source": "same"
+    }
+  ],
+  "reportMarkdown": "## Box devtools semantics Finished\n\nPassed: false. CPU and draw time did not move beyond noise (about ±5% between runs) and allocations per frame rose 17-31% in fast mode on (the box is allocated for every element that carries semantics). The memmove in the splice copy is not dominated by the node size. Reverted.\n\nAttempt Count: 1. Out-of-scope changes: none.",
+  "decisionMarkdown": "### Decision\n\nReverted failure. Next: profile-driven candidates that remove work rather than shrink it.",
+  "notes": ""
+}
