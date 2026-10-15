@@ -29,7 +29,7 @@
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
   "currentExperimentId": null,
-  "nextExperimentIndex": 3,
+  "nextExperimentIndex": 4,
   "experiments": [
     {
       "id": "91cd654b-6c55-4cc1-8506-486e19f9fbc6",
@@ -51,6 +51,17 @@
       "path": "2026-10-15-02-box-devtools-semantics.json",
       "startedAt": "2026-10-15T16:44:59Z",
       "finishedAt": "2026-10-15T16:50:30Z",
+      "state": "done",
+      "status": "failure"
+    },
+    {
+      "id": "1220ea8a-77bb-4b97-ada5-5d1feca0da15",
+      "index": 3,
+      "type": "hypothesis",
+      "name": "Directional div layer overscan",
+      "path": "2026-10-15-03-directional-div-layer-overscan.json",
+      "startedAt": "2026-10-15T16:53:19Z",
+      "finishedAt": "2026-10-15T17:00:38Z",
       "state": "done",
       "status": "failure"
     }

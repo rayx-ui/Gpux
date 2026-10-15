@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "id": "1220ea8a-77bb-4b97-ada5-5d1feca0da15",
+  "loopId": "93c0b7e1-2b73-4272-a15b-436864754725",
+  "index": 3,
+  "type": "hypothesis",
+  "name": "Directional div layer overscan",
+  "slug": "directional-div-layer-overscan",
+  "path": "2026-10-15-03-directional-div-layer-overscan.json",
+  "createdAt": "2026-10-15T16:53:19Z",
+  "startedAt": "2026-10-15T16:53:19Z",
+  "finishedAt": "2026-10-15T17:00:38Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "629d6061c96085004ea47f3565ec4f415cd072a5",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 629d6061c96085004ea47f3565ec4f415cd072a5",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "629d6061c96085004ea47f3565ec4f415cd072a5",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 629d6061c96085004ea47f3565ec4f415cd072a5",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal) via benchmark/run.py --target macos",
+  "hypothesisMarkdown": "## Directional div layer overscan\n\nMechanism: paint a div layer 2 viewports ahead of the scroll direction and 0.5 behind it (was 2 each side) so the layer scene and its repaint cost shrink by 30% with the same repaint cadence. Allowed: fast/layers/paint.rs painted_region. Forbidden: list layers, tile cache.",
+  "measurementPlanMarkdown": "bm.sh e03 scroll-div-cards, scroll-uniform-list, 3 reps. Pass: heap peak down at least 10% on scroll-div-cards with CPU not worse, and `cargo test fast::tests::layer` green.",
+  "expectedOutcomeMarkdown": "",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "scroll-div-cards on heap peak MB",
+      "before": "68.8",
+      "after": "64.4",
+      "delta": "-6%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "scroll-div-cards on footprint MB",
+      "before": "215.9",
+      "after": "212.6",
+      "delta": "-1.5%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "scroll-div-cards on CPU ms",
+      "before": "4.87",
+      "after": "4.99",
+      "delta": "+2% (noise)",
+      "source": "run.py macos"
+    }
+  ],
+  "reportMarkdown": "## Directional div layer overscan Finished\n\nPassed: false. Heap -6% and footprint -1.5% are below the -10% bar, CPU did not move, and two layer tests (`exposing_past_the_margin_repaints`, `a_repaint_at_a_shifted_offset_dirties_only_the_edge_tiles`) encode the symmetric region and the tile reuse across a re-centred repaint, so the asymmetric region dirties every tile. The footprint is mostly GPU tile textures (about 26 MB of 'graphics' for the visible tiles) and a third drawable, not the retained scene. Reverted.\n\nAttempt Count: 1. Out-of-scope changes: none.",
+  "decisionMarkdown": "### Decision\n\nReverted failure. Finding: footprint of the scroll scenarios = visible tile textures (+26 MB), one more drawable at 120 fps (+16 MB IOSurface) and heap (+17 MB), see `footprint <pid>`.",
+  "notes": ""
+}
