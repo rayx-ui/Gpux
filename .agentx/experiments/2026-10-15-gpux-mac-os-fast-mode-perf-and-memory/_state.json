@@ -11,13 +11,13 @@
   "status": "",
   "createdAt": "2026-10-15T16:29:33Z",
   "finishedAt": null,
-  "lastStableCommit": "0a7d869fc7500cb7f534f7bf994137d4dc5dd810",
+  "lastStableCommit": "7dfa2e4eef41d38f925b2dd16973b34f1f586d4f",
   "repositories": [
     {
       "name": "main",
       "path": ".",
       "role": "main",
-      "lastStableCommit": "0a7d869fc7500cb7f534f7bf994137d4dc5dd810"
+      "lastStableCommit": "7dfa2e4eef41d38f925b2dd16973b34f1f586d4f"
     }
   ],
   "atomicDiscipline": {
@@ -28,7 +28,7 @@
     "successfulAttemptRequiresCommitBeforeNextExperiment": true,
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
-  "currentExperimentId": "e5bd048e-d22e-44c1-a21d-bc2f3210fabc",
+  "currentExperimentId": null,
   "nextExperimentIndex": 20,
   "experiments": [
     {
@@ -246,9 +246,10 @@
       "name": "Restore three drawables",
       "path": "2026-10-15-19-restore-three-drawables.json",
       "startedAt": "2026-10-15T23:28:15Z",
-      "finishedAt": null,
-      "state": "running",
-      "status": ""
+      "finishedAt": "2026-10-15T23:28:23Z",
+      "state": "done",
+      "status": "success",
+      "resultCommit": "7dfa2e4eef41d38f925b2dd16973b34f1f586d4f"
     }
   ]
 }
