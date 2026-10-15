@@ -9,11 +9,11 @@
   "path": "2026-10-15-09-cache-sized-core-text-fonts.json",
   "createdAt": "2026-10-15T17:56:50Z",
   "startedAt": "2026-10-15T17:56:50Z",
-  "finishedAt": null,
-  "state": "running",
-  "status": "",
+  "finishedAt": "2026-10-15T18:19:22Z",
+  "state": "done",
+  "status": "success",
   "checkpointCommit": "94105e80cf0aa8510635d7f4388afe5f24718fe7",
-  "resultCommit": "",
+  "resultCommit": "80a4f49d90d9cfbff9aeff9b48993dba931f5ac5",
   "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 94105e80cf0aa8510635d7f4388afe5f24718fe7",
   "repositories": [
     {
@@ -21,12 +21,19 @@
       "path": ".",
       "role": "main",
       "checkpointCommit": "94105e80cf0aa8510635d7f4388afe5f24718fe7",
-      "resultCommit": "",
+      "resultCommit": "80a4f49d90d9cfbff9aeff9b48993dba931f5ac5",
       "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 94105e80cf0aa8510635d7f4388afe5f24718fe7",
-      "status": ""
+      "status": "success"
     }
   ],
-  "repositoryCommits": [],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "80a4f49d90d9cfbff9aeff9b48993dba931f5ac5"
+    }
+  ],
   "atomicDiscipline": {
     "oneHypothesisOnly": true,
     "singleImplementationAttempt": true,
