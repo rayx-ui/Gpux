@@ -36,7 +36,7 @@ What a run executes is chosen by its `plan` job from the manual inputs, the pull
 |---|---|---|---|
 | A | `ci.yml` lane A | `ubuntu-24.04`, `windows-2025`, `macos-15` | every pull request |
 | B | `lane-b.yml` | `ubuntu-24.04`: headless Chromium, WebGPU on SwiftShader (profile `ci-linux-swiftshader`), 4 shards | pull requests: `@canary` and `@pr` at DPR 1; nightly at 03:17 UTC (or a dispatch with `all-specs`): every spec except `@timing`, DPR 2 included |
-| C | `ci.yml` lane C | `ubuntu-24.04` (lavapipe), `windows-2025` (WARP), `macos-15` (Metal) | every pull request |
+| C | `ci.yml` lane C | `ubuntu-24.04` (lavapipe), `windows-2025` (WARP), `macos-15` (Metal) | every pull request on lavapipe and Metal, sampled; WARP with `ci-os:windows` or `ci:all`; every platform, in full mode, nightly |
 | D | `ci.yml` lane D | `ubuntu-24.04` (X11 under Xvfb, lavapipe), `windows-2025` (WARP), `macos-15` | every pull request |
 | E | `lane-e.yml` | `ubuntu-24.04`: KVM-accelerated API 34 x86_64 emulator, SwiftShader GL | nightly at 03:47 UTC, and pull requests that touch `gpui_mobile`, `gpui_wgpu`, `gpux_conformance`, `tooling/android` or `tooling/testkit` |
 | F | `lane-f.yml` | `macos-15`: an iPhone 16 Simulator on the newest installed iOS runtime | nightly at 04:07 UTC, and pull requests that touch `gpui_mobile`, `gpui_wgpu`, `gpux_conformance`, `tooling/ios` or `tooling/testkit` |
@@ -229,7 +229,9 @@ process's output is printed as one block in a fixed order, and the lane still en
 summary. `--jobs` applies to the full lane c only: a narrowed lane c (`--scene`, `--grep`) and every other
 lane (lane g's lane c part measures timing, so it stays one process) run as usual and say so. The
 default is one process, which runs exactly what the lane always ran; a concurrency
-level above 1 is opt-in until CI proves it stable on every platform. Every lane run that streams
+level above 1 is the CI default only on WARP (three processes, measured stable in three complete runs);
+locally and on lavapipe and Metal the default stays one process
+([measurements](measurements/lane-c-timings.md#concurrent-processes---jobs)). Every lane run that streams
 libtest output writes `artifacts-temp/testkit/<lane>/timings.md`, the slowest tests and groups of
 the run, with one block per process. The full run also runs the `lane_g` group, which checks lane G's probes-only mode
 on the same renderer, `lane_c_fast_parity`, which renders every scene with fast mode on and off

@@ -4,7 +4,7 @@ agentx:
   scope: knowledge/repository/validation
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-07T23:30:00+02:00
+  updated: 2026-10-15T09:00:00+02:00
   topics:
     - validation
     - lanes
@@ -26,3 +26,5 @@ agentx:
 - Never commit goldens from a hardware GPU; regenerate a software backend's goldens only for an intended rendering change and review every diff.
 - Do not close iOS or Metal runtime work from Windows checks; it needs a Mac or the macOS CI lanes.
 - Keep raw logs, screenshots, traces, and profiles in ignored `artifacts-temp/`, never in `.agentx/` or commits.
+- Lane C's scroll-layer suites run sampled by default and say so; a sampling or concurrency level never applies silently, and a change to tile carry, snapping or scroll offsets runs `--full` (or the nightly) before it is called proved. Seed a difference for every reduced comparison (`lane_c_sampling`) so it can fail.
+- Do not dispatch or repeat hosted CI runs to close an epic: the pull request's own run is the complete run, and `check --epic` is only a static/build gate.

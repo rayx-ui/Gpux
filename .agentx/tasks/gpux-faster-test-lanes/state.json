@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-faster-test-lanes",
-  "revision": 48,
+  "revision": 60,
   "planRevision": 1,
   "specHashes": {
     "requirements": "5885ccc62e578202e08072e599b2e95027ceb99e8e93c0c8f3ffea55e7879cd8",
@@ -46,7 +46,7 @@
       ]
     },
     "t07-measure-and-docs": {
-      "status": "in_progress",
+      "status": "done",
       "workerIds": [
         "441cf92b-d501-4c4a-97eb-aac533abeb5a"
       ]
@@ -97,6 +97,24 @@
         }
       },
       "recordedAt": "2026-10-14T17:21:02Z"
+    },
+    "b0fedeeb007ce6dd356a02a2ee70f97cc4f7874f00df06435f5656452bdc1298": {
+      "snapshot": {
+        "specHash": "af669b7dd5c27ac7e7300780b20ecd001d2475aa03d1ee202816b7b0facd05fb",
+        "repositories": {
+          "gpux": "66dcd9870cb03d8c21f462105a8f0b6d3c848b2565b5f3ffe206559c01636f21"
+        }
+      },
+      "recordedAt": "2026-10-15T00:18:20Z"
+    },
+    "237cbd9eaf7dbbea526fe2f2c2e9faeead234f6e10e26863be6ffd41ad94589d": {
+      "snapshot": {
+        "specHash": "af669b7dd5c27ac7e7300780b20ecd001d2475aa03d1ee202816b7b0facd05fb",
+        "repositories": {
+          "gpux": "f408c4f86103677b52bae1260c0812d00443c250386f1e891635d4dbdf5410b3"
+        }
+      },
+      "recordedAt": "2026-10-15T00:22:37Z"
     }
   },
   "checkResults": {
@@ -218,6 +236,189 @@
       "logPath": "artifacts-temp/agentx/gpux-faster-test-lanes/s05-ci-cadence-final-bf5715a656f0.log",
       "logSha256": "366d9634b41b8f08708034ef8c83b2e25ee9d2a5e48a049f922206dc1e9a649c",
       "inputsHash": "a2f83cdc7033dfb001b820e902f4b3c85e3b69c33a233b9cf57673eb35b60689"
+    },
+    "final/check-lane-timings/final": {
+      "checkId": "check-lane-timings",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "b0fedeeb007ce6dd356a02a2ee70f97cc4f7874f00df06435f5656452bdc1298",
+      "definitionHash": "35fecb8a4e483749c68705495477d51a33dd7a99c343c7edc21e2ce1f0c5c8db",
+      "basisHash": "75c250af2b4c3e440bbf78bf41777c755104a42a7941aeb13c503a49122f75a2",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 0.5017,
+      "recordedAt": "2026-10-15T00:15:38Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-faster-test-lanes/final-final-7d76b6b0f8b0.log",
+      "logSha256": "5937041b8b82450c8498d6df413520adf3926a0463de7e204b2d86e985cf11e3",
+      "inputsHash": "fefd7512699fe3d9362e9e358a4708c6c1bbbfb08be6d73060111455d994f734"
+    },
+    "final/check-lane-profile/final": {
+      "checkId": "check-lane-profile",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "b0fedeeb007ce6dd356a02a2ee70f97cc4f7874f00df06435f5656452bdc1298",
+      "definitionHash": "af7bb762696d4d2b2e407ec1ad8eb1ba39065fc472001885f45a659fdd58e71c",
+      "basisHash": "cd0eacb9a150b4c48ca3cf5edfd9928bd5c0a09403b98bc7f5806afc92d116cc",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 0.4546,
+      "recordedAt": "2026-10-15T00:15:39Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-faster-test-lanes/final-final-ec07b8e758e4.log",
+      "logSha256": "9320c1115301c54582bf19494df480a2b760cf06be65d70fe8076239c51e23d7",
+      "inputsHash": "e3dd970076dc1af53ef98aba00e7f89fd67a3e1fafd73fca7e0045e94081592e"
+    },
+    "final/check-lane-compare/final": {
+      "checkId": "check-lane-compare",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "b0fedeeb007ce6dd356a02a2ee70f97cc4f7874f00df06435f5656452bdc1298",
+      "definitionHash": "fa4e79cf235bf96824ce53fbe8002f7370487d5644b513a21a12c520b6257e3b",
+      "basisHash": "f2beb6da170fb30d059daede24775339b66e0e17f469d0d91af381aa4eb8fd53",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 6,
+      "durationSeconds": 0.2393,
+      "recordedAt": "2026-10-15T00:15:39Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-faster-test-lanes/final-final-403f4223af51.log",
+      "logSha256": "e9950ce042c7a711fef802f35c4273b46fcbdb5f46293dabed3c86acf449f8c4",
+      "inputsHash": "e3dd970076dc1af53ef98aba00e7f89fd67a3e1fafd73fca7e0045e94081592e"
+    },
+    "final/check-lane-sampling/final": {
+      "checkId": "check-lane-sampling",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "b0fedeeb007ce6dd356a02a2ee70f97cc4f7874f00df06435f5656452bdc1298",
+      "definitionHash": "ea26ef1b6be7f77694111b8ebd7ef89c5498909721d2abbcca8be81626138ef8",
+      "basisHash": "685e0375a4decb1ca752b3b633035cfacd59da503188b0cd2fa60ca44728c9af",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 9,
+      "durationSeconds": 1.9103,
+      "recordedAt": "2026-10-15T00:15:41Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-faster-test-lanes/final-final-7997fb206f93.log",
+      "logSha256": "62cebf8afa826a2f5139406db1e9830d1f485f562e911c365537871df848ddd1",
+      "inputsHash": "e3dd970076dc1af53ef98aba00e7f89fd67a3e1fafd73fca7e0045e94081592e"
+    },
+    "final/check-lane-modes/final": {
+      "checkId": "check-lane-modes",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "b0fedeeb007ce6dd356a02a2ee70f97cc4f7874f00df06435f5656452bdc1298",
+      "definitionHash": "bf5111220b5175c2bce1313f48ceb6b3108a426f351a644a3c796972bef67e11",
+      "basisHash": "0b18ffbae9279f35c74e8434511adc81952128b5194bc561908d43311f1d4084",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 0.1846,
+      "recordedAt": "2026-10-15T00:15:41Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-faster-test-lanes/final-final-f8792e2c5759.log",
+      "logSha256": "e8963a579d349a11104f796e1b51aac526ef22f6b3d2964d8475e71c01490160",
+      "inputsHash": "fefd7512699fe3d9362e9e358a4708c6c1bbbfb08be6d73060111455d994f734"
+    },
+    "final/check-lane-jobs/final": {
+      "checkId": "check-lane-jobs",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "b0fedeeb007ce6dd356a02a2ee70f97cc4f7874f00df06435f5656452bdc1298",
+      "definitionHash": "fc065b9fcbf0350cf5ff06f08b0510f464564ea6058004ef59be65133524ab04",
+      "basisHash": "b4ac3fa2ccb035a11532fcb4a2e687bc0ecabc0c726f2b35d0522e22381a9e8a",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 18,
+      "durationSeconds": 0.3448,
+      "recordedAt": "2026-10-15T00:15:42Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-faster-test-lanes/final-final-6a6a8c3ef1e1.log",
+      "logSha256": "cbfbd7e88a35b727e0e4ab36d17df4dea37a596e8bc65951d0902bbe4a200cba",
+      "inputsHash": "fefd7512699fe3d9362e9e358a4708c6c1bbbfb08be6d73060111455d994f734"
+    },
+    "final/check-ci-plan/final": {
+      "checkId": "check-ci-plan",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "237cbd9eaf7dbbea526fe2f2c2e9faeead234f6e10e26863be6ffd41ad94589d",
+      "definitionHash": "66a1477d4c491519a9eeacd2591db376a5effdcb15aaaa3ff50cac2397fc2adf",
+      "basisHash": "b5d95511ff7336f724bef382ce4bf5df5e016efc92ad84b45858dfb8980df41a",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 13,
+      "durationSeconds": 1.2094,
+      "recordedAt": "2026-10-15T00:20:43Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-faster-test-lanes/final-final-a7e77a82864f.log",
+      "logSha256": "14bf657220a83e740bbe76f2b119d96f2127525aece39b841318f6734eadd1c9",
+      "inputsHash": "d10df00ea320536de309b8a3c84afdb02861e5228f0b28035b9b5b0d8a697f92"
+    },
+    "final/final-fmt/final": {
+      "checkId": "final-fmt",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "237cbd9eaf7dbbea526fe2f2c2e9faeead234f6e10e26863be6ffd41ad94589d",
+      "definitionHash": "576d5fd9ca0c30c33ccdbcf783b82ef12f7c82399bde927fc9b595587f05466a",
+      "basisHash": "5bc8473af72d1a5ce4622a64a033d2a6c71a91a09125d6b6e87c7ee1d97084c1",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 2.1804,
+      "recordedAt": "2026-10-15T00:20:45Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-faster-test-lanes/final-final-3253c451e6dd.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "final/final-clippy/final": {
+      "checkId": "final-clippy",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "237cbd9eaf7dbbea526fe2f2c2e9faeead234f6e10e26863be6ffd41ad94589d",
+      "definitionHash": "2db3629bf3cf4fc90ea8df27896f43d559d1c7bc82fa380b3d1186df6e695d05",
+      "basisHash": "2f60d44061904313b67d8e1eb9e26fd6400f95c204394c1faa6fa5b19e827dc4",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.544,
+      "recordedAt": "2026-10-15T00:20:46Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-faster-test-lanes/final-final-e834da379a09.log",
+      "logSha256": "dd621e9ff7c9eac161c730aa8a79332dd68698435a7a84d044d9ad39dfa1f5d2"
+    },
+    "final/final-workspace-check/final": {
+      "checkId": "final-workspace-check",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "237cbd9eaf7dbbea526fe2f2c2e9faeead234f6e10e26863be6ffd41ad94589d",
+      "definitionHash": "d18a284a5e0fd14e404ad00710c97ef47af6c6c2d39b0e61c054e8becd3eff95",
+      "basisHash": "f5b9fb3de8da7662394c29ab56c3bee0b2ecb403ce81edc666d6e8e83ef0e3d2",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.6595,
+      "recordedAt": "2026-10-15T00:20:46Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-faster-test-lanes/final-final-a268cadb67c8.log",
+      "logSha256": "45d8f7d972875790a6cec7ca48e9acc17c5af68372da1940633becec3b4cd60a"
+    },
+    "final/final-package/final": {
+      "checkId": "final-package",
+      "boundaryId": "final",
+      "phase": "final",
+      "batchId": "237cbd9eaf7dbbea526fe2f2c2e9faeead234f6e10e26863be6ffd41ad94589d",
+      "definitionHash": "07a4ca452b6e42f7914591c0ee95e928d01fcf264c0d18d5ffb7ede49a6b6739",
+      "basisHash": "20f53741ce204f227a74a5f8ae603e2f520bee83abbf35d22f6a1961c0c85366",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 110.9136,
+      "recordedAt": "2026-10-15T00:22:37Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-faster-test-lanes/final-final-9099e4ff494b.log",
+      "logSha256": "390191e62909d9535e3fddbe6b354d07ff2d85116361241d167a268b66d2a135"
     }
   },
   "reviews": {
@@ -539,6 +740,301 @@
         "CI-2-NIGHTLY-CONCURRENCY-AND-JOBS-DEFAULT"
       ],
       "recordedAt": "2026-10-14T17:21:35Z"
+    },
+    "s06-proof-and-docs": {
+      "reviewerId": "reviewer-s06-b41d7e52",
+      "snapshotId": "b0fedeeb007ce6dd356a02a2ee70f97cc4f7874f00df06435f5656452bdc1298",
+      "criterionIds": [
+        "TIME-2",
+        "PAR-2",
+        "CI-3",
+        "OPT-1"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/measurements/lane-c-timings.md",
+          "kind": "source",
+          "criterionIds": [
+            "TIME-2",
+            "PAR-2",
+            "OPT-1"
+          ],
+          "sha256": "e570d79ce38b4e6d3a939e76f5c18850d0a923b1dde8cd25831d49e968ffb51d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/actions/plan/plan.sh",
+          "kind": "source",
+          "criterionIds": [
+            "PAR-2",
+            "CI-3"
+          ],
+          "sha256": "7d2ef668b298ac26bfd713a8f3731c6287c47d4f17f3ce001e90b7f0d9ee7799"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/ci.md",
+          "kind": "source",
+          "criterionIds": [
+            "CI-3",
+            "TIME-2"
+          ],
+          "sha256": "4227f41ed37f6c2664bac201bc4e4d44bd1bf79744e842e8743a6a90bf198ecb"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/testing.md",
+          "kind": "source",
+          "criterionIds": [
+            "CI-3",
+            "TIME-2"
+          ],
+          "sha256": "0477b5639937971f84d51d071ffc7a25173ddbb9fea471756246aa3e9adb351b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/ci.yml",
+          "kind": "source",
+          "criterionIds": [
+            "CI-3"
+          ],
+          "sha256": "92f32907766487f3028bee55843842d84233151d453237982b13b2149c91bf1b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "OPT-1"
+          ],
+          "sha256": "f90f821ee5ecfea4761f897ee64f350478a0fa1966e0d772720010289f2827e5"
+        }
+      ],
+      "summaryMarkdown": "Repairs verified at snapshot b0fedeeb. F1: ci.md and testing.md now state WARP three processes (CI default), lavapipe and Metal one, the lane-c-jobs override, with a link to the measurements doc; this matches plan.sh (windows 3, ubuntu 1, macos 1). F2: the per-frame figure is now 'build plus byte-first comparison together, at most 31%', with the different-commit caveat. F3: 78 of 136, 8% to 41%, job-span note, head SHAs, 32-tests versus 20-slowest note, unsaved Mac figures disclosed. F4: TIME-2 is met in substance: every itemised element is recorded and recomputed from the saved logs, and the one unmeasured item (WARP full mode, nightly leg) is disclosed, bounded by the sampled runs and handed to the first nightly; the owner closed the epic without that run, so it is a recorded owner decision, not a hidden unmet obligation; no criterion disposition is required (the criterion says 'where it can be measured'), though the coordinator may record one if it wants the decision in state. PAR-2: three runs end 205 passed, no device-lost or hang, matching plan.sh windows 3. CI-3 matches plan.sh for every event hand-run. OPT-1 (supporting): scope, before/after and build costs recorded; Cargo.toml has [profile.test] opt-level 1 with debug assertions and overflow checks on.",
+      "findingIds": [
+        "s06-F1-jobs-default-stale",
+        "s06-F2-build-share-overreach",
+        "s06-F3-doc-nits",
+        "s06-F4-warp-full-gap-needs-user-disposition"
+      ],
+      "recordedAt": "2026-10-15T00:14:59Z"
+    },
+    "final": {
+      "reviewerId": "reviewer-final-6a38692d",
+      "snapshotId": "237cbd9eaf7dbbea526fe2f2c2e9faeead234f6e10e26863be6ffd41ad94589d",
+      "criterionIds": [
+        "TIME-1",
+        "TIME-2",
+        "OPT-1",
+        "OPT-2",
+        "CMP-1",
+        "SAMP-1",
+        "SAMP-2",
+        "SAMP-3",
+        "PAR-1",
+        "PAR-2",
+        "CI-1",
+        "CI-2",
+        "CI-3"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/timings.rs",
+          "kind": "source",
+          "criterionIds": [
+            "TIME-1"
+          ],
+          "sha256": "a1de26f92f2ee96fcd7520583bd9204b7d84315e6a6a93370804f49e83d2c6dc"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/tests/lane_timings.rs",
+          "kind": "test",
+          "criterionIds": [
+            "TIME-1"
+          ],
+          "sha256": "01e311f662a993d0d8a6f2c0680beebf32570e7b418d538cb0f1a1d069685f5c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/measurements/lane-c-timings.md",
+          "kind": "source",
+          "criterionIds": [
+            "TIME-2",
+            "OPT-1",
+            "PAR-2"
+          ],
+          "sha256": "e570d79ce38b4e6d3a939e76f5c18850d0a923b1dde8cd25831d49e968ffb51d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "OPT-1",
+            "OPT-2"
+          ],
+          "sha256": "f90f821ee5ecfea4761f897ee64f350478a0fa1966e0d772720010289f2827e5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_profile.rs",
+          "kind": "test",
+          "criterionIds": [
+            "OPT-2"
+          ],
+          "sha256": "e7dd6647b911410b8930ad9c1e35c378e24b04617580348a5c98bee1832ca101"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/scroll_layers_support/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-1",
+            "SAMP-1",
+            "SAMP-2"
+          ],
+          "sha256": "0f7679d5f3e74a20c880d06daaa4a5cd896e5a5e47e8eb6d0595d759f0067076"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_list_hover.rs",
+          "kind": "source",
+          "criterionIds": [
+            "CMP-1",
+            "SAMP-1"
+          ],
+          "sha256": "5609f5e928768ab23ccbbfb5bcecf9fe16b18a2fb148eca8aad8b7a1afd15405"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_compare.rs",
+          "kind": "test",
+          "criterionIds": [
+            "CMP-1"
+          ],
+          "sha256": "e518400f4fa23fcd3cbb4bc5f74e98f07aea7008ee94b14634288222db9d2ff0"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/lane_c_sampling.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SAMP-1",
+            "SAMP-2"
+          ],
+          "sha256": "90abc3698f96aadafca5dc59b78dd93b082548dc35f4dd37b924097cd3ca060d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/gpux_testkit.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SAMP-3",
+            "PAR-1"
+          ],
+          "sha256": "7035b687535355979c07da245e8ec973b70ec00ccc83fb0fb3d384f4942d1ab4"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/lanes.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SAMP-1",
+            "SAMP-3",
+            "PAR-1"
+          ],
+          "sha256": "afb080aaef26de68e0f49f6e7d5eb03bbb6893d3791802810fc225c9269f628e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/local_gpu.rs",
+          "kind": "source",
+          "criterionIds": [
+            "SAMP-3"
+          ],
+          "sha256": "1fbeec803aed34cafe5cff92369920641383b0bcc914020b192a75a491c73271"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/tests/lane_modes.rs",
+          "kind": "test",
+          "criterionIds": [
+            "SAMP-1",
+            "SAMP-3"
+          ],
+          "sha256": "a0720b4adf5b5a2bc019be6b7bbedcb968e7fa5b5f22dff9d4e85b3ca9fd2472"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/tests/lane_jobs.rs",
+          "kind": "test",
+          "criterionIds": [
+            "PAR-1"
+          ],
+          "sha256": "864050568a21348cc5be6a7259fcd246e411c3cc049d05e3ca778ea8ab7fec06"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/actions/plan/plan.sh",
+          "kind": "source",
+          "criterionIds": [
+            "CI-1",
+            "CI-2",
+            "PAR-2"
+          ],
+          "sha256": "667101badea10585d224972895d65ecc08bccd97e070a5b897462f4c7f2ef734"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/workflows/ci.yml",
+          "kind": "source",
+          "criterionIds": [
+            "CI-1",
+            "CI-2",
+            "SAMP-3"
+          ],
+          "sha256": "92f32907766487f3028bee55843842d84233151d453237982b13b2149c91bf1b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/tests/ci_plan.rs",
+          "kind": "test",
+          "criterionIds": [
+            "CI-1",
+            "CI-2"
+          ],
+          "sha256": "9a35e9060e80b9de9f8050e1bf579f4abf410c560ecd40939f4378254a41bb2a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/ci.md",
+          "kind": "source",
+          "criterionIds": [
+            "CI-3"
+          ],
+          "sha256": "0b98ea32c57623e9a4a418d3e0f613002c31f4fac44c8c67305a8c6ef8fd125f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/testing.md",
+          "kind": "source",
+          "criterionIds": [
+            "CI-3",
+            "TIME-2"
+          ],
+          "sha256": "91055ea3890924d5bb7edead3d3bdbdbffa500ee8c5e6610a48950fea2929d57"
+        }
+      ],
+      "summaryMarkdown": "Integrated review of `gpux-faster-test-lanes` at snapshot b0fedeeb. All 13 criteria are implemented and anchored in current source, and every automated criterion has its own new test group (lane_timings, lane_c_profile, lane_c_compare, lane_c_sampling, lane_modes, lane_jobs, ci_plan). Cross-sprint checks done: `--full`/`GPUX_LANE_C_FULL`, `--jobs` and the mode lines compose (set_full is applied to every worker invocation after planning; the prebuild is not affected; a narrowed run runs no suite and reports no mode, tested); lane G applies set_full to its lane C part and stays one process; LANE_C_GROUPS (8 groups) has a weight for each unit plus `lane_c` (`every_lane_c_unit_has_a_weight`) and the cli.rs/local_gpu.rs listing tests name the three new groups; plan.sh sets WARP jobs 3 and lavapipe/Metal 1, `ci_plan` asserts warp 3 and 1/1, and docs/ci.md, docs/testing.md and the measurements document agree on 3/1/1, so the post-PR-4 plan.sh change still satisfies CI-1/CI-2 and PAR-2 (three complete WARP runs with --jobs 3, 205 passed, run links recorded). Constraints hold: no timing thresholds outside lane G (the new tests assert no durations), `[profile.test]` keeps debug-assertions and overflow-checks explicitly and `lane_c_profile` fails if either is off, no goldens, PNGs, Cargo.lock, vendor or Git dependency changes, `../RayX` untouched, `--grep` selections fall back to one process and say so. SAMP-1 deviation judged acceptable and stronger: the layered window is drawn at every step in sampled mode, so the composited-frame minimums are unchanged rather than scaled. Not measured and recorded as such (owner-accepted): the nightly WARP full-mode duration. final-1 (stale cadence statements) is resolved by commit d55f9a9: the lane C row of the docs/testing.md cadence table, the manual-run row of docs/ci.md and the plan.sh comment were verified in the working tree; the commit touches only those three files, so the behaviour and tests reviewed above are unchanged.",
+      "findingIds": [
+        "final-1"
+      ],
+      "recordedAt": "2026-10-15T00:22:50Z"
     }
   },
   "checkpoints": {
@@ -581,6 +1077,14 @@
       },
       "reviewHash": "5f802a8fa591f10aac6eeb7021b5a87ad7f641f1fd51518e41e9b85ab03cabaa",
       "recordedAt": "2026-10-14T17:21:46Z"
+    },
+    "s06-proof-and-docs": {
+      "snapshotId": "b0fedeeb007ce6dd356a02a2ee70f97cc4f7874f00df06435f5656452bdc1298",
+      "commits": {
+        "gpux": "1ea7b0ac1e03ff74f7ef8663211c9668a852d936"
+      },
+      "reviewHash": "a1263a062aaf39fdf707e97e90469ea0121c9d00e883d8d893634290ad158c25",
+      "recordedAt": "2026-10-15T00:15:37Z"
     }
   },
   "findings": [
@@ -801,6 +1305,99 @@
         }
       ],
       "boundaryId": "s05-ci-cadence"
+    },
+    {
+      "id": "s06-F1-jobs-default-stale",
+      "boundaryId": "s06-proof-and-docs",
+      "criterionIds": [
+        "CI-3"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "Expected: docs/ci.md and docs/testing.md describe the cadence the plan script implements, including `--jobs`. Observed: plan.sh sets `lane_c_jobs` windows=3 (hand-run: `ci-os:windows`, `ci:all`, schedule and dispatch all emit `warp, jobs 3`), but docs/ci.md says each platform's default is `lane_c_jobs`, \"1 until a measurement shows more is stable and faster\", and docs/testing.md says the default is one process and a level above 1 \"is opt-in until CI proves it stable on every platform\". Neither document says that WARP lane C runs three processes in a pull request with the label, in the nightly run and in a default dispatch, while lavapipe and Metal run one, nor links the PAR-2 evidence. Repair: state the per-platform values (ubuntu 1, macos 1, windows 3, `lane-c-jobs` overrides) in ci.md and rewrite the testing.md sentence (the testkit default stays 1; CI sets 3 on WARP because three complete runs passed; the others stay at 1 because two processes did not pay), with a link to the measurements doc.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/ci.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/testing.md"
+        }
+      ]
+    },
+    {
+      "id": "s06-F2-build-share-overreach",
+      "boundaryId": "s06-proof-and-docs",
+      "criterionIds": [
+        "TIME-2"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "Expected: the document records how much of WARP's time the optimized test build removed. Observed: arithmetic checks out (7344 = 27 x 272 frames, 5238 = 27 x 194; 1986 s / 7344 = 270 ms; 980 s / 5238 = 187 ms; 187/270 -> 31%, 17/56 -> 70%, 6.9/31 -> 78%; log durations 5621/519/222 s match the doc's 5622/522/223), but the sentence \"Per frame the optimized test build removed 31% of WARP's time, 70% ... 78%\" attributes the whole before/after per-frame difference to `opt-level = 1`. The two figures come from different runs and commits (f8add89 against 2bce89e) and the after-figure also contains the byte-first comparison (the doc itself says it is \"not separable in CI\") and the changed mix of layered and reference draws. No run isolates the build on WARP, and the 'Not measured' section concedes this ('known only per frame'), so the body claim is stronger than the evidence. Repair: reword to say the figures are the per-frame change of build plus byte-first comparison together, an upper bound for the build alone, state the WARP share as at most 31% (per frame, slowest test), and keep the Mac isolated measurement as the only isolated one. An isolating WARP run (manual, `--config profile.test.opt-level=0`) is optional and the user has asked for no long runs, so do not add one.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/measurements/lane-c-timings.md"
+        }
+      ]
+    },
+    {
+      "id": "s06-F3-doc-nits",
+      "boundaryId": "s06-proof-and-docs",
+      "criterionIds": [
+        "TIME-2",
+        "PAR-2"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Small inaccuracies to correct while editing: (a) 'Sampling saves the reference window's draw at 78 of 135 steps' conflicts with the doc's own 136 layered frames and 58 reference frames (136 - 58 = 78 of 136; the 135 is the script's steps, the first frame is extra): use one basis. (b) Run 38634338461 took 1 h 38 m 09 s against 1 h 46 m 37 s, which is 8% faster, not 7% ('7% to 41%'). (c) The after-figures are the span from the first step through the end of the Lane C step including build (the table header says 'Lane C step'; 38606794033 lavapipe/Metal job spans are 22 m 33 s / 11 m 53 s against the 22 m 06 s / 11 m 33 s quoted): say once that figures are job spans from the start of the setup steps. (d) TIME-2 asks for the slow tests' share; the before figure is the 20 slowest tests (98%) while the after figure is the 32 tests of three suites (96/89/83%), a different set: give the after share for the same 20 slowest (log recompute: WARP 95%, lavapipe 89%, Metal 83%) or label the sets. (e) Record the head SHA of the CI runs (all after-runs 2bce89e; 38606788745 and 38606794033 ca19d49) as TIME-2 asks for the commit. (f) The sampled 2-process run (38606794033) and the Mac 36 s against 42 s sampling figures have no saved log or artifact in artifacts-temp to recheck; only the CI run link supports the first.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/measurements/lane-c-timings.md"
+        }
+      ]
+    },
+    {
+      "id": "s06-F4-warp-full-gap-needs-user-disposition",
+      "boundaryId": "s06-proof-and-docs",
+      "criterionIds": [
+        "TIME-2"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "The document states honestly that WARP in full mode (the nightly's WARP leg, with `--jobs 3`) was not measured because a manual run was cancelled at the user's request. Per-backend durations 'after each optimization where it can be measured' are otherwise present; the gap is disclosed, bounded (sampled 1h03m to 1h38m at three processes; no `timeout-minutes` in ci.yml so the 6 h default applies) and assigned to the first nightly run. I judge TIME-2 met in substance once F2 is repaired, but whether an unmeasured nightly WARP duration is acceptable is the user's decision: it needs a recorded disposition (accept and measure at the first nightly, or run it once), which the coordinator must request from the user and not invent. The nightly also exercises full mode with three processes on DX12, a combination no run covered (PAR-2's three runs were sampled); that is within PAR-2's wording but belongs in the same disposition and in the 'Not measured' list.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/measurements/lane-c-timings.md"
+        }
+      ]
+    },
+    {
+      "id": "final-1",
+      "boundaryId": "final",
+      "criterionIds": [
+        "CI-3"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Stale cadence statements contradict the new cadence. (1) `docs/testing.md` CI cadence table, lane C row (line 39): `ubuntu-24.04 (lavapipe), windows-2025 (WARP), macos-15 (Metal) | every pull request`. After this epic a pull request without `ci-os:windows` or `ci:all` does NOT run WARP, and the nightly run adds the full mode; `docs/ci.md` and the lane C section of the same file say so. Expected: the row says lane C runs on lavapipe and Metal on every pull request (sampled), on WARP with `ci-os:windows`/`ci:all`, and nightly on every platform in full mode (link ci.md). (2) `docs/ci.md` trigger table, manual-run row, lists only `jobs`, `platforms`, `grep`; the `full` and `lane-c-jobs` inputs appear only in a later paragraph, so add them to the row. (3) Nit in `.github/actions/plan/plan.sh`: the comment says WARP was \"7% to 41%\" faster; the measurements document (1h38m against 1h46m37s) says 8% to 41%. Repair: edit these three statements (documentation and one comment only; no behaviour changes; ci_plan tests assert behaviour, not the comment).",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/testing.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/ci.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".github/actions/plan/plan.sh"
+        }
+      ]
     }
   ],
   "handoffMarkdown": "",

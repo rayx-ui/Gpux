@@ -55,8 +55,10 @@ chosen profile; the `lane_c_profile` test group fails if either is off).
 
 ## Before and after in CI
 
-Lane C's `Lane C` step, per backend. All runs are `feature/faster-test-lanes` on GitHub-hosted
-runners (`ubuntu-24.04` lavapipe, `windows-2025` WARP, `macos-15` Metal).
+Lane C's `Lane C` step, per backend (the WARP three-process figures are job spans, which add about
+a minute of setup). All runs are `feature/faster-test-lanes` on GitHub-hosted runners
+(`ubuntu-24.04` lavapipe, `windows-2025` WARP, `macos-15` Metal): the after-runs are at head
+`2bce89e`, runs 38606788745 and 38606794033 at `ca19d49`, before at `f8add89`.
 
 | Backend | Before | Sampled, 1 process (the pull request default) | Sampled, 2 processes | Full, 2 processes | Sampled, 3 processes |
 |---|---:|---:|---:|---:|---:|
@@ -94,14 +96,17 @@ Per-test durations are the differences between the log's completion timestamps, 
 | Metal | 223 s | 184 s (83%) | 129 s | the same, 36 s |
 | WARP | 5622 s | 5377 s (96%) | 3625 s | the same, 980 s |
 
-(Before, on WARP, the 20 slowest tests held 10035 s of 10289 s, 98%; the slowest took 1986 s.)
+(Before, on WARP, the 20 slowest tests held 10035 s of 10289 s, 98%; the slowest took 1986 s. The
+shares above are of all 32 tests of the three suites, a different cut than the 20 slowest. The
+9 m 01 s and 36 s against 42 s Mac figures were taken from terminal output that was not saved.)
 
 Per-frame cost of that slowest test, 9 contents at 3 scales: before, 7344 frames (every step of
 both windows) and 270, 56 and 31 ms per frame on WARP, lavapipe and Metal. Now, sampled, 5238
 frames (the layered window draws all 136 frames of a script, the reference 58 of them) and
-187 ms (WARP), 17 ms (lavapipe) and 6.9 ms (Metal). Per frame the optimized test build removed
-31% of WARP's time, 70% of lavapipe's and 78% of Metal's: WARP's own rasterization and
-readback is most of its frame, and the build and the sampling cannot reach it.
+187 ms (WARP), 17 ms (lavapipe) and 6.9 ms (Metal). Per frame, the optimized test build and the byte-first comparison together (not separable in CI;
+the runs are also on different commits, `f8add89` before and `2bce89e` after) removed at most 31%
+of WARP's time, 70% of lavapipe's and 78% of Metal's: WARP's own rasterization and readback is
+most of its frame, and neither change reaches it.
 
 ### What each optimization bought
 
@@ -110,7 +115,7 @@ readback is most of its frame, and the build and the sampling cannot reach it.
 - **Byte-first comparison**: not separable in CI. On the Mac the comparison is a small share of a
   frame once the build is optimized; the change is kept because it costs nothing and reports the
   same message.
-- **Sampling**: saves the reference window's draw at 78 of 135 steps of the biggest scripts and
+- **Sampling**: saves the reference window's draw at 78 of 136 steps of the biggest scripts and
   nothing else, because the layered window must draw every frame. On Metal the three suites
   take 36 s sampled against 42 s full (the Mac, `opt-level = 1`); on CI, lavapipe 8 m 42 s of
   tests sampled and the full run's 28 m 31 s with a build and two processes are not comparable
@@ -124,7 +129,7 @@ readback is most of its frame, and the build and the sampling cannot reach it.
 Three complete lane C runs on `windows-2025` with `--jobs 3` passed all 205 tests, each ending
 `gpux-testkit: 205 passed, 0 failed, 0 skipped`, with no hang, no device-lost error and no timeout
 in their logs (a search for `device lost`, `hung` and `timed out` finds nothing). They took
-1 h 03 m, 1 h 38 m and 1 h 12 m against 1 h 46 m for one process: 7% to 41% faster; the spread is
+1 h 03 m, 1 h 38 m and 1 h 12 m against 1 h 46 m for one process: 8% to 41% faster; the spread is
 the hosted runner's, on 4 vCPUs shared by three WARP rasterizers. Windows therefore defaults to
 three processes (`lane_c_jobs` in `.github/actions/plan/plan.sh`).
 
@@ -146,6 +151,8 @@ selection and is not done.
 ### Not measured
 
 - WARP in `full` mode (the nightly run's WARP leg): a manual run was cancelled before it finished,
-  so the nightly duration on WARP is not recorded here. The first nightly run supplies it.
+  so the nightly duration on WARP is not recorded here; it is bounded by the sampled runs
+  above (1 h 03 m to 1 h 38 m) and runs three processes in full mode, which no run covered. The
+  owner closed the epic without it; the first nightly run supplies it.
 - The share of WARP's time that `opt-level = 1` alone removed, apart from sampling and processes,
   is known only per frame (270 to 187 ms for the slowest test).
