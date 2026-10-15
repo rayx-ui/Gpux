@@ -742,11 +742,15 @@ pub(crate) fn settle_text_leaves(
         .drain()
         .map(|(id, width)| (id, Some(width)))
         .collect();
+    // A leaf settles once: by the width it was measured at, else by the one
+    // it was carried at. Looked up by set, as the leaves requested this frame
+    // number in the thousands.
+    let mut settled: FxHashSet<LayoutId> = settle.iter().map(|(id, _)| *id).collect();
     pending.retain(|&(id, width)| {
         if !reaches(&engine.taffy, root, id) {
             return true;
         }
-        if !settle.iter().any(|(settled, _)| *settled == id) {
+        if settled.insert(id) {
             settle.push((id, width));
         }
         false
