@@ -28,8 +28,8 @@
     "successfulAttemptRequiresCommitBeforeNextExperiment": true,
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
-  "currentExperimentId": null,
-  "nextExperimentIndex": 14,
+  "currentExperimentId": "28e2a810-2fd2-4913-98df-8ca57b3b4d01",
+  "nextExperimentIndex": 15,
   "experiments": [
     {
       "id": "91cd654b-6c55-4cc1-8506-486e19f9fbc6",
@@ -181,6 +181,17 @@
       "finishedAt": "2026-10-15T21:31:38Z",
       "state": "done",
       "status": "failure"
+    },
+    {
+      "id": "28e2a810-2fd2-4913-98df-8ca57b3b4d01",
+      "index": 14,
+      "type": "hypothesis",
+      "name": "Fingerprint only a changed style",
+      "path": "2026-10-15-14-fingerprint-only-a-changed-style.json",
+      "startedAt": "2026-10-15T21:32:51Z",
+      "finishedAt": null,
+      "state": "running",
+      "status": ""
     }
   ]
 }
