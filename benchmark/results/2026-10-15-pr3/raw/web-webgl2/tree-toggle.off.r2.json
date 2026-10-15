@@ -1,0 +1,71 @@
+{
+  "scenario": "tree-toggle",
+  "group": "input",
+  "label": "off",
+  "target": "web-webgl2",
+  "fast_mode": "FastMode { layout_retention: false, view_retention: false, splice: false, scroll_layers: false }",
+  "fast_stats": null,
+  "viewport": [
+    1280,
+    800
+  ],
+  "scale_factor": 2,
+  "frames": 600,
+  "warmup": 120,
+  "wall_s": 4.999960205,
+  "fps": 120.00095508760154,
+  "vsync_ms": 7.925049,
+  "janky_frames": 0,
+  "inactive_frames": 0,
+  "open_to_first_present_ms": 139.390137,
+  "first_draw_ms": 40.239103,
+  "draw_ms": {
+    "count": 600,
+    "mean": 5.231240533333336,
+    "p50": 5.328895,
+    "p95": 5.763071,
+    "p99": 5.947391,
+    "max": 6.676479
+  },
+  "frame_ms": {
+    "count": 600,
+    "mean": 5.399995733333329,
+    "p50": 5.476351,
+    "p95": 5.947391,
+    "p99": 6.152191,
+    "max": 6.983679
+  },
+  "main_cpu_ms": {
+    "mean": 5.608526666666667,
+    "p50": null,
+    "p95": null,
+    "p99": null,
+    "max": null
+  },
+  "interval_ms": {
+    "mean": 8.333267008333324,
+    "p50": 8.330078,
+    "p95": 9.064941,
+    "p99": 9.760009,
+    "max": 10.319825
+  },
+  "process_cpu_ms_per_frame": 5.608526666666667,
+  "process_cpu_pct": 67.34621626558815,
+  "allocations_per_frame": 32266.203333333335,
+  "allocated_kb_per_frame": 17503.686293945313,
+  "heap_live_mb": 43.100802421569824,
+  "heap_peak_mb": 46.918928146362305,
+  "footprint_mb": {
+    "after_open": 29.3125,
+    "after_first_frame": 29.3125,
+    "after_warmup": 54,
+    "end": 54,
+    "peak": 54
+  },
+  "resident_mb": 54,
+  "backend": "gl",
+  "script_ms_per_frame": 5.537098333333334,
+  "js_heap_mb": 3.8027000427246094,
+  "browser": "147.0.7727.15",
+  "cross_origin_isolated": true
+}

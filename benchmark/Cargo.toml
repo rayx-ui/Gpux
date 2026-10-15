@@ -1,0 +1,56 @@
+# gpux rendering benchmarks: a standalone, local-only workspace.
+#
+# It is not a member of the gpux workspace, so `cargo` commands at the repository root, CI and
+# `cargo package --workspace` never build it. `run.py` builds it against two gpux trees (the
+# checkout and a worktree at an earlier commit) and compares them; see README.md.
+
+[workspace]
+
+[package]
+name = "gpux-benchmark"
+version = "0.0.0"
+edition = "2024"
+publish = false
+license = "Apache-2.0"
+
+[lib]
+name = "gpux_benchmark"
+crate-type = ["rlib"]
+
+[[bin]]
+name = "gpux-bench"
+path = "src/bin/gpux-bench.rs"
+
+[features]
+default = []
+# Also report fast mode's work counters (`Window::fast_stats()`). Compiles gpux's diagnostics
+# counters in, which costs time, so timing runs leave it off.
+fast-stats = ["gpux/diagnostics"]
+
+[dependencies]
+gpux = { path = "../crates/gpui", default-features = false, features = ["font-kit", "profiler"] }
+gpui_platform = { package = "gpux-platform", path = "../crates/gpui_platform", features = ["font-kit"] }
+gpux_fonts = { package = "gpux-fonts", path = "../crates/gpux_fonts" }
+serde_json = "1"
+web-time = "1.1.0"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(target_os = "ios")'.dependencies]
+gpui_mobile = { package = "gpux-mobile", path = "../crates/gpui_mobile" }
+
+[target.'cfg(target_family = "wasm")'.dependencies]
+console_error_panic_hook = "0.1"
+js-sys = "0.3"
+wasm-bindgen = "0.2.126"
+web-sys = { version = "0.3", features = ["console", "Location", "UrlSearchParams", "Window"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_ProcessStatus", "Win32_System_Threading"] }
+
+# The gpux workspace's release profile, so the benchmark measures what consumers ship.
+[profile.release]
+debug = "limited"
+lto = "thin"
+codegen-units = 1
