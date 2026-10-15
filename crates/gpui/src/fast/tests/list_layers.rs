@@ -437,11 +437,17 @@ mod uniform {
         let (handle, log) = page(cx, 1000);
         let window = handle.into();
         promote(cx, window);
-        // Rows 2..7 show, and ten rows of overscan below them and above them,
-        // as far as row 0. Row 1 showed in the frame before, and was left out:
-        // painted into the layer, it could have kept element states that a
-        // list without a layer drops.
-        let mut expected: Vec<usize> = [0].into_iter().chain(2..17).collect();
+        // Rows 2..7 show, and three rows of overscan below them and above
+        // them, as far as row 0. Row 1 showed in the frame before, and was
+        // left out: painted into the layer, it could have kept element states
+        // that a list without a layer drops.
+        assert_eq!(
+            (VIEWPORT_HEIGHT * crate::fast::layers::paint::LIST_OVERSCAN_VIEWPORTS / ROW_HEIGHT)
+                .ceil(),
+            3.,
+            "the rows below are those of an overscan of three rows"
+        );
+        let expected: Vec<usize> = [0].into_iter().chain(2..10).collect();
         assert_eq!(held_rows(cx, window), expected);
         rendered_rows(&log);
 
@@ -449,36 +455,40 @@ mod uniform {
         assert_eq!(decision(cx, window), Some(Decision::Composite));
         assert_eq!(
             rendered_rows(&log),
-            vec![1..2, 17..18],
+            vec![1..2, 10..11],
             "the row left out is rendered, and the row entering the overscan"
         );
 
         for step in 0..14 {
             wheel(cx, window, -ROW_HEIGHT);
             assert_eq!(decision(cx, window), Some(Decision::Composite));
-            let new_row = 18 + step;
+            let new_row = 11 + step;
             assert_eq!(
                 rendered_rows(&log),
                 vec![new_row..new_row + 1],
                 "step {step}: scrolling down one row renders the row entering the overscan"
             );
             // Rows that left the overscan are kept until they are more than
-            // a quarter of the rows the layer is to hold, then dropped.
-            let first = if step < 13 { 0 } else { new_row - 24 };
-            expected = (first..new_row + 1).collect();
-            assert_eq!(held_rows(cx, window), expected, "step {step}");
+            // a quarter of the eleven rows the layer is to hold, then
+            // dropped: every third row.
+            let first = 3 * ((step + 1) / 3);
+            assert_eq!(
+                held_rows(cx, window),
+                (first..new_row + 1).collect::<Vec<_>>(),
+                "step {step}"
+            );
         }
         // Rows 17..22 show.
-        assert_eq!(held_rows(cx, window), (7..32).collect::<Vec<_>>());
+        assert_eq!(held_rows(cx, window), (12..25).collect::<Vec<_>>());
 
         wheel(cx, window, ROW_HEIGHT);
         assert_eq!(decision(cx, window), Some(Decision::Composite));
         assert_eq!(
             rendered_rows(&log),
-            vec![6..7],
-            "scrolling up one row renders the dropped row entering the overscan"
+            Vec::<Range<usize>>::new(),
+            "scrolling up over rows the layer holds renders none"
         );
-        assert_eq!(held_rows(cx, window), (6..32).collect::<Vec<_>>());
+        assert_eq!(held_rows(cx, window), (12..25).collect::<Vec<_>>());
 
         // Rows 16..21 show; a quarter of a row down, 16..22 do, all held.
         for _ in 0..2 {
@@ -490,6 +500,16 @@ mod uniform {
                 "a scroll that uncovers no row renders none"
             );
         }
+
+        // Four rows up, rows 12..18 show: the rows dropped above them enter
+        // the overscan again and are rendered.
+        wheel(cx, window, 4. * ROW_HEIGHT);
+        assert_eq!(decision(cx, window), Some(Decision::Composite));
+        assert_eq!(
+            rendered_rows(&log),
+            vec![9..12],
+            "scrolling up renders the dropped rows entering the overscan"
+        );
     }
 
     /// A list whose content changes on every other frame while it scrolls, as
@@ -684,7 +704,7 @@ mod uniform {
         if !crate::fast::layers::COMPILED {
             return;
         }
-        let (handle, log) = page(cx, 1000);
+        let (handle, log) = page_with_rows_of(cx, 1000, ROW_HEIGHT, 4.);
         let window = handle.into();
         promote(cx, window);
         wheel(cx, window, -ROW_HEIGHT);
@@ -696,28 +716,42 @@ mod uniform {
                 (parts, record.dirty_tiles.clone(), record.tile_hashes.len())
             })
         };
+        let mut adding_only = 0;
         for step in 0..10 {
             let (before, _, _) = parts(cx);
+            let held_before = held_rows(cx, window);
             rendered_rows(&log);
             wheel(cx, window, -ROW_HEIGHT);
             assert_eq!(decision(cx, window), Some(Decision::Composite));
             assert_eq!(rendered_rows(&log).len(), 1, "step {step}: one row added");
             let (after, dirty, tiles) = parts(cx);
+            // Rows past the overscan are dropped a batch at a time.
+            let dropped = held_before.len() + 1 - held_rows(cx, window).len();
             // One part per row: those of the rows kept are the ones the layer
-            // held, not copies, and only the tiles the new row reaches are
-            // hashed differently.
-            assert_eq!(after.len(), before.len() + 1, "step {step}");
+            // held, not copies.
+            assert_eq!(after.len(), before.len() + 1 - dropped, "step {step}");
             let kept = after
                 .iter()
                 .filter(|part| before.iter().any(|old| std::rc::Rc::ptr_eq(old, part)))
                 .count();
-            assert_eq!(kept, before.len(), "step {step}");
+            assert_eq!(kept, before.len() - dropped, "step {step}");
+            if dropped > 0 {
+                continue;
+            }
+            // Only the tiles the new row reaches, in the one or two rows of
+            // tiles it lies across, are hashed differently. At a scale factor
+            // of 4 the rows the layer holds lie across several rows of tiles.
+            adding_only += 1;
+            let tile_rows: std::collections::BTreeSet<i32> =
+                dirty.iter().map(|tile| tile.y).collect();
             assert!(
-                (1..=2).contains(&dirty.len()) && dirty.len() < tiles,
-                "step {step}: {} of {tiles} tiles dirty",
-                dirty.len()
+                (1..=2).contains(&tile_rows.len()) && dirty.len() < tiles,
+                "step {step}: {} of {tiles} tiles dirty, over {} rows of tiles",
+                dirty.len(),
+                tile_rows.len()
             );
         }
+        assert!(adding_only >= 5, "{adding_only} steps only added a row");
     }
 }
 mod list {
@@ -2114,7 +2148,14 @@ mod list {
         let held: BTreeSet<usize> = held_rows(cx, with_layers).into_iter().collect();
         let shown = 5;
         let overscan = *held.last().unwrap();
-        assert!(held.contains(&shown) && overscan > 10, "held {held:?}");
+        let shown_rows = with_window(cx, with_layers, |window, _| {
+            let layer = window.fast_layers.layers.values().next().expect("a layer");
+            layer.rows.shown().expect("rows shown")
+        });
+        assert!(
+            shown_rows.contains(&shown) && overscan >= shown_rows.end,
+            "held {held:?}, shown {shown_rows:?}"
+        );
         log.borrow_mut().clear();
 
         let tint = |cx: &mut TestAppContext, row: usize| {
@@ -2907,7 +2948,10 @@ mod gpux {
             "promote",
         );
         let held: BTreeSet<usize> = held_rows(cx, with_layers).into_iter().collect();
-        assert!(held.len() > 15, "the layer holds its overscan: {held:?}");
+        assert!(
+            held.iter().filter(|row| !(6..12).contains(*row)).count() >= 4,
+            "the layer holds its overscan: {held:?}"
+        );
         log.borrow_mut().clear();
 
         shared.update(cx, |shared, cx| {
