@@ -1,8 +1,7 @@
 # gpux rendering benchmarks
 
-Real-window rendering benchmarks that compare gpux **before PR #3** (`pre`, commit `aefaea3`) with
-gpux **after it** with fast mode **off** and **on**. Every target runs the same scenario code: a
-native desktop app, an iOS app and a WASM app.
+Real-window rendering benchmarks that compare gpux with fast mode **off** and **on**. Every
+target runs the same scenario code: a native desktop app, an iOS app and a WASM app.
 
 They run **locally and on demand only**. `benchmark/` is a standalone Cargo workspace, not a
 member of the gpux workspace, so no CI job, `cargo` command at the repository root or
@@ -33,11 +32,10 @@ Options:
 
 | Option | Default | Meaning |
 |---|---|---|
-| `--configs` | `pre,off,on` | which configurations to run |
+| `--configs` | `off,on` | which configurations to run |
 | `--scenarios` | all | comma list of scenario ids or groups (`retention`, `text`, `scroll`, `input`, `animation`) |
 | `--reps` | 3 | repetitions of every run |
 | `--frames` / `--warmup` | 600 / 120 | measured and warm-up frames per run |
-| `--pre-ref` | `aefaea3` | the commit `pre` builds |
 | `--device` | `iPhone 17 Pro` | the iOS Simulator to run on |
 | `--name` | date and time | the results directory under `results/` |
 | `--skip-build` | | reuse the last build |
@@ -48,8 +46,8 @@ Examples:
 # Only the scrolling scenarios on WebGPU, five repetitions.
 python3 benchmark/run.py --target web-webgpu --scenarios scroll --reps 5
 
-# Fast mode on against off only, no pre-PR build.
-python3 benchmark/run.py --target macos --configs off,on
+# Only fast mode on, for a quick look.
+python3 benchmark/run.py --target macos --configs on --reps 1
 ```
 
 **While a run is going, leave the machine alone.** The windows must stay visible and focused:
@@ -65,14 +63,9 @@ Results go to `results/<name>/`. That directory holds:
 
 ## How it works
 
-`run.py` builds the benchmark twice:
-
-- against a git worktree of gpux at `--pre-ref` (in `artifacts-temp/bench/pre`, with this checkout's
-  `benchmark/` copied in), for `pre`;
-- against this checkout with the `fast-api` feature, for `off` and `on`.
-
-Each build resolves its dependencies from its own tree's `Cargo.lock`. It then runs every scenario
-in every configuration. Within each repetition the configurations of a scenario run in a rotating
+`run.py` builds the benchmark once per target from this checkout. Fast mode is chosen per window
+with `Window::set_fast_mode`, so `off` and `on` run the same build. It then runs every scenario in
+both configurations. Within each repetition the configurations of a scenario run in a rotating
 order, so slow drift such as thermal state spreads evenly.
 
 One run is one process, or one page in the browser. It opens one window and builds the scenario.
@@ -84,9 +77,6 @@ phases:
 1. The window's first frame is drawn and presented (startup metrics).
 2. `--warmup` frames let atlases, caches and fast mode's retained state settle.
 3. `--frames` frames are measured.
-
-Fast mode is chosen per window with `Window::set_fast_mode`, which works on every target. The
-`pre` build has no fast mode, so it draws with its defaults.
 
 ### Scenarios
 
@@ -135,11 +125,9 @@ Caveats:
 
 1. Add a builder in `src/scenarios/` and list it in `src/scenarios/mod.rs`.
 2. Add the same id to `SCENARIOS` in `report.py`.
-3. Use only gpux API that exists both before and after PR #3. A scenario that needs newer API
-   cannot run as `pre`; run it with `--configs off,on`.
 
 Run one scenario by hand:
 
 ```bash
-cd benchmark && cargo run --release --features fast-api -- --scenario hover-grid --fast on --frames 240
+cd benchmark && cargo run --release -- --scenario hover-grid --fast on --frames 240
 ```

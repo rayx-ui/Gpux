@@ -21,7 +21,8 @@ use crate::{Scenario, Step, metrics, util};
 /// Which fast-mode switches a run asks for.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Fast {
-    /// What the build does without being told: gpux before fast mode, or the compiled defaults.
+    /// What the window starts in without being told: gpux's compiled defaults and the
+    /// `GPUX_FAST_MODE` family of environment variables.
     Default,
     /// Every mechanism off (`FastMode::OFF`).
     Off,
@@ -45,7 +46,7 @@ pub struct Config {
     pub scenario: &'static Scenario,
     pub frames: u64,
     pub warmup: u64,
-    /// The configuration's name in the report (`pre`, `off`, `on`).
+    /// The configuration's name in the report (`off`, `on`).
     pub label: String,
     /// The target's name in the report (`macos`, `ios-sim`, `web-webgpu`, ...).
     pub target: String,
@@ -207,21 +208,12 @@ pub fn open(cx: &mut App, config: Config, options: WindowOptions, done: Done) {
         .expect("the window is open");
 }
 
-#[cfg(feature = "fast-api")]
 fn set_fast_mode(window: &mut Window, fast: Fast) {
     match fast {
         Fast::Default => {}
         Fast::Off => window.set_fast_mode(gpux::FastMode::OFF),
         Fast::On => window.set_fast_mode(gpux::FastMode::ALL),
     }
-}
-
-#[cfg(not(feature = "fast-api"))]
-fn set_fast_mode(_: &mut Window, fast: Fast) {
-    assert!(
-        fast == Fast::Default,
-        "this build has no fast mode; run it with the default switches"
-    );
 }
 
 fn schedule(run: &Rc<RefCell<Run>>, window: &mut Window) {
@@ -428,14 +420,8 @@ fn report(state: &Run, window: &mut Window) -> Value {
     })
 }
 
-#[cfg(feature = "fast-api")]
 fn fast_mode(window: &Window) -> Value {
     Value::String(format!("{:?}", window.fast_mode()))
-}
-
-#[cfg(not(feature = "fast-api"))]
-fn fast_mode(_: &Window) -> Value {
-    Value::Null
 }
 
 #[cfg(feature = "fast-stats")]

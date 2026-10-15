@@ -12,16 +12,16 @@ Targets (pick one or more with --target, or --target all-local for every target 
     web-webgpu   the WASM app in Playwright's Chromium on WebGPU
     web-webgl2   the WASM app in Playwright's Chromium on WebGL2
 
-Configurations (--configs, default all three):
+Configurations (--configs, default both):
 
-    pre   gpux before PR #3 (a git worktree at --pre-ref, default aefaea3)
     off   this checkout with every fast-mode mechanism off (Window::set_fast_mode(OFF))
     on    this checkout with every fast-mode mechanism on (Window::set_fast_mode(ALL))
 
-Every run is one process (one page in the browser) that opens one window, draws the scenario's
-warm-up frames, measures --frames frames and writes a JSON report. Runs are interleaved: each
-repetition goes through every scenario and, within a scenario, every configuration in a rotating
-order, so drift (thermal state, background load) spreads over all configurations alike.
+Both run the same build; only the window's mode differs. Every run is one process (one page in
+the browser) that opens one window, draws the scenario's warm-up frames, measures --frames
+frames and writes a JSON report. Runs are interleaved: each repetition goes through every
+scenario and, within a scenario, both configurations in a rotating order, so drift (thermal
+state, background load) spreads over both alike.
 
 Results land in benchmark/results/<name>/: raw/<target>/<scenario>.<config>.r<n>.json, meta.json
 and report.md (written by report.py). Nothing here runs in CI.
@@ -57,7 +57,8 @@ WASM_RUSTFLAGS = " ".join(
 DESKTOP = {"macos": "Darwin", "linux": "Linux", "windows": "Windows"}
 TARGETS = list(DESKTOP) + ["ios-sim", "web-webgpu", "web-webgl2"]
 PLANNED = {"android": "the Android target is planned: it needs an APK shell like lane E's"}
-CONFIGS = ["pre", "off", "on"]
+CONFIGS = ["off", "on"]
+BUNDLE = "dev.gpux.benchmark"
 
 
 def log(message):
@@ -82,51 +83,25 @@ def git(*args, cwd=ROOT):
 
 
 class Tree:
-    """A gpux source tree the benchmark builds against: the checkout, or a worktree at a ref."""
+    """The gpux checkout the benchmark builds against."""
 
-    def __init__(self, name, root, features):
-        self.name = name
-        self.root = root
-        self.bench = root / "benchmark"
-        self.features = features
-
-    def prepare(self):
-        if self.root != ROOT:
-            # The benchmark's source is this checkout's; only gpux comes from the worktree.
-            self.bench.mkdir(exist_ok=True)
-            sh(
-                [
-                    "rsync", "-a", "--delete",
-                    "--exclude", "target", "--exclude", "target-*", "--exclude", "results",
-                    "--exclude", "Cargo.lock", "--exclude", "*.xcodeproj",
-                    f"{BENCH}/", f"{self.bench}/",
-                ]
-            )
-        # Resolve dependencies as the tree's own workspace pins them.
-        shutil.copy(self.root / "Cargo.lock", self.bench / "Cargo.lock")
-
-    def feature_args(self):
-        return ["--features", ",".join(self.features)] if self.features else []
+    def __init__(self):
+        self.root = ROOT
+        self.bench = BENCH
 
     def commit(self):
         return git("rev-parse", "HEAD", cwd=self.root)
 
-
-def pre_tree(ref):
-    worktree = ROOT / "artifacts-temp" / "bench" / "pre"
-    if not worktree.exists():
-        sh(["git", "worktree", "add", "--detach", worktree, ref], cwd=ROOT)
-    else:
-        sh(["git", "checkout", "--detach", "--quiet", ref], cwd=worktree)
-    return Tree("pre", worktree, [])
+    def dirty(self):
+        return bool(git("status", "--porcelain", "--", "crates", "vendor", "Cargo.toml", "Cargo.lock", cwd=self.root))
 
 
 # ---------------------------------------------------------------------------------------------
-# Builds: one artifact per (tree, target).
+# Builds: one artifact per target.
 
 
 def build_desktop(tree, _target):
-    sh(["cargo", "build", "--release", "--bin", "gpux-bench", *tree.feature_args()], cwd=tree.bench)
+    sh(["cargo", "build", "--release", "--bin", "gpux-bench"], cwd=tree.bench)
     exe = "gpux-bench.exe" if platform.system() == "Windows" else "gpux-bench"
     return tree.bench / "target" / "release" / exe
 
@@ -135,7 +110,7 @@ def build_ios(tree, _target):
     sh(
         [
             "cargo", "rustc", "--lib", "--release", "--target", "aarch64-apple-ios-sim",
-            "--crate-type", "staticlib", *tree.feature_args(),
+            "--crate-type", "staticlib",
         ],
         cwd=tree.bench,
     )
@@ -148,8 +123,6 @@ def build_ios(tree, _target):
             "-configuration", "Release", "-sdk", "iphonesimulator",
             f"SYMROOT={products}", f"OBJROOT={tree.bench / 'target' / 'ios' / 'obj'}",
             "CODE_SIGNING_ALLOWED=NO", f"GPUX_BENCH_LIB={lib}",
-            # One bundle per tree, so both stay installed and runs can interleave.
-            f"PRODUCT_BUNDLE_IDENTIFIER=dev.gpux.benchmark.{tree.name}",
             "build",
         ],
         cwd=tree.bench / "ios",
@@ -166,7 +139,7 @@ def build_web(tree, _target):
         [
             "cargo", f"+{NIGHTLY}", "rustc", "--lib", "--release", "--crate-type", "cdylib",
             "--target", "wasm32-unknown-unknown", "-Z", "build-std=std,panic_abort",
-            "--target-dir", "target-web", *tree.feature_args(),
+            "--target-dir", "target-web",
         ],
         cwd=tree.bench,
         env=env,
@@ -180,7 +153,7 @@ def build_web(tree, _target):
 
 
 def artifact(tree, target):
-    """Where an earlier build of `target` in `tree` left its artifact."""
+    """Where an earlier build of `target` left its artifact."""
     if target in DESKTOP:
         exe = "gpux-bench.exe" if platform.system() == "Windows" else "gpux-bench"
         return tree.bench / "target" / "release" / exe
@@ -202,16 +175,15 @@ def builder(target):
 
 
 def fast_arg(config):
-    return {"pre": "default", "off": "off", "on": "on"}[config]
+    return config
 
 
-def run_desktop(target, jobs, artifacts, options):
-    for exe in artifacts.values():
-        # The first launch of a fresh binary pays for the OS checking it; take it before measuring.
-        sh([exe, "--scenario", "dashboard-clock", "--frames", "30", "--warmup", "10"], capture=True, check=False, timeout=300)
+def run_desktop(target, jobs, exe, options):
+    # The first launch of a fresh binary pays for the OS checking it; take it before measuring.
+    sh([exe, "--scenario", "dashboard-clock", "--frames", "30", "--warmup", "10"], capture=True, check=False, timeout=300)
     for job in jobs:
         command = [
-            artifacts[job["tree"]], "--scenario", job["scenario"], "--fast", fast_arg(job["config"]),
+            exe, "--scenario", job["scenario"], "--fast", fast_arg(job["config"]),
             "--frames", options.frames, "--warmup", options.warmup, "--label", job["config"],
             "--target", target, "--out", job["out"],
         ]
@@ -235,22 +207,21 @@ def simulator(name):
     sys.exit(f"no available simulator named {name}; see `xcrun simctl list devices available`")
 
 
-def run_ios(target, jobs, artifacts, options):
+def run_ios(target, jobs, app, options):
     device, runtime = simulator(options.device)
     udid = device["udid"]
     sh(["xcrun", "simctl", "boot", udid], check=False)
     sh(["xcrun", "simctl", "bootstatus", udid, "-b"], capture=True)
     sh(["open", "-a", "Simulator"], check=False)
-    for tree, app in artifacts.items():
-        sh(["xcrun", "simctl", "install", udid, app])
-        # The first launch of a freshly installed app is slow; take it before measuring.
-        sh(
-            ["xcrun", "simctl", "launch", "--console-pty", "--terminate-running-process", udid,
-             f"dev.gpux.benchmark.{tree}", "--scenario", "dashboard-clock", "--frames", "30", "--warmup", "10"],
-            capture=True, check=False, timeout=300,
-        )
+    sh(["xcrun", "simctl", "install", udid, app])
+    # The first launch of a freshly installed app is slow; take it before measuring.
+    sh(
+        ["xcrun", "simctl", "launch", "--console-pty", "--terminate-running-process", udid,
+         BUNDLE, "--scenario", "dashboard-clock", "--frames", "30", "--warmup", "10"],
+        capture=True, check=False, timeout=300,
+    )
     for job in jobs:
-        bundle = f"dev.gpux.benchmark.{job['tree']}"
+        bundle = BUNDLE
         command = [
             "xcrun", "simctl", "launch", "--console-pty", "--terminate-running-process", udid, bundle,
             "--scenario", job["scenario"], "--fast", fast_arg(job["config"]),
@@ -284,13 +255,12 @@ def node():
     sys.exit("Playwright needs Node.js 18 or newer; set GPUX_BENCH_NODE to one")
 
 
-def run_web(target, jobs, artifacts, options):
+def run_web(target, jobs, dist, options):
     backend = "webgpu" if target == "web-webgpu" else "webgl"
     plan = {
-        "dists": {tree: str(dist) for tree, dist in artifacts.items()},
+        "dist": str(dist),
         "runs": [
             {
-                "dist": job["tree"],
                 "query": (
                     f"scenario={job['scenario']}&fast={fast_arg(job['config'])}&frames={options.frames}"
                     f"&warmup={options.warmup}&label={job['config']}&target={target}&backend={backend}"
@@ -330,11 +300,11 @@ def run_stats(target, tree, scenarios, out_dir, options):
     stats = out_dir / "stats" / target
     stats.mkdir(parents=True, exist_ok=True)
     jobs = [
-        {"scenario": scenario, "config": config, "tree": "stats", "out": str(stats / f"{scenario}.{config}.json")}
+        {"scenario": scenario, "config": config, "out": str(stats / f"{scenario}.{config}.json")}
         for scenario in scenarios
         for config in ["off", "on"]
     ]
-    run_desktop(target, jobs, {"stats": exe}, options)
+    run_desktop(target, jobs, exe, options)
 
 
 def machine():
@@ -349,12 +319,11 @@ def machine():
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--target", action="append", required=True, help="a target (repeatable) or all-local")
-    parser.add_argument("--configs", default=",".join(CONFIGS), help="comma list of pre,off,on")
+    parser.add_argument("--configs", default=",".join(CONFIGS), help="comma list of off,on")
     parser.add_argument("--scenarios", default="", help="comma list of scenario ids or groups (default: all)")
     parser.add_argument("--reps", type=int, default=3, help="repetitions of every run")
     parser.add_argument("--frames", type=int, default=600, help="measured frames per run")
     parser.add_argument("--warmup", type=int, default=120, help="warm-up frames per run")
-    parser.add_argument("--pre-ref", default="aefaea3", help="the commit before PR #3")
     parser.add_argument("--device", default="iPhone 17 Pro", help="iOS Simulator name or UDID")
     parser.add_argument("--name", default=None, help="results directory name")
     parser.add_argument("--skip-build", action="store_true", help="reuse the last build")
@@ -397,11 +366,9 @@ def main():
 
     name = options.name or datetime.datetime.now().strftime("%Y-%m-%d-%H%M")
     out_dir = BENCH / "results" / name
-    trees = {}
-    if "pre" in configs:
-        trees["pre"] = pre_tree(options.pre_ref)
-    if "off" in configs or "on" in configs:
-        trees["post"] = Tree("post", ROOT, ["fast-api"])
+    tree = Tree()
+    if tree.dirty():
+        log("warning: gpux's sources have uncommitted changes; the report records the commit only")
 
     meta_file = out_dir / "meta.json"
     meta = json.loads(meta_file.read_text()) if meta_file.exists() else {"targets": {}}
@@ -409,8 +376,7 @@ def main():
         {
             "name": name,
             "machine": machine(),
-            "commits": {tree.name: tree.commit() for tree in trees.values()},
-            "pre_ref": options.pre_ref,
+            "commit": tree.commit(),
             "frames": options.frames,
             "warmup": options.warmup,
             "reps": options.reps,
@@ -420,13 +386,7 @@ def main():
 
     for target in targets:
         log(f"target {target}")
-        artifacts = {}
-        for tree in trees.values():
-            if not options.skip_build:
-                tree.prepare()
-            artifacts[tree.name] = (
-                artifact(tree, target) if options.skip_build else builder(target)(tree, target)
-            )
+        built = artifact(tree, target) if options.skip_build else builder(target)(tree, target)
         raw = out_dir / "raw" / target
         raw.mkdir(parents=True, exist_ok=True)
         jobs = []
@@ -439,12 +399,11 @@ def main():
                         {
                             "scenario": scenario,
                             "config": config,
-                            "tree": "pre" if config == "pre" else "post",
                             "out": str(raw / f"{scenario}.{config}.r{rep}.json"),
                         }
                     )
         started = time.time()
-        runner(target)(target, jobs, artifacts, options)
+        runner(target)(target, jobs, built, options)
         meta["targets"][target] = {
             "finished": datetime.datetime.now().isoformat(timespec="seconds"),
             "minutes": round((time.time() - started) / 60, 1),
@@ -453,8 +412,8 @@ def main():
         }
         meta_file.write_text(json.dumps(meta, indent=2))
 
-        if options.stats and target in DESKTOP and "post" in trees:
-            run_stats(target, trees["post"], scenarios, out_dir, options)
+        if options.stats and target in DESKTOP:
+            run_stats(target, tree, scenarios, out_dir, options)
 
     report = write_report(out_dir)
     log(f"report: {report}")

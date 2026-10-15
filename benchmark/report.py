@@ -102,6 +102,8 @@ def load(out_dir):
     for path in sorted((out_dir / "raw").glob("*/*.r*.json")):
         target = path.parent.name
         scenario, config, _ = path.name.split(".", 2)
+        if config not in ("off", "on"):
+            continue
         report = json.loads(path.read_text())
         data.setdefault(target, {}).setdefault(scenario, {}).setdefault(config, []).append(report)
     return data
@@ -169,60 +171,46 @@ def geomean(ratios):
     return math.exp(sum(math.log(ratio) for ratio in ratios) / len(ratios))
 
 
-def comparison_table(rows, metric, configs, title, unit, lower_is_better=True, digits=2, absolute=False):
+def comparison_table(rows, metric, title, unit, lower_is_better=True, digits=2, absolute=False):
     lines = [f"**{title}** ({unit})", ""]
-    header = ["Scenario"] + [config for config in configs]
-    if "pre" in configs and "off" in configs:
-        header.append("off vs pre")
-    if "off" in configs and "on" in configs:
-        header.append("on vs off")
-    if "pre" in configs and "on" in configs:
-        header.append("on vs pre")
-    lines.append("| " + " | ".join(header) + " |")
-    lines.append("|" + "|".join(["---"] + ["---:"] * (len(header) - 1)) + "|")
+    lines.append("| Scenario | off | on | on vs off |")
+    lines.append("|---|---:|---:|---:|")
     for scenario, _, by_config in rows:
-        cells = {config: cell(by_config.get(config, []), metric) for config in configs}
-        row = [f"`{scenario}`"] + [fmt(cells[config].median, digits) for config in configs]
-        if "pre" in configs and "off" in configs:
-            row.append(delta(cells["off"], cells["pre"], lower_is_better, absolute)[0])
-        if "off" in configs and "on" in configs:
-            row.append(delta(cells["on"], cells["off"], lower_is_better, absolute)[0])
-        if "pre" in configs and "on" in configs:
-            row.append(delta(cells["on"], cells["pre"], lower_is_better, absolute)[0])
-        lines.append("| " + " | ".join(row) + " |")
+        off, on = (cell(by_config.get(config, []), metric) for config in ("off", "on"))
+        lines.append(
+            f"| `{scenario}` | {fmt(off.median, digits)} | {fmt(on.median, digits)} | "
+            f"{delta(on, off, lower_is_better, absolute)[0]} |"
+        )
     return lines + [""]
 
 
-def summary(data, configs):
-    """Per target: geometric-mean ratios and win/loss counts for CPU and draw time."""
+def summary(data):
+    """Per target: geometric-mean ratio of fast mode on to off and win/loss counts."""
     lines = [
-        "| Target | Metric | off / pre | regressions (off vs pre) | on / off | on wins / losses (vs off) |",
+        "| Target | Metric | on / off | wins | losses | within noise |",
         "|---|---|---:|---:|---:|---:|",
     ]
     for target in data:
         rows = scenario_rows(data, target)
-        for metric, label in [("cpu", "CPU ms per frame"), ("draw50", "draw p50")]:
-            off_pre, on_off = [], []
-            regressions, wins, losses = 0, 0, 0
+        for metric, label in [("cpu", "CPU ms per frame"), ("draw50", "Window::draw p50")]:
+            ratios, wins, losses, noise = [], 0, 0, 0
             for _, _, by_config in rows:
-                cells = {config: cell(by_config.get(config, []), metric) for config in configs}
-                if "pre" in cells and "off" in cells and cells["pre"].median and cells["off"].median:
-                    off_pre.append(cells["off"].median / cells["pre"].median)
-                    regressions += delta(cells["off"], cells["pre"])[1] == -1
-                if "off" in cells and "on" in cells and cells["off"].median and cells["on"].median:
-                    on_off.append(cells["on"].median / cells["off"].median)
-                    verdict = delta(cells["on"], cells["off"])[1]
+                off, on = (cell(by_config.get(config, []), metric) for config in ("off", "on"))
+                if off.median and on.median:
+                    ratios.append(on.median / off.median)
+                    verdict = delta(on, off)[1]
                     wins += verdict == 1
                     losses += verdict == -1
-            ratio = lambda value: f"{value:.3f} ({value - 1:+.1%})" if value else "–"
+                    noise += verdict == 0
+            ratio = geomean(ratios)
+            text = f"{ratio:.3f} ({ratio - 1:+.1%})" if ratio else "–"
             lines.append(
-                f"| {TARGET_NAMES.get(target, target)} | {label} | {ratio(geomean(off_pre))} | "
-                f"{regressions} of {len(off_pre)} | {ratio(geomean(on_off))} | {wins} / {losses} of {len(on_off)} |"
+                f"| {TARGET_NAMES.get(target, target)} | {label} | {text} | {wins} | {losses} | {noise} |"
             )
     return lines + [""]
 
 
-def target_section(data, target, meta, configs):
+def target_section(data, target, meta):
     rows = scenario_rows(data, target)
     first = next(
         (reports[0] for _, _, by_config in rows for reports in by_config.values() if reports), {}
@@ -239,25 +227,26 @@ def target_section(data, target, meta, configs):
     if first.get("browser"):
         details.append(f"Chromium {first['browser']}, backend {first.get('backend')}")
     if info:
-        details.append(f"{info.get('reports')} of {info.get('runs')} runs reported, {info.get('minutes')} min")
+        minutes = f", {info['minutes']} min" if info.get("minutes") else ""
+        details.append(f"{info.get('reports')} of {info.get('runs')} runs reported{minutes}")
     lines += ["; ".join(details), ""]
 
     web = target.startswith("web")
     cpu_unit = "ms of Chrome main-thread task time per frame" if web else "ms of main-thread CPU per frame, mean"
-    lines += comparison_table(rows, "cpu", configs, "Frame cost: CPU", cpu_unit)
-    lines += comparison_table(rows, "draw50", configs, "Window::draw, median", "ms per frame")
-    lines += comparison_table(rows, "draw95", configs, "Window::draw, 95th percentile", "ms per frame")
-    lines += comparison_table(rows, "fps", configs, "Frame rate", "frames per second", lower_is_better=False, digits=1)
-    lines += comparison_table(rows, "janky", configs, "Missed frames", "intervals over 1.5× the display's, of the measured frames; changes in frames", digits=0, absolute=True)
+    lines += comparison_table(rows, "cpu", "Frame cost: CPU", cpu_unit)
+    lines += comparison_table(rows, "draw50", "Window::draw, median", "ms per frame")
+    lines += comparison_table(rows, "draw95", "Window::draw, 95th percentile", "ms per frame")
+    lines += comparison_table(rows, "fps", "Frame rate", "frames per second", lower_is_better=False, digits=1)
+    lines += comparison_table(rows, "janky", "Missed frames", "intervals over 1.5× the display's, of the measured frames; changes in frames", digits=0, absolute=True)
     if not web:
-        lines += comparison_table(rows, "proc_cpu_pct", configs, "Process CPU", "% of one core, all threads", digits=1)
-    lines += comparison_table(rows, "fp_end", configs, "Memory footprint at the end" if not web else "WASM linear memory at the end", "MB")
-    lines += comparison_table(rows, "fp_growth", configs, "Memory growth over the measured frames", "MB; changes in MB", digits=2, absolute=True)
-    lines += comparison_table(rows, "heap_peak", configs, "Peak live Rust heap", "MB")
-    lines += comparison_table(rows, "allocs", configs, "Heap allocations", "per frame", digits=0)
-    lines += comparison_table(rows, "alloc_kb", configs, "Bytes allocated", "KB per frame", digits=0)
-    lines += comparison_table(rows, "open_ms", configs, "Startup: window opened to first frame presented", "ms", digits=0)
-    lines += comparison_table(rows, "first_draw", configs, "Startup: the first frame's draw", "ms", digits=1)
+        lines += comparison_table(rows, "proc_cpu_pct", "Process CPU", "% of one core, all threads", digits=1)
+    lines += comparison_table(rows, "fp_end", "Memory footprint at the end" if not web else "WASM linear memory at the end", "MB")
+    lines += comparison_table(rows, "fp_growth", "Memory growth over the measured frames", "MB; changes in MB", digits=2, absolute=True)
+    lines += comparison_table(rows, "heap_peak", "Peak live Rust heap", "MB")
+    lines += comparison_table(rows, "allocs", "Heap allocations", "per frame", digits=0)
+    lines += comparison_table(rows, "alloc_kb", "Bytes allocated", "KB per frame", digits=0)
+    lines += comparison_table(rows, "open_ms", "Startup: window opened to first frame presented", "ms", digits=0)
+    lines += comparison_table(rows, "first_draw", "Startup: the first frame's draw", "ms", digits=1)
     return lines
 
 
@@ -315,18 +304,17 @@ def write_report(out_dir):
     meta_file = out_dir / "meta.json"
     meta = json.loads(meta_file.read_text()) if meta_file.exists() else {}
     data = load(out_dir)
-    configs = [config for config in meta.get("configs", ["pre", "off", "on"])]
     machine = meta.get("machine", {})
     lines = [
         f"# gpux benchmark run `{meta.get('name', out_dir.name)}`",
         "",
         f"- Machine: {machine.get('cpu', machine.get('machine'))}, {machine.get('memory_gb', '?')} GB, "
         f"macOS {machine.get('macos', '')} ({machine.get('os')})",
-        f"- Commits: " + ", ".join(f"{tree} `{commit[:9]}`" for tree, commit in meta.get("commits", {}).items()),
+        f"- gpux commit: `{meta.get('commit', '?')[:9]}`",
         f"- Every run: {meta.get('warmup')} warm-up frames, then {meta.get('frames')} measured frames; "
         f"{meta.get('reps')} repetitions, interleaved",
-        "- `pre` is gpux before PR #3; `off` and `on` are this checkout with every fast-mode mechanism "
-        "off or on (`Window::set_fast_mode`).",
+        "- `off` and `on` are the same build with every fast-mode mechanism off or on "
+        "(`Window::set_fast_mode`).",
         "- A cell is the median over the repetitions. A change marked `~` is within the repetitions' "
         "spread or under 3% (noise); **bold** marks a change for the worse.",
         "",
@@ -335,9 +323,9 @@ def write_report(out_dir):
         "Geometric means over the scenarios of the ratio of medians.",
         "",
     ]
-    lines += summary(data, configs)
+    lines += summary(data)
     for target in data:
-        lines += target_section(data, target, meta, configs)
+        lines += target_section(data, target, meta)
     lines += counters_section(out_dir)
     report = out_dir / "report.md"
     report.write_text("\n".join(lines))

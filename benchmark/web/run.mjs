@@ -2,9 +2,8 @@
 //
 //   node web/run.mjs --plan <plan.json>
 //
-// `plan.json` is { dists: { <name>: <dir with index.html and the wasm-bindgen output> },
-// runs: [{ dist, query, out }] }. Each run opens a fresh page of its dist, served at
-// `/<dist>/?<query>`, in one headed browser (a visible window, so frames are paced by the display
+// `plan.json` is { dist: <dir with index.html and the wasm-bindgen output>, runs: [{ query, out }] }.
+// Each run opens a fresh page of the served dist at `/?<query>` in one headed browser (a visible window, so frames are paced by the display
 // and drawn by the GPU), waits for the benchmark to report, adds Chrome's own main-thread
 // timings over the DevTools protocol for the measured frames (the page cannot read its CPU
 // time), and writes the merged report to `out`.
@@ -27,20 +26,14 @@ const args = Object.fromEntries(
     arg.startsWith('--') ? [...pairs, [arg.slice(2), all[index + 1]]] : pairs, []),
 );
 const plan = JSON.parse(fs.readFileSync(args.plan, 'utf8'));
-const dists = Object.fromEntries(Object.entries(plan.dists).map(([name, dir]) => [name, path.resolve(dir)]));
+const dist = path.resolve(plan.dist);
 const runs = plan.runs;
 const timeoutMs = Number(args.timeout ?? 180000);
 
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.wasm': 'application/wasm', '.json': 'application/json' };
 const server = http.createServer((request, response) => {
   const url = new URL(request.url, 'http://localhost');
-  const [, name, ...rest] = decodeURIComponent(url.pathname).split('/');
-  const dist = dists[name];
-  if (!dist) {
-    response.writeHead(404).end();
-    return;
-  }
-  let file = path.join(dist, ...rest);
+  let file = path.join(dist, decodeURIComponent(url.pathname));
   if (!file.startsWith(dist) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
     file = path.join(dist, 'index.html');
   }
@@ -74,7 +67,7 @@ for (const run of runs) {
   const cdp = await context.newCDPSession(page);
   await cdp.send('Performance.enable');
   try {
-    await page.goto(`${base}/${run.dist}/?${run.query}`);
+    await page.goto(`${base}/?${run.query}`);
     await page.bringToFront();
     await page.waitForFunction(() => globalThis.__gpuxBench?.measuring === true || globalThis.__gpuxBench?.error, null, { timeout: timeoutMs, polling: 10 });
     const before = (await cdp.send('Performance.getMetrics')).metrics;

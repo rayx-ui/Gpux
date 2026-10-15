@@ -23,11 +23,9 @@ path = "src/bin/gpux-bench.rs"
 
 [features]
 default = []
-# The checkout has `Window::fast_mode()`: report the mode each window ran in.
-fast-api = []
 # Also report fast mode's work counters (`Window::fast_stats()`). Compiles gpux's diagnostics
 # counters in, which costs time, so timing runs leave it off.
-fast-stats = ["fast-api", "gpux/diagnostics"]
+fast-stats = ["gpux/diagnostics"]
 
 [dependencies]
 gpux = { path = "../crates/gpui", default-features = false, features = ["font-kit", "profiler"] }

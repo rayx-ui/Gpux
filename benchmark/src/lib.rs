@@ -9,9 +9,8 @@
 //! - the browser (WASM): `src/web.rs`;
 //! - iOS: `src/mobile.rs`.
 //!
-//! The same source builds against gpux before fast mode (no `fast-api` feature) and after it
-//! (`fast-api`, which sets each window's mode with `Window::set_fast_mode`), so every
-//! configuration runs identical scenario code.
+//! Fast mode is chosen per window with `Window::set_fast_mode`, so both configurations run the
+//! same build and identical scenario code.
 
 pub mod driver;
 pub mod metrics;
