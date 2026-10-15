@@ -11,13 +11,13 @@
   "status": "",
   "createdAt": "2026-10-15T16:29:33Z",
   "finishedAt": null,
-  "lastStableCommit": "c1ca4f429f005e3d8529064005b2d35d24975267",
+  "lastStableCommit": "c05d5bd32262c7c7281d27bfdbcb08597706e1d0",
   "repositories": [
     {
       "name": "main",
       "path": ".",
       "role": "main",
-      "lastStableCommit": "c1ca4f429f005e3d8529064005b2d35d24975267"
+      "lastStableCommit": "c05d5bd32262c7c7281d27bfdbcb08597706e1d0"
     }
   ],
   "atomicDiscipline": {
@@ -28,7 +28,7 @@
     "successfulAttemptRequiresCommitBeforeNextExperiment": true,
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
-  "currentExperimentId": "f049b6f4-cc44-42c6-a44c-4db686ef6818",
+  "currentExperimentId": null,
   "nextExperimentIndex": 9,
   "experiments": [
     {
@@ -119,9 +119,10 @@
       "name": "Quarter-viewport list overscan",
       "path": "2026-10-15-08-quarter-viewport-list-overscan.json",
       "startedAt": "2026-10-15T17:39:54Z",
-      "finishedAt": null,
-      "state": "running",
-      "status": ""
+      "finishedAt": "2026-10-15T17:56:01Z",
+      "state": "done",
+      "status": "success",
+      "resultCommit": "c05d5bd32262c7c7281d27bfdbcb08597706e1d0"
     }
   ]
 }
