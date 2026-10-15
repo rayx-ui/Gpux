@@ -28,8 +28,8 @@
     "successfulAttemptRequiresCommitBeforeNextExperiment": true,
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
-  "currentExperimentId": null,
-  "nextExperimentIndex": 7,
+  "currentExperimentId": "59d4008a-88d7-4ad7-b311-2177fd6244b3",
+  "nextExperimentIndex": 8,
   "experiments": [
     {
       "id": "91cd654b-6c55-4cc1-8506-486e19f9fbc6",
@@ -99,6 +99,17 @@
       "finishedAt": "2026-10-15T17:27:38Z",
       "state": "done",
       "status": "failure"
+    },
+    {
+      "id": "59d4008a-88d7-4ad7-b311-2177fd6244b3",
+      "index": 7,
+      "type": "hypothesis",
+      "name": "One pass keep of retained layout nodes",
+      "path": "2026-10-15-07-one-pass-keep-of-retained-layout-nodes.json",
+      "startedAt": "2026-10-15T17:29:08Z",
+      "finishedAt": null,
+      "state": "running",
+      "status": ""
     }
   ]
 }

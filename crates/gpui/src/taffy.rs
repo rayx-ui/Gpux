@@ -25,8 +25,39 @@ type MeasureFn =
     dyn FnMut(Size<Option<Pixels>>, Size<AvailableSpace>, &mut Window, &mut App) -> Size<Pixels>;
 type NodeMeasureFn = StackSafe<Box<MeasureFn>>;
 
+/// How a measured node is sized.
+pub(crate) enum Measure {
+    /// By a closure the element handed in.
+    Closure(NodeMeasureFn),
+    /// By measuring a text leaf's inputs, which a kept leaf does each frame without a closure
+    /// to allocate for it.
+    Text(
+        std::rc::Rc<crate::fast::text::TextMeasureInputs>,
+        std::rc::Rc<crate::fast::layout::MeasureLog>,
+    ),
+}
+
+impl Measure {
+    pub(crate) fn call(
+        &mut self,
+        known: Size<Option<Pixels>>,
+        available: Size<AvailableSpace>,
+        window: &mut Window,
+        cx: &mut App,
+    ) -> Size<Pixels> {
+        match self {
+            Measure::Closure(measure) => (measure)(known, available, window, cx),
+            Measure::Text(inputs, log) => {
+                let size = crate::fast::text::measure_text(inputs, known, available, window, cx);
+                log.record(known, available, size);
+                size
+            }
+        }
+    }
+}
+
 pub(crate) struct NodeContext {
-    pub(crate) measure: Option<NodeMeasureFn>,
+    pub(crate) measure: Option<Measure>,
     #[cfg(feature = "diagnostics")]
     pub(crate) kind: MeasuredLayoutKind,
     #[cfg(feature = "diagnostics")]
@@ -47,18 +78,6 @@ pub(crate) enum MeasuredLayoutKind {
 }
 
 impl MeasuredLayoutKind {
-    /// Text's measurement.
-    pub(crate) fn text() -> Self {
-        #[cfg(feature = "diagnostics")]
-        {
-            Self::Text
-        }
-        #[cfg(not(feature = "diagnostics"))]
-        {
-            Self::Custom
-        }
-    }
-
     #[cfg(feature = "diagnostics")]
     pub(crate) fn from_source_file(file: &str) -> Self {
         if file.ends_with("elements/text.rs") || file.ends_with("elements\\text.rs") {
@@ -94,24 +113,15 @@ struct MeasuredLayoutSample {
 }
 
 impl NodeContext {
-    /// The context of a node measured by `measure`.
-    pub(crate) fn measuring(
-        measure: impl FnMut(
-            Size<Option<Pixels>>,
-            Size<AvailableSpace>,
-            &mut Window,
-            &mut App,
-        ) -> Size<Pixels>
-        + 'static,
-        _kind: MeasuredLayoutKind,
+    /// The context of a text leaf measured from `inputs`, each size recorded in `log`.
+    pub(crate) fn measuring_text(
+        inputs: std::rc::Rc<crate::fast::text::TextMeasureInputs>,
+        log: std::rc::Rc<crate::fast::layout::MeasureLog>,
     ) -> Self {
-        let measure = Box::new(measure) as Box<MeasureFn>;
-        #[cfg(feature = "stacker")]
-        let measure = StackSafe::new(measure);
         NodeContext {
-            measure: Some(measure),
+            measure: Some(Measure::Text(inputs, log)),
             #[cfg(feature = "diagnostics")]
-            kind: _kind,
+            kind: MeasuredLayoutKind::Text,
             #[cfg(feature = "diagnostics")]
             previous_measurements: Vec::new(),
             #[cfg(feature = "diagnostics")]
@@ -532,7 +542,7 @@ impl TaffyLayoutEngine {
         #[cfg(feature = "stacker")]
         let measure = StackSafe::new(measure);
         let context = NodeContext {
-            measure: Some(measure),
+            measure: Some(Measure::Closure(measure)),
             #[cfg(feature = "diagnostics")]
             kind: _kind,
             #[cfg(feature = "diagnostics")]
@@ -775,7 +785,7 @@ impl TaffyLayoutEngine {
                                 );
                             }
                             let measured_size: Size<Pixels> =
-                                (measure)(known_dimensions, available_space, window, cx);
+                                measure.call(known_dimensions, available_space, window, cx);
                             crate::fast::fast_stat!(window.fast_stats.frame, leaves_measured += 1);
                             let measured_size: TaffySize<f32> =
                                 snap_measured_size_to_device_pixels(measured_size, scale_factor)

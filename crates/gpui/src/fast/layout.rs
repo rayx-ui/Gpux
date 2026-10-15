@@ -42,7 +42,7 @@ use crate::{
     LayoutDirection, LayoutId, Length, Overflow, Pixels, Point, Position, Size, Style,
     TaffyLayoutEngine, Window,
     fast::text::TextMeasureInputs,
-    taffy::{MeasuredLayoutKind, NodeContext, ToTaffy as _},
+    taffy::{NodeContext, ToTaffy as _},
     util::round_to_device_pixel,
 };
 
@@ -175,7 +175,7 @@ const MEASURE_LOG_CAPACITY: usize = 16;
 impl MeasureLog {
     /// Records a measurement Taffy took, moving it to the end if one under
     /// the same constraints was recorded.
-    fn record(
+    pub(crate) fn record(
         &self,
         known: Size<Option<Pixels>>,
         available: Size<AvailableSpace>,
@@ -524,15 +524,7 @@ pub(crate) fn request_text_node(
 /// The node context of a text leaf: `inputs` measured, each size recorded in
 /// `log`.
 fn text_context(inputs: &Rc<TextMeasureInputs>, log: &Rc<MeasureLog>) -> NodeContext {
-    let (inputs, log) = (inputs.clone(), log.clone());
-    NodeContext::measuring(
-        move |known, available, window: &mut Window, cx: &mut App| {
-            let size = crate::fast::text::measure_text(&inputs, known, available, window, cx);
-            log.record(known, available, size);
-            size
-        },
-        MeasuredLayoutKind::text(),
-    )
+    NodeContext::measuring_text(inputs.clone(), log.clone())
 }
 
 /// Whether `inputs` measure to every size in `log` under the constraints it
@@ -1127,7 +1119,7 @@ fn measure_node(
         .get_node_context_mut(id.into())
         .and_then(|context| context.measure.as_mut())
     {
-        measure(known_dimensions, available_space, window, cx);
+        measure.call(known_dimensions, available_space, window, cx);
     }
 }
 
