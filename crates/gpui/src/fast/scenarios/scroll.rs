@@ -436,7 +436,9 @@ impl Scrolling {
                 check(stats.list_rows_rendered <= 4 * frames, || {
                     format!("frames rendered rows their layer held: {stats:?}")
                 })?;
-                check(stats.list_rows_kept >= 10 * frames, || {
+                // A layer holds the rows it shows and a fifth of a viewport of overscan on each
+                // side (`paint::LIST_OVERSCAN_VIEWPORTS`), which these small lists make a few rows.
+                check(stats.list_rows_kept >= 5 * frames, || {
                     format!("the layer kept too few rows to scroll over: {stats:?}")
                 })?;
                 // The view holding the list is built for its scroll.
