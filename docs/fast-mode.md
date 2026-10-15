@@ -79,6 +79,16 @@ view that read the hover of a hitbox it does not insert, such as the group aroun
 (`group_hover`), is built again every frame: that hitbox belongs to whoever inserts it, under a
 new id each frame its owner draws.
 
+### The `devtools` feature
+
+`gpux`'s `devtools` feature (on by default, and with `test-support`) records a DevKit node for
+every element each frame: its semantics, writable properties and the snapshot semantic locators
+and `devtools_frame_snapshot` read. A reused or spliced stretch copies those nodes and a frame
+drops them. An application that does not use them builds with `default-features = false` (adding
+the features it needs back): nothing is then recorded, copied or built per element, and
+`devtools_frame_snapshot` lists no element. The benchmark builds this way: on macOS it takes 16%
+of `dashboard-clock`'s CPU with fast mode on, and 5–60% of the heap allocations per frame.
+
 ## View retention
 
 With `view_retention` on (it needs `layout_retention`), every entity-backed view is a retained

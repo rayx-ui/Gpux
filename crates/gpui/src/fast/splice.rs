@@ -1181,9 +1181,13 @@ impl StretchCopy {
             .resize(next.next_devtools_node_id, usize::MAX);
         self.devtools_ids.push((old_ids, new_start));
         let enclosing = next.devtools_node_stack.last().copied();
-        for source in &rendered.devtools_nodes
-            [range.start.devtools_nodes_index..range.end.devtools_nodes_index]
-        {
+        let copied_nodes: &[crate::window::DevtoolsFrameNode] = if crate::window::DEVTOOLS {
+            &rendered.devtools_nodes
+                [range.start.devtools_nodes_index..range.end.devtools_nodes_index]
+        } else {
+            &[]
+        };
+        for source in copied_nodes {
             let devtools_node_id = self.devtools_id(source.devtools_node_id);
             let dispatch_node_id = self
                 .copied(DispatchNodeId::from_usize(source.dispatch_node_id))

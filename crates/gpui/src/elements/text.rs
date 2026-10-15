@@ -316,7 +316,7 @@ impl Element for &'static str {
         window: &mut Window,
         cx: &mut App,
     ) {
-        window.set_devtools_semantics(DevtoolsSemantics::new().role("text").text(*self));
+        window.set_devtools_semantics_with(|| DevtoolsSemantics::new().role("text").text(*self));
         text_layout.paint(self, window, cx)
     }
 }
@@ -391,11 +391,11 @@ impl Element for SharedString {
         window: &mut Window,
         cx: &mut App,
     ) {
-        window.set_devtools_semantics(
+        window.set_devtools_semantics_with(|| {
             DevtoolsSemantics::new()
                 .role("text")
-                .text(self.as_ref().to_string()),
-        );
+                .text(self.as_ref().to_string())
+        });
         text_layout.paint(self.as_ref(), window, cx)
     }
 }
@@ -622,11 +622,11 @@ impl Element for StyledText {
         window: &mut Window,
         cx: &mut App,
     ) {
-        window.set_devtools_semantics(
+        window.set_devtools_semantics_with(|| {
             DevtoolsSemantics::new()
                 .role("text")
-                .text(self.text.as_ref().to_string()),
-        );
+                .text(self.text.as_ref().to_string())
+        });
         self.layout.paint(&self.text, window, cx)
     }
 }

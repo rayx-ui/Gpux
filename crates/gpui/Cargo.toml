@@ -17,8 +17,9 @@ categories = ["gui"]
 workspace = true
 
 [features]
-default = ["font-kit", "wayland", "x11", "windows-manifest"]
+default = ["font-kit", "wayland", "x11", "windows-manifest", "devtools"]
 test-support = [
+    "devtools",
     "collections/test-support",
     "http_client/test-support",
     "wayland",
@@ -36,6 +37,9 @@ inspector = ["gpui_macros/inspector"]
 # by setting `GPUI_LEAK_DETECTION` when building; see `build.rs`.
 leak-detection = []
 font-kit = []
+# Records the DevKit node of every element each frame (semantics, writable properties, the
+# frame snapshot semantic locators read). Without it nothing is recorded or copied per element.
+devtools = []
 wayland = []
 x11 = [
     "scap?/x11",

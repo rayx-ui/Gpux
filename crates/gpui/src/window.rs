@@ -1424,6 +1424,11 @@ pub struct DevtoolsElementSnapshot {
     pub focused: bool,
 }
 
+/// Whether frames record the DevKit node of every element, with the semantics and writable
+/// properties authored on it. Off without the `devtools` feature: nothing is recorded, copied or
+/// dropped per element, and `devtools_frame_snapshot` lists no element.
+pub(crate) const DEVTOOLS: bool = cfg!(feature = "devtools");
+
 pub(crate) struct DevtoolsFrameNode {
     pub(crate) devtools_node_id: usize,
     pub(crate) parent_devtools_node_id: Option<usize>,
@@ -4940,6 +4945,9 @@ impl Window {
         bounds: Bounds<Pixels>,
         hitbox_range: Range<usize>,
     ) {
+        if !DEVTOOLS {
+            return;
+        }
         let parent_dispatch_node_id = self
             .next_frame
             .dispatch_tree
@@ -5026,6 +5034,9 @@ impl Window {
 
     /// Attach component-authored DevKit semantics to the element currently being painted.
     pub fn set_devtools_semantics(&mut self, semantics: DevtoolsSemantics) {
+        if !DEVTOOLS {
+            return;
+        }
         let Some(devtools_node_id) = self.active_devtools_node_id() else {
             return;
         };
@@ -5041,6 +5052,17 @@ impl Window {
             existing.merge(semantics);
         } else {
             element.semantics = Some(semantics);
+        }
+    }
+
+    /// Attaches the semantics `semantics` builds, which are not built without the `devtools`
+    /// feature.
+    pub(crate) fn set_devtools_semantics_with(
+        &mut self,
+        semantics: impl FnOnce() -> DevtoolsSemantics,
+    ) {
+        if DEVTOOLS {
+            self.set_devtools_semantics(semantics());
         }
     }
 
@@ -5062,6 +5084,9 @@ impl Window {
     }
 
     pub(crate) fn register_devtools_property_setter(&mut self, setter: DevtoolsPropertySetter) {
+        if !DEVTOOLS {
+            return;
+        }
         let Some(devtools_node_id) = self.active_devtools_node_id() else {
             return;
         };
@@ -5962,9 +5987,13 @@ impl Window {
         self.next_frame
             .devtools_node_indices
             .resize(self.next_frame.next_devtools_node_id, usize::MAX);
-        for source in &self.rendered_frame.devtools_nodes
-            [range.start.devtools_nodes_index..range.end.devtools_nodes_index]
-        {
+        let reused_nodes: &[DevtoolsFrameNode] = if DEVTOOLS {
+            &self.rendered_frame.devtools_nodes
+                [range.start.devtools_nodes_index..range.end.devtools_nodes_index]
+        } else {
+            &[]
+        };
+        for source in reused_nodes {
             debug_assert!(old_ids.contains(&source.devtools_node_id));
             let devtools_node_id = new_id_start + source.devtools_node_id - old_ids.start;
             let dispatch_node_id =
