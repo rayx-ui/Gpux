@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "id": "27627803-43fb-4bf2-a202-2ba23d45a05f",
+  "loopId": "93c0b7e1-2b73-4272-a15b-436864754725",
+  "index": 18,
+  "type": "hypothesis",
+  "name": "Claim kept layout nodes in one pass",
+  "slug": "claim-kept-layout-nodes-in-one-pass",
+  "path": "2026-10-15-18-claim-kept-layout-nodes-in-one-pass.json",
+  "createdAt": "2026-10-15T22:31:58Z",
+  "startedAt": "2026-10-15T22:31:58Z",
+  "finishedAt": "2026-10-15T22:42:56Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "8f0654ac6b5d84d8fba924ef55c096d00fe9d9b0",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 8f0654ac6b5d84d8fba924ef55c096d00fe9d9b0",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "8f0654ac6b5d84d8fba924ef55c096d00fe9d9b0",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 8f0654ac6b5d84d8fba924ef55c096d00fe9d9b0",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal) via benchmark/run.py --target macos",
+  "hypothesisMarkdown": "## Claim kept layout nodes in one pass\n\nMechanism: `keep_retained_nodes` walked a reused view's keys three times (check, claim, gather text leaves into a Vec of Rc clones); fuse the claim and the gather. Allowed: fast/layout.rs.",
+  "measurementPlanMarkdown": "ab.sh over six scenarios. Pass: dashboard-clock and all-panels CPU down at least 3%.",
+  "expectedOutcomeMarkdown": "",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "dashboard-clock on CPU / draw p50",
+      "before": "2.62 / 2.39",
+      "after": "2.66 / 2.35",
+      "delta": "+2% / -2%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "dashboard-all-panels on CPU",
+      "before": "4.82",
+      "after": "4.77",
+      "delta": "-1%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "table-stream / text-relabel / hover-grid on CPU",
+      "before": "",
+      "after": "",
+      "delta": "within +-1%",
+      "source": "run.py macos"
+    }
+  ],
+  "reportMarkdown": "## Claim kept layout nodes in one pass Finished\n\nPassed: false. No scenario moved beyond 1-2%: the remaining cost of reusing a view's layout is the hash lookups themselves, and fusing the passes leaves their count nearly where it was (one fewer, of three). Reverted.\n\nAttempt Count: 1.",
+  "decisionMarkdown": "### Decision\n\nReverted failure.",
+  "notes": ""
+}

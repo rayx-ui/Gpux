@@ -29,7 +29,7 @@
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
   "currentExperimentId": null,
-  "nextExperimentIndex": 18,
+  "nextExperimentIndex": 19,
   "experiments": [
     {
       "id": "91cd654b-6c55-4cc1-8506-486e19f9fbc6",
@@ -227,6 +227,17 @@
       "state": "done",
       "status": "success",
       "resultCommit": "0a7d869fc7500cb7f534f7bf994137d4dc5dd810"
+    },
+    {
+      "id": "27627803-43fb-4bf2-a202-2ba23d45a05f",
+      "index": 18,
+      "type": "hypothesis",
+      "name": "Claim kept layout nodes in one pass",
+      "path": "2026-10-15-18-claim-kept-layout-nodes-in-one-pass.json",
+      "startedAt": "2026-10-15T22:31:58Z",
+      "finishedAt": "2026-10-15T22:42:56Z",
+      "state": "done",
+      "status": "failure"
     }
   ]
 }
