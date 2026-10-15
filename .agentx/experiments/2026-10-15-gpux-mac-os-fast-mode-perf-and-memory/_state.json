@@ -11,13 +11,13 @@
   "status": "",
   "createdAt": "2026-10-15T16:29:33Z",
   "finishedAt": null,
-  "lastStableCommit": "d5cb2e15fbd2ffd9fb63ab2e468d9526ac3ffa08",
+  "lastStableCommit": "f476ac723e258c207f1249e59791bbaa60fd353e",
   "repositories": [
     {
       "name": "main",
       "path": ".",
       "role": "main",
-      "lastStableCommit": "d5cb2e15fbd2ffd9fb63ab2e468d9526ac3ffa08"
+      "lastStableCommit": "f476ac723e258c207f1249e59791bbaa60fd353e"
     }
   ],
   "atomicDiscipline": {
@@ -28,7 +28,7 @@
     "successfulAttemptRequiresCommitBeforeNextExperiment": true,
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
-  "currentExperimentId": "91cd654b-6c55-4cc1-8506-486e19f9fbc6",
+  "currentExperimentId": null,
   "nextExperimentIndex": 2,
   "experiments": [
     {
@@ -38,9 +38,10 @@
       "name": "Baseline Measurement",
       "path": "2026-10-15-01-baseline-measurement.json",
       "startedAt": "2026-10-15T16:29:33Z",
-      "finishedAt": null,
-      "state": "running",
-      "status": ""
+      "finishedAt": "2026-10-15T16:44:46Z",
+      "state": "done",
+      "status": "success",
+      "resultCommit": "f476ac723e258c207f1249e59791bbaa60fd353e"
     }
   ]
 }
