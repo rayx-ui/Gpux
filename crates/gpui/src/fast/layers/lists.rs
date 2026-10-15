@@ -31,8 +31,8 @@
 //!   no tile can keep today's path ([`layered`]).
 //!
 //! A virtual list renders only the rows it shows. Its layer holds more: the
-//! rows its viewport shows and two viewports' worth of rows on each side
-//! (the overscan), each painted into the layer at its place in content
+//! rows its viewport shows and half a viewport's worth of rows on each
+//! side (the overscan, [`paint::LIST_OVERSCAN_VIEWPORTS`]), each painted into the layer at its place in content
 //! space and kept there by row. On a frame that only scrolled the list the
 //! rows the layer holds are neither rendered, laid out, prepainted nor
 //! painted: only the rows the scroll brought into the overscan are, and
@@ -130,7 +130,7 @@ pub(crate) struct LayerRows {
     /// The layer's translation in the last frame that drew its rows.
     last_translation: Option<Point<ScaledPixels>>,
     /// How many viewports' height of rows a `list`'s layer holds on each side
-    /// of the rows it shows, up to [`paint::OVERSCAN_VIEWPORTS`]. See
+    /// of the rows it shows, up to [`paint::LIST_OVERSCAN_VIEWPORTS`]. See
     /// [`overscan_reach`].
     reach: f32,
     /// The rows the list showed in the last frame that drew it, and that
@@ -327,14 +327,14 @@ const REACH_STEP_VIEWPORTS: f32 = 0.5;
 /// for a change of its content, paints only the rows the list shows, as the
 /// list does without a layer: a view holding the list that is notified now
 /// and then, as a chat transcript is when it reaches its end, would
-/// otherwise rebuild five viewports of rows each time, and its layer be
+/// otherwise rebuild its whole overscan each time, and its layer be
 /// demoted for those spikes (see [`crate::fast::layers::work`]). The frames
 /// keeping the rows after it grow the overscan back a step at a time.
 fn overscan_reach(mode: Mode, reach: f32, had_record: bool) -> f32 {
     match mode {
-        Mode::Extend => (reach + REACH_STEP_VIEWPORTS).min(paint::OVERSCAN_VIEWPORTS),
+        Mode::Extend => (reach + REACH_STEP_VIEWPORTS).min(paint::LIST_OVERSCAN_VIEWPORTS),
         Mode::Repaint if had_record => 0.,
-        Mode::Repaint => paint::OVERSCAN_VIEWPORTS,
+        Mode::Repaint => paint::LIST_OVERSCAN_VIEWPORTS,
     }
 }
 
@@ -399,7 +399,13 @@ struct Row {
     /// Whether the row keeps element states.
     has_states: bool,
     /// The keys of the layout nodes laying the row out claimed: kept while
-    /// the row is, so that rendering it again reuses them.
+    /// the list shows the row, so that rendering it again reuses them. The
+    /// nodes of a row the list does not show linger as those of any row a
+    /// list no longer lays out, as many as the frame's rows claim (see
+    /// [`crate::fast::layout::LIST_ROW_NODE_LINGER_SHARE`]): a row ahead of
+    /// a scroll is rendered again only if what it read changes, and holding
+    /// the nodes of every row the layer holds would hold several viewports
+    /// of nodes.
     layout_keys: Vec<u64>,
     /// The entities laying the row out, prepainting and painting it read,
     /// as of when it was rendered: when one of them changes, the row is
@@ -960,7 +966,7 @@ pub(crate) fn begin_uniform_list(
         }
         return Rows(None);
     }
-    let overscan = (viewport.size.height * paint::OVERSCAN_VIEWPORTS / item_height)
+    let overscan = (viewport.size.height * paint::LIST_OVERSCAN_VIEWPORTS / item_height)
         .ceil()
         .max(1.) as usize;
     let needed = needed_rows(visible, overscan, item_count);
@@ -1274,7 +1280,9 @@ fn carry_prepaint_rows(window: &mut Window, id: &GlobalElementId) {
         };
         let delta = row.delta(translation, scale_factor);
         let element_states = !row.dropped && !leaving.contains(ix);
-        keep_retained_layout(window, &row.layout_keys);
+        if visible.contains(ix) {
+            keep_retained_layout(window, &row.layout_keys);
+        }
         row.prepaint = reuse::carry_prepaint_records(
             window,
             &row.prepaint,
@@ -2274,7 +2282,7 @@ pub(crate) fn end_list(
     let placed = mem::take(&mut frame.placed);
     let placement = frame.placement;
 
-    // The rows shown and up to two viewports' height of rows on each side.
+    // The rows shown and up to half a viewport's height of rows on each side.
     let layer = window.fast_layers.layers.get_mut(&id).unwrap();
     let mode = layer
         .rows

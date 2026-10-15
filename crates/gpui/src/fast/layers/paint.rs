@@ -1392,6 +1392,16 @@ fn scrolls(style: &Style) -> bool {
 /// two viewports scrolled); 0.5 more than doubled the mean.
 pub(crate) const OVERSCAN_VIEWPORTS: f32 = 2.;
 
+/// How many viewports' height of rows a list's layer holds on each side of
+/// those the list shows. Unlike a div's layer, painted again once a scroll
+/// leaves its overscan, a list's layer is extended by the rows a scroll
+/// brings into it, as many a frame whatever it holds: what it holds beyond
+/// costs memory (each row its scene, records and reads) and pays only when
+/// the scroll turns back. Measured with gpux's benchmark (`benchmark/`) on
+/// macOS: 2 held 37 MB more heap than 0.5 in `scroll-data-table` (50 MB at
+/// its peak) for no less CPU per frame.
+pub(crate) const LIST_OVERSCAN_VIEWPORTS: f32 = 0.5;
+
 pub(crate) fn painted_region(
     viewport: Bounds<Pixels>,
     content: Bounds<Pixels>,

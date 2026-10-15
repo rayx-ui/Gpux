@@ -54,6 +54,16 @@ const EXPECT_MESSAGE: &str = "we should avoid taffy layout errors by constructio
 /// and back in would otherwise be laid out from scratch.
 pub(crate) const LIST_ROW_NODE_LINGER_FRAMES: u64 = 240;
 
+/// How many nodes of list rows may linger unclaimed, in percent of those
+/// the list rows of the frame claimed: the rows scrolled out most recently.
+/// What lingers costs memory for each node (a text leaf keeps the lines it
+/// measured), and a list scrolled fast passes many rows in
+/// [`LIST_ROW_NODE_LINGER_FRAMES`].
+pub(crate) const LIST_ROW_NODE_LINGER_SHARE: usize = 50;
+
+/// How many nodes of list rows may linger whatever the frame claimed.
+pub(crate) const LIST_ROW_NODE_LINGER_MIN: usize = 256;
+
 /// The kept half of a [`TaffyLayoutEngine`]: the nodes it keeps from one
 /// frame to the next by key.
 #[derive(Default)]
@@ -73,6 +83,9 @@ pub(crate) struct LayoutRetention {
     claimed_this_frame: usize,
     /// How many list rows are being laid out, nested.
     list_rows: usize,
+    /// When the nodes of list rows left unclaimed were claimed, gathered
+    /// when they are swept. See [`linger_from`].
+    linger_scratch: Vec<u64>,
     /// The style each node [`stretch_auto_size_to_fill`] stretched asked
     /// for: a stretched size looks like an explicit one, and the next
     /// frame's request is compared with what was asked.
@@ -884,12 +897,18 @@ pub(crate) fn release_unclaimed_nodes(engine: &mut TaffyLayoutEngine) {
         let frame = retention.frame;
         let taffy = &mut engine.taffy;
         let unstretched_styles = &mut retention.unstretched_styles;
+        // When each node lingering was claimed, and how many nodes of list
+        // rows the frame claimed, for `linger_from`.
+        let scratch = &mut retention.linger_scratch;
+        scratch.clear();
+        let mut claimed_rows = 0;
         retention.retained.retain(|_, node| {
             if node.claimed_in_frame == frame {
+                claimed_rows += node.lingers as usize;
                 return true;
             }
             if node.lingers && frame - node.claimed_in_frame < LIST_ROW_NODE_LINGER_FRAMES {
-                lingering += 1;
+                scratch.push(node.claimed_in_frame);
                 return true;
             }
             unstretched_styles.remove(&node.id);
@@ -897,6 +916,21 @@ pub(crate) fn release_unclaimed_nodes(engine: &mut TaffyLayoutEngine) {
             released += 1;
             false
         });
+        lingering = scratch.len() as u64;
+        // Only a list scrolled past more rows than may linger pays for a
+        // second sweep.
+        if let Some(linger_from) = linger_from(scratch, claimed_rows) {
+            retention.retained.retain(|_, node| {
+                if node.claimed_in_frame == frame || node.claimed_in_frame >= linger_from {
+                    return true;
+                }
+                unstretched_styles.remove(&node.id);
+                taffy.remove(node.id.into()).expect(EXPECT_MESSAGE);
+                released += 1;
+                lingering -= 1;
+                false
+            });
+        }
     }
     retention.text_leaves.clear();
     retention.pending_settles.clear();
@@ -906,6 +940,23 @@ pub(crate) fn release_unclaimed_nodes(engine: &mut TaffyLayoutEngine) {
     let _ = (released, lingering);
     crate::fast::fast_stat!(engine.fast_stats, nodes_released += released);
     crate::fast::fast_stat!(engine.fast_stats, nodes_lingering += lingering);
+}
+
+/// The earliest frame a node of a list row left unclaimed may have been
+/// claimed in to linger, given when each such node was claimed (`claims`,
+/// reordered) and how many nodes of list rows the frame claimed, if fewer
+/// than all of them may: the nodes of the rows scrolled out most recently
+/// linger, at most [`LIST_ROW_NODE_LINGER_SHARE`] of those the frame
+/// claimed. Rows scrolled out before them were laid out too long ago to
+/// come back soon, and a fast scroll would otherwise keep every row it
+/// passed in [`LIST_ROW_NODE_LINGER_FRAMES`].
+fn linger_from(claims: &mut [u64], claimed_rows: usize) -> Option<u64> {
+    let limit = (claimed_rows * LIST_ROW_NODE_LINGER_SHARE / 100).max(LIST_ROW_NODE_LINGER_MIN);
+    if claims.len() <= limit {
+        return None;
+    }
+    let first_kept = claims.len() - limit;
+    Some(*claims.select_nth_unstable(first_kept).1)
 }
 
 /// How many kept or transient nodes hold a measurement closure: none once

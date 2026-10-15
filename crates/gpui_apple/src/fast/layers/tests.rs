@@ -237,6 +237,45 @@ fn tiles_are_evicted_least_recently_composited_first_within_the_budget() {
     );
 }
 
+/// A scroll leaves tiles behind for good: a tile no frame composites is
+/// released after a few frames, its texture kept for the tiles the scroll
+/// brings, so a long scroll holds the tiles it shows and not every tile it
+/// passed until the budget runs out.
+#[test]
+fn tiles_no_frame_composites_are_released_after_a_few_frames() {
+    const SIDE: u32 = 16;
+    let key = LayerKey(5);
+    let mut cache = TileCache::default();
+    let layers = SceneLayers {
+        frames: vec![LayerFrame {
+            tile_size: SIDE,
+            ..layer_frame(key, 1, Scene::default(), &[])
+        }],
+    };
+    // A scroll showing two tiles a frame, moving a tile a frame.
+    for step in 0..64 {
+        let shown = [coord(0, step), coord(0, step + 1)];
+        cache.begin_frame(&layers, shown.iter().map(|tile| (key, *tile)));
+    }
+    let held = (0..66)
+        .filter(|row| cache.holds(key, coord(0, *row)))
+        .count();
+    assert!(
+        held <= 2 + super::tile_cache::TILE_IDLE_FRAMES as usize,
+        "{held} tiles held"
+    );
+    assert!(cache.holds(key, coord(0, 63)) && cache.holds(key, coord(0, 64)));
+    assert!(!cache.holds(key, coord(0, 0)), "a tile left behind goes");
+
+    // Turning back within the idle frames finds the tiles left behind.
+    cache.begin_frame(&layers, [(key, coord(0, 61))].into_iter());
+    assert!(cache.holds(key, coord(0, 61)));
+    assert!(
+        cache.holds(key, coord(0, 64)),
+        "a tile shown a frame ago stays"
+    );
+}
+
 /// A renderer over its budget evicts while it draws, and what it evicted is
 /// rasterized again when a frame shows it.
 #[test]
