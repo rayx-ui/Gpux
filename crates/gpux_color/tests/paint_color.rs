@@ -43,3 +43,24 @@ fn paint_color_clips_before_premultiplication_and_caches_once() {
     assert_eq!(changed.paint_color_initialization_count(), 1);
     assert_eq!(color.paint_color_initialization_count(), 1);
 }
+
+#[test]
+fn transparent_black_is_one_color_per_thread() {
+    let first = Color::transparent_black();
+    let second = Color::default();
+    assert_eq!(first, second);
+    assert!(first.is_transparent());
+    // Preparing one prepares both: they are the same value, worked out once.
+    let prepared = first.paint_color();
+    assert_eq!(second.paint_color_initialization_count(), 1);
+    assert_eq!(second.paint_color(), prepared);
+    // Another thread has its own.
+    std::thread::spawn(|| {
+        assert_eq!(
+            Color::transparent_black().paint_color_initialization_count(),
+            0
+        );
+    })
+    .join()
+    .unwrap();
+}

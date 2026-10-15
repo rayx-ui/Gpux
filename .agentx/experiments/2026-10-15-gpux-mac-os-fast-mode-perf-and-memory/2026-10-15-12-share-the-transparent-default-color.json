@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "id": "32faf553-e588-404f-b02b-aaa96b59309b",
+  "loopId": "93c0b7e1-2b73-4272-a15b-436864754725",
+  "index": 12,
+  "type": "hypothesis",
+  "name": "Share the transparent default color",
+  "slug": "share-the-transparent-default-color",
+  "path": "2026-10-15-12-share-the-transparent-default-color.json",
+  "createdAt": "2026-10-15T20:51:19Z",
+  "startedAt": "2026-10-15T20:51:19Z",
+  "finishedAt": null,
+  "state": "running",
+  "status": "",
+  "checkpointCommit": "3c855b6d930dd34e15e55f1bb628eb1c512dee8d",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 3c855b6d930dd34e15e55f1bb628eb1c512dee8d",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "3c855b6d930dd34e15e55f1bb628eb1c512dee8d",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 3c855b6d930dd34e15e55f1bb628eb1c512dee8d",
+      "status": ""
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal) via benchmark/run.py --target macos",
+  "hypothesisMarkdown": "## Share the transparent default color\n\nMechanism: `Color::transparent_black()` (every `Color::default()`, so every `Background::default()` and every style's default colors) allocated an Arc and wrote a ColorInner each call; hand out a per-thread shared one. Allowed: gpux_color value.rs. Forbidden: any other Color construction.",
+  "measurementPlanMarkdown": "A/B (HEAD, then the change, same session, 3 reps) over effects-cards, hover-grid, scroll-div-cards (an earlier combined run read effects-cards +44% for it). Pass: allocations down, CPU not worse beyond noise.",
+  "expectedOutcomeMarkdown": "",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "hover-grid on allocs/frame",
+      "before": "26,045",
+      "after": "21,245",
+      "delta": "-18%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "hover-grid on CPU",
+      "before": "5.10",
+      "after": "5.02",
+      "delta": "-2%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "scroll-div-cards on allocs / CPU",
+      "before": "17,456 / 4.08",
+      "after": "15,055 / 3.95",
+      "delta": "-14% / -3%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "effects-cards on CPU",
+      "before": "2.66",
+      "after": "1.82",
+      "delta": "-32% (that scenario alternates between 1.8 and 2.7 ms across runs, in both builds)",
+      "source": "run.py macos"
+    }
+  ],
+  "reportMarkdown": "## Share the transparent default color Finished\n\nPassed: true. The +44% on effects-cards in experiment 11's combined run was that scenario's bimodal behaviour (about 1.8 ms or about 2.7 ms in the same build depending on the run), not this change. Allocations fall 12-18%, CPU 2-3%. New test `transparent_black_is_one_color_per_thread`; color tests pass, clippy/fmt clean.\n\nAttempt Count: 1.",
+  "decisionMarkdown": "### Decision\n\nCommitted success. Note for later runs: effects-cards on is bimodal, judge it over more runs.",
+  "notes": ""
+}

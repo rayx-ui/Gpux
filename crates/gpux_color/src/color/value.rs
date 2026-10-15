@@ -45,8 +45,16 @@ impl PartialEq for Color {
 }
 
 impl Color {
-    /// Creates transparent black.
+    /// Creates transparent black: a handle to the one each thread keeps, which every default
+    /// style and background asks for.
     pub fn transparent_black() -> Self {
+        thread_local! {
+            static TRANSPARENT_BLACK: Color = Color::new_transparent_black();
+        }
+        TRANSPARENT_BLACK.with(Color::clone)
+    }
+
+    fn new_transparent_black() -> Self {
         let source = EncodedColor::numeric(ColorSpace::XyzD65, [0.0, 0.0, 0.0], 0.0);
         Self(Arc::new(ColorInner {
             xyz_d65: XyzD65::new(0.0, 0.0, 0.0),
