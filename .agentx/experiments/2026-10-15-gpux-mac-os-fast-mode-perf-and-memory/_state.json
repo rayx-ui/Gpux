@@ -28,8 +28,8 @@
     "successfulAttemptRequiresCommitBeforeNextExperiment": true,
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
-  "currentExperimentId": null,
-  "nextExperimentIndex": 17,
+  "currentExperimentId": "4f6ebc53-0259-4bfd-8cf9-d21ba87390d8",
+  "nextExperimentIndex": 18,
   "experiments": [
     {
       "id": "91cd654b-6c55-4cc1-8506-486e19f9fbc6",
@@ -215,6 +215,17 @@
       "finishedAt": "2026-10-15T22:08:55Z",
       "state": "done",
       "status": "failure"
+    },
+    {
+      "id": "4f6ebc53-0259-4bfd-8cf9-d21ba87390d8",
+      "index": 17,
+      "type": "hypothesis",
+      "name": "Two drawables",
+      "path": "2026-10-15-17-two-drawables.json",
+      "startedAt": "2026-10-15T22:09:19Z",
+      "finishedAt": null,
+      "state": "running",
+      "status": ""
     }
   ]
 }

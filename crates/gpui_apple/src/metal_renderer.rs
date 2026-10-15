@@ -195,7 +195,7 @@ impl MetalRenderer {
         // Support direct-to-display rendering if the window is not transparent
         // https://developer.apple.com/documentation/metal/managing-your-game-window-for-metal-in-macos
         layer.set_opaque(!transparent);
-        layer.set_maximum_drawable_count(3);
+        layer.set_maximum_drawable_count(2);
         // Allow texture readback for runtime captures and visual tests.
         layer.set_framebuffer_only(false);
         // metal-rs doesn't bind these setters, so view the same object through
