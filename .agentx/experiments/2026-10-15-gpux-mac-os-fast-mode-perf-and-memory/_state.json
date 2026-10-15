@@ -11,13 +11,13 @@
   "status": "",
   "createdAt": "2026-10-15T16:29:33Z",
   "finishedAt": null,
-  "lastStableCommit": "f476ac723e258c207f1249e59791bbaa60fd353e",
+  "lastStableCommit": "36a3b4a7acc0a6aa7981661496a8a8483b8b4725",
   "repositories": [
     {
       "name": "main",
       "path": ".",
       "role": "main",
-      "lastStableCommit": "f476ac723e258c207f1249e59791bbaa60fd353e"
+      "lastStableCommit": "36a3b4a7acc0a6aa7981661496a8a8483b8b4725"
     }
   ],
   "atomicDiscipline": {
@@ -28,7 +28,7 @@
     "successfulAttemptRequiresCommitBeforeNextExperiment": true,
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
-  "currentExperimentId": "e6b4f7bd-f01f-4ada-840d-92bd4efb6eb1",
+  "currentExperimentId": null,
   "nextExperimentIndex": 5,
   "experiments": [
     {
@@ -72,9 +72,10 @@
       "name": "Linear text leaf settling",
       "path": "2026-10-15-04-linear-text-leaf-settling.json",
       "startedAt": "2026-10-15T17:00:39Z",
-      "finishedAt": null,
-      "state": "running",
-      "status": ""
+      "finishedAt": "2026-10-15T17:06:41Z",
+      "state": "done",
+      "status": "success",
+      "resultCommit": "36a3b4a7acc0a6aa7981661496a8a8483b8b4725"
     }
   ]
 }
