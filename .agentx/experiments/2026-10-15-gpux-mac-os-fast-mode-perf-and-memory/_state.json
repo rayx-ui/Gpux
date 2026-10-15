@@ -29,7 +29,7 @@
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
   "currentExperimentId": null,
-  "nextExperimentIndex": 6,
+  "nextExperimentIndex": 7,
   "experiments": [
     {
       "id": "91cd654b-6c55-4cc1-8506-486e19f9fbc6",
@@ -88,6 +88,17 @@
       "state": "done",
       "status": "success",
       "resultCommit": "f611fd439a89803aea7e8690b74df77558b19844"
+    },
+    {
+      "id": "cbf0f057-8418-4a3b-a839-a2d064d7af44",
+      "index": 6,
+      "type": "hypothesis",
+      "name": "256 px layer tiles",
+      "path": "2026-10-15-06-256-px-layer-tiles.json",
+      "startedAt": "2026-10-15T17:23:52Z",
+      "finishedAt": "2026-10-15T17:27:38Z",
+      "state": "done",
+      "status": "failure"
     }
   ]
 }
