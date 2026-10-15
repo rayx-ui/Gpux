@@ -18,6 +18,8 @@ const HSLA_COLOR_CACHE_CAPACITY: usize = 1_024;
 thread_local! {
     static HSLA_COLOR_CACHE: RefCell<FxHashMap<[u32; 4], Color>> =
         RefCell::new(FxHashMap::default());
+    static RGBA_COLOR_CACHE: RefCell<FxHashMap<[u32; 4], Color>> =
+        RefCell::new(FxHashMap::default());
 }
 
 /// Convert an RGB hex color code number to a color type
@@ -753,13 +755,29 @@ impl From<Hsla> for Color {
 
 impl From<Rgba> for Color {
     fn from(color: Rgba) -> Self {
-        Color::from_encoded_srgb(
-            f64::from(color.r),
-            f64::from(color.g),
-            f64::from(color.b),
-            f64::from(color.a),
-        )
-        .expect("GPUI Rgba inputs must contain finite components and alpha in [0, 1]")
+        let key = [
+            color.r.to_bits(),
+            color.g.to_bits(),
+            color.b.to_bits(),
+            color.a.to_bits(),
+        ];
+        RGBA_COLOR_CACHE.with_borrow_mut(|cache| {
+            if let Some(cached) = cache.get(&key) {
+                return cached.clone();
+            }
+            let converted = Color::from_encoded_srgb(
+                f64::from(color.r),
+                f64::from(color.g),
+                f64::from(color.b),
+                f64::from(color.a),
+            )
+            .expect("GPUI Rgba inputs must contain finite components and alpha in [0, 1]");
+            if cache.len() == HSLA_COLOR_CACHE_CAPACITY {
+                cache.clear();
+            }
+            cache.insert(key, converted.clone());
+            converted
+        })
     }
 }
 
@@ -1374,6 +1392,21 @@ mod tests {
         assert_eq!(background.opacity(0.5).stops[1], to.opacity(0.5));
         assert!(!background.is_transparent());
         assert!(background.opacity(0.0).is_transparent());
+    }
+
+    #[test]
+    fn an_rgba_converts_to_the_color_it_converted_to_before() {
+        let first: Color = rgba(0x3366_99cc).into();
+        assert_eq!(first.paint_color_initialization_count(), 0);
+        let prepared = first.paint_color();
+        let second: Color = rgba(0x3366_99cc).into();
+        assert_eq!(second, first);
+        // The same color is handed out, with what was worked out for painting it.
+        assert_eq!(second.paint_color_initialization_count(), 1);
+        assert_eq!(second.paint_color(), prepared);
+        let other: Color = rgba(0x3366_99cd).into();
+        assert_ne!(other, first);
+        assert_eq!(other.paint_color_initialization_count(), 0);
     }
 
     #[test]

@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "id": "6a610ced-e73c-45bf-b1b4-d07582819d93",
+  "loopId": "93c0b7e1-2b73-4272-a15b-436864754725",
+  "index": 11,
+  "type": "hypothesis",
+  "name": "Cheap authored colors",
+  "slug": "cheap-authored-colors",
+  "path": "2026-10-15-11-cheap-authored-colors.json",
+  "createdAt": "2026-10-15T20:32:45Z",
+  "startedAt": "2026-10-15T20:32:45Z",
+  "finishedAt": null,
+  "state": "running",
+  "status": "",
+  "checkpointCommit": "15cd6b649dae58d2497625acb47ad84796635bc6",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 15cd6b649dae58d2497625acb47ad84796635bc6",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "15cd6b649dae58d2497625acb47ad84796635bc6",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 15cd6b649dae58d2497625acb47ad84796635bc6",
+      "status": ""
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal) via benchmark/run.py --target macos",
+  "hypothesisMarkdown": "## Cache authored Rgba colors\n\nMechanism: `From<Rgba> for Color` rebuilt a Color (an Arc, an encoded-to-XYZ conversion with powf) for every `rgb(..)` background, border or text color of every element every frame, where Hsla already had a per-thread cache. Cache by the four components, capacity 1,024. A second change tried in the same run (share one transparent-black default) is dropped, see the report. Allowed: gpui color.rs. Forbidden: the Color type itself.",
+  "measurementPlanMarkdown": "A/B (HEAD stashed, then the change, same session, 3 reps) over hover-grid, tree-toggle, dashboard-clock, dashboard-all-panels, scroll-div-cards, effects-cards, table-stream. Pass: hover-grid CPU down at least 8%, nothing slower than noise.",
+  "expectedOutcomeMarkdown": "",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "hover-grid on CPU / draw p50 / allocs",
+      "before": "6.29 / 5.56 / 32,445",
+      "after": "5.09 / 4.79 / 26,045",
+      "delta": "-19% / -14% / -20%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "scroll-div-cards on CPU",
+      "before": "4.43",
+      "after": "4.05",
+      "delta": "-9%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "tree-toggle on CPU / draw p50",
+      "before": "4.27 / 3.17",
+      "after": "4.03 / 2.98",
+      "delta": "-6% / -6%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "hover-grid off CPU",
+      "before": "6.97",
+      "after": "6.18",
+      "delta": "-11%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "effects-cards on CPU (with the shared default)",
+      "before": "1.85",
+      "after": "2.67",
+      "delta": "+44%, so the shared default was dropped; Rgba cache alone +1%",
+      "source": "run.py macos"
+    }
+  ],
+  "reportMarkdown": "## Cache authored Rgba colors Finished\n\nPassed: true. Every `rgb(0x..)` in a style converted again each frame; with the cache hover-grid gains 19% with fast mode on and 11% off, and heap peak falls 15%. Also tried: handing out one shared transparent-black Color per thread (to drop the default allocation in `Background::from`); it took effects-cards from 1.85 to 2.67 ms, so it was reverted before the commit. New test `an_rgba_converts_to_the_color_it_converted_to_before`; the color tests (17) pass, clippy and fmt clean.\n\nAttempt Count: 1 (the shared-default sub-change was measured, failed, and left out; recorded here).",
+  "decisionMarkdown": "### Decision\n\nCommitted success (Rgba cache only).",
+  "notes": ""
+}

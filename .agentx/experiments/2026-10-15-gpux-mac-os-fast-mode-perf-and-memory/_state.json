@@ -28,8 +28,8 @@
     "successfulAttemptRequiresCommitBeforeNextExperiment": true,
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
-  "currentExperimentId": null,
-  "nextExperimentIndex": 11,
+  "currentExperimentId": "6a610ced-e73c-45bf-b1b4-d07582819d93",
+  "nextExperimentIndex": 12,
   "experiments": [
     {
       "id": "91cd654b-6c55-4cc1-8506-486e19f9fbc6",
@@ -146,6 +146,17 @@
       "finishedAt": "2026-10-15T19:00:28Z",
       "state": "done",
       "status": "failure"
+    },
+    {
+      "id": "6a610ced-e73c-45bf-b1b4-d07582819d93",
+      "index": 11,
+      "type": "hypothesis",
+      "name": "Cheap authored colors",
+      "path": "2026-10-15-11-cheap-authored-colors.json",
+      "startedAt": "2026-10-15T20:32:45Z",
+      "finishedAt": null,
+      "state": "running",
+      "status": ""
     }
   ]
 }
