@@ -29,7 +29,7 @@
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
   "currentExperimentId": null,
-  "nextExperimentIndex": 16,
+  "nextExperimentIndex": 17,
   "experiments": [
     {
       "id": "91cd654b-6c55-4cc1-8506-486e19f9fbc6",
@@ -202,6 +202,17 @@
       "path": "2026-10-15-15-box-the-div-interactivity.json",
       "startedAt": "2026-10-15T21:43:28Z",
       "finishedAt": "2026-10-15T21:53:36Z",
+      "state": "done",
+      "status": "failure"
+    },
+    {
+      "id": "44824aee-78c7-4077-afd4-a2c7ddef5519",
+      "index": 16,
+      "type": "hypothesis",
+      "name": "Inline length and edge comparisons",
+      "path": "2026-10-15-16-inline-length-and-edge-comparisons.json",
+      "startedAt": "2026-10-15T21:54:05Z",
+      "finishedAt": "2026-10-15T22:08:55Z",
       "state": "done",
       "status": "failure"
     }
