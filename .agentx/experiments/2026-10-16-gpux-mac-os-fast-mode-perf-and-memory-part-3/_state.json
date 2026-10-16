@@ -11,13 +11,13 @@
   "status": "",
   "createdAt": "2026-10-16T01:54:00Z",
   "finishedAt": null,
-  "lastStableCommit": "75c4c07c421f5241e2fc41f1625394d0b9ff215f",
+  "lastStableCommit": "04ee65eee8ce5fa733536d4f23b5268ae820bdff",
   "repositories": [
     {
       "name": "main",
       "path": ".",
       "role": "main",
-      "lastStableCommit": "75c4c07c421f5241e2fc41f1625394d0b9ff215f"
+      "lastStableCommit": "04ee65eee8ce5fa733536d4f23b5268ae820bdff"
     }
   ],
   "atomicDiscipline": {
@@ -28,7 +28,7 @@
     "successfulAttemptRequiresCommitBeforeNextExperiment": true,
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
-  "currentExperimentId": "7d73d599-9014-4754-a0ef-0cb0ba3ed4c1",
+  "currentExperimentId": null,
   "nextExperimentIndex": 7,
   "experiments": [
     {
@@ -97,9 +97,10 @@
       "name": "Dense node-context map in Taffy (no std feature)",
       "path": "2026-10-16-06-dense-node-context-map-in-taffy-no-std-feature.json",
       "startedAt": "2026-10-16T08:50:33Z",
-      "finishedAt": null,
-      "state": "running",
-      "status": ""
+      "finishedAt": "2026-10-16T08:56:20Z",
+      "state": "done",
+      "status": "success",
+      "resultCommit": "04ee65eee8ce5fa733536d4f23b5268ae820bdff"
     }
   ]
 }
