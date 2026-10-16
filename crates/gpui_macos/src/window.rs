@@ -716,6 +716,7 @@ pub(crate) struct MacWindowState {
     toggle_tab_bar_callback: Option<Box<dyn FnMut()>>,
     activated_least_once: bool,
     closed: Arc<AtomicBool>,
+    #[cfg(feature = "accessibility")]
     accesskit_adapter: Option<accesskit_macos::SubclassingAdapter>,
     // The parent window if this window is a sheet (Dialog kind)
     sheet_parent: Option<id>,
@@ -1154,6 +1155,7 @@ impl MacWindow {
                 toggle_tab_bar_callback: None,
                 activated_least_once: false,
                 closed: Arc::new(AtomicBool::new(false)),
+                #[cfg(feature = "accessibility")]
                 accesskit_adapter: None,
                 sheet_parent: None,
             }));
@@ -1394,6 +1396,7 @@ impl Drop for MacWindow {
         // a cycle the delegate/`frame_source` teardown below cannot break. Drop
         // the adapter here so the native view, its `CAMetalLayer` and the
         // renderer's command queue are actually released with the window.
+        #[cfg(feature = "accessibility")]
         drop(this.accesskit_adapter.take());
         this.renderer.destroy();
         let window = this.native_window;
@@ -2391,6 +2394,7 @@ impl PlatformWindow for MacWindow {
         this.renderer.render_to_image(scene)
     }
 
+    #[cfg(feature = "accessibility")]
     fn a11y_init(&self, callbacks: gpux::A11yCallbacks) {
         let mut lock = self.0.lock();
 
@@ -2410,6 +2414,7 @@ impl PlatformWindow for MacWindow {
         lock.accesskit_adapter = Some(adapter);
     }
 
+    #[cfg(feature = "accessibility")]
     fn a11y_tree_update(&self, tree_update: accesskit::TreeUpdate) {
         let events = {
             let mut lock = self.0.lock();
@@ -2427,18 +2432,22 @@ impl PlatformWindow for MacWindow {
     }
 }
 
+#[cfg(feature = "accessibility")]
 struct A11yActivationHandler {
     callback: Box<dyn Fn() -> Option<accesskit::TreeUpdate> + Send + 'static>,
 }
 
+#[cfg(feature = "accessibility")]
 impl accesskit::ActivationHandler for A11yActivationHandler {
     fn request_initial_tree(&mut self) -> Option<accesskit::TreeUpdate> {
         (self.callback)()
     }
 }
 
+#[cfg(feature = "accessibility")]
 struct A11yActionHandler(Box<dyn Fn(accesskit::ActionRequest) + Send + 'static>);
 
+#[cfg(feature = "accessibility")]
 impl accesskit::ActionHandler for A11yActionHandler {
     fn do_action(&mut self, request: accesskit::ActionRequest) {
         (self.0)(request);
@@ -3206,12 +3215,14 @@ extern "C" fn window_did_change_key_status(this: &Object, selector: Sel, _: id) 
     let executor = lock.foreground_executor.clone();
     drop(lock);
 
+    #[cfg(feature = "accessibility")]
     let a11y_events = {
         let mut lock = window_state.lock();
         lock.accesskit_adapter
             .as_mut()
             .and_then(|adapter| adapter.update_view_focus_state(is_active))
     };
+    #[cfg(feature = "accessibility")]
     if let Some(events) = a11y_events {
         events.raise();
     }

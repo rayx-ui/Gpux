@@ -13,7 +13,10 @@ autoexamples = false
 workspace = true
 
 [features]
-default = ["multithreaded"]
+default = ["multithreaded", "accessibility"]
+# The screen-reader DOM mirror. Without it the window never turns the platform accessibility
+# source on; inspection and `AccessibilityMode::Always` still build the tree.
+accessibility = []
 multithreaded = ["dep:wasm_thread", "scheduler/wasm-threads"]
 diagnostics = ["gpui_wgpu/diagnostics"]
 # The former name of `diagnostics`; it also publishes the legacy `__rayx*` browser globals.

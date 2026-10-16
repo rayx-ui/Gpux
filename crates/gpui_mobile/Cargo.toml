@@ -16,7 +16,11 @@ readme = "README.md"
 workspace = true
 
 [features]
-default = []
+default = ["accessibility"]
+# The VoiceOver (`accesskit_ios`) and TalkBack (`accesskit_android`) adapters. Without it the window
+# never turns the platform accessibility source on; inspection and `AccessibilityMode::Always` still
+# build the tree.
+accessibility = []
 # Counters hosts report (`PlatformWindow::layer_tile_counters`).
 diagnostics = ["gpui/diagnostics", "gpui_wgpu/diagnostics"]
 android-native-activity = ["android-activity/native-activity"]
