@@ -11,13 +11,13 @@
   "status": "",
   "createdAt": "2026-10-16T01:54:00Z",
   "finishedAt": null,
-  "lastStableCommit": "155dc470d054c2a85582f8589ef380b1cf968f80",
+  "lastStableCommit": "b83d0b2e412fe3d6dee0fb3ffb3cf27f71822f27",
   "repositories": [
     {
       "name": "main",
       "path": ".",
       "role": "main",
-      "lastStableCommit": "155dc470d054c2a85582f8589ef380b1cf968f80"
+      "lastStableCommit": "b83d0b2e412fe3d6dee0fb3ffb3cf27f71822f27"
     }
   ],
   "atomicDiscipline": {
@@ -28,7 +28,7 @@
     "successfulAttemptRequiresCommitBeforeNextExperiment": true,
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
-  "currentExperimentId": "67a8ac7f-614f-42ca-905e-226dd820b2df",
+  "currentExperimentId": null,
   "nextExperimentIndex": 3,
   "experiments": [
     {
@@ -50,9 +50,10 @@
       "name": "Interactivity listeners allocated on first use",
       "path": "2026-10-16-02-interactivity-listeners-allocated-on-first-use.json",
       "startedAt": "2026-10-16T01:55:53Z",
-      "finishedAt": null,
-      "state": "running",
-      "status": ""
+      "finishedAt": "2026-10-16T02:04:21Z",
+      "state": "done",
+      "status": "success",
+      "resultCommit": "b83d0b2e412fe3d6dee0fb3ffb3cf27f71822f27"
     }
   ]
 }
