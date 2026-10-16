@@ -1040,16 +1040,29 @@ impl A11y {
                 );
             }
         }
+        let handle = self.focus_ids.get(&node_id).copied();
         if self.nodes.is_container(node_id) {
             // An inspection container never takes the tree's focus (screen readers see the
-            // tree as without it), but inspection knows it holds the window's focus.
-            self.nodes.container_focus = Some(node_id);
+            // tree as without it), but inspection knows it holds the window's focus, unless
+            // a node tracking the same focus handle holds it (a control's host around its
+            // field).
+            if handle.is_none() || self.nodes.focus_handle != handle {
+                self.nodes.container_focus = Some(node_id);
+            }
         } else if self.nodes.has_node(node_id) {
             // The focused element is properly exposed; reset the dedup so a
             // later focus on a node-less element logs again.
             self.last_focus_without_node = None;
-            let handle = self.focus_ids.get(&node_id).copied();
             self.nodes.set_focus_by(node_id, handle);
+            // A container around it that claimed the same handle gives the focus up.
+            if handle.is_some()
+                && self
+                    .nodes
+                    .container_focus
+                    .is_some_and(|container| self.focus_ids.get(&container).copied() == handle)
+            {
+                self.nodes.container_focus = None;
+            }
         } else {
             // The element registered a focus handle and an id, but never got a
             // node because it has no role.
