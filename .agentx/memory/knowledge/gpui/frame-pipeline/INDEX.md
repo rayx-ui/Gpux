@@ -12,13 +12,13 @@ agentx:
     - bounds-tree
     - arena
     - element-id
-    - devtools
+    - accessibility
     - diagnostics
   supersedes: []
   superseded_by: []
 ---
 # Frame Pipeline Index
 
-`Window` draw lifecycle and the per-frame data it builds: scene, bounds tree, arena, element ids and state, deferred draws, content masks, DevKit inspection, and frame telemetry.
+`Window` draw lifecycle and the per-frame data it builds: scene, bounds tree, arena, element ids and state, deferred draws, content masks, accessibility records, and frame telemetry.
 
 - [state](state.md) · [knowledge](knowledge.md) · [rules](rules.md) · [hypotheses](hypotheses.md)

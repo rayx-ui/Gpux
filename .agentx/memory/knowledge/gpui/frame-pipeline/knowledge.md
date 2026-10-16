@@ -4,14 +4,14 @@ agentx:
   scope: knowledge/gpui/frame-pipeline
   status: current
   created: 2026-06-24T14:05:00+02:00
-  updated: 2026-10-05T23:00:00+02:00
+  updated: 2026-10-17T10:00:00+02:00
   topics:
     - scene
     - bounds-tree
     - arena
     - element-id
     - element-state
-    - devtools
+    - accessibility
     - telemetry
   supersedes: []
   superseded_by: []
@@ -24,6 +24,5 @@ agentx:
 - Global element ids: 485 creations containing 8,668 path elements per warmed frame, average depth 17.87, maximum 23; only 3/15/178 paths fit within 4/8/16 elements, which rejects small bounded inline path storage. All 485 match a preceding-frame hash and 24 repeat within the frame.
 - Element-state finish previously scanned 1,344 access-history keys per warmed frame with zero successful transfers; tracking pending replay keys separately dropped failed removals to zero and improved acknowledged throughput about 6-8% and paced p95 about 25%.
 - `Arena` destructor gating removed 908 bytes from the multithreaded WASM atomic prefix with neutral throughput.
-- GPUI dispatch nodes are not a one-to-one rendered element hierarchy. DevKit needs rendered occurrence ids and parents; dispatch-node ids stay internal for focus, listener, and property routing.
-- Attach DevKit semantics during paint to the current rendered occurrence. Looking up by dispatch node alone can attach semantics to the wrong wrapper when several elements share one dispatch node.
+- GPUI dispatch nodes are not a one-to-one rendered element hierarchy: several elements can share one dispatch node and one focus handle. Accessibility nodes are keyed by global element id, and when nested elements share a focus handle the innermost node holds the focus.
 - `Drawable::prepaint` has computed bounds and dispatch parentage, and `Drawable::paint` can refresh key/action listener counts before the frame swaps into `rendered_frame`, which makes the element lifecycle the right layer for inspection.
