@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "id": "e6b4f7bd-f01f-4ada-840d-92bd4efb6eb1",
+  "loopId": "93c0b7e1-2b73-4272-a15b-436864754725",
+  "index": 4,
+  "type": "hypothesis",
+  "name": "Linear text leaf settling",
+  "slug": "linear-text-leaf-settling",
+  "path": "2026-10-15-04-linear-text-leaf-settling.json",
+  "createdAt": "2026-10-15T17:00:39Z",
+  "startedAt": "2026-10-15T17:00:39Z",
+  "finishedAt": "2026-10-15T17:06:41Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "0eac74849f0687377dfe87db948ce6a48f756f11",
+  "resultCommit": "36a3b4a7acc0a6aa7981661496a8a8483b8b4725",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 0eac74849f0687377dfe87db948ce6a48f756f11",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "0eac74849f0687377dfe87db948ce6a48f756f11",
+      "resultCommit": "36a3b4a7acc0a6aa7981661496a8a8483b8b4725",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 0eac74849f0687377dfe87db948ce6a48f756f11",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "36a3b4a7acc0a6aa7981661496a8a8483b8b4725"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal) via benchmark/run.py --target macos",
+  "hypothesisMarkdown": "## Linear text leaf settling\n\nMechanism: `settle_text_leaves` (fast/layout.rs) tested every carried text leaf against the growing settle list with a linear scan (O(n^2) in the leaves requested per frame, 2,800 in scroll-div-cards). Track the settled ids in a set. Allowed: that function. Forbidden: any change to what is settled or measured.",
+  "measurementPlanMarkdown": "bm.sh e04 over scroll-div-cards, hover-grid, tree-toggle, table-stream, dashboard-one-panel, text-log-stream, 3 reps. Pass: scroll-div-cards and hover-grid CPU down at least 3%, no scenario worse than noise, layout and text tests green.",
+  "expectedOutcomeMarkdown": "",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "scroll-div-cards on CPU / draw p50 ms",
+      "before": "4.87 / 4.37",
+      "after": "4.62 / 4.01",
+      "delta": "-5% / -8%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "hover-grid on CPU / draw p50 ms",
+      "before": "6.90 / 6.16",
+      "after": "6.55 / 5.88",
+      "delta": "-5% / -5%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "tree-toggle on draw p50 ms",
+      "before": "3.61",
+      "after": "3.40",
+      "delta": "-6%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "other scenarios",
+      "before": "",
+      "after": "",
+      "delta": "within noise",
+      "source": "run.py macos"
+    }
+  ],
+  "reportMarkdown": "## Linear text leaf settling Finished\n\nPassed: true. The layer of carried text leaves made the settle pass quadratic; with a set the pass is linear. Scenarios with thousands of carried leaves gain 5%; allocations and memory are unchanged. `fast::tests::layout` (9) and `fast::tests::text` (12) pass. Behaviour is identical, so no new test group.\n\nAttempt Count: 1. Out-of-scope changes: none.",
+  "decisionMarkdown": "### Decision\n\nCommitted success.",
+  "notes": ""
+}

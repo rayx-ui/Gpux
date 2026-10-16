@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "id": "adc55629-c36e-43e3-bf54-e3b38629dacd",
+  "loopId": "93c0b7e1-2b73-4272-a15b-436864754725",
+  "index": 10,
+  "type": "hypothesis",
+  "name": "Digit lines from a glyph table",
+  "slug": "digit-lines-from-a-glyph-table",
+  "path": "2026-10-15-10-digit-lines-from-a-glyph-table.json",
+  "createdAt": "2026-10-15T18:20:23Z",
+  "startedAt": "2026-10-15T18:20:23Z",
+  "finishedAt": "2026-10-15T19:00:28Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "db8129395407105c930ab61027091e878a151116",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard db8129395407105c930ab61027091e878a151116",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "db8129395407105c930ab61027091e878a151116",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard db8129395407105c930ab61027091e878a151116",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal) via benchmark/run.py --target macos",
+  "hypothesisMarkdown": "## Digit lines from a glyph table\n\nMechanism: lay out a one-font line of number characters (digits . , - + : %) by adding up per-character glyphs and advances taken from Core Text once per (font, size), after checking the table against Core Text on all character pairs and 138 random lines. Allowed: gpui_macos text_system.rs. Forbidden: any other shaping path.",
+  "measurementPlanMarkdown": "Run text-relabel, table-stream, dashboard-clock, data-table, text-typing against the E9 results (3 reps), then A/B inside one binary with an environment switch. Pass: shaping cost down on text-relabel and data-table, no scenario slower.",
+  "expectedOutcomeMarkdown": "",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "text-relabel on CPU (cross-build)",
+      "before": "6.21",
+      "after": "4.21",
+      "delta": "-32% (not reproduced in-binary: the machine locked before it could be repeated)",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "table-stream on CPU, cross-build",
+      "before": "2.77",
+      "after": "3.38",
+      "delta": "+22%",
+      "source": "run.py macos x5"
+    },
+    {
+      "metric": "table-stream on CPU, same binary, table on vs off",
+      "before": "2.76 (off)",
+      "after": "3.26 (on)",
+      "delta": "+18%",
+      "source": "gpux-bench x3 alternating"
+    },
+    {
+      "metric": "dashboard-clock on CPU",
+      "before": "2.52",
+      "after": "2.65",
+      "delta": "+5%",
+      "source": "run.py macos x5"
+    },
+    {
+      "metric": "layout_line microbenchmark, warm caches",
+      "before": "1.77 us slow",
+      "after": "1.81 us fast",
+      "delta": "no gain",
+      "source": "unit test"
+    }
+  ],
+  "reportMarkdown": "## Digit lines from a glyph table Finished\n\nPassed: false. The table verifies against Core Text (new test passed) but composing a line is not cheaper than Core Text's warm path (1.8 us either way in a microbenchmark), and alternating the same binary with the table on and off showed table-stream 18% slower with it. The earlier text-relabel gain over E9 is therefore drift between builds, not this change. Reverted. The Mac's screen locked at about 21:00, after which no window could be drawn, so further benchmark runs wait for an unlock.\n\nAttempt Count: 1. Out-of-scope changes: none.",
+  "decisionMarkdown": "### Decision\n\nReverted failure. Lesson recorded: cross-build comparisons drift by up to 10% in the cheap scenarios; alternate one binary with an environment switch to confirm a small effect.",
+  "notes": ""
+}

@@ -71,7 +71,15 @@ struct MacTextSystemState {
     font_ids_by_postscript_name: HashMap<String, FontId>,
     font_ids_by_font_key: HashMap<FontKey, SmallVec<[FontId; 4]>>,
     postscript_names_by_font_id: HashMap<FontId, String>,
+    /// The font at a size, by the font's index and the size's bits. Core Text keeps what it
+    /// works out of a font (its ASCII glyphs and advances) with the font object, which a copy
+    /// made for every line shaped would work out again each time.
+    sized_fonts: HashMap<(usize, u32), CTFont>,
 }
+
+/// How many sized fonts are kept before they are dropped for the next to be made afresh, for a
+/// size that changes all the time not to grow them without bound.
+const MAX_SIZED_FONTS: usize = 512;
 
 impl MacTextSystem {
     /// Create a new MacTextSystem.
@@ -84,6 +92,7 @@ impl MacTextSystem {
             font_ids_by_postscript_name: HashMap::default(),
             font_ids_by_font_key: HashMap::default(),
             postscript_names_by_font_id: HashMap::default(),
+            sized_fonts: HashMap::default(),
         }))
     }
 }
@@ -561,12 +570,15 @@ impl MacTextSystemState {
                 } else {
                     font_size
                 };
+                if self.sized_fonts.len() >= MAX_SIZED_FONTS {
+                    self.sized_fonts.clear();
+                }
+                let sized_font = self
+                    .sized_fonts
+                    .entry((run.font_id.0, f32::from(font_size).to_bits()))
+                    .or_insert_with(|| font.native_font().clone_with_font_size(font_size.into()));
                 unsafe {
-                    string.set_attribute(
-                        cf_range,
-                        kCTFontAttributeName,
-                        &font.native_font().clone_with_font_size(font_size.into()),
-                    );
+                    string.set_attribute(cf_range, kCTFontAttributeName, sized_font);
                 }
                 break_ligature = !break_ligature;
             }
@@ -769,6 +781,43 @@ mod lenient_font_attributes {
 mod tests {
     use crate::MacTextSystem;
     use gpux::{FontRun, GlyphId, PlatformTextSystem, font, px};
+
+    /// A line laid out with the sized fonts it made kept lays out as it did when they were made.
+    #[test]
+    fn a_line_laid_out_again_with_kept_sized_fonts_is_the_same() {
+        let fonts = MacTextSystem::new();
+        let font_id = fonts.font_id(&font("Helvetica")).unwrap();
+        let line = "1234.56 and more 78.9";
+        let runs = [
+            FontRun {
+                font_id,
+                len: "1234.56".len(),
+            },
+            FontRun {
+                font_id,
+                len: line.len() - "1234.56".len(),
+            },
+        ];
+        let first = fonts.layout_line(line, px(12.), &runs);
+        let second = fonts.layout_line(line, px(12.), &runs);
+        let other_size = fonts.layout_line(line, px(13.), &runs);
+        let third = fonts.layout_line(line, px(12.), &runs);
+        let shape = |layout: &gpux::LineLayout| {
+            layout
+                .runs
+                .iter()
+                .flat_map(|run| {
+                    run.glyphs
+                        .iter()
+                        .map(|glyph| (glyph.id, glyph.position, glyph.index))
+                })
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(first.width, second.width);
+        assert_eq!(shape(&first), shape(&second));
+        assert_eq!(shape(&first), shape(&third));
+        assert_ne!(first.width, other_size.width);
+    }
 
     #[test]
     fn test_layout_line_bom_char() {

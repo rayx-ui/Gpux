@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "id": "28e2a810-2fd2-4913-98df-8ca57b3b4d01",
+  "loopId": "93c0b7e1-2b73-4272-a15b-436864754725",
+  "index": 14,
+  "type": "hypothesis",
+  "name": "Fingerprint only a changed style",
+  "slug": "fingerprint-only-a-changed-style",
+  "path": "2026-10-15-14-fingerprint-only-a-changed-style.json",
+  "createdAt": "2026-10-15T21:32:51Z",
+  "startedAt": "2026-10-15T21:32:51Z",
+  "finishedAt": "2026-10-15T21:42:54Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "20d69ddcc13b4d19709baed2bb336a2a5e8f0450",
+  "resultCommit": "5bed3382f2c6c94b5b6d00ae775bdb66feb351a9",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 20d69ddcc13b4d19709baed2bb336a2a5e8f0450",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "20d69ddcc13b4d19709baed2bb336a2a5e8f0450",
+      "resultCommit": "5bed3382f2c6c94b5b6d00ae775bdb66feb351a9",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 20d69ddcc13b4d19709baed2bb336a2a5e8f0450",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "5bed3382f2c6c94b5b6d00ae775bdb66feb351a9"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal) via benchmark/run.py --target macos",
+  "hypothesisMarkdown": "## Compare kept layout styles exactly, without hashing\n\nMechanism: a claimed layout node hashed its requested style into a fingerprint and then, when equal, compared every field anyway (the exact check is what decides). Drop the redundant hash from the claim path and from the retained node (kept for the tests only). Allowed: fast/layout.rs. Forbidden: the field comparison.",
+  "measurementPlanMarkdown": "ab.sh over div-cards, hover-grid, tree-toggle, dashboard-all-panels, dashboard-clock, 3 reps. Pass: no scenario slower, div-cards and all-panels CPU lower.",
+  "expectedOutcomeMarkdown": "",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "scroll-div-cards on CPU / draw p50",
+      "before": "3.95 / 3.34",
+      "after": "3.83 / 3.21",
+      "delta": "-3% / -4%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "dashboard-all-panels on CPU",
+      "before": "4.68",
+      "after": "4.54",
+      "delta": "-3%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "others",
+      "before": "",
+      "after": "",
+      "delta": "within +-2%",
+      "source": "run.py macos"
+    }
+  ],
+  "reportMarkdown": "## Compare kept layout styles exactly, without hashing Finished\n\nPassed: true, small. The per-claim hash (3% of div-cards draw in the profile) is gone and each retained node is 8 bytes smaller; the exact field compare is unchanged, so a changed style is still detected the same way. `fast::tests::write_elision` (5) and `fast::tests::layout` (9) pass; clippy clean.\n\nAttempt Count: 1.",
+  "decisionMarkdown": "### Decision\n\nCommitted success.",
+  "notes": ""
+}

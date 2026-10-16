@@ -31,6 +31,9 @@ struct ColorInner {
     cache: ColorConversionCache,
     paint_color: OnceLock<crate::PaintColor>,
     paint_normalizations: AtomicUsize,
+    /// This color with its alpha taken to zero, for the transparent twin a
+    /// painted quad pairs with a fill.
+    invisible: OnceLock<Color>,
 }
 
 impl PartialEq for Color {
@@ -45,8 +48,16 @@ impl PartialEq for Color {
 }
 
 impl Color {
-    /// Creates transparent black.
+    /// Creates transparent black: a handle to the one each thread keeps, which every default
+    /// style and background asks for.
     pub fn transparent_black() -> Self {
+        thread_local! {
+            static TRANSPARENT_BLACK: Color = Color::new_transparent_black();
+        }
+        TRANSPARENT_BLACK.with(Color::clone)
+    }
+
+    fn new_transparent_black() -> Self {
         let source = EncodedColor::numeric(ColorSpace::XyzD65, [0.0, 0.0, 0.0], 0.0);
         Self(Arc::new(ColorInner {
             xyz_d65: XyzD65::new(0.0, 0.0, 0.0),
@@ -58,6 +69,7 @@ impl Color {
             cache: ColorConversionCache::new(source),
             paint_color: OnceLock::new(),
             paint_normalizations: AtomicUsize::new(0),
+            invisible: OnceLock::new(),
         }))
     }
 
@@ -70,6 +82,16 @@ impl Color {
     }
 
     pub fn opacity(&self, factor: f32) -> Self {
+        if factor <= 0.0 {
+            return self
+                .0
+                .invisible
+                .get_or_init(|| {
+                    self.with_alpha(0.0)
+                        .expect("a valid color with zero alpha stays valid")
+                })
+                .clone();
+        }
         self.with_alpha(self.alpha() * f64::from(factor.clamp(0.0, 1.0)))
             .expect("multiplying a valid alpha by a clamped finite factor stays valid")
     }
@@ -116,6 +138,7 @@ impl Color {
             cache: ColorConversionCache::new(source),
             paint_color: OnceLock::new(),
             paint_normalizations: AtomicUsize::new(0),
+            invisible: OnceLock::new(),
         })))
     }
 

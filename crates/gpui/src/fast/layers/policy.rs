@@ -155,6 +155,40 @@ impl LayerContext {
     }
 }
 
+/// Whether the scroll container `id` is expected
+/// to composite its layer this frame, from what is known while its layout is
+/// requested: the layer holds content that can be composited and the frame
+/// only scrolled it. What [`decide`] checks of where the container ended up
+/// (its bounds, what it inherits, whether the scroll uncovers what was not
+/// painted) is not known yet; a container that does not composite after all
+/// requests the layout of its children then.
+pub(crate) fn expects_composite(window: &mut Window, cx: &mut App, id: &GlobalElementId) -> bool {
+    #[cfg(any(test, feature = "test-support"))]
+    if window.fast_layers.forced_decision.is_some() {
+        return false;
+    }
+    if window.fast_layers.painting.is_some() || !super::active(window, cx) {
+        return false;
+    }
+    window.fast_layers.scrolls.take_offsets_set();
+    let Some(layer) = window.fast_layers.layers.get(id) else {
+        return false;
+    };
+    let Some(record) = layer.record.as_ref() else {
+        return false;
+    };
+    let frame = window.fast_layers.frame;
+    layer.policy.demoted_until.is_none_or(|until| frame >= until)
+        && !layer.rows.list
+        && !layer.rows.state_changed
+        && fits(window, record)
+        && eligible(window, id, &layer.policy, record)
+        && invalidate::scrolled(window, id)
+        // The offset the container is scrolled to is not known yet: the hovers the content was
+        // painted by are judged where the content was painted, which `decide` judges again.
+        && invalidate::scroll_only(window, cx, id, record, record.scroll_offset)
+}
+
 /// Decides what the scroll container `id`, prepainted at `bounds` with
 /// children spanning `content_size` and scrolled by `scroll_offset`, does
 /// with its children this frame, and keeps its standing up to date.

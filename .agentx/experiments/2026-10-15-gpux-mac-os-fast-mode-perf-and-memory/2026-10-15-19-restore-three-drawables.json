@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "id": "e5bd048e-d22e-44c1-a21d-bc2f3210fabc",
+  "loopId": "93c0b7e1-2b73-4272-a15b-436864754725",
+  "index": 19,
+  "type": "hypothesis",
+  "name": "Restore three drawables",
+  "slug": "restore-three-drawables",
+  "path": "2026-10-15-19-restore-three-drawables.json",
+  "createdAt": "2026-10-15T23:28:15Z",
+  "startedAt": "2026-10-15T23:28:15Z",
+  "finishedAt": "2026-10-15T23:28:23Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "809785dde02297fdd062af8a3db2f1ca534c174c",
+  "resultCommit": "7dfa2e4eef41d38f925b2dd16973b34f1f586d4f",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 809785dde02297fdd062af8a3db2f1ca534c174c",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "809785dde02297fdd062af8a3db2f1ca534c174c",
+      "resultCommit": "7dfa2e4eef41d38f925b2dd16973b34f1f586d4f",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 809785dde02297fdd062af8a3db2f1ca534c174c",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "7dfa2e4eef41d38f925b2dd16973b34f1f586d4f"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal) via benchmark/run.py --target macos",
+  "hypothesisMarkdown": "## Restore three drawables\n\nExperiment 17 cut the Metal drawables to two and its A/B read effects-cards +31% CPU, which was put down to that scenario's bimodal timing. A final comparison against the original baseline (alternating the baseline and current binaries) still showed effects-cards +37% and dashboard-one-panel +14%, so the drawable count was switched inside one binary with an environment variable.",
+  "measurementPlanMarkdown": "Same binary, drawables 2 vs 3, alternating, 3 runs each, effects-cards and dashboard-one-panel.",
+  "expectedOutcomeMarkdown": "",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "effects-cards on CPU, 2 vs 3 drawables",
+      "before": "2.45 / 2.47 / 2.2",
+      "after": "2.42 / 1.5 / 1.64",
+      "delta": "about -30% with three (two of three runs; the first is the slow mode)",
+      "source": "gpux-bench alternating"
+    },
+    {
+      "metric": "effects-cards on frame interval ms",
+      "before": "4.75 / 8.25 / 4.6",
+      "after": "4.65 / 1.46 / 1.6",
+      "delta": "two drawables stall on the previous frame",
+      "source": "gpux-bench alternating"
+    },
+    {
+      "metric": "dashboard-one-panel on CPU",
+      "before": "2.88 / 2.56 / 2.84",
+      "after": "2.59 / 2.84 / 2.71",
+      "delta": "-4% with three, within noise",
+      "source": "gpux-bench alternating"
+    },
+    {
+      "metric": "footprint end MB",
+      "before": "120-125",
+      "after": "136-143",
+      "delta": "+16 MB with three",
+      "source": "gpux-bench alternating"
+    }
+  ],
+  "reportMarkdown": "## Restore three drawables Finished\n\nPassed: true (the revert wins). With two drawables a frame waits for the one before it to be presented, so the main thread runs 1.5x as long on the GPU-heavy `effects-cards` and the frame interval stretches to 4.6-8 ms; three drawables cost 16 MB at this window size. CPU time is the better of the two for the application, so experiment 17's saving is given back and the finding kept as a rule: three drawables, re-measure effects-cards before lowering it.\n\nAttempt Count: 1.",
+  "decisionMarkdown": "### Decision\n\nCommitted: maximumDrawableCount back to 3.",
+  "notes": ""
+}

@@ -442,7 +442,7 @@ mod uniform {
         // left out: painted into the layer, it could have kept element states
         // that a list without a layer drops.
         assert_eq!(
-            (VIEWPORT_HEIGHT * crate::fast::layers::paint::LIST_OVERSCAN_VIEWPORTS / ROW_HEIGHT)
+            (VIEWPORT_HEIGHT * crate::fast::layers::paint::list_overscan_viewports() / ROW_HEIGHT)
                 .ceil(),
             3.,
             "the rows below are those of an overscan of three rows"

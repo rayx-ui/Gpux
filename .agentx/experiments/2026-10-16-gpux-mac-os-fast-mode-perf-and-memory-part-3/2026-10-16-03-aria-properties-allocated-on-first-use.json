@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "id": "8439cf4f-24bc-404b-892d-0b6e483f7322",
+  "loopId": "5454c93e-ead4-4322-b9fc-ad37cad8bca7",
+  "index": 3,
+  "type": "hypothesis",
+  "name": "Aria properties allocated on first use",
+  "slug": "aria-properties-allocated-on-first-use",
+  "path": "2026-10-16-03-aria-properties-allocated-on-first-use.json",
+  "createdAt": "2026-10-16T02:05:17Z",
+  "startedAt": "2026-10-16T02:05:17Z",
+  "finishedAt": "2026-10-16T02:12:07Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "35fa5aa71fea7317d5c21e05604bac195f7d6cde",
+  "resultCommit": "09577bbc940fb177d0209a968e00767b4b225be7",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 35fa5aa71fea7317d5c21e05604bac195f7d6cde",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "35fa5aa71fea7317d5c21e05604bac195f7d6cde",
+      "resultCommit": "09577bbc940fb177d0209a968e00767b4b225be7",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 35fa5aa71fea7317d5c21e05604bac195f7d6cde",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "09577bbc940fb177d0209a968e00767b4b225be7"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal) via benchmark/run.py --target macos",
+  "hypothesisMarkdown": "## Aria properties allocated on first use\n\nMechanism: every `Interactivity` held 328 bytes of ARIA properties inline; allocate them when the first is set (`LazyAria`, reading an unset one reads a shared default). Allowed: elements/div.rs.",
+  "measurementPlanMarkdown": "alt2.sh over six scenarios; heap peak on div-cards. Pass: nothing slower, heap not higher.",
+  "expectedOutcomeMarkdown": "",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "geomean of six scenarios, CPU / draw p50",
+      "before": "",
+      "after": "",
+      "delta": "-0.7% / -0.5% (hover-grid -2%/-3%, text-relabel -2%/-2%)",
+      "source": "alt2.sh"
+    },
+    {
+      "metric": "scroll-div-cards heap peak MB",
+      "before": "57.4",
+      "after": "56.4",
+      "delta": "-1.7%",
+      "source": "gpux-bench"
+    },
+    {
+      "metric": "Interactivity size",
+      "before": "1,064",
+      "after": "about 740",
+      "delta": "-30%",
+      "source": "size_of"
+    }
+  ],
+  "reportMarkdown": "## Aria properties allocated on first use Finished\n\nPassed, as a small win: CPU and draw time move within noise in the right direction and the element arena holds less (heap peak -1.7% on div-cards). 1,038 lib tests pass; clippy clean.\n\nAttempt Count: 1.",
+  "decisionMarkdown": "### Decision\n\nCommitted success (minor).",
+  "notes": ""
+}

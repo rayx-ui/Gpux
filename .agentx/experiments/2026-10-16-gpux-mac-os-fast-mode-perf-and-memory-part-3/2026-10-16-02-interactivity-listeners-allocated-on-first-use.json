@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "id": "67a8ac7f-614f-42ca-905e-226dd820b2df",
+  "loopId": "5454c93e-ead4-4322-b9fc-ad37cad8bca7",
+  "index": 2,
+  "type": "hypothesis",
+  "name": "Interactivity listeners allocated on first use",
+  "slug": "interactivity-listeners-allocated-on-first-use",
+  "path": "2026-10-16-02-interactivity-listeners-allocated-on-first-use.json",
+  "createdAt": "2026-10-16T01:55:53Z",
+  "startedAt": "2026-10-16T01:55:53Z",
+  "finishedAt": "2026-10-16T02:04:21Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "78f8d64864781a1f3c25da33d80796d69dfedb5f",
+  "resultCommit": "b83d0b2e412fe3d6dee0fb3ffb3cf27f71822f27",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 78f8d64864781a1f3c25da33d80796d69dfedb5f",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "78f8d64864781a1f3c25da33d80796d69dfedb5f",
+      "resultCommit": "b83d0b2e412fe3d6dee0fb3ffb3cf27f71822f27",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 78f8d64864781a1f3c25da33d80796d69dfedb5f",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "b83d0b2e412fe3d6dee0fb3ffb3cf27f71822f27"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal) via benchmark/run.py --target macos",
+  "hypothesisMarkdown": "## Interactivity listeners allocated on first use\n\nMechanism: the 21 listener and drag-style lists of `Interactivity` were `Vec`s (24 bytes each, 504 in all) moved through every builder call of every div; make them `LazyVec`, a one-word list that allocates on the first push. Allowed: elements/div.rs. Forbidden: any change to when listeners are registered.",
+  "measurementPlanMarkdown": "Alternate the previous binary and the new one (alt2.sh, 3 each) over div-cards, hover-grid, all-panels, animated-dots, tree-toggle, text-relabel. Pass: no scenario slower, div-heavy CPU down.",
+  "expectedOutcomeMarkdown": "",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "scroll-div-cards on draw p50 / CPU",
+      "before": "2.40 / 3.37",
+      "after": "2.17 / 3.22",
+      "delta": "-10% / -4%",
+      "source": "alt2.sh"
+    },
+    {
+      "metric": "dashboard-all-panels on CPU / draw p50",
+      "before": "4.86 / 4.72",
+      "after": "4.63 / 4.42",
+      "delta": "-5% / -6%",
+      "source": "alt2.sh"
+    },
+    {
+      "metric": "geomean of six scenarios, CPU / draw p50",
+      "before": "",
+      "after": "",
+      "delta": "-2.3% / -3.5%",
+      "source": "alt2.sh"
+    },
+    {
+      "metric": "allocations per frame",
+      "before": "",
+      "after": "",
+      "delta": "unchanged",
+      "source": "alt2.sh"
+    }
+  ],
+  "reportMarkdown": "## Interactivity listeners allocated on first use Finished\n\nPassed: true. Interactivity shrinks by 16 bytes for each of the 21 lists (about 340 bytes of 1,368), which is less memmove in every builder chain and drop; allocations are unchanged because an element with a listener still makes the one allocation, which an element without any never did. The 1,038 lib tests pass; clippy clean.\n\nAttempt Count: 1.",
+  "decisionMarkdown": "### Decision\n\nCommitted success.",
+  "notes": ""
+}

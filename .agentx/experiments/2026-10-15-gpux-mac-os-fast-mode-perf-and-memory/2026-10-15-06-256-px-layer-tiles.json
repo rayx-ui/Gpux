@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "id": "cbf0f057-8418-4a3b-a839-a2d064d7af44",
+  "loopId": "93c0b7e1-2b73-4272-a15b-436864754725",
+  "index": 6,
+  "type": "hypothesis",
+  "name": "256 px layer tiles",
+  "slug": "256-px-layer-tiles",
+  "path": "2026-10-15-06-256-px-layer-tiles.json",
+  "createdAt": "2026-10-15T17:23:52Z",
+  "startedAt": "2026-10-15T17:23:52Z",
+  "finishedAt": "2026-10-15T17:27:38Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "a8281c58c95653ffbd492bb16ec0f26a66da6f29",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard a8281c58c95653ffbd492bb16ec0f26a66da6f29",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "a8281c58c95653ffbd492bb16ec0f26a66da6f29",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard a8281c58c95653ffbd492bb16ec0f26a66da6f29",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal) via benchmark/run.py --target macos",
+  "hypothesisMarkdown": "## 256 px layer tiles\n\nMechanism: halve the layer tile side (512 to 256 device pixels) so the visible tile set wastes less at its edges and the tile textures take less GPU memory. Allowed: the two TILE_SIZE constants. Forbidden: budget, overscan.",
+  "measurementPlanMarkdown": "bm.sh e06 over the four scroll scenarios against the E5 results, 3 reps. Pass: footprint down at least 5% on scroll-div-cards and scroll-data-table with CPU not worse.",
+  "expectedOutcomeMarkdown": "",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "scroll-div-cards on footprint MB",
+      "before": "205.6",
+      "after": "214.0",
+      "delta": "+4%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "scroll-data-table on footprint MB",
+      "before": "191.6",
+      "after": "192.5",
+      "delta": "+1%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "CPU, both",
+      "before": "",
+      "after": "",
+      "delta": "within noise",
+      "source": "run.py macos"
+    }
+  ],
+  "reportMarkdown": "## 256 px layer tiles Finished\n\nPassed: false. The footprint did not fall (div-cards +4%, data-table +1%): the tile textures are not the edge waste the hypothesis assumed, so smaller tiles only add draws. Reverted.\n\nAttempt Count: 1. Out-of-scope changes: none.",
+  "decisionMarkdown": "### Decision\n\nReverted failure.",
+  "notes": ""
+}

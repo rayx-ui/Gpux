@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "id": "3ffb9a8e-6b7d-48c7-b90a-06998cce0a61",
+  "loopId": "93c0b7e1-2b73-4272-a15b-436864754725",
+  "index": 5,
+  "type": "hypothesis",
+  "name": "Compile devtools nodes out behind a feature",
+  "slug": "compile-devtools-nodes-out-behind-a-feature",
+  "path": "2026-10-15-05-compile-devtools-nodes-out-behind-a-feature.json",
+  "createdAt": "2026-10-15T17:12:52Z",
+  "startedAt": "2026-10-15T17:12:52Z",
+  "finishedAt": "2026-10-15T17:21:50Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "9783fb3aba867c47f8e550802fad7dc022042a6a",
+  "resultCommit": "f611fd439a89803aea7e8690b74df77558b19844",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 9783fb3aba867c47f8e550802fad7dc022042a6a",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "9783fb3aba867c47f8e550802fad7dc022042a6a",
+      "resultCommit": "f611fd439a89803aea7e8690b74df77558b19844",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 9783fb3aba867c47f8e550802fad7dc022042a6a",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "f611fd439a89803aea7e8690b74df77558b19844"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal) via benchmark/run.py --target macos",
+  "hypothesisMarkdown": "## Compile devtools nodes out behind a feature\n\nMechanism: a `devtools` feature (default, and in test-support) gates recording the per-element DevKit node, its semantics and property setters, and copying them in reused and spliced stretches, through a `DEVTOOLS` const so the dead branches are not compiled. Text elements build their semantics lazily. Triggered by the user's request to compile it out behind a flag; a probe that stubbed the node recording gave -15% CPU on dashboard-clock. Allowed: Cargo.toml, window.rs, splice.rs, text.rs, docs. Forbidden: any other behaviour change.",
+  "measurementPlanMarkdown": "bm.sh e05 over nine scenarios, 3 reps, benchmark builds with default-features=false (feature off). Pass: dashboard-clock CPU down at least 10% with fast mode on, no scenario worse than noise, devtools tests green with the feature on, clippy clean with it off.",
+  "expectedOutcomeMarkdown": "",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "dashboard-clock on CPU / draw p50 / allocs per frame",
+      "before": "3.24 / 2.98 / 2811",
+      "after": "2.74 / 2.58 / 1078",
+      "delta": "-16% / -13% / -62%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "scroll-div-cards on CPU / draw p50",
+      "before": "4.87 / 4.37",
+      "after": "4.43 / 3.85",
+      "delta": "-9% / -12%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "hover-grid on CPU",
+      "before": "6.90",
+      "after": "6.35",
+      "delta": "-8%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "dashboard-one-panel on CPU / allocs",
+      "before": "2.82 / 3421",
+      "after": "2.69 / 1691",
+      "delta": "-5% / -51%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "heap peak, fast on (all nine scenarios)",
+      "before": "",
+      "after": "",
+      "delta": "-3% to -12%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "footprint scroll-div-cards / data-table on",
+      "before": "215.9 / 200.9",
+      "after": "205.6 / 191.6",
+      "delta": "-5% / -5%",
+      "source": "run.py macos"
+    }
+  ],
+  "reportMarkdown": "## Compile devtools nodes out behind a feature Finished\n\nPassed: true. With the feature off nothing builds, copies or drops a DevKit node per element, and text elements stop allocating their semantics strings every frame. CPU falls 1-16% with fast mode on, allocations per frame 6-62%, heap peak 3-12%. With the feature on (the default) behaviour is unchanged: `devtools` (2), `semantic_locators` (13), `devtools_snapshot_tree` (1) and `fast::tests::splice` (8) pass; `cargo clippy -p gpux --no-default-features -D warnings` is clean. The off configuration is proven by the benchmark runs; test-support turns the feature on, so no unit test runs with it off.\n\nAttempt Count: 1. Out-of-scope changes: none (a docs paragraph describes the feature).",
+  "decisionMarkdown": "### Decision\n\nCommitted success. Consumers keep today's behaviour through the default features; opting out is `default-features = false`.",
+  "notes": ""
+}

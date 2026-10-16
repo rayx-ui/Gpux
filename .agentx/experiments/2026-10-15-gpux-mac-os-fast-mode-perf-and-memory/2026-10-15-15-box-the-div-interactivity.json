@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "id": "12cc524f-8c20-4bc2-aa47-783d2ee62858",
+  "loopId": "93c0b7e1-2b73-4272-a15b-436864754725",
+  "index": 15,
+  "type": "hypothesis",
+  "name": "Box the div interactivity",
+  "slug": "box-the-div-interactivity",
+  "path": "2026-10-15-15-box-the-div-interactivity.json",
+  "createdAt": "2026-10-15T21:43:28Z",
+  "startedAt": "2026-10-15T21:43:28Z",
+  "finishedAt": "2026-10-15T21:53:36Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "a513cde677afad829fa81424d373f2ea3126be40",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard a513cde677afad829fa81424d373f2ea3126be40",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "a513cde677afad829fa81424d373f2ea3126be40",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard a513cde677afad829fa81424d373f2ea3126be40",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal) via benchmark/run.py --target macos",
+  "hypothesisMarkdown": "## Box the div interactivity\n\nMechanism: `Div.interactivity` is 1,368 bytes and moves through every builder call; keep it in a Box so the chain moves a pointer. Allowed: the Div field and constructor.",
+  "measurementPlanMarkdown": "ab.sh over six scenarios, 3 reps. Pass: div-heavy CPU down at least 5% without more allocations.",
+  "expectedOutcomeMarkdown": "",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "hover-grid on CPU / allocs",
+      "before": "4.97 / 21,245",
+      "after": "4.84 / 22,886",
+      "delta": "-3% / +8%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "dashboard-all-panels on CPU",
+      "before": "4.70",
+      "after": "4.52",
+      "delta": "-4% (allocs +7%)",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "scroll-div-cards on CPU / allocs",
+      "before": "3.83 / 15,055",
+      "after": "3.90 / 19,057",
+      "delta": "+2% / +27%",
+      "source": "run.py macos"
+    }
+  ],
+  "reportMarkdown": "## Box the div interactivity Finished\n\nPassed: false. The memmove it removes is smaller than the profile suggested: CPU moves 0-4%, within noise, and every div now makes one more allocation (+5 to +27% per frame, 3,998 in div-cards). Reverted.\n\nAttempt Count: 1.",
+  "decisionMarkdown": "### Decision\n\nReverted failure.",
+  "notes": ""
+}

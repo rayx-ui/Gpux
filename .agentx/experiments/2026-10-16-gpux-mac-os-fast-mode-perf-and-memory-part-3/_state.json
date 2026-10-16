@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "id": "5454c93e-ead4-4322-b9fc-ad37cad8bca7",
+  "name": "gpux macOS fast-mode perf and memory, part 3",
+  "objective": "Keep lowering CPU and memory on native macOS in both fast modes: cheaper reuse of retained views (splice key lists, layout verification), smaller per-element structs, scene teardown, shaping setup, layout node memory.",
+  "metric": "",
+  "target": "",
+  "maxIterations": 29,
+  "maxExperiments": 29,
+  "state": "done",
+  "status": "stopped",
+  "createdAt": "2026-10-16T01:54:00Z",
+  "finishedAt": "2026-10-16T09:42:23Z",
+  "lastStableCommit": "e4389190d19b14e05ec5e3b428964d1f7ad2fd93",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "lastStableCommit": "e4389190d19b14e05ec5e3b428964d1f7ad2fd93"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "currentExperimentId": null,
+  "nextExperimentIndex": 12,
+  "experiments": [
+    {
+      "id": "ddc0da9b-11bf-491e-a966-4a6997d6aca0",
+      "index": 1,
+      "type": "baseline",
+      "name": "Baseline Measurement",
+      "path": "2026-10-16-01-baseline-measurement.json",
+      "startedAt": "2026-10-16T01:54:00Z",
+      "finishedAt": "2026-10-16T01:54:01Z",
+      "state": "done",
+      "status": "success",
+      "resultCommit": "155dc470d054c2a85582f8589ef380b1cf968f80"
+    },
+    {
+      "id": "67a8ac7f-614f-42ca-905e-226dd820b2df",
+      "index": 2,
+      "type": "hypothesis",
+      "name": "Interactivity listeners allocated on first use",
+      "path": "2026-10-16-02-interactivity-listeners-allocated-on-first-use.json",
+      "startedAt": "2026-10-16T01:55:53Z",
+      "finishedAt": "2026-10-16T02:04:21Z",
+      "state": "done",
+      "status": "success",
+      "resultCommit": "b83d0b2e412fe3d6dee0fb3ffb3cf27f71822f27"
+    },
+    {
+      "id": "8439cf4f-24bc-404b-892d-0b6e483f7322",
+      "index": 3,
+      "type": "hypothesis",
+      "name": "Aria properties allocated on first use",
+      "path": "2026-10-16-03-aria-properties-allocated-on-first-use.json",
+      "startedAt": "2026-10-16T02:05:17Z",
+      "finishedAt": "2026-10-16T02:12:07Z",
+      "state": "done",
+      "status": "success",
+      "resultCommit": "09577bbc940fb177d0209a968e00767b4b225be7"
+    },
+    {
+      "id": "8c148d14-2699-45e9-97c4-ba435455fa98",
+      "index": 4,
+      "type": "hypothesis",
+      "name": "Recycle the element base style boxes",
+      "path": "2026-10-16-04-recycle-the-element-base-style-boxes.json",
+      "startedAt": "2026-10-16T02:12:40Z",
+      "finishedAt": "2026-10-16T08:43:00Z",
+      "state": "done",
+      "status": "failure"
+    },
+    {
+      "id": "8e5cb53a-a293-4e7b-8b7d-703299abfd96",
+      "index": 5,
+      "type": "hypothesis",
+      "name": "GPU time per frame in the macOS benchmark",
+      "path": "2026-10-16-05-gpu-time-per-frame-in-the-mac-os-benchmark.json",
+      "startedAt": "2026-10-16T08:43:29Z",
+      "finishedAt": "2026-10-16T08:49:12Z",
+      "state": "done",
+      "status": "success",
+      "resultCommit": "75c4c07c421f5241e2fc41f1625394d0b9ff215f"
+    },
+    {
+      "id": "7d73d599-9014-4754-a0ef-0cb0ba3ed4c1",
+      "index": 6,
+      "type": "hypothesis",
+      "name": "Dense node-context map in Taffy (no std feature)",
+      "path": "2026-10-16-06-dense-node-context-map-in-taffy-no-std-feature.json",
+      "startedAt": "2026-10-16T08:50:33Z",
+      "finishedAt": "2026-10-16T08:56:20Z",
+      "state": "done",
+      "status": "success",
+      "resultCommit": "04ee65eee8ce5fa733536d4f23b5268ae820bdff"
+    },
+    {
+      "id": "8deb1a86-c841-4131-97ba-fe826a4a8c22",
+      "index": 7,
+      "type": "hypothesis",
+      "name": "Keep retained nodes and collect their text leaves in one pass",
+      "path": "2026-10-16-07-keep-retained-nodes-and-collect-their-text-leaves-in-one-pass.json",
+      "startedAt": "2026-10-16T08:56:35Z",
+      "finishedAt": "2026-10-16T09:02:32Z",
+      "state": "done",
+      "status": "failure"
+    },
+    {
+      "id": "af4dae79-e5db-4722-b2fa-01f370faa9bd",
+      "index": 8,
+      "type": "hypothesis",
+      "name": "Keep the invisible variant of each color",
+      "path": "2026-10-16-08-keep-the-invisible-variant-of-each-color.json",
+      "startedAt": "2026-10-16T09:06:53Z",
+      "finishedAt": "2026-10-16T09:11:37Z",
+      "state": "done",
+      "status": "success",
+      "resultCommit": "0bc274dbf1bf0d241df75a55438db54a52dfc90b"
+    },
+    {
+      "id": "9e5a9ebb-010a-4c2b-9ccb-680a63de1aa0",
+      "index": 9,
+      "type": "hypothesis",
+      "name": "Share the empty font features",
+      "path": "2026-10-16-09-share-the-empty-font-features.json",
+      "startedAt": "2026-10-16T09:12:42Z",
+      "finishedAt": "2026-10-16T09:18:23Z",
+      "state": "done",
+      "status": "success",
+      "resultCommit": "e4389190d19b14e05ec5e3b428964d1f7ad2fd93"
+    },
+    {
+      "id": "67b65204-e637-41b7-91d8-8e504010bbc6",
+      "index": 10,
+      "type": "hypothesis",
+      "name": "Hold a text's single default run on the stack",
+      "path": "2026-10-16-10-hold-a-text-s-single-default-run-on-the-stack.json",
+      "startedAt": "2026-10-16T09:19:17Z",
+      "finishedAt": "2026-10-16T09:23:57Z",
+      "state": "done",
+      "status": "success",
+      "resultCommit": "73f34bedd621658c61d28244e1180a11ba62a751"
+    },
+    {
+      "id": "d1778c48-76d2-4dfb-85d4-9869c237935d",
+      "index": 11,
+      "type": "hypothesis",
+      "name": "Decide emoji once per glyph run, not per glyph",
+      "path": "2026-10-16-11-decide-emoji-once-per-glyph-run-not-per-glyph.json",
+      "startedAt": "2026-10-16T09:24:45Z",
+      "finishedAt": "2026-10-16T09:26:57Z",
+      "state": "done",
+      "status": "failure"
+    }
+  ]
+}

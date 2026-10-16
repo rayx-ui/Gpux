@@ -1995,6 +1995,14 @@ pub struct DivFrameState {
     child_layout_ids: SmallVec<[LayoutId; 2]>,
     sticky_layout_context_id: Option<usize>,
     paint_order: SmallVec<[usize; 8]>,
+    /// The children's layout was not requested: it is as the scroll layer kept it, for a frame
+    /// expected to composite the layer. The children request it after all, in prepaint, if the
+    /// layer is not composited.
+    kept_content: Option<(
+        Rc<crate::fast::layers::reuse::KeptContent>,
+        crate::fast::retained::CarriedStates,
+        LayoutId,
+    )>,
 }
 
 /// A frame's prepaint result for a `Div` element.
@@ -2083,6 +2091,7 @@ impl Element for Div {
         cx: &mut App,
     ) -> (LayoutId, Self::RequestLayoutState) {
         let mut child_layout_ids = SmallVec::new();
+        let mut kept_content = None;
         let mut sticky_layout_context_id = None;
         let mut sticky_occurrence = None;
         let image_cache = self
@@ -2099,8 +2108,48 @@ impl Element for Div {
                 |style, window, cx| {
                     sticky_occurrence = window.reserve_sticky_candidate(style);
                     sticky_layout_context_id = window.reserve_sticky_layout_context(style.overflow);
+                    let scrolls = crate::fast::layers::COMPILED
+                        && global_id.is_some()
+                        && (style.overflow.x == Overflow::Scroll
+                            || style.overflow.y == Overflow::Scroll)
+                        && window.fast_mode.scroll_layers();
                     let layout_id = window.with_text_style(style.text_style().cloned(), |window| {
                         let mut request_children = |window: &mut Window| {
+                            if scrolls {
+                                let id = global_id.expect("a layered container has an id");
+                                if let Some((content, carried)) =
+                                    crate::fast::layers::reuse::reuse_kept_content(
+                                        window,
+                                        cx,
+                                        id,
+                                        self.children.len(),
+                                    )
+                                {
+                                    child_layout_ids =
+                                        content.child_layout_ids.iter().copied().collect();
+                                    kept_content = Some((content, carried));
+                                    return;
+                                }
+                                let recording =
+                                    crate::fast::retained::begin_content_layout(window, cx);
+                                child_layout_ids = self
+                                    .children
+                                    .iter_mut()
+                                    .map(|child| child.request_layout(window, cx))
+                                    .collect::<SmallVec<_>>();
+                                if let Some(content) = crate::fast::retained::finish_content_layout(
+                                    window,
+                                    recording,
+                                    &child_layout_ids,
+                                    cx,
+                                ) {
+                                    window
+                                        .fast_layers
+                                        .pending_content
+                                        .insert(id.clone(), Rc::new(content));
+                                }
+                                return;
+                            }
                             child_layout_ids = self
                                 .children
                                 .iter_mut()
@@ -2131,6 +2180,7 @@ impl Element for Div {
                 paint_order: (0..child_layout_ids.len()).collect(),
                 child_layout_ids,
                 sticky_layout_context_id,
+                kept_content: kept_content.map(|(content, carried)| (content, carried, layout_id)),
             },
         )
     }
@@ -2244,6 +2294,38 @@ impl Element for Div {
                         });
 
                     let mut prepaint_children = |window: &mut Window, cx: &mut App| {
+                        if let Some((content, carried, layout_id)) =
+                            request_layout.kept_content.take()
+                        {
+                            // The layer is not composited after all: the children request the
+                            // layout they were spared, claiming the nodes they had.
+                            crate::fast::layers::reuse::release_kept_content(
+                                window, &content, carried,
+                            );
+                            let before = crate::fast::layout::change_counts(window);
+                            request_layout.child_layout_ids =
+                                crate::fast::layout_key::with_layout_key_of_prepainting_element(
+                                    window,
+                                    |window| {
+                                        self.children
+                                            .iter_mut()
+                                            .map(|child| child.request_layout(window, cx))
+                                            .collect::<SmallVec<_>>()
+                                    },
+                                );
+                            if crate::fast::layout::changed_since(window, before) {
+                                let mut engine = window.layout_engine.take().unwrap();
+                                crate::fast::layout::relayout_in_place(
+                                    &mut engine,
+                                    layout_id,
+                                    bounds.size.into(),
+                                    window,
+                                    cx,
+                                );
+                                window.layout_engine = Some(engine);
+                                window.request_animation_frame();
+                            }
+                        }
                         request_layout.paint_order.clear();
                         request_layout.paint_order.extend(0..self.children.len());
                         window.reorder_sticky_children(
@@ -2423,6 +2505,89 @@ pub(crate) struct AriaProperties {
     pub(crate) column_count: Option<usize>,
 }
 
+/// A list that has no allocation, and is one word, until something is pushed: most elements
+/// register none of the listeners an `Interactivity` can hold.
+#[allow(
+    clippy::box_collection,
+    reason = "the box is what keeps the empty list one word wide"
+)]
+pub(crate) struct LazyVec<T>(Option<Box<Vec<T>>>);
+
+impl<T> Default for LazyVec<T> {
+    fn default() -> Self {
+        LazyVec(None)
+    }
+}
+
+impl<T: Clone> Clone for LazyVec<T> {
+    fn clone(&self) -> Self {
+        LazyVec(self.0.clone())
+    }
+}
+
+impl<T> LazyVec<T> {
+    pub(crate) fn push(&mut self, value: T) {
+        self.0.get_or_insert_with(Default::default).push(value);
+    }
+
+    /// Takes everything out, as `drain(..)` of a `Vec` does.
+    pub(crate) fn drain(&mut self, _: std::ops::RangeFull) -> std::vec::IntoIter<T> {
+        self.0
+            .take()
+            .map(|list| *list)
+            .unwrap_or_default()
+            .into_iter()
+    }
+}
+
+impl<T> std::ops::Deref for LazyVec<T> {
+    type Target = [T];
+
+    fn deref(&self) -> &[T] {
+        self.0.as_deref().map_or(&[], |list| list.as_slice())
+    }
+}
+
+impl<T> IntoIterator for LazyVec<T> {
+    type Item = T;
+    type IntoIter = std::vec::IntoIter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.map(|list| *list).unwrap_or_default().into_iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a LazyVec<T> {
+    type Item = &'a T;
+    type IntoIter = std::slice::Iter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+/// The ARIA properties of an element, allocated when one is set: most elements set none, and the
+/// properties are a third of a kilobyte.
+#[derive(Default)]
+pub(crate) struct LazyAria(Option<Box<AriaProperties>>);
+
+impl std::ops::Deref for LazyAria {
+    type Target = AriaProperties;
+
+    fn deref(&self) -> &AriaProperties {
+        static NONE: std::sync::OnceLock<AriaProperties> = std::sync::OnceLock::new();
+        self.0
+            .as_deref()
+            .unwrap_or_else(|| NONE.get_or_init(AriaProperties::default))
+    }
+}
+
+impl std::ops::DerefMut for LazyAria {
+    fn deref_mut(&mut self) -> &mut AriaProperties {
+        self.0.get_or_insert_with(Default::default)
+    }
+}
+
 /// The interactivity struct. Powers all of the general-purpose
 /// interactivity in the `Div` element.
 #[derive(Default)]
@@ -2460,28 +2625,28 @@ pub struct Interactivity {
     pub(crate) stuck_style: Option<Box<StyleRefinement>>,
     pub(crate) active_style: Option<Box<StyleRefinement>>,
     pub(crate) group_active_style: Option<GroupStyle>,
-    pub(crate) drag_over_styles: Vec<(
+    pub(crate) drag_over_styles: LazyVec<(
         TypeId,
         Box<dyn Fn(&dyn Any, &mut Window, &mut App) -> StyleRefinement>,
     )>,
-    pub(crate) group_drag_over_styles: Vec<(TypeId, GroupStyle)>,
-    pub(crate) mouse_down_listeners: Vec<MouseDownListener>,
-    pub(crate) mouse_up_listeners: Vec<MouseUpListener>,
-    pub(crate) mouse_pressure_listeners: Vec<MousePressureListener>,
-    pub(crate) mouse_move_listeners: Vec<MouseMoveListener>,
-    pub(crate) mouse_exit_listeners: Vec<MouseExitListener>,
-    pub(crate) file_drop_exit_listeners: Vec<FileDropExitListener>,
-    pub(crate) scroll_wheel_listeners: Vec<ScrollWheelListener>,
-    pub(crate) pinch_listeners: Vec<PinchListener>,
-    pub(crate) key_down_listeners: Vec<KeyDownListener>,
-    pub(crate) key_up_listeners: Vec<KeyUpListener>,
-    pub(crate) modifiers_changed_listeners: Vec<ModifiersChangedListener>,
-    pub(crate) action_listeners: Vec<(TypeId, ActionListener)>,
-    pub(crate) action_outcome_listeners: Vec<(TypeId, ActionOutcomeListener)>,
-    pub(crate) drop_listeners: Vec<(TypeId, DropListener)>,
+    pub(crate) group_drag_over_styles: LazyVec<(TypeId, GroupStyle)>,
+    pub(crate) mouse_down_listeners: LazyVec<MouseDownListener>,
+    pub(crate) mouse_up_listeners: LazyVec<MouseUpListener>,
+    pub(crate) mouse_pressure_listeners: LazyVec<MousePressureListener>,
+    pub(crate) mouse_move_listeners: LazyVec<MouseMoveListener>,
+    pub(crate) mouse_exit_listeners: LazyVec<MouseExitListener>,
+    pub(crate) file_drop_exit_listeners: LazyVec<FileDropExitListener>,
+    pub(crate) scroll_wheel_listeners: LazyVec<ScrollWheelListener>,
+    pub(crate) pinch_listeners: LazyVec<PinchListener>,
+    pub(crate) key_down_listeners: LazyVec<KeyDownListener>,
+    pub(crate) key_up_listeners: LazyVec<KeyUpListener>,
+    pub(crate) modifiers_changed_listeners: LazyVec<ModifiersChangedListener>,
+    pub(crate) action_listeners: LazyVec<(TypeId, ActionListener)>,
+    pub(crate) action_outcome_listeners: LazyVec<(TypeId, ActionOutcomeListener)>,
+    pub(crate) drop_listeners: LazyVec<(TypeId, DropListener)>,
     pub(crate) can_drop_predicate: Option<CanDropPredicate>,
-    pub(crate) click_listeners: Vec<ClickListener>,
-    pub(crate) aux_click_listeners: Vec<ClickListener>,
+    pub(crate) click_listeners: LazyVec<ClickListener>,
+    pub(crate) aux_click_listeners: LazyVec<ClickListener>,
     pub(crate) drag_listener: Option<DragListener>,
     pub(crate) hover_listener: Option<Box<dyn Fn(&bool, &mut Window, &mut App)>>,
     pub(crate) hover_listener_mode: HoverListenerMode,
@@ -2495,11 +2660,11 @@ pub struct Interactivity {
     pub(crate) tab_stop: bool,
 
     pub(crate) a11y_action_listeners:
-        Vec<(accesskit::Action, crate::window::a11y::A11yActionListener)>,
+        LazyVec<(accesskit::Action, crate::window::a11y::A11yActionListener)>,
     pub(crate) a11y_synthetic_children: Option<Box<dyn FnOnce(&mut crate::A11ySubtreeBuilder)>>,
     pub(crate) report_active_descendant_focus: bool,
     pub(crate) override_role: Option<accesskit::Role>,
-    pub(crate) aria: AriaProperties,
+    pub(crate) aria: LazyAria,
 
     #[cfg(any(feature = "inspector", debug_assertions))]
     pub(crate) source_location: Option<&'static core::panic::Location<'static>>,

@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "id": "44824aee-78c7-4077-afd4-a2c7ddef5519",
+  "loopId": "93c0b7e1-2b73-4272-a15b-436864754725",
+  "index": 16,
+  "type": "hypothesis",
+  "name": "Inline length and edge comparisons",
+  "slug": "inline-length-and-edge-comparisons",
+  "path": "2026-10-15-16-inline-length-and-edge-comparisons.json",
+  "createdAt": "2026-10-15T21:54:05Z",
+  "startedAt": "2026-10-15T21:54:05Z",
+  "finishedAt": "2026-10-15T22:08:55Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "3aa38b952d1cc2a6d25dbd15371627515d28fed6",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 3aa38b952d1cc2a6d25dbd15371627515d28fed6",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "3aa38b952d1cc2a6d25dbd15371627515d28fed6",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 3aa38b952d1cc2a6d25dbd15371627515d28fed6",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal) via benchmark/run.py --target macos",
+  "hypothesisMarkdown": "## Inline length and edge comparisons\n\nMechanism: `Edges<Length>::eq` was 121 self samples in the div-cards profile because the derived PartialEq is a call per edge set; write the four enums' PartialEq by hand with #[inline]. Allowed: geometry.rs.",
+  "measurementPlanMarkdown": "ab.sh over six layout-heavy scenarios. Pass: div-cards and hover-grid CPU down at least 3%.",
+  "expectedOutcomeMarkdown": "",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "scroll-div-cards on CPU",
+      "before": "3.85",
+      "after": "3.84",
+      "delta": "-0%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "hover-grid on CPU",
+      "before": "4.98",
+      "after": "4.97",
+      "delta": "-0%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "dashboard-all-panels on CPU",
+      "before": "4.86",
+      "after": "4.64",
+      "delta": "-4% (noise-level)",
+      "source": "run.py macos"
+    }
+  ],
+  "reportMarkdown": "## Inline length and edge comparisons Finished\n\nPassed: false. No scenario moved beyond noise; the compiler had already produced what the hand-written impls say, and the samples attributed to `Edges::eq` are the compare itself, not the call. Reverted.\n\nAttempt Count: 1.",
+  "decisionMarkdown": "### Decision\n\nReverted failure.",
+  "notes": ""
+}

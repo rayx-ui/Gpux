@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "id": "1551176b-92e2-4449-8aa7-b3c5d62393e3",
+  "loopId": "55fed546-f57a-4f71-939f-001f39b97557",
+  "index": 3,
+  "type": "hypothesis",
+  "name": "Two Metal drawables, judged with the clocks held",
+  "slug": "two-metal-drawables-judged-with-the-clocks-held",
+  "path": "2026-10-16-03-two-metal-drawables-judged-with-the-clocks-held.json",
+  "createdAt": "2026-10-16T12:27:15Z",
+  "startedAt": "2026-10-16T12:27:15Z",
+  "finishedAt": "2026-10-16T12:40:11Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "72ec954b69d664dad543df67b9550fdb94dc926c",
+  "resultCommit": "f0b35b84ed1052eea80741e7c8fd373a2a60f078",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 72ec954b69d664dad543df67b9550fdb94dc926c",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "72ec954b69d664dad543df67b9550fdb94dc926c",
+      "resultCommit": "f0b35b84ed1052eea80741e7c8fd373a2a60f078",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 72ec954b69d664dad543df67b9550fdb94dc926c",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "f0b35b84ed1052eea80741e7c8fd373a2a60f078"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal) via benchmark/run.py --target macos",
+  "hypothesisMarkdown": "Part 1 reverted two Metal drawables because effects-cards read about 1.5x the main-thread CPU. That was judged with idle CPU clocks; waiting for a drawable idles the core, which lowers the clock, so the same work reads as more CPU time. With the clocks held two drawables should cost nothing and still save a full-window IOSurface.",
+  "measurementPlanMarkdown": "Build three- and two-drawable binaries from the same source, alternate them four times with three busy processes beside them on effects-cards, scroll-div-cards, scroll-data-table, hover-grid and text-relabel (fast on), then compare missed frames and frame intervals over eight runs of three scenarios.",
+  "expectedOutcomeMarkdown": "",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "effects-cards CPU / footprint",
+      "before": "0.33 ms / 135 MB (3 drawables)",
+      "after": "0.33 ms / 120 MB",
+      "delta": "0% / -15 MB",
+      "source": "clocks held, alt x4"
+    },
+    {
+      "metric": "scroll-div-cards CPU / footprint",
+      "before": "1.22 / 206 MB",
+      "after": "1.25 / 184 MB",
+      "delta": "+2% / -22 MB",
+      "source": "clocks held, alt x4"
+    },
+    {
+      "metric": "scroll-data-table CPU / footprint",
+      "before": "0.59 / 180 MB",
+      "after": "0.59 / 164 MB",
+      "delta": "0% / -16 MB",
+      "source": "clocks held, alt x4"
+    },
+    {
+      "metric": "hover-grid CPU / footprint",
+      "before": "4.30 / 158 MB",
+      "after": "4.31 / 144 MB",
+      "delta": "0% / -14 MB",
+      "source": "clocks held, alt x4"
+    },
+    {
+      "metric": "text-relabel CPU / footprint",
+      "before": "6.13 / 146 MB",
+      "after": "6.14 / 133 MB",
+      "delta": "0% / -13 MB",
+      "source": "clocks held, alt x4"
+    },
+    {
+      "metric": "missed frames in 24 runs (hover-grid, div-cards, text-relabel)",
+      "before": "1 run with 1",
+      "after": "2 runs with 1 or 2",
+      "delta": "comparable",
+      "source": "8 runs each"
+    }
+  ],
+  "reportMarkdown": "No CPU cost, 13-22 MB (about 9-11%) lower footprint in every scenario. Frames still arrive at 120 fps; with two drawables the main thread waits for the drawable, so the frame interval is regular (95th percentile 8.5 ms against a clustered 4.3 ms) and its maximum rises from about 7 to 9 ms. GPU time per frame is unchanged (5.8 ms on effects-cards and hover-grid).",
+  "decisionMarkdown": "Keep, and flag it: this reverses the part 1 decision on corrected evidence. One line (`set_maximum_drawable_count(3)`) restores the old behaviour for an app that is GPU-bound at the frame budget.",
+  "notes": ""
+}

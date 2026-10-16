@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "id": "8c148d14-2699-45e9-97c4-ba435455fa98",
+  "loopId": "5454c93e-ead4-4322-b9fc-ad37cad8bca7",
+  "index": 4,
+  "type": "hypothesis",
+  "name": "Recycle the element base style boxes",
+  "slug": "recycle-the-element-base-style-boxes",
+  "path": "2026-10-16-04-recycle-the-element-base-style-boxes.json",
+  "createdAt": "2026-10-16T02:12:40Z",
+  "startedAt": "2026-10-16T02:12:40Z",
+  "finishedAt": "2026-10-16T08:43:00Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "14640fd4977e54a6b373489b856a485897d4f056",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 14640fd4977e54a6b373489b856a485897d4f056",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "14640fd4977e54a6b373489b856a485897d4f056",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 14640fd4977e54a6b373489b856a485897d4f056",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal) via benchmark/run.py --target macos",
+  "hypothesisMarkdown": "## Recycle the element base style boxes\n\nMechanism: each element allocated and freed a 720-byte `Box<StyleRefinement>` (its base style) per frame; keep freed boxes in a per-thread pool (8,192) and hand them to the next elements. Allowed: elements/div.rs (`PooledStyle`), uniform_list.rs constructor.",
+  "measurementPlanMarkdown": "alt2.sh over six scenarios. Pass: div-heavy CPU down at least 3% with allocations down, no extra retained memory.",
+  "expectedOutcomeMarkdown": "",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "scroll-div-cards on allocations / draw p50",
+      "before": "6,017 / 1.96",
+      "after": "2,015 / 2.08",
+      "delta": "-67% / +6%",
+      "source": "alt2.sh"
+    },
+    {
+      "metric": "dashboard-all-panels on CPU / allocations",
+      "before": "4.79 / 24,620",
+      "after": "4.51 / 22,843",
+      "delta": "-6% / -7%",
+      "source": "alt2.sh"
+    },
+    {
+      "metric": "geomean of six scenarios, CPU / draw p50",
+      "before": "",
+      "after": "",
+      "delta": "-0.5% / -0.4%",
+      "source": "alt2.sh"
+    }
+  ],
+  "reportMarkdown": "## Recycle the element base style boxes Finished\n\nPassed: false. Allocations fall 6-67% but time does not follow: resetting a recycled 720-byte style on drop costs about what the allocator's malloc and free did, and div-cards draw p50 is 6% worse. The pool also keeps up to 6 MB of boxes for the life of the thread. Reverted.\n\nAttempt Count: 1.",
+  "decisionMarkdown": "### Decision\n\nReverted failure.",
+  "notes": ""
+}

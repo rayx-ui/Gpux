@@ -286,3 +286,21 @@ pub fn memory() -> MemorySample {
         resident: bytes,
     }
 }
+
+/// Starts recording how long the GPU spends on each frame, where the renderer can tell (Metal).
+pub fn gpu_times_begin() {
+    #[cfg(target_os = "macos")]
+    gpui_apple::metal_renderer::record_gpu_frame_times(true);
+}
+
+/// The GPU time of each frame since [`gpu_times_begin`], in milliseconds; none where the renderer
+/// cannot tell.
+pub fn gpu_times_take() -> Vec<f64> {
+    #[cfg(target_os = "macos")]
+    {
+        gpui_apple::metal_renderer::record_gpu_frame_times(false);
+        return gpui_apple::metal_renderer::take_gpu_frame_times();
+    }
+    #[cfg(not(target_os = "macos"))]
+    Vec::new()
+}

@@ -82,6 +82,9 @@ pub(crate) struct WindowLayers {
     pub(crate) scrolls: invalidate::ScrollLog,
     /// The layer being painted, if any.
     pub(crate) painting: Option<paint::Painting>,
+    /// How the scroll containers that requested their children's layout this frame laid them
+    /// out, until their prepaint paints their layer afresh and keeps it.
+    pub(crate) pending_content: FxHashMap<GlobalElementId, std::rc::Rc<reuse::KeptContent>>,
     /// What every scroll container decides, in tests of one stream that
     /// cannot wait for the policy to decide it.
     #[cfg(any(test, feature = "test-support"))]
@@ -159,6 +162,7 @@ pub(crate) fn active(window: &Window, cx: &App) -> bool {
 /// scale factor, are dropped, and a frame drawn from scratch leaves no layer
 /// content painted before it.
 pub(crate) fn finish_frame(window: &mut Window) {
+    window.fast_layers.pending_content.clear();
     if !window.fast_mode.scroll_layers() {
         return;
     }

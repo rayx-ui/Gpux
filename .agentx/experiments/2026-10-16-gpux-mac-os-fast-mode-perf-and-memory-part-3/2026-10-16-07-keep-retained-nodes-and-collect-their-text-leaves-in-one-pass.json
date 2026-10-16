@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "id": "8deb1a86-c841-4131-97ba-fe826a4a8c22",
+  "loopId": "5454c93e-ead4-4322-b9fc-ad37cad8bca7",
+  "index": 7,
+  "type": "hypothesis",
+  "name": "Keep retained nodes and collect their text leaves in one pass",
+  "slug": "keep-retained-nodes-and-collect-their-text-leaves-in-one-pass",
+  "path": "2026-10-16-07-keep-retained-nodes-and-collect-their-text-leaves-in-one-pass.json",
+  "createdAt": "2026-10-16T08:56:35Z",
+  "startedAt": "2026-10-16T08:56:35Z",
+  "finishedAt": "2026-10-16T09:02:32Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "1f70bbc5a314ee7b774d48d0a13ee0c3c211fcda",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 1f70bbc5a314ee7b774d48d0a13ee0c3c211fcda",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "1f70bbc5a314ee7b774d48d0a13ee0c3c211fcda",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 1f70bbc5a314ee7b774d48d0a13ee0c3c211fcda",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal) via benchmark/run.py --target macos",
+  "hypothesisMarkdown": "keep_retained_nodes looks every key up three times (all-or-none check, claim, text-leaf collection); fusing the claim and the collection into one pass should cut hashing and the intermediate Vec.",
+  "measurementPlanMarkdown": "Fuse claim and leaf collection (all-or-none keeps a read-only pre-check), run fast:: tests, alternate old/new binaries four times on dashboard-clock, tree-toggle and table-stream with fast mode on.",
+  "expectedOutcomeMarkdown": "",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "dashboard-clock draw p50 ms",
+      "before": "1.36",
+      "after": "1.38",
+      "delta": "+1%",
+      "source": "alt2.sh x4"
+    },
+    {
+      "metric": "tree-toggle draw p50 ms",
+      "before": "2.75",
+      "after": "2.74",
+      "delta": "-0.4%",
+      "source": "alt2.sh x4"
+    },
+    {
+      "metric": "table-stream draw p50 ms",
+      "before": "2.60",
+      "after": "2.58",
+      "delta": "-1%",
+      "source": "alt2.sh x4"
+    }
+  ],
+  "reportMarkdown": "Within noise on all three scenarios; the 437 fast tests pass. The lookups were cheap Fx hashes of u64 keys, and the profile's keep_retained_nodes self time was the loop over the keys itself, not the extra passes.",
+  "decisionMarkdown": "Revert: no measurable gain for the added code.",
+  "notes": ""
+}

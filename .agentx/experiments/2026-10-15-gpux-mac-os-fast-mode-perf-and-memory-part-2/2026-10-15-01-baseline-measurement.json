@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "id": "fc7ccdb3-19de-436f-bf0b-77ff3a23d552",
+  "loopId": "ac3f425c-d667-4761-8769-5cceb3812807",
+  "index": 1,
+  "type": "baseline",
+  "name": "Baseline Measurement",
+  "slug": "baseline-measurement",
+  "path": "2026-10-15-01-baseline-measurement.json",
+  "createdAt": "2026-10-15T23:56:32Z",
+  "startedAt": "2026-10-15T23:56:32Z",
+  "finishedAt": "2026-10-15T23:56:38Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "48e5fc6cfadd03e08e344ef580020bcbae6f78d3",
+  "resultCommit": "88c1c59b22ee2ded1135830598f35a706dabde0a",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 48e5fc6cfadd03e08e344ef580020bcbae6f78d3",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "48e5fc6cfadd03e08e344ef580020bcbae6f78d3",
+      "resultCommit": "88c1c59b22ee2ded1135830598f35a706dabde0a",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 48e5fc6cfadd03e08e344ef580020bcbae6f78d3",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "88c1c59b22ee2ded1135830598f35a706dabde0a"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal) via benchmark/run.py --target macos",
+  "hypothesisMarkdown": "## Baseline Measurement\n\nThe closing state of part 1 (commit 48e5fc6) is the baseline: results/2026-10-16-macos-loop, see benchmark/LOOP-2026-10-16.md.",
+  "measurementPlanMarkdown": "Same as part 1: ab.sh (stashed HEAD, then the change, 3 reps), alternating one binary with an environment switch for small effects, `sample` profiles for where the work is.",
+  "expectedOutcomeMarkdown": "### Expected Outcome\n\nBaseline metrics are captured and stored so later experiments compare against a known starting point.",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [],
+  "reportMarkdown": "## Baseline Measurement Finished\n\nPart 1 ended at 19 experiments (8 kept of 11 hypotheses plus an investigation, a revert and the baseline). Open: scroll-div-cards 3.4 ms draw (owner view renders and lays out its content on every scroll frame), dashboard-clock 2.4 ms draw (per-element claim, copy and replay of 2,600 retained elements), scroll footprint 1.30-1.46x off.\n\nAttempt Count: 1.",
+  "decisionMarkdown": "### Decision\n\nBaseline recorded; candidates: owner-view skip on scroll-only frames, cheaper splice layout verification, retained-node claim by range.",
+  "notes": ""
+}

@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "id": "d85b6e3f-9680-4916-9b8e-e376c306c6b2",
+  "loopId": "4d3d6e89-fc50-415a-8ba8-a474f3a51f2e",
+  "index": 2,
+  "type": "hypothesis",
+  "name": "Skip the matrix for identity primitive bounds",
+  "slug": "skip-the-matrix-for-identity-primitive-bounds",
+  "path": "2026-10-16-02-skip-the-matrix-for-identity-primitive-bounds.json",
+  "createdAt": "2026-10-16T10:39:16Z",
+  "startedAt": "2026-10-16T10:39:16Z",
+  "finishedAt": "2026-10-16T10:44:30Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "c7e7bdf414878c916abf3a08991a8b6e77430f58",
+  "resultCommit": "bcdcf81a871b079b62e38ded64d78bef0b67124f",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard c7e7bdf414878c916abf3a08991a8b6e77430f58",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "c7e7bdf414878c916abf3a08991a8b6e77430f58",
+      "resultCommit": "bcdcf81a871b079b62e38ded64d78bef0b67124f",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard c7e7bdf414878c916abf3a08991a8b6e77430f58",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "bcdcf81a871b079b62e38ded64d78bef0b67124f"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal) via benchmark/run.py --target macos",
+  "hypothesisMarkdown": "Primitive::bounds runs every primitive's bounds through the transformation matrix (four corner applications and min/max) although nearly every matrix is the unit, and the profile of hover-grid and others put 154 aggregate samples under Primitive::bounds.",
+  "measurementPlanMarkdown": "Return the corners unchanged when the matrix is the unit. Test the result equals the corner-by-corner transform for several boxes (including negative sizes) and that a translation still goes through the matrix. Alternate previous and new binaries four times on hover-grid, dashboard-all-panels and scroll-div-cards.",
+  "expectedOutcomeMarkdown": "",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "hover-grid CPU / draw p50",
+      "before": "4.57 / 4.28",
+      "after": "4.55 / 4.24",
+      "delta": "-0.4% / -0.9%",
+      "source": "alt2.sh x4"
+    },
+    {
+      "metric": "dashboard-all-panels CPU",
+      "before": "4.55",
+      "after": "4.61",
+      "delta": "+1% (one old run low; the others equal)",
+      "source": "alt2.sh x4"
+    },
+    {
+      "metric": "scroll-div-cards CPU / draw p50",
+      "before": "3.08 / 1.98",
+      "after": "3.06 / 1.94",
+      "delta": "-0.6% / -2%",
+      "source": "alt2.sh x4"
+    }
+  ],
+  "reportMarkdown": "A very small gain, consistent in sign on hover-grid and div-cards, nil on dashboard-all-panels. The test and clippy pass.",
+  "decisionMarkdown": "Keep (minor): bit-identical results for the unit matrix, no cost.",
+  "notes": ""
+}

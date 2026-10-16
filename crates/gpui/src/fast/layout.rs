@@ -9,10 +9,9 @@
 //! clean.
 //!
 //! A kept node is written only where the request changed. Its style is
-//! compared through what the Taffy conversion reads: a fingerprint of those
-//! fields tells a changed request apart cheaply, and equal fingerprints are
-//! confirmed field by field, so a request is converted only when it changed
-//! (the layout rules allow no inference from position or identity). Its
+//! compared through what the Taffy conversion reads, field by field and
+//! without copying, so a request is converted only when it changed (the
+//! layout rules allow no inference from position or identity). Its
 //! children are written only when the ordered child ids differ.
 //!
 //! Measured leaves are given their new closure each frame, and their
@@ -28,13 +27,16 @@
 
 use std::{
     cell::{Cell, RefCell},
-    hash::{Hash as _, Hasher as _},
     mem,
     rc::Rc,
 };
 
-use collections::{FxHashMap, FxHashSet, FxHasher};
+#[cfg(test)]
+use collections::FxHasher;
+use collections::{FxHashMap, FxHashSet};
 use smallvec::SmallVec;
+#[cfg(test)]
+use std::hash::{Hash as _, Hasher as _};
 
 use crate::{
     AbsoluteLength, AlignContent, AlignItems, AlignSelf, App, AvailableSpace, DefiniteLength,
@@ -42,7 +44,7 @@ use crate::{
     LayoutDirection, LayoutId, Length, Overflow, Pixels, Point, Position, Size, Style,
     TaffyLayoutEngine, Window,
     fast::text::TextMeasureInputs,
-    taffy::{MeasuredLayoutKind, NodeContext, ToTaffy as _},
+    taffy::{NodeContext, ToTaffy as _},
     util::round_to_device_pixel,
 };
 
@@ -125,8 +127,6 @@ struct RetainedNode {
     /// Whether it was last claimed laying out a list row, and is kept for
     /// [`LIST_ROW_NODE_LINGER_FRAMES`] unclaimed.
     lingers: bool,
-    /// [`layout_fingerprint`] of the request the node was last given.
-    fingerprint: u64,
     /// What of that request the Taffy conversion reads.
     fields: LayoutFields,
     /// For a text leaf, what it was last measured from, and the sizes Taffy
@@ -175,7 +175,7 @@ const MEASURE_LOG_CAPACITY: usize = 16;
 impl MeasureLog {
     /// Records a measurement Taffy took, moving it to the end if one under
     /// the same constraints was recorded.
-    fn record(
+    pub(crate) fn record(
         &self,
         known: Size<Option<Pixels>>,
         available: Size<AvailableSpace>,
@@ -256,7 +256,7 @@ impl LayoutRetention {
     }
 
     /// Records a node made this frame under `key`, or as transient.
-    fn keep(&mut self, key: Option<u64>, id: LayoutId, fingerprint: u64, fields: LayoutFields) {
+    fn keep(&mut self, key: Option<u64>, id: LayoutId, fields: LayoutFields) {
         let Some(key) = key else {
             self.transient.push(id);
             return;
@@ -267,7 +267,6 @@ impl LayoutRetention {
                 id,
                 claimed_in_frame: self.frame,
                 lingers: self.list_rows > 0,
-                fingerprint,
                 fields,
                 text: None,
             },
@@ -422,11 +421,10 @@ pub(crate) fn request_node(
     children: &[LayoutId],
     context: Option<NodeContext>,
 ) -> LayoutId {
-    let fingerprint = layout_fingerprint(style, rem_size, scale_factor);
     let key = match engine.retention.claim(key) {
         Claim::Reused(key, id) => {
             crate::fast::fast_stat!(engine.fast_stats, nodes_claimed += 1);
-            apply_requested_style(engine, key, id, fingerprint, style, rem_size, scale_factor);
+            apply_requested_style(engine, key, id, style, rem_size, scale_factor);
             engine.update_node_topology(id, children, context);
             // A text leaf was left clean at clear for the next text at its
             // key to carry, replay or dirty. Another element is none of
@@ -462,7 +460,7 @@ pub(crate) fn request_node(
             .expect(EXPECT_MESSAGE);
     }
     let fields = LayoutFields::of(style, rem_size, scale_factor);
-    engine.retention.keep(key, id, fingerprint, fields);
+    engine.retention.keep(key, id, fields);
     engine.note_requested_node(id, children, measured);
     id
 }
@@ -524,15 +522,7 @@ pub(crate) fn request_text_node(
 /// The node context of a text leaf: `inputs` measured, each size recorded in
 /// `log`.
 fn text_context(inputs: &Rc<TextMeasureInputs>, log: &Rc<MeasureLog>) -> NodeContext {
-    let (inputs, log) = (inputs.clone(), log.clone());
-    NodeContext::measuring(
-        move |known, available, window: &mut Window, cx: &mut App| {
-            let size = crate::fast::text::measure_text(&inputs, known, available, window, cx);
-            log.record(known, available, size);
-            size
-        },
-        MeasuredLayoutKind::text(),
-    )
+    NodeContext::measuring_text(inputs.clone(), log.clone())
 }
 
 /// Whether `inputs` measure to every size in `log` under the constraints it
@@ -571,7 +561,6 @@ fn request_text_leaf(
         font_generation,
     } = measured_under;
     let style = Style::default();
-    let fingerprint = layout_fingerprint(&style, rem_size, scale_factor);
     let (key, id) = match engine.retention.claim(key) {
         Claim::Reused(key, id) => (key, id),
         claim => {
@@ -605,7 +594,7 @@ fn request_text_leaf(
         }
     };
     crate::fast::fast_stat!(engine.fast_stats, nodes_claimed += 1);
-    apply_requested_style(engine, key, id, fingerprint, &style, rem_size, scale_factor);
+    apply_requested_style(engine, key, id, &style, rem_size, scale_factor);
     let previous = engine
         .retention
         .retained
@@ -742,11 +731,15 @@ pub(crate) fn settle_text_leaves(
         .drain()
         .map(|(id, width)| (id, Some(width)))
         .collect();
+    // A leaf settles once: by the width it was measured at, else by the one
+    // it was carried at. Looked up by set, as the leaves requested this frame
+    // number in the thousands.
+    let mut settled: FxHashSet<LayoutId> = settle.iter().map(|(id, _)| *id).collect();
     pending.retain(|&(id, width)| {
         if !reaches(&engine.taffy, root, id) {
             return true;
         }
-        if !settle.iter().any(|(settled, _)| *settled == id) {
+        if settled.insert(id) {
             settle.push((id, width));
         }
         false
@@ -805,7 +798,6 @@ fn apply_requested_style(
     engine: &mut TaffyLayoutEngine,
     key: u64,
     id: LayoutId,
-    fingerprint: u64,
     style: &Style,
     rem_size: Pixels,
     scale_factor: f32,
@@ -815,10 +807,9 @@ fn apply_requested_style(
         .retained
         .get_mut(&key)
         .expect("a claimed key is kept");
-    if node.fingerprint == fingerprint && node.fields.matches(style, rem_size, scale_factor) {
+    if node.fields.matches(style, rem_size, scale_factor) {
         return;
     }
-    node.fingerprint = fingerprint;
     node.fields = LayoutFields::of(style, rem_size, scale_factor);
     let taffy_style = retention.convert(style, rem_size, scale_factor);
     let asked = retention
@@ -1123,7 +1114,7 @@ fn measure_node(
         .get_node_context_mut(id.into())
         .and_then(|context| context.measure.as_mut())
     {
-        measure(known_dimensions, available_space, window, cx);
+        measure.call(known_dimensions, available_space, window, cx);
     }
 }
 
@@ -1189,6 +1180,19 @@ pub(crate) fn relayout_in_place(
     }
     engine.absolute_outer_origins.insert(id, origin);
     engine.absolute_layout_bounds.insert(id, bounds);
+}
+
+/// How many writes and remeasures the layout engine has counted this frame, to tell later whether
+/// a layout requested since changed anything ([`changed_since`]).
+pub(crate) fn change_counts(window: &Window) -> (u64, u64) {
+    let retention = &window.layout_engine.as_ref().unwrap().retention;
+    (retention.layout_changes, retention.remeasures)
+}
+
+/// Whether the layout requested since [`change_counts`] returned `before` wrote a node or measured
+/// one again.
+pub(crate) fn changed_since(window: &Window, before: (u64, u64)) -> bool {
+    change_counts(window) != before
 }
 
 /// Begins a frame for `window`'s layout: it keys its layout while layout
@@ -1329,9 +1333,10 @@ impl LayoutFields {
 }
 
 /// A hash of every field of `style` its Taffy conversion reads, and of the
-/// rem size and scale factor it resolves lengths against. Equal requests
-/// hash equally; a different hash means a changed request, and an equal one
-/// is confirmed by [`LayoutFields::matches`].
+/// rem size and scale factor it resolves lengths against: what a change of
+/// any of them must change. Kept nodes are compared by [`LayoutFields::matches`];
+/// the write-elision tests hold the fields to the hash.
+#[cfg(test)]
 pub(crate) fn layout_fingerprint(style: &Style, rem_size: Pixels, scale_factor: f32) -> u64 {
     fn absolute(hasher: &mut FxHasher, length: &AbsoluteLength) {
         match length {

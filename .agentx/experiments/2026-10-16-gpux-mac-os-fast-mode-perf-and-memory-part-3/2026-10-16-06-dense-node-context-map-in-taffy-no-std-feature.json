@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "id": "7d73d599-9014-4754-a0ef-0cb0ba3ed4c1",
+  "loopId": "5454c93e-ead4-4322-b9fc-ad37cad8bca7",
+  "index": 6,
+  "type": "hypothesis",
+  "name": "Dense node-context map in Taffy (no std feature)",
+  "slug": "dense-node-context-map-in-taffy-no-std-feature",
+  "path": "2026-10-16-06-dense-node-context-map-in-taffy-no-std-feature.json",
+  "createdAt": "2026-10-16T08:50:33Z",
+  "startedAt": "2026-10-16T08:50:33Z",
+  "finishedAt": "2026-10-16T08:56:20Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "2df758e1d0e145b3a365daae0c78427c350f5b72",
+  "resultCommit": "04ee65eee8ce5fa733536d4f23b5268ae820bdff",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 2df758e1d0e145b3a365daae0c78427c350f5b72",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "2df758e1d0e145b3a365daae0c78427c350f5b72",
+      "resultCommit": "04ee65eee8ce5fa733536d4f23b5268ae820bdff",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 2df758e1d0e145b3a365daae0c78427c350f5b72",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "04ee65eee8ce5fa733536d4f23b5268ae820bdff"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal) via benchmark/run.py --target macos",
+  "hypothesisMarkdown": "Taffy with its std feature stores node contexts in a SparseSecondaryMap keyed with std's SipHash RandomState. gpux reads and writes a context for every measured text leaf each frame (clear, set_measure_keeping_clean), so SipHash showed as 25-46 samples of the dashboard-clock main thread. Without the std feature Taffy uses the dense Vec-indexed SecondaryMap.",
+  "measurementPlanMarkdown": "Drop taffy's std feature (keep alloc), fix the three debug helpers whose ? needs StdError, run the gpux lib tests, then alternate the old and new benchmark binaries three times on dashboard-clock, text-relabel, hover-grid and scroll-div-cards with fast mode on.",
+  "expectedOutcomeMarkdown": "",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "dashboard-clock draw p50 ms",
+      "before": "1.59 (mean of 3)",
+      "after": "1.42",
+      "delta": "-11%",
+      "source": "alt2.sh"
+    },
+    {
+      "metric": "hover-grid draw p50 ms",
+      "before": "4.67",
+      "after": "4.56",
+      "delta": "-2%",
+      "source": "alt2.sh"
+    },
+    {
+      "metric": "scroll-div-cards draw p50 ms",
+      "before": "2.09",
+      "after": "1.98",
+      "delta": "-5%",
+      "source": "alt2.sh"
+    },
+    {
+      "metric": "text-relabel draw p50 ms",
+      "before": "6.16",
+      "after": "6.17",
+      "delta": "0%",
+      "source": "alt2.sh"
+    }
+  ],
+  "reportMarkdown": "Allocations and footprint are unchanged. The gpux lib tests pass (1038), clippy and fmt are clean. Taffy's no_std float polyfills (round, floor, ceil) are copies of num-traits and gave identical layouts in the oracle tests.",
+  "decisionMarkdown": "Keep: a one-line dependency feature change with a consistent 2-11% draw gain and no other cost.",
+  "notes": ""
+}

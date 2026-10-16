@@ -178,7 +178,30 @@ def fast_arg(config):
     return config
 
 
+def hold_clocks(count):
+    """Starts `count` processes that spin on their own cores, and returns them.
+
+    A frame that needs less work runs at a lower clock, so its thread takes more CPU time per
+    unit of work: on an Apple M-series core the same main-thread work reads 2.9 ms with the
+    clusters idle and 1.0 ms with them busy. A build that does less work then reads as slower in
+    `main_cpu_ms`. Spinning cores keep the clocks up, so builds are compared by their work.
+    """
+    return [
+        subprocess.Popen([sys.executable, "-c", "while True: pass"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        for _ in range(count)
+    ]
+
+
 def run_desktop(target, jobs, exe, options):
+    spinners = hold_clocks(options.hold_clocks)
+    try:
+        run_desktop_jobs(target, jobs, exe, options)
+    finally:
+        for spinner in spinners:
+            spinner.kill()
+
+
+def run_desktop_jobs(target, jobs, exe, options):
     # The first launch of a fresh binary pays for the OS checking it; take it before measuring.
     sh([exe, "--scenario", "dashboard-clock", "--frames", "30", "--warmup", "10"], capture=True, check=False, timeout=300)
     for job in jobs:
@@ -328,6 +351,11 @@ def main():
     parser.add_argument("--name", default=None, help="results directory name")
     parser.add_argument("--skip-build", action="store_true", help="reuse the last build")
     parser.add_argument(
+        "--hold-clocks", type=int, default=0, metavar="N",
+        help="run N busy processes beside the desktop runs so the CPU clocks stay up and builds are "
+        "compared by their work, not by the clock a lighter frame idles at (3 is enough on an M-series Mac)",
+    )
+    parser.add_argument(
         "--stats",
         action="store_true",
         help="also run every scenario once with fast mode on and off in a build with gpux's "
@@ -380,6 +408,7 @@ def main():
             "frames": options.frames,
             "warmup": options.warmup,
             "reps": options.reps,
+            "hold_clocks": options.hold_clocks,
             "configs": configs,
         }
     )

@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "id": "8e5cb53a-a293-4e7b-8b7d-703299abfd96",
+  "loopId": "5454c93e-ead4-4322-b9fc-ad37cad8bca7",
+  "index": 5,
+  "type": "hypothesis",
+  "name": "GPU time per frame in the macOS benchmark",
+  "slug": "gpu-time-per-frame-in-the-mac-os-benchmark",
+  "path": "2026-10-16-05-gpu-time-per-frame-in-the-mac-os-benchmark.json",
+  "createdAt": "2026-10-16T08:43:29Z",
+  "startedAt": "2026-10-16T08:43:29Z",
+  "finishedAt": "2026-10-16T08:49:12Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "f7ffb6d1e8afd4d4c93baa5a5ec937b7822f4562",
+  "resultCommit": "75c4c07c421f5241e2fc41f1625394d0b9ff215f",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard f7ffb6d1e8afd4d4c93baa5a5ec937b7822f4562",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "f7ffb6d1e8afd4d4c93baa5a5ec937b7822f4562",
+      "resultCommit": "75c4c07c421f5241e2fc41f1625394d0b9ff215f",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard f7ffb6d1e8afd4d4c93baa5a5ec937b7822f4562",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "75c4c07c421f5241e2fc41f1625394d0b9ff215f"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal) via benchmark/run.py --target macos",
+  "hypothesisMarkdown": "The benchmark only measures CPU time, so a change that moves work to the GPU (tile composition, blur) looks free. Metal's GPUStartTime/GPUEndTime on each command buffer gives the GPU time per frame without changing rendering.",
+  "measurementPlanMarkdown": "Record GPUEndTime-GPUStartTime in the Metal completed handler behind a runtime flag (off by default), have the benchmark enable it for the measured frames, and report gpu_ms in the result JSON and in the report tables. Confirm it is populated and plausible on three scenarios, fast mode off and on.",
+  "expectedOutcomeMarkdown": "",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "scroll-div-cards gpu mean ms (off>on)",
+      "before": "2.06",
+      "after": "2.61",
+      "delta": "+27%",
+      "source": "gpux-bench --out"
+    },
+    {
+      "metric": "dashboard-clock gpu mean ms (off>on)",
+      "before": "2.92",
+      "after": "2.74",
+      "delta": "-6%",
+      "source": "gpux-bench --out"
+    },
+    {
+      "metric": "text-typing gpu mean ms (off>on)",
+      "before": "1.64",
+      "after": "1.64",
+      "delta": "0%",
+      "source": "gpux-bench --out"
+    },
+    {
+      "metric": "effects-cards gpu mean ms (on)",
+      "before": "-",
+      "after": "5.39",
+      "delta": "-",
+      "source": "gpux-bench --out"
+    }
+  ],
+  "reportMarkdown": "gpu_ms is populated (mean, p50, p95, p99, max) and consistent with the scenarios: effects-cards costs 5.4 ms of GPU per frame, text-typing 1.6 ms. Finding: scroll-div-cards with fast mode on spends 27% more GPU time than with it off (2.61 vs 2.06 ms, p95 3.29 vs 2.09) because it composites tile textures; its CPU saving is partly paid on the GPU, still well inside a 8.3 ms frame at 120 Hz. No renderer behaviour changed.",
+  "decisionMarkdown": "Keep. The metric is opt-in at runtime and only the benchmark turns it on. Future GPU-side work (tile texture size, blend passes) can now be judged.",
+  "notes": ""
+}

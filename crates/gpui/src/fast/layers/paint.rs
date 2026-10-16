@@ -73,6 +73,8 @@ pub(crate) struct Painting {
     pub(crate) input: crate::fast::layers::input::PaintingInput,
     /// How the views prepainted inside the content were laid out.
     pub(crate) view_layouts: FxHashMap<GlobalElementId, crate::fast::layers::reuse::KeptLayout>,
+    /// How the container laid out its children, if it can be laid out again without them.
+    pub(crate) content_layout: Option<Rc<crate::fast::layers::reuse::KeptContent>>,
     /// The composition surfaces the content switched to while it painted
     /// into the layer's scene, each with the length that scene had: content
     /// on another surface is no tile's, so the content is drawn into the
@@ -351,6 +353,7 @@ fn begin_scrolling_children(
                 dependencies: RenderDependencies::default(),
                 input: Default::default(),
                 view_layouts: FxHashMap::default(),
+                content_layout: window.fast_layers.pending_content.remove(id),
                 surface_switches: Vec::new(),
                 onto: None,
             });
@@ -1330,6 +1333,7 @@ fn repaint(
         painted_with: Some(painted_with),
         paths,
         view_layouts: Rc::new(mem::take(&mut painting.view_layouts)),
+        content_layout: painting.content_layout.take(),
     });
     let dirtied = layer
         .record
@@ -1399,8 +1403,36 @@ pub(crate) const OVERSCAN_VIEWPORTS: f32 = 2.;
 /// costs memory (each row its scene, records and reads) and pays only when
 /// the scroll turns back. Measured with gpux's benchmark (`benchmark/`) on
 /// macOS: 2 held 37 MB more heap than 0.5 in `scroll-data-table` (50 MB at
-/// its peak) for no less CPU per frame.
-pub(crate) const LIST_OVERSCAN_VIEWPORTS: f32 = 0.5;
+/// its peak) for no less CPU per frame, and 0.15 held 6 MB (13%) less than
+/// 0.5 there, with 3-5% less CPU and 10-17% less at the 95th percentile.
+pub(crate) const LIST_OVERSCAN_VIEWPORTS: f32 = 0.15;
+
+#[cfg(test)]
+thread_local! {
+    /// The overscan the layer tests that script a six-row viewport run at: three rows, which
+    /// their row-by-row expectations spell out. Those that measure what a layer holds
+    /// ([`run_at_shipped_list_overscan`]) run at [`LIST_OVERSCAN_VIEWPORTS`].
+    static LIST_OVERSCAN: std::cell::Cell<f32> = const { std::cell::Cell::new(0.5) };
+}
+
+/// How many viewports' height of rows a list's layer holds on each side of those the list shows.
+#[inline]
+pub(crate) fn list_overscan_viewports() -> f32 {
+    #[cfg(test)]
+    {
+        LIST_OVERSCAN.get()
+    }
+    #[cfg(not(test))]
+    {
+        LIST_OVERSCAN_VIEWPORTS
+    }
+}
+
+/// Makes the test thread's lists hold the overscan they ship with.
+#[cfg(test)]
+pub(crate) fn run_at_shipped_list_overscan() {
+    LIST_OVERSCAN.set(LIST_OVERSCAN_VIEWPORTS);
+}
 
 pub(crate) fn painted_region(
     viewport: Bounds<Pixels>,

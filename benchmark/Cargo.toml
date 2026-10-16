@@ -37,6 +37,9 @@ web-time = "1.1.0"
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 
+[target.'cfg(target_os = "macos")'.dependencies]
+gpui_apple = { package = "gpux-apple", path = "../crates/gpui_apple" }
+
 [target.'cfg(target_os = "ios")'.dependencies]
 gpui_mobile = { package = "gpux-mobile", path = "../crates/gpui_mobile" }
 

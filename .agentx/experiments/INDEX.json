@@ -37,6 +37,51 @@
       "finishedAt": "2026-08-31T21:28:04Z",
       "state": "done",
       "status": "stopped"
+    },
+    {
+      "id": "93c0b7e1-2b73-4272-a15b-436864754725",
+      "name": "gpux macOS fast-mode perf and memory",
+      "path": "2026-10-15-gpux-mac-os-fast-mode-perf-and-memory/",
+      "createdAt": "2026-10-15T16:29:33Z",
+      "finishedAt": "2026-10-15T23:49:21Z",
+      "state": "done",
+      "status": "stopped"
+    },
+    {
+      "id": "ac3f425c-d667-4761-8769-5cceb3812807",
+      "name": "gpux macOS fast-mode perf and memory, part 2",
+      "path": "2026-10-15-gpux-mac-os-fast-mode-perf-and-memory-part-2/",
+      "createdAt": "2026-10-15T23:56:32Z",
+      "finishedAt": "2026-10-16T00:52:20Z",
+      "state": "done",
+      "status": "stopped"
+    },
+    {
+      "id": "5454c93e-ead4-4322-b9fc-ad37cad8bca7",
+      "name": "gpux macOS fast-mode perf and memory, part 3",
+      "path": "2026-10-16-gpux-mac-os-fast-mode-perf-and-memory-part-3/",
+      "createdAt": "2026-10-16T01:54:00Z",
+      "finishedAt": "2026-10-16T09:42:23Z",
+      "state": "done",
+      "status": "stopped"
+    },
+    {
+      "id": "4d3d6e89-fc50-415a-8ba8-a474f3a51f2e",
+      "name": "gpux macOS fast-mode perf and memory, part 4",
+      "path": "2026-10-16-gpux-mac-os-fast-mode-perf-and-memory-part-4/",
+      "createdAt": "2026-10-16T10:35:32Z",
+      "finishedAt": "2026-10-16T10:49:34Z",
+      "state": "done",
+      "status": "stopped"
+    },
+    {
+      "id": "55fed546-f57a-4f71-939f-001f39b97557",
+      "name": "gpux macOS fast-mode regressions, part 5",
+      "path": "2026-10-16-gpux-mac-os-fast-mode-regressions-part-5/",
+      "createdAt": "2026-10-16T11:50:08Z",
+      "finishedAt": "2026-10-16T13:03:45Z",
+      "state": "done",
+      "status": "success"
     }
   ]
 }

@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "id": "4f6ebc53-0259-4bfd-8cf9-d21ba87390d8",
+  "loopId": "93c0b7e1-2b73-4272-a15b-436864754725",
+  "index": 17,
+  "type": "hypothesis",
+  "name": "Two drawables",
+  "slug": "two-drawables",
+  "path": "2026-10-15-17-two-drawables.json",
+  "createdAt": "2026-10-15T22:09:19Z",
+  "startedAt": "2026-10-15T22:09:19Z",
+  "finishedAt": "2026-10-15T22:20:04Z",
+  "state": "done",
+  "status": "success",
+  "checkpointCommit": "bae3b3b43506bc7633bad063a6b147aa149713c3",
+  "resultCommit": "0a7d869fc7500cb7f534f7bf994137d4dc5dd810",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard bae3b3b43506bc7633bad063a6b147aa149713c3",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "bae3b3b43506bc7633bad063a6b147aa149713c3",
+      "resultCommit": "0a7d869fc7500cb7f534f7bf994137d4dc5dd810",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard bae3b3b43506bc7633bad063a6b147aa149713c3",
+      "status": "success"
+    }
+  ],
+  "repositoryCommits": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "commit": "0a7d869fc7500cb7f534f7bf994137d4dc5dd810"
+    }
+  ],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS (Metal) via benchmark/run.py --target macos",
+  "hypothesisMarkdown": "## Two drawables\n\nMechanism: the Metal layer allowed three drawables (`maximumDrawableCount = 3`), each a full-window IOSurface (16 MB at 1280x801 @2x, 33 MB at 4K). The benchmark's frames finish well inside the 8.3 ms interval, so two are enough: set the maximum to 2. Allowed: gpui_apple metal_renderer.rs. Forbidden: presentation or pacing code.",
+  "measurementPlanMarkdown": "ab.sh over seven scenarios, 3 reps; watch footprint, fps and missed frames (janky_frames). Pass: footprint down about 15 MB everywhere, fps unchanged, missed frames not materially up.",
+  "expectedOutcomeMarkdown": "",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [
+    {
+      "metric": "footprint end MB, fast on (data-table / div-cards / hover-grid / text-relabel)",
+      "before": "183.7 / 208.0 / 160.8 / 147.7",
+      "after": "162.1 / 189.4 / 144.8 / 132.8",
+      "delta": "-12% / -9% / -10% / -10%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "footprint end MB, fast off (data-table / div-cards / hover-grid)",
+      "before": "135.3 / 153.1 / 157.5",
+      "after": "117.7 / 137.6 / 140.8",
+      "delta": "-13% / -10% / -11%",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "fps, all scenarios",
+      "before": "120",
+      "after": "120 (119.0 data-table on)",
+      "delta": "unchanged",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "missed frames over 600, per run",
+      "before": "data-table on 5-6; others 0",
+      "after": "data-table on 4-8, off 1; animated-dots 1, effects-cards 1 (4 runs of 42)",
+      "delta": "slightly more, 1 frame in 600",
+      "source": "run.py macos"
+    },
+    {
+      "metric": "CPU",
+      "before": "",
+      "after": "",
+      "delta": "within noise; effects-cards on bimodal 2.0/2.65 as before",
+      "source": "run.py macos"
+    }
+  ],
+  "reportMarkdown": "## Two drawables Finished\n\nPassed: true, with a stated trade. Every scenario drops about 15 MB (9-13%) in both fast modes, a full-window drawable, and more on larger displays. fps and CPU hold; four of the 42 two-drawable runs missed one frame in 600 where the three-drawable runs missed none outside data-table. Two drawables leave the CPU one frame less slack when the GPU runs long, so an application whose frames are GPU-bound near the display interval may prefer three; the setting stays a one-line constant in `MetalRenderer::configure_layer`. Clippy clean; no unit test applies (a layer property).\n\nAttempt Count: 1.",
+  "decisionMarkdown": "### Decision\n\nCommitted success; reported as a smoothness-for-memory trade.",
+  "notes": ""
+}

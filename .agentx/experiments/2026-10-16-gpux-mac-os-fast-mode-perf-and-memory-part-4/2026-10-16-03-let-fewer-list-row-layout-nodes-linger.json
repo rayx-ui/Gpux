@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "id": "c95d8e1b-cae2-44e0-9bb4-04a10ee859a1",
+  "loopId": "4d3d6e89-fc50-415a-8ba8-a474f3a51f2e",
+  "index": 3,
+  "type": "hypothesis",
+  "name": "Let fewer list row layout nodes linger",
+  "slug": "let-fewer-list-row-layout-nodes-linger",
+  "path": "2026-10-16-03-let-fewer-list-row-layout-nodes-linger.json",
+  "createdAt": "2026-10-16T10:45:51Z",
+  "startedAt": "2026-10-16T10:45:51Z",
+  "finishedAt": "2026-10-16T10:49:34Z",
+  "state": "done",
+  "status": "failure",
+  "checkpointCommit": "35042e9f55c848e259f46cdbd8d023339333123e",
+  "resultCommit": "",
+  "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 35042e9f55c848e259f46cdbd8d023339333123e",
+  "repositories": [
+    {
+      "name": "main",
+      "path": ".",
+      "role": "main",
+      "checkpointCommit": "35042e9f55c848e259f46cdbd8d023339333123e",
+      "resultCommit": "",
+      "rollbackCommand": "git -C \"/Users/dinko/work-private/projects/RayX/Gpux-agentx-loop\" reset --hard 35042e9f55c848e259f46cdbd8d023339333123e",
+      "status": "failure"
+    }
+  ],
+  "repositoryCommits": [],
+  "atomicDiscipline": {
+    "oneHypothesisOnly": true,
+    "singleImplementationAttempt": true,
+    "noUnplannedFixesInsideExperiment": true,
+    "failedAttemptRequiresImmediateRevert": true,
+    "successfulAttemptRequiresCommitBeforeNextExperiment": true,
+    "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
+  },
+  "primaryTarget": "native macOS",
+  "hypothesisMarkdown": "",
+  "measurementPlanMarkdown": "",
+  "expectedOutcomeMarkdown": "",
+  "diagnostics": {
+    "playwright": [],
+    "rayx": [],
+    "counters": [],
+    "artifacts": []
+  },
+  "measurements": [],
+  "reportMarkdown": "",
+  "decisionMarkdown": "",
+  "notes": ""
+}
