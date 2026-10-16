@@ -82,7 +82,7 @@
       "source": "alt2.sh"
     }
   ],
-  "reportMarkdown": "## Interactivity listeners allocated on first use Finished\n\nPassed: true. Interactivity shrinks from 1,368 to about 860 bytes, which is less memmove in every builder chain and drop; allocations are unchanged because an element with a listener still makes the one allocation, which an element without any never did. The 1,038 lib tests pass; clippy clean.\n\nAttempt Count: 1.",
+  "reportMarkdown": "## Interactivity listeners allocated on first use Finished\n\nPassed: true. Interactivity shrinks by 16 bytes for each of the 21 lists (about 340 bytes of 1,368), which is less memmove in every builder chain and drop; allocations are unchanged because an element with a listener still makes the one allocation, which an element without any never did. The 1,038 lib tests pass; clippy clean.\n\nAttempt Count: 1.",
   "decisionMarkdown": "### Decision\n\nCommitted success.",
   "notes": ""
 }
