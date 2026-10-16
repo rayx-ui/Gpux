@@ -441,12 +441,21 @@ impl Row {
     }
 }
 
-/// A uniform list's measured item, and what it was measured with besides
-/// the item itself.
+/// A list's measured item, and what it was measured with besides the item
+/// itself.
 struct Measured {
     size: Size<Pixels>,
     rem_size: Pixels,
     text_style: TextStyle,
+    /// The element states measuring the item reached. A frame that keeps
+    /// the size reaches them too, so that they live on as when the item is
+    /// measured.
+    states: Rc<[(GlobalElementId, std::any::TypeId)]>,
+    /// The lines measuring the item shaped, in the frame that measured it or
+    /// last carried them, `frame`: a frame that keeps the size right after
+    /// keeps them shaped.
+    lines: Range<crate::LineLayoutIndex>,
+    frame: u64,
 }
 
 /// The rows a list renders into its layer this frame.
@@ -644,6 +653,14 @@ struct RowPaint {
 /// What a `uniform_list` does with its rows this frame: nothing new, or
 /// render the plan's rows into its layer.
 pub(crate) struct Rows(Option<RowPlan>);
+
+impl Rows {
+    /// The rows of a list that calls no hook to begin them: it renders the
+    /// rows it shows, on today's path.
+    pub(crate) fn unlayered() -> Self {
+        Rows(None)
+    }
+}
 
 /// The rows `visible` and `overscan` rows on each side, of `item_count`.
 fn needed_rows(visible: &Range<usize>, overscan: usize, item_count: usize) -> Range<usize> {
@@ -851,20 +868,78 @@ pub(crate) fn measure_item(
     let Some(id) = id else {
         return measure(window, cx);
     };
+    // A list measures before it decides what its layer does: take in the
+    // offsets published since the last frame first, so that a wheel on a
+    // tracked handle counts as the scroll it is, as a handle-less list's
+    // does (see `ScrollStates::take_offsets_set`).
+    window.fast_layers.scrolls.take_offsets_set();
     if let Some(size) = kept_item_size(window, cx, id) {
+        carry_measured_records(window, id);
         return size;
     }
+    let start = window.prepaint_index();
     let size = measure(window, cx);
+    let end = window.prepaint_index();
+    let states = window.next_frame.accessed_element_states
+        [start.accessed_element_states_index..end.accessed_element_states_index]
+        .iter()
+        .map(|(id, type_id)| (id.clone(), *type_id))
+        .collect();
     let rem_size = window.rem_size();
     let text_style = window.text_style();
+    let frame = window.fast_layers.frame;
     if let Some(layer) = window.fast_layers.layers.get_mut(id) {
         layer.rows.measured = Some(Measured {
             size,
             rem_size,
             text_style,
+            states,
+            lines: start.line_layout_index..end.line_layout_index,
+            frame,
         });
     }
     size
+}
+
+/// Reaches in the frame being drawn the element states measuring the item
+/// of the list `id` reached, as measuring it again would, and keeps the
+/// lines it shaped when they lie in the last frame.
+fn carry_measured_records(window: &mut Window, id: &GlobalElementId) {
+    let frame = window.fast_layers.frame;
+    let Some((states, lines)) = window
+        .fast_layers
+        .layers
+        .get(id)
+        .and_then(|layer| layer.rows.measured.as_ref())
+        .map(|measured| {
+            let lines = (measured.frame + 1 == frame).then(|| measured.lines.clone());
+            (measured.states.clone(), lines)
+        })
+    else {
+        return;
+    };
+    window
+        .next_frame
+        .pending_element_state_transfers
+        .extend(states.iter().cloned());
+    window
+        .next_frame
+        .accessed_element_states
+        .extend(states.iter().cloned());
+    let start = window.text_system.layout_index();
+    if let Some(lines) = lines {
+        window.text_system.reuse_layouts(lines);
+    }
+    let end = window.text_system.layout_index();
+    if let Some(measured) = window
+        .fast_layers
+        .layers
+        .get_mut(id)
+        .and_then(|layer| layer.rows.measured.as_mut())
+    {
+        measured.lines = start..end;
+        measured.frame = frame;
+    }
 }
 
 /// The measured item's size as the layer of the list `id` keeps it, if the
@@ -952,11 +1027,118 @@ pub(crate) fn begin_uniform_list(
     let Some(id) = id else {
         return Rows(None);
     };
-    if item_height <= Pixels::ZERO || !layered(window, cx, carried) {
+    if item_height <= Pixels::ZERO {
+        return Rows(None);
+    }
+    let content_size = size(padded_bounds.size.width, item_height * item_count);
+    begin_rows(
+        window,
+        cx,
+        id,
+        padded_bounds,
+        content_size,
+        scroll_offset,
+        visible,
+        carried,
+        |viewport| {
+            let overscan = (viewport.size.height * paint::list_overscan_viewports() / item_height)
+                .ceil()
+                .max(1.) as usize;
+            needed_rows(visible, overscan, item_count)
+        },
+        |row| {
+            (
+                padded_bounds.origin.y + scroll_offset.y + item_height * row,
+                item_height,
+            )
+        },
+    )
+}
+
+/// Decides what the virtual list `id` does with its rows this frame, and
+/// sets up rendering and prepainting them, as [`begin_uniform_list`] does
+/// for a uniform list. Row `n` lies `origins[n]` from the top of
+/// `padded_bounds` and is `sizes[n]` tall, gap included; `extents` indexes
+/// those sizes. The list is scrolled by `scroll_offset` and shows the rows
+/// `visible`, its mounted range. Only a vertical list that is its own scroll
+/// container and has no sticky rows is `carried`.
+///
+/// The layer holds the rows that lie within
+/// [`paint::list_overscan_viewports`] of a viewport above and below the
+/// viewport, found through `extents`, and those the list shows.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn begin_virtual_list(
+    window: &mut Window,
+    cx: &mut App,
+    id: Option<&GlobalElementId>,
+    padded_bounds: Bounds<Pixels>,
+    scroll_offset: Point<Pixels>,
+    origins: &[Pixels],
+    sizes: &[Pixels],
+    extents: &crate::OrderedExtentIndex,
+    visible: &Range<usize>,
+    carried: bool,
+) -> Rows {
+    let Some(id) = id else {
+        return Rows(None);
+    };
+    let item_count = origins.len().min(sizes.len()).min(extents.len());
+    let total = extents.total();
+    if item_count == 0 || total <= Pixels::ZERO {
+        return Rows(None);
+    }
+    let content_size = size(padded_bounds.size.width, total);
+    let content_top = padded_bounds.origin.y + scroll_offset.y;
+    begin_rows(
+        window,
+        cx,
+        id,
+        padded_bounds,
+        content_size,
+        scroll_offset,
+        visible,
+        carried,
+        |viewport| {
+            let reach = viewport.size.height * paint::list_overscan_viewports();
+            let (around, _) = extents.visible_range_with_lookahead(
+                viewport.top() - content_top - reach,
+                viewport.bottom() - content_top + reach,
+                item_count,
+                0,
+            );
+            if visible.is_empty() {
+                return around;
+            }
+            if around.is_empty() {
+                return visible.start.min(item_count)..visible.end.min(item_count);
+            }
+            around.start.min(visible.start)..around.end.max(visible.end).min(item_count)
+        },
+        |row| (content_top + origins[row], sizes[row]),
+    )
+}
+
+/// What [`begin_uniform_list`] and [`begin_virtual_list`] share: decides
+/// what the list `id` does with its rows this frame and sets up rendering
+/// and prepainting them. `needed` gives the rows the layer is to hold from
+/// the viewport, and `place` each row's top and height in window space.
+#[allow(clippy::too_many_arguments)]
+fn begin_rows(
+    window: &mut Window,
+    cx: &mut App,
+    id: &GlobalElementId,
+    padded_bounds: Bounds<Pixels>,
+    content_size: Size<Pixels>,
+    scroll_offset: Point<Pixels>,
+    visible: &Range<usize>,
+    carried: bool,
+    needed: impl FnOnce(Bounds<Pixels>) -> Range<usize>,
+    place: impl Fn(usize) -> (Pixels, Pixels),
+) -> Rows {
+    if !layered(window, cx, carried) {
         return Rows(None);
     }
     let viewport = window.content_mask().bounds;
-    let content_size = size(padded_bounds.size.width, item_height * item_count);
     let decision = policy::decide(window, cx, id, padded_bounds, content_size, scroll_offset);
     let decision = input::decide(window, id, decision, scroll_offset);
     if decision == Decision::Bypass {
@@ -966,10 +1148,7 @@ pub(crate) fn begin_uniform_list(
         }
         return Rows(None);
     }
-    let overscan = (viewport.size.height * paint::list_overscan_viewports() / item_height)
-        .ceil()
-        .max(1.) as usize;
-    let needed = needed_rows(visible, overscan, item_count);
+    let needed = needed(viewport);
     let layer = paint::layer_mut(window, id);
     let extends = decision == Decision::Composite
         && layer.rows.list
@@ -985,17 +1164,18 @@ pub(crate) fn begin_uniform_list(
     };
 
     let translation = paint::translation(window, scroll_offset);
-    let slot = |row: usize| Bounds {
-        origin: point(
-            viewport.origin.x,
-            padded_bounds.origin.y + scroll_offset.y + item_height * row,
-        ),
-        size: size(viewport.size.width, item_height),
+    let slot = |row: usize| {
+        let (top, height) = place(row);
+        Bounds {
+            origin: point(viewport.origin.x, top),
+            size: size(viewport.size.width, height),
+        }
     };
     let unheld = hidden_in_view(
-        needed
-            .clone()
-            .map(|row| (row, slot(row).top(), item_height)),
+        needed.clone().map(|row| {
+            let (top, height) = place(row);
+            (row, top, height)
+        }),
         visible,
         viewport,
     );

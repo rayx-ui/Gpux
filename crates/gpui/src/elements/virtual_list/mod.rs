@@ -377,12 +377,16 @@ where
     V: Render,
 {
     let id: ElementId = id.into();
+    // Rendering rows leases the view holding the list as part of drawing it, not as a write
+    // (see `fast::layers::lists::render_items`).
     let render_range = move |visible_range, window: &mut Window, cx: &mut App| {
-        view.update(cx, |this, cx| {
-            f(this, visible_range, window, cx)
-                .into_iter()
-                .map(|component| component.into_any_element())
-                .collect()
+        crate::fast::layers::lists::render_items(window, cx, |window, cx| {
+            view.update(cx, |this, cx| {
+                f(this, visible_range, window, cx)
+                    .into_iter()
+                    .map(|component| component.into_any_element())
+                    .collect()
+            })
         })
     };
 
@@ -1098,7 +1102,19 @@ impl Element for VirtualList {
             Size::default()
         } else {
             self.fixed_cross_axis_size.map_or_else(
-                || self.measure_item(None, window, cx),
+                || {
+                    if self.external_scroll_behavior.is_none() {
+                        // A frame that only scrolls the list's layer keeps what it measured.
+                        crate::fast::layers::lists::measure_item(
+                            window,
+                            cx,
+                            global_id,
+                            |window, cx| self.measure_item(None, window, cx),
+                        )
+                    } else {
+                        self.measure_item(None, window, cx)
+                    }
+                },
                 |cross_axis_size| match self.axis {
                     Axis::Horizontal => size(px(0.), cross_axis_size),
                     Axis::Vertical => size(cross_axis_size, px(0.)),
@@ -1424,6 +1440,14 @@ impl Element for VirtualList {
                             }
                         }
                     }
+                    // A list that scrolls itself places its rows at an offset on whole device
+                    // pixels while scroll layers snap, as `uniform_list` does, so rows painted
+                    // into its layer and rows drawn without one land alike.
+                    let own_scroll = self.external_scroll_behavior.is_none();
+                    if own_scroll {
+                        scroll_offset =
+                            crate::fast::layers::lists::snap_item_offset(window, scroll_offset);
+                    }
 
                     let (visible_range, range_lookup_work) = match self.axis {
                         Axis::Horizontal => {
@@ -1538,10 +1562,34 @@ impl Element for VirtualList {
                         listener(rendered_range.clone(), window, cx);
                     }
 
-                    let rendered_visible_items =
-                        (self.render_items)(rendered_range.clone(), window, cx)
-                            .into_iter()
-                            .zip(rendered_range.clone());
+                    // A vertical list that is its own scroll container and has no sticky rows
+                    // composites from a list layer; the other kinds that scroll themselves are
+                    // counted ineligible, and a list scrolled by another element calls no hook.
+                    let fast_rows = if own_scroll {
+                        crate::fast::layers::lists::begin_virtual_list(
+                            window,
+                            cx,
+                            global_id,
+                            content_bounds,
+                            scroll_offset,
+                            item_origins,
+                            item_sizes,
+                            extent_index,
+                            &rendered_range,
+                            self.axis == Axis::Vertical && self.sticky_items.items().is_empty(),
+                        )
+                    } else {
+                        crate::fast::layers::lists::Rows::unlayered()
+                    };
+                    let fast_indices =
+                        crate::fast::layers::lists::row_indices(&fast_rows, rendered_range.clone());
+                    let rendered_visible_items = crate::fast::layers::lists::render_rows(
+                        &fast_rows,
+                        rendered_range.clone(),
+                        |range| (self.render_items)(range, window, cx).into_iter().collect(),
+                    )
+                    .into_iter()
+                    .zip(fast_indices);
                     let sticky_items = self.sticky_items.items();
                     let first_sticky_item = sticky_items
                         .partition_point(|item| item.visual_index < rendered_range.start);
@@ -1670,10 +1718,30 @@ impl Element for VirtualList {
                                     item
                                 };
 
-                                item.layout_as_root(available_space, window, cx);
-                                item.prepaint_at(item_origin, window, cx);
+                                if own_scroll {
+                                    crate::fast::layout_key::layout_as_list_item(
+                                        &mut item,
+                                        ix,
+                                        available_space,
+                                        window,
+                                        cx,
+                                    );
+                                } else {
+                                    item.layout_as_root(available_space, window, cx);
+                                }
+                                if own_scroll && !is_sticky {
+                                    crate::fast::layers::lists::prepaint_row(
+                                        window,
+                                        cx,
+                                        ix,
+                                        |window, cx| item.prepaint_at(item_origin, window, cx),
+                                    );
+                                } else {
+                                    item.prepaint_at(item_origin, window, cx);
+                                }
                                 layout.items.push(item);
                             }
+                            crate::fast::layers::lists::end_rows(window, cx, fast_rows);
                         });
                     });
                 }
@@ -1701,10 +1769,21 @@ impl Element for VirtualList {
             window,
             cx,
             |_, window, cx| {
+                let own_scroll = self.external_scroll_behavior.is_none();
                 let mut paint_items = |window: &mut Window, cx: &mut App| {
-                    for item in &mut layout.items {
-                        item.paint(window, cx);
+                    if !own_scroll {
+                        for item in &mut layout.items {
+                            item.paint(window, cx);
+                        }
+                        return;
                     }
+                    crate::fast::layers::lists::begin_paint_rows(window, cx, global_id);
+                    for item in &mut layout.items {
+                        crate::fast::layers::lists::paint_row(window, cx, None, |window, cx| {
+                            item.paint(window, cx)
+                        });
+                    }
+                    crate::fast::layers::lists::end_paint_rows(window, cx, global_id);
                 };
 
                 if let Some(scroll_context) = layout.scroll_context {
