@@ -11,13 +11,13 @@
   "status": "",
   "createdAt": "2026-10-16T11:50:08Z",
   "finishedAt": null,
-  "lastStableCommit": "6d33e777bcbd4c7db4c17a6ed69a988fa5eabb04",
+  "lastStableCommit": "f0b35b84ed1052eea80741e7c8fd373a2a60f078",
   "repositories": [
     {
       "name": "main",
       "path": ".",
       "role": "main",
-      "lastStableCommit": "6d33e777bcbd4c7db4c17a6ed69a988fa5eabb04"
+      "lastStableCommit": "f0b35b84ed1052eea80741e7c8fd373a2a60f078"
     }
   ],
   "atomicDiscipline": {
@@ -28,7 +28,7 @@
     "successfulAttemptRequiresCommitBeforeNextExperiment": true,
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
-  "currentExperimentId": "1551176b-92e2-4449-8aa7-b3c5d62393e3",
+  "currentExperimentId": null,
   "nextExperimentIndex": 4,
   "experiments": [
     {
@@ -61,9 +61,10 @@
       "name": "Two Metal drawables, judged with the clocks held",
       "path": "2026-10-16-03-two-metal-drawables-judged-with-the-clocks-held.json",
       "startedAt": "2026-10-16T12:27:15Z",
-      "finishedAt": null,
-      "state": "running",
-      "status": ""
+      "finishedAt": "2026-10-16T12:40:11Z",
+      "state": "done",
+      "status": "success",
+      "resultCommit": "f0b35b84ed1052eea80741e7c8fd373a2a60f078"
     }
   ]
 }
