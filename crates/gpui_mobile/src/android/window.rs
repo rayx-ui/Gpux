@@ -1244,7 +1244,9 @@ pub struct AndroidPlatformWindow {
     /// The window's place with TalkBack's adapter, from `a11y_init`; first, so it leaves the
     /// adapter before the window it describes goes.
     #[cfg(feature = "accessibility")]
-    accesskit: std::cell::RefCell<Option<super::accessibility::Registration>>,
+    accesskit: std::cell::RefCell<
+        Option<crate::accessibility_registry::Registration<super::accessibility::AndroidAdapter>>,
+    >,
     window: Arc<AndroidWindow>,
     fast_composition: std::cell::RefCell<crate::android::fast::composition::Composition>,
     display: Option<Rc<dyn PlatformDisplay>>,

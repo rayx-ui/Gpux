@@ -168,17 +168,30 @@ AccessKit has no web adapter, and a canvas is one opaque element to a screen rea
 
 `gpui_mobile` puts an `accesskit_ios` `SubclassingAdapter` on each window's Metal view
 (`accessibilityElements`, hit testing, `didMoveToWindow`), updated on the main thread; VoiceOver
-activates it. The adapter is dropped before the view.
+activates it. Every window has its own view and adapter, and the adapter is dropped before the
+view.
 
 ### Android
 
 `gpui_mobile` puts an `accesskit_android` `InjectingAdapter` (with its embedded `.dex`) on the
-view showing the GPUI surface: an embedded host's `SurfaceView`, or a NativeActivity's decor view.
-TalkBack, Switch Access and `uiautomator` read its virtual node tree; clicks, focus and slider
-adjustment (scroll forward and backward) come back as actions. The adapter posts its Java work to
-the UI thread itself.
+view showing the GPUI surface: the view an embedding host declared with
+`dev.gpux.mobile.Composition.setHostView`, else the first `SurfaceView` under the Activity's
+content view, else (a NativeActivity) the decor view, whose window surface GPUI draws. A view that
+already has an accessibility delegate (the app's own) keeps it: gpux logs a warning and exposes
+nothing there. TalkBack, Switch Access and `uiautomator` read the adapter's virtual node tree;
+clicks, focus and slider adjustment (scroll forward and backward) come back as actions. The
+adapter posts its Java work to the UI thread itself.
+
+All of an app's GPUI windows show on the Activity's one surface, and a view takes one delegate,
+so the windows share one adapter, which describes the **front (last opened) window**; a window
+behind it is exposed again when the front one closes. The adapter belongs to its Activity: a
+window opened under a recreated Activity gets a new adapter on the new view, and the adapter goes
+with the last window, or when an embedded host clears its context.
 
 ## Known limits
+
+- Android exposes only the front GPUI window to TalkBack (see [Android](#android)); iOS exposes
+  each window through its own view.
 
 - The web mirror offers no text navigation inside a text leaf beyond its content, and a browser
   exposes it only after the enable button (or `WebScreenReader::Always`).

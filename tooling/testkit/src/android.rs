@@ -1091,10 +1091,6 @@ fn pull_frames(
     }
 }
 
-/// Takes screenshot `number` of the device, keeps it in `artifacts-temp/testkit/e/screens/`, and
-/// puts it in the app's `files/screens/<number>.png`, where the host waits for it. The file goes
-/// through `/data/local/tmp` and `run-as cp`: adb on Windows reads standard input as text, which
-/// ends a PNG at its signature's 0x1A byte.
 /// `uiautomator dump` of the screen's accessibility nodes, kept in the logs and handed to the
 /// host as its `files/a11y/<number>.xml`.
 fn a11y_dump(
@@ -1139,6 +1135,10 @@ fn a11y_dump(
     Ok(())
 }
 
+/// Takes screenshot `number` of the device, keeps it in `artifacts-temp/testkit/e/screens/`, and
+/// puts it in the app's `files/screens/<number>.png`, where the host waits for it. The file goes
+/// through `/data/local/tmp` and `run-as cp`: adb on Windows reads standard input as text, which
+/// ends a PNG at its signature's 0x1A byte.
 fn screenshot(
     adb: &Path,
     serial: &str,

@@ -2,90 +2,41 @@
 //! surface. The adapter is on jni 0.21 and gpux on 0.22, so it meets gpux's JNI only through the
 //! raw VM and Activity handles.
 //!
-//! Every GPUI window of the app shows on the Activity's one surface, the last opened in front,
-//! and a view takes one accessibility delegate. So the app has one adapter, on that view, and it
-//! describes the front window: each window registers its callbacks when it opens, the adapter's
-//! handlers reach the front one, only its tree updates reach the adapter, and when the front
-//! window changes (one opens, or the front one closes) the new front window is activated, which
-//! sends the adapter its full tree.
-
-use std::sync::{Arc, Mutex};
+//! Every GPUI window of the app shows on the Activity's one surface and a view takes one
+//! accessibility delegate, so the app's windows share one adapter on that view, which describes
+//! the front window ([`crate::accessibility_registry`]). The adapter belongs to its Activity: a
+//! window opened under a recreated Activity gets a new adapter on the new view, and the adapter
+//! goes with the last window or when the embedded host's context is cleared.
 
 use accesskit_android::InjectingAdapter;
+use gpui::accesskit;
 use jni_021::{
     JNIEnv, JavaVM,
-    objects::{JObject, JValue},
+    objects::{JClass, JObject, JValue},
 };
+
+use crate::accessibility_registry::{AdapterHandle, Registration, Registry};
 
 /// `android.R.id.content`.
 const CONTENT_ID: i32 = 0x0102_0002;
 
-type Activation = Box<dyn Fn() -> Option<accesskit::TreeUpdate> + Send + 'static>;
-type Action = Box<dyn Fn(accesskit::ActionRequest) + Send + 'static>;
+/// The adapter on the Activity's view.
+pub(crate) struct AndroidAdapter(InjectingAdapter);
 
-/// A window's callbacks, which the adapter's handlers call from the UI thread.
-struct Registered {
-    key: u64,
-    activation: Mutex<Activation>,
-    action: Mutex<Action>,
-}
-
-impl Registered {
-    fn activate(&self) -> Option<accesskit::TreeUpdate> {
-        (self.activation.lock().ok()?)()
-    }
-
-    fn act(&self, request: accesskit::ActionRequest) {
-        if let Ok(action) = self.action.lock() {
-            action(request);
-        }
+impl AdapterHandle for AndroidAdapter {
+    fn update_if_active(&mut self, update: accesskit::TreeUpdate) {
+        // The adapter posts its Java work to the UI thread itself.
+        self.0.update_if_active(|| update);
     }
 }
 
-#[derive(Default)]
-struct Windows {
-    /// Open windows, the front one last.
-    open: Vec<Arc<Registered>>,
-    /// Whether an accessibility client activated the adapter.
-    activated: bool,
-    next_key: u64,
-}
-
-static WINDOWS: Mutex<Windows> = Mutex::new(Windows {
-    open: Vec::new(),
-    activated: false,
-    next_key: 0,
-});
-
-/// The adapter, apart from [`WINDOWS`]: its handlers lock that while the adapter holds its own
-/// lock, so the two are never held together here.
-static ADAPTER: Mutex<Option<InjectingAdapter>> = Mutex::new(None);
-
-fn front() -> Option<Arc<Registered>> {
-    WINDOWS.lock().ok()?.open.last().cloned()
-}
-
-/// Asks the front window for its tree, as the adapter does when it activates, and hands the
-/// adapter what it returns; the frame the window then draws brings the full tree.
-fn activate_front() {
-    let Some(window) = front() else {
-        return;
-    };
-    if let Some(initial) = window.activate()
-        && let Some(adapter) = ADAPTER.lock().ok().as_mut().and_then(|a| a.as_mut())
-    {
-        adapter.update_if_active(|| initial);
-    }
-}
+static REGISTRY: Registry<AndroidAdapter> = Registry::new();
 
 struct ActivationHandler;
 
 impl accesskit::ActivationHandler for ActivationHandler {
     fn request_initial_tree(&mut self) -> Option<accesskit::TreeUpdate> {
-        if let Ok(mut windows) = WINDOWS.lock() {
-            windows.activated = true;
-        }
-        front()?.activate()
+        REGISTRY.activate()
     }
 }
 
@@ -93,103 +44,82 @@ struct ActionHandler;
 
 impl accesskit::ActionHandler for ActionHandler {
     fn do_action(&mut self, request: accesskit::ActionRequest) {
-        if let Some(window) = front() {
-            window.act(request);
-        }
+        REGISTRY.act(request);
     }
 }
 
-/// A window's place among the windows the adapter describes; dropping it takes the window out.
-pub(crate) struct Registration {
-    key: u64,
+/// Registers a window opened in front, under the current Activity. `None` without a VM or an
+/// Activity (a headless platform).
+pub(crate) fn register(callbacks: gpui::A11yCallbacks) -> Option<Registration<AndroidAdapter>> {
+    let activity = super::jni::activity_as_ptr();
+    if activity.is_null() {
+        return None;
+    }
+    REGISTRY.register(activity as usize, callbacks, create)
 }
 
-/// Registers a window opened in front, putting the adapter on the Activity's view first if
-/// none is there yet. `None` without a VM or an Activity (a headless platform).
-pub(crate) fn register(callbacks: gpui::A11yCallbacks) -> Option<Registration> {
-    {
-        let mut adapter = ADAPTER.lock().ok()?;
-        if adapter.is_none() {
-            *adapter = Some(create()?);
-        }
-    }
-    let activated = {
-        let mut windows = WINDOWS.lock().ok()?;
-        let key = windows.next_key;
-        windows.next_key += 1;
-        windows.open.push(Arc::new(Registered {
-            key,
-            activation: Mutex::new(callbacks.activation),
-            action: Mutex::new(callbacks.action),
-        }));
-        (windows.activated, key)
-    };
-    if activated.0 {
-        activate_front();
-    }
-    Some(Registration { key: activated.1 })
+/// Drops the adapter: the embedded host cleared its Activity.
+pub(crate) fn release() {
+    REGISTRY.release();
 }
 
-impl Registration {
-    /// Hands the adapter `tree_update` if this window is the one in front.
-    pub(crate) fn update(&self, tree_update: accesskit::TreeUpdate) {
-        if front().is_none_or(|front| front.key != self.key) {
-            return;
-        }
-        if let Some(adapter) = ADAPTER.lock().ok().as_mut().and_then(|a| a.as_mut()) {
-            // The adapter posts its Java work to the UI thread itself.
-            adapter.update_if_active(|| tree_update);
-        }
-    }
-}
-
-impl Drop for Registration {
-    fn drop(&mut self) {
-        let front_changed = WINDOWS.lock().is_ok_and(|mut windows| {
-            let was_front = windows.open.last().is_some_and(|w| w.key == self.key);
-            windows.open.retain(|window| window.key != self.key);
-            was_front && windows.activated && !windows.open.is_empty()
-        });
-        if front_changed {
-            activate_front();
-        }
-    }
-}
-
-/// The adapter on the Activity's view, or `None` when the view hierarchy cannot be read.
-fn create() -> Option<InjectingAdapter> {
+/// The adapter on the current Activity's view, or `None` when the view cannot be read or
+/// already has an accessibility delegate (an app's own, which the adapter does not replace).
+fn create() -> Option<AndroidAdapter> {
     let vm = super::jni::java_vm();
     let activity = super::jni::activity_as_ptr();
     if vm.is_null() || activity.is_null() {
         return None;
     }
     // SAFETY: the pointers are the process's JavaVM and a global reference to the Activity,
-    // valid for the app's lifetime.
+    // valid while it is the current one.
     let vm = unsafe { JavaVM::from_raw(vm.cast()) }.ok()?;
     let mut env = vm.attach_current_thread().ok()?;
     let activity = unsafe { JObject::from_raw(activity.cast()) };
-    let host = match host_view(&mut env, &activity) {
-        Ok(host) => host,
+    let host = match host_view(&mut env, &activity).and_then(|host| {
+        let delegate = env
+            .call_method(
+                &host,
+                "getAccessibilityDelegate",
+                "()Landroid/view/View$AccessibilityDelegate;",
+                &[],
+            )?
+            .l()?;
+        Ok((host, delegate.is_null()))
+    }) {
+        Ok((host, true)) => host,
+        Ok((_, false)) => {
+            log::warn!(
+                "accessibility: the GPUI surface's view already has an accessibility delegate; \
+                 TalkBack is not given the GPUI tree"
+            );
+            return None;
+        }
         Err(error) => {
             log::warn!("accessibility: could not find the view to expose: {error}");
             env.exception_clear().ok();
             return None;
         }
     };
-    Some(InjectingAdapter::new(
+    Some(AndroidAdapter(InjectingAdapter::new(
         &mut env,
         &host,
         ActivationHandler,
         ActionHandler,
-    ))
+    )))
 }
 
-/// The view whose coordinates are the GPUI surface's: an embedded host's `SurfaceView`, or a
-/// NativeActivity's decor view, whose window surface GPUI draws.
+/// The view whose coordinates are the GPUI surface's: the view an embedding host declared with
+/// `Composition.setHostView`, else the first `SurfaceView` under the content view (an embedded
+/// host), else the decor view, whose window surface a NativeActivity's GPUI draws. The view
+/// tree is only read here; the adapter installs its delegate on the UI thread.
 fn host_view<'local>(
     env: &mut JNIEnv<'local>,
     activity: &JObject,
 ) -> jni_021::errors::Result<JObject<'local>> {
+    if let Some(declared) = declared_host_view(env, activity) {
+        return Ok(declared);
+    }
     let window = env
         .call_method(activity, "getWindow", "()Landroid/view/Window;", &[])?
         .l()?;
@@ -210,6 +140,48 @@ fn host_view<'local>(
         return Ok(surface);
     }
     Ok(decor)
+}
+
+/// The view `dev.gpux.mobile.Composition.setHostView` declared, if the app has the class and
+/// declared one.
+fn declared_host_view<'local>(
+    env: &mut JNIEnv<'local>,
+    activity: &JObject,
+) -> Option<JObject<'local>> {
+    let found = (|| -> jni_021::errors::Result<Option<JObject<'local>>> {
+        // App classes load through the Activity's class loader, not the native thread's.
+        let loader = env
+            .call_method(activity, "getClassLoader", "()Ljava/lang/ClassLoader;", &[])?
+            .l()?;
+        let name = env.new_string("dev.gpux.mobile.Composition")?;
+        let class = env
+            .call_method(
+                &loader,
+                "loadClass",
+                "(Ljava/lang/String;)Ljava/lang/Class;",
+                &[JValue::Object(&name)],
+            )?
+            .l()?;
+        let class = JClass::from(class);
+        let weak = env
+            .get_static_field(&class, "hostView", "Ljava/lang/ref/WeakReference;")?
+            .l()?;
+        if weak.is_null() {
+            return Ok(None);
+        }
+        let view = env
+            .call_method(&weak, "get", "()Ljava/lang/Object;", &[])?
+            .l()?;
+        Ok((!view.is_null()).then_some(view))
+    })();
+    match found {
+        Ok(view) => view,
+        Err(_) => {
+            // No Composition class in this app, or none declared.
+            env.exception_clear().ok();
+            None
+        }
+    }
 }
 
 /// The first `SurfaceView` in `view`'s subtree, depth first.
