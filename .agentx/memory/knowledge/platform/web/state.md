@@ -54,7 +54,7 @@ Scroll layers in the browser (fast mode, `gpui_web/src/window.rs`): `WebWindow` 
 ## Backlinks
 
 - [Browser composition](../../../../../crates/gpui_web/src/fast/composition.rs)
-- [Lane B specs](../../../../../tools-node/specs)
+- [Lane B specs](../../../../../tools/browser/specs)
 - [gpui_web platform](../../../../../crates/gpui_web/src/platform.rs)
 - [gpui_web window](../../../../../crates/gpui_web/src/window.rs)
 - [gpui_web events](../../../../../crates/gpui_web/src/events.rs)
