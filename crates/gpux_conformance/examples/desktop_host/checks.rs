@@ -32,6 +32,8 @@ pub async fn run(id: &str, cx: &mut AsyncApp) -> ResultLine {
         "platform-clipboard" => clipboard(cx).await,
         "platform-os-input" => os_input(cx).await,
         "platform-close" => close(cx).await,
+        "devtools-hello-snapshot" => devtools(cx, false).await,
+        "devtools-tap" => devtools(cx, true).await,
         "composition-macos-order-bounds" => crate::composition::order_bounds(cx).await,
         "composition-macos-input" => crate::composition::input(cx).await,
         "composition-macos-shadow" => crate::composition::shadow(cx).await,
@@ -497,4 +499,77 @@ async fn close(cx: &mut AsyncApp) -> anyhow::Result<Check> {
         bail!("the closed window is still open");
     }
     bail!("the closed window's root view is still alive: something leaks it")
+}
+
+/// Connects the app to a sidecar on loopback, opens [`devtools::ProbeWindow`] and has the
+/// sidecar's probe read `hello` and a snapshot, then (with `tap`) click the button and wait for
+/// its effect in the window's tree.
+async fn devtools(cx: &mut AsyncApp, tap: bool) -> anyhow::Result<Check> {
+    use gpux_conformance::devtools;
+    let server = gpux_devtools_mcp::apps::Server::start(0, None)?;
+    let url = format!("ws://{}", server.address);
+    let window = open(cx, "devtools", (400., 240.), |_, _| {
+        devtools::ProbeWindow::new()
+    })?;
+    cx.update(|cx| devtools::connect(cx, url));
+    let registry = server.registry.clone();
+    let (sender, result) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let patience = Duration::from_secs(20);
+        let probed = if tap {
+            gpux_devtools_mcp::probe::press_button_until(
+                &registry,
+                devtools::BUTTON,
+                "click",
+                devtools::TAPPED,
+                patience,
+            )
+        } else {
+            gpux_devtools_mcp::probe::tap_button(&registry, devtools::BUTTON, patience)
+        };
+        sender.send(probed).ok();
+    });
+    let probed = loop {
+        match result.try_recv() {
+            Ok(probed) => break probed,
+            Err(std::sync::mpsc::TryRecvError::Empty) => {
+                cx.background_executor()
+                    .timer(Duration::from_millis(20))
+                    .await
+            }
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => bail!("the probe thread died"),
+        }
+    };
+    cx.update(devtools::disconnect);
+    close_window(cx, window);
+    let probed = probed.map_err(|error| anyhow!(error))?;
+    if probed.app.app_id != devtools::APP_ID {
+        bail!("hello named `{}`", probed.app.app_id);
+    }
+    let window_id = window.window_id().as_u64();
+    if !probed
+        .app
+        .windows
+        .iter()
+        .any(|window| window.id == window_id)
+    {
+        bail!(
+            "hello did not list the window {window_id}: {:?}",
+            probed.app.windows
+        );
+    }
+    Ok(Check::Passed(if tap {
+        format!(
+            "the click at ref {} showed `{}`",
+            probed.reference,
+            devtools::TAPPED
+        )
+    } else {
+        format!(
+            "hello from {} with {} window(s); the snapshot has {} lines",
+            probed.app.app_id,
+            probed.app.windows.len(),
+            probed.snapshot.lines().count()
+        )
+    }))
 }

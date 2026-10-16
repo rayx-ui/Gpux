@@ -557,6 +557,9 @@ pub enum Request {
     /// `uiautomator dump` of the screen's accessibility nodes, written to the app's
     /// `files/a11y/<n>.xml`.
     A11yDump(u32),
+    /// A gpux-devtools sidecar on the computer, `adb reverse`d to the device's loopback, and its
+    /// probe driving the app (the `devtools` group).
+    Devtools,
     /// The run is over.
     Done,
 }
@@ -603,6 +606,7 @@ pub fn request(line: &str) -> Option<Request> {
             [number] => Some(Request::A11yDump(u32::try_from(*number).ok()?)),
             _ => None,
         },
+        "devtools" => Some(Request::Devtools),
         "done" => Some(Request::Done),
         _ => None,
     }
@@ -635,7 +639,9 @@ pub fn shell_commands(request: &Request) -> Vec<Vec<String>> {
             "-n",
             &format!("{PACKAGE}/{ACTIVITY}"),
         ])],
-        Request::Screenshot(_) | Request::A11yDump(_) | Request::Done => Vec::new(),
+        Request::Screenshot(_) | Request::A11yDump(_) | Request::Devtools | Request::Done => {
+            Vec::new()
+        }
     }
 }
 
@@ -663,7 +669,7 @@ pub fn signed_with_another_key(install_output: &str) -> bool {
 }
 
 /// The ids of the Android platform checks the host reports, in order.
-pub const PLATFORM_CHECKS: [&str; 18] = [
+pub const PLATFORM_CHECKS: [&str; 19] = [
     "android-startup",
     "android-touch-tap",
     "android-touch-pan",
@@ -682,6 +688,7 @@ pub const PLATFORM_CHECKS: [&str; 18] = [
     "screen-reader-android-tree",
     "screen-reader-android-click",
     "screen-reader-android-adjust",
+    "devtools-android",
 ];
 
 /// Every result `android run` expects for `selection`: the platform checks and the lane-E
@@ -924,6 +931,7 @@ fn run_on_device(
     // The host repeats a screenshot or dump request until the file arrives.
     let mut screenshots = std::collections::HashSet::new();
     let mut dumps = std::collections::HashSet::new();
+    let mut sidecar: Option<Sidecar> = None;
     let mut handle = |line: &str| -> bool {
         collected.push_str(line);
         collected.push('\n');
@@ -959,6 +967,25 @@ fn run_on_device(
                     ));
                 }
             }
+            Some(Request::Devtools) => {
+                if sidecar.is_none() {
+                    match Sidecar::start(&adb, &serial, &logs, runner, root) {
+                        Ok(started) => {
+                            writeln!(
+                                out,
+                                "lane e: devtools sidecar on {} as the device's port {}",
+                                started.address,
+                                gpux_conformance::devtools::LOOPBACK_PORT
+                            )
+                            .ok();
+                            sidecar = Some(started);
+                        }
+                        Err(error) => {
+                            failures.push(format!("could not start the sidecar: {error}"))
+                        }
+                    }
+                }
+            }
             Some(request) => {
                 for command in shell_commands(&request) {
                     let mut args = on_device(&["shell"]);
@@ -982,6 +1009,15 @@ fn run_on_device(
     )
     .map_err(|error| format!("could not follow logcat: {error:#}"))?;
 
+    if let Some(sidecar) = sidecar {
+        match sidecar.finish() {
+            Ok(detail) => writeln!(out, "lane e: devtools probe: {detail}").ok(),
+            Err(error) => {
+                failures.push(format!("the devtools probe failed: {error}"));
+                None
+            }
+        };
+    }
     pull_frames(&adb, &serial, &logs, runner, root, out);
     // `adb logcat` can drop lines from its stream (it did while transferring screenshots); the
     // device's log buffer keeps them.
@@ -999,6 +1035,76 @@ fn run_on_device(
         )));
     }
     Ok(tally)
+}
+
+/// The `devtools` group's sidecar: a gpux-devtools-mcp server on the computer's loopback, the
+/// device's [`LOOPBACK_PORT`](gpux_conformance::devtools::LOOPBACK_PORT) reversed to it, and
+/// the probe that reads the app's `hello` and a snapshot and taps its button with a touch.
+/// The probe's thread owns the server and closes it when the probe ends, which tells the host
+/// the probe is over.
+struct Sidecar {
+    address: std::net::SocketAddr,
+    probe: std::sync::mpsc::Receiver<Result<gpux_devtools_mcp::probe::Probed, String>>,
+}
+
+impl Sidecar {
+    fn start(
+        adb: &Path,
+        serial: &str,
+        logs: &Path,
+        runner: &mut dyn Runner,
+        root: &Path,
+    ) -> Result<Self, String> {
+        let server =
+            gpux_devtools_mcp::apps::Server::start(0, None).map_err(|error| error.to_string())?;
+        let reverse: Vec<String> = [
+            "-s".to_string(),
+            serial.to_string(),
+            "reverse".into(),
+            format!("tcp:{}", gpux_conformance::devtools::LOOPBACK_PORT),
+            format!("tcp:{}", server.address.port()),
+        ]
+        .into();
+        let invocation = tool_invocation("adb-reverse", adb, reverse);
+        run_tool(
+            &invocation,
+            adb,
+            root,
+            runner,
+            &logs.join("adb-reverse.log"),
+        )?;
+        let address = server.address;
+        let (sender, probe) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let probed = gpux_devtools_mcp::probe::press_button_until(
+                &server.registry,
+                gpux_conformance::devtools::BUTTON,
+                "tap",
+                gpux_conformance::devtools::TAPPED,
+                std::time::Duration::from_secs(60),
+            );
+            drop(server);
+            sender.send(probed).ok();
+        });
+        Ok(Self { address, probe })
+    }
+
+    /// What the probe saw, once it ended.
+    fn finish(self) -> Result<String, String> {
+        let probed = self
+            .probe
+            .recv_timeout(std::time::Duration::from_secs(90))
+            .map_err(|_| "the probe did not finish".to_string())??;
+        if probed.app.app_id != gpux_conformance::devtools::APP_ID {
+            return Err(format!("hello named `{}`", probed.app.app_id));
+        }
+        Ok(format!(
+            "hello from {} with {} window(s); tapped ref {}",
+            probed.app.app_id,
+            probed.app.windows.len(),
+            probed.reference
+        ))
+    }
 }
 
 /// The host's lines in the device's log buffer (`adb logcat -d`), or nothing if adb fails.

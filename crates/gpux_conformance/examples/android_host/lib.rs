@@ -25,6 +25,8 @@
 mod checks;
 #[cfg(target_os = "android")]
 mod composition;
+#[cfg(target_os = "android")]
+mod devtools;
 mod platform_views;
 #[cfg(target_os = "android")]
 mod screen_reader;
@@ -217,6 +219,9 @@ mod android {
         }
         if selected("screen-reader-android-adjust") {
             report(&crate::screen_reader::adjust(cx).await);
+        }
+        if selected("devtools-android") {
+            report(&crate::devtools::tap(cx).await);
         }
         request("done");
     }

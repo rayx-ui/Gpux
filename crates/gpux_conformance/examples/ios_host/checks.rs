@@ -462,5 +462,8 @@ pub async fn platform_checks(cx: &mut AsyncApp) -> Vec<ResultLine> {
     if selected("screen-reader-ios-activate") {
         lines.push(crate::screen_reader::activate(cx).await);
     }
+    if selected("devtools-ios") {
+        lines.push(crate::devtools::tap(cx).await);
+    }
     lines
 }

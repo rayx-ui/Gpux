@@ -16,6 +16,8 @@
 //! - `?screen-reader=always` builds the window's screen-reader mirror from its first frame
 //!   (`WebScreenReader::Always`) instead of offering the "Enable accessibility" button, and
 //!   `?screen-reader-label=<text>` labels that button.
+//! - `?gpux_devtools=<ws url>` connects the app to the gpux-devtools sidecar at that URL (the
+//!   `devtools: ...` specs serve one in the spec, for the `web-devtools` scene).
 //!
 //! It publishes `globalThis.__gpuxConformance`: `ready`, `backend`, `scene`, `results`, `done`,
 //! `lastError`, `probes` (the scene's pixel expectations for its first frame, as
@@ -76,6 +78,7 @@ mod web {
         inspect: Option<String>,
         screen_reader: Option<String>,
         screen_reader_label: Option<String>,
+        devtools: Option<String>,
     }
 
     impl Params {
@@ -93,6 +96,7 @@ mod web {
                 inspect: get("inspect"),
                 screen_reader: get("screen-reader"),
                 screen_reader_label: get("screen-reader-label"),
+                devtools: get("gpux_devtools"),
             }
         }
     }
@@ -454,6 +458,9 @@ mod web {
         gpui_platform::application_with_web_backend(preference).run(move |mut cx| async move {
             if let Err(error) = cx.update(app_host::register_bundled_fonts) {
                 fail(format!("could not register the bundled fonts: {error:#}"));
+            }
+            if let Some(url) = params.devtools.clone() {
+                cx.update(|cx| gpux_conformance::devtools::connect(cx, url));
             }
             let scene = params.scene.as_deref().map(|id| {
                 CATALOG

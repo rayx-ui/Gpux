@@ -20,6 +20,8 @@
 mod checks;
 #[cfg(target_os = "ios")]
 mod composition;
+#[cfg(target_os = "ios")]
+mod devtools;
 mod platform_views;
 #[cfg(target_os = "ios")]
 mod screen_reader;

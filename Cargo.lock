@@ -3081,6 +3081,8 @@ dependencies = [
  "console_error_panic_hook",
  "core-graphics 0.24.0",
  "gpux",
+ "gpux-devtools",
+ "gpux-devtools-mcp",
  "gpux-fonts",
  "gpux-mobile",
  "gpux-platform",
@@ -3433,6 +3435,7 @@ version = "0.3.0"
 dependencies = [
  "anyhow",
  "gpux-conformance",
+ "gpux-devtools-mcp",
  "tempfile",
  "wasm-encoder",
  "wasmparser",
