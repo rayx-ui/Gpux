@@ -4,8 +4,8 @@
 from the [Zed](https://github.com/zed-industries/zed) editor. It keeps Zed's GPUI crate closure and
 crate boundaries and carries RayX's patch stack on top: web (WebGPU/WebGL) and mobile (Android,
 iOS) platforms, a wgpu renderer on Windows, Linux and the web, frame and shader effects,
-fixed/sticky positioning, programmatic scrolling, editable text, accessibility and DevKit
-semantics.
+fixed/sticky positioning, programmatic scrolling, editable text, and an AccessKit accessibility
+tree that screen readers read on every platform and agents inspect through gpux-devtools.
 
 For GPUI concepts, [gpui.rs](https://gpui.rs) remains a useful introduction; for exact APIs and
 behavior, use this repository, because gpux differs from upstream GPUI.

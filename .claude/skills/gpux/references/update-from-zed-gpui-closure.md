@@ -205,10 +205,29 @@ The RayX memories identify these gpux-owned patches as especially easy to miss d
 - Preserve fixed/sticky as first-class `Position` variants, generated `.fixed()`/`.sticky()` APIs, Taffy mapping, scroll-container context, content-mask containing blocks, positioned scene layers, positioned hitboxes, top-layer scrollbars, and sticky state callbacks/refinements. A fixed or sticky subtree paints in the positioned layer, so `Window::with_positioned_hitboxes` gives every hitbox inserted while it prepaints a positioned id (test group `positioned_hitboxes`); otherwise later normal content sorts above the stuck subtree's controls and takes their clicks.
 - Preserve nested scroll wheel routing that stops propagation only when the current scrollport's clamped offset changes.
 
-### DevKit And Text Inspection
+### Accessibility And Text Inspection
 
-- Preserve `Window::devtools_frame_snapshot()` and the rendered occurrence id model separate from dispatch-node ids.
-- Preserve paint-time DevKit semantics/property callback attachment on rendered occurrences, while retaining dispatch-node storage for property mutation callbacks.
+gpux's one semantic tree is AccessKit's, built far beyond Zed's adapter-only tree
+([docs/accessibility.md](../../../../docs/accessibility.md)). An upstream import must keep each piece:
+
+- Activation sources: the platform source, inspection (`Window::begin_a11y_inspection` guards),
+  `AccessibilityMode` (`Application::with_accessibility_mode`, `App::set_accessibility_mode`,
+  `GPUX_ACCESSIBILITY`), `Application::new_inaccessible`, and the `accessibility` features of
+  `gpux-platform` and each platform crate; tree updates reach an adapter only for frames the
+  platform source covered.
+- Text leaves: text without an element id becomes a `Label` leaf under the nearest node, with
+  stable ids from its owner and position (`Text::new_inaccessible` opts out).
+- Inspection containers and the id map: while inspecting, an element with an id and no role is a
+  generic container screen readers do not see, and every node maps to its global element id
+  (`semantic_query`, `gpux-devtools`).
+- Relations by `accessibility_id` (labelled by, described by, controls, error message, active
+  descendant, owns), actions (`on_a11y_action`, custom actions, the Click fallback, ScrollIntoView,
+  SetValue), focus (a shared focus handle's innermost node holds it) and visual bounds.
+- The fast-mode carry: reused, spliced and retained frames carry the tree's records, scroll and
+  list layers carry the nodes of what they draw from tiles, and the frame verifier compares trees
+  ([docs/fast-mode.md](../../../../docs/fast-mode.md#accessibility)).
+- The adapters gpux adds: the web DOM mirror (`gpui_web`), `accesskit_ios` and `accesskit_android`
+  (`gpui_mobile`, the shared adapter registry).
 - Preserve `Window::dispatch_text_input(...)` and `Window::text_input_value(...)` for literal text entry and textbox value diagnostics; named key presses still use key down/up dispatch.
 
 ### Shader, Screen, And Frame Effects
