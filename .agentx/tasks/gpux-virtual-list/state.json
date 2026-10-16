@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list",
-  "revision": 0,
+  "revision": 6,
   "planRevision": 1,
   "specHashes": {
     "requirements": "9084aebf4ffae7ee7c8ab434f1a2926f10a92fe3d9c8af4ff6df6e7dd4e37b9b",
@@ -10,10 +10,16 @@
   },
   "tasks": {
     "t01-move": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
     },
     "t02-scene": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
     },
     "t03-default-handle": {
       "status": "pending"
@@ -49,10 +55,214 @@
       "status": "pending"
     }
   },
-  "validationBatches": {},
-  "checkResults": {},
-  "reviews": {},
-  "checkpoints": {},
+  "validationBatches": {
+    "dc64878fbd4fd59ec49f4b6e6262a2c875f169d86af26225c02b4f842016a787": {
+      "snapshot": {
+        "specHash": "4d0b7d4d80e01db469d50ecf8a67549bb176fd44db9ecc43cba792e163a8d860",
+        "repositories": {
+          "gpux": "c76c3e6caf15b57978d12b3d407cd2bad44a97368c06df78d112941b68e6cfc9",
+          "rayx": "8364a75c6cfd60250954afc934f9d2b4d44ab7bcb5fb6a9caab2526e97adcc62"
+        }
+      },
+      "recordedAt": "2026-10-16T18:01:24Z"
+    }
+  },
+  "checkResults": {
+    "s01-move/c-vl-unit/final": {
+      "checkId": "c-vl-unit",
+      "boundaryId": "s01-move",
+      "phase": "final",
+      "batchId": "dc64878fbd4fd59ec49f4b6e6262a2c875f169d86af26225c02b4f842016a787",
+      "definitionHash": "cb7f82152562b3106a4e089f45efcaae2c79585416c504fcaa9a2f39ce3a8649",
+      "basisHash": "edb38ffd080a808eab99c17bec50958224be49100055d43db50be9d9003d0406",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 26,
+      "durationSeconds": 53.5651,
+      "recordedAt": "2026-10-16T18:00:57Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/s01-move-final-816365c82ecb.log",
+      "logSha256": "bd30329f394ff7422e258378fcc44bb0e924e05d3855fb839f9b2b6b6e073a5b",
+      "inputsHash": "8e487bd6c4cd4cd3fede8dc95792bcb7c4282e1bd2f8967c0d1c7b6856ce0f13"
+    },
+    "s01-move/c-vl-element/final": {
+      "checkId": "c-vl-element",
+      "boundaryId": "s01-move",
+      "phase": "final",
+      "batchId": "dc64878fbd4fd59ec49f4b6e6262a2c875f169d86af26225c02b4f842016a787",
+      "definitionHash": "cc00ed32d55ab545709136e1232509fa1c0a735aeeeebefabcf48eba8bab8bfa",
+      "basisHash": "99bd65289380ec1602996cb93b671a89b98efcb8622dee3b006509731ade5b43",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 12,
+      "durationSeconds": 2.0136,
+      "recordedAt": "2026-10-16T18:00:59Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/s01-move-final-412a5dce5773.log",
+      "logSha256": "accedcba6b13b99e002fcae3592a08bc7f83405c3cd2a0ce2a00f45fd0f2258d",
+      "inputsHash": "8e487bd6c4cd4cd3fede8dc95792bcb7c4282e1bd2f8967c0d1c7b6856ce0f13"
+    },
+    "s01-move/c-vl-scene/final": {
+      "checkId": "c-vl-scene",
+      "boundaryId": "s01-move",
+      "phase": "final",
+      "batchId": "dc64878fbd4fd59ec49f4b6e6262a2c875f169d86af26225c02b4f842016a787",
+      "definitionHash": "f73ae4a8eefd3c4fa92fca4f2cb06d65f3cb981a4c3bc8c19a05169b50a0c65d",
+      "basisHash": "341e76ed28e4f0728ea41f48c7a7fd3bb843d8c7eb2b153d3276805e2993b04f",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 22.3874,
+      "recordedAt": "2026-10-16T18:01:22Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/s01-move-final-e7f68c802006.log",
+      "logSha256": "3968b9a5b39178c9cf9d2057395422d0a63e93bb86d63607aad18ce0023ae973",
+      "inputsHash": "671ce624dce8d000d066097368b642135decbf928e12eb17889031f41133e869"
+    },
+    "s01-move/c-vl-parity/final": {
+      "checkId": "c-vl-parity",
+      "boundaryId": "s01-move",
+      "phase": "final",
+      "batchId": "dc64878fbd4fd59ec49f4b6e6262a2c875f169d86af26225c02b4f842016a787",
+      "definitionHash": "bc8e885b2c3c941b6ff6490a5a7a2d3b4042c82bb046caa29a6514913f992b03",
+      "basisHash": "63944cb9e36f0f4926251f3d124deeafd552a774a2565211aa9f4a198eacf1a8",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 1.2398,
+      "recordedAt": "2026-10-16T18:01:23Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/s01-move-final-46dc04dae733.log",
+      "logSha256": "2d19434502d9633d8f0d39e3a620f09c1346bfbdc7f86b9dbb81cf260680eefc",
+      "inputsHash": "671ce624dce8d000d066097368b642135decbf928e12eb17889031f41133e869"
+    }
+  },
+  "reviews": {
+    "s01-move": {
+      "reviewerId": "reviewer-s01-independent",
+      "snapshotId": "dc64878fbd4fd59ec49f4b6e6262a2c875f169d86af26225c02b4f842016a787",
+      "criterionIds": [
+        "VL-1",
+        "VL-2"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/virtual_list/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "VL-1"
+          ],
+          "sha256": "f3a4cb28c636196debf6c6edd7cc778b8d63e3f9cbe87ce9c225e1f07601911e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/virtual_list/geometry.rs",
+          "kind": "source",
+          "criterionIds": [
+            "VL-1"
+          ],
+          "sha256": "2af955ca01abf295b04bafa1add3b143b7dd56c5508859ba645e7a7526e205fb"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "VL-1"
+          ],
+          "sha256": "260dbdb478412ab66f0d251b0c6ee08ba100db92430e066ec401d8bf414f7b0d"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/src/virtual_list/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "VL-1"
+          ],
+          "sha256": "3af9b891700e9fb879954552e53cb3df490c490c69230de9dd9093bfe9991069"
+        },
+        {
+          "repositoryId": "rayx",
+          "path": "crates/rayx_components/rayx_components_base/src/virtual_list/geometry.rs",
+          "kind": "source",
+          "criterionIds": [
+            "VL-1"
+          ],
+          "sha256": "908c8401d861570255a69a955bbec00f2e0d5f8b058ee14233eaa409da9f4688"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/virtual_list.rs",
+          "kind": "test",
+          "criterionIds": [
+            "VL-1"
+          ],
+          "sha256": "0ff7fd92c4710fd252e71617cb501c4dd54c295998e2b8619cf5868928c4b596"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scenes/lists.rs",
+          "kind": "source",
+          "criterionIds": [
+            "VL-2"
+          ],
+          "sha256": "0501817a140dec52a35412710533becdbc13970f960743326886a772588a364a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scene.rs",
+          "kind": "source",
+          "criterionIds": [
+            "VL-2"
+          ],
+          "sha256": "c7f342205c46e952b8796a1fa96380f5244d0c4af722adc45f97047762846caa"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/scenes/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "VL-2"
+          ],
+          "sha256": "2f92cf85dc18f742e115a15aa5da6cdd405031ab4235d7bd7b3eab8209f0d45c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/catalog/lane_a_scenes.rs",
+          "kind": "test",
+          "criterionIds": [
+            "VL-2"
+          ],
+          "sha256": "8b6f7c00d67c609108c76bae66fab9f6bb4950fab3cbcebc9b292d6b9827b0cb"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/tests/catalog/lane_c_scenes.rs",
+          "kind": "test",
+          "criterionIds": [
+            "VL-2"
+          ],
+          "sha256": "b14c7ecb1b7f14529aba1417efb9267851cc4c561dac06f55c16982bdaf13262"
+        }
+      ],
+      "summaryMarkdown": "**VL-1 passed.** A normalized diff of RayX `4ee806e9`'s `virtual_list/{mod.rs,geometry.rs}` against the gpux files (with `Base` removed, `gpux::` mapped to `crate::`, `rayx_diagnostics` mapped to `diagnostics`, and doc comments stripped) leaves only these differences: the `ScrollbarHandleBase` impl and its import are gone, `virtual_list_base` is now `virtual_list`, `ItemSizeLayout` is private (it is used only in a private field), and rustfmt rewrapped some lines. No logic changed. Every name VL-1 lists is `pub` and re-exported through `elements/mod.rs`, and the module has no RayX dependency. The 12 window tests run with fast mode off and cover each case VL-1 lists. Their assertions are exact (positions, ranges, offsets, sticky events, quad count), so each can fail. The c-vl-unit check counted 26 unit tests.\n\n**VL-2 passed.** `list-virtual` shows 1,000 rows of 20, 30 and 40 px with `listitem` semantics at scales 1 and 2, on every lane, the same as the sibling list scenes. Before the wheel it expects Entry 0 and Entry 3 to exist and Entry 30 and Entry 999 to be missing. After ten 90 px wheel steps it expects Entry 30 and Entry 31 to exist and Entry 0 and Entry 100 to be missing, and the capture must differ from the first. Both are registered under `Area::VirtualList` with lane A and lane C catalog entries. The lane A scene and `lane_a_fast_parity list_virtual` both passed.\n\nOne cosmetic issue, not a defect: the module doc keeps a bare Zed URL, which `rustdoc::bare_urls` would flag.",
+      "findingIds": [],
+      "recordedAt": "2026-10-16T18:04:05Z"
+    }
+  },
+  "checkpoints": {
+    "s01-move": {
+      "snapshotId": "dc64878fbd4fd59ec49f4b6e6262a2c875f169d86af26225c02b4f842016a787",
+      "commits": {
+        "gpux": "7a0c09133a6939914157c1cf62710f023594fc1c",
+        "rayx": "4ee806e9999ff02c2d0a7fcc4be0379a036f10a7"
+      },
+      "reviewHash": "66a6e06690543ae2dd6185036385b55a49529172b834758bd9b9934974244440",
+      "recordedAt": "2026-10-16T18:04:33Z"
+    }
+  },
   "findings": [],
   "handoffMarkdown": "",
   "protectedPaths": {
