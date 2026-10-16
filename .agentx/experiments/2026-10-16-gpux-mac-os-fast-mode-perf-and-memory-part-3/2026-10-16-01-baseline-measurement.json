@@ -42,8 +42,8 @@
     "successfulAttemptRequiresCommitBeforeNextExperiment": true,
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
-  "primaryTarget": "wasm/web with headed Playwright and WebGPU enabled",
-  "hypothesisMarkdown": "## Baseline Measurement\n\nMeasure and document the starting point for this improvement loop before making optimization changes.",
+  "primaryTarget": "native macOS (Metal) via benchmark/run.py --target macos",
+  "hypothesisMarkdown": "## Baseline Measurement\n\nThe closing state of part 2 (commit f7a22c7 plus docs) is the baseline: results/2026-10-16-macos-loop.",
   "measurementPlanMarkdown": "",
   "expectedOutcomeMarkdown": "### Expected Outcome\n\nBaseline metrics are captured and stored so later experiments compare against a known starting point.",
   "diagnostics": {
@@ -53,7 +53,7 @@
     "artifacts": []
   },
   "measurements": [],
-  "reportMarkdown": "",
-  "decisionMarkdown": "",
+  "reportMarkdown": "## Baseline Measurement Finished\n\nPart 2 closed after the kept content layout for scroll containers. Part 3 works the smaller items: splice key lists, layout verification, per-element struct sizes, scene teardown, shaping setup, layout node memory.\n\nAttempt Count: 1.",
+  "decisionMarkdown": "### Decision\n\nBaseline recorded.",
   "notes": ""
 }
