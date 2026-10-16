@@ -4,7 +4,7 @@
 //! front.
 //!
 //! Inspired by [`uniform_list`](crate::uniform_list), from
-//! https://github.com/zed-industries/zed/blob/0ae1603610ab6b265bdfbee7b8dbc23c5ab06edc/crates/gpui/src/elements/uniform_list.rs
+//! <https://github.com/zed-industries/zed/blob/0ae1603610ab6b265bdfbee7b8dbc23c5ab06edc/crates/gpui/src/elements/uniform_list.rs>
 //! Unlike `uniform_list`, each item can have a different size, which suits more complex layouts
 //! such as a table with rows of different heights.
 //!
@@ -377,7 +377,6 @@ where
     V: Render,
 {
     let id: ElementId = id.into();
-    let scroll_handle = VirtualListScrollHandle::new();
     let render_range = move |visible_range, window: &mut Window, cx: &mut App| {
         view.update(cx, |this, cx| {
             f(this, visible_range, window, cx)
@@ -390,12 +389,11 @@ where
     VirtualList {
         id: id.clone(),
         axis,
-        base: div()
-            .id(id)
-            .size_full()
-            .overflow_scroll()
-            .track_scroll(&scroll_handle),
-        scroll_handle,
+        base: div().id(id).size_full().overflow_scroll(),
+        // Replaced in `request_layout` by the handle the element state keeps, unless the
+        // caller tracks one.
+        scroll_handle: VirtualListScrollHandle::new(),
+        default_handle: true,
         items_count: item_sizes.len(),
         item_sizes,
         render_items: Box::new(render_range),
@@ -417,6 +415,9 @@ pub struct VirtualList {
     pub(super) axis: Axis,
     base: Stateful<Div>,
     scroll_handle: VirtualListScrollHandle,
+    /// Whether the list scrolls with the handle its element state keeps, because the caller
+    /// tracks none.
+    default_handle: bool,
     pub(super) items_count: usize,
     pub(super) item_sizes: Rc<Vec<Size<Pixels>>>,
     render_items: Box<RenderVirtualItems>,
@@ -817,6 +818,7 @@ impl VirtualList {
     pub fn track_scroll(mut self, scroll_handle: &VirtualListScrollHandle) -> Self {
         self.base = self.base.track_scroll(scroll_handle);
         self.scroll_handle = scroll_handle.clone();
+        self.default_handle = false;
         self.external_scroll_behavior = None;
         self.scroll_handle.clear_parent_viewport_metrics();
         self
@@ -889,6 +891,7 @@ impl VirtualList {
             },
         };
         self.scroll_handle = scroll_handle.clone();
+        self.default_handle = false;
         self.external_scroll_behavior = Some(behavior);
         if behavior != VirtualListExternalScrollBehavior::ParentViewport {
             self.scroll_handle.clear_parent_viewport_metrics();
@@ -1022,6 +1025,9 @@ impl VirtualList {
     }
 }
 
+/// The scroll handle a [`VirtualList`] that tracks none keeps in its element state.
+struct DefaultScrollHandle(VirtualListScrollHandle);
+
 /// Frame state used by the [`VirtualList`].
 pub struct VirtualListFrameState {
     /// Visible items to be painted.
@@ -1070,6 +1076,22 @@ impl Element for VirtualList {
         window: &mut Window,
         cx: &mut App,
     ) -> (crate::LayoutId, Self::RequestLayoutState) {
+        if self.default_handle
+            && let Some(global_id) = global_id
+        {
+            // One handle for the element's lifetime: a fresh handle tracked on every render
+            // would take new metrics on every frame and notify its owner to draw again.
+            let handle = window.with_element_state(
+                global_id,
+                |state: Option<DefaultScrollHandle>, _| {
+                    let state = state
+                        .unwrap_or_else(|| DefaultScrollHandle(VirtualListScrollHandle::new()));
+                    (state.0.clone(), state)
+                },
+            );
+            self.base.interactivity().tracked_scroll_handle = Some(handle.base_handle.clone());
+            self.scroll_handle = handle;
+        }
         let rem_size = window.rem_size();
         let font_size = window.text_style().font_size.to_pixels(rem_size);
         let mut size_layout = ItemSizeLayout::default();
