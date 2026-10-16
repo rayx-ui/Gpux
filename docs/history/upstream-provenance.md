@@ -68,8 +68,15 @@ the `GPUX_WGPU_ADAPTER` adapter override, and extends the port to Windows (DX12,
 without a GPU). `zed-imports.tsv` records the port with `port:` rows; they leave the
 represented upstream commit and the merge base unchanged.
 
+On 2026-10-16 the gpux-a11y-devtools epic moved gpux to the AccessKit 0.25 family
+(`accesskit` 0.25.1, `accesskit_consumer` 0.39.1, `accesskit_macos` 0.27.1,
+`accesskit_windows` 0.35.1, `accesskit_unix` 0.24.0), ahead of Zed's 0.24 pins. It is a
+gpux-local delta: an import keeps gpux's pins unless Zed's are newer
+([accesskit-0.25](../upstream/accesskit-0.25.md)).
+
 Other upstreams gpux adapts code from, each with its own page:
 
+- [AccessKit 0.25](../upstream/accesskit-0.25.md): the pins gpux keeps ahead of Zed.
 - [gpui-fast](../upstream/gpui-fast.md) (longbridge/gpui-fast, v0.1.6 `b8f0c02`): fast mode, adapted file by file into `fast/` modules.
 
 History mapping files:

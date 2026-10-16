@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-a11y-devtools",
-  "revision": 10,
+  "revision": 18,
   "planRevision": 5,
   "specHashes": {
     "requirements": "576149548596ab4efd6002b4893418950f88808afddc5f295e262a98fb21ea9c",
@@ -121,14 +121,107 @@
       "status": "pending"
     },
     "t01b-accesskit-025": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t04a-accessibility-feature": {
       "status": "pending"
     }
   },
-  "validationBatches": {},
-  "checkResults": {},
+  "validationBatches": {
+    "402f9bfa6bb43df151f1c4299047fa59bd40215caed5e23abf8884a09abe4130": {
+      "snapshot": {
+        "specHash": "9ef92aac00db10e77cf13a1537231cdfe03a0a52ba6c183283d4578af372ee41",
+        "repositories": {
+          "gpux": "5f44ca8ab1a35c052085bf274980e98b590ca6312eb60e0623889a550fb9ea70",
+          "rayx": "8364a75c6cfd60250954afc934f9d2b4d44ab7bcb5fb6a9caab2526e97adcc62"
+        }
+      },
+      "recordedAt": "2026-10-16T16:02:40Z"
+    },
+    "2babf1937341d49e2ec68f4605333a2ac626708bfeb329eeaf0484e0af0daa6a": {
+      "snapshot": {
+        "specHash": "9ef92aac00db10e77cf13a1537231cdfe03a0a52ba6c183283d4578af372ee41",
+        "repositories": {
+          "gpux": "5ebe84adbaf3de1f503847f84f30cefb1595a66125c6b12133e0526af35c9a5d",
+          "rayx": "8364a75c6cfd60250954afc934f9d2b4d44ab7bcb5fb6a9caab2526e97adcc62"
+        }
+      },
+      "recordedAt": "2026-10-16T16:04:56Z"
+    }
+  },
+  "checkResults": {
+    "s01a-accesskit-025/check-accesskit-025/final": {
+      "checkId": "check-accesskit-025",
+      "boundaryId": "s01a-accesskit-025",
+      "phase": "final",
+      "batchId": "2babf1937341d49e2ec68f4605333a2ac626708bfeb329eeaf0484e0af0daa6a",
+      "definitionHash": "12194cd4f2111b5f909266be2a6857c83266537185de315a34d07f3bb6f6b8e8",
+      "basisHash": "fa040ed7519e6c9a2b2391ae6f3844bfb1f9b27e668864cb7e3d1dbb18737ec4",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 0.2586,
+      "recordedAt": "2026-10-16T16:04:56Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s01a-accesskit-025-final-9a71176aeb5e.log",
+      "logSha256": "1e720258ee0a6205e7eb8b85a6095ba6d7aa11810af0c1e6e00ad68866e93059",
+      "inputsHash": "7a7cc0d6cee3e1c3e9ac3b49286eeeeff1b17233c186e5d24942abce188f11f9"
+    },
+    "s01a-accesskit-025/check-accesskit-a11y-unit/final": {
+      "checkId": "check-accesskit-a11y-unit",
+      "boundaryId": "s01a-accesskit-025",
+      "phase": "final",
+      "batchId": "402f9bfa6bb43df151f1c4299047fa59bd40215caed5e23abf8884a09abe4130",
+      "definitionHash": "4d18196976d1cd3759bc1732b558d4bcb90f0830b92e333116e09071002a07b1",
+      "basisHash": "0b87188610f89a0c9d56271fe64ba3d43cb24aeb735f96d22f7aded50ad65d94",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 13,
+      "durationSeconds": 0.2714,
+      "recordedAt": "2026-10-16T16:02:39Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s01a-accesskit-025-final-89b7cef3c4c4.log",
+      "logSha256": "825095a66a040d7c00d77bd7672264c64877f463d15e7ef1fdb25b0db80ebe92",
+      "inputsHash": "1d2dddab4e524ee48afa4efdfa9b98997e6f8bf24f083db6ef266ac26457777b"
+    },
+    "s01a-accesskit-025/check-accesskit-macos-build/final": {
+      "checkId": "check-accesskit-macos-build",
+      "boundaryId": "s01a-accesskit-025",
+      "phase": "final",
+      "batchId": "402f9bfa6bb43df151f1c4299047fa59bd40215caed5e23abf8884a09abe4130",
+      "definitionHash": "5e9833e56cc86d1232cddf6ed6995ba4904cdf09901eb99a7b1351a5daa8fca3",
+      "basisHash": "04623cc69ed35bb361a2948361caf5a237511c87ca6385225ca66b9672cde55b",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.2585,
+      "recordedAt": "2026-10-16T16:02:39Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s01a-accesskit-025-final-4608d992eeb6.log",
+      "logSha256": "76f6b75974ee555c277ebed8e39000480f33c6f3180990b56088368e76ecfd15",
+      "inputsHash": "52a8b8f1b4dff0ed07d7c979c7e148d65143e655a336c80a2a742d84cb8f933b"
+    },
+    "s01a-accesskit-025/check-accesskit-linux-build/final": {
+      "checkId": "check-accesskit-linux-build",
+      "boundaryId": "s01a-accesskit-025",
+      "phase": "final",
+      "batchId": "2babf1937341d49e2ec68f4605333a2ac626708bfeb329eeaf0484e0af0daa6a",
+      "definitionHash": "6e902585b5d25b6f6a7f09896dc0d9f253165f9755d701bc527de02c6d81f44b",
+      "basisHash": "5d1cc7e15c9548514a27e8f912d48a04e7bb4a5105b309b6375a04f259f4c391",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 0,
+      "durationSeconds": 0.3046,
+      "recordedAt": "2026-10-16T16:04:56Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s01a-accesskit-025-final-2f9db67ee0e1.log",
+      "logSha256": "4f27ac380b22e1d975eee20ce727fa8cbc09061177f6253af0777fd4de7b7506",
+      "inputsHash": "73d1027fe63635169b4b03c523c42248b5c40cf7db82f1a4baf82fc42f62c2b6"
+    }
+  },
   "reviews": {
     "s01-baseline": {
       "reviewerId": "reviewer-s01-baseline-independent",
@@ -171,9 +264,122 @@
         "gpux:docs/measurements/a11y-devtools.md": "fdf35f455775cdbde7f59f704ad29e9ffcbdaff33a413b54ac4c0862800dacf0",
         "gpux:docs/measurements/screen-reader-walkthrough.md": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
       }
+    },
+    "s01a-accesskit-025": {
+      "reviewerId": "reviewer-s01a-accesskit-independent",
+      "snapshotId": "2babf1937341d49e2ec68f4605333a2ac626708bfeb329eeaf0484e0af0daa6a",
+      "criterionIds": [
+        "AK-1",
+        "AK-2"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "Cargo.toml",
+          "kind": "source",
+          "criterionIds": [
+            "AK-1"
+          ],
+          "sha256": "97361393ef866413e073446a9e14b9c4ceec2b2ac0765dcea16ac3aa85933511"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "Cargo.lock",
+          "kind": "source",
+          "criterionIds": [
+            "AK-1"
+          ],
+          "sha256": "444f2412739e717a71066b12f45f1de648edf7ef408e50468f1f57ec070ea93e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window/a11y.rs",
+          "kind": "source",
+          "criterionIds": [
+            "AK-1"
+          ],
+          "sha256": "1ae4e5b945f8a228de55ad77eb3fb4a1b8596720e987121cf762dfc203be48ca"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/window.rs",
+          "kind": "source",
+          "criterionIds": [
+            "AK-1"
+          ],
+          "sha256": "6dde8de18faf6984c88f77d1bc47549eb793bd15cd915800821f4b5cbfe3eb1b"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/div.rs",
+          "kind": "source",
+          "criterionIds": [
+            "AK-1"
+          ],
+          "sha256": "bea1d4992cb99ec09a7b09ca5c4a50474a104d5f60aa02b81df271526d1d6781"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/accesskit_025.rs",
+          "kind": "test",
+          "criterionIds": [
+            "AK-1"
+          ],
+          "sha256": "44f8306d203865b1d0a4dbe4853b891d2d990290764cf03c3e32b9952dfa6fe6"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": ".claude/skills/gpux/references/update-from-zed-gpui-closure.md",
+          "kind": "source",
+          "criterionIds": [
+            "AK-2"
+          ],
+          "sha256": "b03210c048dacfe9b1cc4728b1464d9e435461dc1c95b37b3fb37f143a17d2d5"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/upstream/accesskit-0.25.md",
+          "kind": "source",
+          "criterionIds": [
+            "AK-2"
+          ],
+          "sha256": "06cded23b5cd15eefdc1b2fc85e77d33d48aec1f8cea74f14ef5488b9c072198"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/history/upstream-provenance.md",
+          "kind": "source",
+          "criterionIds": [
+            "AK-2"
+          ],
+          "sha256": "1d10e092ec4e797824823f09ee1988e1f5067473801a6f089dfc837299b967f3"
+        }
+      ],
+      "deltaSummaryMarkdown": "Inspected the repaired `crates/gpui/tests/accesskit_025.rs`. `node_with_every_property()` now also sets `keyboard_shortcut`, `invalid`, `placeholder`, `orientation`, `level`, `row_index`, `column_index`, `row_count` and `column_count`, which covers every node setter in `crates/gpui/src/elements/div.rs`. The clone test checks each of them with a getter, and adds getter checks for `min_numeric_value` and `numeric_value_step`. `labelled_by` stays, with a comment tying it to the relations s03 resolves. The clear-and-set test now clears and sets again `disabled` (a flag) and `invalid` (an enum, set to a different variant), checking each state, and it also moves `bounds`. The product source is unchanged. The accesskit_025 check passed again at the new snapshot (4 tests). The unit and macOS checks were reused, which is valid because their inputs do not include the test file.",
+      "reattestedFrom": "402f9bfa6bb43df151f1c4299047fa59bd40215caed5e23abf8884a09abe4130",
+      "summaryMarkdown": "Everything else in AK-1 holds. The workspace pins `accesskit` 0.25.1 with `enumn`, `accesskit_consumer` 0.39.1, `accesskit_macos` 0.27.1, `accesskit_windows` 0.35.1 and `accesskit_unix` 0.24.0. `Cargo.lock` holds a single version of `accesskit` and of each adapter. No `accesskit::Tree` use remains in `crates/`. Both tree updates go through `a11y::tree_info()`, which sets toolkit name `gpux` and the crate version. The TreeInfo test would fail if `Tree::new` came back, and the order-independent equality test includes a negative case. The recorded checks passed (4 accesskit_025 tests, 13 `window::a11y` unit tests, macOS and Linux builds). AK-2 is met by the import checklist bullet, `docs/upstream/accesskit-0.25.md` and the provenance entry. The one minor finding is that the clone and clear-and-set tests do not cover all the properties gpux writes and clears. Not blocking: this sprint changed manifest dependencies, and the packaging rule asks for `cargo package --workspace`; the epic constraints already require it at the end of the epic.",
+      "findingIds": [
+        "f-s01a-clone-test-property-coverage"
+      ],
+      "recordedAt": "2026-10-16T16:05:25Z",
+      "recordHashes": {
+        "gpux:docs/measurements/a11y-devtools.md": "406c3678b07a71e25202104191caf50da6b0607e4acec9c01ec1ff77949d2e90",
+        "gpux:docs/measurements/screen-reader-walkthrough.md": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
     }
   },
-  "checkpoints": {},
+  "checkpoints": {
+    "s01-baseline": {
+      "snapshotId": "2a876e9246a0d4e1fc74d04f5c9892d49b5b87d75519c32856e27d473627eb78",
+      "commits": {
+        "gpux": "35c9c64ce096957723b83fa4a3231b0bc3c21706",
+        "rayx": "4ee806e9999ff02c2d0a7fcc4be0379a036f10a7"
+      },
+      "reviewHash": "d71f8e4a54871fe93e85feb8ea6c06e3bb7be33836fb12e78d9a901b7a6843e0",
+      "recordedAt": "2026-10-16T16:01:52Z"
+    }
+  },
   "findings": [
     {
       "id": "s01-perf1-scroll-bytes-claim",
@@ -236,6 +442,28 @@
         {
           "repositoryId": "gpux",
           "path": "docs/measurements/a11y-devtools.md"
+        }
+      ]
+    },
+    {
+      "id": "f-s01a-clone-test-property-coverage",
+      "boundaryId": "s01a-accesskit-025",
+      "criterionIds": [
+        "AK-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved: the clone and clear-and-set tests now cover every property gpux writes, including the `disabled` flag and the `invalid` enum it clears and sets again.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/accesskit_025.rs",
+          "symbol": "a_cloned_node_keeps_every_property_gpux_writes"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/accesskit_025.rs",
+          "symbol": "a_property_cleared_and_set_again_holds_its_new_value"
         }
       ]
     }

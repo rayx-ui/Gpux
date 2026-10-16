@@ -142,6 +142,7 @@ The RayX memories identify these gpux-owned patches as especially easy to miss d
 
 - Preserve the reduced GPUI-closure workspace shape, the public package/import crate name `gpux`, and the `gpux-*` package names, even though upstream Zed paths still use `crates/gpui`.
 - Preserve gpux-local metadata, local tooling, package docs, and upstream provenance markers; do not pull in unrelated Zed app crates or make the root workspace look like full Zed.
+- Keep gpux's AccessKit pins (the 0.25 family, ahead of Zed's 0.24; [docs/upstream/accesskit-0.25.md](../../../../docs/upstream/accesskit-0.25.md)) unless Zed's are newer. All adapters move together, `Cargo.lock` holds one `accesskit` version, and imported `accesskit::Tree::new(...)` becomes `window::a11y::tree_info()`.
 - Keep the workspace `wgpu` dependency on the `gpux-wgpu` fork (`wgpu = { package = "gpux-wgpu", path = "vendor/wgpu/wgpu", version = "=<fork version>" }`); never bring back Zed's wgpu git dependency or add a `[patch]` section.
 - Preserve public examples and docs on `gpux::{...}` while keeping source provenance tied to the upstream Zed commit and local replay commits.
 - Keep the 30 s pid-file deadline in `crates/util/src/process.rs`'s Windows `spawn_process_tree` test helper; upstream's 5 s times out on loaded CI runners while PowerShell starts.
