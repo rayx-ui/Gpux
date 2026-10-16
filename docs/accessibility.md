@@ -2,7 +2,7 @@
 
 gpux has one semantic tree: [AccessKit](https://accesskit.dev)'s. Screen readers read it through
 each platform's adapter, tests query it (`gpux::semantic_query`), and agents inspect it through
-the devtools. A window builds the tree only while something asks for it, and fast mode carries
+the devtools ([devtools.md](devtools.md)). A window builds the tree only while something asks for it, and fast mode carries
 it through every frame it draws from the last one, so an app that nobody inspects and no screen
 reader reads does no accessibility work at all.
 

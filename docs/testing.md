@@ -120,7 +120,8 @@ To update goldens after an intended rendering change:
 `gpux-testkit lane a` runs the lane-A conformance scenes on `TestPlatform` with the bundled
 fonts and the deterministic executor clock, plus every `gpux-conformance` test group that needs
 no renderer: the catalog, image comparison, golden policy, the executor clock, host capabilities,
-RGB565 tolerance and screen probes (`LANE_A_GROUPS` in `tooling/testkit/src/lanes.rs`). No GPU or
+RGB565 tolerance, screen probes, fast-mode parity and the hosts on the accessibility tree
+(`conformance_accessibility`) (`LANE_A_GROUPS` in `tooling/testkit/src/lanes.rs`). No GPU or
 display is involved, so lane A runs identically everywhere. The crates' own focused tests
 (`cargo test -p <package> <filter>`) are lane A too.
 
@@ -171,6 +172,11 @@ The specs:
   layers on and off, print each p95 of gpux's frame work (`gpux-timing:` lines, which lane G copies into its
   summary) and hold the one from tiles under the 60 Hz budget, in lane G only. Select its other tests with
   `--grep "scroll-layers: "`.
+- `devtools.spec.ts` (`--grep "devtools: "`) is the gpux-devtools sidecar itself: Playwright
+  answers the page's WebSocket (`page.routeWebSocket`), the host connects to it through the
+  `gpux_devtools` parameter on the `web-devtools` scene, and the spec reads `hello`, takes a
+  snapshot, and clicks the scene's button through `input`, waiting for its effect with `wait`
+  ([devtools.md](devtools.md)).
 - `dawn.spec.ts` renders every scene and fails on any WebGPU validation error. Every spec also
   fails on console errors, uncaught exceptions and crashes, and checks that the page is
   cross-origin isolated and renders through WebGPU unless a spec forces WebGL2.
@@ -248,7 +254,8 @@ and the nightly run do. `lane_c_compare` covers the byte-first frame comparison 
 and `lane_c_sampling` the two modes, including seeded differences. The lane prints which mode it
 ran, before it starts and beside its summary. A sampled run compares fewer frames inside a long
 run of one-pixel scrolls (the steps `lane_c_sampling` lists as uncovered), so a defect that shows
-only at one of those offsets passes it and fails the full run: [what CI proves when](ci.md#what-a-pull-request-leaves-out-of-lane-c). `lane_c_profile` checks that the optimized test build keeps debug assertions and
+only at one of those offsets passes it and fails the full run: [what CI proves when](ci.md#what-a-pull-request-leaves-out-of-lane-c). `lane_c_a11y_layers` scrolls divs and lists from tiles with the accessibility tree built and
+compares it, frame for frame, with the tree of a window without scroll layers. `lane_c_profile` checks that the optimized test build keeps debug assertions and
 overflow checks on (`cargo test` builds at `opt-level = 1`, see
 [docs/measurements/lane-c-timings.md](measurements/lane-c-timings.md)). Without a Vulkan adapter, Linux falls back to llvmpipe over GL, where the
 renderer's effects pipeline does not validate yet, so lane C fails there: select lavapipe with
@@ -276,6 +283,12 @@ stops a window's frames while it is hidden or the display sleeps, and the scenes
 "no frame within 10s". Scenes that assert exact animation timing (programmatic scroll,
 animated and transition frames) and IME composition stay in lanes A and C: lane D runs on the
 real clock, and a host cannot drive the platform's input method.
+
+The `devtools` group (`--grep devtools`) runs a gpux-devtools sidecar server in the host on a free
+loopback port and connects the app to it: `devtools-hello-snapshot` reads `hello` (the app and
+its windows) and a snapshot showing the probe window's button, and `devtools-tap` clicks the
+button through the sidecar's `input` and waits for its effect in the window's tree
+([devtools.md](devtools.md)).
 
 ### Wayland
 
@@ -349,6 +362,13 @@ device's log buffer (`adb logcat -d`) when it kept more of them than the stream.
 the screen after the app starts or returns capture again until the system's window animation
 (fade or scale in) has ended.
 
+The `devtools-android` check (`--grep devtools`) asks the testkit for a sidecar: the testkit
+starts a gpux-devtools server on the computer, runs `adb reverse tcp:9230 tcp:<port>` so the
+device's loopback port reaches it (the host's manifest grants `android.permission.INTERNET`),
+and its probe reads the app's `hello` and a snapshot and taps the probe window's button with a
+touch (`input` `tap`), waiting for the effect. The host passes once its tree shows the tap and the
+testkit closed the sidecar; the testkit reports the probe's own failures.
+
 The `composition-android-*` and `platform-view-android*` checks open a composed window with a
 native `View` and read the result as the others do: the screen for what shows where, taps and a
 swipe for who takes the touch, and the process's own window list
@@ -412,6 +432,9 @@ its console. The host runs its platform checks and every lane-F scene:
   deactivate, launches the host again, which brings the running one back; the window reactivates
   and draws again. (Reopening it through a URL of its own makes a fresh Simulator ask
   "Open in …?" and wait for a tap.)
+- `devtools-ios`: the host runs a gpux-devtools sidecar server on loopback, which the Simulator
+  shares with the Mac, connects the app to it, and the sidecar's probe reads `hello` and a
+  snapshot and taps the probe window's button with a touch, waiting for its effect.
 
 The `scroll-layers-ios-div`, `-list`, `-resume` and `-timing` checks do the same on Metal (the
 timing check as `scroll-layers-android-timing` does): touch pans
