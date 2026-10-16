@@ -3,6 +3,11 @@
 //! `tools/`. The guard proves the layout and scans the tracked live files for references to the
 //! old locations and package name; historical records keep the paths they were written with.
 
+#![allow(
+    clippy::disallowed_methods,
+    reason = "`git ls-files` is a synchronous child process; waiting on it is the test"
+)]
+
 use std::path::{Path, PathBuf};
 use std::process::Command;
 

@@ -1,6 +1,11 @@
 //! Where the testkit finds the mobile app shells after their move to `tools/`: lane E's manifest
 //! in `tools/android` and lane F's XcodeGen spec and generated project in `tools/ios`.
 
+#![allow(
+    clippy::disallowed_methods,
+    reason = "`git ls-files` is a synchronous child process; waiting on it is the test"
+)]
+
 use gpux_testkit::{
     Environment, Os,
     android::{self, Abi},

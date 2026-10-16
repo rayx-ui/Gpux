@@ -2,6 +2,11 @@
 //! defines, and the two paths inside it that lead back to the repository (the artifacts folder of
 //! `playwright.config.ts` and the default build folder of `fixtures/catalog.ts`).
 
+#![allow(
+    clippy::disallowed_methods,
+    reason = "`git ls-files` is a synchronous child process; waiting on it is the test"
+)]
+
 use gpux_testkit::{
     Environment, Os,
     lanes::Invocation,
