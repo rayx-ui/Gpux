@@ -1,12 +1,12 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list-layer-kinds",
-  "revision": 30,
-  "planRevision": 6,
+  "revision": 39,
+  "planRevision": 7,
   "specHashes": {
     "requirements": "6624ffc34f924fe7c0c2363d3e6013bf10669885d6b44b6f000d06f239120c33",
-    "design": "993fcbbc512f27670ad5aaf10388d15aa5cbb1231bdb9c5c2be0d27d669539dc",
-    "plan": "79ed482fafab6770f1b1359ea8fcc90c3ba35a87c566e9e80f518b2700646ea9"
+    "design": "667d8762d45005a39f293cbd2358f160eac43c1923486d127584914cac3a4908",
+    "plan": "afd861f5068baca8a984348ceff9e0efe1c258edf193c8ffe70d7dbe05d84fbb"
   },
   "tasks": {
     "t01-axis-slots": {
@@ -22,10 +22,16 @@
       ]
     },
     "t03-sticky-extra-rows": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
     },
     "t04-sticky-oracle": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
     },
     "t05-synchronized-layer": {
       "status": "pending"
@@ -117,6 +123,16 @@
         }
       },
       "recordedAt": "2026-10-16T23:07:26Z"
+    },
+    "12a0f9283e754bf1d41fe46a8e53ab92dfd0a80780e8203db549a47c283c83e6": {
+      "snapshot": {
+        "specHash": "28a51104afbdb1d6f3ab6ae37dc87cb3b7bdfbe6da710a052430a1a0303cf3b4",
+        "repositories": {
+          "gpux": "a6d5417a5c6f1582b351e15b9a01d460ab87cdc67504186d92367c3029eeb862",
+          "rayx": "2259122bb457510a8253c47d59a730b4864bddde1a4562ac19edad6c655041b0"
+        }
+      },
+      "recordedAt": "2026-10-16T23:47:50Z"
     }
   },
   "checkResults": {
@@ -289,6 +305,40 @@
       "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s01-horizontal-final-1b3af7e52dcd.log",
       "logSha256": "46fce0be0eaec874142ed3807d190a43b4bf97a5e81ee3288bcedd8daf951477",
       "inputsHash": "9d461bb141a25b08cd698c93f831187b117ddeaa1a1d8b6b2d450eb39475ccea"
+    },
+    "s02-sticky/c-sticky/final": {
+      "checkId": "c-sticky",
+      "boundaryId": "s02-sticky",
+      "phase": "final",
+      "batchId": "12a0f9283e754bf1d41fe46a8e53ab92dfd0a80780e8203db549a47c283c83e6",
+      "definitionHash": "1175dae38325d7d081b585597d112f9c6467143a30b177b3d6990fcde2383496",
+      "basisHash": "3e239012bd7442174305fe74370415efd84d15ae27a8a736754f123d55e71292",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 7,
+      "durationSeconds": 294.4761,
+      "recordedAt": "2026-10-16T23:47:48Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s02-sticky-final-7ea5123787e0.log",
+      "logSha256": "c5d7c1b3b9ee470292bd6156f0bc6083f4797097a79600ca5b658299ba758378",
+      "inputsHash": "9a6a792217ac72e48c0f61b0fa1b5572fa69798d7b33f9fd9b11a72c00f66091"
+    },
+    "s02-sticky/c-sticky-oracle/final": {
+      "checkId": "c-sticky-oracle",
+      "boundaryId": "s02-sticky",
+      "phase": "final",
+      "batchId": "12a0f9283e754bf1d41fe46a8e53ab92dfd0a80780e8203db549a47c283c83e6",
+      "definitionHash": "bcb2dd4290f385562c33bb519c8977ba4dd6b38eea28c70a35e09af7883f29cf",
+      "basisHash": "e77b951b8cf3c78e56814e013919923d387e31d3d22cde0df39187316ee1846a",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 0.9334,
+      "recordedAt": "2026-10-16T23:47:49Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list-layer-kinds/s02-sticky-final-65adfbd7f6e8.log",
+      "logSha256": "d095f4fec98164d318010868e00fe1b052a13568a994d2cdf0aee93663a0c430",
+      "inputsHash": "9a6a792217ac72e48c0f61b0fa1b5572fa69798d7b33f9fd9b11a72c00f66091"
     }
   },
   "reviews": {
@@ -590,6 +640,70 @@
       "summaryMarkdown": "Passed, with no findings.\n\n**Axis-generic code.** `begin_virtual_list` takes the list's axis and works along it: content size and start, overscan reach from the viewport's extent, and placement by the list's own origins. The axis-generic parts are `row_slot` (whole viewport across the axis), `hidden_in_view`, the Extend test (cross-axis offset unchanged), `rows_region`, `rows_overflow`, and the spill test and extent in `end_paint_rows`. The remaining y-only code in lists.rs belongs to the vertical-only `list` element (`list_row_top`, `held_rows_land_alike`, `end_list`) or already handles both axes (`step`/`delta`, `drawn_alike`, painted region). The content-ordering helpers `apart_in_order`/`gather` in scene.rs already take runs along either axis. `uniform_list` and `list` pass `Axis::Vertical`. Sticky lists stay ineligible because `carried` is `sticky_items.is_empty()`.\n\n**Tests.** `horizontal` asserts composite-or-repaint each frame (repainted ≤ 1, the same tolerance as the vertical `rows` group), ineligible 0, kept > 0, closure rows equal to `list_rows_rendered` and a mean ≤ 2. It also compares a horizontal history with layers off, and covers width changes of 7.5 and 11 px plus a cross-axis wheel. `horizontal_oracle` covers fractional widths, gap and padding at scales 1 and 1.25, plus seeded `describe_rendered_frame` histories. The removed ineligible horizontal case is superseded as HZ-1 requires. The sprint checks are fresh at revision 28.",
       "findingIds": [],
       "recordedAt": "2026-10-16T23:09:10Z"
+    },
+    "s02-sticky": {
+      "reviewerId": "reviewer-lk-s02",
+      "snapshotId": "12a0f9283e754bf1d41fe46a8e53ab92dfd0a80780e8203db549a47c283c83e6",
+      "criterionIds": [
+        "ST-1",
+        "ST-2"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/virtual_list/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ST-1",
+            "ST-2"
+          ],
+          "sha256": "23e7af749ad2a4014fd1d49944c8729701f6f7b5746d12d356d8493eaf52e938"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "kind": "source",
+          "criterionIds": [
+            "ST-1"
+          ],
+          "sha256": "1fd6bb8b63c0c0f492d964fd0eedf20260e0ca798b19a9893f0e77c95141b72a"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/sticky.rs",
+          "kind": "test",
+          "criterionIds": [
+            "ST-1"
+          ],
+          "sha256": "3bed9a6346151572d21609bbaab25b35ee50f5400ed9874b3b89b500d3740bbc"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/mod.rs",
+          "kind": "test",
+          "criterionIds": [
+            "ST-1",
+            "ST-2"
+          ],
+          "sha256": "a194c7f081e5e77fd2b464df4c4a8edd60fc6763c54cec61137adcd0c1d2ff5f"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/sticky_oracle.rs",
+          "kind": "test",
+          "criterionIds": [
+            "ST-2"
+          ],
+          "sha256": "aa054bf8aec78b09d5f9596fca29ac17db2b277b9f3c55eeb4a45da5bbd374c1"
+        }
+      ],
+      "summaryMarkdown": "Passed. A sticky `VirtualList`'s layer holds ordinary rows only: every candidate in the layer's reach is excluded by the `outside` predicate, and a layer found holding one is repainted. The active stack and the incoming candidates in `rendered_range` are rendered and prepainted after `end_rows` (hit first) and painted after `end_paint_rows` (above the composited layer), in the list's scroll context and clip, as the rows themselves. They keep the sticky wrapper, `when_stuck` and `on_sticky_state_changed`, in `compare_sticky_render_layers` order. `sticky` (now with dense candidates in both directions and the held-row invariant) and `sticky_oracle` cover ST-1 and ST-2. The RayX consumer test is updated in a paired change. The sprint checks are fresh at revision 37.",
+      "findingIds": [
+        "lk-s02-F1",
+        "lk-s02-F2"
+      ],
+      "recordedAt": "2026-10-16T23:49:28Z"
     }
   },
   "checkpoints": {
@@ -619,6 +733,15 @@
       },
       "reviewHash": "d9185c5c73cf6f9d7668ba1d0ccb05b80f5e4bd64fc4a173eeab13043a9f976a",
       "recordedAt": "2026-10-16T23:09:49Z"
+    },
+    "s02-sticky": {
+      "snapshotId": "12a0f9283e754bf1d41fe46a8e53ab92dfd0a80780e8203db549a47c283c83e6",
+      "commits": {
+        "gpux": "b5edcae7be488053900b9635a5498a40265b62e1",
+        "rayx": "ddaba825ef2ff9958bab1e464e52ba020ddd3239"
+      },
+      "reviewHash": "9c9dcf2105f58fd14209b26553bd10e095d079c71c7fd637a8dc7463cb35e139",
+      "recordedAt": "2026-10-16T23:49:45Z"
     }
   },
   "findings": [
@@ -733,9 +856,42 @@
         }
       ],
       "boundaryId": "s00b-layer-gaps"
+    },
+    {
+      "id": "lk-s02-F1",
+      "criterionIds": [
+        "ST-1",
+        "ST-2"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved. `begin_virtual_list` and `begin_rows` take an `outside` predicate. `VirtualList` passes a binary search over its sorted candidates, so every candidate in `needed` is kept out of the plan, and Extend is refused while any held row is a candidate. The planned rows are never candidates, so the prepaint loop's peek diverts no overscan row. Only the active stack and the candidates in `rendered_range` (rendered separately when layered) are drawn above the layer. `uniform_list` passes `|_| false`. Regression: `sticky::no_candidate_in_the_layers_reach_is_held` covers `Dense` (every 4th row) on the top and left edges plus `Levels`, over down, repaint, up, repaint and down runs. It checks the held rows and primitives against the reference every frame, with at least 30 composited frames, and failed on the old in-view-only set.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/sticky.rs"
+        }
+      ],
+      "boundaryId": "s02-sticky"
+    },
+    {
+      "id": "lk-s02-F2",
+      "criterionIds": [
+        "ST-1"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Resolved. A paired RayX change, uncommitted, to land with the gpux commit, replaces the ineligibility test with `a_list_view_with_a_sticky_policy_composites_its_ordinary_rows` in `rayx_components_core/tests/virtual_list_layers.rs`. Over 60 frames it asserts no ineligible bypass, one composite or repaint per frame, 1–2 sticky rows drawn, and repainted ≤ 1. d-sticky-over-layer is amended (planRevision 7) to describe the sticky rows drawn as frame content after `end_rows` and `end_paint_rows`, and why the `extra` wording changed.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/sticky.rs"
+        }
+      ],
+      "boundaryId": "s02-sticky"
     }
   ],
-  "handoffMarkdown": "virtual_list_layers::horizontal_oracle (3): quads at 1 and 1.25 with fractional widths, gap, padding; whole-frame descriptions over random horizontal wheel/move/click/resize histories. It found nothing to fix.",
+  "handoffMarkdown": "virtual_list_layers::sticky_oracle (3): quads at 1 and 1.25 with fractional rows, gap, padding (Styled, Levels, StackIds) comparing sticky state events per step; whole-frame histories in separate apps with Levels, StackIds, Styled and event logs. It found nothing to fix.",
   "protectedPaths": {
     "gpux": {
       "gpux:.agentx/experiments/**": "3aad2d92dcb891b6177236d72f9bed523ceeb9c10add6f0918918db5e9d3082a",
