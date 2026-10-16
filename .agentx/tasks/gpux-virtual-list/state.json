@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list",
-  "revision": 6,
+  "revision": 18,
   "planRevision": 1,
   "specHashes": {
     "requirements": "9084aebf4ffae7ee7c8ab434f1a2926f10a92fe3d9c8af4ff6df6e7dd4e37b9b",
@@ -22,10 +22,16 @@
       ]
     },
     "t03-default-handle": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
     },
     "t04-parent-viewport-retention": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
     },
     "t05-begin-virtual-list": {
       "status": "pending"
@@ -65,6 +71,26 @@
         }
       },
       "recordedAt": "2026-10-16T18:01:24Z"
+    },
+    "a0e569e752c99b499e241c2b4cc0bc1c5c4320fc766c44af62d8a1f2c4e43ab4": {
+      "snapshot": {
+        "specHash": "4d0b7d4d80e01db469d50ecf8a67549bb176fd44db9ecc43cba792e163a8d860",
+        "repositories": {
+          "gpux": "58a20b662675f2cd4ba63347b2c624615e0ec1169bc017a11d1a19995b014ba9",
+          "rayx": "8364a75c6cfd60250954afc934f9d2b4d44ab7bcb5fb6a9caab2526e97adcc62"
+        }
+      },
+      "recordedAt": "2026-10-16T18:08:08Z"
+    },
+    "3456120cc9174ead0e3f9c239c1d4739c70002742b7592ce5d520b1186c44873": {
+      "snapshot": {
+        "specHash": "4d0b7d4d80e01db469d50ecf8a67549bb176fd44db9ecc43cba792e163a8d860",
+        "repositories": {
+          "gpux": "e6d1e605701d3bed4e4405f34fbecacdbcca635cfbc31d1a42f73aeae58e894d",
+          "rayx": "8364a75c6cfd60250954afc934f9d2b4d44ab7bcb5fb6a9caab2526e97adcc62"
+        }
+      },
+      "recordedAt": "2026-10-16T18:21:29Z"
     }
   },
   "checkResults": {
@@ -135,6 +161,74 @@
       "logPath": "artifacts-temp/agentx/gpux-virtual-list/s01-move-final-46dc04dae733.log",
       "logSha256": "2d19434502d9633d8f0d39e3a620f09c1346bfbdc7f86b9dbb81cf260680eefc",
       "inputsHash": "671ce624dce8d000d066097368b642135decbf928e12eb17889031f41133e869"
+    },
+    "s02-element-fixes/c-fix-default-handle/baseline": {
+      "checkId": "c-fix-default-handle",
+      "boundaryId": "s02-element-fixes",
+      "phase": "baseline",
+      "batchId": "a0e569e752c99b499e241c2b4cc0bc1c5c4320fc766c44af62d8a1f2c4e43ab4",
+      "definitionHash": "791925a13187e41e37792bb88f92ec60703ec48c6bc4414d15f9288ebd54ec9a",
+      "basisHash": "abe5b290f40c0eb12c17c76ce3678f4e9becb3196a7b2dd9cb53ad7f26599190",
+      "status": "passed",
+      "exitCode": 101,
+      "testCount": 3,
+      "durationSeconds": 0.2631,
+      "recordedAt": "2026-10-16T18:08:07Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/s02-element-fixes-baseline-d4fff3a668de.log",
+      "logSha256": "ef9c52081096bd8cd3c82564a45eaef9507f8000e510b014991e95840fcdd592",
+      "inputsHash": "fdb67cfbe1d1951f8baf8422cb84864ba937328639822c4999c0917bc01c02d5"
+    },
+    "s02-element-fixes/c-fix-parent-retention/baseline": {
+      "checkId": "c-fix-parent-retention",
+      "boundaryId": "s02-element-fixes",
+      "phase": "baseline",
+      "batchId": "a0e569e752c99b499e241c2b4cc0bc1c5c4320fc766c44af62d8a1f2c4e43ab4",
+      "definitionHash": "9da82955e309ba9cd3096b48f9a4276e84623275532a9d9994a44919a7a39519",
+      "basisHash": "074dcb2a7b49da21a9ff7d9a7b7dd83eb45f1509d0b0731939f347da39b370ba",
+      "status": "passed",
+      "exitCode": 101,
+      "testCount": 4,
+      "durationSeconds": 0.2437,
+      "recordedAt": "2026-10-16T18:08:07Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/s02-element-fixes-baseline-eb9eba0fe60f.log",
+      "logSha256": "a54fc130ee8f2eadd94f800dc64d6e06ca678708831c248387d5517330f6baa0",
+      "inputsHash": "fdb67cfbe1d1951f8baf8422cb84864ba937328639822c4999c0917bc01c02d5"
+    },
+    "s02-element-fixes/c-fix-default-handle/final": {
+      "checkId": "c-fix-default-handle",
+      "boundaryId": "s02-element-fixes",
+      "phase": "final",
+      "batchId": "3456120cc9174ead0e3f9c239c1d4739c70002742b7592ce5d520b1186c44873",
+      "definitionHash": "585126c3885c5a9c87722dd844f0c4e78a4891013a78a1876274133d30990cfc",
+      "basisHash": "d7856633716982d1c751323bde307f9ba98043821c0228115ec5a19fa84e15e2",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 0.2602,
+      "recordedAt": "2026-10-16T18:21:29Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/s02-element-fixes-final-ff1faf879163.log",
+      "logSha256": "27f0c4a1416713c56223d488f224ef31fa825c805fb4349bf9783769a8c3bf53",
+      "inputsHash": "dc50b1fb14691270c84b5dad2d2d9a5b7383e5fb7d5c2669cf105af495370aec"
+    },
+    "s02-element-fixes/c-fix-parent-retention/final": {
+      "checkId": "c-fix-parent-retention",
+      "boundaryId": "s02-element-fixes",
+      "phase": "final",
+      "batchId": "3456120cc9174ead0e3f9c239c1d4739c70002742b7592ce5d520b1186c44873",
+      "definitionHash": "ac83e696b4da9ba7fdfcae7dcb04e672d7fcea8b72082681e9a1f3202f898e8e",
+      "basisHash": "f15c769202aaf6f42d31ff1700e2144ae7fa2b578a53bac1062e434b2c95e83c",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 7,
+      "durationSeconds": 0.3027,
+      "recordedAt": "2026-10-16T18:21:29Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/s02-element-fixes-final-5645cefc60b3.log",
+      "logSha256": "572c460f399d008d59d54ac3399ffb153da55472d0072f67862af7d46aab2160",
+      "inputsHash": "dc50b1fb14691270c84b5dad2d2d9a5b7383e5fb7d5c2669cf105af495370aec"
     }
   },
   "reviews": {
@@ -250,6 +344,70 @@
       "summaryMarkdown": "**VL-1 passed.** A normalized diff of RayX `4ee806e9`'s `virtual_list/{mod.rs,geometry.rs}` against the gpux files (with `Base` removed, `gpux::` mapped to `crate::`, `rayx_diagnostics` mapped to `diagnostics`, and doc comments stripped) leaves only these differences: the `ScrollbarHandleBase` impl and its import are gone, `virtual_list_base` is now `virtual_list`, `ItemSizeLayout` is private (it is used only in a private field), and rustfmt rewrapped some lines. No logic changed. Every name VL-1 lists is `pub` and re-exported through `elements/mod.rs`, and the module has no RayX dependency. The 12 window tests run with fast mode off and cover each case VL-1 lists. Their assertions are exact (positions, ranges, offsets, sticky events, quad count), so each can fail. The c-vl-unit check counted 26 unit tests.\n\n**VL-2 passed.** `list-virtual` shows 1,000 rows of 20, 30 and 40 px with `listitem` semantics at scales 1 and 2, on every lane, the same as the sibling list scenes. Before the wheel it expects Entry 0 and Entry 3 to exist and Entry 30 and Entry 999 to be missing. After ten 90 px wheel steps it expects Entry 30 and Entry 31 to exist and Entry 0 and Entry 100 to be missing, and the capture must differ from the first. Both are registered under `Area::VirtualList` with lane A and lane C catalog entries. The lane A scene and `lane_a_fast_parity list_virtual` both passed.\n\nOne cosmetic issue, not a defect: the module doc keeps a bare Zed URL, which `rustdoc::bare_urls` would flag.",
       "findingIds": [],
       "recordedAt": "2026-10-16T18:04:05Z"
+    },
+    "s02-element-fixes": {
+      "reviewerId": "reviewer-s02-independent",
+      "snapshotId": "3456120cc9174ead0e3f9c239c1d4739c70002742b7592ce5d520b1186c44873",
+      "criterionIds": [
+        "VL-3",
+        "VL-4"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/virtual_list/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "VL-3",
+            "VL-4"
+          ],
+          "sha256": "34d168caab42fb064faf546166abe54ea195ef80b0ac6e9dd2913d6e58cc8e9e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/taffy.rs",
+          "kind": "source",
+          "criterionIds": [
+            "VL-4"
+          ],
+          "sha256": "d48020341e80ecf6725bbf0f47346c185b7d5268755ec0b7207ce3adb4db812e"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layout.rs",
+          "kind": "source",
+          "criterionIds": [
+            "VL-4"
+          ],
+          "sha256": "855aab81ea26911d909c0242a847c0d3bd1dd2b8d71c7827509369931286ae84"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/virtual_list_default_handle.rs",
+          "kind": "test",
+          "criterionIds": [
+            "VL-3"
+          ],
+          "sha256": "d4a1f9d1c44629a50855fa03b5a90ce9be48c441c7bbc74d624d237a62afa695"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/virtual_list_parent_viewport.rs",
+          "kind": "test",
+          "criterionIds": [
+            "VL-4"
+          ],
+          "sha256": "a5c149e5e2a3b6712a24a4e0cf3cd14ca3b8d0031872824c1dfe314444b175e8"
+        }
+      ],
+      "summaryMarkdown": "**VL-3 passes**, unchanged since the first review. The default handle lives in element state, keyed per element id, created once and tracked on the base div. `track_scroll` and `track_external_scroll` replace it, and no new publication path is added. The bounded `drew again` test covers fast mode off and on.\n\n**VL-4 passes after repair.** The cause is verified: `TaffyLayoutEngine::clear` drops closures, and `keep_retained_nodes` restores them only for text leaves. A ParentViewport list now lays itself out around a keyed spacer child of its content extent. It keeps its extent under retention and matches the old measured leaf with fast mode off in every probed case: both axes, block and flex hosts, with and without padding. s02-F1, s02-F2 and s02-F3 are resolved, and the 7-test group passes.\n\n**Follow-up risk, not this sprint:** kept non-text measured leaves are still sized empty under retention. A `uniform_list` with `Infer` sizing and auto height in a retained view gives a parent `max_offset` of 0 with fast mode on, against 19,800 off. That needs a general retention fix in a follow-up epic.\n\nThe full review is resubmitted because reopening t04 for repair dropped the boundary's failed review, so a reattestation had nothing to carry.",
+      "findingIds": [
+        "s02-F1",
+        "s02-F2",
+        "s02-F3"
+      ],
+      "recordedAt": "2026-10-16T18:22:49Z"
     }
   },
   "checkpoints": {
@@ -261,9 +419,67 @@
       },
       "reviewHash": "66a6e06690543ae2dd6185036385b55a49529172b834758bd9b9934974244440",
       "recordedAt": "2026-10-16T18:04:33Z"
+    },
+    "s02-element-fixes": {
+      "snapshotId": "3456120cc9174ead0e3f9c239c1d4739c70002742b7592ce5d520b1186c44873",
+      "commits": {
+        "gpux": "afa794e0aaaaa4ace5a4fae7c65d5a1a8a70d1aa",
+        "rayx": "4ee806e9999ff02c2d0a7fcc4be0379a036f10a7"
+      },
+      "reviewHash": "7c964d43b56b417f9481deee0a1e35c6552bbe94df90258b2572c5305c703719",
+      "recordedAt": "2026-10-16T18:23:05Z"
     }
   },
-  "findings": [],
+  "findings": [
+    {
+      "id": "s02-F1",
+      "boundaryId": "s02-element-fixes",
+      "criterionIds": [
+        "VL-4"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/virtual_list_parent_viewport.rs"
+        }
+      ],
+      "descriptionMarkdown": "Resolved: the spacer child gives the list a min-content equal to its extent, so a flex-column host no longer shrinks it. `a_flex_column_parent_keeps_the_extent` covers every mode; the probe gives 19,800 with fast mode off and on."
+    },
+    {
+      "id": "s02-F2",
+      "boundaryId": "s02-element-fixes",
+      "criterionIds": [
+        "VL-4"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/virtual_list_parent_viewport.rs"
+        }
+      ],
+      "descriptionMarkdown": "Resolved: padding and border lie outside the spacer, as with the old measured leaf. `a_padded_list_keeps_its_extent_and_padding` expects extent + 2*pad - H; the probe gives 19,820, equal to HEAD with fast mode off."
+    },
+    {
+      "id": "s02-F3",
+      "boundaryId": "s02-element-fixes",
+      "criterionIds": [
+        "VL-4"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/tests/virtual_list_parent_viewport.rs"
+        }
+      ],
+      "descriptionMarkdown": "Resolved: `MODES` adds scroll layers without splice; `scroll_layers_without_splice_keep_the_extent` passes."
+    }
+  ],
   "handoffMarkdown": "",
   "protectedPaths": {
     "gpux": {
