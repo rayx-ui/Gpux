@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list",
-  "revision": 18,
+  "revision": 32,
   "planRevision": 1,
   "specHashes": {
     "requirements": "9084aebf4ffae7ee7c8ab434f1a2926f10a92fe3d9c8af4ff6df6e7dd4e37b9b",
@@ -34,16 +34,28 @@
       ]
     },
     "t05-begin-virtual-list": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
     },
     "t06-range-publication": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
     },
     "t07-ineligible": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
     },
     "t08-oracle-and-changes": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
     },
     "t09-parent-viewport-layer": {
       "status": "pending"
@@ -91,6 +103,16 @@
         }
       },
       "recordedAt": "2026-10-16T18:21:29Z"
+    },
+    "65b5444766c8458b9e21e50864c86a86803af6470e6658e165754c672c654e06": {
+      "snapshot": {
+        "specHash": "4d0b7d4d80e01db469d50ecf8a67549bb176fd44db9ecc43cba792e163a8d860",
+        "repositories": {
+          "gpux": "c6b45fd47aa4b769c3fa02521ea27789fb2b625bdb52e24b43ccb62f59fa2718",
+          "rayx": "8364a75c6cfd60250954afc934f9d2b4d44ab7bcb5fb6a9caab2526e97adcc62"
+        }
+      },
+      "recordedAt": "2026-10-16T19:11:33Z"
     }
   },
   "checkResults": {
@@ -229,6 +251,91 @@
       "logPath": "artifacts-temp/agentx/gpux-virtual-list/s02-element-fixes-final-5645cefc60b3.log",
       "logSha256": "572c460f399d008d59d54ac3399ffb153da55472d0072f67862af7d46aab2160",
       "inputsHash": "dc50b1fb14691270c84b5dad2d2d9a5b7383e5fb7d5c2669cf105af495370aec"
+    },
+    "s03-list-layers/c-ll-rows/final": {
+      "checkId": "c-ll-rows",
+      "boundaryId": "s03-list-layers",
+      "phase": "final",
+      "batchId": "65b5444766c8458b9e21e50864c86a86803af6470e6658e165754c672c654e06",
+      "definitionHash": "f7ce5ecb0c1c152a25dca4919c58e38f657c8c5d88e8b80f182e0d1c72cb9258",
+      "basisHash": "b9a8a27cd384249b08967eb90b4318a754297992a4b5cd95a7c510b0ed33b9b9",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 0.2607,
+      "recordedAt": "2026-10-16T19:11:32Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/s03-list-layers-final-b20474f973c3.log",
+      "logSha256": "b73b4e78d8fa4b812d7f34aba161050b6353a208108ff37ecf42b91660c9d977",
+      "inputsHash": "0c27ed052882e0c88a7cda14c470eee4fe90c77c87e8c8ca7abc3d085e8f00f8"
+    },
+    "s03-list-layers/c-ll-range/final": {
+      "checkId": "c-ll-range",
+      "boundaryId": "s03-list-layers",
+      "phase": "final",
+      "batchId": "65b5444766c8458b9e21e50864c86a86803af6470e6658e165754c672c654e06",
+      "definitionHash": "edd40989a5a53229c76ebaf2defbac455f5e6e7f41187d3e7437a8764eeef441",
+      "basisHash": "988e5b37f98d648104350b0d22629108c64304c4b1955d287f5154699dc30aa0",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 0.2536,
+      "recordedAt": "2026-10-16T19:11:32Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/s03-list-layers-final-8fc0fa3da276.log",
+      "logSha256": "3c458b8c0dbcb2628964268030c20fc0bd0c297d0ef200ee0136831f23b7a089",
+      "inputsHash": "0c27ed052882e0c88a7cda14c470eee4fe90c77c87e8c8ca7abc3d085e8f00f8"
+    },
+    "s03-list-layers/c-ll-ineligible/final": {
+      "checkId": "c-ll-ineligible",
+      "boundaryId": "s03-list-layers",
+      "phase": "final",
+      "batchId": "65b5444766c8458b9e21e50864c86a86803af6470e6658e165754c672c654e06",
+      "definitionHash": "0aabf981b1ad505fea5e1fffb0030eb766f52d384fdb07c2b8edbaac701ecb1d",
+      "basisHash": "7f4a85bac6bf7efb1b1408e8050d9ab8c5d0f6eb1bb448979f2d92d37468ab28",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 4,
+      "durationSeconds": 0.271,
+      "recordedAt": "2026-10-16T19:11:33Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/s03-list-layers-final-bb78d1ba6e52.log",
+      "logSha256": "8ce6907b47e3be9e4af400690b844b3a12c4310764bc24cdd50f07e1d1a40d3a",
+      "inputsHash": "0c27ed052882e0c88a7cda14c470eee4fe90c77c87e8c8ca7abc3d085e8f00f8"
+    },
+    "s03-list-layers/c-ll-oracle/final": {
+      "checkId": "c-ll-oracle",
+      "boundaryId": "s03-list-layers",
+      "phase": "final",
+      "batchId": "65b5444766c8458b9e21e50864c86a86803af6470e6658e165754c672c654e06",
+      "definitionHash": "d3819c1466d112174d7a9ee3ad27487003aee34519789b1c658056e43233912d",
+      "basisHash": "c26631f20391d00ac74884b10e997973be1084b00348c1259b5e3cf74249e598",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 0.3239,
+      "recordedAt": "2026-10-16T19:11:33Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/s03-list-layers-final-282ed131381d.log",
+      "logSha256": "89aa58a7669854ccb4f795489984b44bb64f5bf6a402aefd0b250091319ec4ef",
+      "inputsHash": "0c27ed052882e0c88a7cda14c470eee4fe90c77c87e8c8ca7abc3d085e8f00f8"
+    },
+    "s03-list-layers/c-ll-changes/final": {
+      "checkId": "c-ll-changes",
+      "boundaryId": "s03-list-layers",
+      "phase": "final",
+      "batchId": "65b5444766c8458b9e21e50864c86a86803af6470e6658e165754c672c654e06",
+      "definitionHash": "80f3becb8837c10c3bc7a4aa14540e60214cb0adaed035c9ec549573a5e8b0f5",
+      "basisHash": "6056ba3fabbd9257529171544d43a9b32c9270cd2704f59f4290ded89ee79293",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 5,
+      "durationSeconds": 0.2708,
+      "recordedAt": "2026-10-16T19:11:33Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/s03-list-layers-final-0fe627a7b789.log",
+      "logSha256": "0f670c231640a93ce998a147f9519d4484dcdc81834cfbe4ec962b9a943ecca4",
+      "inputsHash": "0c27ed052882e0c88a7cda14c470eee4fe90c77c87e8c8ca7abc3d085e8f00f8"
     }
   },
   "reviews": {
@@ -408,6 +515,110 @@
         "s02-F3"
       ],
       "recordedAt": "2026-10-16T18:22:49Z"
+    },
+    "s03-list-layers": {
+      "reviewerId": "reviewer-s03-independent",
+      "snapshotId": "65b5444766c8458b9e21e50864c86a86803af6470e6658e165754c672c654e06",
+      "criterionIds": [
+        "LL-1",
+        "LL-2",
+        "LL-3",
+        "LL-4",
+        "LL-5"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LL-1",
+            "LL-2",
+            "LL-3",
+            "LL-4",
+            "LL-5"
+          ],
+          "sha256": "f3bd0b8d4a95101f3ed19001cd83ec9014096c4e7b07249b88be130c42d893bf"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/virtual_list/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LL-1",
+            "LL-2",
+            "LL-3",
+            "LL-4",
+            "LL-5"
+          ],
+          "sha256": "f724d4116b105f1a669d394f990cf1ee5af1e7317e244de81624720677284350"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/mod.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LL-1",
+            "LL-2",
+            "LL-3",
+            "LL-4",
+            "LL-5"
+          ],
+          "sha256": "21ebecd8dbd9eb1c3406c23dafb6ed63f3e2846cdabb606d09991be593ad3064"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/rows.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LL-1"
+          ],
+          "sha256": "a2e3ccb3ed57ed2f4e2f14542c0a74f573fd75f474ff26f1650caaccec810ea3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/oracle.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LL-2"
+          ],
+          "sha256": "307c04d3e5e763a13a9a2b4d5754b50edde5c77357167d033781f39fa6e8df55"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/changes.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LL-3"
+          ],
+          "sha256": "9ee584fa3622641f8b941ba9d3ef89fa50f3ca74f82cd4b74dc86fb5044a15b8"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/range.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LL-4"
+          ],
+          "sha256": "efbe77b2143c9fa2356137e7c01fd642246a3b266297766165c63a07966ffd48"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/ineligible.rs",
+          "kind": "test",
+          "criterionIds": [
+            "LL-5"
+          ],
+          "sha256": "92829eeab3556dc548940f8cdcb3f197fd9838ff3d10d712460a0d14d858a486"
+        }
+      ],
+      "summaryMarkdown": "Full review after the repair batch. Uniform refactor equivalent; begin_virtual_list places rows by origins and holds overscan through the extent index plus the mounted range; carried only for vertical, own-scroll, sticky-free lists; ParentViewport/SynchronizedOffset call no row hooks; every hook inert with scroll layers off. s03-F1 resolved: the measured item's element-state keys are re-accessed on kept frames, so a measurement survives a frame that reuses the holding view (new rows test). s03-F2 resolved: one publish per layered wheel frame is asserted and counted. Groups meet LL-1..LL-5 thresholds and minimum counts; the NotifyBeside change case adds coverage. Notes: the half-device-pixel rounding limitation cited by changes.rs still needs its docs/fast-mode.md entry; ParentViewport ranges are VL-5's (s04).",
+      "findingIds": [
+        "s03-F1",
+        "s03-F2"
+      ],
+      "recordedAt": "2026-10-16T19:12:59Z"
     }
   },
   "checkpoints": {
@@ -428,6 +639,15 @@
       },
       "reviewHash": "7c964d43b56b417f9481deee0a1e35c6552bbe94df90258b2572c5305c703719",
       "recordedAt": "2026-10-16T18:23:05Z"
+    },
+    "s03-list-layers": {
+      "snapshotId": "65b5444766c8458b9e21e50864c86a86803af6470e6658e165754c672c654e06",
+      "commits": {
+        "gpux": "6d478ae2dbe30d47e2d0ca11e2b2aec20962cfd6",
+        "rayx": "4ee806e9999ff02c2d0a7fcc4be0379a036f10a7"
+      },
+      "reviewHash": "8c3a862d136af936ac7b808bd748cfed5c8614480a7002f77b889bf70be4994c",
+      "recordedAt": "2026-10-16T19:13:20Z"
     }
   },
   "findings": [
@@ -478,6 +698,49 @@
         }
       ],
       "descriptionMarkdown": "Resolved: `MODES` adds scroll layers without splice; `scroll_layers_without_splice_keep_the_extent` passes."
+    },
+    {
+      "id": "s03-F1",
+      "boundaryId": "s03-list-layers",
+      "criterionIds": [
+        "LL-1"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "**Measured item re-rendered on a composited frame after any frame that retained the holding view.**\n\n*Expected (LL-1, d-list-layer-path):* on every scroll-only frame after promotion the row closure runs only for the rendered rows, with no measure-item render; the measured size is kept across any history that leaves the layer composited, as `uniform_list`'s was before this sprint.\n\n*Observed:* `measure_item` now keeps the size only when `measured.frame + 1 == fast_layers.frame` (`kept_item_size`, lists.rs). When the view holding the list is reused on a frame (view retention `retained.rs` -> `reuse_prepaint` + `reuse::follow_prepaint`, or the cached-view path in `view.rs`), the list's `request_layout` does not run, so `measure_item` is not called and `measured.frame` stays one frame behind. The reuse copies the measured records to new indices, but `reuse::follow_prepaint` shifts only `record.prepaint_range`, the rows (`LayerRows::follow_prepaint`) and told rows, never `rows.measured.records`/`frame`. The next wheel frame still composites (reuse.rs documents that the rows are carried so the next frame can carry them in turn), yet `kept_item_size` returns None and the measure closure renders row 0 again. This applies to `uniform_list` too, which previously kept its size regardless of frame: a behaviour regression of the shared hook. The `rows` group only drives back-to-back wheel frames, so it cannot see it.\n\n*Repair:* in `reuse::follow_prepaint` (where `layer.rows.follow_prepaint(&shift)` runs, under the same `inside`/`current` guards), also shift `rows.measured.records` with `shift` and stamp `measured.frame = frame` when the records lie inside `from`; keep the frame guard for every other case. Add a `rows`-group test (and run the existing `list_layers` measure tests): promote, draw a frame that reuses the holding view (e.g. notify a sibling view so the page view is retained), then wheel; assert the frame composites, `list_rows_rendered == closure rows` and the closure was not called with `0..1`, for both `virtual_list` and `uniform_list`.\n\n**Resolved.** `Measured` now keeps the element-state keys the measuring render accessed (`states`) and a kept frame re-accesses them (accessed + pending transfers; a key whose state is gone is skipped by `WindowFrame::finish`), so the size is kept with no frame guard; only line-layout reuse keeps the `frame + 1` guard, which affects a cache, not the frame. `rows::a_measurement_survives_a_frame_that_reuses_the_view` asserts a view-reusing draw, then a composited wheel frame without a row-0 measure for virtual_list (uniform_list's one by-design request_layout render allowed); the reviewer reran it green.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/rows.rs",
+          "symbol": "a_measurement_survives_a_frame_that_reuses_the_view"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "symbol": "carry_measured_records"
+        }
+      ]
+    },
+    {
+      "id": "s03-F2",
+      "boundaryId": "s03-list-layers",
+      "criterionIds": [
+        "LL-4"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "**The range group does not pin that the listener runs on every drawn frame.**\n\n*Expected (LL-4, d-range-publication):* the `on_rendered_range` listener is called on every frame the list is drawn, composited frames included; the group's own doc says each composited frame publishes once.\n\n*Observed:* `compare_steps` (virtual_list_layers/mod.rs) asserts only `actual.ranges.len() <= draws` and compares the *last published* range, carrying a stale one forward when a frame published nothing. A regression that skipped the listener on composited frames whose range did not change (e.g. the -0.5 / -7.25 px turns of `wheel_history`), or that published only on change, would pass every `range` test.\n\n*Repair:* in the `range` group (or `compare_steps` with a flag the range tests set), assert that on each wheel step where the layered window drew the list (its `layers_composited + layers_repainted` advanced for the step), the listener ran exactly once, and that this held on at least the asserted number of composited frames.\n\n**Resolved.** `compare_steps` asserts exactly one publish on every wheel step whose layered window composited or repainted, and returns `published_from_layer`; the range tests require >= 60 and >= 40.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/mod.rs",
+          "symbol": "compare_steps"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/range.rs"
+        }
+      ]
     }
   ],
   "handoffMarkdown": "",
