@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-a11y-devtools",
-  "revision": 10,
+  "revision": 13,
   "title": "gpux accessibility-first: AccessKit as the one semantic tree for screen readers on every platform, gpux-devtools and its MCP, RayX on both",
   "validationMode": "sprint",
   "repositories": [
@@ -869,7 +869,18 @@
         "minimumTests": 2,
         "testCountPattern": "gpux-testkit: (\\d+) passed"
       },
-      "reuse": false
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tooling/**",
+        "tools-node/specs/**",
+        "tools-node/fixtures/**",
+        "tools-node/playwright.config.ts",
+        "tools-node/package.json",
+        "vendor/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
     },
     {
       "id": "check-devtools-lane-b",
@@ -889,7 +900,18 @@
         "minimumTests": 2,
         "testCountPattern": "gpux-testkit: (\\d+) passed"
       },
-      "reuse": false
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tooling/**",
+        "tools-node/specs/**",
+        "tools-node/fixtures/**",
+        "tools-node/playwright.config.ts",
+        "tools-node/package.json",
+        "vendor/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
     },
     {
       "id": "check-devtools-lane-f",
@@ -915,7 +937,18 @@
         "minimumTests": 1,
         "testCountPattern": "gpux-testkit: (\\d+) passed"
       },
-      "reuse": false
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tooling/**",
+        "tools-node/specs/**",
+        "tools-node/fixtures/**",
+        "tools-node/playwright.config.ts",
+        "tools-node/package.json",
+        "vendor/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
     },
     {
       "id": "check-devtools-lane-e",
@@ -926,22 +959,27 @@
       ],
       "descriptionMarkdown": "New lane E group `devtools` on an emulator or device through `adb reverse`: `hello`, a snapshot and a tap's effect.",
       "argv": [
-        "cargo",
-        "run",
-        "-p",
-        "gpux-testkit",
-        "--",
-        "lane",
-        "e",
-        "--grep",
-        "devtools"
+        "bash",
+        "-c",
+        "ANDROID_HOME=$HOME/Library/Android/sdk JAVA_HOME=/Library/Java/JavaVirtualMachines/microsoft-21.jdk/Contents/Home PATH=/Library/Java/JavaVirtualMachines/microsoft-21.jdk/Contents/Home/bin:$PATH cargo run -p gpux-testkit -- lane e --grep devtools"
       ],
       "expected": {
         "exitCode": 0,
         "minimumTests": 1,
         "testCountPattern": "gpux-testkit: (\\d+) passed"
       },
-      "reuse": false
+      "reuse": false,
+      "inputs": [
+        "crates/**",
+        "tooling/**",
+        "tools-node/specs/**",
+        "tools-node/fixtures/**",
+        "tools-node/playwright.config.ts",
+        "tools-node/package.json",
+        "vendor/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
     },
     {
       "id": "check-rx-core-accesskit",
@@ -2140,6 +2178,40 @@
         "crates/gpui_mobile/**",
         "crates/gpui_wgpu/**"
       ]
+    },
+    {
+      "id": "check-a11y-shared-focus",
+      "repositoryId": "gpux",
+      "kind": "test",
+      "criterionIds": [
+        "TREE-2"
+      ],
+      "descriptionMarkdown": "New group `crates/gpui/tests/a11y_shared_focus.rs`: a focus handle tracked by a host and the field inside it focuses the innermost node without the double-focus panic; a handle tracked once focuses its own node.",
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "gpux",
+        "--test",
+        "a11y_shared_focus"
+      ],
+      "expected": {
+        "exitCode": 0,
+        "minimumTests": 2
+      },
+      "inputs": [
+        "crates/gpui/**",
+        "crates/gpui_macros/**",
+        "crates/collections/**",
+        "crates/sum_tree/**",
+        "crates/scheduler/**",
+        "crates/gpui_util/**",
+        "crates/refineable/**",
+        "crates/gpui_shared_string/**",
+        "crates/util/**",
+        "Cargo.toml",
+        "Cargo.lock"
+      ]
     }
   ],
   "finalCheckIds": [
@@ -3258,6 +3330,29 @@
         "rayx:ui/virtualization"
       ],
       "tasks": [
+        {
+          "id": "t22a-gpux-shared-focus",
+          "title": "Nested nodes sharing one focus handle",
+          "descriptionMarkdown": "Found while migrating RayX (s08): a RayX text control's host tracks the same focus handle as gpux's inner `EditableText`, both with roles, so a focused field claimed the tree's focus twice and debug builds panicked (\"set_focus called more than once in a single frame\") whenever the tree was built, for inspection or a screen reader. A claim through the handle that already holds the focus now takes over, so the innermost node of a shared handle is focused; claims through two handles still panic. New group `crates/gpui/tests/a11y_shared_focus.rs`.",
+          "criterionIds": [],
+          "supportingCriterionIds": [
+            "TREE-2",
+            "RX-2"
+          ],
+          "designIds": [
+            "d-rayx-migration"
+          ],
+          "dependsOn": [],
+          "checkIds": [
+            "check-a11y-shared-focus"
+          ],
+          "sourceRefs": [
+            {
+              "repositoryId": "gpux",
+              "path": "crates/gpui/src/window/a11y.rs"
+            }
+          ]
+        },
         {
           "id": "t22-rx-annotations",
           "title": "AccessKit-only annotations across the component crates",

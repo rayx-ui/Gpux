@@ -1,12 +1,12 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-a11y-devtools",
-  "revision": 98,
-  "planRevision": 10,
+  "revision": 112,
+  "planRevision": 13,
   "specHashes": {
     "requirements": "75c003f6b5b8ba6b6dda4cb5e0419778781e291e68ce5498786c7161618e76f7",
     "design": "8fac3da2bc816a9bf6df4fb9326d95ba71cbd30363d6ce20f8af9da98a56bec8",
-    "plan": "4eece923c606785de49e3cbacb185e0569b441e9b9b08d7f1bd4ba1ab84581f1"
+    "plan": "3d0809b9ece388c18a13731423ddc2ac2b487c22edd0de526eb8a7218fe76d76"
   },
   "tasks": {
     "t01-baseline": {
@@ -112,16 +112,28 @@
       ]
     },
     "t18-mcp-sidecar": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t19-mcp-extensions": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t20-devtools-platforms": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t21-devtools-docs": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "local_a11y_impl"
+      ]
     },
     "t22-rx-annotations": {
       "status": "pending"
@@ -197,6 +209,9 @@
       "workerIds": [
         "local_a11y_impl"
       ]
+    },
+    "t22a-gpux-shared-focus": {
+      "status": "pending"
     }
   },
   "validationBatches": {
@@ -289,6 +304,16 @@
         }
       },
       "recordedAt": "2026-10-16T18:53:23Z"
+    },
+    "feded2d374fd0a6492119ebe2bc8f4c5e706b6f29db58d21b4eec189a05c9a0d": {
+      "snapshot": {
+        "specHash": "d105439c09ee87b5619a668dd5e7ac10e6563960f9c3296002ad8e24bcda32df",
+        "repositories": {
+          "gpux": "4a94a550bbd3a931ee5b902ab1ef29d3bdd85a140ea71842bae1a6657487f61e",
+          "rayx": "584ace30ffdb2e88b8f30adaac91c961fbb2ebc5deb3096695d5693ed1c4868c"
+        }
+      },
+      "recordedAt": "2026-10-16T20:03:41Z"
     }
   },
   "checkResults": {
@@ -931,6 +956,108 @@
       "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s06-devtools-final-7130eac5d953.log",
       "logSha256": "063973f1ece272a6b0a0b24ca34bc8b12e70426627d5f9cad06a7ed0bec86897",
       "inputsHash": "40ce438ae85cf93461e689df254b99730481772c1f6f9f5f23fab6285ceb2af1"
+    },
+    "s07-mcp/check-mcp-stdio/final": {
+      "checkId": "check-mcp-stdio",
+      "boundaryId": "s07-mcp",
+      "phase": "final",
+      "batchId": "feded2d374fd0a6492119ebe2bc8f4c5e706b6f29db58d21b4eec189a05c9a0d",
+      "definitionHash": "1da8fc087dc8907582ce46ef712dc9d2ade87a15bef09be7f3643902080e46d4",
+      "basisHash": "098a660c60fee3a86ecce399eed750280cc9b1546ff76e22f909783103295e8a",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 17,
+      "durationSeconds": 0.6129,
+      "recordedAt": "2026-10-16T20:00:56Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s07-mcp-final-ab429575c985.log",
+      "logSha256": "ca9f313c006471b99b19ae9b121eae4dddf7566628027e82e618467a45d4815a",
+      "inputsHash": "781926a21e24c6d2fc794f4e5c1249b9093379fbc56c591108818bdfa7d9e09e"
+    },
+    "s07-mcp/check-mcp-extensions/final": {
+      "checkId": "check-mcp-extensions",
+      "boundaryId": "s07-mcp",
+      "phase": "final",
+      "batchId": "feded2d374fd0a6492119ebe2bc8f4c5e706b6f29db58d21b4eec189a05c9a0d",
+      "definitionHash": "8c4327cb04f44ccde81f8a37f6166f3a2b2ef91bc43f60ae38ef7e4683815d11",
+      "basisHash": "acb5f05bc2a74d10ecf2f2ac8db9ca52fefd200cc28c16a4dd188225185a2f0f",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 8,
+      "durationSeconds": 0.2437,
+      "recordedAt": "2026-10-16T20:00:56Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s07-mcp-final-fb58d9060866.log",
+      "logSha256": "f3fcc322990a721b099166c2cd8ebd215254070296c9b50b1a1a1f70c3cdddd5",
+      "inputsHash": "781926a21e24c6d2fc794f4e5c1249b9093379fbc56c591108818bdfa7d9e09e"
+    },
+    "s07-mcp/check-devtools-lane-d/final": {
+      "checkId": "check-devtools-lane-d",
+      "boundaryId": "s07-mcp",
+      "phase": "final",
+      "batchId": "feded2d374fd0a6492119ebe2bc8f4c5e706b6f29db58d21b4eec189a05c9a0d",
+      "definitionHash": "e56b0ef5ba97323fcce74d4ebff66265048fdf16672e376422467d26c47e9d95",
+      "basisHash": "ea67b7881460f5a90f0b5ae8af94a380a77d30aed187eff4ab1ad3534676a43d",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 29.3458,
+      "recordedAt": "2026-10-16T20:01:26Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s07-mcp-final-a0df0fce416c.log",
+      "logSha256": "7cb3f6d6c6d3583409b69b80568548e752e334c79a4aba54f0fd88457f621d8d",
+      "inputsHash": "469840cbe40c29454ea806b6e1704e6f0d4f4e7163aa82f0a6f4d07eaa9df76a"
+    },
+    "s07-mcp/check-devtools-lane-b/final": {
+      "checkId": "check-devtools-lane-b",
+      "boundaryId": "s07-mcp",
+      "phase": "final",
+      "batchId": "feded2d374fd0a6492119ebe2bc8f4c5e706b6f29db58d21b4eec189a05c9a0d",
+      "definitionHash": "0f940c659fe8f860ca3ae2edae0e541b91f73c76bca33076b28bc4e669237477",
+      "basisHash": "166e497fb2e55e351c7edd49666048aaba95c19f9b8be56cab0c998f46fcceb6",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 2,
+      "durationSeconds": 76.6192,
+      "recordedAt": "2026-10-16T20:02:42Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s07-mcp-final-5ab0b443b936.log",
+      "logSha256": "f47a8d2e7f0f8c7e05233109d4ddb56e5ccac4a9417ae6e4c94fb9f787190a19",
+      "inputsHash": "469840cbe40c29454ea806b6e1704e6f0d4f4e7163aa82f0a6f4d07eaa9df76a"
+    },
+    "s07-mcp/check-devtools-lane-f/final": {
+      "checkId": "check-devtools-lane-f",
+      "boundaryId": "s07-mcp",
+      "phase": "final",
+      "batchId": "feded2d374fd0a6492119ebe2bc8f4c5e706b6f29db58d21b4eec189a05c9a0d",
+      "definitionHash": "5f696694fe0ee12cc96b42a30625c895a7d347407a7ebb348d58eed873111523",
+      "basisHash": "aea89964a28a92ad3576143b6fe5ec3aae7bd135f92c7fc88118966a3339c57a",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 24.4141,
+      "recordedAt": "2026-10-16T20:03:07Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s07-mcp-final-3a652eb79a1b.log",
+      "logSha256": "b6b3dd9d091af453e80b5ddd5be65ed411aa66909c5d22d45a1dfedb2e50b6dc",
+      "inputsHash": "469840cbe40c29454ea806b6e1704e6f0d4f4e7163aa82f0a6f4d07eaa9df76a"
+    },
+    "s07-mcp/check-devtools-lane-e/final": {
+      "checkId": "check-devtools-lane-e",
+      "boundaryId": "s07-mcp",
+      "phase": "final",
+      "batchId": "feded2d374fd0a6492119ebe2bc8f4c5e706b6f29db58d21b4eec189a05c9a0d",
+      "definitionHash": "21591057b64a3ef6790837cb1930f5e17c6fe6971bbff858f6bd3fc99c489d9b",
+      "basisHash": "96ac82bc94b9faedf89c835f7bcf95d9f599f7f706d9f0be77ee82a870a20256",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 1,
+      "durationSeconds": 33.814,
+      "recordedAt": "2026-10-16T20:03:40Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-a11y-devtools/s07-mcp-final-9821eac0b8d4.log",
+      "logSha256": "96665819717df79c5ff1b8f219ad08e1b1ccd5c4a09c24e353006d505d0262a9",
+      "inputsHash": "469840cbe40c29454ea806b6e1704e6f0d4f4e7163aa82f0a6f4d07eaa9df76a"
     }
   },
   "reviews": {
@@ -2244,6 +2371,186 @@
         "gpux:docs/measurements/a11y-devtools.md": "406c3678b07a71e25202104191caf50da6b0607e4acec9c01ec1ff77949d2e90",
         "gpux:docs/measurements/screen-reader-walkthrough.md": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
       }
+    },
+    "s07-mcp": {
+      "reviewerId": "s07-mcp-independent-reviewer-2026-10-16",
+      "snapshotId": "feded2d374fd0a6492119ebe2bc8f4c5e706b6f29db58d21b4eec189a05c9a0d",
+      "criterionIds": [
+        "MCP-1",
+        "MCP-2",
+        "MCP-3",
+        "DEV-6",
+        "DEV-7"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools_mcp/src/mcp.rs",
+          "kind": "source",
+          "criterionIds": [
+            "MCP-1",
+            "MCP-2"
+          ],
+          "sha256": "3af5aeee53f683ccbffcfc0ca4570c1c79af8464e2ef5146ba585ac3a5321af7"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools_mcp/src/tools.rs",
+          "kind": "source",
+          "criterionIds": [
+            "MCP-1",
+            "MCP-2"
+          ],
+          "sha256": "bd9803cd6b8b005a3dc4fdb8f83e0f2e159cc6d123facd039cab4d918bddfbb0"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools_mcp/src/apps.rs",
+          "kind": "source",
+          "criterionIds": [
+            "MCP-1",
+            "MCP-2",
+            "DEV-6",
+            "DEV-7"
+          ],
+          "sha256": "a097c330e97ba7dc95762da8faa1e40546dc56cbfcf3436f022941ace7875320"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools_mcp/src/lib.rs",
+          "kind": "source",
+          "criterionIds": [
+            "MCP-1"
+          ],
+          "sha256": "cbd8e52377f2df8dab672cc6459b77b30af6c68ed7e577a2989a19492b927394"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools_mcp/src/probe.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DEV-6",
+            "DEV-7"
+          ],
+          "sha256": "a0cec34a01d9541ca0eb399c0c862840f99165a723168857fb16e29d403503d1"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools_mcp/tests/stdio_protocol.rs",
+          "kind": "test",
+          "criterionIds": [
+            "MCP-1"
+          ],
+          "sha256": "3327420fc94d5bc73b71fb0d928e270c3bfbbeafb0c8161cd1438e76fd31b9c8"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools_mcp/tests/extensions.rs",
+          "kind": "test",
+          "criterionIds": [
+            "MCP-2"
+          ],
+          "sha256": "e0ea5da2d50689173339bad919ce2a4449c6246fc1863d0057740771ee4da26d"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/src/devtools.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DEV-6",
+            "DEV-7"
+          ],
+          "sha256": "f0121ca125722542601146dea21c202e037c3600506c3e4a54bc6de18695df67"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/desktop_host/checks.rs",
+          "kind": "test",
+          "criterionIds": [
+            "DEV-6"
+          ],
+          "sha256": "432d0b6eebc139df1b113bf7e7c77a376559a8586cef727768001f5cb0ec0361"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tools-node/specs/devtools.spec.ts",
+          "kind": "test",
+          "criterionIds": [
+            "DEV-6"
+          ],
+          "sha256": "37bc7e86fb9afa06be018c48e97b5345ed18ccbbd276b5b8f86fdb0f0595b2a3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/ios_host/devtools.rs",
+          "kind": "test",
+          "criterionIds": [
+            "DEV-7"
+          ],
+          "sha256": "3ac4300e4a50be2a6ecc6b0a5a7bc31e17f210906b10982ecdec47a687ade14c"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_conformance/examples/android_host/devtools.rs",
+          "kind": "test",
+          "criterionIds": [
+            "DEV-7"
+          ],
+          "sha256": "c9738223ead6354fa04955288db5e00b4046d4794c1e2e5e9f309886383c0fa8"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/android.rs",
+          "kind": "source",
+          "criterionIds": [
+            "DEV-7"
+          ],
+          "sha256": "90adbcb99029fbf4a27b2b4afc006adb2fbbbe43cf17ee2c4793feee60d84077"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/devtools.md",
+          "kind": "source",
+          "criterionIds": [
+            "MCP-3"
+          ],
+          "sha256": "a371296d254f8005d27036afac39ed7e8c20bfc7290b454564625bc9ae83d469"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/testing.md",
+          "kind": "source",
+          "criterionIds": [
+            "MCP-3"
+          ],
+          "sha256": "b69f08eb1fc5553a454931b622eb6ff6eeacafa55f56a3866a6a31b4b1c18d23"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "README.md",
+          "kind": "source",
+          "criterionIds": [
+            "MCP-3"
+          ],
+          "sha256": "f5ac43b4d29433912fe246fd5c2f1a835d0c2513c9348aa223b2e79781d98251"
+        }
+      ],
+      "summaryMarkdown": "Passed after repair (0f9baec). Inspected 0f9baec against 103de20. `mcp::serve` now runs a watcher on `Registry::subscribe()` and writes `notifications/tools/list_changed` through a shared, line-atomic writer whenever the set of extension-tool names changes; a test spawns the binary on real pipes and covers connect, a tool-less app, and disconnect. `browser_set_property` forwards to `act` `setValue` with the Playwright sections, and the tool-list test asserts it is present. `Registry::departed` names departed apps; tests cover a call after disconnect and a hang-up mid-call (pending drain). Built-in tools now dispatch by exact name, with a test for a `browser_`-prefixed app tool. The act/input schemas gained blur, id, replace, durationMs and array keys; the window default and `extension.call` docs are corrected; devtools.md has an Accessibility modes section (anchor #switches exists); testing.md names the crate groups. A timeout removes its pending entry, and lane E removes its adb reverse. Lane F is accepted as documented: a Simulator app is a Mac process on the Mac's loopback. `cargo test -p gpux-devtools-mcp` passes (stdio_protocol 17, extensions 8). 1b2d4be and e9e9055 touch only crates/gpui a11y files outside s07's criteria. Notes, not blocking: a bool `value` is sent as the string \"true\"/\"false\", and `departed` is never pruned (unbounded only by distinct tool names).",
+      "findingIds": [
+        "s07-list-changed-never-sent",
+        "s07-browser-set-property-dropped",
+        "s07-disconnected-extension-unnamed",
+        "s07-browser-prefix-extensions-unreachable",
+        "s07-schema-and-doc-drift",
+        "s07-docs-modes-and-groups",
+        "s07-proof-gaps-minor"
+      ],
+      "recordedAt": "2026-10-16T20:05:01Z",
+      "recordHashes": {
+        "gpux:docs/measurements/a11y-devtools.md": "406c3678b07a71e25202104191caf50da6b0607e4acec9c01ec1ff77949d2e90",
+        "gpux:docs/measurements/screen-reader-walkthrough.md": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
     }
   },
   "checkpoints": {
@@ -2327,6 +2634,15 @@
       },
       "reviewHash": "c2b04edd822b54ed5afa84a3b5bc3fa66e75f29c208f4c8b401b94bdeb89dacd",
       "recordedAt": "2026-10-16T18:54:05Z"
+    },
+    "s07-mcp": {
+      "snapshotId": "feded2d374fd0a6492119ebe2bc8f4c5e706b6f29db58d21b4eec189a05c9a0d",
+      "commits": {
+        "gpux": "e9e90552d7d1b85a301ec9f1c584df2b79418e05",
+        "rayx": "c4f724978d56c9c8c437b992c7db9b4c12bab5c7"
+      },
+      "reviewHash": "7e5bb6314a5572377d8f42d2fa317b2bea580c81b8e75e6b499f5e2a3d3c2991",
+      "recordedAt": "2026-10-16T20:05:21Z"
     }
   },
   "findings": [
@@ -3045,9 +3361,159 @@
         }
       ],
       "boundaryId": "s06-devtools"
+    },
+    {
+      "id": "s07-list-changed-never-sent",
+      "boundaryId": "s07-mcp",
+      "criterionIds": [
+        "MCP-2"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "`initialize` advertises `capabilities.tools.listChanged: true` (crates/gpux_devtools_mcp/src/mcp.rs:57), but nothing in the crate ever writes `notifications/tools/list_changed`: `mcp::serve` (mcp.rs:12-30) only writes answers to stdin lines, and no code subscribes to `Registry` events for the MCP side. Expected: when an app connects or disconnects and the set of extension tools changes, the harness is told, as docs/devtools.md:108 promises (\"the sidecar may start before or after the apps\"). Observed: a harness such as Claude Code lists tools once after `initialize`, normally before any app has connected, so advertised tools like `rayx_metadata` never show up in it. The extensions.rs tests can't catch this because they call `tools/list` again after connecting. Repair: let `serve` share its writer (Arc<Mutex<W>>) with a thread subscribed to `Registry::subscribe()`, and emit `{\"jsonrpc\":\"2.0\",\"method\":\"notifications/tools/list_changed\"}` whenever a connect or disconnect changes the extension-tool names. Add an extensions.rs test that runs `mcp::serve` over a pipe (or the binary with `--port 0`) and asserts the notification line after a scripted app connects and after it disconnects.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools_mcp/src/mcp.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools_mcp/tests/stdio_protocol.rs"
+        }
+      ]
+    },
+    {
+      "id": "s07-browser-set-property-dropped",
+      "boundaryId": "s07-mcp",
+      "criterionIds": [
+        "MCP-1"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "MCP-1 lists the `browser_*` tools RayX's sidecar offered with \"`browser_set_property` becomes SetValue\", and d-mcp-sidecar's rationale is to keep \"the tool surface agents already use\" (RayX's `.claude/skills/rayx/references/devkit.md` uses `browser_set_property`). Observed: the tool is gone (crates/gpux_devtools_mcp/src/tools.rs:59-317), and stdio_protocol.rs:68-71 asserts that it is absent (\"SetValue replaces it\"), so agents have to switch to `gpux_act action=setValue`. Expected: `browser_set_property` (target/ref plus value) forwarded as `act` with `action: \"setValue\"`, answering with `### Result`, `### Ran Playwright code`, `### Page` and `### Snapshot` like the other browser tools. Repair: add the tool, replace the absence assertion with a call that checks `app.last(\"act\")` is `setValue` with the value and that the sections are there, and document it in docs/devtools.md:135-136. If the owner meant the tool to be removed, amend MCP-1's wording with that recorded decision instead.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools_mcp/src/tools.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools_mcp/tests/stdio_protocol.rs"
+        }
+      ]
+    },
+    {
+      "id": "s07-disconnected-extension-unnamed",
+      "boundaryId": "s07-mcp",
+      "criterionIds": [
+        "MCP-2"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "MCP-2 requires that \"a call to a disconnected app fails naming it\" in the extension-tool group. Observed (a temporary probe test, since removed): after `lab` disconnects, `tools/call rayx_metadata` with no `app` fails with `unknown tool: rayx_metadata` (tools.rs:513-515), which does not name the app. extensions.rs:86-110 only checks `gpux_snapshot` with an explicit `app`, and no test covers an app that disconnects while an `extension.call` is still pending, which is the `RequestError::Disconnected(label)` drain at apps.rs:429-433 and d-protocol's \"nothing is retried after a lost response\". Repair: keep the names of apps that offered each extension tool after they disconnect (for example a small map from tool name to the last offering app ids in `Registry`), so the error reads \"rayx_metadata: the app lab disconnected\". In extensions.rs, add (a) an extension call without `app` after disconnect that asserts the message names `lab`, and (b) a scripted app that drops the connection on receiving `extension.call`, asserting the error names `lab`, keeps the MCP request id, and that the app received the request exactly once.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools_mcp/src/apps.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools_mcp/tests/extensions.rs"
+        }
+      ]
+    },
+    {
+      "id": "s07-browser-prefix-extensions-unreachable",
+      "boundaryId": "s07-mcp",
+      "criterionIds": [
+        "MCP-2"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "`tools::call` sends every name that starts with `browser_` to `browser()` (tools.rs:491), and that function answers `unknown tool` for any name it doesn't know (tools.rs:967). `list()` (tools.rs:321-355), though, lists any non-builtin extension name. Observed (temporary probe): an app that advertises `browser_set_property` sees it in `tools/list`, but calling it fails with `unknown tool: browser_set_property`. This is the natural workaround RayX would reach for under s07-browser-set-property-dropped. Repair: dispatch to the builtins by exact name (`builtin()` names) and send every other name to `extension()`, or refuse reserved `gpux_`/`browser_` prefixes at `hello` and leave them out of the list. Add a case to extensions.rs.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools_mcp/src/tools.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools_mcp/tests/extensions.rs"
+        }
+      ]
+    },
+    {
+      "id": "s07-schema-and-doc-drift",
+      "boundaryId": "s07-mcp",
+      "criterionIds": [
+        "MCP-1",
+        "MCP-3"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "The tool schemas and docs/devtools.md don't match what the app accepts. (1) `gpux_act`'s enum (tools.rs:96) leaves out `blur`, which the app supports (gpux_devtools/src/requests.rs:209) and docs/devtools.md:123 lists. The custom action is taken as `id` or `customAction` (requests.rs:239-240), but the schema has only `customAction`, and the docs say `id`. (2) `gpux_input`'s schema has `additionalProperties: false` (tools.rs:26) but no `durationMs` (longPress) and no `replace` (type), both documented at docs/devtools.md:124, so a client that validates against the schema refuses them. (3) docs/devtools.md:116 says the default window is \"the app's last window\". The schema says first (tools.rs:47), the app uses the active window, else the first (requests.rs:71-83), and `browser_*` uses the first (tools.rs:443). (4) docs/devtools.md:180-181 says the app answers \"its extension tools by name\", but the request is `extension.call` with `name` (lib.rs:14). Repair: add `blur`, `id`, `durationMs` and `replace` to the schemas, and correct the three doc statements.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools_mcp/src/tools.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/devtools.md"
+        }
+      ]
+    },
+    {
+      "id": "s07-docs-modes-and-groups",
+      "boundaryId": "s07-mcp",
+      "criterionIds": [
+        "MCP-3"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "MCP-3 asks docs/devtools.md to document \"the accessibility modes and inspection\", and docs/testing.md to name the new groups. Observed: devtools.md covers the inspection guard (lines 66-70) but says nothing about `AccessibilityMode`/`GPUX_ACCESSIBILITY` and its effect on agents: `Off` still allows inspection, while `Application::new_inaccessible` makes every request fail with \"the window has no accessibility tree\" (requests.rs:86-92). docs/testing.md names the lane groups and selectors but not the new crate test groups `stdio_protocol` and `extensions` (only devtools.md:186-189 names them). Repair: add a short \"Accessibility modes\" paragraph to devtools.md (Auto/Always/Off do not affect inspection; `new_inaccessible` disables it; link to accessibility.md#activation-sources), and add `cargo test -p gpux-devtools-mcp --test stdio_protocol|extensions` to docs/testing.md's focused-test or lane-A text.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/devtools.md"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/testing.md"
+        }
+      ]
+    },
+    {
+      "id": "s07-proof-gaps-minor",
+      "boundaryId": "s07-mcp",
+      "criterionIds": [
+        "MCP-1",
+        "DEV-7"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "Smaller gaps in the proofs. (1) stdio_protocol.rs drives `mcp::handle_line` in process. The binary's stdio loop (`mcp::serve`, main.rs:38-42) runs only for `--print-manifest`, so line framing, flushing and notifications over a real stdio pipe are unproved. Repair: one test that spawns `CARGO_BIN_EXE_gpux-devtools-mcp --port 0`, writes `initialize` and `tools/list` lines, and reads both answers. (2) The lane F `devtools-ios` group runs the sidecar server inside the app process (ios_host/devtools.rs:20), so it does not show that a Simulator app reaches a sidecar running as a Mac process, which is the setup docs/devtools.md:81 documents. Repair: have the testkit run the sidecar on the Mac, as android.rs `Sidecar` does, and pass its port to the host. (3) The lane E `Sidecar` never runs `adb reverse --remove tcp:9230` (android.rs:1046-1108), which leaves a stale reverse on the device. (4) `Registry::request` leaves the pending entry behind on timeout (apps.rs:186-190). Remove it on `Timeout`.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools_mcp/tests/stdio_protocol.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpux_devtools_mcp/src/apps.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "tooling/testkit/src/android.rs"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/testing.md"
+        }
+      ]
     }
   ],
-  "handoffMarkdown": "Implemented in 273964a.",
+  "handoffMarkdown": "docs/devtools.md; docs/testing.md groups; README crate row for gpux-devtools-mcp.",
   "protectedPaths": {
     "gpux": {
       "gpux:.agentx/experiments/**": "3aad2d92dcb891b6177236d72f9bed523ceeb9c10add6f0918918db5e9d3082a",
