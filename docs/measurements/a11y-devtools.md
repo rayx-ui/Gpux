@@ -403,8 +403,12 @@ runs what (b) ran.
 
 - **(a′) epic**: no assistive technology and no inspection: nothing asks for the tree, none is
   built.
-- **(c′) epic, always**: `GPUX_ACCESSIBILITY=always`, the tree built every frame with fast mode
-  on (the before (c) had fast mode bypass itself).
+- **(c′) epic, always**: `GPUX_ACCESSIBILITY=always`, the tree a screen reader gets built every
+  frame with fast mode on (the before (c) had fast mode bypass itself).
+- **(i′) epic, inspecting**: an inspection guard held for the run (`--accessibility inspect`,
+  `Window::begin_a11y_inspection`), as gpux-devtools and tests hold one: the tree is built every
+  frame with its inspection containers (an element with an id and no role) and the map from its
+  nodes to element ids.
 - **(b) 58257fe, same session**: the before (b) binary run again, alternated with (a′) in the
   same session, because the machine ran the same (b) binary 1.05–1.42× slower on the CPU than
   the day before (table below), more than the differences being judged.
@@ -416,16 +420,29 @@ Commands, each round with `--reps 1` so the variants alternate (rounds b, a′ i
 ```bash
 python3 benchmark/run.py --target macos --target web-webgpu --configs on --scenarios retention,text,scroll --reps 1 --hold-clocks 3 --skip-build --name after-a-r<n>
 python3 benchmark/run.py --target macos --target web-webgpu --configs on --scenarios retention,text,scroll --reps 1 --hold-clocks 3 --skip-build --accessibility always --name after-c-r<n>
+python3 benchmark/run.py --target macos --target web-webgpu --configs on --scenarios retention,text,scroll --reps 1 --hold-clocks 3 --skip-build --accessibility inspect --name inspect-i-r<n>
 ```
 
+(i′) was run later the same night, alternated with its own (a′) runs (`run-inspect.sh`, after
+`--accessibility inspect` was added, so on a rebuilt binary); its comparison is against those.
+The browser half of that (a′) series' second round failed to start (the disk filled for a
+moment) and was run again right after the series.
+
 Raw reports and the merged repetitions are in `artifacts-temp/agentx/gpux-a11y-devtools/after/`.
-macOS `dashboard-clock` timed out once in each of the (a′) and (c′) series (those cells are the
-median of two): the window received no frames. A process sampled while hung
-(`artifacts-temp/agentx/gpux-a11y-devtools/hang/sample-5.txt`, 1 of 12 back-to-back launches)
-has its main thread idle in the AppKit run loop and no display-link thread, so nothing asked it
-to draw. The before (a) build of `58257fe` hung the same way on `table-stream`, so this predates
-the epic; it fits gpui_macos pausing the display link of a window reported occluded, which these
-runs did not establish.
+On macOS a run occasionally never draws and times out after 300 s (the harness drops it, so
+that cell is the median of the other repetitions): `dashboard-clock` once in each of the (a′) and
+(c′) series and `dashboard-all-panels` once in (i′). A process sampled while hung
+(`artifacts-temp/agentx/gpux-a11y-devtools/hang/sample-5.txt`, 1 of 12 back-to-back launches of
+the epic's binary) has its main thread idle in the AppKit run loop and no `CVDisplayLink`
+thread, which a healthy run has (`hang/healthy-sample.txt`): the window never subscribed to its
+display's link. `gpui_macos` starts the link only while the window reports itself visible and on
+a screen, and otherwise waits for an occlusion or screen change; a window that missed both never
+draws. That code is the same as `58257fe`'s (the epic only gated the VoiceOver adapter behind a
+feature). The before (a) build of `58257fe` hung the same way once (`table-stream`); the before
+and same-session (b) binary did not hang in 78 macOS launches (including 12 back-to-back,
+`hang/b-run-*`), the epic's binaries in about 5 of 200. These counts do not settle whether the
+epic changes how often a window misses its first visibility notification; it is recorded as an
+open follow-up, not as a measured regression of the epic.
 
 ### Findings after the epic
 
@@ -452,26 +469,35 @@ runs did not establish.
   measurements do not explain and are not read as a result; `table-stream` (1.48×),
   `text-typing` (1.45×) and `scroll-div-cards` (1.39×) pay most for building their nodes.
 - GPU time is the same for (a′) and (c′) on every scenario (the scene does not change).
+- **Inspection costs what building the tree costs, plus its containers.** With an inspection
+  guard held, (i′) costs 0.94–1.44× its (a′)'s CPU on macOS and 1.10–2.26× in the browser
+  (`scroll-div-cards` 2.20 → 4.04 ms, `dashboard-clock` 1.06 → 1.83 ms), allocating 1.3–36× the
+  count per frame: the tree is built every frame as under (c′), with up to 153 more nodes and the
+  element-id map. This is the cost an app pays only while gpux-devtools or a test inspects it.
 
-### The tree with inspection on
+### The tree: what a screen reader gets and what inspection reads
 
-The node count is the tree the last frame built under `GPUX_ACCESSIBILITY=always`; the retained
-size is the end-of-run live Rust heap of (c′) less (a′)'s (medians), which includes the frame's
-records of the tree.
+Node counts are the tree the last frame built: "always" under `GPUX_ACCESSIBILITY=always` (the
+screen-reader tree, from the (c′) runs), "inspecting" with an inspection guard held (the tree
+gpux-devtools and tests read, from the (i′) runs), which adds a generic container for each
+element with an id and no role (52 on the dashboards, 153 on `text-typing`). The retained size is
+the end-of-run live Rust heap of (i′) less its (a′)'s (medians), which includes the frame's
+records of the tree and the element-id map; deltas of 0.1 MB or less are within the spread
+between repetitions.
 
-| Scenario | macOS nodes | macOS live heap (c′ − a′, MB) | web nodes | web live heap (c′ − a′, MB) |
-|---|---:|---:|---:|---:|
-| `dashboard-clock` | 868 | +0.7 | 868 | +0.6 |
-| `dashboard-one-panel` | 868 | +0.7 | 868 | +0.6 |
-| `dashboard-all-panels` | 868 | +0.4 | 868 | +0.6 |
-| `table-stream` | 794 | +0.6 | 794 | +0.6 |
-| `text-typing` | 151 | +0.2 | 151 | +0.3 |
-| `text-log-stream` | 161 | +0.1 | 161 | +0.2 |
-| `text-relabel` | 1501 | +1.1 | 1501 | +1.1 |
-| `scroll-uniform-list` | 181 | +0.3 | 175 | +0.3 |
-| `scroll-variable-list` | 34 | +0.1 | 34 | +0.1 |
-| `scroll-div-cards` | 2801 | +2.3 | 2801 | +2.3 |
-| `scroll-data-table` | 593 | +0.6 | 593 | +0.6 |
+| Scenario | macOS nodes, always | macOS nodes, inspecting | macOS live heap (i′ − a′, MB) | web nodes, always | web nodes, inspecting | web live heap (i′ − a′, MB) |
+|---|---:|---:|---:|---:|---:|---:|
+| `dashboard-clock` | 868 | 920 | +0.9 | 868 | 920 | +0.7 |
+| `dashboard-one-panel` | 868 | 920 | +0.9 | 868 | 920 | +0.7 |
+| `dashboard-all-panels` | 868 | 920 | +0.6 | 868 | 920 | +0.7 |
+| `table-stream` | 794 | 857 | +0.7 | 794 | 857 | +0.7 |
+| `text-typing` | 151 | 304 | +0.4 | 151 | 304 | +0.5 |
+| `text-log-stream` | 161 | 163 | +0.1 | 161 | 163 | +0.2 |
+| `text-relabel` | 1501 | 1503 | +1.3 | 1501 | 1503 | +1.3 |
+| `scroll-uniform-list` | 181 | 184 | +0.2 | 175 | 178 | +0.4 |
+| `scroll-variable-list` | 34 | 36 | +0.0 | 34 | 36 | +0.2 |
+| `scroll-div-cards` | 2801 | 2804 | +2.8 | 2801 | 2804 | +2.5 |
+| `scroll-data-table` | 593 | 596 | +0.6 | 593 | 596 | +0.6 |
 
 ### Session drift: (b) on two days
 
@@ -1118,3 +1144,317 @@ Reports: (a') epic: 33 runs, (c') epic, always: 33 runs
 | `scroll-variable-list` | 46.7 | 46.8 (1.00×) |
 | `scroll-div-cards` | 76.4 | 80.5 (1.05×) |
 | `scroll-data-table` | 62.2 | 64.3 (1.03×) |
+
+### Alternated: (a′) and (i′)
+
+#### macOS native (Metal)
+
+Reports: (a') epic: 33 runs, (i') epic, inspecting: 32 runs
+
+##### CPU ms per frame (main thread, mean)
+
+| Scenario | (a') epic | (i') epic, inspecting |
+|---|---:|---:|
+| `dashboard-clock` | 0.62 | 0.89 (1.44×) |
+| `dashboard-one-panel` | 0.87 | 1.20 (1.37×) |
+| `dashboard-all-panels` | 5.59 | 5.84 (1.05×) |
+| `table-stream` | 1.03 | 1.33 (1.30×) |
+| `text-typing` | 0.74 | 0.94 (1.27×) |
+| `text-log-stream` | 1.23 | 1.23 (1.00×) |
+| `text-relabel` | 7.67 | 7.84 (1.02×) |
+| `scroll-uniform-list` | 0.53 | 0.50 (0.94×) |
+| `scroll-variable-list` | 0.43 | 0.41 (0.96×) |
+| `scroll-div-cards` | 1.68 | 2.38 (1.42×) |
+| `scroll-data-table` | 1.01 | 1.25 (1.24×) |
+
+##### GPU ms per frame (Metal, mean)
+
+| Scenario | (a') epic | (i') epic, inspecting |
+|---|---:|---:|
+| `dashboard-clock` | 3.07 | 3.07 (1.00×) |
+| `dashboard-one-panel` | 3.07 | 3.07 (1.00×) |
+| `dashboard-all-panels` | 3.08 | 3.08 (1.00×) |
+| `table-stream` | 2.59 | 2.59 (1.00×) |
+| `text-typing` | 2.14 | 2.14 (1.00×) |
+| `text-log-stream` | 3.06 | 3.06 (1.00×) |
+| `text-relabel` | 2.60 | 2.61 (1.00×) |
+| `scroll-uniform-list` | 2.87 | 2.87 (1.00×) |
+| `scroll-variable-list` | 2.80 | 2.80 (1.00×) |
+| `scroll-div-cards` | 2.82 | 2.82 (1.00×) |
+| `scroll-data-table` | 2.92 | 2.92 (1.00×) |
+
+##### Frame time: `Window::draw` p50 (ms)
+
+| Scenario | (a') epic | (i') epic, inspecting |
+|---|---:|---:|
+| `dashboard-clock` | 0.481 | 0.730 (1.52×) |
+| `dashboard-one-panel` | 0.749 | 1.043 (1.39×) |
+| `dashboard-all-panels` | 5.313 | 5.583 (1.05×) |
+| `table-stream` | 0.889 | 1.150 (1.29×) |
+| `text-typing` | 0.578 | 0.752 (1.30×) |
+| `text-log-stream` | 1.040 | 1.094 (1.05×) |
+| `text-relabel` | 7.463 | 7.610 (1.02×) |
+| `scroll-uniform-list` | 0.328 | 0.346 (1.05×) |
+| `scroll-variable-list` | 0.229 | 0.229 (1.00×) |
+| `scroll-div-cards` | 1.124 | 1.798 (1.60×) |
+| `scroll-data-table` | 0.716 | 0.953 (1.33×) |
+
+##### Frame time: `Window::draw` p95 (ms)
+
+| Scenario | (a') epic | (i') epic, inspecting |
+|---|---:|---:|
+| `dashboard-clock` | 0.509 | 1.457 (2.86×) |
+| `dashboard-one-panel` | 0.813 | 1.134 (1.40×) |
+| `dashboard-all-panels` | 5.657 | 5.970 (1.06×) |
+| `table-stream` | 1.041 | 1.335 (1.28×) |
+| `text-typing` | 0.618 | 1.402 (2.27×) |
+| `text-log-stream` | 1.117 | 1.172 (1.05×) |
+| `text-relabel` | 7.770 | 7.987 (1.03×) |
+| `scroll-uniform-list` | 0.390 | 0.427 (1.09×) |
+| `scroll-variable-list` | 0.390 | 0.385 (0.99×) |
+| `scroll-div-cards` | 1.189 | 1.898 (1.60×) |
+| `scroll-data-table` | 0.812 | 1.076 (1.33×) |
+
+##### Dirty-to-present latency p50 (ms)
+
+| Scenario | (a') epic | (i') epic, inspecting |
+|---|---:|---:|
+| `dashboard-clock` | 8.30 | 8.25 (0.99×) |
+| `dashboard-one-panel` | 8.30 | 8.29 (1.00×) |
+| `dashboard-all-panels` | 8.18 | 8.18 (1.00×) |
+| `table-stream` | 8.29 | 8.29 (1.00×) |
+| `text-typing` | 8.29 | 4.22 (0.51×) |
+| `text-log-stream` | 8.27 | 8.29 (1.00×) |
+| `text-relabel` | 8.21 | 8.21 (1.00×) |
+| `scroll-uniform-list` | 8.29 | 8.30 (1.00×) |
+| `scroll-variable-list` | 8.29 | 8.30 (1.00×) |
+| `scroll-div-cards` | 8.00 | 8.00 (1.00×) |
+| `scroll-data-table` | 8.30 | 8.30 (1.00×) |
+
+##### Dirty-to-present latency p95 (ms)
+
+| Scenario | (a') epic | (i') epic, inspecting |
+|---|---:|---:|
+| `dashboard-clock` | 8.36 | 8.36 (1.00×) |
+| `dashboard-one-panel` | 8.36 | 8.36 (1.00×) |
+| `dashboard-all-panels` | 8.24 | 8.24 (1.00×) |
+| `table-stream` | 8.36 | 8.36 (1.00×) |
+| `text-typing` | 8.35 | 4.28 (0.51×) |
+| `text-log-stream` | 8.34 | 8.34 (1.00×) |
+| `text-relabel` | 8.28 | 8.27 (1.00×) |
+| `scroll-uniform-list` | 8.43 | 8.45 (1.00×) |
+| `scroll-variable-list` | 8.49 | 8.49 (1.00×) |
+| `scroll-div-cards` | 8.31 | 8.33 (1.00×) |
+| `scroll-data-table` | 8.47 | 8.47 (1.00×) |
+
+##### Allocations per frame
+
+| Scenario | (a') epic | (i') epic, inspecting |
+|---|---:|---:|
+| `dashboard-clock` | 189 | 6736 (35.63×) |
+| `dashboard-one-panel` | 626 | 7155 (11.43×) |
+| `dashboard-all-panels` | 17557 | 23240 (1.32×) |
+| `table-stream` | 1684 | 7684 (4.56×) |
+| `text-typing` | 468 | 2458 (5.25×) |
+| `text-log-stream` | 3622 | 4618 (1.28×) |
+| `text-relabel` | 20555 | 29597 (1.44×) |
+| `scroll-uniform-list` | 696 | 2412 (3.46×) |
+| `scroll-variable-list` | 406 | 717 (1.77×) |
+| `scroll-div-cards` | 5863 | 25461 (4.34×) |
+| `scroll-data-table` | 1599 | 7152 (4.47×) |
+
+##### Allocated KB per frame
+
+| Scenario | (a') epic | (i') epic, inspecting |
+|---|---:|---:|
+| `dashboard-clock` | 375.8 | 1128.9 (3.00×) |
+| `dashboard-one-panel` | 1303.9 | 2056.9 (1.58×) |
+| `dashboard-all-panels` | 7852.0 | 8600.4 (1.10×) |
+| `table-stream` | 529.1 | 1234.8 (2.33×) |
+| `text-typing` | 710.8 | 1265.4 (1.78×) |
+| `text-log-stream` | 2578.5 | 2749.0 (1.07×) |
+| `text-relabel` | 3775.9 | 5083.5 (1.35×) |
+| `scroll-uniform-list` | 675.3 | 862.2 (1.28×) |
+| `scroll-variable-list` | 814.2 | 868.2 (1.07×) |
+| `scroll-div-cards` | 3879.6 | 6670.2 (1.72×) |
+| `scroll-data-table` | 2322.3 | 2990.9 (1.29×) |
+
+##### Live Rust heap at the end (MB)
+
+| Scenario | (a') epic | (i') epic, inspecting |
+|---|---:|---:|
+| `dashboard-clock` | 24.7 | 25.6 (1.03×) |
+| `dashboard-one-panel` | 24.8 | 25.6 (1.03×) |
+| `dashboard-all-panels` | 25.0 | 25.6 (1.02×) |
+| `table-stream` | 22.0 | 22.7 (1.03×) |
+| `text-typing` | 17.0 | 17.4 (1.02×) |
+| `text-log-stream` | 16.1 | 16.2 (1.01×) |
+| `text-relabel` | 34.1 | 35.4 (1.04×) |
+| `scroll-uniform-list` | 15.3 | 15.5 (1.01×) |
+| `scroll-variable-list` | 17.8 | 17.8 (1.00×) |
+| `scroll-div-cards` | 42.4 | 45.2 (1.07×) |
+| `scroll-data-table` | 30.7 | 31.3 (1.02×) |
+
+##### Memory footprint at the end (MB)
+
+| Scenario | (a') epic | (i') epic, inspecting |
+|---|---:|---:|
+| `dashboard-clock` | 123.8 | 125.6 (1.02×) |
+| `dashboard-one-panel` | 123.7 | 125.7 (1.02×) |
+| `dashboard-all-panels` | 124.1 | 125.5 (1.01×) |
+| `table-stream` | 121.5 | 122.4 (1.01×) |
+| `text-typing` | 116.1 | 117.3 (1.01×) |
+| `text-log-stream` | 114.8 | 115.1 (1.00×) |
+| `text-relabel` | 133.9 | 135.6 (1.01×) |
+| `scroll-uniform-list` | 144.8 | 144.5 (1.00×) |
+| `scroll-variable-list` | 154.2 | 153.9 (1.00×) |
+| `scroll-div-cards` | 186.3 | 193.5 (1.04×) |
+| `scroll-data-table` | 169.3 | 167.3 (0.99×) |
+
+#### WASM in Chromium, WebGPU
+
+Reports: (a') epic: 33 runs, (i') epic, inspecting: 33 runs
+
+##### CPU ms per frame (main thread, mean)
+
+| Scenario | (a') epic | (i') epic, inspecting |
+|---|---:|---:|
+| `dashboard-clock` | 1.29 | 1.83 (1.42×) |
+| `dashboard-one-panel` | 1.84 | 2.45 (1.33×) |
+| `dashboard-all-panels` | 7.25 | 7.95 (1.10×) |
+| `table-stream` | 1.89 | 2.48 (1.31×) |
+| `text-typing` | 1.16 | 1.70 (1.47×) |
+| `text-log-stream` | 1.38 | 2.20 (1.59×) |
+| `text-relabel` | 7.99 | 9.75 (1.22×) |
+| `scroll-uniform-list` | 0.66 | 1.50 (2.26×) |
+| `scroll-variable-list` | 0.63 | 1.22 (1.94×) |
+| `scroll-div-cards` | 2.16 | 4.04 (1.87×) |
+| `scroll-data-table` | 1.83 | 2.42 (1.32×) |
+
+##### Frame time: `Window::draw` p50 (ms)
+
+| Scenario | (a') epic | (i') epic, inspecting |
+|---|---:|---:|
+| `dashboard-clock` | 0.825 | 1.261 (1.53×) |
+| `dashboard-one-panel` | 1.285 | 1.706 (1.33×) |
+| `dashboard-all-panels` | 6.586 | 7.082 (1.08×) |
+| `table-stream` | 1.306 | 1.720 (1.32×) |
+| `text-typing` | 0.895 | 1.205 (1.35×) |
+| `text-log-stream` | 1.165 | 1.566 (1.34×) |
+| `text-relabel` | 7.549 | 9.183 (1.22×) |
+| `scroll-uniform-list` | 0.325 | 0.850 (2.62×) |
+| `scroll-variable-list` | 0.270 | 0.590 (2.19×) |
+| `scroll-div-cards` | 1.375 | 2.836 (2.06×) |
+| `scroll-data-table` | 1.096 | 1.571 (1.43×) |
+
+##### Frame time: `Window::draw` p95 (ms)
+
+| Scenario | (a') epic | (i') epic, inspecting |
+|---|---:|---:|
+| `dashboard-clock` | 1.585 | 2.486 (1.57×) |
+| `dashboard-one-panel` | 2.445 | 3.416 (1.40×) |
+| `dashboard-all-panels` | 6.943 | 10.994 (1.58×) |
+| `table-stream` | 2.712 | 3.641 (1.34×) |
+| `text-typing` | 1.045 | 2.316 (2.22×) |
+| `text-log-stream` | 1.346 | 3.191 (2.37×) |
+| `text-relabel` | 7.967 | 10.215 (1.28×) |
+| `scroll-uniform-list` | 0.595 | 1.370 (2.30×) |
+| `scroll-variable-list` | 0.605 | 1.040 (1.72×) |
+| `scroll-div-cards` | 1.571 | 5.923 (3.77×) |
+| `scroll-data-table` | 1.286 | 2.902 (2.26×) |
+
+##### Dirty-to-present latency p50 (ms)
+
+| Scenario | (a') epic | (i') epic, inspecting |
+|---|---:|---:|
+| `dashboard-clock` | 0.97 | 1.41 (1.45×) |
+| `dashboard-one-panel` | 1.44 | 1.88 (1.30×) |
+| `dashboard-all-panels` | 6.80 | 7.29 (1.07×) |
+| `table-stream` | 1.47 | 1.89 (1.28×) |
+| `text-typing` | 1.01 | 1.35 (1.34×) |
+| `text-log-stream` | 1.24 | 1.72 (1.39×) |
+| `text-relabel` | 7.70 | 9.35 (1.21×) |
+| `scroll-uniform-list` | 0.48 | 1.12 (2.32×) |
+| `scroll-variable-list` | 0.42 | 0.90 (2.14×) |
+| `scroll-div-cards` | 1.55 | 3.04 (1.97×) |
+| `scroll-data-table` | 1.45 | 1.95 (1.35×) |
+
+##### Dirty-to-present latency p95 (ms)
+
+| Scenario | (a') epic | (i') epic, inspecting |
+|---|---:|---:|
+| `dashboard-clock` | 1.83 | 2.74 (1.50×) |
+| `dashboard-one-panel` | 2.69 | 3.66 (1.36×) |
+| `dashboard-all-panels` | 7.16 | 11.26 (1.57×) |
+| `table-stream` | 2.97 | 3.92 (1.32×) |
+| `text-typing` | 1.19 | 2.56 (2.15×) |
+| `text-log-stream` | 1.47 | 3.43 (2.33×) |
+| `text-relabel` | 8.13 | 10.37 (1.28×) |
+| `scroll-uniform-list` | 0.83 | 1.82 (2.21×) |
+| `scroll-variable-list` | 0.87 | 1.51 (1.75×) |
+| `scroll-div-cards` | 2.04 | 6.29 (3.09×) |
+| `scroll-data-table` | 1.74 | 3.67 (2.12×) |
+
+##### Allocations per frame
+
+| Scenario | (a') epic | (i') epic, inspecting |
+|---|---:|---:|
+| `dashboard-clock` | 229 | 6776 (29.59×) |
+| `dashboard-one-panel` | 857 | 7386 (8.62×) |
+| `dashboard-all-panels` | 26702 | 32385 (1.21×) |
+| `table-stream` | 3212 | 9212 (2.87×) |
+| `text-typing` | 721 | 2710 (3.76×) |
+| `text-log-stream` | 3712 | 4708 (1.27×) |
+| `text-relabel` | 46512 | 55554 (1.19×) |
+| `scroll-uniform-list` | 854 | 2562 (3.00×) |
+| `scroll-variable-list` | 508 | 819 (1.61×) |
+| `scroll-div-cards` | 5891 | 25489 (4.33×) |
+| `scroll-data-table` | 2398 | 7942 (3.31×) |
+
+##### Allocated KB per frame
+
+| Scenario | (a') epic | (i') epic, inspecting |
+|---|---:|---:|
+| `dashboard-clock` | 362.5 | 1092.5 (3.01×) |
+| `dashboard-one-panel` | 1307.9 | 2037.8 (1.56×) |
+| `dashboard-all-panels` | 8739.5 | 9464.7 (1.08×) |
+| `table-stream` | 708.4 | 1391.5 (1.96×) |
+| `text-typing` | 961.1 | 1505.4 (1.57×) |
+| `text-log-stream` | 2548.5 | 2713.8 (1.06×) |
+| `text-relabel` | 7072.7 | 8336.7 (1.18×) |
+| `scroll-uniform-list` | 589.6 | 770.6 (1.31×) |
+| `scroll-variable-list` | 659.3 | 712.1 (1.08×) |
+| `scroll-div-cards` | 3232.2 | 5936.6 (1.84×) |
+| `scroll-data-table` | 2149.0 | 2796.3 (1.30×) |
+
+##### Live Rust heap at the end (MB)
+
+| Scenario | (a') epic | (i') epic, inspecting |
+|---|---:|---:|
+| `dashboard-clock` | 41.5 | 42.2 (1.02×) |
+| `dashboard-one-panel` | 41.5 | 42.2 (1.02×) |
+| `dashboard-all-panels` | 41.8 | 42.5 (1.02×) |
+| `table-stream` | 39.4 | 40.1 (1.02×) |
+| `text-typing` | 36.2 | 36.7 (1.01×) |
+| `text-log-stream` | 33.4 | 33.6 (1.01×) |
+| `text-relabel` | 51.2 | 52.5 (1.02×) |
+| `scroll-uniform-list` | 33.5 | 34.0 (1.01×) |
+| `scroll-variable-list` | 36.0 | 36.2 (1.01×) |
+| `scroll-div-cards` | 57.6 | 60.1 (1.04×) |
+| `scroll-data-table` | 46.2 | 46.7 (1.01×) |
+
+##### Memory footprint at the end (MB)
+
+| Scenario | (a') epic | (i') epic, inspecting |
+|---|---:|---:|
+| `dashboard-clock` | 49.4 | 50.5 (1.02×) |
+| `dashboard-one-panel` | 49.7 | 50.9 (1.03×) |
+| `dashboard-all-panels` | 49.6 | 50.7 (1.02×) |
+| `table-stream` | 47.1 | 48.0 (1.02×) |
+| `text-typing` | 42.8 | 43.7 (1.02×) |
+| `text-log-stream` | 39.7 | 40.3 (1.02×) |
+| `text-relabel` | 60.2 | 62.4 (1.04×) |
+| `scroll-uniform-list` | 41.9 | 42.3 (1.01×) |
+| `scroll-variable-list` | 46.6 | 47.0 (1.01×) |
+| `scroll-div-cards` | 76.2 | 80.0 (1.05×) |
+| `scroll-data-table` | 62.2 | 64.1 (1.03×) |
