@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list",
-  "revision": 1,
+  "revision": 2,
   "title": "VirtualList in gpux: RayX's variable-size virtual list moved into gpux with per-row scroll layers, its redraw, ParentViewport and rebuild defects fixed, and RayX moved onto it",
   "validationMode": "sprint",
   "repositories": [

@@ -1,12 +1,12 @@
 {
   "schemaVersion": 7,
   "epicId": "gpux-virtual-list",
-  "revision": 32,
-  "planRevision": 1,
+  "revision": 45,
+  "planRevision": 2,
   "specHashes": {
     "requirements": "9084aebf4ffae7ee7c8ab434f1a2926f10a92fe3d9c8af4ff6df6e7dd4e37b9b",
-    "design": "104d156a5c6a26379bba6a6159247b5b4b2cdf5e5219823dfd20761f659ea4e0",
-    "plan": "df608e31788c61d647d294be50d39cfdb7df1294f2e103c1b470177bdf3c109b"
+    "design": "37fdac31f34e8fe155ab1a0a2683e57b293e1d72fc403cbd271732569376a02f",
+    "plan": "d8bdc34fab89b2ff570865182157a1d820dc1f8082584e225608ef81c6f86a5f"
   },
   "tasks": {
     "t01-move": {
@@ -58,10 +58,16 @@
       ]
     },
     "t09-parent-viewport-layer": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
     },
     "t10-docs": {
-      "status": "pending"
+      "status": "done",
+      "workerIds": [
+        "virtual-list"
+      ]
     },
     "t11-rayx-migrate": {
       "status": "pending"
@@ -113,6 +119,16 @@
         }
       },
       "recordedAt": "2026-10-16T19:11:33Z"
+    },
+    "7d73b9c768dfc30b96bb38c7950fd052eca7f7820e28a2f5cd64f842e8a14614": {
+      "snapshot": {
+        "specHash": "9e510e6cd7624e8f5dcf5a38ce445fd2b7a41b1e0d7feaf723be9857b0908164",
+        "repositories": {
+          "gpux": "e6171c0645bdc69fffcd034cbf4644e78f91af19f4b22c7b48174586bda47bf4",
+          "rayx": "8364a75c6cfd60250954afc934f9d2b4d44ab7bcb5fb6a9caab2526e97adcc62"
+        }
+      },
+      "recordedAt": "2026-10-16T19:24:21Z"
     }
   },
   "checkResults": {
@@ -336,6 +352,23 @@
       "logPath": "artifacts-temp/agentx/gpux-virtual-list/s03-list-layers-final-0fe627a7b789.log",
       "logSha256": "0f670c231640a93ce998a147f9519d4484dcdc81834cfbe4ec962b9a943ecca4",
       "inputsHash": "0c27ed052882e0c88a7cda14c470eee4fe90c77c87e8c8ca7abc3d085e8f00f8"
+    },
+    "s04-parent-viewport-layers-docs/c-fix-parent-layer/final": {
+      "checkId": "c-fix-parent-layer",
+      "boundaryId": "s04-parent-viewport-layers-docs",
+      "phase": "final",
+      "batchId": "7d73b9c768dfc30b96bb38c7950fd052eca7f7820e28a2f5cd64f842e8a14614",
+      "definitionHash": "72a8366f645703b8aa0807406cf77092dfd46402f3f8708f3ad2e2b4668f7988",
+      "basisHash": "825b91d6ca88c4ace933b2cb66978e01ab0617be859f20a5aa59a2b14a202bff",
+      "status": "passed",
+      "exitCode": 0,
+      "testCount": 3,
+      "durationSeconds": 46.3011,
+      "recordedAt": "2026-10-16T19:24:21Z",
+      "messageMarkdown": "Expectation matched",
+      "logPath": "artifacts-temp/agentx/gpux-virtual-list/s04-parent-viewport-layers-docs-final-ece3b1e2f6a2.log",
+      "logSha256": "1ae961d6ce948cb3ed23fe764d91ab94eb6028359c92350f79ff56a509e0ae8f",
+      "inputsHash": "49449a4c3caa58fb5b89879105ab7c2784e7c242e5bd64e34f8df0d17b948e4f"
     }
   },
   "reviews": {
@@ -619,6 +652,89 @@
         "s03-F2"
       ],
       "recordedAt": "2026-10-16T19:12:59Z"
+    },
+    "s04-parent-viewport-layers-docs": {
+      "reviewerId": "reviewer-s04-independent",
+      "snapshotId": "7d73b9c768dfc30b96bb38c7950fd052eca7f7820e28a2f5cd64f842e8a14614",
+      "criterionIds": [
+        "VL-5",
+        "LL-6"
+      ],
+      "verdict": "passed",
+      "anchors": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/virtual_list/mod.rs",
+          "kind": "source",
+          "criterionIds": [
+            "VL-5",
+            "LL-6"
+          ],
+          "sha256": "eaf922ab258fdda72d353216dfd9110ecc525e084196b9871c7c2a7f9e8c6391"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/paint.rs",
+          "kind": "source",
+          "criterionIds": [
+            "VL-5",
+            "LL-6"
+          ],
+          "sha256": "73f232890e0a69d1411cbef6624ac63d98b6be4a465d3a392bdec6fc04a7b279"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/layers/lists.rs",
+          "kind": "source",
+          "criterionIds": [
+            "LL-6"
+          ],
+          "sha256": "f3bd0b8d4a95101f3ed19001cd83ec9014096c4e7b07249b88be130c42d893bf"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md",
+          "kind": "source",
+          "criterionIds": [
+            "LL-6"
+          ],
+          "sha256": "0628d5d1002890239f6330b15d36902e6f86ba581fb47ed1e4c4302c1b454c78"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/parent_viewport.rs",
+          "kind": "test",
+          "criterionIds": [
+            "VL-5"
+          ],
+          "sha256": "09658fa1e7dd7bc3970c6d3722d2e28972d68d1fa1c9902bf31ac0389d3159b3"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/mod.rs",
+          "kind": "test",
+          "criterionIds": [
+            "VL-5"
+          ],
+          "sha256": "44d6c3ad2ff95d51bf3d7c090987d61ba81be9bf1c9819c6d565b54877cbf976"
+        },
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/oracle.rs",
+          "kind": "test",
+          "criterionIds": [
+            "VL-5"
+          ],
+          "sha256": "59b1d02d9cdd6703446f4c993919ff1282f7177b4cc517bb9932314d66846e25"
+        }
+      ],
+      "summaryMarkdown": "VL-5: the pre-fix run failed all three `parent_viewport` tests (range 0..18 vs 2..9, frames of 109 vs 57 lines); the fix takes the parent viewport from `paint::unlayered_content_mask`, and `compare_steps` compares the published parent-viewport metrics per frame, layers on against off. Rendering only the viewport's rows is sound because the offset read repaints the parent layer on every scroll, and d-parent-viewport-viewport now says so (s04-F3 resolved). LL-6: docs/fast-mode.md matches source on eligibility, `ineligible` kinds, the range listener on composited frames, ParentViewport inside a div layer, the shipped 0.15 overscan for all three kinds, and counts re-measured at the shipped overscan with raw output saved (s04-F2 resolved). rows.rs has no diff and rustfmt passes (s04-F1 resolved).",
+      "findingIds": [
+        "s04-F1",
+        "s04-F2",
+        "s04-F3"
+      ],
+      "recordedAt": "2026-10-16T19:25:02Z"
     }
   },
   "checkpoints": {
@@ -648,6 +764,15 @@
       },
       "reviewHash": "8c3a862d136af936ac7b808bd748cfed5c8614480a7002f77b889bf70be4994c",
       "recordedAt": "2026-10-16T19:13:20Z"
+    },
+    "s04-parent-viewport-layers-docs": {
+      "snapshotId": "7d73b9c768dfc30b96bb38c7950fd052eca7f7820e28a2f5cd64f842e8a14614",
+      "commits": {
+        "gpux": "ee0a6ba41920659d991fcf2c1c81a2ba8457ded1",
+        "rayx": "4ee806e9999ff02c2d0a7fcc4be0379a036f10a7"
+      },
+      "reviewHash": "26ba9f3a20b48754722492ebb06d1b95fd1708ffd53e9bb5fcfe9ba9bcf668d5",
+      "recordedAt": "2026-10-16T19:25:18Z"
     }
   },
   "findings": [
@@ -741,9 +866,57 @@
           "path": "crates/gpui/src/fast/tests/virtual_list_layers/range.rs"
         }
       ]
+    },
+    {
+      "id": "s04-F1",
+      "boundaryId": "s04-parent-viewport-layers-docs",
+      "criterionIds": [
+        "VL-5"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "rows.rs restored to HEAD; rustfmt --check passes.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/fast/tests/virtual_list_layers/rows.rs"
+        }
+      ]
+    },
+    {
+      "id": "s04-F2",
+      "boundaryId": "s04-parent-viewport-layers-docs",
+      "criterionIds": [
+        "LL-6"
+      ],
+      "severity": "major",
+      "status": "resolved",
+      "descriptionMarkdown": "Docs give the shipped 0.15 reach for all three kinds and counts re-measured at the shipped overscan with raw output saved; the test overscan is stated.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "docs/fast-mode.md"
+        }
+      ]
+    },
+    {
+      "id": "s04-F3",
+      "boundaryId": "s04-parent-viewport-layers-docs",
+      "criterionIds": [
+        "VL-5"
+      ],
+      "severity": "minor",
+      "status": "resolved",
+      "descriptionMarkdown": "d-parent-viewport-viewport amended (planRevision 2): rows are the viewport's, with the reason.",
+      "regressionRefs": [
+        {
+          "repositoryId": "gpux",
+          "path": "crates/gpui/src/elements/virtual_list/mod.rs"
+        }
+      ]
     }
   ],
-  "handoffMarkdown": "",
+  "handoffMarkdown": "VL-5 outcome before the fix (code at 85aa8bd): the parent_viewport group FAILED, so the suspected defect is real. Inside the parent div's layer the list published primary size 302 px against 100 px, ranges 0..18 against 2..9, and whole-frame descriptions of 109 lines against 57 (raw output: artifacts-temp/agentx/gpux-virtual-list/t09-before-fix.txt). Fix: the list takes its parent viewport from fast::layers::paint::unlayered_content_mask. Deviation from d-parent-viewport-viewport: the rows it prepaints are the viewport's, not the painted region's, because rendering rows over the painted region adds element states and hitboxes a frame drawn from scratch lacks; the list reads the parent's offset, so the layer repaints on every scroll and composites only at the offset it was painted at, where the viewport's rows are all it shows.",
   "protectedPaths": {
     "gpux": {
       "gpux:.agentx/experiments/**": "3aad2d92dcb891b6177236d72f9bed523ceeb9c10add6f0918918db5e9d3082a",
