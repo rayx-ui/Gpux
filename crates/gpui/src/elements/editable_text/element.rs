@@ -72,10 +72,20 @@ impl RenderOnce for EditableText {
             let state = self.state.read(cx);
             (state.focus_handle(), state.mode(), state.line_mode())
         };
-        // The text field's accessibility node: its text is copied only while the tree is built.
+        // The text field's accessibility node: its text is copied only while the tree is built,
+        // and it is the text the field shows, so a masked field never exposes what it hides.
+        let masked = matches!(
+            self.display_transform,
+            EditableTextDisplayTransform::PerGrapheme(_)
+        );
         let a11y = window.is_a11y_active().then(|| {
             let state = self.state.read(cx);
-            (state.text(), state.placeholder().to_string())
+            let text = state.text();
+            let shown = match self.display_transform.project(&text) {
+                Some(projection) => projection.text().to_string(),
+                None => text,
+            };
+            (shown, state.placeholder().to_string())
         });
         let entity_id = self.state.entity_id();
 
@@ -88,6 +98,7 @@ impl RenderOnce for EditableText {
         div()
             .id(("editable-text", entity_id.as_u64() as usize))
             .role(match line_mode {
+                _ if masked => accesskit::Role::PasswordInput,
                 EditableTextLineMode::SingleLine => accesskit::Role::TextInput,
                 EditableTextLineMode::MultiLine => accesskit::Role::MultilineTextInput,
             })

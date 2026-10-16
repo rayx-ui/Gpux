@@ -10536,7 +10536,20 @@ impl Window {
         // Fall back to built-in action handling.
         match request.action {
             accesskit::Action::Click => {
-                let Some(bounds) = self.a11y.node_bounds.get(&request.target_node).copied() else {
+                // Only a node that advertises Click (its element has a click listener) is
+                // clicked, at its center, as a pointer would.
+                let clickable = self.a11y.last_tree().is_some_and(|tree| {
+                    tree.nodes.iter().any(|(id, node)| {
+                        *id == request.target_node && node.supports_action(accesskit::Action::Click)
+                    })
+                });
+                let Some(bounds) = self
+                    .a11y
+                    .node_bounds
+                    .get(&request.target_node)
+                    .copied()
+                    .filter(|_| clickable)
+                else {
                     return false;
                 };
                 let center = bounds.center();
@@ -10568,11 +10581,14 @@ impl Window {
                 }
             }
             accesskit::Action::Blur => {
+                if self.focus.is_none() {
+                    return false;
+                }
                 self.blur(cx);
                 true
             }
             accesskit::Action::ScrollIntoView => {
-                self.scroll_a11y_node_into_view(request.target_node)
+                self.scroll_a11y_node_into_view(request.target_node, cx)
             }
             _ => {
                 log::debug!(
@@ -10588,7 +10604,7 @@ impl Window {
     /// Moves the scroll containers around a node of the last frame, innermost first, until
     /// the node's bounds are visible in each, through each container's ordinary programmatic
     /// scroll path. Returns whether the node sits in a scroll container.
-    fn scroll_a11y_node_into_view(&mut self, node: accesskit::NodeId) -> bool {
+    fn scroll_a11y_node_into_view(&mut self, node: accesskit::NodeId, cx: &mut App) -> bool {
         use crate::window::a11y::A11yScroll;
         let (Some(mut bounds), Some(&innermost)) = (
             self.a11y.node_bounds.get(&node).copied(),
@@ -10597,8 +10613,9 @@ impl Window {
             return false;
         };
         let mut next = Some(innermost);
+        let mut moved_views = SmallVec::<[EntityId; 2]>::new();
         while let Some(index) = next {
-            let Some(target) = self.a11y.scroll_targets.get(index as usize) else {
+            let Some(target) = self.a11y.scroll_targets.get(index as usize).cloned() else {
                 break;
             };
             let port = target.scrollport;
@@ -10613,26 +10630,43 @@ impl Window {
                     px(0.)
                 }
             };
-            let shift = point(
-                delta(bounds.left(), bounds.right(), port.left(), port.right()),
-                delta(bounds.top(), bounds.bottom(), port.top(), port.bottom()),
+            let wanted = target.offset
+                + point(
+                    delta(bounds.left(), bounds.right(), port.left(), port.right()),
+                    delta(bounds.top(), bounds.bottom(), port.top(), port.bottom()),
+                );
+            // Clamped as a wheel's scroll is, and only on the axes the container scrolls.
+            let offset = point(
+                wanted.x.clamp(-target.max.x, px(0.)),
+                wanted.y.clamp(-target.max.y, px(0.)),
             );
-            if shift != Point::default() {
-                let offset = target.offset + shift;
+            if offset != target.offset {
                 match &target.scroll {
-                    A11yScroll::Handle(handle) => {
+                    A11yScroll::Handle { handle, view } => {
                         handle.scroll_to(offset, crate::ScrollBehavior::Instant);
+                        moved_views.push(*view);
                     }
-                    A11yScroll::Offset(cell) => {
+                    A11yScroll::Offset {
+                        offset: cell,
+                        id,
+                        view,
+                    } => {
+                        // As the container's wheel listener moves it: fast mode tells the
+                        // scroll apart, and the view that painted it draws it again.
                         *cell.borrow_mut() = offset;
+                        if let Some(id) = id {
+                            crate::fast::layers::invalidate::note_scrolled_by_id(self, id);
+                        }
+                        moved_views.push(*view);
                     }
                 }
-                bounds.origin += shift;
+                bounds.origin += offset - target.offset;
             }
             next = target.parent;
         }
-        // The owners clamp and publish the requested offsets when they prepaint next.
-        self.refresh();
+        for view in moved_views {
+            cx.notify(view);
+        }
         true
     }
 

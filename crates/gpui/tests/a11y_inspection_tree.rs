@@ -36,7 +36,9 @@ impl Render for Panel {
                         .w(px(40.))
                         .h(px(20.))
                         .child("Canvas"),
-                ),
+                )
+                // Text after a container, numbered under the same node as the text before.
+                .child("After"),
         )
     }
 }
@@ -69,13 +71,14 @@ fn containers(update: &TreeUpdate) -> Vec<NodeId> {
         .collect()
 }
 
-/// The tree as a screen reader walks it: AccessKit's common filter, with each node's role,
-/// computed name and value, and the focus.
+/// The tree as a screen reader walks it: AccessKit's common filter, with each node's id (which
+/// adapters identify the objects they expose by), role, computed name and value, and the focus.
 fn screen_reader_view(update: TreeUpdate) -> (String, Option<String>) {
     fn walk(node: NodeRef, depth: usize, out: &mut String) {
         out.push_str(&format!(
-            "{}{:?} {:?} {:?}\n",
+            "{}{:?} {:?} {:?} {:?}\n",
             "  ".repeat(depth),
+            node.locate().0,
             node.role(),
             node.label(),
             node.value()
@@ -90,7 +93,7 @@ fn screen_reader_view(update: TreeUpdate) -> (String, Option<String>) {
     walk(state.root(), 0, &mut out);
     let focus = state
         .focus()
-        .map(|node| format!("{:?} {:?}", node.role(), node.label()));
+        .map(|node| format!("{:?} {:?} {:?}", node.locate().0, node.role(), node.label()));
     (out, focus)
 }
 
@@ -125,8 +128,9 @@ fn screen_readers_see_the_same_tree_with_and_without_containers(cx: &mut TestApp
     let without = screen_reader_view(tree(&mut vcx));
     let guard = vcx.update(|window, _| window.begin_a11y_inspection());
     let with = screen_reader_view(tree(&mut vcx));
-    assert_eq!(with, without);
+    assert_eq!(with, without, "the same nodes, ids and focus");
     assert!(with.0.contains("Button Some(\"Save\")"), "{}", with.0);
+    assert!(with.0.contains("Some(\"After\")"), "{}", with.0);
     drop(guard);
 }
 

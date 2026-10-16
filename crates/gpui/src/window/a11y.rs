@@ -548,7 +548,31 @@ impl A11y {
         scroll: A11yScroll,
         context: ScrollContainerContext,
     ) -> Option<u32> {
-        self.enter_scroll(scroll, context.scrollport_bounds, context.scroll_offset)
+        let reach = |scrolls: bool, content: Pixels, port: Pixels| {
+            if scrolls {
+                (content - port).max(Pixels::ZERO)
+            } else {
+                Pixels::ZERO
+            }
+        };
+        let max = Point::new(
+            reach(
+                context.overflow.x == crate::Overflow::Scroll,
+                context.content_bounds.size.width,
+                context.scrollport_bounds.size.width,
+            ),
+            reach(
+                context.overflow.y == crate::Overflow::Scroll,
+                context.content_bounds.size.height,
+                context.scrollport_bounds.size.height,
+            ),
+        );
+        self.enter_scroll(
+            scroll,
+            context.scrollport_bounds,
+            context.scroll_offset,
+            max,
+        )
     }
 
     fn enter_scroll(
@@ -556,17 +580,20 @@ impl A11y {
         scroll: A11yScroll,
         scrollport: Bounds<Pixels>,
         offset: Point<Pixels>,
+        max: Point<Pixels>,
     ) -> Option<u32> {
         self.nodes.events.push(A11yEvent::EnterScroll {
             scroll: scroll.clone(),
             scrollport,
             offset,
+            max,
         });
         let parent = self.current_scroll_target;
         self.scroll_targets.push(A11yScrollTarget {
             scroll,
             scrollport,
             offset,
+            max,
             parent,
         });
         self.current_scroll_target = Some(self.scroll_targets.len() as u32 - 1);
@@ -716,9 +743,14 @@ impl A11y {
                     scroll,
                     scrollport,
                     offset: scroll_offset,
+                    max,
                 } => {
-                    let parent =
-                        self.enter_scroll(scroll.clone(), *scrollport + offset, *scroll_offset);
+                    let parent = self.enter_scroll(
+                        scroll.clone(),
+                        *scrollport + offset,
+                        *scroll_offset,
+                        *max,
+                    );
                     self.replay_scroll_parents.push(parent);
                 }
                 A11yEvent::ExitScroll => {
@@ -914,7 +946,7 @@ impl A11y {
             children.truncate(checkpoint.top_children);
             top.set_children(children);
         }
-        if let Some(ordinal) = nodes.text_ordinals.last_mut() {
+        if let Some(ordinal) = nodes.text_owner_ordinal() {
             *ordinal = checkpoint.top_ordinal;
         }
         nodes.focus = checkpoint.focus;
@@ -1088,22 +1120,36 @@ pub(crate) struct A11yListener {
     pub(crate) shown: bool,
 }
 
-/// A scroll container that `ScrollIntoView` can move: a tracked [`ScrollHandle`] moves through
-/// its programmatic path, an untracked one through the offset its element keeps.
+/// A scroll container that `ScrollIntoView` can move as a scroll of it would: a tracked
+/// [`ScrollHandle`] through its programmatic path, an untracked one as its wheel listener
+/// moves the offset its element keeps.
+#[derive(Clone)]
 pub(crate) struct A11yScrollTarget {
     pub(crate) scroll: A11yScroll,
     /// The scrollport in window coordinates.
     pub(crate) scrollport: Bounds<Pixels>,
     /// The scroll offset the frame drew with (non-positive, as [`ScrollHandle::offset`]).
     pub(crate) offset: Point<Pixels>,
+    /// How far the container scrolls on each axis (zero on an axis it does not scroll).
+    pub(crate) max: Point<Pixels>,
     /// The scroll container this one sits in.
     pub(crate) parent: Option<u32>,
 }
 
 #[derive(Clone)]
 pub(crate) enum A11yScroll {
-    Handle(ScrollHandle),
-    Offset(Rc<std::cell::RefCell<Point<Pixels>>>),
+    /// A container that tracks a scroll handle, painted by `view`.
+    Handle {
+        handle: ScrollHandle,
+        view: EntityId,
+    },
+    /// A container that keeps its own offset: `id` names it (for fast mode to tell the scroll
+    /// apart, as from a wheel's) and `view` painted it.
+    Offset {
+        offset: Rc<std::cell::RefCell<Point<Pixels>>>,
+        id: Option<GlobalElementId>,
+        view: EntityId,
+    },
 }
 
 /// Builder API for synthetic children. See the docs for
@@ -1191,8 +1237,10 @@ pub(crate) struct A11yNodeBuilder {
     /// focused.
     active_descendant: Option<NodeId>,
     /// Beside [`Self::ids_stack`]: how many text leaves each open node holds so far,
-    /// which numbers the next leaf's id.
-    text_ordinals: SmallVec<[u32; 16]>,
+    /// which numbers the next leaf's id; `None` for an inspection container, whose text
+    /// counts toward the nearest node around it that is not one, so that turning
+    /// inspection on or off keeps every leaf's id.
+    text_ordinals: SmallVec<[Option<u32>; 16]>,
     /// Whether this frame's tree is built for inspection: generic containers and the
     /// id map are recorded only then.
     inspecting: bool,
@@ -1272,6 +1320,7 @@ pub(crate) enum A11yEvent {
         scroll: A11yScroll,
         scrollport: Bounds<Pixels>,
         offset: Point<Pixels>,
+        max: Point<Pixels>,
     },
     ExitScroll,
 }
@@ -1408,19 +1457,34 @@ impl A11yNodeBuilder {
         }
         if container {
             self.containers.insert(id);
+            *self
+                .text_ordinals
+                .last_mut()
+                .expect("push keeps the stacks in step") = None;
         }
         true
     }
 
-    /// Adds a `Label` leaf holding `text` under the current node. Its id derives from
-    /// the parent's id and the leaf's position among the parent's text leaves, so it
-    /// stays the same across frames while the order of the text does.
+    /// The text-leaf count of the nearest open node that is not an inspection container.
+    fn text_owner_ordinal(&mut self) -> Option<&mut u32> {
+        self.text_ordinals.iter_mut().rev().find_map(Option::as_mut)
+    }
+
+    /// Adds a `Label` leaf holding `text` under the current node. Its id derives from the
+    /// nearest node around it that is not an inspection container and the leaf's position
+    /// among that node's text leaves, so it stays the same across frames while the order of
+    /// the text does, and whether or not inspection adds containers.
     pub(crate) fn push_text_leaf(&mut self, text: &str, bounds: accesskit::Rect) -> bool {
-        let parent = *self.ids_stack.last().expect("text pushed before the root");
-        let ordinal = self
+        // Numbered under the nearest node that is not an inspection container.
+        let owner = self
             .text_ordinals
-            .last_mut()
-            .expect("push keeps the stacks in step");
+            .iter()
+            .rposition(Option::is_some)
+            .expect("the root counts its text");
+        let parent = self.ids_stack[owner];
+        let ordinal = self.text_ordinals[owner]
+            .as_mut()
+            .expect("the owner counts its text");
         let mut hasher = std::hash::DefaultHasher::default();
         parent.0.hash(&mut hasher);
         "gpux-text-leaf".hash(&mut hasher);
@@ -1495,7 +1559,7 @@ impl A11yNodeBuilder {
         self.hidden_stack.push(hidden);
         self.ids_stack.push(id);
         self.nodes_stack.push(node);
-        self.text_ordinals.push(0);
+        self.text_ordinals.push(Some(0));
         if self.inspecting {
             self.paths_stack.push(None);
         }
@@ -1597,7 +1661,11 @@ impl A11yNodeBuilder {
             self.nodes_stack
                 .last()
                 .map_or(0, |node| node.children().len()),
-            self.text_ordinals.last().copied().unwrap_or(0),
+            self.text_ordinals
+                .iter()
+                .rev()
+                .find_map(|ordinal| *ordinal)
+                .unwrap_or(0),
             self.focus,
             self.active_descendant,
         )
@@ -1616,7 +1684,7 @@ impl A11yNodeBuilder {
         self.nodes_stack.clear();
         self.seen_ids.clear();
         self.text_ordinals.clear();
-        self.text_ordinals.push(0);
+        self.text_ordinals.push(Some(0));
         self.inspecting = inspecting;
         self.paths_stack.clear();
         if inspecting {

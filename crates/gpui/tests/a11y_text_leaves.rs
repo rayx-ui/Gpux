@@ -242,3 +242,64 @@ fn no_leaf_is_built_without_a_source(cx: &mut TestAppContext) {
     assert!(labels(&update).iter().any(|(_, value)| value == "Save"));
     drop(guard);
 }
+
+struct Secret {
+    password: Entity<gpux::EditableTextState>,
+    plain: Entity<gpux::EditableTextState>,
+}
+
+impl Render for Secret {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        div()
+            .size_full()
+            .flex()
+            .flex_col()
+            .child(
+                gpux::EditableText::new(&self.password)
+                    .aria_label("Password")
+                    .display_transform(gpux::EditableTextDisplayTransform::per_grapheme("•")),
+            )
+            .child(gpux::EditableText::new(&self.plain).aria_label("Name"))
+    }
+}
+
+/// A masked text field exposes what it shows, its mask, never the text it hides.
+#[gpux::test]
+fn a_masked_text_field_exposes_only_its_mask(cx: &mut TestAppContext) {
+    let (_, vcx) = cx.add_window_view(|_, cx| {
+        let field = |text: &'static str, cx: &mut Context<Secret>| {
+            cx.new(|cx| {
+                let mut state = gpux::EditableTextState::new(cx);
+                state.replace_selection(text, cx);
+                state
+            })
+        };
+        Secret {
+            password: field("hunter2", cx),
+            plain: field("Ada", cx),
+        }
+    });
+    let mut vcx = vcx.clone();
+    let window = vcx.window_handle();
+    let update = platform_tree(&mut vcx, window);
+    let node = |label: &str| {
+        update
+            .nodes
+            .iter()
+            .find(|(_, node)| node.label() == Some(label))
+            .map(|(_, node)| node.clone())
+            .unwrap()
+    };
+    let password = node("Password");
+    assert_eq!(password.role(), AkRole::PasswordInput);
+    assert_eq!(password.value(), Some("•••••••"));
+    for (_, node) in &update.nodes {
+        assert!(
+            !node.value().unwrap_or_default().contains("hunter2"),
+            "{node:?} exposes the hidden text"
+        );
+    }
+    let plain = node("Name");
+    assert_eq!(plain.role(), AkRole::TextInput);
+    assert_eq!(plain.value(), Some("Ada"));
+}

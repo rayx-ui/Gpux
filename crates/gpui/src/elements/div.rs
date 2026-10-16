@@ -2328,10 +2328,15 @@ impl Element for Div {
                 self.interactivity.tracked_scroll_handle.as_ref(),
                 self.interactivity.scroll_offset.as_ref(),
             ) {
-                (Some(handle), _) => Some(crate::window::a11y::A11yScroll::Handle(handle.clone())),
-                (None, Some(offset)) => {
-                    Some(crate::window::a11y::A11yScroll::Offset(offset.clone()))
-                }
+                (Some(handle), _) => Some(crate::window::a11y::A11yScroll::Handle {
+                    handle: handle.clone(),
+                    view: window.current_view(),
+                }),
+                (None, Some(offset)) => Some(crate::window::a11y::A11yScroll::Offset {
+                    offset: offset.clone(),
+                    id: global_id.cloned(),
+                    view: window.current_view(),
+                }),
                 (None, None) => None,
             }
         } else {

@@ -181,7 +181,7 @@ fn an_adapter_switched_during_a_frame_gets_only_frames_it_covered(cx: &mut TestA
     cx.set_draw_on_flush(false);
     let (mut vcx, window, view) = open(cx);
     let adapter = vcx.accessibility_adapter(window);
-    let mut draw = |vcx: &mut VisualTestContext, switch: Option<bool>| {
+    let draw = |vcx: &mut VisualTestContext, switch: Option<bool>| {
         if let Some(on) = switch {
             vcx.update(|_, cx| {
                 view.update(cx, |view, cx| {

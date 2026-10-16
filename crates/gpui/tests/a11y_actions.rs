@@ -237,10 +237,13 @@ fn handlers_run_through_perform_a11y_action(cx: &mut TestAppContext) {
         ["set 7", "increment", "decrement", "expand", "collapse"]
     );
 
-    // A request nothing handles does nothing and says so.
+    // A request nothing handles does nothing and says so: no handler, no click listener to
+    // click through, no focus to blur.
     let inert = node(&update, "Inert").0;
     assert!(!perform(&mut opened, inert, Action::Increment, None));
+    assert!(!perform(&mut opened, inert, Action::Click, None));
     assert!(!perform(&mut opened, NodeId(424242), Action::Click, None));
+    assert!(!perform(&mut opened, inert, Action::Blur, None));
     assert_eq!(opened.log.borrow().len(), 5);
 }
 
@@ -351,4 +354,103 @@ fn scroll_into_view_outside_scroll_containers_does_nothing(cx: &mut TestAppConte
     let go = node(&update, "Go").0;
     assert!(!perform(&mut opened, go, Action::ScrollIntoView, None));
     assert_eq!(opened.outer.offset().y, px(0.));
+}
+
+/// A view counting how often it renders.
+struct Counted(Rc<std::cell::Cell<usize>>);
+
+impl Render for Counted {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        self.0.set(self.0.get() + 1);
+        div()
+            .id("other")
+            .role(Role::Button)
+            .aria_label("Other")
+            .h(px(20.))
+    }
+}
+
+/// A scroll container keeping its own offset, holding a node below its fold, in a view of its
+/// own, beside a view counting its renders.
+struct Scrolled;
+
+impl Render for Scrolled {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        div()
+            .id("list")
+            .h(px(100.))
+            .w(px(200.))
+            .overflow_y_scroll()
+            .child(div().h(px(400.)))
+            .child(
+                div()
+                    .id("far")
+                    .role(Role::Button)
+                    .aria_label("Far")
+                    .h(px(20.)),
+            )
+    }
+}
+
+struct Page {
+    scrolled: gpux::Entity<Scrolled>,
+    other: gpux::Entity<Counted>,
+}
+
+impl Render for Page {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        let cached = || gpux::StyleRefinement::default().size_full();
+        div()
+            .size_full()
+            .flex()
+            .flex_col()
+            .child(gpux::AnyView::from(self.scrolled.clone()).cached(cached()))
+            .child(gpux::AnyView::from(self.other.clone()).cached(cached()))
+    }
+}
+
+/// ScrollIntoView moves a scroll container as a scroll does, not by redrawing the window from
+/// scratch: the view beside it is drawn from last frame, as fast mode draws it after a wheel.
+#[gpux::test]
+fn scroll_into_view_redraws_only_what_scrolled(cx: &mut TestAppContext) {
+    let renders = Rc::new(std::cell::Cell::new(0));
+    let (_, vcx) = cx.add_window_view({
+        let renders = renders.clone();
+        move |_, cx| Page {
+            scrolled: cx.new(|_| Scrolled),
+            other: cx.new(|_| Counted(renders)),
+        }
+    });
+    let mut vcx = vcx.clone();
+    vcx.run_until_parked();
+    let _guard = vcx.update(|window, _| window.begin_a11y_inspection());
+    vcx.run_until_parked();
+    let update = tree(&mut vcx);
+    let far = node(&update, "Far");
+    let before = renders.get();
+    let ran = vcx.update(|window, cx| {
+        window.perform_a11y_action(
+            ActionRequest {
+                action: Action::ScrollIntoView,
+                target_tree: TreeId::ROOT,
+                target_node: far.0,
+                data: None,
+            },
+            cx,
+        )
+    });
+    assert!(ran);
+    vcx.run_until_parked();
+    let after = node(&tree(&mut vcx), "Far").1.bounds().unwrap();
+    // In device pixels: the list's port is its top 100 points.
+    let scale = vcx.update(|window, _| window.scale_factor()) as f64;
+    assert!(
+        after.y1 <= 100. * scale + 0.5,
+        "the node scrolled into view: {after:?}"
+    );
+    assert_eq!(
+        renders.get(),
+        before,
+        "the view beside the list is not drawn again"
+    );
 }
