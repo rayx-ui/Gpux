@@ -8,6 +8,7 @@ members = [
     "crates/gpux_color",
     "crates/gpux_conformance",
     "crates/gpux_devtools",
+    "crates/gpux_devtools_mcp",
     "crates/gpux_fonts",
     "crates/gpui_linux",
     "crates/gpui_macos",
@@ -57,6 +58,7 @@ gpux = { path = "crates/gpui", version = "0.3.0", default-features = false }
 gpux_color = { package = "gpux-color", path = "crates/gpux_color", version = "0.3.0" }
 gpux_conformance = { package = "gpux-conformance", path = "crates/gpux_conformance", version = "0.3.0", default-features = false }
 gpux_devtools = { package = "gpux-devtools", path = "crates/gpux_devtools", version = "0.3.0" }
+gpux_devtools_mcp = { package = "gpux-devtools-mcp", path = "crates/gpux_devtools_mcp", version = "0.3.0" }
 gpux_fonts = { package = "gpux-fonts", path = "crates/gpux_fonts", version = "0.3.0" }
 gpui_shared_string = { package = "gpux-shared-string", path = "crates/gpui_shared_string", version = "0.3.0" }
 gpui_apple = { package = "gpux-apple", path = "crates/gpui_apple", version = "0.3.0" }

@@ -3134,6 +3134,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "gpux-devtools-mcp"
+version = "0.3.0"
+dependencies = [
+ "serde_json",
+ "tungstenite",
+]
+
+[[package]]
 name = "gpux-fonts"
 version = "0.3.0"
 
