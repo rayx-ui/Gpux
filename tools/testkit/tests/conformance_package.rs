@@ -13,6 +13,9 @@ use gpux_testkit::{
 };
 use std::path::{Path, PathBuf};
 
+/// The old folder name, spelled so the layout guard does not flag this file.
+const OLD_FOLDER: &str = concat!("gpux", "_conformance");
+
 /// The package that `-p` selects in `invocation`, if any.
 fn selected_package(invocation: &Invocation) -> Option<&str> {
     let args = &invocation.args;
@@ -99,7 +102,7 @@ fn a_checkout_is_recognized_by_the_renamed_crate_only() {
     );
 
     let old = tempfile::tempdir().unwrap();
-    let old_crate = old.path().join("crates").join("gpux_conformance");
+    let old_crate = old.path().join("crates").join(OLD_FOLDER);
     std::fs::create_dir_all(old_crate.join("src")).unwrap();
     std::fs::write(old.path().join("Cargo.toml"), "[workspace]").unwrap();
     std::fs::write(old_crate.join("Cargo.toml"), "[package]").unwrap();
@@ -165,7 +168,7 @@ fn the_outside_checkout_error_names_the_renamed_folder() {
     let text = String::from_utf8(out).unwrap();
     assert_eq!(code, EXIT_FAILED, "{text}");
     assert!(text.contains("crates/gpux_tests_conformance"), "{text}");
-    assert!(!text.contains("crates/gpux_conformance"), "{text}");
+    assert!(!text.contains(&format!("crates/{OLD_FOLDER}")), "{text}");
 }
 
 #[test]

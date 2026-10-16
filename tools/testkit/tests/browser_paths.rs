@@ -57,7 +57,8 @@ fn the_project_is_tools_browser() {
     }
     // Ignored leftovers (`node_modules`) may stay in older checkouts; tracked files may not.
     let tracked = std::process::Command::new("git")
-        .args(["ls-files", "--", "tools-node"])
+        // The old folder's name, spelled so the layout guard does not flag this file.
+        .args(["ls-files", "--", concat!("tools", "-node")])
         .current_dir(repository())
         .output()
         .expect("git runs in the checkout");

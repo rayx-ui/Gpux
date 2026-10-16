@@ -357,3 +357,33 @@ fn the_guard_fails_outside_a_git_checkout() {
         .unwrap_or_default();
     assert!(message.contains("git checkout"), "{message}");
 }
+
+#[test]
+fn lane_b_merges_the_shard_reports_it_downloaded() {
+    // The report job downloads the shards relative to the checkout and merges them from the
+    // Playwright project, so the merge path must climb out of `tools/browser`.
+    let workflow =
+        std::fs::read_to_string(checkout().join(".github/workflows/lane-b.yml")).unwrap();
+    let lines: Vec<&str> = workflow.lines().map(str::trim).collect();
+    let download = lines
+        .iter()
+        .position(|line| *line == "pattern: lane-b-blob-report-*")
+        .expect("the shard download");
+    let downloaded = lines[download..]
+        .iter()
+        .find_map(|line| line.strip_prefix("path: "))
+        .expect("the download path");
+    let merged = lines
+        .iter()
+        .find_map(|line| line.strip_prefix("run: pnpm exec playwright merge-reports "))
+        .and_then(|args| args.split_whitespace().last())
+        .expect("the merge command");
+    let mut from_project = PathBuf::from("tools/browser");
+    for part in merged.split('/') {
+        match part {
+            ".." => assert!(from_project.pop(), "{merged} leaves the checkout"),
+            part => from_project.push(part),
+        }
+    }
+    assert_eq!(from_project, PathBuf::from(downloaded), "{merged}");
+}
