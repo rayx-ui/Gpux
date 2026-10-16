@@ -7,17 +7,17 @@
   "target": "both within 5% of the opening state",
   "maxIterations": 12,
   "maxExperiments": 12,
-  "state": "running",
-  "status": "",
+  "state": "done",
+  "status": "success",
   "createdAt": "2026-10-16T11:50:08Z",
-  "finishedAt": null,
-  "lastStableCommit": "f0b35b84ed1052eea80741e7c8fd373a2a60f078",
+  "finishedAt": "2026-10-16T13:03:45Z",
+  "lastStableCommit": "c744e8130571c776f7c76ed89c7ce2799e931539",
   "repositories": [
     {
       "name": "main",
       "path": ".",
       "role": "main",
-      "lastStableCommit": "f0b35b84ed1052eea80741e7c8fd373a2a60f078"
+      "lastStableCommit": "c744e8130571c776f7c76ed89c7ce2799e931539"
     }
   ],
   "atomicDiscipline": {
