@@ -7,6 +7,8 @@
 //! ```
 
 mod changes;
+mod horizontal;
+mod horizontal_oracle;
 mod ineligible;
 mod oracle;
 mod parent_viewport;

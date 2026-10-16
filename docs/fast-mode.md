@@ -382,8 +382,11 @@ Two things keep all that true where rows reach outside the room their list gives
 
 A list goes without a layer, counted `ineligible`, when it has rows that stick to its top
 (`ListState::with_sticky_items`, `UniformList::sticky_items`, `VirtualList::sticky_rows`), is a
-uniform list drawn bottom up (`y_flipped`), is a horizontal `virtual_list` (`h_virtual_list`),
-has rows holding what no tile can (see the reasons above), or lies over no opaque background.
+uniform list drawn bottom up (`y_flipped`), has rows holding what no tile can (see the reasons
+above), or lies over no opaque background. A horizontal `virtual_list` (`h_virtual_list`) has a
+layer as a vertical one does: its rows are columns, placed along x by the list's own origins, with
+the overscan to their left and right (`fast::tests::virtual_list_layers::horizontal`,
+`horizontal_oracle`).
 
 A `uniform_list` measures the item it sizes its rows by once a frame, as it requests its layout,
 and its prepaint takes that size. The size is kept, with the element states and lines measuring

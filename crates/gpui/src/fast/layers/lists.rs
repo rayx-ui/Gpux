@@ -74,9 +74,9 @@
 //! nested views and scroll containers are painted into the layer.
 
 use crate::{
-    AnyElement, App, AvailableSpace, Bounds, ContentMask, ElementId, EntityId, GlobalElementId,
-    Hitbox, HitboxId, PaintColor, PaintIndex, Pixels, Point, PrepaintStateIndex, ScaledPixels,
-    Scene, Size, TextStyle, TileCoord, Window,
+    AnyElement, App, AvailableSpace, Axis, Bounds, ContentMask, ElementId, EntityId,
+    GlobalElementId, Hitbox, HitboxId, PaintColor, PaintIndex, Pixels, Point, PrepaintStateIndex,
+    ScaledPixels, Scene, Size, TextStyle, TileCoord, Window,
     fast::{
         dependencies::{DependencyRecording, RenderDependencies, StateVersion},
         layers::{
@@ -486,6 +486,9 @@ enum Mode {
 
 /// What the frame being drawn does with a list's rows.
 struct RowsFrame {
+    /// The axis the list lays its rows along: a horizontal list's rows are
+    /// columns, and every row field is read along it.
+    axis: Axis,
     mode: Mode,
     /// For a `list`, its state, to tell its hooks from a nested list's.
     list: Option<usize>,
@@ -1158,6 +1161,7 @@ pub(crate) fn begin_uniform_list(
         window,
         cx,
         id,
+        Axis::Vertical,
         padded_bounds,
         content_size,
         scroll_offset,
@@ -1194,6 +1198,7 @@ pub(crate) fn begin_virtual_list(
     window: &mut Window,
     cx: &mut App,
     id: Option<&GlobalElementId>,
+    axis: Axis,
     padded_bounds: Bounds<Pixels>,
     scroll_offset: Point<Pixels>,
     origins: &[Pixels],
@@ -1210,22 +1215,33 @@ pub(crate) fn begin_virtual_list(
     if item_count == 0 || total <= Pixels::ZERO {
         return Rows(None);
     }
-    let content_size = size(padded_bounds.size.width, total);
-    let content_top = padded_bounds.origin.y + scroll_offset.y;
+    // Along the list's axis: a horizontal list's rows are columns.
+    let (content_size, content_start) = match axis {
+        Axis::Vertical => (
+            size(padded_bounds.size.width, total),
+            padded_bounds.origin.y + scroll_offset.y,
+        ),
+        Axis::Horizontal => (
+            size(total, padded_bounds.size.height),
+            padded_bounds.origin.x + scroll_offset.x,
+        ),
+    };
     begin_rows(
         window,
         cx,
         id,
+        axis,
         padded_bounds,
         content_size,
         scroll_offset,
         visible,
         carried,
         |viewport| {
-            let reach = viewport.size.height * paint::list_overscan_viewports();
+            let (start, end) = along(axis, viewport);
+            let reach = (end - start) * paint::list_overscan_viewports();
             let (around, _) = extents.visible_range_with_lookahead(
-                viewport.top() - content_top - reach,
-                viewport.bottom() - content_top + reach,
+                start - content_start - reach,
+                end - content_start + reach,
                 item_count,
                 0,
             );
@@ -1237,19 +1253,52 @@ pub(crate) fn begin_virtual_list(
             }
             around.start.min(visible.start)..around.end.max(visible.end).min(item_count)
         },
-        |row| (content_top + origins[row], sizes[row]),
+        |row| (content_start + origins[row], sizes[row]),
     )
+}
+
+/// Where `bounds` starts and ends along `axis`.
+fn along(axis: Axis, bounds: Bounds<Pixels>) -> (Pixels, Pixels) {
+    match axis {
+        Axis::Vertical => (bounds.top(), bounds.bottom()),
+        Axis::Horizontal => (bounds.left(), bounds.right()),
+    }
+}
+
+/// Where `bounds`, in device pixels, starts and ends along `axis`.
+fn along_scaled(axis: Axis, bounds: Bounds<ScaledPixels>) -> (f32, f32) {
+    match axis {
+        Axis::Vertical => (bounds.top().0, bounds.bottom().0),
+        Axis::Horizontal => (bounds.left().0, bounds.right().0),
+    }
+}
+
+/// The slot of a row `start` and `extent` along `axis` in `viewport`,
+/// across the whole of the viewport.
+fn row_slot(axis: Axis, viewport: Bounds<Pixels>, start: Pixels, extent: Pixels) -> Bounds<Pixels> {
+    match axis {
+        Axis::Vertical => Bounds {
+            origin: point(viewport.origin.x, start),
+            size: size(viewport.size.width, extent),
+        },
+        Axis::Horizontal => Bounds {
+            origin: point(start, viewport.origin.y),
+            size: size(extent, viewport.size.height),
+        },
+    }
 }
 
 /// What [`begin_uniform_list`] and [`begin_virtual_list`] share: decides
 /// what the list `id` does with its rows this frame and sets up rendering
 /// and prepainting them. `needed` gives the rows the layer is to hold from
-/// the viewport, and `place` each row's top and height in window space.
+/// the viewport, and `place` each row's start and extent along `axis` in
+/// window space.
 #[allow(clippy::too_many_arguments)]
 fn begin_rows(
     window: &mut Window,
     cx: &mut App,
     id: &GlobalElementId,
+    axis: Axis,
     padded_bounds: Bounds<Pixels>,
     content_size: Size<Pixels>,
     scroll_offset: Point<Pixels>,
@@ -1276,10 +1325,11 @@ fn begin_rows(
     let extends = decision == Decision::Composite
         && layer.rows.list
         && !layer.rows.due_for_repaint(&needed)
-        && layer
-            .record
-            .as_ref()
-            .is_some_and(|record| record.scroll_offset.x == scroll_offset.x);
+        // The rows are moved along the list's axis alone.
+        && layer.record.as_ref().is_some_and(|record| match axis {
+            Axis::Vertical => record.scroll_offset.x == scroll_offset.x,
+            Axis::Horizontal => record.scroll_offset.y == scroll_offset.y,
+        });
     let mode = if extends { Mode::Extend } else { Mode::Repaint };
     let changed = match mode {
         Mode::Extend => changed_rows(window, cx, id),
@@ -1288,16 +1338,14 @@ fn begin_rows(
 
     let translation = paint::translation(window, scroll_offset);
     let slot = |row: usize| {
-        let (top, height) = place(row);
-        Bounds {
-            origin: point(viewport.origin.x, top),
-            size: size(viewport.size.width, height),
-        }
+        let (start, extent) = place(row);
+        row_slot(axis, viewport, start, extent)
     };
     let unheld = hidden_in_view(
+        axis,
         needed.clone().map(|row| {
-            let (top, height) = place(row);
-            (row, top, height)
+            let (start, extent) = place(row);
+            (row, start, extent)
         }),
         visible,
         viewport,
@@ -1340,6 +1388,7 @@ fn begin_rows(
     }
     let order = slots.keys().copied().collect();
     let frame = RowsFrame {
+        axis,
         mode,
         list: None,
         skip_held: false,
@@ -1401,10 +1450,16 @@ fn begin_rows(
 fn rows_region(frame: &RowsFrame) -> Bounds<Pixels> {
     const REACH: Pixels = px(1_000_000.);
     let region = frame.painted_region.union(&frame.viewport);
-    Bounds::from_corners(
-        point(region.left(), region.top() - REACH),
-        point(region.right(), region.bottom() + REACH),
-    )
+    match frame.axis {
+        Axis::Vertical => Bounds::from_corners(
+            point(region.left(), region.top() - REACH),
+            point(region.right(), region.bottom() + REACH),
+        ),
+        Axis::Horizontal => Bounds::from_corners(
+            point(region.left() - REACH, region.top()),
+            point(region.right() + REACH, region.bottom()),
+        ),
+    }
 }
 
 /// Tells the window that what the rows held by the layer of the list `id`
@@ -2204,6 +2259,7 @@ pub(crate) fn begin_list(
         Mode::Repaint
     };
     let frame = RowsFrame {
+        axis: Axis::Vertical,
         mode,
         list: Some(version.id()),
         skip_held: mode == Mode::Extend && state.pending_scroll.is_none() && !layer.rows.rerendered,
@@ -2461,13 +2517,15 @@ fn flow(frame: &RowsFrame) -> Range<usize> {
 /// without a layer does not draw them, so its layer neither holds nor
 /// renders them, as it does not a row that draws outside its room.
 fn hidden_in_view(
+    axis: Axis,
     slots: impl Iterator<Item = (usize, Pixels, Pixels)>,
     visible: &Range<usize>,
     viewport: Bounds<Pixels>,
 ) -> BTreeSet<usize> {
+    let (start, end) = along(axis, viewport);
     slots
-        .filter(|(row, top, height)| {
-            !visible.contains(row) && *top < viewport.bottom() && *top + *height > viewport.top()
+        .filter(|(row, row_start, extent)| {
+            !visible.contains(row) && *row_start < end && *row_start + *extent > start
         })
         .map(|(row, ..)| row)
         .collect()
@@ -2665,6 +2723,7 @@ pub(crate) fn end_list(
     let frame = layer.rows.frame.as_ref().unwrap();
     let (mode, changed) = (frame.mode, frame.changed.clone());
     let mut unheld = hidden_in_view(
+        Axis::Vertical,
         tops.iter()
             .map(|(row, (top, height))| (*row, *top, *height)),
         &visible,
@@ -3171,8 +3230,9 @@ fn rows_overflow(window: &Window, frame: &RowsFrame) -> bool {
         };
         hitboxes.iter().zip(&prepaint.masks).any(|(hitbox, mask)| {
             let hit = hitbox.bounds.intersect(&mask.bounds);
-            !hit.is_empty()
-                && (hit.top() < slot.top() - EPSILON || hit.bottom() > slot.bottom() + EPSILON)
+            let (hit_start, hit_end) = along(frame.axis, hit);
+            let (start, end) = along(frame.axis, *slot);
+            !hit.is_empty() && (hit_start < start - EPSILON || hit_end > end + EPSILON)
         })
     })
 }
@@ -3919,10 +3979,18 @@ pub(crate) fn end_paint_rows(window: &mut Window, cx: &mut App, id: Option<&Glob
         // list shows it (see `RowSort::spilling`). A row's edges are drawn
         // on the device pixels around them.
         let spills = reach.is_some_and(|reach| {
-            reach.top().0 < slot.top().0.floor() || reach.bottom().0 > slot.bottom().0.ceil()
+            let ((reach_start, reach_end), (start, end)) = (
+                along_scaled(frame.axis, reach),
+                along_scaled(frame.axis, slot),
+            );
+            reach_start < start.floor() || reach_end > end.ceil()
         });
         if spills || span.unheld {
-            rows.spilling.insert(span.row, slot.size.height);
+            let extent = match frame.axis {
+                Axis::Vertical => slot.size.height,
+                Axis::Horizontal => slot.size.width,
+            };
+            rows.spilling.insert(span.row, extent);
             if !span.shown.get() {
                 // Moved to the content already.
                 pass.leave_out(&row_operations, Point::default());

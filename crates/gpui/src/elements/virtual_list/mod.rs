@@ -1567,21 +1567,22 @@ impl Element for VirtualList {
                         publish_rendered_range(listener, rendered_range.clone(), window, cx);
                     }
 
-                    // A vertical list that is its own scroll container and has no sticky rows
-                    // composites from a list layer; the other kinds that scroll themselves are
-                    // counted ineligible, and a list scrolled by another element calls no hook.
+                    // A list that is its own scroll container and has no sticky rows composites
+                    // from a list layer along its axis; one with sticky rows is counted
+                    // ineligible, and a list scrolled by another element calls no hook.
                     let fast_rows = if own_scroll {
                         crate::fast::layers::lists::begin_virtual_list(
                             window,
                             cx,
                             global_id,
+                            self.axis,
                             content_bounds,
                             scroll_offset,
                             item_origins,
                             item_sizes,
                             extent_index,
                             &rendered_range,
-                            self.axis == Axis::Vertical && self.sticky_items.items().is_empty(),
+                            self.sticky_items.items().is_empty(),
                         )
                     } else {
                         crate::fast::layers::lists::Rows::unlayered()
