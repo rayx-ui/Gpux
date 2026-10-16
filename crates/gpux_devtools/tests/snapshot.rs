@@ -6,7 +6,7 @@
 
 mod support;
 
-use gpux::TestAppContext;
+use gpux::{AppContext as _, TestAppContext};
 use serde_json::json;
 use support::*;
 
@@ -110,4 +110,67 @@ fn query_returns_every_match_with_its_states_and_bounds() {
     assert_eq!(wrap["bounds"]["width"], 20.);
     let bad = request(&mut cx, "query", json!({"query": "type=Div"})).unwrap_err();
     assert!(bad.message.contains("type="), "{bad}");
+}
+
+/// Texts YAML would misread written plain.
+struct Notes;
+
+impl gpux::Render for Notes {
+    fn render(
+        &mut self,
+        _: &mut gpux::Window,
+        _: &mut gpux::Context<Self>,
+    ) -> impl gpux::IntoElement {
+        use gpux::{ParentElement as _, Styled as _};
+        gpux::div()
+            .flex()
+            .flex_col()
+            .child(gpux::div().child("key: value"))
+            .child(gpux::div().child("first\nsecond"))
+            .child(gpux::div().child("42"))
+            .child(gpux::div().child("plain words"))
+    }
+}
+
+#[test]
+fn text_yaml_would_misread_is_quoted() {
+    let mut cx = TestAppContext::single();
+    let window = cx.add_window(|_, _| Notes);
+    let _guard = cx
+        .update_window(window.into(), |_, window, _| window.begin_a11y_inspection())
+        .unwrap();
+    cx.run_until_parked();
+    let yaml = yaml(&mut cx, json!({}));
+    let texts: Vec<&str> = yaml
+        .lines()
+        .filter_map(|line| line.split_once("] : ").or(line.split_once("]: ")))
+        .map(|(_, text)| text)
+        .collect();
+    assert_eq!(
+        texts,
+        [
+            r#""key: value""#,
+            r#""first\nsecond""#,
+            r#""42""#,
+            "plain words"
+        ],
+        "{yaml}"
+    );
+    // Every line is one node: the line break stayed inside its quotes.
+    assert!(!yaml.lines().any(|line| line.trim_start() == "second\""));
+}
+
+#[test]
+fn a_snapshot_stops_at_its_depth() {
+    let mut cx = TestAppContext::single();
+    let (_window, _guard) = controls(&mut cx);
+    let result = request(&mut cx, "snapshot", json!({"depth": 1})).unwrap();
+    let yaml = result["snapshot"].as_str().unwrap();
+    let deepest = yaml
+        .lines()
+        .map(|line| (line.len() - line.trim_start().len()) / 2)
+        .max()
+        .unwrap();
+    assert_eq!(deepest, 1, "{yaml}");
+    assert!(!yaml.contains("\"Save\""), "Save is deeper\n{yaml}");
 }

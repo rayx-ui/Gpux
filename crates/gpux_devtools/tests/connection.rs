@@ -314,3 +314,36 @@ fn set_enabled_closes_and_resumes_the_connection() {
         (cx.update(|cx| gpux_devtools::guarded_windows(cx)) == 1).then_some(())
     });
 }
+
+#[test]
+fn an_answer_to_an_earlier_connection_never_reaches_the_next() {
+    let server = Server::bind();
+    let mut cx = app();
+    cx.add_window(|_, _| Panel { clicks: 0 });
+    cx.update(|cx| gpux_devtools::install(cx, options(&server)));
+    let mut connection = server.accept(&mut cx);
+    connection.handshake(&mut cx);
+    // A request still running when the connection restarts.
+    connection.send(json!({
+        "jsonrpc": "2.0", "id": 5, "method": "wait",
+        "params": {"query": "role=button name=Nope", "timeoutMs": 1000},
+    }));
+    pump(&mut cx);
+    cx.update(|cx| gpux_devtools::set_enabled(cx, false));
+    connection.expect_closed(&mut cx);
+    cx.update(|cx| gpux_devtools::set_enabled(cx, true));
+    let mut again = server.accept(&mut cx);
+    again.handshake(&mut cx);
+    // The wait times out on the app's clock; its answer belongs to the old connection.
+    for _ in 0..40 {
+        pump(&mut cx);
+        if let Some(Ok(message)) = again.try_read() {
+            assert_ne!(
+                message["id"], 5,
+                "the old answer reached the new connection"
+            );
+        }
+    }
+    let stats = again.request(&mut cx, 6, "stats", json!({}));
+    assert!(stats["result"]["treeNodes"].is_u64(), "{stats}");
+}

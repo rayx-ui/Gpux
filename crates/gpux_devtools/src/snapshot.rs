@@ -23,6 +23,17 @@ pub fn render_snapshot(
     root: Option<NodeId>,
     bounds: bool,
 ) -> String {
+    render(snapshot, view, root, bounds, None)
+}
+
+/// [`render_snapshot`], at most `depth` levels below the root when given.
+pub(crate) fn render(
+    snapshot: &SemanticSnapshot,
+    view: QueryView,
+    root: Option<NodeId>,
+    bounds: bool,
+    depth: Option<usize>,
+) -> String {
     let start = root
         .and_then(|id| snapshot.nodes.iter().position(|node| node.node_id == id))
         .unwrap_or(0);
@@ -38,7 +49,7 @@ pub fn render_snapshot(
         }
     }
     let mut out = String::new();
-    write(snapshot, &children, start, 0, bounds, &mut out);
+    write(snapshot, &children, start, 0, bounds, depth, &mut out);
     out
 }
 
@@ -48,6 +59,7 @@ fn write(
     index: usize,
     depth: usize,
     bounds: bool,
+    limit: Option<usize>,
     out: &mut String,
 ) {
     let node = &snapshot.nodes[index];
@@ -77,11 +89,11 @@ fn write(
     } else {
         node.value.clone()
     };
-    let has_children = !children[index].is_empty();
+    let has_children = !children[index].is_empty() && limit.is_none_or(|limit| depth < limit);
     match (content, has_children) {
         (Some(content), _) if is_text => {
             out.push_str(": ");
-            out.push_str(&content);
+            out.push_str(&scalar(&content));
         }
         (Some(content), _) => {
             out.push_str(": ");
@@ -91,8 +103,10 @@ fn write(
         (None, false) => {}
     }
     out.push('\n');
-    for child in &children[index] {
-        write(snapshot, children, *child, depth + 1, bounds, out);
+    if has_children {
+        for child in &children[index] {
+            write(snapshot, children, *child, depth + 1, bounds, limit, out);
+        }
     }
 }
 
@@ -128,6 +142,31 @@ fn states(node: &SemanticNode) -> Vec<String> {
         states.push(format!("level={level}"));
     }
     states
+}
+
+/// Text as a YAML scalar: plain where YAML reads it back as written, else quoted (line breaks,
+/// a `: ` or ` #`, leading or trailing spaces, an indicator first, or text YAML takes for
+/// another type), as Playwright's aria snapshots quote it.
+fn scalar(text: &str) -> String {
+    let first = text.chars().next();
+    let special = text.is_empty()
+        || text.contains(['\n', '\r', '\t'])
+        || text.contains(": ")
+        || text.ends_with(':')
+        || text.contains(" #")
+        || text.starts_with(' ')
+        || text.ends_with(' ')
+        || first.is_some_and(|c| "-?:,[]{}#&*!|>'\"%@`".contains(c))
+        || matches!(
+            text.to_ascii_lowercase().as_str(),
+            "true" | "false" | "null" | "~" | "yes" | "no"
+        )
+        || text.parse::<f64>().is_ok();
+    if special {
+        quoted(text)
+    } else {
+        text.to_string()
+    }
 }
 
 /// `text` in double quotes, escaped as YAML reads it.

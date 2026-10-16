@@ -4,7 +4,7 @@
 //! (else the first). Nodes are named by `ref`: their AccessKit node id, as snapshots print it.
 //! The functions here are the protocol's handlers; [`handle`] dispatches by method.
 
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use base64::Engine as _;
 use gpux::{
@@ -134,7 +134,7 @@ fn view(params: &Value) -> QueryView {
 
 /// `snapshot`: the window's tree as YAML, in the inspection view (every node, generic
 /// containers included) or the screen-reader view (`view: "screen-reader"`), from `ref` when
-/// given, with bounds when `bounds` is true.
+/// given, `depth` levels deep when given, with bounds when `bounds` is true.
 pub fn snapshot(cx: &mut App, params: &Value) -> Outcome {
     with_tree(cx, params, |snapshot, window, _| {
         let root = match params.get("ref") {
@@ -145,9 +145,14 @@ pub fn snapshot(cx: &mut App, params: &Value) -> Outcome {
             .get("bounds")
             .and_then(Value::as_bool)
             .unwrap_or(false);
-        let yaml = crate::render_snapshot(snapshot, view(params), root, bounds);
+        let depth = params
+            .get("depth")
+            .and_then(Value::as_u64)
+            .map(|depth| depth as usize);
+        let yaml = crate::snapshot::render(snapshot, view(params), root, bounds, depth);
         Ok(json!({
             "window": window.window_handle().window_id().as_u64(),
+            "title": window.window_title(),
             "snapshot": yaml,
         }))
     })
@@ -232,6 +237,7 @@ pub fn act(cx: &mut App, params: &Value) -> Outcome {
         Action::CustomAction => Some(ActionData::CustomAction(
             params
                 .get("id")
+                .or_else(|| params.get("customAction"))
                 .and_then(Value::as_i64)
                 .ok_or_else(|| RpcError::invalid_params("customAction needs an `id`"))?
                 as i32,
@@ -385,10 +391,11 @@ fn flush(window: &mut Window, cx: &mut App) {
 }
 
 /// `input`: synthesizes input through the window's dispatch methods, the paths platform input
-/// takes. `kind` is `click` (with `button` and `count`), `hover`, `drag` (to `toRef` or
-/// `toX`/`toY`), `longPress` (`durationMs`), `pinch` (`scale`), `wheel` (`deltaX`/`deltaY`),
-/// `type` (`text`, clicking `ref` first when given) or `press` (`keys`, such as
-/// `["cmd-a", "backspace"]`). Positions come from `ref` or `x`/`y` in window pixels.
+/// takes. `kind` is `click` (with `button` and `count`), `hover`, `mouseMove`, `mouseDown`,
+/// `mouseUp`, `drag` (to `toRef` or `toX`/`toY`), `longPress` (`durationMs`), `pinch`
+/// (`scale`), `wheel` (`deltaX`/`deltaY`), `type` (`text`, clicking `ref` first when given and
+/// clearing the field first with `replace`) or `press` (`keys`: `["cmd-a", "backspace"]`, or
+/// the same separated by spaces). Positions come from `ref` or `x`/`y` in window pixels.
 pub fn input(cx: &mut App, params: Value) -> Task<Outcome> {
     let kind = params
         .get("kind")
@@ -404,7 +411,9 @@ pub fn input(cx: &mut App, params: Value) -> Task<Outcome> {
                 let count = params.get("count").and_then(Value::as_u64).unwrap_or(1) as usize;
                 click(window, cx, at_or_center, button(&params), count);
             }
-            "hover" => mouse_move(window, cx, at_or_center, None),
+            "hover" | "mouseMove" => mouse_move(window, cx, at_or_center, None),
+            "mouseDown" => mouse_down(window, cx, at_or_center, button(&params), 1),
+            "mouseUp" => mouse_up(window, cx, at_or_center, button(&params), 1),
             "drag" => {
                 let to = position(snapshot, &params, window, ("toRef", "toX", "toY"))?
                     .ok_or_else(|| RpcError::invalid_params("drag needs `toRef` or `toX`/`toY`"))?;
@@ -451,6 +460,19 @@ pub fn input(cx: &mut App, params: Value) -> Task<Outcome> {
                     click(window, cx, at, MouseButton::Left, 1);
                     flush(window, cx);
                 }
+                if params.get("replace").and_then(Value::as_bool) == Some(true) {
+                    // Fill: what the field holds goes first.
+                    let select_all = if cfg!(target_os = "macos") {
+                        "cmd-a"
+                    } else {
+                        "ctrl-a"
+                    };
+                    for key in [select_all, "backspace"] {
+                        if let Ok(keystroke) = Keystroke::parse(key) {
+                            window.dispatch_keystroke(keystroke, cx);
+                        }
+                    }
+                }
                 type_text(window, cx, text);
                 flush(window, cx);
             }
@@ -460,7 +482,9 @@ pub fn input(cx: &mut App, params: Value) -> Task<Outcome> {
                         .iter()
                         .filter_map(|key| key.as_str().map(str::to_string))
                         .collect(),
-                    Some(Value::String(key)) => vec![key.clone()],
+                    Some(Value::String(keys)) => {
+                        keys.split_whitespace().map(str::to_string).collect()
+                    }
                     _ => return Err(RpcError::invalid_params("press needs `keys`")),
                 };
                 for key in keys {
@@ -560,7 +584,10 @@ pub fn wait(cx: &mut App, params: Value) -> Task<Outcome> {
         Err(error) => return Task::ready(Err(error)),
     };
     cx.spawn(async move |cx: &mut AsyncApp| {
-        let start = Instant::now();
+        // The executor's clock: the browser has no `std::time::Instant`, and tests drive it.
+        let executor = cx.background_executor().clone();
+        let start = executor.now();
+        let elapsed = || executor.now().duration_since(start);
         loop {
             let matched = window
                 .update(cx, |_, window, _| {
@@ -571,10 +598,10 @@ pub fn wait(cx: &mut App, params: Value) -> Task<Outcome> {
             if matched.is_some_and(|matched| matched != detached) {
                 return Ok(json!({
                     "matched": true,
-                    "elapsedMs": start.elapsed().as_millis() as u64,
+                    "elapsedMs": elapsed().as_millis() as u64,
                 }));
             }
-            if start.elapsed() >= timeout {
+            if elapsed() >= timeout {
                 return Err(RpcError::failed(format!(
                     "`{query}` did not {} within {} ms",
                     if detached { "stop matching" } else { "match" },
@@ -588,8 +615,8 @@ pub fn wait(cx: &mut App, params: Value) -> Task<Outcome> {
     })
 }
 
-/// `stats`: the size of the window's tree and, with this crate's `diagnostics` feature, fast
-/// mode's counters for its last frame (`frames` among them).
+/// `stats`: how many frames the window drew, the size of its tree and, with this crate's
+/// `diagnostics` feature, fast mode's counters for its last frame.
 pub fn stats(cx: &mut App, params: &Value) -> Outcome {
     let window = window(cx, params)?;
     window
@@ -608,6 +635,7 @@ pub fn stats(cx: &mut App, params: &Value) -> Outcome {
             json!({
                 "window": window.window_handle().window_id().as_u64(),
                 "fast": counters,
+                "frames": window.frames_drawn(),
                 "treeNodes": SemanticSnapshot::of(window).map(|snapshot| snapshot.nodes.len()),
             })
         })

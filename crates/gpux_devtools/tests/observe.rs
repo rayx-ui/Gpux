@@ -118,6 +118,67 @@ fn wait_for_detached_and_timing_out() {
 }
 
 #[test]
+fn wait_times_out_on_the_executor_clock() {
+    let mut cx = TestAppContext::single();
+    let window = cx.add_window(|_, _| Panel { clicks: 0 });
+    let _guard = cx
+        .update_window(window.into(), |_, window, _| window.begin_a11y_inspection())
+        .unwrap();
+    cx.run_until_parked();
+    let task = cx.update(|cx| {
+        gpux_devtools::requests::handle(
+            cx,
+            "wait",
+            json!({"query": "role=button name=Nope", "timeoutMs": 60000}),
+        )
+    });
+    let result = std::rc::Rc::new(std::cell::RefCell::new(None));
+    let slot = result.clone();
+    cx.update(|cx| {
+        cx.spawn(async move |_| *slot.borrow_mut() = Some(task.await))
+            .detach()
+    });
+    // A minute passes on the app's clock in no real time at all.
+    cx.run_until_parked();
+    cx.executor()
+        .advance_clock(std::time::Duration::from_secs(59));
+    cx.run_until_parked();
+    assert!(
+        result.borrow().is_none(),
+        "still waiting before the timeout"
+    );
+    cx.executor()
+        .advance_clock(std::time::Duration::from_secs(2));
+    cx.run_until_parked();
+    let error = result.borrow_mut().take().expect("timed out").unwrap_err();
+    assert!(
+        error.message.contains("did not match within 60000 ms"),
+        "{error}"
+    );
+}
+
+#[test]
+fn stats_count_the_frames_drawn() {
+    let mut cx = TestAppContext::single();
+    let window = cx.add_window(|_, _| Panel { clicks: 0 });
+    let _guard = cx
+        .update_window(window.into(), |_, window, _| window.begin_a11y_inspection())
+        .unwrap();
+    cx.run_until_parked();
+    let frames = |cx: &mut TestAppContext| {
+        request(cx, "stats", json!({})).unwrap()["frames"]
+            .as_u64()
+            .unwrap()
+    };
+    let before = frames(&mut cx);
+    for _ in 0..3 {
+        cx.update_window(window.into(), |_, window, cx| window.draw(cx).clear(cx))
+            .unwrap();
+    }
+    assert_eq!(frames(&mut cx), before + 3);
+}
+
+#[test]
 fn stats_report_the_tree_and_fast_mode_counters() {
     let mut cx = TestAppContext::single();
     let window = cx.add_window(|_, _| Panel { clicks: 0 });

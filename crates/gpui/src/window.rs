@@ -2516,6 +2516,8 @@ pub struct Window {
     long_press_timer: Option<Task<()>>,
     long_press_capture: Option<EntityId>,
     pub(crate) refreshing: bool,
+    /// How many frames the window drew; see [`Window::frames_drawn`].
+    frames_drawn: u64,
     pub(crate) activation_observers: SubscriberSet<(), AnyObserver>,
     pub(crate) minimized_observers: SubscriberSet<(), AnyObserver>,
     pub(crate) focus: Option<FocusId>,
@@ -3503,6 +3505,7 @@ impl Window {
             long_press_timer: None,
             long_press_capture: None,
             refreshing: false,
+            frames_drawn: 0,
             activation_observers: SubscriberSet::new(),
             minimized_observers: SubscriberSet::new(),
             focus: None,
@@ -4367,6 +4370,11 @@ impl Window {
     /// Returns the bounds of the current window in the global coordinate space, which could span across multiple displays.
     pub fn bounds(&self) -> Bounds<Pixels> {
         self.platform_window.bounds()
+    }
+
+    /// How many frames the window has drawn since it opened.
+    pub fn frames_drawn(&self) -> u64 {
+        self.frames_drawn
     }
 
     /// Renders the current frame's scene to a texture and returns the pixel data as an RGBA image.
@@ -5246,6 +5254,7 @@ impl Window {
     /// the contents of the new [`Scene`], use [`Self::present`].
     #[profiling::function]
     pub fn draw(&mut self, cx: &mut App) -> ArenaClearNeeded {
+        self.frames_drawn += 1;
         #[cfg(feature = "diagnostics")]
         self.fast_frame_work.begin_draw();
         // Drain every draw in profiler builds so a previous frame's

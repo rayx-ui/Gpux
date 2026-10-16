@@ -6,7 +6,12 @@
 
 mod support;
 
-use gpux::{AppContext as _, TestAppContext};
+use std::{cell::RefCell, rc::Rc};
+
+use gpux::{
+    AppContext as _, Context, DispatchPhase, IntoElement, LongPressEvent, MouseButton,
+    MouseMoveEvent, Render, Role, TestAppContext, Window, canvas, div, prelude::*, px,
+};
 use serde_json::json;
 use support::*;
 
@@ -150,10 +155,9 @@ fn input_clicks_double_clicks_and_hovers() {
 }
 
 #[test]
-fn input_drags_wheels_pinches_and_long_presses() {
+fn input_wheels_the_scroll_container_under_it() {
     let mut cx = TestAppContext::single();
     let (_window, _guard) = controls(&mut cx);
-    let far = reference(&mut cx, "role=button name=Far");
     let y = |cx: &mut TestAppContext| {
         request(cx, "query", json!({"query": "role=button name=Far"})).unwrap()["nodes"][0]["bounds"]["y"]
             .as_f64()
@@ -169,27 +173,178 @@ fn input_drags_wheels_pinches_and_long_presses() {
     .unwrap();
     cx.run_until_parked();
     assert!(y(&mut cx) < before, "the wheel scrolled the shelf");
-    let save = reference(&mut cx, "role=button name=Save");
+}
+
+/// A pad recording the gestures that reach it: presses, moves with a button held, hovering,
+/// pinches and long presses.
+struct Gestures {
+    log: Rc<RefCell<Vec<String>>>,
+}
+
+impl Render for Gestures {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let entity = cx.entity();
+        let log = self.log.clone();
+        let entry = move |text: String| log.borrow_mut().push(text);
+        let (down, moved, up, hover, pinch, press) = (
+            entry.clone(),
+            entry.clone(),
+            entry.clone(),
+            entry.clone(),
+            entry.clone(),
+            entry,
+        );
+        div()
+            .size_full()
+            .on_mouse_down(MouseButton::Left, move |event, _, _| {
+                down(format!("down {}", event.position.x.as_f32()))
+            })
+            .on_mouse_move(move |event: &MouseMoveEvent, _, _| {
+                if event.pressed_button == Some(MouseButton::Left) {
+                    moved(format!("drag {}", event.position.x.as_f32()))
+                }
+            })
+            .on_mouse_up(MouseButton::Left, move |event, _, _| {
+                up(format!("up {}", event.position.x.as_f32()))
+            })
+            .on_pinch(move |event, _, _| pinch(format!("pinch {:.1}", event.delta)))
+            .child(
+                div()
+                    .id("pad")
+                    .role(Role::Group)
+                    .aria_label("Pad")
+                    .w(px(40.))
+                    .h(px(40.))
+                    .on_hover(move |hovered, _, _| hover(format!("hover {hovered}"))),
+            )
+            .child(
+                div()
+                    .id("target")
+                    .role(Role::Group)
+                    .aria_label("Target")
+                    .ml(px(100.))
+                    .w(px(40.))
+                    .h(px(40.)),
+            )
+            .child(
+                canvas(
+                    |_, _, _| {},
+                    move |_, _, window, _| {
+                        let press = press.clone();
+                        window.on_mouse_event(move |event: &LongPressEvent, phase, window, _| {
+                            if phase == DispatchPhase::Bubble {
+                                press(format!("long {:?}", event.phase));
+                                // Claimed, the press runs to its end instead of falling back
+                                // to a tap.
+                                window.capture_long_press(&entity);
+                                window.prevent_default();
+                            }
+                        });
+                    },
+                )
+                .size_full(),
+            )
+    }
+}
+
+/// What reached the pad, hovering aside.
+fn without_hover(log: &Rc<RefCell<Vec<String>>>) -> Vec<String> {
+    log.borrow()
+        .iter()
+        .filter(|entry| !entry.starts_with("hover"))
+        .cloned()
+        .collect()
+}
+
+fn gestures(cx: &mut TestAppContext) -> (Rc<RefCell<Vec<String>>>, gpux::A11yInspection) {
+    let log = Rc::new(RefCell::new(Vec::new()));
+    let window = cx.add_window({
+        let log = log.clone();
+        |_, _| Gestures { log }
+    });
+    let guard = cx
+        .update_window(window.into(), |_, window, _| window.begin_a11y_inspection())
+        .unwrap();
+    cx.run_until_parked();
+    (log, guard)
+}
+
+#[test]
+fn input_drags_from_one_node_to_another() {
+    let mut cx = TestAppContext::single();
+    let (log, _guard) = gestures(&mut cx);
+    let pad = reference(&mut cx, "name=Pad");
+    let target = reference(&mut cx, "name=Target");
     request(
         &mut cx,
         "input",
-        json!({"kind": "drag", "ref": save, "toRef": far}),
+        json!({"kind": "drag", "ref": pad, "toRef": target}),
     )
     .unwrap();
+    cx.run_until_parked();
+    // The press lands on the pad's center and the move and release on the target's.
+    assert_eq!(without_hover(&log), ["down 20", "drag 120", "up 120"]);
+    let drag = request(&mut cx, "input", json!({"kind": "drag", "ref": pad})).unwrap_err();
+    assert!(drag.message.contains("toRef"));
+}
+
+#[test]
+fn input_presses_moves_and_releases_apart() {
+    let mut cx = TestAppContext::single();
+    let (log, _guard) = gestures(&mut cx);
+    for (kind, x) in [("mouseDown", 10), ("mouseUp", 30)] {
+        request(&mut cx, "input", json!({"kind": kind, "x": x, "y": 10})).unwrap();
+    }
+    assert_eq!(without_hover(&log), ["down 10", "up 30"]);
+}
+
+#[test]
+fn input_hovers_a_node() {
+    let mut cx = TestAppContext::single();
+    let (log, _guard) = gestures(&mut cx);
+    let pad = reference(&mut cx, "name=Pad");
+    let target = reference(&mut cx, "name=Target");
+    request(&mut cx, "input", json!({"kind": "hover", "ref": target})).unwrap();
+    log.borrow_mut().clear();
+    request(&mut cx, "input", json!({"kind": "hover", "ref": pad})).unwrap();
+    request(
+        &mut cx,
+        "input",
+        json!({"kind": "mouseMove", "ref": target}),
+    )
+    .unwrap();
+    cx.run_until_parked();
+    assert_eq!(*log.borrow(), ["hover true", "hover false"]);
+}
+
+#[test]
+fn input_pinches_by_a_scale() {
+    let mut cx = TestAppContext::single();
+    let (log, _guard) = gestures(&mut cx);
     request(
         &mut cx,
         "input",
         json!({"kind": "pinch", "x": 10, "y": 10, "scale": 1.5}),
     )
     .unwrap();
+    cx.run_until_parked();
+    assert_eq!(without_hover(&log), ["pinch 0.5"]);
+}
+
+#[test]
+fn input_long_presses_for_its_duration() {
+    let mut cx = TestAppContext::single();
+    let (log, _guard) = gestures(&mut cx);
+    let pad = reference(&mut cx, "name=Pad");
     request(
         &mut cx,
         "input",
-        json!({"kind": "longPress", "ref": save, "durationMs": 100}),
+        json!({"kind": "longPress", "ref": pad, "durationMs": 700}),
     )
     .unwrap();
-    let drag = request(&mut cx, "input", json!({"kind": "drag", "ref": save})).unwrap_err();
-    assert!(drag.message.contains("toRef"));
+    cx.run_until_parked();
+    // The hold outlasted the recognizer's delay, and lifting ended the press.
+    assert_eq!(without_hover(&log), ["long Started", "long Ended"]);
 }
 
 #[test]

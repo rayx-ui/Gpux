@@ -192,6 +192,8 @@ struct Devtools {
     extensions: Vec<Extension>,
     enabled: bool,
     connected: bool,
+    /// The number of the current connection; answers to an earlier one's requests are dropped.
+    connection: u64,
     transport: Transport,
     /// The inspection guard of every window, while connected.
     guards: HashMap<WindowId, A11yInspection>,
@@ -229,6 +231,7 @@ pub fn install(cx: &mut App, options: Options) {
         extensions: options.extensions,
         enabled,
         connected: false,
+        connection: 0,
         transport,
         guards: HashMap::default(),
         announced: HashSet::default(),
@@ -300,10 +303,16 @@ fn on_event(cx: &mut App, event: Event) {
 }
 
 fn connected(cx: &mut App) {
-    if !cx.has_global::<Devtools>() {
+    // A connection the transport made just before the devtools were switched off.
+    if !cx
+        .try_global::<Devtools>()
+        .is_some_and(|devtools| devtools.enabled)
+    {
         return;
     }
-    cx.global_mut::<Devtools>().connected = true;
+    let devtools = cx.global_mut::<Devtools>();
+    devtools.connected = true;
+    devtools.connection += 1;
     let windows = requests::window_infos(cx);
     for window in cx.windows() {
         guard(cx, window);
@@ -448,6 +457,7 @@ fn received(cx: &mut App, text: &str) {
         return;
     };
     let params = message.params.unwrap_or(Value::Null);
+    let connection = cx.global::<Devtools>().connection;
     let answer = if method == "extension.call" {
         Task::ready(extension_call(cx, params))
     } else {
@@ -455,7 +465,15 @@ fn received(cx: &mut App, text: &str) {
     };
     cx.spawn(async move |cx: &mut AsyncApp| {
         let outcome = answer.await;
-        cx.update(|cx| send(cx, Message::response(Some(id), outcome)));
+        cx.update(|cx| {
+            // The answer goes back only on the connection that asked.
+            if cx
+                .try_global::<Devtools>()
+                .is_some_and(|devtools| devtools.connected && devtools.connection == connection)
+            {
+                send(cx, Message::response(Some(id), outcome));
+            }
+        });
     })
     .detach();
 }

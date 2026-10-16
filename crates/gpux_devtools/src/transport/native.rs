@@ -83,6 +83,22 @@ fn run(
         match tungstenite::connect(url.as_str()) {
             Ok((mut socket, _)) => {
                 delay = backoff.min;
+                // Frames queued for an earlier connection are stale: the new one starts with
+                // the foreground's `hello`.
+                loop {
+                    match controls.try_recv() {
+                        Ok(Control::Send(_)) => {}
+                        Ok(Control::SetEnabled(on)) => enabled = on,
+                        Ok(Control::Close) => halted = true,
+                        Ok(Control::Shutdown) | Err(TryRecvError::Disconnected) => return,
+                        Err(TryRecvError::Empty) => break,
+                    }
+                }
+                if !enabled || halted {
+                    socket.close(None).ok();
+                    socket.flush().ok();
+                    continue;
+                }
                 if let MaybeTlsStream::Plain(stream) = socket.get_mut() {
                     stream.set_read_timeout(Some(POLL)).ok();
                     stream.set_nodelay(true).ok();
