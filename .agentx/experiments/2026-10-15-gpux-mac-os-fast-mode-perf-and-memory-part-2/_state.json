@@ -11,13 +11,13 @@
   "status": "",
   "createdAt": "2026-10-15T23:56:32Z",
   "finishedAt": null,
-  "lastStableCommit": "88c1c59b22ee2ded1135830598f35a706dabde0a",
+  "lastStableCommit": "f7a22c7ae47720077689fb904784de3e593afec1",
   "repositories": [
     {
       "name": "main",
       "path": ".",
       "role": "main",
-      "lastStableCommit": "88c1c59b22ee2ded1135830598f35a706dabde0a"
+      "lastStableCommit": "f7a22c7ae47720077689fb904784de3e593afec1"
     }
   ],
   "atomicDiscipline": {
@@ -28,7 +28,7 @@
     "successfulAttemptRequiresCommitBeforeNextExperiment": true,
     "rule": "Run exactly the printed hypothesis. If the attempted change fails, degrades, or suggests a different fix, revert to the checkpoint and finish this experiment as failure. Start a new experiment for the next idea."
   },
-  "currentExperimentId": "bb88f052-9393-4c22-a9df-b42b2f5afbdf",
+  "currentExperimentId": null,
   "nextExperimentIndex": 3,
   "experiments": [
     {
@@ -50,9 +50,10 @@
       "name": "Scroll container skips laying out kept content",
       "path": "2026-10-15-02-scroll-container-skips-laying-out-kept-content.json",
       "startedAt": "2026-10-15T23:59:22Z",
-      "finishedAt": null,
-      "state": "running",
-      "status": ""
+      "finishedAt": "2026-10-16T00:40:09Z",
+      "state": "done",
+      "status": "success",
+      "resultCommit": "f7a22c7ae47720077689fb904784de3e593afec1"
     }
   ]
 }
